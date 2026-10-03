@@ -1,24 +1,25 @@
-# SolidWorks MCP — versioni
+# SolidWorks MCP — versions
 
-> **LINGUA DI QUESTO FILE — deciso il 16 settembre 2026 (voci W3.1 / W3.2).**
-> Il repository passa all'inglese. **Questo file no, non all'indietro.** Le voci
-> storiche restano in italiano e **non si traducono**: raccontano cosa si
-> chiamavano le cose *allora*, e *un changelog riscritto e' un changelog che
-> mente* (regola della voce I1, che resta in piedi). Le voci **nuove** si
-> scrivono in inglese, a partire dalla prima successiva a questa riga. Il
-> confine e' qui, ed e' dichiarato invece che implicito.
->
-> **Superseded on 28 September 2026 (entry W3.1-bis, decision D2):** the historical
-> entries below are translated too, in W3.1-bis.10, and the paragraph above is
-> rewritten then. New entries were already in English.
+> **LANGUAGE OF THIS FILE — all of it is in English since W3.1-bis (decision D2).**
+> Entries written from 16 September 2026 on (W3.1 / W3.2) were born in English.
+> The historical entries before them were written in Italian and were translated
+> in full in W3.1-bis.10, before the first public release (decision D2, taken on
+> 28 September 2026 and confirmed on 3 October 2026). The translation changes the
+> language, not the content: every sentence is kept, nothing is summarized, and
+> the rule of entry I1 still holds — *a rewritten changelog is a changelog that
+> lies*. Names of operations, arguments, fields, classes, files and folders are
+> given in their English form from the rename map
+> (`Controlli/lingua/name-map.tsv`), so that they match the repository as it is
+> published; SOLIDWORKS names, literal values and names with no row in the map
+> stay as they were written.
 
-**REGOLA, non consuetudine: ogni modifica al codice alza la versione in
-`VERSION.txt` e aggiunge una voce qui.**
+**RULE, not habit: every code change bumps the version in
+`VERSION.txt` and adds an entry here.**
 
-Perche' e' una regola: questo ponte serve a MISURARE, e una misura senza il
-numero di versione di cio' che l'ha prodotta non e' una misura — e' un
-aneddoto. Se fra un mese una prova dice una cosa diversa da oggi, la prima
-domanda sara' «con quale versione?», e deve avere una risposta.
+Why it is a rule: this bridge exists to MEASURE, and a measurement without the
+version number of what produced it is not a measurement — it is an
+anecdote. If a month from now a test says something different from today, the
+first question will be "with which version?", and it must have an answer.
 
 Criterion (reduced semver MAJOR.MINOR.PATCH):
 
@@ -7707,131 +7708,129 @@ answer to one person, and it would read like one.
 
 ---
 
-## 0.56.0 — 16 settembre 2026 · libreria 0.91.0
+## 0.56.0 — 16 September 2026 · library 0.91.0
 
-### `profili_saldatura` — l'operazione che il catalogo chiedeva e che non c'era
+### `weldment_profiles` — the operation the catalogue was asking for and that did not exist
 
-Catalogo a **60 operazioni**. Trovata da un audit del TODO fatto con sette agenti
-in parallelo, e verificata a mano prima di crederci.
+Catalogue at **60 operations**. Found by a TODO audit done with seven agents
+in parallel, and verified by hand before trusting it.
 
-`membro_strutturale` e `telaio_rettangolare` dicono, nella loro stessa
-descrizione: *«PRIMA CHIAMA "profili_saldatura" e copia da lì "profilo_percorso"
-e "configurazione" ALLA LETTERA»*.
+`structural_member` and `rectangular_frame` say, in their own description: *"FIRST
+CALL \"weldment_profiles\" and copy from it \"profile_path\" and \"configuration\" LITERALLY"*.
 
-**Quell'operazione non esisteva.** Il nome compariva quattro volte in
-`catalogo.json` — tutte e quattro *dentro il testo* di chi la chiedeva — e zero
-volte fra i nomi eseguibili. Gli strumenti MCP sono cinque e nessuno elenca i
-profili. Quindi il modello leggeva un'istruzione che non portava da nessuna
-parte, e l'unica cosa che poteva fare era **inventarsi** un percorso `.sldlfp` e
-un nome di misura.
+**That operation did not exist.** The name appeared four times in
+`catalog.json` — all four *inside the text* of whoever was asking for it — and zero
+times among the executable names. The MCP tools are five and none of them lists the
+profiles. So the model was reading an instruction that led nowhere, and the only
+thing it could do was **make up** a `.sldlfp` path and a measurement name.
 
-E inventarsi la misura non dà errore — lo dice il commento di
-`OperazioniSaldatura`, scritto molto prima di questo audit: *«se la misura non
-c'è, SOLIDWORKS NON fallisce: usa la configurazione attiva del profilo. Il pezzo
-esce con una parete diversa da quella confermata, il rebuild è pulito, e nessuno
-se ne accorge fino all'officina»*. Un controllo che lo prende **c'era già**, ed è
-buono; ma può scattare solo *dopo* che qualcuno ha indovinato.
+And making up the measurement raises no error — the comment in
+`WeldmentOperations` says so, written well before this audit: *"if the measurement
+is not there, SOLIDWORKS does NOT fail: it uses the profile's active configuration.
+The part comes out with a different wall than the one confirmed, the rebuild is
+clean, and nobody notices until the workshop"*. A check that catches it **already
+existed**, and it is good; but it can only fire *after* someone has already guessed.
 
-Ora l'operazione c'è: elenca i profili della libreria e, per ognuno, le misure
-scritte esattamente come vanno copiate. Legge i `.sldlfp` con
-`ISldWorks.GetConfigurationNames(percorso)`, **senza aprire documenti**. La
-cartella si scavalca con `PROFILI_SALDATURA`, la stessa variabile che usa già il
-banco.
+Now the operation exists: it lists the library's profiles and, for each one, the
+measurements written exactly as they must be copied. It reads the `.sldlfp` files
+with `ISldWorks.GetConfigurationNames(path)`, **without opening documents**. The
+folder is overridden with `PROFILI_SALDATURA`, the same variable the bench already
+uses.
 
-Il caso di banco chiude il cerchio: legge la misura al primo passo e la ricopia
-dentro `membro_strutturale` al secondo. Prova che i due pezzi del catalogo si
-*parlano*, non che si citano.
+The bench case closes the loop: it reads the measurement in the first step and
+copies it back into `structural_member` in the second. It proves that the two
+pieces of the catalogue *talk to each other*, not just that they cite each other.
 
 ---
 
-## 0.55.0 — 16 settembre 2026 · libreria 0.90.0
+## 0.55.0 — 16 September 2026 · library 0.90.0
 
-### GP17 — `sweep_circolare` e `loft_fra_due_cerchi`, e il loft che non è un cono
+### GP17 — `circular_sweep` and `loft_two_circles`, and the loft that is not a cone
 
-Catalogo a **59 operazioni**. Le prime due che fanno una forma **non dritta**: un
-bocchettone passacavo, un manico, un riduttore fra due sezioni.
+Catalogue at **59 operations**. The first two that make a **non-straight** shape:
+a cable-pass grommet, a handle, a reducer between two sections.
 
-**Il profilo è un numero, non uno schizzo.** `InsertProtrusionSwept4` ha
-`CircularProfile` + `CircularProfileDiameter`: con quelli lo schizzo del profilo
-non serve. E il percorso è **un elenco di punti**, disegnato dall'operazione in
-uno schizzo 3D — non uno schizzo da nominare, perché nello stato del documento
-gli schizzi non hanno un identificativo e nessuna operazione ne lascia in giro
-uno riutilizzabile. Se il percorso dovesse essere «uno schizzo», l'operazione non
-sarebbe chiamabile da nessuno. È la stessa ragione per cui
-`piano_per_tre_punti` prende coordinate e non vertici.
+**The profile is a number, not a sketch.** `InsertProtrusionSwept4` has
+`CircularProfile` + `CircularProfileDiameter`: with those, the profile sketch is
+not needed. And the path is **a list of points**, drawn by the operation in a 3D
+sketch — not a sketch to be named, because in the document state sketches have no
+identifier and no operation leaves a reusable one lying around. If the path had to
+be "a sketch", the operation would not be callable by anyone. It is the same
+reason `plane_three_points` takes coordinates and not vertices.
 
-**Le marche, misurate:**
+**The marks, measured:**
 
 | | 0 | 1 | 2 | 4 |
 |---|---|---|---|---|
-| sweep, percorso | ok | null | null | **ok** |
-| loft, profili | ok | **ok** | — | null |
+| sweep, path | ok | null | null | **ok** |
+| loft, profiles | ok | **ok** | — | null |
 
-Si usa 4 per il percorso e 1 per i profili. Lo zero funziona in tutti e due
-perché vuol dire «nessuna marca», ma appoggiarcisi renderebbe indistinguibili
-due selezioni con ruoli diversi il giorno che se ne aggiunge una terza.
+4 is used for the path and 1 for the profiles. Zero works for both because it
+means "no mark", but relying on it would make two selections with different roles
+indistinguishable the day a third one is added.
 
-**Lo sweep dritto è esatto.** Ø20 su 100 mm di percorso: **31415,927 mm³** contro
-π·10²·100 = 31415,9265. Non «vicino»: uguale alla settima cifra. L'operazione fa
-il conto e si rifiuta se non torna. Su un percorso con gomiti il conto **non**
-vale — nei gomiti il materiale si sovrappone — e allora il teorico si dichiara
-come *limite superiore*, non come risposta.
+**The straight sweep is exact.** Ø20 over 100 mm of path: **31415,927 mm³**
+against π·10²·100 = 31415,9265. Not "close": equal to the seventh digit. The
+operation does the arithmetic and refuses if it does not match. On a path with
+elbows the arithmetic **does not** hold — at the elbows the material overlaps —
+and then the theoretical value is declared as an *upper bound*, not as the answer.
 
-**E un loft fra due cerchi non è un cono.** Ø40 e Ø20 a 50 mm:
+**And a loft between two circles is not a cone.** Ø40 and Ø20 at 50 mm:
 
-    formula del tronco di cono   36.651,91 mm3
-    loft misurato                36.650,61 mm3
-    differenza                        1,30 mm3   (0,0035%)
+    frustum-of-cone formula      36.651,91 mm3
+    measured loft                 36.650,61 mm3
+    difference                         1,30 mm3   (0,0035%)
 
-La superficie di un loft è un'**approssimazione a spline** della conica. È poco
-ed è sistematico, sempre in difetto: chi confronta un loft con la formula e non
-lo sa insegue un difetto che non c'è. Il caso di banco costruisce **lo stesso
-tronco di cono con `rivoluzione`** accanto al loft e pretende che la somma dei
-due corpi sia 73302,53 — cioè 36650,61 + 36651,91. Se fosse la formula a
-sbagliare, i due corpi peserebbero uguale e la somma sarebbe un altro numero. È
-la differenza fra «i miei numeri non tornano» e «so quale dei due è approssimato».
+The surface of a loft is a **spline approximation** of the conic. It is small and
+it is systematic, always on the low side: whoever compares a loft with the formula
+and does not know this chases a defect that is not there. The bench case builds
+**the same cone frustum with `revolve`** next to the loft and expects the sum of
+the two bodies to be 73302,53 — that is, 36650,61 + 36651,91. If the formula were
+the one that was wrong, the two bodies would weigh the same and the sum would be a
+different number. It is the difference between "my numbers do not add up" and "I
+know which of the two is approximate".
 
 ---
 
-## 0.54.0 — 16 settembre 2026 · libreria 0.89.0
+## 0.54.0 — 16 September 2026 · library 0.89.0
 
-### GP9 (in parte) — `piano_per_tre_punti`, e la terza riga che non è la terza colonna
+### GP9 (in part) — `plane_three_points`, and the third row that is not the third column
 
-Catalogo a **57 operazioni**. `crea_piano` sapeva fare solo il piano *sfalsato*
-da uno dei tre standard: per un foro inclinato o una faccia obliqua non c'era
-nessun piano su cui disegnare.
+Catalogue at **57 operations**. `create_plane` could only make the *offset* plane
+from one of the three standards: for a tilted hole or an oblique face there was no
+plane to draw on.
 
-**Tre coordinate, non tre vertici.** `CreatePlaneThru3Points3` vuole tre vertici
-selezionati; `CreatePlaneFixed2` prende tre terne di numeri. Si usa la seconda, e
-non per gusto: **lo stato del documento non elenca i vertici** — facce e spigoli
-hanno un identificativo, i vertici no — quindi «tre vertici selezionati» è una
-cosa che il modello linguistico non ha modo di chiedere.
+**Three coordinates, not three vertices.** `CreatePlaneThru3Points3` wants three
+selected vertices; `CreatePlaneFixed2` takes three triplets of numbers. The second
+is used, and not by taste: **the document state does not list vertices** — faces
+and edges have an identifier, vertices do not — so "three selected vertices" is
+something the language model has no way to ask for.
 
-**La normale è la terza RIGA di `Transform.ArrayData`, non la terza colonna.**
-Misurato su tre piani di normale nota:
+**The normal is the third ROW of `Transform.ArrayData`, not the third column.**
+Measured on three planes of known normal:
 
-| punti | normale attesa | terza riga |
+| points | expected normal | third row |
 |---|---|---|
 | (0,0,20) (100,0,20) (0,100,20) | (0, 0, 1) | (0, 0, 1) |
 | (0,0,0) (100,0,0) (0,0,100) | (0, −1, 0) | (0, −1, 0) |
 | (0,0,0) (100,0,0) (0,100,100) | (0, −0,7071, 0,7071) | (0, −0,7071, 0,7071) |
 
-Sui primi due **la terza riga e la terza colonna danno lo stesso risultato**: una
-sonda fatta solo con piani allineati agli assi avrebbe scelto a caso, con una
-probabilità su due di sbagliare per sempre. Sul terzo la colonna dà
-`(0, 0,7071, 0,7071)` — girata di 90°. *Un caso in cui due valori sbagliati danno
-lo stesso risultato non tabella niente*: il piano obliquo sta nella sonda apposta,
-e sta nel caso di banco per lo stesso motivo.
+On the first two **the third row and the third column give the same result**: a
+probe built only with axis-aligned planes would have picked one at random, with a
+one-in-two chance of being wrong forever. On the third, the column gives
+`(0, 0,7071, 0,7071)` — rotated by 90°. *A case where two wrong values give the
+same result tables nothing*: the oblique plane is in the probe on purpose, and it
+is in the bench case for the same reason.
 
-L'operazione **calcola la normale dai tre punti e la confronta con quella che il
-piano dice di essere**, rifiutandosi se divergono: «una feature in più
-nell'albero» lo direbbe anche di un piano storto, e su un piano storto ci si
-disegna sopra senza accorgersene. E tre punti in fila si rifiutano **prima** di
-chiamare, perché il perché si sa senza chiederlo — SOLIDWORKS risponde `null` e
-non lo dice.
+The operation **computes the normal from the three points and compares it with
+what the plane claims to be**, refusing if they diverge: "one more feature in the
+tree" would say the same of a crooked plane, and on a crooked plane you draw on it
+without noticing. And three collinear points are refused **before** calling,
+because the reason is known without having to ask — SOLIDWORKS answers `null` and
+does not say so.
 
-`UseGlobal` provato `true` e `false`: stessa trasformazione, numero per numero.
-Non si espone.
+`UseGlobal` tried as `true` and `false`: the same transform, number for number. It
+is not exposed.
 
 > **Rectified in Z-C21.9 (finding L8-3):** that measure could not tell the two
 > branches apart. All three point sets had P1->P2 along the global X axis, and
@@ -7839,69 +7838,70 @@ Non si espone.
 > Remarks: with `true` the plane is not reoriented, its own X axis is turned to
 > the projected global X. So the normal is the same either way and the plane's
 > X axis is not; nothing in the catalogue can see that yet (comment in
-> `OperazioniPiani.cs`).
+> `PlaneOperations.cs`).
 
-**Le altre due parti di GP9 restano aperte, con la ragione scritta**: nessuna
-operazione del catalogo consuma un sistema di coordinate o un punto di
-riferimento, e un'operazione il cui effetto non è osservabile da nessuna altra è
-esattamente quello che questo progetto rifiuta di aggiungere.
+**The other two parts of GP9 remain open, with the reason written down**: no
+operation in the catalogue consumes a coordinate system or a reference point, and
+an operation whose effect is not observable by any other is exactly what this
+project refuses to add.
 
 ---
 
-## 0.53.0 — 16 settembre 2026 · libreria 0.88.0
+## 0.53.0 — 16 September 2026 · library 0.88.0
 
-### GP16 — `verifica_sovrasporgenze`, e la normale che era già giusta
+### GP16 — `check_overhangs`, and the normal that was already right
 
-Catalogo a **56 operazioni**. Cosa non si stampa senza supporti: una parete che
-pende nel vuoto oltre un certo angolo esce a filamenti persi, e SOLIDWORKS non
-dice niente — il pezzo è sano, il volume è giusto, la geometria è chiusa.
+Catalogue at **56 operations**. What does not print without supports: a wall that
+overhangs into empty space beyond a certain angle comes out as lost filament, and
+SOLIDWORKS says nothing — the part is sound, the volume is right, the geometry is
+closed.
 
-**Il rischio della voce, misurato, si è rovesciato.** La voce avvertiva che la
-normale di `ISurface` è quella della superficie sottostante e va girata quando
-`FaceInSurfaceSense()` è falso, e che sbagliarlo dà *«un'analisi che dichiara
-supportata proprio la faccia che pende nel vuoto»*. Su un blocco di cui si sa
-tutto (100×100×20, sei facce con normali uscenti note):
+**The TODO entry's risk, measured, turned out to be reversed.** The entry warned
+that the normal of `ISurface` is that of the underlying surface and must be
+flipped when `FaceInSurfaceSense()` is false, and that getting it wrong gives "an
+analysis that declares supported exactly the face that overhangs into empty
+space". On a block about which everything is known (100×100×20, six faces with
+known outward normals):
 
 | | |
 |---|---|
-| `IFace2.Normal` esce dal materiale | **6 volte su 6** |
-| `Normal` concorde con `PlaneParams` | 1 volta su 6 |
-| `FaceInSurfaceSense() = true` | sulle **5** in cui sono *opposte* |
-| `FaceInSurfaceSense() = false` | sull'**1** in cui sono concordi |
+| `IFace2.Normal` points out of the material | **6 times out of 6** |
+| `Normal` agrees with `PlaneParams` | 1 time out of 6 |
+| `FaceInSurfaceSense() = true` | on the **5** where they are *opposite* |
+| `FaceInSurfaceSense() = false` | on the **1** where they agree |
 
-Due cose. **`IFace2.Normal` è già giusta** e non va corretta con niente — è
-quella che il progetto usa dappertutto, e adesso è misurato invece che sperato.
-E **la regola «se il senso è falso, gira» sarebbe stata sbagliata al
-contrario**, non su metà delle facce ma su cinque sesti.
+Two things. **`IFace2.Normal` is already right** and needs no correction at all —
+it is the one the project uses everywhere, and now it is measured instead of
+hoped for. And **the rule "if the sense is false, flip it" would have been wrong
+the other way round**, not on half the faces but on five-sixths of them.
 
-**Le facce curve si tassellano.** Il sotto di un cilindro orizzontale pende nel
-vuoto nella parte bassa e non in quella alta: non basta una normale per faccia.
-`GetTessTriangles` risponde **`float[]`, non `double[]`** — il cast sbagliato
-torna null in silenzio. Il verso dei triangoli lo decide l'avvolgimento, che è
-una convenzione: **si controlla contro `IFace2.Normal` su tutte le facce piane**,
-dove la risposta si conosce, e se non combacia l'operazione si rifiuta invece di
-rispondere con un'analisi rovesciata.
+**Curved faces are tessellated.** The underside of a horizontal cylinder overhangs
+into empty space on its lower half and not on its upper half: one normal per face
+is not enough. `GetTessTriangles` answers **`float[]`, not `double[]`** — the
+wrong cast silently returns null. The triangles' facing is decided by the
+winding, which is a convention: **it is checked against `IFace2.Normal` on every
+flat face**, where the answer is known, and if it does not match the operation
+refuses instead of answering with a reversed analysis.
 
-**L'angolo si conta dalla verticale**, come negli slicer: parete dritta 0,
-soffitto orizzontale 90, «soglia 45» vuol dire oltre 45. Non è l'angolo col
-piano, che è il complementare — due numeri che si somigliano e dicono il
-contrario.
+**The angle is counted from vertical**, as in slicers: a straight wall is 0, a
+horizontal ceiling is 90, "threshold 45" means beyond 45. It is not the angle
+with the plane, which is the complement — two numbers that look alike and say
+the opposite.
 
-**E quello che appoggia sul piano non è una sporgenza.** La faccia di sotto
-guarda dritta in giù — 90°, il caso peggiore — ma appoggia sul piano della
-macchina. Contarla vorrebbe dire dichiarare non stampabile ogni pezzo esistente.
+**And what rests on the build plate is not an overhang.** The bottom face points
+straight down — 90°, the worst case — but it rests on the machine's plate.
+Counting it would mean declaring every existing part unprintable.
 
 ---
 
-## 0.52.0 — 16 settembre 2026 · libreria 0.87.0
+## 0.52.0 — 16 September 2026 · library 0.87.0
 
-### GP15 — `sformo`, e due API che non si distinguono leggendo
+### GP15 — `draft`, and two APIs that cannot be told apart by reading
 
-Catalogo a **55 operazioni**. L'angolo di spoglia: le pareti di un pezzo
-stampato in stampo devono pendere di un grado o due, o il pezzo non esce dalla
-forma.
+Catalogue at **55 operations**. The draft angle: the walls of a part moulded in a
+die must lean by a degree or two, or the part will not come out of the mould.
 
-**Quattro famiglie per lo stesso comando, e due hanno la firma identica.**
+**Four families for the same command, and two have an identical signature.**
 
     IFeatureManager.InsertMultiFaceDraft(Angle, FlipDir, EdgeDraft,
                            PropType, IsStepDraft, IsBodyDraft) -> Feature
@@ -7910,4371 +7910,4464 @@ forma.
     IModelDoc2.InsertMfDraft (Angle, FlipDir, IsEdgeDraft, PropType) -> void
     IModelDoc2.InsertMfDraft2(... , StepDraft)                       -> void
 
-Le prime due hanno gli stessi nomi di parametro, gli stessi tipi e lo stesso
-tipo di ritorno: **non si distinguono leggendo**. Misurate, con le stesse
-identiche selezioni e gli stessi identici argomenti, `InsertMultiFaceDraft` fa
-lo sformo e **`DraftXpertChange` torna `null`**. Le altre due tornano `void` e
-non si possono nemmeno controllare.
+The first two have the same parameter names, the same types and the same return
+type: **they cannot be told apart by reading**. Measured, with the exact same
+selections and the exact same arguments, `InsertMultiFaceDraft` makes the draft
+and **`DraftXpertChange` returns `null`**. The other two return `void` and cannot
+even be checked.
 
-**I marchi, e il difetto che ci sta dentro.** Faccia neutra marchio 1, facce da
-sformare marchio 2. Sullo stesso blocco 100×100×20, sformo di 5°:
+**The marks, and the defect inside them.** Neutral face mark 1, faces to draft
+mark 2. On the same 100×100×20 block, a 5° draft:
 
-| marchi | esito | laterali | volume |
+| marks | result | sides | volume |
 |---|---|---|---|
-| neutra 1, facce 2 | `Sformo1` | **5,00°** | 200000 → 207080,7 |
-| neutra 2, facce 1 | `Sformo1` | **0,00°** | 200000 → 243744,3 |
+| neutral 1, faces 2 | `Sformo1` | **5,00°** | 200000 → 207080,7 |
+| neutral 2, faces 1 | `Sformo1` | **0,00°** | 200000 → 243744,3 |
 
-La seconda riga è il difetto: scambiando i marchi la lavorazione **nasce lo
-stesso, si chiama lo stesso, non dà nessun errore** — e ha sformato altre facce,
-di un'altra quantità.
+The second row is the defect: swapping the marks, the feature **is still
+created, is named the same, gives no error at all** — and it has drafted
+different faces, by a different amount.
 
-**E l'angolo della feature non è una misura.** In tutti e due i casi
-`IDraftFeatureData.Angle` rilegge **5°**: quello che si è chiesto, non quello
-che è successo — anche dove le facce sono rimaste a zero. Perciò l'operazione
-conta le facce **del pezzo** che stanno all'angolo giusto rispetto alla neutra,
-prima e dopo, e si rifiuta se non ne sono comparse abbastanza. L'angolo
-dichiarato dalla feature torna nella risposta accanto a quello misurato, con
-scritto che cos'è.
+**And the feature's angle is not a measurement.** In both cases
+`IDraftFeatureData.Angle` reads back **5°**: what was asked, not what happened —
+even where the faces stayed at zero. So the operation counts the faces **of the
+part** that sit at the right angle to the neutral face, before and after, and
+refuses if not enough of them have appeared. The angle declared by the feature
+comes back in the answer next to the measured one, with a note of what each one
+is.
 
-È la terza API in due giorni che risponde con ciò che le è stato chiesto invece
-che con ciò che ha fatto, dopo `ShowConfiguration2` e `ModifyDefinition`.
+It is the third API in two days that answers with what it was asked instead of
+with what it did, after `ShowConfiguration2` and `ModifyDefinition`.
 
 ---
 
-## 0.51.0 — 16 settembre 2026 · libreria 0.86.0
+## 0.51.0 — 16 September 2026 · library 0.86.0
 
-### GP14 — `sopprimi_istanza`, e le due ripetizioni che restano bloccate
+### GP14 — `suppress_instance`, and the two patterns that stay stuck
 
-Catalogo a **54 operazioni**. Una griglia di fori che ne salta uno dove passa
-una nervatura, una fila di asole che si ferma prima della piega.
+Catalogue at **54 operations**. A grid of holes that skips one where a rib runs
+through, a row of slots that stops before the bend.
 
-**Non c'è un metodo: si scrive un array.** Non esiste una «SkipInstance». Si
-prende il dato della feature, si scrive `SkippedItemArray`, e si rimette:
-`GetDefinition()` → `AccessSelections` → `SkippedItemArray = {…}` →
-`ModifyDefinition()`. È una scrittura *dopo* la creazione, non un parametro.
+**There is no method: you write an array.** There is no "SkipInstance". You take
+the feature's data, write `SkippedItemArray`, and put it back: `GetDefinition()` →
+`AccessSelections` → `SkippedItemArray = {…}` → `ModifyDefinition()`. It is a
+write *after* creation, not a parameter.
 
-**Gli indici, misurati.** Piastra 200×100, foro a x=−50, ripetizione di 4 con
-passo 25 verso −X, cioè posizioni −50 (l'originale), −75, −100, −125. Scritto
-`{2}`, sparisce quello a **−100**: l'indice è la *seconda copia*, l'originale non
-si conta, il conto parte da 1. È anche il modo in cui conterebbe chi chiede, per
-cui il numero passa così com'è — e lo **zero si rifiuta** dicendo che
-l'originale non è una copia.
+**The indices, measured.** Plate 200×100, hole at x=−50, pattern of 4 with a 25
+step toward −X, that is positions −50 (the original), −75, −100, −125. Written as
+`{2}`, the one at **−100** disappears: the index is the *second copy*, the
+original does not count, counting starts at 1. It is also how whoever is asking
+would count, so the number passes through as-is — and **zero is refused**, saying
+the original is not a copy.
 
-**Il difetto: si può togliere una copia che non c'è.** Nella stessa prova la
-quarta posizione (−125) cadeva fuori dalla piastra, e SOLIDWORKS aveva
-costruito tre copie su quattro rispondendo «riuscito» — è la nota 80y, ed è
-ancora vera. Chiedere di saltare una copia mai esistita **riesce**:
-`ModifyDefinition` risponde `true`, l'array si scrive, nel pezzo non cambia
-niente. Perciò si contano le facce della ripetizione prima e dopo, e se non sono
-calate **ci si rifiuta rimettendo l'array com'era**.
+**The defect: you can remove a copy that is not there.** In the same test the
+fourth position (−125) fell off the plate, and SOLIDWORKS had built three copies
+out of four while answering "succeeded" — this is note 80y, and it is still true.
+Asking to skip a copy that never existed **succeeds**: `ModifyDefinition` answers
+`true`, the array gets written, nothing changes in the part. So the pattern's
+faces are counted before and after, and if they have not gone down **it refuses,
+putting the array back as it was**.
 
-**Rimettere una copia si scrive `{0}`, non `{}`.** Togliere funziona al primo
-colpo; rimettere no, e l'ha preso il banco. Tre modi di svuotare la lista, dopo
-aver tolto la copia 2 da una fila di quattro (facce 3 → 2):
+**Putting a copy back is written as `{0}`, not `{}`.** Removing works on the first
+try; putting back does not, and the bench caught it. Three ways to empty the
+list, after removing copy 2 from a row of four (faces 3 → 2):
 
-| scritto | `ModifyDefinition` | facce dopo | rilettura |
+| written | `ModifyDefinition` | faces after | read back |
 |---|---|---|---|
-| `new int[0]` | **true** | 2 (invariate) | `{2}` |
-| `null` | **true** *(ma la scrittura alza `RPC_E_SERVERFAULT`)* | 2 (invariate) | `{2}` |
+| `new int[0]` | **true** | 2 (unchanged) | `{2}` |
+| `null` | **true** *(but the write raises `RPC_E_SERVERFAULT`)* | 2 (unchanged) | `{2}` |
 | `new int[]{ 0 }` | true | **3** | `{}` |
 
-Lo zero è il modo di dire «nessuna», non un indice; si scrive in un modo e si
-rilegge in un altro; e **due modi su tre rispondono `true` su una cosa che non è
-successa**. È la ragione per cui qui il criterio è il conto delle facce e mai il
-valore di ritorno — e retro-giustifica il rifiuto di `copie: [0]`, che passato
-di là cancellerebbe in silenzio tutte le copie tolte prima.
+Zero is the way of saying "none", not an index; it is written one way and read
+back another; and **two ways out of three answer `true` about something that did
+not happen**. This is why here the criterion is the face count and never the
+return value — and it retroactively justifies refusing `copies: [0]`, which
+passed through there would silently erase every copy removed before.
 
-**E delle nove famiglie di ripetizione, tre non hanno l'array.** Misurato:
-sketch-driven, chain e dimension-driven non espongono `SkippedItemArray`, pur
-avendo tutte `AccessSelections` con la stessa firma. Non esiste nessuna
-interfaccia comune — scriverne una fa fallire la compilazione, che è il modo
-migliore di scoprirlo.
+**And of the nine pattern families, three do not have the array.** Measured:
+sketch-driven, chain and dimension-driven do not expose `SkippedItemArray`, even
+though all of them have `AccessSelections` with the same signature. There is no
+common interface — writing one makes the build fail, which is the best way to
+find out.
 
-**Le altre due della voce restano aperte, e la ragione è scritta.**
-`FeatureFillPattern` ha risposto `null` in **quindici** combinazioni misurate
-(marchi di selezione, contorno faccia o schizzo, a passo o a numero, margine
-zero, stagger 0° e 90°, layout quadro e a perforazione, seme come feature, come
-schizzo, come faccia cilindrica, seme creato da SOLIDWORKS, `GeometryPattern`)
-— senza eccezione, senza messaggio e senza lasciare nell'albero nessuna feature
-in errore. E `InsertTableDrivenPattern2` con `FileName` vuoto risponde `null`:
-vuole un file su disco, che è un'altra forma di operazione. Tabelle e dettagli
+**The other two items in the TODO entry remain open, and the reason is written
+down.** `FeatureFillPattern` answered `null` in **fifteen** measured combinations
+(selection marks, face or sketch boundary, by step or by count, zero margin,
+stagger 0° and 90°, square and perforation layout, seed as a feature, as a
+sketch, as a cylindrical face, seed created by SOLIDWORKS, `GeometryPattern`) —
+with no exception, no message, and no feature left in error in the tree. And
+`InsertTableDrivenPattern2` with an empty `FileName` answers `null`: it wants a
+file on disk, which is another kind of operation altogether. Tables and details
 in `81u_quindici_volte_null_senza_un_perche`.
 
 ---
 
-## 0.50.0 — 16 settembre 2026 · libreria 0.85.0
+## 0.50.0 — 16 September 2026 · library 0.85.0
 
-### GP13 — `incidi_testo`, e la scritta che sparisce a metà senza dire niente
+### GP13 — `engrave_text`, and the text that disappears halfway without saying anything
 
-Catalogo a **53 operazioni**. Scrive delle *parole* nel pezzo — numero di serie,
-verso di montaggio, marcatura del cliente — incise o in rilievo su una faccia
-piana.
+Catalogue at **53 operations**. It writes *words* onto the part — serial number,
+assembly orientation, customer marking — engraved or embossed on a flat face.
 
-`IModelDoc2.InsertSketchText` fa lo **schizzo**; il materiale lo tolgono (o lo
-aggiungono) il taglio e l'estrusione già misurati. Non apre nessuna finestra —
-non è come `AddDimension` — e funziona anche con `AddToDB = true`.
+`IModelDoc2.InsertSketchText` makes the **sketch**; the material is removed (or
+added) by the cut and the extrusion already measured. It opens no window — it is
+not like `AddDimension` — and it works even with `AddToDB = true`.
 
-**Il difetto, e qui è grosso.** «PROVA» alta 10 mm, incisa 2 mm, su un quadrato
-di 100×100:
+**The defect, and here it is a big one.** "PROVA" 10 mm tall, engraved 2 mm deep,
+on a 100×100 square:
 
-    ancorata a (0, 0)     ->  tolti 230,70 mm3
-    ancorata a (30, 10)   ->  tolti 111,20 mm3
+    anchored at (0, 0)     ->  removed 230,70 mm3
+    anchored at (30, 10)   ->  removed 111,20 mm3
 
-**Metà della scritta cade fuori dalla faccia e sparisce in silenzio.** La
-lavorazione nasce verde, si chiama `Taglio-Estrusione1`, e nel pezzo c'è «PRO».
-Su un numero di serie non c'è niente da cui accorgersene guardando l'albero.
-Tutta fuori invece si prende già (`FeatureCut4` torna `null`): il caso che conta
-è la sovrapposizione **parziale**.
+**Half the text falls off the face and disappears silently.** The feature is born
+green, is named `Taglio-Estrusione1`, and on the part there is "PRO". On a serial
+number there is nothing in the tree to notice it by. Falling entirely off is
+already caught (`FeatureCut4` returns `null`): the case that matters is the
+**partial** overlap.
 
-**Come si prende.** La larghezza di una scritta non si calcola dalla stringa:
-dipende dal disegno dei glifi. Ma `ISketchText.GetEdges()` torna i contorni
-delle lettere — **56 `IEdge` per «PROVA»** — e da quelli si legge dove la
-scritta finisce davvero, in coordinate del modello. Si controlla **prima** di
-tagliare e ci si rifiuta, dicendo di quanto sbordava; lo schizzo viene ritirato.
-Per «PROVA» in Century Gothic alta 10 mm sono **47,05 × 10,51 mm** — un numero
-che si può solo misurare.
+**How it is caught.** The width of a piece of text cannot be computed from the
+string: it depends on the glyphs' own drawing. But `ISketchText.GetEdges()`
+returns the letters' contours — **56 `IEdge` for "PROVA"** — and from those you
+read where the text really ends, in model coordinates. It is checked **before**
+cutting, and it refuses, saying by how much it overran; the sketch is retracted.
+For "PROVA" in Century Gothic 10 mm tall that is **47,05 × 10,51 mm** — a number
+that can only be measured.
 
-**E quello che un numero ce l'ha.** L'area delle lettere non si prevede, ma va
-col **quadrato dell'altezza**:
+**And the one thing that does have a number.** The letters' area cannot be
+predicted, but it scales with the **square of the height**:
 
-    altezza  5 mm  ->  area  28,83 mm2  ->  area/h² = 1,1533
-    altezza 10 mm  ->  area 115,35 mm2  ->  area/h² = 1,1535
-    altezza 20 mm  ->  area 265,88 mm2  ->  area/h² = 0,6647   <- rotto
+    height  5 mm  ->  area  28,83 mm2  ->  area/h² = 1,1533
+    height 10 mm  ->  area 115,35 mm2  ->  area/h² = 1,1535
+    height 20 mm  ->  area 265,88 mm2  ->  area/h² = 0,6647   <- broken
 
-Il terzo è rotto perché a 20 mm «PROVA» è larga 94 mm e sulla faccia da 100 non
-ci stava: **la stessa legge che tiene i primi due è quella che denuncia il
-terzo.** L'operazione risponde `area_su_altezza_quadra`, e il banco lo pretende
-uguale fra tre marcature di altezza e profondità diverse.
+The third is broken because at 20 mm "PROVA" is 94 mm wide and did not fit on the
+100 face: **the same law that holds for the first two is the one that exposes the
+third.** The operation answers `area_over_height_squared`, and the bench demands
+it be equal across three markings of different height and depth.
 
-**`Alignment` non fa niente.** La voce lo dava per «non verificato nel
-significato pratico». Provati tutti e cinque i valori 0..4 sulla stessa scritta:
-la scatola torna identica al millesimo in tutti e cinque. Non è un parametro che
-non si è capito — è un parametro che questa chiamata ignora. Perciò non si
-espone.
+**`Alignment` does nothing.** The TODO entry had it down as "not verified in
+practical meaning". All five values 0..4 were tried on the same text: the
+bounding box comes back identical to the thousandth across all five. It is not a
+parameter that was not understood — it is a parameter that this call ignores. So
+it is not exposed.
 
-L'operazione dichiara anche **cosa non guarda**: confronta la scritta con la
-*scatola* della faccia, e dice se quella faccia riempie la propria scatola
-(allora il controllo è completo) o se ha un foro o un contorno rientrante
-(allora una lettera potrebbe caderci sopra senza che se ne accorga).
-
----
-
-## 0.49.0 — 16 settembre 2026 · libreria 0.84.0
-
-### GP12 — proprietà personalizzate e configurazioni, e i due cassetti che non si vedono
-
-Catalogo a **52 operazioni**, con una famiglia nuova — **`identita`**: *quello
-che il pezzo dice di sé*. `scrivi_proprieta`, `crea_configurazione`,
-`attiva_configurazione`.
-
-Fino a qui il catalogo sapeva fare geometria e non sapeva dire **di chi è**. Il
-numero di disegno e la revisione non sono geometria, ma sono ciò che arriva al
-cartiglio e alla scheda del PDM: un pezzo giusto con la revisione sbagliata è un
-pezzo sbagliato.
-
-**Lo stesso nome su due interfacce, con firme diverse.** La voce avvisava di una
-*«firma gemella-ma-diversa»*: è peggio. `AddConfiguration`, `AddConfiguration2`
-e `AddConfiguration3` stanno su **`IModelDoc2`** (otto parametri, otto, quattro;
-tornano `void`, `bool`, `object`), e `AddConfiguration`/`AddConfiguration2`
-stanno **anche** su `IConfigurationManager` (sei e sette parametri, tornano
-`IConfiguration`). Cercata sull'interfaccia sbagliata, `AddConfiguration3` *«non
-esiste»* — ed è l'errore che abbiamo fatto prima di guardare. *Un nome dice come
-si chiama un metodo, non su quale interfaccia sta.* Si usa
-`IConfigurationManager.AddConfiguration2`, che è l'unica a tornare l'oggetto
-configurazione — da cui si rilegge il nome vero — e a prendere `Rebuild`.
-
-**Le due strade per le proprietà di una configurazione sono la stessa strada.**
-La voce chiedeva di accertare se `IConfiguration.get_CustomPropertyManager()` e
-`IModelDocExtension.get_CustomPropertyManager(nome)` dessero risultati
-equivalenti — *«due strade mai confrontate»*. Misurate entrambe sullo stesso
-pezzo: scritta con l'una si rilegge identica con l'altra, in tutti e due i
-versi. Si usa `Extension(nome)`, che non ha bisogno dell'oggetto configurazione
-in mano.
-
-**Ma il documento e la configurazione sono due cassetti separati**, e questo non
-si sapeva: una proprietà scritta sul documento **da una configurazione non si
-vede**, e viceversa. Non si ereditano. Chi scrive il numero di disegno sul
-documento e poi lo cerca fra le proprietà della configurazione non lo trova, e
-nessuno gli dice perché. `scrivi_proprieta` guarda ogni volta anche nell'altro
-cassetto e risponde `si_vede_dall_altro_cassetto`, così è un numero misurato su
-questo pezzo adesso e non una nota nel catalogo che nessuno ha letto.
-
-**La configurazione predefinita non si chiama `Default`.** Si chiama
-`Default<A macchina>`, e le parentesi angolari sono **dentro il nome**.
-`ShowConfiguration2("Default")` risponde **false** — non solleva niente, non
-dice niente — e chi non guarda il valore di ritorno lavora sulla variante
-sbagliata per tutto il resto del piano.
-
-E non si può nemmeno indovinare: un pezzo appena nato dal modello di questa
-azienda ha **due configurazioni vere**, `Default<A macchina>` e
-`Default<Saldato>` — la coppia dei saldati — e `GetConfigurationCount()`
-risponde **2**. Non sono stati di visualizzazione: quelli sono un'altra cosa
-ancora (`IConfiguration.GetDisplayStates()`, qui uno per configurazione). Perciò
-`attiva_configurazione` **non traduce** il nome corto: lo confronta con quelli
-che il documento dichiara, e se non c'è lo dice spiegando perché. L'unica fonte
-buona è `GetConfigurationNames()`: *i nomi non si costruiscono, si chiedono.*
-Dopo aver chiesto, **ricontrolla quale è attiva adesso**.
-
-**E `ShowConfiguration2` risponde `false` quando non c'era niente da fare** —
-cioè quando la configurazione chiesta è già quella attiva. L'ha trovata il
-banco, nel modo più bello possibile: due casi rossi il cui messaggio di rifiuto
-diceva da solo che il rifiuto era sbagliato («*ho chiesto di attivare Sinistra e
-adesso è attiva Sinistra*»). Quel booleano non distingue «non l'ho fatto» da
-«non c'era niente da fare», e quindi **non può essere il criterio**: il criterio
-è quale configurazione è attiva dopo. Il booleano torna nella risposta come
-`era_gia_attiva`, perché la differenza fra uno spostamento e un non-spostamento
-conta lo stesso.
-
-**`AddConfiguration2` attiva subito** la configurazione nuova senza che glielo
-si chieda: tutto quello che il piano disegna dopo, e tutto quello che lo stato
-racconta dopo, riguarda *quella*. Si dice nella risposta.
-
-**E `get_CustomPropertyManager("Destra")` su una configurazione che non esiste
-non solleva niente**: torna un gestore, e `Add3` su quel gestore risponde
-`AddedOrChanged`. La proprietà è scritta, il codice è contento, nel file non
-c'è. È il difetto che non dà errore nella sua forma più pura — tutta la catena
-dice di sì. L'unico modo di prenderlo è chiedere al documento quali
-configurazioni dichiara **prima** di scrivere.
-
-Lo stato del documento porta adesso `configurazione`, `configurazioni`,
-`quante_configurazioni`, `proprieta` e `proprieta_configurazione` — due campi
-per le proprietà e non uno, perché sono due posti diversi: un campo solo sarebbe
-una fusione che nel file non esiste.
+The operation also declares **what it does not check**: it compares the text with
+the face's *bounding box*, and says whether that face fills its own box (then the
+check is complete) or whether it has a hole or a re-entrant outline (then a letter
+could fall on it without being noticed).
 
 ---
 
-## 0.48.0 — 16 settembre 2026 · libreria 0.83.0
+## 0.49.0 — 16 September 2026 · library 0.84.0
 
-### GP11 — `filettatura_cosmetica`, e la nota che non è generata ma ricopiata
+### GP12 — custom properties and configurations, and the two drawers that cannot see each other
 
-Catalogo a **49 operazioni**. Dice *«qui c'è un filetto»* su un perno o un foro
-già fatto: è un'annotazione, non un taglio.
+Catalogue at **52 operations**, with a new family — **`identity`**: *what the
+part says about itself*. `set_property`, `create_configuration`,
+`activate_configuration`.
 
-**Si attacca a uno SPIGOLO, non a una faccia.** Sulla faccia cilindrica
-`InsertCosmeticThread3` torna `null` in tutte le combinazioni provate. A dirlo è
-stato il modello dei dati: `ICosmeticThreadFeatureData` ha una proprietà
-**`Edge`**. Col bordo circolare selezionato funziona al primo colpo.
+Up to now the catalogue knew how to make geometry and did not know how to say
+**whose it is**. The drawing number and the revision are not geometry, but they
+are what reaches the title block and the PDM record: a correct part with the
+wrong revision is a wrong part.
 
-**E la domanda della voce non aveva risposta.** La voce chiedeva di trovare il
-valore giusto di `Standard` usando «la nota generata» come giudice. Misurato:
-con `Standard` 0, 1, 2, 3 e 8 (ISO), con `StandardType` «Tapped hole», «Machine
-Threads», «Maschiatura», «Filettature macchina», e `Size` «M6x1.0», «M6»,
-«M6x1» — la feature nasce sempre, e rileggendola:
+**The same name on two interfaces, with different signatures.** The TODO entry
+warned of a "twin-but-different signature": it is worse. `AddConfiguration`,
+`AddConfiguration2` and `AddConfiguration3` sit on **`IModelDoc2`** (eight
+parameters, eight, four; they return `void`, `bool`, `object`), and
+`AddConfiguration`/`AddConfiguration2` **also** sit on `IConfigurationManager`
+(six and seven parameters, returning `IConfiguration`). Looked up on the wrong
+interface, `AddConfiguration3` "does not exist" — which is the mistake we made
+before looking. *A name tells you what a method is called, not which interface
+it is on.* `IConfigurationManager.AddConfiguration2` is used, being the only one
+that returns the configuration object — from which the real name can be read
+back — and that takes `Rebuild`.
+
+**The two paths to a configuration's properties are the same path.** The TODO
+entry asked to establish whether `IConfiguration.get_CustomPropertyManager()` and
+`IModelDocExtension.get_CustomPropertyManager(name)` gave equivalent results —
+"two paths never compared". Both were measured on the same part: written with
+one, read back identical with the other, in both directions. `Extension(name)`
+is used, which does not need the configuration object in hand.
+
+**But the document and the configuration are two separate drawers**, and this was
+not known: a property written on the document **cannot be seen from a
+configuration**, and the other way round. They are not inherited. Whoever writes
+the drawing number on the document and then looks for it among the
+configuration's properties will not find it, and nothing tells them why.
+`set_property` now also checks the other drawer every time and answers
+`visible_from_other_list`, so it is a number measured on this part right now and
+not a note in the catalogue that nobody read.
+
+**The default configuration is not called `Default`.** It is called
+`Default<A macchina>`, and the angle brackets are **inside the name**.
+`ShowConfiguration2("Default")` answers **false** — it raises nothing, it says
+nothing — and whoever does not check the return value works on the wrong variant
+for the rest of the plan.
+
+And it cannot even be guessed: a part freshly born from this company's template
+has **two real configurations**, `Default<A macchina>` and `Default<Saldato>` —
+the welded pair — and `GetConfigurationCount()` answers **2**. These are not
+display states: those are yet another thing (`IConfiguration.GetDisplayStates()`,
+here one per configuration). So `activate_configuration` **does not translate**
+the short name: it compares it with the ones the document declares, and if it is
+not there it says so, explaining why. The only good source is
+`GetConfigurationNames()`: *names are not built, they are asked for.* After
+asking, **it double-checks which one is active now**.
+
+**And `ShowConfiguration2` answers `false` when there was nothing to do** — that
+is, when the requested configuration is already the active one. The bench found
+it in the nicest possible way: two red cases whose refusal message said all by
+itself that the refusal was wrong ("*I asked to activate Left and now Left is
+active*"). That boolean does not distinguish "I did not do it" from "there was
+nothing to do", and so **it cannot be the criterion**: the criterion is which
+configuration is active afterwards. The boolean comes back in the answer as
+`was_already_active`, because the difference between a move and a non-move still
+counts.
+
+**`AddConfiguration2` activates** the new configuration **right away**, without
+being asked to: everything the plan draws afterwards, and everything the state
+reports afterwards, is about *that one*. It is stated in the answer.
+
+**And `get_CustomPropertyManager("Right")` on a configuration that does not exist
+raises nothing**: it returns a manager, and `Add3` on that manager answers
+`AddedOrChanged`. The property is written, the code is happy, and it is not in
+the file. It is the no-error defect in its purest form — the whole chain says
+yes. The only way to catch it is to ask the document which configurations it
+declares **before** writing.
+
+The document state now carries `configuration`, `configurations`,
+`how_many_configurations`, `property` and `configuration_properties` — two
+fields for properties and not one, because they are two different places: a
+single field would be a merge that does not exist in the file.
+
+---
+
+## 0.48.0 — 16 September 2026 · library 0.83.0
+
+### GP11 — `cosmetic_thread`, and the callout that is not generated but copied
+
+Catalogue at **49 operations**. It says *"there is a thread here"* on a pin or a
+hole already made: it is an annotation, not a cut.
+
+**It attaches to an EDGE, not to a face.** On the cylindrical face
+`InsertCosmeticThread3` returns `null` in every combination tried. What gave it
+away was the data model: `ICosmeticThreadFeatureData` has an **`Edge`**
+property. With the circular edge selected it works on the first try.
+
+**And the TODO entry's question had no answer.** The entry asked to find the
+right value of `Standard` using "the generated callout" as the judge. Measured:
+with `Standard` 0, 1, 2, 3 and 8 (ISO), with `StandardType` "Tapped hole",
+"Machine Threads", "Maschiatura", "Filettature macchina", and `Size` "M6x1.0",
+"M6", "M6x1" — the feature is always created, and reading it back:
 
 ```
 Standard = -2    StandardType = «»    Size = «»    callout = «»
 ```
 
-Passando invece la **nota**: `callout = «M6x1»`, anche con `Standard = -2` e i
-due nomi vuoti. **Lo standard e la taglia vengono ignorati, e il callout è
-esattamente il testo che gli si dà.**
+Passing the **callout** instead: `callout = «M6x1»`, even with `Standard = -2`
+and both names empty. **The standard and the size are ignored, and the callout
+is exactly the text it is given.**
 
-Quindi l'operazione chiede una `denominazione`, la scrive, e **dichiara nella
-risposta che quel testo è di chi l'ha chiesto e non di una tabella**: nessuno
-controlla che «M6x1» sia giusto per un perno da 6, e in officina arriva com'è
-scritto. *Generata* e *ricopiata* non sono la stessa cosa.
+So the operation asks for a `designation`, writes it, and **declares in the
+answer that this text belongs to whoever asked for it and not to a table**:
+nobody checks that "M6x1" is right for a 6 mm pin, and it reaches the workshop
+exactly as written. *Generated* and *copied* are not the same thing.
 
-**Il volume resta quello di prima** — 282,74 mm³ su un cilindro Ø6×10, prima e
-dopo. Se cambia, l'operazione fallisce: vorrebbe dire che ha tagliato davvero.
+**The volume stays the same as before** — 282,74 mm³ on a Ø6×10 cylinder, before
+and after. If it changes, the operation fails: that would mean it actually cut
+something.
 
-## 0.47.0 — 16 settembre 2026 · libreria 0.82.0
+## 0.47.0 — 16 September 2026 · library 0.82.0
 
-### GP7 — `raccordo_variabile`, e il numero che distingue il variabile dal costante
+### GP7 — `variable_fillet`, and the number that tells the variable one apart from the constant one
 
-Catalogo a **48 operazioni**. Un raccordo il cui raggio **cambia** da un capo
-all'altro dello spigolo: grande dove il pezzo incassa un carico, piccolo dove
-non c'è posto.
+Catalogue at **48 operations**. A fillet whose radius **changes** from one end of
+the edge to the other: large where the part takes a load, small where there is no
+room.
 
-**La ricetta era il rischio della voce, e si è chiusa alla prima misura.** Cubo
-40×40×40, spigolo verticale, raggi 3 e 8, una forma per pezzo nuovo:
-
-```
-spigolo + i suoi 2 vertici, Radii = {3, 8}      277,7 mm³
-SOLO i due vertici (senza lo spigolo)             NULL
-con le marche 1/1/1 invece che senza marca      277,7 mm³
-aggiungendo PointRadiusArray = {3, 8}           277,7 mm³
-```
-
-**Lo spigolo va selezionato**, i vertici pure, **le marche non contano**, e
-`PointRadiusArray` **non serve** — quello è per i punti *intermedi*, che qui non
-ci sono. Passarlo per abitudine sarebbe un argomento che non si sa cosa fa.
-
-**E il numero è quello che distingue il variabile dal costante.** Il volume
-tolto da un raccordo di raggio r su uno spigolo lungo L è L·r²·(1 − π/4); per un
-raggio che va da 3 a 8 la media di r² è (9 + 24 + 64)/3 = 32,33 e il conto dà
-**277,5**, misurati **277,7** — lo 0,07%, perché il blend non è esattamente una
-spazzata lineare del raggio. Un raccordo **costante** da 3 ne toglierebbe
-**77,3**, uno da 8 **549,4**: i tre numeri sono lontani, e nessuno dei due
-sbagliati può passare per quello giusto. L'operazione riporta tutti e due — il
-tolto vero e il conto rifatto a mano — e dichiara che il secondo è un ordine di
-grandezza.
-
-Due rifiuti: il raggio più grande che non ci sta sullo spigolo (lo dice prima di
-provare, con la lunghezza vera) e il **cerchio** — il bordo di un foro non ha due
-estremi fra cui variare.
-
-**`raccordo_faccia` non è fatto**, e la voce resta aperta a metà: con le due
-facce selezionate a marca 1 e 2 torna `NULL` in tutte e quattro le combinazioni
-di opzioni provate. L'ipotesi da provare per prima è che serva a facce **non
-adiacenti** — quelle che ho usato condividono uno spigolo, cioè sono il caso del
-raccordo normale.
-
-## 0.46.0 — 16 settembre 2026 · libreria 0.81.0
-
-### GP8 — `combina_corpi`, e l'enum col nome giusto che è quello sbagliato
-
-Catalogo a **47 operazioni**. Le booleane fra corpi dello stesso pezzo: unisci,
-sottrai, interseca. Servono agli stampi e alle dime, e ai pezzi disegnati come
-più corpi e poi messi insieme.
-
-**L'enum che si chiama come l'operazione non è il suo.** In `swconst` c'è
-`swCombineBodiesOperationType_e`, con i valori `Add = 0`, `Subtract = 1`,
-`Common = 2` — i nomi esatti delle tre booleane. Passati a
-`InsertCombineFeature` **tornano `null` tutti e tre**, senza un'eccezione e
-senza un codice. Il metodo vuole `swBodyOperationType_e`:
+**The recipe was the TODO entry's risk, and it was settled on the first
+measurement.** Cube 40×40×40, vertical edge, radii 3 and 8, a new shape for a new
+part:
 
 ```
-SWBODYADD       = 15903     unisci
-SWBODYCUT       = 15902     sottrai
-SWBODYINTERSECT = 15901     interseca
+edge + its 2 vertices, Radii = {3, 8}          277,7 mm³
+ONLY the two vertices (without the edge)         NULL
+with marks 1/1/1 instead of no mark            277,7 mm³
+adding PointRadiusArray = {3, 8}                277,7 mm³
 ```
 
-Un nome dice come si chiama una costante, non a quale funzione appartiene.
+**The edge must be selected**, so must the vertices, **the marks do not
+matter**, and `PointRadiusArray` **is not needed** — that is for the
+*intermediate* points, which are not present here. Passing it out of habit would
+be an argument whose effect is unknown.
 
-**E l'array va avvolto, e contiene anche il principale.** Misurato su pezzi
-nuovi, una variante per pezzo:
+**And the number is what tells the variable one apart from the constant one.**
+The volume removed by a fillet of radius r on an edge of length L is
+L·r²·(1 − π/4); for a radius going from 3 to 8 the mean of r² is
+(9 + 24 + 64)/3 = 32,33 and the arithmetic gives **277,5**, measured **277,7** —
+0,07%, because the blend is not exactly a linear sweep of the radius. A
+**constant** fillet of 3 would remove **77,3**, one of 8 **549,4**: the three
+numbers are far apart, and neither of the wrong ones can pass for the right one.
+The operation reports both — the true amount removed and the hand-redone
+arithmetic — and declares that the second one is an order of magnitude.
+
+Two refusals: a largest radius that does not fit on the edge (it says so before
+trying, using the real length) and the **circle** — the rim of a hole has no two
+ends to vary between.
+
+**`fillet_face` is not done**, and the entry stays half open: with the two faces
+selected at mark 1 and 2 it returns `NULL` in all four combinations of options
+tried. The hypothesis to try first is that it is meant for **non-adjacent**
+faces — the ones used here share an edge, which is the case the normal fillet
+already covers.
+
+## 0.46.0 — 16 September 2026 · library 0.81.0
+
+### GP8 — `combine_bodies`, and the enum with the right name that is the wrong one
+
+Catalogue at **47 operations**. Booleans between bodies of the same part: union,
+subtract, intersect. They are needed for moulds and jigs, and for parts designed
+as several bodies and then put together.
+
+**The enum named after the operation is not the one it needs.** In `swconst`
+there is `swCombineBodiesOperationType_e`, with values `Add = 0`, `Subtract = 1`,
+`Common = 2` — the exact names of the three booleans. Passed to
+`InsertCombineFeature` **all three return `null`**, with no exception and no
+code. The method wants `swBodyOperationType_e`:
+
+```
+SWBODYADD       = 15903     union
+SWBODYCUT       = 15902     subtract
+SWBODYINTERSECT = 15901     intersect
+```
+
+A name tells you what a constant is called, not which function it belongs to.
+
+**And the array must be wrapped, and it also contains the main one.** Measured
+on new parts, one variant per part:
 
 | `ToolVar` | ADD | CUT | INTERSECT |
 |---|---|---|---|
-| `object[]` col solo utensile | NULL | NULL | NULL |
-| `Body2[]` tipizzato | NULL | ok | NULL |
-| `DispatchWrapper[]` solo utensile | NULL | ok | NULL |
-| `DispatchWrapper[]` **tutti e due** | ok | ok | ok |
+| `object[]` with only the tool | NULL | NULL | NULL |
+| typed `Body2[]` | NULL | ok | NULL |
+| `DispatchWrapper[]` only the tool | NULL | ok | NULL |
+| `DispatchWrapper[]` **both** | ok | ok | ok |
 
-Un `object[]` di oggetti COM non diventa un `SAFEARRAY` di `IDispatch*` da solo
-— ci vuole `DispatchWrapper` — e senza il corpo principale nell'elenco `unisci`
-e `interseca` non fanno niente, senza dirlo.
+An `object[]` of COM objects does not turn into a `SAFEARRAY` of `IDispatch*` by
+itself — `DispatchWrapper` is needed for that — and without the main body in the
+list, `union` and `intersect` do nothing, without saying so.
 
-**I tre numeri, su un caso che li distingue.** Due cubi da 10 sfalsati di 2 in X
-e 5 in Z, sovrapposti per 400 mm³: **1600 / 600 / 400**. Con due cubi uguali e
-centrati sarebbero stati 1500, 500 e 500, e «sottrai» e «interseca» non si
-sarebbero distinti — un caso in cui due valori sbagliati danno lo stesso
-risultato non tabella niente.
+**The three numbers, on a case that tells them apart.** Two cubes of 10 offset
+by 2 in X and 5 in Z, overlapping by 400 mm³: **1600 / 600 / 400**. With two
+equal, centred cubes they would have been 1500, 500 and 500, and "subtract" and
+"intersect" would not have been distinguished — a case where two wrong values
+give the same result tables nothing.
 
-Dopo un `unisci` i corpi si contano: se sono ancora due non si sono fusi, e
-l'operazione fallisce invece di confermare un pezzo diverso da quello che chi
-legge crede di avere.
+After a `union` the bodies are counted: if there are still two they have not
+fused, and the operation fails instead of confirming a part different from the
+one whoever reads it believes they have.
 
-**E il banco ha imparato a confrontare un elenco di testo.** `["C2"]` — i corpi
-su cui la booleana ha lavorato — finiva in *«non è un elenco di numeri:
-System.String[]»*: un messaggio vero e inutile, perché il caso chiedeva una cosa
-sensata e il valutatore non sapeva confrontarla. Adesso gli elenchi senza numeri
-si confrontano uno a uno, **e l'ordine conta**; sette controlli nuovi in
-`Prove.Contratti`.
+**And the bench learned to compare a list of text.** `["C2"]` — the bodies the
+boolean worked on — used to end up in "not a list of numbers: System.String[]":
+a message that was true and useless, because the case was asking something
+sensible and the evaluator did not know how to compare it. Now lists without
+numbers are compared one by one, **and order counts**; seven new checks in
+`Oce.Solid.Agent.ContractTests`.
 
-## 0.45.0 — 16 settembre 2026 · libreria 0.80.0
+## 0.45.0 — 16 September 2026 · library 0.80.0
 
-### GP5 — `distanza_minima` e `misura_fra_entita`, e l'argomento che viene ignorato
+### GP5 — `minimum_distance` and `measure_between`, and the argument that gets ignored
 
-Catalogo a **46 operazioni**. `distanza_minima` è il modo di rispondere a
-*«quanto materiale resta fra la cava della guarnizione e la faccia esterna?»*
-con due facce **nominate** e un numero, invece di tarare un vettore di
-intersezioni a raggi che nessuno sa verificare — la via che il censimento delle
-API segnalava come troppo rischiosa.
+Catalogue at **46 operations**. `minimum_distance` is the way of answering "how
+much material is left between the gasket groove and the outer face?" with two
+**named** faces and a number, instead of tuning a vector of ray intersections
+that nobody knows how to verify — the path the API census flagged as too risky.
 
-**`ClosestDistance` torna metri**, e i suoi due punti sono veri: su una piastra
-40×40×10, fra le due facce grandi, risponde `0,01` e i punti sono `[0,0,10]` e
-`[0,0,0]` mm, scarto **zero**. Quel confronto adesso si fa a ogni chiamata: **se
-il valore dice una cosa e i suoi stessi punti ne dicono un'altra, la chiamata è
-fallita e ha risposto lo stesso** — e allora l'operazione fallisce invece di
-dare il numero.
+**`ClosestDistance` returns metres**, and its two points are real: on a
+40×40×10 plate, between the two large faces, it answers `0,01` and the points
+are `[0,0,10]` and `[0,0,0]` mm, **zero** discrepancy. That check is now made on
+every call: **if the value says one thing and its own points say another, the
+call has failed and answered anyway** — and then the operation fails instead of
+giving the number.
 
-**`IMeasure.Calculate(Object Entities)` prende un argomento e non lo guarda.**
-Misura quello che è **selezionato**:
-
-```
-Calculate(new object[] { facciaA, facciaB })          ->  FALSE
-due facce selezionate, poi Calculate(null)            ->  TRUE, 0,01
-```
-
-E peggio: chiamata con **una** faccia nell'array, mentre la selezione ne
-conteneva ancora due, ha risposto `TRUE` e ha dato l'area di tutte e due —
-3200 mm² invece di 1600. Un numero credibile, del pezzo giusto, di un'altra
-selezione. L'operazione svuota la selezione, seleziona a mano e **guarda il
-booleano**.
-
-**`Area` e `TotalArea` si alternano**, e il caso dichiarato l'ha preso:
+**`IMeasure.Calculate(Object Entities)` takes an argument and does not look at
+it.** It measures what is **selected**:
 
 ```
-una faccia sola    Area = 1600 mm²    TotalArea = -1
-due facce          Area = -1          TotalArea = 3200 mm²
+Calculate(new object[] { faceA, faceB })              ->  FALSE
+two faces selected, then Calculate(null)              ->  TRUE, 0,01
 ```
 
-Quella che vale è sempre l'altra. Leggendone una sola, il campo spariva a
-seconda di quante cose si chiedevano. E **`-1` non è una misura**: è il modo di
-SOLIDWORKS di dire «questa cosa qui non ce l'ha», quindi i valori negativi
-diventano `null` invece di numeri.
+And worse: called with **one** face in the array, while the selection still
+held two, it answered `TRUE` and gave the area of both — 3200 mm² instead
+of 1600. A believable number, from the right part, from a different selection. The
+operation clears the selection, selects by hand and **checks the boolean**.
 
-## 0.44.0 — 15 settembre 2026 · libreria 0.79.0
-
-### GP4 — `proprieta_di_massa` e `ingombro_corpo`, e la misura che cambia risposta
-
-Catalogo a **44 operazioni**. Le due domande che si fanno prima di ordinare —
-«quanto pesa questo pezzo in alluminio» e «entra nella scatola 300×260×40» — si
-calcolavano già dentro `StatoDocumento` ma **nessuna operazione poteva
-chiederle**: arrivavano dentro l'intero stato del documento, o non arrivavano.
-
-**Il difetto che il caso dichiarato ha preso alla prima esecuzione.**
+**`Area` and `TotalArea` alternate**, and the declared case caught it:
 
 ```
-NO   massa_di_un_cubo_di_acciaio · misure.densita_kg_m3   1 (atteso 8000 ±0.5)
+one face only      Area = 1600 mm²    TotalArea = -1
+two faces          Area = -1          TotalArea = 3200 mm²
 ```
 
-`IMassProperty` **cambia le sue risposte a seconda di che cosa gli si è chiesto
-prima**. Sullo stesso oggetto, con `AddBodies` che risponde `true`:
+The one that is valid is always the other one. Reading only one of them, the
+field would vanish depending on how many things were asked for. And **`-1` is
+not a measurement**: it is SOLIDWORKS's way of saying "this thing here does not
+have it", so negative values become `null` instead of numbers.
+
+## 0.44.0 — 15 September 2026 · library 0.79.0
+
+### GP4 — `mass_properties` and `body_bounding_box`, and the measurement that changes its answer
+
+Catalogue at **44 operations**. The two questions you ask before ordering —
+"how much does this part weigh in aluminium" and "does it fit the 300×260×40
+box" — were already computed inside `DocumentState` but **no operation could ask
+for them**: they arrived inside the whole document state, or they did not arrive
+at all.
+
+**The defect the declared case caught on the first run.**
 
 ```
-letto subito Density                     ->  8000   (giusto)
-letto prima Volume,      poi Density     ->     1
-letto prima SurfaceArea, poi Density     ->     1
-letto prima CenterOfMass, poi Density    ->  8000   (indenne)
+NO   mass_of_a_steel_cube · measurements.density_kg_m3   1 (expected 8000 ±0.5)
 ```
 
-E la massa segue: **0,0002 kg invece di 1,6 — ottomila volte più leggera**, con
-volume, area e baricentro tutti giusti accanto. Nessuna eccezione, nessun valore
-assurdo: un numero credibile in mezzo a quattro numeri giusti.
-
-Il rimedio non è «leggi prima la massa»: un ordine di righe è un contratto che
-si rompe il giorno in cui qualcuno le riordina, e non fallirebbe niente. È **un
-`IMassProperty` nuovo per ogni numero** — quattro chiamate COM che non le sente
-nessuno, e l'ordine smette di esistere come concetto.
-
-**La massa senza materiale è `null`, non un numero.** SOLIDWORKS non fallisce:
-risponde con la densità predefinita del modello, **1000 kg/m³, cioè acqua** —
-0,2 kg invece di 1,6 sullo stesso cubo. Credibile e sbagliato di otto volte.
-L'operazione risponde `null` e scrive perché e cosa fare.
-
-**E i momenti principali non ci sono, di proposito.**
-`IMassProperty.PrincipleMomentsOfInertia` risponde **tre zeri**, e così
-`IMassProperty2.PrincipalMomentsOfInertia` con l'altra grafia. I momenti veri
-stanno in `Extension.GetMassProperties(1)`, posizioni 6-8. Un campo che si
-chiama «momenti principali» e risponde zero non dà errore — un momento nullo è
-un momento — quindi non si riporta affatto.
-
-`ingombro_corpo` prende i **punti veri** con `GetExtremePoint` in sei direzioni,
-non la scatola approssimata di `GetBodyBox`, e dichiara il suo limite a ogni
-chiamata: è la scatola allineata agli assi, non la più piccola possibile.
-
-## 0.43.0 — 15 settembre 2026 · libreria 0.78.0
-
-### GP3 — `esporta_step` e `esporta_iges`, e il file che non aveva niente da riparare
-
-Catalogo a **42 operazioni**. STEP e IGES sono i formati con cui si manda un
-pezzo a un fornitore, a un cliente, o lo si porta in un altro CAD.
-
-**Non si rifiutano come lo STL, ed è voluto.** Un STEP con dieci corpi è
-*normale* — un saldato si manda al fornitore così — e uno con delle superfici
-aperte pure, perché STEP e IGES le portano. Rifiutarli sarebbe applicare a un
-formato le regole di un altro. La verifica gira lo stesso e **il suo giudizio
-viaggia con la risposta**: chi manda un pezzo ha diritto di sapere che aveva due
-corpi, non di essere fermato.
-
-**Il protocollo si rilegge dal file, non si crede.** `swStepAP` vuole 203, 214 o
-242, e quei tre valori **non hanno un enum** in `swconst`: il numero è un
-letterale. L'unica prova che il 214 chiesto è il 214 ottenuto è il `FILE_SCHEMA`
-scritto dentro il file — `AUTOMOTIVE_DESIGN` per l'AP214,
-`CONFIG_CONTROL_DESIGN` per l'AP203. Se non combacia, l'operazione fallisce:
-certi fornitori accettano solo il 203, e un file col protocollo sbagliato si
-scopre dall'altra parte.
+`IMassProperty` **changes its answers depending on what it was asked for
+first**. On the same object, with `AddBodies` answering `true`:
 
 ```
-OK   step_ap214_riletto · misure.file_schema      AUTOMOTIVE_DESIGN
-OK   step_ap203_e_lo_dice · misure.file_schema    CONFIG_CONTROL_DESIGN
+Density read right away                  ->  8000   (correct)
+Volume read first,      then Density     ->     1
+SurfaceArea read first, then Density     ->     1
+CenterOfMass read first, then Density    ->  8000   (unaffected)
 ```
 
-Due casi scrivono lo stesso cubo con i due protocolli e pretendono schemi
-diversi — con `non_contiene` sull'altro nome, perché «c'è il nome giusto» non
-basta. Se la preferenza non arrivasse a destinazione uscirebbero identici, e
-verdi tutti e due.
+And the mass follows suit: **0,0002 kg instead of 1,6 — eight thousand times
+lighter**, with volume, area and centre of mass all correct right next to it. No
+exception, no absurd value: a believable number in the middle of four correct
+ones.
 
-**`riapri_e_confronta`: la sola misura che dice che la geometria è
-sopravvissuta.** Il file viene riaperto in SOLIDWORKS e il suo volume
-confrontato col pezzo, fallendo oltre un millesimo di scarto. Misurato: **0,00%
-sia in STEP AP214 sia in IGES BREP**, 200.000 mm³ esatti in tutti e due. Non è
-il predefinito perché costa un'apertura di documento.
+The fix is not "read the mass first": an order of lines is a contract that
+breaks the day someone reorders them, and nothing would fail. It is **a fresh
+`IMassProperty` for every number** — four COM calls that nobody feels, and order
+stops existing as a concept.
 
-**E il difetto che ha richiesto una sonda.** La prima scrittura riapriva con
-`OpenDoc6`, che su un file appena scritto risponde:
+**Mass without a material is `null`, not a number.** SOLIDWORKS does not fail:
+it answers with the model's default density, **1000 kg/m³, that is, water** —
+0,2 kg instead of 1,6 on the same cube. Believable and wrong by a factor of
+eight. The operation answers `null` and writes why, and what to do.
+
+**And the principal moments are not there, on purpose.**
+`IMassProperty.PrincipleMomentsOfInertia` answers **three zeros**, and so does
+`IMassProperty2.PrincipalMomentsOfInertia` with the other spelling. The real
+moments sit in `Extension.GetMassProperties(1)`, positions 6-8. A field called
+"principal moments" that answers zero raises no error — a moment of zero is
+still a moment — so it is not reported at all.
+
+`body_bounding_box` takes the **real points** with `GetExtremePoint` in six
+directions, not the approximate box from `GetBodyBox`, and states its limit on
+every call: it is the axis-aligned box, not the smallest possible one.
+
+## 0.43.0 — 15 September 2026 · library 0.78.0
+
+### GP3 — `export_step` and `export_iges`, and the file that had nothing to repair
+
+Catalogue at **42 operations**. STEP and IGES are the formats used to send a
+part to a supplier, to a customer, or to bring it into another CAD.
+
+**They are not refused the way STL is, and that is intentional.** A STEP with
+ten bodies is *normal* — a weldment is sent to the supplier just like that — and
+so is one with open surfaces, because STEP and IGES carry them. Refusing them
+would mean applying one format's rules to another. The check still runs and
+**its verdict travels with the answer**: whoever sends a part has the right to
+know it had two bodies, not to be stopped.
+
+**The protocol is read back from the file, not taken on faith.** `swStepAP`
+wants 203, 214 or 242, and those three values **have no enum** in `swconst`: the
+number is a literal. The only proof that the 214 asked for is the 214 obtained
+is the `FILE_SCHEMA` written inside the file — `AUTOMOTIVE_DESIGN` for AP214,
+`CONFIG_CONTROL_DESIGN` for AP203. If it does not match, the operation fails:
+some suppliers accept only 203, and a file with the wrong protocol gets
+discovered on the other end.
+
+```
+OK   step_ap214_reread · measurements.file_schema      AUTOMOTIVE_DESIGN
+OK   step_ap203_says_so · measurements.file_schema    CONFIG_CONTROL_DESIGN
+```
+
+Two cases write the same cube with the two protocols and expect different
+schemas — with `does_not_include` on the other name, because "the right name is
+there" is not enough. If the preference did not reach its destination they
+would come out identical, and both green.
+
+**`reopen_and_compare`: the only measurement that says the geometry survived.**
+The file is reopened in SOLIDWORKS and its volume compared with the part,
+failing beyond a thousandth of discrepancy. Measured: **0,00% in both STEP
+AP214 and IGES BREP**, exactly 200.000 mm³ in both. It is not the default
+because it costs a document open.
+
+**And the defect that needed a probe.** The first implementation reopened with
+`OpenDoc6`, which on a freshly written file answers:
 
 ```
 OpenDoc6(…, swDocPART, Silent)           NULL   2097152  swFileRequiresRepairError
 OpenDoc6(…, swDocIMPORTED_PART, Silent)  NULL      1024  swInvalidFileTypeError
-LoadFile4(percorso, "", null)            aperto      0   1 corpo, 200000 mm3
+LoadFile4(path, "", null)                open      0   1 body, 200000 mm3
 ```
 
-«Il file richiede una riparazione» su un file che non ha niente da riparare —
-lo avevamo scritto noi due righe prima. **Un codice d'errore descrive quello che
-l'API ha concluso, non quello che è successo**: per i formati neutri la porta è
-`LoadFile4`, e `OpenDoc6` manda a cercare il guasto dalla parte sbagliata.
+"The file requires a repair" on a file that has nothing to repair — we had
+written it ourselves two lines earlier. **An error code describes what the API
+concluded, not what actually happened**: for neutral formats the door is
+`LoadFile4`, and `OpenDoc6` sends you looking for the fault in the wrong place.
 
-## 0.42.0 — 15 settembre 2026 · libreria 0.77.0
+## 0.42.0 — 15 September 2026 · library 0.77.0
 
-### GP2 — `esporta_stl`, e il formato che non porta con sé niente
+### GP2 — `export_stl`, and the format that carries nothing with it
 
-Il catalogo passa a **40 operazioni** e guadagna la famiglia **`esportazioni`**.
-È il primo ponte verso una stampante: senza, un pezzo disegnato dal modello non
-arriva mai a una macchina.
+The catalogue goes up to **40 operations** and gains the **`exports`** family.
+It is the first bridge toward a printer: without it, a part the model has drawn
+never reaches a machine.
 
-**Un file STL non contiene quasi niente**: un elenco di triangoli. Non dice in
-che unità sono, non dice se il solido è chiuso, non dice da quale pezzo viene.
-Tutto quello che si può sbagliare qui **si apre lo stesso, si affetta lo stesso
-e si stampa lo stesso**, e il difetto si vede quando il pezzo è in mano. Quindi:
+**An STL file contains almost nothing**: a list of triangles. It does not say
+what units they are in, does not say whether the solid is closed, does not say
+which part it comes from. Everything that can go wrong here **still opens,
+still slices and still prints**, and the defect shows up once the part is in
+your hand. So:
 
-**La verifica gira PRIMA, e può fermare tutto.** `esporta_stl` chiama
-`verifica_geometria_corpo` e **si rifiuta di scrivere** se il pezzo non è un
-solo corpo solido chiuso senza difetti. Era la riga per cui GP1 andava fatta
-prima di questa: la misura del file — esiste, pesa qualcosa — non cattura il
-corpo con la fessura.
-
-```
-NO   esporta_stl su due corpi
-     Non esporto: Non lo esporterei cosi': il pezzo ha 2 corpi: per una
-     stampa dev'essere uno solo.
-     Un STL non porta con se' niente che dica che il pezzo era cosi': si
-     apre, si affetta e si stampa lo stesso. Sistema il pezzo, oppure passa
-     «esporta_comunque»: true se sai quello che fai.
-```
-
-**La via d'uscita esiste e si dichiara.** Un giorno qualcuno avrà ragione lui —
-due corpi da stampare insieme apposta — e un rifiuto senza scampo si aggira
-copiando il file a mano, cioè fuori da ogni controllo. Con `esporta_comunque`
-il file si scrive **e la risposta porta scritto** che la verifica è stata
-scavalcata e cosa diceva.
-
-**I millimetri sono espliciti.** `IExportStlData` **non esiste in questo
-interop** (cercata fra tutte le 1737 interfacce): ogni opzione è una
-*preferenza utente globale* della macchina. `swExportStlUnits` lasciata com'è
-vuol dire che il risultato dipende da chi ha usato SOLIDWORKS prima — e il file
-non porta le unità con sé, quindi esportato in pollici il pezzo esce 25,4 volte
-più piccolo e nessun errore lo dice. Le preferenze si **leggono, si impostano e
-si rimettono com'erano**: sono le impostazioni di chi disegna, non nostre.
-`swSTLShowInfoOnSave` va a `false` perché una finestra bloccherebbe la chiamata
-COM e non tornerebbe mai — la stessa trappola di `AddDimension`.
-
-**E poi si rilegge il file, non la risposta.** Un STL binario è 80 byte di
-intestazione, 4 col numero di triangoli, poi 50 per triangolo:
+**The check runs FIRST, and it can stop everything.** `export_stl` calls
+`check_body_geometry` and **refuses to write** if the part is not a single
+closed solid body with no defects. This was the reason GP1 had to be done
+before this one: the file-level measurement — it exists, it weighs something —
+does not catch the body with the gap.
 
 ```
-OK   scatola_dodici_triangoli · misure.triangoli   12   (sei facce, due triangoli ciascuna)
-OK   scatola_dodici_triangoli · misure.byte       684   (84 + 50*12)
+NO   export_stl on two bodies
+     I will not export: I would not export it like this: the part has 2 bodies: for a
+     print it must be a single one.
+     An STL carries nothing with it saying the part was like this: it
+     opens, it slices and it prints just the same. Fix the part, or pass
+     "export_anyway": true if you know what you are doing.
 ```
 
-Se il conto non torna, l'operazione fallisce dicendo che il file c'è e non è
-quello che serve. `SaveAs3` che torna `true` dice solo che SOLIDWORKS non ha
-protestato.
+**The way out exists and declares itself.** One day someone will actually be
+right — two bodies meant to be printed together on purpose — and a refusal with
+no escape gets worked around by copying the file by hand, that is, outside
+every check. With `export_anyway` the file gets written **and the answer
+carries a note** saying the check was overridden, and what it said.
 
-Cinque casi dichiarati in `casi\esporta\`: la scatola binaria, la stessa in
-ASCII (dodici triangoli contati in un altro modo — righe `facet` invece dei
-quattro byte), i due corpi rifiutati, i due corpi esportati a forza (ventiquattro
-triangoli: il numero dice anche che il secondo corpo è finito nel file davvero),
-e l'estensione sbagliata — `.stp` al posto di `.stl` farebbe scrivere tutt'altro
-formato, e il file esisterebbe, peserebbe e si aprirebbe.
+**The millimetres are explicit.** `IExportStlData` **does not exist in this
+interop** (searched across all 1737 interfaces): every option is a *global user
+preference* of the machine. Leaving `swExportStlUnits` as it is means the
+result depends on whoever used SOLIDWORKS before — and the file does not carry
+its units with it, so exported in inches the part comes out 25,4 times smaller
+and no error says so. The preferences are **read, set, and put back as they
+were**: they belong to whoever is drawing, not to us. `swSTLShowInfoOnSave` is
+set to `false` because a window would block the COM call and would never
+return — the same trap as `AddDimension`.
 
-I casi possono scrivere file: segnaposto **`{LAVORO}`**, che è `Banco\lavoro\` —
-ignorata da git e svuotabile in qualunque momento.
-
-## 0.41.0 — 15 settembre 2026 · libreria 0.76.0
-
-### GP1 — `verifica_geometria_corpo`, e la prima operazione che non disegna
-
-Il catalogo passa a **39 operazioni** e guadagna una famiglia: **`verifiche`**
-— *«dire com'è venuto, senza toccarlo»*. Fino a qui nessuna operazione sapeva
-rispondere a «com'è venuto?»: le misure c'erano — `taglio_rettangolare` conta
-il materiale tolto, `foro_guidato` misura dove è finito l'asse — ma erano
-private dentro le operazioni, e il modello non poteva chiamarne nessuna.
-`distinta_taglio` era il solo precedente di un'operazione che legge.
-
-`verifica_geometria_corpo` risponde, per ogni corpo: tipo (solido, foglio,
-filo), quante facce, se è chiuso, quante fessure, quanti difetti topologici
-**col nome** (`swFaultEntityErrorCode_e`, 36 valori) e non col numero. Poi un
-giudizio in una frase, dove *stampabile* vuol dire **un solo corpo solido,
-chiuso, senza difetti**.
-
-**Le due cose misurate prima di scriverla** (`Controlli\CorpoRotto`, un
-attrezzo nuovo che è anche il controllo che le tiene vere):
+**And then the file is read back, not the answer.** A binary STL is 80 bytes
+of header, 4 with the triangle count, then 50 per triangle:
 
 ```
-                          Check()  Check2()  Check3.Count  fessure
-  solido sano                1        0           0           0
-  due solidi che si toccano  1        0           0           0
-  CORPO DI FOGLIO (aperto)   1        0           0           1
+OK   box_twelve_triangles · measurements.triangles   12   (six faces, two triangles each)
+OK   box_twelve_triangles · measurements.byte       684   (84 + 50*12)
 ```
 
-1. **`Check()` e `Check2()` hanno convenzioni opposte.** Sullo stesso corpo
-   sano il primo dice 1 e il secondo dice 0. Era la domanda lasciata aperta dal
-   censimento delle API — *«non so se zero voglia dire sano o zero controlli
-   fatti»* — e la risposta è peggio dell'incertezza: le due convenzioni
-   convivono nella stessa interfaccia, e chi ne scambia una ottiene un
-   risultato coerente, stabile e rovesciato.
-2. **Un corpo aperto passa tre controlli su quattro.** Una superficie non è
-   «rotta»: è un corpo valido che non racchiude niente. `Check`, `Check2` e
-   `Check3` la dichiarano sana tutti e tre, e **solo
-   `Diagnose().GetGapsCount()` la vede**. Un'operazione costruita su `Check3` —
-   la via che la voce GP1 nominava per prima — direbbe «nessun problema»
-   esattamente sul caso per cui esiste.
+If the arithmetic does not add up, the operation fails, saying that the file
+exists and is not the one needed. `SaveAs3` returning `true` only says that
+SOLIDWORKS did not object.
 
-Quindi si guardano tutte e quattro, e i numeri grezzi di `Check()` e `Check2()`
-restano nella risposta: il giorno in cui una versione di SOLIDWORKS cambia una
-delle due convenzioni lo si vede da lì, non da un giudizio girato al contrario.
+Five declared cases in `cases\export\`: the binary box, the same one in ASCII
+(twelve triangles counted a different way — `facet` lines instead of the four
+bytes), the two rejected bodies, the two bodies exported by force (twenty-four
+triangles: the number also says the second body really did end up in the file),
+and the wrong extension — `.stp` instead of `.stl` would write an entirely
+different format, and the file would exist, would weigh something, and would
+open.
 
-**Il limite si dichiara a ogni chiamata**, non una volta nella descrizione:
-`cosa_non_guarda` dice che lo spessore delle pareti e le sovrasporgenze non li
-guarda nessuno ancora. Un guscio da tre decimi passa di qui senza una parola.
+Cases can write files: placeholder **`{WORK}`**, which is `Bench\lavoro\` —
+ignored by git and emptiable at any time.
 
-Trappole di API pagate per strada: **`IBody2.Check3` è una PROPRIETÀ, non un
-metodo** (scritto `Check3()` in late binding non dà errore di compilazione, dà
-un fallimento a runtime dentro un `catch`), e **`InsertPlanarRefSurface` sta su
-`IModelDoc2` e torna un booleano**, mentre ogni altra `Insert*RefSurface` che
-torna una `Feature` sta sul `FeatureManager`.
+## 0.41.0 — 15 September 2026 · library 0.76.0
 
-## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
+### GP1 — `check_body_geometry`, and the first operation that does not draw
 
-### F11 — Le famiglie di prove diventano file, e tre difetti che erano lì da mesi
+The catalogue goes up to **39 operations** and gains a family: **`checks`** —
+"say how it came out, without touching it". Up to now no operation knew how to
+answer "how did it come out?": the measurements existed — `rectangular_cut`
+counts the material removed, `hole_wizard` measures where the axis ended up —
+but they were private inside the operations, and the model could not call any
+of them. `cut_list` was the only precedent of an operation that reads.
 
-Sei famiglie di prove in C# — `rivoluzione`, `crea_piano`, `crea_asse`,
-`ripeti_lineare`, `specchia`, `sopprimi/elimina`, più `la forma in una frase` —
-sono diventate **venticinque casi dichiarati**. `Segna(` in `ProvaNuove.cs`
-passa da **99 a 17**; i casi delle famiglie dichiarate sono **50**, più i
-sedici della regressione.
+`check_body_geometry` answers, for every body: type (solid, sheet, wire), how
+many faces, whether it is closed, how many gaps, how many topological defects
+**by name** (`swFaultEntityErrorCode_e`, 36 values) and not by number. Then a
+verdict in one sentence, where *printable* means **a single solid body, closed,
+with no defects**.
 
-**Il trasloco ha stretto le tolleranze, non solo spostato il codice.** La
-rivoluzione accettava `atteso * 0.02`: sul cilindro da 62.831 mm³ sono 1.256
-mm³ di scarto ammesso, più di un foro M20 passante. Nei file è ±0,5 mm³ col
-motivo scritto accanto. E i casi pinzano di più: `sopprimi_lavorazione` adesso
-misura **quale** foro si è spento (`centri_x_mm` da `[-60, 0, 60]` a
-`[-60, 0]`), non solo che il volume è tornato.
-
-**Tre difetti trovati scrivendo i file, e nessuno dava errore:**
-
-1. **Un controllo verde che non poteva diventare rosso.** «Nessuno spigolo
-   curvo è offerto al modello» contava gli spigoli con `dritto: false`. **Quel
-   campo non esiste**: lo stato scrive `curvo: true` e non scrive `dritto` su
-   nessuno, quindi il conto restava sempre zero. E la premessa scritta sopra —
-   «il modello non può nominare un bordo curvo, quindi il rifiuto non è
-   raggiungibile» — era falsa: dopo un foro passante gli spigoli curvi sono
-   **due**. Adesso c'è il rifiuto vero,
-   `casi/ripeti/lim_direzione_da_spigolo_curvo.json`.
-2. **Il confronto fra un rifiuto e la sua gemella era cieco sulle liste.**
-   `Convert.ToString` su un `object[]` torna `"System.Object[]"`: due profili
-   diversi si scrivevano uguali.
-3. **L'elenco dei nomi delle misure si era scollato da chi le misura.** Due
-   misure nuove uscivano come «non so misurare …» con accanto l'elenco vecchio,
-   e un errore di banco su una prova che il ponte superava.
-
-**Le attese sanno chiedere una frase.** `contiene` e `non_contiene`, con una
-stringa o un elenco. La metà che conta è la seconda: una descrizione che
-dichiara un profilo che il pezzo non ha più non fallisce niente — è la
-descrizione giusta di un altro pezzo.
-
-**La gemella di un'operazione con un argomento solo.** `crea_asse` prende
-`faccia_uid` e basta: due casi che differiscono per quell'unico argomento non
-possono averne uno in comune, e la regola F5 li rifiutava sempre. Quando le
-chiavi sono una sola, «niente in comune» non è un indizio: è l'arità — e
-l'eccezione si dichiara nel resoconto.
-
-**Il rosso di F13 non è più un numero.** Era `famiglie.Count >= 15` ed è
-diventato rosso senza che niente si fosse rotto, perché le famiglie sono scese
-a dodici. Un pavimento numerico su una cosa che deve calare è un rosso a
-scadenza: adesso il setaccio deve trovare **sé stesso**.
-
-**`banco.ps1` non legge più il resoconto di ieri per nuovo.** Un
-`TypeInitializationException` — un campo statico con inizializzatore che nomina
-`IModelDoc2` gira **prima di `Main`**, cioè prima dell'`AssemblyResolve` — usciva
-come un `NativeCommandError` che nominava lo script, con `ultimo-giro.txt` fermo
-al giro precedente perché `Tee-Object` non lo apre se non passa nessuna riga.
-Adesso il file si toglie prima, e un giro che non scrive niente è uscita 2 con
-l'istruzione per vedere l'eccezione.
-
-**Le prove che non aprono SOLIDWORKS stanno in un file loro**
-(`Banco/ProveSenzaIlPezzo.cs`): i controlli su `Frasi` (E10) e sul racconto
-dell'eccezione (F12) sono funzioni pure su stringhe e un setaccio sui sorgenti,
-e in mezzo alle prove sul pezzo sembravano prove di disegno.
-
-**Resta in C#, col perché scritto accanto:** `sposta_corpi` (servono due
-piastre distanti, e `estrudi_rettangolo` centra sempre sull'origine),
-`ScattaLaVista` e `QuantoVedeIlModello` (misurano immagini), e una riga sola di
-`crea_asse` — che l'asse si riagganci con `SelectByID2("AXIS")`, che è una
-chiamata COM e non un'operazione del catalogo.
-
-### F10 — La libreria di allora non si conserva: si ricostruisce
-
-`.\Controlli\libreria-di-allora.ps1 0.70.0` trova il commit che **dichiara**
-quella `AssemblyVersion` — dentro `AssemblyInfo.cs`, non nei messaggi di commit
-— ne fa un worktree usa e getta, lo compila e stampa il percorso della DLL.
-`-Pulisci` lo toglie.
-
-**La disciplina che la voce chiedeva c'e' gia'**, e si misura: `git log` su
-`AssemblyInfo.cs` mostra una riga per numero, senza salti. Il difetto che la
-voce descriveva — un commit che copriva 0.29.1 → 0.44.0 — era del monorepo
-OpenPDM, prima che la libreria si trasferisse qui.
-
-**`rossa_prima_di`**: un caso dichiara la versione prima della quale doveva
-essere rosso, e su una libreria piu' vecchia **deve** fallire. Visto scattare:
-«su 0.75.0.0 e' passata, e non doveva: questa prova non custodisce il difetto
-che dice di custodire».
-
-**E «la libreria non si carica» non e' piu' un giro rosso.** Puntando
-`--libreria` alla 0.30.2 il banco usciva con un'eccezione non gestita e il
-codice **-532462766**, indistinguibile da un piantamento; adesso lo dice ed esce
-2. Il confronto storico **comincia dalla 0.52.0**, misurato: prima di allora le
-operazioni stavano in `OpenPDM.SwAddin`, con un altro spazio dei nomi.
-
-Una prova incrociata che e' venuta gratis: i casi di oggi lanciati sulla 0.70.0
-non passano in silenzio — dicono «campo assente: `stato.ingombro_da_mm`» e
-nominano tutti i campi che c'erano. E' il comportamento della voce F4, visto
-attraverso il tempo invece che attraverso un refuso.
-
-### F9 — Una CI che compila, prova i contratti e **pretende il banco**
-
-`.github/workflows/prove.yml` su `windows-latest`: compila il ponte e
-`Prove.Contratti`, guarda che i due eseguibili **esistano davvero**, lancia le
-prove, pubblica `prove.xml`.
-
-**E fa la cosa che una macchina senza licenza puo' davvero fare**: una prova di
-contratto legge `Banco/resoconto/ultimo.json` e **rifiuta una consegna in cui
-nessuno ha lanciato il banco**. Controlla che il giro abbia misurato qualcosa
-(«0 prove, 0 fallite» non e' un verde), che non sia parziale, che la libreria
-sia quella dichiarata in `AssemblyInfo.cs`, e che sia **posteriore all'ultima
-modifica a `Riscontro.Disegno`** — chiesto a git. *Una libreria toccata dopo
-l'ultimo giro e' una libreria non provata, anche se il numero di versione
-combacia perche' qualcuno si e' dimenticato di alzarlo.*
-
-Il rosso, misurato togliendo il file: «il banco non e' stato eseguito su questa
-versione».
-
-`Banco/resoconto/` resta ignorato **tranne `ultimo.json`**, e non e'
-un'eccezione di comodo: senza quel file in repository quel controllo non
-esiste.
-
-### F8 — La regressione sui riferimenti, e i tre numeri
+**The two things measured before writing it** (`Checks\BrokenBody`, a new tool
+that is also the check that keeps them true):
 
 ```
-.\Banco\banco.ps1 -Regressione   ->  16 casi
-                                     12  reggono
-                                      0  si staccano e LO DICONO
-                                      4  si staccano IN SILENZIO
+                          Check()  Check2()  Check3.Count  gaps
+  sound solid                1        0           0           0
+  two solids touching        1        0           0           0
+  SHEET BODY (open)          1        0           0           1
 ```
 
-Sedici pezzi costruiti, **una sola quota a monte cambiata**, e la geometria a
-valle rimisurata. I numeri sono nel README.
+1. **`Check()` and `Check2()` have opposite conventions.** On the same sound
+   body the first says 1 and the second says 0. This was the question the API
+   census had left open — "I don't know whether zero means sound or zero checks
+   performed" — and the answer is worse than the uncertainty: the two
+   conventions coexist on the same interface, and whoever swaps one for the
+   other gets a result that is coherent, stable, and reversed.
+2. **An open body passes three checks out of four.** A surface is not
+   "broken": it is a valid body that encloses nothing. `Check`, `Check2` and
+   `Check3` all three declare it sound, and **only `Diagnose().GetGapsCount()`
+   sees it**. An operation built on `Check3` — the path the GP1 entry named
+   first — would say "no problem" on exactly the case it exists for.
 
-**Lo zero in mezzo e' il piu' interessante dei tre.** Nessuno dei sedici casi si
-e' rotto in modo visibile: le quattro volte che il pezzo e' uscito diverso da
-quello che il disegno dichiarava, SOLIDWORKS ha ricostruito pulito e non ha
-detto niente.
+So all four are checked, and the raw numbers from `Check()` and `Check2()` stay
+in the answer: the day a SOLIDWORKS version changes one of the two conventions,
+it will be seen there, not from a verdict flipped backwards.
 
-**E la scoperta che vale piu' dei numeri:** un taglio schizzato **su una faccia
-segue quella faccia**. Il foro sul fondo di un guscio regge sia quando la
-scatola si alza di 28 mm sia quando la parete ingrossa di 7. Quello che non
-segue e' la posizione **dentro** la faccia: `x_mm`/`y_mm` sono coordinate
-assolute sul piano di schizzo, e una faccia che cresce non le sposta.
+**The limit is declared on every call**, not once in the description:
+`what_it_does_not_check` says that wall thickness and overhangs are not checked
+by anyone yet. A shell three tenths thick passes through here without a word.
 
-> Non e' «i riferimenti non reggono». E': **il piano di schizzo regge, le
-> coordinate dentro il piano no.**
+API traps paid for along the way: **`IBody2.Check3` is a PROPERTY, not a
+method** (written as `Check3()` in late binding, it gives no compile error, it
+gives a runtime failure inside a `catch`), and **`InsertPlanarRefSurface` sits
+on `IModelDoc2` and returns a boolean**, while every other `Insert*RefSurface`
+that returns a `Feature` sits on the `FeatureManager`.
 
-Due casi dei diciotto **non sono scrivibili oggi**, e sta scritto perche': il
-percorso di un telaio e' un `3DProfileFeature` di cui lo stato non pubblica le
-quote, e `fazzoletto` vuole due facce d'angolo che nessun selettore sa nominare.
+## The bench, not the bridge — 15 September 2026 · no new number
 
-Due arnesi nuovi nel formato dei casi: **`come_prima`** (l'invariante e'
-«com'era», e calcolarlo a mano sarebbe rifare un conto che SOLIDWORKS ha gia'
-fatto — sbagliandolo si crea un falso silenzio) e **`centro_massa_mm`**
-(l'invariante di posizione per cio' che fori non ne lascia). Il secondo e'
-servito subito: un caso **reggeva col volume** mentre il foro poteva essere
-finito altrove.
+### F11 — Test families become files, and three defects that had been there for months
 
-### F7 — Le prove che girano dove SOLIDWORKS non c'e'
+Six test families in C# — `revolve`, `create_plane`, `create_axis`,
+`linear_pattern`, `mirror`, `suppress_feature/delete_feature`, plus `the shape in one sentence`
+— have become **twenty-five declared cases**. `Check(` in
+`NewOperationsTests.cs` goes from **99 to 17**; the cases of the declared
+families are **50**, plus the sixteen regression ones.
 
-```
-msbuild Prove\Prove.Contratti.csproj -p:Configuration=Release
-Prove\bin\Prove.Contratti.exe    ->  54 controlli, 0 falliti, prove.xml (JUnit)
-```
+**The move tightened the tolerances, it did not just relocate the code.** The
+revolve test accepted `expected * 0.02`: on the 62.831 mm³ cylinder that is
+1.256 mm³ of allowed slack, more than a through M20 hole. In the files it is
+±0,5 mm³ with the reason written right next to it. And the cases pinch harder:
+`suppress_feature` now measures **which** hole has been turned off
+(`centers_x_mm` from `[-60, 0, 60]` to `[-60, 0]`), not just that the volume
+came back right.
 
-Un progetto **a se'**, non un modo del banco: il csproj del banco risolve
-l'interop con un `HintPath` dentro `…\SOLIDWORKS\api\redist`, e su una macchina
-senza SOLIDWORKS **la compilazione fallisce**. Un flag non basta — il problema e'
-prima del runtime.
+**Three defects found while writing the files, and none of them raised an
+error:**
 
-Prova il **valutatore delle attese** (19), il **catalogo** e `Simili()` (11),
-`Sessione.StessoDocumento` (10, e fino a oggi quella guardia non aveva **nemmeno
-una prova**), il **protocollo MCP** parlando col ponte su stdio (13), e che
-questo progetto **non referenzi l'interop** — guardando i riferimenti
-dell'assembly, non il testo del csproj.
+1. **A green check that could never turn red.** "No curved edge is offered to
+   the model" counted edges with `straight: false`. **That field does not
+   exist**: the state writes `curved: true` and never writes `straight` on
+   anything, so the count always stayed zero. And the premise written above it
+   — "the model cannot name a curved edge, so the refusal is unreachable" —
+   was false: after a through hole the curved edges are **two**. Now there is
+   a real refusal case, `cases/patterns/limit_direction_from_a_curved_edge.json`.
+2. **The comparison between a refusal and its twin was blind on lists.**
+   `Convert.ToString` on an `object[]` returns `"System.Object[]"`: two
+   different profiles would compare as equal.
+3. **The list of measurement names had come loose from whoever measures
+   them.** Two new measurements came out as "I don't know how to measure …"
+   with the old list right next to it, and a bench error on a test the bridge
+   was actually passing.
 
-Il valutatore e' lo **stesso file** che compila il banco, non una copia: una
-copia diverge, e il giorno che diverge la suite col CAD comincia a passare per
-ragioni che qui non si vedono. *Se e' rotto lui, tutta la suite con SOLIDWORKS
-diventa verde gratis.*
+**Expectations can now ask for a sentence.** `includes` and `does_not_include`,
+with a string or a list. The half that matters is the second: a description
+that declares a profile the part no longer has fails nothing — it is simply
+the right description of a different part.
 
-**Tre difetti trovati appena scritta**, e sono il suo valore:
+**The twin of an operation with a single argument.** `create_axis` takes
+`face_uid` and nothing else: two cases that differ by that one argument cannot
+have one in common, and rule F5 would always refuse them. When there is only
+one key, "nothing in common" is not a warning sign: it is the arity — and the
+exception is declared in the report.
 
-* **il BOM che rompeva la prima riga.** `Process.StandardInput` nasce con la
-  codifica di `Console.InputEncoding` e gli si mette `AutoFlush = true`, che fa
-  un Flush, e un Flush UTF-8 scrive il preambolo: **tre byte davanti alla prima
-  riga**. Il ponte rispondeva `-32700`, e il sintomo diceva «initialize non
-  risponde» perche' la riga d'errore non porta l'id;
-* **un controllo scattato per il motivo sbagliato**: «nessun percorso di questa
-  macchina» cercava `O:\` senza distinguere maiuscole, e trovava `tipo:\n`;
-* **`BadImageFormatException` che sembrava un file mancante**: un `AnyCPU`
-  eseguibile parte a 32 bit, e l'immagine x64 del ponte da li' non si carica.
+**F13's red is no longer a number.** It used to be `families.Count >= 15` and
+it turned red without anything having broken, because the families had gone
+down to twelve. A numeric floor on something that is meant to decrease is a red
+with an expiry date: now the sieve must find **itself**.
 
-### F6 — `--muta`: ogni caso deve poter diventare rosso
+**`bench.ps1` no longer mistakes yesterday's report for a new one.** A
+`TypeInitializationException` — a static field with an initializer that names
+`IModelDoc2` runs **before `Main`**, that is, before `AssemblyResolve` — used
+to come out as a `NativeCommandError` naming the script, with
+`ultimo-giro.txt` stuck on the previous run because `Tee-Object` does not open
+it if no line passes through. Now the file is removed beforehand, and a run
+that writes nothing is exit 2 with instructions for seeing the exception.
 
-`.\Banco\banco.ps1 -Muta` perturba **il piano, non il codice**: un argomento
-alla volta moltiplicato per 1,5 (booleani invertiti), il caso rieseguito, e si
-**pretende che diventi rosso**. Un caso che resta verde sotto ogni
-perturbazione e' **cieco**: le sue attese non vincolano i suoi argomenti.
+**Tests that do not open SOLIDWORKS live in a file of their own**
+(`Bench/NoPartTests.cs`): the checks on `Sentences` (E10) and on the
+exception's account (F12) are pure functions on strings and a sieve over the
+sources, and in the middle of the part tests they looked like drawing tests.
 
-**67 mutazioni su 11 casi, zero ciechi, 854 s** — `Banco/resoconto/mutazioni.md`.
+**Stays in C#, with the reason written right next to it:** `move_bodies` (it
+needs two distant plates, and `extrude_rectangle` always centres on the
+origin), `CaptureView` and `HowMuchTheModelSees` (they measure images), and a
+single line of `create_axis` — that the axis reattaches with
+`SelectByID2("AXIS")`, which is a COM call and not a catalogue operation.
 
-E' **l'unico modo meccanico** di imporre che una prova sia gia' fallita almeno
-una volta: un `provata_a_fallire` scritto a mano e' una dichiarazione, e una
-dichiarazione si copia dal caso accanto.
+### F10 — The library of the time is not kept around: it is rebuilt
 
-**Il falso cieco si evita leggendo il catalogo.** Mutare `profondita_mm` su un
-taglio passante lascia il caso verde e non e' cecita': lo schema dice `"solo se
-non passante"`, e il banco legge quella riga — dalla **libreria caricata**, non
-da `bin/catalogo.json`, che lo scrive un'altra compilazione. Due accorgimenti
-della stessa famiglia: si mutano solo i passi **con attese** (un foro da 500
-mutato a 750 copre il pezzo lo stesso), e **zero per 1,5 fa zero**, quindi una
-coordinata a 0 si sposta di 1 mm.
+`.\Checks\library-of-the-time.ps1 0.70.0` finds the commit that **declares**
+that `AssemblyVersion` — inside `AssemblyInfo.cs`, not in the commit messages —
+makes a disposable worktree out of it, builds it, and prints the DLL's path.
+`-Clean` removes it.
 
-Le mutazioni **sopravvissute** sono la parte utile, e il resoconto le nomina:
-`x_mm 0->1` su un foro resta verde perche' quei casi misurano **quanto**
-materiale e' stato tolto, non **dove**; `lunghezza_mm 400->600` su
-`tasca_400_cieca` resta verde perche' la tasca e' gia' piu' grande della faccia
-e SOLIDWORKS la taglia sul bordo — geometria, non attesa debole.
+**The discipline the TODO entry was asking for already exists**, and it is
+measured: `git log` on `AssemblyInfo.cs` shows one line per number, with no
+gaps. The defect the entry described — a commit spanning 0.29.1 → 0.44.0 — was
+the OpenPDM monorepo's, before the library moved over here.
 
-`--muta` ha un riepilogo suo (`MUTAZIONI — 11 casi, 0 ciechi`): i rossi che
-produce sono **cercati**, e sommarli a un conteggio che serve a leggere i rossi
-non cercati renderebbe inutili tutti e due.
+**`red_before`**: a case declares the version before which it had to be red,
+and on an older library it **must** fail. Seen firing: "on 0.75.0.0 it passed,
+and it should not have: this test does not guard the defect it claims to
+guard".
 
-### F5 — Un rifiuto non sta mai da solo
+**And "the library does not load" is no longer a red run.** Pointing
+`--libreria` at 0.30.2, the bench used to exit with an unhandled exception and
+code **-532462766**, indistinguishable from a hang; now it says so and exits
+2. The historical comparison **starts at 0.52.0**, measured: before that the
+operations lived in `OpenPDM.SwAddin`, under a different namespace.
 
-Ogni caso con `deve_fallire` **deve** nominare in `gemella` un caso che riesce,
-e quella gemella dev'essere **verde nello stesso giro**. Togliendo il campo da
-uno dei `lim_*.json` il comando esce **2** e nomina il caso.
+A cross-check that came for free: today's cases run against 0.70.0 do not pass
+silently — they say "missing field: `state.bounding_box_from_mm`" and name every
+field that was there. It is F4's behaviour, seen across time instead of
+through a typo.
 
-> Una prova che verifica solo il rifiuto non distingue «il controllo funziona»
-> da «il controllo rifiuta tutto».
+### F9 — A CI that builds, runs the contract tests and **demands the bench**
 
-Le quattro coppie canoniche di 80v sono nel repository, tutte sullo stesso
-blocco rettangolare, con i numeri rimisurati oggi:
+`.github/workflows/tests.yml` on `windows-latest`: it builds the bridge and
+`Oce.Solid.Agent.ContractTests`, checks that the two executables **really
+exist**, runs the tests, publishes `prove.xml`.
 
-```
-foro 270 passante                tolti 2.977.287,36   (pi*135^2*52)
-foro 60 col CENTRO SUL BORDO     tolti 73.513,27      (mezzo cilindro: 73.512,62)
-tasca 400x400 cieca da 5         volume 4.043.692, ingombro [314, 274, 47]
-asola 30x9 passante              area 252,62, tolti 13.136,1
-gemelle 4/4 verdi
-```
+**And it does the one thing a machine with no licence can really do**: a
+contract test reads `Bench/report/last.json` and **refuses a delivery in which
+nobody ran the bench**. It checks that the run measured something ("0 tests, 0
+failed" is not a green), that it is not partial, that the library is the one
+declared in `AssemblyInfo.cs`, and that it is **later than the last change to
+`Oce.Solid.Agent.Core`** — asked of git. *A library touched after the last run
+is an untested library, even if the version number matches because someone
+forgot to bump it.*
 
-Il secondo e' il piu' importante: il centro cade **fuori** dal materiale e il
-taglio e' legittimo lo stesso — un controllo scritto come «il centro deve stare
-dentro l'ingombro» lo avrebbe rifiutato.
+The red, measured by removing the file: "the bench has not been run on this
+version".
 
-**La regola scritta nei Rischi non regge alle sue stesse coppie.** «La gemella
-deve differire per UN solo argomento» ne rifiuta **due su quattro**: il foro
-fuori dal materiale differisce per due coordinate, l'asola per lunghezza e
-larghezza. Quella che gira chiede stessa operazione, argomenti non identici e
-almeno un argomento in comune — e **dice quanti ne differiscono**, invece di
-decidere al posto di chi legge.
+`Bench/report/` stays gitignored **except for `last.json`**, and this is not a
+convenience exception: without that file in the repository, that check does
+not exist.
 
-### F4 — Un campo che non c'e' non e' uno zero, ed e' uscita 2
-
-Un caso che chiede `misure.materiale_tolto_mm3` a `applica_materiale` — che non
-lo riporta — **non fallisce: non si e' potuto misurare**.
-
-```
-!!  ... ERRORE DI BANCO: campo assente: misure.materiale_tolto_mm3;
-        ci sono: archivio, classe, materiale
-
-28 prove, 0 fallite, 1 ERRORI DI BANCO
-attese verificate 15 su 16
-uscita: 2
-```
-
-**Il 2 vince sull'1**: se il banco non ha potuto misurare, quante prove siano
-fallite e' una domanda a cui non si e' risposto. Simbolo suo (`!!`), conteggio
-suo, uscita sua, e nel resoconto una sezione sua — «non sono prove rosse, sono
-prove che NON SONO STATE FATTE».
-
-**«Attese verificate N su M» si scrive sempre**, anche quando combaciano: un
-numero che compare solo quando le cose vanno male non lo guarda nessuno finche'
-non e' troppo tardi.
-
-E un `null` dichiarato **non** e' un campo assente: lo stato scrive
-`materiale: null` apposta, per dire «quel posto esiste ed e' vuoto». Nel novanta
-per cento dei casi una prova smette di verificare perche' il campo che leggeva
-e' stato rinominato, un dizionario che non trova la chiave torna `null`, e
-`null` confrontato con `null` passa.
-
-### F3 — I casi sono file, e i numeri attesi stanno accanto ai passi
-
-`casi/lavorazioni/guscio_interno.json` e `guscio_esterno.json` girano **senza
-una riga di C# dedicata** e riproducono 82.500 e 106.500, piu' l'ingombro, le
-facce tolte, il verso dichiarato e il materiale asportato. Cambiando 82.500 in
-82.501 il caso diventa **rosso** e il resoconto lo nomina.
-
-**La prova in C# e' stata tolta, non lasciata accanto.** `ProvaGuscio()`
-misurava gli stessi due numeri con `volumeAtteso * 0.02`: sui 240.000 mm³ della
-piastra sono **4.800 mm³, piu' di un foro M12 passante**. Una prova che accetta
-un foro di scarto non prova il foro.
-
-**I selettori rifiutano invece di indovinare**, ed e' il rischio che la voce
-nominava — un caso che gira su una faccia diversa da quella che il nome del file
-promette, e che magari torna lo stesso volume. Dieci prove pure lo verificano:
-zero facce e due facce fanno rifiutare, `@feature(n=…)` e' l'unica ambiguita'
-che si puo' sciogliere, e `@quota` torna il nome col titolo del documento **di
-adesso** — `piani/cambia_diametro.json` scriveva `Parte76`, che cambia a ogni
-giro, e quel piano non si poteva rieseguire.
-
-**Le tolleranze sono assolute e portano il perche'**, e senza il perche' il caso
-e' **rotto**, non permissivo. Stessa regola per un caso senza `perche`, un passo
-**senza attese** (passa e non misura niente) e un `deve_fallire` senza
-`il_messaggio_contiene` (qualunque errore andrebbe bene, anche quello
-sbagliato): escono rossi, non saltati.
-
-### F2 — Un comando solo, e un resoconto su disco
-
-`Banco\banco.ps1` compila libreria e banco, guarda se SOLIDWORKS e'
-agganciabile, **svuota i documenti rimasti aperti**, lancia e scrive
-`Banco/resoconto/AAAAMMGG_hhmm.md` e `.json` piu' `ultimo.json` — con revisione
-di SOLIDWORKS, versione della libreria, quante operazioni ha il catalogo,
-commit, durata, e le rosse per esteso.
-
-Lo svuotamento sta dentro il comando perche' non e' pulizia: sei documenti di
-troppo sono ~650 caratteri nello stato, e «stato sotto i 16 KB» fallisce **senza
-che il codice sia cambiato**.
-
-**Le tre uscite, viste tutte e tre:**
+### F8 — The regression on references, and the three numbers
 
 ```
-0   -Gruppo tabella                              -> 0
-1   volumeAttesa 200000 messo a 199000 a mano    -> 1, e il .md nomina il caso
-2   un errore di sintassi nel banco              -> 2, e NON lancia
-2   -Gruppo vist (un gruppo che non c'e')        -> 2
+.\Bench\bench.ps1 -Regression   ->  16 cases
+                                     12  hold
+                                      0  break loose and SAY SO
+                                      4  break loose IN SILENCE
 ```
 
-Il caso 2 da compilazione e' il difetto che la voce nominava per nome: si
-controlla il **codice di uscita** di msbuild, non il testo.
+Sixteen parts built, **a single upstream dimension changed**, and the
+downstream geometry re-measured. The numbers are in the README.
 
-Quello che il resoconto **non** ha — casi ciechi, attese verificate su attese
-totali — e' scritto nel resoconto stesso: sono numeri che esistono quando i casi
-dichiarano le attese, cioe' dalla voce F3. Uno zero messo li' oggi sembrerebbe
-un risultato.
+**The zero in the middle is the most interesting of the three.** None of the
+sixteen cases broke visibly: the four times the part came out different from
+what the drawing declared, SOLIDWORKS rebuilt clean and said nothing.
 
-Due difetti presi mentre si provava: il primo `.json` pesava **498 kB**
-(`Get-Content` torna righe con addosso `PSPath`, `PSDrive` e il provider, e
-`ConvertTo-Json` li segue tutti), e **due giri nello stesso minuto si
-sovrascrivevano** — con `-Gruppo` un giro dura secondi, e un resoconto verde e'
-stato cancellato da un giro rosso partito venti secondi dopo.
+**And the discovery worth more than the numbers:** a cut sketched **on a face
+follows that face**. The hole on the bottom of a shell holds whether the box
+grows by 28 mm or the wall thickens by 7. What does not follow is the position
+**inside** the face: `x_mm`/`y_mm` are absolute coordinates on the sketch
+plane, and a growing face does not move them.
 
-### F12 — Il null adesso ha un nome, e i giri si contano
+> It is not "the references do not hold". It is: **the sketch plane holds, the
+> coordinates inside the plane do not.**
 
-Il 15/9 una prova e' uscita rossa con «Riferimento a un oggetto non impostato su
-un'istanza di oggetto.», e basta. **Non si e' riprodotta**, e non serviva:
-bastava contare quanti null potessero dare quel messaggio in quel punto. Erano
-due, e di una famiglia sola — `NuovaParte()` usata senza guardare cosa avesse
-prodotto (**18 punti**) e `GetFeatures(false) as object[]` col `.Select` subito
-dopo (**3 punti**).
+Two of the eighteen cases **cannot be written today**, and the reason is
+written down: a frame's path is a `3DProfileFeature` whose dimensions the state
+does not publish, and `gusset` wants two corner faces that no selector knows
+how to name.
 
-`NuovaParte()` non torna piu' null: alza un'eccezione che nomina il passo e dice
-che **non e' la prova a essere fallita** — e' il banco che non e' riuscito a
-*preparare* il pezzo, che e' un'altra cosa e si legge in un altro modo. I sei
-`if (doc == null)` sono stati **tolti**: dopo questa modifica non scattano mai
-piu', e un controllo irraggiungibile si legge come una difesa senza difendere da
-niente.
+Two new tools in the case format: **`same_as_before`** (the invariant is "how
+it was", and computing it by hand would mean redoing arithmetic SOLIDWORKS has
+already done — getting it wrong creates a false silence) and
+**`center_of_mass_mm`** (the position invariant for something that leaves no
+holes behind). The second one was useful right away: one case **held on
+volume** while the hole could have ended up somewhere else.
 
-**E il conteggio, che prima era impossibile.** La voce chiedeva «quante volte su
-quanti giri»: `in-corso.txt` lo riscrive il giro dopo e `ultimo-giro.txt` e' una
-redirezione di chi lancia, quindi **dei giri passati non restava niente**. Ogni
-giro aggiunge ora una riga a `Banco/storico.txt` con le prove fallite **per
-nome**, perche' la domanda a quel file e' sempre «quante volte e' successo a
-QUELLA?». Non versionato: e' il registro di questa macchina.
-
-### F13 — Un gruppo di prove alla volta, mentre si lavora
-
-`--gruppo <nome>[,<nome>]` lancia una famiglia sola. `--gruppi` li elenca. Un
-nome sbagliato viene rifiutato **prima di agganciare SOLIDWORKS**, con l'elenco
-dei nomi veri e uscita 2.
+### F7 — Tests that run where SOLIDWORKS is not there
 
 ```
-giro intero              ~900 s
---gruppo viste            6,6 s
+msbuild Tests\Oce.Solid.Agent.ContractTests.csproj -p:Configuration=Release
+Tests\bin\Oce.Solid.Agent.ContractTests.exe    ->  54 checks, 0 failed, prove.xml (JUnit)
 ```
 
-Il 15/9 il banco e' stato lanciato una dozzina di volte: **circa tre ore e mezza
-di SOLIDWORKS**, quasi tutte per riprovare cento cose non toccate.
+A project **on its own**, not a bench mode: the bench's csproj resolves the
+interop with a `HintPath` inside `…\SOLIDWORKS\api\redist`, and on a machine
+without SOLIDWORKS **the build fails**. A flag is not enough — the problem
+comes before the runtime.
 
-**Il giro intero resta il predefinito**, perche' «provo solo quella che ho
-cambiato» non funziona e lo stesso giorno l'ha dimostrato due volte: tre numeri
-aggiunti alle facce dei fori hanno fatto sforare il tetto dei 16 KB **su un
-telaio, che fori non ne ha**, e il ritaglio delle immagini ha cambiato
-un'asserzione sul peso del PNG. *Il banco misura cosa hai rotto, non cosa hai
-fatto.*
+It tests the **expectation evaluator** (19), the **catalogue** and `Similar()`
+(11), `Session.SameDocument` (10, and until today that guard did not have
+**even one test**), the **MCP protocol** talking to the bridge over stdio
+(13), and that this project **does not reference the interop** — looking at
+the assembly's references, not the csproj's text.
 
-Per questo un giro parziale **non puo' passare per uno intero** — a schermo e
-nell'ultima riga di `in-corso.txt`, che e' quella che si legge col grep:
+The evaluator is the **same file** the bench compiles, not a copy: a copy
+drifts apart, and the day it drifts the suite with the CAD starts passing for
+reasons invisible here. *If this one is broken, the whole SOLIDWORKS suite
+turns green for free.*
+
+**Three defects found the moment it was written**, and they are its whole
+value:
+
+* **the BOM that broke the first line.** `Process.StandardInput` is born
+  with `Console.InputEncoding`'s encoding, and `AutoFlush = true` is set on
+  it, which does a Flush, and a UTF-8 Flush writes the preamble: **three
+  bytes in front of the first line**. The bridge answered `-32700`, and the
+  symptom said "initialize does not respond" because the error line carries
+  no id;
+* **a check that fired for the wrong reason**: "no path on this machine"
+  searched for `O:\` case-insensitively, and matched `tipo:\n`;
+* **a `BadImageFormatException` that looked like a missing file**: an
+  `AnyCPU` executable starts in 32-bit, and the bridge's x64 image will not
+  load from there.
+
+### F6 — `--muta`: every case must be able to turn red
+
+`.\Bench\bench.ps1 -Mutate` perturbs **the plan, not the code**: one argument
+at a time multiplied by 1,5 (booleans inverted), the case rerun, and it
+**demands that it turn red**. A case that stays green under every perturbation
+is **blind**: its expectations do not constrain its arguments.
+
+**67 mutations on 11 cases, zero blind, 854 s** — `Bench/report/mutazioni.md`.
+
+It is **the only mechanical way** of enforcing that a test has already failed
+at least once: a hand-written `provata_a_fallire` is a declaration, and a
+declaration gets copied from the case next door.
+
+**The false blind spot is avoided by reading the catalogue.** Mutating
+`depth_mm` on a through cut leaves the case green and it is not blindness: the
+schema says `"only if not through"`, and the bench reads that line — from the
+**loaded library**, not from `bin/catalog.json`, which another build writes.
+Two safeguards of the same family: only steps **with expectations** are
+mutated (a 500 hole mutated to 750 still covers the part), and **zero times
+1,5 is zero**, so a coordinate at 0 is shifted by 1 mm instead.
+
+The **surviving** mutations are the useful part, and the report names them:
+`x_mm 0->1` on a hole stays green because those cases measure **how much**
+material was removed, not **where**; `length_mm 400->600` on
+`blind_pocket_400` stays green because the pocket is already bigger than the
+face and SOLIDWORKS clips it at the edge — geometry, not a weak expectation.
+
+`--muta` has a summary of its own (`MUTATIONS — 11 cases, 0 blind`): the
+reds it produces are **sought after**, and adding them to a count meant for
+reading the reds that were not sought after would make both useless.
+
+### F5 — A refusal never stands alone
+
+Every case with `must_fail` **must** name, in `twin`, a case that succeeds,
+and that twin must be **green in the same run**. Removing the field from one
+of the `lim_*.json` files, the command exits **2** and names the case.
+
+> A test that only checks the refusal does not distinguish "the check works"
+> from "the check refuses everything".
+
+The four canonical pairs from note 80v are in the repository, all on the same
+rectangular block, with the numbers re-measured today:
 
 ```
-NON LANCIATI — 23 gruppi su 24: sezioni, archivio, telai, ...
-il giro intero si lancia senza «--gruppo», ed e' quello che vale prima di committare.
-GIRO PARZIALE (solo viste, 23 gruppi non lanciati) — 6 prove, 0 fallite
+hole 270 through                 removed 2.977.287,36   (pi*135^2*52)
+hole 60 with CENTER ON THE EDGE  removed 73.513,27      (half cylinder: 73.512,62)
+pocket 400x400 blind, depth 5    volume 4.043.692, bounding box [314, 274, 47]
+slot 30x9 through                area 252,62, removed 13.136,1
+twins 4/4 green
 ```
 
-### E il difetto che i gruppi introducono
+The second is the most important: the center falls **outside** the material
+and the cut is legitimate all the same — a check written as "the center must
+sit inside the bounding box" would have rejected it.
 
-Una prova nuova che nessuno mette nella tabella non gira **e non lo dice**:
-stessa dimenticanza di prima — quando l'elenco era `NuoveOperazioni()` — e
-stesso silenzio. `ProvaCheLaTabellaCopreTutto` chiede a .NET quali metodi
-`Prova…()` esistono davvero e li confronta con la tabella, sui `MethodInfo` e
-non sui nomi scritti a mano.
+**The rule written in the Risks section does not hold up to its own pairs.**
+"The twin must differ by exactly ONE argument" rejects **two out of four**:
+the hole outside the material differs by two coordinates, the slot by length
+and width. The rule that actually runs asks for the same operation,
+non-identical arguments and at least one argument in common — and **it says
+how many differ**, instead of deciding on behalf of whoever is reading.
 
-**Visto scattare**, aggiungendo un metodo che la tabella non nomina:
+### F4 — A field that is not there is not a zero, and it is exit 2
+
+A case that asks `measurements.material_removed_mm3` of `apply_material` —
+which does not report it — **does not fail: it could not be measured**.
 
 ```
-  OK   F13 ROSSO: il setaccio vede le famiglie di prove    17 metodi «Prova…()»
-  NO   F13: nessuna famiglia di prove fuori dalla tabella  ProvaDimenticataApposta_TEMPORANEA
+!!  ... BENCH ERROR: missing field: measurements.material_removed_mm3;
+        present: library, class_name, material
+
+28 tests, 0 failed, 1 BENCH ERRORS
+expectations verified 15 of 16
+exit: 2
 ```
 
-Per lo stesso motivo le azioni di un gruppo sono un `Action[]` e non una lambda
-che le chiama: una lambda nasconderebbe i metodi veri dietro il suo, e il
-controllo cercherebbe fra i metodi generati dal compilatore dicendo di si' a
-tutto.
+**2 beats 1**: if the bench could not measure, how many tests have failed is a
+question that has not been answered. Its own symbol (`!!`), its own count, its
+own exit code, and its own section in the report — "these are not red tests,
+these are tests that WERE NOT DONE".
 
-**Il ponte e la libreria non cambiano**, e per questo `VERSION.txt` resta a
-0.40.0: un numero che si alza senza che sia cambiato cio' che numera dice il
-falso a chi lo legge per sapere «con quale versione».
+**"Expectations verified N of M" is always written**, even when they match: a
+number that only shows up when things go wrong is one nobody looks at until it
+is too late.
+
+And a declared `null` **is not** a missing field: the state writes
+`material: null` on purpose, to say "that place exists and is empty". In
+ninety percent of cases a test stops verifying because the field it was
+reading was renamed, a dictionary that cannot find the key returns `null`, and
+`null` compared with `null` passes.
+
+### F3 — Cases are files, and the expected numbers sit right next to the steps
+
+`cases/features/internal_shell.json` and `external_shell.json` run **with no
+dedicated line of C#** and reproduce 82.500 and 106.500, plus the bounding box,
+the removed faces, the declared orientation and the material taken off.
+Changing 82.500 to 82.501, the case turns **red** and the report names it.
+
+**The C# test was removed, not left alongside.** `ProvaGuscio()` measured the
+same two numbers with `expectedVolume * 0.02`: on the plate's 240.000 mm³ that
+is **4.800 mm³, more than a through M12 hole**. A test that accepts a hole's
+worth of slack does not test the hole.
+
+**Selectors refuse instead of guessing**, and this is the risk the TODO entry
+named — a case that runs on a different face than the one the file name
+promises, and that might even return the same volume. Ten pure tests verify
+this: zero faces and two faces both cause a refusal, `@feature(n=…)` is the
+only ambiguity that can be resolved, and `@dimension` comes back with the name
+tied to the document's title **right now** — `cases/bridge/change_diameter.json`
+used to write `Parte76`, which changes on every run, and that plan could never
+be re-run.
+
+**Tolerances are absolute and carry the why**, and without the why the case is
+**broken**, not permissive. Same rule for a case with no `why`, a step **with
+no expectations** (it passes and measures nothing), and a `must_fail` with no
+`message_includes` (any error at all would do, even the wrong one): they come
+out red, not skipped.
+
+### F2 — A single command, and a report on disk
+
+`Bench\bench.ps1` builds the library and the bench, checks whether SOLIDWORKS
+can be attached to, **closes the documents left open**, runs, and writes
+`Bench/report/AAAAMMGG_hhmm.md` and `.json` plus `last.json` — with the
+SOLIDWORKS revision, the library version, how many operations the catalogue
+has, the commit, the duration, and the reds spelled out in full.
+
+The closing is inside the command because it is not housekeeping: six extra
+documents are ~650 characters in the state, and "state under 16 KB" fails
+**without the code having changed at all**.
+
+**The three exit codes, all three observed:**
+
+```
+0   -Group table                                 -> 0
+1   volumeExpected 200000 set to 199000 by hand   -> 1, and the .md names the case
+2   a syntax error in the bench                   -> 2, and it does NOT run
+2   -Group vist (a group that does not exist)      -> 2
+```
+
+The compilation case 2 is the defect the TODO entry named explicitly: the
+**exit code** of msbuild is checked, not the text.
+
+What the report **does not** have — blind cases, expectations verified out of
+total expectations — is written in the report itself: these are numbers that
+exist once cases declare their expectations, that is, from entry F3 onward. A
+zero put there today would look like a result.
+
+Two defects caught while testing: the first `.json` weighed **498 kB**
+(`Get-Content` returns lines carrying `PSPath`, `PSDrive` and the provider
+along with them, and `ConvertTo-Json` follows all of them), and **two runs in
+the same minute overwrote each other** — with `-Group` a run lasts seconds,
+and a green report was wiped out by a red run started twenty seconds later.
+
+### F12 — The null now has a name, and runs are counted
+
+On 15/9 a test came out red with "Object reference not set to an instance of
+an object.", and nothing else. **It was not reproduced**, and it did not need
+to be: it was enough to count how many nulls could give that message at that
+point. There were two, and of one family only — `NewPart()` used without
+looking at what it had produced (**18 spots**) and
+`GetFeatures(false) as object[]` with a `.Select` right after it (**3
+spots**).
+
+`NewPart()` no longer returns null: it raises an exception that names the
+step and says that **it is not the test that has failed** — it is the bench
+that failed to *prepare* the part, which is a different thing and reads
+differently. The six `if (doc == null)` checks have been **removed**: after
+this change they can never fire again, and an unreachable check reads as a
+defence that defends against nothing.
+
+**And the count, which used to be impossible.** The TODO entry asked "how
+many times out of how many runs": `in-corso.txt` gets overwritten by the next
+run and `ultimo-giro.txt` is a redirection made by whoever launches it, so
+**nothing was left of past runs**. Every run now adds a line to
+`Bench/storico.txt` with the tests that failed **by name**, because the
+question put to that file is always "how many times has it happened to THAT
+one?". Not version-controlled: it is this machine's own log.
+
+### F13 — One group of tests at a time, while you work
+
+`--gruppo <name>[,<name>]` runs a single family. `--gruppi` lists them. A
+wrong name is refused **before attaching to SOLIDWORKS**, with the list of
+real names and exit 2.
+
+```
+full run                 ~900 s
+--gruppo views            6,6 s
+```
+
+On 15/9 the bench was launched about a dozen times: **roughly three and a
+half hours of SOLIDWORKS**, almost all of it to retest a hundred things that
+had not been touched.
+
+**The full run stays the default**, because "I'll only test the one I
+changed" does not work, and the same day proved it twice: three numbers added
+to hole faces pushed past the 16 KB ceiling **on a frame, which has no holes
+at all**, and image cropping changed an assertion on the PNG's weight. *The
+bench measures what you broke, not what you did.*
+
+That is why a partial run **cannot pass for a full one** — on screen and in
+the last line of `in-corso.txt`, which is the one read with grep:
+
+```
+NOT RUN — 23 groups out of 24: sections, library, frames, ...
+the full run is launched without "--gruppo", and that is the one that counts before committing.
+PARTIAL RUN (views only, 23 groups not run) — 6 tests, 0 failed
+```
+
+### And the defect that groups introduce
+
+A new test that nobody puts in the table does not run **and does not say
+so**: the same oversight as before — back when the list was
+`NuoveOperazioni()` — and the same silence. `TestThatTheTableCoversEverything`
+asks .NET which `Test…()` methods really exist and compares them with the
+table, using `MethodInfo` and not hand-written names.
+
+**Seen firing**, by adding a method the table does not name:
+
+```
+  OK   F13 RED: the sieve sees the test families         17 "Test…()" methods
+  NO   F13: no test family left outside the table         ProvaDimenticataApposta_TEMPORANEA
+```
+
+For the same reason a group's actions are an `Action[]` and not a lambda that
+calls them: a lambda would hide the real methods behind its own, and the
+check would end up searching among compiler-generated methods, saying yes to
+everything.
+
+**The bridge and the library do not change**, and that is why `VERSION.txt`
+stays at 0.40.0: a number that goes up without what it numbers having changed
+tells a lie to whoever reads it to find out "with which version".
 
 ---
 
-## 0.40.0 — 15 settembre 2026 · libreria 0.75.0
+## 0.40.0 — 15 September 2026 · library 0.75.0
 
-### E10 — La frazione dell'ingombro: come SPIEGAZIONE, mai come identita'
+### E10 — The bounding-box fraction: as AN EXPLANATION, never as identity
 
-Quando una faccia si sposta perche' il pezzo e' cresciuto, i messaggi dicevano
-«spostata di 60 mm» — vero, e non spiega niente. Adesso dicono anche **dove
-stava rispetto al pezzo**:
+When a face moves because the part has grown, the messages used to say
+«moved by 60 mm» — true, and it explains nothing. Now they also say **where
+it stood relative to the part**:
 
 ```
-«F6» adesso indica un'altra parte del pezzo (spostato di 60.00 mm). Il pezzo
-e' cambiato da quando hai confermato: non lavoro sulla faccia sbagliata.
-Per quel che vale: «F6» stava al 100% del lato X e ci sta ancora — il lato e'
-passato da 100 a 160 mm. Puo' essere la stessa faccia cresciuta col pezzo, ma
-questo non lo decido io: l'identita' si misura in millimetri.
+«F6» now points to a different part of the piece (moved by 60.00 mm). The piece
+has changed since you confirmed: I am not working on the wrong face.
+For what it's worth: «F6» stood at 100% of side X and still does — the side
+went from 100 to 160 mm. It may be the same face grown with the piece, but
+that is not mine to decide: identity is measured in millimeters.
 ```
 
-La stessa frase si attacca al messaggio dell'altra strada, quella in cui la
-faccia **viene ritrovata** dal riferimento persistente: e' il caso A della voce
-E2, ed e' il caso per cui questa voce esisteva.
+The same sentence attaches to the message of the other path, the one where the
+face **is found again** through the persistent reference: it is case A of entry
+E2, and it is the case this entry existed for.
 
-**E il criterio di chiusura vero e' un grep che deve tornare vuoto.** Come
-CRITERIO DI IDENTITA' la frazione e' l'unica delle strade proposte che converte
-un «non lo so» in un «si'» sbagliato: un foro a 20 mm dal bordo, su una piastra
-che passa da 100 a 300, **resta a 20 mm dal bordo** — e' cio' che significa in
-officina — mentre la frazione lo manda a 60, dove una faccia la trova, e
-**conferma invece di rifiutare**. In piu' l'ingombro e' instabile: un rialzo in
-un angolo cambia il denominatore di tutte le facce insieme.
+**And the real closing criterion is a grep that must come back empty.** As a
+CRITERION OF IDENTITY the fraction is the only one of the proposed paths that turns
+an «I don't know» into a wrong «yes»: a hole 20 mm from the edge, on a plate
+that goes from 100 to 300, **stays at 20 mm from the edge** — that is what it
+means in the shop — while the fraction sends it to 60, where a face finds it,
+and **confirms instead of rejecting**. On top of that the bounding box is unstable: a boss in
+one corner changes the denominator for every face at once.
 
-Per questo il conto sta in **un posto solo** (`Frasi.DoveStavaEDoveSta`), torna
-`string` e non `double`, e `FirmaCombacia` e il ciclo di ritrovamento non lo
-nominano. Una prova del banco **legge il sorgente** e lo verifica, con il suo
-rosso: lo stesso setaccio passato su `Frasi.cs`, dove quelle parole ci sono,
-deve trovarle.
+For this reason the calculation lives in **one place only** (`Sentences.WhereItWasAndWhereItIs`),
+returns `string` and not `double`, and `SignatureMatches` and the re-matching loop
+never name it. A bench test **reads the source** and checks it, with its own red
+case: the same sieve run over `Sentences.cs`, where those words do appear,
+must find them.
 
-### Lo stato dice anche DOVE sta la scatola
+### The state also says WHERE the box sits
 
-`ingombro_da_mm` — tre numeri, l'angolo minimo del pezzo. `ingombro_mm` diceva
-«140 x 16 x 140» e non diceva dove fosse quel volume: 50 su un lato lungo 100
-vuol dire meta' se la scatola parte da zero e **tutto** se parte da −50. Senza
-l'angolo la spiegazione di sopra non si puo' nemmeno scrivere, e chi vuole
-mettere un foro «a 20 mm dal bordo» doveva indovinare se il pezzo fosse
-centrato sull'origine o appoggiato a essa.
+`bounding_box_from_mm` — three numbers, the minimum corner of the part. `bounding_box_mm` used to say
+«140 x 16 x 140» and did not say where that volume sat: 50 on a side 100 long
+means half if the box starts at zero and **all of it** if it starts at −50. Without
+the corner the explanation above cannot even be written, and whoever wants to
+put a hole «20 mm from the edge» had to guess whether the part was
+centered on the origin or resting against it.
 
-Una trentina di caratteri sul tetto di 16.000.
+A few dozen characters on top of a 16.000 ceiling.
 
 ---
 
-## 0.39.0 — 15 settembre 2026 · libreria 0.74.0
+## 0.39.0 — 15 September 2026 · library 0.74.0
 
-### E14 — `faccia_del_foro` restituiva un raccordo, e non lo diceva
+### E14 — `hole_face` used to return a fillet, and did not say so
 
-`Riferimenti` cercava le facce **cilindriche** lasciate da un passo: una sola la
-restituiva, piu' d'una faceva scattare un rifiuto. **Ma un raccordo lascia facce
-cilindriche come un foro.** Un passo che ne lasciava esattamente una, e quella
-era un raccordo, la restituiva **senza dire niente**: chi aveva chiesto la
-parete di un foro si ritrovava la superficie di un raccordo, e la lavorazione
-successiva ci finiva sopra.
+`References` was looking for **cylindrical** faces left by a step: when there was
+exactly one it returned it, more than one tripped a rejection. **But a fillet
+leaves cylindrical faces just like a hole does.** A step that left exactly one, and
+that one was a fillet, returned it **without saying anything**: whoever had asked
+for the wall of a hole ended up with the surface of a fillet, and the next
+operation landed on it.
 
-Il criterio e' geometrico, e **misurato** — `Controlli\ForoOppureRaccordo`, un
-attrezzo nuovo che costruisce una piastra con un foro Ø12 e un raccordo R5 e
-chiede all'API:
+The criterion is geometric, and **measured** — `Checks\HoleOrFillet`, a
+new tool that builds a plate with a Ø12 hole and an R5 fillet and
+asks the API:
 
 ```
-parete del foro          FaceInSurfaceSense = true    (concava)
-superficie del raccordo  FaceInSurfaceSense = false   (convessa)
+hole wall                FaceInSurfaceSense = true    (concave)
+fillet surface           FaceInSurfaceSense = false   (convex)
 ```
 
-La parete di un foro ha il materiale **fuori** dal cilindro. Nel dubbio si
-risponde «non e' un foro»: scambiare un raccordo per un foro fa finire una
-lavorazione sulla faccia sbagliata senza che niente fallisca, il contrario fa
-uscire un rifiuto, che si legge.
+A hole's wall has material **outside** the cylinder. When in doubt the answer is
+«not a hole»: mistaking a fillet for a hole sends a later operation onto the
+wrong face without anything failing; the other way around produces a rejection,
+which can be read.
 
-### E la voce proponeva il rimedio sbagliato
+### And the entry proposed the wrong remedy
 
-E14 chiedeva di **scegliere con un criterio** — «il diametro, oppure la
-posizione» — invece di rifiutare quando le pareti sono piu' d'una. Fra quattro
-M10 identici **non esiste nessun criterio**: qualunque scelta e' indovinare, e
-il passo seguente finirebbe su un foro a caso senza che niente fallisca. E'
-esattamente il difetto che questo progetto esiste per rendere impossibile,
-offerto come comodita'.
+E14 asked to **choose with a criterion** — «the diameter, or the
+position» — instead of rejecting when there is more than one wall. Among four
+identical M10 holes **there is no criterion at all**: any choice is guessing, and
+the next step would land on a random hole without anything failing. It is
+exactly the defect this project exists to make impossible,
+offered as a convenience.
 
-Il rifiuto resta, e adesso dice **quante sono e di che diametro**: chi legge ha
-gia' in mano cio' che gli serve per nominarne uno.
+The rejection stays, and now it says **how many there are and what diameter**: whoever
+reads it already has in hand what they need to name one.
 
-### Tre rossi sbagliati prima di quello buono
+### Three wrong reds before the right one
 
-La prova (`Banco/prova_faccia_foro.js`) e' costata piu' della riparazione, e
-ogni tentativo scattava **per il motivo sbagliato** — cioe' sembrava un rosso
-che funziona:
+The test (`Bench/test_face_hole.js`) cost more than the fix, and
+every attempt tripped **for the wrong reason** — that is, it looked like a red
+that works:
 
-1. **nel banco**: `faccia_rif` nomina un passo dello **stesso piano**, e il
-   banco esegue un'operazione per volta. Rifiutava con «di quel passo non ho la
-   geometria», senza mai arrivare al codice da provare;
-2. **su `taglio_cilindrico`**: quel genere non lo accetta nemmeno. Il ruolo
-   `faccia_del_foro` e' raggiungibile da **una sola** operazione, `guscio` —
-   verificato sul catalogo, non ricordato;
-3. **con `specchia`**: il passo dello specchio lascia **una sola** parete nuova,
-   perche' l'originale appartiene al passo di prima. Prenderla e' giusto.
+1. **in the bench**: `face_ref` names a step on the **same plane**, and the
+   bench runs one operation at a time. It rejected with «I don't have the
+   geometry for that step», without ever reaching the code under test;
+2. **on `cylindrical_cut`**: that kind does not even accept it. The role
+   `hole_face` is reachable from **only one** operation, `shell` —
+   checked against the catalog, not remembered;
+3. **with `mirror`**: the mirror step leaves **only one** new wall,
+   because the original belongs to the earlier step. Taking it is correct.
 
-Quello buono e' `foro_guidato`, che lo dice da solo nello schema: «piu' fori
-uguali stanno in una chiamata sola».
+The right one is `hole_wizard`, which says so itself in its schema: «several
+identical holes belong in a single call».
 
-> Un caso di prova non deve dipendere da geometria che il caso stesso sta
-> creando, e «quale operazione lascia N facce» si legge nel catalogo invece di
-> dedurlo.
+> A test case must not depend on geometry that the case itself is
+> creating, and «which operation leaves N faces» is read from the catalog instead
+> of being inferred.
 
 ---
 
-## 0.38.0 — 15 settembre 2026 · libreria 0.73.0
+## 0.38.0 — 15 September 2026 · library 0.73.0
 
-### V6 — il fotogramma si adatta al pezzo, e costa meno
+### V6 — the frame fits the part, and costs less
 
-Dopo l'adattamento automatico il pezzo riempiva il **58% in larghezza e l'89% in
-altezza**. Sembra un'inquadratura da stringere, e non lo e': **il verticale e'
-il vincolo**. `ViewZoomtofit2` scala finche' il pezzo ci sta in tutte e due le
-direzioni, e quella che tocca per prima finisce a ~90%; l'altra resta indietro
-di quanto la forma del pezzo differisce da quella del fotogramma.
+After the automatic fit the part filled **58% of the width and 89% of the
+height**. It looks like a crop that needs tightening, and it is not: **the vertical
+is the constraint**. `ViewZoomtofit2` scales until the part fits in both
+directions, and whichever hits first ends up at ~90%; the other stays behind
+by however much the part's shape differs from the frame's.
 
-Uno zoom non lo puo' riparare, perche' agisce sulle due direzioni **insieme** —
-provato in V5 con 1,35, e il pezzo usciva di sopra e di sotto per guadagnare
-larghezza.
+A zoom cannot fix this, because it acts on both directions **together** —
+tried in V5 at 1.35, and the part came out cropped at top and bottom to gain
+width.
 
-> Non si adatta il pezzo al fotogramma: si adatta **il fotogramma al pezzo**.
+> You do not fit the part to the frame: you fit **the frame to the part**.
 
-Il PNG si ritaglia attorno alla scatola dei pixel che non sono sfondo, piu' un
-margine del 4% e mai meno di dodici pixel — la prova considera «tagliato» un
-pezzo a tre pixel dal bordo, e un margine sotto la sua franchigia farebbe
-fallire un'immagine perfetta.
+The PNG is cropped around the box of pixels that are not background, plus
+a 4% margin and never less than twelve pixels — the test calls «cropped» a
+part three pixels from the edge, and a margin under its own tolerance would
+make a perfect image fail.
 
 ```
-staffa a L    isometrica  92% x 93%     piastra  isometrica  91% x 93%
-barra 300x20  isometrica  93% x 89%     barra    destra      93% x 93%
+L-bracket     isometric   92% x 93%     plate    isometric   91% x 93%
+300x20 bar    isometric   93% x 89%     bar      right       93% x 93%
 
-Nessuna vista tagliata.       (12 su 12, criterio della voce: 75%)
+No view cropped.       (12 of 12, the entry's criterion: 75%)
 ```
 
-**E costa meno, non di piu':**
+**And it costs less, not more:**
 
-| | prima | adesso |
+| | before | now |
 |---|---|---|
-| isometrica della flangia | 97 kB | **24 kB** |
-| isometriche delle cinque forme | 71-115 kB | **24-44 kB** |
+| isometric of the flange | 97 kB | **24 kB** |
+| isometrics of the five shapes | 71-115 kB | **24-44 kB** |
 
-Meno pixel **e** piu' pezzo dentro. Un'immagine costa piu' di mille token, e
-quelli erano token pagati per non mostrare niente.
+Fewer pixels **and** more part inside. An image costs more than a thousand tokens, and
+those were tokens paid for showing nothing.
 
-**Non puo' tagliare il pezzo, per costruzione:** il ritaglio si fa sulla scatola
-dei pixel del pezzo, quindi tagliarne via uno vorrebbe dire che quel pixel non
-era pezzo — cioe' che la soglia mente. Ed e' la stessa soglia che
-`ProvaInquadratura` prova su un **documento vuoto**, dove il conto deve fare
-zero.
+**It cannot crop the part, by construction:** the crop is made on the box
+of the part's own pixels, so cropping one of them away would mean that pixel
+was not part of the part — that is, that the threshold is lying. And it is the same
+threshold that `FramingTest` tests on an **empty document**, where the count
+must come out to zero.
 
-`LockBits` una riga per volta con `Marshal.Copy`, e non un blocco `unsafe`:
-accenderlo cambierebbe il modo in cui si compila **tutta la libreria**, ed e' un
-impegno piu' grosso di quanto valga un ritaglio.
+`LockBits` one row at a time with `Marshal.Copy`, and not an `unsafe` block:
+turning that on would change how **the entire library** compiles, and that is a
+bigger commitment than a crop is worth.
 
-**Con questa, le sezioni R e V sono chiuse tutte e due.** Erano nate lo stesso
-giorno dalla stessa dimenticanza — il goal dice *proponi, fai, guarda,
-correggi*, e il file aveva solo le prime due.
-
----
-
-## Fuori numero — 15 settembre 2026 · nel monorepo, non qui
-
-### B6 — la libreria entra nel monorepo come sottomodulo
-
-Il commit sta nel monorepo dell'altro progetto, non in questo repository: qui
-non cambia una riga. Lo si racconta qui perche' la voce B6 vive in questo TODO, e
-perche' il clone di prova ha scoperto una cosa che valeva la pena sapere.
-
-`OpenPDMSwAddin.csproj` puntava alla libreria con un percorso **assoluto**,
-`S:\PDM\SolidWorksMcp\...`. Adesso e' un sottomodulo in
-`client-windows/esterni/riscontro-disegno` con percorso relativo.
-
-**Cosa ha scoperto il clone di prova.** Prima del commit, un clone pulito del
-monorepo in una cartella nuova compilava **lo stesso** — andando a prendere la
-libreria da `S:\PDM\SolidWorksMcp`, cioe' dalla copia di lavoro di questa
-macchina, qualunque cosa ci fosse dentro in quel momento.
-
-Su questa postazione il percorso assoluto non falliva mai. **Falliva solo
-altrove, e qui mentiva**: il difetto che non da' errore nella forma piu'
-difficile da vedere, quella in cui la macchina di chi sviluppa e' l'unica in cui
-non si manifesta.
-
-**Il criterio, verificato:** senza `git submodule update --init` esce **un
-errore solo**, che nomina il sottomodulo e il comando — nessun CS0246. Dopo
-l'init, la libreria si compila da dentro il clone e l'add-in esce **0**.
-
-**E il difetto che la voce prevedeva** — «sottomodulo fermo a uno sha vecchio,
-add-in e ponte contro due librerie diverse, senza che nulla fallisca» — non si
-puo' impedire, ma adesso si vede: ogni compilazione stampa contro quale
-libreria sta compilando.
+**With this, sections R and V are both closed.** They were born on the same
+day from the same oversight — the goal says *propose, do, look,
+fix*, and the file only had the first two.
 
 ---
 
-## 0.37.0 — 15 settembre 2026 · libreria 0.72.0
+## Unnumbered — 15 September 2026 · in the monorepo, not here
 
-### V4 — lo spaccato: guardare dentro senza toccare il pezzo
+### B6 — the library enters the monorepo as a submodule
 
-`guarda_il_pezzo` accetta `sezione: {piano: "destro", offset_mm: 0}` e risponde
-con il pezzo **tagliato**. Uno spaccato dice di un guscio piu' di dieci viste
-esterne: dall'esterno una scatola svuotata e una piena sono lo stesso
-parallelepipedo, e **lo spessore del fondo non si legge affatto**.
+The commit lives in the other project's monorepo, not in this repository: here
+not a line changes. It is told here because entry B6 lives in this TODO, and
+because the test clone found something worth knowing.
 
-**Non passa da `RunCommand`.** Il comando di menu «Vista in sezione» apre un
-pannello e resta li' ad aspettare: una chiamata COM che apre un modale **non
-torna** — la trappola di `AddDimension`, gia' pagata una volta.
-`IModelViewManager.CreateSectionView` risponde un bool e non chiede niente a
-nessuno.
+`OpenPDMSwAddin.csproj` pointed at the library with an **absolute**
+path, `S:\PDM\SolidWorksMcp\...`. Now it is a submodule at
+`client-windows/esterni/riscontro-disegno` with a relative path.
 
-**E non tocca il pezzo davvero.** `GraphicsOnlySection = true` taglia il
-**disegno a schermo**, non la geometria: nessuna feature nell'albero, nessun
-corpo diviso, niente da annullare. La sezione si toglie con
-`RemoveSectionView()` nel `finally`, insieme all'orientamento — lasciarla accesa
-sarebbe lo stesso danno del pezzo lasciato girato.
+**What the test clone found.** Before the commit, a clean clone of the
+monorepo in a new folder compiled **just the same** — fetching the
+library from `S:\PDM\SolidWorksMcp`, that is, from this machine's working
+copy, whatever happened to be inside it at that moment.
 
-Misurato da `Banco/prova_sezione.js`, dopo lo scatto: **volume 109056, corpi 1,
-lavorazioni 2** — identici a prima.
+On this workstation the absolute path never failed. **It only failed
+elsewhere, and here it lied**: the defect that gives no error in the
+hardest form to see, the one where the developer's own machine is the only
+one where it never shows up.
 
-#### Il rosso: una sezione che non seziona
+**The criterion, verified:** without `git submodule update --init` exactly **one
+error** comes out, naming the submodule and the command — no CS0246. After
+the init, the library builds from inside the clone and the add-in exits **0**.
 
-`prova_sezione.js` confronta i byte delle due immagini. Una sezione che non
-taglia niente darebbe un'immagine **identica** alla vista intera, e «la sezione
-esce» passerebbe lo stesso.
+**And the defect the entry predicted** — «submodule stuck on an old sha,
+add-in and bridge against two different libraries, with nothing failing» —
+cannot be prevented, but now it is visible: every build prints which
+library it is building against.
 
-#### E si guarda DI FRONTE, non in isometrica — misurato
+---
 
-Il primo giro fotografava la sezione nell'orientamento corrente. Due modelli
-isolati, a cui e' stato chiesto quante volte lo spessore sta nell'altezza della
-scatola — il vero e' **12,5**:
+## 0.37.0 — 15 September 2026 · library 0.72.0
 
-| | parete | fondo | fiducia dichiarata |
+### V4 — the cutaway: looking inside without touching the part
+
+`inspect_part` accepts `section: {plane: "right", offset_mm: 0}` and answers
+with the part **cut open**. A cutaway says more about a shell than ten
+outside views: from the outside an emptied box and a full one are the same
+rectangular block, and **the floor's thickness cannot be read at all**.
+
+**It does not go through `RunCommand`.** The menu command «Section View» opens a
+panel and sits there waiting: a COM call that opens a modal **never
+returns** — the `AddDimension` trap, already paid for once.
+`IModelViewManager.CreateSectionView` answers with a bool and asks nobody
+anything.
+
+**And it does not really touch the part.** `GraphicsOnlySection = true` cuts the
+**on-screen drawing**, not the geometry: no feature in the tree, no
+body split, nothing to undo. The section is removed with
+`RemoveSectionView()` in the `finally`, together with the orientation — leaving
+it on would be the same damage as leaving the part turned.
+
+Measured by `Bench/test_section.js`, after the shot: **volume 109056, bodies 1,
+features 2** — identical to before.
+
+#### The red case: a section that sections nothing
+
+`test_section.js` compares the bytes of the two images. A section that
+cuts nothing would give an image **identical** to the full view, and «the section
+comes out» would pass all the same.
+
+#### And you look FROM THE FRONT, not isometric — measured
+
+The first pass photographed the section in the current orientation. Two isolated
+models, asked how many times the thickness fits into the box's
+height — the true value is **12,5**:
+
+| | wall | floor | stated confidence |
 |---|---|---|---|
-| vista intera | 8 · 13 | **non leggibile** · **non leggibile** | 2/5 |
-| sezione in **isometrica** | 6 | 8 | — |
-| sezione **di fronte** | **12** | **12** | **5/5** |
+| full view | 8 · 13 | **not readable** · **not readable** | 2/5 |
+| section in **isometric** | 6 | 8 | — |
+| section **from the front** | **12** | **12** | **5/5** |
 
-Due cose insieme. La sezione **rivela il fondo**, che dall'esterno non si vedeva
-proprio — tutti e due i giudici hanno risposto «non leggibile» guardando
-l'esterno, ed e' il criterio della voce. Ma in isometrica i numeri erano
-sbagliati del 40-50%, perche' **uno spessore sottile in scorcio sembra piu'
-grosso**.
+Two things at once. The section **reveals the floor**, which from the outside was
+not visible at all — both judges answered «not readable» looking at
+the outside, and that is the entry's criterion. But in isometric the numbers were
+off by 40-50%, because **a thin wall seen at an angle looks
+thicker**.
 
-Adesso la vista si ricava dal piano — `destro` → si guarda da destra — e non si
-puo' scegliere: chi chiede uno spaccato sul piano destro vuole guardarlo da
-destra, e poterlo scegliere sarebbe un modo in piu' di sbagliare. Rimisurato:
-**12 contro 12,5, il 4%**, e la fiducia dichiarata sale da 2/5 a **5/5** — il
-modello e' piu' sicuro proprio dove ha ragione.
+Now the view is derived from the plane — `right` → you look from the right — and
+cannot be chosen: whoever asks for a cutaway on the right plane wants to look from
+the right, and letting it be chosen would be one more way to get it wrong. Remeasured:
+**12 against 12,5, 4%**, and the stated confidence rises from 2/5 to **5/5** — the
+model is more confident exactly where it is right.
 
-> Un'immagine in scorcio mostra una FORMA; solo una vista ortogonale porta un
-> NUMERO. E' la riga di V2 — le immagini danno la forma, i numeri stanno nel
-> testo — con l'unica eccezione che valga la pena avere.
-
----
-
-## 0.36.0 — 15 settembre 2026 · libreria 0.71.0
-
-Il profilo tornito nella frase (voce V7). Il contenuto e' descritto qui sotto,
-nella 0.35.0, sotto «V7 — e poi sono diventati cinque su cinque»: le due voci
-sono state scritte a poche ore di distanza e raccontano la stessa cosa, quindi
-il racconto sta in un posto solo.
-
-Qui il numero, che e' cambiato: **`prova_forma.js` passa da 4/5 a 5 su 5**, e il
-banco da 105 a **107 prove, 0 fallite** — le due nuove sono il verde del profilo
-sull'albero pulito e il **rosso sull'albero forato**, dove la frase deve tacere.
+> A foreshortened image shows a SHAPE; only an orthogonal view carries a
+> NUMBER. It is V2's line — images give the shape, the numbers live in the
+> text — with the one exception worth having.
 
 ---
 
-## 0.35.0 — 15 settembre 2026 · libreria 0.70.0
+## 0.36.0 — 15 September 2026 · library 0.71.0
 
-### V3 — la forma detta in una frase, e **4 pezzi su 5 si ridisegnano da quella**
+The turned profile in the sentence (entry V7). The content is described further below,
+under 0.35.0, under «V7 — and then they became five out of five»: the two entries
+were written a few hours apart and tell the same story, so the
+account lives in one place only.
 
-Lo stato porta un campo nuovo, `forma`: la stessa geometria in una riga.
-
-```
-Ingombro 140 x 16 x 140 mm, volume 191938.7 mm3 (il 61% dell'ingombro),
-1 foro Ø60 (centro 0,0,0), 6 fori Ø11 su una circonferenza Ø90 a passo 60 gradi.
-```
-
-**68-152 caratteri** sui cinque pezzi di prova, su un tetto di 16.000.
-
-#### La misura, che e' piu' dura di quella di V2
-
-La voce chiedeva che dalla **sola frase** un modello sapesse ridisegnare il
-pezzo con le quote giuste. Cinque frasi date a un modello isolato — che ha
-letto solo `catalogo.json`, nessuno stato, nessuna immagine — perche' scrivesse
-cinque piani. I piani sono stati eseguiti e il volume confrontato con
-l'originale:
-
-```
-pezzo 1 piastra_forata      volume 353214.2 contro 353214.2   (0.0%)
-pezzo 2 guscio_aperto       volume 109056   contro 109056     (0.0%)
-pezzo 3 staffa_a_L          volume 105600   contro 105600     (0.0%)
-pezzo 4 flangia_forata      volume 191938.7 contro 191938.7   (0.0%)
-pezzo 5 albero_a_gradini    volume 57962.4  contro 55857.5    (3.8%)
-```
-
-**Quattro su cinque al volume esatto**, non «vicino»: 0,0%. E il quinto e'
-quello che il modello stesso **aveva dichiarato in anticipo** di non poter fare,
-dicendo cosa mancava: «non dice quanti gradini ha il profilo, dove cade lo
-scalino, ne' i diametri intermedi».
-
-Un modello che sa dire in anticipo quale dei cinque non gli riuscira' e' un
-risultato migliore di cinque su cinque ottenuti indovinando.
-
-#### V7 — e poi sono diventati cinque su cinque
-
-La frase adesso porta anche il profilo di un tornito:
-
-```
-pezzo di rivoluzione, profilo Ø30 per 40, Ø20 per 30, Ø34 per 20 mm
-```
-
-```
-pezzo 5 albero_a_gradini    55857.5 contro 55857.5   (0.0%)    <- era 3.8%
-```
-
-**Dove sta la lunghezza di un tratto: nell'area.** Non e' scritta da nessuna
-parte, ma un cilindro di diametro d e lunghezza L ha area **π·d·L**. L'ordine
-viene dal `punto_mm` proiettato sull'asse — e' un punto sulla superficie e non
-sull'asse (E16), ma per **ordinare** basta, perche' i tratti di un tornito non
-si sovrappongono.
-
-**E la formula e' fragile, quindi il profilo si dichiara solo se si
-ricostruisce.** `area / (π·d)` vale su un cilindro **intero**: tagliato da un
-piatto, da una cava o da un foro, l'area cala e la lunghezza esce corta — con la
-forma giusta, quindi invisibile. Due controlli, e devono tornare tutti e due:
-la somma delle lunghezze fa l'ingombro lungo l'asse, **e** il volume
-ricostruito — Σ π(d/2)²·L — fa il volume vero. Se non tornano si tace, e resta
-«pezzo di rivoluzione»: poco, ma vero.
-
-**Il rosso e' nel banco:** lo stesso albero con un **foro assiale Ø10**. La
-faccia cilindrica interna e' un tratto in piu' per la formula, la somma sfora
-l'ingombro e il volume ricostruito conta materiale tolto. La prova chiede che la
-frase dica «rivoluzione» e **non** dica «profilo». Senza, «il profilo esce
-giusto sull'albero pulito» passerebbe anche se il controllo non ci fosse.
-
-#### Il generatore ha inventato un fatto alla prima frase
-
-Sulla piastra diceva: «4 fori Ø12 **su una circonferenza Ø90 a passo 90
-gradi**». I fori stanno ai vertici di un rettangolo **160 x 90**.
-
-La regola era una sola — «tutti alla stessa distanza da un asse» — e ne
-servivano tre:
-
-1. **stesso piano**: equidistanti da un asse vuol dire su un CILINDRO;
-2. **stesso raggio**;
-3. **passo angolare regolare**: i vertici di un rettangolo stanno su un cerchio,
-   e i loro angoli sono 29,4° e 150,6° — non 90° l'uno dall'altro.
-
-E' lo stesso difetto di E16, commesso dal codice scritto per ripararlo. Adesso
-se una qualunque delle tre non torna la frase **non dice niente** e lascia i
-centri: chi legge fa il conto suo su numeri veri.
-
-#### Il nome della famiglia si scrive solo quando un TIPO lo autorizza
-
-`Shell` dice «svuotato», `Revolution` dice «di rivoluzione»: sono cio' che il
-progettista **ha fatto**. Non si dice «piastra» perche' una quota e' piccola
-rispetto alle altre — sarebbe una soglia inventata, e il giorno che sbaglia chi
-legge ci crede lo stesso, perche' la frase suona sicura come tutte le altre.
-
-*(La premessa di V3 era che la frase servisse a far CAPIRE la forma. V2 aveva
-gia' mostrato che col solo stato la famiglia esce giusta 5 volte su 5: quello
-che serviva davvero era **dire i numeri derivati una volta sola e bene** —
-centri, passo, spessore di parete — invece di lasciarli ricavare a ognuno.)*
-
-### E17 — un angolo dichiarato in millimetri
-
-Trovato guardando **perche'** l'albero a gradini fosse l'unico irrecuperabile:
-l'unica quota che quel pezzo offriva era
-
-```
-"nome": "D1@Rivoluzione1", "mm": 6283.185
-```
-
-che e' **2π × 1000**. `SystemValue` torna tutto in unita' di sistema, e per un
-angolo quelle sono i **radianti**; lo stato moltiplicava per mille qualunque
-cosa — la conversione metri→mm — e la etichettava `mm`. Una quota di sei metri e
-ventotto su un pezzo lungo novanta millimetri, e nessuno se ne accorgeva perche'
-il campo si chiama `mm` e il numero e' un numero.
-
-Adesso un angolo esce come **`"gradi": 360`**. Il nome del campo cambia con
-l'unita': tenere `mm` e correggere solo il numero sarebbe stato **peggio di
-prima** — un valore giusto sotto un'etichetta falsa non si puo' nemmeno
-sospettare, mentre 6283 almeno saltava all'occhio.
-
-**E l'enum giusto non era quello che sembrava.** `IDimension.GetType()` torna un
-`int`, ma **non** `swDimensionType_e` (dove angolare vale 3): la prima
-riparazione usava quello e non e' scattata. Misurato mettendo il numero nello
-stato e guardandolo — angolo `1`, lineari `0` — cioe'
-`swDimensionParamType_e`. Due enum quasi omonimi per due cose diverse, e il
-compilatore non puo' dire niente perche' tutti e due sono `int`.
+Here is the number, which changed: **`test_shape.js` goes from 4/5 to 5 out of
+5**, and the bench from 105 to **107 tests, 0 failed** — the two new ones are the green on the
+profile on a clean tree and the **red on a drilled tree**, where the sentence
+must stay silent.
 
 ---
 
-## 0.34.0 — 15 settembre 2026 · libreria 0.69.0
+## 0.35.0 — 15 September 2026 · library 0.70.0
 
-### R2 — si puo' togliere una lavorazione in mezzo, non solo l'ultimo piano
+### V3 — the shape told in one sentence, and **4 parts out of 5 can be redrawn from it**
 
-Le operazioni passano da **36 a 38**: `sopprimi_lavorazione` (con `riattiva`
-per riaccenderla) ed `elimina_lavorazione`.
-
-`annulla` (R1) disfa **un piano**, tutto intero e solo l'ultimo.
-`modifica_quota` cambia un numero, non ritira una scelta. In mezzo non c'era
-niente: una lavorazione sbagliata al terzo passo di dieci si poteva solo
-subire.
-
-**Il criterio della voce, alla lettera.** Su un pezzo con tre fori, sopprimere
-il terzo riporta il volume al valore che aveva con due — misurato prima di fare
-il terzo, quindi un'uguaglianza e non una stima:
+The state carries a new field, `shape`: the same geometry in one line.
 
 ```
-il volume torna a quello con due fori     393842,478 contro 393842,478
-lo stato la mostra soppressa              soppressa: true su Taglio-Estrusione3
-riattivarla rimette il volume com'era     390763,718
-eliminare un foro senza figli riesce      e non e' piu' nell'elenco
+Bounding box 140 x 16 x 140 mm, volume 191938.7 mm3 (61% of the bounding box),
+1 Ø60 hole (center 0,0,0), 6 Ø11 holes on a Ø90 bolt circle at a 60-degree pitch.
 ```
 
-### La parte che conta e' il rifiuto
+**68-152 characters** across the five test parts, out of a 16.000 ceiling.
 
-| caso | cosa fa |
+#### The measurement, harder than V2's
+
+The entry asked that from the **sentence alone** a model would know how to redraw
+the part with the right dimensions. Five sentences given to an isolated model —
+which had read only `catalog.json`, no state, no image — so that it would write
+five plans. The plans were run and the volume compared with
+the original:
+
+```
+part 1 drilled_plate       volume 353214.2 against 353214.2   (0.0%)
+part 2 open_shell          volume 109056   against 109056     (0.0%)
+part 3 l_bracket           volume 105600   against 105600     (0.0%)
+part 4 drilled_flange      volume 191938.7 against 191938.7   (0.0%)
+part 5 stepped_shaft       volume 57962.4  against 55857.5    (3.8%)
+```
+
+**Four out of five at the exact volume**, not «close»: 0.0%. And the fifth is
+the one the model itself **had declared in advance** that it could not do,
+saying what was missing: «it does not say how many steps the profile has, where
+the step falls, nor the intermediate diameters».
+
+A model that can say in advance which of the five will not succeed is a
+better result than five out of five obtained by guessing.
+
+#### V7 — and then they became five out of five
+
+The sentence now also carries the profile of a turned part:
+
+```
+part of revolution, profile Ø30 for 40, Ø20 for 30, Ø34 for 20 mm
+```
+
+```
+part 5 stepped_shaft       55857.5 against 55857.5   (0.0%)    <- was 3.8%
+```
+
+**Where a segment's length lives: in the area.** It is written nowhere, but a
+cylinder of diameter d and length L has area **π·d·L**. The order
+comes from the `point_mm` projected onto the axis — it is a point on the surface and
+not on the axis (E16), but for **ordering** that is enough, because the segments of
+a turned part do not overlap.
+
+**And the formula is fragile, so the profile is only declared if it
+reconstructs.** `area / (π·d)` holds on a **whole** cylinder: cut by a
+flat, a keyway or a hole, the area drops and the length comes out short — with the
+right shape, so invisible. Two checks, and both must come back right:
+the sum of the lengths gives the bounding box along the axis, **and** the
+reconstructed volume — Σ π(d/2)²·L — gives the true volume. If they do not match it stays
+silent, and «part of revolution» remains: little, but true.
+
+**The red case is in the bench:** the same shaft with an **axial Ø10 hole**. The
+internal cylindrical face is one extra segment for the formula, the sum overshoots
+the bounding box and the reconstructed volume counts removed material. The test asks that the
+sentence say «revolution» and **not** say «profile». Without it, «the profile comes out
+right on the clean shaft» would pass even if the check were not there.
+
+#### The generator invented a fact on the first sentence
+
+On the plate it said: «4 Ø12 holes **on a Ø90 bolt circle at a 90-degree
+pitch**». The holes sit at the corners of a **160 x 90** rectangle.
+
+The rule was a single one — «all at the same distance from an axis» — and it
+needed three:
+
+1. **same plane**: equidistant from an axis means on a CYLINDER;
+2. **same radius**;
+3. **regular angular pitch**: the corners of a rectangle sit on a circle,
+   and their angles are 29.4° and 150.6° — not 90° from one another.
+
+It is the same defect as E16, committed by the code written to fix it. Now
+if any one of the three does not match the sentence **says nothing** and leaves the
+centers: whoever reads it does their own math on real numbers.
+
+#### The family name is written only when a TYPE authorizes it
+
+`Shell` says «hollowed out», `Revolution` says «of revolution»: they are what the
+designer **has done**. It does not say «plate» because one dimension is small
+relative to the others — that would be a made-up threshold, and the day it is wrong
+whoever reads it believes it all the same, because the sentence sounds as confident as
+all the others.
+
+*(V3's premise was that the sentence should serve to make the shape
+UNDERSTOOD. V2 had already shown that with the state alone the family comes out
+right 5 times out of 5: what was really needed was **to say the derived numbers
+once, and well** — centers, pitch, wall thickness — instead of leaving them for
+each reader to work out.)*
+
+### E17 — an angle declared in millimeters
+
+Found while looking at **why** the stepped shaft was the only one that could not be
+recovered: the only dimension that part offered was
+
+```
+"name": "D1@Rivoluzione1", "mm": 6283.185
+```
+
+which is **2π × 1000**. `SystemValue` returns everything in system
+units, and for an angle those are **radians**; the state was multiplying by a thousand
+whatever it was — the metre-to-mm conversion — and labeling it `mm`. A dimension of six
+point two eight metres on a part ninety millimetres long, and no one noticed
+because the field is called `mm` and the number is a number.
+
+Now an angle comes out as **`"deg": 360`**. The field's name changes with
+the unit: keeping `mm` and only fixing the number would have been **worse than
+before** — a correct value under a false label cannot even be suspected,
+whereas 6283 at least jumped out.
+
+**And the right enum was not the one it looked like.** `IDimension.GetType()` returns an
+`int`, but **not** `swDimensionType_e` (where angular is 3): the first
+fix used that one and it did not fire. Measured by putting the number into the
+state and looking at it — angle `1`, linear `0` — that is,
+`swDimensionParamType_e`. Two almost-homonymous enums for two different things, and
+the compiler cannot say anything because both are `int`.
+
+---
+
+## 0.34.0 — 15 September 2026 · library 0.69.0
+
+### R2 — a feature in the middle can be removed, not only the last plan
+
+The operations go from **36 to 38**: `suppress_feature` (with `reactivate`
+to switch it back on) and `delete_feature`.
+
+`undo` (R1) undoes **one plan**, whole and only the last one.
+`set_dimension` changes a number, it does not withdraw a choice. In the middle there
+was nothing: a wrong feature at the third of ten steps could only be
+endured.
+
+**The entry's criterion, to the letter.** On a part with three holes, suppressing
+the third brings the volume back to the value it had with two — measured before
+making the third, so an equality and not an estimate:
+
+```
+the volume returns to what it was with two holes     393842,478 against 393842,478
+the state shows it suppressed                        suppressed: true on Taglio-Estrusione3
+reactivating it restores the volume as it was         390763,718
+deleting a hole with no children succeeds             and it is no longer in the list
+```
+
+### The part that matters is the rejection
+
+| case | what it does |
 |---|---|
-| una lavorazione da cui ne dipendono altre | `elimina` **rifiuta**, e **dice quali sono** |
-| un nome che non c'e' | rifiuta, e dice quali ci sono |
-| sopprimere cio' che e' gia' spento | lo dice, invece di rispondere «fatto» |
+| a feature that others depend on | `delete_feature` **rejects**, and **says which ones** |
+| a name that does not exist | rejects, and says which ones do exist |
+| suppressing something already off | it says so, instead of answering «done» |
 
-**I figli fermano `elimina` e non `sopprimi`, ed e' voluto.** Sopprimere un
-padre spegne i figli e li riaccende insieme a lui: e' quasi sempre cio' che si
-vuole («togli il foro e i suoi raccordi»). Cancellare li farebbe **sparire**, e
-SOLIDWORKS lo fa senza chiedere.
+**Children stop `delete_feature` and not `suppress_feature`, and that is intended.** Suppressing a
+parent turns off the children and turns them back on together with it: that is
+almost always what is wanted («take off the hole and its fillets»). Deleting would make
+them **vanish**, and SOLIDWORKS does that without asking.
 
-**E dopo si controlla che sia sparita davvero.** `DeleteSelection2` risponde
-`true`; la domanda e' se quel nome nell'albero non c'e' piu'. E' la differenza
-fra «ha detto di averlo fatto» e «l'ha fatto».
+**And afterward it checks that it is really gone.** `DeleteSelection2` answers
+`true`; the question is whether that name is no longer in the tree. It is the
+difference between «it said it did it» and «it did it».
 
-**Gli identificativi cambiano, e la risposta lo dice sempre.** Togliere una
-lavorazione fa sparire delle facce, e gli uid sono posizionali: chi ha in mano
-un piano scritto su «F3» dopo questo non ha piu' «F3».
+**The identifiers change, and the answer always says so.** Removing a
+feature makes faces vanish, and the uids are positional: whoever has in hand
+a plan written against «F3» no longer has an «F3» after this.
 
-`RiuscitoSenzaCreare` invece di `Riuscito`: quest'ultimo scrive nel registro
-«creata feature X», e un'operazione che lo dice mentre ne cancella una lascia
-una frase falsa. Nome nuovo e non un parametro in piu' — `Riuscito` e' il punto
-da cui passa **ogni** successo del progetto, il posto peggiore in cui provare a
-cambiare una firma.
+`SucceededWithoutCreating` instead of `Succeeded`: the latter writes into the log
+«created feature X», and an operation that says so while deleting one would leave
+a false sentence. A new name and not one more parameter — `Succeeded` is the point
+every success of the project passes through, the worst place to try to
+change a signature.
 
-### Un rosso SALTATO non e' un rosso passato
+### A SKIPPED red is not a passed red
 
-La prima scrittura della prova costruiva un raccordo sul terzo foro per dargli
-un figlio. Il raccordo non e' venuto («Nessuno spigolo indicato»), e la prova e'
-finita **SALTATA**: il controllo per cui esiste tutta la voce non e' mai
-scattato, e il giro diceva «104 prove, 0 fallite».
+The test's first draft built a fillet on the third hole to give it a
+child. The fillet did not come out («No edge selected»), and the test
+ended up **SKIPPED**: the very check the whole entry exists for never
+fired, and the run said «104 tests, 0 failed».
 
-E' esattamente il caso per cui il banco stampa le saltate a parte e le conta.
-Rifatto sul genitore naturale — **l'estrusione di base**, che e' il caso che la
-voce chiama pericoloso per nome: i tre fori sono suoi figli.
-
----
-
-## 0.33.0 — 15 settembre 2026 · libreria 0.68.0
-
-### V5 — le viste non escono piu' tagliate
-
-**Il difetto.** `ViewZoomtofit2` inquadra dentro l'**area grafica** di
-SOLIDWORKS; `SaveBMP` rende poi nel fotogramma che gli si chiede. Se le due
-forme non coincidono, quello che avanza viene tagliato via — e non lo dice
-nessuno.
-
-```
-area grafica  1845 x 924  ->  1,997
-chiesto       1024 x 768  ->  1,333
-```
-
-Sette viste su dodici uscivano dal bordo **destro**: sempre a destra, mai in
-verticale, mai a sinistra.
-
-**A trovarlo non sono stato io.** Due modelli se ne erano accorti da soli
-durante la misura di V2, mentre rispondevano a un'altra domanda: «la terza
-dimensione non e' determinabile perche' **esce dall'inquadratura**», «la vista
-risulta **tagliata sul lato destro**».
-
-**La riparazione.** Il fotogramma non impone piu' la sua forma: prende quella
-dell'area grafica, dentro le misure massime chieste. Con 1024x768 chiesti e
-un'area 2:1 escono 1024x513 — piu' piccolo, e **intero**. Larghezza e altezza
-passate restano un tetto, non una pretesa.
-
-**E poi si stringe di 1,15.** L'adattamento automatico lasciava il pezzo al
-~50% della larghezza: meta' dei pixel di un'immagine che costa piu' di mille
-token non mostrava niente. Il fattore non e' scelto a gusto — **il tetto lo
-detta la direzione gia' piena**: in verticale si stava gia' all'**78%**, e
-provando 1,35 la staffa a L e la piastra uscivano dal bordo di sopra e di
-sotto. Si guadagnava larghezza tagliando altezza.
-
-Dopo: **zero viste tagliate su dodici**, riempimento da ~50% a **58-89%**.
-
-Uno zoom uniforme non puo' fare di meglio: i due margini sono diversi e il
-fattore e' uno solo. Inquadrare bene per davvero vuol dire proiettare
-l'ingombro del pezzo nella vista e adattare le due direzioni per conto loro —
-un'altra voce, non una costante da alzare.
-
-### `Controlli\ProvaInquadratura`, e il righello che si prova da solo
-
-Scatta e conta i **pixel**: la scatola di quelli che non sono sfondo tocca un
-bordo? quanto riempie? Tre forme scelte per essere scomode in modi diversi
-(una staffa lunga e bassa, una piastra larga e piatta, una barra 15:1); un
-pezzo cubico non direbbe niente perche' ci sta sempre.
-
-**Due soglie sbagliate prima di quella buona**, e tutte e due dichiaravano
-tagliate dodici viste su dodici **con la stessa scatola su pezzi di forma
-diversa** — che e' il segno che una misura non sta misurando il suo ingresso.
-A smascherarle e' stato guardare il fotogramma: su una barra che sta fra y 358
-e 410, il righello diceva y 5-443.
-
-Adesso lo strumento ha **un caso rosso suo**: fotografa un documento **vuoto** e
-il conto dei pixel di pezzo deve fare **zero**. Costa uno scatto, e le due
-soglie sbagliate sarebbero morte li' invece che dopo tre giri e due letture a
-occhio.
-
-E quando dice «tagliata» **lascia il fotogramma su disco**: uno strumento che
-emette un verdetto deve far vedere su cosa.
-
-**I due criteri non sono dello stesso genere, e l'esito dipende solo dal
-primo.** Tagliare e' un difetto — un pezzo tagliato e' un pezzo diverso.
-Riempire poco e' un costo: si stampa sempre, e non fa fallire niente.
+It is exactly the case the bench exists to print the skipped ones apart and count them for.
+Redone on the natural parent — **the base extrusion**, which is the case the
+entry calls dangerous by name: the three holes are its children.
 
 ---
 
-## 0.32.0 — 15 settembre 2026 · libreria 0.67.0
+## 0.33.0 — 15 September 2026 · library 0.68.0
 
-**La misura di V2 stava misurando un'altra cosa, e ha trovato questa.**
+### V5 — views no longer come out cropped
 
-### E16 — `punto_mm` di un foro non e' dove sta il foro
+**The defect.** `ViewZoomtofit2` frames inside SOLIDWORKS's **graphics
+area**; `SaveBMP` then renders into whatever frame it is asked for. If the two
+shapes do not match, whatever is left over gets cropped away — and nothing
+says so.
 
-Due modelli, ognuno per conto suo e senza vedere le risposte dell'altro, hanno
-letto lo stato di una flangia con **sei fori su una circonferenza Ø90** e hanno
-risposto **Ø79**, tutti e due con **confidenza 5 su 5**. Sulla stessa piastra
-l'interasse 160 e' uscito 149,5.
+```
+graphics area  1845 x 924  ->  1,997
+requested      1024 x 768  ->  1,333
+```
 
-79 = 90 − 11: avevano misurato fra i **bordi vicini** dei fori invece che fra
-gli assi. Non per distrazione — perche' era l'unica cosa che lo stato dava.
+Seven views out of twelve came out past the **right** edge: always on the
+right, never top or bottom, never on the left.
 
-**Cosa c'era, di una faccia cilindrica:**
+**I was not the one who found it.** Two models had noticed it on their own
+during the V2 measurement, while answering a different question: «the third
+dimension cannot be determined because it **falls outside the frame**», «the view
+comes out **cropped on the right side**».
 
-| campo | cos'e' davvero |
+**The fix.** The frame no longer imposes its own shape: it takes
+the graphics area's shape, within the maximum size requested. With 1024x768 requested and
+a 2:1 area, out comes 1024x513 — smaller, and **whole**. The width and height
+passed in stay a ceiling, not a demand.
+
+**And then it is tightened by 1,15.** The automatic fit left the part at
+~50% of the width: half the pixels of an image that costs more than a thousand
+tokens showed nothing. The factor is not chosen by taste — **the ceiling is set
+by the direction that is already full**: in the vertical it was already at
+**78%**, and trying 1,35 the L-bracket and the plate came out past the top and
+bottom edges. Width was being gained by cropping height.
+
+After: **zero views cropped out of twelve**, fill going from ~50% to **58-89%**.
+
+A uniform zoom cannot do better than this: the two margins differ and the
+factor is a single one. Really framing well would mean projecting
+the part's bounding box into the view and fitting the two directions on their own —
+another entry, not a constant to raise.
+
+### `Checks\FramingTest`, the ruler that tests itself
+
+It takes the shot and counts the **pixels**: does the box of the ones that are not
+background touch an edge? how much does it fill? Three shapes chosen to be awkward
+in different ways (a long, low bracket, a wide, flat plate, a 15:1 bar); a
+cubic part would say nothing because it always fits.
+
+**Two wrong thresholds before the right one**, and both declared twelve
+views out of twelve cropped **with the same box on parts of different
+shapes** — which is the sign that a measurement is not measuring its own input.
+What exposed them was looking at the frame: on a bar that sits between y 358
+and 410, the ruler said y 5-443.
+
+Now the tool has **a red case of its own**: it photographs an **empty** document and
+the count of part pixels must come out to **zero**. It costs one shot, and the two
+wrong thresholds would have died there instead of after three rounds and two
+readings by eye.
+
+And when it says «cropped» it **leaves the frame on disk**: a tool that
+issues a verdict must let you see what it is based on.
+
+**The two criteria are not of the same kind, and the outcome depends only on the
+first.** Cropping is a defect — a cropped part is a different part.
+Filling little is a cost: it always gets printed, and it does not fail anything.
+
+---
+
+## 0.32.0 — 15 September 2026 · library 0.67.0
+
+**The V2 measurement was measuring something else, and found this.**
+
+### E16 — a hole's `point_mm` is not where the hole is
+
+Two models, each on its own and without seeing each other's answers, read
+the state of a flange with **six holes on a Ø90 bolt circle** and both
+answered **Ø79**, both with **confidence 5 out of 5**. On the same plate
+the center distance of 160 came out as 149,5.
+
+79 = 90 − 11: they had measured between the **near edges** of the holes instead of
+between the axes. Not through carelessness — because that was the only thing the
+state gave them.
+
+**What there was, for a cylindrical face:**
+
+| field | what it really is |
 |---|---|
-| `punto_mm` | un punto **sulla superficie**, a un raggio dall'asse in una direzione che nessuno dichiara. Serve a SELEZIONARE |
-| `asse` | una **direzione** (`[0,1,0]`), non una posizione |
-| `normale` | `null`, perche' la faccia e' curva — quindi nemmeno la direzione in cui correggere |
+| `point_mm` | a point **on the surface**, at a radius from the axis in a direction nobody states. Used to SELECT |
+| `axis` | a **direction** (`[0,1,0]`), not a position |
+| `normal` | `null`, because the face is curved — so not even a direction to correct toward |
 
-Il centro non era ricavabile da nessuna combinazione di quei tre.
+The center could not be derived from any combination of those three.
 
-**E il dato era gia' letto, e buttato via.** `CylinderParams` torna sette
-numeri — **punto (0-2)**, asse (3-5), raggio (6) — e `CilindroDi` leggeva
-`par[3..6]` scartando `par[0..2]`, cioe' l'unica cosa che dice **dove**.
+**And the data had already been read, and thrown away.** `CylinderParams` returns seven
+numbers — **point (0-2)**, axis (3-5), radius (6) — and `CylinderOf` read
+`par[3..6]` discarding `par[0..2]`, that is, the one thing that says **where**.
 
-E' la terza volta che questo progetto trova la stessa forma: una misura presa e
-gettata (E8, la sezione V, e adesso questa).
+It is the third time this project finds the same shape: a measurement taken and
+thrown away (E8, the section V, and now this one).
 
-**Adesso** le facce cilindriche portano `centro_mm`, un punto sull'asse. Si
-chiama cosi' e non `asse_mm` perche' `asse` accanto e' gia' la direzione: due
-campi quasi omonimi che vogliono dire cose diverse sono il modo piu' sicuro di
-farli scambiare.
+**Now** cylindrical faces carry `center_mm`, a point on the axis. It is called
+that and not `axis_mm` because `axis` next to it is already the direction: two
+almost-homonymous fields meaning different things are the surest way to get
+them swapped.
 
-**Solo sulle facce che vengono da una lavorazione, e l'ha deciso il tetto.** La
-prima scrittura lo metteva su tutte le facce cilindriche, e **il banco ha
-fermato il commit**: un telaio da quattro barre e' passato da 15.633 a
-**16.163** caratteri, oltre il tetto di 16.000, con un solo documento aperto.
-Le facce cilindriche di un telaio tubolare sono i raccordi d'angolo dei
-profili — decine, e fra i loro assi non misura un interasse nessuno. Quelle che
-contano sono le facce che vengono da una lavorazione **diversa** da quella che
-ha fatto il corpo: fori, tasche, svasature, cioe' le cose che si posizionano.
-Stessa regola di `da_lavorazione`. Sulla flangia a sette fori: **+230
-caratteri**.
+**Only on faces that come from a feature, and the ceiling decided it.** The
+first draft put it on every cylindrical face, and **the bench stopped the
+commit**: a four-bar frame went from 15.633 to **16.163** characters,
+past the 16.000 ceiling, with a single document open. The cylindrical faces
+of a tubular frame are the corner fillets of the profiles — dozens of them, and
+nobody measures a center distance between their axes. The ones that matter are
+the faces that come from a feature **different** from the one that made the body:
+holes, pockets, countersinks, that is, things that get positioned.
+Same rule as `from_feature`. On the seven-hole flange: **+230
+characters**.
 
-Non copre una faccia cilindrica che *e'* il corpo — l'interno di un tubo. Se
-servira', e' una voce nuova.
+It does not cover a cylindrical face that *is* the body — the inside of a tube. If
+it is ever needed, that is a new entry.
 
-**Il verde** e' stato chiesto a un modello nuovo, a cui non e' stato detto che
-`centro_mm` esistesse: ha risposto Ø90 e interasse 160x90, e ha dichiarato da
-solo di aver usato `centro_mm`. E' il modo in cui si verifica se un campo nuovo
-e' *leggibile* invece che soltanto *presente*.
+**The green case** was asked of a fresh model, not told that `center_mm`
+existed: it answered Ø90 and center distance 160x90, and declared on its own
+that it had used `center_mm`. That is how you check whether a new field is
+*readable* and not merely *present*.
 
-### V2 — quante viste servono, e la risposta non e' quella che ci aspettavamo
+### V2 — how many views are needed, and the answer is not the one we expected
 
-Cinque forme, quattro condizioni, quattro modelli **isolati**. Criterio scritto
-**prima** di guardare le risposte (`Banco/casi/viste/COME_SI_CONTA.md`).
+Five shapes, four conditions, four **isolated** models. Criterion written
+**before** looking at the answers (`Bench/cases/views/HOW_IT_COUNTS.md`).
 
-| condizione | FAMIGLIA | LAVORAZIONI | QUOTE | **INVENZIONI** |
+| condition | FAMILY | FEATURES | DIMENSIONS | **MADE-UP** |
 |---|---|---|---|---|
-| solo isometrica | **5/5** | 3/5 | 0/5 | **0** |
-| quattro viste | **5/5** | 4/5 | 0/5 | **0** |
-| solo stato *(il ponte prima della 0.31.0)* | **5/5** | **5/5** | **5/5** | **3** |
-| stato + isometrica *(adesso)* | **5/5** | **5/5** | **5/5** | **1** |
+| isometric only | **5/5** | 3/5 | 0/5 | **0** |
+| four views | **5/5** | 4/5 | 0/5 | **0** |
+| state only *(the bridge before 0.31.0)* | **5/5** | **5/5** | **5/5** | **3** |
+| state + isometric *(now)* | **5/5** | **5/5** | **5/5** | **1** |
 
-**Col solo stato testuale la famiglia esce giusta 5 volte su 5.** «Scatola a
-pareti sottili aperta su un lato», «albero di rivoluzione a gradini», «flangia
-circolare forata»: tutte prese senza vedere niente. La premessa della sezione V
-— «il modello non capisce la forma» — era **troppo forte**.
+**With the text state alone the family comes out right 5 times out of 5.**
+«Thin-walled box open on one side», «stepped shaft of revolution», «round drilled
+flange»: all guessed without seeing anything. Section V's premise —
+«the model does not understand the shape» — was **too strong**.
 
-Il contributo dell'immagine e' un altro:
+The image's contribution is something else:
 
-> Con il solo stato il modello ha prodotto **tre** numeri sbagliati, tutti con
-> confidenza 5 su 5. Con lo stato piu' l'isometrica, **uno**.
+> With the state alone the model produced **three** wrong numbers, all with
+> confidence 5 out of 5. With the state plus the isometric, **one**.
 
-E in dieci risposte su dieci basate solo su immagini, il modello ha scritto
-«non stimabile in mm assoluti, nessun riferimento di scala»: **zero numeri
-inventati**, e proporzioni giuste (rapporto lati 1,6-1,7:1 contro 1,67 vero).
+And in ten out of ten answers based on images alone, the model wrote
+«not estimable in absolute mm, no reference for scale»: **zero invented
+numbers**, and correct proportions (side ratio 1,6-1,7:1 against the true 1,67).
 
-Un modello, un giro per condizione, cinque forme scelte da chi ha scritto la
-misura: su FAMIGLIA e QUOTE il divario e' netto, su INVENZIONI **3 contro 1 e'
-un solo giro**, e un solo giro non e' una tendenza.
+One model, one run per condition, five shapes chosen by whoever wrote the
+measurement: on FAMILY and DIMENSIONS the gap is clear, on MADE-UP **3 against
+1 is a single run**, and a single run is not a trend.
 
-### V5 aperta: le tre viste standard escono TAGLIATE
+### V5 revealed: the three standard views come out CROPPED
 
-Il rosso l'ha scritto un modello, mentre rispondeva ad altro: «la terza
-dimensione non e' determinabile perche' **esce dall'inquadratura**», «la vista
-risulta **tagliata sul lato destro**». Guardata a occhio: nella frontale della
-staffa il pezzo comincia a 300 px da sinistra ed esce dal bordo destro.
+The red case was written by a model, while it was answering something else: «the
+third dimension cannot be determined because it **falls outside the frame**», «the
+view comes out **cropped on the right side**». Looked at by eye: in the
+front view of the bracket the part starts 300 px from the left and runs off the
+right edge.
 
-L'isometrica e' intera e centrata — ed e' quella che il ponte consiglia. Per
-questo il difetto e' passato, e per questo il confronto «quattro viste contro
-una» qui sopra e' **viziato a sfavore delle quattro**.
+The isometric is whole and centered — and it is the one the bridge recommends. For
+this reason the defect went unnoticed, and for this reason the «four views against
+one» comparison above is **skewed against the four**.
 
 ---
 
-## 0.31.0 — 14-15 settembre 2026 · libreria 0.66.0
+## 0.31.0 — 14-15 September 2026 · library 0.66.0
 
-**Il modello non aveva mai visto il pezzo, e non poteva tornare indietro.**
+**The model had never seen the part, and it had no way back.**
 
-Due meta' dello stesso goal — *proponi, fai, **guarda**, **correggi*** — e nessuna
-delle due era mai entrata nel TODO.
+Two halves of the same goal — *propose, do, **look**, **fix*** — and neither of
+them had ever entered the TODO.
 
-### R1 — `annulla`: il quinto strumento
+### R1 — `undo`: the fifth tool
 
-Questo ponte diceva **ventuno volte** al modello «annullalo con Ctrl+Z». Il
-destinatario di quei messaggi e' un modello linguistico, che non ha una
-tastiera: era una riparazione offerta a qualcuno che non poteva prenderla.
+This bridge told the model **twenty-one times** «undo it with Ctrl+Z». The
+recipient of those messages is a language model, which has no
+keyboard: it was a fix offered to someone who could not take it.
 
-E le trentasei operazioni sono tutte additive o parametriche. L'unica correzione
-possibile era `modifica_quota` — si cambia un numero, non si ritira una scelta.
-**L'albero poteva solo crescere:** chi si accorgeva di aver sbagliato aveva due
-strade, tutte e due sbagliate — costruirci sopra, o rifare il pezzo da capo, che
-e' proprio cio' che il goal esclude.
+And the thirty-six operations are all additive or parametric. The only
+possible correction was `set_dimension` — you change a number, you do not
+withdraw a choice. **The tree could only grow:** whoever noticed a mistake had two
+paths, both wrong — build on top of it, or redo the part from scratch, which
+is exactly what the goal excludes.
 
-**La macchina c'era gia'.** `EsecutorePiano` apre e chiude una voce di
-annullamento intorno a ogni piano (voce B8, misurata: «un solo Ctrl+Z riporta il
-documento al valore di `volume_prima_mm3`»), e `Controlli\Annulla` prova che
-funziona. Si azionava solo con una tastiera umana. Stessa forma della sezione V:
-la capacita' c'e', e non arriva a chi legge.
+**The machine already existed.** `PlanExecutor` opens and closes an undo
+entry around each plan (entry B8, measured: «a single Ctrl+Z restores the
+document to the value of `volume_before_mm3`»), and `Checks\Undo` proves it
+works. It could only be triggered with a human keyboard. Same shape as section V:
+the capability exists, and it never reaches the one who reads.
 
-**Un QUINTO strumento e non un'operazione del catalogo:** le operazioni si
-eseguono dentro `disegna`, cioe' dentro un piano, e annullare un piano da dentro
-il piano stesso e' un nodo. Il motivo per cui gli strumenti non sono trentasei —
-non esporre le operazioni una per una — non riguarda un gesto che operazione non
-e'.
+**A FIFTH tool and not a catalog operation:** operations run inside
+`build`, that is, inside a plan, and undoing a plan from inside
+the plan itself is a knot. The reason the tools are not thirty-six —
+not exposing the operations one by one — does not apply to a gesture that is not
+an operation.
 
-#### Il rifiuto viene prima
+#### The rejection comes first
 
-Fra il piano e la richiesta di annullamento il progettista puo' aver lavorato a
-mano, e premere annulla allora gli toglie il **suo** lavoro. Quindi `disegna`
-lascia un ricordo — documento, volume e numero di lavorazioni prima e dopo — e
-`annulla` lo riconfronta. Tre rifiuti, ognuno col suo caso rosso in
-`Banco/prova_annulla.js`:
+Between the plan and the undo request the designer may have worked by
+hand, and pressing undo then would take away **their own** work. So `build`
+leaves a memory — document, volume and number of features before and after — and
+`undo` checks it again. Three rejections, each with its own red case in
+`Bench/test_undo.js`:
 
-| caso | cosa fa |
+| case | what it does |
 |---|---|
-| nessun piano eseguito | rifiuta: non saprebbe nemmeno dire cosa toglierebbe |
-| chiamato due volte | il secondo rifiuta: il ricordo si consuma al primo, e il passo successivo toglierebbe quello che c'era **prima** del piano |
-| un altro documento davanti | rifiuta dicendo quale aveva in mano e quale c'e' adesso |
+| no plan has been run | rejects: it would not even know what it would take away |
+| called twice | the second call rejects: the memory is consumed on the first, and the next step would remove what was there **before** the plan |
+| a different document in front | rejects, saying which one it had in hand and which one is there now |
 
-**Il ricordo si scrive anche quando il piano e' fallito a meta'**, ed e' il caso
-che conta di piu': un piano fermato al passo 3 lascia i primi due costruiti, e
-sono proprio quelli che si vuole ritirare. Si **cancella** invece quando il pezzo
-non e' cambiato — un piano che non ha costruito niente non ha aperto nessuna
-voce di annullamento, e ricordarlo vorrebbe dire offrire di disfare qualcosa di
-precedente.
+**The memory is written even when the plan fails halfway through**, and that is the
+case that matters most: a plan stopped at step 3 leaves the first two
+built, and those are exactly the ones you want withdrawn. It is **cleared** instead
+when the part has not changed — a plan that built nothing never opened any
+undo entry, and remembering it would mean offering to undo something
+earlier.
 
-#### Due numeri non sono una prova, e si controlla anche dopo
+#### Two numbers are not a proof, and it is checked again afterward
 
-Volume e conteggio non vedono un gesto che non cambia ne' l'uno ne' l'altro — un
-nome cambiato, una configurazione. Non esiste nessuna API per guardare la pila
-degli annullamenti prima di premere (`IModelDocExtension` ha solo
-`StartRecordingUndoObject` / `FinishRecordingUndoObject`). Quindi si preme, si
-**controlla**, e se il pezzo non e' tornato dov'era si **rimette** con
-`EditRedo2` e si dice cos'e' successo. Provare, controllare, e disfare la prova
-sbagliata e' l'unica strada onesta che c'e'.
+Volume and count do not see a gesture that changes neither one nor the
+other — a renamed name, a configuration. There is no API at all to look at the
+undo stack before pressing (`IModelDocExtension` only has
+`StartRecordingUndoObject` / `FinishRecordingUndoObject`). So it presses, it
+**checks**, and if the part has not gone back to where it was it **redoes it**
+with `EditRedo2` and says what happened. Trying, checking, and undoing the
+wrong trial is the only honest path there is.
 
-`QuanteFeature` somma `feature_non_elencate`: senza, il conteggio si fermerebbe
-a ottanta e direbbe «non e' cambiato niente» anche dopo dieci fori nuovi — il
-difetto di E12 ripetuto dall'altra parte.
+`HowManyFeatures` adds up `feature_not_listed`: without it, the count would
+stop at eighty and say «nothing has changed» even after ten new holes — the
+defect of E12, repeated from the other side.
 
-### R3 — le frasi non nominano piu' un tasto
+### R3 — the sentences no longer name a key
 
-Tredici messaggi riscritti; **otto commenti lasciati com'erano**, perche' li'
-chi legge e' una persona e per una persona `Ctrl+Z` e' il gesto giusto.
+Thirteen messages rewritten; **eight comments left as they were**, because
+there whoever reads is a person, and for a person `Ctrl+Z` is the right gesture.
 
-La frase adesso sta in `Riscontro.Disegno/Frasi.cs`, una volta sola. Era scritta
-ventuno volte con parole quasi uguali, e il giorno in cui e' cambiata ha
-presentato il conto: ventuno posti da correggere.
+The sentence now lives in `Oce.Solid.Agent.Core/Sentences.cs`, in one place only. It was
+written twenty-one times with nearly identical words, and the day it changed it
+presented the bill: twenty-one places to fix.
 
-E dice **due** cose:
+And it says **two** things:
 
 ```
-«annulla» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo
+«undo» if you are talking to the bridge, Ctrl+Z if you are in front of the screen
 ```
 
-Questa libreria ha due lettori. Il modello, che arriva dal ponte e non ha una
-tastiera. E la persona, che usa le stesse operazioni dall'add-in di OpenPDM,
-dove `annulla` **non esiste**: nominare solo lo strumento l'avrebbe mandata a
-cercare nel menu un comando che non c'e' — lo stesso difetto di questa voce, coi
-destinatari scambiati.
+This library has two readers. The model, which arrives through the bridge and has no
+keyboard. And the person, who uses the same operations from OpenPDM's add-in,
+where `undo` **does not exist**: naming only the tool would have sent them
+looking in the menu for a command that is not there — the same defect as this
+entry, with the recipients swapped.
 
-### Il banco dice DOVE, non solo cosa
+### The bench says WHERE, not only what
 
-`Perche(ex)` al posto di `ex.Message` in diciotto punti: tipo dell'eccezione,
-messaggio, prima riga di stack, e via l'involucro `TargetInvocationException`
-che la riflessione mette intorno a tutto.
+`Why(ex)` in place of `ex.Message` in eighteen places: the exception's type,
+message, first line of the stack trace, and out with the `TargetInvocationException`
+wrapper that reflection puts around everything.
 
-Il motivo e' costato un giro: una prova ha stampato «Riferimento a un oggetto
-non impostato su un'istanza di oggetto.» e nient'altro. Quella frase dice che
-qualcosa era null e non dice **cosa**, ne' se il null stesse nel banco o nella
-libreria — e localizzarla voleva dire rilanciare diciassette minuti di prove.
+The reason cost a whole run: a test printed «Object reference not set to an
+instance of an object.» and nothing else. That sentence says something was
+null and does not say **what**, nor whether the null was in the bench or in the
+library — and finding it meant relaunching seventeen minutes of tests.
 
-### V1 — `guarda_il_pezzo` sa scattare una fotografia
+### V1 — `inspect_part` can take a photograph
 
-### V1 — `guarda_il_pezzo` sa scattare una fotografia
+### V1 — `inspect_part` can take a photograph
 
-Fino a qui, «guardare il pezzo» voleva dire ricevere un elenco: sessanta facce
-con area, normale e verso. Per una piastra forata basta. Per capire che FORMA ha
-un guscio con le alette, no — sessanta facce con un'area non sono una forma,
-sono un elenco.
+Until now, «looking at the part» meant receiving a list: sixty faces
+with area, normal and direction. For a drilled plate that is enough. For understanding what SHAPE
+a shell with tabs has, no — sixty faces with an area are not a shape,
+they are a list.
 
-**La capacita' c'era ed era provata.** Il banco salva viste con `SaveBMP` da
-mesi. Ma viveva nel banco, e `SaveBMP` non compariva **nemmeno una volta** nella
-libreria: la cosa che serviva a chi legge stava nel programma che controlla se
-la libreria funziona. E' la forma di difetto della voce E8 — una misura presa e
-buttata via — con l'aggravante che qui non era mai stata collegata a niente.
+**The capability existed and was proven.** The bench has saved views with `SaveBMP` for
+months. But it lived in the bench, and `SaveBMP` did not appear **even once** in
+the library: the thing the reader needed sat in the program that checks whether
+the library works. It is the shape of defect of entry E8 — a measurement taken
+and thrown away — with the added weight that here it had never been connected to
+anything.
 
-Adesso:
+Now:
 
-- **`Riscontro.Disegno/VistaDelPezzo.cs`** (nuovo): `Scatta(modello, quale,
-  larghezza, altezza, out motivo)` torna i byte di un **PNG**. Nove viste col
-  nome che usa chi disegna, l'isometrica per prima perche' e' la sola che da
-  sola mostri una forma.
-- **`Mcp/Protocollo.cs`**: `ContenutoConImmagini` — MCP prevede contenuti di
-  tipo `image` (base64 piu' tipo MIME) e questo protocollo sapeva fare solo
-  `text`. Il testo va per primo: un'immagine senza didascalia, in mezzo a una
-  conversazione, e' un indovinello.
-- **`Ponte/Sessione.cs`**: `Fotografia(...)`, che e' dove sta la meta'
-  difficile — sapere qual e' il documento davanti.
-- **`Strumenti/Attrezzi.cs`**: `guarda_il_pezzo` guadagna `viste`, facoltativo,
-  **al massimo tre**.
+- **`Oce.Solid.Agent.Core/PartView.cs`** (new): `Fire(model, which,
+  width, height, out reason)` returns the bytes of a **PNG**. Nine views with
+  the name used by whoever is drafting, the isometric first because it is the only
+  one that alone shows a shape.
+- **`Mcp/Protocol.cs`**: `ContentWithImages` — MCP provides for content of
+  type `image` (base64 plus MIME type) and this protocol only knew how to do
+  `text`. The text goes first: an image with no caption, in the middle of a
+  conversation, is a riddle.
+- **`Bridge/Session.cs`**: `Snapshot(...)`, which is where the hard
+  half lives — knowing which document is in front.
+- **`Tools/McpTools.cs`**: `inspect_part` gains `views`, optional,
+  **at most three**.
 
-**SU RICHIESTA, MAI DI SERIE.** Una vista 1024x768 costa piu' di mille token:
-piu' di dieci volte l'intero stato del documento, che sta sotto i 16.000
-caratteri. Se ogni lettura ne portasse tre, il costo del ponte cambierebbe di un
-ordine di grandezza — e lo pagherebbe anche chi voleva solo sapere quanti corpi
-ci sono.
+**ON REQUEST, NEVER BY DEFAULT.** A 1024x768 view costs more than a thousand tokens:
+more than ten times the entire state of the document, which stays under 16.000
+characters. If every read carried three of them, the bridge's cost would change by an
+order of magnitude — and even whoever only wanted to know how many bodies
+there are would pay for it.
 
-**PNG e non il BMP che SOLIDWORKS da'.** `SaveBMP` scrive non compresso: 1024x768
-sono 2,3 MB, in base64 tre. Lo stesso fotogramma in PNG sta in poche decine di
-KB, coi pixel identici.
+**PNG, and not the BMP that SOLIDWORKS gives.** `SaveBMP` writes uncompressed:
+1024x768 is 2,3 MB, three in base64. The same frame in PNG fits in a few dozen
+KB, with identical pixels.
 
-**NON SI TOCCA LA VISTA DI CHI LAVORA.** Il ponte si aggancia al documento che
-un progettista ha davanti. Girare il pezzo per fotografarlo e lasciarlo girato
-vuol dire spostargli la roba sotto le mani. L'orientamento si salva prima e si
-rimette nel `finally`, **anche quando la fotografia fallisce a meta'**: un danno
-vero fatto da un'operazione di sola lettura.
+**THE VIEW OF WHOEVER IS WORKING IS NOT TOUCHED.** The bridge attaches to the document a
+designer has open. Turning the part to photograph it and leaving it turned
+would mean moving the ground under their hands. The orientation is saved before and
+put back in the `finally`, **even when the photograph fails halfway through**: a
+real piece of damage done by an operation that is supposed to be read-only.
 
-#### E rimetterlo a posto e' stata la parte difficile: sei strade su nove non funzionano
+#### And putting it back was the hard part: six paths out of nine do not work
 
-| strada | esito |
+| path | outcome |
 |---|---|
-| riassegnare `IModelView.Transform` | scarto **2598** sull'indice 12 (la scala) |
-| `Transform` copiato con `IInverse()` due volte | idem |
-| `IModelDoc2.ViewOrientationUndo()` | scarto 212 sull'indice 9 |
-| terna `Orientation3`/`Translation3`/`Scale2`, ordine O → **T** → S | scarto **4,77** sull'indice 9 |
-| **terna, ordine O → S → T** | **torna** |
+| reassigning `IModelView.Transform` | off by **2598** on index 12 (the scale) |
+| `Transform` copied with `IInverse()` twice | same |
+| `IModelDoc2.ViewOrientationUndo()` | off by 212 on index 9 |
+| triple `Orientation3`/`Translation3`/`Scale2`, order O → **T** → S | off by **4,77** on index 9 |
+| **triple, order O → S → T** | **comes back right** |
 
-**`Transform` non e' lo stato della vista:** e' la sua descrizione. Lo stato da
-cui una vista si ricostruisce e' la terna — da dove guardi, dove sei centrato,
-quanto sei vicino.
+**`Transform` is not the view's state:** it is its description. The state a
+view can be rebuilt from is the triple — where you look from, where you are
+centered, how close you are.
 
-**E l'ordine non e' stile.** Con O → T → S la rotazione (indici 0-8 della
-matrice) torna **esatta** e sbaglia solo la traslazione: `Translation3` vale per
-la scala che c'e' in quel momento, quindi rimetterla prima di `Scale2` rimette
-una posizione buona per un'altra inquadratura. Il pezzo usciva **dritto e
-spostato**, che e' peggio di storto — sembra giusto.
+**And the order is not a matter of style.** With O → T → S the rotation (indices 0-8 of the
+matrix) comes back **exact** and only the translation is wrong: `Translation3` is
+valid for whatever scale is in effect at that moment, so putting it back before
+`Scale2` restores a position that is good for a different framing. The part came out
+**straight but shifted**, which is worse than crooked — it looks right.
 
-Il numero l'ha detto la misura: e' stato «scarto 4,77 **sull'indice 9**» a
-indicare la traslazione, dopo che tre spiegazioni ragionate erano risultate
-false una dopo l'altra.
+The number is what the measurement said: it was «off by 4,77 **on index 9**» that
+pointed to the translation, after three reasoned explanations had been
+proven false one after another.
 
-#### `Controlli\ProvaVista`, perche' tre secondi non sono diciassette minuti
+#### `Checks\ViewTest`, because three seconds is not seventeen minutes
 
-Le prime tre strade sono state provate **dentro il banco**, cioe' pagando un
-giro da diciassette minuti per ogni risposta. Adesso stanno in un attrezzo suo
-che ne prova nove in tre secondi e stampa **di quanto** e **su quale numero**
-ciascuna sbaglia — ed e' quel dettaglio, non il verde/rosso, che ha trovato la
-risposta.
+The first three paths were tried **inside the bench**, that is, paying a
+seventeen-minute run for every answer. Now they sit in a tool of their
+own that tries nine of them in three seconds and prints **by how much** and **on
+which number** each one is wrong — and it was that detail, not the green/red, that
+found the answer.
 
-> Una domanda da tre secondi non si paga diciassette minuti. Se la si sta
-> pagando, manca un attrezzo.
+> A three-second question is not worth paying seventeen minutes for. If it
+> is being paid, a tool is missing.
 
-**LO STATO ESCE COMUNQUE.** Se nessuna fotografia riesce, `guarda_il_pezzo`
-risponde lo stesso con l'elenco delle facce e dice nel testo perche' le viste
-mancano. Fallire tutto perche' non si e' potuto scattare toglierebbe a chi legge
-l'unica cosa che gli serviva.
+**THE STATE COMES OUT ANYWAY.** If no photograph succeeds, `inspect_part`
+answers all the same with the list of faces and says in the text why the views are
+missing. Failing everything because a shot could not be taken would take away from
+the reader the one thing they needed.
 
-**Tre spiegazioni ragionate, tutte e tre false.** Prima che la misura trovasse
-l'ordine, il rosso «l'orientamento non torna» ha avuto tre diagnosi, ognuna
-plausibile e ognuna smentita dal pezzo:
+**Three reasoned explanations, all three false.** Before the measurement found
+the order, the red case «the orientation does not come back right» had three
+diagnoses, each plausible and each disproved by the part:
 
-1. «`Transform` torna l'oggetto **vivo** della vista, quindi salvarlo non salva
-   niente» — falsa: una misura scritta apposta ha mostrato che i suoi sedici
-   numeri **non** cambiano da soli. E' una copia.
-2. «allora e' `ViewOrientationUndo()`, che esiste apposta» — non torna.
-3. «allora e' la terna invece di `Transform`» — giusta a meta': serviva anche
-   l'ordine.
+1. «`Transform` returns the view's **live** object, so saving it saves
+   nothing» — false: a measurement written on purpose showed that its sixteen
+   numbers do **not** change on their own. It is a copy.
+2. «then it's `ViewOrientationUndo()`, which exists for exactly this» — does not work.
+3. «then it's the triple instead of `Transform`» — half right: the order was
+   needed too.
 
-> Il verso di una riparazione non si ricava ragionando sull'officina: si chiede
-> al pezzo. Qui il pezzo ha detto no tre volte prima di dire dove.
+> The direction of a fix is not worked out by reasoning about the shop: you ask
+> the part. Here the part said no three times before saying where.
 
-**Due errori del compilatore che valgono una riga ciascuno**, perche' erano
-scritti contro un'API immaginata invece che letta:
+**Two compiler errors each worth one line**, because they were written against
+an imagined API instead of a read one:
 
-- `ShowNamedView2` torna `void`. La prima scrittura la trattava come un `bool` e
-  ci costruiva sopra un controllo — un controllo su un valore che non esiste.
-- Il *settore* di `IModelView.Transform` vuole `MathTransform`, non
-  `IMathTransform`. Il compilatore lo dice solo sulla riga che rimette a posto
-  l'orientamento: cioe' sulla riga che non si puo' provare senza aprire
+- `ShowNamedView2` returns `void`. The first draft treated it as a `bool` and
+  built a check on top of it — a check on a value that does not exist.
+- The *setter* of `IModelView.Transform` wants `MathTransform`, not
+  `IMathTransform`. The compiler only says so on the line that restores the
+  orientation — that is, on the line that cannot be tested without opening
   SOLIDWORKS.
 
-**La prova nel banco (`ProvaFotografia`), col suo caso ROSSO.** Quattro
-affermazioni piu' una: esce qualcosa; **e' un PNG e non un BMP** (firma
-`89 50 4E 47`); **l'orientamento torna com'era** (sedici numeri confrontati);
-**una vista inventata viene rifiutata dicendo quali esistono** — senza
-quest'ultima, «scatta sempre qualcosa» passerebbe anche se il nome non venisse
-mai guardato. E in coda: nessun file lasciato nella temporanea, perche'
-`SaveBMP` vuole un percorso e ogni scatto scrive 2 MB su disco.
+**The bench test (`TestSnapshot`), with its own RED case.** Four claims
+plus one: something comes out; **it is a PNG and not a BMP** (signature
+`89 50 4E 47`); **the orientation comes back as it was** (sixteen numbers compared);
+**a made-up view name is rejected, saying which ones exist** — without this
+last one, «something always gets shot» would pass even if the name were never
+checked. And at the end: no file left in the temp folder, because
+`SaveBMP` wants a path and every shot writes 2 MB to disk.
 
-Quando l'orientamento non si e' potuto leggere nemmeno PRIMA, la prova e'
-**fallita**, non verde: un controllo senza ingresso non ha una risposta, e uno
-che si arrende dicendo «ok» e' il difetto che questo progetto esiste per rendere
-impossibile.
+When the orientation could not be read even BEFORE, the test came out
+**failed**, not green: a check with no input has no answer, and one that
+gives up saying «ok» is the defect this project exists to make
+impossible.
 
-### E12 — il tetto sulle lavorazioni non nasconde piu' le ultime
+### E12 — the ceiling on features no longer hides the latest ones
 
-`StatoDocumento` elencava al massimo ottanta lavorazioni e teneva **le prime**:
-su un pezzo da ottantacinque, le cinque piu' recenti — cioe' quelle appena
-fatte, le sole di cui si stia parlando — sparivano. Adesso si tengono le
-ULTIME, e quante ne restano fuori si dice.
+`DocumentState` listed at most eighty features and kept **the first
+ones**: on an eighty-five-feature part, the five most recent — that is, exactly
+the ones being talked about — disappeared. Now it keeps the LAST ones, and it
+says how many are left out.
 
-Il giro dell'albero passa da una lista di `Candidata` (feature, tipo, nome): il
-taglio si fa **prima** di chiamare `DettaglioFeature`, cosi' le ottanta voci
-costruite sono le ottanta che escono, e non ottantacinque di cui cinque buttate.
+The walk of the tree now goes through a list of `Candidate` (feature, type, name): the
+cut is made **before** calling `FeatureDetail`, so the eighty entries built
+are the eighty that come out, and not eighty-five of which five are thrown away.
 
-### `--lento`, e le prove saltate si contano
+### `--lento`, and the skipped tests are counted
 
-La prova di E12 costruisce ottantacinque tagli. Ottantacinque tagli costano
-almeno **mezz'ora** — contro i tredici minuti di tutte le altre insieme — e in
-questo giro, alla lavorazione 84, SOLIDWORKS ha macinato un core al 100% per
-**ottantotto minuti** senza finirne una. Una prova che pesa cosi' e' una prova
-che prima o poi qualcuno salta.
+E12's test builds eighty-five cuts. Eighty-five cuts cost at least
+**half an hour** — against the thirteen minutes of all the others together — and in
+this run, at feature 84, SOLIDWORKS ground a core at 100% for
+**eighty-eight minutes** without finishing one. A test that heavy is a test
+that sooner or later someone skips.
 
-Quindi si lancia solo con `--lento`. **Ma una prova saltata si deve vedere:** il
-banco la stampa come `SALTATA` col motivo e la conta a parte. «88 prove, 0
-fallite» su un giro in cui una non e' partita e' una frase vera che fa credere
-una cosa falsa.
+So it only runs with `--lento`. **But a skipped test has to show:** the
+bench prints it as `SALTATA` with the reason and counts it separately. «88 tests, 0
+failed» for a run where one never started is a true sentence that makes
+you believe something false.
 
-### Due difetti miei, trovati dalla revisione
+### Two defects of my own, found by the review
 
-**`NotaSulVolume` dava l'allarme su un foro perfetto.** La guardia diceva
-`volumeDopo < 0`, e `VolumeMm3` non torna **mai** un negativo: risponde 0 quando
-il documento non e' una parte, quando `GetBodies2` da' null, e dal `catch` che
-avvolge tutto — cioe' su ogni strada di errore. Il ramo non poteva scattare, e
-uno zero di lettura fallita passava come misura: `tolti` diventava l'intero
-volume del pezzo, e su un foro riuscito usciva «192.000 mm³ invece di 392,7».
-Un rifiuto di cio' che e' corretto, che questo progetto dichiara peggiore
-dell'errore che stava chiudendo. Il commento due righe sopra diceva gia' la cosa
-giusta: e' stata la riga a non farla.
+**`NoteOnVolume` raised the alarm on a perfect hole.** The guard said
+`volumeAfter < 0`, and `VolumeMm3` **never** returns a negative number: it answers 0 when
+the document is not a part, when `GetBodies2` returns null, and from the `catch`
+that wraps everything — that is, on every error path. The branch could never
+fire, and a zero from a failed read passed as a measurement: `removed` became the
+entire volume of the part, and on a successful hole it came out «192.000 mm³
+instead of 392,7». A rejection of something correct, which this project
+declares worse than the error it was meant to close. The comment two lines above
+already said the right thing: it was the line that failed to do it.
 
-**`guscio` con `facce_rif` poteva aprire meno facce di quelle chieste.** La
-regola «tutte o nessuna» valeva sulla RISOLUZIONE e non sulla SELEZIONE: con tre
-riferimenti risolti e due facce selezionate si andava avanti, «riuscita: true»,
-volume calato, e un contenitore chiuso su un lato che doveva essere aperto. Il
-ramo gemello, quindici righe piu' giu', rifiutava gia' alla prima faccia:
-una riparazione che copre un ramo e lascia scoperto il suo gemello.
+**`shell` with `faces_ref` could open fewer faces than requested.** The
+rule «all or nothing» held at the RESOLUTION level and not at the
+SELECTION level: with three references resolved and two faces selected it went
+ahead, «succeeded: true», volume reduced, and a container closed on a side that
+should have been open. The twin branch, fifteen lines further down, already
+rejected at the first face: a fix that covers one branch and leaves its
+twin exposed.
 
 ---
 
-## 0.30.0 — 14 settembre 2026 · libreria 0.65.0
+## 0.30.0 — 14 September 2026 · library 0.65.0
 
-**Due voci, e tutte e due si sono rivelate diverse da come erano scritte.**
+**Two entries, and both turned out to be different from how they were written.**
 
-### E8 — il meccanismo aveva misurato lo spostamento e buttato via la misura
+### E8 — the mechanism had measured the displacement and thrown the measurement away
 
-E8 erano **due voci in una**, con destini opposti.
+E8 was **two entries in one**, with opposite fates.
 
-**La tolleranza proporzionale non si fa.** Gliel'aveva attribuita E5 chiudendosi
-(«l'ancora e' il numero che rende possibile una tolleranza proporzionale, che e'
-la voce E8»). Ma dopo E6 il ritrovamento funziona per persist ID, e l'ancora
-**non la legge nessuno**: `Attrezzi` la copia nelle firme, `StatoDocumento` la
-calcola pagando un `GetTessTriangles` per faccia a ogni `guarda_il_pezzo`, e poi
-`FirmaEntita` non ha nessun campo per tenerla, `FirmaDiUnaFaccia` non la calcola,
-e ne' `FirmaCombacia` ne' `Corrobora` ne' `FraseDelloSpostamento` leggono mai
-quella chiave. **Zero consumatori.** Otto ore per un problema gia' risolto.
+**Proportional tolerance is not done.** E5 had attributed it to this entry on
+closing («the anchor is the number that makes a proportional tolerance possible,
+and that is entry E8»). But after E6 re-finding works by persist ID, and the anchor
+**is read by no one**: `McpTools` copies it into the signatures, `DocumentState`
+computes it paying a `GetTessTriangles` per face on every `inspect_part`, and
+then `EntitySignature` has no field to hold it, `FaceSignature` does not compute it,
+and neither `SignatureMatches` nor `Corroborates` nor `MoveSentence` ever read
+that key. **Zero consumers.** Eight hours for a problem already solved.
 
-**Il testo vero di E8 era un'altra cosa, ed era rotta.** La voce chiede che,
-quando la geometria si sposta, si **mostri a chi ha confermato cosa e'
-cambiato**. La 0.26.0 ha costruito esattamente quella frase — «si e' spostata di
-60 mm, da [50, 0, 0] a [110, 0, 0]» — e poi l'ha consegnata a `_log`:
+**E8's real text was something else, and it was broken.** The entry asks that,
+when geometry moves, you **show whoever confirmed it what has
+changed**. 0.26.0 built exactly that sentence — «it moved by
+60 mm, from [50, 0, 0] to [110, 0, 0]» — and then handed it to `_log`:
 
 ```
-_log  ->  Ponte/Sessione.cs:418  ->  Mcp.Protocollo.Nota  ->  Console.Error
+_log  ->  Bridge/Session.cs:418  ->  Mcp.Protocol.Note  ->  Console.Error
 ```
 
-**In un server MCP su stdio stderr non e' la risposta.** Misurato: `e2_caso_a`
-esegue il foro su un pezzo **lungo il 60% in piu'** di quello confermato, sulla
-faccia giusta, e nella risposta JSON c'era `riuscita: true` e nient'altro.
+**In an MCP server over stdio, stderr is not the answer.** Measured: `e2_case_a`
+runs the hole on a part **60% longer** than the one confirmed, on the
+right face, and in the JSON answer there was `succeeded: true` and nothing else.
 
-> Il meccanismo scritto apposta per non avere difetti silenziosi ne aveva uno
-> addosso: aveva misurato lo spostamento e buttato via la misura.
+> The mechanism written on purpose to have no silent defects had one of its
+> own: it had measured the displacement and thrown the measurement away.
 
-Il canale giusto esisteva gia' ed era vuoto: `Esito.Misure` arriva dritto nel
-JSON, come fa `nota_volume`. Adesso i riancoraggi si drenano in `Riuscito`, che
-e' **l'unico punto da cui passa ogni successo di tutte e trentasei le
-operazioni**, compresi i quattro file `partial`: nessuna operazione puo'
-dimenticarsene.
+The right channel already existed and was empty: `Outcome.Measurements` goes straight
+into the JSON, the way `note_volume` does. Now the re-anchorings drain into `Succeeded`,
+which is **the single point every success of all thirty-six
+operations passes through**, including the four `partial` files: no operation
+can forget about it.
 
-Tre strade coperte, non una: il persist ID, la nota di `Corrobora` sulla faccia
-cresciuta, e la ricerca per firma — che prima diceva «si era spostata: ritrovata
-dalla firma» **senza un numero**, e adesso usa la stessa frase del persist ID.
-Due strade diverse per ritrovare, una sola per dirlo.
+Three paths covered, not one: the persist ID, `Corroborates`'s note on the
+grown face, and the search by signature — which used to say «it had moved: found
+again by signature» **with no number**, and now uses the same sentence as the
+persist ID. Two different paths to find it again, one single way to say so.
 
-### E15 — `guscio` accetta i riferimenti, e il ramo chiuso non ha mai funzionato
+### E15 — `shell` accepts references, and the closed branch never worked
 
-**`facce_rif`.** «Fai un blocco e poi svuotalo» adesso e' un piano solo — la
-sequenza del contenitore per l'antenna. Fino a ieri `guscio` era l'unica
-operazione su faccia che non accettava un riferimento a un passo: voleva
-`facce_uid`, che nascono solo da una lettura. Misurato: volume **82.500**, lo
-stesso numero che il banco misura da sempre per «guscio 5 mm verso l'interno».
+**`faces_ref`.** «Make a block and then hollow it out» is now a single plan —
+the antenna container's sequence. Until yesterday `shell` was the only
+operation on a face that did not accept a reference to a step: it wanted
+`faces_uid`, which only come from a reading. Measured: volume **82.500**, the
+same number the bench has measured forever for «shell 5 mm inward».
 
-Un elenco di riferimenti **singoli**, non un genere plurale: `Riferimenti`
-risolve una faccia per volta e rifiuta quando il ruolo non e' univoco, e quella
-regola e' giusta. E se uno solo non si risolve **fallisce tutto**: un guscio
-aperto su due facce invece che su tre non e' «quasi giusto», e' un pezzo diverso
-che sarebbe riuscito in silenzio.
+A list of **single** references, not a plural kind: `References`
+resolves one face at a time and rejects when the role is not unambiguous, and that
+rule is correct. And if even one fails to resolve, **everything fails**: a shell
+open on two faces instead of three is not «almost right», it is a different part
+that would have succeeded silently.
 
-**`tutto_chiuso` non aveva mai funzionato.**
+**`fully_closed` had never worked.**
 
 ```csharp
-var corpoEntita = corpi[0] as IEntity;   // sempre null
+var corpoEntita = bodies[0] as IEntity;   // always null
 ```
 
-Un corpo **non e'** una `IEntity` nell'interop: quel ramo rispondeva «Non sono
-riuscito a selezionare il corpo solido» su qualunque pezzo. Adesso da' 105.000
-mm³ su un blocco da 240.000 con parete 5.
+A body is **not** an `IEntity` in the interop: that branch answered «I could not
+select the solid body» on any part at all. Now it gives 105.000
+mm³ on a 240.000 block with a 5 wall.
 
-E la lezione era **gia' scritta in questo stesso file**, quattromila righe piu'
-su, nel commento di `sposta_corpi`: misurata dentro SOLIDWORKS il 10 settembre,
-con cinque prove che dicevano «i corpi indicati non si sono lasciati
-selezionare», e li' gia' riparata con `IBody2.Select2`.
+And the lesson was **already written in this very file**, four thousand lines
+further up, in the comment on `move_bodies`: measured inside SOLIDWORKS on
+10 September, with five tests saying «the indicated bodies did not let
+themselves be selected», and fixed there already with `IBody2.Select2`.
 
-> Una lezione scritta e non applicata e' una lezione che il codice non ha
-> imparato: il commento la ricorda a chi legge QUELLE righe, e chi scrive
-> altrove non passa di li'.
+> A lesson written and not applied is a lesson the code has not
+> learned: the comment reminds whoever reads THOSE lines, and whoever writes
+> elsewhere never passes through there.
 
-### E due riparazioni minori, trovate strada facendo
+### And two minor fixes, found along the way
 
-`facce_tolte` diceva **0** su un guscio che una faccia l'aveva tolta davvero,
-perche' contava solo gli uid. Una misura che dice zero quando il numero e' uno e'
-il difetto di questo progetto in miniatura.
+`faces_removed` said **0** on a shell where a face really had been removed,
+because it only counted the uids. A measurement that says zero when the number is
+one is the defect of this project in miniature.
 
-`build.ps1` si fermava a meta' dicendo che era andato male mentre era andato
-bene: PowerShell 5.1 avvolge ogni riga di stderr di un comando nativo in un
-`NativeCommandError` e ferma lo script anche con l'eseguibile uscito 0. Adesso la
-preferenza si abbassa solo intorno alla chiamata nativa, e si guarda
-`$LASTEXITCODE`, che e' l'unica cosa che dice davvero com'e' andata.
-
----
-
-## 0.29.0 — 14 settembre 2026 · libreria 0.64.0
-
-**Un taglio riuscito a meta' adesso lo dice.** Voce E13.
-
-`taglio_cilindrico` con il profilo a cavallo del bordo della faccia toglieva
-meta' materiale e rispondeva `riuscita: true`, `pareti_forate: 1`. Misurato: un
-foro da 10 profondo 5, centrato sul bordo inferiore di una faccia, toglieva
-**196,3 mm³ invece di 392,7** — esattamente meta' — con il fondo ridotto a un
-mezzo disco da 39,27 mm² invece di 78,54.
-
-**Il guardiano c'era e guardava dall'altra parte.** `SottoIlProfilo` sa contare
-quanti punti del profilo cadono sulla faccia e lo dice bene, ma il suo commento
-dichiara: «NON RIFIUTA NIENTE E NON DEVE MAI FARLO: si chiama solo quando
-SOLIDWORKS ha gia' detto di no». Quando SOLIDWORKS dice di **si'**, non lo
-chiama nessuno.
-
-### Non si rifiuta, si dice
-
-L'operazione e' riuscita e il pezzo esiste: rifiutare a cose fatte vorrebbe dire
-buttare una lavorazione per un sospetto. Misure nuove su `taglio_cilindrico` e
-`taglio_rettangolare` — `tolti_mm3`, `attesi_mm3`, e quando non tornano una
-`nota_volume` che dice di quanto e cosa di solito significa. E' la stessa forma
-di `posizioni_non_verificate` e dell'ancora che si sposta.
-
-### Solo sui ciechi l'atteso e' una moltiplicazione
-
-Per un passante il volume dipende da quanto materiale c'e' sotto, che non si sa
-senza misurarlo: li' si scrive `tolti_mm3` e basta, senza un atteso che sarebbe
-inventato. **Un allarme sbagliato su un passante legittimo sarebbe peggio del
-difetto che si sta chiudendo.**
-
-### La soglia viene da due misure, non da un'opinione
-
-Un foro tutto sulla faccia toglie **392,7** contro i 392,699 attesi — meno di un
-millesimo. Uno centrato sul bordo ne toglie **la meta'**. Fra i due c'e' un
-fattore cinquecento: l'uno per cento lascia passare l'arrotondamento e non
-lascia passare niente che abbia una forma.
-
-### Il primo caso rosso non riproduceva il difetto
-
-Era scritto con `faccia_rif: faccia_superiore`, e li' il punto (0,0) cade in
-**mezzo** alla faccia: il foro veniva intero, `tolti 392,7 attesi 392,7`, tutto
-verde. Sembrava che la riparazione funzionasse, e non si stava provando niente.
-
-Il difetto vive sulle facce **laterali**, dove (0,0) cade sul bordo — e per
-nominarne una serve l'uid, perche' il vocabolario dei ruoli non ha nessuna
-parola per i fianchi di un'estrusione. E' **esattamente il 58% di facce senza
-ruolo misurato in E7** poche ore prima: le due voci si sono spiegate a vicenda.
-
-> Un caso di prova che non si e' visto fallire non e' una prova: e' una frase
-> che somiglia a una prova.
-
-Controlli: banco 88 prove 0 fallite, con **zero** `nota_volume` su ottantotto
-operazioni legittime — che e' la meta' che conta di piu'.
+`build.ps1` used to stop halfway saying it had failed while it had actually
+succeeded: PowerShell 5.1 wraps every stderr line from a native command in a
+`NativeCommandError` and stops the script even when the executable exited 0. Now the
+preference is lowered only around the native call, and `$LASTEXITCODE` is checked,
+which is the only thing that truly says how it went.
 
 ---
 
-## 0.28.0 — 14 settembre 2026 · libreria 0.63.0
+## 0.29.0 — 14 September 2026 · library 0.64.0
 
-**E7 misurata, e il numero la declassa.** Nuovo attrezzo
-`Controlli/CoperturaRuoli`.
+**A cut that half-succeeded now says so.** Entry E13.
 
-La voce E7 proponeva di nominare una faccia per SIGNIFICATO invece che per
-posizione — «il fondo della tasca» resta il fondo qualunque quota si cambi a
-monte — e chiedeva un numero **prima** di costruire, piu' cosa farne:
+`cylindrical_cut` with the profile straddling the edge of the face removed
+half the material and answered `succeeded: true`, `walls_drilled: 1`. Measured: a
+hole of 10 depth 5, centered on the lower edge of a face, removed
+**196,3 mm³ instead of 392,7** — exactly half — with the bottom reduced to a
+half disc of 39,27 mm² instead of 78,54.
 
-> «Se e' sotto meta', questa e' un complemento, non la strada principale, **e va
-> scritto.»
+**The guard was there and was looking the other way.** `BelowProfile` knows
+how to count how many points of the profile fall on the face and says so
+correctly, but its own comment declares: «REJECTS NOTHING AND MUST NEVER DO SO: it
+is only called when SOLIDWORKS has already said no». When SOLIDWORKS says
+**yes**, nobody calls it.
 
-**31,4% su 86 facce, dieci pezzi.** E' un complemento.
+### It is not rejected, it is reported
 
-### La media nasconde la cosa che conta
+The operation succeeded and the part exists: rejecting after the fact would mean
+throwing away a feature over a suspicion. New measures on `cylindrical_cut` and
+`rectangular_cut` — `removed_mm3`, `expected_mm3`, and when they do not match a
+`note_volume` that says by how much and what that usually means. It is the same
+shape as `positions_not_checked` and the anchor that moves.
 
-| | facce | con ruolo | |
+### Only on through-cuts is the expected value a multiplication
+
+For a through-cut the volume depends on how much material is underneath, which is
+not known without measuring it: there, `removed_mm3` alone is written, with no
+expected value, which would be made up. **A false alarm on a legitimate
+through-cut would be worse than the defect being closed.**
+
+### The threshold comes from two measurements, not from an opinion
+
+A hole entirely on the face removes **392,7** against the 392,699 expected —
+less than a thousandth. One centered on the edge removes **half of
+that**. Between the two there is a factor of five hundred: one percent lets
+rounding through and lets nothing with a shape through.
+
+### The first red case did not reproduce the defect
+
+It was written with `face_ref: top_face`, and there the point (0,0) falls
+**in the middle** of the face: the hole came out whole, `removed 392,7 expected
+392,7`, all green. It looked like the fix worked, and nothing was
+actually being tested.
+
+The defect lives on the **side** faces, where (0,0) falls on the edge — and
+naming one needs the uid, because the vocabulary of roles has no word at all
+for the flanks of an extrusion. It is **exactly the 58% of faces with no
+role** measured in E7 a few hours earlier: the two entries explained each other.
+
+> A test case that has not been seen to fail is not a test: it is a sentence
+> that resembles a test.
+
+Checks: bench 88 tests 0 failed, with **zero** `note_volume` on eighty-eight
+legitimate operations — which is the half that matters more.
+
+---
+
+## 0.28.0 — 14 September 2026 · library 0.63.0
+
+**E7 measured, and the number demotes it.** New tool
+`Checks/RoleCoverage`.
+
+Entry E7 proposed naming a face by MEANING instead of by position — "the
+bottom of the pocket" stays the bottom whatever dimension upstream changes —
+and asked for a number **before** building, plus what to do with it:
+
+> "If it's under half, this is a complement, not the main path, **and that
+> has to be written down.**"
+
+**31.4% of 86 faces, ten parts.** It's a complement.
+
+### The average hides the thing that matters
+
+| | faces | with a role | |
 |---|---|---|---|
-| cilindro | 3 | **3** | **100%** |
-| cilindro forato | 4 | **4** | **100%** |
-| piastra forata | 7 | 3 | 43% |
-| piastra | 6 | 2 | 33% |
-| tasca | 11 | 3 | 27% |
-| due tasche | 16 | 4 | 25% |
-| raccordato | 10 | 2 | 20% |
+| cylinder | 3 | **3** | **100%** |
+| drilled cylinder | 4 | **4** | **100%** |
+| drilled plate | 7 | 3 | 43% |
+| plate | 6 | 2 | 33% |
+| pocket | 11 | 3 | 27% |
+| two pockets | 16 | 4 | 25% |
+| filleted | 10 | 2 | 20% |
 
-La spaccatura e' **geometrica**, non statistica. Un pezzo di rivoluzione ha una
-faccia in cima, una sotto e una cilindrica: tre facce, tre ruoli, nessuna
-ambiguita'. Un pezzo prismatico ha quattro o sei **fianchi**, e per i fianchi il
-vocabolario non ha nessuna parola. Su «due tasche» sono dodici facce su sedici.
+The split is **geometric**, not statistical. A revolved part has a face on
+top, one on the bottom and one cylindrical: three faces, three roles, no
+ambiguity. A prismatic part has four or six **sides**, and the vocabulary has
+no word for the sides. On "two pockets" that's twelve faces out of sixteen.
 
-### E i ruoli che scattano sono quelli che servono meno
+### And the roles that fire are the ones needed least
 
-Dei 27 ruoli assegnati: `faccia_superiore` **13**, `faccia_inferiore` **10**,
-`faccia_del_foro` **4**, `faccia_di_fondo` **0**.
+Of the 27 roles assigned: `top_face` **13**, `bottom_face`
+**10**, `hole_face` **4**, `pocket_floor` **0**.
 
-Ventitre su ventisette sono «sopra» e «sotto», cioe' le facce che si
-identificano gia' benissimo da sole. `faccia_del_foro` — l'unico che risolve un
-problema vero — copre **quattro facce su ottantasei**.
+Twenty-three out of twenty-seven are "top" and "bottom", i.e. the faces that
+already identify themselves perfectly well on their own. `hole_face` —
+the only one that solves a real problem — covers **four faces out of
+eighty-six**.
 
-### Tre modi diversi di non avere un ruolo
+### Three different ways of having no role
 
-Contati separati, perche' si riparano in tre modi diversi: **50** per geometria
-(i fianchi: si risolve solo allargando il vocabolario), **8** ambigue (piu' di una
-faccia cilindrica sulla stessa lavorazione, dove si rifiuta invece di scegliere:
-si risolve rifiutando meglio), **9** senza direzione leggibile (il dato c'e' nel
-modello ma non si ricava: e' l'unico dei tre che sia un difetto nostro).
+Counted separately, because they get fixed in three different ways: **50**
+for geometry (the sides: the only fix is widening the vocabulary), **8**
+ambiguous (more than one cylindrical face on the same feature, where it
+refuses rather than choosing: the fix is refusing better), **9** with no
+readable direction (the data is in the model but can't be derived: the only
+one of the three that's actually our own defect).
 
-### Perche' si chiude qui
+### Why this closes here
 
-E6 ha risolto entrambi i casi di E2, e in 0.1 il persist ID aveva ritrovato 8
-facce su 8 in tutte e cinque le modifiche riuscite. La strada principale c'e'
-gia'. Costruire un secondo meccanismo che copre il 31% — e per l'85% di quel 31%
-copre «la faccia in cima», che non e' mai stato il problema — vorrebbe dire
-aprire superficie nuova per un guadagno che non si riesce a nominare.
+E6 solved both cases of E2, and on 0.1 the persist ID had found 8 faces out
+of 8 across all five successful edits. The main path already exists.
+Building a second mechanism that covers 31% — and for 85% of that 31% covers
+"the top face", which was never the problem — would mean opening new
+surface for a gain that can't be named.
 
-> Una voce da dodici ore chiusa da una misura di due non e' lavoro risparmiato:
-> e' lavoro che non andava fatto, e adesso si sa perche'.
+> A twelve-hour entry closed by a two-hour measurement isn't work saved:
+> it's work that should never have been done, and now we know why.
 
-Restano tre voci nuove, tutte dimensionate su numeri gia' misurati: **E14** (le 8
-ambigue), **E15** (`guscio` e' l'unica operazione su faccia che non accetta un
-riferimento a un passo, trovata costruendo i dieci pezzi) e **E13** dalla
-versione precedente.
+Three new entries remain, all sized on numbers already measured: **E14**
+(the 8 ambiguous ones), **E15** (`shell` is the only face operation that
+does not accept a reference to a step, found while building the ten parts)
+and **E13** from the previous version.
 
-`CoperturaRuoli` esce **sempre 0**: e' una misura, non un controllo. Un numero
-basso non e' un fallimento, e' la risposta.
+`RoleCoverage` always comes out **0**: it's a measurement, not a check. A
+low number isn't a failure, it's the answer.
 
 ---
 
-## 0.27.0 — 14 settembre 2026 · libreria 0.63.0
+## 0.27.0 — 14 September 2026 · library 0.63.0
 
-**Il marchio esce dal nome del prodotto.** Voce I1.
+**The trademark comes out of the product name.** Entry I1.
 
-Il nome e' **OCE Solid Agent**; il repository, il pacchetto e l'eseguibile si
-chiamano `oce-solid-agent-mcp`.
+The name is **OCE Solid Agent**; the repository, the package and the
+executable are called `oce-solid-agent-mcp`.
 
-| | prima | adesso |
+| | before | after |
 |---|---|---|
 | namespace | `SolidWorksMcp.*` | `Oce.Solid.Agent.*` |
-| eseguibile | `SolidWorksMcp.exe` | `oce-solid-agent-mcp.exe` |
-| progetto | `SolidWorksMcp.csproj` | `Oce.Solid.Agent.csproj` |
-| nome prodotto (installatore) | `SolidWorks MCP` | `OCE Solid Agent` |
-| nome sul protocollo MCP | `solidworks-mcp` | `oce-solid-agent` |
-| prima riga del `NOTICE` | `SolidWorks MCP` | `OCE Solid Agent` |
+| executable | `SolidWorksMcp.exe` | `oce-solid-agent-mcp.exe` |
+| project | `SolidWorksMcp.csproj` | `Oce.Solid.Agent.csproj` |
+| product name (installer) | `SolidWorks MCP` | `OCE Solid Agent` |
+| name on the MCP protocol | `solidworks-mcp` | `oce-solid-agent` |
+| first line of `NOTICE` | `SolidWorks MCP` | `OCE Solid Agent` |
 
-29 file, 71 sostituzioni, con `Controlli/rinomina-prodotto.js`: uno script e non
-ventinove modifiche a mano, perche' si rifa' identico se si sbaglia, si legge
-cosa ha toccato, e una sostituzione a mano su ventinove file ne dimentica uno —
-quello che nessuno riguardera' piu'.
+29 files, 71 replacements, with `Checks/rename-product.js`: a script
+and not twenty-nine edits by hand, because it redoes itself identically if
+it gets something wrong, it prints what it touched, and a by-hand
+replacement across twenty-nine files forgets one — the one nobody will ever
+look at again.
 
-### Non bastava rinominare il repository
+### Renaming the repository wasn't enough
 
-Il nome del prodotto non stava solo nell'URL. Stava nel `RootNamespace`,
-nell'`AssemblyName`, nel nome dell'eseguibile che finisce nella configurazione
-di **ogni client MCP**, nel payload dell'installatore e nel manifest. Chi
-scaricava il pacchetto si trovava `SolidWorksMcp.exe` sul disco.
+The product name didn't live only in the URL. It lived in `RootNamespace`,
+in `AssemblyName`, in the executable's name that ends up in the
+configuration of **every MCP client**, in the installer's payload and in the
+manifest. Whoever downloaded the package found `SolidWorksMcp.exe` on disk.
 
-### Due cose che si sono viste solo facendo
+### Two things that only showed up by doing it
 
-**La prima passata aveva preso solo la grafia attaccata.** Si era lasciata
-dietro le sei separate, che erano **le piu' visibili di tutte**: il nome che
-l'installatore mostra, la prima riga delle note legali, il titolo del README e —
-la peggiore — il nome che il server dichiara **sul protocollo MCP**, cioe' quello
-che legge il client.
+**The first pass had only caught the joined spelling.** It had left behind
+the six separate-word instances, which were **the most visible of all**: the
+name the installer shows, the first line of the legal notice, the README's
+title and — the worst one — the name the server declares **on the MCP
+protocol**, i.e. the one the client reads.
 
-E la seconda passata dava **zero**, perche' il filtro d'ingresso dello script
-cercava solo la prima forma e saltava i file che avevano solo le altre. Il
-conteggio usciva zero e sembrava «niente da fare».
+And the second pass found **zero**, because the script's entry filter only
+searched for the first form and skipped files that had only the others. The
+count came out zero and looked like "nothing to do."
 
-> Un filtro piu' stretto dell'elenco delle sostituzioni e' un modo di non fare
-> meta' del lavoro senza dirlo.
+> A filter narrower than the list of replacements is a way of doing half the
+> work without saying so.
 
-**L'`AssemblyName` e' il nome del PACCHETTO, non del namespace.** Alla prima
-compilazione era uscito `Oce.Solid.Agent.exe` mentre build, installatore, banco e
-README puntavano tutti a `oce-solid-agent-mcp.exe`. Chi copia una riga dalla
-documentazione deve trovare il file che c'e'.
+**`AssemblyName` is the PACKAGE's name, not the namespace's.** On the first
+build, `Oce.Solid.Agent.exe` came out while the build, the installer, the
+bench and the README all pointed to `oce-solid-agent-mcp.exe`. Whoever
+copies a line from the documentation has to find the file that's actually
+there.
 
-### Cosa non si e' toccato, e sono decisioni
+### What was not touched, and those are decisions
 
-**`CHANGELOG.md`**: le voci storiche dicono cosa si chiamava allora, e un
-changelog riscritto e' un changelog che mente.
+**`CHANGELOG.md`**: historical entries say what something was called back
+then, and a changelog that gets rewritten is a changelog that lies.
 
-**`Riscontro.Disegno`**: non contiene nessun marchio altrui ed e' un buon nome.
-La rinomina serve a togliere un marchio, non a uniformare.
+**`Riscontro.Disegno`**: it contains no one else's trademark and is a good
+name. The rename is there to remove a trademark, not to make things uniform.
 
-**La parola `SolidWorks` da sola**, che resta ovunque serva: nominare il
-programma con cui si e' interoperabili e' uso lecito e necessario, ed e' la
-regola che questo progetto si era gia' scritto — il marchio e' un aggettivo che
-modifica un sostantivo, mai il nome del prodotto.
+**The word `SolidWorks` on its own**, which stays wherever it's needed:
+naming the program this project interoperates with is lawful, necessary
+use, and is the rule this project had already written for itself — a
+trademark is an adjective that modifies a noun, never the product's own
+name.
 
-### E il TODO, che la rinomina aveva rovinato
+### And the TODO, which the rename had ruined
 
-Lo script ha sostituito il nome anche dove il TODO **parlava** del nome, e il
-criterio di chiusura di I1 era diventato il suo contrario: «un grep di
-`Oce.Solid.Agent` non trova piu' niente». Riparati nove riferimenti, distinguendo
-il **repository** (`oce-solid-agent-mcp`) dal **progetto C#**
-(`Oce.Solid.Agent.csproj`) — che dopo oggi sono due nomi diversi.
+The script replaced the name even where the TODO **talked about** the name,
+and I1's closing criterion had turned into its own opposite: "a grep for
+`Oce.Solid.Agent` no longer finds anything." Nine references fixed,
+distinguishing the **repository** (`oce-solid-agent-mcp`) from the **C#
+project** (`Oce.Solid.Agent.csproj`) — which after today are two different
+names.
 
-> Una sostituzione meccanica su un documento che descrive il passato riscrive
-> anche il passato.
+> A mechanical replacement over a document that describes the past rewrites
+> the past too.
 
-Controlli: ponte riavviato col nome nuovo (agganciato, libreria 0.63.0.0, 36
-operazioni); banco 88 prove 0 fallite; ProvaRuota, ProvaSagoma, ProvaPosizioni a
-0; il ponte esegue i piani e il caso negativo continua a essere rifiutato.
+Checks: bridge restarted under the new name (attached, library 0.63.0.0, 36
+operations); bench 88 cases, 0 failed; GearTest, OutlineTest, PositionsTest
+at 0; the bridge runs plans and the negative case is still refused.
 
 ---
 
-## 0.26.0 — 14 settembre 2026 · libreria 0.63.0
+## 0.26.0 — 14 September 2026 · library 0.63.0
 
-**Il persist ID propone, la misura giudica.** Voce E6.
+**The persist ID proposes, the measurement judges.** Entry E6.
 
-Quando una quota a monte sposta una faccia, l'ancora sul punto si perde e il
-piano viene rifiutato pur essendo giusto. Adesso, prima di cercare alla cieca,
-si chiede a SOLIDWORKS: `GetObjectByPersistReference3` e' l'unica ancora che non
-sia una nostra congettura sulla geometria.
+When an upstream dimension moves a face, the anchor on the point gets lost
+and the plan is refused even though it's correct. Now, before searching
+blind, SOLIDWORKS is asked: `GetObjectByPersistReference3` is the only
+anchor that isn't one of our own conjectures about the geometry.
 
-### I due casi di E2, e il secondo si e' risolto da solo
+### The two cases of E2, and the second one solved itself
 
-| caso | prima | adesso |
+| case | before | after |
 |---|---|---|
-| **A** — si cita `F6`, poi il pezzo si allunga da 100 a 160 | RIFIUTO | **risolto**, e lo dice: «si e' spostata di 60 mm, da [50, 0, 0] a [110, 0, 0]» |
-| **B** — il fondo della tasca scende esattamente dove stava la faccia in alto | risolto per firma, **e il pezzo era sbagliato** (E3 lo aveva chiuso col rifiuto) | **risolto giusto**: volume **58.885,8** |
+| **A** — `F6` is cited, then the part is stretched from 100 to 160 | REFUSAL | **solved**, and it says so: "it moved by 60 mm, from [50, 0, 0] to [110, 0, 0]" |
+| **B** — the bottom of the pocket drops exactly where the top face used to be | solved by signature, **and the part was wrong** (E3 had closed it with a refusal) | **solved correctly**: volume **58,885.8** |
 
-Il caso B e' il migliore dei due esiti possibili. La voce diceva: «se il persist
-ID facesse tornare la faccia giusta anche li', il caso B diventa un test di
-non-regressione, non un caso risolto». E' successo — **58.885,8** contro i
-59.042,9 del mezzo foro, cioe' il numero del pezzo giusto.
+Case B is the best of the two possible outcomes. The entry said: "if the
+persist ID made the right face come back there too, case B becomes a
+non-regression test, not a solved case." It happened — **58,885.8** against
+the **59,042.9** of the half hole, i.e. the correct part's number.
 
-### Mai da solo
+### Never alone
 
-Quello che SOLIDWORKS restituisce e' un **candidato**, e passa dallo stesso
-giudice di tutti gli altri — `Corrobora`, con la firma **rimisurata adesso**
-sulla faccia ritrovata e non quella che il piano porta con se', che e' proprio
-cio' che si sta verificando. `GetObjectByPersistReference3` puo' restituire
-senza errore una faccia diversa dopo un rebuild che cambia la topologia:
-sarebbe il difetto peggiore di tutta la sezione, perche' non darebbe errore.
+What SOLIDWORKS returns is a **candidate**, and it goes through the same
+judge as all the others — `Corroborates`, with the signature **re-measured
+now** on the face that was found, not the one the plan carries with it,
+which is exactly what's being checked. `GetObjectByPersistReference3` can
+return a different face with no error after a rebuild that changes the
+topology: that would be the worst defect in this entire section, because it
+would give no error.
 
-`IsSamePersistentID` **non si usa**: in 0.1 ha risposto vero 46 volte su 46,
-anche dove l'area era raddoppiata perche' due facce si erano fuse. Attesta
-l'identificativo, non la faccia. Il segnale vero e' `ErrorCode` diverso da zero
-— che e' esattamente cio' che succede alle facce cancellate da una soppressione,
-e li' si lascia parlare la ricerca di sempre.
+`IsSamePersistentID` **is not used**: on 0.1 it answered true 46 times out
+of 46, even where the area had doubled because two faces had merged. It
+attests the identifier, not the face. The real signal is `ErrorCode`
+different from zero — which is exactly what happens to faces deleted by a
+suppression, and there the usual search is left to speak.
 
-### Dove vive, e perche' non nello stato
+### Where it lives, and why not in the state
 
-**375-423 byte per faccia**, cioe' ~530 caratteri in base64: su sessanta facce
-sarebbero **~32 KB**, il doppio dell'intero tetto dello stato. Viaggia nella
-**firma del passo** — un allegato interno che non arriva a nessun modello — e il
-ponte lo toglie dallo stato subito dopo aver costruito le firme. E' la stessa
-strada dell'ancora della 0.25.0, moltiplicata per venti. Stato misurato dopo:
-invariato.
+**375-423 bytes per face**, i.e. ~530 characters in base64: over sixty
+faces that would be **~32 KB**, twice the entire state ceiling. It travels
+in the **step's signature** — an internal attachment that never reaches any
+model — and the bridge strips it from the state right after building the
+signatures. It's the same route as the anchor in 0.25.0, multiplied by
+twenty. State measured afterward: unchanged.
 
-`StatoDocumento.Modello` e' una **proprieta'** e non un parametro in piu' su
-`Leggi`: cambiare l'insieme delle firme di un metodo rompe chi lo chiama per
-riflessione anche quando il compilatore tace. Lezione della 0.25.1, applicata
-prima di sbatterci di nuovo.
+`DocumentState.Model` is a **property**, not one more parameter on
+`Read`: changing a method's set of signatures breaks whoever calls it by
+reflection even when the compiler stays silent. A lesson from 0.25.1,
+applied before running into it again.
 
-### Due numeri sbagliati nel TODO, corretti misurando
+### Two wrong numbers in the TODO, corrected by measuring
 
-La voce E6 diceva che la faccia si sposta **a X=80**. Misurato: **X=110**. Il
-pezzo cresce da una parte sola anche se lo schizzo e' centrato, quindi la faccia
-destra fa tutti i 60 mm della crescita — lo stesso inciampo gia' corretto in E2,
-dove il TODO diceva 30 mm e la misura diceva 60.
+Entry E6 said the face moves **to X=80**. Measured: **X=110**. The part
+grows from one side only even though the sketch is centred, so the
+right-hand face takes the whole 60 mm of growth — the same trip-up already
+fixed in E2, where the TODO said 30 mm and the measurement said 60.
 
-E l'uid **resta `F6`**: le aree non si riordinano, quindi la rinumerazione non
-c'entra niente. Il rifiuto veniva solo dal confronto sul punto, ed e' la prova
-piu' pulita che questa voce serviva: non c'era nessuna ambiguita' da sciogliere,
-c'era solo un'ancora persa.
+And the uid **stays `F6`**: areas aren't reordered, so renumbering has
+nothing to do with it. The refusal came purely from the point comparison,
+and that's the cleanest proof that this entry was needed: there was no
+ambiguity to resolve, only a lost anchor.
 
-### E un difetto che non da' errore, reso visibile
+### And a defect that gives no error, made visible
 
-Il caso A, appena ha smesso di essere rifiutato, ha prodotto **mezzo foro**:
-`y_mm: 0` mette il centro sul bordo inferiore della faccia, e l'operazione ha
-tolto **196,3 mm³** invece di 392,7 rispondendo `riuscita: true`.
+Case A, the moment it stopped being refused, produced **half a hole**:
+`y_mm: 0` puts the centre on the face's bottom edge, and the operation
+removed **196.3 mm³** instead of 392.7 while answering `succeeded: true`.
 
-Non e' un difetto di questa versione — era li' da sempre, coperto dal fatto che
-quel piano veniva rifiutato prima di arrivarci. `SottoIlProfilo` sa contare
-quanti punti cadono sulla faccia, ma il suo commento dichiara: «NON RIFIUTA
-NIENTE E NON DEVE MAI FARLO: si chiama solo quando SOLIDWORKS ha gia' detto di
-no». Quando SOLIDWORKS dice di si', non lo chiama nessuno.
+It isn't a defect of this version — it was there all along, covered by the
+fact that this plan used to be refused before getting there. `BelowProfile`
+can count how many points fall on the face, but its own comment states: "IT
+REFUSES NOTHING AND MUST NEVER DO SO: it's only called once SOLIDWORKS has
+already said no." When SOLIDWORKS says yes, nobody calls it.
 
-Il caso e' stato spostato a `y_mm: 10`, dove il foro sta tutto sulla faccia e i
-numeri tornano (volume **191.607,3** = 192.000 − π·5²·5). Il difetto e' la voce
-**E13**, con i numeri gia' misurati.
+The case was moved to `y_mm: 10`, where the hole sits entirely on the face
+and the numbers add up (volume **191,607.3** = 192,000 − π·5²·5). The
+defect is entry **E13**, with the numbers already measured.
 
-> Togliere un rifiuto non toglie solo il rifiuto: toglie anche il coperchio a
-> quello che c'era sotto.
+> Removing a refusal doesn't just remove the refusal: it also takes the lid
+> off whatever was underneath it.
 
 ---
 
-## 0.25.2 — 14 settembre 2026 · libreria 0.62.0
+## 0.25.2 — 14 September 2026 · library 0.62.0
 
-**Sette controlli che non controllavano, trovati da una revisione fatta prima
-del push.** Uno di loro sorvegliava il banco.
+**Seven checks that weren't checking, found by a review done before the
+push.** One of them was watching over the bench.
 
-### 1. Il banco si dava la promozione da solo
+### 1. The bench was promoting itself
 
-`OperazioniFori` chiamava `ForiMancanti` e poi scriveva, senza condizione:
+`HoleOperations` called `ForiMancanti` and then wrote, unconditionally:
 
 ```csharp
-misure["posizioni_verificate"] = true;
+measurements["positions_checked"] = true;
 ```
 
-`ForiMancanti` tornava `null` — «tutto a posto» — anche in **quattro strade in
-cui non aveva guardato niente**: diametro ignoto, `GetFaces()` nullo, il `catch`,
-e soprattutto **nessuna faccia cilindrica del diametro atteso**, cioe' proprio il
-caso in cui i fori potrebbero non esserci. Uno dei suoi `return null` aveva
-perfino il commento giusto: *«niente da confrontare: non si inventa un
-verdetto»*.
+`ForiMancanti` returned `null` — "all clear" — even in **four paths where it
+had looked at nothing at all**: unknown diameter, `GetFaces()` null, the
+`catch`, and above all **no cylindrical face of the expected diameter**,
+which is exactly the case where the holes might not be there. One of its
+`return null` even had the right comment on it: *"nothing to compare: a
+verdict is not invented."*
 
-> **La funzione si rifiutava di inventare il verdetto, e chi la chiamava lo
-> inventava al posto suo.**
+> **The function refused to invent the verdict, and whoever called it
+> invented one in its place.**
 
-E il banco decideva il pass con `misure.ContainsKey("posizioni_verificate")`:
-una chiave sempre scritta. `verificate` era vero per costruzione, e il ramo che
-stampava «POSIZIONI NON VERIFICATE» era **codice morto**. Le cinque prove
-`foro_guidato` misuravano il diametro credendo di misurare anche le posizioni.
+And the bench decided the pass with
+`measurements.ContainsKey("positions_checked")`: a key that was always
+written. `verified` was true by construction, and the branch that
+printed "POSITIONS NOT CHECKED" was **dead code**. The five `hole_wizard`
+cases were measuring the diameter while believing they were also measuring
+the positions.
 
-Adesso gli esiti sono **tre**: `Verificate`, `NonVerificabile`, `Sbagliate`.
-«Non ho potuto guardare» non e' un rifiuto — la lavorazione e' riuscita, e' il
-controllo che non c'e' stato — e viaggia in una chiave **diversa**,
-`posizioni_non_verificate`, col motivo dentro: un `posizioni_verificate = false`
-sarebbe stato letto come «verificate» da chiunque guardi se la chiave c'e'.
+Now the outcomes are **three**: `Verified`, `NotVerifiable`, `Wrong`.
+"I couldn't look" is not a refusal — the feature succeeded, it's the check
+that didn't happen — and it travels in a **different** key,
+`positions_not_checked`, with the reason inside: a
+`positions_checked = false` would have been read as "checked" by anyone
+who just looks at whether the key is there.
 
-Il giudizio sta in `GiudizioPosizioni`, **senza SOLIDWORKS**: raccogliere le
-facce cilindriche richiede il COM, decidere cosa farne no. Separati, il caso che
-conta — zero facce trovate — si scrive in una riga, e con SOLIDWORKS acceso non
-si sapeva come costringerlo a capitare. `Controlli\ProvaPosizioni` (20 prove).
+The verdict lives in `PositionsVerdict`, **without SOLIDWORKS**: collecting
+the cylindrical faces needs COM, deciding what to do with them doesn't.
+Separated, the case that matters — zero faces found — gets written in one
+line, and with SOLIDWORKS running there was no way to force it to happen.
+`Checks\PositionsTest` (20 cases).
 
-Una prova e' partita rossa e aveva ragione lei: «scostamento esattamente 0,1 mm»
-non e' un caso provabile. Il giro mm → m → mm da' 0,10000000000000142, e il
-verdetto dipendeva dall'ultimo bit. Al suo posto si misura la **separazione**:
-rumore 2,9e-15 mm contro una soglia di 0,1 — quattordici ordini di grandezza.
+One test started out red, and it was right to: "deviation of exactly 0.1
+mm" is not a testable case. The round trip mm → m → mm gives
+0.10000000000000142, and the verdict hinged on the last bit. In its place,
+what's measured is the **separation**: 2.9e-15 mm of noise against a
+threshold of 0.1 — fourteen orders of magnitude.
 
-### 2. La cava a filo del bordo, rifiutata solo da un lato
+### 2. The notch flush with the edge, refused from only one side
 
-`FormaChiusa.Dentro` usa la parita' degli attraversamenti, che **sul bordo non
-sa rispondere** e risponde secondo il lato: col confronto `x < taglio` un
-vertice sul bordo destro risulta fuori, lo stesso a sinistra risulta dentro.
+`ClosedShape.Inside` uses crossing parity, which **can't answer on the edge
+itself** and answers according to which side: with the `x < cut`
+comparison a vertex on the right edge comes out outside, the same one on
+the left comes out inside.
 
-Su una piastra 100×100: una cava a filo del bordo **destro** —
-(30,−10)(50,−10)(50,10)(30,10) — aveva due vertici «fuori» e due «dentro», e
-veniva rifiutata come «sta a cavallo del bordo esterno». La stessa cava
-**specchiata a sinistra** aveva tutti e quattro i vertici «dentro», e passava.
+On a 100×100 plate: a notch flush with the **right** edge —
+(30,−10)(50,−10)(50,10)(30,10) — had two vertices "outside" and two
+"inside", and was refused as "straddling the outer edge." The same notch
+**mirrored to the left** had all four vertices "inside", and passed.
 
-Stessa geometria, verdetto opposto secondo il lato. Uno dei due era sbagliato, e
-SOLIDWORKS ha detto quale.
+Same geometry, opposite verdict depending on the side. One of the two was
+wrong, and SOLIDWORKS said which.
 
-**La prima riparazione andava nel verso sbagliato, e vale la pena scriverlo.**
-Il ragionamento era: «una cava a filo del bordo e' un'asola aperta, si fa tutti
-i giorni, quindi vanno accettate tutt'e due». E' vero del **pezzo** e falso
-dello **schizzo**: due contorni che condividono un tratto di bordo non
-delimitano una regione, e l'asola aperta si disegna come **un** contorno solo
-con otto punti, non come due che si toccano.
+**The first fix went the wrong way, and it's worth writing down.** The
+reasoning was: "a notch flush with the edge is an open slot, it's done
+every day, so both should be accepted." That's true of the **part** and
+false of the **sketch**: two contours that share a stretch of edge don't
+bound a region, and an open slot is drawn as **one single** contour with
+eight points, not as two contours touching each other.
 
-Misurato — tre geometrie, un solo risultato, «L'estrusione non e' stata creata»:
-la cava a destra, la stessa specchiata a sinistra, e un rombo che tocca il bordo
-in **un solo vertice**.
+Measured — three geometries, a single result, "The extrusion was not
+created": the notch on the right, the same one mirrored on the left, and a
+diamond that touches the edge at **a single vertex**.
 
-Quindi il verdetto giusto e' **no da tutt'e due i lati**, e cio' che era rotto
-era il **si'** a sinistra. Il guadagno di `DoveSta` non e' far passare di piu':
-e' far rispondere **uguale** ai due lati, e dare un motivo migliore di quello
-che da' SOLIDWORKS — «TOCCA il bordo esterno in 2 punti», piu' la strada per
-avere l'asola che si voleva.
+So the correct verdict is **no from both sides**, and what was broken was
+the **yes** on the left. What `WhereItIs` gains isn't letting more through:
+it's answering the **same way** on both sides, and giving a better reason
+than the one SOLIDWORKS gives — "TOUCHES the outer edge at 2 points" — plus
+the way to get the slot that was actually wanted.
 
-> Il verso di una riparazione non si ricava dal ragionamento sull'officina: si
-> chiede al pezzo. «E' lavoro legittimo» diceva come **deve** andare, non come
-> **va**.
+> The direction of a fix isn't derived from reasoning about the shop floor:
+> you ask the part. "It's legitimate work" said how it **should** go, not
+> how it **does** go.
 
-La banda del bordo e' un micrometro, con dieci milioni di volte di margine sul
-rumore e diecimila sulla piu' piccola quota sensata. In `ProvaSagoma` la prova
-sulle due cave specchiate controlla la **simmetria** e nient'altro — quale sia
-la risposta lo decide il pezzo — e resta la prova che `Dentro` da solo **e'**
-asimmetrico: se un giorno qualcuno lo ripara, quella riga glielo dice.
+The edge band is a micrometre wide, with ten million times the margin over
+noise and ten thousand over the smallest sensible dimension. In
+`OutlineTest` the test on the two mirrored notches checks **symmetry** and
+nothing else — which answer is correct is for the part to decide — and it
+remains the proof that `Inside` alone **is** asymmetric: if someone fixes it
+one day, that line will tell them so.
 
-### 3. Il raggio troppo grande passava da una strada e non dall'altra
+### 3. The radius that was too large got through on one path and not the other
 
-Il commento di `SelezionaSpigoli` prometteva che «tutti i controlli che contano
-stanno qui», e fra quelli che la misura chiesta ci stia sulla lunghezza dello
-spigolo. Il ramo `spigoli_rif` usciva con `return true` **prima** di arrivarci:
-un raccordo da 30 mm su uno spigolo da 10 era rifiutato con `spigoli_uid` e
-lasciato passare con `spigoli_rif`, fino a `FeatureFillet3` che fallisce dicendo
-soltanto che non e' stato creato.
+The comment on `SelectEdges` promised that "every check that matters is
+here", including the one that checks whether the requested dimension fits
+within the edge's length. The `edges_ref` branch returned with
+`return true` **before** getting there: a 30 mm fillet on a 10 mm edge was
+refused via `edges_uid` and let through via `edges_ref`, all the way to
+`FeatureFillet3`, which fails saying only that it wasn't created.
 
-> Il metodo era uno, ma aveva due strade, e bastava questo per credersi al
-> sicuro. **Mettere due strade sotto lo stesso commento non e' meno pericoloso
-> che mettere due copie sotto due nomi.**
+> There was one method, but it had two paths, and that alone was enough to
+> feel safe. **Putting two paths under the same comment is no less
+> dangerous than putting two copies under two names.**
 
-### 4. Il tetto sulle lavorazioni non diceva di essere scattato
+### 4. The ceiling on features didn't say it had been hit
 
-Tre tetti su quattro si dichiaravano. `MaxFeature` no: le lavorazioni oltre
-l'ottantesima finivano in `altre_feature` insieme a quelle di tipo ignorato —
-due cose diverse sommate — e `troncato` restava `false`.
+Three ceilings out of four declared themselves. `MaxFeature` didn't:
+features past the eightieth ended up in `other_feature` together with the
+ones of an ignored type — two different things added together — and
+`truncated` stayed `false`.
 
-Era il peggiore dei quattro da tacere: l'albero si scorre in **ordine di
-creazione**, quindi le ottanta elencate sono le piu' **vecchie**, e quella che
-il piano ha appena creato e' fra le scartate. Il modello leggeva «elenco
-completo», non trovava la lavorazione nuova, e poteva concluderne che
-l'operazione non aveva fatto niente — e rifarla.
+It was the worst of the four to stay silent about: the tree is walked in
+**creation order**, so the eighty listed are the **oldest**, and the one
+the plan just created is among the discarded ones. The model read
+"complete list", didn't find the new feature, and could conclude the
+operation had done nothing — and redo it.
 
-Adesso: `feature_non_elencate`, `feature_totali`, `troncato: true`. Quali si
-tengono resta da cambiare, ed e' la voce **E12**: serve un giro leggero prima e
-il dettaglio dopo, perche' `QuoteDellaFeature` costa chiamate COM.
+Now: `feature_not_listed`, `feature_total`, `truncated: true`. Which ones
+get kept is still to be decided, and that's entry **E12**: it needs a light
+pass first and the detail afterward, because `FeatureDimensions` costs COM
+calls.
 
-> **Un tetto che non dice di essere scattato non e' un tetto: e' una risposta
-> sbagliata che si presenta come completa.**
+> **A ceiling that doesn't say it's been hit isn't a ceiling: it's a wrong
+> answer presenting itself as complete.**
 
-### 5. Il piano controllato «tutto» si fermava al primo livello
+### 5. The plan checked for "everything" stopped at the first level
 
-La descrizione di `disegna` promette al modello che *«se un passo qualunque ha
-argomenti che non rispettano lo schema, non viene eseguito niente e il documento
-resta com'era»*. `Ponte.Forma` per `type: "object"` verificava che fosse un
-oggetto e **non guardava dentro**: ne' il `required` annidato ne' le
+The description of `build` promises the model that *"if any step has
+arguments that don't match the schema, nothing is executed and the document
+stays as it was."* `Bridge.Shape`, for `type: "object"`, checked that it was
+an object and **didn't look inside**: neither the nested `required` nor the
 `properties`.
 
-Lo schema di `ripeti_lineare` dichiara `feature_rif` con
-`required: ["passo", "genere"]`. Un piano di quattro passi il cui quarto scrive
-`feature_rif: {}` passava tutta la validazione preventiva, i primi tre passi
-venivano costruiti nel documento, e il quarto falliva. **Il documento restava a
-meta'.** La garanzia di tutto-o-niente e' esattamente cio' per cui quel
-controllo esiste: mantenerla solo al primo livello vuol dire non mantenerla.
+The schema of `linear_pattern` declares `feature_ref` with
+`required: ["step", "kind"]`. A four-step plan whose fourth step writes
+`feature_ref: {}` passed the whole upfront validation, the first three
+steps got built into the document, and the fourth one failed. **The
+document was left half-done.** The all-or-nothing guarantee is exactly
+what that check exists for: keeping it only at the first level means not
+keeping it.
 
-Adesso scende fino a tre livelli e il messaggio nomina il campo per esteso
-(«feature_rif.passo»), perche' lo stesso nome «passo» sta sotto tre riferimenti
-diversi nello stesso schema.
+Now it goes down to three levels and the message names the field in full
+("feature_ref.step"), because the same name "step" sits under three
+different references in the same schema.
 
-### 6. Lo stato mostrava un nome, e il controllo lo dichiarava inesistente
+### 6. The state showed a name, and the check declared it nonexistent
 
-`UidCheNonEsistono` ferma un piano che cita un identificativo che non c'era. Ma
-raccoglieva **solo il campo `uid` delle cinque famiglie**, mentre lo stato
-pubblica nomi di lavorazione anche in tre altri posti: `da_lavorazione` su ogni
-faccia (messo li' apposta per «quel foro portalo a M10»), `fatto_da` su ogni
-corpo, e la mappa `lavorazioni`. E l'elenco `feature` e' filtrato per tipo e
-tagliato a `MaxFeature`.
+`UidsThatDoNotExist` stops a plan that cites an identifier that wasn't
+there. But it only collected **the `uid` field of the five families**,
+while the state publishes feature names in three other places too:
+`from_feature` on every face (put there on purpose for "take that hole to
+M10"), `created_by` on every body, and the `features` map. And the
+`feature` list is filtered by type and cut off at `MaxFeature`.
 
-Bastava un pezzo con piu' di ottanta lavorazioni, o una di tipo non elencato,
-perche' lo stato mostrasse un nome e il controllo lo chiamasse inesistente —
-**un rifiuto falso causato dall'output di chi lo emette**, e il piu' odioso,
-perche' chi l'ha scritto quel nome l'ha letto nella risposta precedente.
+A part with more than eighty features, or one of an unlisted type, was all
+it took for the state to show a name and the check to call it
+nonexistent — **a false refusal caused by the output of the very thing that
+emits it**, and the most galling kind, because whoever wrote that name read
+it in the previous answer.
 
-### 7. L'ancora si pagava anche per buttarla
+### 7. The anchor was being paid for even when it was thrown away
 
-`Ponte.Sessione.LeggiStato` aveva il flag cablato a `true`. La lettura «prima»
-di `disegna` serve solo a sapere su quale documento si lavora, quanto volume
-c'era e quante lavorazioni erano in errore: non se ne costruiscono firme e non
-torna a chi legge. Pagava lo stesso un `GetTessTriangles` e un baricentro pesato
-per area **su ogni faccia**.
+`Bridge.Session.ReadState` had the flag hardwired to `true`. The "before"
+read of `build` only needs to know which document is being worked on, how
+much volume there was, and how many features were in error: no signatures
+are built from it, and it isn't returned to the reader. It was paying the
+same price anyway — a `GetTessTriangles` call and an area-weighted
+centroid **on every face**.
 
-Adesso c'e' `StatoSenzaAncora`. Nome diverso e non un parametro in piu': e' la
-lezione di `LeggiConAncora` della 0.25.1.
+Now there is `StateWithoutAnchor`. A different name, not one more parameter:
+that's the lesson of `ReadWithAnchor` from 0.25.1.
 
-### Una prova del banco misurava anche cio' che non doveva
+### A bench test was measuring even what it shouldn't have
 
-`stato: sotto i 16 KB su un telaio da quattro barre` e' fallita a **16.280
-caratteri**, contro i **15.628** di un'ora prima, **senza che il codice fosse
-cambiato**.
+`state: under 16 KB on a four-bar frame` failed at **16,280
+characters**, against **15,628** an hour earlier, **with no code change at
+all**.
 
-Lo stato elenca `documenti_aperti`, quindi la misura dipende da cosa c'e' aperto
-in SOLIDWORKS oltre al telaio. Sei parti salvate da un giro di `corri_piani.js`
-erano rimaste aperte: ~650 caratteri, ed erano tutta la differenza.
+The state lists `documents_open`, so the measurement depends on whatever
+is open in SOLIDWORKS besides the frame. Six parts saved by a
+`run_plans.js` run had been left open: ~650 characters, and they were the
+entire difference.
 
-E `ChiudiScarti --chiudi` **non** le chiude: risparmia apposta i documenti che
-hanno un file. Ci vuole la cartella — `ChiudiScarti.exe --chiudi "...\Banco\lavoro"`.
+And `CloseLeftovers --chiudi` does **not** close them: it deliberately spares
+documents that have a file. It needs the folder —
+`CloseLeftovers.exe --chiudi "...\Bench\lavoro"`.
 
-Adesso il messaggio stampa **sempre** quanti documenti erano aperti, verde o
-rosso che sia, e quando sono piu' di uno lo dice. Una prova che dipende
-dall'ambiente non e' sbagliata — e' sbagliata se non lo dichiara, e mezz'ora
-spesa a cercare una regressione che non c'era e' il prezzo di non dichiararlo.
+Now the message **always** prints how many documents were open, green or
+red, and says so when there's more than one. A test that depends on the
+environment isn't wrong — it's wrong if it doesn't declare it, and half an
+hour spent chasing a regression that wasn't there is the price of not
+declaring it.
 
-> Un messaggio che da' il criterio serve a leggere anche i verdi, non solo i
-> rossi.
+> A message that gives the criterion is useful for reading the green
+> results too, not only the red ones.
 
-### E cinque casi del banco non potevano piu' girare
+### And five bench cases could no longer run
 
-`corri_piani.js` creava `Banco\lavoro\profili\` **vuota**. I cinque casi del
-telaio nominano `{BANCO}/profili/QUADRO_COPIA.SLDLFP`: prima della riparazione
-col segnaposto (0.25.0) quel percorso puntava alla scratchpad di sessione, dove
-il file c'era perche' qualcuno ce l'aveva messo a mano. Il segnaposto ha reso il
-percorso portabile e ha lasciato il file **senza nessuno che lo provveda**.
+`run_plans.js` was creating `Bench\lavoro\profili\` **empty**. The five
+frame cases name `{BENCH}/profili/QUADRO_COPIA.SLDLFP`: before the fix with
+the placeholder (0.25.0), that path pointed at the session scratchpad,
+where the file existed because someone had put it there by hand. The
+placeholder made the path portable and left the file **with nobody to
+provide it**.
 
-Rispondevano «Il profilo ... non esiste su questa postazione», che e' un
-messaggio giusto per un problema che non c'era. Adesso `preparaLaCartella` copia
-il profilo normato da `PROFILI_SALDATURA`, e se non lo trova **lo dice** invece
-di morire: chi clona il repository non ha quella libreria e deve poter far
-girare tutti gli altri casi.
+They answered "The profile ... does not exist on this machine", which is
+the right message for a problem that wasn't the actual one. Now
+`prepareFolder` copies the standard profile from `PROFILI_SALDATURA`,
+and if it can't find it **it says so** instead of dying: whoever clones the
+repository doesn't have that library and still has to be able to run every
+other case.
 
-Si copia e non si usa l'originale perche' inserire un profilo **apre** il suo
-`.SLDLFP` e lo lascia sporco: il banco lavorerebbe sulla libreria normata vera
-dell'officina.
+It's copied rather than using the original because inserting a profile
+**opens** its `.SLDLFP` and leaves it dirty: the bench would end up working
+on the shop's real standard library.
 
-### E, in coda, chi clona
+### And, last, whoever clones the repo
 
-`costruisci-controlli.ps1` aveva il percorso dell'interop costante. Adesso
-accetta `-SwRedist` e legge `SW_REDIST`, che e' la stessa variabile che
-`Banco\LEGGIMI.md` gia' documenta.
-
----
-
-## 0.25.1 — 14 settembre 2026 · libreria 0.61.0
-
-**La guardia guardava l'albero, e `git push` manda la storia.**
-
-Un minuto prima del primo push, `controlla-pubblicabilita.ps1` diceva «Pulito».
-L'albero di lavoro era stato riparato davvero. Ma nella **storia** il percorso di
-scratchpad col nome utente c'era ancora in **155 punti su 41 commit**.
-
-Non due, come diceva `git log -S`: quello segnala i commit in cui il conteggio
-**cambia**, e il blob invece vive in ogni albero intermedio finche' non viene
-tolto. Si guarda l'albero di ogni commit, non il suo diff.
-
-I quarantuno commit non erano ancora su `origin`, quindi riscriverli e' costato
-zero e non ha rotto niente: dopo il push sarebbe stato un force-push su storia
-pubblicata. `Controlli/bonifica-storia.js` piu' `git filter-branch` sul solo
-intervallo `origin/main..HEAD`, cosi' i due commit gia' pubblicati restano
-intatti. **L'albero finale e' identico bit per bit a prima** — era gia' a posto,
-era la storia dietro che non lo era.
-
-### Il perimetro sbagliato tre volte
-
-1. `controlla-catalogo.ps1` guardava dentro `catalogo.json`, perche' quando fu
-   scritto il catalogo era l'unica cosa che usciva.
-2. Questo guardava tutto l'albero, ma solo sette **estensioni**: `App.config`,
-   `app.manifest`, `LICENSE` e `NOTICE` non ne avevano una buona.
-3. E guardava solo l'albero.
-
-Adesso il perimetro **non e' piu' una lista, e' cio' che esce**: `git ls-files`
-piu' i non ancora tracciati e non ignorati — cioe' esattamente cio' che un
-`git add -A` porterebbe dentro. Le estensioni sono diventate una lista di
-**esclusione** (i binari): un tipo di file di testo nuovo entra da solo.
-**Una lista di inclusione sbaglia in silenzio, una di esclusione sbaglia
-rumorosamente.**
-
-### E il controllo non stava leggendo i file
-
-Visto solo perche' la guardia nuova e' stata puntata prima sulla storia sporca,
-per vederla rossa. `Select-String` ricevuto un array di stringhe per **pipeline**
-le tratta come **testo da cercare**, non come elenco di file: cercava il nome
-utente dentro i *nomi dei percorsi* e rispondeva «ok nessuno» senza aver aperto
-niente. Si e' scoperto perche' `S:\` combacia con ogni percorso assoluto di
-questo disco e ha fatto scoppiare un `Substring`. Riparato con `-LiteralPath`, e
-provato a rosso su tutte e cinque le categorie prima di crederci.
-
-Due trappole minori, misurate qui: una funzione PowerShell chiamata `Git` fa
-risolvere `& git` a se stessa (ricorsione infinita, e l'errore dice solo
-«Overflow della profondita' delle chiamate»); e l'eccezione per i file che
-possono nominare i vietati va scritta **per nome e non per percorso**, perche'
-nella storia `controlla-catalogo.ps1` sta in `Strumenti\` — i file si spostano,
-il loro mestiere no.
+`build-checks.ps1` had the interop path hardcoded. Now it accepts
+`-SwRedist` and reads `SW_REDIST`, the same variable `Bench\README.md`
+already documents.
 
 ---
 
-## 0.25.0 — 14 settembre 2026 · libreria 0.61.0
+## 0.25.1 — 14 September 2026 · library 0.61.0
 
-**Il punto che seleziona e l'ancora che identifica sono due cose diverse.**
+**The guard was watching the tree, and `git push` ships the history.**
 
-`punto_mm` e' un punto **garantito sulla faccia**, preso col punto piu' vicino
-all'origine: giusto per selezionare — il centro di una faccia bucata cadrebbe nel
-vuoto. Come impronta digitale e' cattivo, perche' e' un punto di **frontiera**.
+One minute before the first push, `check-publishability.ps1` said
+"Clean." The working tree really had been fixed. But in the **history** the
+scratchpad path with the username was still there, in **155 spots across
+41 commits**.
 
-Piastra 100 × 60 × 20, una tacca di 15 × 15 in un angolo — **225 mm² su 6000, il
-3,75%**:
+Not two, as `git log -S` claimed: that one flags the commits where the
+count **changes**, while the blob itself lives on in every intermediate
+tree until it's actually removed. You look at each commit's tree, not its
+diff.
 
-| | prima | dopo | spostamento |
+The forty-one commits weren't on `origin` yet, so rewriting them cost
+nothing and broke nothing: after the push it would have been a force-push
+over published history. `Checks/cleanup-history.js` plus
+`git filter-branch` over just the `origin/main..HEAD` range, so the two
+already-published commits stay intact. **The final tree is bit-for-bit
+identical to before** — it was already fine; it was the history behind it
+that wasn't.
+
+### The perimeter wrong three times over
+
+1. `check-catalog.ps1` looked inside `catalog.json`, because when it
+   was written the catalogue was the only thing that came out.
+2. This one looked at the whole tree, but only seven **extensions**:
+   `App.config`, `app.manifest`, `LICENSE` and `NOTICE` didn't have a good
+   one.
+3. And it only looked at the tree.
+
+Now the perimeter **is no longer a list, it's whatever comes out**:
+`git ls-files` plus whatever isn't tracked yet and isn't ignored — i.e.
+exactly what a `git add -A` would bring in. The extensions have become an
+**exclusion** list (the binaries): a new kind of text file enters on its
+own. **An inclusion list fails silently, an exclusion list fails loudly.**
+
+### And the check wasn't actually reading the files
+
+Only noticed because the new guard was first pointed at the dirty history,
+to see it go red. `Select-String`, given an array of strings over the
+**pipeline**, treats them as **text to search**, not as a list of files: it
+was searching for the username inside the *path names themselves* and
+answered "ok, none" without having opened anything. It was found because
+`S:\` matches every absolute path on this drive and blew up a `Substring`
+call. Fixed with `-LiteralPath`, and run to red across all five categories
+before trusting it.
+
+Two minor traps, measured here: a PowerShell function called `Git` makes
+`& git` resolve to itself (infinite recursion, and the error only says
+"Call depth overflow"); and the exception list for files that may
+legitimately name the forbidden ones must be written **by name, not by
+path**, because in history `check-catalog.ps1` lives in `Tools\` —
+files move, their job doesn't.
+
+---
+
+## 0.25.0 — 14 September 2026 · library 0.61.0
+
+**The point that selects and the anchor that identifies are two different
+things.**
+
+`point_mm` is a point **guaranteed to sit on the face**, taken as the point
+nearest the origin: fine for selecting — the centre of a face with a hole
+in it would fall into empty space. As a fingerprint it's a bad one, because
+it's a point on the **boundary**.
+
+A 100 × 60 × 20 plate, a 15 × 15 notch in one corner — **225 mm² out of
+6,000, 3.75%**:
+
+| | before | after | shift |
 |---|---|---|---|
-| `punto_mm` | `[0,20,0]` | `[15,20,0]` | **15 mm** |
-| `ancora` (baricentro d'area) | `[50,20,-30]` | `[51.656,20,-30.877]` | **1,87 mm** |
+| `point_mm` | `[0,20,0]` | `[15,20,0]` | **15 mm** |
+| `anchor` (area centroid) | `[50,20,-30]` | `[51.656,20,-30.877]` | **1.87 mm** |
 
-### Il criterio della voce era gia' soddisfatto, e andava misurato
+### The entry's criterion was already met, and it had to be measured
 
-«Dieci letture identiche, e una dopo un rebuild a vuoto.» Provato sul caso a
-simmetria di rotazione dove i punti a distanza minima sono infiniti
-(`estrudi_cerchio` Ø40 con svasato coassiale): **dieci su dieci identiche**,
-e identiche dopo il rebuild. L'instabilita' temuta non c'e' su questa versione.
+"Ten identical readings, and one after an empty rebuild." Tested on the
+rotationally symmetric case where the points at minimum distance are
+infinite (`extrude_circle` Ø40 with a coaxial countersink): **ten out of
+ten identical**, and identical after the rebuild too. The feared
+instability isn't there in this version.
 
-### E l'ancora da sola non toglie nessun rifiuto
+### And the anchor alone removes no refusal
 
-La tolleranza e' 0,05 mm e 1,87 la supera lo stesso. L'ancora **non e' la
-riparazione**: e' il numero che rende possibile una tolleranza proporzionale al
-cambiamento, che e' la voce E8. `FirmaCombacia` continua percio' a usare
-`punto_mm`: cambiare il termine di confronto senza cambiare la politica di
-tolleranza sposterebbe i rifiuti senza toglierli.
+The tolerance is 0.05 mm and 1.87 exceeds it anyway. The anchor **is not
+the fix**: it's the number that makes a tolerance proportional to the
+change possible, and that's entry E8. `SignatureMatches` therefore keeps using
+`point_mm`: changing the comparison term without changing the tolerance
+policy would move the refusals around without removing them.
 
-### L'ancora non si manda a chi legge
+### The anchor is not sent to the reader
 
-Due mestieri, due destinatari. Offrire due punti a chi ne deve usare uno, e la
-scelta sbagliata non darebbe errore: darebbe un foro fuori dal materiale. E su
-sessanta facce l'ancora e' 1.400 caratteri — lo stato passava a **17.171**,
-oltre il tetto dei 16 KB. Si toglie dopo aver costruito le firme, che se la
-portano dietro.
+Two jobs, two recipients. Offering two points to whoever only needs one,
+and the wrong choice wouldn't raise an error: it would give a hole outside
+the material. And over sixty faces the anchor is 1,400 characters — the
+state was going up to **17,171**, past the 16 KB ceiling. It's stripped
+after the signatures are built, which carry it along with them.
 
-### Il difetto che e' costato mezz'ora
+### The defect that cost half an hour
 
-`IFace2.GetTessTriangles` risponde un **`float[]`**, non un `double[]`: un
-`as double[]` torna **null in silenzio**, e l'ancora usciva vuota su ogni faccia
-senza nessun errore. Terza volta per questa famiglia — e l'interop lo diceva,
-`IGetTessTriangles` e' dichiarata `Single`.
-
----
-
-## 0.24.0 — 14 settembre 2026 · libreria 0.60.0
-
-**I corpi erano controllati per esistenza e non per identita'**, e il commento
-del codice diceva il contrario.
-
-### Il rosso, misurato
-
-Due blocchi separati: `C1` il grande a `[-70,10,0]`, `C2` il piccolo a
-`[60,10,0]`. Un piano di due passi: taglia in due il grande, poi **sposta C2**.
-
-Il taglio rinumera i corpi. «C2» diventa **meta' del blocco grande**, e viene
-spostato quello:
-
-```
-riuscita: true          (nessun avviso)
-C2  centro [-87.5, 110, 0]   <- mezzo blocco grande, spostato
-C3  centro [60, 10, 0]       <- il blocco piccolo, mai toccato
-```
-
-### Il commento prometteva gia' il controllo
-
-`CorpiDaUid` diceva sopra: «La firma di un corpo e' centro e volume della
-scatola... **E' lo stesso controllo che si fa sulle facce.**» Il codice non
-chiamava `FirmaCombacia` affatto.
-
-> Un commento che descrive un controllo che non c'e' e' **peggio** di nessun
-> commento: chi legge smette di cercare il buco proprio dove sta.
-
-Il buco era doppio: anche il ponte non copiava `centro_mm` nella firma, quindi
-per «C1» non c'era niente da confrontare nemmeno volendo.
-
-### Adesso
-
-```
-«C2» adesso indica un'altra parte del pezzo (spostato di 17,5 mm). Il pezzo e'
-cambiato da quando hai confermato: non lavoro sul corpo sbagliato.
-```
-
-E spostare un corpo che non si e' mosso continua a riuscire.
-
-**La parola giusta per la cosa giusta:** lo stesso confronto serve a facce,
-spigoli e corpi, e «non lavoro sulla faccia sbagliata» detto di un corpo manda a
-cercare una faccia che non c'entra.
-
-### Le lavorazioni: `feature_id`
-
-L'uid di una lavorazione **e' il suo nome**, e un nome si rinomina: chi rinomina
-«Taglio1» e poi chiama «Taglio1» un'altra lavorazione ha trasferito
-l'identificativo, e `SelectByID2` seleziona obbediente quella nuova. Lo stato
-porta ora `feature_id` da `IFeature.GetID()`, e prima di selezionare si
-confronta.
-
-### Restano gli assi
-
-Lo stato degli assi e' `{uid, tipo}`: non c'e' niente da firmare, quindi
-`asse1_uid` e `asse2_uid` sono ancora controllati per esistenza e non per
-identita'. Servirebbe pubblicare punto e direzione — lavoro a se'.
-
-### E lo stato dice cosa c'e' SELEZIONATO
-
-Non uno strumento nuovo: una riga in piu' in quello che si legge gia', scritta
-**solo quando c'e' qualcosa di selezionato**.
-
-```
-niente        il campo non c'e'
-una faccia    [{"tipo":"faccia","uid":"F5"}]
-tre insieme   [{"tipo":"faccia","uid":"F5"},{"tipo":"faccia","uid":"F3"},
-               {"tipo":"spigolo","uid":"E9"}]
-```
-
-L'identificativo e' **lo stesso** che lo stato assegna, quindi il progettista
-puo' indicare la faccia col dito invece di descriverla a parole: l'ambiguita' si
-toglie prima dell'operazione invece di scoprirla dopo.
-
-I due casi scomodi sono **decisi**, non scoperti: niente selezionato → il campo
-non si scrive; piu' cose insieme → si tornano tutte, perche' sceglierne una
-sarebbe indovinare. E un terzo: un'entita' selezionata che nello stato non ha un
-nome (oltre il tetto delle sessanta facce, o un vertice) si dice **che cosa e'**
-senza dargli un nome.
-
-### Il nome delle lavorazioni sta in una mappa, non su ogni faccia
-
-Scriverlo su ogni faccia ha fatto sforare il tetto dei 16 KB dello stato: su un
-telaio saldato i nomi sono «TUBO STRUTTURALE QUADRO 80X80X5(1)», e sessanta
-facce che vengono da quattro lavorazioni li ripetevano sessanta volte —
-**18.629 caratteri**, contro un limite che il banco sorveglia.
-
-Con la mappa in fondo (`lavorazioni: {"12": "..."}`) e il solo numero su ogni
-faccia: **15.752**. Il margine e' sottile, e va tenuto d'occhio.
+`IFace2.GetTessTriangles` returns a **`float[]`**, not a `double[]`: an
+`as double[]` comes back **silently null**, and the anchor came out empty
+on every face with no error at all. Third time for this family — and the
+interop said so: `IGetTessTriangles` is declared `Single`.
 
 ---
 
-## 0.23.0 — 14 settembre 2026 · libreria 0.59.0
+## 0.24.0 — 14 September 2026 · library 0.60.0
 
-**Il ritrovamento a occhio chiuso e' chiuso.** Era l'unico modo in cui il
-sistema produceva un pezzo sbagliato senza dirlo.
+**Bodies were checked for existence, not for identity**, and the code
+comment said the opposite.
 
-### Prima
+### The red case, measured
 
-Il ritrovamento per firma accettava la candidata confrontando **solo punto e
-normale**. Nel caso B della voce E2, dopo aver assottigliato il pezzo, la faccia
-in alto (area 4400) finiva esattamente dove il piano cercava il fondo della
-tasca (area 1600). Il punto combaciava, l'area era quasi il triplo, e veniva
-presa lo stesso: `riuscita: true`, un mezzo foro al posto di un foro.
+Two separate blocks: `C1` the large one at `[-70,10,0]`, `C2` the small one
+at `[60,10,0]`. A two-step plan: cut the large one in two, then
+**move C2**.
 
-**Il punto aveva vinto sull'area.**
-
-### Adesso
+The cut renumbers the bodies. "C2" becomes **half of the large block**, and
+that's the one that gets moved:
 
 ```
-La faccia «F5» si e' spostata, e l'unica che combacia per posizione viene da
-«Estrusione-Estrusione1» invece che da «Taglio-Estrusione1»: non e' la stessa
-faccia, e' un'altra finita nello stesso posto.
+succeeded: true         (no warning)
+C2  center [-87.5, 110, 0]   <- half the large block, moved
+C3  center [60, 10, 0]       <- the small block, never touched
 ```
 
-Il pezzo resta intatto: fondo 1600 e faccia in alto 4400, tutte e due dove
-erano.
+### The comment already promised the check
 
-### Due prove, e nessuna e' «l'area deve combaciare»
+`BodiesFromUid` said, above: "A body's signature is the centre and volume of
+its bounding box... **It's the same check done on faces.**" The code never
+actually called `SignatureMatches`.
 
-1. **la stessa lavorazione**, per `IFeature.GetID()` e non per nome: il nome e'
-   localizzato e rinominabile, e la stessa faccia smetterebbe di essere la
-   stessa perche' qualcuno ha cambiato la lingua di SOLIDWORKS;
-2. **l'area puo' solo calare** — vincolo monotono, non confronto: un foro toglie
-   area ed e' legittimo, ma non ne aggiunge.
+> A comment describing a check that isn't there is **worse** than no
+> comment at all: whoever reads it stops looking for the hole exactly where
+> it is.
 
-Stanno **fuori** da `FirmaCombacia` e non dentro: quel confronto decide anche se
-la faccia di partenza va ancora bene, e li' l'area che cresce e' normale. La
-corroborazione vale solo quando si sta gia' cercando un sostituto.
+The hole was double: the bridge wasn't copying `center_mm` into the
+signature either, so for "C1" there was nothing to compare even if you
+wanted to.
 
-Lo stato porta ora `lavorazione` e `lavorazione_id` su ogni faccia — utili anche
-a chi legge, non solo al controllo.
+### Now
 
-### La controprova
+```
+"C2" now points to a different part of the part (moved by 17.5 mm). The
+part has changed since you confirmed it: I will not work on the wrong body.
+```
 
-Le quattro asole del coperchio, che era il caso da non rompere: **quattro su
-quattro**, tre delle quali ritrovate dalla firma. Il criterio ne chiedeva tre.
+And moving a body that hasn't moved still succeeds.
 
-### E un difetto MIO, riparato: rifiutavo lavoro legittimo
+**The right word for the right thing:** the same comparison serves faces,
+edges and bodies, and "I will not work on the wrong face" said about a body
+sends someone off looking for a face that has nothing to do with it.
 
-Il controllo sui contorni della 0.14.0 rifiutava il piano delle **quattro alette
-del coperchio**, che e' giusto: quattro contorni **staccati** su una faccia sono
-quattro regioni, non quattro vuoti fuori dal bordo.
+### Features: `feature_id`
 
-I casi adesso sono tre:
+A feature's uid **is its name**, and a name can be renamed: whoever renames
+"Taglio1" and then calls another feature "Taglio1" has transferred the
+identifier, and `SelectByID2` obediently selects the new one. The state now
+carries `feature_id` from `IFeature.GetID()`, and it's compared before
+selecting.
+
+### The axes are still open
+
+The state of the axes is `{uid, kind}`: there's nothing to sign, so
+`axis1_uid` and `axis2_uid` are still checked for existence, not identity.
+It would take publishing point and direction — work of its own.
+
+### And the state says what's SELECTED
+
+Not a new tool: one more line in what's already being read, written **only
+when something is selected**.
+
+```
+nothing       the field is absent
+one face      [{"kind":"face","uid":"F5"}]
+three at once [{"kind":"face","uid":"F5"},{"kind":"face","uid":"F3"},
+               {"kind":"edge","uid":"E9"}]
+```
+
+The identifier is **the same one** the state assigns, so the designer can
+point at the face with a finger instead of describing it in words: the
+ambiguity is removed before the operation instead of being discovered
+afterward.
+
+The two awkward cases are **decided**, not merely discovered: nothing
+selected → the field isn't written; more than one thing → all of them are
+returned, because picking one would mean guessing. And a third: a selected
+entity that has no name in the state (past the sixty-face ceiling, or a
+vertex) states **what it is** without giving it a name.
+
+### The name of features lives in a map, not on every face
+
+Writing it on every face pushed the state past its 16 KB ceiling: on a
+welded frame the names are "TUBO STRUTTURALE QUADRO 80X80X5(1)", and sixty
+faces coming from four features repeated it sixty times —
+**18,629 characters**, against a limit the bench watches.
+
+With the map at the bottom (`features: {"12": "..."}`) and just the
+number on each face: **15,752**. The margin is thin, and needs watching.
+
+---
+
+## 0.23.0 — 14 September 2026 · library 0.59.0
+
+**Blind-eyed matching is closed.** It was the only way the system could
+produce a wrong part without saying so.
+
+### Before
+
+Matching by signature accepted the candidate by comparing **only point and
+normal**. In case B of entry E2, after thinning the part down, the top
+face (area 4,400) ended up exactly where the plan was looking for the
+bottom of the pocket (area 1,600). The point matched, the area was almost
+triple, and it was taken anyway: `succeeded: true`, half a hole in place of
+a whole one.
+
+**The point had won over the area.**
+
+### Now
+
+```
+Face "F5" has moved, and the only one that matches by position comes from
+"Estrusione-Estrusione1" instead of "Taglio-Estrusione1": it isn't the same
+face, it's a different one that ended up in the same spot.
+```
+
+The part stays intact: bottom at 1,600 and top face at 4,400, both where
+they were.
+
+### Two checks, and neither is "the area must match"
+
+1. **the same feature**, by `IFeature.GetID()` and not by name: the name is
+   localized and renameable, and the same face would stop being the same
+   face just because someone changed SOLIDWORKS's language;
+2. **area can only decrease** — a monotonic constraint, not a comparison: a
+   hole removes area and is legitimate, but never adds any.
+
+These sit **outside** `SignatureMatches`, not inside it: that comparison also
+decides whether the starting face is still good, and there, growing area
+is normal. Corroboration only applies once a replacement is already being
+looked for.
+
+The state now carries `feature` and `feature_id` on every face —
+useful to the reader too, not only to the check.
+
+### The counter-proof
+
+The cover's four slots, which was the case that must not break:
+**four out of four**, three of which were recovered by the signature. The
+criterion asked for three.
+
+### And a defect that was MINE, fixed: I was refusing legitimate work
+
+The 0.14.0 contour check refused the plan for the **cover's four tabs**,
+which is correct: four **separate** contours on a face are four regions,
+not four voids outside the boundary.
+
+The cases are now three:
 
 | | |
 |---|---|
-| dentro | e' un vuoto |
-| **a cavallo** | taglia il bordo: incoerente sempre, **si rifiuta** |
-| **fuori** | e' una regione a se': **si accetta e si dice** |
+| inside | it's a void |
+| **straddling** | cuts across the edge: always inconsistent, **refused** |
+| **outside** | it's a region of its own: **accepted, and said so** |
 
-Del terzo esce `nota_contorni`, accanto a `corpi_totali`. Il difetto della
-piastra col cerchio staccato — 2 corpi, «riuscita» — passa ora **con la nota e
-il conteggio dei corpi sotto gli occhi**, invece di essere impedito.
+The third produces `note_contours`, next to `bodies_total`. The defect of
+the plate with the detached circle — 2 bodies, "succeeded" — now goes
+through **with the note and the body count in plain sight**, instead of
+being blocked.
 
-> Un rifiuto di cio' che e' corretto e' il peggiore dei due modi di sbagliare.
-
----
-
-## 0.22.0 — 14 settembre 2026 · libreria 0.58.0
-
-**I due casi della voce E2, costruiti prima di riparare.** In
-`Banco/casi/E2-i-due-casi.md`, con i numeri attesi accanto a ogni passo, e
-lanciabili **senza nessun modello linguistico**.
-
-Il caso B e' quello che conta: dopo `modifica_quota` 20 → 12 la faccia in alto
-finisce dove il piano cerca il fondo della tasca, e il ritrovamento la prende.
-
-```
-giusto     58.885,8   cilindro 125,66 mm² = π·10·4 a [5,0,0]
-sbagliato  59.042,9   cilindro  62,83 mm² a [-5,0,8]
-```
-
-157,1 mm³, lo 0,27%: mezzo foro profondo 2 invece di un foro intero profondo 4.
-Ricostruzione pulita, nessun avviso, «riuscita: true».
-
-**Due numeri della voce corretti misurando:** lo spostamento del caso A e' 60 mm
-e non 30 (il pezzo cresce da una parte sola, non simmetrico); e la tasca del
-caso B va centrata in Y, se no esce dal bordo e diventa 1200 mm² invece di 1600.
-
-### `modifica_quota` suggeriva una forma che non funzionava
-
-Il messaggio dice «per esempio «D1@Schizzo1»», e quella forma veniva rifiutata:
-il confronto voleva il nome corto o quello intero col documento in coda. **Il
-messaggio diceva il falso.**
-
-Non e' comodita': la forma con il documento contiene il **titolo**, quindi un
-caso di banco scritto cosi' non si puo' rilanciare su un altro pezzo. Adesso le
-tre forme valgono tutte, e i casi che cambiano una quota sono ripetibili.
+> Refusing something that's correct is the worse of the two ways to be
+> wrong.
 
 ---
 
-## 0.21.0 — 14 settembre 2026 · libreria 0.58.0
+## 0.22.0 — 14 September 2026 · library 0.58.0
 
-**Gli identificativi citati devono esistere.** E' l'altra meta' della difesa
-anti-deriva, e prende un caso che le firme non possono prendere.
+**The two cases of entry E2, built before fixing anything.** In
+`Bench/cases/E2-the-two-cases.md`, with the expected numbers next to every
+step, and runnable **with no language model at all**.
 
-### Il rosso
-
-`[estrudi_rettangolo, taglio_cilindrico su F1]` su un documento vuoto:
-**riusciva**, volume 117.738,1. Il foro e' finito sulla faccia piu' grande — che
-in quel caso era anche quella giusta, ma **non l'aveva scelta nessuno**. «F1» e'
-posizionale e si rinumera per area a ogni lettura.
-
-### Perche' le firme non bastavano
-
-La firma confronta un identificativo con la geometria che descriveva quando il
-piano e' nato. Se la faccia **non esisteva affatto**, non c'e' nessuna firma da
-confrontare, quindi nessun rifiuto.
-
-> La firma protegge dallo **spostamento**; questo protegge dall'**invenzione**.
-
-### Il messaggio indica la strada buona
+Case B is the one that matters: after `set_dimension` 20 → 12, the top
+face ends up where the plan is looking for the bottom of the pocket, and
+the matching logic takes it.
 
 ```
-«faccia_uid» cita «F1», che nel pezzo che ho guardato non c'era.
-Nel pezzo che ho guardato non c'era nessun identificativo: era vuoto.
-
-Gli identificativi nascono da «guarda_il_pezzo» e valgono per QUELLA lettura.
-Se la geometria la crea un passo precedente di questo stesso piano [...] va
-nominata con il riferimento al passo — per esempio "faccia_rif": {"passo": 1,
-"genere": "faccia_superiore"}.
+right      58,885.8   cylinder 125.66 mm² = π·10·4 at [5,0,0]
+wrong      59,042.9   cylinder  62.83 mm² at [-5,0,8]
 ```
 
-Un rifiuto che non indica la strada buona insegna soltanto a riprovare a caso.
-Vale per tutti i tredici campi `*_uid` del catalogo, stringa o elenco.
+157.1 mm³, 0.27%: half a 2-deep hole instead of a whole 4-deep one. Clean
+rebuild, no warning, "succeeded: true".
 
-### Il legittimo passa
+**Two numbers in the entry corrected by measuring:** case A's shift is 60
+mm, not 30 (the part grows from one side only, not symmetrically); and
+case B's pocket has to be centred in Y, or it runs off the edge and
+becomes 1,200 mm² instead of 1,600.
+
+### `set_dimension` was suggesting a form that didn't work
+
+The message says "for example «D1@Schizzo1»", and that form was being
+refused: the comparison wanted either the short name or the full one with
+the document appended. **The message was lying.**
+
+It isn't a matter of convenience: the form with the document contains the
+**title**, so a bench case written that way can't be rerun on a different
+part. Now all three forms are valid, and cases that change a dimension are
+repeatable.
+
+---
+
+## 0.21.0 — 14 September 2026 · library 0.58.0
+
+**Cited identifiers must exist.** It's the other half of the anti-drift
+defence, and it catches a case signatures can't catch.
+
+### The red case
+
+`[extrude_rectangle, cylindrical_cut on F1]` on an empty document:
+**succeeded**, volume 117,738.1. The hole ended up on the largest face —
+which in that case also happened to be the right one, but **nobody had
+chosen it**. "F1" is positional and gets renumbered by area on every read.
+
+### Why signatures weren't enough
+
+A signature compares an identifier against the geometry it described when
+the plan was created. If the face **didn't exist at all**, there's no
+signature to compare against, and so no refusal.
+
+> The signature guards against **drift**; this guards against
+> **invention**.
+
+### The message points to the right path
+
+```
+"face_uid" cites "F1", which wasn't there in the part I looked at.
+There was no identifier at all in the part I looked at: it was empty.
+
+Identifiers come from "inspect_part" and are only valid for THAT
+reading. If the geometry is created by an earlier step of this same plan
+[...] it must be named with a reference to the step — for example
+"face_ref": {"step": 1, "kind": "top_face"}.
+```
+
+A refusal that doesn't point to the right path only teaches you to try
+again at random. It applies to all thirteen `*_uid` fields of the
+catalogue, whether string or list.
+
+### What's legitimate goes through
 
 | | |
 |---|---|
-| lo stesso piano con `faccia_rif` | passa, 117.738,1 |
-| `faccia_uid: "F1"` su un pezzo che c'e' gia' | passa, −π·4²·20 |
-| foro / ripetizione / specchio per uid, asse e feature | passano |
+| the same plan with `face_ref` | passes, 117,738.1 |
+| `face_uid: "F1"` on a part that already exists | passes, −π·4²·20 |
+| hole / pattern / mirror by uid, axis and feature | pass |
 
 ---
 
-## 0.20.0 — 14 settembre 2026 · libreria 0.58.0
+## 0.20.0 — 14 September 2026 · library 0.58.0
 
-**Il banco entra nel repository, e si scopre che era rotto da tre giorni.**
+**The bench enters the repository, and turns out to have been broken for
+three days.**
 
-`Banco/` con i quattro sorgenti, `Banco/casi/` con **112** piani, il runner del
-ponte (`corri_piani.js`, `guarda.js`) e `Banco/LEGGIMI.md`. Stavano tutti in una
-cartella temporanea di sessione.
+`Bench/` with its four sources, `Bench/cases/` with **112** plans, the
+bridge's runner (`run_plans.js`, `inspect.js`) and `Bench/README.md`. All
+of it was sitting in a temporary session folder.
 
-### Era rotto, e nessuno poteva accorgersene
+### It was broken, and nobody could tell
 
-Il banco caricava `OpenPDM.SwAddin.dll` e chiedeva i tipi
-`OpenPDM.SwAddin.Agente.OperazioniSw`. Le voci B4 e B5 hanno spostato le
-operazioni in `Riscontro.Disegno`: da allora `GetType(..., true)` solleva.
+The bench was loading `OpenPDM.SwAddin.dll` and asking for the types
+`OpenPDM.SwAddin.Agente.OperazioniSw`. Entries B4 and B5 had moved the
+operations into `Oce.Solid.Agent.Core`: ever since, `GetType(..., true)`
+throws.
 
-Tre giorni che non partiva. Non se n'era accorto nessuno **perche' viveva fuori
-dal repository e non lo lanciava piu' niente**.
+Three days with it not even starting. Nobody had noticed **because it
+lived outside the repository and nothing ran it anymore**.
 
-> Una misura che si puo' rifare solo dalla macchina e dalla settimana in cui e'
-> stata scritta non e' una misura: e' un aneddoto.
+> A measurement that can only be redone from the one machine and the one
+> week it was written in isn't a measurement: it's an anecdote.
 
-### Rimesso in piedi
+### Put back on its feet
 
-* i tipi puntano a `Riscontro.Disegno.*`;
-* il percorso della libreria diventa `--libreria <percorso>`, con predefinito
-  accanto all'eseguibile — era una costante dentro una cartella temporanea;
-* `Assembly.Load(File.ReadAllBytes(...))` invece di `LoadFrom`, perche' la
-  libreria sta su un percorso di rete e .NET rifiuta di caricare da li';
-* **`Main` spezzato in due.** Il gestore `AssemblyResolve` va installato prima
-  che il JIT compili un metodo che nomina un tipo interop, e il JIT compila
-  tutto il metodo prima di eseguirne la prima riga: dentro `Main` arrivava
-  troppo tardi, e l'eccezione usciva «in Program.Main» — cioe' **prima di
-  qualunque riga scritta li' dentro**.
+* the types now point to `Oce.Solid.Agent.Core.*`;
+* the library's path becomes `--libreria <path>`, defaulting to next
+  to the executable — it used to be a constant pointing inside a
+  temporary folder;
+* `Assembly.Load(File.ReadAllBytes(...))` instead of `LoadFrom`, because
+  the library sits on a network path and .NET refuses to load from there;
+* **`Main` split in two.** The `AssemblyResolve` handler has to be
+  installed before the JIT compiles a method that names an interop type,
+  and the JIT compiles the whole method before running its first line:
+  inside `Main` it arrived too late, and the exception came out as "in
+  Program.Main" — i.e. **before any line actually written in there**.
 
-### Le librerie di Dassault: due difese invece di una
+### Dassault's libraries: two defences instead of one
 
-`bin/` nel `.gitignore`, **e** `Private=False` nel csproj, cosi' le interop non
-vengono copiate affatto. A tempo di esecuzione si prende quella installata sulla
-macchina (`SW_REDIST` per i percorsi non standard).
+`bin/` in `.gitignore`, **and** `Private=False` in the csproj, so the
+interop assemblies never get copied at all. At run time, whatever is
+installed on the machine is used (`SW_REDIST` for non-standard paths).
 
-Verificato: in `Banco\bin\` c'e' **il solo eseguibile**.
+Verified: `Bench\bin\` holds **only the executable**.
 
-### E il banco chiude quello che apre
+### And the bench closes what it opens
 
-Ogni piano lasciava aperto il pezzo creato, e lo stato li enumera tutti a ogni
-lettura: 244 ms per documento solo per `GetNext()`. Dopo cinquanta casi il banco
-rallenta se stesso di un minuto e mezzo per lettura.
+Every plan left the part it created open, and the state enumerates all of
+them on every read: 244 ms per document just for `GetNext()`. After fifty
+cases the bench slows itself down by a minute and a half per reading.
 
-Non e' comodita': finche' il banco si sporca da solo, **i tempi che misura non
-sono i tempi del prodotto, sono i suoi**.
+It isn't a matter of comfort: as long as the bench is dirtying itself,
+**the times it measures aren't the product's times, they're its own**.
 
-`corri_piani.js --pulisci` legge quali documenti c'erano **prima**, apre una
-parte pulita per ogni piano, e **chiude dopo ognuno** —
-`ChiudiScarti --risparmia` tiene fuori quelli di chi stava lavorando.
+`run_plans.js --pulisci` reads which documents were open **before**,
+opens a clean part for each plan, and **closes it after each one** —
+`CloseLeftovers --risparmia` keeps out the ones belonging to whoever was
+actually working.
 
-Lo stesso piano dodici volte, nei due modi (`Banco\misura_accumulo.js`):
+The same plan run twelve times, both ways (`Bench\measure_accumulation.js`):
 
 ```
-MAI chiusa:  10.2 11.1 11.4 11.1 11.3 12.1 12.2 13.3 13.8 13.9 15.2 15.4
-             primo 10.2 s, ultimo 15.4 s (x1.5)   alla fine 12 documenti
+NEVER closed: 10.2 11.1 11.4 11.1 11.3 12.1 12.2 13.3 13.8 13.9 15.2 15.4
+              first 10.2 s, last 15.4 s (x1.5)   12 documents at the end
 
-CHIUSA dopo ogni piano:
-             10.7 10.7 10.1 10.3 10.1  9.9 10.9 10.0 10.1 10.6 10.4 10.2
-             primo 10.7 s, ultimo 10.2 s (x1.0)   alla fine 0 documenti
+CLOSED after every plan:
+              10.7 10.7 10.1 10.3 10.1  9.9 10.9 10.0 10.1 10.6 10.4 10.2
+              first 10.7 s, last 10.2 s (x1.0)   0 documents at the end
 ```
 
-**0,43 secondi per documento accumulato.**
+**0.43 seconds per accumulated document.**
 
-Due errori di metodo prima di arrivarci, e sono lo stesso errore — misurare una
-cosa credendo di misurarne un'altra:
+Two methodological mistakes before getting there, and they're the same
+mistake — measuring one thing while believing you're measuring another:
 
-* la prima misura metteva in fila diciannove piani **diversi** e leggeva i tempi
-  crescere. Crescevano perche' il primo era un tubolare e gli altri ruote
-  dentate da 336 segmenti: si stava leggendo l'ordine dell'elenco;
-* la prima pulizia chiudeva solo **alla fine** del giro. I documenti si
-  accumulano durante, ed e' durante che lo stato li enumera tutti: i tempi erano
-  identici a quelli senza pulizia.
+* the first measurement lined up nineteen **different** plans and watched
+  the times grow. They grew because the first one was a tube and the rest
+  were gears with 336 segments: what was being read was the order of the
+  list;
+* the first cleanup only closed things **at the end** of the run.
+  Documents accumulate during the run, and it's during the run that the
+  state enumerates all of them: the times came out identical to running
+  with no cleanup at all.
 
-Il confronto che isola la variabile giusta e' lo stesso piano ripetuto.
+The comparison that isolates the right variable is the same plan repeated.
 
 ---
 
-## 0.19.0 — 14 settembre 2026 · libreria 0.58.0
+## 0.19.0 — 14 September 2026 · library 0.58.0
 
-**Il conteggio degli errori si da' come delta, non come numero.**
+**The error count is given as a delta, not as a raw number.**
 
-«Il pezzo ha 1 lavorazione in errore» dopo un piano sembra dire «il piano ha
-rotto qualcosa». Puo' voler dire l'opposto: il pezzo era gia' rotto quando e'
-arrivato. Il numero assoluto **mente su chi sia stato**.
+"The part has 1 feature in error" after a plan sounds like it's saying
+"the plan broke something." It can mean the opposite: the part was already
+broken when it arrived. The absolute number **lies about who did it**.
 
 ```
-piano che rompe:
-  lavorazioni_in_errore: 1   lavorazioni_in_errore_prima: 0
-  nota_errori: "...questo piano ne ha rotte 1."
+a plan that breaks something:
+  features_in_error: 1   features_in_error_before: 0
+  note_errors: "...this plan broke 1 of them."
 
-piano innocente su un pezzo gia' rotto:
-  lavorazioni_in_errore: 1   lavorazioni_in_errore_prima: 1
-  nota_errori: "Il pezzo aveva gia' 1 lavorazioni in errore prima di questo
-                piano...: non le ha rotte questo piano."
+an innocent plan on an already-broken part:
+  features_in_error: 1   features_in_error_before: 1
+  note_errors: "The part already had 1 feature in error before this
+                plan...: this plan didn't break them."
 
-pezzo sano che resta sano:
-  (niente)
+a healthy part that stays healthy:
+  (nothing)
 ```
 
-La terza riga conta quanto le prime due: ripetere «tutto normale» a ogni
-risposta e' posto tolto a cio' che conta.
+The third line matters as much as the first two: repeating "all normal" on
+every answer is room taken away from what actually matters.
 
-### Il canale MISURARE c'era gia', e adesso ha dentro le due letture
+### The MEASURE channel already existed, and now it holds both readings
 
-`guarda_il_pezzo` e' uno strumento a se', `readOnlyHint`, che non passa da
-nessuna conferma perche' non disegna — cioe' esattamente la via (c) che la voce
-D5 proponeva. Non serviva costruirne un altro: serviva metterci dentro l'albero
-(fatto nella 0.18.0) accanto a volume e corpi, che c'erano gia'.
+`inspect_part` is a tool of its own, `readOnlyHint`, which goes through
+no confirmation at all because it doesn't draw anything — exactly route
+(c), which entry D5 proposed. There was no need to build another one: what
+was needed was putting the tree inside it (done in 0.18.0), next to volume
+and bodies, which were already there.
 
-| caso | atteso | misurato |
+| case | expected | measured |
 |---|---|---|
-| cubo 10 × 10 × 10 sano | `GetWhatsWrongCount` = 0 | **0**, volume 1000, 1 corpo |
-| meno un taglio 4 × 4 passante | 840 mm³ | **840**, 1 corpo |
+| healthy 10 × 10 × 10 cube | `GetWhatsWrongCount` = 0 | **0**, volume 1000, 1 body |
+| minus a through-cut 4 × 4 | 840 mm³ | **840**, 1 body |
 
-### Un caso che non si riproduce, ed e' una buona notizia
+### A case that doesn't reproduce, and that's good news
 
-Il criterio chiedeva un raccordo R=20 su uno spigolo da 10, con codice 18. La
-feature **non viene creata affatto**: l'operazione dice «Il raccordo non e'
-stato creato» e l'albero resta pulito. La libreria non lascia dietro feature
-rosse quando l'operazione fallisce.
+The criterion called for an R=20 fillet on a 10 mm edge, with code 18. The
+feature **is not created at all**: the operation says "The fillet was not
+created" and the tree stays clean. The library doesn't leave red features
+behind when the operation fails.
 
-Il caso rosso vero e' l'altro: una lavorazione **valida** che diventa impossibile
-per una modifica successiva (0.18.0, codice 12).
+The real red case is the other one: a **valid** feature that becomes
+impossible because of a later edit (0.18.0, code 12).
 
 ---
 
-## 0.18.0 — 14 settembre 2026 · libreria 0.58.0
+## 0.18.0 — 14 September 2026 · library 0.58.0
 
-**Lo stato dice quando una lavorazione e' rotta.** Prima non lo diceva, ed era
-un difetto che non dava errore **dentro gli occhiali**: il modello guardava un
-pezzo rotto e vedeva un pezzo sano.
+**The state says when a feature is broken.** Before, it didn't, and that
+was a defect that gave no error **behind the glasses**: the model was
+looking at a broken part and seeing a healthy one.
 
-### Il rosso, costruito prima di ripararlo
+### The red case, built before fixing it
 
-Piastra 100 × 60 × 20, raccordo da 8 sugli spigoli in cima, poi la larghezza
-portata a **10**. Due raccordi da 8 su 10 mm non ci stanno, e SOLIDWORKS lo sa:
+A 100 × 60 × 20 plate, an 8 mm fillet on the top edges, then the width
+brought down to **10 mm**. Two 8 mm fillets don't fit in 10 mm, and
+SOLIDWORKS knows it:
 
 ```
 GetWhatsWrongCount: 1
-Raccordo1 [Fillet] errore=12  swFeatureErrorFilletInvalidRadius
+Raccordo1 [Fillet] error=12  swFeatureErrorFilletInvalidRadius
 ```
 
-`guarda_il_pezzo` rispondeva `{"uid":"Raccordo1","tipo":"Fillet","raggio_mm":8}`
-— un raccordo normale. E il volume era **3.000**, cioe' esattamente 100 × 10 × 3:
-il raccordo non aveva fatto niente.
+`inspect_part` answered
+`{"uid":"Raccordo1","kind":"Fillet","radius_mm":8}` — an ordinary fillet.
+And the volume was **3,000**, i.e. exactly 100 × 10 × 3: the fillet had
+done nothing at all.
 
-### Adesso
+### Now
 
 ```
-lavorazioni_in_errore: 1
-"errore": "il raggio del raccordo non va bene per questa geometria: di solito
-           vuol dire che e' piu' grande di quanto ci stia"
-"errore_codice": 12
+features_in_error: 1
+"error": "the fillet's radius doesn't work for this geometry: it usually
+           means it's bigger than there is room for"
+"error_code": 12
 ```
 
-Sullo stesso pezzo riparato il campo **non compare affatto**. Le due prove vanno
-in coppia: senza la seconda, la prima non direbbe niente.
+On the same part once fixed, the field **doesn't appear at all**. The two
+tests go together: without the second one, the first would say nothing.
 
-### `NeedsRebuild2` non bastava
+### `NeedsRebuild2` wasn't enough
 
-Sul pezzo rotto rispondeva **0**, mentre `GetWhatsWrongCount` diceva 1. «Va
-ricostruito» e «e' rotto» sono due domande diverse, e usare la prima per
-rispondere alla seconda avrebbe dato una guardia **sempre verde**.
+On the broken part it answered **0**, while `GetWhatsWrongCount` said 1.
+"It needs rebuilding" and "it is broken" are two different questions, and
+using the first to answer the second would have given a guard that's
+**always green**.
 
-### Quello che non si sa resta un numero
+### What isn't known stays a number
 
-`ErroriFeature.cs` traduce i codici conosciuti — raccordi (10-19), estrusioni
-(30-37), il riferimento penzolante (51). Per gli altri esce il nome dell'enum e
-il numero.
+`FeatureErrors.cs` translates the known codes — fillets (10-19), extrusions
+(30-37), the dangling reference (51). For the others, out comes the enum's
+name and the number.
 
-> Un nome inventato su un codice e' peggio del numero nudo, perche' sembra una
-> spiegazione.
+> A made-up name on a code is worse than the bare number, because it looks
+> like an explanation.
 
-### La finestra che pianta il banco
+### The window that stalls the bench
 
-`EsecutorePiano` spegne `swShowErrorsEveryRebuild` per la durata del piano e la
-rimette com'era. Una ricostruzione con un errore apre un modale, e la chiamata
-COM che l'ha scatenato **non torna piu'**: stessa lezione di
-`swInputDimValOnCreate`. Provato con la finestra **accesa**: il piano che rompe
-il pezzo va fino in fondo e l'opzione torna al valore di prima.
+`PlanExecutor` turns off `swShowErrorsEveryRebuild` for the duration of
+the plan and restores it afterward. A rebuild with an error opens a modal,
+and the COM call that triggered it **never returns**: the same lesson as
+`swInputDimValOnCreate`. Tested with the window **turned on**: the plan
+that breaks the part runs all the way through, and the option goes back to
+what it was before.
 
-### Attrezzo nuovo
+### New tool
 
-`Controlli\AlberoRosso` — `NeedsRebuild2`, `GetWhatsWrong` e il codice di errore
-di ogni feature, con il nome dell'enum accanto.
+`Checks\RedTree` — `NeedsRebuild2`, `GetWhatsWrong` and the error
+code of every feature, with the enum's name next to it.
 
 ---
 
-## 0.17.0 — 14 settembre 2026 · libreria 0.57.0
+## 0.17.0 — 14 September 2026 · library 0.57.0
 
-**I tagli portano le loro quote.** `taglio_cilindrico` mette il diametro,
-`taglio_rettangolare` lunghezza e larghezza. Senza, quei pezzi non erano
-modificabili con `modifica_quota`: si potevano fare e non si potevano
-correggere, che e' la lamentela piu' frequente dell'officina.
+**Cuts carry their own dimensions.** `cylindrical_cut` adds the
+diameter, `rectangular_cut` length and width. Without them those parts
+couldn't be edited with `set_dimension`: they could be made but not
+corrected, which is the shop floor's most frequent complaint.
 
-### Misurato
+### Measured
 
-Piastra 120 × 80 × 20, foro Ø12 passante, tasca 24 × 16 passante:
-
-```
-volume: 182.058,1     atteso 192.000 - pi*6^2*20 - 24*16*20 = 182.058,05
-```
-
-Poi `modifica_quota` sul diametro, 12 → 20:
+A 120 × 80 × 20 plate, a through Ø12 hole, a through 24 × 16 pocket:
 
 ```
-prima 182.058,1   dopo 178.036,8   differenza 4.021,3
-atteso pi*(10^2-6^2)*20 = 4.021,24
+volume: 182,058.1     expected 192,000 - pi*6^2*20 - 24*16*20 = 182,058.05
 ```
 
-### Due decisioni, e il perche'
+Then `set_dimension` on the diameter, 12 → 20:
 
-**Si quota la DIMENSIONE, non la posizione.** La posizione vorrebbe un
-riferimento da cui misurare, e sceglierlo per conto di chi disegna vuol dire
-vincolare lo schizzo piu' di quanto abbia chiesto: il `modifica_quota`
-successivo fallirebbe con un messaggio di sovra-vincolo che non parla di niente.
+```
+before 182,058.1   after 178,036.8   difference 4,021.3
+expected pi*(10^2-6^2)*20 = 4,021.24
+```
 
-**Le quote nascono marcate per il disegno** (`IDisplayDimension.MarkedForDrawing`).
-`quote_dal_modello` di serie importa solo quelle — una tavola con tutte le quote
-del modello e' illeggibile — quindi una quota non marcata non sarebbe mai
-arrivata in tavola.
+### Two decisions, and the reasons why
 
-### La Z che mancava
+**What gets dimensioned is the SIZE, not the position.** The position
+would need a reference to measure from, and choosing one on the designer's
+behalf means constraining the sketch more than they asked for: the
+following `set_dimension` would then fail with an over-constraint message
+that explains nothing.
 
-`QuotaSegmenti` passava ad `AddDimension` il punto del testo come `(x, y, 0)`.
-Va bene per uno schizzo su un piano di riferimento, dove Z e' zero per
-costruzione; **non** per uno schizzo su una faccia qualunque, che e' dove stanno
-tutti i tagli. Adesso il punto ha tre coordinate.
+**Dimensions are born marked for the drawing**
+(`IDisplayDimension.MarkedForDrawing`). `model_dimensions` imports only
+those by default — a drawing with every single model dimension is
+unreadable — so an unmarked dimension would never have made it onto the
+drawing.
 
-### Non funziona ancora: `quote_dal_modello`
+### The missing Z
 
-Le quote arrivano nel pezzo e **non arrivano in tavola**. Non e' una regressione:
-quell'operazione non ha mai funzionato, e solo adesso c'e' qualcosa da importare.
+`DimensionSegments` was passing `AddDimension` the text point as `(x, y, 0)`.
+That's fine for a sketch on a reference plane, where Z is zero by
+construction; it is **not** fine for a sketch on an arbitrary face, which
+is where every cut actually lives. Now the point has three coordinates.
 
-Misurato: 16 quote nel pezzo, tutte marcate; tre viste risolte; **zero**
-importate. Provati tre versioni dell'API, cinque valori di fonte, quattro
-maschere di tipo, la vista attivata e la vista selezionata, l'opzione di
-documento di inserimento automatico accesa, e gli schizzi sui due piani. Due
-conti indipendenti d'accordo su zero. Dettaglio e cosa resta da provare nella
-voce D3 del `TODO.md`.
+### Still not working: `model_dimensions`
 
-### Trovato per strada: un'opzione chiesta al livello sbagliato non si lamenta
+The dimensions reach the part and **do not reach the drawing**. It isn't a
+regression: that operation never worked, and only now is there something
+to import.
 
-`swDetailingAutoInsertDimsMarkedForDrawing` (248) e' una preferenza di
-**documento**. Chiedendola all'**applicazione**: `GetUserPreferenceToggle`
-risponde `False`, `SetUserPreferenceToggle(248, true)` **non fallisce**, e la
-rilettura da' ancora `False`. Nessun errore, nessun avviso, nessun effetto.
+Measured: 16 dimensions in the part, all marked; three views resolved;
+**zero** imported. Tried three versions of the API, five source values,
+four type masks, the active view and the selected view, the document's
+auto-insert-on-creation option turned on, and sketches on both planes. Two
+independent counts agree on zero. Detail and what's left to try is in
+entry D3 of `TODO.md`.
 
-> Un'opzione che «non si lascia cambiare» quasi sempre e' un'opzione chiesta al
-> livello sbagliato.
+### Found along the way: an option asked at the wrong level doesn't complain
 
-### E un'insidia dell'interop
+`swDetailingAutoInsertDimsMarkedForDrawing` (248) is a **document**
+preference. Asking for it at the **application** level:
+`GetUserPreferenceToggle` answers `False`, `SetUserPreferenceToggle(248, true)`
+**does not fail**, and reading it back still gives `False`. No error, no
+warning, no effect.
 
-`ISketchSegment.GetType()` **non** e' quello di `Object`: l'interop lo nasconde
-con un metodo suo che torna il tipo di segmento come intero (0 = linea). Scrivere
-`.Name` dietro non compila — ed e' un bene, perche' se compilasse si leggerebbe
-un nome di classe al posto di una linea.
+> An option that "won't let itself be changed" is almost always an option
+> asked for at the wrong level.
 
-### Attrezzi nuovi
+### And a trap in the interop
+
+`ISketchSegment.GetType()` is **not** the one from `Object`: the interop
+hides it behind its own method that returns the segment's type as an
+integer (0 = line). Writing `.Name` after it doesn't compile — and that's
+a good thing, because if it compiled you'd be reading a class name in
+place of a line.
+
+### New tools
 
 | | |
 |---|---|
-| `Controlli\QuoteInTavola` | prova tutte le combinazioni di inserimento e **conta** dopo ognuna |
-| `Controlli\Opzione` | legge e scrive una preferenza ai due livelli, applicazione e documento |
-| `Controlli\ApiQuote` | quali API e quali costanti esistono davvero, per parola |
+| `Checks\DrawingDimensions` | tries every combination of insertion and **counts** after each one |
+| `Checks\Option` | reads and writes a preference at both levels, application and document |
+| `Checks\DimensionApis` | which APIs and which constants actually exist, word by word |
 
 ---
 
-## 0.16.0 — 14 settembre 2026 · libreria 0.56.0
+## 0.16.0 — 14 September 2026 · library 0.56.0
 
-**Il documento si tiene per mano, non per nome.** E un piano puo' finalmente
-fare una tavola e riempirla.
+**A document is held onto by hand, not by name.** And a plan can finally
+make a drawing and fill it in.
 
-### Il difetto che la 0.15.0 aveva appena creato
+### The defect that 0.15.0 had just created
 
-La 0.15.0 aveva dato un'identita' ai documenti senza file (`titolo:<titolo>`).
-Sembrava giusto, e si e' rotto al primo piano vero:
-
-```
-passo 1  estrudi_rettangolo   ok
-passo 2  salva_documento      ok
-passo 3  crea_disegno         RIFIUTATO
-         «Il documento attivo e' cambiato mentre eseguivo: il piano era
-          per «titolo:Parte131». Non ho toccato niente.»
-```
-
-Il documento **non era cambiato**: si era *salvato*. E salvando cambiano tutti e
-due i nomi — il percorso da vuoto a un file, il titolo da «Parte131» a «z06».
-**Nessuna stringa sopravvive a un salvataggio.**
-
-Adesso l'identita' e' l'**oggetto COM**: si prende una volta all'inizio e si
-confrontano i puntatori a `IUnknown` (con le `Release` che servono — un
-conteggio che non torna a zero e' un documento che SOLIDWORKS non chiude piu').
-Il nome resta, ma solo per i messaggi.
-
-Vale anche per l'add-in, che prima confrontava i percorsi: un `salva con nome` a
-meta' piano lo avrebbe fermato allo stesso modo.
-
-### `Esito.DocumentoNuovo`: l'unico cambio di documento che si dichiara
-
-Con l'identita' riparata, il piano «pezzo → tavola → viste» si fermava lo stesso
-— e stavolta **a ragione**: `crea_disegno` cambia documento davvero, perche' una
-tavola *e'* un documento nuovo.
-
-La difesa non si spegne: l'operazione **dichiara** il cambio, e chi esegue lo
-segue soltanto se e' dichiarato.
+0.15.0 had given an identity to documents with no file (`titolo:<title>`).
+It looked right, and it broke on the very first real plan:
 
 ```
-[agente] passo 3: crea_disegno
-[agente] tavola creata da <il modello di tavola dell'officina>
-[agente] da qui in poi si lavora su «titolo:Disegno3 - Foglio1»
-[agente] passo 4: viste_standard        -> viste_totali: 3
+step 1   extrude_rectangle    ok
+step 2   save_document        ok
+step 3   create_drawing       REFUSED
+         "The active document changed while I was running: the plan was
+          for «titolo:Parte131». I have not touched anything."
 ```
 
-Un documento che cambia **senza** che nessuno lo dica resta un motivo per
-fermarsi: e' la difesa che impedisce di estrudere nel pezzo di qualcun altro.
+The document **had not changed**: it had been *saved*. And saving changes
+both names at once — the path from empty to a file, the title from
+"Parte131" to "z06". **No string survives a save.**
 
-### Misura 0.6 chiusa: si disegna sul foglio, e la sezione esce
+Now identity is the **COM object**: it's captured once at the start, and
+the `IUnknown` pointers are compared (with the `Release` calls this
+requires — a count that doesn't return to zero is a document SOLIDWORKS
+never closes again). The name stays, but only for messages.
 
-Era l'ultima delle dieci misure della sezione 0, e sblocca GT4 (sezioni e
-dettagli in tavola).
+This applies to the add-in too, which used to compare paths: a
+`Save As` halfway through a plan would have stopped it the same way.
+
+### `Outcome.NewDocument`: the only document change that declares itself
+
+With identity fixed, the "part → drawing → views" plan still stopped —
+and this time **rightly so**: `create_drawing` really does change the
+document, because a drawing *is* a new document.
+
+The defence doesn't switch off: the operation **declares** the change, and
+whoever runs it follows along only if it's declared.
 
 ```
-linea tracciata in x=0.0945, da y=0.2074 a y=0.2516
-linea selezionata: True, oggetti selezionati: 1, tipo 10 (swSelSKETCHSEGS)
-CreateSectionViewAt5 ha risposto: un oggetto
-viste sul foglio: 4 -> 5
-  -> LA SEZIONE C'E'. Ultima vista: «Vista in sezione A-A»
+[agent] step 3: create_drawing
+[agent] drawing created from <the shop's drawing template>
+[agent] from here on, work continues on «titolo:Disegno3 - Foglio1»
+[agent] step 4: standard_views        -> views_total: 3
 ```
 
-**Una cosa che si credeva e non era vera:** `ISheet.GetTemplateSketch()` **non**
-e' la superficie di disegno del foglio — e' il CARTIGLIO, 71 segmenti invariati
-prima e dopo. La linea finisce nello schizzo della **prima vista**, che *e'* il
-foglio (`Type = 1`), e si rilegge con `IView.GetSketch()`.
+A document that changes **without** anyone saying so remains a reason to
+stop: it's the defence that stops you extruding into someone else's part.
 
-Due accorgimenti che non si deducono: la linea deve attraversare la vista da
-parte a parte (una che la sfiora da' una sezione vuota **senza dire niente**), e
-lo schizzo va chiuso con `InsertSketch(true)` prima di chiedere la sezione.
+### Measurement 0.6 closed: a line is drawn on the sheet, and the section comes out
 
-E il riscontro e' **il conto delle viste**: `CreateSectionViewAt5` puo'
-rispondere un oggetto senza aver fatto niente. 4 → 5 e' la misura.
+It was the last of section 0's ten measurements, and it unlocks GT4
+(sections and detail views on the drawing).
 
-### Attrezzi nuovi
+```
+line drawn at x=0.0945, from y=0.2074 to y=0.2516
+line selected: True, objects selected: 1, type 10 (swSelSKETCHSEGS)
+CreateSectionViewAt5 answered: one object
+views on the sheet: 4 -> 5
+  -> THE SECTION IS THERE. Last view: "Section View A-A"
+```
+
+**Something that was believed and wasn't true:** `ISheet.GetTemplateSketch()`
+is **not** the sheet's drawing surface — it's the TITLE BLOCK, 71 segments
+unchanged before and after. The line ends up in the **first view**'s
+sketch, which *is* the sheet (`Type = 1`), and is read back with
+`IView.GetSketch()`.
+
+Two tricks that can't be deduced: the line has to cross the view all the
+way through (one that just grazes it gives an empty section **without
+saying anything**), and the sketch has to be closed with
+`InsertSketch(true)` before asking for the section.
+
+And the proof is **the view count**: `CreateSectionViewAt5` can answer
+with an object without having done anything. 4 → 5 is the measurement.
+
+### New tools
 
 | | |
 |---|---|
-| `Controlli\Annulla` | un solo Ctrl+Z, col volume prima e dopo |
-| `Controlli\SchizzoSulFoglio` | dove finisce una linea tracciata sul foglio, e come si riprende |
-| `Controlli\SezioneInTavola` | il giro completo fino alla sezione, col conto delle viste |
+| `Checks\Undo` | a single Ctrl+Z, with volume before and after |
+| `Checks\SketchOnSheet` | where a line drawn on the sheet ends up, and how to read it back |
+| `Checks\SectionView` | the complete round trip through to the section, with the view count |
 
 ---
 
-## 0.15.0 — 14 settembre 2026 · libreria 0.55.0
+## 0.15.0 — 14 September 2026 · library 0.55.0
 
-**Il ponte esegue i piani con `EsecutorePiano`, lo stesso giro dell'add-in.**
-Aveva un giro suo — un `OperazioniSw` nuovo a ogni passo e `passiFatti` a
-`null` — e costava tre cose. Le prime due sono misurate qui sotto, **prima e
-dopo**; la terza e' che una seconda implementazione dello stesso ciclo sono due
-comportamenti che divergono, e le prove si fanno su una sola delle due.
+**The bridge runs plans with `PlanExecutor`, the same loop as the add-in.**
+It used to have its own loop — a fresh `SwOperations` at every step and `stepsDone`
+set to `null` — and that cost three things. The first two are measured below, **before and
+after**; the third is that a second implementation of the same cycle means two
+behaviors that diverge, and the tests run against only one of the two.
 
-### 1. Un passo puo' nominare quello che ha fatto il passo prima
+### 1. A step can name what the previous step did
 
-Un piano di due passi — piastra, poi foro sulla sua faccia in cima:
-
-| | |
-|---|---|
-| **prima** | passo 1 riuscito (volume 120.000), passo 2 **rifiutato**: «cita il passo 1, ma di quel passo non ho la geometria» |
-| **dopo** | `[agente] faccia presa dal passo 1` — tutti e due riusciti |
-
-Non era una mancanza dell'add-in: `Riferimenti` e `passiFatti` esistevano gia' e
-funzionavano. Il ponte semplicemente non li usava, perche' passava `null`.
-
-### 2. Un solo Ctrl+Z disfa il piano intero
-
-Stesso piano di due estrusioni, volume 133.500. **Un solo** annullamento:
-
-| | volume dopo |
-|---|---|
-| **prima** | **120.000** — disfatto solo il secondo passo |
-| **dopo** | **nessun corpo solido** — disfatto tutto |
-
-Misurato mettendo da parte la modifica e ricostruendo, non dedotto dal codice.
-
-### Il piano si controlla TUTTO prima di cominciare
-
-Nome dell'operazione, percorsi e forma degli argomenti si vedono leggendo. Prima
-si controllavano a mano a mano: un errore di forma al passo 3 fermava il piano
-**con i primi due gia' costruiti**, e nel documento restava mezzo pezzo per una
-cosa che si poteva dire senza aprire niente.
-
-Misurato: piano con passo 1 valido e passo 2 senza `diametro_mm` →
-`corpo_solido: false`, `feature: []`, volume `null`. Non e' stato toccato niente.
-
-E ogni rifiuto di forma lo **dice**: «Il piano non e' stato eseguito per niente:
-il documento e' rimasto com'era.» Senza quella frase la risposta elenca solo il
-passo sbagliato, e chi legge si mette a cercare nel documento una piastra che
-non c'e'.
-
-### `DocumentoSenzaFile`, e il controllo che lo sorveglia
-
-`EsecutorePiano.ControlliPreliminari` rifiuta i documenti mai salvati — giusto
-per l'add-in, che vive in un PDM dove un file non salvato non e' in check-out;
-sbagliato per il ponte, che lavora apposta su `Parte1` appena aperta.
-
-Il controllo e' stato **parametrizzato, non cancellato**, e il pericolo era
-scritto nella voce B8: che qualcuno lo accenda anche nell'add-in «perche' dava
-fastidio». Per questo:
-
-* il nome dice cosa **permette**, non cosa disattiva;
-* il predefinito e' falso;
-* `Controlli\controlla-documenti-senza-file.ps1` esce **1** se la proprieta' si
-  accende fuori da `Ponte\Sessione.cs`, o se compare nelle sorgenti dell'add-in.
-  Tutte e due le strade sono state **viste fallire** prima di crederci.
-
-Quando le sorgenti dell'add-in non sono raggiungibili il controllo **non dice
-che va bene**: dice a voce alta che quella meta' non l'ha guardata.
-
-### Un documento senza file adesso ha un nome
-
-`EsecutorePiano` confrontava i percorsi nudi per sapere se il documento era
-ancora quello di prima. Due documenti mai salvati hanno **tutti e due percorso
-vuoto**: il controllo che esiste per non scrivere nel pezzo di qualcun altro li
-avrebbe detti lo stesso documento, proprio nel caso in cui il ponte lavora
-sempre. Adesso l'identita' e' il percorso quando c'e', e `titolo:<titolo>`
-quando non c'e'.
-
-### Tolto `Sessione.Esegui`
-
-Dopo questo cambio non lo chiamava piu' nessuno: 67 righe di codice morto, via.
-
-### Nessuna regressione
+A two-step plan — plate, then a hole on its top face:
 
 | | |
 |---|---|
-| ruote e sezioni | 12.263,3 · 86.393,8 · 1.500.000 — identici |
-| le quattro sagome rifiutate | ancora rifiutate, documento intatto |
-| `ProvaRuota`, `ProvaSagoma`, `controlla-catalogo` | 0 |
-| `prova-installatore` | 11 PASS, 0 FAIL |
+| **before** | step 1 succeeded (volume 120.000), step 2 **rejected**: "cites step 1, but I don't have that step's geometry" |
+| **after** | `[agent] face taken from step 1` — both succeeded |
+
+This wasn't a gap in the add-in: `References` and `stepsDone` already existed and
+worked. The bridge simply wasn't using them, because it was passing `null`.
+
+### 2. A single Ctrl+Z undoes the whole plan
+
+Same two-extrusion plan, volume 133.500. **One single** undo:
+
+| | volume after |
+|---|---|
+| **before** | **120.000** — only the second step undone |
+| **after** | **no solid body** — everything undone |
+
+Measured by shelving the change and rebuilding, not inferred from the code.
+
+### The ENTIRE plan is checked before anything starts
+
+Operation name, paths and argument shape can be seen just by reading. Before,
+they were checked one at a time: a shape error at step 3 stopped the plan
+**with the first two already built**, and the document was left with half a part for
+something that could have been said without opening anything.
+
+Measured: a plan with a valid step 1 and a step 2 missing `diameter_mm` →
+`solid_body: false`, `feature: []`, volume `null`. Nothing was touched.
+
+And every shape rejection **says so**: "The plan was not run at all:
+the document is left as it was." Without that sentence the answer only lists the
+wrong step, and whoever reads it goes looking in the document for a plate that
+isn't there.
+
+### `DocumentWithoutFile`, and the check that watches over it
+
+`PlanExecutor.PreliminaryChecks` rejects never-saved documents — right
+for the add-in, which lives in a PDM where an unsaved file isn't checked out;
+wrong for the bridge, which deliberately works on a freshly opened `Parte1`.
+
+The check was **made configurable, not deleted**, and the danger was
+written into TODO entry B8: that someone might switch it on in the add-in too, "because it was
+getting in the way." For this reason:
+
+* the name says what it **allows**, not what it switches off;
+* the default is false;
+* `Checks\check-documents-without-file.ps1` exits **1** if the property is
+  turned on anywhere outside `Bridge\Session.cs`, or if it shows up in the add-in's
+  sources. Both paths were **seen to fail** before being trusted.
+
+When the add-in's sources aren't reachable the check **does not say
+everything is fine**: it says out loud that it didn't look at that half.
+
+### A document without a file now has a name
+
+`PlanExecutor` compared bare paths to know whether the document was
+still the same one as before. Two never-saved documents **both have an empty
+path**: the check that exists so as not to write into someone else's part would
+have called them the same document, in exactly the case where the bridge
+always works. Now identity is the path when there is one, and `title:<title>`
+when there isn't.
+
+### `Session.Run` removed
+
+After this change nothing called it anymore: 67 lines of dead code, gone.
+
+### No regression
+
+| | |
+|---|---|
+| gears and sections | 12.263,3 · 86.393,8 · 1.500.000 — identical |
+| the four rejected outlines | still rejected, document intact |
+| `GearTest`, `OutlineTest`, `check-catalog` | 0 |
+| `test-installer` | 11 PASS, 0 FAIL |
 
 ---
 
-## 0.14.0 — 14 settembre 2026 · libreria 0.54.0
+## 0.14.0 — 14 September 2026 · library 0.54.0
 
-**I contorni vengono controllati prima di disegnarli.** Era l'ultimo pezzo di
-C4, e chiude la voce: `_pulisci_contorni` e `_controlla_contorni` esistevano
-solo nel server Python, quindi un piano che arrivava al ponte **per la via
-diretta** non passava da nessun controllo geometrico.
+**Outlines are checked before they are drawn.** This was the last piece of
+C4, and it closes the entry: `_pulisci_contorni` and `_controlla_contorni` existed
+only in the Python server, so a plan that reached the bridge **by the direct
+route** went through no geometric check at all.
 
-La geometria sta in `Riscontro.Disegno\FormaChiusa.cs`, in un file suo e non
-dentro l'esecutore, per un motivo pratico: cosi' si prova senza aprire
-SOLIDWORKS. Un controllo geometrico che si puo' provare solo a CAD aperto viene
-provato poco.
+The geometry lives in `Oce.Solid.Agent.Core\ClosedShape.cs`, in a file of its own and not
+inside the executor, for a practical reason: that way it can be tested without opening
+SOLIDWORKS. A geometric check that can only be tested with the CAD open gets
+tested rarely.
 
-### Il difetto silenzioso, misurato
+### The silent defect, measured
 
-Una piastra 100 × 100 con un cerchio Ø30 **staccato**, a 200 mm di distanza:
+A 100 × 100 plate with a Ø30 circle **detached**, 200 mm away:
 
 ```
-riuscita: true
-corpi_totali: 2
-ingombro: [265, 10, 100]        volume: 107.068,6   (100.000 + 7.068,6)
+succeeded: true
+bodies_total: 2
+bounding_box: [265, 10, 100]        volume: 107.068,6   (100.000 + 7.068,6)
 ```
 
-Un vuoto fuori dal bordo non fora: SOLIDWORKS ne fa un **secondo corpo**, dice
-«riuscita», e nessuno se ne accorge leggendo «sagoma con 5 contorni».
+A void outside the boundary doesn't cut through: SOLIDWORKS turns it into a **second
+body**, says "succeeded," and nobody notices by reading "outline with 5 contours."
 
-Gli altri tre casi provati — vuoto che **scavalca** il bordo, contorno a
-papillon, contorno composito con i tratti staccati — SOLIDWORKS li ferma gia'.
-Ma dice soltanto **«L'estrusione non e' stata creata»**, che non fa capire dove
-sia il guaio. Li' il guadagno non e' il rifiuto: e' la spiegazione, con il punto.
+The other three tested cases — a void that **straddles** the boundary, a bow-tie
+contour, a composite contour with detached strokes — SOLIDWORKS already stops those.
+But it only says **"The extrusion could not be created,"** which doesn't make clear where
+the problem is. There, the gain isn't the rejection: it's the explanation, with the specifics.
 
-### I quattro controlli, e cosa dicono
+### The four checks, and what they say
 
-| | messaggio |
+| | message |
 |---|---|
-| tratti che non si attaccano | «il tratto 1 finisce in (50, 0) e il seguente comincia in (52, 0)» |
-| contorno che si incrocia | «il lato che parte da (100, 0) ne attraversa un altro» |
-| area nulla | «i suoi punti stanno tutti sulla stessa retta» |
-| vuoto fuori dal bordo | «il punto (215, 0) e' fuori» |
+| strokes that don't connect | "stroke 1 ends at (50, 0) and the next one starts at (52, 0)" |
+| self-crossing contour | "the side starting at (100, 0) crosses another one" |
+| zero area | "its points all lie on the same line" |
+| void outside the boundary | "point (215, 0) is outside" |
 
-Ogni messaggio porta **le coordinate**: «si incrocia» su una sagoma da duecento
-vertici non aiuta nessuno a ripararla.
+Every message carries **the coordinates**: "self-crossing" on a two-hundred-
+vertex outline doesn't help anyone fix it.
 
-Un messaggio e' stato **corretto perche' affermava il falso**: diceva
-«SOLIDWORKS non lo rifiuterebbe» del contorno che si incrocia, e la misura dice
-che invece si ferma. Adesso dice quello che succede davvero, compreso il
-messaggio inutile che si riceverebbe.
+One message was **fixed because it was stating something false**: it said
+"SOLIDWORKS would not reject this" about the self-crossing contour, and the measurement
+says it does stop it. Now it says what actually happens, including the unhelpful
+message you would receive.
 
-### I limiti, che sono di conteggio e non di quota
+### The limits, which are counts, not dimensions
 
 | | |
 |---|---|
-| contorni per sagoma | 20 |
-| vertici per contorno, **scritti da un modello** | 200 |
-| vertici per contorno, **generati da una ricetta** | 4000 |
+| contours per outline | 20 |
+| vertices per contour, **written by a model** | 200 |
+| vertices per contour, **generated by a recipe** | 4000 |
 
-Quante volte si puo' spezzare una linea, non quanto puo' essere lunga: una
-piastra da tre metri e' legittima, una sagoma da cinquemila vertici scritta da
-un modello quasi mai. Le ricette passano dal tetto largo perche' i loro punti li
-calcola una formula — una ruota da 127 denti sono 1016 segmenti.
+How many times a line can be broken, not how long it can be: a
+three-meter plate is legitimate, a five-thousand-vertex outline written by
+a model almost never is. Recipes get the wide ceiling because their points are
+calculated by a formula — a 127-tooth gear is 1016 segments.
 
-### Nessuna regressione, e i volumi lo dicono
+### No regression, and the volumes say so
 
-Tutte le ricette passano ora dai controlli nuovi. Volumi identici a prima:
+All recipes now go through the new checks. Volumes identical to before:
 
 | | |
 |---|---|
-| ruote | 12.263,3 · 43.964,1 · 8.808,6 · 54.999,8 |
-| sezioni | 1.500.000 · 392.699,1 · 86.393,8 · 47.500 · 77.942,4 · 60.000 · 68.400 |
+| gears | 12.263,3 · 43.964,1 · 8.808,6 · 54.999,8 |
+| sections | 1.500.000 · 392.699,1 · 86.393,8 · 47.500 · 77.942,4 · 60.000 · 68.400 |
 
-Su z=42 i segmenti scendono da 420 a 336 — e' il guadagno della 0.13.0 sul
-piede a lunghezza zero — **a volume invariato**.
+On z=42 the segments drop from 420 to 336 — that's the gain from 0.13.0 on the
+zero-length root — **at unchanged volume**.
 
-### `Controlli\ProvaSagoma`, e perche' meta' dei casi devono passare
+### `Checks\OutlineTest`, and why half the cases must pass
 
-Un controllo che rifiuta troppo e' peggio di uno che rifiuta poco: blocca lavoro
-buono e non si scopre finche' qualcuno non ci sbatte. Meta' dei casi della prova
-sono sagome legittime che **devono** passare:
+A check that rejects too much is worse than one that rejects too little: it blocks good
+work and isn't discovered until someone runs into it. Half the test's cases
+are legitimate outlines that **must** pass:
 
-* **l'elle concava** e **la stella a cinque punte** — chi confonde «concavo» con
-  «si incrocia» rifiuta meta' delle staffe che esistono;
-* **il triangolo** — con tre lati sono tutti adiacenti fra loro, e chi non salta
-  le coppie adiacenti accusa ogni triangolo;
-* **il quadrato**, che ha quattro vertici e il quarto non e' un doppione: togliere
-  sempre l'ultimo punto e' l'errore facile da fare in `Anello`;
-* **il punto nell'incavo dell'elle**, dentro l'ingombro e fuori dal materiale:
-  smaschera un «sta dentro» fatto con la scatola invece che col poligono.
+* **the concave L** and **the five-point star** — whoever confuses "concave" with
+  "self-crossing" rejects half the brackets that actually exist;
+* **the triangle** — with three sides they are all adjacent to each other, and whoever
+  doesn't skip adjacent pairs flags every triangle;
+* **the square**, which has four vertices and the fourth isn't a duplicate: always
+  dropping the last point is the easy mistake to make in `Ring`;
+* **the point in the L's notch**, inside the bounding box and outside the material:
+  it exposes an "is inside" check done with the box instead of the polygon.
 
 ---
 
-## 0.13.0 — 14 settembre 2026 · libreria 0.53.0
+## 0.13.0 — 14 September 2026 · library 0.53.0
 
-**`ruota_dentata` si puo' eseguire.** Era l'ultima delle due operazioni che il
-catalogo dichiarava senza saperle fare. Le operazioni dichiarate e non
-eseguibili passano da **una a zero**, e `Controlli\controlla-catalogo.ps1` esce
-finalmente **0**.
+**`spur_gear` can now be run.** It was the last of the two operations the
+catalog declared without knowing how to perform. Declared-but-not-executable operations
+go from **one to zero**, and `Checks\check-catalog.ps1` finally exits
+**0**.
 
-La geometria sta in `Riscontro.Disegno\RuotaDentata.cs`: evolvente vera, fianchi
-a spline sui punti calcolati dalla formula, foro e cava per linguetta.
+The geometry lives in `Oce.Solid.Agent.Core\SpurGear.cs`: a true involute, flanks
+as splines over points calculated from the formula, a bore and a keyway.
 
-### Due difetti che non davano errore, trovati senza aprire SOLIDWORKS
+### Two defects that gave no error, found without opening SOLIDWORKS
 
-`Controlli\ProvaRuota` confronta i punti che escono dal generatore con le
-formule ISO. Esce 0/1, non apre il CAD, e ha trovato questo:
+`Checks\GearTest` compares the points that come out of the generator against
+the ISO formulas. It exits 0/1, doesn't open the CAD, and found this:
 
-**(1) Da 42 denti in su il fianco partiva sotto il fondo del dente.** Il cerchio
-di base sta sotto il fondo quando `cos α < 1 − 2,5/z`, cioe' da z=42 con l'angolo
-standard di 20 gradi. Su z=127 m=1 il fianco scendeva **2,58 mm sotto il
-diametro di fondo** e il contorno si tagliava da solo. Il fianco ora parte da
+**(1) From 42 teeth upward the flank started below the tooth root.** The base
+circle sits below the root when `cos α < 1 − 2,5/z`, that is from z=42 at the
+standard pressure angle of 20 degrees. At z=127 m=1 the flank dropped **2,58 mm below the
+root diameter**, and the contour cut across itself. The flank now starts from
 `max(rb, rf)`.
 
-Nessuna prova lo prendeva: i casi al limite erano z=16, 17, 20, 24, e z=40 —
-che pure era stata provata — sta dalla parte giusta del salto **per 33 micron**.
+No test caught it: the boundary cases were z=16, 17, 20, 24, and z=40 —
+which had in fact been tested — sits on the right side of the jump **by 33 microns**.
 
-**(2) Il fondo era agganciato all'angolo sbagliato**, e il primo fix non bastava.
-ψ e' il semiangolo del dente **sul cerchio di base**; quando il fianco parte piu'
-in alto, al fondo il dente si e' gia' stretto di `scarto(tMin)`. Usando ψ per
-entrambi, su z=127 il fondo partiva a 0,027272 rad e finiva a 0,022208:
-**percorreva il giro all'indietro**. SOLIDWORKS diceva soltanto «L'estrusione non
-e' stata creata».
+**(2) The root was anchored at the wrong angle**, and the first fix wasn't enough.
+ψ is the tooth's half-angle **on the base circle**; by the time the flank starts higher
+up, the tooth has already narrowed at the root by `deviation(tMin)`. Using ψ for
+both, at z=127 the root started at 0,027272 rad and ended at 0,022208:
+**it traveled the arc backwards**. SOLIDWORKS only said "The extrusion could not be
+created."
 
-Di contorno, la retta radiale del piede esiste ora solo quando c'e' da scendere
-davvero — su z=42 era lunga **0,9 micron** — e i segmenti per dente scendono da
-10 a 8 dove la base sta sotto il fondo: **1016 invece di 1270** su z=127.
+As for the contour, the radial line at the root now exists only when there is
+really somewhere to descend to — at z=42 it was **0,9 microns** long — and the
+segments per tooth drop from 10 to 8 where the base sits below the root:
+**1016 instead of 1270** at z=127.
 
-### Il controllo che ha preso il secondo, ed e' generale
+### The check that caught the second one, and it is general
 
-Srotolando l'angolo lungo il contorno, **un contorno chiuso non torna mai
-indietro**. Un passo negativo e' un'autointersezione, e si vede senza aprire
-niente.
+Unrolling the angle along the contour, **a closed contour never goes
+backwards**. A negative step is a self-intersection, and it can be seen without opening
+anything.
 
-La soglia e' **calcolata, non scelta**: i punti escono arrotondati a 1e-4 mm, che
-sul raggio piu' piccolo valgono `1e-4/rf` radianti di rumore; la soglia e' tre
-volte tanto. Su z=20 fa 1,7e-5 contro 6e-6 misurati, su z=127 fa 4,8e-6 contro
-1,7e-3 del difetto. Fra rumore e difetto ci sono due ordini di grandezza.
+The threshold is **calculated, not chosen**: the points come out rounded to 1e-4 mm, which
+on the smallest radius amounts to `1e-4/rf` radians of noise; the threshold is three
+times that. At z=20 it comes to 1,7e-5 against 6e-6 measured, at z=127 it comes to 4,8e-6
+against 1,7e-3 for the defect. Between noise and defect there are two orders of magnitude.
 
-### Guardia nuova: i denti che si toccano alla base
+### New guard: teeth touching at the root
 
-Il vano al fondo misura `(2π/z − 2·psiRadice)·rf`. Si annulla oltre
-`2,5·tan α = π/2`, cioe' per **α > 32,15 gradi**, e i denti si salderebbero fra
-loro. Il messaggio da' il criterio e il numero:
+The gap at the root measures `(2π/z − 2·psiRoot)·rf`. It vanishes past
+`2,5·tan α = π/2`, that is for **α > 32,15 degrees**, and the teeth would weld together.
+The message gives both the criterion and the number:
 
-> Con z=60, m=1 e un angolo di pressione di 35 gradi fra un dente e l'altro
-> resterebbero -0.0955 mm di fondo: i denti si toccherebbero alla base.
+> With z=60, m=1 and a pressure angle of 35 degrees, between one tooth and the next
+> there would be -0.0955 mm of root left: the teeth would touch at the root.
 
-### `GetBodyBox` non misura il diametro esterno di una ruota
+### `GetBodyBox` does not measure a gear's outside diameter
 
-Con z=20 l'ingombro e' `[44, 10, 44]`, esatto. Con z=17 e' `[37,79, 10, 37,94]`
-invece di `[38, 10, 38]`.
+With z=20 the bounding box is `[44, 10, 44]`, exact. With z=17 it is `[37,79, 10, 37,94]`
+instead of `[38, 10, 38]`.
 
-Non e' approssimazione: la freccia della corda di cresta vale **0,0012 mm**. La
-scatola coincide col diametro esterno **solo quando un dente cade sull'asse** —
-con 20 denti il passo e' 18 gradi e ci cade, con 17 e' 21,18 gradi e no. Il
-criterio scritto nel TODO funziona perche' fissa z=20.
+It isn't approximation: the sagitta of the tip chord comes to **0,0012 mm**. The
+box coincides with the outside diameter **only when a tooth lands on the axis** —
+with 20 teeth the pitch is 18 degrees and it lands there, with 17 it's 21,18 degrees and
+it doesn't. The criterion written in the TODO works because it fixes z=20.
 
-### I casi al limite
+### The boundary cases
 
-| caso | esito | numeri |
+| case | result | numbers |
 |---|---|---|
-| z=20 m=2 | ok | Ø esterno 44, volume 12.263,3 |
-| z=17 m=2 | ok | limite di intaglio, `floor(2/sin²20°) = 17` |
-| z=16 m=2 | rifiutata | «sotto 17 denti serve la correzione di profilo» |
-| z=24 m=3 foro Ø20 | ok | ingombro `[78, 12, 78]` |
-| z=24 m=3 foro Ø20 + cava | ok | volume 43.964,1 |
-| z=20 m=2 foro Ø34 | rifiutata | «fondo dente a 35 mm: non lascia materiale» |
-| z=20,5 | rifiutata | «mezzo dente non si taglia» |
-| z=42 m=2 | ok | Ø esterno 88 — primo caso oltre il salto |
-| z=127 m=1 | ok | Ø esterno 129, 1016 segmenti |
-| z=5 m=4 α=45° | rifiutata | «si chiuderebbe a punta» |
-| z=60 m=1 α=35° | rifiutata | «si toccherebbero alla base» |
+| z=20 m=2 | ok | outside Ø 44, volume 12.263,3 |
+| z=17 m=2 | ok | undercut limit, `floor(2/sin²20°) = 17` |
+| z=16 m=2 | rejected | "below 17 teeth needs profile correction" |
+| z=24 m=3 bore Ø20 | ok | bounding box `[78, 12, 78]` |
+| z=24 m=3 bore Ø20 + keyway | ok | volume 43.964,1 |
+| z=20 m=2 bore Ø34 | rejected | "tooth root at 35 mm: no material left" |
+| z=20,5 | rejected | "half a tooth can't be cut" |
+| z=42 m=2 | ok | outside Ø 88 — first case past the jump |
+| z=127 m=1 | ok | outside Ø 129, 1016 segments |
+| z=5 m=4 α=45° | rejected | "it would close to a point" |
+| z=60 m=1 α=35° | rejected | "they would touch at the root" |
 
-Il limite di intaglio e' arrotondato **per difetto**: `2/sin²20° = 17,097`, e una
-ruota da 17 denti si fa tutti i giorni. Rifiutarla sarebbe il modo peggiore di
-sbagliare.
+The undercut limit is rounded **down**: `2/sin²20° = 17,097`, and a
+17-tooth gear is made every day. Rejecting it would be the worst way to
+get this wrong.
 
-Il caso z=5 m=4 a 20 gradi **non provava quello che sembrava**: veniva rifiutato
-dall'intaglio, non dalla punta. Spostato a α=45°, dove il limite di intaglio
-scende a 4 denti. Nella prova il motivo atteso e' ora scritto accanto al caso.
+The case z=5 m=4 at 20 degrees **wasn't testing what it seemed to be**: it was being
+rejected by the undercut check, not by the point closing up. Moved to α=45°, where the
+undercut limit drops to 4 teeth. In the test the expected reason is now written next to
+the case.
 
-### La cava per linguetta, verificata per differenza di volume
+### The keyway, verified by volume difference
 
-43.964,1 mm³ con la cava contro 44.177,2 senza, su 12 mm: **17,76 mm²** di
-sezione in piu'. Il conto per Ø20 (b=6, t2=2,8) da' 17,72 mm² — scarto 0,2%, nel
-verso giusto perche' il foro e' un poligono a 180 lati **circoscritto**.
+43.964,1 mm³ with the keyway against 44.177,2 without, over 12 mm: **17,76 mm²**
+more cross-section. The calculation for Ø20 (b=6, t2=2,8) gives 17,72 mm² — a 0,2% gap,
+in the right direction because the bore is a 180-sided polygon **circumscribed** around it.
 
-Questo verifica che la geometria rispetti la tabella `CaveLinguetta`, **non che
-la tabella sia giusta**: resta da confrontare con la UNI 6604 vera.
+This verifies that the geometry matches the `Keyways` table, **not that
+the table itself is correct**: it still remains to check it against the actual UNI 6604.
 
-### Due attrezzi nuovi, per il banco
+### Two new tools, for the bench
 
-| attrezzo | a cosa serve |
+| tool | what it's for |
 |---|---|
-| `Controlli\ChiudiScarti` | chiude i documenti di prova. Solo quelli **mai salvati** o dentro le cartelle passate come argomento, e non salva mai |
-| `Controlli\NuovaParte` | apre una parte vuota per far ripartire il banco |
+| `Checks\CloseLeftovers` | closes the test documents. Only those **never saved** or inside the folders passed as an argument, and it never saves |
+| `Checks\NewPart` | opens an empty part so the bench can start again |
 
-Servono perche' ogni piano di prova lascia aperta una parte, e **ogni lettura di
-stato le scorre tutte** a 244 ms di `GetNext()` ciascuna: 47 documenti chiusi in
-una volta sola. Peggio ancora con un pezzo pesante: con la ruota da 1018 facce
-lasciata aperta, due ruote banali dopo di lei hanno sforato i dieci minuti.
+They're needed because every test plan leaves a part open, and **every state
+read walks through all of them** at 244 ms of `GetNext()` each: 47 documents closed in
+one go. Even worse with a heavy part: with the 1018-face gear
+left open, two trivial gears after it went over ten minutes.
 
-`NuovaParte` e' compilato e non uno script perche' `ISldWorks.NewDocument` per
-late binding da PowerShell 5.1 risponde `TYPE_E_ELEMENTNOTFOUND`.
+`NewPart` is compiled rather than a script because `ISldWorks.NewDocument` through
+late binding from PowerShell 5.1 returns `TYPE_E_ELEMENTNOTFOUND`.
 
 ---
 
-## 0.12.0 — 14 settembre 2026 · libreria 0.52.0
+## 0.12.0 — 14 September 2026 · library 0.52.0
 
-**`estrudi_sezione` si puo' finalmente eseguire.** Era dichiarata nel catalogo e
-non esisteva nello switch: viveva solo perche' il server la espandeva in
-`contorni` prima di mandarla, e il ramo `default` ricadeva sull'estrusione di
-profilo trovandoceli. Chiamata dal ponte con i suoi argomenti veri — `tipo`,
-`parete_mm` — rispondeva «operazione sconosciuta».
+**`extrude_section` can finally be run.** It was declared in the catalog and
+didn't exist in the switch: it only survived because the server expanded it into
+`contours` before sending it, and the `default` branch fell back to profile
+extrusion, finding them there. Called from the bridge with its real arguments —
+`variant`, `wall_mm` — it answered "unknown operation."
 
-Le operazioni dichiarate e non eseguibili passano da **due a una**: resta
-`ruota_dentata`.
+Declared-but-not-executable operations go from **two to one**: `spur_gear`
+remains.
 
-### Sette sezioni, e ogni numero torna al calcolo
+### Seven sections, and every number checks out against the calculation
 
-| sezione | volume misurato | verifica |
+| section | measured volume | check |
 |---|---|---|
-| tubolare 80×80×5 × 1000 | 1.500.000 | (80² − 70²) · 1000 |
-| tondo Ø50 × 200 | 392.699,1 | π · 25² · 200 |
-| tubo Ø60/Ø50 × 100 | 86.393,8 | π/4 · (60² − 50²) · 100 |
-| angolare 50×50×5 × 100 | 47.500 | (50·5 + 45·5) · 100 |
-| esagono chiave 30 × 100 | 77.942,4 | (√3/2) · 30² · 100 |
+| tubular 80×80×5 × 1000 | 1.500.000 | (80² − 70²) · 1000 |
+| round Ø50 × 200 | 392.699,1 | π · 25² · 200 |
+| tube Ø60/Ø50 × 100 | 86.393,8 | π/4 · (60² − 50²) · 100 |
+| angle 50×50×5 × 100 | 47.500 | (50·5 + 45·5) · 100 |
+| hex across-flats 30 × 100 | 77.942,4 | (√3/2) · 30² · 100 |
 | U 50×40×5 × 100 | 60.000 | 2000 − 40·35 |
 | T 60×60×6 × 100 | 68.400 | 360 + 324 |
 
-L'esagono e' quotato **sull'apertura in chiave**, come si compra e come si
-misura: l'ingombro esce 30 × **34,64**, cioe' 30/cos 30°. Confonderla con il
-diametro circoscritto darebbe un esagono piu' grande del 15%.
+The hex is dimensioned **across the flats**, the way it's bought and the way it's
+measured: the bounding box comes out 30 × **34,64**, that is 30/cos 30°. Confusing it
+with the circumscribed diameter would give a hex 15% larger.
 
-L'asola 60×20 esce 11.163,3 contro gli 11.141,6 nominali, **+0,19%**: i
-semicerchi stanno sul cerchio **circoscritto** e non su quello nominale. E'
-voluto — un'asola con i semicerchi inscritti e' piu' stretta del nominale, e una
-vite che ci deve passare non passa. Dove si approssima, si approssima in eccesso.
+The 60×20 slot comes out at 11.163,3 against the nominal 11.141,6, **+0,19%**: the
+semicircles sit on the **circumscribed** circle and not the nominal one. This is
+intentional — a slot with inscribed semicircles is narrower than nominal, and a
+screw that has to go through it wouldn't. Where it approximates, it approximates on the
+high side.
 
-### I controlli sono fisici, e ognuno ha il suo difetto alle spalle
+### The checks are physical, and each one has a defect behind it
 
-| chiesto | risposta |
+| asked for | response |
 |---|---|
-| tubolare 80×80 con parete **40** | «non resta cavita'… a meta' esatta il vuoto ha area zero, SOLIDWORKS non lo segnala ed estrude una barra piena — che pesa quattro volte tanto ed e' verde come quella giusta» |
-| angolare 50×50 con spessore **50** | «non e' piu' un profilo, viene fuori un piatto» |
-| asola **20×20** | «la lunghezza deve essere maggiore della larghezza, altrimenti e' un cerchio» |
-| tubolare senza `parete_mm` | «Per una sezione «tubolare» serve «parete_mm»» |
+| tubular 80×80 with wall **40** | "no cavity is left… at exactly half the void has zero area, SOLIDWORKS doesn't flag it and extrudes a solid bar — which weighs four times as much and shows green just like the right one" |
+| angle 50×50 with thickness **50** | "it's no longer a profile, what comes out is a plate" |
+| slot **20×20** | "the length must be greater than the width, otherwise it's a circle" |
+| tubular without `wall_mm` | "For a "tubular" section, "wall_mm" is required." |
 
-Nessuno dei quattro tocca il documento: zero facce dopo il rifiuto.
+None of the four touches the document: zero faces after the rejection.
 
-### Il criterio della voce era sbagliato, e il perche' e' finito nel catalogo
+### The TODO entry's criterion was wrong, and the reason for that made it into the catalog
 
-C4 chiedeva: tubolare 80×80×5 lungo 1000 → **1.443.000 mm³** entro lo 0,5%.
-Misurato: **1.500.000**, che e' il 4% in piu' e sarebbe una bocciatura.
+C4 asked for: tubular 80×80×5, 1000 long → **1.443.000 mm³** within 0,5%.
+Measured: **1.500.000**, which is 4% more and would be a failure.
 
-Il numero della voce e' quello del **profilo commerciale**, che ha gli angoli
-raggiati. Questa ricetta — come quella Python da cui viene — fa **spigoli vivi**:
-1.500.000 e' il valore giusto per quello che disegna.
+The entry's number is that of the **commercial profile**, which has rounded
+corners. This recipe — like the Python one it comes from — produces **sharp
+edges**: 1.500.000 is the right value for what it draws.
 
-Ma la differenza e' vera e conta: chi usa `estrudi_sezione` per pesare un pezzo
-si porta a casa il 4% in piu'. **Il catalogo non lo diceva**, e adesso lo dice —
-ed e' la prima modifica fatta con la strada nuova della 0.10.0: si tocca
-`Operazioni.cs`, si riesporta, e il diff di `catalogo.json` e' **una riga sola**.
+But the difference is real and it matters: anyone using `extrude_section` to
+weigh a part takes home 4% more than they think. **The catalog didn't say so**, and now
+it does — and this is the first change made through the new route from 0.10.0: you touch
+`Operations.cs`, re-export, and the diff of `catalog.json` is **a single line**.
 
 ---
 
-## 0.11.0 — 14 settembre 2026 · libreria 0.51.0
+## 0.11.0 — 14 September 2026 · library 0.51.0
 
-**Il telaio si chiede come lo documenta il catalogo, e «interasse» esiste.**
+**The frame is requested the way the catalog documents it, and "center_distance" exists.**
 
-### La divergenza
+### The divergence
 
-Il catalogo dichiara `lunghezza_mm`, `larghezza_mm`, `piano`, `misure`,
-`centrato` **al primo livello** — sono nel suo `required`, e la descrizione
-promette che il telaio «si chiede con due quote invece che con otto
-coordinate». Il C# invece cercava un oggetto annidato `telaio`, che e' la forma
-che il server costruisce dentro `valida()` prima di mandare.
+The catalog declares `length_mm`, `width_mm`, `plane`, `measured_as`,
+`centered` **at the top level** — they're in its `required`, and the description
+promises that the frame "is requested with two dimensions instead of eight
+coordinates." The C# side, instead, looked for a nested `frame` object, which is
+the shape the server builds inside `valida()` before sending.
 
-Quindi un modello che legge il catalogo e scrive quello che c'e' scritto **non
-veniva servito** — e dal server non si vedeva, perche' il server riscrive in
-mezzo. E' la stessa forma del difetto della 0.7.1, su un'operazione piu' grossa.
+So a model that read the catalog and wrote exactly what was written there
+**wasn't being served** — and it wasn't visible from the server, because the server
+rewrites things in between. It's the same shape of defect as 0.7.1, on a bigger
+operation.
 
-Adesso si accettano tutte e due le forme. Se ci sono tutte e due vince quella
-annidata: chi la manda l'ha costruita apposta.
+Now both forms are accepted. If both are present the nested one wins:
+whoever sends it built it on purpose.
 
-### `misure: "interasse"` era documentato e non implementato
+### `measured_as: "center_distance"` was documented and not implemented
 
-Il catalogo lo elenca fra i valori ammessi da sempre. Il C# accendeva il blocco
-del telaio **solo** su `ingombro`, e per tutto il resto cadeva nel ripiego dei
-segmenti — che pero' questa operazione esiste apposta per non far scrivere. Chi
-chiedeva un telaio a interasse si prendeva «non ho potuto ricavarne il
-percorso».
+The catalog has listed it among the allowed values from the start. The C# side only
+switched on the frame block for `overall`, and for everything else it fell back to the
+segments fallback — which is exactly what this operation exists to avoid making you
+write. Anyone asking for a frame by `center_distance` got back "I could not work out the
+path for it."
 
-Le due modalita', misurate sullo stesso telaio 1000×800 in tubolare 80×80×5, e
-i numeri si spiegano a vicenda:
+The two modes, measured on the same 1000×800 frame in 80×80×5 tubular, and
+the numbers explain each other:
 
-| `misure` | ingombro sul pezzo | |
+| `measured_as` | bounding box on the part | |
 |---|---|---|
-| `ingombro` (predefinito) | **1000 × 800** | le quote chieste, misurate sul pezzo finito |
-| `interasse` | **1080 × 880** | il percorso e' 1000×800, piu' 40 mm per lato di profilo |
+| `overall` (default) | **1000 × 800** | the requested dimensions, measured on the finished part |
+| `center_distance` | **1080 × 880** | the path is 1000×800, plus 40 mm per side for the profile |
 
-### Il numero del 9 settembre, ricontrollato
+### The September 9 number, double-checked
 
-Il criterio della voce C4 era: telaio 1000×800 in 80×80×5, ingombro esterno
-**1000×800 entro 0,1 mm** — *«e' il difetto misurato il 9 settembre, quindi e'
-proprio il numero da ricontrollare»*. Misurato: `[1000, 800, 80]`, quattro
-barre, con la sporgenza rilevata a 80×80 e il percorso arretrato a 920×720.
+The criterion of TODO entry C4 was: 1000×800 frame in 80×80×5, outside bounding box
+**1000×800 within 0,1 mm** — *"it's the defect measured on September 9, so it's
+exactly the number to double-check"*. Measured: `[1000, 800, 80]`, four
+bars, with the protrusion found at 80×80 and the path set back to 920×720.
 
-### Trovato leggendo, e vale la pena dirlo
+### Found by reading, and it's worth saying
 
-La voce chiedeva di portare in C# le 145 righe di `_segmenti_telaio` del server.
-**Il grosso c'era gia', ed e' migliore del Python**: il C# non calcola quattro
-angoli sul nominale, MISURA quanto sporge il profilo e arretra il percorso.
-Mancavano tre cose piccole — i segmenti non piu' obbligatori, la forma del
-catalogo, e `interasse` — non centoquarantacinque righe.
+The entry asked to port the server's 145 lines of `_segmenti_telaio` into C#.
+**Most of it was already there, and it's better than the Python**: the C# side doesn't
+calculate four corners on the nominal, it MEASURES how much the profile protrudes and
+sets the path back. Three small things were missing — segments no longer mandatory,
+the catalog's shape, and `center_distance` — not a hundred and forty-five lines.
 
-### Un cambio di comportamento, e va detto
+### A change in behavior, and it needs to be said
 
-Un piano che passava i `segmenti` gia' calcolati **insieme** alle due quote al
-primo livello prima dava 1080×880; adesso da' 1000×800. Le quote del catalogo
-**sono** l'ingombro esterno, quindi il nuovo numero e' quello giusto — ma e' un
-numero diverso da ieri, e chi avesse tarato qualcosa su quello se ne accorge
-qui. Per avere il vecchio comportamento si scrive `misure: "interasse"`.
+A plan that passed already-computed `segments` **together** with the two
+top-level dimensions used to give 1080×880; now it gives 1000×800. The catalog's
+dimensions **are** the outside bounding box, so the new number is the right one — but
+it's a different number from yesterday, and anyone who had calibrated something against
+the old one will notice it here. To get the old behavior, write
+`measured_as: "center_distance"`.
 
 ---
 
-## 0.10.0 — 14 settembre 2026 · libreria 0.50.0
+## 0.10.0 — 14 September 2026 · library 0.50.0
 
-**Il catalogo vive in C#, accanto al codice che esegue. `catalogo.json` e'
-diventato un prodotto.**
+**The catalog now lives in C#, next to the code that runs it. `catalog.json` has
+become a build product.**
 
 ```bash
-.\bin\Riscontro.Catalogo.exe Strumenti\catalogo.json
+.\bin\Oce.Solid.Agent.Catalog.exe Tools\catalog.json
 ```
 
-Nient'altro. Prima ci volevano tre passi, due macchine e docker: impacchettare i
-sorgenti del server, mandarli via `scp`, farli girare in un container
-usa-e-getta, riportarsi indietro il file. **Chi clonava questo repository non
-poteva rigenerare il catalogo**, e un file che non si puo' rigenerare e' un file
-che nessuno osa toccare — mentre quel file e' l'interfaccia verso il modello.
+Nothing else. Before, it took three steps, two machines and docker: packaging the
+server sources, sending them over by `scp`, running them in a disposable
+container, bringing the file back. **Anyone cloning this repository could not
+regenerate the catalog**, and a file that can't be regenerated is a file
+nobody dares touch — while that file is the interface toward the model.
 
-La ragione piu' importante e' un'altra: **lo strato che DESCRIVE un'operazione
-adesso e' lo stesso che la ESEGUE.** E' l'unica disposizione in cui
-un'operazione descritta e non eseguibile non puo' entrare in catalogo senza che
-qualcuno se ne accorga. `Provata` e' un `bool` C# accanto al `case` che esegue,
-non una promessa scritta in un altro repository.
+The more important reason is another one: **the layer that DESCRIBES an operation
+is now the same one that RUNS it.** It is the only arrangement in which an
+operation that is described but cannot be run cannot get into the catalog
+without someone noticing. `Tested` is a C# `bool` next to the `case` that runs
+it, not a promise written in another repository.
 
-### Il criterio era diff vuoto, ed e' diff vuoto
+### The criterion was an empty diff, and it is an empty diff
 
 ```
-[catalogo] identico a Strumenti/catalogo.json (72204 caratteri)
-72.452 byte, identici byte per byte
+[catalog] identical to Tools/catalog.json (72204 characters)
+72.452 bytes, byte for byte identical
 ```
 
-### Generato, non traslitterato a mano
+### Generated, not hand-transliterated
 
-La voce C3 del piano chiedeva di traslitterare 2.051 righe di Python, e nella
-sua nota di rischio diceva: *«duemila righe di traslitterazione fatte di sera
-sono duemila occasioni di cambiare una parola in una descrizione senza
-accorgersene — e quelle descrizioni sono l'interfaccia vera verso il modello»*.
+TODO entry C3 of the plan asked to transliterate 2.051 lines of Python, and
+its risk note said: *"two thousand lines of transliteration done in the evening
+are two thousand chances to change a word in a description without
+noticing — and those descriptions are the real interface toward the model"*.
 
-Il C# e' stato **generato dal `catalogo.json` che c'era**, che di quel Python e'
-gia' il prodotto ed e' il file che il ponte legge davvero. Le occasioni di
-cambiare una parola diventano zero, e il criterio si verifica lo stesso. Il
-generatore si usa una volta; da adesso il C# si modifica a mano, e sono 2.026
-righe leggibili come l'originale.
+The C# was **generated from the `catalog.json` that already existed**, which is
+already that Python's product and is the file the bridge actually reads. The chances of
+changing a word drop to zero, and the criterion is still verified. The
+generator is used once; from now on the C# is edited by hand, and it's 2.026
+lines as readable as the original.
 
-### La forma del file e' parte del contratto
+### The file's shape is part of the contract
 
-Rientro di uno spazio, accenti per esteso, a capo a solo avanzamento riga,
-nessun a capo finale, chiavi nell'ordine in cui sono scritte. `Nodo` e' un tipo
-apposta, e **non un `Dictionary<string, object>`**: un dizionario non promette
-l'ordine delle chiavi, e se le chiavi ballano a ogni compilazione ogni commit
-mostra un file intero cambiato e nessuno vede piu' la riga cambiata davvero.
+One-space indentation, accented letters written out in full, line breaks as bare
+line feeds, no trailing newline, keys in the order they're written. `Node` is a
+dedicated type, and **not a `Dictionary<string, object>`**: a dictionary doesn't promise
+key ordering, and if the keys shuffle on every build every commit
+shows a whole file changed and nobody can see the line that actually changed anymore.
 
-### `build.ps1` lo rigenera, e dice se e' cambiato
+### `build.ps1` regenerates it, and says whether it changed
 
-Un catalogo che si rigenera a mano resta indietro. Adesso si riscrive a ogni
-pacchetto, e la build stampa `invariato` oppure `RIGENERATO: N -> M byte` con
-l'invito a guardare il diff.
+A catalog that's regenerated by hand falls behind. Now it's rewritten on every
+package build, and the build prints `invariato` or `RIGENERATO: N -> M byte` along
+with a prompt to look at the diff.
 
-Fuori dal file restano — **e si dicono, una per riga su stderr** — le operazioni
-non provate e le famiglie senza nemmeno un'operazione. Un elenco che si accorcia
-in silenzio non si nota.
+Outside the file there remain — **and they are reported, one per line on stderr** — the
+untested operations and the families without even one operation. A list that shrinks
+silently goes unnoticed.
 
-### Cosa NON e' stato fatto, e perche'
+### What was NOT done, and why
 
-`ai_disegno.py` e' ancora la fonte del catalogo **per il server**: finche' non
-legge questo JSON, le fonti sono due.
+`ai_disegno.py` is still the catalog's source **for the server**: until it
+reads this JSON, there are two sources.
 
-Accertato con un grep, che la voce chiedeva: `CATALOGO_DISEGNO` ha **tre**
-consumatori oltre a quello che lo definisce, e usano `.nome`, `.provata`,
-`.precondizione`, tutti campi che il record C# ha. *(I percorsi e le righe
-stavano qui per esteso, e sono di un altro repository, privato: tolti il
-24/9/2026 con il censimento.)* Ma `ai_disegno.py` tiene
-anche `limiti` e `riassunto`, che non sono fra i sei esportati e servono a
-`valida()`: l'inversione e' uno **spacco** del record, non una sostituzione. E'
-lavoro sul server in produzione, che la voce C3 aveva gia' dichiarato fuori
-dalla propria stima.
+Checked with a grep, as the entry asked: `CATALOGO_DISEGNO` has **three**
+consumers besides the one that defines it, and they use `.name`, `.tested`,
+`.precondition`, all fields the C# record has. *(The paths and line numbers
+used to be spelled out here, and belong to another, private repository: removed on
+24/9/2026 during the cleanup.)* But `ai_disegno.py` also holds
+`limits` and `summary`, which aren't among the six exported and are needed by
+`valida()`: the inversion is a **split** of the record, not a replacement. It's
+work on the production server, which TODO entry C3 had already declared outside its
+own estimate.
 
-**Un criterio non rispettato alla lettera, e detto.** La voce chiedeva che
-`aggiorna.md` non contenesse piu' le parole «server», «docker», «python». Ci
-sono ancora, ma solo per dire **che non servono** e per registrare cosa resta.
-Toglierle avrebbe reso il documento peggiore, non piu' pulito.
+**A criterion not followed to the letter, and said so.** The entry asked that
+`update.md` no longer contain the words "server," "docker," "python." They're
+still there, but only to say **that they're no longer needed** and to record what
+remains. Removing them would have made the document worse, not cleaner.
 
 ---
 
-## 0.9.0 — 14 settembre 2026 · libreria 0.49.0
+## 0.9.0 — 14 September 2026 · library 0.49.0
 
-Due cose, e la seconda e' un rischio vivo su un file condiviso.
+Two things, and the second is a live risk on a shared file.
 
-### 1. Il ponte fa rispettare gli schemi che gia' dichiara
+### 1. The bridge now enforces the schemas it already declares
 
-Offriva trentasei operazioni con schemi dettagliati e poi non guardava se gli
-argomenti li rispettassero: lo schema serviva solo a suggerire. Uno
-`spessore_mm` dimenticato arrivava a valle come zero e diventava un'estrusione
-di spessore nullo.
+It offered thirty-six operations with detailed schemas and then never checked whether the
+arguments actually matched them: the schema was only there to suggest. A forgotten
+`thickness_mm` arrived downstream as zero and turned into a zero-thickness
+extrusion.
 
 ```
-estrudi_rettangolo senza spessore_mm
-  -> "Per «estrudi_rettangolo» serve «spessore_mm», e non c'e'.
-      (QUANTO SI ESTRUDE, in mm. Per una piastra e' lo spessore; per una barra
-       o un profilo e' la LUNGHEZZA…)"
+extrude_rectangle without thickness_mm
+  -> "For "extrude_rectangle" "thickness_mm" is required, and it is missing.
+      (HOW MUCH IS EXTRUDED, in mm. For a plate this is the thickness; for a bar
+       or a profile it is the LENGTH…)"
 
-estrudi_rettangolo con lunghezza_mm: "duecento"
-  -> "Per «estrudi_rettangolo», «lunghezza_mm» vuole un numero e invece e'
-      un testo («duecento»)."
+extrude_rectangle with length_mm: "two hundred"
+  -> "For "extrude_rectangle", "length_mm" wants a number and instead it is
+      text ("two hundred")."
 ```
 
-**E non tocca il documento:** dopo i due rifiuti il pezzo ha 0 feature, 0
-schizzi, 0 facce — nemmeno uno schizzo orfano.
+**And it doesn't touch the document:** after the two rejections the part has 0 features,
+0 sketches, 0 faces — not even an orphan sketch.
 
-**Solo la forma, mai il merito**, ed e' la riga da tenere in mente leggendo
-`Ponte/Forma.cs`: c'e' il parametro obbligatorio, e' un numero dove serve un
-numero, e' uno dei valori ammessi. Se quel numero *abbia senso* non si giudica —
-allargare un foro ha il centro **esattamente nel vuoto**, e un controllo zelante
-lo rifiuterebbe.
+**Only the shape, never the merit**, and that's the line to keep in mind reading
+`Bridge/Shape.cs`: the required parameter is there, it's a number where a number is
+needed, it's one of the allowed values. Whether that number *makes sense* is not judged —
+widening a hole has its center **exactly in the void**, and an overzealous check
+would reject it.
 
-**Un intero e' un numero.** Il difetto piu' facile da scrivere qui sarebbe un
-`type: number` che rifiuta il `20` di `"spessore_mm": 20` perche' il
-deserializzatore l'ha fatto `int`. Provato: passa, e il blocco esce 400.000 mm³.
-Provato anche il ventaglio — blocco, foro, ripetizione, specchio, il tubo con la
-forma `cerchio`, e il telaio saldato con le sue strutture annidate: **nessun
-rifiuto falso**.
+**An integer is a number.** The easiest defect to write here would be a
+`type: number` that rejects the `20` in `"thickness_mm": 20` because the
+deserializer turned it into an `int`. Tested: it passes, and the block comes out at
+400.000 mm³. Also tested the whole range — block, hole, pattern, mirror, the tube with
+the `circle` shape, and the welded frame with its nested structures: **no
+false rejection**.
 
-### 2. La libreria dei profili: il caso accanto a quello riparato
+### 2. The profile library: the case right next to the one that was fixed
 
-`RichiudiLaLibreria` (add-in 0.45.0) non tocca il file se era gia' aperto prima
-dell'inserimento, e la ragione scritta e' buona: se il progettista ci stava
-lavorando, chiuderglielo sotto e' un danno.
+`CloseLibraryAgain` (add-in 0.45.0) does not touch the file if it was already open
+before the insertion, and the reason given is a good one: if the designer was
+working on it, closing it out from under them would cause harm.
 
-**Ma «lasciarla com'era» conservava lo stato APERTO, non quello PULITO.**
+**But "leaving it as it was" preserved the OPEN state, not the CLEAN one.**
 
-Misurato: `QUADRO_COPIA.SLDLFP` era aperta **e pulita**; dopo un
-`telaio_rettangolare` risultava `GetSaveFlag() = true`. Il codice la lasciava li'
-apposta. E' esattamente il rischio che tutto questo esiste per togliere — un
-file condiviso a un `Ctrl+S` di distanza dall'essere riscritto — nel caso
-accanto a quello per cui era stato scritto.
+Measured: `QUADRO_COPIA.SLDLFP` was open **and clean**; after a
+`rectangular_frame` it came out `GetSaveFlag() = true`. The code left it there
+on purpose. It is exactly the risk all of this exists to remove — a
+shared file one `Ctrl+S` away from being overwritten — in the case
+right next to the one it was written for.
 
-Il flag non si puo' ripulire: `IModelDoc2.SetSaveFlag()` non prende argomenti,
-sporca e basta. Quindi tre stati invece di due, e ognuno con la sua ragione:
+The flag can't be cleared: `IModelDoc2.SetSaveFlag()` takes no arguments,
+it only ever dirties. So three states instead of two, each with its own reason:
 
-| com'era prima | cosa si fa | perche' |
+| how it was before | what is done | why |
 |---|---|---|
-| **chiusa** | si richiude | l'abbiamo aperta noi |
-| **aperta e pulita** | **si richiude lo stesso** | non si perde niente — era pulita — e non si lascia un file condiviso armato |
-| **aperta e sporca** | non si tocca, e si avvisa | qualcuno ci sta lavorando, ed era gia' a rischio prima di noi |
+| **closed** | it is closed again | we're the ones who opened it |
+| **open and clean** | **it is closed anyway** | nothing is lost — it was clean — and a shared file is not left armed |
+| **open and dirty** | it is left untouched, with a warning | someone is working on it, and it was already at risk before us |
 
-Provati tutti e tre. In tutti e tre, dopo l'operazione: **nessun file su disco
-aperto e modificato**, e la copia sul disco intatta — 99.918 byte, stesso
-orario al nanosecondo.
+All three tested. In all three, after the operation: **no file on disk
+left open and modified**, and the copy on disk intact — 99.918 bytes, the same
+timestamp down to the nanosecond.
 
-Nel terzo caso SOLIDWORKS riapre la libreria come riferimento del saldato, ma
-**pulita**, che e' lo stato giusto.
-
----
-
-## 0.8.0 — 14 settembre 2026 · libreria 0.48.0
-
-**`modifica_quota` dice anche quando una lavorazione cambia natura, non solo
-misura.**
-
-### Il difetto, misurato
-
-Piastra 200×100×20 con una tasca **cieca** Ø60 profonda 5. Si porta lo spessore
-a 3 — una modifica di quota qualunque, di quelle che si fanno dieci volte al
-giorno. La tasca diventa **passante**.
-
-Prima di questa versione, tutto quello che si vedeva era:
-
-```
-riuscita: true
-volume_mm3: 51.517,7    volume_cambiato_mm3: -334.345,13
-```
-
-Il volume torna — `60.000 − π·900·3 = 51.517,7`, esatto. I corpi sono sempre
-uno. La ricostruzione e' riuscita. E **SOLIDWORKS non ha niente da dire**:
-`GetErrorCode2` risponde 0 e `IsWarning` e' falso su tutte le feature.
-
-Una sede cieca e un passaggio sono due pezzi diversi. Quello che ci si appoggia
-dentro, in uno cade dall'altra parte.
-
-### Adesso
-
-```
-lavorazioni_con_meno_facce: ["Taglio-Estrusione1 2 -> 1"]
-nota: "La quota nuova ha cambiato l'albero, non solo le misure:
-       hanno perso facce: Taglio-Estrusione1 2 -> 1. Una lavorazione cieca che
-       perde una faccia di solito e' diventata PASSANTE: il fondo non c'e' piu'."
-```
-
-### Si riporta, non si rifiuta
-
-Assottigliare una piastra finche' una tasca diventa passante puo' essere
-esattamente cio' che si vuole. Rifiutarlo sarebbe rifiutare cio' che e' soltanto
-insolito — il difetto peggiore dei due. Ma chi ha chiesto la modifica deve
-poterlo **leggere qui**, invece di scoprirlo in officina.
-
-E il controllo tace quando deve: portando lo stesso pezzo a 12 mm — la tasca
-resta cieca — `nota` e' `null`. Le due prove vanno in coppia, e senza la seconda
-la prima non direbbe niente.
-
-### Il conto ha un tetto, e non e' prudenza generica
-
-Leggere le facce di ogni lavorazione dell'albero costa circa **200 ms a
-feature** (misurato). Su un pezzo con centinaia di lavorazioni questa lettura da
-sola durerebbe piu' dell'operazione: oltre 200 si smette e si riporta quello che
-si e' visto.
+In the third case SOLIDWORKS reopens the library as a reference for the weldment, but
+**clean**, which is the right state.
 
 ---
 
-## 0.7.1 — 14 settembre 2026 · libreria 0.47.1
+## 0.8.0 — 14 September 2026 · library 0.48.0
 
-**Il tubo scritto come lo scrive il catalogo adesso si disegna.**
+**`set_dimension` now also says when a feature changes nature, not just
+size.**
 
-Nella descrizione di `estrudi_profilo` il catalogo porta questo esempio per
-esteso:
+### The defect, measured
+
+A 200×100×20 plate with a **blind** Ø60 pocket, 5 deep. The thickness is brought
+to 3 — an ordinary dimension change, the kind made ten times a
+day. The pocket becomes **through**.
+
+Before this version, all you could see was:
 
 ```
-Esempio, TUBO diametro esterno 60 spessore 5:
-[{"cerchio": [0, 0], "diametro_mm": 60}, {"cerchio": [0, 0], "diametro_mm": 50}]
+succeeded: true
+volume_mm3: 51.517,7    volume_changed_mm3: -334.345,13
 ```
 
-Il parser capiva `{"tipo":"cerchio","centro":[x,y],"diametro_mm":d}` e **non**
-questa. Un modello che leggeva il catalogo e copiava l'esempio scritto li' dentro
-finiva nel ramo poligonale, cercava `vertici`, non lo trovava e falliva.
+The volume checks out — `60.000 − π·900·3 = 51.517,7`, exact. The bodies are always
+one. The rebuild succeeds. And **SOLIDWORKS has nothing to say**:
+`GetErrorCode2` returns 0 and `IsWarning` is false on every feature.
 
-**Una divergenza fra cio' che si dichiara e cio' che si sa fare, dentro il file
-che esiste per non averne.** E sulla forma peggiore: e' quella che il catalogo
-**raccomanda** per fori e tondi, con l'avvertenza che un cerchio approssimato a
-segmenti ha il materiale dentro la circonferenza e un albero non ci entra.
+A blind seat and a through-hole are two different parts. Whatever rests
+inside it, in one case falls through to the other side.
 
-Misurato, il tubo del catalogo:
+### Now
+
+```
+features_with_fewer_faces: ["Taglio-Estrusione1 2 -> 1"]
+note: "The new dimension changed the tree, not just the measurements:
+       these lost faces: Taglio-Estrusione1 2 -> 1. A blind feature that
+       loses a face has usually become THROUGH: the bottom is no longer there."
+```
+
+### It is reported, not rejected
+
+Thinning a plate until a pocket becomes through can be
+exactly what's wanted. Rejecting it would mean rejecting something that is merely
+unusual — the worse of the two defects. But whoever asked for the change must
+be able to **read it here**, instead of discovering it on the shop floor.
+
+And the check stays quiet when it should: bringing the same part to 12 mm — the pocket
+stays blind — `note` is `null`. The two tests go together, and without the second
+the first wouldn't prove anything.
+
+### The calculation has a ceiling, and it isn't generic caution
+
+Reading the faces of every feature in the tree costs about **200 ms per
+feature** (measured). On a part with hundreds of features this read alone
+would take longer than the operation: past 200 it stops and reports what
+it has seen so far.
+
+---
+
+## 0.7.1 — 14 September 2026 · library 0.47.1
+
+**The tube, written the way the catalog writes it, now actually draws.**
+
+In the description of `extrude_profile` the catalog carries this example in
+full:
+
+```
+Example, TUBE outside diameter 60 wall 5:
+[{"circle": [0, 0], "diameter_mm": 60}, {"circle": [0, 0], "diameter_mm": 50}]
+```
+
+The parser understood `{"variant":"circle","center":[x,y],"diameter_mm":d}` and
+**not** this one. A model that read the catalog and copied the example written in
+there fell into the polygon branch, looked for `vertices`, didn't find it, and
+failed.
+
+**A divergence between what is declared and what can actually be done, inside the file
+that exists so there would be none.** And on the worst form of it: it's the one the
+catalog **recommends** for holes and round stock, with the warning that a circle
+approximated as segments has its material inside the circumference, and a shaft
+won't fit through it.
+
+Measured, the catalog's tube:
 
 ```
 volume 86.393,8 mm³   =   π/4 · (60² − 50²) · 100
 ```
 
-### Mancante e non numerico sono due cose diverse
+### Missing and non-numeric are two different things
 
-Prima finivano tutte e due in «il diametro non e' un numero», perche' la chiave
-assente sollevava dentro lo stesso `try`. Chi ha scritto `{"cerchio":[0,0]}` e
-basta va mandato a mettere il diametro, non a controllare un numero che non ha
-scritto. Provati tutti e due:
+Both used to end up as "the diameter is not a number," because the missing
+key raised inside the same `try`. Whoever wrote `{"circle":[0,0]}` and
+nothing else should be sent to add the diameter, not to go checking a number they never
+wrote. Both tested:
 
-| scritto | risposta |
+| written | response |
 |---|---|
-| `{"cerchio":[0,0]}` | «Un cerchio senza "diametro_mm": un centro da solo non dice quanto e' grande.» |
-| `{"cerchio":[0,0],"diametro_mm":0}` | «Il diametro del cerchio e' 0: un cerchio di diametro zero o negativo non si disegna.» |
+| `{"circle":[0,0]}` | "A circle without "diameter_mm": a center alone doesn't say how big it is." |
+| `{"circle":[0,0],"diameter_mm":0}` | "The circle's diameter is 0: a circle with zero or negative diameter can't be drawn." |
 
-### Una cosa che il piano diceva e non era vera
+### Something the plan said that wasn't true
 
-Il `TODO.md` dava per non supportata anche la forma `{"vertici":[[x,y],...]}`.
-**Lo e':** e' il ramo predefinito del parser. La divergenza vera era una sola.
+`TODO.md` also assumed the `{"vertices":[[x,y],...]}` form was unsupported.
+**It is supported:** it's the parser's default branch. There was only one real
+divergence.
 
-E il volume atteso che il piano riportava — «863.938 mm³» — e' l'**area della
-sezione in mm²** con l'etichetta sbagliata: per il volume va moltiplicata per i
-100 mm di spessore.
+And the expected volume the plan reported — "863.938 mm³" — is the **section's
+area in mm²** with the wrong label: to get the volume it must be multiplied by the
+100 mm of wall thickness.
 
 ---
 
-## 0.7.0 — 14 settembre 2026
+## 0.7.0 — 14 September 2026
 
-**Adesso e' vero: un file solo, e chi lo installa deve avere soltanto
+**Now it's actually true: a single file, and whoever installs it needs nothing but
 SOLIDWORKS.**
 
-La 0.5.0 aveva dovuto scrivere una correzione onesta: «installabile da chiunque,
-usabile da chi ha gia' l'add-in». Il carico non poteva contenere le operazioni
-perche' stavano in `OpenPDM.SwAddin.dll`, codice privato che un pacchetto
-pubblico non puo' portarsi dietro senza pubblicarlo.
+0.5.0 had to carry an honest correction: "installable by anyone,
+usable by whoever already has the add-in." The payload couldn't contain the operations
+because they lived in `OpenPDM.SwAddin.dll`, private code that a public
+package cannot bundle without publishing it.
 
-Da quando stanno in `Riscontro.Disegno.dll`, dentro questo repository, quella
-ragione non c'e' piu'. **`dist\Installa.exe` — 324 kB — se le porta dentro.**
+Now that they live in `Oce.Solid.Agent.Core.dll`, inside this repository, that
+reason no longer applies. **`dist\Installer.exe` — 324 kB — carries them inside.**
 
-### Provato installando davvero, non solo compilando
+### Tested by actually installing, not just by building
 
-Installazione silenziosa in una cartella vuota, senza OpenPDM da nessuna parte:
+Silent install into an empty folder, with OpenPDM nowhere on the machine:
 
 ```
-[ok] Ponte da installare: incluso in questo installatore
-[ok] Operazioni di disegno: Riscontro.Disegno.dll e' dentro l'installatore
-  scritto SolidWorksMcp.exe (32 kB)
-  scritto catalogo.json (70 kB)
-  scritto Riscontro.Disegno.dll (172 kB)
+[ok] Bridge to install: included in this installer
+[ok] Drawing operations: Oce.Solid.Agent.Core.dll is inside the installer
+  wrote SolidWorksMcp.exe (32 kB)
+  wrote catalog.json (70 kB)
+  wrote Oce.Solid.Agent.Core.dll (172 kB)
   ...
-[prova] agganciata: True
-[prova] volume_mm3 = 396858,4
-[prova] il ponte sta in piedi.
+[test] attached: True
+[test] volume_mm3 = 396858,4
+[test] the bridge is up and running.
 ```
 
-E poi un piano vero **eseguito dal ponte installato**, non da quello di
-sviluppo: blocco 200×100×20, foro Ø10 passante, ripetizione di 4 a passo 30.
-`volume_cambiato -4.712,39`, `facce 7 → 10`, `copie_fatte 3`. Gli stessi numeri
-del ponte compilato in casa.
+And then a real plan **run by the installed bridge**, not the development
+one: block 200×100×20, Ø10 through hole, a pattern of 4 at 30 pitch.
+`volume_changed -4.712,39`, `faces 7 → 10`, `copies_done 3`. The same numbers
+as the bridge built in-house.
 
-### Tre cose cambiate nell'installatore, e il perche' di ognuna
+### Three things changed in the installer, and the reason for each
 
-1. **La libreria non si cerca piu' sulla macchina, si estrae dal carico.**
-   Cercarla aveva senso quando il pacchetto non poteva contenerla. Continuare
-   vorrebbe dire installare, su una macchina che ha per caso una copia vecchia
-   da qualche parte, **quella** copia — con le operazioni di due settimane fa e
-   nessuno che lo dica.
-2. **Se manca, adesso e' bloccante.** Prima era un avviso, ed era giusto: non
-   avere l'add-in era normale, il ponte partiva e diceva di non essere
-   agganciato. Adesso le operazioni sono parte del prodotto: se mancano il
-   pacchetto e' rotto, e un pacchetto rotto che si installa lo scopre chi lo
-   usa.
-3. **Il campo «dove sta l'add-in» e' sparito dalla finestra.** Chiedere a chi
-   installa un file che il pacchetto gia' contiene non e' una gentilezza: e' una
-   domanda senza risposta giusta, e chi non sa cosa rispondere pensa di aver
-   sbagliato qualcosa. Al suo posto una riga in sola lettura che dice da dove
-   vengono le operazioni.
+1. **The library is no longer searched for on the machine, it is extracted from
+   the payload.** Searching for it made sense when the package couldn't contain it.
+   Continuing to do so would mean installing, on a machine that happens to have an old
+   copy lying around somewhere, **that** copy — with the operations from two weeks ago
+   and nobody telling you so.
+2. **If it is missing, it is now blocking.** Before it was a warning, and rightly so:
+   not having the add-in was normal, the bridge would start and say it wasn't
+   attached. Now the operations are part of the product: if they're missing the
+   package is broken, and a broken package that gets installed is discovered by
+   whoever uses it.
+3. **The "where is the add-in" field has disappeared from the window.** Asking
+   whoever installs it for a file the package already contains isn't a kindness: it's a
+   question with no right answer, and whoever doesn't know what to answer thinks they've
+   gotten something wrong. In its place, a read-only line that says where
+   the operations come from.
 
-### Via la riflessione (B7)
+### Reflection removed (B7)
 
-Il ponte chiama `Riscontro.Disegno` direttamente: `new OperazioniSw(...)`,
-`StatoDocumento.Leggi(...)`, `esito.Misure`. I nomi dei tipi non sono piu'
-stringhe, e un errore di battitura lo prende il compilatore invece del cliente.
+The bridge calls `Oce.Solid.Agent.Core` directly: `new SwOperations(...)`,
+`DocumentState.Read(...)`, `outcome.Measurements`. Type names are no longer
+strings, and a typo is now caught by the compiler instead of the client.
 
-Resta il late binding verso SOLIDWORKS — `DocumentoAttivo`, `Identita`,
-`Chiama` — e non e' una svista: e' la strada misurata (`ActiveDoc` e non
-`IActiveDoc2`, vedi il commento nel codice), e rifarla qui vorrebbe dire
-ripagare una misura gia' pagata.
+Late binding toward SOLIDWORKS remains — `ActiveDocument`, `Identity`,
+`Invoke` — and it isn't an oversight: it's the measured route (`ActiveDoc` and not
+`IActiveDoc2`, see the comment in the code), and redoing it here would mean
+paying again for a measurement already paid for.
 
-**Trappola trovata per strada:** `SolidWorks.Interop.sldworks` ha un tipo
-`Environment`, che rende ambiguo `Environment.GetEnvironmentVariable`. Le tre
-chiamate sono qualificate `System.Environment`, con la riga che dice perche'.
+**Trap found along the way:** `SolidWorks.Interop.sldworks` has a type
+`Environment`, which makes `Environment.GetEnvironmentVariable` ambiguous. The three
+calls are qualified as `System.Environment`, with the line saying why.
 
-### La proprieta' che non decide piu' niente, e lo dice
+### The setting that no longer decides anything, and says so
 
-`RISCONTRO_DISEGNO` e `OPENPDM_ADDIN` non scelgono piu' quale DLL caricare —
-.NET la carica da solo accanto all'eseguibile. Restano lette per **avvisare**:
-se puntano altrove, il ponte lo dice invece di lasciar credere che contino
-ancora. Una variabile d'ambiente che non fa niente e' peggio di una che non
-esiste.
+`RISCONTRO_DISEGNO` and `OPENPDM_ADDIN` no longer choose which DLL to load —
+.NET loads it on its own, next to the executable. They are still read in order to
+**warn**: if they point elsewhere, the bridge says so instead of letting you believe they
+still matter. An environment variable that does nothing is worse than one that doesn't
+exist.
 
-Per la stessa ragione un percorso inesistente non e' piu' un rifiuto ma un
-avviso: fermarsi per un percorso sbagliato mentre la libreria giusta e' gia' in
-mano sarebbe rifiutare cio' che funziona.
+For the same reason a non-existent path is no longer a rejection but a
+warning: stopping over a wrong path while the right library is already in
+hand would mean rejecting something that works.
 
 ---
 
-## 0.6.0 — 14 settembre 2026
+## 0.6.0 — 14 September 2026
 
-**Il ponte non carica piu' il PDM per disegnare un foro.**
+**The bridge no longer loads the PDM just to draw a hole.**
 
-Le 36 operazioni sono uscite da `OpenPDM.SwAddin.dll` e vivono in
-`Riscontro.Disegno.dll`, dodici file e 10.714 righe, dentro questo repository.
-Il ponte carica quella.
+The 36 operations have moved out of `OpenPDM.SwAddin.dll` and now live in
+`Oce.Solid.Agent.Core.dll`, twelve files and 10.714 lines, inside this repository.
+The bridge loads that one.
 
-### Cosa cambia per chi usa il ponte
+### What changes for whoever uses the bridge
 
-Il file da mettere accanto all'eseguibile e' **`Riscontro.Disegno.dll`**, non
-piu' `OpenPDM.SwAddin.dll`. La variabile d'ambiente e' `RISCONTRO_DISEGNO`;
-`OPENPDM_ADDIN` resta accettata, perche' chi ce l'ha impostata non deve
-scoprirlo da un rifiuto.
+The file to place next to the executable is **`Oce.Solid.Agent.Core.dll`**, no
+longer `OpenPDM.SwAddin.dll`. The environment variable is `RISCONTRO_DISEGNO`;
+`OPENPDM_ADDIN` is still accepted, because whoever has it set shouldn't have to
+find out from a rejection.
 
-E se punta ancora al vecchio add-in, il ponte lo dice per nome invece di
-lamentare un tipo mancante:
+And if it still points at the old add-in, the bridge says so by name instead of
+complaining about a missing type:
 
-> `«…\OpenPDM.SwAddin.dll» e' il vecchio add-in OpenPDM. Dalla 0.47.0 le
-> operazioni stanno in «Riscontro.Disegno.dll»: punta li' RISCONTRO_DISEGNO,
-> oppure togli OPENPDM_ADDIN e mettila accanto all'eseguibile.`
+> `"…\OpenPDM.SwAddin.dll" is the old OpenPDM add-in. Since 0.47.0 the
+> operations live in "Oce.Solid.Agent.Core.dll": point RISCONTRO_DISEGNO there,
+> or remove OPENPDM_ADDIN and place it next to the executable.`
 
-Provate tutte e due le strade: quella giusta si aggancia, quella sbagliata
-spiega. **Un messaggio che non si e' visto uscire non e' un messaggio.**
+Both paths tested: the right one attaches, the wrong one explains itself.
+**A message that was never seen to come out isn't a message.**
 
-### Il confine inventato, e il difetto che invitava a fare
+### The invented boundary, and the defect it invited
 
-`EsecutorePiano` era l'unico dei dodici file a parlare con il server di
-OpenPDM. Adesso parla con `IFontePiano`, e l'add-in ne fornisce
-l'implementazione.
+`PlanExecutor` was the only one of the twelve files to talk to OpenPDM's
+server. Now it talks to `IPlanSource`, and the add-in supplies
+the implementation.
 
-La forma ovvia sarebbe far tornare `null` per dire «piano finito». **Non si e'
-fatta**, e la ragione e' scritta nel codice: un adattatore che inghiotte
-un'eccezione di rete e ritorna `null` racconterebbe «piano completato» per un
-piano interrotto a meta'. C'e' un tipo `ProssimoPasso` con `Finito` esplicito,
-e davanti a un `null` l'esecutore si ferma dicendo che non sa quale dei due
-casi sia.
+The obvious shape would be to return `null` to mean "plan finished." **That
+wasn't done**, and the reason is written in the code: an adapter that swallows
+a network exception and returns `null` would report "plan completed" for a
+plan that broke off halfway through. There's a `NextStep` type with an explicit
+`Done`, and faced with a `null` the executor stops, saying it doesn't know which of the
+two cases it is.
 
-### Le librerie di Dassault continuano a restare fuori
+### Dassault's libraries still stay out
 
-`Riscontro.Disegno` referenzia le interop con `Private=False` e l'HintPath
-sull'installazione: nessun binario di Dassault entra in questo repository, che
-era la condizione perche' si potesse pubblicare.
+`Oce.Solid.Agent.Core` references the interop assemblies with `Private=False` and the
+HintPath pointing at the installation: no Dassault binary enters this repository, which
+was the condition for it to be publishable.
 
-### Il caricamento adesso legge i byte
+### Loading now reads the bytes
 
-`Assembly.LoadFrom` su un'unita' di rete fallisce con `0x80131515`, un errore
-che non nomina la rete e manda a cercare una dipendenza mancante che non
-esiste. Si leggono i byte e si carica da quelli.
+`Assembly.LoadFrom` on a network drive fails with `0x80131515`, an error
+that doesn't name the network and sends you looking for a missing dependency that
+doesn't exist. The bytes are read and it is loaded from those.
 
-### Cosa NON e' cambiato, ed e' il punto
+### What did NOT change, and that's the point
 
-Rifatta la prova di riferimento sul pezzo vero, dopo l'estrazione:
+The reference test redone on the real part, after the extraction:
 
 ```
-estrudi_rettangolo  200x100x20                      -> riuscita
-taglio_cilindrico   Ø10 passante                    -> riuscita
-ripeti_lineare      4 istanze, passo 30, capovolgi  -> riuscita
-                    volume_cambiato -4.712,39 mm³
-                    facce 7 -> 10   copie_fatte 3
+extrude_rectangle   200x100x20                      -> succeeded
+cylindrical_cut     Ø10 through_all                  -> succeeded
+linear_pattern      4 instances, pitch 30, flip      -> succeeded
+                    volume_changed -4.712,39 mm³
+                    faces 7 -> 10   copies_done 3
 ```
 
-Gli stessi numeri di prima dell'estrazione, alla cifra.
+The same numbers as before the extraction, to the digit.
 
-### Resta aperto
+### Still open
 
-**La riflessione c'e' ancora, e adesso non ha piu' ragione di esserci.** Il
-ponte potrebbe referenziare la libreria come un progetto qualunque: e' la voce
-B7 del `TODO.md`. Finche' c'e', i nomi dei tipi sono stringhe e un errore di
-battitura si scopre solo a runtime.
+**Reflection is still there, and now it no longer has a reason to be.** The
+bridge could reference the library like any other project: that's entry
+B7 of `TODO.md`. As long as it's there, type names are strings and a typo
+is only discovered at runtime.
 
-Il percorso della libreria nel csproj dell'add-in e' **assoluto**, scavalcabile
-con `/p:RiscontroDisegnoProj=...`, finche' non arriva il sottomodulo (B6).
+The library's path in the add-in's csproj is **absolute**, overridable
+with `/p:RiscontroDisegnoProj=...`, until the submodule arrives (B6).
 
 ---
 
-## 0.5.0 — 14 settembre 2026
+## 0.5.0 — 14 September 2026
 
-**Il ponte non lavora piu' sulla faccia sbagliata in silenzio.**
+**The bridge no longer silently works on the wrong face.**
 
-### Il difetto, misurato
+### The defect, measured
 
-Blocco 200×100×20 gia' aperto. Il modello chiama `guarda_il_pezzo` — `F1` e' la
-faccia di sopra, 20.000 mm² — e manda un piano di due passi:
+A 200×100×20 block already open. The model calls `inspect_part` — `F1` is the
+top face, 20.000 mm² — and sends a two-step plan:
 
-1. tasca Ø60 profonda 5 **su F1**;
-2. tasca Ø10 profonda 5 **su F1**.
+1. a Ø60 pocket, 5 deep, **on F1**;
+2. a Ø10 pocket, 5 deep, **on F1**.
 
-Il primo passo porta la faccia di sopra a 17.172,57 mm². Gli identificativi
-sono **posizionali** — l'add-in li riassegna ordinando le facce per area — e
-quella di sopra passa cosi' dietro a quella di sotto, rimasta a 20.000. Al
-secondo passo `F1` e' la faccia **di sotto**.
+The first step brings the top face to 17.172,57 mm². The identifiers
+are **positional** — the add-in reassigns them by sorting faces by area — and
+the top one thus drops behind the bottom one, which stayed at 20.000. At the
+second step `F1` is the **bottom** face.
 
-Misurato: la tasca piccola e' finita sul fondo del pezzo.
+Measured: the small pocket ended up on the bottom of the part.
 
-| faccia | area | dice |
+| face | area | says |
 |---|---|---|
-| F1 (sotto) | 19.921,46 = 20.000 − π·25 | il Ø10 e' **qui** |
-| F2 (sopra) | 17.172,57 | intatta dal Ø10 |
-| F9, parete | π·10·5, punto y = 0 | sale **dal basso** |
-| F10, fondo | punto y = **5** | 5 mm **dal basso** |
+| F1 (bottom) | 19.921,46 = 20.000 − π·25 | the Ø10 is **here** |
+| F2 (top) | 17.172,57 | untouched by the Ø10 |
+| F9, wall | π·10·5, point y = 0 | rises **from the bottom** |
+| F10, floor | point y = **5** | 5 mm **from the bottom** |
 
-Tutti e due i passi hanno risposto `riuscita: true`, le profondita' erano quelle
-chieste, e il volume tornava: **385.470,1 mm³, esatto**.
+Both steps answered `succeeded: true`, the depths were the ones
+requested, and the volume checked out: **385.470,1 mm³, exact**.
 
-Ed e' esattamente lo stesso volume del pezzo giusto. Le due lavorazioni tolgono
-lo stesso materiale: **nessun controllo sul volume avrebbe potuto distinguerle.**
+And it's exactly the same volume as the right part. The two features remove
+the same material: **no volume check could ever have told them apart.**
 
-### La difesa c'era gia', e nessuno l'alimentava
+### The defense already existed, and nobody was feeding it
 
-L'add-in sa riconoscere che «F1» non e' piu' la faccia di prima: legge la chiave
-`_firme` dagli argomenti del passo e confronta punto e normale. Ma quella chiave
-la scriveva **solo** il server Python di OpenPDM (`ai_disegno.py`). Nel ponte non
-compariva in nessun sorgente, quindi `FirmaCombacia` non aveva termini da
-confrontare e tornava `true` sempre.
+The add-in knows how to recognize that "F1" is no longer the same face as before: it
+reads the `_signatures` key from the step's arguments and compares point and normal. But that
+key was written **only** by OpenPDM's Python server (`ai_disegno.py`). In the bridge it
+appeared in no source file at all, so `SignatureMatches` had nothing to
+compare and always returned `true`.
 
-Adesso `guarda_il_pezzo` ricorda le firme di cio' che ha descritto — punto,
-normale, area, lunghezza, per facce, spigoli, feature, assi e **corpi** — e
-`disegna` le allega a ogni passo. Stessi quattro campi del server, cosi' le due
-strade dicono all'add-in la stessa cosa.
+Now `inspect_part` remembers the signatures of what it described — point,
+normal, area, length, for faces, edges, features, axes and **bodies** — and
+`build` attaches them to every step. The same four fields as the server, so the two
+routes tell the add-in the same thing.
 
-Sullo stesso piano, adesso:
+On the same plan, now:
 
-> `«F1» adesso indica un'altra parte del pezzo (spostata di 20 mm). Il pezzo e'
-> cambiato da quando hai confermato: non lavoro sulla faccia sbagliata.`
+> `"F1" now points to a different part of the part (moved by 20 mm). The part has
+> changed since you confirmed it: I will not work on the wrong face.`
 
-e la faccia di sotto resta a 20.000 mm²: il taglio sbagliato **non avviene**.
+and the bottom face stays at 20.000 mm²: the wrong cut **does not happen**.
 
-### `stato_dopo` e' la lettura successiva, e va firmata come tale
+### `state_after` is the next reading, and must be signed as such
 
-`disegna` restituisce lo stato del documento dopo i passi, con gli
-identificativi nuovi: chi legge scrive il piano seguente su **quelli**. Se le
-firme restassero quelle di `guarda_il_pezzo`, il piano seguente — scritto
-giusto — verrebbe rifiutato perche' confrontato con una lettura che il suo
-autore non ha mai visto. Quindi le firme si aggiornano da `stato_dopo`.
+`build` returns the document's state after the steps, with the new
+identifiers: whoever reads it writes the next plan against **those**. If the
+signatures stayed the ones from `inspect_part`, the next plan — written
+correctly — would be rejected because it was compared against a reading its
+author never saw. So the signatures are refreshed from `state_after`.
 
-Misurato: due `disegna` di fila nella stessa sessione, il secondo che cita `F2`
-preso da `stato_dopo`, passa e taglia la faccia giusta — F2 scende da 17.172,57
-a 17.094,03, la faccia di sotto resta a 20.000.
+Measured: two `build` calls in a row in the same session, the second one citing `F2`
+taken from `state_after`, passes and cuts the right face — F2 drops from 17.172,57
+to 17.094,03, the bottom face stays at 20.000.
 
-### Le firme valgono solo sul documento che le ha prodotte
+### Signatures are only valid for the document that produced them
 
-Se il piano nomina un altro documento con `documento`, gli identificativi non
-parlano di questo: allegare le firme vecchie produrrebbe rifiuti che non
-c'entrano niente. Meglio nessun confronto che un confronto fra due pezzi
-diversi.
+If the plan names a different document with `document`, the identifiers don't
+refer to this one: attaching the old signatures would produce rejections that
+have nothing to do with anything. Better no comparison than a comparison between two
+different parts.
 
-### Un difetto mio, preso dalla misura
+### A defect of my own, caught by measurement
 
-La prima stesura leggeva le famiglie dello stato con `as object[]`. Lo stato
-arriva dall'add-in con i suoi tipi veri, e la' sono
-`List<Dictionary<string, object>>`: il cast tornava `null` in silenzio e il
-controllo restava **spento**. Se ne e' accorta la prova, non la lettura del
-codice — il piano guasto passava ancora. Ora si scorre come `IEnumerable`, che
-va bene per tutte e due le forme.
+The first draft read the state's families with `as object[]`. The state
+arrives from the add-in with its real types, and there they are
+`List<Dictionary<string, object>>`: the cast silently returned `null` and the
+check stayed **off**. The test noticed it, not a reading of the
+code — the broken plan was still passing. Now it's iterated as `IEnumerable`, which
+works for both shapes.
 
-### Provato sul banco, quattro misure
+### Tested on the bench, four measurements
 
-| piano | atteso | ottenuto |
+| plan | expected | got |
 |---|---|---|
-| `uid_stantio_2` — `F1` citata dopo che `F1` e' cambiata | **rifiuto** | rifiutato, «spostata di 20 mm», pezzo intatto |
-| `uid_buono` — `F3` che si e' solo risposizionata in `F4` | **passa** | passa, Ø6 sulla faccia frontale (4.000 → 3.971,73) |
-| `seq_a` + `seq_b` — due `disegna`, il secondo su `stato_dopo` | **passa** | passa, Ø10 sulla faccia di sopra |
-| `cp_1`+`cp_2`+`cp_3b` — piano che crea il pezzo da zero | **passa** | passa, nessuna firma da confrontare |
+| `stale_uid_2` — `F1` cited after `F1` has changed | **rejection** | rejected, "moved by 20 mm," part intact |
+| `good_uid` — `F3` that has only been repositioned to `F4` | **passes** | passes, Ø6 on the front face (4.000 → 3.971,73) |
+| `seq_a` + `seq_b` — two `build` calls, the second on `state_after` | **passes** | passes, Ø10 on the top face |
+| `cp_1`+`cp_2`+`cp_3b` — a plan that creates the part from scratch | **passes** | passes, no signature to compare against |
 
-### Correzione a quello che la 0.4.0 diceva dell'installatore
+### A correction to what 0.4.0 said about the installer
 
-La voce qui sotto dice «si scarica, doppio clic, e Claude parla con
-SOLIDWORKS», e `build.ps1` stampava «dallo a chiunque abbia SOLIDWORKS».
-**Non e' ancora vero, e la riga e' stata cambiata.**
+The entry below says "you download it, double-click, and Claude talks to
+SOLIDWORKS," and `build.ps1` used to print "give it to anyone who has SOLIDWORKS."
+**It isn't true yet, and the line has been changed.**
 
-Il carico incorpora il ponte, il catalogo, la configurazione e le note legali,
-ma **non** `OpenPDM.SwAddin.dll`, che il ponte carica per riflessione da accanto
-all'eseguibile o da `OPENPDM_ADDIN`. Chi non ha gia' quell'add-in installa un
-ponte che si ferma subito — con un messaggio chiaro, ma pur sempre un rifiuto.
+The payload embeds the bridge, the catalog, the configuration and the legal
+notes, but **not** `OpenPDM.SwAddin.dll`, which the bridge loads by reflection from next
+to the executable or from `OPENPDM_ADDIN`. Whoever doesn't already have that
+add-in installs a bridge that stops right away — with a clear message, but still a
+rejection.
 
-Finche' le operazioni non sono estratte in una libreria propria (sezione B del
-`TODO.md`), la formula esatta e': **installabile da chiunque, usabile da chi ha
-gia' l'add-in.** La voce del 0.4.0 resta com'era scritta, perche' un registro
-non si riscrive; questa e' la correzione, datata.
+Until the operations are extracted into a library of their own (section B of
+`TODO.md`), the exact formula is: **installable by anyone, usable by whoever
+already has the add-in.** The 0.4.0 entry stays exactly as it was written, because a log
+is not rewritten; this is the correction, dated.
 
 ---
 
-## 0.4.0 — 14 settembre 2026
+## 0.4.0 — 14 September 2026
 
-**Un file solo: si scarica, doppio clic, e Claude parla con SOLIDWORKS.**
+**A single file: you download it, double-click, and Claude talks to SOLIDWORKS.**
 
-`dist\Installa.exe`, 151 kB. Si porta dentro il ponte, il catalogo, la
-configurazione e le note legali come risorse incorporate, li scrive su disco, e
-— questo e' il lavoro vero — **scrive da se' la voce nella configurazione del
-client MCP**.
+`dist\Installer.exe`, 151 kB. It carries the bridge, the catalog, the
+configuration and the legal notes inside as embedded resources, writes them to disk, and
+— this is the real work — **writes the entry into the MCP client's
+configuration by itself**.
 
-### Perche' l'installatore, e non tre righe di README
+### Why an installer, and not three lines in a README
 
-Le tre righe di README le salta chi ha fretta, e poi il ponte non parte per una
-ragione che nessuno dei due indovina. Il punto dove ci si perde non e' copiare
-due file: e' aprire un JSON nascosto in `%APPDATA%`, capire dove va il blocco,
-non rompere quello che c'era, e sapere che Claude va riavviato perche' legga.
+Whoever is in a hurry skips the three lines of README, and then the bridge doesn't
+start for a reason neither of them guesses. The point where people get lost isn't
+copying two files: it's opening a JSON file hidden in `%APPDATA%`, figuring out where the
+block goes, not breaking what was already there, and knowing that Claude has to be
+restarted for it to read it.
 
-Tre regole nella scrittura di quella configurazione, tutte e tre pagate da
-qualcun altro prima di noi:
+Three rules in writing that configuration, all three paid for by
+someone else before us:
 
-- **non si sovrascrive il file.** Chi usa Claude ha spesso altri server MCP
-  configurati: si legge, si aggiunge la propria voce, si riscrive il resto
-  com'era;
-- **si fa una copia prima**, sempre, con la data nel nome;
-- **si dice di riavviare.** Claude legge quel file all'avvio, e «non succede
-  niente» e' il modo piu' rapido di far concludere che l'installazione e'
-  fallita.
+- **the file is never overwritten.** Whoever uses Claude often has other MCP servers
+  configured: it is read, our own entry is added, and the rest is rewritten back
+  as it was;
+- **a copy is made first**, always, with the date in the name;
+- **it tells you to restart.** Claude reads that file at startup, and "nothing
+  happens" is the fastest way to make someone conclude the install
+  failed.
 
-Il JSON viene riscritto **indentato**: lasciare all'utente una riga da duemila
-caratteri dove prima c'era qualcosa di leggibile e' un danno anche se il
-contenuto e' giusto.
+The JSON is rewritten **indented**: leaving the user a two-thousand-
+character line where something readable used to be is a form of damage even if the
+content is correct.
 
-### Quello che fa, in ordine
+### What it does, in order
 
-Controlla prima di toccare: .NET Framework 4.8, SOLIDWORKS installato (e la
-cartella `api\redist`, che serve perche' le librerie di Dassault **non** sono
-incluse), il carico da installare, l'add-in, e se SOLIDWORKS e' aperto adesso.
-Ogni controllo che fallisce dice **cosa fare**, non solo che e' fallito.
+It checks before touching anything: .NET Framework 4.8, SOLIDWORKS installed (and the
+`api\redist` folder, needed because Dassault's libraries are **not**
+included), the payload to install, the add-in, and whether SOLIDWORKS is open right now.
+Every check that fails says **what to do**, not just that it failed.
 
-Poi installa in `%LOCALAPPDATA%`, collega i client scelti, e chiude con il
-**giro secco**: `--prova` si aggancia, dice cosa vede, ed esce. E' l'unica cosa
-che permette di scrivere «installato» sapendo che e' vero.
+Then it installs into `%LOCALAPPDATA%`, wires up the chosen clients, and closes with the
+**dry run**: `--prova` attaches, says what it sees, and exits. It's the only thing
+that lets you write "installed" knowing it's true.
 
-Niente elevazione: non scrive in Program Files, non tocca il registro, non
-registra componenti COM. In molte officine il progettista l'amministratore non
-ce l'ha, e un installatore che lo chiede non si puo' usare.
+No elevation: it doesn't write to Program Files, doesn't touch the registry, doesn't
+register COM components. In many shops the designer doesn't have
+administrator rights, and an installer that asks for them can't be used.
 
-C'e' anche `--silenzioso` per installare su piu' postazioni, e `Disinstalla`,
-che toglie **solo** i file messi da qui — mai una cancellazione ricorsiva su
-una cartella scelta da chi installa.
+There's also `--silenzioso` for installing across multiple workstations, and
+`Uninstall`, which removes **only** the files placed here — never a recursive delete
+on a folder chosen by whoever is installing.
 
-### Misurato
+### Measured
 
-| prova | esito |
+| test | result |
 |---|---|
-| installazione pulita | 4 file scritti, giro secco: «il ponte sta in piedi» |
-| reinstallazione sopra una precedente | riscritti, nessun errore |
-| **l'exe DA SOLO in una cartella vuota** | **estrae tutto e si installa: il carico e' davvero dentro** |
-| `--aiuto` da un prompt | si attacca alla console di chi ha chiamato |
+| clean install | 4 files written, dry run: "the bridge is up and running" |
+| reinstall over a previous one | rewritten, no error |
+| **the exe ALONE in an empty folder** | **extracts everything and installs itself: the payload is really inside** |
+| `--aiuto` from a prompt | attaches to the console of whoever invoked it |
 
-La terza riga e' la prova che conta: se il carico non fosse incorporato,
-l'installatore lo prenderebbe dalla cartella accanto e la prova passerebbe
-lo stesso senza che il file sia autosufficiente. `build.ps1` ha anche un
-controllo che si rifiuta di produrre un pacchetto piu' piccolo del ponte che
-dovrebbe contenere.
+The third row is the test that matters: if the payload weren't embedded,
+the installer would pick it up from the adjacent folder and the test would pass
+just the same without the file being self-contained. `build.ps1` also has a
+check that refuses to produce a package smaller than the bridge it's
+supposed to contain.
 
-### Una cosa piccola, e il perche'
+### One small thing, and the reason
 
-La console stampa solo ASCII. Ci si attacca alla console di chi ha lanciato il
-comando, con la sua tabella codici: un trattino lungo esce come un rombo con un
-punto interrogativo, e un installatore che stampa caratteri rotti sembra rotto
-lui.
+The console prints ASCII only. It attaches to the console of whoever launched the
+command, with that console's own code page: an em dash comes out as a diamond with a
+question mark, and an installer that prints broken characters looks broken
+itself.
 
 ---
 
-## 0.3.0 — 14 settembre 2026
+## 0.3.0 — 14 September 2026
 
-**Tre difese, e una era un difetto che avevo aggiunto io.**
+**Three defenses, and one was a defect I had added myself.**
 
-### Il ponte dichiara cosa fa
+### The bridge declares what it does
 
-Il protocollo prevede quattro suggerimenti che il client usa per decidere se
-fermarsi a chiedere conferma a chi sta lavorando: `readOnlyHint`,
-`destructiveHint`, `idempotentHint`, `openWorldHint`. Non ce n'era **nessuno**,
-quindi ogni client trattava `guarda_il_pezzo` — che non tocca niente — e
-`disegna` — che modifica il pezzo in modo che nessuno annulla per lui —
-esattamente allo stesso modo.
+The protocol provides four hints the client uses to decide whether to
+stop and ask the person working for confirmation: `readOnlyHint`,
+`destructiveHint`, `idempotentHint`, `openWorldHint`. There was **none** of them,
+so every client treated `inspect_part` — which touches nothing — and
+`build` — which changes the part in a way nobody undoes on its behalf —
+exactly the same way.
 
-Per un progetto la cui tesi e' «nessuna geometria esiste senza che qualcuno
-l'abbia confermata», era l'omissione piu' vistosa.
+For a project whose whole thesis is "no geometry exists without someone
+having confirmed it," this was the most glaring omission.
 
-`disegna` e' dichiarato **non idempotente**, ed e' la riga che conta:
-rieseguire lo stesso piano non rimette il pezzo com'era, fa un **secondo foro**.
-Dichiararlo idempotente inviterebbe un client a riprovare da solo dopo un
-errore di rete, e il pezzo uscirebbe con il doppio delle lavorazioni senza che
-nessuno l'abbia chiesto.
+`build` is declared **not idempotent**, and that's the line that matters:
+running the same plan again doesn't put the part back the way it was, it makes a
+**second hole**. Declaring it idempotent would invite a client to retry on its own after a
+network error, and the part would come out with double the features without
+anyone having asked for it.
 
-**Misurato:** `tools/list` riporta le quattro annotazioni su tutti e quattro gli
-strumenti; `disegna` distruttivo, non idempotente, non di sola lettura.
+**Measured:** `tools/list` reports all four annotations on all four
+tools; `build` destructive, not idempotent, not read-only.
 
-### Si NOMINA il documento, non si spegne il controllo
+### The document is NAMED, the check is not switched off
 
-La 0.2.x aveva `qualunque_documento: true` per scavalcare il rifiuto quando il
-documento attivo era cambiato. Era un difetto, e della specie peggiore: **un
-argomento che disattiva una difesa e' un invito a disattivarla.** Chi incontra
-il rifiuto ha tutti gli incentivi per riprovare con quello acceso, e la difesa
-sparisce proprio nel caso in cui serviva.
+0.2.x had `qualunque_documento: true` to override the rejection when the
+active document had changed. It was a defect, and of the worst kind: **an
+argument that switches off a defense is an invitation to switch it off.** Whoever hits
+the rejection has every incentive to retry with it turned on, and the defense
+disappears in exactly the case where it was needed.
 
-Adesso si passa `documento` con il titolo o il percorso. Chiede la stessa cosa
-in una forma che non si puo' dare a caso: **per scriverne il nome bisogna averlo
-guardato.** Un booleano lo mette chiunque; un nome che non corrisponde viene
-rifiutato come tutto il resto.
+Now `document` is passed with its title or path. It asks for the same thing
+in a form that can't be given at random: **to write its name you have to have
+looked at it.** Anyone can set a boolean; a name that doesn't match gets
+rejected like everything else.
 
-### I percorsi si controllano prima di eseguire
+### Paths are checked before anything runs
 
-`salva_documento` ed `esporta_pdf` prendono un percorso **dal modello** e ci
-scrivono sopra. E' l'unica cosa che il ponte tocca fuori dal documento aperto, e
-arrivava da un testo generato senza nessun controllo.
+`save_document` and `export_pdf` take a path **from the model** and write to
+it. It's the only thing the bridge touches outside the open document, and it
+came from generated text with no check at all.
 
-Tre regole, in `Ponte/Percorsi.cs`:
+Three rules, in `Bridge/Paths.cs`:
 
-- una radice obbligatoria, se `RISCONTRO_RADICE` e' impostata;
-- le cartelle di **sistema e di programma** mai, in nessun caso — non perche'
-  qualcuno le chiederebbe apposta, ma perche' un percorso relativo sbagliato ci
-  finisce da solo;
-- le cartelle dichiarate in `RISCONTRO_SOLA_LETTURA`, che nascono da un fatto:
-  inserendo un membro strutturale SOLIDWORKS apre da solo il file di libreria
-  dei profili e lo lascia marcato come modificato. Da li' un salvataggio
-  qualunque riscrive la libreria di tutti.
+- a mandatory root, if `RISCONTRO_RADICE` is set;
+- **system and program** folders never, under any circumstance — not because
+  anyone would deliberately ask for them, but because a wrong relative path
+  ends up there on its own;
+- the folders declared in `RISCONTRO_SOLA_LETTURA`, which come from a fact:
+  inserting a structural member makes SOLIDWORKS open the profile library
+  file on its own and leave it marked as modified. From there any
+  save at all rewrites everyone's shared library.
 
-**Misurato**, e la terza riga e' quella che conta:
+**Measured**, and the third row is the one that matters:
 
-| richiesta | esito |
+| request | result |
 |---|---|
-| un percorso dentro la cartella di sistema | rifiutato, niente eseguito |
-| un percorso con `..\..\` che ci finisce dentro | rifiutato: normalizzato **prima** del confronto |
-| una cartella di lavoro normale | **salvato, 45.144 byte** |
+| a path inside the system folder | rejected, nothing run |
+| a path with `..\..\` that lands there | rejected: normalized **before** the comparison |
+| a normal working folder | **saved, 45.144 bytes** |
 
-L'ultima riga e' la lezione gia' pagata altrove: un controllo che rifiuta anche
-cio' che e' soltanto insolito e' peggio di nessun controllo, perche' blocca
-lavoro legittimo e nessuno lo rivede.
+The last row is the lesson already paid for elsewhere: a check that rejects even
+what is merely unusual is worse than no check at all, because it blocks
+legitimate work and nobody revisits it.
 
 ---
 
-## 0.2.0 — 11 settembre 2026
+## 0.2.0 — 11 September 2026
 
-**Il ponte sta in piedi e disegna.** Quattro strumenti, protocollo completo,
-provato contro un SolidWorks vero con un pezzo aperto.
+**The bridge stands up and draws.** Four tools, complete protocol,
+tested against a real SolidWorks with a part open.
 
 ```
-guarda_il_pezzo   elenco_operazioni   descrivi_operazione   disegna
+inspect_part   list_operations   describe_operation   build
 ```
 
-### Quattro strumenti e non trentasei
+### Four tools, not thirty-six
 
-Le operazioni di disegno sono trentasei, e la tentazione e' di esporne una
-per strumento. Sarebbe sbagliato per due ragioni gia' misurate nel progetto:
+There are thirty-six drawing operations, and the temptation is to expose one
+per tool. That would be wrong for two reasons already measured in the project:
 
-1. **il costo.** Gli schemi interi sono decine di migliaia di caratteri in
-   ogni richiesta. Il catalogo a due livelli del server esiste per questo, e
-   qui vale uguale;
-2. **l'ordine giusto.** Il difetto piu' caro non e' un'operazione sbagliata:
-   e' un'operazione giusta fatta **alla cieca**. Quattro strumenti in fila —
-   guarda, cerca, approfondisci, fai — rendono difficile saltare il primo.
+1. **the cost.** The full schemas are tens of thousands of characters in
+   every request. The server's two-tier catalog exists for exactly this, and
+   it holds just as true here;
+2. **the right order.** The costliest defect isn't a wrong operation:
+   it's a right operation done **blind**. Four tools in sequence —
+   look, search, dig in, do — make it hard to skip the first one.
 
-`guarda_il_pezzo` non e' un accessorio: senza, gli identificativi che gli
-altri vogliono (`F1`, `E4`, `Corpo1`) non esistono.
+`inspect_part` isn't an accessory: without it, the identifiers the other
+tools want (`F1`, `E4`, `Corpo1`) don't exist.
 
-### Il catalogo non si riscrive: si esporta
+### The catalog isn't rewritten by hand: it's exported
 
-`Strumenti/catalogo.json`, rigenerato dal server con un comando
-(`Strumenti/aggiorna.md`). Contiene **solo le operazioni `provata=True`** —
-36 alla data di oggi. Un ponte serve a misurare, e misurare con uno
-strumento non misurato non e' misurare.
+`Tools/catalog.json`, regenerated by the server with a command
+(`Tools/update.md`). It contains **only the operations with `tested=True`** —
+36 as of today. A bridge exists to measure, and measuring with an
+untested tool isn't measuring.
 
-### Cosa e' costato piu' del previsto
+### What cost more than expected
 
-- **`Assembly.LoadFrom` da un disco di rete** fallisce con `0x80131515`,
-  «Operazione non supportata»: un messaggio che non nomina ne' la rete ne'
-  la fiducia, e manda a cercare dipendenze mancanti che non mancano. Serve
-  `<loadFromRemoteSources enabled="true"/>` in `App.config`.
-- **`IActiveDoc2` non esiste per il COM.** Chiamando per riflessione si
-  passa dall'IDispatch, e li' il nome e' `ActiveDoc`: `IActiveDoc2` e' come
-  lo espone l'interoperabilita' tipizzata in C#. Chiedere quello sbagliato
-  non da' un errore utile — il ponte rispondeva «non c'e' nessun documento
-  aperto» mentre ce n'erano venti.
-- **le librerie di interoperabilita' di Dassault non si copiano** nel
-  repository: si cercano nella cartella `redist` dell'installazione, con un
-  `AssemblyResolve`. Copiarle vorrebbe dire ridistribuire un binario di
-  terzi e legarsi a una versione.
+- **`Assembly.LoadFrom` from a network drive** fails with `0x80131515`,
+  "Operation is not supported": a message that names neither the network nor
+  trust, and sends you off looking for missing dependencies that aren't missing. It
+  needs `<loadFromRemoteSources enabled="true"/>` in `App.config`.
+- **`IActiveDoc2` doesn't exist for COM.** Calling through reflection you
+  go through IDispatch, and there the name is `ActiveDoc`: `IActiveDoc2` is how
+  C#'s typed interop exposes it. Asking for the wrong one
+  doesn't give a useful error — the bridge would answer "there is no document
+  open" while there were twenty.
+- **Dassault's interop libraries are not copied** into the
+  repository: they are looked up in the installation's `redist` folder, through an
+  `AssemblyResolve`. Copying them would mean redistributing a third-party
+  binary and tying it to one version.
 
-### Un errore che aiuta invece di constatare
+### An error that helps instead of just stating facts
 
-Chi sbaglia il nome di un'operazione quasi sempre ne ha in mente uno vicino,
-e lo sbaglia di una lettera. «asole» adesso risponde *«Forse cercavi:
-asola»*. Il primo tentativo cercava la parola intera dentro il nome e su
-«asole» non trovava «asola» — falliva proprio nel caso per cui era stato
-scritto.
+Whoever gets an operation's name wrong almost always has a nearby one in mind,
+and misses it by a letter. "asole" now gets back *"Did you mean:
+asola"*. The first attempt searched for the whole word inside the name, and on
+"asole" it didn't find "asola" — it failed in exactly the case it had been
+written for.
 
-### Misurato
+### Measured
 
-Contro SolidWorks 29.5.1 con add-in 0.40.0.0 e il contenitore stagno
-aperto:
+Against SolidWorks 29.5.1 with add-in 0.40.0.0 and the watertight enclosure part
+open:
 
 | | |
 |---|---|
-| `initialize` / `tools/list` | 4 strumenti |
-| `guarda_il_pezzo` | stato completo del pezzo, con `documenti_aperti` |
-| `elenco_operazioni` (famiglia `tavola`) | 7 operazioni |
-| `descrivi_operazione` (`asola`) | schema intero |
-| nome storto (`asole`) | «Forse cercavi: asola» |
-| piano con operazione inesistente | rifiutato **prima** di toccare il pezzo |
-| `disegna` → `applica_materiale` | «ABS generico», letto dallo stato dopo |
+| `initialize` / `tools/list` | 4 tools |
+| `inspect_part` | full part state, with `documents_open` |
+| `list_operations` (family `drawing`) | 7 operations |
+| `describe_operation` (`asola`) | full schema |
+| misspelled name (`asole`) | "Did you mean: asola" |
+| plan with a non-existent operation | rejected **before** touching the part |
+| `build` → `apply_material` | "generic ABS," read from the state afterward |
 
-L'ambiguita' e' stata dichiarata invece di risolta: «ABS» corrisponde a due
-materiali e il ponte si e' fermato chiedendo quale. E' il comportamento
-dell'add-in, e passa dal ponte senza essere addolcito — che e' il punto di
-caricare l'add-in vero invece di riscriverlo.
+The ambiguity was declared rather than resolved: "ABS" matches two
+materials and the bridge stopped to ask which one. That's the add-in's
+behavior, and it passes through the bridge unsoftened — which is the whole point of
+loading the real add-in instead of rewriting it.
