@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// IL VALUTATORE DELLE ATTESE E I SELETTORI, SENZA SOLIDWORKS (voce F7).
@@ -12,7 +12,7 @@ namespace ProvaSaldatura
     /// ── PERCHE' STA IN UNA CLASSE SUA ────────────────────────────────────
     ///
     /// Questo file lo compilano DUE progetti: il banco, che apre il CAD, e
-    /// `Prove.Contratti`, che gira su una macchina qualunque in pochi secondi e
+    /// `Oce.Solid.Agent.ContractTests`, che gira su una macchina qualunque in pochi secondi e
     /// **non referenzia l'interop di SOLIDWORKS**. Finche' il valutatore stava
     /// in una classe parziale che tocca `IModelDoc2`, il secondo progetto non
     /// poteva nemmeno compilare.
@@ -55,8 +55,8 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// DOVE UN CASO PUO' SCRIVERE. `Banco\lavoro\`, la stessa cartella in
-        /// cui `ChiudiScarti` butta i documenti di scarto: e' ignorata da git e
+        /// DOVE UN CASO PUO' SCRIVERE. `Bench\lavoro\`, la stessa cartella in
+        /// cui `CloseLeftovers` butta i documenti di scarto: e' ignorata da git e
         /// si puo' svuotare in qualunque momento.
         ///
         /// Serve da quando ci sono operazioni che producono FILE —
@@ -70,7 +70,7 @@ namespace ProvaSaldatura
         {
             get
             {
-                // A LOCAL folder, not `Banco\lavoro` next to the repository: the
+                // A LOCAL folder, not `Bench\lavoro` next to the repository: the
                 // main checkout sits on a network drive, and on 3/10/2026 a
                 // SaveAs3 there answered e=1 and left no file, a bench error
                 // that cost a whole run. OCE_BENCH_WORK names another folder.
@@ -113,7 +113,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// I FILE CHE UN CASO LEGGE E NON SCRIVE: `Banco\dati\`, versionata (voce
+        /// I FILE CHE UN CASO LEGGE E NON SCRIVE: `Bench\data\`, versionata (voce
         /// Z-F5, 27/9/2026: l'immagine da ricalcare). `{LAVORO}` si svuota a ogni
         /// giro e non e' nel repository, quindi un file d'ingresso non puo' starci.
         /// </summary>
@@ -125,7 +125,7 @@ namespace ProvaSaldatura
                     System.Reflection.Assembly.GetEntryAssembly() != null
                         ? System.Reflection.Assembly.GetEntryAssembly().Location
                         : System.Reflection.Assembly.GetExecutingAssembly().Location);
-                return Path.GetFullPath(Path.Combine(qui ?? ".", "..", "dati"));
+                return Path.GetFullPath(Path.Combine(qui ?? ".", "..", "data"));
             }
         }
 
@@ -456,7 +456,7 @@ namespace ProvaSaldatura
         /// guardando due liste che non aveva letto.
         ///
         /// Sta qui, e non accanto a chi la usa, perche' e' una funzione pura
-        /// su un dizionario: `Prove.Contratti` la prova in un millesimo di
+        /// su un dizionario: `Oce.Solid.Agent.ContractTests` la prova in un millesimo di
         /// secondo, senza CAD (voce F7).
         /// </summary>
         internal static string ComeSiScrive(object v)
@@ -569,7 +569,7 @@ namespace ProvaSaldatura
         ///      pezzo e stessi argomenti: e' una copia, come prima.
         ///
         /// I passi si confrontano come si scrivono (operazione e argomenti),
-        /// senza CAD: e' aritmetica sul JSON, e la prova Prove.Contratti.
+        /// senza CAD: e' aritmetica sul JSON, e la prova Oce.Solid.Agent.ContractTests.
         /// </summary>
         internal static bool SiSomiglianoNelPezzo(
             Dictionary<string, object> miei, Dictionary<string, object> suoi,
@@ -723,7 +723,7 @@ namespace ProvaSaldatura
             // ne' il repository ne' il disco di chi lavora.
             if (testo != null && testo.Contains("{LAVORO}"))
                 return testo.Replace("{LAVORO}", Lavoro);
-            // `{DATI}`: i file d'ingresso versionati (Banco\dati\).
+            // `{DATI}`: i file d'ingresso versionati (Bench\data\).
             if (testo != null && testo.Contains("{DATI}"))
                 return testo.Replace("{DATI}", Dati);
             // `{SOLIDWORKS}`: i file DI SERIE dell'installazione (i modelli di
@@ -743,7 +743,7 @@ namespace ProvaSaldatura
         /// <summary>
         /// THE SELECTORS OF BEFORE W3.1-bis.5 (decision D4): a selector written with
         /// the names of before the rename is read as its English spelling. Set by the bench when it loads the
-        /// library (Riscontro.Disegno.Alias.Selector, the name map itself); the
+        /// library (Oce.Solid.Agent.Core.Alias.Selector, the name map itself); the
         /// contracts leave it null and read selectors as written. Each name it
         /// translates goes into <see cref="DeprecatedSelectors"/>, which the
         /// runner of the cases adds to the step's `measurements.deprecated`.
@@ -754,7 +754,7 @@ namespace ProvaSaldatura
 
         /// <summary>
         /// How many Italian names the library has translated since the bench
-        /// started (Riscontro.Disegno.Alias.Uses): every step, a failed one
+        /// started (Oce.Solid.Agent.Core.Alias.Uses): every step, a failed one
         /// too, every selector of a step or of an expectation, every step that
         /// prepares the components of an assembly. The bench counts the
         /// difference over each case. Null with a library from before the
@@ -1067,7 +1067,7 @@ namespace ProvaSaldatura
 
         /// <summary>
         /// Che cos'e' quel valore, per un messaggio. Si chiama cosi' e non
-        /// `Descrivi` perche' in `ProvaNuove.cs` un `Descrivi` c'e' gia': due
+        /// `Descrivi` perche' in `NewOperationsTests.cs` un `Descrivi` c'e' gia': due
         /// metodi con lo stesso nome nella stessa classe parziale non
         /// compilano, ed e' la fine migliore possibile per un nome ripetuto.
         /// </summary>

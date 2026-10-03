@@ -4,7 +4,7 @@ using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>How a component is loaded, from IComponent2.GetSuppression2.</summary>
     internal enum ComponentLoad { Suppressed, Lightweight, Resolved, Unknown }
@@ -115,7 +115,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// swComponentSuppressionState_e to the four states; 5
         /// (swComponentInternalIdMismatch) and anything else is Unknown. Pure, for
-        /// Prove.Contratti.
+        /// Oce.Solid.Agent.ContractTests.
         /// </summary>
         internal static ComponentLoad LoadFromSuppression2(int state)
         {

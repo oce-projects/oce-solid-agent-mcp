@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.ProvaVista
+namespace Checks.ViewTest
 {
     /// <summary>
     /// COME SI RIMETTE A POSTO LA VISTA DI CHI LAVORA? (misura per la voce V1)
@@ -25,7 +25,7 @@ namespace Controlli.ProvaVista
     /// prova a rimetterla in tutti i modi che l'API offre, e stampa quali
     /// funzionano.
     ///
-    ///     Controlli\ProvaVista\bin\ProvaVista.exe
+    ///     Checks\ViewTest\bin\ViewTest.exe
     ///
     /// Non tocca nessun documento gia' aperto: se ne crea uno suo e lo chiude.
     ///

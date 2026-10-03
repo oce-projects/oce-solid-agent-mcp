@@ -17,13 +17,13 @@ using SolidWorks.Interop.swconst;
 //    3. di quanto cresce lo sviluppo, e con quale convenzione di quota
 //       (OffsetDimType: spigolo virtuale esterno, interno, tangente).
 //
-//  IL PEZZO: la L di `Controlli/Lamiera` (50 + 30, T 2, R 2, profonda 40), e
+//  IL PEZZO: la L di `Checks/SheetMetal` (50 + 30, T 2, R 2, profonda 40), e
 //  una flangia a 90 gradi sullo spigolo in fondo al lato da 50, portata a 25.
 //  Lo sviluppo prima e dopo, letto togliendo la soppressione a «FlatPattern»
 //  (SetBendState non sviluppa niente: misurato).
 //
 //  USO
-//      .\Controlli\FlangiaSpigolo\bin\FlangiaSpigolo.exe            [--tieni]
+//      .\Checks\EdgeFlange\bin\EdgeFlange.exe            [--tieni]
 // =============================================================================
 
 internal static class Programma

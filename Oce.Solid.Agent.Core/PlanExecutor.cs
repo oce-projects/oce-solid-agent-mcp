@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Esegue un piano confermato, un passo alla volta.
@@ -79,7 +79,7 @@ namespace Riscontro.Disegno
         ///   * il valore predefinito e' falso, quindi chi non ne sa niente e'
         ///     protetto;
         ///   * e c'e' un controllo che lo sorveglia —
-        ///     `Controlli\controlla-documenti-senza-file.ps1` fallisce se questa
+        ///     `Checks\check-documents-without-file.ps1` fallisce se questa
         ///     proprieta' compare nei sorgenti dell'add-in.
         ///
         /// Non tocca il controllo sulla SOLA LETTURA: quello vale in tutti e due
@@ -100,7 +100,7 @@ namespace Riscontro.Disegno
         ///     `model_dimensions`, `export_pdf`). Rifiutare le tavole
         ///     renderebbe inutili proprio quelle.
         ///
-        /// Sorvegliata da `Controlli\controlla-documenti-senza-file.ps1`
+        /// Sorvegliata da `Checks\check-documents-without-file.ps1`
         /// insieme all'altra.
         ///
         /// QUI C'ERA SCRITTO CHE GLI ASSIEMI RESTAVANO FUORI «non per
@@ -135,7 +135,7 @@ namespace Riscontro.Disegno
         /// rivederla**: chi lo legge trova una ragione, e trovare una ragione
         /// e' come smettere di cercare. Per questo la difesa adesso non e' una
         /// frase ma un controllo —
-        /// `Prove\Programma.cs` → `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`
+        /// `Tests\Program.cs` → `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`
         /// confronta le famiglie del catalogo coi tipi ammessi qui sotto, gira
         /// senza SOLIDWORKS, ed e' nata rossa su questo difetto.
         /// </summary>
@@ -689,7 +689,7 @@ namespace Riscontro.Disegno
         // IL GUINZAGLIO, PER CHI USA IL PONTE (voce Z-C4)
         //
         // Il gemello di K18: quella protegge il GIRO del banco, questa
-        // protegge il CLIENTE. Stessa classe, `Condiviso/Guinzaglio.cs`,
+        // protegge il CLIENTE. Stessa classe, `Shared/Leash.cs`,
         // perche' due meccanismi di scadenza che si comportano diversamente
         // sono peggio di uno solo.
         //
@@ -714,8 +714,8 @@ namespace Riscontro.Disegno
         // e' appesa e quale — cosi' chi legge i log sa cosa e' successo
         // invece di vedere un ponte che non risponde piu'.
         // ══════════════════════════════════════════════════════════════
-        private static readonly Condiviso.Guinzaglio _guinzaglio =
-            new Condiviso.Guinzaglio(120000);
+        private static readonly Shared.Guinzaglio _guinzaglio =
+            new Shared.Guinzaglio(120000);
 
         private static System.Threading.Thread _guardiano;
         private static readonly object _chiaveGuardiano = new object();
@@ -788,7 +788,7 @@ namespace Riscontro.Disegno
 
             // IL MODALE SI VEDE DALLA FINESTRA, NON DA SOLIDWORKS (voce Z-C3).
             //
-            // Misurato il 24/9/2026 con `Controlli/Modale`: con una finestra
+            // Misurato il 24/9/2026 con `Checks/Modal`: con una finestra
             // modale di SOLIDWORKS aperta, `CommandInProgress` resta FALSO in
             // tre giri su tre. La guardia qui sotto non era mai scattata perche'
             // non poteva. La finestra principale invece e' DISABILITATA — un

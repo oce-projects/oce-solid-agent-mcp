@@ -5,7 +5,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// La creazione guidata fori: un foro che e' un foro, non un taglio tondo.
@@ -240,7 +240,7 @@ namespace Riscontro.Disegno
             // delle posizioni diceva «non verificabile», e l'operazione
             // rispondeva riuscita. GetErrorCode2 prima, il volume poi — il
             // progetto ha misurato che GetErrorCode2 da solo puo' tacere su un
-            // difetto vero (voce CopieMancanti, OperazioniSw.cs).
+            // difetto vero (voce CopieMancanti, SwOperations.cs).
             inErrore = ForoInErrore(feature);
             if (inErrore != null)
                 return Fallito("Il foro guidato non e' venuto: nelle posizioni chieste «" + feature.Name +

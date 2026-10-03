@@ -3,12 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// CARICARE IL PONTE SENZA AVERE SOLIDWORKS.
     ///
-    /// Il ponte e' un `.exe` che referenzia `Riscontro.Disegno.dll` e l'interop
+    /// Il ponte e' un `.exe` che referenzia `Oce.Solid.Agent.Core.dll` e l'interop
     /// di Dassault. Qui dentro servono due classi che di SOLIDWORKS non sanno
     /// niente — `Catalogo` e `Sessione.StessoDocumento` — e .NET carica le
     /// dipendenze **una alla volta, quando servono**: finche' non si tocca un

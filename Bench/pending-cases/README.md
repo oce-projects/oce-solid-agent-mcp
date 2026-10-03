@@ -1,7 +1,7 @@
 # Casi scritti prima della cosa che misurano
 
-Questa cartella **il banco non la guarda**: scandisce `Banco/cases/` e basta
-(`CasiDichiarati.cs:94`). Qui dentro stanno i casi che esercitano un
+Questa cartella **il banco non la guarda**: scandisce `Bench/cases/` e basta
+(`DeclaredCases.cs:94`). Qui dentro stanno i casi che esercitano un
 comportamento **che ancora non c'è**, scritti in anticipo.
 
 ## Perché esiste, e non è un cassetto
@@ -11,12 +11,12 @@ motivo noto — e un banco rosso per un motivo noto è **un banco che smette di
 dire qualcosa**: chi lo guarda impara a ignorare quella riga, e il giorno in
 cui diventa rossa per un altro motivo non se ne accorge nessuno.
 
-È la stessa forma di `Banco/tasks/` (voce Z-G9): *l'ingresso nasce prima di
+È la stessa forma di `Bench/tasks/` (voce Z-G9): *l'ingresso nasce prima di
 chi lo esegue, con la sua misura accanto.*
 
 ## La regola per uscire di qui
 
-Un caso si sposta in `Banco/cases/` **nello stesso commit** in cui arriva il
+Un caso si sposta in `Bench/cases/` **nello stesso commit** in cui arriva il
 comportamento che misura, e quel commit porta un giro di banco verde. Non
 prima: un caso in `cases/` è una promessa che il giro mantiene.
 
@@ -27,7 +27,7 @@ prima: un caso in `cases/` è una promessa che il giro mantiene.
 dimension hidden by hand (IAnnotation.Visible = swAnnotationHidden) does not
 count as «already dimensioned» in `drawing_dimension`. The library does it; the
 bench cannot build the situation yet: no catalogue operation hides a dimension,
-and the runner has no preamble field for it. It moves to `Banco/cases/drawing/`
+and the runner has no preamble field for it. It moves to `Bench/cases/drawing/`
 in the commit that brings the runner field `hide_dimensions_first`
 (`{"view": "V1"}`: every display dimension of that view is selected with
 IAnnotation.Select3 and hidden with IModelDoc2.HideDimension, then read back;
@@ -36,7 +36,7 @@ one that is not swAnnotationHidden is a bench error), with a bench run.
 ### Before, from 24/9/2026
 
 **Niente, ed è la cosa giusta.** I quattro casi di Z-G3 sono stati spostati in
-`Banco/cases/` il 24/9/2026, lo stesso giorno in cui i due `default` sono
+`Bench/cases/` il 24/9/2026, lo stesso giorno in cui i due `default` sono
 arrivati — `document_properties/default_material.json` con la sua
 `requested_material.json`, `bodies/default_combine.json` con la sua
 `requested_combine.json`.

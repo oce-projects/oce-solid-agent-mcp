@@ -11,7 +11,7 @@
 // l'unica cosa che cambia fra la prima volta e l'ultima e' quanti documenti
 // ci sono addosso.
 //
-//   node misura_accumulo.js [quante] [piano]
+//   node measure_accumulation.js [quante] [piano]
 //
 // Predefiniti: 12 giri su cases/bridge/c4s_round.json.
 const { spawnSync } = require("child_process");
@@ -19,9 +19,9 @@ const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
 const NODE = process.execPath;
-const CORRI = path.join(__dirname, "corri_piani.js");
-const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
-const CHIUDI = path.join(RADICE, "Controlli", "ChiudiScarti", "bin", "ChiudiScarti.exe");
+const CORRI = path.join(__dirname, "run_plans.js");
+const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
+const CHIUDI = path.join(RADICE, "Checks", "CloseLeftovers", "bin", "CloseLeftovers.exe");
 
 const quante = parseInt(process.argv[2] || "12", 10);
 const piano = process.argv[3] || path.join(__dirname, "cases", "bridge", "c4s_round.json");

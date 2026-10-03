@@ -9,7 +9,7 @@
 //  .6 namespaces, folders and identifiers) are GENERATED from one map: the
 //  Roslyn renames, the second pass on the literals, the case keys, the
 //  aliases with an expiry and the rename table of the CHANGELOG all read
-//  Controlli/lingua/name-map.tsv. Two maps would diverge, so the map is
+//  Checks/language/name-map.tsv. Two maps would diverge, so the map is
 //  extracted from the tree by this script, never written by hand; only the
 //  English column is.
 //
@@ -46,7 +46,7 @@
 //
 //  THE TYPES, and what count counts:
 //
-//    tool              the MCP tools (the tool list of Strumenti/, found by
+//    tool              the MCP tools (the tool list of Tools/, found by
 //                      the English tool api_search it also holds)
 //    sub_action        the values of the action argument of a tool
 //    operation         the operations of the catalogue
@@ -59,7 +59,7 @@
 //    enum_value        argument=value, per enum block (catalogue and tools,
 //                      and the values the cases pass), and key=value for
 //                      the name-like values of two catalogue keys
-//    catalogue_key     keys of Strumenti/catalogo.json outside the schemas
+//    catalogue_key     keys of Tools/catalog.json outside the schemas
 //    response_field    keys of the answers: every segment of the paths the
 //                      cases check, and the keys the library and the bridge
 //                      write into a Dictionary<string, object> (Roslyn, with
@@ -67,17 +67,17 @@
 //    response_value    name-like values of the answers: the textual equals
 //                      of the cases, and the literals written as values
 //                      into those dictionaries
-//    case_key          keys of the cases (Banco/case-keys.json contexts)
-//    free_case_key     the frozen free notes of Banco/case-keys.json and the
+//    case_key          keys of the cases (Bench/case-keys.json contexts)
+//    free_case_key     the frozen free notes of Bench/case-keys.json and the
 //                      notes that start with an underscore
-//    summary_key       keys of Banco/report/last.json (and of the test
+//    summary_key       keys of Bench/report/last.json (and of the test
 //                      ledger, when there is one)
 //    selector          selector kinds (@kind), their fields, and
 //                      field=value for the name-like values
 //    folder            every Italian folder name of git ls-files
 //    file              every Italian file name of git ls-files (the cases
 //                      are case_name)
-//    case_name         the file names of Banco/cases and Banco/pending-cases
+//    case_name         the file names of Bench/cases and Bench/pending-cases
 //                      (cases, plans, waiting cases)
 //    project           namespaces, root namespaces and assembly names
 //    identifier        names declared in C# (Roslyn: types, members, enum
@@ -85,7 +85,7 @@
 //                      and PowerShell (functions and variables)
 //
 //    For the protocol types count adds the structured places (catalogue,
-//    schemas, cases, Banco/case-keys.json, the summary) and the string
+//    schemas, cases, Bench/case-keys.json, the summary) and the string
 //    literals of the C#, JavaScript and PowerShell sources whose text is
 //    exactly the name: a word used in two roles is counted in both. A
 //    selector counts its uses in selector strings; folder the folders with
@@ -123,15 +123,15 @@
 //    and the map itself: known types, no row twice, six columns.
 //
 //  USAGE
-//    node Controlli/lingua/name-map-extract.js            extract and rewrite the map
-//    node Controlli/lingua/name-map-extract.js --counts   extract, print the counts, write nothing
-//    node Controlli/lingua/name-map-extract.js --check    the checks above, on the map as it is
-//    node Controlli/lingua/name-map-extract.js --self-test
+//    node Checks/language/name-map-extract.js            extract and rewrite the map
+//    node Checks/language/name-map-extract.js --counts   extract, print the counts, write nothing
+//    node Checks/language/name-map-extract.js --check    the checks above, on the map as it is
+//    node Checks/language/name-map-extract.js --self-test
 //        fake rows, one per way of failing the check: every check seen red,
 //        and a good map seen green
 //    --root <dir>        another checkout (default: the repository of this file)
-//    --map <file>        another map (default Controlli/lingua/name-map.tsv)
-//    --ledger <file>     a test ledger (Banco/report/tests.json of a bench
+//    --map <file>        another map (default Checks/language/name-map.tsv)
+//    --ledger <file>     a test ledger (Bench/report/tests.json of a bench
 //                        run) for summary keys; repeatable. The one in the
 //                        tree is read when it is there (git ignores it)
 //    --coverage          also list the names of the gate's sets (identifiers,
@@ -175,7 +175,7 @@ const detector = require('./detect-italian.js');
 const tokenStream = require('./token-stream.js');
 
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
-const MAP_REL = 'Controlli/lingua/name-map.tsv';
+const MAP_REL = 'Checks/language/name-map.tsv';
 const COLUMNS = ['type', 'it', 'en', 'count', 'where', 'note'];
 const TYPES = ['tool', 'sub_action', 'operation', 'catalogue_family', 'case_family', 'argument', 'enum_value',
   'catalogue_key', 'response_field', 'response_value', 'case_key', 'free_case_key', 'summary_key', 'selector',
@@ -187,15 +187,15 @@ const WHERE_MAX = 3;
 // this script has done its work. Window 1 (.4) moved the cases, the summary
 // and the ledger, and renamed the keys of the cases (CASE below).
 const LAYOUT = {
-  catalogue: 'Strumenti/catalogo.json',
-  caseKeys: 'Banco/case-keys.json',
+  catalogue: 'Tools/catalog.json',
+  caseKeys: 'Bench/case-keys.json',
   // the cases, and the cases that wait for a field of the runner
-  cases: ['Banco/cases/', 'Banco/pending-cases/'],
+  cases: ['Bench/cases/', 'Bench/pending-cases/'],
   regressionFolder: 'regression',
-  summary: ['Banco/report/last.json'],
-  ledger: 'Banco/report/tests.json',
-  toolFolder: 'Strumenti/',
-  // the tool list is the string array of Strumenti/ that holds this tool
+  summary: ['Bench/report/last.json'],
+  ledger: 'Bench/report/tests.json',
+  toolFolder: 'Tools/',
+  // the tool list is the string array of Tools/ that holds this tool
   toolAnchor: 'api_search',
   // the argument of a tool whose values are its sub-actions
   subActionArgument: 'action',
@@ -219,9 +219,9 @@ const PLAN = { operation: 'operation', args: 'arguments' };
 // get a compilation (the BCL and the groups they reference); the others are
 // parsed only.
 const GROUPS = [
-  { name: 'library', semantic: true, refs: [], match: (f) => f.startsWith('Riscontro.Disegno/') },
+  { name: 'library', semantic: true, refs: [], match: (f) => f.startsWith('Oce.Solid.Agent.Core/') },
   { name: 'bridge', semantic: true, refs: ['library'],
-    match: (f) => /^(Mcp|Ponte|Strumenti)\//.test(f) || f === 'Programma.cs' },
+    match: (f) => /^(Mcp|Bridge|Tools)\//.test(f) || f === 'Program.cs' },
   { name: 'other', semantic: false, refs: [], match: () => true },
 ];
 const BCL = ['mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Xml.dll', 'System.Xml.Linq.dll', 'System.Drawing.dll',
@@ -294,7 +294,7 @@ function shortValue(v) {
 
 // ── exceptions: names the translator never touches ──────────────────────────
 function loadExceptions(root) {
-  const list = readJson(path.join(root, 'Controlli', 'lingua', 'exceptions.json'));
+  const list = readJson(path.join(root, 'Checks', 'language', 'exceptions.json'));
   return list.filter(e => e.class !== 'transition' && e.pattern && (e.applies_to || []).includes('translator')).map(e => ({
     full: new RegExp('^(?:' + e.pattern + ')$'),
     file: e.file ? new RegExp(e.file) : null,
@@ -1064,7 +1064,7 @@ function extract(root, opts) {
     }
   }
 
-  // ── the tools (Strumenti/) ──────────────────────────────────────────────
+  // ── the tools (Tools/) ──────────────────────────────────────────────
   {
     const members = [];
     for (const [f, o] of cs) for (const m of o.members) members.push({ file: f, line: m[0], type: m[1], name: m[2], strings: m[3], keys: m[4], alias: m[5] });
@@ -1111,7 +1111,7 @@ function extract(root, opts) {
     if (declared === 0) cannot('no tool declaration found in ' + LAYOUT.toolFolder);
   }
 
-  // ── the case keys (Banco/case-keys.json) ────────────────────────────────
+  // ── the case keys (Bench/case-keys.json) ────────────────────────────────
   if (!exists(LAYOUT.caseKeys)) cannot('no case keys at ' + LAYOUT.caseKeys);
   const ckText = readText(path.join(root, LAYOUT.caseKeys));
   const ck = JSON.parse(ckText);
@@ -1217,7 +1217,7 @@ function extract(root, opts) {
       }
     };
     if (Array.isArray(body)) {
-      // a plan for corri_piani.js: a list of steps
+      // a plan for run_plans.js: a list of steps
       body.forEach((x, i) => { if (isObject(x)) walk(x, planStep, '[' + i + ']'); });
     } else if (isObject(body)) {
       if (!rootContext || !ck.contexts[rootContext]) cannot(LAYOUT.caseKeys + ' has no root context for ' + f);
@@ -1362,7 +1362,7 @@ function selectors(found, text, where) {
 // =============================================================================
 
 const HEADER_COMMENT = [
-  '# Name map of the translation (entry W3.1-bis.3). Written by Controlli/lingua/name-map-extract.js:',
+  '# Name map of the translation (entry W3.1-bis.3). Written by Checks/language/name-map-extract.js:',
   '# one row per Italian name per type. By hand: the en column, a note, and a row for a name the gate',
   '# does not see as Italian; count and where are refreshed on every run. The script explains the types.',
 ];
@@ -1475,7 +1475,7 @@ function shapeProblems(row) {
   }
   const words = type === 'response_value' || (type === 'enum_value' && /\s/.test(it));
   // a namespace, a folder or a file name may gain or lose dotted parts
-  // (Riscontro.Disegno -> Oce.Solid.Agent.Core): each English part has
+  // (Riscontro.Disegno -> Oce.Solid.Agent.Core): each English part has  // window-3: keep
   // the shape of the Italian parts
   const dotted = type === 'project' || type === 'folder' || type === 'file';
   if (dotted) {
@@ -1668,14 +1668,14 @@ function selfTest() {
     row('catalogue_key', 'sommario', 'summary'),
     row('enum_value', 'piano=frontale', 'plane=front'),
     row('selector', '@faccia', '@face'),
-    row('file', 'Attese.cs', 'Expectations.cs'),
+    row('file', 'Attese.cs', 'Expectations.cs'),  // window-3: keep
     row('folder', 'casi', 'cases'),
     row('free_case_key', '_firme', '_signatures'),
     row('response_value', 'alto', 'up'),
     row('case_family', 'verifica', 'checks', 'merged with the plural'),
     row('case_family', 'verifiche', 'checks', 'merged with the singular'),
-    row('project', 'Riscontro.Disegno', 'Oce.Solid.Agent.Core'),
-    row('project', 'Riscontro.Disegno.Catalogo', 'Oce.Solid.Agent.Core.Catalog'),
+    row('project', 'Riscontro.Disegno', 'Oce.Solid.Agent.Core'),  // window-3: keep
+    row('project', 'Riscontro.Disegno.Catalogo', 'Oce.Solid.Agent.Core.Catalog'),  // window-3: keep
     row('case_key', 'nome', 'name'),
   ];
   const goodNames = good.map(r => [r.type, r.it]);
@@ -1695,11 +1695,11 @@ function selfTest() {
     { title: 'a lost unit suffix is red (d)', rows: good.concat([row('argument', 'larghezza_mm', 'width')]), names: goodNames, expect: ['d'] },
     { title: 'a degree suffix not turned into _deg is red (d)', rows: good.concat([row('argument', 'scarto_gradi', 'deviation_degrees')]), names: goodNames, expect: ['d'] },
     { title: 'a letter outside ASCII is red (d)', rows: good.concat([row('folder', 'archivi', 'arch' + String.fromCharCode(0xee) + 'ves')]), names: goodNames, expect: ['d'] },
-    { title: 'a changed extension is red (d)', rows: good.concat([row('file', 'Sessione.cs', 'Session.js')]), names: goodNames, expect: ['d'] },
+    { title: 'a changed extension is red (d)', rows: good.concat([row('file', 'Sessione.cs', 'Session.js')]), names: goodNames, expect: ['d'] },  // window-3: keep
     { title: 'a lost leading underscore is red (d)', rows: good.concat([row('identifier', '_guinzaglio', 'leash')]), names: goodNames, expect: ['d'] },
     { title: 'a free note without an underscore is red (d)', rows: good.concat([row('free_case_key', '_guardato', 'seen')]), names: goodNames, expect: ['d'] },
     { title: 'changed separators in an enum row are red (d)', rows: good.concat([row('enum_value', 'verso=alto', 'normal_up')]), names: goodNames, expect: ['d'] },
-    { title: 'a namespace that does not extend its parent is red (e)', rows: good.concat([row('project', 'Riscontro.Disegno.Api', 'Oce.Solid.Agent.Api')]), names: goodNames, expect: ['e'] },
+    { title: 'a namespace that does not extend its parent is red (e)', rows: good.concat([row('project', 'Riscontro.Disegno.Api', 'Oce.Solid.Agent.Api')]), names: goodNames, expect: ['e'] },  // window-3: keep
     { title: 'an unknown type is red (map)', rows: good.concat([row('thing', 'cosa', 'thing')]), names: goodNames, expect: ['map'] },
     { title: 'a row twice is red (map)', rows: good.concat([row('folder', 'casi', 'cases', '', 2)]), names: goodNames, expect: ['map'] },
     { title: 'an English name the gate judges Italian is red (f)', rows: good.concat([row('argument', 'larghezza_mm', 'ingombro_mm')]), names: goodNames, expect: ['f'] },

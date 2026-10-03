@@ -1,9 +1,9 @@
 # =============================================================================
-#  enum-di-errore.ps1 - quali enum di errore di SOLIDWORKS hanno
+#  error-enum.ps1 - quali enum di errore di SOLIDWORKS hanno
 #                       "nessun errore" DIVERSO da zero        (voce Z-C7)
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come banco.ps1 e per la stessa ragione.
+#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
 #
 #  PERCHE' ESISTE
 #
@@ -19,13 +19,13 @@
 #  QUANDO RILANCIARLO
 #
 #  Quando cambia la versione di SOLIDWORKS. L'elenco misurato sta scritto in
-#  `Prove/ProveEnumDiErrore.cs`, che e' un controllo di contratto e gira anche
+#  `Tests/ErrorEnumTests.cs`, che e' un controllo di contratto e gira anche
 #  in CI, dove le interop NON ci sono: li' l'elenco e' un dato, e un dato
 #  copiato invecchia da solo. Questo script e' il modo di rinfrescarlo.
 #
 #  USO
-#      .\Controlli\enum-di-errore.ps1
-#      .\Controlli\enum-di-errore.ps1 -Tutti     anche quelli che valgono 0
+#      .\Checks\error-enum.ps1
+#      .\Checks\error-enum.ps1 -Tutti     anche quelli che valgono 0
 # =============================================================================
 
 param([switch]$Tutti)

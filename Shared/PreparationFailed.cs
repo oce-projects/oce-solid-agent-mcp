@@ -1,6 +1,6 @@
 using System;
 
-namespace Condiviso
+namespace Shared
 {
     /// <summary>
     /// NON HO POTUTO MISURARE. Non «ho misurato e il pezzo era sbagliato».

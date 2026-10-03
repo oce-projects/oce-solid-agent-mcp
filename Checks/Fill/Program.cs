@@ -49,8 +49,8 @@ using SolidWorks.Interop.swconst;
 //  Ground truth: new feature + its type + volume delta + bodies + features in error.
 //  No EditDelete, no AddDimension, no SimpleHole2 / ActivateSelectedFeature (they open PropertyManager pages).
 //
-//  USAGE      Controlli\Riempimento\bin\Riempimento.exe [--keep]
-//             (costruita da Controlli\costruisci-controlli.ps1 (e da build.ps1, passo 1c))
+//  USAGE      Checks\Fill\bin\Fill.exe [--keep]
+//             (costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c))
 //
 //  ESITO DEL 28/9/2026, SOLIDWORKS 29.5.1 (l'uscita della sonda, com'era):
 //

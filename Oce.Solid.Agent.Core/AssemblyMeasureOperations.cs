@@ -5,7 +5,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// QUANTO PESA L'ASSIEME, IN CHE SCATOLA STA, E LO STEP DELL'ASSIEME

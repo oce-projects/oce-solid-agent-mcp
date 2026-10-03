@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.DettaglioInTavola
+namespace Checks.DetailView
 {
     /// <summary>
     /// LA VISTA DI DETTAGLIO, MISURATA INVECE CHE DEDOTTA (voce GT4).
@@ -19,7 +19,7 @@ namespace Controlli.DettaglioInTavola
     ///      costato una correzione.»
     ///
     /// Questa sonda toglie l'analogia di mezzo. Stessa forma di
-    /// `SezioneInTavola`, con tre differenze che potrebbero non essere
+    /// `SectionView`, con tre differenze che potrebbero non essere
     /// dettagli:
     ///
     ///   - si traccia un CERCHIO invece di una linea, e sta DENTRO la vista
@@ -38,7 +38,7 @@ namespace Controlli.DettaglioInTavola
     /// partenza (`GetDetailCircleCount2`). Il valore di ritorno e' una
     /// promessa; il conto e' la misura.
     ///
-    ///     DettaglioInTavola.exe        lavora sulla tavola attiva
+    ///     DetailView.exe        lavora sulla tavola attiva
     /// </summary>
     internal static class Programma
     {

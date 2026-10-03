@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using static Prove.Contratti.Programma;
-using static Condiviso.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Programma;
+using static Shared.ClienteMcp;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// CHIEDERE ALL'UTENTE, NON AL MODELLO (voce W2.5).

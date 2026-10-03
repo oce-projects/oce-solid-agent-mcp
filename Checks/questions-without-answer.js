@@ -1,5 +1,5 @@
 // =============================================================================
-//  domande-senza-risposta.js - cosa e' stato chiesto al ponte e non c'era
+//  questions-without-answer.js - cosa e' stato chiesto al ponte e non c'era
 // =============================================================================
 //
 //  PERCHE' ESISTE (voce Z-G7)
@@ -11,7 +11,7 @@
 //  l'elenco di cio' che non c'e'.
 //
 //  Il ponte scrive una riga ogni volta che gli chiedono un nome che non
-//  esiste (`Strumenti/RegistroDelleDomande.cs`). Questo attrezzo la legge.
+//  esiste (`Tools/QuestionRegistry.cs`). Questo attrezzo la legge.
 //
 //  ── LA DISTINZIONE CHE VALE, E NON E' IL CONTEGGIO ──────────────────────────
 //
@@ -30,9 +30,9 @@
 //  Non va nel gancio pre-push.
 //
 //  USO
-//      node Controlli/domande-senza-risposta.js
-//      node Controlli/domande-senza-risposta.js <file.jsonl>
-//      node Controlli/domande-senza-risposta.js --righe    tutte, in ordine di tempo
+//      node Checks/questions-without-answer.js
+//      node Checks/questions-without-answer.js <file.jsonl>
+//      node Checks/questions-without-answer.js --righe    tutte, in ordine di tempo
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
@@ -84,7 +84,7 @@ for (const r of righe) {
 }
 
 // EXPECTED KEYS (W3.1-bis.2, item 5). Every record is written by
-// `Strumenti/RegistroDelleDomande.cs` with `timestamp`, `kind` and `name`
+// `Tools/QuestionRegistry.cs` with `timestamp`, `kind` and `name`
 // (`similar` only when there are neighbours). A record without one of them is
 // a producer that renamed its keys: read with a fallback, every question
 // would count as "?" with an empty name, and the report would look like one.

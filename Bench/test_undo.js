@@ -1,8 +1,8 @@
 // Prova lo strumento `undo` (voce R1) parlando al ponte come un client MCP.
 //
-//   node prova_annulla.js
+//   node test_undo.js
 //
-// PERCHE' QUI E NON NEL BANCO. `ProvaSaldatura` prova la LIBRERIA per
+// PERCHE' QUI E NON NEL BANCO. `Oce.Solid.Agent.Bench` prova la LIBRERIA per
 // riflessione; `undo` non sta nella libreria — e' uno strumento del ponte,
 // e la parte che conta (il ricordo dell'ultimo piano, i rifiuti) vive in
 // `Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
@@ -28,7 +28,7 @@ const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
+const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
 
 const PIANO_DUE_PASSI = [
   {

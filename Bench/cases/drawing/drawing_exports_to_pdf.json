@@ -64,7 +64,7 @@
       "arguments": { "search": ["PROVA123", "ASSENTE987"] },
       "expect": [
         { "what": "measurements.found", "equal_to": ["PROVA123"],
-          "why": "VOCE GT3-bis: la nota scritta due passi prima esce dal PDF come TESTO. Misurato con `Controlli/TestoNelPdf`: nel file e' scritta come indici di glifo dietro le tabelle /ToUnicode, e una ricerca nei byte non la troverebbe — `export_pdf` la decodifica" },
+          "why": "VOCE GT3-bis: la nota scritta due passi prima esce dal PDF come TESTO. Misurato con `Checks/PdfText`: nel file e' scritta come indici di glifo dietro le tabelle /ToUnicode, e una ricerca nei byte non la troverebbe — `export_pdf` la decodifica" },
         { "what": "measurements.not_found", "equal_to": ["ASSENTE987"],
           "why": "IL ROSSO NELLA STESSA CORSA: una scritta che nella tavola non c'e' NON deve trovarsi. Senza questa riga, un decodificatore che «trova» tutto passerebbe la riga sopra" },
         { "what": "measurements.sheets", "equal_to": 1 },

@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE NETS OF W3.1-bis.2 THAT LIVE AS SCRIPTS, SEEN RED ON EVERY RUN.
@@ -16,7 +16,7 @@ namespace Prove.Contratti
     /// disassembled assemblies (`same-il.ps1`), the JSON readers of the checks
     /// that must exit 1 when an expected key is missing
     /// (`expected-keys-test.js`), the reading of the bridge's answers in
-    /// `prova-x2.js`, and the snapshot every later step of W3.1-bis is
+    /// `test-x2.js`, and the snapshot every later step of W3.1-bis is
     /// compared with (`snapshot.js`, item 11). The name map of W3.1-bis.3
     /// (`name-map-extract.js`) joined them: its self-test, and its check on the
     /// real map and on a copy with three fakes. Each one has a self-test that
@@ -50,7 +50,7 @@ namespace Prove.Contratti
                 new SelfTest
                 {
                     Title = "token-stream.js: every mode turns red on a changed token, green on the same tokens",
-                    Exe = "node", Script = Path.Combine(root, "Controlli", "lingua", "token-stream.js"),
+                    Exe = "node", Script = Path.Combine(root, "Checks", "language", "token-stream.js"),
                     Arguments = "--self-test",
                     Summary = new Regex(@"(\d+) of (\d+) cases as expected"),
                     Enough = m => m.Groups[1].Value == m.Groups[2].Value && int.Parse(m.Groups[2].Value) >= 31,
@@ -58,15 +58,15 @@ namespace Prove.Contratti
                 new SelfTest
                 {
                     Title = "expected-keys-test.js: every JSON reader of the checks exits 1 on a missing key",
-                    Exe = "node", Script = Path.Combine(root, "Controlli", "expected-keys-test.js"),
+                    Exe = "node", Script = Path.Combine(root, "Checks", "expected-keys-test.js"),
                     Arguments = "",
                     Summary = new Regex(@"Every reader fails when an expected key is missing, and passes on what is there \((\d+) cases\)"),
                     Enough = m => int.Parse(m.Groups[1].Value) >= 25,
                 },
                 new SelfTest
                 {
-                    Title = "prova-x2.js: an answer without its text is a failure, not a pass",
-                    Exe = "node", Script = Path.Combine(root, "Controlli", "prova-x2.js"),
+                    Title = "test-x2.js: an answer without its text is a failure, not a pass",
+                    Exe = "node", Script = Path.Combine(root, "Checks", "test-x2.js"),
                     Arguments = "--self-test",
                     Summary = new Regex(@"The reading fails on every answer without the expected keys\."),
                     Enough = m => true,
@@ -74,7 +74,7 @@ namespace Prove.Contratti
                 new SelfTest
                 {
                     Title = "snapshot.js: a changed literal, a vanished assertion target, a changed outcome and a count dropped to 0 are red, an unstable case is apart",
-                    Exe = "node", Script = Path.Combine(root, "Controlli", "lingua", "snapshot.js"),
+                    Exe = "node", Script = Path.Combine(root, "Checks", "language", "snapshot.js"),
                     Arguments = "--self-test",
                     Summary = new Regex(@"(\d+) of (\d+) checks as expected"),
                     Enough = m => m.Groups[1].Value == m.Groups[2].Value && int.Parse(m.Groups[2].Value) >= 28,
@@ -82,7 +82,7 @@ namespace Prove.Contratti
                 new SelfTest
                 {
                     Title = "name-map-extract.js: every check of the name map (a missing row, a collision, a keyword, a shape, a namespace, a name the gate reads as Italian) is red on its fake row",
-                    Exe = "node", Script = Path.Combine(root, "Controlli", "lingua", "name-map-extract.js"),
+                    Exe = "node", Script = Path.Combine(root, "Checks", "language", "name-map-extract.js"),
                     Arguments = "--self-test",
                     Summary = new Regex(@"(\d+) of (\d+) cases as expected"),
                     Enough = m => m.Groups[1].Value == m.Groups[2].Value && int.Parse(m.Groups[2].Value) >= 27,
@@ -90,7 +90,7 @@ namespace Prove.Contratti
                 new SelfTest
                 {
                     Title = "same-il.ps1: a changed literal, instruction, resource or unmapped rename is red",
-                    Exe = "powershell.exe", Script = Path.Combine(root, "Controlli", "lingua", "same-il.ps1"),
+                    Exe = "powershell.exe", Script = Path.Combine(root, "Checks", "language", "same-il.ps1"),
                     Arguments = "-SelfTest",
                     Summary = new Regex(@"(\d+) of (\d+) comparisons as expected"),
                     Enough = m => m.Groups[1].Value == m.Groups[2].Value && int.Parse(m.Groups[2].Value) >= 17,
@@ -129,7 +129,7 @@ namespace Prove.Contratti
         /// <summary>
         /// THE NAME MAP ITSELF (entry W3.1-bis.3), not only fake rows. The
         /// rename windows .4 to .6 are generated from
-        /// `Controlli/lingua/name-map.tsv`: an Italian name without a row is a
+        /// `Checks/language/name-map.tsv`: an Italian name without a row is a
         /// name no window renames, two Italian names on one English name of a
         /// type are a rename that collides, and a keyword is a rename that does
         /// not compile or does not validate. `--check` extracts the names from
@@ -140,8 +140,8 @@ namespace Prove.Contratti
         {
             const string title = "name-map-extract.js --check: every Italian name of the tree has a row with an English name, none shared inside a type, none a keyword";
             const string fakeTitle = "name-map-extract.js --check is red on a copy of the map without one row, with a collision and with a keyword";
-            string script = Path.Combine(root, "Controlli", "lingua", "name-map-extract.js");
-            string map = Path.Combine(root, "Controlli", "lingua", "name-map.tsv");
+            string script = Path.Combine(root, "Checks", "language", "name-map-extract.js");
+            string map = Path.Combine(root, "Checks", "language", "name-map.tsv");
             if (!File.Exists(script) || !File.Exists(map))
             {
                 Segna(title, false, "missing: " + (File.Exists(script) ? map : script));

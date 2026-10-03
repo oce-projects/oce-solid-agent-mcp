@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// The geometric half of <see cref="ApiHelpers"/>: edges (S12), boxes (S6)

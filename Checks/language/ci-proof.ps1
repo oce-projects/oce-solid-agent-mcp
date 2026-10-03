@@ -5,7 +5,7 @@
 #  A gate never seen firing is not a gate. The contract LanguageGateTests
 #  proves the detector and the gate script on a throw-away repository; this
 #  proves the CI step, on GitHub, with throw-away branches cut from the
-#  current HEAD, each started with `gh workflow run prove.yml --ref <branch>
+#  current HEAD, each started with `gh workflow run tests.yml --ref <branch>
 #  -f base=<HEAD>` so the step judges exactly the commits of the case:
 #
 #    italian-line      one Italian comment line, baseline untouched
@@ -29,8 +29,8 @@
 #  the point is to see the CI stop them), and deleted at the end unless
 #  -KeepBranches. Nothing is pushed to the branch you are on.
 #
-#      .\Controlli\lingua\ci-proof.ps1
-#      .\Controlli\lingua\ci-proof.ps1 -Remote origin -KeepBranches
+#      .\Checks\language\ci-proof.ps1
+#      .\Checks\language\ci-proof.ps1 -Remote origin -KeepBranches
 #
 #  Needs: git, node, gh (logged in), push rights on the remote. HEAD need not
 #  be on the remote: it travels as the parent of every throw-away branch (so
@@ -55,20 +55,20 @@ Push-Location $work
 $cases = @()
 try {
     & git remote set-url origin $url; Must 'git remote set-url'
-    $detector = Join-Path $work 'Controlli\lingua\detect-italian.js'
-    $target = Join-Path $work 'Controlli\lingua\measure.js'
+    $detector = Join-Path $work 'Checks\language\detect-italian.js'
+    $target = Join-Path $work 'Checks\language\measure.js'
     # the helpers are Node: PowerShell 5 would re-encode and re-indent the JSON
     $helper = Join-Path $work 'ci-proof-helper.js'
     @'
 const fs = require('fs');
 const [, , what, file] = process.argv;
-const lex = JSON.parse(fs.readFileSync('Controlli/lingua/lexicon.json', 'utf8'));
+const lex = JSON.parse(fs.readFileSync('Checks/language/lexicon.json', 'utf8'));
 const line = '// ' + lex.injection_samples.prose + '\n';
 if (what === 'line') fs.appendFileSync(file, line);
 if (what === 'loosen') {
   const words = lex.injection_samples.prose.split(/\s+/);
   for (const k of ['function_words', 'content_words', 'weak_words']) lex[k] = (lex[k] || []).filter(w => !words.includes(w));
-  fs.writeFileSync('Controlli/lingua/lexicon.json', JSON.stringify(lex, null, 1) + '\n');
+  fs.writeFileSync('Checks/language/lexicon.json', JSON.stringify(lex, null, 1) + '\n');
 }
 '@ | Set-Content -Path $helper -Encoding ASCII
 
@@ -118,7 +118,7 @@ if (what === 'loosen') {
             }
         }
         & git push --quiet --no-verify origin "HEAD:refs/heads/$($c.Branch)"; Must "git push $($c.Branch)"
-        & gh workflow run prove.yml --ref $c.Branch -f "base=$head"; Must "gh workflow run $($c.Branch)"
+        & gh workflow run tests.yml --ref $c.Branch -f "base=$head"; Must "gh workflow run $($c.Branch)"
         Write-Output "ci-proof: $($c.Branch) pushed and started"
     }
 
@@ -126,7 +126,7 @@ if (what === 'loosen') {
         $id = $null
         for ($i = 0; $i -lt 30 -and -not $id; $i++) {
             Start-Sleep -Seconds 5
-            $id = (& gh run list --workflow prove.yml --branch $c.Branch --limit 1 --json databaseId --jq '.[0].databaseId')
+            $id = (& gh run list --workflow tests.yml --branch $c.Branch --limit 1 --json databaseId --jq '.[0].databaseId')
         }
         if (-not $id) { Write-Output "ci-proof: no run found for $($c.Branch)"; $c.Got = 'no run'; continue }
         & gh run watch $id --interval 15 | Out-Null

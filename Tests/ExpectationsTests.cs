@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using ProvaSaldatura;
-using static Prove.Contratti.Programma;
+using Oce.Solid.Agent.Bench;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// IL VALUTATORE DELLE ATTESE, contro stati finti scritti a mano.

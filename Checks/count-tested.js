@@ -11,7 +11,7 @@
 //  Questo conta la seconda. Per ogni operazione a catalogo guarda se esiste
 //  qualcosa che la esercita, e distingue TRE modi, perche' non valgono uguale:
 //
-//    caso dichiarato   un file in `Banco\cases\` con dentro delle attese.
+//    caso dichiarato   un file in `Bench\cases\` con dentro delle attese.
 //                      Gira a ogni giro, e se il comportamento cambia diventa
 //                      rosso. E' l'unico che vale del tutto.
 //
@@ -19,7 +19,7 @@
 //                      in C#: vale, ed e' scritto qui perche' non si legga
 //                      come un buco.
 //
-//    piano a mano      un ARRAY in `cases\drawing\`, che lancia `corri_piani.js`.
+//    piano a mano      un ARRAY in `cases\drawing\`, che lancia `run_plans.js`.
 //                      **Non gira in nessun giro e non asserisce niente**: e'
 //                      un appunto di come si e' misurato, non una prova.
 //
@@ -28,9 +28,9 @@
 //  nasce con cinque rossi permanenti e' un elenco che qualcuno silenziera'; si
 //  sistemano prima quelle, poi la guardia si accende su un campo pulito.
 //
-//      node Controlli\conta-provate.js
-//      node Controlli\conta-provate.js --solo-orfane
-//      node Controlli\conta-provate.js --catalogue <file> --cases <folder> [--bench <folder>]
+//      node Checks\count-tested.js
+//      node Checks\count-tested.js --solo-orfane
+//      node Checks\count-tested.js --catalogue <file> --cases <folder> [--bench <folder>]
 //
 //  EXIT CODES (W3.1-bis.2, item 5). It exits 0 once it has measured: the
 //  numbers are a measure, not a verdict. It exits 1 when what it reads is
@@ -52,9 +52,9 @@ function optionValue(name, fallback) {
   const i = process.argv.indexOf(name);
   return i >= 0 && i + 1 < process.argv.length ? path.resolve(process.argv[i + 1]) : fallback;
 }
-const CATALOGO = optionValue('--catalogue', path.join(RADICE, 'Strumenti', 'catalogo.json'));
-const CASI = optionValue('--cases', path.join(RADICE, 'Banco', 'cases'));
-const BANCO = optionValue('--bench', path.join(RADICE, 'Banco'));
+const CATALOGO = optionValue('--catalogue', path.join(RADICE, 'Tools', 'catalog.json'));
+const CASI = optionValue('--cases', path.join(RADICE, 'Bench', 'cases'));
+const BANCO = optionValue('--bench', path.join(RADICE, 'Bench'));
 
 const soloOrfane = process.argv.indexOf('--solo-orfane') >= 0;
 
@@ -87,7 +87,7 @@ let catalogo;
 try { catalogo = JSON.parse(fs.readFileSync(CATALOGO, 'utf8').replace(/^\ufeff/, '')); }
 catch (e) {
   console.log('cannot read the catalogue ' + CATALOGO + ': ' + e.message);
-  console.log('it is written by  .\\bin\\Riscontro.Catalogo.exe Strumenti\\catalogo.json');
+  console.log('it is written by  .\\bin\\Oce.Solid.Agent.Catalog.exe Tools\\catalog.json');
   process.exit(1);
 }
 if (expectKey(catalogo, 'operations', 'array', 'catalogue')) {
@@ -122,7 +122,7 @@ function scorri(cartella) {
     catch (e) { missingKeys.push(where + ': does not parse (' + e.message + ')'); continue; }
 
     // UN PIANO E' UN ARRAY, UN CASO E' UN OGGETTO. La differenza e'
-    // strutturale, come gia' scritto in `CasiDichiarati.cs`: non si indovina
+    // strutturale, come gia' scritto in `DeclaredCases.cs`: non si indovina
     // dal nome del file.
     if (Array.isArray(j)) {
       // a plan is read as text below, but its steps carry the same key
@@ -199,7 +199,7 @@ if (!soloOrfane) {
     console.log('');
   }
   console.log('(La guardia vera e\' il controllo di contratto «ogni operazione a catalogo ha un');
-  console.log(' caso VERDE nell\'ultimo giro», che legge i casi verdi da Banco\\report\\last.json.)');
+  console.log(' caso VERDE nell\'ultimo giro», che legge i casi verdi da Bench\\report\\last.json.)');
   console.log('');
   if (perModo['solo piano a mano'].length > 0) {
     console.log('SOLO UN PIANO A MANO — un appunto di come si e\' misurato, non una prova:');
@@ -214,6 +214,6 @@ if (perModo['NIENTE'].length === 0) {
   console.log('ORFANE — a catalogo, e nessun giro le tocca:');
   for (const o of perModo['NIENTE']) console.log('    ' + o);
   console.log('');
-  console.log('Per ognuna: o un caso dichiarato in Banco\\cases\\, oppure Provata = false,');
+  console.log('Per ognuna: o un caso dichiarato in Bench\\cases\\, oppure Provata = false,');
   console.log('che la toglie dal catalogo come gia\' succede a center_marks.');
 }

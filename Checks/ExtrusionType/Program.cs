@@ -28,7 +28,7 @@ using SolidWorks.Interop.swconst;
 //    boss    GetTypeName2 ICE        GetTypeName Boss       IsBossFeature True
 //    cut     GetTypeName2 ICE        GetTypeName Cut        IsBossFeature False
 //  Every extrusion after the base is "ICE" for GetTypeName2, even one made from
-//  a sketch on a plane. OperazioniCambiaEstrusione.cs asks IsBossFeature only for
+//  a sketch on a plane. EditExtrusionOperations.cs asks IsBossFeature only for
 //  "ICE"; "Extrusion" is the base, neither a boss for IsBossFeature nor a cut.
 internal static class Program
 {

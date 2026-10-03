@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// A DOCUMENT IS CLOSED OR ACTIVATED BY PATH OR BY REFERENCE, NEVER BY TITLE
@@ -26,13 +26,13 @@ namespace Prove.Contratti
     /// extensions, a setting of the station, and this station shows them (the
     /// probe itself left the tie undecided for that reason). So this group checks
     ///   - on the SOURCE, that no CloseDoc, QuitDoc or ActivateDoc call is left
-    ///     outside Riscontro.Disegno/DocumentByPath.cs, and that inside it the
+    ///     outside Oce.Solid.Agent.Core/DocumentByPath.cs, and that inside it the
     ///     calls take only the name the rule computed;
     ///   - on the BUILT library, by reflection, the pure rules of DocumentByPath
     ///     with the situations of the probe.
-    /// On library 0.143.0 all of it is red: ten direct calls (Documenti.cs 3,
-    /// OperazioniEsporta.cs 2, OperazioniLamiera.cs 2, OperazioniSaldatura.cs 1,
-    /// SezioneProfilo.cs 2), and no DocumentByPath.
+    /// On library 0.143.0 all of it is red: ten direct calls (Documents.cs 3,
+    /// ExportOperations.cs 2, SheetMetalOperations.cs 2, WeldmentOperations.cs 1,
+    /// SectionProfile.cs 2), and no DocumentByPath.
     /// </summary>
     internal static class DocumentByPathContract
     {
@@ -47,7 +47,7 @@ namespace Prove.Contratti
 
             DirectCallsInTheSource();
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of DocumentByPath",
@@ -72,12 +72,12 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                rules = asm.GetType("Riscontro.Disegno.DocumentByPath", false);
+                rules = asm.GetType("Oce.Solid.Agent.Core.DocumentByPath", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
             if (rules == null)
             {
-                Segna("DocumentByPath is in the library", false, "type Riscontro.Disegno.DocumentByPath not found");
+                Segna("DocumentByPath is in the library", false, "type Oce.Solid.Agent.Core.DocumentByPath not found");
                 return;
             }
 
@@ -95,7 +95,7 @@ namespace Prove.Contratti
         private static void DirectCallsInTheSource()
         {
             var files = new List<string>();
-            foreach (var folder in new[] { "Riscontro.Disegno", "Ponte", "Strumenti", "Mcp", "Condiviso" })
+            foreach (var folder in new[] { "Oce.Solid.Agent.Core", "Bridge", "Tools", "Mcp", "Shared" })
             {
                 var dir = Path.Combine(Radice(), folder);
                 if (!Directory.Exists(dir)) continue;
@@ -106,7 +106,7 @@ namespace Prove.Contratti
                     files.Add(f);
                 }
             }
-            var main = Path.Combine(Radice(), "Programma.cs");
+            var main = Path.Combine(Radice(), "Program.cs");
             if (File.Exists(main)) files.Add(main);
 
             var outside = new List<string>();
@@ -116,7 +116,7 @@ namespace Prove.Contratti
             foreach (var f in files)
             {
                 bool isHelper = string.Equals(Path.GetFileName(f), HelperFile, StringComparison.OrdinalIgnoreCase) &&
-                                string.Equals(Path.GetFileName(Path.GetDirectoryName(f)), "Riscontro.Disegno",
+                                string.Equals(Path.GetFileName(Path.GetDirectoryName(f)), "Oce.Solid.Agent.Core",
                                               StringComparison.OrdinalIgnoreCase);
                 if (isHelper) helperSeen = true;
                 var state = new StripState();
@@ -158,7 +158,7 @@ namespace Prove.Contratti
             bool activateThere = helperCalls.Any(c => c.EndsWith("ActivateDoc3", StringComparison.Ordinal));
             Segna("inside DocumentByPath, CloseDoc and ActivateDoc3 take only the name the rule computed",
                   helperSeen && closeThere && activateThere && helperBad.Count == 0,
-                  !helperSeen ? "Riscontro.Disegno/" + HelperFile + " is missing"
+                  !helperSeen ? "Oce.Solid.Agent.Core/" + HelperFile + " is missing"
                   : !closeThere || !activateThere ? "a CloseDoc or an ActivateDoc3 call is missing: " + string.Join(", ", helperCalls)
                   : helperBad.Count == 0 ? string.Join(", ", helperCalls)
                   : string.Join(" | ", helperBad));

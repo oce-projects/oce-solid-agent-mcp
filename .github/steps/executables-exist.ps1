@@ -8,22 +8,22 @@
 #  suite lo chiamerebbe "non eseguibile qui" -- cioe' scuserebbe un difetto con
 #  una limitazione della macchina.
 #
-#      .\.github\passi\gli-eseguibili-ci-sono.ps1 -InteropCe si
+#      .\.github\steps\executables-exist.ps1 -InteropCe si
 # =============================================================================
 
 [CmdletBinding()]
 param(
-    # 'si' oppure 'no': lo dice il passo `interop-ce.ps1`.
+    # 'si' oppure 'no': lo dice il passo `interop-is-there.ps1`.
     [string] $InteropCe = 'no'
 )
 
 $ErrorActionPreference = 'Stop'
 
-if (-not (Test-Path 'Prove\bin\Prove.Contratti.exe')) {
-    Write-Output "NON COMPILATO: Prove\bin\Prove.Contratti.exe"
+if (-not (Test-Path 'Tests\bin\Oce.Solid.Agent.ContractTests.exe')) {
+    Write-Output "NON COMPILATO: Tests\bin\Oce.Solid.Agent.ContractTests.exe"
     exit 1
 }
-Write-Output "Prove.Contratti.exe c'e'"
+Write-Output "Oce.Solid.Agent.ContractTests.exe c'e'"
 
 if ($InteropCe -eq 'si' -and -not (Test-Path 'bin\oce-solid-agent-mcp.exe')) {
     Write-Output "L'interop c'e' ma il ponte non e' stato prodotto: e' un difetto,"

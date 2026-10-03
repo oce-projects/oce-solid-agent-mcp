@@ -4,9 +4,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using SolidWorks.Interop.sldworks;
-using static ProvaSaldatura.Attese;
+using static Oce.Solid.Agent.Bench.Attese;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// LA REGRESSIONE SUI RIFERIMENTI (voce F8).

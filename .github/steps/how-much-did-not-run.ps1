@@ -9,12 +9,12 @@
 #  Legge `prove.xml`, che e' JUnit e porta gia' `<skipped>` per caso e
 #  `skipped=` per suite.
 #
-#      .\.github\passi\quanto-non-ha-girato.ps1
+#      .\.github\steps\how-much-did-not-run.ps1
 # =============================================================================
 
 [CmdletBinding()]
 param(
-    [string] $File = 'Prove\bin\prove.xml'
+    [string] $File = 'Tests\bin\prove.xml'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,7 +38,7 @@ $rossi   = @($tutti | Where-Object { $_.failure })
 $fatti   = $tutti.Count - $saltati.Count
 
 $r = @()
-$r += "### Prove.Contratti"
+$r += "### Oce.Solid.Agent.ContractTests"
 $r += ""
 $r += "- **$fatti** controlli fatti davvero"
 $r += "- **$($rossi.Count)** falliti"

@@ -4,7 +4,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// QUELLO CHE IL PEZZO DICE DI SE', E LE SUE VARIANTI. (voce GP12)
@@ -468,7 +468,7 @@ namespace Riscontro.Disegno
         /// True when the text read back (ValOut) is the text written (Z-C21.8,
         /// finding M35). The evaluated value takes no part: for a formula it is
         /// the result, not the text. Kept apart from the document so that
-        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         /// </summary>
         internal static bool PropertyWrittenAsAsked(string written, bool present, string readBack)
         {

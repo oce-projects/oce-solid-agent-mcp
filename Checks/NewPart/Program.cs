@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.NuovaParte
+namespace Checks.NewPart
 {
     /// <summary>
     /// APRE UNA PARTE VUOTA, per far ripartire il banco da zero.

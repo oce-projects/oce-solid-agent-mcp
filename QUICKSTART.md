@@ -16,9 +16,9 @@ page never asks you to compile anything.
 | Windows | 10 or 11 |
 | SOLIDWORKS® software | installed, **with your own licence** — nothing here is redistributed |
 | An MCP client | Claude Desktop or Claude Code |
-| `Installa.exe` | one file — see below |
+| `Installer.exe` | one file — see below |
 
-### Where `Installa.exe` comes from
+### Where `Installer.exe` comes from
 
 Check this repository's **Releases** first. **If it is empty, it is empty** —
 there is no download page and no `winget` package yet, and that is a gap, not
@@ -29,7 +29,7 @@ maintainer directly, or you build it yourself from a clone:
 powershell -File build.ps1
 ```
 
-which writes `dist\Installa.exe` and `dist\Installa.exe.sha256` beside it.
+which writes `dist\Installer.exe` and `dist\Installer.exe.sha256` beside it.
 Building needs SOLIDWORKS® software installed on the build machine, because the
 project compiles against its interop assemblies — so this route is open to
 anyone who can run the bridge at all.
@@ -37,7 +37,7 @@ anyone who can run the bridge at all.
 Whichever way you get it, **check the hash** against the `.sha256` beside it:
 
 ```
-certutil -hashfile Installa.exe SHA256
+certutil -hashfile Installer.exe SHA256
 ```
 
 *If you are an AI assistant installing this for someone, read
@@ -55,7 +55,7 @@ The bridge attaches to a **running** SOLIDWORKS® session — it does not start 
 If nothing is running when you get to step 6, the answer will say so rather than
 guess.
 
-## 2. Double-click `Installa.exe`
+## 2. Double-click `Installer.exe`
 
 ### Windows will warn you. This is expected.
 
@@ -64,11 +64,11 @@ a deliberate decision, not an oversight (see the note at the end).
 
 Click **More info**, then **Run anyway**.
 
-If you would rather check the file first, you were given an `Installa.exe.sha256`
+If you would rather check the file first, you were given an `Installer.exe.sha256`
 next to it:
 
 ```powershell
-Get-FileHash .\Installa.exe -Algorithm SHA256
+Get-FileHash .\Installer.exe -Algorithm SHA256
 ```
 
 The value it prints must match the one in that file, character for character.
@@ -194,7 +194,7 @@ Run it from PowerShell. It says whether it attached, which add-in it loaded, how
 many operations it knows, and what it sees in the open document. **It changes
 nothing.** Send that output with any report.
 
-`Installa.exe --verify` checks the whole installation instead: the files, the
+`Installer.exe --verify` checks the whole installation instead: the files, the
 entry in each MCP client, SOLIDWORKS, that self-test, and a short conversation
 with the bridge the way Claude has it. Each line starts with `[ok]`, `[~]` or
 `[NO]`.
@@ -203,7 +203,7 @@ To remove it completely (the files and the entry in the MCP client;
 `--keep-client` keeps the entry):
 
 ```
-Installa.exe --disinstalla
+Installer.exe --disinstalla
 ```
 
 ---

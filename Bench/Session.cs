@@ -7,7 +7,7 @@ using System.Threading;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// LA GIUNTURA CHE NON ERA MAI STATA PROVATA.
@@ -15,7 +15,7 @@ namespace ProvaSaldatura
     /// Questo progetto ha due banchi, e tutti e due misurano mezza cosa:
     ///   - `banco0300.py` prova il PIANO — cosa il modello propone, dato uno
     ///     stato del documento scritto a mano. Non disegna niente.
-    ///   - `ProvaSaldatura` prova il DISEGNO — se un'operazione costruisce il
+    ///   - `Oce.Solid.Agent.Bench` prova il DISEGNO — se un'operazione costruisce il
     ///     pezzo giusto, dati gli argomenti. Non chiede niente al modello.
     ///
     /// In mezzo c'e' il giro vero: il modello guarda il pezzo, propone, si

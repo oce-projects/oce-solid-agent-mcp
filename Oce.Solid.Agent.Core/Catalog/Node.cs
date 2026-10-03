@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace Riscontro.Disegno.Catalogo
+namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>
     /// Un pezzo di catalogo: un valore, un oggetto con le chiavi IN ORDINE, o
@@ -11,7 +11,7 @@ namespace Riscontro.Disegno.Catalogo
     ///
     /// PERCHE' NON `Dictionary<string, object>`.
     /// Perche' un dizionario non promette l'ordine delle chiavi, e qui l'ordine
-    /// e' contenuto: `catalogo.json` e' un file che si legge, si confronta con
+    /// e' contenuto: `catalog.json` e' un file che si legge, si confronta con
     /// `diff` e si versiona. Se le chiavi ballano a ogni compilazione, ogni
     /// commit mostra un file intero cambiato e nessuno vede piu' la riga che e'
     /// cambiata davvero.
@@ -98,7 +98,7 @@ namespace Riscontro.Disegno.Catalogo
         /// verso il modello, molto piu' degli schemi.
         ///
         /// Da qui in avanti la stessa forma serve a un'altra cosa: tenere il
-        /// `diff` di `catalogo.json` leggibile quando cambia una riga sola.
+        /// `diff` di `catalog.json` leggibile quando cambia una riga sola.
         /// </summary>
         public static string Json(Nodo radice)
         {

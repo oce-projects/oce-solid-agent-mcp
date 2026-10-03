@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LE BOOLEANE FRA CORPI: unisci, sottrai, interseca. (voce GP8)
@@ -747,6 +747,6 @@ namespace Riscontro.Disegno
         // `IndiceDelCorpo` («C2» -> indice 1 di un GetBodies2 nuovo) e' stato
         // tolto con la voce Z-C21.2: era la risoluzione per posizione che il
         // rilievo L6-1 ha trovato sbagliata. Gli uid dei corpi passano da
-        // `CorpiDaUid` (OperazioniSaldatura.cs), che guarda la firma.
+        // `CorpiDaUid` (WeldmentOperations.cs), che guarda la firma.
     }
 }

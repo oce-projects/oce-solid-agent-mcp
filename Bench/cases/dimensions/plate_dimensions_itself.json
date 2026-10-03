@@ -1,7 +1,7 @@
 {
   "name": "plate_dimensions_itself",
   "family": "dimensions",
-  "why": "VOCE Z-H3. La piastra di `Controlli/DimXpert` (24/9/2026): 100 x 60 x 10 con un foro passante da 20 al centro. Uno schema DimXpert, dal nucleo e senza add-in, con tre riferimenti — fondo, fianco sinistro, retro — deve mettere le quote che un disegnatore metterebbe, coi valori giusti.",
+  "why": "VOCE Z-H3. La piastra di `Checks/DimXpert` (24/9/2026): 100 x 60 x 10 con un foro passante da 20 al centro. Uno schema DimXpert, dal nucleo e senza add-in, con tre riferimenti — fondo, fianco sinistro, retro — deve mettere le quote che un disegnatore metterebbe, coi valori giusti.",
   "_why_the_values_and_not_the_count": "Sei quote qualunque sarebbero sei quote. `values_mm` e' l'elenco ordinato dei numeri che le quote portano, ed e' quello che distingue uno schema giusto da uno che ha quotato altro: 10 lo spessore, 20 il foro, 30 e 50 la posizione del foro dai due fianchi di riferimento, 60 e 100 i lati.",
   "start": { "new_part": true },
   "steps": [

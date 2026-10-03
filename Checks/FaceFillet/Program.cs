@@ -34,7 +34,7 @@ using SolidWorks.Interop.swconst;
 //     Face. E' verosimile che per questo torni sempre NULL qualunque
 //     combinazione di `Options`, mentre lo stesso metodo funziona per il
 //     raccordo SEMPLICE (Ftyp=Simple, gia' in produzione: vedi
-//     OperazioniSw.cs::EseguiRaccordo) — la stessa pagina elenca anche
+//     SwOperations.cs::EseguiRaccordo) — la stessa pagina elenca anche
 //     quello fra gli obsoleti, ma evidentemente tollerato per compatibilita'
 //     all'indietro sui casi comuni, mentre Face non lo e' in nessuna
 //     combinazione provata.
@@ -117,8 +117,8 @@ using SolidWorks.Interop.swconst;
 //       SelectByID2: True/True
 //    5. RICETTA GUIDA con SelectByID2 per coordinate (marche 2/4) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (tolti 214,6, atteso 214,6)   corpi 1 -> 1
 //
-//  USO   Controlli\RaccordoDiFaccia\bin\RaccordoDiFaccia.exe, con SOLIDWORKS aperto
-//        (costruita da Controlli\costruisci-controlli.ps1 (e da build.ps1, passo 1c)).
+//  USO   Checks\FaceFillet\bin\FaceFillet.exe, con SOLIDWORKS aperto
+//        (costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c)).
 // =============================================================================
 internal static class ProbeRaccordoFaccia
 {
@@ -574,14 +574,14 @@ internal static class ProbeRaccordoFaccia
     // (this probe used to try the plane's Italian name, then its English one,
     // which only ever works on those two SOLIDWORKS UI languages).
     // The first three RefPlane features of the tree, same rule as
-    // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
-    // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+    // Checks/Rib, Checks/Fill and Checks/ExtrusionType.
+    // Since Z-C21.5 the library itself (Oce.Solid.Agent.Core/References.cs,
     // BasePlane) recognises a base plane by its canonical normal through the
     // world origin instead, because a template with an extra plane ahead of the
     // three defaults fools a position-based rule with no error; this probe
     // stays positional because it is a throwaway part on SOLIDWORKS' own
     // default template and cannot reference the library (single-file compile,
-    // Controlli/costruisci-controlli.ps1).
+    // Checks/build-checks.ps1).
     private static bool SelectBasePlane(IModelDoc2 doc, int which)
     {
         int seen = 0;

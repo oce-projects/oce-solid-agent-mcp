@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.AlberoRosso
+namespace Checks.RedTree
 {
     /// <summary>
     /// COSA DICE SOLIDWORKS DI UN ALBERO ROTTO, e se lo dice.
@@ -25,7 +25,7 @@ namespace Controlli.AlberoRosso
     /// blocca la chiamata COM per sempre, e un banco non sorvegliato resta li'
     /// tutta la notte. Si rimette com'era in ogni caso.
     ///
-    ///     AlberoRosso.exe        guarda il pezzo attivo
+    ///     RedTree.exe        guarda il pezzo attivo
     /// </summary>
     internal static class Programma
     {

@@ -4,7 +4,7 @@ using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// SPECCHIARE UN COMPONENTE (voce GA11): la staffa destra e la sinistra, il
@@ -476,7 +476,7 @@ namespace Riscontro.Disegno
         /// deletion answered true AND the tree read again no longer holds the
         /// mirror. <paramref name="stillInTree"/> null is «not read».
         /// <paramref name="leftFile"/> is the file of the new component left on
-        /// disk, or null. No interop type in the signature: Prove.Contratti
+        /// disk, or null. No interop type in the signature: Oce.Solid.Agent.ContractTests
         /// calls it by reflection.
         /// </summary>
         internal static string MirrorRemovalNote(string name, bool deleted, bool? stillInTree, string leftFile)

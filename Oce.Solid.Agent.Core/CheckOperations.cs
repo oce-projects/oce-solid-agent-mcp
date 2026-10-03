@@ -4,7 +4,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LE OPERAZIONI CHE NON DISEGNANO: dicono com'e' venuto. (voce GP1)
@@ -28,7 +28,7 @@ namespace Riscontro.Disegno
     /// SOLIDWORKS offre per saperlo non dicono la stessa cosa, e due di loro
     /// tacciono proprio sul caso che conta.
     ///
-    /// Misurato il 15/9/2026 con `Controlli\CorpoRotto`, su SOLIDWORKS 2021:
+    /// Misurato il 15/9/2026 con `Checks\BrokenBody`, su SOLIDWORKS 2021:
     ///
     ///                             Check()  Check2()  Check3.Count  fessure
     ///   solido sano                  1        0           0           0
@@ -298,7 +298,7 @@ namespace Riscontro.Disegno
         /// 0.144.0 an exception, or a Check3 that gave no IFaultEntity, returned
         /// the EMPTY list, the same answer as a body with no fault: a body whose
         /// check could not be read was declared sound. The sound solid of
-        /// Controlli\CorpoRotto (15/9/2026) answers an IFaultEntity with Count 0,
+        /// Checks\BrokenBody (15/9/2026) answers an IFaultEntity with Count 0,
         /// not null, so null is «not read» and becomes a reason of the refusal.
         /// A fault list that breaks off half way is not read either.
         /// </summary>

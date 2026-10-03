@@ -6,7 +6,7 @@ using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// UNA FOTOGRAFIA DEL PEZZO, per chi non ha occhi.
@@ -217,7 +217,7 @@ namespace Riscontro.Disegno
                 // coincidono, quello che avanza **viene tagliato via**, e non
                 // lo dice nessuno.
                 //
-                // Misurato il 15/9/2026 da `Controlli\ProvaInquadratura`:
+                // Misurato il 15/9/2026 da `Checks\FramingTest`:
                 //
                 //     area grafica  1845 x 924  ->  1,997
                 //     chiesto       1024 x 768  ->  1,333
@@ -257,7 +257,7 @@ namespace Riscontro.Disegno
                 // ── TUTTI E TRE, E L'ORDINE E' ORIENTAMENTO, SCALA, POSIZIONE
                 //
                 // **L'ordine non e' uno stile: e' la differenza fra rimettere e
-                // non rimettere.** Misurato da `Controlli\ProvaVista`, che prova
+                // non rimettere.** Misurato da `Checks\ViewTest`, che prova
                 // nove strade in tre secondi:
                 //
                 //   riassegnare Transform                 scarto 2598 sull'indice 12 (la scala)
@@ -465,7 +465,7 @@ namespace Riscontro.Disegno
         /// adattare le due direzioni per conto loro: e' un'altra voce, non una
         /// costante da alzare.
         ///
-        /// Si cambia solo rimisurando con `Controlli\ProvaInquadratura`, che
+        /// Si cambia solo rimisurando con `Checks\FramingTest`, che
         /// costa secondi.
         /// </summary>
         private const double QuantoSiStringe = 1.15;
@@ -530,7 +530,7 @@ namespace Riscontro.Disegno
         /// Quanto sfondo si lascia attorno al pezzo, ritagliando.
         ///
         /// Il 4% del lato maggiore, e **mai meno di dodici pixel**. Il minimo
-        /// non e' un vezzo: la prova `ProvaInquadratura` considera «tagliato»
+        /// non e' un vezzo: la prova `FramingTest` considera «tagliato»
         /// un pezzo che arriva a tre pixel dal bordo, e un margine piu' stretto
         /// della sua franchigia farebbe fallire la prova su un'immagine
         /// perfetta.
@@ -561,7 +561,7 @@ namespace Riscontro.Disegno
         /// Il ritaglio si fa sulla scatola dei pixel che NON sono sfondo, piu'
         /// un margine. Tagliare via un pezzo di pezzo vorrebbe dire che quei
         /// pixel non erano pezzo — cioe' che la soglia mente, ed e' la stessa
-        /// soglia che `ProvaInquadratura` prova su un documento vuoto.
+        /// soglia che `FramingTest` prova su un documento vuoto.
         ///
         /// Costa anche MENO: meno pixel, quindi meno token, per piu' pezzo.
         /// </summary>

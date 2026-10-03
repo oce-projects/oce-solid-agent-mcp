@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.Annulla
+namespace Checks.Undo
 {
     /// <summary>
     /// UN SOLO CTRL+Z, e il volume prima e dopo.
@@ -19,9 +19,9 @@ namespace Controlli.Annulla
     /// altrove: una prova che chiede di guardare da un'altra parte per sapere
     /// com'e' andata si fa una volta sola.
     ///
-    ///     Annulla.exe            annulla una volta
-    ///     Annulla.exe 3          annulla tre volte
-    ///     Annulla.exe 0          non annulla: stampa solo il volume
+    ///     Undo.exe            annulla una volta
+    ///     Undo.exe 3          annulla tre volte
+    ///     Undo.exe 0          non annulla: stampa solo il volume
     /// </summary>
     internal static class Programma
     {

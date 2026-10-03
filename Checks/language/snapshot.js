@@ -14,7 +14,7 @@
 //  satisfied by a literal of the sources, the same outcome for every bench
 //  test (by file:method:ordinal, never by the label, which is translated
 //  too), the same number of expectations checked per case, and the same exit
-//  code and counts from every check of Controlli/ and .github/passi/. This
+//  code and counts from every check of Checks/ and .github/steps/. This
 //  tool takes that picture once and compares any later tree with it.
 //
 //  Two reference bench runs, not one: a case whose outcome or number of
@@ -24,7 +24,7 @@
 //
 //  THE SIX SECTIONS
 //
-//    catalogue   Strumenti/catalogo.json copied as it is, its sha256, the
+//    catalogue   Tools/catalog.json copied as it is, its sha256, the
 //                sha256 of its normalized JSON (keys sorted), and one hash
 //                per operation and per family, to say WHAT changed.
 //    tools       the answers of the built bridge to initialize and
@@ -51,7 +51,7 @@
 //                constant text contains it, ignoring case as the bench does.
 //                An assertion with no candidate is listed.
 //    tests       the identity, label, group and outcome of every test of
-//                the two reference ledgers (Banco/report/tests.json of two
+//                the two reference ledgers (Bench/report/tests.json of two
 //                full bench runs), and per case the outcome and the
 //                expectations attempted and checked in each; the unstable
 //                cases and tests.
@@ -65,12 +65,12 @@
 //  The format of a snapshot directory is in snapshot.md, next to this file.
 //
 //  USAGE
-//    node Controlli/lingua/snapshot.js take --ledger <tests.json> --ledger <tests.json> [options]
+//    node Checks/language/snapshot.js take --ledger <tests.json> --ledger <tests.json> [options]
 //        writes a snapshot directory (default `note-interne/lingua/snapshots/<date>`,
 //        a folder git ignores: the snapshot is not versioned, its format is)
-//    node Controlli/lingua/snapshot.js compare <snapshot dir> [--ledger <tests.json>] [options]
+//    node Checks/language/snapshot.js compare <snapshot dir> [--ledger <tests.json>] [options]
 //        the current tree (and the ledger of a new run, if given) against it
-//    node Controlli/lingua/snapshot.js --self-test
+//    node Checks/language/snapshot.js --self-test
 //        a fake snapshot of a fake tree: every way of differing seen red,
 //        the same tree seen green, an unstable case listed apart
 //  Options:
@@ -93,7 +93,7 @@
 //                          renames (and the windows before it), so a renamed
 //                          case, operation or field is the same one, not one
 //                          gone and one new. 1: case names, folders and keys
-//                          (Controlli/lingua/window-1-cases.js); 2: also the
+//                          (Checks/language/window-1-cases.js); 2: also the
 //                          operations, paths and values of the assertions, the
 //                          catalogue and the tools (window-2-surface.js)
 //
@@ -125,17 +125,17 @@ const SECTIONS = ['catalogue', 'tools', 'literals', 'assertions', 'tests', 'scri
 // Where things are in a tree, relative to its root. The rename windows
 // (W3.1-bis.4 to .6) change these paths together with the tree.
 const LAYOUT = {
-  catalogue: 'Strumenti/catalogo.json',
-  projects: ['Riscontro.Disegno/Riscontro.Disegno.csproj', 'Oce.Solid.Agent.csproj'],
+  catalogue: 'Tools/catalog.json',
+  projects: ['Oce.Solid.Agent.Core/Oce.Solid.Agent.Core.csproj', 'Oce.Solid.Agent.csproj'],
   bridge: 'bin/oce-solid-agent-mcp.exe',
-  caseKeys: 'Banco/case-keys.json',
-  cases: 'Banco/cases',
+  caseKeys: 'Bench/case-keys.json',
+  cases: 'Bench/cases',
   regressionFolder: 'regression',
   registry: path.relative(ROOT_DEFAULT, path.join(__dirname, 'snapshot-scripts.json')).replace(/\\/g, '/'),
   todo: 'note-interne/TODO.md',
   snapshots: 'note-interne/lingua/snapshots',
   bridgeVersion: 'VERSION.txt',
-  libraryVersion: 'Riscontro.Disegno/Properties/AssemblyInfo.cs',
+  libraryVersion: 'Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs',
 };
 
 // The methods whose calls are the refusals of the library.
@@ -144,7 +144,7 @@ const CALLEES = ['Fallito'];
 // The keys of the catalogue this tool reads (renamed in W3.1-bis.5).
 const CATALOGUE_KEYS = { operations: 'operations', families: 'families', name: 'name' };
 
-// The textual assertions, by context of Banco/case-keys.json (renamed in
+// The textual assertions, by context of Bench/case-keys.json (renamed in
 // W3.1-bis.4 together with the cases): key -> kind. The kinds keep the names
 // of the snapshot of 1/10/2026, so that a snapshot taken before the window
 // and a tree after it name the same kind the same way.
@@ -329,10 +329,10 @@ function catalogueRecord(raw) {
 
 function compareCatalogue(snapDir, cur, rep, ren) {
   let old = readJson(path.join(snapDir, 'catalogue.json'), 'the catalogue section of the snapshot');
-  let oldJson = readJson(path.join(snapDir, 'catalogo.json'), 'the copy of the catalogue in the snapshot');
+  let oldJson = readJson(path.join(snapDir, 'catalog.json'), 'the copy of the catalogue in the snapshot');
   if (ren && ren.catalogue) {
     // the snapshot's copy, rewritten as the window rewrote the catalogue
-    const renamed = catalogueRecord(Buffer.from(ren.catalogue(readText(path.join(snapDir, 'catalogo.json'), 'the copy of the catalogue in the snapshot')), 'utf8'));
+    const renamed = catalogueRecord(Buffer.from(ren.catalogue(readText(path.join(snapDir, 'catalog.json'), 'the copy of the catalogue in the snapshot')), 'utf8'));
     old = renamed.record;
     oldJson = renamed.json;
   }
@@ -547,7 +547,7 @@ function byReflection(bridge, timeoutS) {
     const out = path.join(dir, 'tools.json');
     // THE BRIDGE IS READ FROM A LOCAL COPY OF ITS FOLDER (1/10/2026). On the
     // network drive S: Assembly.LoadFrom refuses it, and loaded from its bytes it
-    // has no location, so its catalogue (catalogo.json next to the executable)
+    // has no location, so its catalogue (catalog.json next to the executable)
     // cannot be found. The files at the top of its folder are copied to a local
     // temporary folder, which is removed with the rest.
     const copy = path.join(dir, 'bridge');
@@ -682,7 +682,7 @@ async function toolsOf(root, opts) {
 function compareTools(snapDir, cur, rep, ren) {
   const old = readJson(path.join(snapDir, 'tools.json'), 'the tools section of the snapshot');
   if (ren && ren.tools) {
-    // the tools of the snapshot, renamed as the window renamed Strumenti/Attrezzi.cs
+    // the tools of the snapshot, renamed as the window renamed Tools/McpTools.cs
     old.tools = ren.tools(old.tools);
     old.tools_sha256 = sha256(stable(old.tools));
   }
@@ -1089,7 +1089,7 @@ function casesOf(root) {
     if (!fs.statSync(dir).isDirectory()) continue;
     for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       const body = readJson(path.join(dir, f), 'the case ' + d + '/' + f);
-      // an array is a plan for corri_piani.js: the bench does not run it either
+      // an array is a plan for run_plans.js: the bench does not run it either
       if (Array.isArray(body)) { plans++; continue; }
       if (!isObject(body)) cannot('the case ' + d + '/' + f + ' is neither an object nor a plan');
       cases.push({ key: d + '/' + f.replace(/\.json$/, ''), folder: d, root: d === LAYOUT.regressionFolder ? 'regression' : 'declared', body });
@@ -1256,7 +1256,7 @@ const memberOfUnit = (id) => id.replace(/:s\d+$/, '');
 // map. Window 2 (W3.1-bis.5, the MCP surface) reads through window 1 first,
 // then through its own renames: the operation of each assertion, its path
 // and the value it compares, the catalogue (the snapshot's copy rewritten as
-// the window rewrites Strumenti/catalogo.json) and the list of tools. The
+// the window rewrites Tools/catalog.json) and the list of tools. The
 // script of each window does the reading, so that this comparison and the
 // window cannot disagree on a name. A snapshot taken after window 1 reads the
 // same way: window 1 on English names changes nothing.
@@ -1265,7 +1265,7 @@ function windowRenames(n, root, snapDir) {
   if (n !== 1 && n !== 2) cannot('--window: only windows 1 (W3.1-bis.4, the bench cases) and 2 (W3.1-bis.5, the MCP surface) are known');
   const one = windowOneRenames(root);
   if (n === 1) return one;
-  const catText = snapDir && fs.existsSync(path.join(snapDir, 'catalogo.json')) ? readText(path.join(snapDir, 'catalogo.json'), 'the copy of the catalogue in the snapshot') : null;
+  const catText = snapDir && fs.existsSync(path.join(snapDir, 'catalog.json')) ? readText(path.join(snapDir, 'catalog.json'), 'the copy of the catalogue in the snapshot') : null;
   const two = require('./window-2-surface.js').snapshotRenames(root, catText);
   return {
     window: n,
@@ -1359,7 +1359,7 @@ function readLedger(file) {
   const raw = fs.readFileSync(abs);
   let L;
   try { L = JSON.parse(raw.toString('utf8').replace(/^\ufeff/, '')); } catch (e) { cannot('the ledger is not valid JSON (' + abs + '): ' + e.message); }
-  if (!isObject(L) || L.format !== 1) cannot('the ledger ' + abs + ' is not of format 1 (Banco/TestLedger.cs)');
+  if (!isObject(L) || L.format !== 1) cannot('the ledger ' + abs + ' is not of format 1 (Bench/TestLedger.cs)');
   if (!Array.isArray(L.tests) || !Array.isArray(L.cases)) cannot('the ledger ' + abs + ' has no "tests" or "cases" list');
   const tests = new Map();
   L.tests.forEach((t, i) => {
@@ -1843,7 +1843,7 @@ async function take(opts) {
 async function takeInto(out, { root, skip, date, tests, reg, todo, catalogue, opts }) {
   const manifest = {
     about: 'A snapshot of the repository for the translation of W3.1-bis (entry W3.1-bis.2, item 11), written by ' +
-           'Controlli/lingua/snapshot.js; the format is documented in Controlli/lingua/snapshot.md.',
+           'Checks/language/snapshot.js; the format is documented in Checks/language/snapshot.md.',
     format: FORMAT,
     taken: date.toISOString(),
     root,
@@ -1860,9 +1860,9 @@ async function takeInto(out, { root, skip, date, tests, reg, todo, catalogue, op
 
   fs.mkdirSync(out, { recursive: true });
   if (catalogue) {
-    fs.writeFileSync(path.join(out, 'catalogo.json'), catalogue.raw);
+    fs.writeFileSync(path.join(out, 'catalog.json'), catalogue.raw);
     writeJson(path.join(out, 'catalogue.json'), catalogue.record);
-    manifest.sections.catalogue = ['catalogue.json', 'catalogo.json'];
+    manifest.sections.catalogue = ['catalogue.json', 'catalog.json'];
     console.log('catalogue: ' + Object.keys(catalogue.record.operations).length + ' operations, normalized sha256 ' + short(catalogue.record.sha256_normalized));
   }
   if (tests) {
@@ -1929,7 +1929,7 @@ async function compare(snapDir, opts) {
   // before the sources are scanned and the scripts run
   const on = {};
   for (const s of SECTIONS) on[s] = want(s);
-  if (on.tests && !opts.ledgers.length) { rep.skip('tests', 'no ledger given (--ledger <Banco/report/tests.json of the new run>)'); on.tests = false; }
+  if (on.tests && !opts.ledgers.length) { rep.skip('tests', 'no ledger given (--ledger <Bench/report/tests.json of the new run>)'); on.tests = false; }
   if (opts.ledgers.length > 1) cannot('compare takes one --ledger, the new run');
   for (const s of SECTIONS) {
     if (!on[s]) continue;
@@ -2059,17 +2059,17 @@ function fakeTree(dir, change) {
     ] }));
   write(LAYOUT.cases + '/blocks/a_plan.json', [{ operation: 'not a case' }]);
   // the scripts and their registry
-  write('Controlli/count.js', "console.log('checked " + (change.zero ? 0 : change.eight ? 8 : 7) + " items in 3 groups');\nconsole.log('took 12 ms');\n");
-  write('Controlli/cad.ps1', "Write-Output 'this one needs CAD'\n");
-  if (change.extraScript) write('Controlli/extra.js', "console.log('not in the registry');\n");
+  write('Checks/count.js', "console.log('checked " + (change.zero ? 0 : change.eight ? 8 : 7) + " items in 3 groups');\nconsole.log('took 12 ms');\n");
+  write('Checks/cad.ps1', "Write-Output 'this one needs CAD'\n");
+  if (change.extraScript) write('Checks/extra.js', "console.log('not in the registry');\n");
   // what the counts of count.js also depend on, outside the scripts
   write('data/input.txt', change.inputMoved ? 'b' : 'a');
   write(LAYOUT.registry, {
     format: 1,
-    folders: ['Controlli'],
+    folders: ['Checks'],
     entries: [
-      { script: 'Controlli/count.js', run: true, varies_with: ['data/input.txt'].concat(change.variesAdded ? ['todo'] : []) },
-      { script: 'Controlli/cad.ps1', skip: 'a fake script that would need SOLIDWORKS' },
+      { script: 'Checks/count.js', run: true, varies_with: ['data/input.txt'].concat(change.variesAdded ? ['todo'] : []) },
+      { script: 'Checks/cad.ps1', skip: 'a fake script that would need SOLIDWORKS' },
     ],
   });
   // the bridge, a test double over stdio
@@ -2141,14 +2141,14 @@ function selfTest() {
       ['compare, a label translated: not a difference (the identity is file:method:ordinal)', run(['compare', snap].concat(common(base), ['--ledger', ledger('relabelled', 'relabelled')])),
         0, [/snapshot compare: 0 difference/]],
       ['compare, a changed literal of a refusal: red', run(['compare', snap].concat(common(tree('literal', { literal: true })), ['--ledger', A])),
-        1, [/DIFF changed +Riscontro\.Disegno\/Ops\.cs:MakeBlock:2/, /literals 1/]],
+        1, [/DIFF changed +Oce\.Solid\.Agent\.Core\/Ops\.cs:MakeBlock:2/, /literals 1/]],
       ['compare, a literal inside a refusal that the text of the call shows as a hole (a branch of ?:) changed: red',
         run(['compare', snap].concat(common(tree('ternary', { ternary: true })), ['--ledger', A])),
-        1, [/DIFF changed +Riscontro\.Disegno\/Ops\.cs:MakeBlock:3/, /a literal inside the call changed/, /was «too round»/]],
+        1, [/DIFF changed +Oce\.Solid\.Agent\.Core\/Ops\.cs:MakeBlock:3/, /a literal inside the call changed/, /was «too round»/]],
       ['compare, one of the two members whose literals satisfied an assertion lost them, the other still has them: red',
         run(['compare', snap].concat(common(tree('zero-gone', { zeroGone: true })), ['--ledger', A, '--skip', 'literals'])),
         1, [/lost 1 of the members whose literals satisfied it: blocks\/zero_width#steps\[0\]\.must_fail\.message_includes/,
-          /no longer in Riscontro\.Disegno\/Ops\.cs:MakeBlock/]],
+          /no longer in Oce\.Solid\.Agent\.Core\/Ops\.cs:MakeBlock/]],
       ['compare, the literal an assertion relied on is gone: red', run(['compare', snap].concat(common(tree('note-gone', { noteGone: true })), ['--ledger', A])),
         1, [/without a satisfying literal now: blocks\/note_case#steps\[0\]\.expect\[0\]\.includes/]],
       ['compare, the template an assertion relied on is gone: red', run(['compare', snap].concat(common(tree('template', { template: true })), ['--ledger', A])),
@@ -2162,13 +2162,13 @@ function selfTest() {
         run(['compare', snap].concat(common(base), ['--ledger', ledger('unresolved', 'unresolved')])),
         1, [/DIFF the new run has 2 test\(s\) without an identity/]],
       ['compare, a script whose count drops to 0: red', run(['compare', snap].concat(common(tree('zero', { zero: true })), ['--ledger', A])),
-        1, [/Controlli\/count\.js: a count DROPPED TO 0/]],
+        1, [/Checks\/count\.js: a count DROPPED TO 0/]],
       ['compare, other counts and another input outside the scripts (varies_with): reported, not counted',
         run(['compare', snap].concat(common(tree('input', { eight: true, inputMoved: true })), ['--ledger', A])),
         0, [/counts differ, and so does its input outside the tree \(data\/input\.txt\)/, /snapshot compare: 0 difference/]],
       ['compare, other counts and a varies_with the snapshot never recorded: red (it excuses nothing)',
         run(['compare', snap].concat(common(tree('varies', { eight: true, variesAdded: true })), ['--ledger', A])),
-        1, [/varies_with todo is not in the snapshot: it excuses nothing/, /DIFF Controlli\/count\.js: counts differ/]],
+        1, [/varies_with todo is not in the snapshot: it excuses nothing/, /DIFF Checks\/count\.js: counts differ/]],
       ['compare, only the unstable case moved: no difference, listed apart', run(['compare', snap].concat(common(base), ['--ledger', ledger('moves', 'note_moves')])),
         0, [/snapshot compare: 0 difference/, /case blocks\/note_case: .*now green, checked 1/]],
       ['compare, the catalogue changed: red', run(['compare', snap].concat(common(tree('catalogue', { catalogue: true })), ['--ledger', A])),
@@ -2193,7 +2193,7 @@ function selfTest() {
           .concat(common(tree('dies', { bridge: 'dies' })), ['--ledger', A, '--ledger', B])),
         2, [/ended \(exit 3\) before answering|does not read its input/]],
       ['take, a script the registry does not name: refused', run(['take', '--out', path.join(work, 'snap-extra')].concat(common(tree('extra', { extraScript: true })), ['--ledger', A, '--ledger', B])),
-        2, [/does not name 1 script\(s\): Controlli\/extra\.js/]],
+        2, [/does not name 1 script\(s\): Checks\/extra\.js/]],
       ['take, a ledger that is not there: refused', run(['take', '--out', path.join(work, 'nope')].concat(common(base), ['--ledger', A, '--ledger', path.join(work, 'missing.json')])),
         2, [/the ledger is missing/]],
       ['compare, a section file missing from the snapshot: refused', (() => {

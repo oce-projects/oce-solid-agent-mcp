@@ -5,16 +5,16 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Web.Script.Serialization;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE LANGUAGE GATE CATCHES WHAT IT CLAIMS TO CATCH (entry W3.1-bis.1).
     ///
     /// ── WHY A CONTRACT AND NOT ONLY THE CI STEP ──────────────────────────
     ///
-    /// `Controlli/lingua/detect-italian.js` guards a ratchet: the Italian in
+    /// `Checks/language/detect-italian.js` guards a ratchet: the Italian in
     /// the repository may go down, never up. A ratchet that never fires looks
     /// exactly like a ratchet that works, and the tree it runs on today has
     /// nothing new to catch. So this contract does two things.
@@ -43,7 +43,7 @@ namespace Prove.Contratti
     ///
     /// ── 2. THE CI STEP, ON A THROW-AWAY REPOSITORY WITH COMMITS ────────
     ///
-    /// `.github/passi/language-gate.ps1` judges every commit of a range
+    /// `.github/steps/language-gate.ps1` judges every commit of a range
     /// against its parent. A small repository with the gate is built, and
     /// each case is a branch from the same base commit: a growth signed on a
     /// later commit, a signature on the wrong commit, a loosened lexicon, an
@@ -64,7 +64,7 @@ namespace Prove.Contratti
             Gruppo("the language gate catches every category (W3.1-bis.1)");
 
             var root = Radice();
-            var detector = Path.Combine(root, "Controlli", "lingua", "detect-italian.js");
+            var detector = Path.Combine(root, "Checks", "language", "detect-italian.js");
             if (!File.Exists(detector)) { Segna("the detector exists", false, detector); return; }
 
             string version;
@@ -100,7 +100,7 @@ namespace Prove.Contratti
 
         private static void Probe(string copy, string output, List<string> tracked)
         {
-            var detector = Path.Combine(copy, "Controlli", "lingua", "detect-italian.js");
+            var detector = Path.Combine(copy, "Checks", "language", "detect-italian.js");
             var baseline = Path.Combine(output, "base.json");
             string text;
 
@@ -120,10 +120,10 @@ namespace Prove.Contratti
                   textFiles.Count > 400 && unread.Count == 0,
                   read0.Count + " read of " + textFiles.Count + (unread.Count == 0 ? "" : "; not read: " + string.Join(", ", unread.Take(5))));
             Segna("the file that used to carry a NUL byte is read",
-                  read0.Contains("Controlli/domande-senza-risposta.js"), "Controlli/domande-senza-risposta.js");
+                  read0.Contains("Checks/questions-without-answer.js"), "Checks/questions-without-answer.js");
 
             // 3. the samples, and the proof that the glued identifier is new
-            var lexicon = ReadJson(Path.Combine(copy, "Controlli", "lingua", "lexicon.json"));
+            var lexicon = ReadJson(Path.Combine(copy, "Checks", "language", "lexicon.json"));
             var samples = lexicon.ContainsKey("injection_samples") ? lexicon["injection_samples"] as Dictionary<string, object> : null;
             if (samples == null) { Segna("lexicon.json has injection_samples", false, ""); return; }
             string prose = S(samples, "prose"), transition = S(samples, "transition"), identifier = S(samples, "identifier"),
@@ -150,12 +150,12 @@ namespace Prove.Contratti
                   identifier + " made of " + string.Join(" + ", knownParts));
 
             // 4. the injections, one per category
-            Append(copy, "Controlli/lingua/measure.js", "// " + prose);
-            Append(copy, "Controlli/zero-o-non-lo-so.js", "var probeText = \"" + prose + "\";");
+            Append(copy, "Checks/language/measure.js", "// " + prose);
+            Append(copy, "Checks/zero-or-unknown.js", "var probeText = \"" + prose + "\";");
             Append(copy, "README.md", prose);
-            Append(copy, "Controlli/conta-provate.js", "var " + identifier + " = 0;");
-            Append(copy, "Controlli/rinomina-prodotto.js", "// " + transition);
-            var jsonFile = Path.Combine(copy, "Controlli", "config-con-altri-server.json");
+            Append(copy, "Checks/count-tested.js", "var " + identifier + " = 0;");
+            Append(copy, "Checks/rename-product.js", "// " + transition);
+            var jsonFile = Path.Combine(copy, "Checks", "config-with-other-servers.json");
             var jsonText = File.ReadAllText(jsonFile);
             int brace = jsonText.IndexOf('{');
             jsonText = jsonText.Substring(0, brace + 1) +
@@ -163,47 +163,47 @@ namespace Prove.Contratti
                        "\n  \"probe_compound\": \"" + compound + "\"," +
                        jsonText.Substring(brace + 1);
             File.WriteAllText(jsonFile, jsonText, new UTF8Encoding(false));
-            var segmentDir = Path.Combine(copy, "Banco", segment);
+            var segmentDir = Path.Combine(copy, "Bench", segment);
             Directory.CreateDirectory(segmentDir);
             File.WriteAllText(Path.Combine(segmentDir, "notes.md"), "Gate probe.\n", new UTF8Encoding(false));
             // a text extension with a NUL byte: git calls it binary
             var nulBytes = new List<byte>(Encoding.UTF8.GetBytes("// " + prose + "\n"));
             nulBytes.Add(0);
             nulBytes.AddRange(Encoding.UTF8.GetBytes("\n"));
-            File.WriteAllBytes(Path.Combine(copy, "Controlli", "nul-probe.js"), nulBytes.ToArray());
+            File.WriteAllBytes(Path.Combine(copy, "Checks", "nul-probe.js"), nulBytes.ToArray());
             // the transition exception, as the rename windows will write them
-            var exceptionsFile = Path.Combine(copy, "Controlli", "lingua", "exceptions.json");
+            var exceptionsFile = Path.Combine(copy, "Checks", "language", "exceptions.json");
             var exceptionsText = File.ReadAllText(exceptionsFile).TrimEnd();
-            var transitionEntry = ",\n {\"class\": \"transition\", \"file\": \"^Controlli/rinomina-prodotto\\\\.js$\", \"pattern\": \"" +
+            var transitionEntry = ",\n {\"class\": \"transition\", \"file\": \"^Checks/rename-product\\\\.js$\", \"pattern\": \"" +
                                   transition + "\", \"applies_to\": [\"detector\"], \"reason\": \"contract probe of the transition category\", " +
                                   "\"signed_by\": \"LanguageGateTests\", \"date\": \"2026-09-28\"}\n]";
             File.WriteAllText(exceptionsFile, exceptionsText.Substring(0, exceptionsText.LastIndexOf(']')).TrimEnd() + transitionEntry + "\n",
                               new UTF8Encoding(false));
 
             // the holes of the review, each in a file of its own
-            Append(copy, "Prove/Carica.cs", "class GateProbeHole { string s = $\"R {(true ? \"" + prose + "\" : \"x\")}\"; }");
-            Append(copy, "Banco/prova_annulla.js", "var gateProbeTemplate = `${1 ? \"" + prose + "\" : \"\"}`;");
-            WriteNew(copy, "Controlli/probe-placeholder.json", "{\"note\": \"{NAME} " + prose + "\"}\n");
-            WriteNew(copy, "Controlli/probe-key-with-spaces.json", "{\"" + prose + "\": 1}\n");
-            Append(copy, "Banco/prova_sezione.js", "var " + newWord + " = 0;");
-            WriteNew(copy, "Banco/" + holdout + "/notes.md", "Gate probe.\n");
-            Append(copy, "Banco/LEGGIMI.md", contentOnly);
-            Append(copy, "Controlli/ganci/pre-push", "echo " + prose);
-            WriteNew(copy, "Controlli/ganci/probe-heredoc", "#!/bin/sh\ncat <<EOF\n" + prose + "\nEOF\n");
+            Append(copy, "Tests/Load.cs", "class GateProbeHole { string s = $\"R {(true ? \"" + prose + "\" : \"x\")}\"; }");
+            Append(copy, "Bench/test_undo.js", "var gateProbeTemplate = `${1 ? \"" + prose + "\" : \"\"}`;");
+            WriteNew(copy, "Checks/probe-placeholder.json", "{\"note\": \"{NAME} " + prose + "\"}\n");
+            WriteNew(copy, "Checks/probe-key-with-spaces.json", "{\"" + prose + "\": 1}\n");
+            Append(copy, "Bench/test_section.js", "var " + newWord + " = 0;");
+            WriteNew(copy, "Bench/" + holdout + "/notes.md", "Gate probe.\n");
+            Append(copy, "Bench/README.md", contentOnly);
+            Append(copy, "Checks/hooks/pre-push", "echo " + prose);
+            WriteNew(copy, "Checks/hooks/probe-heredoc", "#!/bin/sh\ncat <<EOF\n" + prose + "\nEOF\n");
             Append(copy, "QUICKSTART.md", typographic);
             foreach (var e in englishHomographs) Append(copy, "RELEASE.md", e);
             // Italian appended to a comment line that is already Italian (the
             // first line of this PowerShell file that opens with "#  Il ")
-            var workflowCheck = Path.Combine(copy, "Controlli", "controlla-workflow.ps1");
+            var workflowCheck = Path.Combine(copy, "Checks", "check-workflow.ps1");
             var wcLines = File.ReadAllLines(workflowCheck).ToList();
             int target = wcLines.FindIndex(l => l.StartsWith("#  Il ", StringComparison.Ordinal));
-            Segna("the Italian comment line to append to is there", target >= 0, "Controlli/controlla-workflow.ps1");
+            Segna("the Italian comment line to append to is there", target >= 0, "Checks/check-workflow.ps1");
             if (target >= 0) { wcLines[target] = wcLines[target] + " " + appended; File.WriteAllLines(workflowCheck, wcLines, new UTF8Encoding(false)); }
 
             Run("git", "add -A", copy, out text);
 
             string numstat;
-            Run("git", "diff --cached --numstat -- Controlli/nul-probe.js", copy, out numstat);
+            Run("git", "diff --cached --numstat -- Checks/nul-probe.js", copy, out numstat);
             Segna("git calls the probe with a NUL byte binary", numstat.StartsWith("-\t-\t", StringComparison.Ordinal), numstat.Trim());
 
             // 5. what grew
@@ -215,31 +215,31 @@ namespace Prove.Contratti
             var report = ReadJson(report1);
             var growth = Items(report["growth"]).Cast<Dictionary<string, object>>().ToList();
 
-            Counted(growth, "comments", "Controlli/lingua/measure.js");
-            Counted(growth, "strings", "Controlli/zero-o-non-lo-so.js");
+            Counted(growth, "comments", "Checks/language/measure.js");
+            Counted(growth, "strings", "Checks/zero-or-unknown.js");
             Counted(growth, "markdown", "README.md");
-            Counted(growth, "json_values", "Controlli/config-con-altri-server.json");
-            Counted(growth, "transition", "Controlli/rinomina-prodotto.js");
+            Counted(growth, "json_values", "Checks/config-with-other-servers.json");
+            Counted(growth, "transition", "Checks/rename-product.js");
             Element(growth, "identifiers", identifier, "a new identifier glued from Italian words already present is blocked");
             Element(growth, "json_keys", jsonKey, "an Italian line in json_keys is counted");
             Element(growth, "protocol", protocol, "an Italian line in protocol is counted");
             Element(growth, "paths", segment, "a new file with an Italian folder is blocked");
             var read1 = Strings(report, "files_read");
             Segna("the probe git calls binary is read, and its Italian counted",
-                  read1.Contains("Controlli/nul-probe.js") && HasGrowth(growth, "comments", "Controlli/nul-probe.js"),
-                  read1.Contains("Controlli/nul-probe.js") ? "read" : "NOT READ");
+                  read1.Contains("Checks/nul-probe.js") && HasGrowth(growth, "comments", "Checks/nul-probe.js"),
+                  read1.Contains("Checks/nul-probe.js") ? "read" : "NOT READ");
 
-            Named(growth, "strings", "Prove/Carica.cs", "a string inside the hole of a C# interpolated string is counted");
-            Named(growth, "strings", "Banco/prova_annulla.js", "a string inside the hole of a JavaScript template is counted");
+            Named(growth, "strings", "Tests/Load.cs", "a string inside the hole of a C# interpolated string is counted");
+            Named(growth, "strings", "Bench/test_undo.js", "a string inside the hole of a JavaScript template is counted");
             Element(growth, "protocol", compound, "a protocol name joined by hyphens, new as a whole, is blocked");
-            Named(growth, "json_values", "Controlli/probe-placeholder.json", "prose after a placeholder is counted as prose");
+            Named(growth, "json_values", "Checks/probe-placeholder.json", "prose after a placeholder is counted as prose");
             Element(growth, "json_keys", prose, "a JSON key with spaces is one new key");
             Element(growth, "identifiers", newWord, "an identifier with a workshop word the repository does not use is blocked");
             Element(growth, "paths", holdout, "a folder named with a workshop word the repository does not use is blocked");
-            Named(growth, "markdown", "Banco/LEGGIMI.md", "a line of Italian content words only is counted");
-            Named(growth, "strings", "Controlli/ganci/pre-push", "the words of an echo in a shell script are counted");
-            Named(growth, "strings", "Controlli/ganci/probe-heredoc", "the body of a here-document is counted");
-            Named(growth, "comments", "Controlli/controlla-workflow.ps1", "Italian appended to a line that is already Italian makes the file grow");
+            Named(growth, "markdown", "Bench/README.md", "a line of Italian content words only is counted");
+            Named(growth, "strings", "Checks/hooks/pre-push", "the words of an echo in a shell script are counted");
+            Named(growth, "strings", "Checks/hooks/probe-heredoc", "the body of a here-document is counted");
+            Named(growth, "comments", "Checks/check-workflow.ps1", "Italian appended to a line that is already Italian makes the file grow");
             Named(growth, "markdown", "QUICKSTART.md", "the typographic apostrophe counts as the accent");
             Segna("English lines with one Italian homograph each do not count",
                   !growth.Any(g => S(g, "file") == "RELEASE.md"), string.Join(" | ", englishHomographs));
@@ -271,10 +271,10 @@ namespace Prove.Contratti
                 "{\"class\": \"quote\", \"file\": \"^README\\\\.md$\"}", "never a whole file",
                 "an exception that covers a whole file is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
-                "{\"class\": \"detector-lexicon\", \"file\": \"^Banco/cases/\", \"json_path\": \"^(nome|passi|attese)\"}", "exactly one file of Controlli/lingua",
+                "{\"class\": \"detector-lexicon\", \"file\": \"^Bench/cases/\", \"json_path\": \"^(nome|passi|attese)\"}", "exactly one file of Checks/language",
                 "a json_path over a folder of cases is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
-                "{\"class\": \"quote\", \"file\": \"^Banco/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",
+                "{\"class\": \"quote\", \"file\": \"^Bench/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",
                 "a json_path outside the class detector-lexicon is refused");
             var functionWords = Items(lexicon["function_words"]).Select(o => o.ToString()).Take(3).ToList();
             Refused(copy, detector, baseline, exceptionsFile, original,
@@ -307,15 +307,15 @@ namespace Prove.Contratti
                        "powershell.exe is not on this machine: the step is a PowerShell script and the CI runner has it.");
                 return;
             }
-            var lexicon = ReadJson(Path.Combine(root, "Controlli", "lingua", "lexicon.json"));
+            var lexicon = ReadJson(Path.Combine(root, "Checks", "language", "lexicon.json"));
             var samples = lexicon["injection_samples"] as Dictionary<string, object>;
             string prose = S(samples, "prose"), transition = S(samples, "transition");
             var proseWords = prose.Split(' ');
 
             // the repository: the gate, a JavaScript file with one Italian line, a JSON file
             Directory.CreateDirectory(repo);
-            foreach (var f in new[] { "Controlli/lingua/detect-italian.js", "Controlli/lingua/lexicon.json", "Controlli/lingua/exceptions.json",
-                                      ".github/passi/language-gate.ps1" })
+            foreach (var f in new[] { "Checks/language/detect-italian.js", "Checks/language/lexicon.json", "Checks/language/exceptions.json",
+                                      ".github/steps/language-gate.ps1" })
             {
                 var to = Path.Combine(repo, f.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(to));
@@ -332,7 +332,7 @@ namespace Prove.Contratti
             Git(repo, "add -A");
             Git(repo, "commit -q -m " + Q("A: the repository with the gate"));
             var baseSha = GitOut(repo, "rev-parse HEAD");
-            var gate = Path.Combine(repo, ".github", "passi", "language-gate.ps1");
+            var gate = Path.Combine(repo, ".github", "steps", "language-gate.ps1");
 
             Func<string> gateRun = () =>
             {
@@ -372,7 +372,7 @@ namespace Prove.Contratti
             Commit(repo, "raise, unsigned");
             AppendLine(repo, "src/app.js", "// English");
             Commit(repo, "another commit", "Language-Baseline-Raise: on the wrong commit");
-            expect("the signature on a different commit than the raise: refused", 1, "RAISES Controlli/lingua/baseline.json without the trailer");
+            expect("the signature on a different commit than the raise: refused", 1, "RAISES Checks/language/baseline.json without the trailer");
 
             branch("signed");
             AppendLine(repo, "src/app.js", italianLine);
@@ -381,7 +381,7 @@ namespace Prove.Contratti
             expect("a raise signed on the commit that raises: accepted", 0, "baseline raised, signed");
 
             branch("lexicon");
-            var lexFile = Path.Combine(repo, "Controlli", "lingua", "lexicon.json");
+            var lexFile = Path.Combine(repo, "Checks", "language", "lexicon.json");
             var lex = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(lexFile));
             foreach (var k in new[] { "function_words", "content_words", "weak_words", "workshop_words" })
                 if (lex.ContainsKey(k)) lex[k] = Items(lex[k]).Select(o => o.ToString()).Where(w => !proseWords.Contains(w)).ToArray();
@@ -392,7 +392,7 @@ namespace Prove.Contratti
             expect("a loosened lexicon does not judge its own commit: refused", 1, "(rules of the parent)");
 
             branch("exception");
-            var excFile = Path.Combine(repo, "Controlli", "lingua", "exceptions.json");
+            var excFile = Path.Combine(repo, "Checks", "language", "exceptions.json");
             var exc = File.ReadAllText(excFile).TrimEnd();
             File.WriteAllText(excFile, exc.Substring(0, exc.LastIndexOf(']')).TrimEnd() +
                 ",\n {\"class\": \"quote\", \"pattern\": \"" + prose + " \\\\(again\\\\)\", \"applies_to\": [\"detector\"], " +
@@ -438,7 +438,7 @@ namespace Prove.Contratti
             Commit(repo, "gate switched off");
             // on a pull request the workflow language-gate.yml runs the BASE's copy
             var baseCopy = Path.Combine(Path.GetDirectoryName(repo), "gate-of-the-base.ps1");
-            File.WriteAllText(baseCopy, GitOut(repo, "show " + baseSha + ":.github/passi/language-gate.ps1") + "\n", new UTF8Encoding(false));
+            File.WriteAllText(baseCopy, GitOut(repo, "show " + baseSha + ":.github/steps/language-gate.ps1") + "\n", new UTF8Encoding(false));
             string o2;
             int c2 = Run("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File " + Q(baseCopy) + " -Root " + Q(repo) + " -Base " + baseSha, repo, out o2);
             Segna("CI step: the gate script switched off, judged by the base's copy: refused", c2 == 1 && o2.Contains("changes the gate itself"), "exit " + c2 + "; " + Tail(o2));
@@ -464,7 +464,7 @@ namespace Prove.Contratti
         {
             Git(repo, "add -A");
             string o;
-            int c = Run("node", Q(Path.Combine(repo, "Controlli", "lingua", "detect-italian.js")) + " --root " + Q(repo) + " --write-baseline", repo, out o);
+            int c = Run("node", Q(Path.Combine(repo, "Checks", "language", "detect-italian.js")) + " --root " + Q(repo) + " --write-baseline", repo, out o);
             if (c != 0) throw new InvalidOperationException("write-baseline failed: " + Tail(o));
         }
 

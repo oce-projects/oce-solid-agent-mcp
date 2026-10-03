@@ -1,7 +1,7 @@
 {
   "name": "limit_scheme_with_two_references",
   "family": "dimensions",
-  "why": "VOCE Z-H3. Con meno di tre riferimenti lo schema DimXpert non rifiuta: mette UNA quota su tre facce e risponde come sempre (misurato con `Controlli/DimXpert`: 0 -> 1 annotazione senza niente selezionato). L'operazione rifiuta prima, e dice cosa sono i tre.",
+  "why": "VOCE Z-H3. Con meno di tre riferimenti lo schema DimXpert non rifiuta: mette UNA quota su tre facce e risponde come sempre (misurato con `Checks/DimXpert`: 0 -> 1 annotazione senza niente selezionato). L'operazione rifiuta prima, e dice cosa sono i tre.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

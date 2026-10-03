@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// UNA NOTA DI TESTO SU UNA TAVOLA (voce E2-bis).

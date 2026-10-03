@@ -1,7 +1,7 @@
 // Le prove dell'installatore che si possono fare su una macchina qualunque.
 //
-//     node Controlli\prova-installatore.js            (SOLIDWORKS not touched)
-//     node Controlli\prova-installatore.js --attach   (the real session: bench stopped)
+//     node Checks\test-installer.js            (SOLIDWORKS not touched)
+//     node Checks\test-installer.js --attach   (the real session: bench stopped)
 //
 // Esce 0 se passano tutte, 1 se no.
 //
@@ -38,8 +38,8 @@ const os = require("os");
 
 const QUI = __dirname;
 const RADICE = path.dirname(QUI);
-const INSTALLA = process.env.INSTALLA || path.join(RADICE, "dist", "Installa.exe");
-const MODELLO = path.join(QUI, "config-con-altri-server.json");
+const INSTALLA = process.env.INSTALLA || path.join(RADICE, "dist", "Installer.exe");
+const MODELLO = path.join(QUI, "config-with-other-servers.json");
 
 // Si lavora in una cartella temporanea: la configurazione VERA di chi sta
 // provando non si tocca, e non ci si affida al fatto di ricordarsene.
@@ -162,7 +162,7 @@ esito("2. dopo sei installazioni le copie di sicurezza sono al piu' tre",
 const read = f => { try { return fs.readFileSync(f, "utf8"); } catch (e) { return null; } };
 const json = f => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return null; } };
 // The line before the block to paste is looked for as a literal, where the
-// inventory of consumed strings (Controlli/lingua/consumed-strings.json) can
+// inventory of consumed strings (Checks/language/consumed-strings.json) can
 // find it: installer-paste-header.
 
 // ── B1 — the exit code tells the truth ───────────────────────────────────
@@ -342,7 +342,7 @@ esito("A5. an entry that points at another installation is left alone",
 
 const dirL = path.join(BANCO, "installed-locked");
 installa(["--silenzioso", "--senza-client", "--cartella", dirL]);
-const heldFile = path.join(dirL, "catalogo.json");
+const heldFile = path.join(dirL, "catalog.json");
 const lockedReady = path.join(BANCO, "locked.ready");
 const holder = require("child_process").spawn("powershell", ["-NoProfile", "-Command",
   "$f=[System.IO.File]::Open('" + heldFile + "','Open','ReadWrite','None'); " +
@@ -353,7 +353,7 @@ const rL = installa(["--disinstalla", "--cartella", dirL, "--keep-client"]);
 holder.kill();
 waitMs(500);
 esito("A5. a file that cannot be removed: exit 1, and it says which",
-  rL.uscita === 1 && rL.testo.includes("could not be removed") && rL.testo.includes("catalogo.json"),
+  rL.uscita === 1 && rL.testo.includes("could not be removed") && rL.testo.includes("catalog.json"),
   "exit " + rL.uscita + "\n" + (rL.testo.match(/^.*could not be removed.*$/m) || [rL.testo.slice(-200)])[0]);
 
 // ── B5 — Claude Code through its own CLI ─────────────────────────────────
@@ -623,7 +623,7 @@ console.log("       del file bloccato da un altro processo; se il client lo risc
 console.log("    5. SOLIDWORKS assente  (macchina senza SOLIDWORKS)");
 if (!ATTACH) {
   console.log("\n  Run without touching SOLIDWORKS (OCE_NO_ATTACH). With the bench stopped, the owner runs");
-  console.log("    node Controlli\\prova-installatore.js --attach");
+  console.log("    node Checks\\test-installer.js --attach");
   console.log("  which is the only run where --verify can exit 0. The self-test codes 3 (SOLIDWORKS closed)");
   console.log("  and 4 (not installed or not registered) need SOLIDWORKS closed, or a machine without it.");
 }

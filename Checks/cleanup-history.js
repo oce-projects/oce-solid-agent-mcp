@@ -5,10 +5,10 @@
 // Perche' esiste: due commit non ancora spinti portavano il nome utente dentro
 // un percorso `C:\Users\<nome>\AppData\Local\Temp\claude\<sessione>\scratchpad`.
 // L'albero di lavoro era gia' stato riparato, la storia no, e
-// `controlla-pubblicabilita.ps1` guardava solo l'albero: diceva «Pulito».
+// `check-publishability.ps1` guardava solo l'albero: diceva «Pulito».
 //
 // Vale la stessa forma della riparazione dei casi: non si cancella il percorso,
-// si mette il segnaposto che `corri_piani.js` risolve in `Banco/lavoro/`.
+// si mette il segnaposto che `run_plans.js` risolve in `Bench/lavoro/`.
 
 var fs = require('fs');
 var path = require('path');
@@ -28,7 +28,7 @@ var PERCORSO = /C:[\\\/]+Users[\\\/]+[^\\\/"\s]+[\\\/]+AppData[\\\/]+Local[\\\/]
 // ciascuna, in un posto solo: **qui dentro**. La cura portava la malattia.
 //
 // Quindi gli schemi specifici di un impianto si mettono in
-// `Controlli/bonifica-schemi.local.js`, che NON e' versionato (.gitignore).
+// `Checks/bonifica-schemi.local.js`, che NON e' versionato (.gitignore).
 // Il meccanismo resta pubblico e utile a chiunque; i nomi di casa no.
 //
 // Il file locale esporta un elenco di coppie:

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// UN «NO» SENZA UNA STRADA COSTA UN TURNO A CHI LO LEGGE (voce Z-G4).
@@ -223,8 +223,8 @@ namespace Prove.Contratti
         /// the English forms that translate it, so that a refusal keeps counting
         /// when it is translated (W3.1-bis.8). The two refusals it adds are
         /// English and do name their remedy: «ask for the mate once more»
-        /// (OperazioniAccoppia.cs) and «Pass ... to import them all, or ...»
-        /// (OperazioniTavola.cs). On the Italian refusals nothing moved: 209
+        /// (MateOperations.cs) and «Pass ... to import them all, or ...»
+        /// (DrawingOperations.cs). On the Italian refusals nothing moved: 209
         /// with the Italian words alone and 209 with both lists, and on the tree
         /// of 25/9/2026 (library 0.117.0, still Italian) 75 and 75 of 578, the
         /// same percentage. A check below keeps it so.
@@ -393,7 +393,7 @@ namespace Prove.Contratti
         {
             Gruppo("i rifiuti che dicono anche cosa fare (Z-G4)");
 
-            var cartella = Path.Combine(Radice(), "Riscontro.Disegno");
+            var cartella = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
             if (!Directory.Exists(cartella))
             {
                 Segna("la cartella della libreria c'e'", false, "manca " + cartella);
@@ -468,7 +468,7 @@ namespace Prove.Contratti
             if (words == null)
             {
                 Segna("on the Italian refusals the English forms add nothing", false,
-                      "Controlli/lingua/lexicon.json has no function_words to tell Italian from English");
+                      "Checks/language/lexicon.json has no function_words to tell Italian from English");
                 return;
             }
             var italian = tally.Refusals.Where(r => LooksItalian(r.Prose, words)).ToList();
@@ -658,7 +658,7 @@ namespace Prove.Contratti
         {
             try
             {
-                var file = Path.Combine(Radice(), "Controlli", "lingua", "lexicon.json");
+                var file = Path.Combine(Radice(), "Checks", "language", "lexicon.json");
                 var json = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue }
                     .DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
                 object value;

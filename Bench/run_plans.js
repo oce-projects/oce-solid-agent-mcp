@@ -1,7 +1,7 @@
 // Manda una sequenza di piani al ponte MCP, come farebbe un client.
 //
-//   node corri_piani.js cases/bridge/c4r_primary.json cases/bridge/c4r_keyway.json
-//   node corri_piani.js --pulisci cases/bridge/*.json
+//   node run_plans.js cases/bridge/c4r_primary.json cases/bridge/c4r_keyway.json
+//   node run_plans.js --pulisci cases/bridge/*.json
 //
 // Percorsi con la barra avanti: Windows li accetta, e cosi' non c'e' nessun
 // livello di escape da sbagliare. La stessa riga scritta con i backslash e'
@@ -30,8 +30,8 @@ const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const CHIUDI = path.join(RADICE, "Controlli", "ChiudiScarti", "bin", "ChiudiScarti.exe");
-const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
+const CHIUDI = path.join(RADICE, "Checks", "CloseLeftovers", "bin", "CloseLeftovers.exe");
+const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
 
 const argomenti = process.argv.slice(2);
 const pulisci = argomenti.includes("--pulisci");
@@ -49,7 +49,7 @@ if (!piani.length) { console.error("dammi i piani"); process.exit(2); }
 // rilanciare la settimana dopo.
 //
 // Adesso scrivono `{BANCO}/pezzo/tizio.SLDPRT`, e qui `{BANCO}` diventa
-// `Banco/lavoro`, che sta nel .gitignore.
+// `Bench/lavoro`, che sta nel .gitignore.
 const LAVORO = path.join(__dirname, "lavoro");
 
 function risolviSegnaposto(testo) {
@@ -180,7 +180,7 @@ function titoliAperti(stato) {
 
 function attrezzo(percorso, args) {
   if (!fs.existsSync(percorso)) {
-    console.error("manca " + percorso + ": lancia Controlli\\costruisci-controlli.ps1");
+    console.error("manca " + percorso + ": lancia Checks\\build-checks.ps1");
     return null;
   }
   const r = spawnSync(percorso, args, { encoding: "utf8" });

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// THE LOOKUPS BY NAME OF THE BENCH THAT WOULD COME BACK NULL IN SILENCE
@@ -15,15 +15,15 @@ namespace ProvaSaldatura
     /// schemas of the mutations, the catalogue count of the header, the
     /// signatures of the state. Renamed on the library side only, they would
     /// give fewer mutations, a count of zero, a refusal that names the wrong
-    /// reason. The static net of Prove.Contratti (ReflectionTests) resolves
+    /// reason. The static net of Oce.Solid.Agent.ContractTests (ReflectionTests) resolves
     /// their literal names, but a member name resolves as soon as ANY type
-    /// declares it, and 14 of the 58 direct member names of `Prove` and `Banco`
+    /// declares it, and 14 of the 58 direct member names of `Tests` and `Bench`
     /// are declared by more than one type (measured on 1/10/2026: `Nome` by
     /// four, `Tutte` and `Schema` by two). This log asks the type that is
     /// really there, on the path the run takes, and the run says at its end
     /// whether any came back null.
     ///
-    /// Compiled by the bench and, as a linked file, by Prove.Contratti, which
+    /// Compiled by the bench and, as a linked file, by Oce.Solid.Agent.ContractTests, which
     /// sees it red on a fake name at every run.
     /// </summary>
     internal sealed class ReflectionLog
@@ -33,7 +33,7 @@ namespace ProvaSaldatura
         /// <summary>What Type.GetField(name) and its siblings use without flags.</summary>
         internal const BindingFlags PublicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
 
-        // A named list type: the obsolete-call scanner of Prove.Contratti reads
+        // A named list type: the obsolete-call scanner of Oce.Solid.Agent.ContractTests reads
         // the receiver of `_misses.Add` from the declaration of the field.
         private sealed class MissList : List<string> { }
 

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// `undo` TELLS THE TRUTH, Z-C21.14 (with the review of the lot).
@@ -26,7 +26,7 @@ namespace Prove.Contratti
     /// front is adopted only when the plan ended on it (F5); the resent-plan
     /// guard reads one document (F6); the document is held by reference (F11).
     ///
-    /// The bench has the four cases that need SOLIDWORKS (Banco/PortaDelCliente.cs,
+    /// The bench has the four cases that need SOLIDWORKS (Bench/ClientPort.cs,
     /// UndoHonesty). This group pins the rest where no CAD is needed:
     ///  * by reflection on the built bridge, the pure decisions:
     ///    MemoryAfterPlan, WhatDiffers, AnswerAfterWrongPress,
@@ -282,9 +282,9 @@ namespace Prove.Contratti
             string tools, executor, session;
             try
             {
-                tools = File.ReadAllText(Path.Combine(Radice(), "Strumenti", "Attrezzi.cs")).Replace("\r\n", "\n");
-                executor = File.ReadAllText(Path.Combine(Radice(), "Riscontro.Disegno", "EsecutorePiano.cs")).Replace("\r\n", "\n");
-                session = File.ReadAllText(Path.Combine(Radice(), "Ponte", "Sessione.cs")).Replace("\r\n", "\n");
+                tools = File.ReadAllText(Path.Combine(Radice(), "Tools", "McpTools.cs")).Replace("\r\n", "\n");
+                executor = File.ReadAllText(Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs")).Replace("\r\n", "\n");
+                session = File.ReadAllText(Path.Combine(Radice(), "Bridge", "Session.cs")).Replace("\r\n", "\n");
             }
             catch (Exception ex)
             {

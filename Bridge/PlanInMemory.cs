@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Riscontro.Disegno;
+using Oce.Solid.Agent.Core;
 
-namespace Oce.Solid.Agent.Ponte
+namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
     /// IL PIANO CHE ARRIVA DA MCP, servito a <see cref="EsecutorePiano"/> un

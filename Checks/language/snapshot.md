@@ -1,6 +1,6 @@
 # The snapshot of W3.1-bis
 
-`Controlli/lingua/snapshot.js` takes a picture of the repository once, before
+`Checks/language/snapshot.js` takes a picture of the repository once, before
 the renames and the translation of W3.1-bis, and compares every later tree
 with it (entry W3.1-bis.2, item 11). This file documents the tool, the format
 of a snapshot directory, and what the comparison treats as a difference.
@@ -19,7 +19,7 @@ move. The conditions it is checked against (section 1 of W3.1-bis, conditions
   `File.cs:Method:ordinal` and never the text of its label, with the same number
   of expectations checked per case, apart from the cases known to be unstable
   from the two reference runs;
-- every script of `Controlli/` and `.github/passi/` gives the same exit code
+- every script of `Checks/` and `.github/steps/` gives the same exit code
   and the same counts, and no count drops to 0 in silence;
 - every textual assertion of a case is still satisfied by a literal of the
   sources (none points to nothing);
@@ -29,13 +29,13 @@ move. The conditions it is checked against (section 1 of W3.1-bis, conditions
 ## Usage
 
 ```
-node Controlli/lingua/snapshot.js take --ledger <tests.json> --ledger <tests.json> [options]
-node Controlli/lingua/snapshot.js compare <snapshot dir> [--ledger <tests.json>] [options]
-node Controlli/lingua/snapshot.js --self-test
+node Checks/language/snapshot.js take --ledger <tests.json> --ledger <tests.json> [options]
+node Checks/language/snapshot.js compare <snapshot dir> [--ledger <tests.json>] [options]
+node Checks/language/snapshot.js --self-test
 ```
 
-The two ledgers of `take` are `Banco/report/tests.json` of two full bench
-runs on the same tree (the format of `Banco/TestLedger.cs`). The ledger of
+The two ledgers of `take` are `Bench/report/tests.json` of two full bench
+runs on the same tree (the format of `Bench/TestLedger.cs`). The ledger of
 `compare` is the one of the run being judged; without it the tests are not
 compared, and the comparison says so.
 
@@ -52,7 +52,7 @@ compared, and the comparison says so.
 | `--skip-script <id>` | record one registry entry as skipped by the caller |
 | `--with-probes` | also run the registry entries marked `probe` |
 | `--show <n>` | differences printed per section (all of them are counted) |
-| `--window <n>` | `compare`: the snapshot was taken before rename window `<n>` of W3.1-bis; its case folders, case names, case keys and the case part of the test identities (`File.cs:Method:ordinal@<case>`) are read through that window's renames, by the script of the window itself. Window 1 (`Controlli/lingua/window-1-cases.js`, W3.1-bis.4); window 2 (`Controlli/lingua/window-2-surface.js`, W3.1-bis.5) reads through window 1 first and then renames the operation, the path (`what`) and the value of every assertion, the snapshot's copy of the catalogue (rewritten as the window rewrites `Strumenti/catalogo.json`) and the list of tools (names, titles, schemas, the names the descriptions quote) |
+| `--window <n>` | `compare`: the snapshot was taken before rename window `<n>` of W3.1-bis; its case folders, case names, case keys and the case part of the test identities (`File.cs:Method:ordinal@<case>`) are read through that window's renames, by the script of the window itself. Window 1 (`Checks/language/window-1-cases.js`, W3.1-bis.4); window 2 (`Checks/language/window-2-surface.js`, W3.1-bis.5) reads through window 1 first and then renames the operation, the path (`what`) and the value of every assertion, the snapshot's copy of the catalogue (rewritten as the window rewrites `Tools/catalog.json`) and the list of tools (names, titles, schemas, the names the descriptions quote) |
 
 Exit codes: 0 the snapshot is written, or no difference anywhere; 1 a
 difference outside the unstable list (or a self-test check not as expected);
@@ -63,7 +63,7 @@ what was compared, but some section was not compared.
 The tool never reads anything in silence. A missing catalogue, case folder,
 case-keys file, project, ledger, bridge, TODO or input of a script stops it
 with exit 2. A key it expects that has been renamed (in the catalogue, in
-`Banco/case-keys.json`) stops it too: the tables at the top of `snapshot.js`
+`Bench/case-keys.json`) stops it too: the tables at the top of `snapshot.js`
 (`LAYOUT`, `CATALOGUE_KEYS`, `ASSERTION_KEYS`, `CASE_KEYS`, `CALLEES`) are
 renamed in the same commit as what they name.
 
@@ -101,9 +101,9 @@ Every file is UTF-8 JSON unless said otherwise.
 A snapshot is written into `<out>.partial-<pid>` and renamed at the end: a run
 that stopped half way leaves no folder that looks like a snapshot.
 
-### `catalogo.json` and `catalogue.json`
+### `catalog.json` and `catalogue.json`
 
-`catalogo.json` is `Strumenti/catalogo.json` byte for byte. `catalogue.json`
+`catalog.json` is `Tools/catalog.json` byte for byte. `catalogue.json`
 holds its `sha256_raw`, the `sha256_normalized` of its JSON with the keys of
 every object sorted (spacing and key order do not count), its `top_keys`, and
 one sha256 per operation (by name) and per family, so that the comparison says
@@ -148,9 +148,9 @@ id of the refusal call it is inside, or `null`.
 ### `assertions.json`
 
 Every textual assertion of the bench cases. The cases are the JSON objects of
-`Banco/cases/<folder>/` (the folder `regression` holds regression cases; an
+`Bench/cases/<folder>/` (the folder `regression` holds regression cases; an
 array is a plan, not a case), walked through the contexts of
-`Banco/case-keys.json`. The assertion keys are `ASSERTION_KEYS`: the message of
+`Bench/case-keys.json`. The assertion keys are `ASSERTION_KEYS`: the message of
 a must-fail block, `contains` and `not contains` of an expectation, and an
 `equals` whose value is text (a number is not textual: those are only counted,
 in `values_not_text`). A list of texts is one assertion per element.
@@ -248,7 +248,7 @@ the words a case asserts on a refusal are often in a description of the
 catalogue too. With the refusal translated, the description would keep the
 assertion "satisfied" while the bench goes red. Seen on the real tree on
 1/10/2026: the mate type a case asserts with `uguale` translated in
-`StatoAssieme.cs`, and the same word still in the catalogue, compared as
+`AssemblyState.cs`, and the same word still in the catalogue, compared as
 "no difference" before this rule.
 
 The unstable cases and tests of the snapshot, and the tests whose subject is an
@@ -257,7 +257,7 @@ the new ones. They are never counted as differences and never dropped.
 
 ## The self-test
 
-`node Controlli/lingua/snapshot.js --self-test` builds a fake tree (catalogue,
+`node Checks/language/snapshot.js --self-test` builds a fake tree (catalogue,
 two projects with a refusal quoted in a comment, case keys, cases, two
 scripts, a registry, a bridge double over stdio) and two fake ledgers that
 differ on one case, takes a snapshot, and compares it with variants of the tree
@@ -278,7 +278,7 @@ seen to turn at least one of its checks red, and so was each of six more on
 1/10/2026 (inner literals ignored, the lost-member rule off, the run mode and
 the unnamed tests not checked, the old `varies_with` excuse, the partial
 folder kept). It runs with
-`Prove.Contratti` (`SafetyNetSelfTests`); exit 2 (no Roslyn on the machine) is
+`Oce.Solid.Agent.ContractTests` (`SafetyNetSelfTests`); exit 2 (no Roslyn on the machine) is
 "not runnable here", never green.
 
 ## What it does not do

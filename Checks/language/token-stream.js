@@ -53,15 +53,15 @@
 //  that start with # are comments.
 //
 //  USAGE
-//    node Controlli/lingua/token-stream.js [--rev <rev>] [--mode <m>] [--map <tsv>] [paths...]
+//    node Checks/language/token-stream.js [--rev <rev>] [--mode <m>] [--map <tsv>] [paths...]
 //        each path in the working tree against the same path at <rev>
 //        (default HEAD); without paths, every changed .cs/.js/.ps1 file
 //        (git diff -M against <rev>, renames followed)
-//    node Controlli/lingua/token-stream.js --all [--rev <rev>]
+//    node Checks/language/token-stream.js --all [--rev <rev>]
 //        every tracked .cs/.js/.ps1 file, changed or not
-//    node Controlli/lingua/token-stream.js --pair <before> <after> [--mode <m>] [--map <tsv>]
-//    node Controlli/lingua/token-stream.js --dump <file>
-//    node Controlli/lingua/token-stream.js --self-test
+//    node Checks/language/token-stream.js --pair <before> <after> [--mode <m>] [--map <tsv>]
+//    node Checks/language/token-stream.js --dump <file>
+//    node Checks/language/token-stream.js --self-test
 //        fake pairs in the temp directory, one per way of failing, in all
 //        three languages: every check is seen red and seen green
 //    --root <dir>     another checkout (default: the repository of this file)

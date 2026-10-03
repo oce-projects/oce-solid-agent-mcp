@@ -4,7 +4,7 @@ using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// IL TESTO DELLE QUOTE, E DOVE CADE (voce GT12, punto 3).

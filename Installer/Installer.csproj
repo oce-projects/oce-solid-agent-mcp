@@ -9,7 +9,7 @@
          installatore e' meta' del suo lavoro. -->
     <OutputType>WinExe</OutputType>
     <RootNamespace>Oce.Solid.Agent.Installer</RootNamespace>
-    <AssemblyName>Installa</AssemblyName>
+    <AssemblyName>Installer</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <!-- x64 come il ponte e come SOLIDWORKS. L'installatore legge la versione
          di DLL a 64 bit: un processo a 32 bit vedrebbe un'altra vista del
@@ -30,11 +30,11 @@
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Programma.cs" />
-    <Compile Include="Passi.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Steps.cs" />
     <Compile Include="Payload.cs" />
-    <Compile Include="Configurazione.cs" />
-    <Compile Include="Finestra.cs" />
+    <Compile Include="Configuration.cs" />
+    <Compile Include="Window.cs" />
     <Compile Include="Output.cs" />
     <Compile Include="ClaudeCli.cs" />
     <Compile Include="Verify.cs" />
@@ -47,7 +47,7 @@
       IL PONTE DENTRO L'INSTALLATORE.
 
       Tutto quello che sta in Payload\ diventa una risorsa incorporata, cosi'
-      `Installa.exe` e' UN FILE SOLO: si scarica, doppio clic, finito. Niente
+      `Installer.exe` e' UN FILE SOLO: si scarica, doppio clic, finito. Niente
       zip da scompattare, niente «metti questo accanto a quello».
 
       La cartella e' vuota nel repository e la riempie build.ps1 subito prima di
@@ -63,7 +63,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 
   <!-- LA VERSIONE WIN32 DA VERSION.txt (voce H14): stessa regola del ponte.
-       Tasto destro -> Proprieta' -> Dettagli su Installa.exe diceva 0.0.0.0. -->
+       Tasto destro -> Proprieta' -> Dettagli su Installer.exe diceva 0.0.0.0. -->
   <Target Name="VersioneDaFile" BeforeTargets="CoreCompile">
     <ReadLinesFromFile File="$(MSBuildThisFileDirectory)..\VERSION.txt">
       <Output TaskParameter="Lines" PropertyName="VersionePonte" />

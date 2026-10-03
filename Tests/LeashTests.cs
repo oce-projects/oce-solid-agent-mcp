@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// LA CHIAMATA CHE NON TORNA (voci K18 e Z-C4).
@@ -30,7 +30,7 @@ namespace Prove.Contratti
             Gruppo("la chiamata che non torna (K18)");
 
             var t0 = new DateTime(2026, 9, 23, 15, 36, 0);
-            var g = new Condiviso.Guinzaglio(90000);
+            var g = new Shared.Guinzaglio(90000);
 
             // ── PRIMA: TACE QUANDO NON C'E' NIENTE DA DIRE ───────────────
             //
@@ -88,7 +88,7 @@ namespace Prove.Contratti
 
             // ── UNA SOGLIA RIDICOLA VIENE RIFIUTATA ──────────────────────
             bool rifiutata = false;
-            try { new Condiviso.Guinzaglio(500); }
+            try { new Shared.Guinzaglio(500); }
             catch (ArgumentOutOfRangeException) { rifiutata = true; }
             Segna("mezzo secondo non e' un guinzaglio, e viene rifiutato",
                   rifiutata, "qualunque prova vera lo farebbe scattare");
@@ -99,7 +99,7 @@ namespace Prove.Contratti
 
         private static void IlBancoLoUsa()
         {
-            var file = Path.Combine(Radice(), "Banco", "Program.cs");
+            var file = Path.Combine(Radice(), "Bench", "Program.cs");
             if (!File.Exists(file))
             {
                 Segna("il sorgente del banco c'e'", false, "manca " + file);
@@ -108,7 +108,7 @@ namespace Prove.Contratti
             var p = File.ReadAllText(file);
 
             Segna("il banco costruisce il guinzaglio a 90 secondi",
-                  p.Contains("new Condiviso.Guinzaglio(90000)"), "Banco/Program.cs");
+                  p.Contains("new Shared.Guinzaglio(90000)"), "Bench/Program.cs");
 
             // UN GUARDIANO DEFINITO E MAI ACCESO e' la malattia che questo
             // repository insegue, applicata a se stesso.
@@ -143,7 +143,7 @@ namespace Prove.Contratti
         /// </summary>
         private static void LaLibreriaLoUsa()
         {
-            var file = Path.Combine(Radice(), "Riscontro.Disegno", "EsecutorePiano.cs");
+            var file = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(file))
             {
                 Segna("il sorgente dell'esecutore c'e'", false, "manca " + file);
@@ -152,7 +152,7 @@ namespace Prove.Contratti
             var p = File.ReadAllText(file);
 
             Segna("anche la libreria ha il guinzaglio",
-                  p.Contains("new Condiviso.Guinzaglio("),
+                  p.Contains("new Shared.Guinzaglio("),
                   "la STESSA classe del banco: due scadenze che si comportano " +
                   "diversamente sono peggio di una sola");
 

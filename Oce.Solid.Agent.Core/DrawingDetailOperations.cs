@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// UNA VISTA DI DETTAGLIO SU UNA TAVOLA (voce GT4, seconda meta').

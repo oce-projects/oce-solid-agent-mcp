@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Riscontro.Disegno;
+using Oce.Solid.Agent.Core;
 
-namespace Controlli.ProvaRuota
+namespace Checks.GearTest
 {
     /// <summary>
     /// LA RUOTA DENTATA, CONTROLLATA SENZA SOLIDWORKS.
@@ -34,7 +34,7 @@ namespace Controlli.ProvaRuota
     /// Un solo numero giusto non basta a dire che la formula e' giusta; due
     /// numeri che vengono da pezzi diversi della formula, si'.
     ///
-    ///     Controlli\ProvaRuota\bin\ProvaRuota.exe
+    ///     Checks\GearTest\bin\GearTest.exe
     ///
     /// Esce 0 se torna tutto, 1 se no. Non apre SOLIDWORKS e non ne ha bisogno.
     /// </summary>

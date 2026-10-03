@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// TOGLIERE UNA COPIA DA UNA RIPETIZIONE. (voce GP14)
@@ -219,7 +219,7 @@ namespace Riscontro.Disegno
             // calassero: una ripetizione andata in errore che le perde TUTTE
             // (GetFaces a null da' 0) lo passava. E la perdita deve valere le
             // facce di una copia per le copie tolte: la stessa aritmetica di
-            // CopieMancanti (OperazioniSw.cs), che misura le copie che esistono
+            // CopieMancanti (SwOperations.cs), che misura le copie che esistono
             // davvero dividendo le facce della ripetizione per quelle del seme.
             if (!riattiva && faccePrima > 0 && facceDopo == 0)
             {
@@ -503,7 +503,7 @@ namespace Riscontro.Disegno
         /// positions here. The derived pattern also has the array, but it is an
         /// assembly pattern and suppress_instance runs on parts (DocumentoRichiesto
         /// «part»), so it is not named. Kept apart from the document so that
-        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         /// </summary>
         internal static string NotANumberedPattern(bool fill, bool table)
         {

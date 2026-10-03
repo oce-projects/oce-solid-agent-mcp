@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE ASSEMBLY FIXES OF Z-C21.2-TER, WHERE THE BENCH CANNOT BUILD THE CASE.
@@ -46,7 +46,7 @@ namespace Prove.Contratti
 
             SearchFlagInTheSource();
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of the Z-C21.2-ter assembly fixes",
@@ -71,7 +71,7 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
             if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
@@ -279,7 +279,7 @@ namespace Prove.Contratti
         // it too. So no call of the library may pass Searchflag true.
         private static void SearchFlagInTheSource()
         {
-            var folder = Path.Combine(Radice(), "Riscontro.Disegno");
+            var folder = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
             if (!Directory.Exists(folder)) { Segna("L12-8: the library source is there", false, "missing " + folder); return; }
             var call = new Regex(@"\bGetDependencies\s*\(\s*(\w+)\s*,\s*(\w+)");
             var calls = new List<string>();

@@ -5,9 +5,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE RETURNS AND MESSAGES OF Z-C21.8 IN THE WELDMENT, ASSEMBLY AND EXPORT
@@ -49,10 +49,10 @@ namespace Prove.Contratti
         private static readonly Dictionary<string, string[]> ReadAnswers =
             new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
-                { "OperazioniAccoppia.cs", new[] { "Select4" } },
-                { "OperazioniSaldatura.cs", new[] { "SetAutomaticCutList", "SetAutomaticUpdate", "UpdateCutList", "Select2", "DeleteSelection2", "Select4" } },
-                { "OperazioniDistintaBase.cs", new[] { "SelectByID2", "AutoBalloon5" } },
-                { "OperazioniSpecchiaComponente.cs", new[] { "Select2", "DeleteSelection2" } },
+                { "MateOperations.cs", new[] { "Select4" } },
+                { "WeldmentOperations.cs", new[] { "SetAutomaticCutList", "SetAutomaticUpdate", "UpdateCutList", "Select2", "DeleteSelection2", "Select4" } },
+                { "BomOperations.cs", new[] { "SelectByID2", "AutoBalloon5" } },
+                { "MirrorComponentOperations.cs", new[] { "Select2", "DeleteSelection2" } },
             };
 
         internal static void RunAll()
@@ -61,7 +61,7 @@ namespace Prove.Contratti
 
             DiscardedAnswersOnTheSource();
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of the Z-C21.8 weldment and assembly fixes",
@@ -91,7 +91,7 @@ namespace Prove.Contratti
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
-            Type sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+            Type sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             if (sw == null) { Segna("OperazioniSw is in the library", false, "type missing"); return; }
 
             TrimEndCondition(sw);
@@ -154,7 +154,7 @@ namespace Prove.Contratti
                                          : string.Join(" | ", falseAlarms));
 
             // ── THEN THE REAL SOURCE ─────────────────────────────────────
-            var folder = Path.Combine(Radice(), "Riscontro.Disegno");
+            var folder = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
             var found = new List<string>();
             int calls = 0;
             foreach (var entry in ReadAnswers)
@@ -172,11 +172,11 @@ namespace Prove.Contratti
 
             // L11-7: the mirror of components reads the error code of what
             // was born, after the rebuild, before its component checks.
-            var mirror = Path.Combine(folder, "OperazioniSpecchiaComponente.cs");
+            var mirror = Path.Combine(folder, "MirrorComponentOperations.cs");
             string mirrorSource = File.Exists(mirror) ? File.ReadAllText(mirror) : "";
             bool reads = Regex.IsMatch(mirrorSource, @"ApiHelpers\.RebuildError\(\s*\w+\s*,\s*out\s+bool\s+mirrorErrorKnown\s*\)");
             Segna("L11-7: the component mirror reads GetErrorCode2 of the mirror it made", reads,
-                  "OperazioniSpecchiaComponente.cs: ApiHelpers.RebuildError(..., out bool mirrorErrorKnown)");
+                  "MirrorComponentOperations.cs: ApiHelpers.RebuildError(..., out bool mirrorErrorKnown)");
         }
 
         /// <summary>How many calls to the names the (stripped) text holds.</summary>
@@ -543,7 +543,7 @@ namespace Prove.Contratti
         /// </summary>
         private static List<string> BenchVerdictWords(string folder, string caseName)
         {
-            var path = Path.Combine(Radice(), "Banco", "cases", folder, caseName + ".json");
+            var path = Path.Combine(Radice(), "Bench", "cases", folder, caseName + ".json");
             if (!File.Exists(path)) return null;
             var json = new System.Web.Script.Serialization.JavaScriptSerializer()
                 .DeserializeObject(File.ReadAllText(path)) as Dictionary<string, object>;
@@ -633,7 +633,7 @@ namespace Prove.Contratti
         {
             try
             {
-                var t = asm.GetType("Riscontro.Disegno.OperazioniSw+UserPreferenceSnapshot", false);
+                var t = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw+UserPreferenceSnapshot", false);
                 if (t == null) { Segna("N17: UserPreferenceSnapshot is there", false, "missing on this library"); return; }
                 var readInteger = t.GetMethod("ReadInteger", AnyInstance);
                 var readToggle = t.GetMethod("ReadToggle", AnyInstance);

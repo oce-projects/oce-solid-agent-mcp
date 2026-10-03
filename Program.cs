@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Oce.Solid.Agent.Mcp;
-using Oce.Solid.Agent.Ponte;
-using Oce.Solid.Agent.Strumenti;
+using Oce.Solid.Agent.Bridge;
+using Oce.Solid.Agent.Tools;
 
 namespace Oce.Solid.Agent
 {
@@ -263,11 +263,11 @@ namespace Oce.Solid.Agent
                         return Protocollo.Errore(
                             id, Protocollo.ParametriNonValidi, "manca «uri»");
 
-                    // THE URIs OF BEFORE W3.1-bis.5 (Riscontro.Disegno/Alias.cs, decision
+                    // THE URIs OF BEFORE W3.1-bis.5 (Oce.Solid.Agent.Core/Alias.cs, decision
                     // D4): read as the English ones until the first release, and the
                     // answer says so in `deprecated`. Removed in W3.1-bis.11.
                     var deprecated = new List<string>();
-                    uri = Riscontro.Disegno.Alias.ResourceUri(uri, deprecated);
+                    uri = Oce.Solid.Agent.Core.Alias.ResourceUri(uri, deprecated);
                     var risorse = new Risorse(catalogo);
                     var contenuto = risorse.Leggi(uri);
                     if (contenuto != null)
@@ -388,7 +388,7 @@ namespace Oce.Solid.Agent
         //
         // The installer reads these, and no longer the sentences: a sentence
         // is for a person and gets translated, a code does not. The same
-        // numbers are written in Installer/Passi.cs (SelfTest*), which cannot
+        // numbers are written in Installer/Steps.cs (SelfTest*), which cannot
         // reference this assembly; a contract in Prove reads both.
         //
         //   0  attached (with or without a document)
@@ -517,7 +517,7 @@ namespace Oce.Solid.Agent
             // acceso e vuoto, che e' lo stato normale di chi ha appena acceso il
             // computer. Trovato il 14/9, rimasto senza casella fino al 24/9, e
             // visto di nuovo quella sera: il banco aveva chiuso tutto e il caso 2
-            // di `Controlli/prova-installatore.js` e' diventato rosso.
+            // di `Checks/test-installer.js` e' diventato rosso.
             //
             // Tre esiti e non due: agganciato con un documento (lo misura),
             // agganciato senza documenti (lo dice, ed e' in piedi), non agganciato

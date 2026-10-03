@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.CambiaAMano
+namespace Checks.ChangeByHand
 {
     /// <summary>
     /// CAMBIA IL PEZZO APERTO SENZA PASSARE DAL PONTE (voce X2).
@@ -18,7 +18,7 @@ namespace Controlli.CambiaAMano
     /// PowerShell 5.1 risponde TYPE_E_ELEMENTNOTFOUND: PowerShell non risolve i
     /// metodi sull'IDispatch di SOLIDWORKS. E' la stessa ragione per cui tutte
     /// le sonde COM di questo progetto sono C# compilati, ed e' scritta anche
-    /// in `Controlli\NuovaParte`.
+    /// in `Checks\NewPart`.
     ///
     /// COSA FA: estrude un blocchetto sul primo piano di riferimento del
     /// documento attivo. Non e' «tirare una quota», ed e' onesto dirlo: e' una
@@ -30,8 +30,8 @@ namespace Controlli.CambiaAMano
     /// NON SALVA. Il documento resta sporco, come lo lascerebbe una persona
     /// che ha toccato qualcosa e non ha ancora salvato.
     ///
-    ///     CambiaAMano.exe            un blocchetto 10x10x10
-    ///     CambiaAMano.exe 25         un blocchetto 25x25x25
+    ///     ChangeByHand.exe            un blocchetto 10x10x10
+    ///     ChangeByHand.exe 25         un blocchetto 25x25x25
     ///
     /// Esce 0 se ha cambiato qualcosa, 1 se non ci e' riuscito - e in quel
     /// caso lo dice, perche' una sonda che fallisce in silenzio farebbe

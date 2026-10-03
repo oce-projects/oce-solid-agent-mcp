@@ -6,20 +6,20 @@
 //
 //  WHAT IT DOES
 //
-//  Driven by Controlli/lingua/name-map.tsv (types tool, sub_action, operation,
+//  Driven by Checks/language/name-map.tsv (types tool, sub_action, operation,
 //  catalogue_family, argument, enum_value, catalogue_key, response_field,
 //  response_value and selector), it renames the surface a client of the
 //  bridge saves and calls again:
 //
-//    - Strumenti/catalogo.json, token by token: its keys, the families, the
+//    - Tools/catalog.json, token by token: its keys, the families, the
 //      operation names, every schema property, required name, enum value and
 //      default, the precondition and document values, the example (a JSON
 //      text inside a string, rewritten the same way), and the code names a
 //      description quotes. The catalogue is a product of
-//      Riscontro.Disegno/Catalogo/Operazioni.cs: the C# pass below renames
-//      the source, and Riscontro.Catalogo.exe must write back exactly what
+//      Oce.Solid.Agent.Core/Catalog/Operations.cs: the C# pass below renames
+//      the source, and Oce.Solid.Agent.Catalog.exe must write back exactly what
 //      this pass wrote (`--check` compares them);
-//    - every bench case and plan (Banco/cases, Banco/pending-cases): the
+//    - every bench case and plan (Bench/cases, Bench/pending-cases): the
 //      operation of each step, the keys and values of its arguments (an enum
 //      value is renamed by the argument it belongs to, a selector by the
 //      selector rows, a value the case chose and compares by the
@@ -41,7 +41,7 @@
 //    - to an exact snake_case token outside such spans (profondita_mm);
 //    - to a selector (@faccia(...)) anywhere.
 //  The names an Italian SOLIDWORKS writes (the class solidworks-localized of
-//  Controlli/lingua/exceptions.json: Schizzo1, Taglio-Estrusione2, «Piano
+//  Checks/language/exceptions.json: Schizzo1, Taglio-Estrusione2, «Piano
 //  frontale») are masked first and never touched.
 //
 //  A JSON file is rewritten token by token (the method of window 1): only
@@ -69,28 +69,28 @@
 //  forward run checks that each table still matches the tree.
 //
 //  USAGE
-//    node Controlli/lingua/window-2-surface.js             the window, on this repository
-//    node Controlli/lingua/window-2-surface.js --reverse   the window backwards
-//    node Controlli/lingua/window-2-surface.js --check
+//    node Checks/language/window-2-surface.js             the window, on this repository
+//    node Checks/language/window-2-surface.js --reverse   the window backwards
+//    node Checks/language/window-2-surface.js --check
 //        writes nothing: is the tree after the window? Every Italian name of
 //        the window still in the catalogue, the cases, the plans and the code
 //        literals; the catalogue written by the C# against the catalogue this
 //        script would write; the alias dictionary. Exit 1 if anything is left.
-//    node Controlli/lingua/window-2-surface.js --reverse-proof <rev>
+//    node Checks/language/window-2-surface.js --reverse-proof <rev>
 //        extracts HEAD into a temporary folder, runs --reverse there, and
 //        compares the catalogue and the cases and plans of <rev> with what
 //        came back: same paths, same bytes, same JSON.
-//    node Controlli/lingua/window-2-surface.js --forward-proof <rev>
+//    node Checks/language/window-2-surface.js --forward-proof <rev>
 //        the other way: extracts <rev>, runs the window there, and compares
 //        the catalogue and the cases and plans with HEAD.
-//    node Controlli/lingua/window-2-surface.js --todo <TODO.md>
+//    node Checks/language/window-2-surface.js --todo <TODO.md>
 //        only that file, outside its closed entries and outside the entry
 //        W3.1-bis (the rename itself, whose tables quote both names): code
 //        names only (D10).
-//    node Controlli/lingua/window-2-surface.js --notes <file|folder>...
+//    node Checks/language/window-2-surface.js --notes <file|folder>...
 //        the same rewrite on explicit notes (memories, RAG notes, CLAUDE.md,
 //        INSTALL-FOR-AI.md): code names only. Used by
-//        Controlli/lingua/update-names-in-notes.js. In both, a line that
+//        Checks/language/update-names-in-notes.js. In both, a line that
 //        already names the English name it would write is left whole (a
 //        table of the rename), and a name with two English names (`misure`,
 //        `piano`, `passo`, `quota` alone) or of another subject (`modello`)
@@ -107,9 +107,9 @@
 //                       literal with two senses, and write every such site and
 //                       every file rewritten into <file>
 //
-//  ALSO, AFTER A FORWARD RUN: Controlli/lingua/window-2-reverse.json, the
+//  ALSO, AFTER A FORWARD RUN: Checks/language/window-2-reverse.json, the
 //  ledger of the reverse run (see below), and the consumed strings of
-//  Controlli/lingua/consumed-strings.json whose consumer literal the window
+//  Checks/language/consumed-strings.json whose consumer literal the window
 //  renamed, bound again to their new spelling (consumed-strings.js --rebind,
 //  done here).
 //
@@ -127,13 +127,13 @@ const cp = require('child_process');
 const os = require('os');
 
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
-const MAP_REL = 'Controlli/lingua/name-map.tsv';
-const EXCEPTIONS_REL = 'Controlli/lingua/exceptions.json';
-const CATALOGUE_REL = 'Strumenti/catalogo.json';
-const CASE_KEYS_REL = 'Banco/case-keys.json';
-const CASE_TOPS = ['Banco/cases', 'Banco/pending-cases'];
-const TASKS_DIR = 'Banco/tasks';
-const OPERATIONS_CS = 'Riscontro.Disegno/Catalogo/Operazioni.cs';
+const MAP_REL = 'Checks/language/name-map.tsv';
+const EXCEPTIONS_REL = 'Checks/language/exceptions.json';
+const CATALOGUE_REL = 'Tools/catalog.json';
+const CASE_KEYS_REL = 'Bench/case-keys.json';
+const CASE_TOPS = ['Bench/cases', 'Bench/pending-cases'];
+const TASKS_DIR = 'Bench/tasks';
+const OPERATIONS_CS = 'Oce.Solid.Agent.Core/Catalog/Operations.cs';
 const KEEP_MARK = 'window-2: keep';
 
 const TYPES = ['tool', 'sub_action', 'operation', 'catalogue_family', 'argument', 'enum_value', 'catalogue_key',
@@ -142,24 +142,24 @@ const TYPES = ['tool', 'sub_action', 'operation', 'catalogue_family', 'argument'
 // Files that keep their Italian on purpose, or history: never rewritten.
 const EXCLUDED = new Set([
   'CHANGELOG.md',                                // history is not rewritten; the window adds its own entry
-  'Controlli/lingua/name-map.tsv',               // the map: Italian on purpose
-  'Controlli/lingua/name-map-extract.js',        // its extractor: Italian on purpose
-  'Controlli/lingua/baseline.json',              // rewritten by detect-italian.js --write-baseline
-  'Controlli/lingua/lexicon.json',               // the Italian words the gate looks for
-  'Controlli/lingua/exceptions.json',            // the patterns name the Italian they cover
-  'Controlli/lingua/detect-italian.js',          // the gate: its exception classes are not protocol
-  'Riscontro.Disegno/Alias.cs',                  // the aliases (W3.1-bis.5, D4): they name the old names
-  'Prove/AliasLayerContract.cs',                 // and their contract
-  '.github/passi/language-gate.ps1',             // (`quote` is a class there, not the family)
-  'Controlli/lingua/measure-labels.json',        // labelled Italian samples of the gate's measure
-  'Controlli/lingua/measure-labels-blind.json',
-  'Controlli/lingua/measure-labels-blind-english.json',
-  'Controlli/lingua/measure-labels-stress.json',
-  'Controlli/lingua/consumed-strings.json',      // hashes, not names
-  'Controlli/lingua/window-1-cases.js',          // window 1: it names the Italian keys it renamed
-  'Controlli/lingua/window-2-surface.js',        // this file
-  'Controlli/lingua/update-names-in-notes.js',   // its driver for the notes outside the repository
-  'Banco/tasks/score-autonomous.js',             // reads the protocol the bridge of before speaks (W3.1-bis.5, review finding 1): it names the old names on purpose
+  'Checks/language/name-map.tsv',               // the map: Italian on purpose
+  'Checks/language/name-map-extract.js',        // its extractor: Italian on purpose
+  'Checks/language/baseline.json',              // rewritten by detect-italian.js --write-baseline
+  'Checks/language/lexicon.json',               // the Italian words the gate looks for
+  'Checks/language/exceptions.json',            // the patterns name the Italian they cover
+  'Checks/language/detect-italian.js',          // the gate: its exception classes are not protocol
+  'Oce.Solid.Agent.Core/Alias.cs',                  // the aliases (W3.1-bis.5, D4): they name the old names
+  'Tests/AliasLayerContract.cs',                 // and their contract
+  '.github/steps/language-gate.ps1',             // (`quote` is a class there, not the family)
+  'Checks/language/measure-labels.json',        // labelled Italian samples of the gate's measure
+  'Checks/language/measure-labels-blind.json',
+  'Checks/language/measure-labels-blind-english.json',
+  'Checks/language/measure-labels-stress.json',
+  'Checks/language/consumed-strings.json',      // hashes, not names
+  'Checks/language/window-1-cases.js',          // window 1: it names the Italian keys it renamed
+  'Checks/language/window-2-surface.js',        // this file
+  'Checks/language/update-names-in-notes.js',   // its driver for the notes outside the repository
+  'Bench/tasks/score-autonomous.js',             // reads the protocol the bridge of before speaks (W3.1-bis.5, review finding 1): it names the old names on purpose
 ]);
 // The D9 tasks keep the words a person types: only the measurement paths of
 // their JSON (come_si_misura[].cosa) are renamed, never the prompt.
@@ -167,7 +167,7 @@ const TASK_PATH_KEY = 'cosa';
 
 // ── tables of sites (each from a note of the map) ─────────────────────────
 // ARGUMENT_BY_OPERATION: an argument whose English name depends on the
-// operation (Italian names). Map note of `a_mm`: «at catalogo.json:2499 (the
+// operation (Italian names). Map note of `a_mm`: «at catalog.json:2499 (the
 // weld symbol of a drawing) ... W3.1-bis.5 renames that one site to
 // throat_mm; ... section_view ... W3.1-bis.5 renames that site to offset_mm,
 // and the cases of section_view with it».
@@ -177,8 +177,8 @@ const ARGUMENT_BY_OPERATION = {
 };
 // FIELD_BY_OPERATION: a response field whose English name depends on the
 // operation that writes it. Map note of `formato`: «the paper size echoed by
-// create_drawing and set_sheet (OperazioniTavola.cs:144,234) is paper_size, as
-// the argument; the sheet format name of the template (OperazioniCartiglio.cs:134)
+// create_drawing and set_sheet (DrawingOperations.cs:144,234) is paper_size, as
+// the argument; the sheet format name of the template (TitleBlockOperations.cs:134)
 // is sheet_format».
 const FIELD_BY_OPERATION = {
   crea_disegno: { formato: 'paper_size' },
@@ -187,7 +187,7 @@ const FIELD_BY_OPERATION = {
 };
 // FIELD_INSIDE: a response field whose English name depends on the field it
 // sits in. Map note of `misure`: «the inner key of the frame answer
-// (OperazioniSaldatura.cs:836,2808 ...) is the echo of the frame argument,
+// (WeldmentOperations.cs:836,2808 ...) is the echo of the frame argument,
 // measured_as».
 const FIELD_INSIDE = { misure: { misure: 'measured_as' } };
 // FACING: the values of the face field `verso` of the document state, which
@@ -1095,7 +1095,7 @@ function rewriteArgsTree(d, node, op, key, edits, file) {
 // installation. They take the English name SOLIDWORKS gives, and the
 // description of the argument says that the name is the installation's.
 // [Italian text, English text], applied to the catalogue and to its source
-// (Riscontro.Disegno/Catalogo/Operazioni.cs) as plain text: none of these
+// (Oce.Solid.Agent.Core/Catalog/Operations.cs) as plain text: none of these
 // texts is a name of the map, and none of the English ones was in the tree
 // before the window, so the reverse run takes back only what this wrote.
 const D12_SENTENCE = ' The name is the one SOLIDWORKS gives, in the language of its installation: ' +
@@ -1585,88 +1585,88 @@ function positionClass(before, after) {
 // must be used by a forward run on the tree it was written for.
 const CS_SITES = [
   // bench groups and their labels: the names of `--gruppo`, not protocol
-  { file: 'Banco/Program.cs', line: 'new Gruppo { Nome = ', literal: '*', before: /\bNome\s*=\s*$/, to: 'keep', why: 'the names of the bench groups (--gruppo), not the MCP surface; the label (Cosa) names the operation a group exercises and follows the map' },
-  { file: 'Banco/NumeriDelleQuote.cs', line: 'ErroreDiBanco("numeri"', literal: 'numeri', to: 'keep', why: 'the label of a bench group' },
+  { file: 'Bench/Program.cs', line: 'new Gruppo { Nome = ', literal: '*', before: /\bNome\s*=\s*$/, to: 'keep', why: 'the names of the bench groups (--gruppo), not the MCP surface; the label (Cosa) names the operation a group exercises and follows the map' },
+  { file: 'Bench/DimensionNumbers.cs', line: 'ErroreDiBanco("numeri"', literal: 'numeri', to: 'keep', why: 'the label of a bench group' },
   // words searched in Italian prose
-  { file: 'Banco/Attese.cs', line: 'suArgomenti.IndexOf("copia"', literal: 'copia', to: 'keep', why: 'a word of an Italian sentence of the bench' },
-  { file: 'Prove/ProveAttese.cs', line: 'd2.IndexOf("copia"', literal: 'copia', to: 'keep', why: 'the same word, checked by the contract' },
-  { file: 'Prove/ProveAttese.cs', line: 'frase(', literal: '*', to: 'keep', why: 'words of the Italian sentence that describes a shape' },
-  { file: 'Prove/ProveSessione.cs', line: 'due.Contains("lavorazioni")', literal: 'lavorazioni', to: 'keep', why: 'a word of the Italian sentence the contract reads' },
-  { file: 'Prove/ProveIRifiuti.cs', line: 'new Remedy("riattiva"', literal: 'riattiva', to: 'keep', why: 'the stem of an Italian refusal the remedy recognises' },
-  { file: 'Prove/ProveCatalogo.cs', line: 'ItalianNoun = "operazioni"', literal: 'operazioni', to: 'keep', why: 'the Italian noun of the README count' },
-  { file: 'Riscontro.Disegno/Sezioni.cs', line: 'PareteStaDentro(', literal: '*', to: 'keep', why: 'the word the refusal writes in its Italian sentence' },
-  { file: 'Riscontro.Disegno/OperazioniSw.cs', line: 'string unita = angolare ? "gradi" : "mm";', literal: 'gradi', to: 'keep', why: 'the unit word of an Italian message' },
+  { file: 'Bench/Expectations.cs', line: 'suArgomenti.IndexOf("copia"', literal: 'copia', to: 'keep', why: 'a word of an Italian sentence of the bench' },
+  { file: 'Tests/ExpectationsTests.cs', line: 'd2.IndexOf("copia"', literal: 'copia', to: 'keep', why: 'the same word, checked by the contract' },
+  { file: 'Tests/ExpectationsTests.cs', line: 'frase(', literal: '*', to: 'keep', why: 'words of the Italian sentence that describes a shape' },
+  { file: 'Tests/SessionTests.cs', line: 'due.Contains("lavorazioni")', literal: 'lavorazioni', to: 'keep', why: 'a word of the Italian sentence the contract reads' },
+  { file: 'Tests/RefusalsTests.cs', line: 'new Remedy("riattiva"', literal: 'riattiva', to: 'keep', why: 'the stem of an Italian refusal the remedy recognises' },
+  { file: 'Tests/CatalogTests.cs', line: 'ItalianNoun = "operazioni"', literal: 'operazioni', to: 'keep', why: 'the Italian noun of the README count' },
+  { file: 'Oce.Solid.Agent.Core/Sections.cs', line: 'PareteStaDentro(', literal: '*', to: 'keep', why: 'the word the refusal writes in its Italian sentence' },
+  { file: 'Oce.Solid.Agent.Core/SwOperations.cs', line: 'string unita = angolare ? "gradi" : "mm";', literal: 'gradi', to: 'keep', why: 'the unit word of an Italian message' },
   // paths, titles and names that are not names of the surface
-  { file: 'Prove/LanguageGateTests.cs', line: 'Path.Combine(repo, ".github", "passi"', literal: 'passi', to: 'keep', why: 'the folder .github/passi' },
-  { file: 'Prove/ProveSessione.cs', line: '.sldprt", "prova");', literal: 'prova', to: 'keep', why: 'the title of a fake document' },
-  { file: 'Controlli/Annulla/Programma.cs', line: 'Riga("prima"', literal: 'prima', to: 'keep', why: 'a label of the probe output' },
-  { file: 'Controlli/Annulla/Programma.cs', line: 'Riga("dopo"', literal: 'dopo', to: 'keep', why: 'a label of the probe output' },
-  { file: 'Riscontro.Disegno/OperazioniDistintaTavola.cs', line: 'comeTrovata', literal: '*', to: 'keep', why: 'an internal marker, answered in English' },
-  { file: 'Riscontro.Disegno/OperazioniTondoTavola.cs', line: '"piano"', literal: 'piano', to: 'keep', why: 'an internal kind of edge' },
+  { file: 'Tests/LanguageGateTests.cs', line: 'Path.Combine(repo, ".github", "passi"', literal: 'passi', to: 'keep', why: 'the folder .github/steps' },
+  { file: 'Tests/SessionTests.cs', line: '.sldprt", "prova");', literal: 'prova', to: 'keep', why: 'the title of a fake document' },
+  { file: 'Checks/Undo/Program.cs', line: 'Riga("prima"', literal: 'prima', to: 'keep', why: 'a label of the probe output' },
+  { file: 'Checks/Undo/Program.cs', line: 'Riga("dopo"', literal: 'dopo', to: 'keep', why: 'a label of the probe output' },
+  { file: 'Oce.Solid.Agent.Core/DrawingCutListOperations.cs', line: 'comeTrovata', literal: '*', to: 'keep', why: 'an internal marker, answered in English' },
+  { file: 'Oce.Solid.Agent.Core/DrawingRoundOperations.cs', line: '"piano"', literal: 'piano', to: 'keep', why: 'an internal kind of edge' },
   // value sets of the state the map does not name: kept whole, not half translated
-  { file: 'Riscontro.Disegno/StatoDocumento.cs', line: 'oggetto is ', literal: '*', to: 'keep', why: 'the kinds of a selected object (faccia, spigolo, corpo, vertice, lavorazione): not in the map' },
-  { file: 'Riscontro.Disegno/StatoTavola.cs', line: 'swDrawingViewTypes_e.', literal: '*', to: 'keep', why: 'the kinds of a drawing view: not in the map' },
-  { file: 'Riscontro.Disegno/StatoTavola.cs', line: 'default: return "vista";', literal: 'vista', to: 'keep', why: 'the kinds of a drawing view: not in the map' },
-  { file: 'Riscontro.Disegno/StatoAssieme.cs', line: 'swMateType_e.', literal: '*', to: 'keep', why: 'the kinds of a mate: not in the map' },
-  { file: 'Riscontro.Disegno/OperazioniVerifica.cs', line: 'swBodyType_e.swSheetBody) return "foglio"', literal: 'foglio', to: 'keep', why: 'the kinds of a body: not in the map (solido is, foglio is not)' },
-  { file: 'Riscontro.Disegno/OperazioniVerifica.cs', line: 'nome == "foglio"', literal: 'foglio', to: 'keep', why: 'the same kind, read back' },
-  { file: 'Controlli/CorpoRotto/Programma.cs', line: '"foglio"', literal: 'foglio', to: 'keep', why: 'the probe copy of the kinds of a body' },
-  { file: 'Riscontro.Disegno/OperazioniIstanze.cs', line: 'quante == 1 ? "copia" : "copie"', literal: '*', to: 'keep', why: 'words of an Italian message' },
-  { file: 'Riscontro.Disegno/OperazioniIstanze.cs', line: '(giaSaltate.Length == 0 ? "nessuna"', literal: 'nessuna', to: 'keep', why: 'a word of an Italian message' },
-  { file: 'Riscontro.Disegno/OperazioniSw.cs', line: '(eraSoppressa ? "soppressa" : "attiva")', literal: '*', to: 'keep', why: 'words of an Italian message' },
-  { file: 'Riscontro.Disegno/OperazioniSw.cs', line: '"materiale" + (fatte > 1 ?', literal: 'materiale', to: 'keep', why: 'a word of an Italian message' },
-  { file: 'Riscontro.Disegno/OperazioniProprieta.cs', line: '(sullaConfigurazione ? configurazione : "documento")', literal: 'documento', to: 'keep', why: 'a word of a log line' },
-  { file: 'Prove/ProveSessione.cs', line: 'nato.Contains("nessuno")', literal: 'nessuno', to: 'keep', why: 'a word of an Italian sentence the contract reads' },
+  { file: 'Oce.Solid.Agent.Core/DocumentState.cs', line: 'oggetto is ', literal: '*', to: 'keep', why: 'the kinds of a selected object (faccia, spigolo, corpo, vertice, lavorazione): not in the map' },
+  { file: 'Oce.Solid.Agent.Core/DrawingState.cs', line: 'swDrawingViewTypes_e.', literal: '*', to: 'keep', why: 'the kinds of a drawing view: not in the map' },
+  { file: 'Oce.Solid.Agent.Core/DrawingState.cs', line: 'default: return "vista";', literal: 'vista', to: 'keep', why: 'the kinds of a drawing view: not in the map' },
+  { file: 'Oce.Solid.Agent.Core/AssemblyState.cs', line: 'swMateType_e.', literal: '*', to: 'keep', why: 'the kinds of a mate: not in the map' },
+  { file: 'Oce.Solid.Agent.Core/CheckOperations.cs', line: 'swBodyType_e.swSheetBody) return "foglio"', literal: 'foglio', to: 'keep', why: 'the kinds of a body: not in the map (solido is, foglio is not)' },
+  { file: 'Oce.Solid.Agent.Core/CheckOperations.cs', line: 'nome == "foglio"', literal: 'foglio', to: 'keep', why: 'the same kind, read back' },
+  { file: 'Checks/BrokenBody/Program.cs', line: '"foglio"', literal: 'foglio', to: 'keep', why: 'the probe copy of the kinds of a body' },
+  { file: 'Oce.Solid.Agent.Core/InstanceOperations.cs', line: 'quante == 1 ? "copia" : "copie"', literal: '*', to: 'keep', why: 'words of an Italian message' },
+  { file: 'Oce.Solid.Agent.Core/InstanceOperations.cs', line: '(giaSaltate.Length == 0 ? "nessuna"', literal: 'nessuna', to: 'keep', why: 'a word of an Italian message' },
+  { file: 'Oce.Solid.Agent.Core/SwOperations.cs', line: '(eraSoppressa ? "soppressa" : "attiva")', literal: '*', to: 'keep', why: 'words of an Italian message' },
+  { file: 'Oce.Solid.Agent.Core/SwOperations.cs', line: '"materiale" + (fatte > 1 ?', literal: 'materiale', to: 'keep', why: 'a word of an Italian message' },
+  { file: 'Oce.Solid.Agent.Core/PropertyOperations.cs', line: '(sullaConfigurazione ? configurazione : "documento")', literal: 'documento', to: 'keep', why: 'a word of a log line' },
+  { file: 'Tests/SessionTests.cs', line: 'nato.Contains("nessuno")', literal: 'nessuno', to: 'keep', why: 'a word of an Italian sentence the contract reads' },
   // words searched in a text that are names the text quotes
-  { file: 'Prove/ProveIlRegistro.cs', line: 'Contains("simili")', literal: 'simili', to: 'response_field', why: 'a key of the JSON line of the registry' },
-  { file: 'Prove/ProveProtocollo.cs', line: 'IndexOf("disegna"', literal: 'disegna', to: 'tool', why: 'the tool the refusal of misura names, between guillemets' },
-  { file: 'Banco/Program.cs', line: 'perche.IndexOf("isometrica"', literal: 'isometrica', to: 'enum:viste', why: 'the view the refusal names' },
+  { file: 'Tests/RegistryTests.cs', line: 'Contains("simili")', literal: 'simili', to: 'response_field', why: 'a key of the JSON line of the registry' },
+  { file: 'Tests/ProtocolTests.cs', line: 'IndexOf("disegna"', literal: 'disegna', to: 'tool', why: 'the tool the refusal of misura names, between guillemets' },
+  { file: 'Bench/Program.cs', line: 'perche.IndexOf("isometrica"', literal: 'isometrica', to: 'enum:viste', why: 'the view the refusal names' },
   // two senses, settled by the line
-  { file: 'Banco/Attese.cs', line: 'c.Campo == "angolare"', literal: 'angolare', to: 'selector_field' },
-  { file: 'Banco/Attese.cs', line: 'case "faccia":', literal: 'faccia', to: '=face', why: 'the kind of @faccia without its @' },
-  { file: 'Banco/Program.cs', line: 'f["verso"]', literal: 'verso', to: 'response_field' },
-  { file: 'Banco/Program.cs', line: 'f["verso"]', literal: 'alto', to: 'facing' },
-  { file: 'Banco/Program.cs', line: 'Convert.ToString(f["tipo"])', literal: 'tipo', to: 'response_field' },
-  { file: 'Banco/ProvaNuove.cs', line: 'TryGetValue("verso"', literal: 'verso', to: 'response_field' },
-  { file: 'Banco/Sessione.cs', line: 'coppia.Item1 == "spigoli"', literal: 'spigoli', to: 'response_field', why: 'the state key of the tuple above' },
-  { file: 'Ponte/PianoInMemoria.cs', line: 'TryGetValue("misure"', literal: 'misure', to: 'response_field' },
-  { file: 'Programma.cs', line: 'new[] { "titolo", "tipo", "volume_mm3", "corpi_totali" }', literal: 'tipo', to: 'response_field' },
-  { file: 'Prove/FormaSpellingContract.cs', line: 'sheet["formato"]', literal: 'formato', to: 'argument' },
+  { file: 'Bench/Expectations.cs', line: 'c.Campo == "angolare"', literal: 'angolare', to: 'selector_field' },
+  { file: 'Bench/Expectations.cs', line: 'case "faccia":', literal: 'faccia', to: '=face', why: 'the kind of @faccia without its @' },
+  { file: 'Bench/Program.cs', line: 'f["verso"]', literal: 'verso', to: 'response_field' },
+  { file: 'Bench/Program.cs', line: 'f["verso"]', literal: 'alto', to: 'facing' },
+  { file: 'Bench/Program.cs', line: 'Convert.ToString(f["tipo"])', literal: 'tipo', to: 'response_field' },
+  { file: 'Bench/NewOperationsTests.cs', line: 'TryGetValue("verso"', literal: 'verso', to: 'response_field' },
+  { file: 'Bench/Session.cs', line: 'coppia.Item1 == "spigoli"', literal: 'spigoli', to: 'response_field', why: 'the state key of the tuple above' },
+  { file: 'Bridge/PlanInMemory.cs', line: 'TryGetValue("misure"', literal: 'misure', to: 'response_field' },
+  { file: 'Program.cs', line: 'new[] { "titolo", "tipo", "volume_mm3", "corpi_totali" }', literal: 'tipo', to: 'response_field' },
+  { file: 'Tests/ShapeSpellingContract.cs', line: 'sheet["formato"]', literal: 'formato', to: 'argument' },
   // the arguments the bench writes in place for an operation it calls (an
   // initializer reads as an answer unless the line says otherwise): the
   // argument of that operation, where the map has another name for the field
-  { file: 'Banco/NumeriDelleQuote.cs', line: '{ ["formato"] = "A3" }', literal: 'formato', to: '=paper_size', why: 'an argument of crea_disegno' },
-  { file: 'Banco/Orfane.cs', line: '{ ["formato"] = "A3" }', literal: 'formato', to: '=paper_size', why: 'an argument of crea_disegno' },
-  { file: 'Banco/Program.cs', line: '["misure"] = "ingombro"', literal: 'misure', to: '=measured_as', why: 'the reading of the frame inside telaio_rettangolare, as the library reads it (OperazioniSaldatura.cs, FIELD_INSIDE)' },
-  { file: 'Banco/Program.cs', line: '["da"] = angoli[i], ["a"] = angoli[(i + 1) % 4]', literal: 'da', to: '=start', why: 'the ends of a segment of telaio_rettangolare, read with Punto(mappa, "start")' },
-  { file: 'Banco/Program.cs', line: '["da"] = angoli[i], ["a"] = angoli[(i + 1) % 4]', literal: 'a', to: '=end', why: 'the same segment' },
-  { file: 'Banco/Program.cs', line: '["tipo"] = tipo,', literal: 'tipo', to: '=variant', why: 'an argument of foro_guidato' },
-  { file: 'Banco/ProvaNuove.cs', line: '["tipo"] = "filettato"', literal: 'tipo', to: '=variant', why: 'an argument of foro_guidato' },
-  { file: 'Banco/ProvaNuove.cs', line: '["tipo"] = "passaggio"', literal: 'tipo', to: '=variant', why: 'an argument of foro_guidato' },
+  { file: 'Bench/DimensionNumbers.cs', line: '{ ["formato"] = "A3" }', literal: 'formato', to: '=paper_size', why: 'an argument of crea_disegno' },
+  { file: 'Bench/Orphans.cs', line: '{ ["formato"] = "A3" }', literal: 'formato', to: '=paper_size', why: 'an argument of crea_disegno' },
+  { file: 'Bench/Program.cs', line: '["misure"] = "ingombro"', literal: 'misure', to: '=measured_as', why: 'the reading of the frame inside telaio_rettangolare, as the library reads it (WeldmentOperations.cs, FIELD_INSIDE)' },
+  { file: 'Bench/Program.cs', line: '["da"] = angoli[i], ["a"] = angoli[(i + 1) % 4]', literal: 'da', to: '=start', why: 'the ends of a segment of telaio_rettangolare, read with Punto(mappa, "start")' },
+  { file: 'Bench/Program.cs', line: '["da"] = angoli[i], ["a"] = angoli[(i + 1) % 4]', literal: 'a', to: '=end', why: 'the same segment' },
+  { file: 'Bench/Program.cs', line: '["tipo"] = tipo,', literal: 'tipo', to: '=variant', why: 'an argument of foro_guidato' },
+  { file: 'Bench/NewOperationsTests.cs', line: '["tipo"] = "filettato"', literal: 'tipo', to: '=variant', why: 'an argument of foro_guidato' },
+  { file: 'Bench/NewOperationsTests.cs', line: '["tipo"] = "passaggio"', literal: 'tipo', to: '=variant', why: 'an argument of foro_guidato' },
   // FIELD_BY_OPERATION in the library: the paper size the drawing operations
   // echo, and the sheet format name of the title block
-  { file: 'Riscontro.Disegno/OperazioniTavola.cs', line: '["formato"] = Str(a, "formato", "A3")', literal: 'formato', to: '=paper_size', why: 'the echo of the argument, as the map note says' },
-  { file: 'Riscontro.Disegno/OperazioniTavola.cs', line: '["formato"] = nomeFormato', literal: 'formato', to: '=paper_size', why: 'the echo of the argument of imposta_foglio' },
-  { file: 'Riscontro.Disegno/OperazioniCartiglio.cs', line: '["formato"] = ProvaTesto(() => foglio.GetSheetFormatName())', literal: 'formato', to: '=sheet_format', why: 'the sheet format name of the template' },
-  { file: 'Prove/FormaSpellingContract.cs', line: 'frame["misure"]', literal: 'misure', to: 'argument' },
-  { file: 'Prove/Programma.cs', line: '{ "saldature",', literal: 'saldature', to: 'catalogue_family' },
-  { file: 'Prove/Programma.cs', line: '{ "proprieta",', literal: 'proprieta', to: 'catalogue_family' },
-  { file: 'Prove/ProveAttese.cs', line: '["verso"] = "davanti"', literal: 'davanti', to: 'facing' },
-  { file: 'Prove/ProveAttese.cs', line: 'elenco("misure"', literal: 'misure', to: 'response_field', why: 'the key of the fake measurements just above' },
-  { file: 'Prove/ProveICampiObbligatori.cs', line: '"combina_corpi", "operazione", "unisci"', literal: 'unisci', to: 'enum:operazione' },
-  { file: 'Riscontro.Disegno/FormaAParole.cs', line: 'Testo(f, "tipo")', literal: 'tipo', to: 'response_field' },
-  { file: 'Riscontro.Disegno/OperazioniSaldatura.cs', line: 'Str(telaio, "misure", "ingombro")', literal: 'misure', to: 'argument' },
-  { file: 'Riscontro.Disegno/OperazioniSaldatura.cs', line: 'if (telaio != null) misure["misure"] = comeSiMisura;', literal: 'misure', to: '=measured_as', why: 'map note of misure: the inner key of the frame answer' },
-  { file: 'Riscontro.Disegno/OperazioniSaldatura.cs', line: '["misure"] = a.ContainsKey("misure") ? a["misure"] : "ingombro",', literal: 'misure', to: 'argument', why: 'the defaults of the frame arguments' },
-  { file: 'Riscontro.Disegno/OperazioniSaldatura.cs', line: 'Punto(mappa, "da"', literal: 'da', to: 'argument' },
-  { file: 'Riscontro.Disegno/OperazioniSaldatura.cs', line: 'Punto(mappa, "a"', literal: 'a', to: 'argument' },
-  { file: 'Riscontro.Disegno/OperazioniSw.cs', line: 'voce.TryGetValue("tipo", out var t)', literal: 'tipo', to: '=kind', why: 'the kind of a contour (cerchio, poligonale): a key the case writes inside contorni' },
-  { file: 'Riscontro.Disegno/OperazioniSw.cs', line: 'attesa.TryGetValue("lavorazione"', literal: 'lavorazione', to: 'response_field' },
-  { file: 'Riscontro.Disegno/OperazioniTavola.cs', line: 'Convert.ToString(d["tipo"])', literal: 'tipo', to: 'response_field' },
-  { file: 'Riscontro.Disegno/StatoDocumento.cs', line: 'dati["proprieta"]', literal: 'proprieta', to: 'response_field' },
-  { file: 'Strumenti/Attrezzi.cs', line: 'firma["lavorazione"]', literal: 'lavorazione', to: 'response_field' },
-  { file: 'Riscontro.Disegno/Sezioni.cs', line: '["angolare"] =', literal: 'angolare', to: 'enum:tipo' },
-  { file: 'Riscontro.Disegno/Sezioni.cs', line: 'case "angolare":', literal: 'angolare', to: 'enum:tipo' },
+  { file: 'Oce.Solid.Agent.Core/DrawingOperations.cs', line: '["formato"] = Str(a, "formato", "A3")', literal: 'formato', to: '=paper_size', why: 'the echo of the argument, as the map note says' },
+  { file: 'Oce.Solid.Agent.Core/DrawingOperations.cs', line: '["formato"] = nomeFormato', literal: 'formato', to: '=paper_size', why: 'the echo of the argument of imposta_foglio' },
+  { file: 'Oce.Solid.Agent.Core/TitleBlockOperations.cs', line: '["formato"] = ProvaTesto(() => foglio.GetSheetFormatName())', literal: 'formato', to: '=sheet_format', why: 'the sheet format name of the template' },
+  { file: 'Tests/ShapeSpellingContract.cs', line: 'frame["misure"]', literal: 'misure', to: 'argument' },
+  { file: 'Tests/Program.cs', line: '{ "saldature",', literal: 'saldature', to: 'catalogue_family' },
+  { file: 'Tests/Program.cs', line: '{ "proprieta",', literal: 'proprieta', to: 'catalogue_family' },
+  { file: 'Tests/ExpectationsTests.cs', line: '["verso"] = "davanti"', literal: 'davanti', to: 'facing' },
+  { file: 'Tests/ExpectationsTests.cs', line: 'elenco("misure"', literal: 'misure', to: 'response_field', why: 'the key of the fake measurements just above' },
+  { file: 'Tests/RequiredFieldsTests.cs', line: '"combina_corpi", "operazione", "unisci"', literal: 'unisci', to: 'enum:operazione' },
+  { file: 'Oce.Solid.Agent.Core/ShapeToWords.cs', line: 'Testo(f, "tipo")', literal: 'tipo', to: 'response_field' },
+  { file: 'Oce.Solid.Agent.Core/WeldmentOperations.cs', line: 'Str(telaio, "misure", "ingombro")', literal: 'misure', to: 'argument' },
+  { file: 'Oce.Solid.Agent.Core/WeldmentOperations.cs', line: 'if (telaio != null) misure["misure"] = comeSiMisura;', literal: 'misure', to: '=measured_as', why: 'map note of misure: the inner key of the frame answer' },
+  { file: 'Oce.Solid.Agent.Core/WeldmentOperations.cs', line: '["misure"] = a.ContainsKey("misure") ? a["misure"] : "ingombro",', literal: 'misure', to: 'argument', why: 'the defaults of the frame arguments' },
+  { file: 'Oce.Solid.Agent.Core/WeldmentOperations.cs', line: 'Punto(mappa, "da"', literal: 'da', to: 'argument' },
+  { file: 'Oce.Solid.Agent.Core/WeldmentOperations.cs', line: 'Punto(mappa, "a"', literal: 'a', to: 'argument' },
+  { file: 'Oce.Solid.Agent.Core/SwOperations.cs', line: 'voce.TryGetValue("tipo", out var t)', literal: 'tipo', to: '=kind', why: 'the kind of a contour (cerchio, poligonale): a key the case writes inside contorni' },
+  { file: 'Oce.Solid.Agent.Core/SwOperations.cs', line: 'attesa.TryGetValue("lavorazione"', literal: 'lavorazione', to: 'response_field' },
+  { file: 'Oce.Solid.Agent.Core/DrawingOperations.cs', line: 'Convert.ToString(d["tipo"])', literal: 'tipo', to: 'response_field' },
+  { file: 'Oce.Solid.Agent.Core/DocumentState.cs', line: 'dati["proprieta"]', literal: 'proprieta', to: 'response_field' },
+  { file: 'Tools/McpTools.cs', line: 'firma["lavorazione"]', literal: 'lavorazione', to: 'response_field' },
+  { file: 'Oce.Solid.Agent.Core/Sections.cs', line: '["angolare"] =', literal: 'angolare', to: 'enum:tipo' },
+  { file: 'Oce.Solid.Agent.Core/Sections.cs', line: 'case "angolare":', literal: 'angolare', to: 'enum:tipo' },
 ];
 function siteFor(rel, line, lit, before) {
   for (const s of CS_SITES) if (s.file === rel && (s.literal === lit || s.literal === '*') && line.includes(s.line) && (!s.before || s.before.test(before || ''))) { s.used = true; return s; }
@@ -1676,17 +1676,17 @@ function siteFor(rel, line, lit, before) {
 // VALUE_SENSE_BY_FILE: for a literal with two senses that the code around it
 // does not settle, the sense a file gives a word.
 const VALUE_SENSE_BY_FILE = {
-  'Riscontro.Disegno/StatoDocumento.cs': { alto: 'facing', basso: 'facing', davanti: 'facing' },
-  'Riscontro.Disegno/OperazioniAccoppia.cs': { alto: 'facing', basso: 'facing', davanti: 'facing' },
-  'Banco/CasiDichiarati.cs': { davanti: 'facing' },
-  'Banco/ProvaNuove.cs': { davanti: 'facing' },
-  'Riscontro.Disegno/OperazioniAnnotazioniTavola.cs': { alto: 'enum:lato', basso: 'enum:lato' },
-  'Riscontro.Disegno/OperazioniCorpi.cs': { unisci: 'enum:operazione' },
-  'Riscontro.Disegno/OperazioniDistintaBase.cs': { sopra: 'enum:disposizione', sotto: 'enum:disposizione' },
-  'Riscontro.Disegno/OperazioniEsporta.cs': { fine: 'enum:qualita' },
-  'Riscontro.Disegno/OperazioniSaldatura.cs': { fine: 'enum:posizione' },
-  'Controlli/domande-senza-risposta.js': { tipo: 'response_field' },
-  'Controlli/expected-keys-test.js': { tipo: 'response_field' },
+  'Oce.Solid.Agent.Core/DocumentState.cs': { alto: 'facing', basso: 'facing', davanti: 'facing' },
+  'Oce.Solid.Agent.Core/MateOperations.cs': { alto: 'facing', basso: 'facing', davanti: 'facing' },
+  'Bench/DeclaredCases.cs': { davanti: 'facing' },
+  'Bench/NewOperationsTests.cs': { davanti: 'facing' },
+  'Oce.Solid.Agent.Core/DrawingAnnotationOperations.cs': { alto: 'enum:lato', basso: 'enum:lato' },
+  'Oce.Solid.Agent.Core/BodyOperations.cs': { unisci: 'enum:operazione' },
+  'Oce.Solid.Agent.Core/BomOperations.cs': { sopra: 'enum:disposizione', sotto: 'enum:disposizione' },
+  'Oce.Solid.Agent.Core/ExportOperations.cs': { fine: 'enum:qualita' },
+  'Oce.Solid.Agent.Core/WeldmentOperations.cs': { fine: 'enum:posizione' },
+  'Checks/questions-without-answer.js': { tipo: 'response_field' },
+  'Checks/expected-keys-test.js': { tipo: 'response_field' },
 };
 
 function rewriteCs(d, text00, rel, report, opts) {
@@ -1835,33 +1835,33 @@ function codeName(d, raw, s, ctx, rel, line) {
 // depend on it (a_mm is the throat of a weld symbol and the offset of a
 // section line; the map note of a_mm).
 const FILE_OPERATION = {
-  'Riscontro.Disegno/OperazioniSaldaturaTavola.cs': 'saldatura_in_tavola',
-  'Riscontro.Disegno/OperazioniSezioneTavola.cs': 'sezione_in_tavola',
+  'Oce.Solid.Agent.Core/DrawingWeldOperations.cs': 'saldatura_in_tavola',
+  'Oce.Solid.Agent.Core/DrawingSectionOperations.cs': 'sezione_in_tavola',
 };
 // PROSE_SENSE_BY_FILE and PROSE_SENSE_DEFAULT: the sense of a word with two
 // English names when prose quotes it, by file and then for every file; keep
 // leaves it as it is.
 const PROSE_SENSE_BY_FILE = {
   'README.md': { saldature: 'catalogue_family', proprieta: 'catalogue_family' },
-  'Banco/CasiDichiarati.cs': { saldature: 'keep' },
-  'Banco/Orfane.cs': { alto: 'keep' },
-  'Controlli/RaccordoDiFaccia/Programma.cs': { alto: 'keep' },
-  'Banco/Attese.cs': { angolare: 'selector_field' },
-  'Banco/pending-cases/README.md': { unisci: 'enum:operazione' },
-  'Riscontro.Disegno/StatoDocumento.cs': { angolare: 'keep', proprieta: 'keep' },
-  'Riscontro.Disegno/OperazioniProfili.cs': { misure: 'response_field' },
-  'Controlli/domande-senza-risposta.js': { tipo: 'response_field' },
-  'Prove/ProveIlRegistro.cs': { tipo: 'response_field' },
-  'Riscontro.Disegno/OperazioniSw.cs': { unisci: 'argument' },
-  'Riscontro.Disegno/OperazioniCorpi.cs': { tipo: 'keep' },
-  'Riscontro.Disegno/OperazioniEsporta.cs': { fine: 'keep' },
-  'Riscontro.Disegno/OperazioniSaldatura.cs': { fine: 'enum:posizione' },
-  'Prove/ProveLAvanzamento.cs': { fine: 'keep' },
-  'Controlli/lingua/snapshot.js': { fine: 'keep' },
-  'Banco/tasks/14_plate_3d_print.md': { fine: 'keep' },
-  'Prove/ProveEnumDiErrore.cs': { lavorazione: 'keep' },
-  'Strumenti/Attrezzi.cs': { lavorazione: 'response_field' },
-  'Riscontro.Disegno/OperazioniInterferenze.cs': { quante: 'response_field' },
+  'Bench/DeclaredCases.cs': { saldature: 'keep' },
+  'Bench/Orphans.cs': { alto: 'keep' },
+  'Checks/FaceFillet/Program.cs': { alto: 'keep' },
+  'Bench/Expectations.cs': { angolare: 'selector_field' },
+  'Bench/pending-cases/README.md': { unisci: 'enum:operazione' },
+  'Oce.Solid.Agent.Core/DocumentState.cs': { angolare: 'keep', proprieta: 'keep' },
+  'Oce.Solid.Agent.Core/ProfileOperations.cs': { misure: 'response_field' },
+  'Checks/questions-without-answer.js': { tipo: 'response_field' },
+  'Tests/RegistryTests.cs': { tipo: 'response_field' },
+  'Oce.Solid.Agent.Core/SwOperations.cs': { unisci: 'argument' },
+  'Oce.Solid.Agent.Core/BodyOperations.cs': { tipo: 'keep' },
+  'Oce.Solid.Agent.Core/ExportOperations.cs': { fine: 'keep' },
+  'Oce.Solid.Agent.Core/WeldmentOperations.cs': { fine: 'enum:posizione' },
+  'Tests/ProgressTests.cs': { fine: 'keep' },
+  'Checks/language/snapshot.js': { fine: 'keep' },
+  'Bench/tasks/14_plate_3d_print.md': { fine: 'keep' },
+  'Tests/ErrorEnumTests.cs': { lavorazione: 'keep' },
+  'Tools/McpTools.cs': { lavorazione: 'response_field' },
+  'Oce.Solid.Agent.Core/InterferenceOperations.cs': { quante: 'response_field' },
 };
 const PROSE_SENSE_DEFAULT = {
   lungo: 'response_field', alto: 'facing', basso: 'facing', davanti: 'facing',
@@ -1872,11 +1872,11 @@ const PROSE_SENSE_DEFAULT = {
 
 // DICT_SENSE_BY_FILE: the sense of the keys of a dictionary written in place
 // ({ ["formato"] = ... }) when a file writes arguments, not answers.
-const DICT_SENSE_BY_FILE = { 'Prove/FormaSpellingContract.cs': 'argument' };
+const DICT_SENSE_BY_FILE = { 'Tests/ShapeSpellingContract.cs': 'argument' };
 // CASE_FREE_FILES: files that spell enum values in other cases on purpose
 // («Superiore», «DESTRO», «Faccia_Superiore»: the Forma accepts any case).
 // There a value is renamed whatever its case, and keeps the case it had.
-const CASE_FREE_FILES = new Set(['Prove/FormaSpellingContract.cs', 'Prove/Zc2110HelpersContract.cs']);
+const CASE_FREE_FILES = new Set(['Tests/ShapeSpellingContract.cs', 'Tests/Zc2110HelpersContract.cs']);
 function caseFree(d, raw) {
   const lower = raw.toLowerCase();
   const u = unanimous(d, lower);
@@ -1895,7 +1895,7 @@ const PROSE_KEEP = { profili_saldatura: ['tubo', 'angolare'] };
 // prose (the shape of a part says «pezzo di rivoluzione», and that stays).
 // By case file: [Italian, English], the whole piece.
 const QUOTED_NAMES = {
-  'Banco/cases/features/loft_is_not_a_cone.json': [['rivoluzione', 'revolve']],
+  'Bench/cases/features/loft_is_not_a_cone.json': [['rivoluzione', 'revolve']],
 };
 
 function quotedName(d, file, v) {
@@ -1915,7 +1915,7 @@ function quotedName(d, file, v) {
 // pass, and the text they write is not rewritten again. Line ends are the
 // file's own.
 const SOURCE_EDITS = {
-  'Banco/Attese.cs': [[
+  'Bench/Expectations.cs': [[
     '                case "asse":  return "lungo";\n' +
     '                case "lungo": return "lunghezza_mm";\n' +
     '                case "area":  return "area_mm2";\n',
@@ -1932,7 +1932,7 @@ const SOURCE_EDITS = {
     '                return Dentro(stato, cosa.Substring("state.".Length), cosa);\n' +
     '            return Dentro(misure, cosa.Substring("measurements.".Length), cosa);\n',
   ]],
-  'Riscontro.Disegno/OperazioniTavola.cs': [[
+  'Oce.Solid.Agent.Core/DrawingOperations.cs': [[
     '                case "isometrica":\n' +
     '                case "isometrico":\n' +
     '                case "iso": return new[] { "isometri", "isometric" };\n' +
@@ -1963,7 +1963,7 @@ const SOURCE_EDITS = {
     '                case "right": return new[] { "destra", "right" };\n' +
     '                case "left": return new[] { "sinistr", "left" };\n',
   ]],
-  'Riscontro.Disegno/Catalogo/Operazioni.cs': [[
+  'Oce.Solid.Agent.Core/Catalog/Operations.cs': [[
     '"quale sua faccia, per verso: alto, basso, destra, "\n' +
     '                                    + "sinistra, davanti, dietro. Directions of the assembly: on a turned "',
     '"quale sua faccia, per verso: up, down, right, "\n' +
@@ -1977,7 +1977,7 @@ const SOURCE_EDITS = {
     'PrefissoOperazione + "<nome>, oppure con lo strumento " +',
     'PrefissoOperazione + "<name>, oppure con lo strumento " +',
   ]],
-  'Strumenti/Attrezzi.cs': [[
+  'Tools/McpTools.cs': [[
     // the families list_operations takes, as the catalogue names them: the
     // list was written by hand (and «corpi» was never a family)
     '                                    "solo una famiglia: estrusioni, lavorazioni, " +\n' +
@@ -2002,12 +2002,12 @@ const SOURCE_EDITS = {
     '                case "undo": return "Withdraw the last plan";\n' +
     '                case "document": return "Open, create or pick the document";\n',
   ]],
-  'Prove/ProveICampiObbligatori.cs': [[
+  'Tests/RequiredFieldsTests.cs': [[
     // ^punto never matched punti; ^point would match points
     '@"_mm$|_gradi$|^denti$|^modulo|^segmenti$|^punto|_uid$|^facce$"',
     '@"_mm$|_deg$|^teeth$|^module|^segments$|^point(?!s)|_uid$|^faces$"',
   ]],
-  'Prove/ProveAttese.cs': [[
+  'Tests/ExpectationsTests.cs': [[
     // a fake list of one: its name would be the only new Italian path of the window
     '                ["uno"] = new List<object> { "C2" },\n',
     '                ["one"] = new List<object> { "C2" },\n',
@@ -2022,7 +2022,7 @@ const SOURCE_EDITS = {
     '                       "facce_tolte, tolti_mm3, verso"));\n',
     '                       "faces_removed, facing, removed_mm3"));\n',
   ]],
-  'Prove/ProveCatalogo.cs': [[
+  'Tests/CatalogTests.cs': [[
     // a name a little wrong finds the right one: the English names now
     '            Segna("«asole» trova «asola»", di("asole").Contains("asola"),\n' +
     '                  string.Join(", ", di("asole")));\n' +
@@ -2039,11 +2039,11 @@ const SOURCE_EDITS = {
 // sides are equal only keeps its text out of the general pass.
 // the exceptions a test of the gate writes: `quote` is a class of the gate
 // (detect-italian.js, left alone), not the catalogue family
-SOURCE_EDITS['Prove/LanguageGateTests.cs'] = [
+SOURCE_EDITS['Tests/LanguageGateTests.cs'] = [
   [String.raw`                "{\"class\": \"quote\", \"file\": \"^README\\\\.md$\"}", "never a whole file",`,
    String.raw`                "{\"class\": \"quote\", \"file\": \"^README\\\\.md$\"}", "never a whole file",`],
-  [String.raw`                "{\"class\": \"quote\", \"file\": \"^Banco/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",`,
-   String.raw`                "{\"class\": \"quote\", \"file\": \"^Banco/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",`],
+  [String.raw`                "{\"class\": \"quote\", \"file\": \"^Bench/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",`,
+   String.raw`                "{\"class\": \"quote\", \"file\": \"^Bench/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",`],
   [String.raw`                "{\"class\": \"quote\", \"pattern\": \"\\\\b(?:" + string.Join("|", functionWords) + ")\\\\b\"}", "function word",`,
    String.raw`                "{\"class\": \"quote\", \"pattern\": \"\\\\b(?:" + string.Join("|", functionWords) + ")\\\\b\"}", "function word",`],
   [String.raw`                ",\n {\"class\": \"quote\", \"pattern\": \"" + prose + " \\\\(again\\\\)\", \"applies_to\": [\"detector\"], " +`,
@@ -2053,26 +2053,26 @@ SOURCE_EDITS['README.md'] = [
   ["> «operazioni» e' indistinguibile, per chi legge in fretta, da quello che dice",
    "> «operazioni» e' indistinguibile, per chi legge in fretta, da quello che dice"],
 ];
-// The timings of corri_piani.js are the runner's own record, one per plan
+// The timings of run_plans.js are the runner's own record, one per plan
 // file: `piano` there is the plan, not the plane of the map (the key stays
 // for window 3, which renames the identifiers of the runner).
-SOURCE_EDITS['Banco/corri_piani.js'] = [
+SOURCE_EDITS['Bench/run_plans.js'] = [
   ['    tempi.push({ piano: path.basename(f), secondi });', '    tempi.push({ piano: path.basename(f), secondi });'],
   ['                  t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));', '                  t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));'],
 ];
 // The message of an unknown resource names the template of the URI, written
 // apart from its prefix as in Mcp/Risorse.cs.
-SOURCE_EDITS['Programma.cs'] = [
+SOURCE_EDITS['Program.cs'] = [
   ['"«" + Risorse.PrefissoOperazione + "<nome>» per una sola." +', '"«" + Risorse.PrefissoOperazione + "<name>» per una sola." +'],
 ];
-SOURCE_EDITS['Banco/pending-cases/README.md'] = [
+SOURCE_EDITS['Bench/pending-cases/README.md'] = [
   ['convenzione `nota_*` che il repository usava', 'convenzione `note_*` che il repository usava'],
   ['`misure.assunto` finché era una proposta', '`misure.assunto` finché era una proposta'],
 ];
 
 // The extractor of the map reads the catalogue and the plans with the keys
 // of the protocol; its Italian column is not touched.
-SOURCE_EDITS['Controlli/lingua/name-map-extract.js'] = [
+SOURCE_EDITS['Checks/language/name-map-extract.js'] = [
   ["  subActionArgument: 'azione',", "  subActionArgument: 'action',"],
   ["  operations: 'operazioni', families: 'famiglie', name: 'nome', family: 'famiglia', schema: 'schema',",
    "  operations: 'operations', families: 'families', name: 'name', family: 'family', schema: 'schema',"],
@@ -2080,7 +2080,7 @@ SOURCE_EDITS['Controlli/lingua/name-map-extract.js'] = [
   ["const PLAN = { operation: 'operazione', args: 'argomenti' };", "const PLAN = { operation: 'operation', args: 'arguments' };"],
 ];
 
-SOURCE_EDITS['Controlli/expected-keys-test.js'] = [
+SOURCE_EDITS['Checks/expected-keys-test.js'] = [
   // the wrong key each check feeds a reader is the name of before the window
   ["const BEFORE = { name: 'nome', steps: 'passi', operation: 'operazione' };",
    "const BEFORE = { name: 'nome', steps: 'passi', operation: 'operazione', operations: 'operazioni', families: 'famiglie', family: 'famiglia', kind: 'tipo' };"],
@@ -2092,7 +2092,7 @@ SOURCE_EDITS['Controlli/expected-keys-test.js'] = [
   ["renamed(renamed(record, KEY.kind, 'kind'), KEY.name, 'name')", "renamed(renamed(record, KEY.kind, BEFORE.kind), KEY.name, BEFORE.name)"],
 ];
 
-// The titles of the tools (Strumenti/Attrezzi.cs, TitoloUmano), Italian to English.
+// The titles of the tools (Tools/McpTools.cs, TitoloUmano), Italian to English.
 const TOOL_TITLES = {
   'Guarda il pezzo aperto': 'Inspect the open part',
   'Elenco delle operazioni': 'List the operations',
@@ -2131,7 +2131,7 @@ function applySourceEditsFirst(d, rel, text) {
 }
 
 // ── a list of tools, as tools/list answers it (snapshot.js --window 2) ────
-// The same rules as the C# pass gives Strumenti/Attrezzi.cs: the tool names,
+// The same rules as the C# pass gives Tools/McpTools.cs: the tool names,
 // the titles, the arguments of each schema with their enum values (the
 // action's values are sub-actions), and the names a description quotes.
 function rewriteToolsList(d, tools) {
@@ -2146,7 +2146,7 @@ function rewriteToolsList(d, tools) {
         out[k] = p;
       } else if (k === 'required' && Array.isArray(v)) out[k] = v.map(x => (typeof x === 'string' ? inSense(d, x, 'argument', null) || x : x));
       else if (k === 'enum' && Array.isArray(v)) out[k] = v.map(x => toolValue(d, x, prop));
-      else if (k === 'description' && typeof v === 'string') out[k] = rewriteProse(d, v, 'plain', { prose: true, file: 'Strumenti/Attrezzi.cs' }, null);
+      else if (k === 'description' && typeof v === 'string') out[k] = rewriteProse(d, v, 'plain', { prose: true, file: 'Tools/McpTools.cs' }, null);
       else if (k === 'items') out[k] = schema(v, prop);
       else out[k] = v;
     }
@@ -2157,7 +2157,7 @@ function rewriteToolsList(d, tools) {
     for (const [k, v] of Object.entries(t)) {
       if (k === 'name') o[k] = d.tool.get(v) || v;
       else if (k === 'title') o[k] = titleOf(v);
-      else if (k === 'description') o[k] = rewriteProse(d, v, 'plain', { prose: true, file: 'Strumenti/Attrezzi.cs' }, null);
+      else if (k === 'description') o[k] = rewriteProse(d, v, 'plain', { prose: true, file: 'Tools/McpTools.cs' }, null);
       else if (k === 'inputSchema') o[k] = schema(v, null);
       else if (k === 'annotations' && isObject(v)) { o[k] = Object.assign({}, v); if ('title' in v) o[k].title = titleOf(v.title); }
       else o[k] = v;
@@ -2200,12 +2200,12 @@ function snapshotRenames(root, snapshotCatalogueText) {
 // `Right`), which the reverse would turn into the Italian name of the same
 // English word; and a form the map merges (quante and quanti are both
 // how_many). The forward run writes those places, word by word, into
-// Controlli/lingua/window-2-reverse.json, and the reverse run reads it: so
+// Checks/language/window-2-reverse.json, and the reverse run reads it: so
 // the reverse is the map read backwards PLUS a list of places where it must
 // leave a word as it is (keep) or take another row of the map (row). The list
 // holds no Italian: a kept word is English, a row is named by its type and
 // its position among the rows with that English name.
-const LEDGER_REL = 'Controlli/lingua/window-2-reverse.json';
+const LEDGER_REL = 'Checks/language/window-2-reverse.json';
 function sha12(s) { return require('crypto').createHash('sha1').update(s, 'utf8').digest('hex').slice(0, 12); }
 function words(s) {
   const parts = s.split(/([A-Za-z0-9_]+)/);
@@ -2364,13 +2364,13 @@ function lexJs(t) {
 // names listed, or every name of the map but the members of the file's own
 // objects (MEMBER_EXCLUDE: the wrapper a client builds around an answer).
 const MEMBER_FILES = {
-  'Controlli/conta-provate.js': ['operazioni', 'nome'],
-  'Controlli/controlla-catalogo.ps1': ['operazioni', 'nome', 'famiglia', 'famiglie', 'sommario', 'descrizione', 'esempio', 'precondizione', 'documento'],
-  'Controlli/domande-senza-risposta.js': ['nome', 'tipo', 'quando', 'simili'],
-  'Controlli/prova-x2.js': 'protocol',
-  'Banco/corri_piani.js': 'protocol', 'Banco/guarda.js': 'protocol', 'Banco/misura_accumulo.js': 'protocol',
-  'Banco/prova_annulla.js': 'protocol', 'Banco/prova_faccia_foro.js': 'protocol', 'Banco/prova_forma.js': 'protocol',
-  'Banco/prova_sezione.js': 'protocol', 'Banco/raccogli_viste.js': 'protocol',
+  'Checks/count-tested.js': ['operazioni', 'nome'],
+  'Checks/check-catalog.ps1': ['operazioni', 'nome', 'famiglia', 'famiglie', 'sommario', 'descrizione', 'esempio', 'precondizione', 'documento'],
+  'Checks/questions-without-answer.js': ['nome', 'tipo', 'quando', 'simili'],
+  'Checks/test-x2.js': 'protocol',
+  'Bench/run_plans.js': 'protocol', 'Bench/inspect.js': 'protocol', 'Bench/measure_accumulation.js': 'protocol',
+  'Bench/test_undo.js': 'protocol', 'Bench/test_face_hole.js': 'protocol', 'Bench/test_shape.js': 'protocol',
+  'Bench/test_section.js': 'protocol', 'Bench/collect_views.js': 'protocol',
 };
 const MEMBER_EXCLUDE = new Set(['testo', 'dati', 'errore', 'male', 'come', 'dettaglio']);
 function memberName(d, s, rel) {
@@ -2409,7 +2409,7 @@ function isTextSearch(before, raw) {
 
 // A literal handed to a call that builds a path (path.join, path.resolve,
 // Path.Combine, Join-Path) is a folder or a file name, not a name of the
-// protocol: the plans write {BANCO}/pezzo, the frames go to Banco/viste
+// protocol: the plans write {BANCO}/pezzo, the frames go to Bench/viste
 // (which .gitignore names), and the folder is the one on disk. Folders and
 // files are window 3 (W3.1-bis.6), never this one. The call must still be
 // open where the literal stands (one level of nested calls inside it).
@@ -2576,7 +2576,7 @@ function git(root, args) {
 // The cases of the aliases (W3.1-bis.5, decision D4) are written with the
 // names of before the window on purpose: the window and its proofs leave them
 // alone. They go with the aliases in W3.1-bis.11.
-const EXCLUDED_FOLDERS = ['Banco/cases/aliases/'];
+const EXCLUDED_FOLDERS = ['Bench/cases/aliases/'];
 const isCaseFile = (f) => CASE_TOPS.some(t => f.startsWith(t + '/')) && f.endsWith('.json') && !EXCLUDED_FOLDERS.some(x => f.startsWith(x));
 const isTaskJson = (f) => f.startsWith(TASKS_DIR + '/') && f.endsWith('.json');
 function kindOf(f) {
@@ -2701,11 +2701,11 @@ function runWindow(opts) {
     cannot(unresolved.length + ' literal(s) with two senses and no context that decides: add them to CS_SITES');
   }
   if (!opts.reverse && !opts.checkMode && unusedSites.length && !opts.allowConflicts) cannot('CS_SITES names sites the tree does not have: ' + unusedSites.map(s => s.file + ' «' + s.literal + '» ' + s.line).join('; '));
-  // The consumed strings (Controlli/lingua/consumed-strings.json): a consumer
+  // The consumed strings (Checks/language/consumed-strings.json): a consumer
   // literal the window renamed is bound again to its new spelling, at the same
   // position among the consumer's literals; its producer was renamed by the
   // same rules in the same run.
-  const csFile = path.join(opts.root, 'Controlli/lingua/consumed-strings.json');
+  const csFile = path.join(opts.root, 'Checks/language/consumed-strings.json');
   let rebound = 0;
   if (fs.existsSync(csFile)) {
     const cs = require('./consumed-strings.js');
@@ -2762,7 +2762,7 @@ function writeLedger(root, files) {
   const sorted = Object.keys(files).sort().map(k => ({ file: k, entries: files[k] }));
   const j = {
     about: [
-      'The ledger of rename window 2 (Controlli/lingua/window-2-surface.js, entry W3.1-bis.5), written by its forward run and read by its reverse run.',
+      'The ledger of rename window 2 (Checks/language/window-2-surface.js, entry W3.1-bis.5), written by its forward run and read by its reverse run.',
       'Each entry is a word of a JSON file of the window (the catalogue, a case, a plan, a task) where the map read backwards would not give the tree before the window back: a name that was already English before the window (keep), or a form the map merges with another (row: the type and the position of the row among those with that English name).',
       'files: one item per JSON file, its path and its entries. An entry: <position of the string, as entry or item indices from the root, k for a key and v for a value>#<word index, or all> keep|row [<type> <n>] <the word now>.',
       'It goes with the map: archived in W3.1-bis.11.',
@@ -2892,7 +2892,7 @@ function runForwardProof(opts) {
   if (opts.worktree) copyWorkingTree(opts.root, now); else extractTree(opts.root, 'HEAD', now, tmp);
   extractTree(opts.root, opts.forwardProof, old, tmp);
   // the script and its map are this tree's: the window as it is now
-  for (const f of [MAP_REL, 'Controlli/lingua/window-2-surface.js', 'Controlli/lingua/consumed-strings.js']) {
+  for (const f of [MAP_REL, 'Checks/language/window-2-surface.js', 'Checks/language/consumed-strings.js']) {
     if (fs.existsSync(path.join(now, f))) { fs.mkdirSync(path.dirname(path.join(old, f)), { recursive: true }); fs.copyFileSync(path.join(now, f), path.join(old, f)); }
   }
   const r = runWindow({ reverse: false, root: old, git: false, dry: false, quiet: true });

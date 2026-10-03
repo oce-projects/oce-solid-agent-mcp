@@ -1,5 +1,5 @@
 // =============================================================================
-//  rimandi-del-todo.js - «vedi la voce K14» punta a una voce che esiste?
+//  todo-references.js - «vedi la voce K14» punta a una voce che esiste?
 // =============================================================================
 //
 //  PERCHE' ESISTE
@@ -11,25 +11,25 @@
 //  **Un rimando rotto e' peggio di nessun rimando**: chi legge va a cercare,
 //  non trova, e non sa se la voce e' sparita, se e' stata rinominata, o se ha
 //  cercato male. E' la stessa malattia del percorso che non c'e' piu'
-//  (`percorsi-del-todo.js`) e della firma che non esiste
-//  (`firme-del-todo.ps1`), applicata ai rimandi interni.
+//  (`todo-paths.js`) e della firma che non esiste
+//  (`todo-signatures.ps1`), applicata ai rimandi interni.
 //
 //  Il gemello di questo controllo c'e' gia' ed e' nelle prove di contratto:
 //  «nel TODO due voci non si chiamano allo stesso modo». Quello impedisce che
 //  un nome ne indichi due; questo, che un nome non ne indichi nessuna.
 //
 //  USO
-//      node Controlli/rimandi-del-todo.js
-//      node Controlli/rimandi-del-todo.js --tutti    anche quelli che vanno
+//      node Checks/todo-references.js
+//      node Checks/todo-references.js --tutti    anche quelli che vanno
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
 
 const radice = path.join(__dirname, '..');
 const tutti = process.argv.includes('--tutti');
-// IL FILE SI PUO' PASSARE, come in `conta-todo.js`: serve a far scattare
+// IL FILE SI PUO' PASSARE, come in `count-todo.js`: serve a far scattare
 // questa sonda su una copia rotta, che e' l'unico modo di crederle.
-const { trovaIlTodo } = require('./dov-e-il-todo.js');
+const { trovaIlTodo } = require('./where-is-the-todo.js');
 const fileTodo = trovaIlTodo(radice, process.argv);
 if (!fileTodo) process.exit(0);
 const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
@@ -90,6 +90,6 @@ if (rotti.size === 0) {
   console.log('');
   console.log('Puo\' essere una voce rinominata, una mai scritta, o una sigla che');
   console.log('assomiglia a un nome. E\' una cosa da guardare, non una colpa.');
-  // ESCE 1: vedi il gemello `percorsi-del-todo.js`.
+  // ESCE 1: vedi il gemello `todo-paths.js`.
   process.exitCode = 1;
 }

@@ -1,5 +1,5 @@
 {
- "about": "Hand labels for Controlli/lingua/measure.js: keys are hashes of file, line number and text of the drawn lines; values are it, en or skip.",
+ "about": "Hand labels for Checks/language/measure.js: keys are hashes of file, line number and text of the drawn lines; values are it, en or skip.",
  "commit": "4d7b84a",
  "seed": 20260928,
  "labels": {

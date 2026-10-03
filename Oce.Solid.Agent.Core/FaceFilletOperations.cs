@@ -4,7 +4,7 @@ using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// IL RACCORDO DI FACCIA (voce GP7, la meta' che mancava).
@@ -40,7 +40,7 @@ namespace Riscontro.Disegno
     ///    (Set1 = 1, Set2 = 2), che e' il parametro di `SetFaces` e non una marca.
     ///    L'enum col nome giusto e' quello sbagliato, di nuovo (vedi GP8).
     ///
-    /// ── MISURATO PRIMA DI SCRIVERE (sonda Controlli\RaccordoDiFaccia, 28/9/2026) ──
+    /// ── MISURATO PRIMA DI SCRIVERE (sonda Checks\FaceFillet, 28/9/2026) ──
     ///
     /// Cubo 40x40x40, faccia +Z (marca 2) e faccia +X (marca 4), r = 5. Un
     /// raccordo r su uno spigolo di 40 fra due facce a 90 gradi toglie
@@ -65,7 +65,7 @@ namespace Riscontro.Disegno
     /// chiamare niente. Dopo: la feature nuova e il suo tipo (`Fillet`), il
     /// volume prima e dopo (un raccordo che non cambia il volume non ha fatto
     /// niente), i corpi e le lavorazioni in errore (le guardie di
-    /// OperazioniGuardie.cs). Se qualcosa non torna il raccordo si TOGLIE
+    /// GuardOperations.cs). Se qualcosa non torna il raccordo si TOGLIE
     /// (DeleteSelection2, mai la chiamata con la finestra di conferma) e si
     /// ricontrolla che il pezzo sia com'era.
     /// </summary>
@@ -148,7 +148,7 @@ namespace Riscontro.Disegno
             //    d: solo con r = d/2. Con r = d/2 si lascia provare a SOLIDWORKS,
             //    e le guardie dopo dicono se e' nato.
             // La sonda ha tolto dal giro la variante «facce parallele»
-            // (Controlli\RaccordoDiFaccia, REVISIONE 28/9/2026) proprio perche' un
+            // (Checks\FaceFillet, REVISIONE 28/9/2026) proprio perche' un
             // NULL li' non avrebbe misurato l'API ma la geometria.
             string parallele = FaccePianeParallele(faccia1, faccia2, uid1, uid2, raggio);
             if (parallele != null) return Fallito(parallele);
@@ -173,7 +173,7 @@ namespace Riscontro.Disegno
                 Math.Abs(n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2]) < 1e-6)
                 atteso = Math.Round(spigolo * raggio * raggio * (1 - Math.PI / 4), 2);
 
-            // ── LA FOTOGRAFIA PRIMA (OperazioniGuardie.cs) ───────────────
+            // ── LA FOTOGRAFIA PRIMA (GuardOperations.cs) ───────────────
             var foto = FotografaIlPezzo(modello);
             if (foto.Volume == null) return Fallito(VolumeNonLettoPrima("fare il raccordo di faccia"));
             int featurePrima = ContaFeature(modello);
@@ -403,7 +403,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// Toglie il raccordo appena nato quando una guardia lo boccia, e dice
         /// com'e' andata: la coda del messaggio di rifiuto. Stessa strada di
-        /// `TogliIlTaglio` (OperazioniAncora.cs): DeleteSelection2 con
+        /// `TogliIlTaglio` (AnchorOperations.cs): DeleteSelection2 con
         /// swDelete_Absorbed, che non chiede conferma a nessuno. «Ha detto di
         /// averlo tolto» non basta: si ricontano le lavorazioni e si rimisura il
         /// volume.

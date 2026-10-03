@@ -6,13 +6,13 @@ using System.Linq;
 using System.Reflection;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
-// IL VALUTATORE DELLE ATTESE E I SELETTORI STANNO IN `Attese.cs`, che e'
-// compilato anche da `Prove.Contratti` — il progetto che gira su una macchina
+// IL VALUTATORE DELLE ATTESE E I SELETTORI STANNO IN `Expectations.cs`, che e'
+// compilato anche da `Oce.Solid.Agent.ContractTests` — il progetto che gira su una macchina
 // SENZA SOLIDWORKS (voce F7). `using static` li lascia scrivere come prima:
 // spostarli non doveva costare la rilettura di duecento righe di chiamate.
-using static ProvaSaldatura.Attese;
+using static Oce.Solid.Agent.Bench.Attese;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// I CASI CHE SONO UN FILE, NON UNA RIGA DI C# (voce F3).
@@ -54,14 +54,14 @@ namespace ProvaSaldatura
         /// LE CARTELLE DEI CASI SI NOMINANO, non si scoprono.
         ///
         /// In `cases/` vivono anche i piani del formato vecchio, che
-        /// `corri_piani.js` esegue e che qui sarebbero tutti «il file non e' un
+        /// `run_plans.js` esegue e che qui sarebbero tutti «il file non e' un
         /// oggetto JSON»: scoprire le cartelle da sole vorrebbe dire
         /// trasformare un file d'altri in un errore di banco a ogni giro.
         ///
         /// Una famiglia nuova si aggiunge qui, e chi la dimentica lo scopre
         /// subito: i suoi casi non girano e il conto delle attese non sale.
         /// </summary>
-        /// <summary>The Italian names each case was run with (W3.1-bis.5, D4), and whether it is a case of Banco/cases/aliases.</summary>
+        /// <summary>The Italian names each case was run with (W3.1-bis.5, D4), and whether it is a case of Bench/cases/aliases.</summary>
         private static readonly Dictionary<string, int> AliasUses = new Dictionary<string, int>(StringComparer.Ordinal);
         private static readonly Dictionary<string, bool> AliasCaseFolder = new Dictionary<string, bool>(StringComparer.Ordinal);
 
@@ -106,7 +106,7 @@ namespace ProvaSaldatura
         };
 
         /// <summary>
-        /// The keys a case may carry (Banco/case-keys.json, W3.1-bis.2 item 4),
+        /// The keys a case may carry (Bench/case-keys.json, W3.1-bis.2 item 4),
         /// loaded by the three runs that read cases: declared, mutations and
         /// regression.
         /// </summary>
@@ -181,7 +181,7 @@ namespace ProvaSaldatura
             // ── DUE FORME DI FILE NELLA STESSA CARTELLA, E SI DISTINGUONO ──
             //
             // `cases/drawing/` conteneva gia' i PIANI dei giri a mano — quelli
-            // che si lanciano con `corri_piani.js` — e sono file di forma
+            // che si lanciano con `run_plans.js` — e sono file di forma
             // diversa: un ARRAY di passi, senza nome, senza «why» e senza
             // attese. Un caso dichiarato e' un OGGETTO.
             //
@@ -237,7 +237,7 @@ namespace ProvaSaldatura
             // dice QUALI casi hanno girato, e quindi nessuno poteva controllare
             // che ogni `Provata = true` puntasse a un caso che gira davvero. Il
             // 25/9/2026, scrivendo i casi mancanti, due operazioni a catalogo si
-            // sono scoperte mai funzionanti. Questa riga la raccoglie `banco.ps1`
+            // sono scoperte mai funzionanti. Questa riga la raccoglie `bench.ps1`
             // in `green_cases`, e la suite di contratto la incrocia col catalogo.
             //
             // Esce PRIMA della riga di ====, e non comincia con uno spazio: non
@@ -391,7 +391,7 @@ namespace ProvaSaldatura
             }
 
             // IL CONFRONTO VERO STA IN `Attese`, che e' una funzione pura su
-            // due dizionari e la prova `Prove.Contratti` senza CAD. Qui resta
+            // due dizionari e la prova `Oce.Solid.Agent.ContractTests` senza CAD. Qui resta
             // solo il lavoro che il CAD lo tocca: trovare il file e leggerlo.
             // `Attese.` PER FORZA: il metodo qui accanto si chiama uguale, e
             // senza il prefisso il compilatore sceglie quello — cioe' se
@@ -900,7 +900,7 @@ namespace ProvaSaldatura
         /// <summary>
         /// Gli schemi del catalogo: operazione -> campo -> descrizione.
         ///
-        /// Si leggono dalla LIBRERIA CARICATA, non da `bin/catalogo.json`: quel
+        /// Si leggono dalla LIBRERIA CARICATA, non da `bin/catalog.json`: quel
         /// file lo scrive `build.ps1`, e leggerlo vorrebbe dire descrivere una
         /// libreria con le parole di un'altra compilazione.
         /// </summary>
@@ -911,8 +911,8 @@ namespace ProvaSaldatura
                 // Every lookup below goes through the reflection log: they fall
                 // back to null, and a renamed target would give fewer mutations
                 // in silence (W3.1-bis.2, item 3).
-                var tOperazioni = ReflectionLog.Global.TypeIn(_addin, "Riscontro.Disegno.Catalogo.Operazioni");
-                var tNodo = ReflectionLog.Global.TypeIn(_addin, "Riscontro.Disegno.Catalogo.Nodo");
+                var tOperazioni = ReflectionLog.Global.TypeIn(_addin, "Oce.Solid.Agent.Core.Catalog.Operazioni");
+                var tNodo = ReflectionLog.Global.TypeIn(_addin, "Oce.Solid.Agent.Core.Catalog.Nodo");
                 if (tOperazioni == null || tNodo == null) return null;
                 var tutte = ReflectionLog.Global.Field(tOperazioni, "Tutte",
                     BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
@@ -1012,7 +1012,7 @@ namespace ProvaSaldatura
         /// stanno gli interop. Le lambda nominano `IModelDoc2`, il caricamento
         /// parte troppo presto, e la cosa non somiglia per niente alla sua
         /// causa: l'eseguibile muore prima di stampare una riga, e il banco
-        /// lanciato da `banco.ps1` esce con un `NativeCommandError` che
+        /// lanciato da `bench.ps1` esce con un `NativeCommandError` che
         /// sembra un guaio di PowerShell.
         ///
         /// Il campo senza inizializzatore non entra nel costruttore di classe:
@@ -1347,7 +1347,7 @@ namespace ProvaSaldatura
             // scritti bene mentre SOLIDWORKS non apriva piu' documenti.
             // Adesso la preparazione ha un tipo suo: se e' fallita, si
             // dice cosa NON si e' misurato.
-            catch (Condiviso.PreparazioneFallita ex)
+            catch (Shared.PreparazioneFallita ex)
             {
                 if (Sentinella.SeNEAndato) Saltata(nome, Perche(ex));
                 else ErroreDiBanco(nome, Perche(ex));
@@ -1400,7 +1400,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// The line «alias uses: ...» at the end of the run, which banco.ps1
+        /// The line «alias uses: ...» at the end of the run, which bench.ps1
         /// writes into last.json as alias_uses: the names of every case, and the
         /// whole run as the library counted it. «outside the alias cases» is the
         /// whole run minus the alias cases, and must be 0.

@@ -5,7 +5,7 @@ using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// IL NUMERO CHE SI STAMPA E' QUELLO DEL MODELLO? (voce Z-C2)

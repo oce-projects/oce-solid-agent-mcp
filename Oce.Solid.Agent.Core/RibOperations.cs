@@ -4,7 +4,7 @@ using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA NERVATURA. (voce W1.2, che era GP10)
@@ -44,7 +44,7 @@ namespace Riscontro.Disegno
     /// la L giusta con la diagonale nel vuoto — e non hanno mai girato il
     /// verso del materiale. Nota RAG 82zz-quinquies.
     ///
-    /// ── LA SONDA DEL 28/9/2026 (`Controlli\Nervatura\Programma.cs`) ──
+    /// ── LA SONDA DEL 28/9/2026 (`Checks\Rib\Program.cs`) ──
     ///
     /// Un pezzo nuovo per ogni riga; verita' = una feature NUOVA di tipo «Rib»
     /// piu' il delta di volume:
@@ -419,7 +419,7 @@ namespace Riscontro.Disegno
         /// guide pages and the numbers of the Z-C21.3 probe are: G1 top +100,
         /// G4 top -100, G6 front -250 all where they belong). Until then it was
         /// the obsolete CreatePlaneAtOffset3, the call of the rib probe
-        /// (Controlli/Nervatura, `CreatePlaneAtOffset3(0.025, false, true)`).
+        /// (Checks/Rib, `CreatePlaneAtOffset3(0.025, false, true)`).
         /// The tree decides whether the plane was born, not the return value.
         /// </summary>
         private static IFeature NervaturaPianoSfalsato(IModelDoc2 modello, string piano, double distanzaMm, out string motivo)

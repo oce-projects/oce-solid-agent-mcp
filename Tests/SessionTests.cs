@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// `Sessione.StessoDocumento()` — LA GUARDIA CHE NON AVEVA UNA PROVA.
@@ -113,10 +113,10 @@ namespace Prove.Contratti
             Segna("il ponte: versione del prodotto = VERSION.txt",
                   vi.ProductVersion == attesa, "prodotto " + vi.ProductVersion);
 
-            var installa = Path.Combine(Radice(), "dist", "Installa.exe");
+            var installa = Path.Combine(Radice(), "dist", "Installer.exe");
             if (!File.Exists(installa))
             {
-                Segna("l'installatore c'e' (dist\\Installa.exe) per controllarne la versione", false,
+                Segna("l'installatore c'e' (dist\\Installer.exe) per controllarne la versione", false,
                       "non costruito: .\\build.ps1");
                 return;
             }
@@ -180,7 +180,7 @@ namespace Prove.Contratti
         /// *Un controllo mai visto scattare non e' un controllo* — e questo si
         /// poteva vedere da sempre, senza il CAD.
         ///
-        /// COSA NON PROVA: che il ponte, in `Sessione.cs`, chiami `Prendi` sul
+        /// COSA NON PROVA: che il ponte, in `Session.cs`, chiami `Prendi` sul
         /// documento giusto. Quella meta' vuole due ponti e SOLIDWORKS.
         /// </summary>
         private static void IlTurnoScatta(string ponte)

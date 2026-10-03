@@ -5,7 +5,7 @@
 #  Esce 0 se tutto torna, 1 se no. E' pensato per essere lanciato prima di una
 #  consegna e da una build automatica.
 #
-#  PERCHE' ESISTE. Il catalogo (`catalogo.json`) e' l'elenco di cio' che il
+#  PERCHE' ESISTE. Il catalogo (`catalog.json`) e' l'elenco di cio' che il
 #  modello puo' chiedere; lo switch di `OperazioniSw.Esegui` e' l'elenco di cio'
 #  che si puo' davvero fare. Sono due posti, e due posti divergono sempre. Oggi
 #  divergono di tre nomi, e quei tre nomi il modello puo' chiederli: si prende
@@ -45,9 +45,9 @@ param(
 $ErrorActionPreference = "Stop"
 $radice = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 
-if (-not $Catalogo) { $Catalogo = Join-Path $radice "bin\catalogo.json" }
-if (-not $Libreria) { $Libreria = Join-Path $radice "Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll" }
-if (-not $Sorgente) { $Sorgente = Join-Path $radice "Riscontro.Disegno\OperazioniSw.cs" }
+if (-not $Catalogo) { $Catalogo = Join-Path $radice "bin\catalog.json" }
+if (-not $Libreria) { $Libreria = Join-Path $radice "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll" }
+if (-not $Sorgente) { $Sorgente = Join-Path $radice "Oce.Solid.Agent.Core\SwOperations.cs" }
 
 $problemi = New-Object System.Collections.Generic.List[string]
 function Male($m) { $problemi.Add($m) | Out-Null; Write-Host "  [X] $m" -ForegroundColor Red }
@@ -92,7 +92,7 @@ if (Test-JsonKey $cat $keyOperations) {
     }
 }
 # The declared families, read here and compared in step 6. `families` is an
-# object, family -> description, as Riscontro.Catalogo writes it; a list (of
+# object, family -> description, as Oce.Solid.Agent.Catalog writes it; a list (of
 # names, or of objects with `name`) is read too. The old reading, in step 6,
 # took the object for one element without `name`, found 0 declared families,
 # and the comparison passed on nothing.
@@ -172,9 +172,9 @@ public static class CatalogueCheckInterop
 # Load sui byte e non LoadFrom: la libreria puo' stare su un'unita' di rete,
 # dove LoadFrom fallisce con 0x80131515 nominando una dipendenza che non esiste.
 $asm = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($Libreria))
-$tipo = $asm.GetType("Riscontro.Disegno.OperazioniSw")
+$tipo = $asm.GetType("Oce.Solid.Agent.Core.OperazioniSw")
 if (-not $tipo) {
-    Write-Host "  [X] nella libreria non c'e' Riscontro.Disegno.OperazioniSw" -ForegroundColor Red
+    Write-Host "  [X] nella libreria non c'e' Oce.Solid.Agent.Core.OperazioniSw" -ForegroundColor Red
     exit 1
 }
 $campo = $tipo.GetField("NomiEseguibili")

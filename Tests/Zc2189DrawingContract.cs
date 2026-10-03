@@ -3,9 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE DRAWING FIXES OF Z-C21.8 (RETURNS AND MESSAGES) THAT THE BENCH
@@ -29,7 +29,7 @@ namespace Prove.Contratti
     ///   N80    drawing_dimension. «Not born» is the count of dimensions, asked
     ///          first; a dimension born without its object is described, not
     ///          answered with a second annotation. The site the lot left out,
-    ///          QuotaFraDue of the turned view (OperazioniTondoTavola.cs), was
+    ///          QuotaFraDue of the turned view (DrawingRoundOperations.cs), was
     ///          done after library 0.145.0 and has its own check, red on 0.145.0.
     ///
     /// None of these paths can be driven from a bench case: SOLIDWORKS would
@@ -52,7 +52,7 @@ namespace Prove.Contratti
 
             CallSites();
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of the Z-C21.8 drawing fixes",
@@ -77,7 +77,7 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
             if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
@@ -179,9 +179,9 @@ namespace Prove.Contratti
         // one file only, and the counts include the definition.
         private static void CallSites()
         {
-            string dir = Path.Combine(Radice(), "Riscontro.Disegno");
+            string dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
 
-            string pdf = Read(dir, "OperazioniTavola.cs");
+            string pdf = Read(dir, "DrawingOperations.cs");
             if (pdf != null)
             {
                 bool kept = Regex.IsMatch(pdf, @"\w+\s*=\s*pdf\.SetSheets\(");
@@ -192,7 +192,7 @@ namespace Prove.Contratti
                       "answer kept " + kept + ", bare call " + bare + ", PdfPageCountRefusal " + refusals + " (with the definition)");
             }
 
-            string weld = Read(dir, "OperazioniSaldaturaTavola.cs");
+            string weld = Read(dir, "DrawingWeldOperations.cs");
             if (weld != null)
             {
                 bool called = Regex.IsMatch(weld, @"= WeldSymbolTextsWrong\(\w+\);");
@@ -200,7 +200,7 @@ namespace Prove.Contratti
                       called, called ? "called" : "not called");
             }
 
-            string gtol = Read(dir, "OperazioniAnnotazioniTavola.cs");
+            string gtol = Read(dir, "DrawingAnnotationOperations.cs");
             if (gtol != null)
             {
                 bool reread = gtol.Contains(".GetFrameDiameterSymbols(");
@@ -212,7 +212,7 @@ namespace Prove.Contratti
                       ", RemoveNewAnnotation " + removals + " (definition and two calls expected)");
             }
 
-            string flat = Read(dir, "OperazioniSviluppoTavola.cs");
+            string flat = Read(dir, "DrawingFlatPatternOperations.cs");
             if (flat != null)
             {
                 int bare = Regex.Matches(flat, @"(?m)^\s*RemoveNewView\(").Count;
@@ -221,7 +221,7 @@ namespace Prove.Contratti
                       bare == 0 && all >= 6, bare + " bare calls, " + all + " with the definition (six expected)");
             }
 
-            string section = Read(dir, "OperazioniSezioneTavola.cs");
+            string section = Read(dir, "DrawingSectionOperations.cs");
             if (section != null)
             {
                 bool returned = Regex.IsMatch(section, @"IView sectionView = \w+ as IView;");
@@ -233,7 +233,7 @@ namespace Prove.Contratti
                       " (definition and two calls expected)");
             }
 
-            string detail = Read(dir, "OperazioniDettaglioTavola.cs");
+            string detail = Read(dir, "DrawingDetailOperations.cs");
             if (detail != null)
             {
                 bool returned = Regex.IsMatch(detail, @"IView detailView = \w+ as IView;");
@@ -260,8 +260,8 @@ namespace Prove.Contratti
                       "section guarded " + sectionGuarded + ", detail guarded " + detailGuarded);
             }
 
-            string texts = Read(dir, "OperazioniTestiQuote.cs");
-            string dims = Read(dir, "OperazioniQuoteTavola.cs");
+            string texts = Read(dir, "DimensionTextOperations.cs");
+            string dims = Read(dir, "DrawingDimensionOperations.cs");
             if (texts != null && dims != null)
             {
                 // The outer catch of the walk is the first catch after the step
@@ -287,12 +287,12 @@ namespace Prove.Contratti
             }
 
             // N80 AT THE SITE THE LOT LEFT OUT: QuotaFraDue of the turned view
-            // (OperazioniTondoTavola.cs), whose three callers (lengths, diameters,
+            // (DrawingRoundOperations.cs), whose three callers (lengths, diameters,
             // pairs of silhouette edges without a face) took a dimension born
             // without its object for «not born». Red on library 0.145.0: the
             // guard was still «q == null || NonCresciuta(» and the callers had no
             // second outcome to tell.
-            string turned = Read(dir, "OperazioniTondoTavola.cs");
+            string turned = Read(dir, "DrawingRoundOperations.cs");
             if (turned != null)
             {
                 int objectFirst = Count(turned, "== null || NonCresciuta(");

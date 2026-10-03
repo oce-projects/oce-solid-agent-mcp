@@ -1,6 +1,6 @@
 using System;
 
-namespace Condiviso
+namespace Shared
 {
     /// <summary>
     /// QUANDO UNA CHIAMATA NON TORNA, ALMENO SI SA QUALE (voci K18 e Z-C4).

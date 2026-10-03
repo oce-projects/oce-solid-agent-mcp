@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// S1 IN PARTS ONLY (TODO entry Z-C21.13, the follow-up it left: «in the
@@ -46,14 +46,14 @@ namespace Prove.Contratti
         /// </summary>
         private static readonly string[] PartReaders =
         {
-            "OperazioniEquazioni.cs", "OperazioniSw.cs", "OperazioniTolleranzaQuota.cs", "StatoDocumento.cs",
+            "EquationOperations.cs", "SwOperations.cs", "DimensionToleranceOperations.cs", "DocumentState.cs",
         };
 
         internal static void RunAll()
         {
             Gruppo("S1 in parts only: the part dimensions through GetSystemValue3, the drawing readers left alone (Z-C21.13 follow-up)");
 
-            string dir = Path.Combine(Radice(), "Riscontro.Disegno");
+            string dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
             string helpers = Read(dir, "ApiHelpers.cs");
             if (helpers != null)
             {
@@ -83,7 +83,7 @@ namespace Prove.Contratti
             // both reads sit in their own try and land in a value that starts
             // as null. Until library 0.145.0 the angle started at 0 and the
             // linear read had no try of its own.
-            string state = Read(dir, "StatoDocumento.cs");
+            string state = Read(dir, "DocumentState.cs");
             if (state != null)
             {
                 var reads = state.Split('\n').Where(l => l.Contains("ApiHelpers.ReadDimension(")).Select(l => l.Trim()).ToList();
@@ -93,7 +93,7 @@ namespace Prove.Contratti
                 bool startsNull = state.Contains("object readValue = null;");
                 Segna("the part state writes null, not 0, for a dimension it cannot read, and keeps the other dimensions of the feature",
                       guarded && startsNull,
-                      reads.Count + " reads in StatoDocumento.cs (2 expected), each inside its own try " + guarded +
+                      reads.Count + " reads in DocumentState.cs (2 expected), each inside its own try " + guarded +
                       ", the value starts as null " + startsNull);
             }
 
@@ -110,7 +110,7 @@ namespace Prove.Contratti
         private static void ShapeRule()
         {
             const string rule = "S1: OneDimensionValue takes one number (Double[1], or Object[1] holding a double) and throws on every other shape";
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui(rule, library + " is missing: build the library first (build.ps1)");
@@ -132,7 +132,7 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                var helpers = asm.GetType("Riscontro.Disegno.ApiHelpers", false);
+                var helpers = asm.GetType("Oce.Solid.Agent.Core.ApiHelpers", false);
                 var method = helpers == null ? null : helpers.GetMethod("OneDimensionValue", Any);
                 if (method == null) { Segna(rule, false, "ApiHelpers.OneDimensionValue is missing on this library"); return; }
 

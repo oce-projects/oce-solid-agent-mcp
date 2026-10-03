@@ -1,7 +1,7 @@
 {
   "name": "limit_fillet_face_between_back_to_back_faces",
   "family": "features",
-  "why": "Il davanti e il dietro dello stesso cubo: due facce piane, parallele, che si danno le spalle. Nessuna palla le tocca tutte e due dal lato dell'aria, quindi il raccordo e' impossibile per GEOMETRIA, non per un capriccio dell'API. La sonda Controlli/RaccordoDiFaccia ha tolto dal giro la sua variante a facce parallele proprio per questo (REVISIONE 28/9/2026): un NULL li' misura la geometria, non la chiamata. Qui la geometria si guarda prima, e il rifiuto dice perche' e cosa usare invece.",
+  "why": "Il davanti e il dietro dello stesso cubo: due facce piane, parallele, che si danno le spalle. Nessuna palla le tocca tutte e due dal lato dell'aria, quindi il raccordo e' impossibile per GEOMETRIA, non per un capriccio dell'API. La sonda Checks/FaceFillet ha tolto dal giro la sua variante a facce parallele proprio per questo (REVISIONE 28/9/2026): un NULL li' misura la geometria, non la chiamata. Qui la geometria si guarda prima, e il rifiuto dice perche' e cosa usare invece.",
   "_why_not_the_walls_of_a_pocket": "Due pareti parallele che SI GUARDANO (una cava) non si rifiutano allo stesso modo: una palla di raggio meta' della distanza le tocca tutte e due. Quel ramo non ha ancora una misura, e non si mette in un caso finche' non l'ha.",
   "start": { "new_part": true },
   "steps": [

@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA TOLLERANZA SULLA QUOTA DEL MODELLO (voce Z-F2).
@@ -277,7 +277,7 @@ namespace Riscontro.Disegno
         /// GetPrimaryTolPrecision2 read right after (int.MinValue: not read),
         /// one pair per displayed dimension. No displayed dimension at all is not
         /// «every one did»: it is a fault of its own. Kept apart from the
-        /// document so that Prove.Contratti can call it without SOLIDWORKS.
+        /// document so that Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         ///
         /// WHICH ANSWERS ARE A FAULT. IDisplayDimension~SetPrecision3.html: -1
         /// «Method failed; no precision values were set», 3 «Primary tolerance

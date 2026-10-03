@@ -34,7 +34,7 @@ using SolidWorks.Interop.swconst;
 //  prova niente.
 //
 //  USO
-//      .\Controlli\TestoNelPdf\bin\TestoNelPdf.exe            [--tieni]
+//      .\Checks\PdfText\bin\PdfText.exe            [--tieni]
 // =============================================================================
 
 internal static class Programma

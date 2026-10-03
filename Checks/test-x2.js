@@ -19,7 +19,7 @@
 //    2. si tocca il FILE da fuori, e il `build` dopo si ferma dicendo cosa
 //       e' cambiato.
 //
-//  CHI CAMBIA IL PEZZO DA FUORI: `Controlli\CambiaAMano`, un eseguibile che
+//  CHI CAMBIA IL PEZZO DA FUORI: `Checks\ChangeByHand`, un eseguibile che
 //  si aggancia a SOLIDWORKS ed estrude un blocchetto nel documento attivo.
 //  Serve un secondo attore per forza: finche' la modifica arriva dal ponte,
 //  il ponte lo sa e aggiorna la sua firma, e la difesa non deve scattare.
@@ -32,7 +32,7 @@
 //  *Una sonda che prova la cosa sbagliata e' peggio di nessuna sonda: da' un
 //  rosso che manda a cercare il difetto dove non c'e'.*
 //
-//      node Controlli\prova-x2.js
+//      node Checks\test-x2.js
 //
 //  Vuole SOLIDWORKS aperto. Esce 0 se le due meta' passano, 1 altrimenti.
 // =============================================================================
@@ -44,10 +44,10 @@ const path = require('path');
 
 const RADICE = path.resolve(__dirname, '..');
 const PONTE = path.join(RADICE, 'bin', 'oce-solid-agent-mcp.exe');
-const NUOVA = path.join(RADICE, 'Controlli', 'NuovaParte', 'bin', 'NuovaParte.exe');
-const CAMBIA = path.join(RADICE, 'Controlli', 'CambiaAMano', 'bin', 'CambiaAMano.exe');
-const CHIUDI = path.join(RADICE, 'Controlli', 'ChiudiScarti', 'bin', 'ChiudiScarti.exe');
-const LAVORO = path.join(RADICE, 'Banco', 'lavoro');
+const NUOVA = path.join(RADICE, 'Checks', 'NewPart', 'bin', 'NewPart.exe');
+const CAMBIA = path.join(RADICE, 'Checks', 'ChangeByHand', 'bin', 'ChangeByHand.exe');
+const CHIUDI = path.join(RADICE, 'Checks', 'CloseLeftovers', 'bin', 'CloseLeftovers.exe');
+const LAVORO = path.join(RADICE, 'Bench', 'lavoro');
 const PEZZO = path.join(LAVORO, 'prova_x2.SLDPRT');
 
 let guai = 0;
@@ -123,7 +123,7 @@ function letto(r) {
   return { testo: c[0].text, male: !!r.result.isError };
 }
 
-// node Controlli\prova-x2.js --self-test: the reading above, seen failing on
+// node Checks\test-x2.js --self-test: the reading above, seen failing on
 // answers without the expected keys, without SOLIDWORKS or the bridge.
 function selfTest() {
   const cases = [
@@ -152,7 +152,7 @@ async function main() {
     process.exit(1);
   }
 
-  // SCRIVANIA PULITA PRIMA, come fa `banco.ps1` al passo 3: una sonda che
+  // SCRIVANIA PULITA PRIMA, come fa `bench.ps1` al passo 3: una sonda che
   // eredita i documenti della corsa precedente misura anche quelli.
   try { fs.mkdirSync(LAVORO, { recursive: true }); } catch (e) {}
   try { execFileSync(CHIUDI, ['--chiudi', LAVORO], { stdio: 'ignore' }); } catch (e) {}

@@ -5,15 +5,15 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// IL CATALOGO, che e' l'interfaccia vera verso il modello (voce C1/F7).
     ///
     /// Si legge per RIFLESSIONE dal ponte gia' compilato — `Catalogo` e la sua
-    /// `Simili()` vivono li' — e il file `catalogo.json` glielo si indica con
+    /// `Simili()` vivono li' — e il file `catalog.json` glielo si indica con
     /// `OPENPDM_CATALOGO`, che e' la stessa variabile che userebbe chi installa
     /// il pacchetto altrove.
     ///
@@ -26,23 +26,23 @@ namespace Prove.Contratti
         {
             Gruppo("il catalogo");
 
-            var json = Path.Combine(Radice(), "bin", "catalogo.json");
+            var json = Path.Combine(Radice(), "bin", "catalog.json");
 
             // IL CONTENUTO DEL CATALOGO SI PUO' LEGGERE ANCHE QUI (voce F9-bis).
             //
-            // `bin\\catalogo.json` lo produce `build.ps1`, che senza interop non
+            // `bin\\catalog.json` lo produce `build.ps1`, che senza interop non
             // gira: su un runner senza SOLIDWORKS questo gruppo si fermava alla
             // prima riga e trentadue controlli sul CONTENUTO — famiglie, campi
             // obbligatori, nomi doppi — non venivano fatti benche' non
             // c'entrino niente con SOLIDWORKS. Leggono un JSON.
             //
-            // `Strumenti\\catalogo.json` e' lo stesso file, sta in repository ed
+            // `Tools\\catalog.json` e' lo stesso file, sta in repository ed
             // e' quello che `build.ps1` COPIA in `bin\\`. Si ripiega li', e si dice.
             // Il confronto fra i due resta impossibile, e piu' sotto lo dichiara.
             bool dalRepository = false;
             if (!ProdottoDaBuild(json))
             {
-                var inRepository = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+                var inRepository = Path.Combine(Radice(), "Tools", "catalog.json");
                 if (!IlPonteSiPotevaCompilare() && File.Exists(inRepository))
                 {
                     json = inRepository;
@@ -58,7 +58,7 @@ namespace Prove.Contratti
             Segna("il catalogo c'e'", true,
                   dalRepository
                       ? json + " (quello in repository: qui SOLIDWORKS non c'e', " +
-                        "quindi bin\\catalogo.json non si poteva produrre)"
+                        "quindi bin\\catalog.json non si poteva produrre)"
                       : json);
 
             Dictionary<string, object> radice;
@@ -149,7 +149,7 @@ namespace Prove.Contratti
         // ================================================================
 
         /// <summary>
-        /// `catalogo.json` combacia ancora con il catalogo C# che lo genera?
+        /// `catalog.json` combacia ancora con il catalogo C# che lo genera?
         ///
         /// COSTATO UN GIRO IL 22/9/2026. Scritta l'operazione
         /// `note`, compilata, il ponte l'ha rifiutata con «non
@@ -159,7 +159,7 @@ namespace Prove.Contratti
         /// JSON, che e' l'unica cosa che il ponte guarda per sapere cosa
         /// esiste.
         ///
-        /// E `Strumenti/aggiorna.md` diceva: *«`build.ps1` rigenera il file a
+        /// E `Tools/update.md` diceva: *«`build.ps1` rigenera il file a
         /// ogni pacchetto, quindi non puo' restare indietro senza che qualcuno
         /// cancelli quel passo»*. **Non e' vero con `-SoloPonte`**, che e' il
         /// modo in cui si compila mentre si itera. Una garanzia scritta in un
@@ -169,25 +169,25 @@ namespace Prove.Contratti
         /// non combacia, e dice DOVE — e nessuno lo chiamava.
         ///
         /// SI GUARDANO DUE COPPIE, e sono difetti diversi:
-        /// il C# contro `Strumenti/catalogo.json` (qualcuno ha toccato le
-        /// operazioni e non ha riesportato), e `Strumenti/` contro `bin/`
+        /// il C# contro `Tools/catalog.json` (qualcuno ha toccato le
+        /// operazioni e non ha riesportato), e `Tools/` contro `bin/`
         /// (qualcuno ha riesportato e non ha rifatto il pacchetto, quindi il
         /// ponte carica ancora quello vecchio — ed e' esattamente il caso di
         /// oggi).
         /// </summary>
         private static void IlCatalogoNonERimastoIndietro()
         {
-            var strumento = Path.Combine(Radice(), "bin", "Riscontro.Catalogo.exe");
-            var sorgente = Path.Combine(Radice(), "Strumenti", "catalogo.json");
-            var pacchetto = Path.Combine(Radice(), "bin", "catalogo.json");
+            var strumento = Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Catalog.exe");
+            var sorgente = Path.Combine(Radice(), "Tools", "catalog.json");
+            var pacchetto = Path.Combine(Radice(), "bin", "catalog.json");
 
             if (!ProdottoDaBuild(strumento))
             {
                 if (!IlPonteSiPotevaCompilare())
                 {
                     NonQui("il catalogo esportato combacia col C#",
-                           "qui SOLIDWORKS non c'e': Riscontro.Catalogo.exe dipende da " +
-                           "Riscontro.Disegno, che senza interop non si compila.");
+                           "qui SOLIDWORKS non c'e': Oce.Solid.Agent.Catalog.exe dipende da " +
+                           "Oce.Solid.Agent.Core, che senza interop non si compila.");
                     return;
                 }
                 Segna("l'esportatore del catalogo c'e'", false,
@@ -229,9 +229,9 @@ namespace Prove.Contratti
             if (riga.Length > 160) riga = riga.Substring(0, 160) + "...";
 
             Segna("il catalogo esportato combacia col C#", uscita == 0,
-                  uscita == 0 ? "Strumenti\\catalogo.json e' aggiornato"
+                  uscita == 0 ? "Tools\\catalog.json e' aggiornato"
                               : "NON combacia: si rigenera con "
-                                + ".\\bin\\Riscontro.Catalogo.exe Strumenti\\catalogo.json — " + riga);
+                                + ".\\bin\\Oce.Solid.Agent.Catalog.exe Tools\\catalog.json — " + riga);
 
             // 2. E QUELLO CHE CARICA IL PONTE E' LO STESSO?
             if (!File.Exists(pacchetto))
@@ -239,7 +239,7 @@ namespace Prove.Contratti
                 if (!IlPonteSiPotevaCompilare())
                 {
                     NonQui("il ponte carica il catalogo di adesso",
-                           "qui SOLIDWORKS non c'e': bin\\catalogo.json non esiste " +
+                           "qui SOLIDWORKS non c'e': bin\\catalog.json non esiste " +
                            "perche' build.ps1 non poteva girare, e un file si confronta " +
                            "con un altro file, non con la sua assenza.");
                     return;
@@ -260,8 +260,8 @@ namespace Prove.Contratti
             Segna("il ponte carica il catalogo di adesso",
                   string.Equals(a, b, StringComparison.Ordinal),
                   string.Equals(a, b, StringComparison.Ordinal)
-                      ? "Strumenti\\ e bin\\ sono lo stesso file"
-                      : "bin\\catalogo.json e' rimasto indietro rispetto a Strumenti\\: "
+                      ? "Tools\\ e bin\\ sono lo stesso file"
+                      : "bin\\catalog.json e' rimasto indietro rispetto a Tools\\: "
                         + "si rilancia .\\build.ps1, che lo ricopia. Finche' non lo si fa, "
                         + "il ponte RIFIUTA le operazioni nuove dicendo che non esistono");
         }
@@ -282,14 +282,14 @@ namespace Prove.Contratti
         /// catalogo, o nell'elenco delle non provate. In nessun altro posto.
         ///
         /// IL BUCO CHE QUESTO CONTROLLO PRENDE, misurato il 22/9/2026.
-        /// `NomiEseguibili` ne contava **70**, `catalogo.json` ne dichiarava
+        /// `NomiEseguibili` ne contava **70**, `catalog.json` ne dichiarava
         /// **68**, e le due che mancavano — `center_marks` e
         /// `drawing_cut_list` — erano fuori **per una buona ragione**
         /// (`Provata=false`: le API dicono di si' e non creano niente, 0 -> 0).
         ///
         /// Ma fino a qui nessuno confrontava i due elenchi, e la stessa
         /// differenza l'avrebbe prodotta un'operazione **dimenticata**:
-        /// scritta, funzionante, mai aggiunta a `Operazioni.cs`. Quella non
+        /// scritta, funzionante, mai aggiunta a `Operations.cs`. Quella non
         /// darebbe nessun errore da nessuna parte — il banco la proverebbe
         /// (legge `NomiEseguibili`), il catalogo non la direbbe, e nessun
         /// modello potrebbe chiamarla. **Il difetto che non da' errore**,
@@ -307,7 +307,7 @@ namespace Prove.Contratti
         /// </summary>
         private static void OgniEseguibileEDichiarata(HashSet<string> nelCatalogo)
         {
-            var sorgente = Path.Combine(Radice(), "Riscontro.Disegno", "OperazioniSw.cs");
+            var sorgente = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "SwOperations.cs");
             if (!File.Exists(sorgente))
             {
                 Segna("il sorgente del dispatcher si legge", false, "non trovo " + sorgente);
@@ -335,12 +335,12 @@ namespace Prove.Contratti
             // interop non esiste nessuna DLL da interrogare. Il conto
             // «eseguibili = nel catalogo + non provate» non si puo' fare, e un
             // conto che non si puo' fare non si finge riuscito.
-            if (!ProdottoDaBuild(Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll")) &&
+            if (!ProdottoDaBuild(Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Core.dll")) &&
                 !IlPonteSiPotevaCompilare())
             {
                 NonQui("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
                        "qui SOLIDWORKS non c'e': l'elenco delle non provate si chiede a " +
-                       "Riscontro.Disegno.dll, che senza interop non si compila.");
+                       "Oce.Solid.Agent.Core.dll, che senza interop non si compila.");
                 return;
             }
 
@@ -349,7 +349,7 @@ namespace Prove.Contratti
             {
                 var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
                 Carica.Ponte(ponte);   // installa il risolutore per bin\
-                var dll = Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll");
+                var dll = Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Core.dll");
                 var libreria = Assembly.Load(File.ReadAllBytes(dll));
                 var esporta = Carica.Classe(libreria, "Esporta");
                 if (esporta == null)
@@ -427,7 +427,7 @@ namespace Prove.Contratti
             try
             {
                 Environment.SetEnvironmentVariable(
-                    "OPENPDM_CATALOGO", Path.Combine(Radice(), "bin", "catalogo.json"));
+                    "OPENPDM_CATALOGO", Path.Combine(Radice(), "bin", "catalog.json"));
                 // SI CARICA DAI BYTE: `LoadFrom` su un'unita' di rete risponde
                 // NotSupportedException, e questo repository sta su S:.
                 var asm = Carica.Ponte(ponte);

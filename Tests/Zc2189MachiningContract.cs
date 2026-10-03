@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE MACHINING AND ANCHOR FIXES OF Z-C21.8 AND Z-C21.9 THAT THE BENCH
@@ -67,7 +67,7 @@ namespace Prove.Contratti
 
             CallSites();
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of the Z-C21.8 and Z-C21.9 machining fixes",
@@ -92,7 +92,7 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
             if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
@@ -377,9 +377,9 @@ namespace Prove.Contratti
         // counts include the definition where there is one.
         private static void CallSites()
         {
-            string dir = Path.Combine(Radice(), "Riscontro.Disegno");
+            string dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
 
-            string extrusion = Read(dir, "OperazioniCambiaEstrusione.cs");
+            string extrusion = Read(dir, "EditExtrusionOperations.cs");
             if (extrusion != null)
             {
                 bool kept = Regex.IsMatch(extrusion, @"\w+\s*=\s*dati\.AccessSelections\(");
@@ -390,7 +390,7 @@ namespace Prove.Contratti
                       "answer kept " + kept + ", bare call " + bare + ", ExtrusionReadBack " + readBacks + " (with the definition)");
             }
 
-            string patterns = Read(dir, "OperazioniIstanze.cs");
+            string patterns = Read(dir, "InstanceOperations.cs");
             if (patterns != null)
             {
                 // The opener of each family has the signature (object d, IModelDoc2 m):
@@ -403,7 +403,7 @@ namespace Prove.Contratti
                       voidOpeners + " void openers, " + returned + " returned answers, " + refusals + " refusals on a false answer");
             }
 
-            string tolerance = Read(dir, "OperazioniTolleranzaQuota.cs");
+            string tolerance = Read(dir, "DimensionToleranceOperations.cs");
             if (tolerance != null)
             {
                 bool bare = Regex.IsMatch(tolerance, @"(?m)^\s*dd\.SetPrecision3\(");
@@ -416,7 +416,7 @@ namespace Prove.Contratti
                       ", RestoreTolerance " + restores + " (definition and two calls expected)");
             }
 
-            string measure = Read(dir, "OperazioniMisura.cs");
+            string measure = Read(dir, "MeasureOperations.cs");
             if (measure != null)
             {
                 bool guarded = Regex.IsMatch(measure, @"if \(\w+ < 0\)\s*return Fallito\(\s*""SOLIDWORKS found no closest distance");
@@ -424,7 +424,7 @@ namespace Prove.Contratti
                       guarded ? "guarded" : "no guard on the -1");
             }
 
-            string state = Read(dir, "StatoDocumento.cs");
+            string state = Read(dir, "DocumentState.cs");
             if (state != null)
             {
                 bool bare = Regex.IsMatch(state, @"(?m)^\s*\w+\.Get6\(");
@@ -434,7 +434,7 @@ namespace Prove.Contratti
                       !bare && kept && notPresent, "bare call " + bare + ", code kept " + kept + ", NotPresent skipped " + notPresent);
             }
 
-            string sheet = Read(dir, "OperazioniLamiera.cs");
+            string sheet = Read(dir, "SheetMetalOperations.cs");
             if (sheet != null)
             {
                 bool bare = Regex.IsMatch(sheet, @"(?m)^\s*\w+\.SetSuppression2\(");
@@ -452,7 +452,7 @@ namespace Prove.Contratti
                 // toggle (flat_pattern_view called the NaN-only overload until the
                 // review of this lot).
                 bool nanOnly = Regex.IsMatch(sheet, @"double LunghezzaSviluppata\(IModelDoc2 \w+, out double \w+\)");
-                string flatView = Read(dir, "OperazioniSviluppoTavola.cs");
+                string flatView = Read(dir, "DrawingFlatPatternOperations.cs");
                 bool viewReports = flatView != null &&
                                    Regex.IsMatch(flatView, @"LunghezzaSviluppata\(\w+, out double _, out string flatPatternProblem\);") &&
                                    flatView.Contains("if (flatPatternProblem != null)");
@@ -460,7 +460,7 @@ namespace Prove.Contratti
                       !nanOnly && viewReports, "NaN-only overload " + nanOnly + ", flat_pattern_view reports it " + viewReports);
             }
 
-            string properties = Read(dir, "OperazioniProprieta.cs");
+            string properties = Read(dir, "PropertyOperations.cs");
             if (properties != null)
             {
                 bool compared = Regex.IsMatch(properties, @"if \(!PropertyWrittenAsAsked\(\w+, \w+, \w+\)\)");
@@ -468,7 +468,7 @@ namespace Prove.Contratti
                       compared ? "compared" : "PropertyWrittenAsAsked is not called");
             }
 
-            string picture = Read(dir, "OperazioniRicalco.cs");
+            string picture = Read(dir, "RetraceOperations.cs");
             if (picture != null)
             {
                 bool size = Regex.IsMatch(picture, @"\w+ = foto\.SetSize\(");
@@ -479,7 +479,7 @@ namespace Prove.Contratti
                       ", PicturePlacementFault " + judged + " (with the definition)");
             }
 
-            string main = Read(dir, "OperazioniSw.cs");
+            string main = Read(dir, "SwOperations.cs");
             if (main != null)
             {
                 bool fillet = Regex.IsMatch(main, @"EdgeFeatureVolumeCheck\(\w+, ""fillet""");
@@ -492,7 +492,7 @@ namespace Prove.Contratti
                       byStatus ? "SetValueRefusalCause is called" : "SetValueRefusalCause is not called");
             }
 
-            string bodies = Read(dir, "OperazioniCorpi.cs");
+            string bodies = Read(dir, "BodyOperations.cs");
             if (bodies != null)
             {
                 bool r1 = Regex.IsMatch(bodies, @"R1:\s*0,");
@@ -500,7 +500,7 @@ namespace Prove.Contratti
                       r1 ? "R1: 0" : "R1 is not 0");
             }
 
-            string order = Read(dir, "OperazioniRiordina.cs");
+            string order = Read(dir, "ReorderOperations.cs");
             if (order != null)
             {
                 int reread = Count(order, "TreeReadBackFault(");
@@ -508,7 +508,7 @@ namespace Prove.Contratti
                       reread >= 3, "TreeReadBackFault " + reread + " (definition and two calls expected)");
             }
 
-            string anchor = Read(dir, "OperazioniAncora.cs");
+            string anchor = Read(dir, "AnchorOperations.cs");
             if (anchor != null)
             {
                 int casts = Count(anchor, "(ISketchPoint)");
@@ -523,7 +523,7 @@ namespace Prove.Contratti
             }
 
             int removals = 0;
-            foreach (var file in new[] { "OperazioniAncora.cs", "OperazioniRipetiRiempimento.cs", "OperazioniSaldatura.cs" })
+            foreach (var file in new[] { "AnchorOperations.cs", "FillPatternOperations.cs", "WeldmentOperations.cs" })
             {
                 string text = Read(dir, file);
                 if (text != null && text.Contains("return RemovedButVolumeChanged(volumeDopo.GetValueOrDefault(), volumePrima.GetValueOrDefault());")) removals++;

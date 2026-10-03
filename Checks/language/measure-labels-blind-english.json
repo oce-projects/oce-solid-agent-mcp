@@ -1,5 +1,5 @@
 {
- "about": "Blind English draw for Controlli/lingua/measure.js (review of W3.1-bis.1): only lines with at least two English function words, a new seed, every line labelled from --next BEFORE the detector was run on the draw. Keys are hashes of file, line number and text; values are it, en, en-prose or skip.",
+ "about": "Blind English draw for Checks/language/measure.js (review of W3.1-bis.1): only lines with at least two English function words, a new seed, every line labelled from --next BEFORE the detector was run on the draw. Keys are hashes of file, line number and text; values are it, en, en-prose or skip.",
  "commit": "4d7b84a",
  "seed": 4747,
  "filter": "english-cue",

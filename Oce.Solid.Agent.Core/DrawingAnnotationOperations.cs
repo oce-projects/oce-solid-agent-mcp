@@ -4,7 +4,7 @@ using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// RUGOSITA', DATUM E TOLLERANZE GEOMETRICHE IN TAVOLA (voci GT6 e GT8).

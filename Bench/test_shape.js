@@ -1,6 +1,6 @@
 // V3 — la frase basta a RIDISEGNARE il pezzo?
 //
-//   node prova_forma.js
+//   node test_shape.js
 //
 // PERCHE' IL CRITERIO E' IL VOLUME E NON UN GIUDIZIO. La voce V3 chiede che
 // dalla sola frase un modello sappia «ridisegnare il pezzo con le quote
@@ -13,21 +13,21 @@
 // controlla anche quello, un falso positivo diventa improbabile.
 //
 // COME SI RIFA' TUTTA LA MISURA:
-//   1. `node raccogli_viste.js`   costruisce i cinque pezzi veri e scrive
+//   1. `node collect_views.js`   costruisce i cinque pezzi veri e scrive
 //                                 lo stato, che contiene il campo `shape`
 //   2. si danno le cinque frasi a un modello ISOLATO, che scrive i piani in
 //      `cases/forma/1..5.json` senza aver visto niente altro
-//   3. `node prova_forma.js`      esegue i piani e confronta
+//   3. `node test_shape.js`      esegue i piani e confronta
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
+const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
 const PIANI = path.join(__dirname, "cases", "forma");
 
-// I PEZZI VERI, presi da `Banco/viste/*-stato.json`, che e' il file che il
+// I PEZZI VERI, presi da `Bench/viste/*-stato.json`, che e' il file che il
 // modello NON ha visto. Se manca, la misura non si puo' fare: non si inventa
 // un valore atteso.
 const VISTE = path.join(__dirname, "viste");
@@ -127,7 +127,7 @@ async function provaUno(numero, nome) {
   const fileVero = path.join(VISTE, nome + "-stato.json");
   if (!fs.existsSync(fileVero)) {
     segna("pezzo " + numero, false,
-          "manca lo stato vero: lancia prima `node raccogli_viste.js`");
+          "manca lo stato vero: lancia prima `node collect_views.js`");
     return;
   }
   const vero = JSON.parse(fs.readFileSync(fileVero, "utf8"));

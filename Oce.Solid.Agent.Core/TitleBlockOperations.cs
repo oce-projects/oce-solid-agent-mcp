@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// IL CARTIGLIO: COSA CHIEDE, E COSA MOSTRA (voce GT3).

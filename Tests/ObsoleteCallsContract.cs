@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// NO NEW CALL TO AN OBSOLETE SOLIDWORKS API (Z-C21.6).
@@ -21,7 +21,7 @@ namespace Prove.Contratti
     /// ── THE RULE ──────────────────────────────────────────────────────────
     ///
     /// Every call to a member of the refined obsolete list
-    /// (Prove/data/obsolete-api-members.tsv, see ObsoleteCallScanner for how a
+    /// (Tests/data/obsolete-api-members.tsv, see ObsoleteCallScanner for how a
     /// call is recognised) must be one of:
     ///
     ///   1. MEASURED: covered by an `OBSOLETE-MEASURED: <bank case>` comment, on
@@ -47,15 +47,15 @@ namespace Prove.Contratti
     /// Calls whose receiver type the source does not say, on a name that is
     /// obsolete on some interface and current on another (`x.Select2`,
     /// `v.Name`), are "undecided". They are frozen too, per file and name, in
-    /// Prove/data/obsolete-undecided-frozen.tsv, with the same exact ratchet: a
+    /// Tests/data/obsolete-undecided-frozen.tsv, with the same exact ratchet: a
     /// new undecided call is red until its receiver is typed in the source
     /// (then the scanner judges it) or the count is raised with a reason.
-    /// Controlli/ (the probes, which call obsolete APIs on purpose to measure
-    /// them) and Prove/ are not scanned.
+    /// Checks/ (the probes, which call obsolete APIs on purpose to measure
+    /// them) and Tests/ are not scanned.
     /// </summary>
     internal static class ObsoleteCallsContract
     {
-        internal static readonly string[] Folders = { "Riscontro.Disegno", "Ponte", "Mcp", "Strumenti", "Condiviso", "Banco" };
+        internal static readonly string[] Folders = { "Oce.Solid.Agent.Core", "Bridge", "Mcp", "Tools", "Shared", "Bench" };
 
         internal const string UndecidedFile = "obsolete-undecided-frozen.tsv";
 
@@ -74,9 +74,9 @@ namespace Prove.Contratti
         /// </summary>
         internal static readonly Dictionary<string, MeasuredCall> Measured = new Dictionary<string, MeasuredCall>(StringComparer.Ordinal)
         {
-            ["Riscontro.Disegno/OperazioniCentrini.cs|IDrawingDoc.AddCenterMark|center_marks_on_the_holes"] =
+            ["Oce.Solid.Agent.Core/CenterMarkOperations.cs|IDrawingDoc.AddCenterMark|center_marks_on_the_holes"] =
                 new MeasuredCall(1, "tried, fails: InsertCenterMark2/3 answer True and add nothing (probes of 17/9 and 26/9/2026)"),
-            ["Riscontro.Disegno/OperazioniTondoTavola.cs|IModelDoc2.GraphicsRedraw2|stepped_shaft_dimensioned_from_the_side"] =
+            ["Oce.Solid.Agent.Core/DrawingRoundOperations.cs|IModelDoc2.GraphicsRedraw2|stepped_shaft_dimensioned_from_the_side"] =
                 new MeasuredCall(2, "not measured: IModelView::GraphicsRedraw never tried here; the case proves the redraw makes " +
                                     "ISilhouetteEdge.GetFace answer (N20, remeasure in Z-C21.7)"),
         };
@@ -87,57 +87,57 @@ namespace Prove.Contratti
         /// </summary>
         internal static readonly Dictionary<string, int> Frozen = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            ["Banco/AssiemeDiProva.cs|IModelDocExtension.SaveAs"] = 1,
-            ["Banco/CasiDichiarati.cs|IModelDoc2.GraphicsRedraw2"] = 1,
-            ["Banco/NumeriDelleQuote.cs|IDimension.GetSystemValue2"] = 1,
-            ["Banco/NumeriDelleQuote.cs|IModelDocExtension.SaveAs"] = 1,
-            ["Banco/Orfane.cs|IModelDocExtension.SaveAs"] = 1,
-            ["Banco/PortaDelCliente.cs|IModelDocExtension.SaveAs"] = 1,
-            ["Banco/ProvaNuove.cs|IModelDoc2.GraphicsRedraw2"] = 2,
-            ["Riscontro.Disegno/ApiHelpers.Geometry.cs|IEdge.GetCurveParams2"] = 1,
-            ["Riscontro.Disegno/ApiHelpers.cs|IDimension.GetSystemValue2"] = 1,
-            ["Riscontro.Disegno/ApiHelpers.cs|IModelDocExtension.CreateMassProperty"] = 1,
-            ["Riscontro.Disegno/EsecutorePiano.cs|IModelDocExtension.FinishRecordingUndoObject"] = 1,
-            ["Riscontro.Disegno/OperazioniAccoppia.cs|IAssemblyDoc.AddMate5"] = 1,
-            ["Riscontro.Disegno/OperazioniAnnotazioniTavola.cs|IGtol.GetFrameSymbols"] = 1,
-            ["Riscontro.Disegno/OperazioniAnnotazioniTavola.cs|IGtol.SetFrameSymbols"] = 1,
-            ["Riscontro.Disegno/OperazioniAnnotazioniTavola.cs|IGtol.SetFrameValues"] = 1,
-            ["Riscontro.Disegno/OperazioniCentrini.cs|IView.Name"] = 1,
-            ["Riscontro.Disegno/OperazioniCorpi.cs|IFeatureManager.FeatureFillet3"] = 1,
-            ["Riscontro.Disegno/OperazioniDistintaBase.cs|ITableAnnotation.GetColumnType2"] = 2,
-            ["Riscontro.Disegno/OperazioniDistintaTavola.cs|ITableAnnotation.GetColumnType2"] = 2,
-            ["Riscontro.Disegno/OperazioniDistintaTavola.cs|ITableAnnotation.Text"] = 1,
-            ["Riscontro.Disegno/OperazioniDistintaTavola.cs|IView.Name"] = 1,
-            ["Riscontro.Disegno/OperazioniFori.cs|ISketchManager.AutoInference"] = 3,
-            ["Riscontro.Disegno/OperazioniLamiera.cs|ISheetMetalFeatureData.KFactor"] = 3,
-            ["Riscontro.Disegno/OperazioniMisuraAssieme.cs|IBody2.Copy"] = 1,
-            ["Riscontro.Disegno/OperazioniMisuraAssieme.cs|IModelDoc2.GetActiveConfiguration"] = 1,
-            ["Riscontro.Disegno/OperazioniNotaTavola.cs|INote.GetTextPoint"] = 1,
-            ["Riscontro.Disegno/OperazioniPercorso.cs|IFeatureManager.InsertProtrusionSwept4"] = 1,
-            ["Riscontro.Disegno/OperazioniPiani.cs|IModelDoc2.CreatePlaneFixed2"] = 1,
-            ["Riscontro.Disegno/OperazioniQuoteTavola.cs|IModelDoc2.GraphicsRedraw2"] = 1,
-            ["Riscontro.Disegno/OperazioniSformo.cs|IDraftFeatureData.Angle"] = 1,
-            ["Riscontro.Disegno/OperazioniSpecchiaComponente.cs|IBody2.Copy"] = 1,
-            ["Riscontro.Disegno/OperazioniSviluppoTavola.cs|IModelDoc2.GetActiveConfiguration"] = 1,
-            ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureCircularPattern5"] = 1,
-            ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureFillet3"] = 1,
-            ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureLinearPattern5"] = 1,
-            ["Riscontro.Disegno/OperazioniTavola.cs|IDrawingDoc.InsertModelAnnotations2"] = 1,
-            ["Riscontro.Disegno/OperazioniTavola.cs|IModelDocExtension.SaveAs"] = 2,
-            ["Riscontro.Disegno/OperazioniTavola.cs|IView.GetDimensionCount"] = 1,
-            ["Riscontro.Disegno/OperazioniTavola.cs|IView.Name"] = 3,
-            ["Riscontro.Disegno/OperazioniTesto.cs|ICurve.Evaluate"] = 1,
-            ["Riscontro.Disegno/OperazioniTesto.cs|ISketchText.GetEdges"] = 1,
-            ["Riscontro.Disegno/OperazioniTolleranzaQuota.cs|IDimensionTolerance.GetMaxValue"] = 1,
-            ["Riscontro.Disegno/OperazioniTolleranzaQuota.cs|IDimensionTolerance.GetMinValue"] = 1,
-            ["Riscontro.Disegno/OperazioniVerifica.cs|IBody2.Check"] = 1,
-            ["Riscontro.Disegno/OperazioniVerifica.cs|IBody2.Check2"] = 1,
-            ["Riscontro.Disegno/StatoAssieme.cs|IConfiguration.ShowChildComponentsInBOM"] = 1,
-            ["Riscontro.Disegno/StatoAssieme.cs|IModelDoc2.GetActiveConfiguration"] = 1,
-            ["Riscontro.Disegno/StatoDocumento.cs|IWizardHoleFeatureData2.FastenerType"] = 1,
-            ["Riscontro.Disegno/StatoTavola.cs|IView.GetDimensionCount"] = 1,
-            ["Riscontro.Disegno/StatoTavola.cs|IView.Name"] = 2,
-            ["Riscontro.Disegno/VistaDelPezzo.cs|IModelDoc2.GraphicsRedraw2"] = 5,
+            ["Bench/TestAssembly.cs|IModelDocExtension.SaveAs"] = 1,
+            ["Bench/DeclaredCases.cs|IModelDoc2.GraphicsRedraw2"] = 1,
+            ["Bench/DimensionNumbers.cs|IDimension.GetSystemValue2"] = 1,
+            ["Bench/DimensionNumbers.cs|IModelDocExtension.SaveAs"] = 1,
+            ["Bench/Orphans.cs|IModelDocExtension.SaveAs"] = 1,
+            ["Bench/ClientPort.cs|IModelDocExtension.SaveAs"] = 1,
+            ["Bench/NewOperationsTests.cs|IModelDoc2.GraphicsRedraw2"] = 2,
+            ["Oce.Solid.Agent.Core/ApiHelpers.Geometry.cs|IEdge.GetCurveParams2"] = 1,
+            ["Oce.Solid.Agent.Core/ApiHelpers.cs|IDimension.GetSystemValue2"] = 1,
+            ["Oce.Solid.Agent.Core/ApiHelpers.cs|IModelDocExtension.CreateMassProperty"] = 1,
+            ["Oce.Solid.Agent.Core/PlanExecutor.cs|IModelDocExtension.FinishRecordingUndoObject"] = 1,
+            ["Oce.Solid.Agent.Core/MateOperations.cs|IAssemblyDoc.AddMate5"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingAnnotationOperations.cs|IGtol.GetFrameSymbols"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingAnnotationOperations.cs|IGtol.SetFrameSymbols"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingAnnotationOperations.cs|IGtol.SetFrameValues"] = 1,
+            ["Oce.Solid.Agent.Core/CenterMarkOperations.cs|IView.Name"] = 1,
+            ["Oce.Solid.Agent.Core/BodyOperations.cs|IFeatureManager.FeatureFillet3"] = 1,
+            ["Oce.Solid.Agent.Core/BomOperations.cs|ITableAnnotation.GetColumnType2"] = 2,
+            ["Oce.Solid.Agent.Core/DrawingCutListOperations.cs|ITableAnnotation.GetColumnType2"] = 2,
+            ["Oce.Solid.Agent.Core/DrawingCutListOperations.cs|ITableAnnotation.Text"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingCutListOperations.cs|IView.Name"] = 1,
+            ["Oce.Solid.Agent.Core/HoleOperations.cs|ISketchManager.AutoInference"] = 3,
+            ["Oce.Solid.Agent.Core/SheetMetalOperations.cs|ISheetMetalFeatureData.KFactor"] = 3,
+            ["Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs|IBody2.Copy"] = 1,
+            ["Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs|IModelDoc2.GetActiveConfiguration"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingNoteOperations.cs|INote.GetTextPoint"] = 1,
+            ["Oce.Solid.Agent.Core/PathOperations.cs|IFeatureManager.InsertProtrusionSwept4"] = 1,
+            ["Oce.Solid.Agent.Core/PlaneOperations.cs|IModelDoc2.CreatePlaneFixed2"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingDimensionOperations.cs|IModelDoc2.GraphicsRedraw2"] = 1,
+            ["Oce.Solid.Agent.Core/DraftOperations.cs|IDraftFeatureData.Angle"] = 1,
+            ["Oce.Solid.Agent.Core/MirrorComponentOperations.cs|IBody2.Copy"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingFlatPatternOperations.cs|IModelDoc2.GetActiveConfiguration"] = 1,
+            ["Oce.Solid.Agent.Core/SwOperations.cs|IFeatureManager.FeatureCircularPattern5"] = 1,
+            ["Oce.Solid.Agent.Core/SwOperations.cs|IFeatureManager.FeatureFillet3"] = 1,
+            ["Oce.Solid.Agent.Core/SwOperations.cs|IFeatureManager.FeatureLinearPattern5"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingOperations.cs|IDrawingDoc.InsertModelAnnotations2"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingOperations.cs|IModelDocExtension.SaveAs"] = 2,
+            ["Oce.Solid.Agent.Core/DrawingOperations.cs|IView.GetDimensionCount"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingOperations.cs|IView.Name"] = 3,
+            ["Oce.Solid.Agent.Core/TextOperations.cs|ICurve.Evaluate"] = 1,
+            ["Oce.Solid.Agent.Core/TextOperations.cs|ISketchText.GetEdges"] = 1,
+            ["Oce.Solid.Agent.Core/DimensionToleranceOperations.cs|IDimensionTolerance.GetMaxValue"] = 1,
+            ["Oce.Solid.Agent.Core/DimensionToleranceOperations.cs|IDimensionTolerance.GetMinValue"] = 1,
+            ["Oce.Solid.Agent.Core/CheckOperations.cs|IBody2.Check"] = 1,
+            ["Oce.Solid.Agent.Core/CheckOperations.cs|IBody2.Check2"] = 1,
+            ["Oce.Solid.Agent.Core/AssemblyState.cs|IConfiguration.ShowChildComponentsInBOM"] = 1,
+            ["Oce.Solid.Agent.Core/AssemblyState.cs|IModelDoc2.GetActiveConfiguration"] = 1,
+            ["Oce.Solid.Agent.Core/DocumentState.cs|IWizardHoleFeatureData2.FastenerType"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingState.cs|IView.GetDimensionCount"] = 1,
+            ["Oce.Solid.Agent.Core/DrawingState.cs|IView.Name"] = 2,
+            ["Oce.Solid.Agent.Core/PartView.cs|IModelDoc2.GraphicsRedraw2"] = 5,
         };
 
         /// <summary>
@@ -193,10 +193,10 @@ namespace Prove.Contratti
         {
             Gruppo("no new call to an obsolete SOLIDWORKS API (Z-C21.6)");
 
-            var listPath = Path.Combine(Radice(), "Prove", "data", "obsolete-api-members.tsv");
+            var listPath = Path.Combine(Radice(), "Tests", "data", "obsolete-api-members.tsv");
             if (!File.Exists(listPath))
             {
-                Segna("the refined obsolete list is there", false, listPath + " is missing: regenerate it with Controlli/obsolete-api-list.js");
+                Segna("the refined obsolete list is there", false, listPath + " is missing: regenerate it with Checks/obsolete-api-list.js");
                 return;
             }
             var list = ObsoleteApiList.Load(listPath);
@@ -296,7 +296,7 @@ namespace Prove.Contratti
                 }
             }
             var hits = scanner.Scan();
-            var undecidedPath = Path.Combine(Radice(), "Prove", "data", UndecidedFile);
+            var undecidedPath = Path.Combine(Radice(), "Tests", "data", UndecidedFile);
             var frozenUndecided = LoadUndecided(undecidedPath);
             var v = Evaluate(hits, scanner.UndecidedCalls, cases, frozenUndecided, null);
             Segna("every obsolete call is measured or frozen", v.Violations.Count == 0,
@@ -321,7 +321,7 @@ namespace Prove.Contratti
                   noReason.Count == 0 && badMeasured.Count == 0
                       ? WhyFrozen.Count + " reasons, " + Measured.Count + " measured entries with an existing case"
                       : "no reason for " + string.Join(", ", noReason) + "; measured entries without \"tried\"/\"not measured\" " +
-                        "or with a case not in Banco/cases: " + string.Join(", ", badMeasured));
+                        "or with a case not in Bench/cases: " + string.Join(", ", badMeasured));
 
             // The undecided calls: counted, and frozen with the same ratchet.
             bool undecidedOk = frozenUndecided != null && v.UndecidedRaised.Count == 0 && v.UndecidedStale.Count == 0;
@@ -359,8 +359,8 @@ namespace Prove.Contratti
                                     Dictionary<string, int> frozenUndecided, List<ObsoleteHit> baseHits,
                                     List<UndecidedCall> baseUndecided)
         {
-            const string equations = "Riscontro.Disegno/OperazioniEquazioni.cs";
-            const string assemblyMass = "Riscontro.Disegno/OperazioniMisuraAssieme.cs";
+            const string equations = "Oce.Solid.Agent.Core/EquationOperations.cs";
+            const string assemblyMass = "Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs";
 
             // 1. A new obsolete call on a typed receiver, in a file with no entry for it.
             Inject(list, sources, cases, frozenUndecided, baseHits, baseUndecided, equations, "a new obsolete call",
@@ -463,7 +463,7 @@ namespace Prove.Contratti
         private static HashSet<string> BankCases()
         {
             var cases = new HashSet<string>(StringComparer.Ordinal);
-            var dir = Path.Combine(Radice(), "Banco", "cases");
+            var dir = Path.Combine(Radice(), "Bench", "cases");
             if (Directory.Exists(dir))
                 foreach (var f in Directory.GetFiles(dir, "*.json", SearchOption.AllDirectories))
                     cases.Add(Path.GetFileNameWithoutExtension(f));
@@ -491,7 +491,7 @@ namespace Prove.Contratti
             var lines = new List<string>
             {
                 "# Calls to names that are obsolete on some SOLIDWORKS interface and current on another, whose",
-                "# receiver type the source does not say (Prove/ObsoleteCallsContract.cs). Exact counts per",
+                "# receiver type the source does not say (Tests/ObsoleteCallsContract.cs). Exact counts per",
                 "# file|name: a new one is red. Type the receiver in the source rather than raising a count;",
                 "# a raised count needs a reason in the commit.",
             };
@@ -535,7 +535,7 @@ namespace Prove.Contratti
                 if (h.MeasuredCase == null || !cases.Contains(h.MeasuredCase))
                 {
                     v.Violations.Add(h.File + ":" + h.Line + " " + h.Member + " — " + ObsoleteCallScanner.MeasuredMarker +
-                                     " cites " + (h.MeasuredCase == null ? "no case" : "«" + h.MeasuredCase + "», which is not in Banco/cases"));
+                                     " cites " + (h.MeasuredCase == null ? "no case" : "«" + h.MeasuredCase + "», which is not in Bench/cases"));
                     continue;
                 }
                 measuredHits.Add(h);

@@ -12,7 +12,7 @@ using System.Web.Script.Serialization;
 namespace Oce.Solid.Agent.Installer
 {
     /// <summary>
-    /// `Installa.exe --verify [--json]`: IS THIS INSTALLATION ONE A CLIENT CAN
+    /// `Installer.exe --verify [--json]`: IS THIS INSTALLATION ONE A CLIENT CAN
     /// USE? (entry H19, B4)
     ///
     /// The installer says what it did; this says what is there, read back

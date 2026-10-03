@@ -1,7 +1,7 @@
 {
   "name": "edge_flange_closes_the_side",
   "family": "sheet_metal",
-  "why": "VOCE GP18, la terza operazione della famiglia. Sulla L dei casi di lamiera (50 + 30, profonda 40, T 2, R 2) una flangia a 90 gradi sullo spigolo in fondo al lato da 50, lunga 25 allo spigolo virtuale esterno. La sonda `Controlli/FlangiaSpigolo` l'ha misurata prima di scriverla: nasce solo con un RETTANGOLO di profilo sulla faccia di testa, e lo sviluppo cresce di (L - R - T) + BA - (R + T), al millesimo, con 22 e con 32.",
+  "why": "VOCE GP18, la terza operazione della famiglia. Sulla L dei casi di lamiera (50 + 30, profonda 40, T 2, R 2) una flangia a 90 gradi sullo spigolo in fondo al lato da 50, lunga 25 allo spigolo virtuale esterno. La sonda `Checks/EdgeFlange` l'ha misurata prima di scriverla: nasce solo con un RETTANGOLO di profilo sulla faccia di testa, e lo sviluppo cresce di (L - R - T) + BA - (R + T), al millesimo, con 22 e con 32.",
   "_the_edges_by_where_they_are": "La L va da x -2 a 50 e da y -2 a 30: lo spigolo in fondo al lato da 50 sulla faccia interna sta a x = 50, y = 0, lungo Z per 40.",
   "start": { "new_part": true },
   "steps": [

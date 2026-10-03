@@ -8,11 +8,11 @@ namespace Oce.Solid.Agent.Installer
     /// <summary>
     /// IL PONTE DENTRO L'INSTALLATORE.
     ///
-    /// L'obiettivo e' **un file solo**: chi installa scarica `Installa.exe`,
+    /// L'obiettivo e' **un file solo**: chi installa scarica `Installer.exe`,
     /// doppio clic, finito. Niente zip da scompattare, niente «metti questo
     /// accanto a quello», niente cartella che si perde a meta' strada.
     ///
-    /// Quindi `oce-solid-agent-mcp.exe` e `catalogo.json` viaggiano come RISORSE
+    /// Quindi `oce-solid-agent-mcp.exe` e `catalog.json` viaggiano come RISORSE
     /// INCORPORATE dentro questo eseguibile e vengono scritte su disco al
     /// momento dell'installazione.
     ///

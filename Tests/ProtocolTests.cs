@@ -5,10 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using static Prove.Contratti.Programma;
-using static Condiviso.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Programma;
+using static Shared.ClienteMcp;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// IL PROTOCOLLO MCP, parlando col ponte come farebbe un cliente.
@@ -37,7 +37,7 @@ namespace Prove.Contratti
         // riga puo' tardare parecchio. Venti secondi non bastavano, e il
         // sintomo era ingannevole: l'`initialize` risultava senza risposta e
         // poi la sua riga arrivava addosso alla prova dopo.
-        // AttesaMs sta in Condiviso/ClienteMcp.cs: lo usano in due.
+        // AttesaMs sta in Shared/McpClient.cs: lo usano in due.
 
         internal static void Tutte()
         {
@@ -69,7 +69,7 @@ namespace Prove.Contratti
 
                 // ── E LA VERSIONE CHE ANNUNCIA E' QUELLA VERA ─────────────
                 //
-                // Non lo era: `Programma.cs` teneva `const Versione =
+                // Non lo era: `Program.cs` teneva `const Versione =
                 // "0.2.0"` mentre `VERSION.txt` diceva 0.80.0, e ci e'
                 // rimasto per settantotto versioni minori. Non c'era niente
                 // di sbagliato nel codice — c'erano DUE posti dove scrivere
@@ -227,7 +227,7 @@ namespace Prove.Contratti
                 // ── UNO STRUMENTO CHE NON C'E' ────────────────────────────
                 //
                 // `isError: true` DENTRO IL CONTENUTO, non un errore JSON-RPC:
-                // la distinzione e' scritta in `Mcp/Protocollo.cs` e fino a
+                // la distinzione e' scritta in `Mcp/Protocol.cs` e fino a
                 // oggi non la verificava nessuno. Un errore di protocollo dice
                 // «il cliente ha sbagliato a parlare»; questo dice «lo
                 // strumento non esiste», ed e' una cosa che il modello deve

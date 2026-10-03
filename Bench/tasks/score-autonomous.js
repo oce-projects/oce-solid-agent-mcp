@@ -5,7 +5,7 @@
 //
 //  Reads what run-autonomous.ps1 kept and the table "How it is measured" of
 //  each task, and says for every session RIGHT, WRONG or NOT DONE (the three
-//  outcomes of Banco/tasks/README.md, never summed), and for every task the
+//  outcomes of Bench/tasks/README.md, never summed), and for every task the
 //  median of its repeats.
 //
 //  Where a row is read:
@@ -23,11 +23,11 @@
 //  counted as held, and a session with such a row is RIGHT only once a person
 //  has read it (the score says "right, N rows by hand").
 //
-//      node Banco/tasks/score-autonomous.js <run folder>
-//      node Banco/tasks/score-autonomous.js --compare <run before> <run after>
-//      node Banco/tasks/score-autonomous.js --read-state <bridge.exe> <out.json>
-//      node Banco/tasks/score-autonomous.js --bridge-info <bridge.exe>
-//      node Banco/tasks/score-autonomous.js --self-test
+//      node Bench/tasks/score-autonomous.js <run folder>
+//      node Bench/tasks/score-autonomous.js --compare <run before> <run after>
+//      node Bench/tasks/score-autonomous.js --read-state <bridge.exe> <out.json>
+//      node Bench/tasks/score-autonomous.js --bridge-info <bridge.exe>
+//      node Bench/tasks/score-autonomous.js --self-test
 //
 //  --read-state asks the bridge for its tools first and reads the state with
 //  the tool that bridge has (inspect_part, or guarda_il_pezzo before the
@@ -43,9 +43,9 @@
 //  bridge after it; a scorer that read only the English keys would find no
 //  outcome in the run before, call every session NOT DONE, and the comparison
 //  «at most one task worse» could not fail. So every answer and every state is
-//  read through the name map first (Controlli/lingua/name-map.tsv, the rows
+//  read through the name map first (Checks/language/name-map.tsv, the rows
 //  response_field, operation, enum_value and response_value, with the sites of
-//  Controlli/lingua/window-2-surface.js where a field has two English names):
+//  Checks/language/window-2-surface.js where a field has two English names):
 //  an answer of the bridge before becomes the answer the bridge after would
 //  write, and an English answer goes through unchanged. score.json records
 //  which protocol each session spoke, and the scorer refuses to score a run in
@@ -71,7 +71,7 @@ let DIRECTION = null;
 function direction() {
   if (DIRECTION) return DIRECTION;
   const root = path.resolve(__dirname, '..', '..');
-  const w = require(path.join(root, 'Controlli', 'lingua', 'window-2-surface.js'));
+  const w = require(path.join(root, 'Checks', 'language', 'window-2-surface.js'));
   DIRECTION = w.direction(w.loadMap(root), false, null);
   return DIRECTION;
 }

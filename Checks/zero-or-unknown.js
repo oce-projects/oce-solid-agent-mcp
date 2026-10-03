@@ -1,5 +1,5 @@
 // =============================================================================
-//  zero-o-non-lo-so.js - «zero» e «non ho potuto leggere» sono la stessa cosa?
+//  zero-or-unknown.js - «zero» e «non ho potuto leggere» sono la stessa cosa?
 // =============================================================================
 //
 //  PERCHE' ESISTE (voce Z-C8)
@@ -14,7 +14,7 @@
 //  «da questo foro sono stati tolti zero mm3». Chi legge non ha modo di
 //  accorgersi che in realta' la lettura e' fallita.
 //
-//  Non e' teoria. `OperazioniSw.cs` porta le due regole opposte a duemila
+//  Non e' teoria. `SwOperations.cs` porta le due regole opposte a duemila
 //  righe di distanza:
 //
 //      :2122  «Un volume che non si e' potuto leggere non diventa uno zero:
@@ -58,9 +58,9 @@
 //  finito che non diventa una guardia torna a riempirsi.
 //
 //  USO
-//      node Controlli/zero-o-non-lo-so.js
-//      node Controlli/zero-o-non-lo-so.js --tutti      anche i dichiarati
-//      node Controlli/zero-o-non-lo-so.js --provami    lo fa sbagliare apposta
+//      node Checks/zero-or-unknown.js
+//      node Checks/zero-or-unknown.js --tutti      anche i dichiarati
+//      node Checks/zero-or-unknown.js --provami    lo fa sbagliare apposta
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
@@ -68,7 +68,7 @@ const path = require('path');
 const radice = path.join(__dirname, '..');
 const tutti = process.argv.includes('--tutti');
 
-const CARTELLE = ['Riscontro.Disegno', 'Strumenti', 'Ponte', 'Condiviso', 'Mcp'];
+const CARTELLE = ['Oce.Solid.Agent.Core', 'Tools', 'Bridge', 'Shared', 'Mcp'];
 
 // DOVE SI CERCA IL MARCATORE, e la prima scrittura era sbagliata.
 //

@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// LA GUARDIA CHE NESSUNO POTREBBE MAI VEDERE SCATTARE (voce K17).
@@ -17,7 +17,7 @@ namespace Prove.Contratti
     ///
     /// Qui SOLIDWORKS non c'e' affatto, e proprio per questo la si puo' far
     /// fallire apposta: la sentinella non tocca il CAD, conta e basta. Ogni
-    /// giro di `Prove.Contratti` la fa scattare, e la fa NON scattare quando
+    /// giro di `Oce.Solid.Agent.ContractTests` la fa scattare, e la fa NON scattare quando
     /// non deve — che e' la meta' che di solito nessuno prova.
     /// </summary>
     internal static class ProveLaSentinella
@@ -32,7 +32,7 @@ namespace Prove.Contratti
             // al primo fallimento fermerebbe un giro intero per un modello di
             // documento momentaneamente occupato — e a quel punto la si
             // toglierebbe, ed e' peggio che non averla.
-            var s1 = new Condiviso.SentinellaSolidWorks(3);
+            var s1 = new Shared.SentinellaSolidWorks(3);
             s1.Fallita();
             s1.Fallita();
             Segna("due fallimenti di fila non bastano", !s1.SeNEAndato,
@@ -58,7 +58,7 @@ namespace Prove.Contratti
             // normale: un caso che lascia SOLIDWORKS storto e il successivo
             // che si riprende. Se la sentinella li sommasse, fermerebbe i giri
             // sani — e il primo che la vede fermare un giro sano la disattiva.
-            var s2 = new Condiviso.SentinellaSolidWorks(3);
+            var s2 = new Shared.SentinellaSolidWorks(3);
             s2.Fallita(); s2.Riuscita();
             s2.Fallita(); s2.Riuscita();
             s2.Fallita(); s2.Riuscita();
@@ -67,12 +67,12 @@ namespace Prove.Contratti
                   "quattro fallimenti in tutto, mai due di fila: di fila = " + s2.DiFila);
 
             // ── LA SOGLIA E' UN PARAMETRO, NON IL NUMERO TRE ─────────────
-            var s3 = new Condiviso.SentinellaSolidWorks(1);
+            var s3 = new Shared.SentinellaSolidWorks(1);
             s3.Fallita();
             Segna("con soglia 1 scatta al primo", s3.SeNEAndato, "soglia " + s3.Soglia);
 
             bool rifiutata = false;
-            try { new Condiviso.SentinellaSolidWorks(0); }
+            try { new Shared.SentinellaSolidWorks(0); }
             catch (ArgumentOutOfRangeException) { rifiutata = true; }
             Segna("una soglia di zero viene rifiutata", rifiutata,
                   "scatterebbe prima di guardare");
@@ -104,9 +104,9 @@ namespace Prove.Contratti
 
         private static void IlBancoLaConsulta()
         {
-            string programma = Path.Combine(Radice(), "Banco", "Program.cs");
-            string assieme = Path.Combine(Radice(), "Banco", "AssiemeDiProva.cs");
-            string casi = Path.Combine(Radice(), "Banco", "CasiDichiarati.cs");
+            string programma = Path.Combine(Radice(), "Bench", "Program.cs");
+            string assieme = Path.Combine(Radice(), "Bench", "TestAssembly.cs");
+            string casi = Path.Combine(Radice(), "Bench", "DeclaredCases.cs");
 
             foreach (var f in new[] { programma, assieme, casi })
                 if (!File.Exists(f))
@@ -120,8 +120,8 @@ namespace Prove.Contratti
             string c = File.ReadAllText(casi);
 
             Segna("il banco costruisce la sentinella",
-                  Regex.IsMatch(p, @"new Condiviso\.SentinellaSolidWorks\(\s*3\s*\)"),
-                  "soglia 3 in Banco/Program.cs");
+                  Regex.IsMatch(p, @"new Shared\.SentinellaSolidWorks\(\s*3\s*\)"),
+                  "soglia 3 in Bench/Program.cs");
 
             // I TRE PUNTI CHE CREANO DOCUMENTI, uno per uno. Un punto che non
             // ci passa e' una strada per cui il banco continua a provare
@@ -130,16 +130,16 @@ namespace Prove.Contratti
                   p.Contains("if (Sentinella.SeNEAndato)") &&
                   p.Contains("Sentinella.Fallita()") &&
                   p.Contains("Sentinella.Riuscita()"),
-                  "Banco/Program.cs");
+                  "Bench/Program.cs");
 
             Segna("anche l'assieme di prova ci passa",
                   a.Contains("Program.Sentinella.SeNEAndato") &&
                   a.Contains("Program.Sentinella.Fallita()"),
-                  "Banco/AssiemeDiProva.cs: un assieme comincia da parti nuove");
+                  "Bench/TestAssembly.cs: un assieme comincia da parti nuove");
 
             Segna("i casi dichiarati si SALTANO, non falliscono",
                   c.Contains("Sentinella.SeNEAndato") && c.Contains("Saltata("),
-                  "Banco/CasiDichiarati.cs: saltata non conta ne' verde ne' rossa");
+                  "Bench/DeclaredCases.cs: saltata non conta ne' verde ne' rossa");
 
             // ── E ANCHE PRIMA DELLO SCATTO, ROSSO E' LA PAROLA SBAGLIATA ─
             //
@@ -147,15 +147,15 @@ namespace Prove.Contratti
             // sono non misurati. Prima finivano in un `catch (Exception)` che
             // segnava rosso qualunque cosa fosse successa.
             Segna("una preparazione fallita non diventa rossa",
-                  c.Contains("catch (Condiviso.PreparazioneFallita"),
-                  "Banco/CasiDichiarati.cs: errore di banco, o saltata se gia' morto");
+                  c.Contains("catch (Shared.PreparazioneFallita"),
+                  "Bench/DeclaredCases.cs: errore di banco, o saltata se gia' morto");
 
             // E IL TIPO, NON IL TESTO. Un `catch` che riconoscesse la
             // preparazione dal messaggio tornerebbe a segnare rosso il giorno
             // in cui qualcuno riscrive la frase — senza che niente lo dica.
             Segna("la preparazione si riconosce dal TIPO, non dal messaggio",
-                  p.Contains("throw new Condiviso.PreparazioneFallita("),
-                  "Banco/Program.cs: OppureDillo e la sentinella alzano lo stesso tipo");
+                  p.Contains("throw new Shared.PreparazioneFallita("),
+                  "Bench/Program.cs: OppureDillo e la sentinella alzano lo stesso tipo");
 
             // ── L'USCITA 4, E CHE VENGA PRIMA DELLE ALTRE ────────────────
             //
@@ -164,7 +164,7 @@ namespace Prove.Contratti
             // giro non e' stato fatto.
             int dove4 = p.IndexOf("return 4;", StringComparison.Ordinal);
             int dove2 = p.LastIndexOf("if (_erroriDiBanco > 0) return 2;", StringComparison.Ordinal);
-            Segna("il verdetto ha l'uscita 4", dove4 >= 0, "Banco/Program.cs");
+            Segna("il verdetto ha l'uscita 4", dove4 >= 0, "Bench/Program.cs");
             Segna("la 4 viene prima della 2", dove4 >= 0 && dove2 >= 0 && dove4 < dove2,
                   "un giro non fatto non e' un giro con errori");
 
@@ -182,7 +182,7 @@ namespace Prove.Contratti
             // e sembrava la rete.
             Segna("il modello di documento si copia in locale",
                   p.Contains("ModelloInLocale("),
-                  "Banco/Program.cs");
+                  "Bench/Program.cs");
 
             Segna("la parte nuova nasce dalla copia locale",
                   p.Contains("ModelloInLocale(_sw.GetUserPreferenceStringValue("),
@@ -190,7 +190,7 @@ namespace Prove.Contratti
 
             Segna("e anche l'assieme di prova",
                   a.Contains("Program.ModelloInLocale("),
-                  "Banco/AssiemeDiProva.cs");
+                  "Bench/TestAssembly.cs");
 
             // E LA COPIA SI ANNUNCIA. Un banco che usa in silenzio un modello
             // diverso da quello della postazione misura un'altra cosa.

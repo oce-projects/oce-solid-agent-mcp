@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// QUANTE VOLTE IL PIANO CHIEDE «QUAL E' IL DOCUMENTO ATTIVO?» (voce Z-C5).
@@ -29,7 +29,7 @@ namespace Prove.Contratti
     internal static class ProveIlDocumento
     {
         /// <summary>
-        /// How many reads of `_sw.IActiveDoc2` `EsecutorePiano.cs` has,
+        /// How many reads of `_sw.IActiveDoc2` `PlanExecutor.cs` has,
         /// comments left out.
         ///
         /// Two, since finding M19 (lot Z-C21.5; five before, six before 23/9/2026):
@@ -52,10 +52,10 @@ namespace Prove.Contratti
         {
             Gruppo("il documento si tiene per mano (Z-C5)");
 
-            string file = Path.Combine(Radice(), "Riscontro.Disegno", "EsecutorePiano.cs");
+            string file = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(file))
             {
-                Segna("EsecutorePiano.cs c'e'", false, "manca " + file);
+                Segna("PlanExecutor.cs c'e'", false, "manca " + file);
                 return;
             }
 

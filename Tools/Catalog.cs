@@ -4,17 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace Oce.Solid.Agent.Strumenti
+namespace Oce.Solid.Agent.Tools
 {
     /// <summary>
-    /// Il catalogo delle operazioni, letto da `catalogo.json`.
+    /// Il catalogo delle operazioni, letto da `catalog.json`.
     ///
     /// UNA SOLA FONTE DI VERITA', E UNA COPIA ONESTA.
     /// Il catalogo vero vive nel server, in `ai_disegno.py`: li' stanno le
     /// descrizioni scritte per essere lette da un modello, gli schemi, i
     /// limiti, e il campo `provata` che decide cosa esiste. Questo ponte e'
     /// scritto in C# e non puo' importare Python, quindi si porta dietro una
-    /// copia — rigenerata con un comando (`Strumenti/aggiorna.md`), mai
+    /// copia — rigenerata con un comando (`Tools/update.md`), mai
     /// scritta a mano.
     ///
     /// NEL FILE CI SONO SOLO LE OPERAZIONI PROVATE. E' la regola del catalogo
@@ -51,7 +51,7 @@ namespace Oce.Solid.Agent.Strumenti
             if (string.IsNullOrWhiteSpace(Percorso))
                 Percorso = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
-                    "catalogo.json");
+                    "catalog.json");
 
             if (!File.Exists(Percorso))
             {

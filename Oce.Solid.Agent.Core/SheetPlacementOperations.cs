@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// UN POSTO LIBERO SUL FOGLIO, per una tabella o una vista messa dopo le altre.

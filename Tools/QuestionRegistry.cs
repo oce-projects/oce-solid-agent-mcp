@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Oce.Solid.Agent.Strumenti
+namespace Oce.Solid.Agent.Tools
 {
     /// <summary>
     /// IL REGISTRO DELLE DOMANDE SENZA RISPOSTA (voce Z-G7)
@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.Strumenti
     /// nessuno se ne accorga. In aggiunta, il peggio che capita e' una riga
     /// persa.
     ///
-    /// Contare e' un problema di chi legge: `Controlli/domande-senza-risposta.js`.
+    /// Contare e' un problema di chi legge: `Checks/questions-without-answer.js`.
     /// </summary>
     internal sealed class RegistroDelleDomande
     {

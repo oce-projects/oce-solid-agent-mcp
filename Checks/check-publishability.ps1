@@ -4,7 +4,7 @@
 # nome di chi lavora, o l'indirizzo di un server aziendale, non e' un difetto di
 # stile: e' roba di qualcun altro che esce senza che nessuno l'abbia deciso.
 #
-#   .\Controlli\controlla-pubblicabilita.ps1
+#   .\Checks\check-publishability.ps1
 #
 # Esce 0 se e' pulito, 1 se no.
 #
@@ -12,7 +12,7 @@
 # IL PERIMETRO E' SBAGLIATO TRE VOLTE, E LA TERZA E' COSTATA QUASI UN PUSH.
 # ------------------------------------------------------------------------------
 #
-#   1. `controlla-catalogo.ps1` guardava dentro `catalogo.json` e basta, perche'
+#   1. `check-catalog.ps1` guardava dentro `catalog.json` e basta, perche'
 #      quando fu scritto il catalogo era l'unica cosa che usciva. Poi e' uscito
 #      il banco: DICIANNOVE file col percorso della scratchpad di sessione, nome
 #      utente compreso. Il controllo c'era e guardava altrove.
@@ -94,11 +94,11 @@ $binari = @(
 #                      bisogno starebbe scrivendo un indirizzo vero.
 #
 # I nomi restano NOMI e non percorsi, e il motivo e' misurato: nella storia
-# `controlla-catalogo.ps1` sta in `Strumenti\`, perche' e' stato spostato in
-# `Controlli\` solo dopo. Un'eccezione legata al percorso avrebbe segnalato come
+# `check-catalog.ps1` sta in `Tools\`, perche' e' stato spostato in
+# `Checks\` solo dopo. Un'eccezione legata al percorso avrebbe segnalato come
 # fuga il controllo stesso a ogni commit precedente allo spostamento. I file si
 # spostano, il loro mestiere no.
-$iDueControlli = @('controlla-catalogo.ps1', 'controlla-pubblicabilita.ps1')
+$iDueControlli = @('check-catalog.ps1', 'check-publishability.ps1')
 
 # L'ECCEZIONE ERA SUL FILE, E DOVEVA ESSERE SULLA FORMA. TRE INDIRIZZI VERI
 # SONO USCITI DA QUI.
@@ -116,7 +116,7 @@ $iDueControlli = @('controlla-catalogo.ps1', 'controlla-pubblicabilita.ps1')
 #
 # E NON SI SCRIVONO QUI. La prima stesura di questo commento li riportava per
 # esteso, tutti e due, «per chiarezza» - dentro il file che esiste per vietarli,
-# e che si esentava da solo. E' il cortocircuito che `bonifica-storia.js` aveva
+# e che si esentava da solo. E' il cortocircuito che `cleanup-history.js` aveva
 # gia' pagato e scritto in cima a se stesso: *uno strumento che toglie una
 # stringa deve nominarla, e cosi' la cura porta la malattia.* Un incidente si
 # racconta con la sua forma, non con il suo valore.
@@ -149,7 +149,7 @@ $IndirizzoVero = '192\.168\.\d'
 # La regola del nome utente e' passata da `-CaseSensitive` a insensibile,
 # perche' cercava il nome tutto minuscolo e quello con la maiuscola le passava
 # davanti:
-# `Banco\ProveSenzaIlPezzo.cs:185` lo portava in un commento, e il controllo
+# `Bench\NoPartTests.cs:185` lo portava in un commento, e il controllo
 # diceva «ok». Nessuna parola italiana contiene «oscar», quindi togliere la
 # sensibilita' non costa un solo falso positivo... tranne questi due, dove il
 # nome NON e' una fuga: e' cio' che il file deve dire.
@@ -168,8 +168,8 @@ $IndirizzoVero = '192\.168\.\d'
 $soloIlNome = @('LICENSE', 'NOTICE') + $iDueControlli
 
 # Chi sostituisce il percorso di scratchpad lo deve scrivere per trovarlo:
-# `bonifica-storia.js` ha lo schema, questo controllo ha il pattern.
-$soloLaSessione = @('bonifica-storia.js', 'controlla-pubblicabilita.ps1')
+# `cleanup-history.js` ha lo schema, questo controllo ha il pattern.
+$soloLaSessione = @('cleanup-history.js', 'check-publishability.ps1')
 
 # LA STRUTTURA DI UN ALTRO REPOSITORY, CHE E' PRIVATO.
 #
@@ -181,7 +181,7 @@ $soloLaSessione = @('bonifica-storia.js', 'controlla-pubblicabilita.ps1')
 # `api/<file>.py:283`, `services/<file>.py:104` e `:252` - cioe' CARTELLE,
 # FILE e NUMERI DI RIGA di un repository privato, che permettono di
 # ricostruire com'e' fatto dentro senza averlo mai visto. Erano in due posti
-# (`Strumenti\aggiorna.md` e la voce di CHANGELOG che la ricopiava), e nessun
+# (`Tools\update.md` e la voce di CHANGELOG che la ricopiava), e nessun
 # controllo li guardava: cercavamo percorsi di QUESTA macchina e indirizzi di
 # QUESTA rete, e non ci era venuto in mente che si potesse pubblicare l'interno
 # di un progetto vicino.
@@ -200,7 +200,7 @@ $DentroUnAltroRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
 #
 #   CHANGELOG.md       la voce che racconta il falso positivo del 14/9 deve
 #                      citare il pattern che lo causava.
-#   ProveCatalogo.cs   e' il controllo che cerca i percorsi locali dentro le
+#   CatalogTests.cs   e' il controllo che cerca i percorsi locali dentro le
 #                      descrizioni del catalogo: il suo mestiere e' nominarli.
 #
 # Perche' il buco e' accettabile qui e non altrove: nessuno dei tre e' un file
@@ -208,7 +208,7 @@ $DentroUnAltroRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
 # mano, e chi lo scrive a mano in un documento che spiega perche' non si scrive
 # lo sta facendo apposta. I file generati - il catalogo, i casi del banco -
 # restano coperti.
-$parlanoDeiDischi = @('CHANGELOG.md', 'ProveCatalogo.cs') + $iDueControlli
+$parlanoDeiDischi = @('CHANGELOG.md', 'CatalogTests.cs') + $iDueControlli
 
 # NON si puo' chiamare questa funzione `Git`: PowerShell non distingue maiuscole
 # e minuscole nei nomi di comando, quindi `& git` qui dentro risolverebbe alla
@@ -292,7 +292,7 @@ Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $par
 #
 # BINARY FILES ARE SKIPPED BY EXTENSION, NOT BY GIT'S GUESS (entry Z-C22). Here
 # stood `git grep -I`, which skips every blob git takes for binary: a text file
-# with one NUL byte inside is one. Controlli/domande-senza-risposta.js had a real
+# with one NUL byte inside is one. Checks/questions-without-answer.js had a real
 # NUL (offset 3899) and was never looked at, in the tree or in the history. Now
 # `--text` reads every blob, and the paths whose extension is in `$binari`
 # (the same list the working-tree pass uses) are dropped afterwards — the rule
@@ -385,7 +385,7 @@ if ($daSpingere.Count -eq 0) {
         Write-Host "  XX  $nome ($perche) in $($fughe.Count) punti, $($file.Count) file:"
         foreach ($f in $file) { Write-Host "        $f" }
         Write-Host "        La storia non si ripara con una modifica: serve"
-        Write-Host "        Controlli\bonifica-storia.js e git filter-branch, e va"
+        Write-Host "        Checks\cleanup-history.js e git filter-branch, e va"
         Write-Host "        fatto PRIMA del push - dopo diventa un force-push."
     }
 

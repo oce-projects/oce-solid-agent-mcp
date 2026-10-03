@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// OGNI CAMPO OBBLIGATORIO E' UNA DECISIONE PRESA, NON UNA DIMENTICANZA
@@ -190,7 +190,7 @@ namespace Prove.Contratti
             Segna("ogni campo che non e' una quota ha una decisione scritta",
                   senzaDecisione.Count == 0,
                   senzaDecisione.Count == 0
-                      ? Decise.Count + " decisioni, tutte in `ProveICampiObbligatori.cs`"
+                      ? Decise.Count + " decisioni, tutte in `RequiredFieldsTests.cs`"
                       : "SENZA DECISIONE: " + string.Join(", ", senzaDecisione));
 
             // ── E UNA DECISIONE PER UN CAMPO CHE NON C'E' PIU' E' RUMORE ──

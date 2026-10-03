@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
-using static Condiviso.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Programma;
+using static Shared.ClienteMcp;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// L'AVANZAMENTO E L'ANNULLAMENTO, COL MECCANISMO DEL PROTOCOLLO (voce W2.2)

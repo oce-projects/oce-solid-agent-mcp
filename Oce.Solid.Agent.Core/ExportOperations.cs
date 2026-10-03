@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// FAR USCIRE IL PEZZO DA SOLIDWORKS. (voce GP2)
@@ -274,7 +274,7 @@ namespace Riscontro.Disegno
         /// for the answer.
         ///
         /// No interop type in the members: the getters and setters come in as
-        /// delegates, so Prove.Contratti can exercise it by reflection.
+        /// delegates, so Oce.Solid.Agent.ContractTests can exercise it by reflection.
         /// </summary>
         internal sealed class UserPreferenceSnapshot
         {
@@ -1053,7 +1053,7 @@ namespace Riscontro.Disegno
         /// a document that is not the active one, the probe brought the part to
         /// the front before calling it, and more than one session can work on
         /// the same SOLIDWORKS: so our document goes to the front first, as for
-        /// the flat pattern (ExportToDWG2, OperazioniLamiera.cs), and the one
+        /// the flat pattern (ExportToDWG2, SheetMetalOperations.cs), and the one
         /// that was in front goes back there.
         ///
         /// The selection is cleared as for SaveAs3 (finding L13-1, whose page
@@ -1112,7 +1112,7 @@ namespace Riscontro.Disegno
         /// wrong; <paramref name="previousFront"/> is the document that was in
         /// front, when it was another one, so that the caller can bring it back.
         ///
-        /// The same call as BringToFront (OperazioniLamiera.cs) and the bridge's
+        /// The same call as BringToFront (SheetMetalOperations.cs) and the bridge's
         /// PortaDavanti: DocumentByPath.ActivateAndReadBack (Z-C21.13, pattern
         /// S18), which gives ActivateDoc3 the file name with extension and then
         /// the full path of a saved part, and the title of a part never saved only when

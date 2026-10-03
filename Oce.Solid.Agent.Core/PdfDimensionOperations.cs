@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LE QUOTE DELLA TAVOLA ARRIVANO NEL PDF? (voce Z-C9, la meta' «oggetti»).

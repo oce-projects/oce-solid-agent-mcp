@@ -1,4 +1,4 @@
-# Costruisce gli attrezzi del banco che stanno in Controlli\.
+# Costruisce gli attrezzi del banco che stanno in Checks\.
 #
 # Sono eseguibili piccoli e a se' stanti, fuori dalla soluzione: non finiscono
 # nel pacchetto e non servono a chi usa il ponte, servono a chi lo PROVA. Per
@@ -8,7 +8,7 @@
 # Ma uno script ci vuole lo stesso: compilarli a mano con csc significa che
 # chi clona il repo trova tre sorgenti che non sa come costruire.
 #
-#   .\Controlli\costruisci-controlli.ps1
+#   .\Checks\build-checks.ps1
 #
 # ATTENZIONE al compilatore. Il csc in Framework64\v4.0.30319 e' quello VECCHIO
 # e non conosce nemmeno l'operatore ?. : qui si usa Roslyn dei Build Tools.
@@ -17,7 +17,7 @@
 # stesso posto su tutte le macchine, e un percorso costante qui vuol dire che
 # chi clona deve modificare lo script a mano per compilare.
 #
-#   .\Controlli\costruisci-controlli.ps1 -SwInstallPath 'D:\...\SOLIDWORKS'
+#   .\Checks\build-checks.ps1 -SwInstallPath 'D:\...\SOLIDWORKS'
 #   oppure   $env:SW_INSTALL_PATH = 'D:\...\SOLIDWORKS'
 #
 # VOCE H10: la variabile e' UNA SOLA e vuol dire LA RADICE dell'installazione,
@@ -53,68 +53,68 @@ $interop = @(
     )
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 
-$libreria = Join-Path $radice 'Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll'
+$libreria = Join-Path $radice 'Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll'
 
 # nome ; cosa gli serve accanto
 $attrezzi = @(
-    @{ nome = 'ProvaRuota';     sw = $false; lib = $true  },
-    @{ nome = 'ProvaSagoma';    sw = $false; lib = $true  },
-    @{ nome = 'ProvaPosizioni'; sw = $false; lib = $true  },
-    @{ nome = 'ChiudiScarti'; sw = $true;  lib = $false },
-    @{ nome = 'NuovaParte';   sw = $true;  lib = $false },
-    @{ nome = 'Annulla';      sw = $true;  lib = $false },
-    @{ nome = 'SchizzoSulFoglio'; sw = $true; lib = $false },
-    @{ nome = 'SezioneInTavola'; sw = $true; lib = $false },
-    @{ nome = 'QuoteInTavola'; sw = $true; lib = $false },
-    @{ nome = 'Opzione'; sw = $true; lib = $false },
-    @{ nome = 'ApiQuote'; sw = $true; lib = $false },
-    @{ nome = 'AlberoRosso'; sw = $true; lib = $false },
-    @{ nome = 'Seleziona'; sw = $true; lib = $false },
-    @{ nome = 'CoperturaRuoli'; sw = $true; lib = $false },
-    @{ nome = 'ProvaVista'; sw = $true; lib = $false },
-    @{ nome = 'ProvaInquadratura'; sw = $true; lib = $true; disegno = $true },
-    @{ nome = 'ForoOppureRaccordo'; sw = $true; lib = $false },
-    @{ nome = 'CorpoRotto'; sw = $true; lib = $false },
-    @{ nome = 'CambiaAMano'; sw = $true; lib = $false },
-    @{ nome = 'DettaglioInTavola'; sw = $true; lib = $false },
+    @{ nome = 'GearTest';     sw = $false; lib = $true  },
+    @{ nome = 'OutlineTest';    sw = $false; lib = $true  },
+    @{ nome = 'PositionsTest'; sw = $false; lib = $true  },
+    @{ nome = 'CloseLeftovers'; sw = $true;  lib = $false },
+    @{ nome = 'NewPart';   sw = $true;  lib = $false },
+    @{ nome = 'Undo';      sw = $true;  lib = $false },
+    @{ nome = 'SketchOnSheet'; sw = $true; lib = $false },
+    @{ nome = 'SectionView'; sw = $true; lib = $false },
+    @{ nome = 'DrawingDimensions'; sw = $true; lib = $false },
+    @{ nome = 'Option'; sw = $true; lib = $false },
+    @{ nome = 'DimensionApis'; sw = $true; lib = $false },
+    @{ nome = 'RedTree'; sw = $true; lib = $false },
+    @{ nome = 'Select'; sw = $true; lib = $false },
+    @{ nome = 'RoleCoverage'; sw = $true; lib = $false },
+    @{ nome = 'ViewTest'; sw = $true; lib = $false },
+    @{ nome = 'FramingTest'; sw = $true; lib = $true; disegno = $true },
+    @{ nome = 'HoleOrFillet'; sw = $true; lib = $false },
+    @{ nome = 'BrokenBody'; sw = $true; lib = $false },
+    @{ nome = 'ChangeByHand'; sw = $true; lib = $false },
+    @{ nome = 'DetailView'; sw = $true; lib = $false },
     # La mensola di S3 vuole ANCHE l'interop di Simulation: e' l'unica
     # sonda che esce da sldworks+swconst.
-    @{ nome = 'Mensola'; sw = $true; lib = $false; sim = $true },
+    @{ nome = 'Bracket'; sw = $true; lib = $false; sim = $true },
     # Lo spessore minimo di parete (voce Z-H1) vuole l'interop di Utilities,
     # che si chiama `gtswutilities` (il prefisso e' di Geometric, che scrisse
     # il modulo). Stessa regola di Simulation: se manca, si salta dicendolo.
-    @{ nome = 'Spessore'; sw = $true; lib = $false; util = $true },
+    @{ nome = 'Thickness'; sw = $true; lib = $false; util = $true },
     # Lo sviluppo della lamiera (voce GP18): solo il nucleo.
-    @{ nome = 'Lamiera'; sw = $true; lib = $false },
+    @{ nome = 'SheetMetal'; sw = $true; lib = $false },
     # DimXpert dal nucleo (voce Z-H3): l'interop `swdimxpert` sta nello stesso
     # api\redist del nucleo e c'e' su ogni installazione, ma si referenzia solo
     # per chi la chiede.
     @{ nome = 'DimXpert'; sw = $true; lib = $false; dimx = $true },
     # Una quota in tavola che perde il suo spigolo (voce Z-A2).
-    @{ nome = 'Orfana'; sw = $true; lib = $false },
+    @{ nome = 'Orphan'; sw = $true; lib = $false },
     # Il testo di una tavola esce dal PDF come testo? (voce GT3-bis)
-    @{ nome = 'TestoNelPdf'; sw = $true; lib = $false },
+    @{ nome = 'PdfText'; sw = $true; lib = $false },
     # La guardia contro il modale scatta? (voce Z-C3)
-    @{ nome = 'Modale'; sw = $true; lib = $false },
+    @{ nome = 'Modal'; sw = $true; lib = $false },
     # Un foro quotato contro lo spigolo lo segue? (voce E18, pezzi a e b)
-    @{ nome = 'SeguiIlBordo'; sw = $true; lib = $false },
+    @{ nome = 'FollowTheEdge'; sw = $true; lib = $false },
     # La flangia a spigolo nasce senza schizzo di profilo? (voce GP18: no)
-    @{ nome = 'FlangiaSpigolo'; sw = $true; lib = $false },
+    @{ nome = 'EdgeFlange'; sw = $true; lib = $false },
     # Le quattro lavorazioni della guida (28/9/2026): le misure dietro
     # `fillet_face` (GP7), `fill_pattern` (W1.1), `rib` (W1.2)
     # e `gusset` (GP20). Ognuna porta in testa l'esito di quel giorno.
-    @{ nome = 'RaccordoDiFaccia'; sw = $true; lib = $false },
-    @{ nome = 'Riempimento'; sw = $true; lib = $false },
-    @{ nome = 'Nervatura'; sw = $true; lib = $false },
-    @{ nome = 'Fazzoletto'; sw = $true; lib = $false },
-    @{ nome = 'TipoDellEstrusione'; sw = $true; lib = $false },
-    @{ nome = 'NervaturaRitira'; sw = $true; lib = $false }
+    @{ nome = 'FaceFillet'; sw = $true; lib = $false },
+    @{ nome = 'Fill'; sw = $true; lib = $false },
+    @{ nome = 'Rib'; sw = $true; lib = $false },
+    @{ nome = 'Gusset'; sw = $true; lib = $false },
+    @{ nome = 'ExtrusionType'; sw = $true; lib = $false },
+    @{ nome = 'RibWithdraw'; sw = $true; lib = $false }
 )
 
 foreach ($a in $attrezzi) {
     $cartella = Join-Path $PSScriptRoot $a.nome
     $bin = Join-Path $cartella 'bin'
-    $sorgente = Join-Path $cartella 'Programma.cs'
+    $sorgente = Join-Path $cartella 'Program.cs'
     if (-not (Test-Path $sorgente)) { throw "manca $sorgente" }
     New-Item -ItemType Directory -Force -Path $bin | Out-Null
 
@@ -127,7 +127,7 @@ foreach ($a in $attrezzi) {
         # senza la copia l'exe parte e muore con FileNotFoundException al primo
         # uso, che e' il modo peggiore di accorgersene.
         Copy-Item $libreria $bin -Force
-        $rif += '-reference:' + (Join-Path $bin 'Riscontro.Disegno.dll')
+        $rif += '-reference:' + (Join-Path $bin 'Oce.Solid.Agent.Core.dll')
     }
     if ($a.sw) {
         foreach ($d in @('SolidWorks.Interop.sldworks.dll', 'SolidWorks.Interop.swconst.dll')) {

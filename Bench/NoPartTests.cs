@@ -2,19 +2,19 @@
 //  Le prove che non aprono SOLIDWORKS  (voci E10 e F12)
 // =============================================================================
 //
-//  PERCHE' STANNO IN UN FILE LORO. `ProvaNuove.cs` e' il file delle prove sul
+//  PERCHE' STANNO IN UN FILE LORO. `NewOperationsTests.cs` e' il file delle prove sul
 //  PEZZO: apre un documento, costruisce, misura, chiude. Queste no. Sono
 //  funzioni pure su stringhe - `Frasi.DoveStavaEDoveSta` - e un setaccio che
 //  legge i sorgenti del repo. Durano un millesimo di secondo e non hanno
 //  bisogno di una licenza.
 //
 //  Tenerle in mezzo alle altre le faceva sembrare prove di disegno, e faceva
-//  sembrare `ProvaNuove.cs` piu' pieno di numeri attesi di quanto sia: la
+//  sembrare `NewOperationsTests.cs` piu' pieno di numeri attesi di quanto sia: la
 //  voce F11 conta proprio quello.
 //
-//  NON SONO IN `Prove.Contratti` per un motivo solo: chiedono alla LIBRERIA
+//  NON SONO IN `Oce.Solid.Agent.ContractTests` per un motivo solo: chiedono alla LIBRERIA
 //  VERA, caricata per riflessione, se quel metodo c'e' e cosa risponde.
-//  `Prove.Contratti` la libreria non la carica - e' il progetto che gira dove
+//  `Oce.Solid.Agent.ContractTests` la libreria non la carica - e' il progetto che gira dove
 //  SOLIDWORKS non c'e', e la libreria l'interop ce l'ha dentro.
 // =============================================================================
 
@@ -29,7 +29,7 @@ using System.Reflection;
 // che cosa dice il banco quando la parte non c'e'. Serve il tipo, non il CAD.
 using SolidWorks.Interop.sldworks;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     internal static partial class Program
     {
@@ -109,7 +109,7 @@ namespace ProvaSaldatura
             Console.WriteLine();
             Console.WriteLine("=== dove stava, in frazione dell'ingombro (E10) ===");
 
-            var tipo = _addin.GetType("Riscontro.Disegno.Frasi", false);
+            var tipo = _addin.GetType("Oce.Solid.Agent.Core.Frasi", false);
             if (tipo == null) { Segna("E10: la classe c'e'", false, "Frasi assente"); return; }
             var metodo = tipo.GetMethod("DoveStavaEDoveSta");
             if (metodo == null)
@@ -191,7 +191,7 @@ namespace ProvaSaldatura
         ///
         /// Un controllo che cerca una parola e non la trova mai e' identico a
         /// un controllo rotto che non cerca niente. Lo stesso setaccio si passa
-        /// su `Frasi.cs`, dove quelle parole ci sono per davvero: se li' non
+        /// su `Sentences.cs`, dove quelle parole ci sono per davvero: se li' non
         /// trova niente, il setaccio e' rotto e lo dice.
         /// </summary>
         private static void ProvaCheLaFrazioneNonDecide()
@@ -212,8 +212,8 @@ namespace ProvaSaldatura
                 return;
             }
 
-            string operazioni = Path.Combine(radice, "Riscontro.Disegno", "OperazioniSw.cs");
-            string frasi = Path.Combine(radice, "Riscontro.Disegno", "Frasi.cs");
+            string operazioni = Path.Combine(radice, "Oce.Solid.Agent.Core", "SwOperations.cs");
+            string frasi = Path.Combine(radice, "Oce.Solid.Agent.Core", "Sentences.cs");
             if (!File.Exists(operazioni) || !File.Exists(frasi))
             {
                 Saltata("E10: il grep che deve tornare vuoto",
@@ -221,11 +221,11 @@ namespace ProvaSaldatura
                 return;
             }
 
-            // IL SETACCIO FUNZIONA? In `Frasi.cs` quelle parole ci sono.
+            // IL SETACCIO FUNZIONA? In `Sentences.cs` quelle parole ci sono.
             string testoFrasi = File.ReadAllText(frasi);
             Segna("E10 ROSSO: il setaccio trova le parole dove ci sono",
                   Pesca(testoFrasi, 0, testoFrasi.Length),
-                  "Frasi.cs");
+                  "Sentences.cs");
 
             string testo = File.ReadAllText(operazioni);
 

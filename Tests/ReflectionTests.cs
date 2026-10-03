@@ -5,9 +5,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// Every lookup by name that goes through a reflection helper of this suite,
@@ -95,11 +95,11 @@ namespace Prove.Contratti
     ///
     /// ── TWO NETS ────────────────────────────────────────────────────────
     ///
-    ///   * STATIC: every literal name handed to reflection in `Prove/`,
-    ///     `Banco/` and the probes of `Controlli/` is extracted from the
+    ///   * STATIC: every literal name handed to reflection in `Tests/`,
+    ///     `Bench/` and the probes of `Checks/` is extracted from the
     ///     sources (comments taken out, a constant prefix such as
     ///     `NS + "OperazioniSw"` resolved) and must resolve on the assemblies
-    ///     in `bin\`. The literal arguments of the helpers of `Prove/` count
+    ///     in `bin\`. The literal arguments of the helpers of `Tests/` count
     ///     too.
     ///   * AT RUN TIME: the helpers write every lookup by name in
     ///     `ReflectionLog.Global`, so a name that arrives through a parameter
@@ -150,7 +150,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// Runs last, right before the check on `Prove/LEGGIMI.md`: the log is
+        /// Runs last, right before the check on `Tests/README.md`: the log is
         /// only complete when every other group has run.
         /// </summary>
         internal static void All()
@@ -172,14 +172,14 @@ namespace Prove.Contratti
         /// <summary>
         /// A lookup of the bench read with `?.` goes on with null when its target
         /// is renamed, and the bench never says so: such a read goes through
-        /// Banco/ReflectionLog.cs, which the run checks at its end. Seen red on a
+        /// Bench/ReflectionLog.cs, which the run checks at its end. Seen red on a
         /// fake source with one silent read.
         /// </summary>
         private static readonly Regex SilentLookup = new Regex(
             @"\.(?:GetField|GetProperty|GetMethod|GetNestedType|GetEvent)\((?:[^()]|\([^()]*\))*\)\s*\?\.");
 
         /// <summary>
-        /// THE BENCH'S OWN LOG CHECK RUNS ON A FULL BENCH (1/10/2026). banco.ps1
+        /// THE BENCH'S OWN LOG CHECK RUNS ON A FULL BENCH (1/10/2026). bench.ps1
         /// always passes --libreria with the default path, and the bench took any
         /// --libreria for «another library»: the check was skipped on every full
         /// run. Now only a different file counts; this reads the source, and is
@@ -187,9 +187,9 @@ namespace Prove.Contratti
         /// </summary>
         private static void BenchChecksItsLogOnAFullRun()
         {
-            const string Label = "on a full bench (banco.ps1 passes --libreria with the default path) the bench's lookup log is checked, not skipped";
-            var file = Path.Combine(Radice(), "Banco", "Program.cs");
-            if (!File.Exists(file)) { Segna(Label, false, "Banco/Program.cs not found"); return; }
+            const string Label = "on a full bench (bench.ps1 passes --libreria with the default path) the bench's lookup log is checked, not skipped";
+            var file = Path.Combine(Radice(), "Bench", "Program.cs");
+            if (!File.Exists(file)) { Segna(Label, false, "Bench/Program.cs not found"); return; }
             var code = WithoutComments(File.ReadAllText(file));
             Func<string, bool> ok = c =>
                 Regex.IsMatch(c, @"_anotherLibrary\s*=\s*!\s*SameLibraryPath\s*\(\s*\w+\s*,\s*\w+\s*\(\s*\)\s*\)\s*;") &&
@@ -197,7 +197,7 @@ namespace Prove.Contratti
             var mutant = Regex.Replace(code, @"_anotherLibrary\s*=\s*!\s*SameLibraryPath\s*\([^;]*;", "_anotherLibrary = true;");
             bool good = ok(code), seenRed = !ok(mutant);
             Segna(Label, good && seenRed,
-                  !good ? "Banco/Program.cs does not compare the --libreria path with the default one before skipping"
+                  !good ? "Bench/Program.cs does not compare the --libreria path with the default one before skipping"
                         : !seenRed ? "the check did not turn red on the copy where every --libreria is another library"
                                    : "only a different library file skips the check (seen red on the old line)");
         }
@@ -212,7 +212,7 @@ namespace Prove.Contratti
                         SilentLookup.Matches(WithoutComments(logged)).Count == 0;
 
             var found = new List<string>();
-            var folder = Path.Combine(Radice(), "Banco");
+            var folder = Path.Combine(Radice(), "Bench");
             if (Directory.Exists(folder))
                 foreach (var f in Directory.GetFiles(folder, "*.cs").OrderBy(x => x, StringComparer.Ordinal))
                 {
@@ -224,7 +224,7 @@ namespace Prove.Contratti
             Segna("the bench reads no reflection lookup with ?. outside its log (a fake silent read is seen)",
                   seen && found.Count == 0,
                   !seen ? "the pattern did not see the two silent reads of the fake source"
-                        : found.Count == 0 ? "none in Banco/*.cs"
+                        : found.Count == 0 ? "none in Bench/*.cs"
                                            : "read with ?., route them through ReflectionLog.Global: " + string.Join(", ", found));
         }
 
@@ -290,8 +290,8 @@ namespace Prove.Contratti
             var wrong = new List<string>();
             if (!resolves("member", "All")) wrong.Add("the real method «All» did not resolve");
             if (resolves("member", "NoSuchMemberAnywhereInThisSuite")) wrong.Add("a fake member resolved");
-            if (!resolves("type", "Prove.Contratti.ReflectionTests")) wrong.Add("the real type did not resolve");
-            if (resolves("type", "Prove.Contratti.NoSuchTypeInThisSuite")) wrong.Add("a fake type resolved");
+            if (!resolves("type", "Oce.Solid.Agent.ContractTests.ReflectionTests")) wrong.Add("the real type did not resolve");
+            if (resolves("type", "Oce.Solid.Agent.ContractTests.NoSuchTypeInThisSuite")) wrong.Add("a fake type resolved");
             if (!resolves("class", "ReflectionLog")) wrong.Add("the real class did not resolve by simple name");
             if (resolves("class", "NoSuchClassInThisSuite")) wrong.Add("a fake class resolved");
             if (!resolves("nested", "LiteralName")) wrong.Add("the real nested type did not resolve");
@@ -313,7 +313,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// The log of the bench (Banco/ReflectionLog.cs, linked here): a field and
+        /// The log of the bench (Bench/ReflectionLog.cs, linked here): a field and
         /// a type asked for by names passed as parameters come back null and are
         /// logged, a real member is found, and the verdict is red; a clean log has
         /// no verdict. The bench runs this log at the end of every run, where
@@ -321,13 +321,13 @@ namespace Prove.Contratti
         /// </summary>
         private static void BenchLogSelfTest()
         {
-            var clean = new ProvaSaldatura.ReflectionLog();
+            var clean = new Oce.Solid.Agent.Bench.ReflectionLog();
             var found = clean.Method(typeof(ReflectionTests), "All", BindingFlags.NonPublic | BindingFlags.Static);
             var foundType = clean.TypeIn(typeof(ReflectionTests).Assembly, typeof(ReflectionTests).FullName);
-            var log = new ProvaSaldatura.ReflectionLog();
+            var log = new Oce.Solid.Agent.Bench.ReflectionLog();
             var passed = NameFromAParameter();
             var noField = log.Field(typeof(ReflectionTests), passed);
-            var noType = log.TypeIn(typeof(ReflectionTests).Assembly, "Prove.Contratti." + passed);
+            var noType = log.TypeIn(typeof(ReflectionTests).Assembly, "Oce.Solid.Agent.ContractTests." + passed);
             var real = log.Method(typeof(ReflectionTests), "All", BindingFlags.NonPublic | BindingFlags.Static);
             var verdict = log.Verdict();
             bool ok = found != null && foundType != null && clean.Verdict() == null && clean.Lookups == 2 &&
@@ -347,7 +347,7 @@ namespace Prove.Contratti
         //
         // The patterns name only the reflection API and ReflectionLog: the
         // helpers of this repository are FOUND, not listed. A helper is a
-        // method or a lambda of Prove/ that hands one of its parameters to a
+        // method or a lambda of Tests/ that hands one of its parameters to a
         // lookup by name, and at its call sites the literal in that position
         // is a name to resolve. A helper written tomorrow is covered the day
         // it is written.
@@ -367,7 +367,7 @@ namespace Prove.Contratti
             @"\.(?:GetMethod|GetProperty|GetField|GetEvent|GetMember|InvokeMember)\(\s*""(?<name>[A-Za-z_]\w*)""\s*[,)]");
         private static readonly Regex LogByName = new Regex(
             @"\bReflectionLog\.Global\.(?:Method|Property|Field|Nested)\(\s*[^,;]+,\s*""(?<name>[A-Za-z_]\w*)""\s*[,)]");
-        // the bench log asks for a type by its full name (Banco/ReflectionLog.cs)
+        // the bench log asks for a type by its full name (Bench/ReflectionLog.cs)
         private static readonly Regex LoggedTypeByFullName = new Regex(
             @"\bReflectionLog\.Global\.TypeIn\(\s*[^,;]+,\s*(?:(?<prefix>[A-Za-z_]\w*)\s*\+\s*)?""(?<name>[^""\\]+)""\s*[,)]");
         private static readonly Regex ConstantString = new Regex(
@@ -398,12 +398,12 @@ namespace Prove.Contratti
         {
             var root = Radice();
             var files = new List<string>();
-            foreach (var folder in new[] { "Prove", "Banco" })
+            foreach (var folder in new[] { "Tests", "Bench" })
             {
                 var d = Path.Combine(root, folder);
                 if (Directory.Exists(d)) files.AddRange(Directory.GetFiles(d, "*.cs", SearchOption.TopDirectoryOnly));
             }
-            var probes = Path.Combine(root, "Controlli");
+            var probes = Path.Combine(root, "Checks");
             if (Directory.Exists(probes))
                 foreach (var d in Directory.GetDirectories(probes))
                     files.AddRange(Directory.GetFiles(d, "*.cs", SearchOption.TopDirectoryOnly));
@@ -414,12 +414,12 @@ namespace Prove.Contratti
             {
                 var relative = f.Substring(root.Length).TrimStart('\\', '/').Replace('\\', '/');
                 // this file looks names up in its own assembly, on purpose
-                if (relative == "Prove/ReflectionTests.cs") continue;
+                if (relative == "Tests/ReflectionTests.cs") continue;
                 try { sources.Add(new KeyValuePair<string, string>(relative, File.ReadAllText(f))); }
                 catch (Exception ex) { errors.Add(relative + ": " + ex.Message); }
             }
             List<string> helperNames;
-            var all = ExtractAll(sources, file => file.StartsWith("Prove/", StringComparison.Ordinal), out helperNames);
+            var all = ExtractAll(sources, file => file.StartsWith("Tests/", StringComparison.Ordinal), out helperNames);
             int inFiles = all.Select(n => n.File).Distinct().Count();
             Segna("the literal names handed to reflection are extracted from the sources",
                   errors.Count == 0 && all.Count >= LiteralFloor,
@@ -785,7 +785,7 @@ namespace Prove.Contratti
         {
             const string Rule = "every literal name resolves on the built bridge, library and catalogue exporter";
             var bin = Path.Combine(Radice(), "bin");
-            var files = new[] { "oce-solid-agent-mcp.exe", "Riscontro.Disegno.dll", "Riscontro.Catalogo.exe" }
+            var files = new[] { "oce-solid-agent-mcp.exe", "Oce.Solid.Agent.Core.dll", "Oce.Solid.Agent.Catalog.exe" }
                 .Select(f => Path.Combine(bin, f)).ToList();
             var absent = files.Where(f => !ProdottoDaBuild(f)).ToList();
             if (absent.Count > 0)
@@ -812,7 +812,7 @@ namespace Prove.Contratti
                 // contracts look up its rules by name (H19InstallerContract).
                 // build.ps1 writes it beside the bridge; without it those names
                 // stay unresolved here, as they should.
-                var installer = Path.Combine(bin, "Installa.exe");
+                var installer = Path.Combine(bin, "Installer.exe");
                 if (ProdottoDaBuild(installer)) assemblies.Add(Assembly.Load(File.ReadAllBytes(installer)));
                 missing = Unresolved(names, assemblies, out unreadable);
             }

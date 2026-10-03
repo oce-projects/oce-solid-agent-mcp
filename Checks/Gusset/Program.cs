@@ -12,7 +12,7 @@ using SolidWorks.Interop.swconst;
 //
 //  COSA MISURA QUESTA SONDA E PERCHE'
 //
-//  Il catalogo (Riscontro.Disegno/Catalogo/Operazioni.cs, voce "gusset") e
+//  Il catalogo (Oce.Solid.Agent.Core/Catalog/Operations.cs, voce "gusset") e
 //  il TODO (voce GP20) elencano 16 varianti provate alla cieca, TUTTE null:
 //
 //    marca: nessuna, 1/1, 1/2, ordine invertito         (6)
@@ -28,7 +28,7 @@ using SolidWorks.Interop.swconst;
 //  Insert_Weldment_Features_Example_CSharp.htm, IFeatureManager~
 //  InsertGussetFeature3) mostra SEMPRE quel terzo valore diverso da zero
 //  (45 gradi, oppure 15 mm) nei DUE unici esempi funzionanti conosciuti. Il
-//  codice spedito nel ponte (OperazioniSaldatura.cs, Fazzoletto) passa
+//  codice spedito nel ponte (WeldmentOperations.cs, Fazzoletto) passa
 //  ProfileD3=0, ProfileAngle=0, ProfileD4=0 SEMPRE: un profilo con angolo o
 //  lato zero e' degenere (si chiude su se stesso), e SOLIDWORKS lo rifiuta
 //  in silenzio — lo stesso difetto "null senza errore su geometria non
@@ -72,7 +72,7 @@ using SolidWorks.Interop.swconst;
 //  600 + 300 mm, tagliati) cosi' un tentativo non lascia residui che
 //  confondano il successivo, e chiude il pezzo senza salvare.
 //
-//  T DI PROVA — stessa di Banco/cases/weldments/weld_bead_goes_between_touching_faces.json:
+//  T DI PROVA — stessa di Bench/cases/weldments/weld_bead_goes_between_touching_faces.json:
 //    barra lunga:  segmento (0,0,0) -> (0.6, 0, 0)         [lungo X, sezione in Y-Z]
 //    barra corta:  segmento (0.3,0,0) -> (0.3, 0, 0.3)     [lungo Z, sezione in X-Y]
 //    taglio:       la corta tagliata dalla lunga (EndCond = swEndConditionTrim)
@@ -90,10 +90,10 @@ using SolidWorks.Interop.swconst;
 //
 //  USO
 //      set PROFILI_SALDATURA=<cartella coi .SLDLFP>
-//      Controlli\Fazzoletto\bin\Fazzoletto.exe            chiude ogni pezzo di prova
-//      Controlli\Fazzoletto\bin\Fazzoletto.exe --tieni    li lascia tutti aperti, per guardare
+//      Checks\Gusset\bin\Gusset.exe            chiude ogni pezzo di prova
+//      Checks\Gusset\bin\Gusset.exe --tieni    li lascia tutti aperti, per guardare
 //
-//  COMPILAZIONE: costruita da Controlli\costruisci-controlli.ps1 (e da build.ps1, passo 1c), a banco
+//  COMPILAZIONE: costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c), a banco
 //  fermo. Le due DLL dell'interop le copia lo script accanto all'eseguibile.
 //
 //  ESITO DEL 28/9/2026, SOLIDWORKS 29.5.1 (l'uscita della sonda, com'era):
@@ -102,7 +102,7 @@ using SolidWorks.Interop.swconst;
 //      T di due tubolari 80x80x5 (lunga 600 mm + corta 300 mm, tagliata)
 //      una T fresca per ciascuna variante, chiusa senza salvare a fine giro
 //    agganciato a SOLIDWORKS 29.5.1
-//    0 — CONTROLLO: la ricetta esatta spedita nel ponte (OperazioniSaldatura.cs)
+//    0 — CONTROLLO: la ricetta esatta spedita nel ponte (WeldmentOperations.cs)
 //      profilo degenere: BIsProfile=true (poligono) con D3=0 e D4=0 (BUseLenDim=true) e' un poligono a lato zero — la stessa forma spedita nel ponte, mai cambiata in 16 varianti.
 //        01. T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo 80X80X5
 //        02. due corpi, classificati lungo/corto per ingombro in X
@@ -236,7 +236,7 @@ internal static class Programma
         {
             new Ricetta
             {
-                Titolo = "0 — CONTROLLO: la ricetta esatta spedita nel ponte (OperazioniSaldatura.cs)",
+                Titolo = "0 — CONTROLLO: la ricetta esatta spedita nel ponte (WeldmentOperations.cs)",
                 Chiamata = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -471,8 +471,8 @@ internal static class Programma
     /// Seleziona la faccia con Select4. Se marca &lt;= 0, nessuna marca
     /// (Select4(true, null): la ricetta spedita nel ponte). Se marca &gt; 0,
     /// COSTRUISCE il SelectData dal SelectionMgr del documento e vi mette
-    /// .Mark = marca — stesso schema di OperazioniSformo.cs e di
-    /// Controlli/FlangiaSpigolo/Programma.cs: la marca sta sui DATI di
+    /// .Mark = marca — stesso schema di DraftOperations.cs e di
+    /// Checks/EdgeFlange/Program.cs: la marca sta sui DATI di
     /// selezione, non sull'entita', e senza costruirla `Select4(true, null)`
     /// non marca niente anche se marca &gt; 0 fosse passato per sbaglio a null.
     /// </summary>
@@ -603,7 +603,7 @@ internal static class Programma
     /// <summary>
     /// La faccia ALTA della lunga e la faccia LATERALE della corta, trovate
     /// per geometria (area + quota costante su un asse), non per indice:
-    /// stesso principio di Controlli/Mensola/Programma.cs (DueFacceInPunta).
+    /// stesso principio di Checks/Bracket/Program.cs (DueFacceInPunta).
     ///
     /// GLI ASSI, DERIVATI DALLA GEOMETRIA DELLA T (non assunti):
     /// la lunga corre lungo X (sezione nel piano Y-Z, centrata su Y=0,Z=0:

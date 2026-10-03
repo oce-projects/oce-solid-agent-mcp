@@ -4,15 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE TABLE OF SELECTION MARKS AGREES WITH THE GUIDE, AND IS THE ONLY
     /// PLACE MARKS ARE WRITTEN (Z-C21.6, pattern S9).
     ///
-    /// Riscontro.Disegno/SelectionMarks.cs names every non-zero selection mark
+    /// Oce.Solid.Agent.Core/SelectionMarks.cs names every non-zero selection mark
     /// the code uses, and quotes the words of the guide page that give it. This
     /// check reads that file as TEXT (no SOLIDWORKS, no interop) and asks:
     ///
@@ -49,14 +49,14 @@ namespace Prove.Contratti
         {
             Gruppo("the selection marks come from the table (Z-C21.6, S9)");
 
-            var tablePath = Path.Combine(Radice(), "Riscontro.Disegno", "SelectionMarks.cs");
+            var tablePath = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "SelectionMarks.cs");
             if (!File.Exists(tablePath))
             {
                 Segna("the table of marks is there", false, tablePath);
                 return;
             }
             var cases = new HashSet<string>(StringComparer.Ordinal);
-            var casesDir = Path.Combine(Radice(), "Banco", "cases");
+            var casesDir = Path.Combine(Radice(), "Bench", "cases");
             if (Directory.Exists(casesDir))
                 foreach (var f in Directory.GetFiles(casesDir, "*.json", SearchOption.AllDirectories))
                     cases.Add(Path.GetFileNameWithoutExtension(f));
@@ -118,7 +118,7 @@ namespace Prove.Contratti
             var found = new List<string>();
             int used = 0;
             var texts = new List<KeyValuePair<string, string>>();
-            foreach (var folder in new[] { "Riscontro.Disegno", "Ponte" })
+            foreach (var folder in new[] { "Oce.Solid.Agent.Core", "Bridge" })
             {
                 var dir = Path.Combine(Radice(), folder);
                 if (!Directory.Exists(dir)) continue;
@@ -166,7 +166,7 @@ namespace Prove.Contratti
                     {
                         var measured = MeasuredRx.Match(block);
                         if (!measured.Success || !cases.Contains(measured.Groups[1].Value))
-                            problems.Add(name + ": UNDOCUMENTED needs \"MEASURED: <bank case>\" with a case in Banco/cases" +
+                            problems.Add(name + ": UNDOCUMENTED needs \"MEASURED: <bank case>\" with a case in Bench/cases" +
                                          (measured.Success ? " («" + measured.Groups[1].Value + "» is not)" : ""));
                         continue;
                     }

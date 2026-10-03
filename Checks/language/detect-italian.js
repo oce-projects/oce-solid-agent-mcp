@@ -7,8 +7,8 @@
 //
 //  Every file of `git ls-files` (or of a commit, --rev), minus binaries
 //  decided BY EXTENSION ONLY (a closed list, below). Never `git grep -I` and
-//  never git's own binary guess: `Controlli/domande-senza-risposta.js` carried
-//  a real NUL byte, git called it binary, and `controlla-pubblicabilita.ps1`
+//  never git's own binary guess: `Checks/questions-without-answer.js` carried
+//  a real NUL byte, git called it binary, and `check-publishability.ps1`
 //  (which uses `git grep -I`) has been skipping it without saying so. A file
 //  that git thinks is binary but has a text extension is READ here, and the
 //  report lists every file read.
@@ -59,30 +59,30 @@
 //       strong signal or two weak ones; its score is the number of signals.
 //
 //  EXCEPTIONS (exceptions.json) are patterns, never files. A json_path is
-//  allowed only for the class detector-lexicon on a file of Controlli/lingua/;
+//  allowed only for the class detector-lexicon on a file of Checks/language/;
 //  a pattern may not match an Italian function word on its own, nor take away
 //  a third of the Italian of a sentinel sentence; one without "file" may not
 //  match an Italian content word on its own; and an exception that suppresses
 //  too much on the tree (exception_limits in lexicon.json) is refused.
 //
 //  USAGE
-//    node Controlli/lingua/detect-italian.js              compare with baseline.json
-//    node Controlli/lingua/detect-italian.js --json       full report as JSON
-//    node Controlli/lingua/detect-italian.js --file <p>   hits of one file
-//    node Controlli/lingua/detect-italian.js --write-baseline
-//    node Controlli/lingua/detect-italian.js --baseline <file>   compare with another baseline
-//    node Controlli/lingua/detect-italian.js --baseline git:<rev>   ... the one committed there
+//    node Checks/language/detect-italian.js              compare with baseline.json
+//    node Checks/language/detect-italian.js --json       full report as JSON
+//    node Checks/language/detect-italian.js --file <p>   hits of one file
+//    node Checks/language/detect-italian.js --write-baseline
+//    node Checks/language/detect-italian.js --baseline <file>   compare with another baseline
+//    node Checks/language/detect-italian.js --baseline git:<rev>   ... the one committed there
 //                                            (git:A+B merges two: the parents of a merge)
-//    node Controlli/lingua/detect-italian.js --rev <rev>  read the tree of a commit, not the disk
-//    node Controlli/lingua/detect-italian.js --config-rev <rev>   lexicon and exceptions of that commit
-//    node Controlli/lingua/detect-italian.js --renames <file>     { "new/path": "old/path" }
-//    node Controlli/lingua/detect-italian.js --zero <category>    that category must be 0
-//    node Controlli/lingua/detect-italian.js --tighten    rewrite the baseline if the tree went down
-//    node Controlli/lingua/detect-italian.js --compare-baselines <old> <new>   (files or git:<rev>)
-//    node Controlli/lingua/detect-italian.js --report <file>   also write the comparison as JSON
-//    node Controlli/lingua/detect-italian.js --root <dir> run on another checkout
+//    node Checks/language/detect-italian.js --rev <rev>  read the tree of a commit, not the disk
+//    node Checks/language/detect-italian.js --config-rev <rev>   lexicon and exceptions of that commit
+//    node Checks/language/detect-italian.js --renames <file>     { "new/path": "old/path" }
+//    node Checks/language/detect-italian.js --zero <category>    that category must be 0
+//    node Checks/language/detect-italian.js --tighten    rewrite the baseline if the tree went down
+//    node Checks/language/detect-italian.js --compare-baselines <old> <new>   (files or git:<rev>)
+//    node Checks/language/detect-italian.js --report <file>   also write the comparison as JSON
+//    node Checks/language/detect-italian.js --root <dir> run on another checkout
 //
-//  The CI step (.github/passi/language-gate.ps1) judges every commit of a
+//  The CI step (.github/steps/language-gate.ps1) judges every commit of a
 //  range against its parent with these options.
 //
 //  EXIT CODES
@@ -129,10 +129,10 @@ const LETTER = 'A-Za-z\u00c0-\u00ff';
 
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
 // The folder of the gate's own files. Rename window 3 (W3.1-bis.6) moves it
-// from Controlli/lingua to Checks/language: a commit is read where ITS files
+// from Controlli/lingua to Checks/language: a commit is read where ITS files  // window-3: keep
 // are, so the gate judges the commits on both sides of the move (the newer
 // name first).
-const LANG_DIRS = ['Checks/language', 'Controlli/lingua'];
+const LANG_DIRS = ['Checks/language', 'Controlli/lingua'];  // window-3: keep
 function langDirOnDisk(root) {
   for (const d of LANG_DIRS) if (fs.existsSync(path.join(root, d, 'lexicon.json'))) return d;
   return LANG_DIRS[0];
@@ -219,7 +219,7 @@ function loadConfig(root, configRev) {
 // Never a whole file, directly or by a side door:
 //   * an entry with only a `file` is refused;
 //   * a `json_path` (which can cover every value of a file) is allowed only
-//     for the class detector-lexicon, and only on a file of Controlli/lingua/;
+//     for the class detector-lexicon, and only on a file of Checks/language/;
 //   * a pattern that matches one Italian function word on its own, or that
 //     takes away a third of the Italian of any sentinel sentence, is refused;
 //   * a pattern without `file` that matches one Italian content word on its
@@ -274,10 +274,9 @@ function validateExceptions(list, lex, cfg) {
       if (e.class !== 'detector-lexicon') fail(where + ': json_path is allowed only for the class detector-lexicon');
       // one file of the gate's folder; while rename window 3 is in flight the
       // file may be named under both folder names:
-      // ^(?:Controlli/lingua|Checks/language)/<name>$
-      if (!e.file || !/^\^(?:Checks\/language|Controlli\/lingua|\(\?:Controlli\/lingua\|Checks\/language\))\/[A-Za-z0-9_.\\-]+\$$/.test(e.file))
-        fail(where + ': a json_path exception must name exactly one file of Controlli/lingua/ (^Controlli/lingua/<name>$; ' +
-          'Checks/language/ once rename window 3 has moved the folder)');
+      // ^(?:Controlli/lingua|Checks/language)/<name>$  // window-3: keep
+      if (!e.file || !/^\^(?:Checks\/language|Controlli\/lingua|\(\?:Controlli\/lingua\|Checks\/language\))\/[A-Za-z0-9_.\\-]+\$$/.test(e.file))  // window-3: keep
+        fail(where + ': a json_path exception must name exactly one file of Checks/language/ (^Checks/language/<name>$)');
       if (!e.json_path.startsWith('^')) fail(where + ': json_path must be anchored with ^');
       try { out.jsonPath = new RegExp(e.json_path); } catch (err) { fail(where + ': json_path does not compile: ' + err.message); }
       if (out.jsonPath.test('') || out.jsonPath.test('x')) fail(where + ': json_path matches everything');
@@ -376,7 +375,7 @@ function proseVerdict(text, cfg) {
   t = t.replace(/\b(?:https?|file):\/\/\S+/g, ' ');
   // file paths (a/b/c.js, a\b): names, not prose
   t = t.replace(/[A-Za-z0-9_.{}~*$-]*[A-Za-z0-9_{}~*$-][\\/][A-Za-z0-9_.{}~*$\\/-]*/g, (m) => { paths.push(m); return ' '; });
-  // file names with a known extension (installa-ganci.ps1): names too
+  // file names with a known extension (install-hooks.ps1): names too
   t = t.replace(/\b[A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:cs|js|ps1|json|md|csproj|yml|yaml|txt|exe|dll|sln|config|bat|sh|png|sldprt|sldasm|slddrw|step|pdf)\b/gi,
     (m) => { paths.push(m); return ' '; });
   // XML doc tags inside comments
@@ -1338,7 +1337,7 @@ function baselineOf(report) {
   const sets = {};
   for (const c of SET_CATEGORIES) sets[c] = [...report.sets[c].keys()].sort();
   return {
-    about: 'Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. ' +
+    about: 'Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. ' +
       'Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. ' +
       'A raise needs the trailer "Language-Baseline-Raise: <reason>" on the commit that raises it.',
     format: 2,
@@ -1599,7 +1598,7 @@ function main() {
   if (args.tighten && lowered(base, report)) {
     if (args.rev || against.startsWith('git:')) {
       console.log('language gate: the Italian went DOWN at ' + (args.rev || 'the working tree') +
-        '; run node Controlli/lingua/detect-italian.js --tighten on the working tree and commit the baseline.');
+        '; run node Checks/language/detect-italian.js --tighten on the working tree and commit the baseline.');
       return 3;
     }
     writeJson(path.resolve(against), baselineOf(report));

@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// OGNI OPERAZIONE DICE SU CHE DOCUMENTO GIRA (voce Z-D0-ter).
@@ -129,7 +129,7 @@ namespace Prove.Contratti
             // csproj). Un'operazione che dichiarasse un documento che
             // l'esecutore rifiuta sarebbe una promessa irraggiungibile —
             // esattamente il difetto che Z-D0-bis trovo' sulle famiglie.
-            string esecutore = Path.Combine(Radice(), "Riscontro.Disegno", "EsecutorePiano.cs");
+            string esecutore = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(esecutore))
             {
                 Segna("il sorgente dell'esecutore c'e'", false, "manca " + esecutore);

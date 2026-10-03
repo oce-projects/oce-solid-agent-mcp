@@ -1,5 +1,5 @@
 {
- "about": "Word lists of the language gate (Controlli/lingua/detect-italian.js, entry W3.1-bis.1). The Italian words below are data the detector looks for; they are covered by the detector-lexicon exception in exceptions.json, key by key, never as a whole file.",
+ "about": "Word lists of the language gate (Checks/language/detect-italian.js, entry W3.1-bis.1). The Italian words below are data the detector looks for; they are covered by the detector-lexicon exception in exceptions.json, key by key, never as a whole file.",
  "function_words": [
   "il",
   "lo",

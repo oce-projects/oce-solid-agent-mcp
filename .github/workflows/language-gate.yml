@@ -2,7 +2,7 @@
 #  The language gate with the rules of the BASE (entry W3.1-bis.1)
 # =============================================================================
 #
-#  prove.yml runs the language gate too, but on a pull request prove.yml, the
+#  tests.yml runs the language gate too, but on a pull request tests.yml, the
 #  gate script and the detector all come from the pull request: a pull
 #  request could switch the gate off by editing them. Here the trigger is
 #  pull_request_target, so this file and the checkout are the ones of the
@@ -17,7 +17,7 @@
 #  read-only token that is no more than what `pull_request` already allows.
 #
 #  Branch protection should require this check (and CODEOWNERS covers
-#  .github/ and Controlli/lingua/): a gate that can be merged red is a sign.
+#  .github/ and Checks/language/): a gate that can be merged red is a sign.
 # =============================================================================
 
 name: language-gate
@@ -43,4 +43,4 @@ jobs:
 
       - name: Language gate (rules of the base)
         shell: pwsh
-        run: .\.github\passi\language-gate.ps1 -FetchPullRequest ${{ github.event.pull_request.number }}
+        run: .\.github\steps\language-gate.ps1 -FetchPullRequest ${{ github.event.pull_request.number }}

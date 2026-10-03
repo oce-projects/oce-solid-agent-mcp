@@ -49,13 +49,13 @@ si misura e si sviluppa.
 ## Come funziona
 
 Un'applicazione da riga di comando che parla **MCP su stdio** e chiama
-`Riscontro.Disegno`, la libreria che contiene le operazioni. Non le riscrive:
+`Oce.Solid.Agent.Core`, la libreria che contiene le operazioni. Non le riscrive:
 sono le stesse che l'add-in di OpenPDM esegue quando un progettista preme
 «conferma», cosi' cio' che si prova di qui e' esattamente cio' che avra' in
 mano.
 
 ```
-modello  <--MCP/stdio-->  oce-solid-agent-mcp.exe  ---->  Riscontro.Disegno.dll
+modello  <--MCP/stdio-->  oce-solid-agent-mcp.exe  ---->  Oce.Solid.Agent.Core.dll
                                                              |
                                                          SOLIDWORKS
 ```
@@ -91,7 +91,7 @@ layer; `api_objects` and `api_call` come with U1.2-U1.3.*
 | `undo` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `build` l'aveva lasciato |
 | `document` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti, ne chiude uno — e **rifiuta di chiudere** un documento con modifiche non salvate. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `build` pretende un nuovo `inspect_part` |
 | `api_search` | searches the whole API by a piece of a name and answers with the **real signatures** read from the interop on this machine; the four old interfaces (`IModelDoc`, `IBody`, `IFace`, `IComponent`) are named with the sister to use, never shown. Read only |
-| `api_signature` | the card of one member: every overload, property or method, the `&` out parameters, the typed `I…` variant, the numbered family with the last one marked **«latest by number, not verified»**, the **Void** flag, and what is known of it from `Strumenti/api_knowledge.json` — state, enum map (**«enum not tabulated»** where nobody wrote one), measured indices (**«index not tabulated»** otherwise), measured types, source. Read only |
+| `api_signature` | the card of one member: every overload, property or method, the `&` out parameters, the typed `I…` variant, the numbered family with the last one marked **«latest by number, not verified»**, the **Void** flag, and what is known of it from `Tools/api_knowledge.json` — state, enum map (**«enum not tabulated»** where nobody wrote one), measured indices (**«index not tabulated»** otherwise), measured types, source. Read only |
 
 **`measure` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
 legge `readOnlyHint` e `destructiveHint` in `tools/list`, cioe' **prima** che
@@ -218,10 +218,10 @@ stanno in questo repository e si prendono da li'.
 Subito dopo il clone, una volta sola:
 
 ```
-.\Controlli\installa-ganci.ps1
+.\Checks\install-hooks.ps1
 ```
 
-Accende il gancio `pre-push`, che lancia `controlla-pubblicabilita.ps1` e
+Accende il gancio `pre-push`, che lancia `check-publishability.ps1` e
 **ferma il push** se dall'albero o dalla storia uscirebbe un percorso di questa
 macchina, un nome utente o un indirizzo di rete privato. Git non versiona
 `.git\hooks`: finche' non si lancia quella riga, il gancio sta nel repository e
@@ -234,12 +234,12 @@ Se SOLIDWORKS non e' nel posto di serie, la cartella si dice — ed e' la
 .\build.ps1 -SwInstallPath 'D:\Programmi\SOLIDWORKS Corp\SOLIDWORKS'
 ```
 
-Gli attrezzi di prova in `Controlli\` hanno uno script loro, e stanno fuori
+Gli attrezzi di prova in `Checks\` hanno uno script loro, e stanno fuori
 dalla soluzione apposta — un progetto in piu' li farebbe ricompilare a ogni
 build senza motivo:
 
 ```
-.\Controlli\costruisci-controlli.ps1
+.\Checks\build-checks.ps1
 ```
 
 Qui la cartella si chiama `-SwRedist` ed e' `api\redist`, non la radice: sono
@@ -277,9 +277,9 @@ The installer reads the number, not the text.
 
 | | |
 |---|---|
-| `RISCONTRO_DISEGNO` | quale `Riscontro.Disegno.dll` ci si aspetta di usare. **Non la sceglie**: .NET carica quella accanto all'eseguibile. Serve a farsi dire se le due non coincidono |
+| `RISCONTRO_DISEGNO` | quale `Oce.Solid.Agent.Core.dll` ci si aspetta di usare. **Non la sceglie**: .NET carica quella accanto all'eseguibile. Serve a farsi dire se le due non coincidono |
 | `OPENPDM_ADDIN` | il vecchio nome di `RISCONTRO_DISEGNO`, ancora letto |
-| `RISCONTRO_CATALOGO` | dove sta `catalogo.json`; se manca, accanto all'eseguibile |
+| `RISCONTRO_CATALOGO` | dove sta `catalog.json`; se manca, accanto all'eseguibile |
 | `OPENPDM_CATALOGO` | il vecchio nome di `RISCONTRO_CATALOGO`, ancora letto |
 | `RISCONTRO_REGISTRO` | dove il ponte scrive **cosa gli e' stato chiesto e non c'era** (voce Z-G7): una riga JSON per domanda, solo il nome e i nomi vicini, mai gli argomenti. Se manca, accanto all'eseguibile; **impostata a stringa vuota vuol dire «non registrare niente»**. Se non si puo' scrivere, il ponte tace e va avanti: il registro non fa mai fallire la chiamata che osserva |
 | `SW_INSTALL_PATH` | dove e' installato il software SOLIDWORKS: la **radice**, quella che finisce con `\SOLIDWORKS`. Vale sia per compilare che per far girare — da qui si ricava `api\redist` |
@@ -287,7 +287,7 @@ The installer reads the number, not the text.
 | `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
 | `RISCONTRO_SOLA_LETTURA` | cartelle che il ponte non deve scrivere, separate da `;` — esempio `S:\CAD;S:\_LIBRERIE`. Si aggiungono a quelle di sistema, non le sostituiscono |
 | `PROFILI_SALDATURA` | the folder of the weldment profiles (`.sldlfp`) that `profili_saldatura` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
-| `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--prova` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Controlli/prova-installatore.js` sets it unless given `--attach`) |
+| `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--prova` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Checks/test-installer.js` sets it unless given `--attach`) |
 
 `RISCONTRO_DISEGNO` non decide piu' quale libreria caricare, e resta letta
 apposta: se punta altrove, il ponte lo **dice**. Una variabile d'ambiente che
@@ -305,7 +305,7 @@ quella che sta girando.
 sub-actions, the 99 operations and their families, every argument and the
 value of every argument whose schema lists one, the selectors
 (`@face(normal=front)`), the fields of every answer and the value of every
-response field the name map covers, the keys of `Strumenti/catalogo.json`, the
+response field the name map covers, the keys of `Tools/catalog.json`, the
 MCP resources (`catalog://operations`, `catalog://operation/{name}`) and the
 tool titles are English names (rename window 2, W3.1-bis.5). The cases of the
 bench were renamed in window 1 (W3.1-bis.4); the classes, files and folders of
@@ -329,7 +329,7 @@ translates them, and an operation that takes such a name takes it as the
 installation spells it. Where the catalogue gives an example with a feature
 name, it gives the English one and says that the name is the one of the
 installation. The Italian feature, sketch, sheet and plane names the bench
-meets are listed in `Controlli/lingua/exceptions.json` (class
+meets are listed in `Checks/language/exceptions.json` (class
 `solidworks-localized`): the language gate does not count them and the rename
 does not touch them.
 
@@ -340,19 +340,19 @@ of `deprecated` (in `structuredContent` and as the last text of the answer)
 that say which names were accepted and which English name to use instead;
 the selectors of the bench written with the old names are read the same way. The aliases are accepted on input only: the answers, the
 catalogue and `describe_operation` speak English only. They are read from
-`Controlli/lingua/name-map.tsv`, the map the rename was generated from
-(embedded in the library, `Riscontro.Disegno/Alias.cs`), and they are removed
+`Checks/language/name-map.tsv`, the map the rename was generated from
+(embedded in the library, `Oce.Solid.Agent.Core/Alias.cs`), and they are removed
 with the map in W3.1-bis.11, before the release tag.
 
 What holds already: **new text is written in English**, and a language gate
-(`Controlli/lingua/detect-italian.js`) keeps the Italian from growing, on every
+(`Checks/language/detect-italian.js`) keeps the Italian from growing, on every
 push and on the CI: every commit is judged against its parent, with its parent's
 rules, and a raise needs a signed trailer on the commit that raises.
 
 ## Il catalogo
 
-`Strumenti/catalogo.json` e' una copia ESPORTATA dal server, non una
-seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
+`Tools/catalog.json` e' una copia ESPORTATA dal server, non una
+seconda scrittura: vedi [Tools/update.md](Tools/update.md).
 Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
 
 Un'operazione che esiste nella libreria ma non crea niente **resta fuori dal
@@ -376,7 +376,7 @@ copie della libreria che divergevano.
 | `checks` | quasi tutte su una parte; `interference_check` vuole un **assieme** |
 
 Non e' una tabella decorativa: **c'e' un controllo che la fa rispettare.**
-`Prove.Contratti` confronta le famiglie del catalogo servito coi tipi di
+`Oce.Solid.Agent.ContractTests` confronta le famiglie del catalogo servito coi tipi di
 documento che l'esecutore ammette, e diventa rosso se il ponte promette una
 famiglia che rifiuterebbe prima del primo passo. E' nato rosso: fino al
 18/9/2026 il catalogo elencava la famiglia `assemblies` per intero mentre
@@ -411,7 +411,7 @@ ogni modifica: e' una regola, non una consuetudine.
 > prima di fidarsi di un distintivo.
 
 **Il ponte, in CI, non si compila.** `Oce.Solid.Agent.csproj` e
-`Riscontro.Disegno.csproj` referenziano `SolidWorks.Interop.sldworks` e
+`Oce.Solid.Agent.Core.csproj` referenziano `SolidWorks.Interop.sldworks` e
 `SolidWorks.Interop.swconst` con un `HintPath` dentro l'installazione di
 SOLIDWORKS. Quelle DLL sono di Dassault: non stanno in repository, non si
 scaricano, e su un runner di GitHub non ci sono. Misurato, non dedotto —
@@ -426,9 +426,9 @@ Quello che la CI fa davvero:
 
 | | gira su un runner di GitHub |
 |---|---|
-| compila `Prove.Contratti` (di interop non ne ha, e c'e' un controllo che lo verifica) | **si** |
+| compila `Oce.Solid.Agent.ContractTests` (di interop non ne ha, e c'e' un controllo che lo verifica) | **si** |
 | il valutatore delle attese, i sorgenti nei loro `.csproj`, i documenti che contano i file giusti | **si** |
-| il contenuto del catalogo, letto da `Strumenti\catalogo.json` che sta in repository | **si** |
+| il contenuto del catalogo, letto da `Tools\catalog.json` che sta in repository | **si** |
 | **rifiuta una consegna in cui nessuno ha lanciato il banco** | **si** |
 | compila il ponte | solo dove l'interop c'e' (un runner self-hosted con SOLIDWORKS) |
 | il protocollo MCP, `Sessione.StessoDocumento`, l'esportatore del catalogo | solo li' |
@@ -444,7 +444,7 @@ stesso esiste per non avere.*
 
 > **Il punto sul banco non e' una verifica indipendente, e vale dirlo qui.**
 > Nessun runner ha una licenza SOLIDWORKS, quindi **il banco in CI non gira**.
-> Cio' che la CI legge e' `Banco/report/last.json`: un file che
+> Cio' che la CI legge e' `Bench/report/last.json`: un file che
 > **produciamo e committiamo noi**. Controlla che dichiari un giro intero,
 > coerente con la libreria di adesso e posteriore all'ultima modifica alle
 > operazioni.
@@ -468,8 +468,8 @@ a valle rimisurata. Il risultato e' una di tre cose, non due:
 | **si staccano in silenzio** | **0** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
 
 *Misurato il 26/9/2026 su SOLIDWORKS 29.5.1, libreria 0.121.0. Si rifa' con
-`.\Banco\banco.ps1 -Regressione`; il dettaglio caso per caso finisce in
-`Banco/report/regressione.md`.*
+`.\Bench\bench.ps1 -Regressione`; il dettaglio caso per caso finisce in
+`Bench/report/regressione.md`.*
 
 **Il 15/9 erano 12, 0 e 4 su sedici**, e lo zero in mezzo era il numero piu'
 interessante: nessun caso si era rotto in modo visibile, le quattro volte che

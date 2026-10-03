@@ -6,13 +6,13 @@ Sono due banchi diversi, per due domande diverse:
 
 | | domanda | serve SOLIDWORKS? |
 |---|---|---|
-| `ProvaSaldatura.exe` | le operazioni della libreria fanno il pezzo giusto? | si' |
-| `corri_piani.js` | il ponte MCP esegue i piani come deve? | si' |
-| `prova_annulla.js` | `undo` ritira il piano — e si **rifiuta** quando deve? | si' |
-| `raccogli_viste.js` | costruisce le cinque forme di V2/V3 e ne salva immagini e stato | si' |
-| `prova_forma.js` | dalla sola **frase** un modello sa ridisegnare il pezzo? (V3) | si' |
-| `prova_sezione.js` | lo **spaccato** mostra la parete, e si toglie da solo? (V4) | si' |
-| `..\Controlli\Prova*.exe` | la matematica torna? | **no** |
+| `Oce.Solid.Agent.Bench.exe` | le operazioni della libreria fanno il pezzo giusto? | si' |
+| `run_plans.js` | il ponte MCP esegue i piani come deve? | si' |
+| `test_undo.js` | `undo` ritira il piano — e si **rifiuta** quando deve? | si' |
+| `collect_views.js` | costruisce le cinque forme di V2/V3 e ne salva immagini e stato | si' |
+| `test_shape.js` | dalla sola **frase** un modello sa ridisegnare il pezzo? (V3) | si' |
+| `test_section.js` | lo **spaccato** mostra la parete, e si toglie da solo? (V4) | si' |
+| `..\Checks\Prova*.exe` | la matematica torna? | **no** |
 
 I primi tre misurano pezzi, l'ultimo misura formule. L'ultimo si lancia in un
 secondo e va lanciato per primo: se non torna la formula, non vale la pena
@@ -20,30 +20,30 @@ aprire il CAD.
 
 ---
 
-## `ProvaSaldatura.exe` — le operazioni
+## `Oce.Solid.Agent.Bench.exe` — le operazioni
 
-Carica `Riscontro.Disegno.dll` e chiama i suoi tipi per riflessione, con gli
+Carica `Oce.Solid.Agent.Core.dll` e chiama i suoi tipi per riflessione, con gli
 stessi argomenti che arriverebbero da un piano. Ogni prova lavora su una parte
 usa e getta e la chiude.
 
-> **Prima di tutto questo c'e' `Prove\Prove.Contratti.exe`** — 54 controlli in
+> **Prima di tutto questo c'e' `Tests\Oce.Solid.Agent.ContractTests.exe`** — 54 controlli in
 > pochi secondi, **senza SOLIDWORKS**: il valutatore delle attese, il catalogo,
-> `StessoDocumento`, il protocollo MCP. Vedi [Prove/LEGGIMI.md](../Prove/LEGGIMI.md).
+> `StessoDocumento`, il protocollo MCP. Vedi [Tests/README.md](../Tests/README.md).
 > Se sono rossi quelli, aprire il CAD e' tempo perso.
 
 ### Un comando solo
 
 ```
-.\Banco\banco.ps1                        tutto, e scrive il resoconto
-.\Banco\banco.ps1 -Gruppo viste          una famiglia sola
-.\Banco\banco.ps1 -Famiglia reanchor    una cartella sola di casi dichiarati
-.\Banco\banco.ps1 -Lento                 anche quelle che costano minuti
-.\Banco\banco.ps1 -SaltaCompilazione     il binario che c'e' gia'
+.\Bench\bench.ps1                        tutto, e scrive il resoconto
+.\Bench\bench.ps1 -Gruppo viste          una famiglia sola
+.\Bench\bench.ps1 -Famiglia reanchor    una cartella sola di casi dichiarati
+.\Bench\bench.ps1 -Lento                 anche quelle che costano minuti
+.\Bench\bench.ps1 -SaltaCompilazione     il binario che c'e' gia'
 ```
 
 Compila libreria e banco (e **si ferma** se una delle due fallisce), guarda se
 SOLIDWORKS e' agganciabile, **svuota i documenti rimasti aperti**, lancia, e
-scrive `Banco/report/AAAAMMGG_hhmm.md` e `.json` piu' `last.json`.
+scrive `Bench/report/AAAAMMGG_hhmm.md` e `.json` piu' `last.json`.
 
 | uscita | |
 |---|---|
@@ -56,7 +56,7 @@ misura, un errore di banco e' una misura **mancata**. E il 2 vince sull'1: se il
 banco non ha potuto misurare, quante prove siano fallite e' una domanda a cui
 non si e' risposto.
 
-**The test ledger, `Banco/report/tests.json`** (W3.1-bis.2, item 7), is
+**The test ledger, `Bench/report/tests.json`** (W3.1-bis.2, item 7), is
 written by the bench itself at the end of every run (full, partial, mutations,
 regression) and is not tracked. One line per test, named by where it is
 recorded: `File.cs:Method:ordinal`, the ordinal counting the recording calls of
@@ -69,16 +69,16 @@ it was built from (a test of its own, before the summary line); a source edited
 after the build leaves the test unresolved and that check red.
 
 **The lookups by name that fall back to null** (W3.1-bis.2, item 3) go through
-`Banco/ReflectionLog.cs`: the schemas of the mutations, the catalogue count of
+`Bench/ReflectionLog.cs`: the schemas of the mutations, the catalogue count of
 the header, the signatures of the state. A full or partial run ends with one
 more test, «every lookup by name that falls back to null found its target»
 (skipped with `--libreria`: an older library lacks newer names by design); in a
-mutation or regression run a miss is a bench error. `Prove.Contratti` forbids a
-`?.` read of a lookup anywhere else in `Banco/`.
+mutation or regression run a miss is a bench error. `Oce.Solid.Agent.ContractTests` forbids a
+`?.` read of a lookup anywhere else in `Bench/`.
 
 > ### ⚠ NON LANCIARLO DENTRO UNA PIPELINE POWERSHELL
 >
-> `.\Banco\banco.ps1 ... | Select-Object -First 25` **uccide il giro a meta'**.
+> `.\Bench\bench.ps1 ... | Select-Object -First 25` **uccide il giro a meta'**.
 > `Select-Object -First N` lancia `StopUpstreamCommandsException` appena ha N
 > oggetti e **termina il comando a monte**: il banco muore, esce **255** — che
 > non e' nessuno dei tre codici qui sopra — e **non scrive il resoconto**.
@@ -90,11 +90,11 @@ mutation or regression run a miss is a bench error. `Prove.Contratti` forbids a
 > rossi**: e' tempo buttato, non informazione.
 >
 > **Il segnale che li distingue e' semplice: un giro vero scrive SEMPRE un file
-> in `Banco\report\`.** Se il resoconto non c'e', il giro non c'e' stato —
+> in `Bench\report\`.** Se il resoconto non c'e', il giro non c'e' stato —
 > qualunque cosa dica l'ultima riga a schermo.
 >
-> Si lancia **nudo**, e si legge dopo: `Banco\report\last.json`, oppure
-> `Banco\ultimo-giro.txt` — che e' **UTF-16LE**, quindi un `grep` fatto a mano
+> Si lancia **nudo**, e si legge dopo: `Bench\report\last.json`, oppure
+> `Bench\ultimo-giro.txt` — che e' **UTF-16LE**, quindi un `grep` fatto a mano
 > non ci trova niente e sembra che il caso non sia mai girato. *Un log che non
 > si lascia leggere e' un log che fa concludere il falso.*
 
@@ -109,16 +109,16 @@ sia cambiato.
 ### A mano, se serve
 
 ```
-msbuild Banco\ProvaSaldatura.csproj -p:Configuration=Release
-Banco\bin\ProvaSaldatura.exe --libreria Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll
+msbuild Bench\Oce.Solid.Agent.Bench.csproj -p:Configuration=Release
+Bench\bin\Oce.Solid.Agent.Bench.exe --libreria Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll
 ```
 
-Senza `--libreria` cerca `Riscontro.Disegno.dll` accanto all'eseguibile. Esce 0
+Senza `--libreria` cerca `Oce.Solid.Agent.Core.dll` accanto all'eseguibile. Esce 0
 se non fallisce niente.
 
 ### Un'attesa che SPIEGA un rosso va messa PRIMA di quel rosso
 
-Il banco ferma il caso alla **prima** attesa rossa (`CasiDichiarati.cs`:
+Il banco ferma il caso alla **prima** attesa rossa (`DeclaredCases.cs`:
 `if (!ok) return false`). Non e' un difetto: un passo che ha gia' sbagliato non
 ha piu' uno stato su cui misurare, e continuare produrrebbe rossi derivati che
 sembrano difetti nuovi.
@@ -156,9 +156,9 @@ aver sbagliato una riga:
 > questa riga e' un'indicazione, quel campo e' una misura.
 
 ```
-Banco\bin\ProvaSaldatura.exe --gruppi                  quali gruppi ci sono
-Banco\bin\ProvaSaldatura.exe --gruppo viste            solo quelle: 6,6 secondi
-Banco\bin\ProvaSaldatura.exe --gruppo tabella,forma    piu' d'uno, separati da virgola
+Bench\bin\Oce.Solid.Agent.Bench.exe --gruppi                  quali gruppi ci sono
+Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo viste            solo quelle: 6,6 secondi
+Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo tabella,forma    piu' d'uno, separati da virgola
 ```
 
 Un nome sbagliato viene **rifiutato prima di agganciare SOLIDWORKS**, e il
@@ -208,26 +208,26 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 | selettori | `@face(normal=…)`, `@face(planar=false)`, `@face(area~=907.92)`, `@face(normal=front,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@edge(axis=Z,length~=100)`, `@edge(curved=true,n=1)`, `@feature(kind=…,n=2)`, `@dimension(feature=Schizzo1,name=D1)`, `@dimension(angular=true)` (l'unica quota in gradi, voce Z-C21.2) |
 | prima del passo | `select_first`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `hide_first`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
 | `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
-| segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Banco\dati\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
+| segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Bench\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Bench\data\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
 | `must_fail` | `message_includes` (obbligatorio), `volume_unchanged`, `no_extra_feature`, `twin`, `difference_is_the_part` (vedi «Le coppie») |
 
 **A key the bench does not read is refused** (W3.1-bis.2, item 4). Every place
 of a case (the case, a step, an expectation, a must-fail block, an assembly, a
 component, a regression case...) admits only the keys listed for it in
-`Banco/case-keys.json`: the keys the loader reads and the prose keys it
+`Bench/case-keys.json`: the keys the loader reads and the prose keys it
 documents (the free keys frozen on 30/9/2026 took the prefix `_` in window 1
 of W3.1-bis.4, and the frozen list is empty). Any other key is a bench error before
 anything is built, because the loader would skip it in silence and whatever it
 asked for would never be checked. A new free note starts with `_` (for example
 `_seen_red_once`): admitted everywhere, never read. The frozen list stays
-empty. `Prove.Contratti` (CaseKeysTests) applies the same rule to every case
+empty. `Oce.Solid.Agent.ContractTests` (CaseKeysTests) applies the same rule to every case
 in a second, so a key written wrong is found before the bench runs.
 
 ### Un caso che gira su un ASSIEME — `cases/assemblies/` (voce GA0)
 
 Al posto di `"start": { "new_part": true }` un caso puo' chiedere un assieme, e il
 banco se lo costruisce: ogni componente e' una parte fatta **con le stesse
-operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
+operazioni dei casi**, salvata in `Bench\lavoro`, riaperta e inserita.
 
 ```json
 "assembly": {
@@ -243,7 +243,7 @@ operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
 
 | | |
 |---|---|
-| `name` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Banco\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
+| `name` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Bench\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
 | `position_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origin_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
 | `to_insert` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `insert_component`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
 | `configurations` | next to `components`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
@@ -380,7 +380,7 @@ solo: `features/limit_rib_on_a_plate_without_walls`.
 ### `-Regressione` — quanto reggono i riferimenti
 
 ```
-.\Banco\banco.ps1 -Regressione
+.\Bench\bench.ps1 -Regressione
 ```
 
 Diciannove pezzi in `cases/regression/`, ognuno con `build`, **una sola
@@ -413,7 +413,7 @@ Due campi in piu' rispetto ai casi normali:
 ### `-Muta` — ogni caso deve poter diventare rosso
 
 ```
-.\Banco\banco.ps1 -Muta
+.\Bench\bench.ps1 -Muta
 ```
 
 Perturba **il piano, non il codice**: un argomento alla volta moltiplicato per
@@ -426,22 +426,22 @@ copia dal caso accanto.
 
 Costa **un documento di SOLIDWORKS per mutazione** — 67 mutazioni, ~14 minuti —
 quindi si lancia prima di una consegna, non ogni sera. Scrive
-`Banco/report/mutazioni.md`, una riga per caso, e ha un riepilogo suo
+`Bench/report/mutazioni.md`, una riga per caso, e ha un riepilogo suo
 (`MUTAZIONI — 11 casi, 0 ciechi`): i rossi che produce sono **cercati**.
 
 Le mutazioni su argomenti che l'operazione **ignora** (`depth_mm` su un
 taglio passante) sono saltate leggendo il catalogo, non indovinate; e si mutano
 solo i passi **con attese**.
 
-### La libreria di allora — `Controlli\libreria-di-allora.ps1`
+### La libreria di allora — `Checks\library-of-the-time.ps1`
 
 Una prova custodisce davvero il suo difetto solo se, lanciata contro il codice
 di **prima** della riparazione, diventa rossa.
 
 ```
-.\Controlli\libreria-di-allora.ps1 0.70.0
-.\Banco\banco.ps1 -Libreria <il percorso stampato> -Gruppo casi -SaltaCompilazione
-.\Controlli\libreria-di-allora.ps1 0.70.0 -Pulisci
+.\Checks\library-of-the-time.ps1 0.70.0
+.\Bench\bench.ps1 -Libreria <il percorso stampato> -Gruppo casi -SaltaCompilazione
+.\Checks\library-of-the-time.ps1 0.70.0 -Pulisci
 ```
 
 La DLL non si conserva da nessuna parte: **si ricostruisce**, perche' in questo
@@ -461,7 +461,7 @@ non sa leggere».
 
 `in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una redirezione
 di chi lancia: **dei giri passati non restava niente.** Dalla voce F12 ogni giro
-aggiunge una riga in coda a `Banco/storico.txt`, con le prove fallite **per
+aggiunge una riga in coda a `Bench/storico.txt`, con le prove fallite **per
 nome**:
 
 ```
@@ -491,24 +491,24 @@ nuove. Il nome e' rimasto perche' cambiarlo costa piu' di quello che vale.
 
 ---
 
-## `corri_piani.js` — il ponte
+## `run_plans.js` — il ponte
 
 Manda una sequenza di piani al ponte MCP come farebbe un client, e stampa gli
 esiti.
 
 ```
-node Banco\corri_piani.js Banco\cases\bridge\c4r_primary.json
-node Banco\guarda.js                  leggi lo stato senza mandare un piano
-node Banco\prova_annulla.js           «undo» (voce R1), coi suoi tre rossi
+node Bench\run_plans.js Bench\cases\bridge\c4r_primary.json
+node Bench\inspect.js                  leggi lo stato senza mandare un piano
+node Bench\test_undo.js           «undo» (voce R1), coi suoi tre rossi
 ```
 
-`prova_annulla.js` sta qui e non in `ProvaSaldatura` per una ragione precisa:
+`test_undo.js` sta qui e non in `Oce.Solid.Agent.Bench` per una ragione precisa:
 `undo` **non e' nella libreria**. E' uno strumento del ponte, e la parte che
 conta — il ricordo dell'ultimo piano, e i tre casi in cui si RIFIUTA — vive in
 `Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
 
 Since Z-C21.14 four more `undo` cases run in the full bench, in the group that
-talks to the bridge (`PortaDelCliente.cs`, `UndoHonesty`): (a) a later plan that
+talks to the bridge (`ClientPort.cs`, `UndoHonesty`): (a) a later plan that
 only reorders two holes is the last plan, and `undo` must withdraw it and leave
 the first plan; (b) a plan that ends with `create_drawing` leaves the drawing in
 front, the part comes back with `document`/`activate`, and `undo` must withdraw
@@ -517,7 +517,7 @@ withdrawing it (this case decides whether an empty undo recording stands in the
 way); (d) a second bridge process reorders the holes of the first one's plan, and
 the first one's `undo` must refuse before pressing.
 
-### `prova_forma.js` — una MISURA, non un controllo
+### `test_shape.js` — una MISURA, non un controllo
 
 Non fa fallire nessun giro, e il codice di uscita e' sempre zero. Risponde a una
 domanda che non ha un verde e un rosso ma **un numero**: quanti dei cinque pezzi
@@ -526,19 +526,19 @@ si ridisegnano partendo dalla sola frase che li descrive (voce V3).
 Va rifatta in tre passi, e il secondo non lo fa una macchina:
 
 ```
-node raccogli_viste.js        costruisce i cinque pezzi veri e salva lo stato,
+node collect_views.js        costruisce i cinque pezzi veri e salva lo stato,
                               che dentro ha il campo `shape`
                               -- poi si danno le cinque frasi, E NIENTE ALTRO,
                                  a un modello isolato, che scrive i piani in
                                  cases/forma/1..5.json
-node prova_forma.js           esegue i piani e confronta volume e ingombro
+node test_shape.js           esegue i piani e confronta volume e ingombro
 ```
 
-**Il modello che scrive i piani non deve vedere `Banco/viste/`**: li' dentro ci
+**Il modello che scrive i piani non deve vedere `Bench/viste/`**: li' dentro ci
 sono gli stati completi, cioe' le risposte. Se le vede, la misura non misura
 piu' niente.
 
-### `prova_sezione.js` — meta' automatica, meta' da guardare
+### `test_section.js` — meta' automatica, meta' da guardare
 
 Costruisce un guscio, ne scatta la vista intera e lo **spaccato**, e controlla
 da sola le cose che si contano:
@@ -550,7 +550,7 @@ da sola le cose che si contano:
   rimasta accesa, nessun corpo tagliato**. E' il rischio che la voce V4 nomina.
 
 L'altra meta' — «dalla sezione si LEGGE lo spessore» — la puo' dire solo
-qualcuno che guarda. Le due immagini restano in `Banco/viste/`
+qualcuno che guarda. Le due immagini restano in `Bench/viste/`
 (`v4-guscio-intero.png` e `v4-guscio-sezione.png`) proprio per quello.
 
 Con `PONTE=...` si punta a un altro eseguibile: serve per provare quello
@@ -560,8 +560,8 @@ se il pacchetto funziona davvero e non solo se compila.
 ### Prima e dopo ogni giro
 
 ```
-Controlli\ChiudiScarti\bin\ChiudiScarti.exe --chiudi
-Controlli\NuovaParte\bin\NuovaParte.exe
+Checks\CloseLeftovers\bin\CloseLeftovers.exe --chiudi
+Checks\NewPart\bin\NewPart.exe
 ```
 
 Non e' pulizia estetica: **ogni lettura di stato scorre tutti i documenti
@@ -573,7 +573,7 @@ addosso, un piano da mezzo secondo di lavoro ne impiega ottantacinque.
 ## I casi
 
 **I casi dichiarati** — quelli che `--gruppo casi` esegue e misura. L'elenco
-delle famiglie sta in `Famiglie` in `CasiDichiarati.cs`: una cartella che c'e'
+delle famiglie sta in `Famiglie` in `DeclaredCases.cs`: una cartella che c'e'
 ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
@@ -619,7 +619,7 @@ cases/chamfer/       4   dove un raccordo toglierebbe un altro volume; l'angolo
 cases/revolve/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
 cases/plane/        7   DOVE finisce il piano, non la distanza chiesta; la foto
                        da ricalcare messa in scala su un piano (Z-F5, legge
-                       {DATI}: Banco/dati/, versionata); a picture over 2048 px
+                       {DATI}: Bench/data/, versionata); a picture over 2048 px
                        keeps the scale of its file (Z-C21, M11)
 cases/mirror/     2   il foro deve comparire dall'altra parte
 cases/patterns/      15   la direzione, che e' il dubbio vero; l'asse riconosciuto
@@ -851,8 +851,8 @@ Un file **illeggibile** non conta come piano: resta un errore di banco col motiv
 giusto. *Un riconoscimento che inghiotte anche i guasti smette di riconoscere.*
 
 E attenzione al segnaposto, che **non e' lo stesso nelle due forme**: i casi
-dichiarati usano `{LAVORO}` e `{PROFILI}` (li risolve `Banco\Attese.cs`), i piani
-usano `{BANCO}` (lo risolve `corri_piani.js`). Scambiarli non da' nessun errore:
+dichiarati usano `{LAVORO}` e `{PROFILI}` (li risolve `Bench\Expectations.cs`), i piani
+usano `{BANCO}` (lo risolve `run_plans.js`). Scambiarli non da' nessun errore:
 il percorso resta letterale, e il caso si lamenta che un file non esiste.
 
 I nomi in `cases/bridge/` cominciano con la voce che li ha fatti nascere —
@@ -867,7 +867,7 @@ cercando per prefisso.
 Fino al 14/9/2026 stavano in una cartella temporanea di sessione, e il percorso
 della libreria era una **costante** che puntava dentro quella cartella. Quando
 le voci B4 e B5 hanno spostato le operazioni da `OpenPDM.SwAddin.Agente` a
-`Riscontro.Disegno`, il banco ha smesso di partire — e **non se n'e' accorto
+`Oce.Solid.Agent.Core`, il banco ha smesso di partire — e **non se n'e' accorto
 nessuno per tre giorni**, perche' viveva fuori dal repository e non lo lanciava
 piu' niente.
 

@@ -6,7 +6,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// L'ANCORA: un foro o una tasca su una faccia che seguono il bordo quando
@@ -754,7 +754,7 @@ namespace Riscontro.Disegno
         /// guess this file's own rule refuses. A candidate
         /// whose ID could not be read (null) proves nothing either.
         ///
-        /// Pure (numbers only, no interop), so Prove.Contratti can drive the
+        /// Pure (numbers only, no interop), so Oce.Solid.Agent.ContractTests can drive the
         /// duplicate case a bench case cannot build on purpose.
         /// <paramref name="candidatesXY"/> holds one {x, y} pair per candidate,
         /// in metres, only for the message; <paramref name="candidateIds"/> the
@@ -778,7 +778,7 @@ namespace Riscontro.Disegno
             if (sameId) return true;
 
             // A plain loop, not a LINQ projection: the obsolete-call scanner of
-            // Prove.Contratti reads a bare ".Select(" on an untyped receiver as
+            // Oce.Solid.Agent.ContractTests reads a bare ".Select(" on an untyped receiver as
             // the old selection call.
             var found = new List<string>();
             for (int c = 0; c < candidatesXY.Length; c++)
@@ -869,7 +869,7 @@ namespace Riscontro.Disegno
         /// and swAutosolveOff 7. With automatic solving off the refusal said the
         /// profile «would go where the solver puts it», which is not the
         /// trouble: the solver is not running. -1 is a status that could not be
-        /// read. Kept apart from the document so that Prove.Contratti can call it
+        /// read. Kept apart from the document so that Oce.Solid.Agent.ContractTests can call it
         /// without SOLIDWORKS.
         /// </summary>
         internal static string ConstrainedStatusRefusal(int status)

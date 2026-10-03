@@ -4,7 +4,7 @@ using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// CAMBIARE LA DEFINIZIONE DI UNA LAVORAZIONE FATTA (voce Z-F4), per
@@ -115,7 +115,7 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// The words of <see cref="ExtrusionReadBack"/>, kept apart from the
-        /// document so that Prove.Contratti can call it without SOLIDWORKS.
+        /// document so that Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         /// «Nothing changed» only when the end condition, the depth (for the
         /// conditions that have one) and the volume read now are the ones read
         /// before; -1 for an end condition and null for a volume mean «not
@@ -182,7 +182,7 @@ namespace Riscontro.Disegno
             // of an Instant3D feature (i.e., "ICE"), call IFeature::GetTypeName».
             // «ICE» e' un'estrusione fatta su una faccia, e puo' essere un taglio
             // (cylindrical_cut, rectangular_cut) o un RIALZO
-            // (extrude_on_face): StatoDocumento.cs lo misura dal 10/9/2026. Qui
+            // (extrude_on_face): DocumentState.cs lo misura dal 10/9/2026. Qui
             // «ICE» valeva «cut» e basta: un rialzo diventava «cut», e
             // «through_all» su un rialzo non veniva rifiutato; un «Cut» vero veniva
             // invece rifiutato. Per l'«ICE» taglio o rialzo lo dice la definizione:
@@ -195,7 +195,7 @@ namespace Riscontro.Disegno
             // piastra diventava «attraversa tutto» (blind_becomes_through,
             // passo 6, rosso nel banco intero del 28/9/2026 su 0.138.0). La pagina
             // non ha Remarks che lo dicano. MISURATO il 28/9/2026 (sonda
-            // Controlli/TipoDellEstrusione, SOLIDWORKS 29.5.1), prima e dopo
+            // Checks/ExtrusionType, SOLIDWORKS 29.5.1), prima e dopo
             // AccessSelections, stesse risposte:
             //   base (prima estrusione)   GetTypeName2 Extrusion  GetTypeName Extrusion  IsBossFeature false
             //   rialzo (FeatureExtrusion3) GetTypeName2 ICE       GetTypeName Boss       IsBossFeature true

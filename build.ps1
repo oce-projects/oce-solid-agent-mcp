@@ -1,18 +1,18 @@
 # =============================================================================
-#  Compila tutto e produce UN SOLO file: dist\Installa.exe
+#  Compila tutto e produce UN SOLO file: dist\Installer.exe
 # =============================================================================
 #
 #  Tre passi, in quest'ordine perche' il secondo dipende dal primo:
 #
 #    1. compila il ponte             -> bin\oce-solid-agent-mcp.exe
 #    2. lo mette in Installer\Payload\ come risorsa da incorporare
-#    3. compila l'installatore       -> dist\Installa.exe, che se lo porta dentro
+#    3. compila l'installatore       -> dist\Installer.exe, che se lo porta dentro
 #
 #  Il risultato e' un eseguibile unico da dare a chiunque: si scarica, doppio
 #  clic, e Claude parla con SOLIDWORKS. Nessun altro file da mettere accanto.
 #
 #  COSA FINISCE DENTRO: il ponte, il catalogo, la configurazione, le note
-#  legali E LE OPERAZIONI (Riscontro.Disegno.dll). Fino alla 0.5.0 le
+#  legali E LE OPERAZIONI (Oce.Solid.Agent.Core.dll). Fino alla 0.5.0 le
 #  operazioni stavano in OpenPDM.SwAddin.dll, codice privato che un pacchetto
 #  pubblico non poteva incorporare senza pubblicarlo: l'installatore doveva
 #  cercarlo sulla macchina di chi installa, e chi non ce l'aveva installava un
@@ -124,7 +124,7 @@ Passo "1b. Il catalogo"
 # -----------------------------------------------------------------------------
 # SI RIGENERA, NON SI SPERA.
 #
-# `catalogo.json` e' un PRODOTTO del catalogo C#. Finche' lo si rigenerava a
+# `catalog.json` e' un PRODOTTO del catalogo C#. Finche' lo si rigenerava a
 # mano — e prima serviva il server, docker e la rete — poteva restare indietro
 # rispetto al codice senza che nulla lo dicesse: il ponte avrebbe dichiarato
 # operazioni con descrizioni vecchie, o taciuto operazioni nuove.
@@ -132,17 +132,17 @@ Passo "1b. Il catalogo"
 # Qui si riscrive a ogni pacchetto, e se cambia lo si dice: un file che cambia
 # durante una build e' una cosa che chi guarda deve vedere, non una sorpresa
 # nel prossimo `git status`.
-& $msbuild (Join-Path $radice "Riscontro.Catalogo\Riscontro.Catalogo.csproj") -p:Configuration=Release -v:m -nologo @dove
+& $msbuild (Join-Path $radice "Oce.Solid.Agent.Catalog\Oce.Solid.Agent.Catalog.csproj") -p:Configuration=Release -v:m -nologo @dove
 if ($LASTEXITCODE -ne 0) { Muori "compilazione dell'esportatore del catalogo fallita" }
 
-$esportatore = Join-Path $radice "bin\Riscontro.Catalogo.exe"
-$catalogo = Join-Path $radice "Strumenti\catalogo.json"
+$esportatore = Join-Path $radice "bin\Oce.Solid.Agent.Catalog.exe"
+$catalogo = Join-Path $radice "Tools\catalog.json"
 $primaDi = $null
 if (Test-Path $catalogo) { $primaDi = [IO.File]::ReadAllBytes($catalogo) }
 
 # UN ESEGUIBILE CHE SCRIVE SU stderr NON E' UN ESEGUIBILE CHE FALLISCE.
 #
-# `Riscontro.Catalogo.exe` stampa su stderr la riga «[catalogo] scritto ...»,
+# `Oce.Solid.Agent.Catalog.exe` stampa su stderr la riga «[catalogo] scritto ...»,
 # che e' un resoconto e non un errore. Ma con `$ErrorActionPreference = 'Stop'`
 # PowerShell 5.1 avvolge ogni riga di stderr di un comando nativo in un
 # ErrorRecord (`NativeCommandError`) e FERMA lo script, anche con l'eseguibile
@@ -160,34 +160,34 @@ if ($esitoCatalogo -ne 0) { Muori "il catalogo non si e' scritto" }
 
 $dopoDi = [IO.File]::ReadAllBytes($catalogo)
 if ($null -eq $primaDi) {
-    Ok "catalogo.json scritto ($($dopoDi.Length) byte)"
+    Ok "catalog.json scritto ($($dopoDi.Length) byte)"
 } elseif ([Convert]::ToBase64String($primaDi) -eq [Convert]::ToBase64String($dopoDi)) {
-    Ok "catalogo.json invariato ($($dopoDi.Length) byte)"
+    Ok "catalog.json invariato ($($dopoDi.Length) byte)"
 } else {
-    Ok "catalogo.json RIGENERATO: $($primaDi.Length) -> $($dopoDi.Length) byte"
+    Ok "catalog.json RIGENERATO: $($primaDi.Length) -> $($dopoDi.Length) byte"
     Nota "era indietro rispetto al C#. Guarda il diff prima di committare."
 }
 
-# Il ponte legge quello che sta accanto a lui, non quello in Strumenti\.
-Copy-Item $catalogo (Join-Path $radice "bin\catalogo.json") -Force
+# Il ponte legge quello che sta accanto a lui, non quello in Tools\.
+Copy-Item $catalogo (Join-Path $radice "bin\catalog.json") -Force
 
 # -----------------------------------------------------------------------------
 Passo "1c. Le sonde"
 # -----------------------------------------------------------------------------
 # LE SONDE SI COMPILANO A OGNI PACCHETTO, e non per scrupolo.
 #
-# Misurato il 25/9/2026: `Controlli\NuovaParte` e `Controlli\CorpoRotto` non
+# Misurato il 25/9/2026: `Checks\NewPart` e `Checks\BrokenBody` non
 # compilavano dalla 0.86.0 — `Environment` ambiguo fra System e l'interop di
 # SOLIDWORKS — e nessuno se n'era accorto per tre versioni, perche'
-# `costruisci-controlli.ps1` si lancia a mano e nessuno lo lanciava. Una sonda
+# `build-checks.ps1` si lancia a mano e nessuno lo lanciava. Una sonda
 # che non compila e' una misura che non si puo' rifare il giorno che serve.
 # Costa tredici secondi.
 $vecchiaPreferenza = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $radice "Controlli\costruisci-controlli.ps1") *> $null
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $radice "Checks\build-checks.ps1") *> $null
 $esitoSonde = $LASTEXITCODE
 $ErrorActionPreference = $vecchiaPreferenza
-if ($esitoSonde -ne 0) { Muori "una sonda non compila: lancia .\Controlli\costruisci-controlli.ps1 per vedere quale" }
+if ($esitoSonde -ne 0) { Muori "una sonda non compila: lancia .\Checks\build-checks.ps1 per vedere quale" }
 Ok "tutte le sonde compilano"
 
 # -----------------------------------------------------------------------------
@@ -200,13 +200,13 @@ New-Item -ItemType Directory -Force -Path $payload | Out-Null
 # Quello che serve al ponte per girare, e le note legali che devono viaggiare
 # con il programma.
 #
-# `Riscontro.Disegno.dll` E' OBBLIGATORIO, non facoltativo: senza, il ponte
+# `Oce.Solid.Agent.Core.dll` E' OBBLIGATORIO, non facoltativo: senza, il ponte
 # si installa e poi non disegna. Un pacchetto che si monta e non funziona e'
 # peggio di uno che rifiuta di montarsi.
 $daPortare = @(
     @{ da = "bin\oce-solid-agent-mcp.exe";        a = "oce-solid-agent-mcp.exe";        obbligatorio = $true  },
-    @{ da = "bin\Riscontro.Disegno.dll";    a = "Riscontro.Disegno.dll";    obbligatorio = $true  },
-    @{ da = "bin\catalogo.json";            a = "catalogo.json";            obbligatorio = $true  },
+    @{ da = "bin\Oce.Solid.Agent.Core.dll";    a = "Oce.Solid.Agent.Core.dll";    obbligatorio = $true  },
+    @{ da = "bin\catalog.json";            a = "catalog.json";            obbligatorio = $true  },
     @{ da = "bin\oce-solid-agent-mcp.exe.config"; a = "oce-solid-agent-mcp.exe.config"; obbligatorio = $true  },
     @{ da = "LICENSE";                      a = "LICENSE";                  obbligatorio = $false },
     @{ da = "NOTICE";                       a = "NOTICE";                   obbligatorio = $false }
@@ -228,15 +228,15 @@ Ok ((Get-ChildItem $payload).Count.ToString() + " file da incorporare")
 # -----------------------------------------------------------------------------
 Passo "3. L'installatore"
 # -----------------------------------------------------------------------------
-& $msbuild (Join-Path $radice "Installer\Installa.csproj") -p:Configuration=Release -v:m -nologo @dove
+& $msbuild (Join-Path $radice "Installer\Installer.csproj") -p:Configuration=Release -v:m -nologo @dove
 if ($LASTEXITCODE -ne 0) { Muori "compilazione dell'installatore fallita" }
 
-$exe = Join-Path $radice "bin\Installa.exe"
-if (-not (Test-Path $exe)) { Muori "compilato senza errori ma Installa.exe non c'e'" }
+$exe = Join-Path $radice "bin\Installer.exe"
+if (-not (Test-Path $exe)) { Muori "compilato senza errori ma Installer.exe non c'e'" }
 
 $dist = Join-Path $radice "dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
-$finale = Join-Path $dist "Installa.exe"
+$finale = Join-Path $dist "Installer.exe"
 Copy-Item $exe $finale -Force
 
 # -----------------------------------------------------------------------------
@@ -248,12 +248,12 @@ Passo "Verifica"
 $grandePonte = (Get-Item $ponte).Length
 $grandeExe = (Get-Item $finale).Length
 if ($grandeExe -le $grandePonte) {
-    Muori ("Installa.exe e' " + [math]::Round($grandeExe / 1KB) + " kB ma il ponte da " +
+    Muori ("Installer.exe e' " + [math]::Round($grandeExe / 1KB) + " kB ma il ponte da " +
            "solo ne occupa " + [math]::Round($grandePonte / 1KB) + ": il carico non e' " +
            "stato incorporato. Controlla Installer\Payload\ e l'elemento " +
            "EmbeddedResource nel csproj.")
 }
-Ok ("Installa.exe  " + [math]::Round($grandeExe / 1KB) + " kB  (ponte incorporato)")
+Ok ("Installer.exe  " + [math]::Round($grandeExe / 1KB) + " kB  (ponte incorporato)")
 Nota $finale
 
 # IL CHECKSUM ACCANTO AL FILE, SEMPRE.
@@ -269,16 +269,16 @@ Nota $finale
 $impronta = (Get-FileHash $finale -Algorithm SHA256).Hash.ToLowerInvariant()
 $fileImpronta = $finale + ".sha256"
 Set-Content -Path $fileImpronta -Encoding ascii -NoNewline `
-    -Value ($impronta + "  Installa.exe`n")
-Ok ("Installa.exe.sha256  " + $impronta.Substring(0, 16) + "...")
+    -Value ($impronta + "  Installer.exe`n")
+Ok ("Installer.exe.sha256  " + $impronta.Substring(0, 16) + "...")
 Nota $fileImpronta
 
 Write-Host ""
 # ADESSO SI PUO' DIRE, PERCHE' E' VERO.
 # Questa riga ha detto per una versione «installabile da chiunque, usabile da
 # chi ha gia' l'add-in»: il carico non poteva contenere le operazioni, che
-# stavano in una DLL privata. Da quando stanno in Riscontro.Disegno.dll,
+# stavano in una DLL privata. Da quando stanno in Oce.Solid.Agent.Core.dll,
 # dentro questo repository, il carico se le porta. L'unica cosa che serve
 # sulla macchina di chi installa e' SOLIDWORKS, per le sue interop.
 Write-Host "  Un file solo. Dallo a chiunque abbia SOLIDWORKS." -ForegroundColor White
-Write-Host "  Prova:  .\dist\Installa.exe --aiuto" -ForegroundColor DarkGray
+Write-Host "  Prova:  .\dist\Installer.exe --aiuto" -ForegroundColor DarkGray

@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE SKETCH JUST DRAWN IS THE ONE BORN SINCE ITS CALLER OPENED IT
@@ -54,13 +54,13 @@ namespace Prove.Contratti
     /// </summary>
     internal static class Zc215SketchIdentityContract
     {
-        private const string Library = "Riscontro.Disegno";
+        private const string Library = "Oce.Solid.Agent.Core";
 
         private const BindingFlags Any =
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 
         /// <summary>The sources whose sketch lookups this group pins.</summary>
-        private static readonly string[] ThreeSources = { "OperazioniSw.cs", "OperazioniTesto.cs", "OperazioniPercorso.cs" };
+        private static readonly string[] ThreeSources = { "SwOperations.cs", "TextOperations.cs", "PathOperations.cs" };
 
         /// <summary>
         /// The library methods this group reads, written once in one prose
@@ -147,28 +147,28 @@ namespace Prove.Contratti
             // carries no prose of the sources it quotes.
             var changes = new[]
             {
-                Change("OperazioniSw.cs", "the last sketch of the tree again",
+                Change("SwOperations.cs", "the last sketch of the tree again",
                        "namesBeforeSketch, \"ProfileFeature\", out born);",
                        "namesBeforeSketch, \"Extrusion\", out born) ?? LastOfType(((IPartDoc)model).IFirstFeature(), \"ProfileFeature\");"),
-                Change("OperazioniPercorso.cs", "the sweep path falling back on the last sketch of the tree",
+                Change("PathOperations.cs", "the sweep path falling back on the last sketch of the tree",
                        "pathNamesBefore, \"3DProfileFeature\", out pathsBorn);",
                        "pathNamesBefore, \"3DProfileFeature\", out pathsBorn) ?? UltimoSchizzoFeature(null);"),
-                Change("OperazioniPercorso.cs", "the sweep path looked for as a 2D sketch",
+                Change("PathOperations.cs", "the sweep path looked for as a 2D sketch",
                        "\"3DProfileFeature\", out pathsBorn);",
                        "\"ProfileFeature\", out pathsBorn);"),
-                Change("OperazioniSw.cs", "a caller that passes no names",
+                Change("SwOperations.cs", "a caller that passes no names",
                        "sketchNamesBefore, out string erroreSel",
                        "null, out string erroreSel"),
-                Change("OperazioniSw.cs", "names taken again after the sketch was opened",
+                Change("SwOperations.cs", "names taken again after the sketch was opened",
                        ".InsertSketch(true);",
                        ".InsertSketch(true); sketchNamesBefore = FeatureNamesNow(null);"),
-                Change("OperazioniTesto.cs", "names that are not read from the tree",
+                Change("TextOperations.cs", "names that are not read from the tree",
                        "sketchNamesBefore = FeatureNamesNow(",
                        "sketchNamesBefore = new HashSet<string>("),
-                Change("OperazioniSw.cs", "the sketch to lock found with no names",
+                Change("SwOperations.cs", "the sketch to lock found with no names",
                        "sketchNamesBefore, out notaBlocco",
                        "null, out notaBlocco"),
-                Change("OperazioniPercorso.cs", "the second loft sketch with the names taken before the first",
+                Change("PathOperations.cs", "the second loft sketch with the names taken before the first",
                        "beforeSecondSketch, \"ProfileFeature\"",
                        "beforeFirstSketch, \"ProfileFeature\""),
             };
@@ -185,12 +185,12 @@ namespace Prove.Contratti
             Segna("no library loop keeps the last new feature of a type (the sketched bend, the rib)", loops.Count == 0,
                   loops.Count == 0 ? "none in " + sources.Count + " files" : string.Join(" | ", loops));
             var oldLoop = new Dictionary<string, string>(sources, StringComparer.OrdinalIgnoreCase);
-            oldLoop["OperazioniLamiera.cs"] = (oldLoop.ContainsKey("OperazioniLamiera.cs") ? oldLoop["OperazioniLamiera.cs"] : "") +
+            oldLoop["SheetMetalOperations.cs"] = (oldLoop.ContainsKey("SheetMetalOperations.cs") ? oldLoop["SheetMetalOperations.cs"] : "") +
                 "\n// seeded: if (f.GetTypeName2() == \"ProfileFeature\" && !before.Contains(f.Name)) sketch = f;\n";
             Segna("that check turns red on a copy with the old loop of the sketched bend", LastNewOfTypeLoops(oldLoop).Count == 1);
 
             // ── THE BUILT LIBRARY ────────────────────────────────────────
-            var library = Path.Combine(Radice(), Library, "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 string why = library + " is missing: build the library first (build.ps1)";
@@ -215,7 +215,7 @@ namespace Prove.Contratti
                 }
                 // From the bytes, as Zc215IdentityContract: the repository may sit
                 // on a network drive, where LoadFrom is refused.
-                sw = Assembly.Load(File.ReadAllBytes(library)).GetType("Riscontro.Disegno.OperazioniSw", false);
+                sw = Assembly.Load(File.ReadAllBytes(library)).GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex)
             {
@@ -337,11 +337,11 @@ namespace Prove.Contratti
 
             // 1. SchizzoAppenaCreato is FeatureBorn of a ProfileFeature on its own names.
             string sw;
-            if (!code.TryGetValue("OperazioniSw.cs", out sw)) { problems.Add("OperazioniSw.cs is not among the sources"); return problems; }
+            if (!code.TryGetValue("SwOperations.cs", out sw)) { problems.Add("SwOperations.cs is not among the sources"); return problems; }
             var header = Regex.Match(sw,
                 @"\bIFeature\s+" + SketchLookup + @"\(\s*IModelDoc2\s+(\w+)\s*,\s*HashSet<string>\s+(\w+)\s*,\s*out\s+int\s+(\w+)\s*\)");
             if (!header.Success)
-                problems.Add("SchizzoAppenaCreato(IModelDoc2, HashSet<string> names before the sketch, out int born) is not in OperazioniSw.cs");
+                problems.Add("SchizzoAppenaCreato(IModelDoc2, HashSet<string> names before the sketch, out int born) is not in SwOperations.cs");
             else
             {
                 int start, end;
@@ -415,7 +415,7 @@ namespace Prove.Contratti
                     string member = text.Substring(start, end - start);
                     if (IsMember(member, SketchLookup)) continue;   // rule 1
                     if (m.Groups["type"].Value == "3DProfileFeature" &&
-                        kv.Key.Equals("OperazioniPercorso.cs", StringComparison.OrdinalIgnoreCase)) sweepPaths++;
+                        kv.Key.Equals("PathOperations.cs", StringComparison.OrdinalIgnoreCase)) sweepPaths++;
                     string why = NamesTakenBefore(member, m.Index - start, m.Groups["names"].Value.Trim());
                     if (why != null) problems.Add(kv.Key + ":" + LineOf(text, m.Index) + ": FeatureBorn of a sketch " + why);
                 }
@@ -423,7 +423,7 @@ namespace Prove.Contratti
             if (wrapperCalls == 0)
                 problems.Add("no call of SelezionaSchizzoAppenaCreato or BloccaSchizzo found: the check would prove nothing");
             if (sweepPaths == 0)
-                problems.Add("OperazioniPercorso.cs: the sweep path is not FeatureBorn of a 3DProfileFeature");
+                problems.Add("PathOperations.cs: the sweep path is not FeatureBorn of a 3DProfileFeature");
             return problems;
         }
 

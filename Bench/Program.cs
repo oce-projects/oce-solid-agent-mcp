@@ -11,7 +11,7 @@ using System.Threading;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// Prova il DLL VERO dell'add-in contro SolidWorks, non una copia.
@@ -46,8 +46,8 @@ namespace ProvaSaldatura
         /// trappola.
         ///
         /// Puntava alla DLL **accanto all'eseguibile**. Ma il banco vero e'
-        /// `banco.ps1`, che compila e poi passa `--libreria` puntando a
-        /// `Riscontro.Disegno\bin\Release\` — quindi la copia accanto
+        /// `bench.ps1`, che compila e poi passa `--libreria` puntando a
+        /// `Oce.Solid.Agent.Core\bin\Release\` — quindi la copia accanto
         /// all'eseguibile non viene aggiornata da nessuno, e resta ferma
         /// all'ultima volta che qualcosa ce l'ha messa.
         ///
@@ -58,7 +58,7 @@ namespace ProvaSaldatura
         /// Erano nel sorgente e nelle altre due copie. *Il sintomo era
         /// perfetto e la causa non era nel codice.*
         ///
-        /// Adesso il predefinito e' lo STESSO percorso che usa `banco.ps1`,
+        /// Adesso il predefinito e' lo STESSO percorso che usa `bench.ps1`,
         /// e la copia accanto all'eseguibile resta solo come ripiego — se
         /// quella buona non c'e'. Cosi' lanciare l'eseguibile a mano misura
         /// il codice di adesso, che e' quello che chi lo lancia crede di
@@ -94,28 +94,28 @@ namespace ProvaSaldatura
         private static string LibreriaPredefinita()
         {
             var accanto = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".";
-            // `Banco\bin\` -> due su -> la radice del repository.
+            // `Bench\bin\` -> due su -> la radice del repository.
             try
             {
                 var radice = Path.GetFullPath(Path.Combine(accanto, "..", ".."));
-                var buona = Path.Combine(radice, "Riscontro.Disegno", "bin", "Release",
-                                         "Riscontro.Disegno.dll");
+                var buona = Path.Combine(radice, "Oce.Solid.Agent.Core", "bin", "Release",
+                                         "Oce.Solid.Agent.Core.dll");
                 if (File.Exists(buona)) return buona;
             }
             catch { }
-            return Path.Combine(accanto, "Riscontro.Disegno.dll");
+            return Path.Combine(accanto, "Oce.Solid.Agent.Core.dll");
         }
 
         /// <summary>I nomi dei tipi, dopo lo spostamento in libreria.</summary>
         /// <remarks>
         /// Erano `OpenPDM.SwAddin.Agente.*`. Le voci B4 e B5 hanno spostato le
-        /// operazioni in `Riscontro.Disegno`, e da allora questo banco
+        /// operazioni in `Oce.Solid.Agent.Core`, e da allora questo banco
         /// **non partiva piu'**: `GetType(..., true)` solleva su un tipo che
         /// non c'e'. Non se n'era accorto nessuno perche' il banco viveva
         /// fuori dal repository e non lo lanciava piu' niente — che e'
         /// esattamente il motivo per cui la voce F1 esiste.
         /// </remarks>
-        private const string NS = "Riscontro.Disegno.";
+        private const string NS = "Oce.Solid.Agent.Core.";
         /// <summary>
         /// I PROFILI NORMATI, che sono di chi lavora e non del repository.
         ///
@@ -241,7 +241,7 @@ namespace ProvaSaldatura
             if (dove >= 0 && dove + 1 < argomenti.Count)
             {
                 _libreria = argomenti[dove + 1];
-                // ONLY A DIFFERENT FILE IS «ANOTHER LIBRARY» (1/10/2026). banco.ps1
+                // ONLY A DIFFERENT FILE IS «ANOTHER LIBRARY» (1/10/2026). bench.ps1
                 // always passes --libreria, with the same path as
                 // LibreriaPredefinita, so taking every --libreria for another
                 // library skipped the reflection-log test on every full bench
@@ -383,7 +383,7 @@ namespace ProvaSaldatura
             if (!File.Exists(_libreria))
             {
                 Console.WriteLine("non trovo la libreria: " + _libreria);
-                Console.WriteLine("indicala con  --libreria <percorso di Riscontro.Disegno.dll>");
+                Console.WriteLine("indicala con  --libreria <percorso di Oce.Solid.Agent.Core.dll>");
                 return 1;
             }
 
@@ -439,8 +439,8 @@ namespace ProvaSaldatura
                 Console.WriteLine("  " + ex.GetType().Name + ": " + ex.Message);
                 Console.WriteLine();
                 Console.WriteLine("Non e' un giro rosso: e' una libreria che il banco non sa leggere.");
-                Console.WriteLine("Prima della 0.52.0 le operazioni stavano in «OpenPDM.SwAddin», " +
-                                  "con un altro spazio dei nomi: il confronto storico comincia da li'.");
+                Console.WriteLine("The historical comparison starts at library 0.150.1 (rename window 3, decision D11): before it " +
+                                  "the library had Italian names, and before 0.52.0 the operations lived in «OpenPDM.SwAddin».");
                 return 2;
             }
 
@@ -450,7 +450,7 @@ namespace ProvaSaldatura
             //
             // E SONO DUE NUMERI (voce F15). `NomiEseguibili` sono tutte quelle
             // che la libreria sa eseguire, comprese le `Provata = false` che
-            // `build.ps1` tiene fuori da `catalogo.json`. Fino alla 0.112.0 si
+            // `build.ps1` tiene fuori da `catalog.json`. Fino alla 0.112.0 si
             // stampava «catalogo: 73» e il catalogo servito ne aveva 71: il 24/9
             // un agente ha spiegato la differenza con «le due copie della
             // libreria divergono» — un tema vero del progetto, applicato al
@@ -464,7 +464,7 @@ namespace ProvaSaldatura
                 var nomi = ReflectionLog.Global.Field(_tOperazioni, "NomiEseguibili",
                     BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string[];
                 int aCatalogo = -1;
-                var catalogueType = ReflectionLog.Global.TypeIn(_addin, "Riscontro.Disegno.Catalogo.Operazioni");
+                var catalogueType = ReflectionLog.Global.TypeIn(_addin, "Oce.Solid.Agent.Core.Catalog.Operazioni");
                 var tutte = ReflectionLog.Global.Field(catalogueType, "Tutte", BindingFlags.Public | BindingFlags.Static)?
                     .GetValue(null) as System.Collections.IEnumerable;
                 if (tutte != null)
@@ -567,7 +567,7 @@ namespace ProvaSaldatura
                 // visibile, ma dopo.
                 _gruppoInCorso = gruppo.Nome;
                 try { gruppo.Corri(); }
-                catch (Condiviso.PreparazioneFallita ex)
+                catch (Shared.PreparazioneFallita ex)
                 {
                     // ── IL BUCO DI K17, TROVATO IL 24/9/2026 ─────────────
                     //
@@ -1011,7 +1011,7 @@ namespace ProvaSaldatura
             // SI CHIEDE A SOLIDWORKS, NON AL BANCO. La prima stesura contava
             // le aperture e le chiusure con un contatore interno, e sarebbe
             // stata sbagliata: i documenti si aprono in almeno quattro punti
-            // (`NuovaParte`, `NuovoAssieme`, `Apri`, la sessione) e si chiudono
+            // (`NewPart`, `NuovoAssieme`, `Apri`, la sessione) e si chiudono
             // in tre, uno dei quali prova DUE VOLTE apposta. Un contatore con
             // sette guardiani e' un contatore che un giorno dira' -1.
             // `GetDocumentCount()` e' la stessa domanda fatta a chi la
@@ -1152,7 +1152,7 @@ namespace ProvaSaldatura
             try
             {
                 // La cartella del banco si ricava come per il diario: il
-                // binario sta in `Banco/bin/`, quindi il padre e' `Banco/`.
+                // binario sta in `Bench/bin/`, quindi il padre e' `Bench/`.
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var dove = Path.Combine(banco != null ? banco.FullName : bin,
@@ -1206,7 +1206,7 @@ namespace ProvaSaldatura
         // banco non avrebbe cambiato niente — non c'e' nessun «da qualche
         // parte»: non c'era un file.
         //
-        // Adesso ce n'e' uno **del banco**, `Banco/in-corso.txt`, scritto e
+        // Adesso ce n'e' uno **del banco**, `Bench/in-corso.txt`, scritto e
         // svuotato riga per riga. `ultimo-giro.txt` resta cio' che era, e il
         // riepilogo di fine giro non cambia di una virgola: e' quello che
         // LEGGIMI documenta e che si guarda quando il giro e' finito.
@@ -1232,7 +1232,7 @@ namespace ProvaSaldatura
         private static readonly Stopwatch _cronometro = Stopwatch.StartNew();
 
         /// <summary>
-        /// Apre `Banco/in-corso.txt` accanto all'eseguibile, un livello sopra
+        /// Apre `Bench/in-corso.txt` accanto all'eseguibile, un livello sopra
         /// `bin\`. Se non ci riesce lo dice e si va avanti senza.
         /// </summary>
         private static void ApriIlDiario()
@@ -1309,7 +1309,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// UNA RIGA PER GIRO, in coda a `Banco/storico.txt` (voce F12).
+        /// UNA RIGA PER GIRO, in coda a `Bench/storico.txt` (voce F12).
         ///
         /// ── PERCHE' SERVE ────────────────────────────────────────────────
         ///
@@ -1415,8 +1415,8 @@ namespace ProvaSaldatura
         // THE TEST LEDGER (entry W3.1-bis.2, item 7)
         //
         // Every test by identity (File.cs:Method:ordinal), and the expectations
-        // checked per case, written to Banco/report/tests.json at the end of
-        // the run. The console and the files banco.ps1 reads do not change.
+        // checked per case, written to Bench/report/tests.json at the end of
+        // the run. The console and the files bench.ps1 reads do not change.
         //
         // LAZY, like the table of the document measures: a static initializer
         // runs before Main installs the resolver of the interop assemblies.
@@ -1487,7 +1487,7 @@ namespace ProvaSaldatura
 
         /// <summary>
         /// A test of its own, before the summary: every lookup by name that
-        /// would fall back to null in silence found its target (Banco/ReflectionLog.cs,
+        /// would fall back to null in silence found its target (Bench/ReflectionLog.cs,
         /// W3.1-bis.2 item 3). Against another library (`--libreria`) it is
         /// skipped and says so: an older library lacks newer names by design.
         /// </summary>
@@ -1519,7 +1519,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Writes Banco/report/tests.json and says where. A ledger that cannot
+        /// Writes Bench/report/tests.json and says where. A ledger that cannot
         /// be written is said on the console, like the other files of the report.
         /// </summary>
         private static void WriteTheTestLedger(string mode)
@@ -1547,8 +1547,8 @@ namespace ProvaSaldatura
         /// <summary>
         /// Quello che una prova non ha potuto misurare. Vedi ErroreDiBanco.
         /// </summary>
-        // `NonHoPotutoMisurare` sta in `Attese.cs`: la alza il valutatore, e
-        // quel file lo compila anche `Prove.Contratti`, dove SOLIDWORKS non c'e'.
+        // `NonHoPotutoMisurare` sta in `Expectations.cs`: la alza il valutatore, e
+        // quel file lo compila anche `Oce.Solid.Agent.ContractTests`, dove SOLIDWORKS non c'e'.
 
         private static int _saltate;
         private static int _erroriDiBanco;
@@ -1576,7 +1576,7 @@ namespace ProvaSaldatura
         /// Lo stato di un documento elenca `documents_open`, quindi la prova
         /// «state: sotto i 16 KB su un telaio da quattro barre» misura anche
         /// cio' che c'e' aperto oltre al telaio. Il 14/9/2026 sei parti
-        /// rimaste aperte da un giro di `corri_piani.js` valevano ~650
+        /// rimaste aperte da un giro di `run_plans.js` valevano ~650
         /// caratteri e portavano la prova da 15.628 a 16.280: **rossa senza
         /// che il codice fosse cambiato**, e mezz'ora spesa a cercare una
         /// regressione che non c'era.
@@ -1584,19 +1584,19 @@ namespace ProvaSaldatura
         /// Il 23/9/2026 e' successo di nuovo, con quindici documenti aperti e
         /// un giro intero — un'ora e un quarto — buttato.
         ///
-        /// **E il rimedio c'era, e girava.** `banco.ps1` chiama
-        /// `ChiudiScarti.exe --chiudi Banco\lavoro` al passo 3 di cinque, da
+        /// **E il rimedio c'era, e girava.** `bench.ps1` chiama
+        /// `CloseLeftovers.exe --chiudi Bench\lavoro` al passo 3 di cinque, da
         /// sempre, e lo dice in testa al file. A scavalcarlo e' stato un
-        /// `ProvaSaldatura.exe` lanciato a mano per passargli `--libreria`.
+        /// `Oce.Solid.Agent.Bench.exe` lanciato a mano per passargli `--libreria`.
         ///
-        /// **LA PROTEZIONE STAVA NEL GUSCIO.** Fuori da `banco.ps1` non c'era
-        /// niente, e fuori da `banco.ps1` ci si va esattamente quando si sta
+        /// **LA PROTEZIONE STAVA NEL GUSCIO.** Fuori da `bench.ps1` non c'era
+        /// niente, e fuori da `bench.ps1` ci si va esattamente quando si sta
         /// facendo qualcosa di particolare — una libreria diversa, un gruppo
         /// solo, un binario che c'e' gia'. *Una protezione che vive nel guscio
         /// si perde nel momento in cui si esce dal guscio, che e' il momento in
         /// cui serve di piu'.*
         ///
-        /// Adesso il passo 3 di `banco.ps1` e questo controllo dicono la stessa
+        /// Adesso il passo 3 di `bench.ps1` e questo controllo dicono la stessa
         /// cosa due volte, e va bene: il primo chiude in silenzio quel che sa
         /// essere scarto, il secondo si rifiuta di cominciare se e' rimasto
         /// qualcosa.
@@ -1652,7 +1652,7 @@ namespace ProvaSaldatura
                 Console.WriteLine("aperti, quindi questi farebbero fallire «state: sotto i 16 KB»");
                 Console.WriteLine("dopo un'ora di prove, senza che niente sia cambiato nel codice.");
                 Console.WriteLine();
-                Console.WriteLine("  .\\Banco\\bin\\ProvaSaldatura.exe --chiudi-gli-scarti");
+                Console.WriteLine("  .\\Bench\\bin\\Oce.Solid.Agent.Bench.exe --chiudi-gli-scarti");
                 Console.WriteLine();
                 Console.WriteLine("li chiude e parte. CloseDoc SCARTA le modifiche non salvate:");
                 Console.WriteLine("guarda l'elenco qui sopra prima di chiederlo.");
@@ -2088,7 +2088,7 @@ namespace ProvaSaldatura
                 //
                 // Lo stato elenca `documents_open`, quindi la misura dipende
                 // da cosa c'e' aperto in SOLIDWORKS oltre al telaio. Misurato
-                // il 14/9/2026: sei parti salvate da un giro di `corri_piani.js`
+                // il 14/9/2026: sei parti salvate da un giro di `run_plans.js`
                 // rimaste aperte valgono ~650 caratteri, e portano la prova da
                 // 15.628 a 16.280 — cioe' la fanno FALLIRE senza che il codice
                 // sia cambiato. Mezz'ora spesa a cercare una regressione che
@@ -2096,7 +2096,7 @@ namespace ProvaSaldatura
                 //
                 // `ChiudiScarti --chiudi` da solo non le chiude: risparmia
                 // apposta i documenti con un file. Ci vuole la cartella:
-                //   ChiudiScarti.exe --chiudi "...\Banco\lavoro"
+                //   CloseLeftovers.exe --chiudi "...\Bench\lavoro"
                 //
                 // Il numero si stampa SEMPRE, non solo quando fallisce: un
                 // messaggio che dice il criterio serve a leggere anche i verdi.
@@ -2227,14 +2227,14 @@ namespace ProvaSaldatura
 
                 var vista = doc.ActiveView as IModelView;
 
-                // ── LE NOVE STRADE STANNO IN `Controlli\ProvaVista` ──────
+                // ── LE NOVE STRADE STANNO IN `Checks\ViewTest` ──────
                 //
                 // Qui c'erano tre domande sul come si rimette a posto una
                 // vista, e ognuna e' costata un giro di banco da diciassette
                 // minuti per una risposta di tre secondi. Adesso stanno in un
                 // attrezzo a se':
                 //
-                //     Controlli\ProvaVista\bin\ProvaVista.exe
+                //     Checks\ViewTest\bin\ViewTest.exe
                 //
                 // che prova nove strade e stampa quali tornano. E' li' che va
                 // guardato se questa prova ridiventa rossa: dice anche **di
@@ -2698,10 +2698,10 @@ namespace ProvaSaldatura
         // Tre parti nuove che non nascono DI FILA non sono tre prove
         // rosse: sono SOLIDWORKS che non c'e' piu'. Il perche', e il giro
         // di un'ora e mezza che e' costata la sua mancanza, stanno in
-        // `Condiviso/SentinellaSolidWorks.cs`.
+        // `Shared/SolidWorksSentinel.cs`.
         // ══════════════════════════════════════════════════════════════
-        internal static readonly Condiviso.SentinellaSolidWorks Sentinella =
-            new Condiviso.SentinellaSolidWorks(3);
+        internal static readonly Shared.SentinellaSolidWorks Sentinella =
+            new Shared.SentinellaSolidWorks(3);
 
         /// <summary>
         /// `--fingi-senza-solidworks`: NewDocument risponde null comunque.
@@ -2858,8 +2858,8 @@ namespace ProvaSaldatura
         // stretto trasformerebbe una prova lenta in un falso allarme, e un
         // falso allarme spegne il guardiano il giorno dopo.
         // ══════════════════════════════════════════════════════════════
-        internal static readonly Condiviso.Guinzaglio Guinzaglio =
-            new Condiviso.Guinzaglio(90000);
+        internal static readonly Shared.Guinzaglio Guinzaglio =
+            new Shared.Guinzaglio(90000);
 
         private static System.Threading.Thread _guardiano;
 
@@ -2911,7 +2911,7 @@ namespace ProvaSaldatura
             // cosi' che il giro delle 15:36 e' rimasto appeso invece di
             // finire male in fretta.
             if (Sentinella.SeNEAndato)
-                throw new Condiviso.PreparazioneFallita(Sentinella.Referto());
+                throw new Shared.PreparazioneFallita(Sentinella.Referto());
 
             string tpl = ModelloInLocale(_sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplatePart));
@@ -2932,7 +2932,7 @@ namespace ProvaSaldatura
             if (nata != null) { Sentinella.Riuscita(); return nata; }
 
             if (Sentinella.Fallita())
-                throw new Condiviso.PreparazioneFallita(Sentinella.Referto());
+                throw new Shared.PreparazioneFallita(Sentinella.Referto());
 
             // Uno o due di fila: puo' ancora essere il pezzo, non il
             // programma. Il messaggio resta quello della F12.
@@ -2966,7 +2966,7 @@ namespace ProvaSaldatura
         private static T OppureDillo<T>(T cosa, string quale) where T : class
         {
             if (cosa != null) return cosa;
-            throw new Condiviso.PreparazioneFallita(
+            throw new Shared.PreparazioneFallita(
                 "SOLIDWORKS non ha prodotto " + quale + " (ha risposto null). " +
                 "Non e' la prova a essere fallita: e' il banco che non e' " +
                 "riuscito a preparare il pezzo. Guarda quanti documenti sono " +

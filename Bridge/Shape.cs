@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-namespace Oce.Solid.Agent.Ponte
+namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
     /// GLI ARGOMENTI RISPETTANO LO SCHEMA CHE IL CATALOGO DICHIARA?
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.Ponte
             // Teaching every comparison in the library to ignore case would
             // leave the next one to be forgotten; rewriting the value here
             // covers them all, because this is the one door every step of
-            // «build» comes through (Strumenti/Attrezzi.cs).
+            // «build» comes through (Tools/McpTools.cs).
             //
             // An exact match wins. Otherwise the one value that differs only
             // in case. Two such values (a catalogue spelling one word two

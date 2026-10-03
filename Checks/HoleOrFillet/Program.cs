@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.ForoOppureRaccordo
+namespace Checks.HoleOrFillet
 {
     /// <summary>
     /// UNA FACCIA CILINDRICA E' UN FORO O UN RACCORDO? (misura per la voce E14)
@@ -35,7 +35,7 @@ namespace Controlli.ForoOppureRaccordo
     /// spigolo, e stampa per ogni faccia cilindrica cosa rispondono
     /// `FaceInSurfaceSense()` e la normale letta in un punto.
     ///
-    ///     Controlli\ForoOppureRaccordo\bin\ForoOppureRaccordo.exe
+    ///     Checks\HoleOrFillet\bin\HoleOrFillet.exe
     ///
     /// Se i due casi rispondono uguale, il criterio non esiste e la voce E14 va
     /// riscritta. Se rispondono diverso, il numero che li separa e' qui sotto e

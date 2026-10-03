@@ -15,7 +15,7 @@ namespace Oce.Solid.Agent.Installer
     /// %USERPROFILE%\.claude.json, adding its entry and writing the whole file
     /// back. That file is not a configuration file Claude Code reads once: a
     /// running Claude Code rewrites it on its own. Measured on 1 October 2026
-    /// with Controlli/claude-json-watch.js (read only) while Claude Code was
+    /// with Checks/claude-json-watch.js (read only) while Claude Code was
     /// running on this machine: 5 rewrites in 180 seconds, the shortest gap
     /// about 20 seconds, no lock file beside it, and a leftover
     /// `.claude.json.tmp.&lt;pid&gt;.&lt;hex&gt;`, i.e. Claude Code writes a temporary

@@ -5,7 +5,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA DISTINTA BASE E LA BOLLATURA IN TAVOLA (voce GT9).
@@ -892,7 +892,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// How many notes AutoBalloon5 returned (finding M39): the non-null
         /// items of its array, or -1 when it returned no array. No interop type
-        /// in the signature, so that Prove.Contratti can call it by reflection.
+        /// in the signature, so that Oce.Solid.Agent.ContractTests can call it by reflection.
         /// </summary>
         internal static int BalloonNotesReturned(object returned)
         {

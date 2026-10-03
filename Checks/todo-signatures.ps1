@@ -1,8 +1,8 @@
 # =============================================================================
-#  firme-del-todo.ps1 - le API citate nel TODO esistono davvero?
+#  todo-signatures.ps1 - le API citate nel TODO esistono davvero?
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come banco.ps1 e per la stessa ragione.
+#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
 #
 #  PERCHE' ESISTE
 #
@@ -39,8 +39,8 @@
 #  regex piu' larga: **e' scrivere il tipo davanti al metodo nel TODO.**
 #
 #  USO
-#      .\Controlli\firme-del-todo.ps1
-#      .\Controlli\firme-del-todo.ps1 -Tutte     anche quelle che ci sono
+#      .\Checks\todo-signatures.ps1
+#      .\Checks\todo-signatures.ps1 -Tutte     anche quelle che ci sono
 # =============================================================================
 
 param([switch]$Tutte)

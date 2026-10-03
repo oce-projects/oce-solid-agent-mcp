@@ -1,6 +1,6 @@
 // E14 — `hole_face` prende un foro, e non un raccordo.
 //
-//   node prova_faccia_foro.js
+//   node test_face_hole.js
 //
 // PERCHE' QUI E NON NEL BANCO. `face_ref: {passo, genere}` nomina un passo
 // dello STESSO piano, e il banco esegue un'operazione per volta: li' il
@@ -18,7 +18,7 @@
 // facce cilindriche come un foro**. Un passo che ne lasciava esattamente una, e
 // quella era un raccordo, la restituiva senza dire niente.
 //
-// Il criterio e' geometrico e misurato (`Controlli\ForoOppureRaccordo`): la
+// Il criterio e' geometrico e misurato (`Checks\HoleOrFillet`): la
 // parete di un foro e' CONCAVA, la superficie di un raccordo esterno e'
 // convessa.
 const { spawn, spawnSync } = require("child_process");
@@ -26,7 +26,7 @@ const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
+const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
 
 const PIASTRA = {
   operation: "extrude_rectangle",

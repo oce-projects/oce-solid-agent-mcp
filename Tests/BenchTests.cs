@@ -5,9 +5,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// IL BANCO E' STATO LANCIATO SU QUESTA VERSIONE? (voce F9)
@@ -20,8 +20,8 @@ namespace Prove.Contratti
     /// compra a due ore, invece del runner con licenza che non si compra
     /// affatto.
     ///
-    /// L'unica prova che il banco sia girato e' `Banco/report/last.json`,
-    /// che `banco.ps1` scrive a ogni giro ed e' l'unico file di `report/`
+    /// L'unica prova che il banco sia girato e' `Bench/report/last.json`,
+    /// che `bench.ps1` scrive a ogni giro ed e' l'unico file di `report/`
     /// versionato.
     ///
     /// ── E IL DIFETTO SILENZIOSO DA TEMERE ───────────────────────────────
@@ -38,12 +38,12 @@ namespace Prove.Contratti
         {
             Gruppo("il banco e' stato lanciato su questa versione");
 
-            var file = Path.Combine(Radice(), "Banco", "report", "last.json");
+            var file = Path.Combine(Radice(), "Bench", "report", "last.json");
             if (!File.Exists(file))
             {
                 Segna("il banco e' stato eseguito", false,
                       "il banco non e' stato eseguito su questa versione: manca " + file +
-                      ". Si lancia con .\\Banco\\banco.ps1");
+                      ". Si lancia con .\\Bench\\bench.ps1");
                 return;
             }
             Segna("il banco e' stato eseguito", true, file);
@@ -115,8 +115,8 @@ namespace Prove.Contratti
                 // rispondeva a una domanda diversa da quella che sembrava:
                 // non «questo banco e' verde» ma «un banco di qualche ora fa
                 // lo era».
-                GuardaIlTocco("le operazioni", "Riscontro.Disegno", quando.Value);
-                GuardaIlTocco("il banco", "Banco", quando.Value);
+                GuardaIlTocco("le operazioni", "Oce.Solid.Agent.Core", quando.Value);
+                GuardaIlTocco("il banco", "Bench", quando.Value);
             }
 
             // Fuori dall'`if`: la regola si prova anche quando il resoconto
@@ -148,7 +148,7 @@ namespace Prove.Contratti
         {
             try
             {
-                var f = Path.Combine(Radice(), "Riscontro.Disegno", "Properties", "AssemblyInfo.cs");
+                var f = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "Properties", "AssemblyInfo.cs");
                 if (!File.Exists(f)) return null;
                 var m = Regex.Match(File.ReadAllText(f),
                                     @"AssemblyVersion\(""([0-9]+\.[0-9]+\.[0-9]+)");
@@ -168,7 +168,7 @@ namespace Prove.Contratti
         ///
         /// ── PRIMA QUESTO CONTROLLO NON POTEVA PASSARE MAI ─────────────────
         ///
-        /// Chiedeva `git log -1 -- Riscontro.Disegno` e confrontava quella data
+        /// Chiedeva `git log -1 -- Oce.Solid.Agent.Core` e confrontava quella data
         /// con l'ora del giro. Ma il giro si lancia, scrive `last.json`, e
         /// POI si committa tutto insieme — libreria e resoconto nello stesso
         /// commit. La data del commit e' quindi per costruzione posteriore
@@ -191,7 +191,7 @@ namespace Prove.Contratti
         /// qualcuno ha cambiato il codice e non ha rilanciato.
         ///
         /// Quindi si scorrono i commit sulla libreria e ci si ferma al primo
-        /// che non tocca anche `Banco/report/last.json`.
+        /// che non tocca anche `Bench/report/last.json`.
         /// </summary>
         /// <summary>
         /// «Git non ha risposto» e «non c'e' niente da trovare» erano lo
@@ -284,7 +284,7 @@ namespace Prove.Contratti
         /// una finestra in cui il controllo diceva **«non c'e' niente di non
         /// provato»** guardando un albero pieno di roba mai passata al banco.
         ///
-        /// Misurato il 23/9/2026: `Riscontro.Disegno/Catalogo/Operazioni.cs`
+        /// Misurato il 23/9/2026: `Oce.Solid.Agent.Core/Catalog/Operations.cs`
         /// toccato alle 19:18, ultimo giro del banco alle 15:23, e il
         /// controllo **verde** — perche' l'ultimo *commit* su quella cartella
         /// era del 15/9. Verde per il motivo sbagliato, che e' il modo in cui
@@ -372,7 +372,7 @@ namespace Prove.Contratti
                 // grezze punisce chi spiega*.
                 //
                 // ATTENZIONE A COSA **NON** SI SALTA: i `.json` di
-                // `Banco/cases/` sono DATI che cambiano cosa il banco misura,
+                // `Bench/cases/` sono DATI che cambiano cosa il banco misura,
                 // e restano contati. Si salta solo `.md`.
                 if (nome.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
 
@@ -432,13 +432,13 @@ namespace Prove.Contratti
             // `.json`, cambiano cosa il banco misura, e devono continuare a
             // pretendere un giro nuovo.
             Segna("un LEGGIMI toccato dopo il giro non lo invalida",
-                  SoloIlCodice(new[] { "Banco/LEGGIMI.md" }).Count == 0,
+                  SoloIlCodice(new[] { "Bench/README.md" }).Count == 0,
                   "una riga di documentazione non cambia cosa fa il banco");
             Segna("ma un caso dichiarato si'",
-                  SoloIlCodice(new[] { "Banco/cases/bodies/x.json" }).Count == 1,
+                  SoloIlCodice(new[] { "Bench/cases/bodies/x.json" }).Count == 1,
                   "un `.json` di `cases/` e' un DATO: cambia cosa si misura");
             Segna("e un sorgente pure",
-                  SoloIlCodice(new[] { "Banco/Program.cs" }).Count == 1,
+                  SoloIlCodice(new[] { "Bench/Program.cs" }).Count == 1,
                   "l'eccezione e' stretta a `.md` e non si allarga da sola");
 
             // ── A COMMIT CARRIES A RUN ONLY IF THE RUN'S TIMESTAMP CHANGES ──
@@ -471,7 +471,7 @@ namespace Prove.Contratti
             // And on the real history: the commit that moved the report must
             // not count as a delivery.
             string rename = ReportRenameCommit();
-            // Always one check, so the count in Prove/LEGGIMI.md holds on a
+            // Always one check, so the count in Tests/README.md holds on a
             // squashed history too (where there is no rename to look at).
             Segna("the commit that moved the report is not a delivery",
                   rename == null || !CommitPortaIlResoconto(rename),
@@ -518,7 +518,7 @@ namespace Prove.Contratti
         // Both paths, on purpose: the marker keeps window-1-cases.js from
         // rewriting the old one into the new one on a rerun.
         private static readonly string[] ReportPaths =
-            { "Banco/report/last.json", "Banco/resoconto/ultimo.json" }; // window-1: keep
+            { "Bench/report/last.json", "Banco/resoconto/ultimo.json" }; // window-1: keep
 
         /// <summary>
         /// The verdict, apart from git so it can be made to fail on purpose:

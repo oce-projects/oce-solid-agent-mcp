@@ -1,8 +1,8 @@
 // Raccoglie il materiale della misura V2: per ogni forma, le IMMAGINI e lo
 // STATO TESTUALE, ognuno in un file.
 //
-//   node raccogli_viste.js                 tutte le forme in cases/views
-//   node raccogli_viste.js cases/views/2_open_shell.json
+//   node collect_views.js                 tutte le forme in cases/views
+//   node collect_views.js cases/views/2_open_shell.json
 //
 // PERCHE' UN RACCOGLITORE E NON UNA PROVA. La voce V2 chiede una misura che
 // questo programma NON puo' fare: dare a un modello **solo** le immagini, poi
@@ -11,7 +11,7 @@
 // condizioni, in modo che la differenza fra le tre sia solo cio' che si vuole
 // misurare.
 //
-// COSA SCRIVE, in `Banco/viste/`:
+// COSA SCRIVE, in `Bench/viste/`:
 //
 //   <forma>-isometrica.png
 //   <forma>-frontale.png  <forma>-superiore.png  <forma>-destra.png
@@ -26,7 +26,7 @@ const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
+const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
 const USCITA = path.join(__dirname, "viste");
 
 // DUE CHIAMATE, NON UNA: il ponte ne da' al massimo tre per volta, ed e' un

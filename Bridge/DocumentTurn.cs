@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
-namespace Oce.Solid.Agent.Ponte
+namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
     /// UN PONTE ALLA VOLTA SU UNO STESSO DOCUMENTO (voce W2.9).

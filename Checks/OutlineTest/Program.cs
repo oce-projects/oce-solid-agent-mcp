@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Riscontro.Disegno;
+using Oce.Solid.Agent.Core;
 
-namespace Controlli.ProvaSagoma
+namespace Checks.OutlineTest
 {
     /// <summary>
     /// LA GEOMETRIA DELLE SAGOME, CONTROLLATA SENZA SOLIDWORKS.
@@ -19,7 +19,7 @@ namespace Controlli.ProvaSagoma
     /// sbatte. Meta' dei casi qui sotto sono sagome legittime, e devono
     /// passare.
     ///
-    ///     Controlli\ProvaSagoma\bin\ProvaSagoma.exe
+    ///     Checks\OutlineTest\bin\OutlineTest.exe
     ///
     /// Esce 0 se torna tutto, 1 se no.
     /// </summary>

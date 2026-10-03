@@ -5,7 +5,7 @@ using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// SOSTITUIRE UN COMPONENTE (voce GA7).

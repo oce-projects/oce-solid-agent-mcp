@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Web.Script.Serialization;
-using Riscontro.Disegno.Catalogo;
+using Oce.Solid.Agent.Core.Catalog;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// THE NAMES OF BEFORE THE RENAME, ACCEPTED ON INPUT UNTIL THE FIRST RELEASE
@@ -22,7 +22,7 @@ namespace Riscontro.Disegno
     /// catalogue and `describe_operation` speak English only, and reflection
     /// never comes through here.
     ///
-    /// The dictionary is the name map itself (Controlli/lingua/name-map.tsv,
+    /// The dictionary is the name map itself (Checks/language/name-map.tsv,
     /// embedded in this assembly as `name-map.tsv`): the same rows that renamed
     /// the surface translate the old names to it, so the two cannot disagree.
     /// An argument is translated only to a name the schema has at the level
@@ -32,9 +32,9 @@ namespace Riscontro.Disegno
     /// value the schema lists.
     ///
     /// REMOVED IN W3.1-bis.11, before the tag: this file, the embedded map in
-    /// Riscontro.Disegno.csproj, the calls in OperazioniSw.Esegui,
-    /// Strumenti/Attrezzi.cs and Banco/Attese.cs, the cases of
-    /// Banco/cases/aliases and the contract AliasLayerContract.
+    /// Oce.Solid.Agent.Core.csproj, the calls in OperazioniSw.Esegui,
+    /// Tools/McpTools.cs and Bench/Expectations.cs, the cases of
+    /// Bench/cases/aliases and the contract AliasLayerContract.
     /// </summary>
     public static class Alias
     {
@@ -71,7 +71,7 @@ namespace Riscontro.Disegno
 
         // Read once, when the class is first used (the runtime runs a static
         // initializer once and on one thread). Not a Lazy<T>: its member is a
-        // name the obsolete-call scanner cannot decide (Prove/ObsoleteCallsContract.cs).
+        // name the obsolete-call scanner cannot decide (Tests/ObsoleteCallsContract.cs).
         private static readonly Table _table = Load();
 
         private static int _uses;
@@ -166,7 +166,7 @@ namespace Riscontro.Disegno
             Interlocked.Increment(ref _uses);
             // at the end of the list; `Insert` and not `Add`, a name the
             // obsolete-call scanner cannot decide on a receiver that is not
-            // a SOLIDWORKS interface (Prove/ObsoleteCallsContract.cs)
+            // a SOLIDWORKS interface (Tests/ObsoleteCallsContract.cs)
             if (notes != null)
                 notes.Insert(notes.Count, "«" + old + "» is deprecated, use «" + now + "» (the Italian names are accepted until the first release)");
         }

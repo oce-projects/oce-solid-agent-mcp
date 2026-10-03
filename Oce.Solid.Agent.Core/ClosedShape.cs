@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Dove sta un punto rispetto al bordo di una sagoma.

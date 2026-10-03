@@ -7,10 +7,10 @@ numeri attesi accanto a ogni passo. Servono a fissare il comportamento di oggi
 Si lanciano cosi', su un documento vuoto:
 
 ```
-Controlli\ChiudiScarti\bin\ChiudiScarti.exe --chiudi
-Controlli\NuovaParte\bin\NuovaParte.exe
-node Banco\corri_piani.js Banco\cases\bridge\e2_block.json
-node Banco\corri_piani.js Banco\cases\bridge\e2_case_a.json
+Checks\CloseLeftovers\bin\CloseLeftovers.exe --chiudi
+Checks\NewPart\bin\NewPart.exe
+node Bench\run_plans.js Bench\cases\bridge\e2_block.json
+node Bench\run_plans.js Bench\cases\bridge\e2_case_a.json
 ```
 
 ---

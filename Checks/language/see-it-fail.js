@@ -6,15 +6,15 @@
 //  A check never seen failing is not a check. For each repair of the review
 //  of W3.1-bis.1 this script switches the repair off in the working tree (one
 //  textual mutation of the detector, the lexicon or the CI step), runs the
-//  contract suite (Prove\bin\Prove.Contratti.exe, with PROVE_SENZA_INTEROP=1)
+//  contract suite (Tests\bin\Oce.Solid.Agent.ContractTests.exe, with PROVE_SENZA_INTEROP=1)
 //  and expects the checks that guard that repair to go red. The file is put
 //  back after every run, whatever happens.
 //
-//      node Controlli/lingua/see-it-fail.js            all mutations (about a minute each)
-//      node Controlli/lingua/see-it-fail.js --check    only verify that every mutation applies
-//      node Controlli/lingua/see-it-fail.js D4 G2      only these
+//      node Checks/language/see-it-fail.js            all mutations (about a minute each)
+//      node Checks/language/see-it-fail.js --check    only verify that every mutation applies
+//      node Checks/language/see-it-fail.js D4 G2      only these
 //
-//  Needs Prove\bin\Prove.Contratti.exe built from this tree. Exit 0 when every
+//  Needs Tests\bin\Oce.Solid.Agent.ContractTests.exe built from this tree. Exit 0 when every
 //  mutation turned all its checks red, 1 otherwise.
 // =============================================================================
 'use strict';
@@ -24,9 +24,9 @@ const path = require('path');
 const cp = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const DET = 'Controlli/lingua/detect-italian.js';
-const LEX = 'Controlli/lingua/lexicon.json';
-const GATE = '.github/passi/language-gate.ps1';
+const DET = 'Checks/language/detect-italian.js';
+const LEX = 'Checks/language/lexicon.json';
+const GATE = '.github/steps/language-gate.ps1';
 // escapes are built, so that no editing tool turns them into characters
 const U = (hex) => String.fromCharCode(92) + 'u' + hex;
 const TYPO = '/[' + U('2019') + U('02bc') + ']/g';
@@ -70,7 +70,7 @@ const MUTATIONS = [
     edits: [["      if (e.class !== 'detector-lexicon') fail(where + ': json_path is allowed only for the class detector-lexicon');", '']],
     red: ['a json_path outside the class detector-lexicon is refused'] },
   { id: 'D13', what: 'json_path on any file', file: DET,
-    edits: [["fail(where + ': a json_path exception must name exactly one file of Controlli/lingua/ (^Controlli/lingua/<name>$)');", '{}']],
+    edits: [["fail(where + ': a json_path exception must name exactly one file of Checks/language/ (^Checks/language/<name>$)');", '{}']],
     red: ['a json_path over a folder of cases is refused'] },
   { id: 'D14', what: 'a pattern may match a function word', file: DET,
     edits: [["          if (out.full.test(form)) fail(where + ': pattern matches the Italian function word \"' + form + '\" on its own: too wide');", '']],
@@ -107,7 +107,7 @@ function mutate(text, edits) {
 }
 
 function runSuite() {
-  const exe = path.join(ROOT, 'Prove', 'bin', 'Prove.Contratti.exe');
+  const exe = path.join(ROOT, 'Tests', 'bin', 'Oce.Solid.Agent.ContractTests.exe');
   const r = cp.spawnSync(exe, [], { cwd: ROOT, encoding: 'utf8', env: Object.assign({}, process.env, { PROVE_SENZA_INTEROP: '1' }), maxBuffer: 64 << 20 });
   const lines = (r.stdout || '').split(/\r?\n/);
   return lines.filter(l => /^\s+NO\s/.test(l));

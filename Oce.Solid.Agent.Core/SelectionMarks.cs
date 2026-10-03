@@ -1,4 +1,4 @@
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// THE SELECTION MARKS, ONE TABLE FOR EVERY API THAT READS THEM (Z-C21.6,
@@ -11,7 +11,7 @@ namespace Riscontro.Disegno
     /// the mirror was simply not created). The marks lived as bare numbers at
     /// the call sites, each one checked, or not, against its own page.
     ///
-    /// THE RULES OF THIS TABLE, checked by Prove.Contratti (SelectionMarksContract):
+    /// THE RULES OF THIS TABLE, checked by Oce.Solid.Agent.ContractTests (SelectionMarksContract):
     ///   - every constant cites the guide page it comes from ("Guide:") and
     ///     quotes, between « », the words of the page that give that number;
     ///   - a mark the guide does not document is allowed only as UNDOCUMENTED,
@@ -125,7 +125,7 @@ namespace Riscontro.Disegno
         /// <summary>The faces a shell removes.</summary>
         /// Guide: IModelDoc2~InsertFeatureShell.html, «select faces to remove ... with Marks of 1».
         /// DIVERGES: L4-4 — the shell selects with no mark (Select4(true, null),
-        /// OperazioniSw.cs), measured working with one face
+        /// SwOperations.cs), measured working with one face
         /// (e15_shell_from_reference). Not used by the code yet: moving the
         /// shell to this mark is Z-C21.7, behind the shell cases.
         public const int ShellFacesToRemove = 1;

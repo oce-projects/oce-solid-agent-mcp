@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>I tre esiti possibili di un controllo sulle posizioni.</summary>
     public enum EsitoPosizioni
@@ -59,7 +59,7 @@ namespace Riscontro.Disegno
     ///     cilindriche richiede il COM; decidere cosa farne no. Separati, il
     ///     secondo pezzo si puo' provare a tavolino — compreso il caso
     ///     «zero assi trovati», che con SOLIDWORKS acceso non si sa come
-    ///     costringere a capitare. `Controlli\ProvaPosizioni` lo fa.
+    ///     costringere a capitare. `Checks\PositionsTest` lo fa.
     ///
     /// La chiave nell'esito e' DIVERSA, non `false`: `positions_not_checked`
     /// col motivo dentro. Un `positions_checked = false` sarebbe stato letto

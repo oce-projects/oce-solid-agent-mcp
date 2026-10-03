@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Oce.Solid.Agent.Ponte
+namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
     /// DOVE SI PUO' SCRIVERE.

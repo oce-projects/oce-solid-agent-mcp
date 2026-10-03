@@ -1,8 +1,8 @@
 // Conta le voci del TODO, e dice i numeri che il TODO stesso dichiara.
 //
-//     node Controlli/conta-todo.js            i numeri
-//     node Controlli/conta-todo.js --righe    e anche quali voci sono aperte
-//     node Controlli/conta-todo.js --blocchi  e COSA le blocca, una per una
+//     node Checks/count-todo.js            i numeri
+//     node Checks/count-todo.js --righe    e anche quali voci sono aperte
+//     node Checks/count-todo.js --blocchi  e COSA le blocca, una per una
 //
 // ── PERCHE' «COSA LE BLOCCA» E NON SOLO «QUANTE» ─────────────────────────
 //
@@ -46,7 +46,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { trovaIlTodo } = require("./dov-e-il-todo.js");
+const { trovaIlTodo } = require("./where-is-the-todo.js");
 const file = trovaIlTodo(path.join(__dirname, ".."), process.argv);
 if (!file) process.exit(0);
 const mostraRighe = process.argv.includes("--righe");
@@ -90,7 +90,7 @@ const aperte = voci.filter((v) => v.stato === " ");
 // La regola del TODO (in testa al file) e': una traccia perde la casella e
 // diventa `(com'era)`. Quindi una traccia CON la casella non e' da contare
 // a parte: e' un difetto del file, e lo script esce 1. Lo stesso
-// riconoscimento di Prove/Programma.cs, perche' due regole per la stessa
+// riconoscimento di Tests/Program.cs, perche' due regole per la stessa
 // cosa divergono.
 const TRACCIA = /traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta/i;
 const tracce = voci.filter((v) => TRACCIA.test(v.titolo) && !/FATTO il/.test(v.titolo));

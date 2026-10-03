@@ -4,7 +4,7 @@ using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA RIPETIZIONE A RIEMPIMENTO. (voce W1.1, residuo di GP14)
@@ -48,7 +48,7 @@ namespace Riscontro.Disegno
     ///   ...IFillPatternFeatureData~Margins.html: «distance between the fill
     ///     boundary and the outermost pattern instance; 0 for no margin».
     ///
-    /// ── LA SONDA, LANCIATA IL 28/9/2026 (Controlli\Riempimento\Programma.cs) ──
+    /// ── LA SONDA, LANCIATA IL 28/9/2026 (Checks\Fill\Program.cs) ──
     ///
     /// Piastra 100 x 60 x 12, un foro passante Ø8 a 30 mm dal centro (603,2 mm3),
     /// SOLIDWORKS 29.5.1:
@@ -264,7 +264,7 @@ namespace Riscontro.Disegno
                     "Non ti confermo una cosa diversa da quella che hai chiesto." +
                     TogliIlRiempimento(modello, feature, volumePrima));
 
-            // Le guardie comuni (OperazioniGuardie.cs): lavorazioni in errore,
+            // Le guardie comuni (GuardOperations.cs): lavorazioni in errore,
             // ricostruzione, corpi, aperture che escono dal bordo o si fondono.
             // Le aperture si contano: una copia che morde il bordo della faccia o
             // si fonde con un'altra le fa calare.
@@ -398,7 +398,7 @@ namespace Riscontro.Disegno
         /// La direzione gia' validata, riselezionata con la marca 1 IN AGGIUNTA
         /// alla lavorazione. Uno spigolo con `IEntity.Select4` e un
         /// `SelectData` con `Mark = 1`: la chiamata della sonda
-        /// (Controlli\Riempimento, `Mark(selMgr, 1)`), la stessa di
+        /// (Checks\Fill, `Mark(selMgr, 1)`), la stessa di
         /// `Seleziona(gestore, faccia, marca)` per la faccia di contorno. Un asse
         /// di riferimento per feature (`Select2` con la marca): la sonda non ne
         /// ha usati, ed e' detto nel catalogo.

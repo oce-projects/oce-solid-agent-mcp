@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE IMPORT CHAIN OF model_dimensions STOPS AT THE MARKED MASKS (N9)
@@ -16,9 +16,9 @@ namespace Prove.Contratti
     /// NOT-MARKED bit), and InsertModelDimensions(0) with a view selected
     /// brought 2 more. No bench case can build that part: every extrusion
     /// depth is born marked, and the bridge marks the sketch dimensions it
-    /// places (OperazioniSw.cs, QuotaSegmenti). So the chain keeps its
+    /// places (SwOperations.cs, QuotaSegmenti). So the chain keeps its
     /// decisions in the ModelImport* members of OperazioniSw
-    /// (OperazioniTavola.cs), and this group reads them from the BUILT
+    /// (DrawingOperations.cs), and this group reads them from the BUILT
     /// library by reflection: no SOLIDWORKS. It also reads the source of
     /// QuoteDalModello, because members that nobody calls would keep this
     /// group green after a revert of the call sites to literals.
@@ -40,7 +40,7 @@ namespace Prove.Contratti
 
             TheMethodCallsTheMembers();
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the import chain of model_dimensions, from the library",
@@ -65,7 +65,7 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
             if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
@@ -125,20 +125,20 @@ namespace Prove.Contratti
         // ── the call sites, in the source ────────────────────────────────────
         private static void TheMethodCallsTheMembers()
         {
-            var file = Path.Combine(Radice(), "Riscontro.Disegno", "OperazioniTavola.cs");
+            var file = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "DrawingOperations.cs");
             string text;
             try { text = File.ReadAllText(file); }
-            catch (Exception ex) { Segna("OperazioniTavola.cs can be read", false, ex.Message); return; }
+            catch (Exception ex) { Segna("DrawingOperations.cs can be read", false, ex.Message); return; }
 
             // The anchor is the comment that opens the chain inside the method,
             // right before the masks: every call checked below comes after it.
             const string anchor = "The masks, and every fallback below, come from the ModelImport";
             int start = text.IndexOf(anchor, StringComparison.Ordinal);
-            if (start < 0) { Segna("the import chain of model_dimensions is in OperazioniTavola.cs", false, "anchor comment «" + anchor + "» not found"); return; }
+            if (start < 0) { Segna("the import chain of model_dimensions is in DrawingOperations.cs", false, "anchor comment «" + anchor + "» not found"); return; }
             // Up to the closing brace of the method, the first one at the
             // indentation of a class member (eight spaces).
             int end = text.IndexOf("\n        }", start, StringComparison.Ordinal);
-            if (end < 0) { Segna("QuoteDalModello ends in OperazioniTavola.cs", false, "closing brace not found"); return; }
+            if (end < 0) { Segna("QuoteDalModello ends in DrawingOperations.cs", false, "closing brace not found"); return; }
             string body = text.Substring(start, end - start);
 
             var missing = new[]

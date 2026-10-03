@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA TABELLA FORI IN TAVOLA (voce GT5).
@@ -374,7 +374,7 @@ namespace Riscontro.Disegno
                 // DeleteSelection2 E NON EditDelete: EditDelete chiede conferma con
                 // una finestra, e la chiamata COM non torna (vedi OperazioniSw,
                 // SenzaLoSchizzo). Era l'unica rimasta, trovata dal workflow W-S il
-                // 27/9/2026; adesso il divieto e' in Prove/ProveLeFirmeVietate.
+                // 27/9/2026; adesso il divieto e' in Tests/ProveLeFirmeVietate.
                 if (ann != null && ann.Select3(false, null))
                     modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                 modello.ClearSelection2(true);

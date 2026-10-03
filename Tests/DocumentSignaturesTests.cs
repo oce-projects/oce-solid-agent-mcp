@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// TRE CAMPI CHE DEVONO PARLARE DELLO STESSO PEZZO (voce Z-A1).
@@ -121,7 +121,7 @@ namespace Prove.Contratti
                   "venticinque righe di commento fra le firme e `_guardato`");
 
             // ── POI: IL SORGENTE VERO ────────────────────────────────────
-            var file = Path.Combine(Radice(), "Strumenti", "Attrezzi.cs");
+            var file = Path.Combine(Radice(), "Tools", "McpTools.cs");
             if (!File.Exists(file))
             {
                 Segna("il sorgente del ponte c'e'", false, "manca " + file);

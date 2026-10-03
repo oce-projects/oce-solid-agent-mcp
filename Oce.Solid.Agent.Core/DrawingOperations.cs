@@ -5,7 +5,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA TAVOLA.
@@ -357,7 +357,7 @@ namespace Riscontro.Disegno
             // THE BRIDGE MARKS THE HOLES SOLIDWORKS LEFT BARE (Z-C21.13). A view
             // that shows holes end-on and has no centre mark at all after the
             // rebuild gets them from the walk the centre-mark operation uses
-            // (MarkHolesOfView, OperazioniCentrini.cs), and the answer says how
+            // (MarkHolesOfView, CenterMarkOperations.cs), and the answer says how
             // many the bridge added. The online search of 29/9/2026 (RAG note
             // 82zz-decies) found no documented fix, only conditions that suppress
             // the automatic marks in silence: draft quality views ("Some edges may
@@ -630,7 +630,7 @@ namespace Riscontro.Disegno
             // The masks, and every fallback below, come from the ModelImport*
             // members after this method (Z-C21.3, findings M2 and N9): with
             // all_dimensions false no step may carry the NOT-MARKED bit or
-            // ignore the mask. Prove.Contratti (Zc212DrawingContract) reads the
+            // ignore the mask. Oce.Solid.Agent.ContractTests (Zc212DrawingContract) reads the
             // method from the first line of this comment to its closing brace.
             var maschere = ModelImportMasks(tutte);
 
@@ -844,10 +844,10 @@ namespace Riscontro.Disegno
         // ── THE IMPORT CHAIN OF model_dimensions, AS VALUES (Z-C21.3: M2, N9) ──
         //
         // Small static members with no interop in the signature, so that
-        // Prove.Contratti (Zc212DrawingContract) reads them by reflection. The
+        // Oce.Solid.Agent.ContractTests (Zc212DrawingContract) reads them by reflection. The
         // situation of N9, a part with NOTHING marked for drawing, cannot be
         // built by a bench case: every extrusion depth is born marked, and the
-        // bridge marks the sketch dimensions it places (OperazioniSw.cs,
+        // bridge marks the sketch dimensions it places (SwOperations.cs,
         // QuotaSegmenti).
         //
         // The bits (swInsertAnnotation_e): swInsertDimensions = 8,

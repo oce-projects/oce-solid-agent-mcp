@@ -6,7 +6,7 @@
 
 ## Perche' esiste, e perche' prima del codice
 
-Il banco di `Banco/cases/` esegue piani **gia' scritti da una persona**: misura
+Il banco di `Bench/cases/` esegue piani **gia' scritti da una persona**: misura
 la libreria, e lo fa bene. Ma non risponde alla domanda che conta davvero —
 *il modello, da solo, riesce a fare il pezzo?*
 
@@ -27,7 +27,7 @@ compito         cosa si chiede, in italiano d'officina, come lo direbbe
                 qualcuno al banco. NIENTE nomi di operazioni, niente
                 argomenti, niente numeri che non direbbe un umano.
 
-come_si_misura  le attese, nella stessa forma dei casi di `Banco/cases/`:
+come_si_misura  le attese, nella stessa forma dei casi di `Bench/cases/`:
                 `cosa`, `uguale`/`contiene`, `perche`. Si valutano sul pezzo
                 FINITO, non sui passi: al modello non si dice come arrivarci.
 ```
@@ -93,7 +93,7 @@ outcomes without SOLIDWORKS.
 be NOT DONE and «at most one task worse» could not fail. So the scorer reads
 every answer and every state through the name map (the rows `response_field`,
 `operation`, `enum_value`, `response_value`, with the sites of
-`Controlli/lingua/window-2-surface.js`), `--read-state` reads the state with the
+`Checks/language/window-2-surface.js`), `--read-state` reads the state with the
 tool the bridge has (`inspect_part`, or `guarda_il_pezzo` before the rename), <!-- window-2: keep -->
 `run.json` records the bridge's version and protocol, a run in which no session
 gave a single outcome is refused instead of scored, and `--compare` refuses a
@@ -102,7 +102,7 @@ self-test has a session of the bridge before that must score RIGHT (seen red
 with the reading through the map switched off: 3 checks fail).
 
 **Each session sees the bridge and nothing else**: an empty temporary folder of
-its own (so no `Banco/tasks/NN_*.md` with the expected answers, no cases, no
+its own (so no `Bench/tasks/NN_*.md` with the expected answers, no cases, no
 project memory), no built-in tool (`--tools ""`), no settings file
 (`--setting-sources ""`), no skill, the bridge as the only MCP server. The user
 `~/.claude/CLAUDE.md` is skipped only with `--bare`, which needs
@@ -123,15 +123,15 @@ Italian version is not in the repository; `<it>` below is its folder.
 
 ```powershell
 # before: the bridge of the snapshot (the catalogue before the rename), built in a worktree of 9384b2c
-.\Banco\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label before `
+.\Bench\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label before `
     -Bridge <worktree of 9384b2c>\bin\oce-solid-agent-mcp.exe -Between '<close the documents>'
 # after: this bridge
-.\Banco\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label after -Between '<close the documents>'
-.\Banco\tasks\run-autonomous.ps1 -Language en -Repeats 1 -Label after -Between '<close the documents>'
-node Banco\tasks\score-autonomous.js Banco\report\autonomous\<stamp>-it-before
-node Banco\tasks\score-autonomous.js Banco\report\autonomous\<stamp>-it-after
-node Banco\tasks\score-autonomous.js Banco\report\autonomous\<stamp>-en-after
-node Banco\tasks\score-autonomous.js --compare Banco\report\autonomous\<stamp>-it-before Banco\report\autonomous\<stamp>-it-after
+.\Bench\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label after -Between '<close the documents>'
+.\Bench\tasks\run-autonomous.ps1 -Language en -Repeats 1 -Label after -Between '<close the documents>'
+node Bench\tasks\score-autonomous.js Bench\report\autonomous\<stamp>-it-before
+node Bench\tasks\score-autonomous.js Bench\report\autonomous\<stamp>-it-after
+node Bench\tasks\score-autonomous.js Bench\report\autonomous\<stamp>-en-after
+node Bench\tasks\score-autonomous.js --compare Bench\report\autonomous\<stamp>-it-before Bench\report\autonomous\<stamp>-it-after
 ```
 
 If the run after is worse, the name is changed, not the threshold.

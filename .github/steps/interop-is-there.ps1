@@ -9,7 +9,7 @@
 #  nascere la voce F9-bis e' "la CI non e' mai girata": scrivere PowerShell
 #  dentro un YAML che nessuno esegue e' lo stesso difetto spostato di un
 #  livello -- un errore di sintassi si scoprirebbe alla prima corsa, cioe' mai.
-#  In un `.ps1` lo prende `Controlli\controlla-workflow.ps1`, che gira in
+#  In un `.ps1` lo prende `Checks\check-workflow.ps1`, che gira in
 #  locale, e lo si puo' lanciare a mano.
 #
 #  SI CERCA DOVE CERCA MSBUILD, NELLO STESSO ORDINE. La domanda e' esattamente

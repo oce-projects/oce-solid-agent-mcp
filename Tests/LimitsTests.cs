@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Web.Script.Serialization;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// UN LIMITE MISURATO CHE LA DESCRIZIONE NON DICE COSTA UN TURNO A VUOTO
@@ -111,7 +111,7 @@ namespace Prove.Contratti
         {
             Gruppo("i limiti misurati e le descrizioni che li dichiarano (Z-G5, Z-C11)");
 
-            var cartella = Path.Combine(Radice(), "Banco", "cases");
+            var cartella = Path.Combine(Radice(), "Bench", "cases");
             if (!Directory.Exists(cartella))
             {
                 Segna("la cartella dei casi c'e'", false, "manca " + cartella);
@@ -238,7 +238,7 @@ namespace Prove.Contratti
                         var gem = ((Dictionary<string, object>)dv0).TryGetValue("twin", out g0) ? Convert.ToString(g0) : null;
                         object dich;
                         bool nelPezzo = ((Dictionary<string, object>)dv0).TryGetValue(
-                            ProvaSaldatura.Attese.CampoDifferenzaNelPezzo, out dich);
+                            Oce.Solid.Agent.Bench.Attese.CampoDifferenzaNelPezzo, out dich);
                         if (!string.IsNullOrEmpty(gem) && nelPezzo)
                             rifiutiNelPezzo.Add(Tuple.Create(nome, opNome,
                                 argN as Dictionary<string, object> ?? new Dictionary<string, object>(), gem,
@@ -340,7 +340,7 @@ namespace Prove.Contratti
                     continue;
                 }
                 string perche;
-                if (!ProvaSaldatura.Attese.SiSomigliano(r.Item3, suoi, out perche))
+                if (!Oce.Solid.Agent.Bench.Attese.SiSomigliano(r.Item3, suoi, out perche))
                     lontane.Add(r.Item1 + " -> " + r.Item4 + ": " + perche);
             }
             // Le gemelle dichiarate sul pezzo: il primo passo riuscito della
@@ -367,7 +367,7 @@ namespace Prove.Contratti
                 object argG;
                 ((Dictionary<string, object>)passiG[dove]).TryGetValue("arguments", out argG);
                 string perche;
-                if (!ProvaSaldatura.Attese.SiSomiglianoNelPezzo(r.Item3,
+                if (!Oce.Solid.Agent.Bench.Attese.SiSomiglianoNelPezzo(r.Item3,
                         argG as Dictionary<string, object> ?? new Dictionary<string, object>(),
                         passiMiei.Take(r.Item5).ToList(), passiG.Take(dove).ToList(), r.Item6, out perche))
                     lontane.Add(r.Item1 + " -> " + r.Item4 + ": " + perche);
@@ -469,7 +469,7 @@ namespace Prove.Contratti
 
             OgniOperazioneHaUnCasoVerde(
                 new HashSet<string>(testoDi.Keys, StringComparer.Ordinal), casiPerOp,
-                Path.Combine(Radice(), "Banco", "report", "last.json"));
+                Path.Combine(Radice(), "Bench", "report", "last.json"));
         }
 
         /// <summary>

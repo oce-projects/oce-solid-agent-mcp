@@ -1,6 +1,6 @@
 // How often does a running Claude Code rewrite %USERPROFILE%\.claude.json?
 //
-//     node Controlli\claude-json-watch.js [seconds] [file]
+//     node Checks\claude-json-watch.js [seconds] [file]
 //
 // Entry H19, lot L2 (B5). The installer used to wire Claude Code by reading the
 // whole file, adding its entry and writing the whole file back. If a Claude

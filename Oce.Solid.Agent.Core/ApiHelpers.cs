@@ -4,7 +4,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// ONE PLACE FOR EACH API PATTERN THAT THE Z-C21 AUDIT FOUND REPEATED
@@ -21,7 +21,7 @@ namespace Riscontro.Disegno
     /// one API per commit behind its bank cases. Where a helper still calls an
     /// obsolete member, the comment says which one, why it is still the one in
     /// use, and what changes after the probe; the call is also in the frozen
-    /// list of the static check (Prove/ObsoleteCallsContract.cs).
+    /// list of the static check (Tests/ObsoleteCallsContract.cs).
     ///
     /// Helpers throw what the API throws: the call sites already wrap SOLIDWORKS
     /// calls in try/catch with their own message, and a helper that swallowed
@@ -405,7 +405,7 @@ namespace Riscontro.Disegno
         /// library 0.144.0 this comment said that order was «measured on the
         /// face fillet», and it was not: the face fillet selects AFTER
         /// CreateDefinition and Initialize, just before CreateFeature (probe
-        /// Controlli\RaccordoDiFaccia\Programma.cs, step 4 of its recipe, and
+        /// Checks\FaceFillet\Program.cs, step 4 of its recipe, and
         /// OperazioniRaccordoFaccia, 28/9/2026), and that is the order measured
         /// to work there. The only feature measured
         /// both ways is the fill pattern: selections before CreateDefinition (A)

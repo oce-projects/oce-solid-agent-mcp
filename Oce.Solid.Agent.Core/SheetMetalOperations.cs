@@ -5,14 +5,14 @@ using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA LAMIERA (voce GP18): la flangia base e lo sviluppo per il taglio.
     ///
     /// ── LA MISURA CHE L'HA RESA COSTRUIBILE, 24/9/2026 ─────────────────────
     ///
-    /// `Controlli/Lamiera`: una L da 50 + 30, profonda 40, T 2, R 2, K 0,5
+    /// `Checks/SheetMetal`: una L da 50 + 30, profonda 40, T 2, R 2, K 0,5
     /// riletti dalla lamiera. Lo sviluppo esce 80,712 mm, e il conto a mano con
     /// lo schizzo sulle facce INTERNE da' 80,712 — scarto zero; con le facce
     /// esterne 76,712. Volume piegato e sviluppato uguali. **La convenzione e'
@@ -34,7 +34,7 @@ namespace Riscontro.Disegno
     ///     before calling.
     ///  3. Lo schizzo si disegna con `AddToDB` a vero: le relazioni che
     ///     SOLIDWORKS indovina da solo sovravincolano alla prima modifica
-    ///     (misurato con `Controlli/SeguiIlBordo`).
+    ///     (misurato con `Checks/FollowTheEdge`).
     /// </summary>
     public partial class OperazioniSw
     {
@@ -211,7 +211,7 @@ namespace Riscontro.Disegno
         /// OffsetDistance 25, flat 80.712 -> 102.425 on the L of the bench case.
         ///
         /// The obsolete call had been measured on 25-26/9/2026
-        /// (`Controlli/FlangiaSpigolo`, ten attempts): it was born and added
+        /// (`Checks/EdgeFlange`, ten attempts): it was born and added
         /// material only with a RECTANGLE on the plane of the flange (the head
         /// face), L - T high, and there the profile governed the length. With
         /// the new recipe OffsetDistance governs it (E3: offset 35 gives

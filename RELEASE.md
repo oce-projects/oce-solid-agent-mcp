@@ -21,13 +21,13 @@ are checked by a script.
 
 **1. The version is bumped and the bench is green.** `VERSION.txt` says the new
 version, `CHANGELOG.md` has an entry for it, and if the library changed its
-`AssemblyVersion` moved too. The bench ran on those bytes: `Banco\banco.ps1`,
+`AssemblyVersion` moved too. The bench ran on those bytes: `Bench\bench.ps1`,
 about seventy minutes, exit 0. Everything is committed and pushed.
 
 **2. Prepare.**
 
 ```
-.\Controlli\prepara-release.ps1
+.\Checks\prepare-release.ps1
 ```
 
 It stops at the first thing that is not right, and publishes nothing. It
@@ -37,8 +37,8 @@ checks that:
 - the working tree is clean and `HEAD` is `origin/main` — a binary must come
   from a commit that others can resolve;
 - the tag does not exist yet;
-- `build.ps1` succeeds and `dist\Installa.exe` exists;
-- the SHA-256 in `dist\Installa.exe.sha256` is **recomputed** and matches — it
+- `build.ps1` succeeds and `dist\Installer.exe` exists;
+- the SHA-256 in `dist\Installer.exe.sha256` is **recomputed** and matches — it
   is the value people will check against, so a stale one would tell everyone
   their download had been tampered with;
 - the contract suite is green, which includes "the version the bridge announces
@@ -53,7 +53,7 @@ It writes the release notes for this version, taken from `CHANGELOG.md`, to
 ```
 git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
-gh release create vX.Y.Z dist\Installa.exe dist\Installa.exe.sha256 --title "vX.Y.Z" --notes-file dist\note-di-rilascio-X.Y.Z.md
+gh release create vX.Y.Z dist\Installer.exe dist\Installer.exe.sha256 --title "vX.Y.Z" --notes-file dist\note-di-rilascio-X.Y.Z.md
 ```
 
 The script does not run these on purpose: publishing is an action outside this
@@ -61,10 +61,10 @@ machine, and it is decided, not scripted.
 
 ## Known gaps
 
-- `Installa.exe` is **not code-signed**. Windows SmartScreen will warn; the
+- `Installer.exe` is **not code-signed**. Windows SmartScreen will warn; the
   steps to get past it are in QUICKSTART. Signing is a decision about buying a
   certificate, not a missing step.
-- The Win32 file version of `Installa.exe` and of the bridge reads `0.0.0.0` in
+- The Win32 file version of `Installer.exe` and of the bridge reads `0.0.0.0` in
   *Properties → Details*: the real version is an embedded resource read at run
   time. Someone checking "which version did I download" that way will not find
   it.

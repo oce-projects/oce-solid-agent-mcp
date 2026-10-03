@@ -1,13 +1,13 @@
-# Rigenerare `catalogo.json`
+# Rigenerare `catalog.json`
 
-Il catalogo vive in `Riscontro.Disegno/Catalogo/Operazioni.cs`, **accanto al
-codice che esegue le operazioni**. `catalogo.json` e' un prodotto: si rigenera,
+Il catalogo vive in `Oce.Solid.Agent.Core/Catalog/Operations.cs`, **accanto al
+codice che esegue le operazioni**. `catalog.json` e' un prodotto: si rigenera,
 non si modifica a mano.
 
 ## Il comando
 
 ```bash
-.\bin\Riscontro.Catalogo.exe Strumenti\catalogo.json
+.\bin\Oce.Solid.Agent.Catalog.exe Tools\catalog.json
 ```
 
 Nient'altro. Non serve il server, non serve docker, non serve la rete.
@@ -16,7 +16,7 @@ Per controllare senza scrivere — utile prima di un commit, e in una build
 automatica:
 
 ```bash
-.\bin\Riscontro.Catalogo.exe --controlla Strumenti\catalogo.json
+.\bin\Oce.Solid.Agent.Catalog.exe --controlla Tools\catalog.json
 ```
 
 Esce 0 se combacia, 1 se no. E quando non combacia dice **dove**: la posizione
@@ -71,7 +71,7 @@ riletto» — avrebbe lasciato passare una descrizione accorciata, e le descrizi
 sono l'interfaccia vera verso il modello, molto piu' degli schemi.
 
 Da qui in avanti la stessa forma serve a un'altra cosa: tenere il `diff` di
-`catalogo.json` leggibile quando cambia una riga sola.
+`catalog.json` leggibile quando cambia una riga sola.
 
 ## Come accorgersi che e' vecchio
 
@@ -83,7 +83,7 @@ Il ponte scrive all'avvio, su stderr:
 
 Il numero qui sopra e' quello del 16 settembre 2026 ed e' solo un **esempio di
 come si legge la riga**: quello che conta e' confrontarlo con quante ne dichiara
-il `catalogo.json` che si sta usando, non con questo. *Un numero scritto dentro
+il `catalog.json` che si sta usando, non con questo. *Un numero scritto dentro
 un documento invecchia da solo* — era `36` fino a oggi, mentre le operazioni
 erano gia' sessanta, e nessuno poteva accorgersene leggendo.
 

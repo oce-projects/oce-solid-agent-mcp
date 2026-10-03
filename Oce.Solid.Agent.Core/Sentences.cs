@@ -1,4 +1,4 @@
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LE FRASI CHE RICORRONO, scritte una volta sola.

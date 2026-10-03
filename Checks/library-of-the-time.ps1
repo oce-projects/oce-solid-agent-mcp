@@ -10,19 +10,22 @@
 #  quella libreria, e ricompilarla a mano vuol dire cercare il commit, fare un
 #  worktree, compilare, ricordarsi di cancellarlo.
 #
-#      .\Controlli\libreria-di-allora.ps1 0.70.0
-#      -> ...\libreria-di-allora\0.70.0\Riscontro.Disegno.dll
+#      .\Checks\library-of-the-time.ps1 0.70.0
+#      -> ...\libreria-di-allora\0.70.0\Oce.Solid.Agent.Core.dll
 #
-#      .\Banco\banco.ps1 -Libreria <quel percorso> -Gruppo casi
+#      .\Bench\bench.ps1 -Libreria <quel percorso> -Gruppo casi
 #
 #  PERCHE' FUNZIONA, E DA QUANDO. In questo repository **un commit e' una
 #  versione**: `git log` su `AssemblyInfo.cs` mostra una riga per numero, senza
 #  salti. La DLL non va quindi conservata da nessuna parte -- si ricostruisce.
 #
-#  IL CONFRONTO STORICO COMINCIA DALLA 0.52.0, e non e' una scelta: prima di
-#  allora le operazioni stavano in `OpenPDM.SwAddin` con un altro spazio dei
-#  nomi, e il banco non le trova. Misurato sulla 0.30.2: il banco lo dice e
-#  esce 2, invece di piantarsi. Quel treno e' passato.
+#  THE HISTORICAL COMPARISON STARTS AT LIBRARY 0.150.1 (rename window 3,
+#  decision D11). Before it the library, its namespaces, its types and the
+#  case names had Italian names, and the bench of today reads none of them;
+#  before 0.52.0 the operations lived in `OpenPDM.SwAddin`. The bench says
+#  so and exits 2 instead of crashing (measured on 0.30.2). A defect guarded
+#  before 0.150.1 is proven red on the library of that time with the bench
+#  of that time (its own commit), not with this one.
 # =============================================================================
 
 param(
@@ -59,9 +62,9 @@ if ($Pulisci) {
 # Si cerca dentro AssemblyInfo.cs, non nei messaggi di commit: il messaggio lo
 # scrive una persona, la riga `AssemblyVersion` la legge il compilatore.
 $commit = $null
-$storia = git -C $Radice log --format=%H -- Riscontro.Disegno/Properties/AssemblyInfo.cs
+$storia = git -C $Radice log --format=%H -- Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs
 foreach ($c in $storia) {
-    $testo = git -C $Radice show ($c + ":Riscontro.Disegno/Properties/AssemblyInfo.cs") 2>$null
+    $testo = git -C $Radice show ($c + ":Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs") 2>$null
     if ($testo -match ('AssemblyVersion\("' + [regex]::Escape($Versione) + '\.0"\)')) {
         $commit = $c
         break
@@ -69,7 +72,7 @@ foreach ($c in $storia) {
 }
 if ($commit -eq $null) {
     Muori ("nessun commit dichiara AssemblyVersion " + $Versione + ".0. " +
-           "Le versioni si leggono con:  git log --format='%h %s' -- Riscontro.Disegno/Properties/AssemblyInfo.cs")
+           "Le versioni si leggono con:  git log --format='%h %s' -- Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs")
 }
 Write-Output ("versione " + $Versione + " -> commit " + $commit.Substring(0, 7))
 
@@ -90,20 +93,20 @@ foreach ($p in @(
 }
 if ($msbuild -eq $null) { Muori "non trovo MSBuild" }
 
-& $msbuild (Join-Path $Dove "Riscontro.Disegno\Riscontro.Disegno.csproj") `
+& $msbuild (Join-Path $Dove "Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj") `
     /p:Configuration=Release /v:m /nologo | Out-Null
 if ($LASTEXITCODE -ne 0) {
     Muori ("la libreria di allora non compila. Non e' un giro rosso: e' una " +
            "versione che oggi non si ricostruisce, e va detto invece di girarci intorno.")
 }
 
-$dll = Join-Path $Dove "Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll"
+$dll = Join-Path $Dove "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll"
 if (-not (Test-Path $dll)) { Muori ("compilata, ma non trovo " + $dll) }
 
 Write-Output ""
 Write-Output $dll
 Write-Output ""
 Write-Output "si usa cosi':"
-Write-Output ("  .\Banco\banco.ps1 -Libreria """ + $dll + """ -Gruppo casi -SaltaCompilazione")
+Write-Output ("  .\Bench\bench.ps1 -Libreria """ + $dll + """ -Gruppo casi -SaltaCompilazione")
 Write-Output ""
-Write-Output ("e si toglie cosi':  .\Controlli\libreria-di-allora.ps1 " + $Versione + " -Pulisci")
+Write-Output ("e si toglie cosi':  .\Checks\library-of-the-time.ps1 " + $Versione + " -Pulisci")

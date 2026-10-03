@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// CROCI DI CENTRO SUI FORI IN TAVOLA (voce W2.11).

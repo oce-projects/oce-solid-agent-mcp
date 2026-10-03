@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using SolidWorks.Interop.sldworks;
 
-namespace Controlli.ApiQuote
+namespace Checks.DimensionApis
 {
     /// <summary>
     /// QUALI API PARLANO DI ANNOTAZIONI E QUOTE, lette dall'interop.
@@ -20,7 +20,7 @@ namespace Controlli.ApiQuote
     /// cio' che trova va poi provato vivo: una firma che esiste non e' una
     /// chiamata che funziona.
     ///
-    ///     ApiQuote.exe [parola]      predefinito: annotation
+    ///     DimensionApis.exe [parola]      predefinito: annotation
     /// </summary>
     internal static class Programma
     {

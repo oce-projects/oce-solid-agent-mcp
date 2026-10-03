@@ -1,9 +1,9 @@
 # =============================================================================
-#  firme-api.ps1 - cosa dice l'INTEROP, non la pagina di documentazione
+#  signatures-api.ps1 - cosa dice l'INTEROP, non la pagina di documentazione
 #                                                       (voci W1.1 e W1.2)
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come banco.ps1 e per la stessa ragione.
+#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
 #
 #  PERCHE' ESISTE
 #
@@ -20,7 +20,7 @@
 #  NON SERVE CHE SOLIDWORKS SIA APERTO: serve che sia installato.
 #
 #  USO
-#      .\Controlli\firme-api.ps1
+#      .\Checks\signatures-api.ps1
 # =============================================================================
 
 # `-Provami` AGGIUNGE UNA PRETESA CHE NON PUO' REGGERE, e serve a vedere

@@ -1,6 +1,6 @@
 // V4 — lo spaccato mostra la parete?
 //
-//   node prova_sezione.js
+//   node test_section.js
 //
 // IL CRITERIO DELLA VOCE, alla lettera: «su un guscio, l'immagine in sezione
 // mostra la parete, e da quella si legge lo spessore».
@@ -25,7 +25,7 @@ const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
+const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
 const USCITA = path.join(__dirname, "viste");
 
 // Lo stesso guscio della misura V2/V3: scatola 120x80x50, parete 4, aperta in

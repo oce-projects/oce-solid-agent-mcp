@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// AN EMPTY PROFILE SIZE IS ACCEPTED ONLY ON A ONE-SIZE FILE (N25, Z-C21.3).
@@ -37,7 +37,7 @@ namespace Prove.Contratti
         {
             Gruppo("an empty profile size is accepted only on a one-size file (N25)");
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("an empty profile size is accepted only on a one-size file",
@@ -71,12 +71,12 @@ namespace Prove.Contratti
         /// <summary>The checks, on a library already loaded.</summary>
         internal static void Check(Assembly asm)
         {
-            var sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+            var sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             var method = sw == null ? null : sw.GetMethod("EmptyProfileSizeRefusal", Any);
             if (method == null)
             {
                 Segna("N25: OperazioniSw.EmptyProfileSizeRefusal is there", false,
-                      sw == null ? "no Riscontro.Disegno.OperazioniSw in the library"
+                      sw == null ? "no Oce.Solid.Agent.Core.OperazioniSw in the library"
                                  : "missing on this library: it is older than the fix");
                 return;
             }

@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Oce.Solid.Agent.Mcp;
-using Oce.Solid.Agent.Ponte;
+using Oce.Solid.Agent.Bridge;
 
-namespace Oce.Solid.Agent.Strumenti
+namespace Oce.Solid.Agent.Tools
 {
     /// <summary>
     /// I cinque strumenti che il ponte espone.
@@ -548,7 +548,7 @@ namespace Oce.Solid.Agent.Strumenti
             return null;
         });
 
-        private static Dictionary<string, object> ApiAnswerContent(Func<Riscontro.Disegno.Api.ApiAnswer> ask, string tool)
+        private static Dictionary<string, object> ApiAnswerContent(Func<Oce.Solid.Agent.Core.Api.ApiAnswer> ask, string tool)
         {
             try
             {
@@ -579,7 +579,7 @@ namespace Oce.Solid.Agent.Strumenti
             int.TryParse(TestoDi(argomenti, "limit") ?? "", NumberStyles.Integer,
                          CultureInfo.InvariantCulture, out limit);
             return ApiAnswerContent(
-                () => Riscontro.Disegno.Api.ApiCatalog.Search(query, limit, ApiKnowledgeJson.Value),
+                () => Oce.Solid.Agent.Core.Api.ApiCatalog.Search(query, limit, ApiKnowledgeJson.Value),
                 "api_search");
         }
 
@@ -587,14 +587,14 @@ namespace Oce.Solid.Agent.Strumenti
         {
             var name = TestoDi(argomenti, "name");
             return ApiAnswerContent(
-                () => Riscontro.Disegno.Api.ApiCatalog.Signature(name, ApiKnowledgeJson.Value),
+                () => Oce.Solid.Agent.Core.Api.ApiCatalog.Signature(name, ApiKnowledgeJson.Value),
                 "api_signature");
         }
 
         /// <summary>
         /// Lo strumento «document» (voci Z-B1, Z-B2, Z-B5, Z-B6).
         ///
-        /// Tutto il lavoro sta in `Ponte/Documenti.cs`; qui c'e' la parte che
+        /// Tutto il lavoro sta in `Bridge/Documents.cs`; qui c'e' la parte che
         /// solo il ponte sa fare: quando il documento davanti cambia, quello
         /// che era stato guardato non vale piu', e le firme con lui. E' la
         /// regola di Z-A1 — i tre campi che parlano dello stesso pezzo si
@@ -695,16 +695,16 @@ namespace Oce.Solid.Agent.Strumenti
             // da dove era arrivata la prima.
             _filo = new Mcp.Avanzamento.Filo(gettone);
 
-            // THE NAMES OF BEFORE W3.1-bis.5 (Riscontro.Disegno/Alias.cs,
+            // THE NAMES OF BEFORE W3.1-bis.5 (Oce.Solid.Agent.Core/Alias.cs,
             // decision D4): a tool, an action, a family, an operation, an
             // argument or a value written with its Italian name is translated
             // BEFORE any check of this bridge reads it, and the answer lists
             // each one in `deprecated`. Input only: the answers, the catalogue
             // and describe_operation speak English. Removed in W3.1-bis.11.
             List<string> deprecated = new List<string>();
-            nome = Riscontro.Disegno.Alias.Tool(nome, deprecated);
+            nome = Oce.Solid.Agent.Core.Alias.Tool(nome, deprecated);
             if (argomenti != null)
-                Riscontro.Disegno.Alias.ToolArguments(nome, argomenti, ToolSchema(nome), deprecated);
+                Oce.Solid.Agent.Core.Alias.ToolArguments(nome, argomenti, ToolSchema(nome), deprecated);
             return WithDeprecated(Dispatch(nome, argomenti), deprecated);
         }
 
@@ -1187,7 +1187,7 @@ namespace Oce.Solid.Agent.Strumenti
             // SERVE SOLO A SCRIVERE UNA FRASE (voce E10): dove stava la faccia
             // rispetto al pezzo, quando il pezzo e' cambiato. Il motivo per cui
             // non puo' diventare un criterio di identita' sta per esteso in
-            // `Riscontro.Disegno/Frasi.cs`.
+            // `Oce.Solid.Agent.Core/Sentences.cs`.
             double[] scatolaPezzo = ScatolaDelPezzo(stato);
 
             // I CORPI SONO ENTITA' COME LE ALTRE: per un saldato sono LE
@@ -1871,7 +1871,7 @@ namespace Oce.Solid.Agent.Strumenti
             // viene rifiutato come tutto il resto.
             bool loHaNominato =
                 !string.IsNullOrWhiteSpace(nominato) &&
-                Ponte.Sessione.StessoDocumento(
+                Bridge.Sessione.StessoDocumento(
                     adesso,
                     new Dictionary<string, object>
                     {
@@ -1889,7 +1889,7 @@ namespace Oce.Solid.Agent.Strumenti
                         "serve comunque, perche' gli identificativi delle facce " +
                         "nascono li'.", true);
 
-                if (!Ponte.Sessione.StessoDocumento(_guardato, adesso))
+                if (!Bridge.Sessione.StessoDocumento(_guardato, adesso))
                     return Protocollo.Contenuto(
                         "Mi fermo: il documento e' cambiato. Avevi guardato «" +
                         NomeLeggibile(_guardato) + "», adesso davanti c'e' «" +
@@ -1913,7 +1913,7 @@ namespace Oce.Solid.Agent.Strumenti
             // diverso e confrontarla produrrebbe una frase vera su due cose
             // che non c'entrano niente.
             bool quelloGuardato =
-                _guardato != null && Ponte.Sessione.StessoDocumento(_guardato, adesso);
+                _guardato != null && Bridge.Sessione.StessoDocumento(_guardato, adesso);
 
             if (quelloGuardato)
             {
@@ -1987,7 +1987,7 @@ namespace Oce.Solid.Agent.Strumenti
             if (guardaSeERipetuto &&
                 _ultimoPianoFatto != null &&
                 _ultimoPianoFatto == improntaPiano &&
-                Ponte.Sessione.StessoDocumento(_documentoDelPiano, adesso) &&
+                Bridge.Sessione.StessoDocumento(_documentoDelPiano, adesso) &&
                 _riepilogoDopoIlPiano != null &&
                 _riepilogoDopoIlPiano == RiepilogoDelloStato(prima))
             {
@@ -2013,7 +2013,7 @@ namespace Oce.Solid.Agent.Strumenti
             // cosa che si poteva dire prima di cominciare.
             //
             // Adesso o il piano e' scrivibile tutto, o non si tocca niente.
-            var daFare = new List<Riscontro.Disegno.PassoDelPiano>();
+            var daFare = new List<Oce.Solid.Agent.Core.PassoDelPiano>();
             var esiti = new List<object>();
             bool tuttoBene = true;
             int ordine = 0;
@@ -2072,14 +2072,14 @@ namespace Oce.Solid.Agent.Strumenti
                 // said it exists, and «Rivoluzione», which carries «contours»,
                 // fell into the profile extrusion the comment above warns
                 // about, with no «thickness_mm». Same rule as the enum values
-                // in Ponte/Forma.cs: what passes here goes on spelled as the
+                // in Bridge/Shape.cs: what passes here goes on spelled as the
                 // catalogue spells it.
                 nome = Testo(_catalogo.Trova(nome), "name") ?? nome;
 
                 // I PERCORSI SI CONTROLLANO PRIMA DI ESEGUIRE.
                 // Sono l'unica cosa che questo ponte scrive fuori dal
                 // documento aperto, e arrivano da un testo generato.
-                var percorsoStorto = Ponte.Percorsi.Controlla(suoi);
+                var percorsoStorto = Bridge.Percorsi.Controlla(suoi);
                 if (percorsoStorto != null)
                 {
                     esiti.Add(new Dictionary<string, object>
@@ -2100,14 +2100,14 @@ namespace Oce.Solid.Agent.Strumenti
                 // spessore nullo, rifiutata da SOLIDWORKS con un messaggio
                 // suo, nel migliore dei casi.
                 //
-                // SOLO LA FORMA, MAI IL MERITO: vedi Ponte/Forma.cs.
+                // SOLO LA FORMA, MAI IL MERITO: vedi Bridge/Shape.cs.
                 //
                 // AND THE FORMA REWRITES `suoi` IN PLACE (Z-C21.10, S20): an
                 // enum value accepted with a different case («Superiore»)
                 // comes out spelled as the catalogue spells it («top»).
                 // `suoi` is the very dictionary the step below hands to the
                 // library, which compares Ordinal.
-                var formaStorta = Ponte.Forma.Controlla(
+                var formaStorta = Bridge.Forma.Controlla(
                     nome, _catalogo.Schema(nome), suoi);
                 if (formaStorta != null)
                 {
@@ -2155,7 +2155,7 @@ namespace Oce.Solid.Agent.Strumenti
                 if (firme != null && !suoi.ContainsKey("_signatures"))
                     suoi["_signatures"] = firme;
 
-                daFare.Add(new Riscontro.Disegno.PassoDelPiano
+                daFare.Add(new Oce.Solid.Agent.Core.PassoDelPiano
                 {
                     Ordine = ordine,
                     Operazione = nome,
@@ -2171,7 +2171,7 @@ namespace Oce.Solid.Agent.Strumenti
             // What the executor said about its document and its undo entry
             // (Z-C21.14). Stays null when the plan never reached it: refused
             // above, before anything was written.
-            Riscontro.Disegno.EsecutorePiano.Risultato planRun = null;
+            Oce.Solid.Agent.Core.EsecutorePiano.Risultato planRun = null;
             bool executorThrew = false;
             object turnRefusedOn = null;
             if (tuttoBene)
@@ -2246,7 +2246,7 @@ namespace Oce.Solid.Agent.Strumenti
                     planStateAfter = _sessione.StateOfDocument(planDocumentHeld, out planStateError);
                 }
             }
-            else if (frontIdentity != null && !Ponte.Sessione.StessoDocumento(adesso, frontIdentity))
+            else if (frontIdentity != null && !Bridge.Sessione.StessoDocumento(adesso, frontIdentity))
             {
                 anotherInFront = true;
                 // The executor held no document. When it was never reached, or
@@ -2277,7 +2277,7 @@ namespace Oce.Solid.Agent.Strumenti
                                   (planDocumentHeld != null && !anotherInFront);
             else
                 frontIsThePlans = frontIdentity != null &&
-                                  Ponte.Sessione.StessoDocumento(planIdentity, frontIdentity);
+                                  Bridge.Sessione.StessoDocumento(planIdentity, frontIdentity);
 
             // «state_after» E' LA LETTURA SUCCESSIVA, E VA FIRMATA COME TALE.
             //
@@ -2742,8 +2742,8 @@ namespace Oce.Solid.Agent.Strumenti
         {
             if (memory == null) return false;
             if (memory.DocumentRef != null && document != null)
-                return Ponte.Sessione.SameComObject(memory.DocumentRef, document);
-            return Ponte.Sessione.StessoDocumento(memory.Documento, identity);
+                return Bridge.Sessione.SameComObject(memory.DocumentRef, document);
+            return Bridge.Sessione.StessoDocumento(memory.Documento, identity);
         }
 
         /// <summary>
@@ -2886,14 +2886,14 @@ namespace Oce.Solid.Agent.Strumenti
             // again keeps its name and loses the undo stack with the plan in it.
             bool samePart = memoria.DocumentRef != null
                 ? _sessione.IsInFront(memoria.DocumentRef)
-                : Ponte.Sessione.StessoDocumento(memoria.Documento, adesso);
+                : Bridge.Sessione.StessoDocumento(memoria.Documento, adesso);
             if (!samePart)
                 return Protocollo.Contenuto(
                     "Mi fermo: il documento e' cambiato. Il piano l'avevo eseguito " +
                     "su «" + NomeLeggibile(memoria.Documento) + "», adesso davanti " +
                     "c'e' «" + NomeLeggibile(adesso) + "». Annullare qui " +
                     "toglierebbe l'ultima cosa fatta su un pezzo che non c'entra.\n\n" +
-                    (Ponte.Sessione.StessoDocumento(memoria.Documento, adesso)
+                    (Bridge.Sessione.StessoDocumento(memoria.Documento, adesso)
                         ? "It has the same name, but it is not the same open document (it was closed and opened " +
                           "again, or it is another copy): its undo stack does not hold my plan.\n\n"
                         : "") +
@@ -3239,7 +3239,7 @@ namespace Oce.Solid.Agent.Strumenti
         internal static string NamesScope(bool partial)
         {
             return partial
-                ? "the names and order of the last " + Riscontro.Disegno.StatoDocumento.MaxFeature +
+                ? "the names and order of the last " + Oce.Solid.Agent.Core.StatoDocumento.MaxFeature +
                   " features, the ones the state lists (the older ones only by count)"
                 : "the feature names and order";
         }

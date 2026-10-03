@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Riscontro.Disegno.Catalogo
+namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>Una voce del catalogo: cosa si puo' chiedere, e come si scrive.</summary>
     public sealed class OperazioneDisegno

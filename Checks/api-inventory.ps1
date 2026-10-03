@@ -2,11 +2,11 @@
 #  api-inventory.ps1 - the API inventory, written by PowerShell (entry U1.1)
 # =============================================================================
 #
-#  THIS FILE IS PURE ASCII, like banco.ps1 and firme-api.ps1.
+#  THIS FILE IS PURE ASCII, like bench.ps1 and signatures-api.ps1.
 #
 #  WHY IT EXISTS
 #
-#  `api_signature` prints signatures with a C# formatter (Riscontro.Disegno
+#  `api_signature` prints signatures with a C# formatter (Oce.Solid.Agent.Core
 #  Api\ApiCatalog.cs). A formatter can be wrong in quiet ways: an overload
 #  dropped, a `&` lost on an out parameter, a property shown as a method. The
 #  contract `ApiSignatureMatchesInventory` compares the formatter with THIS
@@ -31,8 +31,8 @@
 #  SOLIDWORKS DOES NOT NEED TO BE RUNNING: it must be installed.
 #
 #  USE
-#      .\Controlli\api-inventory.ps1 -Members out\members.txt -Enums out\enums.txt
-#      .\Controlli\api-inventory.ps1 -Redist 'D:\...\api\redist' -Members m.txt
+#      .\Checks\api-inventory.ps1 -Members out\members.txt -Enums out\enums.txt
+#      .\Checks\api-inventory.ps1 -Redist 'D:\...\api\redist' -Members m.txt
 #
 #  Exit 0 on success, 2 if the interop is not found.
 # =============================================================================

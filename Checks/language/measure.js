@@ -42,15 +42,15 @@
 //  only when that name is new to the repository).
 //
 //  USAGE
-//    node Controlli/lingua/measure.js                  report on the main draw
-//    node Controlli/lingua/measure.js --labels <file>  report on another draw
-//    node Controlli/lingua/measure.js --summary        the four draws, and the pooled false alarms
-//    node Controlli/lingua/measure.js --next 50        print the next 50 lines to label
-//    node Controlli/lingua/measure.js --record "iep.." record the labels of those lines, in order
+//    node Checks/language/measure.js                  report on the main draw
+//    node Checks/language/measure.js --labels <file>  report on another draw
+//    node Checks/language/measure.js --summary        the four draws, and the pooled false alarms
+//    node Checks/language/measure.js --next 50        print the next 50 lines to label
+//    node Checks/language/measure.js --record "iep.." record the labels of those lines, in order
 //                                                      (i = it, e = en, p = en-prose, s = skip)
-//    node Controlli/lingua/measure.js --show 0 100     the labelled lines with their label
-//    node Controlli/lingua/measure.js --drop-last 20   forget the last 20 labels
-//    node Controlli/lingua/measure.js --set 285 i      correct one label (after reading the whole draw back)
+//    node Checks/language/measure.js --show 0 100     the labelled lines with their label
+//    node Checks/language/measure.js --drop-last 20   forget the last 20 labels
+//    node Checks/language/measure.js --set 285 i      correct one label (after reading the whole draw back)
 //
 //  Exit 0 if (uniform draws) balanced precision >= 0.98 and recall >= 0.95 on
 //  at least 100 Italian and 100 English lines, or (English draws) a

@@ -11,11 +11,11 @@
 // chiunque clonasse, per un file che non ha e non deve avere.
 //
 // Quindi la sonda non muore: DICE CHE NON HA CONTROLLATO, ed esce 0. E' la
-// stessa forma di `controlla-documenti-senza-file.ps1` quando l'add-in non e'
+// stessa forma di `check-documents-without-file.ps1` quando l'add-in non e'
 // raggiungibile: *una meta' non controllata si scrive, non si dichiara
 // passata.*
 //
-//     const { trovaIlTodo } = require('./dov-e-il-todo.js');
+//     const { trovaIlTodo } = require('./where-is-the-todo.js');
 //     const fileTodo = trovaIlTodo(radice, process.argv);
 //     if (!fileTodo) process.exit(0);   // il messaggio l'ha gia' stampato
 //

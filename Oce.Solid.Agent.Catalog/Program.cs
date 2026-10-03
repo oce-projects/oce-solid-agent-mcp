@@ -1,16 +1,16 @@
 using System;
 using System.IO;
 using System.Text;
-using Riscontro.Disegno.Catalogo;
+using Oce.Solid.Agent.Core.Catalog;
 
-namespace Riscontro.Catalogo
+namespace Oce.Solid.Agent.Catalog
 {
     /// <summary>
-    /// Scrive `catalogo.json` dal catalogo C#.
+    /// Scrive `catalog.json` dal catalogo C#.
     ///
-    ///     Riscontro.Catalogo.exe                 stampa il JSON
-    ///     Riscontro.Catalogo.exe file.json       lo scrive li'
-    ///     Riscontro.Catalogo.exe --controlla f   dice solo se combacia (esce 1 se no)
+    ///     Oce.Solid.Agent.Catalog.exe                 stampa il JSON
+    ///     Oce.Solid.Agent.Catalog.exe file.json       lo scrive li'
+    ///     Oce.Solid.Agent.Catalog.exe --controlla f   dice solo se combacia (esce 1 se no)
     ///
     /// **Non serve ne' Python, ne' docker, ne' la rete.** Prima serviva tutto e
     /// tre: chi clonava il repository non poteva rigenerare il catalogo, e un

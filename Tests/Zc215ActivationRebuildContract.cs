@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// C4-3 — A DOCUMENT ACTIVATED WITH A PENDING REBUILD IS REBUILT BEFORE
@@ -19,11 +19,11 @@ namespace Prove.Contratti
     /// document is not rebuilt, and Errors contains
     /// swActivateDocError_e.swDocNeedsRebuildWarning. You can then rebuild the
     /// document using IModelDoc2::EditRebuild3.» Up to library 0.146.0
-    /// `Ponte/Documenti.cs::PortaDavanti` read the activation Errors bitmask
+    /// `Bridge/Documents.cs::PortaDavanti` read the activation Errors bitmask
     /// into a local and never looked at it again: a plan whose first step is
     /// read-only (`mass_properties`, `overall`) would measure stale geometry,
     /// since the executor's own rebuild only follows a SUCCESSFUL step
-    /// (EsecutorePiano.cs) — too late for the very first one.
+    /// (PlanExecutor.cs) — too late for the very first one.
     ///
     /// NO BENCH CASE CAN BUILD THE swDocNeedsRebuildWarning BIT ON PURPOSE: it
     /// needs a document already loaded, out of date, that a SEPARATE
@@ -40,7 +40,7 @@ namespace Prove.Contratti
     /// </summary>
     internal static class Zc215ActivationRebuildContract
     {
-        private const string SourceFile = "Documenti.cs";
+        private const string SourceFile = "Documents.cs";
         private const int SwGenericActivateError = 1;
         private const int SwDocNeedsRebuildWarning = 2;
 
@@ -90,7 +90,7 @@ namespace Prove.Contratti
         /// </summary>
         private static void LibraryWiring()
         {
-            var dir = Path.Combine(Radice(), "Riscontro.Disegno");
+            var dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
             var loose = new System.Collections.Generic.List<string>();
             int calls = 0;
             try
@@ -115,7 +115,7 @@ namespace Prove.Contratti
                   calls > 0 && loose.Count == 0,
                   calls == 0 ? "no call found: moved or renamed" : loose.Count == 0 ? calls + " calls" : "not acting: " + string.Join(", ", loose));
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library)) { NonQui("DocumentByPath.NeedsRebuildAfterActivation", library + " is missing: build the library first"); return; }
             try
             {
@@ -130,7 +130,7 @@ namespace Prove.Contratti
                         return File.Exists(f) ? Assembly.LoadFrom(f) : null;
                     };
                 }
-                var type = Assembly.Load(File.ReadAllBytes(library)).GetType("Riscontro.Disegno.DocumentByPath", false);
+                var type = Assembly.Load(File.ReadAllBytes(library)).GetType("Oce.Solid.Agent.Core.DocumentByPath", false);
                 var method = type == null ? null : type.GetMethod("NeedsRebuildAfterActivation", BindingFlags.Public | BindingFlags.Static);
                 if (method == null) { Segna("DocumentByPath.NeedsRebuildAfterActivation is there", false, "not found"); return; }
                 Func<int, bool> needs = e => (bool)method.Invoke(null, new object[] { e });
@@ -142,7 +142,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// ON THE SOURCE: `PortaDavanti` (Ponte/Documenti.cs) calls
+        /// ON THE SOURCE: `PortaDavanti` (Bridge/Documents.cs) calls
         /// IModelDoc2.EditRebuild3() inside the same `if` that tests
         /// `NeedsRebuildAfterActivation`. A bench case cannot force
         /// swDocNeedsRebuildWarning, so nothing else here would ever turn red if
@@ -150,15 +150,15 @@ namespace Prove.Contratti
         /// </summary>
         private static void SourceWiring()
         {
-            var path = Path.Combine(Radice(), "Ponte", SourceFile);
+            var path = Path.Combine(Radice(), "Bridge", SourceFile);
             if (!File.Exists(path))
             {
-                Segna("Ponte/" + SourceFile + " reads", false, "not found: " + path);
+                Segna("Bridge/" + SourceFile + " reads", false, "not found: " + path);
                 return;
             }
             string source;
             try { source = File.ReadAllText(path); }
-            catch (Exception ex) { Segna("Ponte/" + SourceFile + " reads", false, ex.Message); return; }
+            catch (Exception ex) { Segna("Bridge/" + SourceFile + " reads", false, ex.Message); return; }
 
             var method = Regex.Match(source,
                 @"private\s+Dictionary<string,\s*object>\s+PortaDavanti\s*\([^)]*\)\s*\{(.*?)\n        \}",

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// UNA VISTA DI SEZIONE SU UNA TAVOLA (voce GT4).
@@ -25,7 +25,7 @@ namespace Riscontro.Disegno
     /// Questo vuol dire che l'operazione ha cinque passi che devono riuscire
     /// tutti, e ognuno puo' fallire in silenzio.
     ///
-    /// Misurato il 14/9/2026 (voce 0.6, attrezzo `Controlli\SezioneInTavola`):
+    /// Misurato il 14/9/2026 (voce 0.6, attrezzo `Checks\SectionView`):
     ///
     ///     linea selezionata: True, oggetti: 1, tipo 10 (swSelSKETCHSEGS)
     ///     viste sul foglio: 4 -> 5
@@ -300,7 +300,7 @@ namespace Riscontro.Disegno
             // caduto fuori dal materiale. **Il contatore no.**
             //
             // Misurato il 23/9/2026 su una sezione che attraversa una piastra
-            // 120x80x20 piena, con la sonda `Controlli\SezioneInTavola`:
+            // 120x80x20 piena, con la sonda `Checks\SectionView`:
             //
             //     tratteggio PRIMA del ricalcolo: ritorno=0  out=0
             //     tratteggio DOPO  il ricalcolo: ritorno=0  out=0

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.QuoteInTavola
+namespace Checks.DrawingDimensions
 {
     /// <summary>
     /// PERCHE' `InsertModelAnnotations3` NON PORTA NESSUNA QUOTA IN TAVOLA.
@@ -20,7 +20,7 @@ namespace Controlli.QuoteInTavola
     /// vuoto avendo lavorato: l'unico riscontro e' quante annotazioni hanno le
     /// viste prima e dopo.
     ///
-    ///     QuoteInTavola.exe        lavora sulla tavola attiva
+    ///     DrawingDimensions.exe        lavora sulla tavola attiva
     /// </summary>
     internal static class Programma
     {

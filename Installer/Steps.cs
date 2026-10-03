@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.Installer
     /// I CONTROLLI E L'INSTALLAZIONE, SENZA INTERFACCIA.
     ///
     /// Sta separato dalla finestra di proposito: cosi' la stessa logica si puo'
-    /// eseguire senza finestra (`Installa.exe /silenzioso`) e, soprattutto, si
+    /// eseguire senza finestra (`Installer.exe /silenzioso`) e, soprattutto, si
     /// puo' leggere senza dover leggere anche il codice dei bottoni.
     ///
     /// LA REGOLA DI QUESTO FILE: un controllo che fallisce deve dire COSA FARE,
@@ -37,14 +37,14 @@ namespace Oce.Solid.Agent.Installer
     {
         public const string NomeProdotto = "OCE Solid Agent";
         public const string NomeEseguibile = "oce-solid-agent-mcp.exe";
-        public const string NomeCatalogo = "catalogo.json";
+        public const string NomeCatalogo = "catalog.json";
         /// <summary>
         /// Le operazioni di disegno. **Sta nel carico**, non si cerca sulla
         /// macchina: fino alla 0.5.0 era `OpenPDM.SwAddin.dll`, codice
         /// privato che il pacchetto non poteva contenere, e l'installatore
         /// doveva andarla a cercare. Adesso ce l'ha dentro.
         /// </summary>
-        public const string NomeLibreria = "Riscontro.Disegno.dll";
+        public const string NomeLibreria = "Oce.Solid.Agent.Core.dll";
 
         /// <summary>
         /// I file che l'installazione mette nella cartella, e quindi gli UNICI
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Installer
         /// <summary>
         /// Files the BRIDGE writes beside itself while it runs, which no
         /// install puts there (entry H19, A5). Today one: the log of questions
-        /// that had no operation (Strumenti/RegistroDelleDomande.cs, file name
+        /// that had no operation (Tools/QuestionRegistry.cs, file name
         /// RegistroDelleDomande.NomeDelFile; RISCONTRO_REGISTRO can move it
         /// elsewhere, and then it is not ours to remove). Left behind, it kept
         /// the folder alive with the message that the folder held someone
@@ -76,7 +76,7 @@ namespace Oce.Solid.Agent.Installer
 
         // ── THE EXIT CODES OF THE BRIDGE'S --prova (entry H19, B3) ─────────
         // The same numbers as Programma.SelfTest* in the bridge, which this
-        // assembly cannot reference; Prove.Contratti reads both and compares.
+        // assembly cannot reference; Oce.Solid.Agent.ContractTests reads both and compares.
         public const int SelfTestAttached = 0;
         public const int SelfTestOther = 1;
         public const int SelfTestNotRunning = 3;
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.Installer
                 CosaFare =
                     "Questo installatore non ha il ponte dentro e non lo trova " +
                     "accanto a se'. Se hai clonato il repository, compila prima " +
-                    "con build.ps1: produce un Installa.exe completo.",
+                    "con build.ps1: produce un Installer.exe completo.",
             };
         }
 
@@ -402,7 +402,7 @@ namespace Oce.Solid.Agent.Installer
                 Dettaglio = NomeLibreria + " non c'e' ne' dentro ne' accanto",
                 CosaFare =
                     "Questo installatore e' incompleto. Se hai clonato il " +
-                    "repository, compila con build.ps1: produce un Installa.exe " +
+                    "repository, compila con build.ps1: produce un Installer.exe " +
                     "con il ponte e le operazioni dentro.",
             };
         }

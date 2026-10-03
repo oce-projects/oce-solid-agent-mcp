@@ -7,7 +7,7 @@ using System.Text;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Quanto e' grossa la sezione di un profilo di saldatura.
@@ -91,7 +91,7 @@ namespace Riscontro.Disegno
         /// </returns>
         /// <remarks>
         /// THIS SIGNATURE DOES NOT CHANGE: the bench calls this method by
-        /// reflection (Banco/Program.cs, Sezioni), and an overload would make
+        /// reflection (Bench/Program.cs, Sezioni), and an overload would make
         /// `GetMethod("SporgenzeDelTelaio")` ambiguous. The work is in
         /// <see cref="FrameOverhang"/>, which also says where the overhang
         /// came from.

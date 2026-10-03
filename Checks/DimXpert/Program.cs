@@ -23,7 +23,7 @@ using SolidWorks.Interop.swdimxpert;
 //  foro. Uno schema che «riesce» senza aggiungere niente non e' uno schema.
 //
 //  USO
-//      .\Controlli\DimXpert\bin\DimXpert.exe            [--tieni]
+//      .\Checks\DimXpert\bin\DimXpert.exe            [--tieni]
 // =============================================================================
 
 internal static class Programma
@@ -199,15 +199,15 @@ internal static class Programma
     // W3.1-bis.2 point 10: base planes by position, not by their localized name
     // (a plane name is only valid in the SOLIDWORKS UI language of the machine
     // that created the part). The first three RefPlane features of the
-    // tree, same rule as Controlli/Nervatura, Controlli/Riempimento and
-    // Controlli/TipoDellEstrusione. NOTE for whoever touches this next: since
-    // Z-C21.5 the bridge itself (Riscontro.Disegno/Riferimenti.cs, BasePlane)
+    // tree, same rule as Checks/Rib, Checks/Fill and
+    // Checks/ExtrusionType. NOTE for whoever touches this next: since
+    // Z-C21.5 the bridge itself (Oce.Solid.Agent.Core/References.cs, BasePlane)
     // no longer trusts tree position either — it recognises a base plane by its
     // canonical normal through the world origin, because a template with one
     // extra plane ahead of the three defaults fools a position-based rule with
     // no error. This probe still uses position because it is a throwaway part
     // built by SOLIDWORKS' own default template and it cannot reference the
-    // library (single-file compile, see Controlli/costruisci-controlli.ps1);
+    // library (single-file compile, see Checks/build-checks.ps1);
     // if the template ever grows a leading plane, this rule silently picks the
     // wrong one.
     private static bool SelectBasePlane(IModelDoc2 doc, int which)

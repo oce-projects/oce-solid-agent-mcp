@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
-// Riscontro.Disegno — le operazioni di disegno per SOLIDWORKS, senza il PDM.
+// Oce.Solid.Agent.Core — le operazioni di disegno per SOLIDWORKS, senza il PDM.
 //
 // LA VERSIONE SI ALZA A OGNI MODIFICA, come per l'add-in e per il ponte, e per
 // la stessa ragione: questa libreria serve a MISURARE, e una misura senza il
@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 // 0.52.0, spostato. Ricominciare da capo la numerazione farebbe sembrare nuovo
 // cio' che ha gia' un anno di misure alle spalle, e renderebbe impossibile dire
 // «questa prova gira sulla stessa versione di allora».
-[assembly: AssemblyTitle("Riscontro.Disegno")]
+[assembly: AssemblyTitle("Oce.Solid.Agent.Core")]
 [assembly: AssemblyDescription(
     "Operazioni di disegno per SOLIDWORKS che riportano cos'e' venuto, non cos'e' stato chiesto.")]
 [assembly: AssemblyProduct("Riscontro")]
@@ -25,7 +25,7 @@ using System.Runtime.InteropServices;
 // alza la versione, e non fa eccezioni per i commenti — perche' «sono solo
 // commenti» e' esattamente quello che si dice un attimo prima che non lo
 // fossero. Qui e' vero (due blocchi di documentazione in
-// `OperazioniSostituisci.cs`, riscritti perche' dicevano una cosa che il banco
+// `ReplaceOperations.cs`, riscritti perche' dicevano una cosa che il banco
 // ha poi smentito), e il numero si muove lo stesso.
 // 0.95.0: `center_marks` (operazione 64) e le croci nello stato della tavola.
 // 0.96.0: l'esploso nello stato dell'assieme, col millimetro accanto al booleano.
@@ -118,7 +118,7 @@ using System.Runtime.InteropServices;
 //          sbattendoci contro, e un rifiuto costa un giro mentre un
 //          limite dichiarato costa zero. Le frasi non sono inventate:
 //          sono il messaggio del caso, girato al futuro. Il conto delle
-//          descrizioni mute e' un tetto in Prove/ProveILimiti.cs, ed e'
+//          descrizioni mute e' un tetto in Tests/LimitsTests.cs, ed e'
 //          passato da 12 a ZERO.
 // 0.108.0: `DocumentoRichiesto` su ogni operazione del catalogo (voce
 //          Z-D0-ter): «part», «assembly», «drawing», o piu' d'uno. La
@@ -172,7 +172,7 @@ using System.Runtime.InteropServices;
 //            r16 della regressione, un'asola che sbordava in silenzio.
 //          - La guardia contro il modale guarda se la finestra principale
 //            e' ABILITATA (voce Z-C3): `CommandInProgress` resta falso con
-//            un modale aperto, misurato con `Controlli/Modale`.
+//            un modale aperto, misurato con `Checks/Modal`.
 //          - Due descrizioni del catalogo che si proclamavano sole
 //            (`model_dimensions`, `extrude_on_face`) dicono il vero
 //            (voce Z-C15): le ha trovate il controllo di contratto nuovo.
@@ -381,7 +381,7 @@ using System.Runtime.InteropServices;
 //          schizzo su un piano, in scala (SetSize con l'aspetto bloccato,
 //          SetOrigin), verificata con GetPointOnSketchFromPixel — che vuole
 //          (colonna, riga), al contrario del nome dei suoi argomenti. Un PDF non
-//          entra. Il banco legge {DATI} (Banco\dati\, versionata).
+//          entra. Il banco legge {DATI} (Bench\data\, versionata).
 // 0.133.0: GA11, `mirror_component`: IMirrorComponentFeatureData con array
 //          tipizzati; istanza, opposto legato (MirrorStock) o slegato, sempre
 //          chiesto; verificati il centro contro lo specchio e, per gli opposti, il
@@ -395,7 +395,7 @@ using System.Runtime.InteropServices;
 //          «ListBrokenRefs» non segna niente (misurato). Lo stato dell'assieme
 //          dice `file_missing` per il componente il cui file non c'e'.
 // 0.136.0: la revisione avversariale del 27/9/2026 (voce Z-C20). Le guardie di
-//          set_dimension in un posto solo (OperazioniGuardie.cs) e usate da
+//          set_dimension in un posto solo (GuardOperations.cs) e usate da
 //          global_variable, link_dimension e edit_extrusion, col ripristino;
 //          edit_extrusion tiene il piano medio; in tavola il «gia' quotato»
 //          si legge prima della chiamata e per CILINDRO, il tondo conta solo le
@@ -475,9 +475,12 @@ using System.Runtime.InteropServices;
 //          and knows when a later entry sits on top.
 // 0.150.0: W3.1-bis.5, rename window 2: the operations, arguments, values,
 //          selectors and answer fields of the library are English names,
-//          generated from the name map (Controlli/lingua/window-2-surface.js).
-[assembly: AssemblyVersion("0.150.0.0")]
-[assembly: AssemblyFileVersion("0.150.0.0")]
+//          generated from the name map (Checks/language/window-2-surface.js).
+// 0.150.1: W3.1-bis.6, rename window 3: the library is Oce.Solid.Agent.Core
+//          (assembly, namespaces, folder) and its file names are English,
+//          from the name map (Checks/language/window-3-identifiers.js).
+[assembly: AssemblyVersion("0.150.1.0")]
+[assembly: AssemblyFileVersion("0.150.1.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -492,4 +495,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.150.0")]
+[assembly: AssemblyInformationalVersion("0.150.1")]

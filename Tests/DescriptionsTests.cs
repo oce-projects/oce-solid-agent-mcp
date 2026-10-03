@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Web.Script.Serialization;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// DUE DESCRIZIONI DEL CATALOGO CHE SI SMENTISCONO (voce Z-C15).
@@ -43,9 +43,9 @@ namespace Prove.Contratti
         {
             Gruppo("le descrizioni del catalogo non si smentiscono (Z-C15)");
 
-            var catalogo = Path.Combine(Radice(), "bin", "catalogo.json");
+            var catalogo = Path.Combine(Radice(), "bin", "catalog.json");
             if (!File.Exists(catalogo))
-                catalogo = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+                catalogo = Path.Combine(Radice(), "Tools", "catalog.json");
             if (!File.Exists(catalogo))
             {
                 Segna("il catalogo servito c'e'", false, "manca " + catalogo);

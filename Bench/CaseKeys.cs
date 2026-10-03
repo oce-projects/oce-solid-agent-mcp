@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// THE KEYS A BENCH CASE MAY CARRY, AND THE REFUSAL OF EVERY OTHER KEY
@@ -22,7 +22,7 @@ namespace ProvaSaldatura
     ///
     /// ── WHAT IS ADMITTED ────────────────────────────────────────────────────
     ///
-    /// `Banco/case-keys.json` lists, for every context of a case (the case, a
+    /// `Bench/case-keys.json` lists, for every context of a case (the case, a
     /// step, an expectation...), the keys the loader READS, the keys it only
     /// DOCUMENTS (prose it never reads), the CHILDREN that lead to another
     /// context, and the FROZEN free keys: notes with invented names, written
@@ -41,7 +41,7 @@ namespace ProvaSaldatura
     /// ── WHO COMPILES THIS FILE ──────────────────────────────────────────────
     ///
     /// The bench, which refuses a case with an unknown key as a bench error,
-    /// and Prove.Contratti, whose CaseKeysTests apply the same rule to every
+    /// and Oce.Solid.Agent.ContractTests, whose CaseKeysTests apply the same rule to every
     /// case before the bench runs: the bench is the last defence, not the
     /// first.
     /// </summary>
@@ -326,7 +326,7 @@ namespace ProvaSaldatura
         {
             return "keys the bench does not read: " + string.Join(", ", unknown.Take(8)) +
                    (unknown.Count > 8 ? " and " + (unknown.Count - 8) + " more" : "") +
-                   ". A free note starts with «" + FreePrefix + "»; the admitted keys are in Banco/" + FileName;
+                   ". A free note starts with «" + FreePrefix + "»; the admitted keys are in Bench/" + FileName;
         }
 
         private static Dictionary<string, object> Obj(Dictionary<string, object> map, string key, string where)

@@ -48,8 +48,8 @@ using SolidWorks.Interop.swconst;
 //  Ground truth: a NEW feature of type "Rib" (IFeature~GetTypeName2) AND the
 //  volume delta. NO EditDelete, no AddDimension, no save.
 //
-//  USAGE      Controlli\Nervatura\bin\Nervatura.exe [--keep]
-//             (costruita da Controlli\costruisci-controlli.ps1 (e da build.ps1, passo 1c))
+//  USAGE      Checks\Rib\bin\Rib.exe [--keep]
+//             (costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c))
 //
 //  ESITO DEL 28/9/2026, SOLIDWORKS 29.5.1 (l'uscita della sonda, com'era):
 //

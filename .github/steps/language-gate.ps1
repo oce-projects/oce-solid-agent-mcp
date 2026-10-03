@@ -4,7 +4,7 @@
 #
 #  The Italian in the repository may go down, never up. The local pre-push
 #  hook says so too, but a hook is skipped with --no-verify and exists only
-#  where someone ran installa-ganci.ps1: THIS is the gate that counts.
+#  where someone ran install-hooks.ps1: THIS is the gate that counts.
 #
 #  EVERY COMMIT OF THE RANGE IS JUDGED ON ITS OWN, against its own parent(s):
 #
@@ -36,12 +36,12 @@
 #  THE SCRIPT THAT JUDGES IS THE ONE OF THE BASE. If this file differs between
 #  the base and the head, the base's copy is run instead (-Delegated): a change
 #  to the gate takes effect only once it is merged. On its own this protects
-#  nothing against a pull request that edits this file, because in prove.yml
+#  nothing against a pull request that edits this file, because in tests.yml
 #  the copy that decides whether to delegate comes from the pull request. What
 #  protects it is .github/workflows/language-gate.yml: on pull_request_target
 #  the workflow and the checkout are the target branch's, so the base's copy
 #  runs and judges the pull request's commits from the object store
-#  (-FetchPullRequest). CODEOWNERS covers .github/ and Controlli/lingua/, and
+#  (-FetchPullRequest). CODEOWNERS covers .github/ and Checks/language/, and
 #  (b) makes every such change visible in the history.
 #
 #  The first commits of W3.1-bis.1 carry a detector from before per-commit
@@ -59,8 +59,8 @@
 #
 #  At a release tag (a v* tag on HEAD) the category `transition` must be 0.
 #
-#      .\.github\passi\language-gate.ps1
-#      .\.github\passi\language-gate.ps1 -Base origin/main
+#      .\.github\steps\language-gate.ps1
+#      .\.github\steps\language-gate.ps1 -Base origin/main
 #
 #  Exit 0 if the gate holds, 1 otherwise, 2 if it cannot run.
 # =============================================================================
@@ -79,18 +79,18 @@ $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
 if (-not $Root) { $Root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)) }
 $root = (Resolve-Path $Root).Path
-# Rename window 3 (W3.1-bis.6) moves the gate's folder from Controlli/lingua
-# to Checks/language, this script from .github/passi to .github/steps and
-# prove.yml to tests.yml. Each commit is read where ITS files are (the newer
+# Rename window 3 (W3.1-bis.6) moves the gate's folder from Controlli/lingua  # window-3: keep
+# to Checks/language, this script from .github/passi to .github/steps and  # window-3: keep
+# prove.yml to tests.yml. Each commit is read where ITS files are (the newer  # window-3: keep
 # names first), so the commits on both sides of the move are judged; a commit
 # whose first parent has the gate and that has none under either name is a
 # failure, not "before the gate".
-$langDirs = @('Checks/language', 'Controlli/lingua')
-$selfRels = @('.github/steps/language-gate.ps1', '.github/passi/language-gate.ps1')
+$langDirs = @('Checks/language', 'Controlli/lingua')  # window-3: keep
+$selfRels = @('.github/steps/language-gate.ps1', '.github/passi/language-gate.ps1')  # window-3: keep
 $configPaths = @('Checks/language/detect-italian.js', 'Checks/language/lexicon.json', 'Checks/language/exceptions.json',
-                 'Controlli/lingua/detect-italian.js', 'Controlli/lingua/lexicon.json', 'Controlli/lingua/exceptions.json',
-                 '.github/steps/language-gate.ps1', '.github/passi/language-gate.ps1',
-                 '.github/workflows/tests.yml', '.github/workflows/prove.yml', '.github/workflows/language-gate.yml',
+                 'Controlli/lingua/detect-italian.js', 'Controlli/lingua/lexicon.json', 'Controlli/lingua/exceptions.json',  # window-3: keep
+                 '.github/steps/language-gate.ps1', '.github/passi/language-gate.ps1',  # window-3: keep
+                 '.github/workflows/tests.yml', '.github/workflows/prove.yml', '.github/workflows/language-gate.yml',  # window-3: keep
                  '.github/CODEOWNERS')
 $detectorRel = 'Checks/language/detect-italian.js'
 $baselineRel = 'Checks/language/baseline.json'
@@ -108,7 +108,7 @@ function Invoke-Git {
 function Test-GitObject([string] $spec) { return (Invoke-Git cat-file -e $spec).Code -eq 0 }
 
 # The folder of the gate's files in a commit (Checks/language or, before
-# rename window 3, Controlli/lingua), or $null when it has no detector.
+# rename window 3, Controlli/lingua), or $null when it has no detector.  # window-3: keep
 function Get-LangDir([string] $commit) {
     foreach ($d in $langDirs) { if (Test-GitObject "${commit}:$d/detect-italian.js") { return $d } }
     return $null
@@ -218,7 +218,7 @@ try {
         if ($mine -ne $theirs) {
             Write-Output "language gate: $selfRel changed in this range; the copy of the base judges it."
             if (-not ((Invoke-Git grep -q -F -e 'Get-LangDir' $baseSha '--' $selfRel).Code -eq 0)) {
-                Write-Output "language gate: WARNING - the copy of the base looks for the gate only under Controlli/lingua:"
+                Write-Output "language gate: WARNING - the copy of the base looks for the gate only under Controlli/lingua:"  # window-3: keep
                 Write-Output "    a commit of this range that has it under Checks/language is skipped there, as if it came before the gate."
                 Write-Output "    Merge the commit that teaches the gate both folder names first, or judge with this copy (-Delegated)."
             }
@@ -360,7 +360,7 @@ try {
     if ($failed) {
         Write-Output "LANGUAGE GATE: FAILED. New text is written in English. If a growth is intended (a rename"
         Write-Output "window, an approved exception), rewrite the baseline in THAT commit"
-        Write-Output "(node Controlli/lingua/detect-italian.js --write-baseline) and end its message with the"
+        Write-Output "(node Checks/language/detect-italian.js --write-baseline) and end its message with the"
         Write-Output "trailer 'Language-Baseline-Raise: <reason>'; a change to the gate itself needs"
         Write-Output "'Language-Gate-Config-Change: <reason>'."
         exit 1

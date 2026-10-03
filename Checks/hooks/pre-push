@@ -4,7 +4,7 @@
 #
 # PERCHE' UN GANCIO E NON UNA RIGA IN UNA LISTA.
 #
-# Il 14 settembre 2026 `controlla-pubblicabilita.ps1` esisteva gia', era gia'
+# Il 14 settembre 2026 `check-publishability.ps1` esisteva gia', era gia'
 # giusto, e un minuto prima del primo push diceva «Pulito» sull'albero mentre la
 # storia portava ancora un percorso di rete in 155 punti su 41 commit. Il
 # controllo non manco': manco' il fatto che qualcuno lo lanciasse.
@@ -15,7 +15,7 @@
 #
 # COME SI ACCENDE (una volta per clone, git non versiona .git/hooks):
 #
-#     .\Controlli\installa-ganci.ps1
+#     .\Checks\install-hooks.ps1
 #
 # COME SI SCAVALCA, quando serve davvero:
 #
@@ -24,9 +24,9 @@
 # Si scavalca a mano e si sa di averlo fatto. E' diverso dal non averlo mai
 # acceso.
 
-# Il gancio sta in Controlli/ganci/, il controllo un livello sopra in Controlli/.
+# Il gancio sta in Checks/hooks/, il controllo un livello sopra in Checks/.
 # Si ricava da $0 e non dalla cartella corrente: git lancia i ganci dalla radice
-# del lavoro, ma un `sh Controlli/ganci/pre-push` lanciato a mano no, e un
+# del lavoro, ma un `sh Checks/hooks/pre-push` lanciato a mano no, e un
 # gancio che funziona solo quando lo chiama git non si puo' provare.
 qui=$(dirname "$0")
 
@@ -34,8 +34,8 @@ qui=$(dirname "$0")
 # <remote sha>" per line). They are read first, before any command below can
 # consume stdin; run by hand without a pipe, the hook judges HEAD.
 if [ -t 0 ]; then pushed_refs=""; else pushed_refs=$(cat); fi
-controllo="$qui/../controlla-pubblicabilita.ps1"
-workflow="$qui/../controlla-workflow.ps1"
+controllo="$qui/../check-publishability.ps1"
+workflow="$qui/../check-workflow.ps1"
 
 if [ ! -f "$controllo" ]; then
     echo "pre-push: non trovo $controllo - il gancio non sa cosa lanciare." >&2
@@ -71,10 +71,10 @@ fi
 # sbagliate**. Ma una sonda che si lancia quando ci si ricorda e' una sonda
 # che non si lancia: qui la lancia git, come il resto.
 #
-# NON ci sono le due sonde sulle interop (`firme-del-todo.ps1`,
-# `firme-api.ps1`): vogliono SOLIDWORKS installato, e un gancio che fallisce
+# NON ci sono le due sonde sulle interop (`todo-signatures.ps1`,
+# `signatures-api.ps1`): vogliono SOLIDWORKS installato, e un gancio che fallisce
 # su una macchina senza CAD e' un gancio che il primo che clona disattiva.
-for sonda in percorsi-del-todo.js rimandi-del-todo.js righe-del-todo.js; do
+for sonda in todo-paths.js todo-references.js todo-lines.js; do
     if [ -f "$qui/../$sonda" ]; then
         node "$qui/../$sonda"
         if [ $? -ne 0 ]; then
@@ -89,7 +89,7 @@ done
 # lavoro; riparati tutti i punti, diventa una guardia: un conteggio nuovo che
 # risponde zero da un catch, senza il marcatore ZERO-E-ZERO e la ragione, non
 # esce dal banco di lavoro. Si prova prima di credergli (--provami).
-zero="$qui/../zero-o-non-lo-so.js"
+zero="$qui/../zero-or-unknown.js"
 if [ -f "$zero" ]; then
     node "$zero" --provami > /dev/null
     if [ $? -ne 0 ]; then
@@ -128,10 +128,10 @@ net_check() {
     fi
     return 0
 }
-net_check token-stream.js node "$qui/../lingua/token-stream.js" --self-test || exit 1
+net_check token-stream.js node "$qui/../language/token-stream.js" --self-test || exit 1
 net_check expected-keys-test.js node "$qui/../expected-keys-test.js" || exit 1
-net_check same-il.ps1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$qui/../lingua/same-il.ps1" -SelfTest || exit 1
-net_check name-map-extract.js node "$qui/../lingua/name-map-extract.js" --self-test || exit 1
+net_check same-il.ps1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$qui/../language/same-il.ps1" -SelfTest || exit 1
+net_check name-map-extract.js node "$qui/../language/name-map-extract.js" --self-test || exit 1
 
 # THE LANGUAGE GATE (entry W3.1-bis.1). The Italian in the repository may go
 # down, never up. The CI is the real gate; this runs the same script on the
@@ -142,8 +142,8 @@ net_check name-map-extract.js node "$qui/../lingua/name-map-extract.js" --self-t
 # tip, --tighten: if the Italian went down and baseline.json was not lowered,
 # the push stops until the lower baseline is committed, so the ratchet closes
 # on what was just translated.
-language_gate="$qui/../lingua/detect-italian.js"
-language_step="$qui/../../.github/passi/language-gate.ps1"
+language_gate="$qui/../language/detect-italian.js"
+language_step="$qui/../../.github/steps/language-gate.ps1"
 if [ ! -f "$language_gate" ] || [ ! -f "$language_step" ]; then
     echo "pre-push: cannot find $language_gate or $language_step - the hook does not know what to run." >&2
     exit 1
@@ -168,8 +168,8 @@ echo "$pushed_refs" | while read -r local_ref local_sha remote_ref remote_sha; d
     gate_exit=$?
     if [ $gate_exit -eq 3 ]; then
         echo "" >&2
-        echo "pre-push: STOPPED. The Italian went down at $local_sha but Controlli/lingua/baseline.json" >&2
-        echo "was not lowered: run node Controlli/lingua/detect-italian.js --tighten, commit, push again." >&2
+        echo "pre-push: STOPPED. The Italian went down at $local_sha but Checks/language/baseline.json" >&2
+        echo "was not lowered: run node Checks/language/detect-italian.js --tighten, commit, push again." >&2
         exit 1
     fi
     if [ $gate_exit -ne 0 ]; then
@@ -186,7 +186,7 @@ if [ $esito -ne 0 ]; then
     echo "" >&2
     echo "pre-push: FERMO. Sopra c'e' scritto cosa uscirebbe e da dove." >&2
     echo "  albero:  si ripara e si rifa' il commit." >&2
-    echo "  storia:  Controlli\\bonifica-storia.js, PRIMA del push." >&2
+    echo "  storia:  Checks\\cleanup-history.js, PRIMA del push." >&2
     echo "           Dopo diventa un force-push." >&2
     echo "" >&2
     echo "Se e' un falso positivo, si allarga l'eccezione nel controllo e si" >&2

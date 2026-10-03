@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// QUELLO CHE ACCOMPAGNA UNA FOTOGRAFIA (voce Z-C10).
@@ -38,7 +38,7 @@ namespace Prove.Contratti
         {
             Gruppo("cosa accompagna una fotografia (Z-C10)");
 
-            var file = Path.Combine(Radice(), "Strumenti", "Attrezzi.cs");
+            var file = Path.Combine(Radice(), "Tools", "McpTools.cs");
             if (!File.Exists(file))
             {
                 Segna("il sorgente del ponte c'e'", false, "manca " + file);
@@ -48,7 +48,7 @@ namespace Prove.Contratti
 
             Segna("la didascalia dice che i numeri dell'immagine non sono autorevoli",
                   testo.Contains("non sono autorevoli"),
-                  "Strumenti/Attrezzi.cs, accanto alle viste");
+                  "Tools/McpTools.cs, accanto alle viste");
 
             // I NUMERI, NON L'AGGETTIVO. «Puo' essere impreciso» non fa cambiare
             // comportamento a nessuno; «90 letto 79» si'.

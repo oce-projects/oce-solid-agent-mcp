@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE PURE RULES BEHIND THE Z-C21.10 FIXES THE BENCH CANNOT REACH.
@@ -31,7 +31,7 @@ namespace Prove.Contratti
         {
             Gruppo("the pure rules of the Z-C21.10 fixes the bench cannot reach (N32, N34, N36, N43, N55, C8-2)");
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of the Z-C21.10 fixes",
@@ -59,9 +59,9 @@ namespace Prove.Contratti
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
-            Type sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
-            Type helpers = asm.GetType("Riscontro.Disegno.ApiHelpers", false);
-            Type section = asm.GetType("Riscontro.Disegno.SezioneProfilo", false);
+            Type sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+            Type helpers = asm.GetType("Oce.Solid.Agent.Core.ApiHelpers", false);
+            Type section = asm.GetType("Oce.Solid.Agent.Core.SezioneProfilo", false);
             if (sw == null || helpers == null || section == null)
             {
                 Segna("the three library types are there", false,

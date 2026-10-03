@@ -4,12 +4,12 @@ using System.Globalization;
 using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
-// Stessa ragione di `CasiDichiarati.cs`: `Testo`, `Elenco`, `Risolvi` e `Breve`
+// Stessa ragione di `DeclaredCases.cs`: `Testo`, `Elenco`, `Risolvi` e `Breve`
 // vivono in `Attese`, che non tocca SOLIDWORKS (voce F7). `using static` li
 // lascia scrivere come se fossero qui.
-using static ProvaSaldatura.Attese;
+using static Oce.Solid.Agent.Bench.Attese;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// IL BANCO IMPARA A PREPARARE UN ASSIEME (voce GA0).
@@ -36,13 +36,13 @@ namespace ProvaSaldatura
     /// passi, e ognuno puo' fallire in modo suo:
     ///
     ///   1. creare la parte componente (le stesse operazioni dei casi),
-    ///   2. SALVARLA in `Banco\lavoro`,
+    ///   2. SALVARLA in `Bench\lavoro`,
     ///   3. chiuderla,
     ///   4. creare il documento di assieme,
     ///   5. riaprire i componenti e inserirli,
     ///   6. ricostruire.
     ///
-    /// E poi ripulire, che e' il settimo: `ChiudiScarti` chiude i documenti, non
+    /// E poi ripulire, che e' il settimo: `CloseLeftovers` chiude i documenti, non
     /// cancella i file.
     ///
     /// ── LA REGOLA CHE NON SI ROMPE ───────────────────────────────────────
@@ -579,7 +579,7 @@ namespace ProvaSaldatura
         /// closed, came back with all its components lightweight
         /// (GetLightWeightComponentCount 4 of 4); a part still loaded as a
         /// document came back resolved. So:
-        ///   1. the assembly is saved as «&lt;case&gt;.sldasm» under Banco\lavoro
+        ///   1. the assembly is saved as «&lt;case&gt;.sldasm» under Bench\lavoro
         ///      and registered like the parts (deleted at the end, closed by
         ///      title);
         ///   2. it is closed by reference, then every loaded document whose FILE
@@ -744,7 +744,7 @@ namespace ProvaSaldatura
         /// A preparation that stopped half-way (Z-C21.11): what it made is closed
         /// and deleted here, since the caller gets null and has nothing to hand
         /// to ButtaViaLaPreparazione. A document left open would be found by the
-        /// next case, and a file left in Banco\lavoro would be found by the next
+        /// next case, and a file left in Bench\lavoro would be found by the next
         /// round.
         /// </summary>
         private static IModelDoc2 Abandon(Preparazione p)
@@ -924,7 +924,7 @@ namespace ProvaSaldatura
         /// <summary>
         /// Chiude e cancella quello che la preparazione ha lasciato in giro.
         ///
-        /// SI CANCELLANO ANCHE I FILE, non solo i documenti. `ChiudiScarti`
+        /// SI CANCELLANO ANCHE I FILE, non solo i documenti. `CloseLeftovers`
         /// chiude finestre; questi sono `.sldprt` su disco, e restare li'
         /// vorrebbe dire che il giro dopo trova un file gia' fatto. **Un caso
         /// che riesce perche' un file del giro prima era rimasto non e' un
@@ -1257,12 +1257,12 @@ namespace ProvaSaldatura
             // comincia da componenti che sono parti nuove, e se non nascono
             // piu' non e' il caso a essere sbagliato.
             if (Program.Sentinella.SeNEAndato)
-                throw new Condiviso.PreparazioneFallita(Program.Sentinella.Referto());
+                throw new Shared.PreparazioneFallita(Program.Sentinella.Referto());
 
             var nata = _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
             if (nata != null) Program.Sentinella.Riuscita();
             else if (Program.Sentinella.Fallita())
-                throw new Condiviso.PreparazioneFallita(Program.Sentinella.Referto());
+                throw new Shared.PreparazioneFallita(Program.Sentinella.Referto());
 
             return OppureDillo(nata,
                                "l'assieme nuovo su cui provare");

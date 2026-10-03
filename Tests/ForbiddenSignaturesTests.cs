@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// LE CHIAMATE VIETATE PER CONTRATTO (voce GP6).
@@ -29,7 +29,7 @@ namespace Prove.Contratti
     /// Perche' non serve l'interop: **si guarda il nostro sorgente**. Una sonda
     /// che legge le interop di SOLIDWORKS e' esclusa dal gancio pre-push e dalla
     /// CI, dove l'interop di Dassault non c'e'; questo controllo invece gira
-    /// dovunque giri `Prove.Contratti`, e conta nel riepilogo.
+    /// dovunque giri `Oce.Solid.Agent.ContractTests`, e conta nel riepilogo.
     ///
     /// *Mettere dietro un cancello CAD l'unica parte che il CAD non lo vuole
     /// sarebbe il modo piu' rapido di non farla girare mai.*
@@ -111,7 +111,7 @@ namespace Prove.Contratti
                                     : string.Join(" | ", urlate));
 
             // ── POI: IL SORGENTE VERO ────────────────────────────────────
-            var cartelle = new[] { "Riscontro.Disegno", "Strumenti", "Ponte", "Mcp", "Banco" };
+            var cartelle = new[] { "Oce.Solid.Agent.Core", "Tools", "Bridge", "Mcp", "Bench" };
             var trovate = new List<string>();
             int righeGuardate = 0;
 
@@ -148,11 +148,11 @@ namespace Prove.Contratti
             // repository che non quota affatto — cioe' direbbe «rispettiamo il
             // divieto» di una regola che non tocca niente.
             bool usata = false;
-            var quote = Path.Combine(Radice(), "Riscontro.Disegno", "OperazioniQuoteTavola.cs");
+            var quote = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "DrawingDimensionOperations.cs");
             if (File.Exists(quote))
                 usata = File.ReadAllText(quote).Contains("Extension.AddDimension(");
             Segna("e quella giusta e' davvero in uso", usata,
-                  "OperazioniQuoteTavola.cs: senza questa riga il divieto sorveglierebbe il vuoto");
+                  "DrawingDimensionOperations.cs: senza questa riga il divieto sorveglierebbe il vuoto");
         }
     }
 }

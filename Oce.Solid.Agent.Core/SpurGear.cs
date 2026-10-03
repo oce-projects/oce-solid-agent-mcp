@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// IL PROFILO DI UNA RUOTA DENTATA CILINDRICA A DENTI DRITTI.

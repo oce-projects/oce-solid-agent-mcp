@@ -3,7 +3,7 @@
   "family": "extrusions",
   "why": "VOCE Z-C6. `extrude_section` e' a catalogo con `Provata = true`, e fino al 24/9/2026 la toccavano solo piani a mano (`bridge/c4s_*`, `forma/3`) che non pretendono niente. Il caso e' quello del piano `c4s_slot`.",
   "defect_caught": "Un'asola e' un rettangolo con due estremita' tonde: se uscissero dritte, o se «larghezza» fosse letta come la distanza fra i centri invece che l'ingombro, il pezzo sarebbe un altro e non darebbe errore. Il volume lo dice: dritte fanno 12000, fra i centri 15141,6, giuste 11163,28.",
-  "_the_slot_is_a_polygon": "E I SEMICERCHI NON SONO SEMICERCHI. `Sezioni.cs` li fa di 24 lati ciascuno, coi vertici sul cerchio CIRCOSCRITTO (raggio r/cos(pi/48) = 10,0215): un'asola approssimata per difetto sarebbe piu' stretta del nominale, e una vite non ci passerebbe. Anche i lati dritti stanno a +-10,0215: l'asola esce larga 20,043. Il primo giro di questo caso aspettava 11141,59 — il conto di un'asola coi semicerchi veri — ed e' uscito 11163,281: aveva ragione il pezzo, e la descrizione dell'operazione non lo diceva. Adesso lo dice.",
+  "_the_slot_is_a_polygon": "E I SEMICERCHI NON SONO SEMICERCHI. `Sections.cs` li fa di 24 lati ciascuno, coi vertici sul cerchio CIRCOSCRITTO (raggio r/cos(pi/48) = 10,0215): un'asola approssimata per difetto sarebbe piu' stretta del nominale, e una vite non ci passerebbe. Anche i lati dritti stanno a +-10,0215: l'asola esce larga 20,043. Il primo giro di questo caso aspettava 11141,59 — il conto di un'asola coi semicerchi veri — ed e' uscito 11163,281: aveva ragione il pezzo, e la descrizione dell'operazione non lo diceva. Adesso lo dice.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_section",

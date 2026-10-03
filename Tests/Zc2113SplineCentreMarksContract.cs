@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// SPLINES THROUGH CreateSpline3 WITH NATURAL ENDS (L1-1), AND THE CENTRE
@@ -36,7 +36,7 @@ namespace Prove.Contratti
     /// </summary>
     internal static class Zc2113SplineCentreMarksContract
     {
-        private const string Library = "Riscontro.Disegno";
+        private const string Library = "Oce.Solid.Agent.Core";
 
         internal static void RunAll()
         {
@@ -45,9 +45,9 @@ namespace Prove.Contratti
             string sw, drawing, marks;
             try
             {
-                sw = File.ReadAllText(Path.Combine(Radice(), Library, "OperazioniSw.cs"));
-                drawing = File.ReadAllText(Path.Combine(Radice(), Library, "OperazioniTavola.cs"));
-                marks = File.ReadAllText(Path.Combine(Radice(), Library, "OperazioniCentrini.cs"));
+                sw = File.ReadAllText(Path.Combine(Radice(), Library, "SwOperations.cs"));
+                drawing = File.ReadAllText(Path.Combine(Radice(), Library, "DrawingOperations.cs"));
+                marks = File.ReadAllText(Path.Combine(Radice(), Library, "CenterMarkOperations.cs"));
             }
             catch (Exception ex)
             {

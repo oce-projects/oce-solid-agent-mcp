@@ -1,6 +1,6 @@
 using System;
 
-namespace Condiviso
+namespace Shared
 {
     /// <summary>
     /// QUANDO SOLIDWORKS SE N'E' ANDATO, LE PROVE DOPO NON SONO ROSSE:
@@ -56,8 +56,8 @@ namespace Condiviso
     ///
     /// Perche' una guardia che nessuno ha mai visto scattare non e' una
     /// guardia. Per vederla scattare nel banco servirebbe far morire
-    /// SOLIDWORKS a comando; in `Condiviso` la compila anche
-    /// `Prove.Contratti`, dove SOLIDWORKS non c'e' affatto, e li' la si fa
+    /// SOLIDWORKS a comando; in `Shared` la compila anche
+    /// `Oce.Solid.Agent.ContractTests`, dove SOLIDWORKS non c'e' affatto, e li' la si fa
     /// fallire apposta ogni volta che si lanciano le prove — in un decimo di
     /// secondo, senza CAD.
     /// </summary>

@@ -18,14 +18,14 @@
 //   * `CHANGELOG.md`: not touched by this script, which removes a trademark.
 //     The historical entries are translated too, in W3.1-bis.10 (decision D2
 //     of 28 September 2026).
-//   * `Riscontro.Disegno`: not touched by this script, which removes a
+//   * `Oce.Solid.Agent.Core`: not touched by this script, which removes a
 //     trademark. The project and its folder get an English name in
 //     W3.1-bis.6 (decision D6 of 28 September 2026).
 //   * i binari (`bin/`, `dist/`, `Installer/Payload/`): si rigenerano
 //     compilando.
 //
-//   node Controlli/rinomina-prodotto.js            dice cosa farebbe
-//   node Controlli/rinomina-prodotto.js --scrivi   lo fa
+//   node Checks/rename-product.js            dice cosa farebbe
+//   node Checks/rename-product.js --scrivi   lo fa
 
 var fs = require('fs');
 var path = require('path');
@@ -38,8 +38,8 @@ var SCRIVI = process.argv.indexOf('--scrivi') >= 0;
 var CAMBI = [
     // namespace e using
     ['SolidWorksMcp.Installer', 'Oce.Solid.Agent.Installer'],
-    ['SolidWorksMcp.Strumenti', 'Oce.Solid.Agent.Strumenti'],
-    ['SolidWorksMcp.Ponte', 'Oce.Solid.Agent.Ponte'],
+    ['SolidWorksMcp.Strumenti', 'Oce.Solid.Agent.Tools'],
+    ['SolidWorksMcp.Ponte', 'Oce.Solid.Agent.Bridge'],
     ['SolidWorksMcp.Mcp', 'Oce.Solid.Agent.Mcp'],
     // l'eseguibile, col nome del repository: e' quello che finisce nella
     // configurazione del client MCP e sul disco di chi installa
@@ -51,9 +51,9 @@ var CAMBI = [
     // LE GRAFIE SEPARATE, che la prima passata non aveva preso ed erano le piu'
     // visibili di tutte:
     //
-    //   Installer\Passi.cs   NomeProdotto, cioe' quello che legge chi installa
+    //   Installer\Steps.cs   NomeProdotto, cioe' quello che legge chi installa
     //   NOTICE riga 1        la prima riga delle note legali
-    //   Programma.cs         il nome che il server dichiara SUL PROTOCOLLO MCP,
+    //   Program.cs         il nome che il server dichiara SUL PROTOCOLLO MCP,
     //                        cioe' quello che vede il client
     //   README.md riga 1     il titolo
     //
@@ -80,7 +80,7 @@ var INTOCCABILI = {
     'CHANGELOG.md': 'le voci storiche dicono cosa si chiamava allora',
     'ultimo-giro.txt': 'uscita del banco, si rigenera',
     'ultimo-ponte.txt': 'uscita del banco, si rigenera',
-    'rinomina-prodotto.js': 'e\' questo script, e nomina i vietati di mestiere',
+    'rename-product.js': 'e\' questo script, e nomina i vietati di mestiere',
 };
 
 var SALTA_CARTELLE = ['.git', 'bin', 'obj', 'dist', 'node_modules', 'lavoro', 'Payload'];

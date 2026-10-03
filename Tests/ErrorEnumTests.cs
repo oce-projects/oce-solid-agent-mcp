@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// `if (errore != 0)` PUO' ESSERE ESATTAMENTE ROVESCIATO (voce Z-C7).
@@ -16,7 +16,7 @@ namespace Prove.Contratti
     /// e non da' nessun sintomo: l'accoppiamento c'e', il messaggio dice di no.
     ///
     /// E non e' un caso isolato. Il 23/9/2026, per riflessione sulle interop di
-    /// SOLIDWORKS 2021 SP5.1 — `Controlli\enum-di-errore.ps1`, che rifa' la
+    /// SOLIDWORKS 2021 SP5.1 — `Checks\error-enum.ps1`, che rifa' la
     /// misura quando serve — su **38** enum di errore o stato, **13** hanno
     /// «niente errore» diverso da zero:
     ///
@@ -130,7 +130,7 @@ namespace Prove.Contratti
                                     : "falsi allarmi: " + string.Join(" | ", urlate));
 
             // ── POI: I SORGENTI ──────────────────────────────────────────
-            var cartella = Path.Combine(Radice(), "Riscontro.Disegno");
+            var cartella = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
             if (!Directory.Exists(cartella))
             {
                 Segna("la cartella della libreria c'e'", false, "manca " + cartella);

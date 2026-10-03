@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// UN PIANO PER TRE PUNTI. (voce GP9)

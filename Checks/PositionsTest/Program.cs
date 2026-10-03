@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Riscontro.Disegno;
+using Oce.Solid.Agent.Core;
 
-namespace Controlli.ProvaPosizioni
+namespace Checks.PositionsTest
 {
     /// <summary>
     /// IL GIUDIZIO SULLE POSIZIONI DEI FORI, CONTROLLATO SENZA SOLIDWORKS.
@@ -23,7 +23,7 @@ namespace Controlli.ProvaPosizioni
     /// dipende da come la creazione guidata modella quel particolare foro.
     /// Separato il giudizio dal COM, quel caso si scrive in una riga.
     ///
-    ///     Controlli\ProvaPosizioni\bin\ProvaPosizioni.exe
+    ///     Checks\PositionsTest\bin\PositionsTest.exe
     ///
     /// Esce 0 se torna tutto, 1 se no.
     /// </summary>

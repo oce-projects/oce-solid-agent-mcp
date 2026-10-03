@@ -1,16 +1,16 @@
 // Chiama `inspect_part` e stampa poche cose: serve a leggere lo stato fra
 // un passo e l'altro del banco, senza mandare un piano.
 //
-//   node guarda.js                stampa il riassunto
-//   node guarda.js tutto          stampa il JSON intero
+//   node inspect.js                stampa il riassunto
+//   node inspect.js tutto          stampa il JSON intero
 const { spawn } = require("child_process");
 const path = require("path");
 
 // IL PERCORSO SI RICAVA, NON SI SCRIVE. Qui c'era il percorso assoluto di
 // questa macchina di sviluppo: chi clonava il repository altrove e lanciava il
-// comando come lo documenta LEGGIMI.md otteneva un ENOENT su un file che sul
+// comando come lo documenta README.md otteneva un ENOENT su un file che sul
 // suo disco non esiste, senza nessun indizio che andasse impostata `PONTE`.
-// `corri_piani.js`, due file piu' in la', lo faceva gia' giusto.
+// `run_plans.js`, due file piu' in la', lo faceva gia' giusto.
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const tutto = process.argv[2] === "tutto";

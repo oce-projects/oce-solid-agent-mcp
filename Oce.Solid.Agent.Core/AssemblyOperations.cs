@@ -6,7 +6,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LA PRIMA OPERAZIONE DI ASSIEME (voce GA3).
@@ -448,7 +448,7 @@ namespace Riscontro.Disegno
         /// punto del repository che la regola di Z-C8 la rispettava gia', ed e'
         /// il modello per gli altri venti: **`-1` per «non lo so», `0` solo
         /// quando lo zero e' un'affermazione che si puo' fare.**
-        /// (`Controlli/zero-o-non-lo-so.js` legge questo marcatore.)
+        /// (`Checks/zero-or-unknown.js` legge questo marcatore.)
         /// </summary>
         private static int ContaGliAccoppiamenti(IComponent2 componente)
         {

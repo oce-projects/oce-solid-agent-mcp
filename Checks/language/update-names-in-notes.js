@@ -23,7 +23,7 @@
 //  used as a name (asola, guscio, specchia) is never replaced as a word. The
 //  names an Italian SOLIDWORKS writes (Schizzo1, «Piano frontale») are never
 //  touched. In a TODO (--todo) the closed entries ([x]) and the (com'era)
-//  sections are history and stay as they are, as Controlli/percorsi-del-todo.js
+//  sections are history and stay as they are, as Checks/todo-paths.js
 //  reads them; so does the entry W3.1-bis with its stages (the rename itself:
 //  its tables and decisions quote the Italian name next to the English one).
 //
@@ -44,12 +44,12 @@
 //  would change.
 //
 //  USAGE
-//    node Controlli/lingua/update-names-in-notes.js [--dry-run] [--list] [--only-mentioning <regex>] <path>...
-//    node Controlli/lingua/update-names-in-notes.js [--dry-run] [--list] --todo <TODO.md>
+//    node Checks/language/update-names-in-notes.js [--dry-run] [--list] [--only-mentioning <regex>] <path>...
+//    node Checks/language/update-names-in-notes.js [--dry-run] [--list] --todo <TODO.md>
 //        --only-mentioning skips a note whose text does not match: the RAG
 //        holds the notes of OpenPDM too, whose `stato`, `errore` or
 //        `qualita` are not names of the bridge
-//    node Controlli/lingua/update-names-in-notes.js --self-test
+//    node Checks/language/update-names-in-notes.js --self-test
 //        fake notes in a temporary folder: every rule seen doing what it says
 //
 //  EXIT CODES

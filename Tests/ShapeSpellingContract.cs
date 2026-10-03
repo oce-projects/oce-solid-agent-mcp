@@ -5,15 +5,15 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Web.Script.Serialization;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE FORMA HANDS EVERY ENUM VALUE ON IN THE CATALOGUE'S SPELLING
     /// (Z-C21.10, pattern S20).
     ///
-    /// Ponte/Forma.cs accepts an enum value ignoring case: the case of a word
+    /// Bridge/Shape.cs accepts an enum value ignoring case: the case of a word
     /// is form, not merit. Until library 0.140.0 it then passed the value on
     /// untouched, and the library compares Ordinal, so the accepted
     /// «Top» became an unknown name there: SelezionaPiano fell back to
@@ -21,7 +21,7 @@ namespace Prove.Contratti
     /// riuscita:true) and rectangular_frame read «Overall» as the
     /// centreline frame (finding N32, 1080x880 for 1000x800). The fix is one
     /// rewrite in the Forma, in the very dictionary that «build» then hands
-    /// to the library (Strumenti/Attrezzi.cs).
+    /// to the library (Tools/McpTools.cs).
     ///
     /// This group runs the Forma of the BUILT bridge, by reflection, against
     /// the schemas of the served catalogue: no SOLIDWORKS. The library half of

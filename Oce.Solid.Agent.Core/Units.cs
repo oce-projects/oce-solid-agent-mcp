@@ -1,6 +1,6 @@
 using System;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// L'unico posto del programma dove si converte fra millimetri e metri.

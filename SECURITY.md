@@ -36,7 +36,7 @@ narrower than usual, and worth naming:
 
 - Anything requiring the attacker to already have the user's Windows session.
   With that, they have SOLIDWORKS too.
-- SmartScreen warnings on `Installa.exe`. It is not code-signed, this is
+- SmartScreen warnings on `Installer.exe`. It is not code-signed, this is
   documented in [QUICKSTART.md](QUICKSTART.md), and it is a known gap rather
   than a finding.
 - SOLIDWORKS® itself, and Dassault Systèmes software generally. Report those to

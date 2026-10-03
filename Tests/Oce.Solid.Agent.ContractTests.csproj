@@ -6,7 +6,7 @@
   <!-- ===================================================================
        LE PROVE CHE GIRANO SENZA SOLIDWORKS (voce F7)
 
-       UN PROGETTO A SE', E NON UN MODO DI `ProvaSaldatura.exe`. Il csproj
+       UN PROGETTO A SE', E NON UN MODO DI `Oce.Solid.Agent.Bench.exe`. Il csproj
        del banco risolve l'interop con un `HintPath` dentro
        `...\SOLIDWORKS\api\redist`: su una macchina senza SOLIDWORKS quel
        percorso non esiste e la COMPILAZIONE fallisce. Un flag non basta —
@@ -25,8 +25,8 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Prove.Contratti</RootNamespace>
-    <AssemblyName>Prove.Contratti</AssemblyName>
+    <RootNamespace>Oce.Solid.Agent.ContractTests</RootNamespace>
+    <AssemblyName>Oce.Solid.Agent.ContractTests</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <!-- x64 COME IL PONTE, e non e' un dettaglio di gusto: un `AnyCPU`
          eseguibile su .NET Framework parte a 32 bit (`Prefer32Bit` e' vero di
@@ -41,7 +41,7 @@
     <Optimize>true</Optimize>
     <LangVersion>7.3</LangVersion>
     <!-- Two builds of the same source give the same bytes (W3.1-bis.2,
-         Controlli\lingua\same-il.ps1). -->
+         Checks\language\same-il.ps1). -->
     <Deterministic>true</Deterministic>
     <!-- [CallerFilePath] of the bench recorders gives the path as seen from the
          repository, not the absolute path of this checkout: the same source
@@ -58,39 +58,39 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Condiviso\ClienteMcp.cs" />
-    <Compile Include="..\Condiviso\SentinellaSolidWorks.cs" />
-    <Compile Include="..\Condiviso\PreparazioneFallita.cs" />
-    <Compile Include="..\Condiviso\Guinzaglio.cs" />
-    <Compile Include="Carica.cs" />
-    <Compile Include="Programma.cs" />
-    <Compile Include="ProveCatalogo.cs" />
-    <Compile Include="ProveSessione.cs" />
-    <Compile Include="ProveProtocollo.cs" />
-    <Compile Include="ProveAttese.cs" />
-    <Compile Include="ProveIlBanco.cs" />
-    <Compile Include="ProveLaSentinella.cs" />
-    <Compile Include="ProveIlDocumento.cs" />
-    <Compile Include="ProveEnumDiErrore.cs" />
-    <Compile Include="ProveILimiti.cs" />
-    <Compile Include="ProveLeDescrizioni.cs" />
-    <Compile Include="ProveIRifiuti.cs" />
-    <Compile Include="ProveIlDocumentoRichiesto.cs" />
-    <Compile Include="ProveICampiObbligatori.cs" />
-    <Compile Include="ProveGliEsempi.cs" />
-    <Compile Include="ProveLeImmagini.cs" />
-    <Compile Include="ProveIlGuinzaglio.cs" />
-    <Compile Include="ProveLaProvaAVuoto.cs" />
-    <Compile Include="ProveLaConferma.cs" />
-    <Compile Include="ProveLeFirmeVietate.cs" />
-    <Compile Include="ProveLeFirmeDelDocumento.cs" />
-    <Compile Include="ProveIlRegistro.cs" />
-    <Compile Include="ProveLAvanzamento.cs" />
+    <Compile Include="..\Shared\McpClient.cs" />
+    <Compile Include="..\Shared\SolidWorksSentinel.cs" />
+    <Compile Include="..\Shared\PreparationFailed.cs" />
+    <Compile Include="..\Shared\Leash.cs" />
+    <Compile Include="Load.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="CatalogTests.cs" />
+    <Compile Include="SessionTests.cs" />
+    <Compile Include="ProtocolTests.cs" />
+    <Compile Include="ExpectationsTests.cs" />
+    <Compile Include="BenchTests.cs" />
+    <Compile Include="SentinelTests.cs" />
+    <Compile Include="DocumentTests.cs" />
+    <Compile Include="ErrorEnumTests.cs" />
+    <Compile Include="LimitsTests.cs" />
+    <Compile Include="DescriptionsTests.cs" />
+    <Compile Include="RefusalsTests.cs" />
+    <Compile Include="RequestedDocumentTests.cs" />
+    <Compile Include="RequiredFieldsTests.cs" />
+    <Compile Include="ExamplesTests.cs" />
+    <Compile Include="ImagesTests.cs" />
+    <Compile Include="LeashTests.cs" />
+    <Compile Include="DryRunTests.cs" />
+    <Compile Include="ConfirmationTests.cs" />
+    <Compile Include="ForbiddenSignaturesTests.cs" />
+    <Compile Include="DocumentSignaturesTests.cs" />
+    <Compile Include="RegistryTests.cs" />
+    <Compile Include="ProgressTests.cs" />
     <Compile Include="ApiCatalogContracts.cs" />
     <Compile Include="ObsoleteCallScanner.cs" />
     <Compile Include="ObsoleteCallsContract.cs" />
     <Compile Include="SelectionMarksContract.cs" />
-    <Compile Include="FormaSpellingContract.cs" />
+    <Compile Include="ShapeSpellingContract.cs" />
     <Compile Include="Zc2110HelpersContract.cs" />
     <Compile Include="StateChamferContract.cs" />
     <Compile Include="Zc212DrawingContract.cs" />
@@ -121,16 +121,16 @@
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
          Non una copia: una copia diverge, e il giorno che diverge la suite
          col CAD comincia a passare per ragioni che qui non si vedono. -->
-    <Compile Include="..\Banco\Attese.cs">
-      <Link>Attese.cs</Link>
+    <Compile Include="..\Bench\Expectations.cs">
+      <Link>Expectations.cs</Link>
     </Compile>
-    <Compile Include="..\Banco\CaseKeys.cs">
+    <Compile Include="..\Bench\CaseKeys.cs">
       <Link>CaseKeys.cs</Link>
     </Compile>
-    <Compile Include="..\Banco\TestLedger.cs">
+    <Compile Include="..\Bench\TestLedger.cs">
       <Link>TestLedger.cs</Link>
     </Compile>
-    <Compile Include="..\Banco\ReflectionLog.cs">
+    <Compile Include="..\Bench\ReflectionLog.cs">
       <Link>ReflectionLog.cs</Link>
     </Compile>
   </ItemGroup>

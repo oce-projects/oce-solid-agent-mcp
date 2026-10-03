@@ -1,6 +1,6 @@
 {
   "about": [
-    "The keys a bench case may carry (entry W3.1-bis.2, item 4). The bench loader refuses any other key, and Prove.Contratti (CaseKeysTests) applies the same rule before the bench runs.",
+    "The keys a bench case may carry (entry W3.1-bis.2, item 4). The bench loader refuses any other key, and Oce.Solid.Agent.ContractTests (CaseKeysTests) applies the same rule before the bench runs.",
     "Every context is one place of a case. \"read\": the keys the loader reads, written as strings, as the reader writes them (each must appear as a literal in the bench sources). \"documented\": prose keys the loader never reads. \"children\": the key that leads to another context, as an object or as a list of objects. \"frozen_free\": notes with invented names written before this list existed; the list only shrinks, and a new note starts with an underscore, which is admitted anywhere and never read. Documented and frozen keys are written as keys, as the cases write them.",
     "The renaming script of W3.1-bis.4 rewrites this file together with the cases, in the same commit: the keys of documented, frozen_free and children, and the strings of read."
   ],

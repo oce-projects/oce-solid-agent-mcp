@@ -1,5 +1,5 @@
 {
- "about": "Stress draw for Controlli/lingua/measure.js, labelled after the detector was frozen: only lines with at least two English function words (English prose, and Italian lines that mix in English), a different seed. Keys are hashes of file, line number and text; values are it, en or skip.",
+ "about": "Stress draw for Checks/language/measure.js, labelled after the detector was frozen: only lines with at least two English function words (English prose, and Italian lines that mix in English), a different seed. Keys are hashes of file, line number and text; values are it, en or skip.",
  "commit": "4d7b84a",
  "seed": 928,
  "min_words": 3,

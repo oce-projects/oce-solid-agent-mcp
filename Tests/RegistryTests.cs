@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// IL REGISTRO DELLE DOMANDE SENZA RISPOSTA (voce Z-G7)
@@ -268,9 +268,9 @@ namespace Prove.Contratti
 
         private static void OgniPuntoCheSaLoScrive()
         {
-            var sorgente = Path.Combine(Radice(), "Strumenti", "Attrezzi.cs");
+            var sorgente = Path.Combine(Radice(), "Tools", "McpTools.cs");
             if (!File.Exists(sorgente))
-            { Segna("Attrezzi.cs si legge", false, sorgente); return; }
+            { Segna("McpTools.cs si legge", false, sorgente); return; }
 
             var righe = File.ReadAllLines(sorgente);
             var scoperti = new List<int>();
@@ -347,9 +347,9 @@ namespace Prove.Contratti
 
         private static void NonToccaStdout()
         {
-            var sorgente = Path.Combine(Radice(), "Strumenti", "RegistroDelleDomande.cs");
+            var sorgente = Path.Combine(Radice(), "Tools", "QuestionRegistry.cs");
             if (!File.Exists(sorgente))
-            { Segna("RegistroDelleDomande.cs si legge", false, sorgente); return; }
+            { Segna("QuestionRegistry.cs si legge", false, sorgente); return; }
 
             // Si guarda il CODICE, non i commenti: la spiegazione della regola
             // nomina `Console` apposta, e un controllo che punisse la propria

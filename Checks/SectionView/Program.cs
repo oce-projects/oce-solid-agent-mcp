@@ -4,12 +4,12 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.SezioneInTavola
+namespace Checks.SectionView
 {
     /// <summary>
     /// LA SEZIONE IN TAVOLA, DAL PRINCIPIO ALLA FINE, SENZA MANI.
     ///
-    /// E' la prova che chiude la misura 0.6 e sblocca GT4. `SchizzoSulFoglio`
+    /// E' la prova che chiude la misura 0.6 e sblocca GT4. `SketchOnSheet`
     /// aveva risposto alle due domande di mezzo — si traccia sul foglio, e il
     /// segmento si riprende con `Select4` — ma «si puo' selezionare una linea»
     /// non e' ancora «esce una sezione». Fra le due c'e'
@@ -31,7 +31,7 @@ namespace Controlli.SezioneInTavola
     /// e non aver fatto niente di utile: il numero delle viste e' il riscontro,
     /// il valore di ritorno e' solo una promessa.
     ///
-    ///     SezioneInTavola.exe        lavora sulla tavola attiva
+    ///     SectionView.exe        lavora sulla tavola attiva
     /// </summary>
     internal static class Programma
     {

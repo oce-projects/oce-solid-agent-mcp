@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// DA QUALI FILE DIPENDE QUESTO DOCUMENTO, E QUALI MANCANO (voce Z-B3).

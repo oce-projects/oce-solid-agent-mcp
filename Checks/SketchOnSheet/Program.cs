@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.SchizzoSulFoglio
+namespace Checks.SketchOnSheet
 {
     /// <summary>
     /// LA META' VIVA DELLA MISURA 0.6: si puo' disegnare SUL FOGLIO di una
@@ -25,7 +25,7 @@ namespace Controlli.SchizzoSulFoglio
     /// copiando invece che ricordando. Dove c'e' «-» la domanda non ha avuto
     /// risposta, e si vede.
     ///
-    ///     SchizzoSulFoglio.exe        lavora sulla tavola attiva
+    ///     SketchOnSheet.exe        lavora sulla tavola attiva
     ///
     /// Vuole una TAVOLA aperta e davanti. Non ne apre una da solo: creare una
     /// tavola vuol dire scegliere un modello di foglio, e quella scelta e' di

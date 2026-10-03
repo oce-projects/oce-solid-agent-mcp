@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// GLI OCCHI SULLA TAVOLA.
@@ -241,7 +241,7 @@ namespace Riscontro.Disegno
                     //
                     // `IAnnotation.IsDangling` e' MORTO per le quote in tavola
                     // fuori processo: misurato il 24/9/2026 con
-                    // `Controlli/Orfana`, resta falso su una quota il cui
+                    // `Checks/Orphan`, resta falso su una quota il cui
                     // spigolo e' stato soppresso, mentre la quota continua a
                     // dire 20 mm. Quello che lo vede e' chiedersi se lo spigolo
                     // a cui e' attaccata e' ancora fra quelli che la vista

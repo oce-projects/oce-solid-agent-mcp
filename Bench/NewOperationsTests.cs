@@ -6,7 +6,7 @@ using System.Reflection;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// LE SETTE OPERAZIONI NON ANCORA PROVATE.
@@ -147,7 +147,7 @@ namespace ProvaSaldatura
                 // Era un percorso assoluto dentro una cartella temporanea di
                 // sessione, nome utente compreso. Sbagliato due volte: quella
                 // cartella non esiste piu', e il nome di chi lavora non deve
-                // uscire da questa macchina (`Controlli\controlla-pubblicabilita.ps1`).
+                // uscire da questa macchina (`Checks\check-publishability.ps1`).
                 string cartella = System.IO.Path.Combine(
                     System.IO.Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".",
                     "lavoro", "views");
@@ -370,13 +370,13 @@ namespace ProvaSaldatura
             Sposta("sposta una piastra di 50 in Z", 0, 0, 50, false, 0,
                    corpiAttesi: 2, volumeAttesa: 200000, spostamentoCentroZ: 25);
             // NOTA per chi passa di qui: il 15/9/2026 questo 200000 e' stato
-            // messo a 199000 apposta, per vedere `banco.ps1` uscire 1 e
+            // messo a 199000 apposta, per vedere `bench.ps1` uscire 1 e
             // nominare il caso con atteso e misurato nel resoconto. E' il
             // criterio di chiusura della voce F2, e va rifatto cosi' se
             // qualcuno tocca il resoconto.
             //
             // E lo stesso giorno, con un errore di sintassi messo qui apposta,
-            // si e' visto `banco.ps1` fermarsi PRIMA di lanciare e uscire 2:
+            // si e' visto `bench.ps1` fermarsi PRIMA di lanciare e uscire 2:
             // e' il difetto che la voce F2 nominava per nome — uno script che
             // esce 0 perche' la compilazione e' fallita e nessuno ha guardato.
             Sposta("sposta di 600 in Z", 0, 0, 600, false, 0,

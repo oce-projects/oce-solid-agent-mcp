@@ -368,7 +368,7 @@ namespace Oce.Solid.Agent.Installer
             if (clientNotWired)
             {
                 Console.WriteLine("Installed in " + cartella + ", but not every MCP client is wired: paste the " +
-                                  "block above, then run Installa.exe --verify. (exit 3)");
+                                  "block above, then run Installer.exe --verify. (exit 3)");
                 return ExitClientNotWired;
             }
             // «Installato» si dice solo se il giro secco lo conferma, oppure se
@@ -384,7 +384,7 @@ namespace Oce.Solid.Agent.Installer
             return ExitNotConfirmed;
         }
 
-        /// <summary>The line before the block to paste. Controlli/prova-installatore.js looks for it.</summary>
+        /// <summary>The line before the block to paste. Checks/test-installer.js looks for it.</summary>
         internal const string PasteHeader =
             "Paste this into the MCP client's configuration file (inside \"mcpServers\" if it has one already):";
 
@@ -399,10 +399,10 @@ namespace Oce.Solid.Agent.Installer
 
         private static string Aiuto() =>
             Passi.NomeProdotto + " - installatore\n\n" +
-            "  Installa.exe                      apre la finestra\n" +
-            "  Installa.exe --silenzioso         installa senza finestra\n" +
+            "  Installer.exe                      apre la finestra\n" +
+            "  Installer.exe --silenzioso         installa senza finestra\n" +
             "\n" +
-            "  Installa.exe --verify [--json]    checks an installation, as a client would find it\n" +
+            "  Installer.exe --verify [--json]    checks an installation, as a client would find it\n" +
             "\n" +
             "  --cartella <percorso>   dove installare (predefinito: " +
             Passi.CartellaPredefinita + ")\n" +
@@ -421,8 +421,8 @@ namespace Oce.Solid.Agent.Installer
             "Exit codes of --silenzioso: 0 installed and wired, 1 nothing installed,\n" +
             "2 installed but the self-test did not confirm, 3 installed but a client\n" +
             "not wired (the block to paste is printed). Read them with\n" +
-            "  PowerShell: (Start-Process Installa.exe -ArgumentList '--silenzioso' -Wait -PassThru -NoNewWindow).ExitCode\n" +
-            "  cmd, in a batch file: start \"\" /wait Installa.exe --silenzioso, then %ERRORLEVEL%\n" +
+            "  PowerShell: (Start-Process Installer.exe -ArgumentList '--silenzioso' -Wait -PassThru -NoNewWindow).ExitCode\n" +
+            "  cmd, in a batch file: start \"\" /wait Installer.exe --silenzioso, then %ERRORLEVEL%\n" +
             "\n" +
             "Non serve l'amministratore: installa nella cartella dell'utente e non\n" +
             "scrive nel registro di sistema.";

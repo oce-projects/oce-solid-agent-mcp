@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 
-namespace Controlli.Opzione
+namespace Checks.Option
 {
     /// <summary>
     /// LEGGE E CAMBIA UNA PREFERENZA DI SOLIDWORKS, per numero.
@@ -16,11 +16,11 @@ namespace Controlli.Opzione
     /// lavora e va rimessa com'era. Chi la cambia deve poterla rimettere senza
     /// ricordarsela.
     ///
-    ///     Opzione.exe 248              legge
-    ///     Opzione.exe 248 on           accende
-    ///     Opzione.exe 248 off          spegne
+    ///     Option.exe 248              legge
+    ///     Option.exe 248 on           accende
+    ///     Option.exe 248 off          spegne
     ///
-    /// I numeri sono quelli di `swUserPreferenceToggle_e`; `ApiQuote.exe` li
+    /// I numeri sono quelli di `swUserPreferenceToggle_e`; `DimensionApis.exe` li
     /// elenca cercando per parola.
     /// </summary>
     internal static class Programma

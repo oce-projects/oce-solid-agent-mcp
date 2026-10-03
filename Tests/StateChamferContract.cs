@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE STATE READS A CHAMFER BY ITS TYPE (N29, Z-C21.3).
@@ -34,7 +34,7 @@ namespace Prove.Contratti
         {
             Gruppo("the state reads a chamfer by its type (N29)");
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the state reads a chamfer by its type",
@@ -68,12 +68,12 @@ namespace Prove.Contratti
         /// <summary>The checks, on a library already loaded.</summary>
         internal static void Check(Assembly asm)
         {
-            var state = asm.GetType("Riscontro.Disegno.StatoDocumento", false);
+            var state = asm.GetType("Oce.Solid.Agent.Core.StatoDocumento", false);
             var method = state == null ? null : state.GetMethod("ChamferSizes", Any);
             if (method == null)
             {
                 Segna("N29: StatoDocumento.ChamferSizes is there", false,
-                      state == null ? "no Riscontro.Disegno.StatoDocumento in the library"
+                      state == null ? "no Oce.Solid.Agent.Core.StatoDocumento in the library"
                                     : "missing on this library: it is older than the fix");
                 return;
             }

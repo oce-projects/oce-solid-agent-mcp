@@ -25,7 +25,7 @@
 #  D9: every task x3 on the ITALIAN version (the threshold) and x1 on the
 #  English one (a signal); the medians per task of the bridge before the rename
 #  window (the catalogue of the snapshot) against the bridge after it, at most
-#  one task of fifteen worse. The commands are in Banco/tasks/README.md.
+#  one task of fifteen worse. The commands are in Bench/tasks/README.md.
 #
 #  NEEDS SOLIDWORKS, a built bridge and the claude CLI. It starts every task
 #  with -Between (a command that closes the documents left open by the task
@@ -33,7 +33,7 @@
 #  one in front is not measuring the model.
 #
 #  THE SESSION SEES THE BRIDGE AND NOTHING ELSE. A session started in the
-#  repository could read Banco/tasks/NN_*.md, with the table of the expected
+#  repository could read Bench/tasks/NN_*.md, with the table of the expected
 #  answers, and the cases; it would load the CLAUDE.md and the memories of the
 #  person who runs it. So every session runs in an empty temporary folder of
 #  its own (deleted after), with no built-in tool (--tools ""), no settings
@@ -45,8 +45,8 @@
 #  (isolation.user_claude_md). The options are those of claude 2.1.281
 #  (claude --help); check them on the CLI that runs.
 #
-#      .\Banco\tasks\run-autonomous.ps1 -Language en -DryRun
-#      .\Banco\tasks\run-autonomous.ps1 -Language it -TasksDir <Italian tasks> -Repeats 3 -Label after
+#      .\Bench\tasks\run-autonomous.ps1 -Language en -DryRun
+#      .\Bench\tasks\run-autonomous.ps1 -Language it -TasksDir <Italian tasks> -Repeats 3 -Label after
 #
 #  Exit 0 when every session ran (whatever the model made of it), 1 when a
 #  session could not start, 2 on a bad argument.
@@ -103,12 +103,12 @@ function TaskText([string] $file) {
 $stamp = Get-Date -Format 'yyyyMMdd-HHmm'
 if (-not $Out) {
     $name = $stamp + '-' + $Language + $(if ($Label) { '-' + $Label } else { '' })
-    $Out = Join-Path $root (Join-Path 'Banco\report\autonomous' $name)
+    $Out = Join-Path $root (Join-Path 'Bench\report\autonomous' $name)
 }
 # absolute: every session runs in a temporary folder of its own
 $Out = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Out)
 $Bridge = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Bridge)
-$catalogue = Join-Path (Split-Path -Parent $Bridge) 'catalogo.json'
+$catalogue = Join-Path (Split-Path -Parent $Bridge) 'catalog.json'
 $catalogueHash = if (Test-Path -LiteralPath $catalogue) { (Get-FileHash -LiteralPath $catalogue -Algorithm SHA256).Hash.Substring(0, 12) } else { '(none next to the bridge)' }
 
 # The bridge as the only MCP server of the session.
@@ -217,6 +217,6 @@ $run = [ordered]@{
 }
 [IO.File]::WriteAllText((Join-Path $Out 'run.json'), ($run | ConvertTo-Json), (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("done: " + ($commands.Count - $failed) + " of " + $commands.Count + " sessions; score with:")
-Write-Host ("  node Banco\tasks\score-autonomous.js " + $Out)
+Write-Host ("  node Bench\tasks\score-autonomous.js " + $Out)
 if ($failed -gt 0) { exit 1 }
 exit 0

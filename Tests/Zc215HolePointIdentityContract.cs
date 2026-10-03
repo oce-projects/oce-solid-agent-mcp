@@ -1,15 +1,15 @@
 using System;
 using System.IO;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// N23 — A HOLE'S ANCHOR POINT IS NEVER THE LAST ONE FOUND BY GUESS
     /// (Z-C21.5).
     ///
-    /// `AncoraIFori` (OperazioniAncora.cs) walks a positioning sketch's points
+    /// `AncoraIFori` (AnchorOperations.cs) walks a positioning sketch's points
     /// and keeps every one within 1e-7 m of the hole's expected position — a
     /// window loose on purpose, since `NelloSchizzo`'s own transform carries
     /// some numerical slack. Up to library 0.146.0 a second (or third) point
@@ -33,7 +33,7 @@ namespace Prove.Contratti
         {
             Gruppo("N23: a hole's anchor point is proved, never picked last by guess");
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("OperazioniSw.SameHolePoint", library + " is missing: build the library first (build.ps1)");
@@ -57,10 +57,10 @@ namespace Prove.Contratti
                 // From the bytes, as Zc215IdentityContract: the repository may
                 // sit on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                owner = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                owner = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (owner == null) { Segna("Riscontro.Disegno.OperazioniSw is in the library", false, ""); return; }
+            if (owner == null) { Segna("Oce.Solid.Agent.Core.OperazioniSw is in the library", false, ""); return; }
 
             var method = owner.GetMethod("SameHolePoint",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);

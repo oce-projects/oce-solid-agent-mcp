@@ -5,7 +5,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// ACCOPPIARE (voce GA4).
@@ -129,7 +129,7 @@ namespace Riscontro.Disegno
             // normal is turned by the component's Transform2 before it is
             // compared with the direction asked for. ComponentAxes is the
             // reading of Transform2 that finding N26 measured (the axes of a
-            // mirrored instance, OperazioniSpecchiaComponente.cs).
+            // mirrored instance, MirrorComponentOperations.cs).
             var facciaA = FacciaVersoDi(compA, versoA, ComponentAxes(compA), out string perche1);
             if (facciaA == null) return Fallito("Su «" + uidA + "»: " + perche1);
             var facciaB = FacciaVersoDi(compB, versoB, ComponentAxes(compB), out string perche2);
@@ -915,7 +915,7 @@ namespace Riscontro.Disegno
         }
 
         // ── the pure rules of Z-C14: no interop type in a signature, so that
-        //    Prove.Contratti calls them by reflection on the built library ──
+        //    Oce.Solid.Agent.ContractTests calls them by reflection on the built library ──
 
         /// <summary>
         /// The transform moved by one step of the test: direction 0..2 adds

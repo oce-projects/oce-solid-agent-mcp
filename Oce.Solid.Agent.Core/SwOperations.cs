@@ -4,7 +4,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Le sei operazioni che l'agente sa costruire davvero.
@@ -365,36 +365,36 @@ namespace Riscontro.Disegno
                     case "cylindrical_cut": return TaglioCilindrico(modello, argomenti, stato);
                     // Il foro fatto come si fa un foro: creazione guidata,
                     // norma ISO, filetto, lamatura, svasatura. Sta in
-                    // Agente/OperazioniFori.cs perche' la ricetta e' lunga e
+                    // HoleOperations.cs perche' la ricetta e' lunga e
                     // ogni riga di quella ricetta e' stata misurata.
                     case "hole_wizard": return ForoGuidato(modello, argomenti, stato);
-                    // Il materiale: Agente/OperazioniMateriale.cs.
+                    // Il materiale: MaterialOperations.cs.
                     case "apply_material": return ApplicaMateriale(modello, argomenti);
                     case "rectangular_cut": return TaglioRettangolare(modello, argomenti, stato);
                     case "slot": return Asola(modello, argomenti, stato);
                     case "extrude_on_face": return EstrudiSuFaccia(modello, argomenti, stato);
                     case "set_dimension": return ModificaQuota(modello, argomenti, stato);
                     // Le variabili globali e le equazioni (voce Z-F1): dare un nome a
-                    // un numero invece di ripeterlo. OperazioniEquazioni.cs.
+                    // un numero invece di ripeterlo. EquationOperations.cs.
                     case "global_variable": return VariabileGlobale(modello, argomenti, stato);
                     case "link_dimension": return LegaQuota(modello, argomenti, stato);
-                    // Riordinare l'albero (voce Z-F3). OperazioniRiordina.cs.
+                    // Riordinare l'albero (voce Z-F3). ReorderOperations.cs.
                     case "reorder_feature": return RiordinaLavorazione(modello, argomenti, stato);
                     // Cambiare un'estrusione o un taglio gia' fatti (voce Z-F4).
-                    // OperazioniCambiaEstrusione.cs.
+                    // EditExtrusionOperations.cs.
                     case "edit_extrusion": return CambiaEstrusione(modello, argomenti, stato);
                     case "dimension_tolerance": return TolleranzaQuota(modello, argomenti);
                     case "suppress_feature": return SopprimiLavorazione(modello, argomenti, stato);
                     case "delete_feature": return EliminaLavorazione(modello, argomenti, stato);
                     case "move_bodies": return SpostaCorpi(modello, argomenti, stato);
                     // Le booleane fra corpi e il raccordo a raggio variabile
-                    // stanno in OperazioniCorpi.cs.
+                    // stanno in BodyOperations.cs.
                     case "combine_bodies": return CombinaCorpi(modello, argomenti, stato);
                     case "variable_fillet":
                         return RaccordoVariabile(modello, argomenti, stato);
                     // Il raccordo di FACCIA (voce GP7, la meta' che mancava):
                     // CreateDefinition(swFmFillet) e marche 2/4, non FeatureFillet3.
-                    // OperazioniRaccordoFaccia.cs.
+                    // FaceFilletOperations.cs.
                     case "fillet_face":
                         return RaccordoFaccia(modello, argomenti, stato);
                     case "cosmetic_thread":
@@ -403,46 +403,46 @@ namespace Riscontro.Disegno
                     case "chamfer_edges": return SmussoSpigoli(modello, argomenti, stato);
                     case "shell": return Guscio(modello, argomenti, stato);
                     case "create_plane": return CreaPiano(modello, argomenti);
-                    // Il piano obliquo, in OperazioniPiani.cs. `create_plane` sa
+                    // Il piano obliquo, in PlaneOperations.cs. `create_plane` sa
                     // fare solo lo sfalsato dai tre standard: per una faccia
                     // inclinata non c'era niente su cui disegnare.
                     // L'operazione che il catalogo chiedeva e che non c'era:
-                    // sta in OperazioniProfili.cs. Senza, «structural_member»
+                    // sta in ProfileOperations.cs. Senza, «structural_member»
                     // diceva al modello di copiare da una cosa inesistente.
                     case "weldment_profiles":
                         return ProfiliSaldatura(modello, argomenti, stato);
 
                     // ── assiemi ─────────────────────────────────────────
-                    // La prima. Sta in OperazioniAssieme.cs, e la cosa che fa
+                    // La prima. Sta in AssemblyOperations.cs, e la cosa che fa
                     // oltre a inserire e' contare i gradi di liberta' residui:
                     // «AddComponent5 piazza senza accoppiare», e quattro corpi
                     // liberi sembrano un assieme.
                     case "insert_component":
                         return InserisciComponente(modello, argomenti, stato);
                     // La seconda, e quella che fa la differenza: inserire non
-                    // e' accoppiare. Sta in OperazioniAccoppia.cs.
+                    // e' accoppiare. Sta in MateOperations.cs.
                     case "mate":
                         return Accoppia(modello, argomenti, stato);
-                    // «Il coperchio va rifatto»: sta in OperazioniSostituisci.cs,
+                    // «Il coperchio va rifatto»: sta in ReplaceOperations.cs,
                     // e la cosa che misura e' se gli accoppiamenti sopravvivono.
                     case "replace_component":
                         return SostituisciComponente(modello, argomenti, stato);
                     // Fissare o liberare (voce Z-D5): l'unico stato di un componente
-                    // che cambia come l'assieme si ricostruisce. OperazioniFissaComponente.cs.
+                    // che cambia come l'assieme si ricostruisce. FixComponentOperations.cs.
                     case "fix_component":
                         return FissaComponente(modello, argomenti, stato);
-                    // La staffa destra e la sinistra (voce GA11). OperazioniSpecchiaComponente.cs.
+                    // La staffa destra e la sinistra (voce GA11). MirrorComponentOperations.cs.
                     case "mirror_component":
                         return SpecchiaComponente(modello, argomenti, stato);
                     // Un'immagine da ricalcare, in scala, in uno schizzo (voce Z-F5).
-                    // OperazioniRicalco.cs.
+                    // RetraceOperations.cs.
                     case "sketch_picture":
                         return ImmagineNelloSchizzo(modello, argomenti, stato);
                     case "plane_three_points":
                         return PianoPerTrePunti(modello, argomenti, stato);
 
                     // ── tubi e transizioni ──────────────
-                    // Stanno in OperazioniPercorso.cs. Le uniche due operazioni
+                    // Stanno in PathOperations.cs. Le uniche due operazioni
                     // che fanno una forma non dritta, e le uniche in cui il
                     // profilo e' un NUMERO e non uno schizzo da nominare.
                     case "circular_sweep":
@@ -450,7 +450,7 @@ namespace Riscontro.Disegno
                     case "loft_two_circles":
                         return LoftFraDueCerchi(modello, argomenti, stato);
                     // ── lamiera (voce GP18) e quote nel modello (voce Z-H3) ──
-                    // In OperazioniLamiera.cs e OperazioniDimXpert.cs, ognuna
+                    // In SheetMetalOperations.cs e DimXpertOperations.cs, ognuna
                     // con la misura che l'ha resa costruibile scritta in testa.
                     case "base_flange": return FlangiaBase(modello, argomenti);
                     case "edge_flange": return FlangiaSpigolo(modello, argomenti, stato);
@@ -463,11 +463,11 @@ namespace Riscontro.Disegno
                     case "mirror": return Specchia(modello, argomenti);
                     case "revolve": return Rivoluzione(modello, argomenti);
                     case "circular_pattern": return RipetiCircolare(modello, argomenti, stato);
-                    // OperazioniRipetiRiempimento.cs (voce W1.1).
+                    // FillPatternOperations.cs (voce W1.1).
                     case "fill_pattern": return RipetiRiempimento(modello, argomenti, stato);
 
                     // ── tavola ──────────────────────────
-                    // Stanno in Agente/OperazioniTavola.cs. Sono le prime
+                    // Stanno in DrawingOperations.cs. Sono le prime
                     // operazioni del catalogo che NON lavorano su un pezzo:
                     // creano un secondo documento e lo tengono aperto
                     // insieme al modello. Le tre trappole della famiglia
@@ -478,13 +478,13 @@ namespace Riscontro.Disegno
                     case "standard_views": return VisteStandard(modello, argomenti);
                     case "model_view": return VistaModello(modello, argomenti);
                     case "model_dimensions": return QuoteDalModello(modello, argomenti);
-                    // Le croci di centro, in OperazioniCentrini.cs. Una tavola
+                    // Le croci di centro, in CenterMarkOperations.cs. Una tavola
                     // con dodici fori e nessun centro si stampa e sembra
                     // completa: in officina manca dove forare.
                     case "center_marks": return CrociDiCentro(modello, argomenti);
                     case "drawing_dimension": return QuotaInTavola(modello, argomenti);
                     // La nota va sul FOGLIO, non dentro una vista: vedi
-                    // `OperazioniNotaTavola.cs`, dove c'e' anche perche'
+                    // `DrawingNoteOperations.cs`, dove c'e' anche perche'
                     // contarla nel posto sbagliato avrebbe chiuso quattro voci.
                     case "note": return NotaInTavola(modello, argomenti);
                     case "hole_table": return TabellaForiInTavola(modello, argomenti);
@@ -497,7 +497,7 @@ namespace Riscontro.Disegno
                     case "geometric_tolerance": return TolleranzaGeometricaInTavola(modello, argomenti);
                     case "section_view": return SezioneInTavola(modello, argomenti);
                     case "detail_view": return DettaglioInTavola(modello, argomenti);
-                    // I fogli, in OperazioniFogli.cs. `export_pdf` conta gia'
+                    // I fogli, in SheetOperations.cs. `export_pdf` conta gia'
                     // le pagine del PDF, e quel conteggio valeva sempre 1
                     // perche' non c'era modo di fare un secondo foglio.
                     case "new_sheet": return NuovoFoglio(modello, argomenti);
@@ -506,12 +506,12 @@ namespace Riscontro.Disegno
                     // con quella del pezzo: la seconda lettura esisteva gia'.
                     case "drawing_cut_list":
                         return DistintaTaglioInTavola(modello, argomenti);
-                    // «Il coperchio tocca la base?» — in OperazioniInterferenze.cs.
+                    // «Il coperchio tocca la base?» — in InterferenceOperations.cs.
                     // Due pezzi compenetrati non danno nessun errore: si aprono,
                     // si esportano, si stampano, e in officina non entrano.
                     case "interference_check":
                         return VerificaInterferenze(modello, argomenti, stato);
-                    // Il cartiglio, in OperazioniCartiglio.cs. Non lo riempie:
+                    // Il cartiglio, in TitleBlockOperations.cs. Non lo riempie:
                     // dice quali proprieta' CHIEDE e quali MOSTRA, cosi' il
                     // nome da scrivere si copia invece di indovinarlo.
                     case "title_block": return Cartiglio(modello, argomenti);
@@ -519,7 +519,7 @@ namespace Riscontro.Disegno
                     case "save_document": return SalvaDocumento(modello, argomenti);
 
                     // ── saldature ───────────────────────
-                    // Stanno in Agente/OperazioniSaldatura.cs: sono un
+                    // Stanno in WeldmentOperations.cs: sono un
                     // sottosistema con le sue API e le sue trappole, e
                     // tenerle qui avrebbe fatto un file da duemila righe.
                     //
@@ -538,23 +538,23 @@ namespace Riscontro.Disegno
                     case "weld_bead": return CordoneSaldatura(modello, argomenti, stato);
 
                     // ── verifiche ───────────────────────
-                    // Stanno in OperazioniVerifica.cs. NON DISEGNANO: dicono
+                    // Stanno in CheckOperations.cs. NON DISEGNANO: dicono
                     // com'e' venuto. `cut_list` e' il precedente —
                     // un'operazione di catalogo che legge invece di costruire.
                     case "check_body_geometry":
                         return VerificaGeometriaCorpo(modello, argomenti, stato);
                     // Cosa non si stampa senza supporti. Sta in
-                    // OperazioniSporgenze.cs, e come le altre verifiche non
+                    // OverhangOperations.cs, e come le altre verifiche non
                     // tocca il pezzo: guarda l'angolo di ogni superficie.
                     case "check_overhangs":
                         return VerificaSovrasporgenze(modello, argomenti, stato);
                     // Le due domande che si fanno prima di ordinare: quanto
                     // pesa, e in che scatola ci sta. Stanno in
-                    // OperazioniMisura.cs.
+                    // MeasureOperations.cs.
                     case "mass_properties":
                         return ProprietaDiMassa(modello, argomenti, stato);
                     // Da quali file dipende il documento, e quali mancano (voce Z-B3).
-                    // OperazioniDipendenze.cs.
+                    // DependencyOperations.cs.
                     case "file_dependencies":
                         return Dipendenze(modello, argomenti, stato);
                     case "body_bounding_box":
@@ -565,7 +565,7 @@ namespace Riscontro.Disegno
                         return MisuraFraEntita(modello, argomenti, stato);
 
                     // ── quello che il pezzo dice di se' ─
-                    // Stanno in OperazioniProprieta.cs. Non disegnano niente:
+                    // Stanno in PropertyOperations.cs. Non disegnano niente:
                     // riempiono il cartiglio e la scheda del PDM, e fanno le
                     // varianti. Le proprieta' del DOCUMENTO e quelle di una
                     // CONFIGURAZIONE sono due elenchi separati che non si
@@ -578,7 +578,7 @@ namespace Riscontro.Disegno
                         return AttivaConfigurazione(modello, argomenti, stato);
 
                     // ── la marcatura ────────────────────
-                    // Sta in OperazioniTesto.cs. E' l'unica operazione che
+                    // Sta in TextOperations.cs. E' l'unica operazione che
                     // scrive delle PAROLE nel pezzo, e l'unica in cui la
                     // grandezza di cio' che si disegna non si puo' calcolare
                     // prima: dipende dal font. Si misura e si controlla.
@@ -586,7 +586,7 @@ namespace Riscontro.Disegno
                         return IncidiTesto(modello, argomenti, stato);
 
                     // ── togliere una copia ──────────────
-                    // Sta in OperazioniIstanze.cs. Non e' una lavorazione nuova:
+                    // Sta in InstanceOperations.cs. Non e' una lavorazione nuova:
                     // e' una scrittura DENTRO una ripetizione gia' fatta, ed e'
                     // l'unica operazione del catalogo che passa da
                     // GetDefinition() + ModifyDefinition().
@@ -594,14 +594,14 @@ namespace Riscontro.Disegno
                         return SopprimiIstanza(modello, argomenti, stato);
 
                     // ── l'angolo di spoglia ─────────────
-                    // Sta in OperazioniSformo.cs. Quattro API per lo stesso
+                    // Sta in DraftOperations.cs. Quattro API per lo stesso
                     // comando, e due con la firma IDENTICA: quella giusta si e'
                     // trovata misurando, non leggendo.
                     case "draft":
                         return Sformo(modello, argomenti, stato);
 
                     // ── la nervatura ────────────────────
-                    // Sta in OperazioniNervatura.cs (voce W1.2). InsertRib
+                    // Sta in RibOperations.cs (voce W1.2). InsertRib
                     // PARALLELA allo schizzo (IsNormToSketch = false, come
                     // l'esempio della guida); il verso del materiale si prova
                     // dritto e poi girato.
@@ -609,7 +609,7 @@ namespace Riscontro.Disegno
                         return Nervatura(modello, argomenti);
 
                     // ── esportazioni ────────────────────
-                    // Stanno in OperazioniEsporta.cs. `export_stl` chiama
+                    // Stanno in ExportOperations.cs. `export_stl` chiama
                     // `check_body_geometry` PRIMA di scrivere, e rifiuta
                     // se il pezzo non e' un solido chiuso solo: un STL non
                     // porta con se' niente che dica che il pezzo era a posto.
@@ -1271,7 +1271,7 @@ namespace Riscontro.Disegno
         /// active for this method to have any effect." IModelDoc2~EditSketch.html:
         /// "If the selection is a feature, its underlying sketch is placed in edit
         /// mode." SketchSegment[] and not object[] is the rule of the structural
-        /// member group too (OperazioniSaldatura.cs, measured 9/9/2026).
+        /// member group too (WeldmentOperations.cs, measured 9/9/2026).
         ///
         /// THE ANSWER IS WHAT IS READ BACK, not what the call returned: the FIXED
         /// relations are counted before the call and again after leaving the
@@ -3377,7 +3377,7 @@ namespace Riscontro.Disegno
         /// move_bodies then drew its diagnosis of the move. VolumeMm3 already
         /// had the rule (a body that gives no mass properties makes the whole
         /// null); this is the same rule. Kept apart from the document so that
-        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         /// </summary>
         internal static bool MassOfBodies(IList<double[]> readings, out double volumeMm3, out double[] centreMm)
         {
@@ -3687,7 +3687,7 @@ namespace Riscontro.Disegno
             // quota si convertiva da mm: «30» su un angolo diventava 0,03 rad
             // (1,7 gradi), e la rilettura, sbagliata allo stesso modo, diceva che
             // aveva preso. Lo stato del documento le quote angolari le scrive in
-            // `deg` (StatoDocumento.cs, stessa GetType): qui il valore si legge
+            // `deg` (DocumentState.cs, stessa GetType): qui il valore si legge
             // nella stessa unita' in cui il modello l'ha letto.
             const int QuotaAngolare = 1, QuotaIntera = 2;
             int tipoQuota = 0;
@@ -4020,7 +4020,7 @@ namespace Riscontro.Disegno
         /// the message (ErrorCodeDecoder.SetValueStatus); this is the remedy that
         /// goes with it. Only what the enum name says is said: none of these
         /// statuses was provoked on purpose by a probe. No interop type in the
-        /// signature: Prove.Contratti calls it by reflection.
+        /// signature: Oce.Solid.Agent.ContractTests calls it by reflection.
         /// </summary>
         internal static string SetValueRefusalCause(int status)
         {
@@ -4054,7 +4054,7 @@ namespace Riscontro.Disegno
         /// judged: on a concave edge a fillet or a chamfer ADDS material. A
         /// volume that could not be read, before or after, is not a fault here:
         /// the answer says «not read» instead. Kept apart from the document so
-        /// that Prove.Contratti can call it without SOLIDWORKS.
+        /// that Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         /// </summary>
         internal static string EdgeFeatureVolumeFault(double? volumeBefore, double? volumeAfter)
         {
@@ -4118,7 +4118,7 @@ namespace Riscontro.Disegno
         /// swChamferAngleDistance and OtherDist only for swChamferEqualDistance,
         /// and says «VertexChamDist1 — If ChamferType is swChamferDistanceDistance
         /// or swChamferVertex, then specify a value for the distance on first
-        /// side». Measured otherwise: Banco/cases/chamfer/chamfer_3x6_bevel
+        /// side». Measured otherwise: Bench/cases/chamfer/chamfer_3x6_bevel
         /// asks 3 and 6 on a 100 mm edge and gets 119100 mm3 exactly (120000
         /// minus 3 x 6 / 2 x 100); an ignored second side would leave 119550,
         /// and a SOLIDWORKS reading VertexChamDist1/2 = 0 would make no chamfer
@@ -4932,7 +4932,7 @@ namespace Riscontro.Disegno
         /// revolve, using Mark = 0» and «the axis of revolution, using Mark = 4
         /// or 16»); only the sketch is selected here, and SOLIDWORKS takes its
         /// single centerline as the axis. Measured by the revolve cases of the
-        /// bench (Banco/cases/revolve): four with their volume to half a
+        /// bench (Bench/cases/revolve): four with their volume to half a
         /// cubic millimetre and one body (cylinder_d40_long_50 62831.853 mm3,
         /// half_cylinder_180, hollow_bushing, stepped_shaft) and the refusal
         /// limit_profile_straddling_the_axis; a wrong axis would not give those
@@ -5481,7 +5481,7 @@ namespace Riscontro.Disegno
         /// position of the ONE born feature of that type (any type when null),
         /// or -1 when there is none or more than one. Two born features of the
         /// same type are two candidates, and taking the later would be «the last
-        /// in the tree» again. Pure, so that Prove.Contratti checks it without
+        /// in the tree» again. Pure, so that Oce.Solid.Agent.ContractTests checks it without
         /// SOLIDWORKS (Zc215IdentityContract).
         /// </summary>
         internal static int BornFeatureIndex(
@@ -6350,7 +6350,7 @@ namespace Riscontro.Disegno
         /// caller's own sentence, the one it has always said; with an unreadable
         /// tree the same sentence and why; with two or more born, how many:
         /// two candidates, and taking the later would be «the last sketch of the
-        /// tree» again. Pure, so that Prove.Contratti checks it without
+        /// tree» again. Pure, so that Oce.Solid.Agent.ContractTests checks it without
         /// SOLIDWORKS (Zc215SketchIdentityContract).
         /// </summary>
         internal static string SketchNotIdentified(int born, string notFound)
@@ -7095,7 +7095,7 @@ namespace Riscontro.Disegno
             // (IFeature~Select2.html: «True if the feature was selected,
             // false if not»). The comparison stays Ordinal on purpose: the
             // Forma now rewrites every enum value in the catalogue's spelling
-            // (Ponte/Forma.cs, pattern S20); Riferimenti.BasePlane compares
+            // (Bridge/Shape.cs, pattern S20); Riferimenti.BasePlane compares
             // Ordinal too.
             IFeature f = Riferimenti.BasePlane(modello, quale, out _);
             if (f == null) return false;
@@ -7377,7 +7377,7 @@ namespace Riscontro.Disegno
         ///
         /// In E2 le due facce venivano da lavorazioni diverse (l'estrusione e
         /// il taglio), quindi la prima prova le separa e il difetto resta
-        /// chiuso: si controlla in `Banco/cases/E2-the-two-cases.md`.
+        /// chiuso: si controlla in `Bench/cases/E2-the-two-cases.md`.
         ///
         /// PERCHE' QUI E NON DENTRO `FirmaCombacia`. Perche' quel confronto
         /// serve anche a decidere se la faccia di partenza va ancora bene, e

@@ -61,15 +61,15 @@
 #  that start with # are comments. Same rules as token-stream.js.
 #
 #  USAGE
-#    .\Controlli\lingua\same-il.ps1 -Before <dll|exe|folder> -After <dll|exe|folder> [-Mode Identical|Ldstr|Renames] [-Map <tsv>]
+#    .\Checks\language\same-il.ps1 -Before <dll|exe|folder> -After <dll|exe|folder> [-Mode Identical|Ldstr|Renames] [-Map <tsv>]
 #        two folders: every .dll and .exe at the top of them, paired by name
 #        (in Renames mode, a name the map explains pairs too)
-#    .\Controlli\lingua\same-il.ps1 -SelfTest
+#    .\Checks\language\same-il.ps1 -SelfTest
 #        compiles a probe with csc and sees every mode fail and pass:
 #        two builds of the same source give 0 lines, a changed literal gives
 #        exactly 1, a changed instruction is not a literal, a rename outside
 #        the map is not explained. About 20 seconds.
-#    .\Controlli\lingua\same-il.ps1 -OnProjects [-Projects <csproj>...] [-Source <folder>]
+#    .\Checks\language\same-il.ps1 -OnProjects [-Projects <csproj>...] [-Source <folder>]
 #        the same proof on the real projects: a copy of the tracked files
 #        (or of every file under -Source, for instance a `git archive` of a
 #        commit) in a temporary folder, each project rebuilt twice and once
@@ -113,7 +113,7 @@ class CannotRun : System.Exception {
 function Stop-Cannot([string] $m) { throw [CannotRun]::new($m) }
 
 # -----------------------------------------------------------------------------
-#  The work that has to be fast is C#: Riscontro.Disegno.dll disassembles to
+#  The work that has to be fast is C#: Oce.Solid.Agent.Core.dll disassembles to
 #  about 240,000 lines (measured on 30/9/2026), and a PowerShell loop over
 #  them takes minutes.
 #  C# 5 on purpose: Add-Type in Windows PowerShell compiles with that.
@@ -137,7 +137,7 @@ public class SameIlResult
 
 public static class SameIlCore
 {
-    static readonly Regex Drop = new Regex(@"^(// MVID:|// Image base:|//\s+Microsoft \(R\)|//\s+Copyright|// WARNING: Created Win32 resource file|// Time-date stamp:|// Checksum:)");
+    static readonly Regex Drop = new Regex(@"^(// MVID:|// Image base:|//\s+Microsoft \(R\)|//\s+Copyright|// WARNING: Created Win32 resource file|// Time-date stamp:|// Checksum:|// Offset: 0x[0-9A-F]+ Length: 0x[0-9A-F]+$)");
     static readonly Regex HexContinuation = new Regex(@"^((?:[0-9A-F]{2} )+\)?)\s*(//.*)?$");
     static readonly Regex HexFirst = new Regex(@"^(.*(?:bytearray|=)\s*\((?:\s*[0-9A-F]{2})*\s*\)?)\s*//.*$");
     static readonly Regex Starts = new Regex(@"^(\.|IL_[0-9a-f]{4,}:|\{|\}|//|catch\b|finally\b|fault\b|filter\b)");
@@ -175,9 +175,16 @@ public static class SameIlCore
             else cur.Append(' ').Append(t);
         }
         Flush(ref cur, lines);
-        for (int i = 0; i < lines.Count; i++) lines[i] = Literal(lines[i]);
+        for (int i = 0; i < lines.Count; i++) lines[i] = DataLabel.Replace(Literal(lines[i]), "I_<data>");
         return lines.ToArray();
     }
+
+    // The address of a static data blob (`at I_000C4760`, `.data cil
+    // I_000C4760 = bytearray (...)`) moves whenever the metadata before it
+    // changes size, as a rename does; the bytes of the blob stay compared.
+    // The offset and length comment of a managed resource go too: its sha256
+    // line says whether its bytes changed.
+    static readonly Regex DataLabel = new Regex(@"(?<=\bat |\.data (?:cil |tls )?)I_[0-9A-F]{8}\b");
 
     static readonly Regex MvidLike = new Regex(@"^//.*\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}\s*$");
 
@@ -629,7 +636,11 @@ function Read-NameMap([string] $file) {
     foreach ($r in $rows) {
         $a = if ($r.Count -gt $from) { $r[$from].Trim() } else { '' }
         $b = if ($r.Count -gt $to) { $r[$to].Trim() } else { '' }
-        if (-not $a -or -not $b -or $a -ceq $b) { continue }
+        if (-not $a -or -not $b) { continue }
+        # A row that keeps the name (old = new) is kept too: next to another
+        # row for the same word it says "renamed here, left as it is there"
+        # (a folder name that is also a word of a message), so the word is
+        # not substituted blindly and each line is judged both ways.
         $olds.Add($a); $news.Add($b)
     }
     return [SameIlCore]::MapOf($olds.ToArray(), $news.ToArray())
@@ -872,8 +883,8 @@ function Invoke-ProjectProof {
     $ildasmExe = Find-Ildasm
     $msbuild = Find-MSBuild
     if (-not $Projects -or $Projects.Count -eq 0) {
-        $Projects = @('Riscontro.Disegno\Riscontro.Disegno.csproj', 'Riscontro.Catalogo\Riscontro.Catalogo.csproj',
-                      'Oce.Solid.Agent.csproj', 'Prove\Prove.Contratti.csproj', 'Banco\ProvaSaldatura.csproj')
+        $Projects = @('Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj', 'Oce.Solid.Agent.Catalog\Oce.Solid.Agent.Catalog.csproj',
+                      'Oce.Solid.Agent.csproj', 'Tests\Oce.Solid.Agent.ContractTests.csproj', 'Bench\Oce.Solid.Agent.Bench.csproj')
     }
     $work = New-TempFolder 'same-il-projects'
     $from = $root

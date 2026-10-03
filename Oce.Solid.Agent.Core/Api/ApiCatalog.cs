@@ -9,7 +9,7 @@ using System.Web.Script.Serialization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno.Api
+namespace Oce.Solid.Agent.Core.Api
 {
     /// <summary>
     /// The answer of <see cref="ApiCatalog.Search"/> and
@@ -68,7 +68,7 @@ namespace Riscontro.Disegno.Api
     ///
     /// Knowledge (state, enum map, indices, measured type of an Object
     /// parameter, source) is passed in as JSON text: the bridge embeds
-    /// <c>Strumenti/api_knowledge.json</c>, the contracts read the same file.
+    /// <c>Tools/api_knowledge.json</c>, the contracts read the same file.
     /// </summary>
     public static class ApiCatalog
     {
@@ -140,7 +140,7 @@ namespace Riscontro.Disegno.Api
 
         private static bool CountsAsInterface(Type t)
         {
-            // The same filter as Controlli\api-inventory.ps1: an interface,
+            // The same filter as Checks\api-inventory.ps1: an interface,
             // named with a capital I, that declares at least one method. The
             // coclass interfaces (ModelDoc2, Body2...) declare nothing, and the
             // D...Events interfaces are event sinks, not something to call.
@@ -199,7 +199,7 @@ namespace Riscontro.Disegno.Api
         /// <summary>
         /// One member in the inventory format:
         /// <c>Interface.Member(Type Name, Type&amp; Name) -> Ret</c>. The same
-        /// format Controlli\api-inventory.ps1 writes from PowerShell; the
+        /// format Checks\api-inventory.ps1 writes from PowerShell; the
         /// contract ApiSignatureMatchesInventory compares the two.
         /// </summary>
         public static string Format(Type iface, MethodInfo m)

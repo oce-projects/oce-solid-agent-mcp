@@ -3,20 +3,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Riscontro.Disegno;
+using Oce.Solid.Agent.Core;
 // ATTENZIONE AL NOME: SolidWorks.Interop.sldworks ha un tipo `Environment`,
 // che rende ambiguo `Environment.GetEnvironmentVariable`. Qui sotto quelle
 // chiamate sono qualificate `System.Environment`: non e prolissita, senza
 // non compila.
 using SolidWorks.Interop.sldworks;
 
-namespace Oce.Solid.Agent.Ponte
+namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
     /// L'aggancio a SolidWorks e alla libreria di disegno vera.
     ///
     /// NON SI RISCRIVE NIENTE. Le operazioni di disegno sono quelle di
-    /// `Riscontro.Disegno`, chiamate direttamente: cosi' quello che si
+    /// `Oce.Solid.Agent.Core`, chiamate direttamente: cosi' quello che si
     /// prova da qui e' ESATTAMENTE quello che il progettista avra' in mano.
     /// Una seconda implementazione «solo per le prove» misurerebbe se stessa —
     /// che e' il modo piu' elegante di non misurare niente.
@@ -26,7 +26,7 @@ namespace Oce.Solid.Agent.Ponte
     /// riflessione era l'unico modo: quella DLL e' privata e questo
     /// repository non poteva referenziarla.
     ///
-    /// Dalla 0.6.0 `Riscontro.Disegno` sta qui dentro e si referenzia come
+    /// Dalla 0.6.0 `Oce.Solid.Agent.Core` sta qui dentro e si referenzia come
     /// un progetto qualunque. **La riflessione sui tipi della libreria non
     /// c'e' piu'**: i nomi sono nomi, non stringhe, e un errore di battitura
     /// lo prende il compilatore invece del cliente.
@@ -41,7 +41,7 @@ namespace Oce.Solid.Agent.Ponte
     /// ci si ferma.
     /// </summary>
     // `partial`: il ciclo di vita del documento (nuovo, apri, elenca, attiva)
-    // sta in Ponte/Documenti.cs, voci Z-B1, Z-B2, Z-B5, Z-B6.
+    // sta in Bridge/Documents.cs, voci Z-B1, Z-B2, Z-B5, Z-B6.
     internal sealed partial class Sessione
     {
         private object _sw;                 // ISldWorks, tenuto come object
@@ -58,7 +58,7 @@ namespace Oce.Solid.Agent.Ponte
         /// `RISCONTRO_DISEGNO`.
         ///
         /// **Non e' piu' `OpenPDM.SwAddin.dll`.** Le operazioni sono uscite
-        /// dall'add-in e vivono in `Riscontro.Disegno.dll` (add-in 0.47.0): il
+        /// dall'add-in e vivono in `Oce.Solid.Agent.Core.dll` (add-in 0.47.0): il
         /// ponte non ha piu' bisogno del PDM per disegnare.
         ///
         /// Da quando la libreria e' referenziata invece che caricata a mano,
@@ -184,7 +184,7 @@ namespace Oce.Solid.Agent.Ponte
             if (string.IsNullOrWhiteSpace(PercorsoLibreria))
                 PercorsoLibreria = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
-                    "Riscontro.Disegno.dll");
+                    "Oce.Solid.Agent.Core.dll");
 
             // NON SI RIFIUTA PIU' SE IL FILE NON C'E' DOVE CI SI ASPETTA.
             // Il tipo adesso e' compilato dentro: se .NET non trovasse la
@@ -789,7 +789,7 @@ namespace Oce.Solid.Agent.Ponte
         /// PERCHE' `EditUndo2` E NON `RunCommand`. Il comando di menu dipende
         /// dalla lingua dell'installazione e da cosa ha il fuoco; `EditUndo2`
         /// e' l'API, e fa la stessa cosa che fa `Ctrl+Z` su
-        /// `Controlli\Annulla`, dove e' gia' provata.
+        /// `Checks\Undo`, dove e' gia' provata.
         ///
         /// UN PASSO SOLO, E NON E' UN DETTAGLIO. `EsecutorePiano` apre e chiude
         /// UNA voce di annullamento intorno all'intero piano
@@ -999,7 +999,7 @@ namespace Oce.Solid.Agent.Ponte
                 // prima del primo passo, senza che niente lo dicesse.
                 // Il banco non poteva accorgersene: chiama la libreria, non il
                 // ponte. Adesso c'e' un controllo che confronta le famiglie del
-                // catalogo coi tipi ammessi — `Prove\Programma.cs` →
+                // catalogo coi tipi ammessi — `Tests\Program.cs` →
                 // `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`.
                 AncheSuAssiemi = true,
             };

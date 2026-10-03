@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Il materiale del pezzo.
@@ -34,7 +34,7 @@ namespace Riscontro.Disegno
         /// Il materiale che questa officina usa salvo avviso contrario
         /// (voce Z-G3). Sta qui e non nello schema perche' lo schema lo
         /// ANNUNCIA e questo lo APPLICA: due posti per lo stesso valore
-        /// divergerebbero, e il catalogo si rigenera da `Operazioni.cs`.
+        /// divergerebbero, e il catalogo si rigenera da `Operations.cs`.
         /// </summary>
         private const string MaterialePredefinito = "S235JR";
 

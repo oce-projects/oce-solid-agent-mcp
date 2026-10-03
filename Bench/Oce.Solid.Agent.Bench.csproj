@@ -5,21 +5,21 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <OutputType>Exe</OutputType>
-    <RootNamespace>ProvaSaldatura</RootNamespace>
-    <AssemblyName>ProvaSaldatura</AssemblyName>
+    <RootNamespace>Oce.Solid.Agent.Bench</RootNamespace>
+    <AssemblyName>Oce.Solid.Agent.Bench</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>bin\</OutputPath>
     <LangVersion>7.3</LangVersion>
     <!-- Two builds of the same source give the same bytes (W3.1-bis.2,
-         Controlli\lingua\same-il.ps1). -->
+         Checks\language\same-il.ps1). -->
     <Deterministic>true</Deterministic>
     <!-- [CallerFilePath] of the bench recorders gives the path as seen from the
          repository, not the absolute path of this checkout: the same source
          builds the same bytes in any folder (W3.1-bis.2, item 7). -->
     <PathMap>$(MSBuildProjectDirectory)=Banco</PathMap>
     <!-- DOVE STA L'INTEROP, e si puo' scavalcare in tre modi.
-         `LEGGIMI.md` documentava `set SW_REDIST=...`, ma quella variabile la
+         `README.md` documentava `set SW_REDIST=...`, ma quella variabile la
          leggeva solo `Program.cs` a tempo di ESECUZIONE, per l'AssemblyResolve:
          a tempo di COMPILAZIONE questo valore era costante, e chi seguiva
          l'istruzione documentata vedeva fallire la build per HintPath non
@@ -57,23 +57,23 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Condiviso\ClienteMcp.cs" />
-    <Compile Include="..\Condiviso\SentinellaSolidWorks.cs" />
-    <Compile Include="..\Condiviso\PreparazioneFallita.cs" />
-    <Compile Include="..\Condiviso\Guinzaglio.cs" />
-    <Compile Include="Attese.cs" />
-    <Compile Include="AssiemeDiProva.cs" />
+    <Compile Include="..\Shared\McpClient.cs" />
+    <Compile Include="..\Shared\SolidWorksSentinel.cs" />
+    <Compile Include="..\Shared\PreparationFailed.cs" />
+    <Compile Include="..\Shared\Leash.cs" />
+    <Compile Include="Expectations.cs" />
+    <Compile Include="TestAssembly.cs" />
     <Compile Include="CaseKeys.cs" />
-    <Compile Include="CasiDichiarati.cs" />
+    <Compile Include="DeclaredCases.cs" />
     <Compile Include="ReflectionLog.cs" />
-    <Compile Include="Regressione.cs" />
-    <Compile Include="PortaDelCliente.cs" />
-    <Compile Include="Orfane.cs" />
-    <Compile Include="NumeriDelleQuote.cs" />
+    <Compile Include="Regression.cs" />
+    <Compile Include="ClientPort.cs" />
+    <Compile Include="Orphans.cs" />
+    <Compile Include="DimensionNumbers.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="ProvaNuove.cs" />
-    <Compile Include="ProveSenzaIlPezzo.cs" />
-    <Compile Include="Sessione.cs" />
+    <Compile Include="NewOperationsTests.cs" />
+    <Compile Include="NoPartTests.cs" />
+    <Compile Include="Session.cs" />
     <Compile Include="TestLedger.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

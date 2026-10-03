@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using static Riscontro.Disegno.Catalogo.Nodo;
+using static Oce.Solid.Agent.Core.Catalog.Nodo;
 
-namespace Riscontro.Disegno.Catalogo
+namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>
-    /// Da catalogo C# a `catalogo.json`.
+    /// Da catalogo C# a `catalog.json`.
     ///
     /// Il JSON e' un PRODOTTO, non una fonte: si rigenera, non si modifica. Chi
-    /// vuole cambiare una descrizione tocca `Operazioni.cs` e riesporta.
+    /// vuole cambiare una descrizione tocca `Operations.cs` e riesporta.
     /// </summary>
     public static class Esporta
     {

@@ -19,13 +19,13 @@ substring, do not translate it before matching.
 | SOLIDWORKS® installed, with the user's own licence | the installer checks it for you in step 2 | stop and say so — no licence is shipped here, and none can be |
 | SOLIDWORKS® **running** | ask the user to open it | you can still install; the final check needs it running, and measures a part only if one is open |
 | An MCP client: Claude Desktop or Claude Code | the installer finds them itself | with neither, install with `--senza-client` and wire it by hand |
-| `Installa.exe` | see step 1 | — |
+| `Installer.exe` | see step 1 | — |
 
 You do **not** need administrator rights, Visual Studio, a .NET SDK, Python, or
 an internet connection. The installer says so itself: it writes into the user's
 own folder and does not touch the system registry.
 
-## 1. Getting `Installa.exe`
+## 1. Getting `Installer.exe`
 
 **There is no download page yet.** This is a real gap, not something you have
 missed: check the repository's Releases; if it is empty, the file has to come
@@ -35,17 +35,17 @@ from the maintainer, or be built from a clone with
 powershell -File build.ps1
 ```
 
-which writes `dist\Installa.exe` (about 940 kB) and `dist\Installa.exe.sha256`
+which writes `dist\Installer.exe` (about 940 kB) and `dist\Installer.exe.sha256`
 beside it. Building needs SOLIDWORKS installed on the build machine, because
 the project compiles against its interop assemblies.
 
-**Never** fetch an `Installa.exe` from anywhere other than the maintainer or a
+**Never** fetch an `Installer.exe` from anywhere other than the maintainer or a
 repository Release, and say out loud where the one you are using came from.
 
 ## 2. The install itself
 
 ```
-Installa.exe --silenzioso
+Installer.exe --silenzioso
 ```
 
 | flag | what it does |
@@ -61,16 +61,16 @@ Installa.exe --silenzioso
 
 ### Read the exit code, not the output
 
-`Installa.exe` is a Windows program, not a console one: **how you start it
+`Installer.exe` is a Windows program, not a console one: **how you start it
 decides whether the shell waits for it and sees its exit code.** Measured in a
 fresh console (from 0.126.0):
 
 | shell | use this | exit code |
 |---|---|---|
-| PowerShell | `(Start-Process .\Installa.exe -ArgumentList '--silenzioso' -Wait -PassThru -NoNewWindow).ExitCode` | right |
-| cmd | in a batch file: `start "" /wait Installa.exe --silenzioso`, then `%ERRORLEVEL%` | right |
-| PowerShell | `.\Installa.exe --silenzioso` (plain call) | **lost**: PowerShell does not wait |
-| PowerShell | `cmd /c "start "" /wait Installa.exe --silenzioso"` on one line | **wrong**: always 0 |
+| PowerShell | `(Start-Process .\Installer.exe -ArgumentList '--silenzioso' -Wait -PassThru -NoNewWindow).ExitCode` | right |
+| cmd | in a batch file: `start "" /wait Installer.exe --silenzioso`, then `%ERRORLEVEL%` | right |
+| PowerShell | `.\Installer.exe --silenzioso` (plain call) | **lost**: PowerShell does not wait |
+| PowerShell | `cmd /c "start "" /wait Installer.exe --silenzioso"` on one line | **wrong**: always 0 |
 
 The output appears on the console from 0.126.0 (before, nothing at all), and
 `--log <file>` keeps a copy whatever the shell does.
@@ -130,7 +130,7 @@ of them.
 From 0.126.0 the installer checks an installation for you:
 
 ```
-Installa.exe --verify --json
+Installer.exe --verify --json
 ```
 
 One line of JSON: the installed files and their versions (`files`,
@@ -232,7 +232,7 @@ call. Do not change the machine's policy on the user's behalf.
 ## 6. Removing it
 
 ```
-Installa.exe --disinstalla
+Installer.exe --disinstalla
 ```
 
 From 0.126.0 it removes the files, the `domande-senza-risposta.jsonl` the bridge

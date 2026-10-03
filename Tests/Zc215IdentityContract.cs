@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE TWO IDENTITY RULES OF Z-C21.5 THAT THE BENCH CANNOT REACH (S19, S7).
@@ -45,7 +45,7 @@ namespace Prove.Contratti
         {
             Gruppo("the identity rules of Z-C21.5 the bench cannot reach (S19 base planes, S7 feature born)");
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the identity rules of Z-C21.5",
@@ -73,8 +73,8 @@ namespace Prove.Contratti
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
-            Type references = asm.GetType("Riscontro.Disegno.Riferimenti", false);
-            Type sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+            Type references = asm.GetType("Oce.Solid.Agent.Core.Riferimenti", false);
+            Type sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             if (references == null || sw == null)
             {
                 Segna("the two library types are there", false,

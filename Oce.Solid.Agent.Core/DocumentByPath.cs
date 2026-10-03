@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// CLOSE OR ACTIVATE A DOCUMENT BY ITS PATH OR ITS REFERENCE, NEVER BY ITS
@@ -77,7 +77,7 @@ namespace Riscontro.Disegno
     /// no longer among the open ones, «in front» only when the active document
     /// is this very object. The pure rules (<see cref="CloseNames"/>,
     /// <see cref="ActivateNames"/>, <see cref="TitleCollision"/>) have no interop
-    /// in the signature: Prove.Contratti (DocumentByPathContract) calls them by
+    /// in the signature: Oce.Solid.Agent.ContractTests (DocumentByPathContract) calls them by
     /// reflection with the situations of the probe, since no bench case can hide
     /// the extensions of this station.
     /// </summary>
@@ -682,7 +682,7 @@ namespace Riscontro.Disegno
         /// document using IModelDoc2::EditRebuild3.» -1 means ActivateDoc3 was not
         /// called (<see cref="ActivateAndReadBack"/> skips it when the document is
         /// already in front): nothing was skipped. The same rule as the bridge's
-        /// Sessione.NeedsRebuildAfterActivation (Ponte/Documenti.cs).
+        /// Sessione.NeedsRebuildAfterActivation (Bridge/Documents.cs).
         /// </summary>
         public static bool NeedsRebuildAfterActivation(int activationErrors)
         {

@@ -28,6 +28,120 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.6, rename window 3: namespaces, projects and identifiers (branch `w31bis-6`) · bridge 0.127.1 · library 0.150.1
+
+**The third rename window of W3.1-bis (TODO entry W3.1-bis.6, decision D6): the
+root folders, the projects and assemblies, the namespaces, the 35 probes and the
+183 file names of the name map are English.** Names only: no behaviour changes,
+so PATCH is raised for the bridge and the library. The window is generated from
+`Checks/language/name-map.tsv` by `Checks/language/window-3-identifiers.js`, in
+separate commits so that git records every move as a rename:
+
+1. **the gate learns both folder names** (before the move): `detect-italian.js`
+   and `.github/steps/language-gate.ps1` find their files under
+   `Controlli/lingua` or `Checks/language` in each commit, a commit whose parent
+   has the gate and that has none is now a failure instead of «before the gate»,
+   and the file patterns of `exceptions.json` accept both paths while the move
+   is in flight. Without this the gate judged nothing after the move;
+2. **the moves alone** (`--moves`): 756 paths with `git mv`, no content changed
+   (the language baseline is re-keyed to the new paths, same counts);
+3. **the references** (`--references`): every text that names a moved path or a
+   renamed project. A word is renamed as a folder only where it is one: a path
+   token whose run of segments exists in the tree before the window (from the
+   root, or as a piece of a real path), the arguments of `Path.Combine`,
+   `path.join` and `Join-Path`, a dotted project name anywhere (also written for
+   a regular expression), a bare namespace segment only as a qualification in
+   C#. A path the history had and the tree before the window no longer has
+   (`Banco/casi/...`, renamed in window 1) is left whole; a folder git ignores
+   (`Bench/viste/`, written by the scripts) keeps its name. CHANGELOG.md, the map,
+   the language baseline and the labelled samples of the gate are not rewritten;
+   lines that name the old and the new name on purpose carry `window-3: keep`.
+
+### Projects, assemblies and namespaces
+
+| before | after |
+|---|---|
+| `Riscontro.Disegno` (library, `Riscontro.Disegno.dll`) | `Oce.Solid.Agent.Core` (`Oce.Solid.Agent.Core.dll`) |
+| `Riscontro.Disegno.Api` | `Oce.Solid.Agent.Core.Api` |
+| `Riscontro.Disegno.Catalogo` | `Oce.Solid.Agent.Core.Catalog` |
+| `Riscontro.Catalogo` (catalogue exporter) | `Oce.Solid.Agent.Catalog` |
+| `Prove.Contratti` (contract suite) | `Oce.Solid.Agent.ContractTests` |
+| `ProvaSaldatura` (bench) | `Oce.Solid.Agent.Bench` |
+| `Installa` (installer assembly, `dist\Installa.exe`) | `Installer` (`dist\Installer.exe`) |
+| `Oce.Solid.Agent.Ponte` | `Oce.Solid.Agent.Bridge` |
+| `Oce.Solid.Agent.Strumenti` | `Oce.Solid.Agent.Tools` |
+| `Condiviso` | `Shared` |
+| `Controlli.<probe>` (21 probe namespaces) | `Checks.<probe>` |
+
+### Folders
+
+| before | after |
+|---|---|
+| `Riscontro.Disegno/`, `Riscontro.Disegno/Catalogo/` | `Oce.Solid.Agent.Core/`, `Oce.Solid.Agent.Core/Catalog/` |
+| `Riscontro.Catalogo/` | `Oce.Solid.Agent.Catalog/` |
+| `Banco/`, `Banco/dati/` | `Bench/`, `Bench/data/` |
+| `Prove/` | `Tests/` |
+| `Controlli/`, `Controlli/lingua/`, `Controlli/ganci/` | `Checks/`, `Checks/language/`, `Checks/hooks/` |
+| `Ponte/` | `Bridge/` |
+| `Strumenti/` | `Tools/` |
+| `Condiviso/` | `Shared/` |
+| `.github/passi/` | `.github/steps/` |
+
+The 35 probes of `Checks/` (each compiles to `<folder>.exe` in its `bin\`):
+`AlberoRosso`→`RedTree`, `Annulla`→`Undo`, `ApiQuote`→`DimensionApis`,
+`CambiaAMano`→`ChangeByHand`, `ChiudiScarti`→`CloseLeftovers`,
+`CoperturaRuoli`→`RoleCoverage`, `CorpoRotto`→`BrokenBody`,
+`DettaglioInTavola`→`DetailView`, `Fazzoletto`→`Gusset`,
+`FlangiaSpigolo`→`EdgeFlange`, `ForoOppureRaccordo`→`HoleOrFillet`,
+`Lamiera`→`SheetMetal`, `Mensola`→`Bracket`, `Modale`→`Modal`, `Nervatura`→`Rib`,
+`NervaturaRitira`→`RibWithdraw`, `NuovaParte`→`NewPart`, `Opzione`→`Option`,
+`Orfana`→`Orphan`, `ProvaInquadratura`→`FramingTest`,
+`ProvaPosizioni`→`PositionsTest`, `ProvaRuota`→`GearTest`,
+`ProvaSagoma`→`OutlineTest`, `ProvaVista`→`ViewTest`,
+`QuoteInTavola`→`DrawingDimensions`, `RaccordoDiFaccia`→`FaceFillet`,
+`Riempimento`→`Fill`, `SchizzoSulFoglio`→`SketchOnSheet`,
+`SeguiIlBordo`→`FollowTheEdge`, `Seleziona`→`Select`,
+`SezioneInTavola`→`SectionView`, `Spessore`→`Thickness`, `TestoNelPdf`→`PdfText`,
+`TipoDellEstrusione`→`ExtrusionType` (and `DimXpert`, unchanged). Each
+`Programma.cs` is `Program.cs`. The other file names follow the `file` rows of
+the map (`Attrezzi.cs`→`McpTools.cs`, `catalogo.json`→`catalog.json`,
+`banco.ps1`→`bench.ps1`, `prove.yml`→`tests.yml`, every `Operazioni*.cs` of the
+library, and the rest).
+
+### What changes for whoever uses the repository
+
+- The installer is `dist\Installer.exe` (and `Installer.exe.sha256`); the
+  bench is `Bench\bin\Oce.Solid.Agent.Bench.exe`, launched by `.\Bench\bench.ps1`;
+  the contracts are `Tests\bin\Oce.Solid.Agent.ContractTests.exe`; the probe that
+  closes the leftover documents is `Checks\CloseLeftovers\bin\CloseLeftovers.exe`.
+- An installed bridge keeps a stale `Riscontro.Disegno.dll` next to the new
+  `Oce.Solid.Agent.Core.dll` until it is reinstalled; nothing loads it.
+- **Historical comparison (decision D11).** The bench reads a library by its
+  English names, so the comparison with an older library starts at 0.150.1: a
+  library before it (`Riscontro.Disegno`) is refused with exit 2 and a message
+  that says so (`Bench/Program.cs`, `Checks/library-of-the-time.ps1`). A defect
+  guarded before 0.150.1 is proven red with the bench of its own commit.
+- The TODO and the notes outside the repository name the old paths: the
+  code names in them are updated with `window-3-identifiers.js --todo <file>`
+  (paths and project names only, decision D10), after the merge.
+
+### Proofs
+
+- `window-3-identifiers.js --reverse-proof a883903`: every line that differs
+  between the commit before the moves and the window is explained by pairs of
+  the map, apart from the hand edits the script lists with their reason (the
+  D11 message, the stale `Agente/` file names in `SwOperations.cs`, the patterns
+  of `exceptions.json`).
+- `--check`: no tracked path and no reference left; a forward run on the window
+  changes nothing.
+- `same-il.ps1 -Mode Renames` on the bridge, the library, the catalogue
+  exporter, the installer, the bench, the contracts and the 35 probes: every
+  differing line of IL is explained by the map.
+- `Tools/catalog.json` is rewritten byte for byte by the renamed exporter.
+- Contracts: 821 checks, only the bench-freshness checks red (no bench on this
+  branch). `name-map-extract.js --check` passes. Language gate: held, judged
+  commit by commit with the parent's rules.
+
 ## Unreleased — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
 
 **Lots L1 and L2 of TODO entry H19** (the installer finished for v0.1.0; the

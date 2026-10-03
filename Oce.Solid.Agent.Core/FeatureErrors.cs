@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// I CODICI DI ERRORE DELLE LAVORAZIONI, detti in italiano.

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.CoperturaRuoli
+namespace Checks.RoleCoverage
 {
     /// <summary>
     /// QUANTE FACCE HANNO UN RUOLO UNIVOCO? (misura che dimensiona la voce E7)
@@ -15,7 +15,7 @@ namespace Controlli.CoperturaRuoli
     /// posizione: «il fondo della tasca fatta al passo 2» resta il fondo della
     /// tasca qualunque quota si cambi a monte.
     ///
-    /// Meta' del meccanismo esiste gia' e funziona, in `Riferimenti.cs`, ma
+    /// Meta' del meccanismo esiste gia' e funziona, in `References.cs`, ma
     /// vale solo DENTRO un piano: risolve «la faccia superiore di quello che
     /// hai fatto al passo 1» perche' quel passo e' ancora in mano, con la sua
     /// direzione di estrusione. Per una faccia che esiste GIA' nell'albero
@@ -30,7 +30,7 @@ namespace Controlli.CoperturaRuoli
     /// Questo attrezzo misura quel numero sul documento aperto, senza cambiare
     /// niente. Si lancia su un pezzo per volta.
     ///
-    ///     Controlli\CoperturaRuoli\bin\CoperturaRuoli.exe
+    ///     Checks\RoleCoverage\bin\RoleCoverage.exe
     ///
     /// I QUATTRO RUOLI, e cosa serve a ciascuno per essere deciso:
     ///

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Oce.Solid.Agent.Strumenti;
+using Oce.Solid.Agent.Tools;
 
 namespace Oce.Solid.Agent.Mcp
 {

@@ -28,7 +28,7 @@
 #
 # COSA CONTROLLA, E COSA NON PUO' CONTROLLARE.
 #   1. dentro questo repository: ognuna si definisce una volta sola e si accende
-#      in UN posto solo, e quel posto e' Ponte\Sessione.cs;
+#      in UN posto solo, e quel posto e' Bridge\Session.cs;
 #   2. dentro l'add-in, SE le sue sorgenti sono raggiungibili da questa
 #      macchina: non devono comparire affatto.
 #
@@ -37,7 +37,7 @@
 # che passa per non aver guardato e' peggio di nessun controllo, perche'
 # rassicura.
 #
-#   .\Controlli\controlla-documenti-senza-file.ps1
+#   .\Checks\check-documents-without-file.ps1
 #
 # Esce 0 se torna tutto, 1 se no.
 #
@@ -57,7 +57,7 @@ Write-Host "=== Dentro questo repository"
 
 foreach ($nome in $nomi) {
     # Dove si DEFINISCE: una volta sola, nella libreria.
-    $definizioni = @(Get-ChildItem -Path (Join-Path $radice 'Riscontro.Disegno') -Filter *.cs -Recurse |
+    $definizioni = @(Get-ChildItem -Path (Join-Path $radice 'Oce.Solid.Agent.Core') -Filter *.cs -Recurse |
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
         Select-String -SimpleMatch "public bool $nome")
     if ($definizioni.Count -eq 1) {
@@ -78,10 +78,10 @@ foreach ($nome in $nomi) {
         foreach ($a in $accensioni) { Write-Host "       $($a.Path):$($a.LineNumber)" }
     } else {
         $dove = $accensioni[0].Path
-        if ($dove -like '*\Ponte\Sessione.cs') {
-            Bene "$nome acceso solo in Ponte\Sessione.cs"
+        if ($dove -like '*\Bridge\Session.cs') {
+            Bene "$nome acceso solo in Bridge\Session.cs"
         } else {
-            Male "$nome acceso in $dove, che non e' Ponte\Sessione.cs"
+            Male "$nome acceso in $dove, che non e' Bridge\Session.cs"
         }
     }
 }

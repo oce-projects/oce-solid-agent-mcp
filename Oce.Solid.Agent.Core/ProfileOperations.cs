@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// QUALI PROFILI CI SONO, E COME SI SCRIVONO. (voce GA0)

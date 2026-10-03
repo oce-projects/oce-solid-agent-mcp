@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// WHICH COMPONENTS OF AN ASSEMBLY COUNT: LIGHTWEIGHT, ENVELOPE AND HIDDEN
@@ -58,12 +58,12 @@ namespace Prove.Contratti
         private const BindingFlags Any =
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 
-        private const string Library = "Riscontro.Disegno";
+        private const string Library = "Oce.Solid.Agent.Core";
         private const string Shared = "AssemblyComponents.cs";
-        private const string Measures = "OperazioniMisuraAssieme.cs";
-        private const string Export = "OperazioniEsporta.cs";
-        private const string Bom = "OperazioniDistintaBase.cs";
-        private const string Catalogue = "Catalogo/Operazioni.cs";
+        private const string Measures = "AssemblyMeasureOperations.cs";
+        private const string Export = "ExportOperations.cs";
+        private const string Bom = "BomOperations.cs";
+        private const string Catalogue = "Catalog/Operations.cs";
 
         /// <summary>
         /// The library's own member names this group reads, in one literal as the
@@ -653,7 +653,7 @@ namespace Prove.Contratti
 
         private static void PureRules()
         {
-            var library = Path.Combine(Radice(), Library, "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of Z-C21.11 (load state, part or sub-assembly by extension, indented BOM rows)",
@@ -678,8 +678,8 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                components = asm.GetType("Riscontro.Disegno.AssemblyComponents", false);
-                sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                components = asm.GetType("Oce.Solid.Agent.Core.AssemblyComponents", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 

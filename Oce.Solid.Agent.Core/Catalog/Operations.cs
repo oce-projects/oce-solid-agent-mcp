@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-using static Riscontro.Disegno.Catalogo.Nodo;
+using static Oce.Solid.Agent.Core.Catalog.Nodo;
 
-namespace Riscontro.Disegno.Catalogo
+namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>
     /// IL CATALOGO. Cosa il modello puo' chiedere, e come si scrive.
@@ -16,8 +16,8 @@ namespace Riscontro.Disegno.Catalogo
     /// repository che nessuno rifa'.
     ///
     /// Prima viveva in `ai_disegno.py`, e chi clonava questo repository NON
-    /// POTEVA rigenerare `catalogo.json`: servivano il server, docker e un
-    /// container usa-e-getta. Adesso serve `Riscontro.Catalogo.exe`.
+    /// POTEVA rigenerare `catalog.json`: servivano il server, docker e un
+    /// container usa-e-getta. Adesso serve `Oce.Solid.Agent.Catalog.exe`.
     ///
     /// `Provata` non finisce nel JSON ed e' voluto: e' la promessa che
     /// l'operazione e' stata costruita e MISURATA dentro SOLIDWORKS, e
@@ -2115,8 +2115,8 @@ namespace Riscontro.Disegno.Catalogo
                     // InsertGussetFeature3 tornava null. La guida API (Remarks
                     // di InsertGussetFeature3, Insert_Gusset_Feature_Example_
                     // CSharp.htm) vuole le due facce con marca 1 E un profilo
-                    // valido. Misurato con la sonda Controlli\Fazzoletto\
-                    // Programma.cs sulla T 80x80x5: triangolo 60/60
+                    // valido. Misurato con la sonda Checks\Gusset\
+                    // Program.cs sulla T 80x80x5: triangolo 60/60
                     // spesso 5 +9000 mm3, poligono 60/60/15/15 +12937,5, corpi
                     // 2 -> 3. Casi: weldments/gusset_sits_in_the_corner e
                     // weldments/gusset_polygon_is_not_degenerate.

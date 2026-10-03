@@ -5,9 +5,9 @@ using SolidWorks.Interop.sldworks;
 // ALIAS E NON `using static`: il banco ha gia' un `Apri` e un `Chiudi` suoi,
 // e i membri della classe vincono su quelli importati. Con l'alias si vede a
 // colpo d'occhio quali chiamate escono da questo processo e vanno al ponte.
-using Mcp = Condiviso.ClienteMcp;
+using Mcp = Shared.ClienteMcp;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// UN GIRO DI PROVE CHE PASSA DALLA PORTA DEL CLIENTE (voce F14).
@@ -18,7 +18,7 @@ namespace ProvaSaldatura
     /// ponte rifiutava ogni assieme mentre il suo catalogo ne prometteva una
     /// famiglia intera, e il banco aveva 781 prove verdi — cinque delle quali
     /// sugli assiemi — e **nessuna poteva vederlo**: `EsecutorePiano` non
-    /// compare in nessun file di `Banco/`.
+    /// compare in nessun file di `Bench/`.
     ///
     /// *Due misure vere di due cose diverse, e chi legge il numero grande crede
     /// che copra anche l'altra.*
@@ -30,10 +30,10 @@ namespace ProvaSaldatura
     /// rifiuti su operazioni che il documento aperto non ammette, e
     /// `inspect_part`, che non passa nemmeno dall'esecutore.
     ///
-    /// `Prove.Contratti` parla gia' al ponte sullo stdio, ma **senza
+    /// `Oce.Solid.Agent.ContractTests` parla gia' al ponte sullo stdio, ma **senza
     /// SOLIDWORKS**: li' ogni piano muore su «non c'e' nessun documento
     /// aperto», che e' un rifiuto vero e non prova niente sul resto. Qui il
-    /// documento c'e'. Il trasporto e' lo stesso — `Condiviso/ClienteMcp.cs` —
+    /// documento c'e'. Il trasporto e' lo stesso — `Shared/McpClient.cs` —
     /// perche' due trasporti sarebbero due posti in cui riparare il BOM.
     ///
     /// ── E UNO DEVE ESSERE ROSSO PER COSTRUZIONE ──────────────────────────
@@ -57,7 +57,7 @@ namespace ProvaSaldatura
             }
 
             // IL DOCUMENTO LO PREPARA IL BANCO, e il ponte lo trova davanti.
-            // E' esattamente la differenza con `Prove.Contratti`: li' non c'e'
+            // E' esattamente la differenza con `Oce.Solid.Agent.ContractTests`: li' non c'e'
             // niente aperto, e ogni piano muore sul primo controllo.
             IModelDoc2 doc = null;
             Mcp.Ponte p = null;
@@ -360,9 +360,9 @@ namespace ProvaSaldatura
         ///
         /// `undo` lives in the bridge, not in the library, so its cases are
         /// here, where the bridge runs with a real document in front.
-        /// Banco/prova_annulla.js has the first three refusals; it is a script
+        /// Bench/test_undo.js has the first three refusals; it is a script
         /// run by hand, and these four are part of the full bench. Each is
-        /// written against the description of `undo` in Strumenti/Attrezzi.cs
+        /// written against the description of `undo` in Tools/McpTools.cs
         /// (it withdraws the last plan, whole, only while the part is as that
         /// plan left it; and the paragraph added in Z-C21.14) and read back
         /// through COM.
@@ -381,7 +381,7 @@ namespace ProvaSaldatura
         ///     action `activate`; `undo` must withdraw the plan from the part.
         ///     RED ON BRIDGE 0.124.1, by the code path, for the reason the live
         ///     probe M19 measured in its phase N: the state after the plan was
-        ///     read on the window in front (Attrezzi.cs:2113, `_sessione.Stato`),
+        ///     read on the window in front (McpTools.cs:2113, `_sessione.Stato`),
         ///     the drawing, whose volume and feature count did not change, so
         ///     `haCostruito` was false, no memory was written, and `undo`
         ///     answered that it had no plan to withdraw («NOTHING TO WITHDRAW
@@ -752,7 +752,7 @@ namespace ProvaSaldatura
         ///
         /// Fino alla libreria 0.112.0 la guardia era `CommandInProgress`, e la
         /// frase del rifiuto compariva in un solo posto del repository: la riga
-        /// che la produceva. `Controlli/Modale` ha misurato che con un modale
+        /// che la produceva. `Checks/Modal` ha misurato che con un modale
         /// aperto `CommandInProgress` resta FALSO: la guardia non poteva
         /// scattare. Dalla 0.113.0 si guarda se la finestra principale e'
         /// abilitata.

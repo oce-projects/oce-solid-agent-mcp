@@ -37,7 +37,7 @@ using SolidWorks.Interop.swconst;
 //  sovravincolato non da' errore in `Insert*`: da' una lavorazione rossa dopo.
 //
 //  USO
-//      .\Controlli\SeguiIlBordo\bin\SeguiIlBordo.exe            [--tieni]
+//      .\Checks\FollowTheEdge\bin\FollowTheEdge.exe            [--tieni]
 // =============================================================================
 
 internal static class Programma
@@ -457,14 +457,14 @@ internal static class Programma
 
     // W3.1-bis.2 point 10: base planes by position, not by their localized name.
     // The first three RefPlane features of the tree, same rule as
-    // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
-    // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+    // Checks/Rib, Checks/Fill and Checks/ExtrusionType.
+    // Since Z-C21.5 the library itself (Oce.Solid.Agent.Core/References.cs,
     // BasePlane) recognises a base plane by its canonical normal through the
     // world origin instead, because a template with an extra plane ahead of the
     // three defaults fools a position-based rule with no error; this probe
     // stays positional because it is a throwaway part on SOLIDWORKS' own
     // default template and cannot reference the library (single-file compile,
-    // Controlli/costruisci-controlli.ps1).
+    // Checks/build-checks.ps1).
     private static bool SelectBasePlane(IModelDoc2 doc, int which)
     {
         int seen = 0;

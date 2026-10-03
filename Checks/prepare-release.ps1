@@ -1,5 +1,5 @@
 # =============================================================================
-#  prepara-release.ps1 - tutto quello che serve per una Release, tranne
+#  prepare-release.ps1 - tutto quello che serve per una Release, tranne
 #                        pubblicarla.
 # =============================================================================
 #
@@ -21,7 +21,7 @@
 #  comandi. Pubblicare e' un'azione verso l'esterno, e la fa una persona.
 #
 #  USO
-#      .\Controlli\prepara-release.ps1
+#      .\Checks\prepare-release.ps1
 #
 #  ESCE 0 se la release e' pronta, 1 al primo controllo che non passa.
 # =============================================================================
@@ -89,11 +89,11 @@ Write-Output ""
 Write-Output "=== la compilazione"
 & (Join-Path $radice "build.ps1") | Out-Null
 if ($LASTEXITCODE -ne 0) { Ferma "build.ps1 e' uscito $LASTEXITCODE" }
-$exe = Join-Path $radice "dist\Installa.exe"
-$sha = Join-Path $radice "dist\Installa.exe.sha256"
-if (-not (Test-Path $exe)) { Ferma "manca dist\Installa.exe" }
-if (-not (Test-Path $sha)) { Ferma "manca dist\Installa.exe.sha256" }
-Ok ("dist\Installa.exe, " + [int]((Get-Item $exe).Length / 1KB) + " kB")
+$exe = Join-Path $radice "dist\Installer.exe"
+$sha = Join-Path $radice "dist\Installer.exe.sha256"
+if (-not (Test-Path $exe)) { Ferma "manca dist\Installer.exe" }
+if (-not (Test-Path $sha)) { Ferma "manca dist\Installer.exe.sha256" }
+Ok ("dist\Installer.exe, " + [int]((Get-Item $exe).Length / 1KB) + " kB")
 
 # LO SHA256 SI RICALCOLA, NON SI CREDE AL FILE ACCANTO. E' il valore che chi
 # scarica confrontera': se il file .sha256 e' rimasto di una compilazione
@@ -107,8 +107,8 @@ Ok "sha256 ricalcolato e uguale: $($vero.Substring(0,16))..."
 # deve avere: la versione che il ponte annuncia e' quella di VERSION.txt, e
 # l'ultimo giro di banco e' posteriore all'ultima modifica della libreria e del
 # banco. Una Release su un banco vecchio e' un binario che nessuno ha misurato.
-$prove = Join-Path $radice "Prove\bin\Prove.Contratti.exe"
-if (-not (Test-Path $prove)) { Ferma "manca Prove\bin\Prove.Contratti.exe: si compila Prove\Prove.Contratti.csproj" }
+$prove = Join-Path $radice "Tests\bin\Oce.Solid.Agent.ContractTests.exe"
+if (-not (Test-Path $prove)) { Ferma "manca Tests\bin\Oce.Solid.Agent.ContractTests.exe: si compila Tests\Oce.Solid.Agent.ContractTests.csproj" }
 $vecchio = $ErrorActionPreference; $ErrorActionPreference = "Continue"
 $esito = & $prove 2>&1 | Out-String
 $codice = $LASTEXITCODE
@@ -131,7 +131,7 @@ Write-Output "PRONTA. Non e' stato pubblicato niente. I tre passi, da fare a man
 Write-Output ""
 Write-Output "  git tag -a $tag -m ""$tag"""
 Write-Output "  git push origin $tag"
-Write-Output "  gh release create $tag dist\Installa.exe dist\Installa.exe.sha256 --title ""$tag"" --notes-file ""$note"""
+Write-Output "  gh release create $tag dist\Installer.exe dist\Installer.exe.sha256 --title ""$tag"" --notes-file ""$note"""
 Write-Output ""
 Write-Output "Il repository e' privato: la Release lo e' con lui."
 exit 0

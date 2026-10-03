@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using static Prove.Contratti.Programma;
-using static Condiviso.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Programma;
+using static Shared.ClienteMcp;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE NAMES OF BEFORE THE RENAME, ACCEPTED ON INPUT (W3.1-bis.5, decision D4).
@@ -20,7 +20,7 @@ namespace Prove.Contratti
     ///      and the answer must list every old name in `deprecated`; the
     ///      catalogue tools asked with an Italian family and operation answer
     ///      in English only;
-    ///   2. the library by reflection (Riscontro.Disegno.Alias): an operation
+    ///   2. the library by reflection (Oce.Solid.Agent.Core.Alias): an operation
     ///      step, a word of two senses (`a_mm` in the weld symbol and in the
     ///      section line), a value only into a value the schema lists, and a
     ///      selector; a free-text argument left alone (mate's variant) while
@@ -29,12 +29,12 @@ namespace Prove.Contratti
     ///      measurements (OperazioniSw.AttachDeprecated). Over stdio, a
     ///      resource read with the URI of before.
     ///
-    /// The Italian names are read from the name map (Controlli/lingua/name-map.tsv)
+    /// The Italian names are read from the name map (Checks/language/name-map.tsv)
     /// by their English name, not written here: the contract is about the
     /// dictionary the bridge embeds, not about a list of its own.
     ///
     /// Seen red with the dictionary taken out of the library (the embedded map
-    /// removed from Riscontro.Disegno.csproj): «Alias.Problem» and every
+    /// removed from Oce.Solid.Agent.Core.csproj): «Alias.Problem» and every
     /// translation check fail. REMOVED IN W3.1-bis.11 with the aliases.
     /// </summary>
     internal static class AliasLayerContract
@@ -58,7 +58,7 @@ namespace Prove.Contratti
         // English name -> Italian name, per type, from the map (the first row wins).
         private static Dictionary<string, string> ReadMap()
         {
-            var file = Path.Combine(Radice(), "Controlli", "lingua", "name-map.tsv");
+            var file = Path.Combine(Radice(), "Checks", "language", "name-map.tsv");
             if (!File.Exists(file)) { Segna("the name map is there", false, "missing " + file); return null; }
             var map = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var line in File.ReadAllLines(file, Encoding.UTF8))
@@ -76,7 +76,7 @@ namespace Prove.Contratti
 
         private static void Library(Func<string, string, string> it)
         {
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the aliases of the library", library + " is missing: build the library first (build.ps1)");
@@ -97,10 +97,10 @@ namespace Prove.Contratti
                     };
                 }
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                alias = asm.GetType("Riscontro.Disegno.Alias", false);
+                alias = asm.GetType("Oce.Solid.Agent.Core.Alias", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (alias == null) { Segna("the library has the aliases", false, "type Riscontro.Disegno.Alias not found"); return; }
+            if (alias == null) { Segna("the library has the aliases", false, "type Oce.Solid.Agent.Core.Alias not found"); return; }
 
             var problem = Convert.ToString(alias.GetProperty("Problem").GetValue(null));
             Segna("the library reads its dictionary (the embedded name map)", string.IsNullOrEmpty(problem),
@@ -194,8 +194,8 @@ namespace Prove.Contratti
                   listUri + ", " + oneUri + ", " + mixedUri + "; " + uriNotes.Count + " lines");
 
             // a step that worked and left no measurements keeps its warning
-            var ops = alias.Assembly.GetType("Riscontro.Disegno.OperazioniSw", false);
-            var outcomeType = alias.Assembly.GetType("Riscontro.Disegno.OperazioniSw+Esito", false);
+            var ops = alias.Assembly.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+            var outcomeType = alias.Assembly.GetType("Oce.Solid.Agent.Core.OperazioniSw+Esito", false);
             var attach = ops == null ? null : ops.GetMethod("AttachDeprecated");
             if (attach == null || outcomeType == null) { Segna("the library attaches the deprecated lines to an outcome", false, "OperazioniSw.AttachDeprecated or Esito not found"); return; }
             var outcome = Activator.CreateInstance(outcomeType);

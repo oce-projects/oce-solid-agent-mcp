@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Riscontro.Disegno;
+using Oce.Solid.Agent.Core;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Oce.Solid.Agent.Ponte
+namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
     /// IL CICLO DI VITA DEL DOCUMENTO: crearne uno, aprirne uno, sapere quali
@@ -414,7 +414,7 @@ namespace Oce.Solid.Agent.Ponte
         /// <paramref name="doc"/>'s caller got this activation for free but the
         /// bit was thrown away: a read-only step right after (`mass_properties`,
         /// `overall`) would measure stale geometry, since the executor's own
-        /// rebuild only runs after a successful step (EsecutorePiano.cs), too
+        /// rebuild only runs after a successful step (PlanExecutor.cs), too
         /// late for the very first one.
         /// </summary>
         private Dictionary<string, object> PortaDavanti(ISldWorks sw, IModelDoc2 doc, out string errore)

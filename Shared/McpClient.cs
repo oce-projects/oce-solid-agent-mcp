@@ -4,14 +4,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-namespace Condiviso
+namespace Shared
 {
     /// <summary>
     /// PARLARE COL PONTE COME FAREBBE UN CLIENTE MCP: il trasporto, e basta.
     ///
     /// ── PERCHE' STA QUI E NON IN UNO DEI DUE PROGETTI ────────────────────
     ///
-    /// Lo usano in due. `Prove.Contratti` da giorni, per provare il protocollo
+    /// Lo usano in due. `Oce.Solid.Agent.ContractTests` da giorni, per provare il protocollo
     /// **senza** SOLIDWORKS; il banco da adesso (voce F14), per far passare
     /// dei casi **dalla porta del cliente**, con un documento vero davanti.
     ///

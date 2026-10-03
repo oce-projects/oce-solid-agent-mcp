@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.CorpoRotto
+namespace Checks.BrokenBody
 {
     /// <summary>
     /// CHE COSA RISPONDE `Check3` SU UN CORPO SANO, E CHE COSA SU UNO CHE NON
@@ -25,7 +25,7 @@ namespace Controlli.CorpoRotto
     ///
     /// ── PERCHE' UN ESEGUIBILE E NON UNO SCRIPT ───────────────────────────
     ///
-    /// Stessa ragione di `NuovaParte`: `ISldWorks.NewDocument` per late
+    /// Stessa ragione di `NewPart`: `ISldWorks.NewDocument` per late
     /// binding da PowerShell 5.1 risponde `TYPE_E_ELEMENTNOTFOUND`. Provato
     /// oggi di nuovo, per non ricordarlo male.
     ///
@@ -390,14 +390,14 @@ namespace Controlli.CorpoRotto
         }
 
         // The first three RefPlane features of the tree, same rule as
-        // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
-        // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+        // Checks/Rib, Checks/Fill and Checks/ExtrusionType.
+        // Since Z-C21.5 the library itself (Oce.Solid.Agent.Core/References.cs,
         // BasePlane) recognises a base plane by its canonical normal through the
         // world origin instead, because a template with an extra plane ahead of
         // the three defaults fools a position-based rule with no error; this
         // probe stays positional because it is a throwaway part on SOLIDWORKS'
         // own default template and cannot reference the library (single-file
-        // compile, Controlli/costruisci-controlli.ps1).
+        // compile, Checks/build-checks.ps1).
         private static bool SelectBasePlane(IModelDoc2 doc, int which)
         {
             try

@@ -1,15 +1,15 @@
 // =============================================================================
-//  righe-del-todo.js - i `file.cs:NNN` citati puntano ancora a qualcosa?
+//  todo-lines.js - i `file.cs:NNN` citati puntano ancora a qualcosa?
 // =============================================================================
 //
 //  PERCHE' ESISTE
 //
-//  Il TODO cita punti precisi del codice — `OperazioniSw.cs:6186`,
-//  `Attrezzi.cs:1100`, `EsecutorePiano.cs:512` — ed e' il modo giusto di
+//  Il TODO cita punti precisi del codice — `SwOperations.cs:6186`,
+//  `McpTools.cs:1100`, `PlanExecutor.cs:512` — ed e' il modo giusto di
 //  scrivere: un'affermazione con l'indirizzo si puo' controllare.
 //
 //  Ma **i numeri di riga scivolano a ogni modifica**, e nessuno se ne accorge.
-//  Il 23/9/2026 la voce Z-A7 mandava a `OperazioniSw.cs:6186` per una chiamata
+//  Il 23/9/2026 la voce Z-A7 mandava a `SwOperations.cs:6186` per una chiamata
 //  che sta alla 6198: dodici righe, cioe' abbastanza per finire in un altro
 //  metodo. Chi ci va, non trova, e non sa se la voce e' vecchia o se ha letto
 //  male.
@@ -40,37 +40,37 @@
 //  la frase si e' scritta da sola**: gli identificatori fra backtick sulla
 //  stessa riga del rimando (`GetRemainingDOFs`, `ReplaceComponents2`). Se
 //  NESSUNO di quelli compare nelle righe citate, il rimando e' rotto. E'
-//  la stessa tecnica con cui `rimandi-del-todo.js` ha sciolto `vedi C8`.
+//  la stessa tecnica con cui `todo-references.js` ha sciolto `vedi C8`.
 //
 //  Basta che UNO compaia: pretendere tutti punirebbe una frase che nomina
 //  due cose e ne cita una. Se la riga non ha nessun identificatore fra
 //  backtick, il rimando **si salta** -- senza soggetto si indovinerebbe.
 //
 //  USO
-//      node Controlli/righe-del-todo.js
-//      node Controlli/righe-del-todo.js --tutti    anche quelle che vanno
-//      node Controlli/righe-del-todo.js --provami  fa fallire il controllo apposta
+//      node Checks/todo-lines.js
+//      node Checks/todo-lines.js --tutti    anche quelle che vanno
+//      node Checks/todo-lines.js --provami  fa fallire il controllo apposta
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
 
 const radice = path.join(__dirname, '..');
 const tutti = process.argv.includes('--tutti');
-const { trovaIlTodo } = require('./dov-e-il-todo.js');
+const { trovaIlTodo } = require('./where-is-the-todo.js');
 const fileTodo = trovaIlTodo(radice, process.argv);
 if (!fileTodo) process.exit(0);
 const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
-// Le stesse cartelle di `percorsi-del-todo.js`: il TODO scrive i nomi da dove
+// Le stesse cartelle di `todo-paths.js`: il TODO scrive i nomi da dove
 // si lavora.
-const BASI = ['', 'Banco', 'Riscontro.Disegno', 'Strumenti', 'Controlli',
-              'Prove', 'Mcp', 'Ponte', 'Riscontro.Disegno/Catalogo'];
+const BASI = ['', 'Banco', 'Oce.Solid.Agent.Core', 'Strumenti', 'Controlli',
+              'Tests', 'Mcp', 'Bridge', 'Oce.Solid.Agent.Core/Catalog'];
 
 // LA CARTELLA SCRITTA NELLA CITAZIONE COMANDA, e la prima scrittura la
 // buttava via.
 //
 // Cercava per NOME BASE fra le cartelle note. Il 24/9/2026 la citazione
-// `Ponte/Sessione.cs:824` e' finita su `Banco/Sessione.cs` -- che esiste,
+// `Bridge/Session.cs:824` e' finita su `Bench/Session.cs` -- che esiste,
 // si chiama uguale, e ha 392 righe invece di 832. La sonda ha dichiarato
 // morta una citazione giusta, **dentro il gancio pre-push**: avrebbe
 // fermato una consegna per un errore suo.

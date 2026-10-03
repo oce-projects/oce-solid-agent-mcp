@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Traduce «la faccia in cima a quello che hai fatto al passo 1» nella
@@ -185,7 +185,7 @@ namespace Riscontro.Disegno
         /// reference planes, given in tree order by their unit normal and their
         /// origin in metres (null = not read), is the base plane of that name.
         /// -1 for an unknown name or when none qualifies. Pure, so that
-        /// Prove.Contratti checks it without SOLIDWORKS (Zc215IdentityContract).
+        /// Oce.Solid.Agent.ContractTests checks it without SOLIDWORKS (Zc215IdentityContract).
         ///
         /// A plane qualifies with the canonical normal of the name, SAME SIGN,
         /// and passing through the world origin. Measured by the Z-C21.3 probe of
@@ -294,7 +294,7 @@ namespace Riscontro.Disegno
                     // di un raccordo, e la lavorazione successiva ci finiva
                     // sopra. Un difetto che non da' errore.
                     //
-                    // Misurato da `Controlli\ForoOppureRaccordo` su una piastra
+                    // Misurato da `Checks\HoleOrFillet` su una piastra
                     // con un foro Ø12 e un raccordo R5:
                     //
                     //     parete del foro         FaceInSurfaceSense = true
@@ -1114,7 +1114,7 @@ namespace Riscontro.Disegno
         /// same page is the reason IFace2.Normal is taken as the outward normal
         /// everywhere (ApiHelpers.NormalIfPlanar).
         ///
-        /// Misurato, non dedotto (`Controlli\ForoOppureRaccordo`, 15/9/2026):
+        /// Misurato, non dedotto (`Checks\HoleOrFillet`, 15/9/2026):
         /// su una piastra con un foro Ø12 e un raccordo R5, la parete del foro
         /// risponde **true** e la superficie del raccordo **false**.
         ///

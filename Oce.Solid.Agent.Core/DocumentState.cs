@@ -4,7 +4,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Fotografia di cio' che c'e' adesso nel documento aperto.
@@ -577,7 +577,7 @@ namespace Riscontro.Disegno
             // si chiamassero, quali fossero soppressi. Non poteva nemmeno
             // rifiutare con cognizione.
             //
-            // Adesso si descrive (`StatoAssieme.cs`), e cosa NON si sa ancora
+            // Adesso si descrive (`AssemblyState.cs`), e cosa NON si sa ancora
             // fare si dice li' dentro, per esteso. Il ramo sta PRIMA del cast a
             // `IPartDoc` perche' un assieme non e' una parte e cadrebbe nel
             // `parte == null` qui sotto.

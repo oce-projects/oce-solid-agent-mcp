@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE SELF-TEST SPEAKS IN CODES, AND BOTH SIDES AGREE ON THEM (entry H19, B3).
@@ -34,8 +34,8 @@ namespace Prove.Contratti
         {
             Gruppo("the self-test exit codes: HRESULT to code, and the same numbers in bridge and installer (H19 B3)");
 
-            var bridge = Codes(Path.Combine(Radice(), "Programma.cs"));
-            var installer = Codes(Path.Combine(Radice(), "Installer", "Passi.cs"));
+            var bridge = Codes(Path.Combine(Radice(), "Program.cs"));
+            var installer = Codes(Path.Combine(Radice(), "Installer", "Steps.cs"));
             Segna("the bridge declares the self-test codes", bridge.Count >= 6,
                   string.Join(", ", bridge.Select(kv => kv.Key + "=" + kv.Value)));
             var differ = bridge.Where(kv => !installer.ContainsKey(kv.Key) || installer[kv.Key] != kv.Value)
@@ -115,7 +115,7 @@ namespace Prove.Contratti
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// THE INSTALLER'S OWN RULES, BY REFLECTION ON bin\Installa.exe (H19
+        /// THE INSTALLER'S OWN RULES, BY REFLECTION ON bin\Installer.exe (H19
         /// review), without SOLIDWORKS, without a client and without running
         /// it: how an argument is quoted for `claude mcp add`, which self-test
         /// codes mean "installed", what a reinstall keeps of the entry's env,
@@ -124,7 +124,7 @@ namespace Prove.Contratti
         private static void TheInstallerByReflection()
         {
             Gruppo("the installer by reflection: quoting, accepted codes, env kept, Claude Code found (H19 review)");
-            var exe = Path.Combine(Radice(), "bin", "Installa.exe");
+            var exe = Path.Combine(Radice(), "bin", "Installer.exe");
             if (!ProdottoDaBuild(exe))
             {
                 if (!IlPonteSiPotevaCompilare())

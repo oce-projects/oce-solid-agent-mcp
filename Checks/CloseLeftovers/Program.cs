@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.ChiudiScarti
+namespace Checks.CloseLeftovers
 {
     /// <summary>
     /// CHIUDE I DOCUMENTI DI SCARTO LASCIATI APERTI DALLE PROVE.
@@ -32,9 +32,9 @@ namespace Controlli.ChiudiScarti
     /// prima categoria e' limitata ai documenti SENZA percorso: un file vero
     /// con modifiche non salvate non finisce mai in questa lista.
     ///
-    ///     ChiudiScarti.exe                       elenca soltanto
-    ///     ChiudiScarti.exe --chiudi [cartelle]   chiude davvero
-    ///     ChiudiScarti.exe --chiudi --risparmia "Parte1,Parte2"
+    ///     CloseLeftovers.exe                       elenca soltanto
+    ///     CloseLeftovers.exe --chiudi [cartelle]   chiude davvero
+    ///     CloseLeftovers.exe --chiudi --risparmia "Parte1,Parte2"
     ///
     /// `--risparmia` serve al banco, ed e' la differenza fra «chiudo i miei
     /// scarti» e «chiudo tutto quello che non e' salvato». Il banco legge quali

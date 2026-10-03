@@ -6,7 +6,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// Le saldature: barre vere, non estrusioni che ci somigliano.
@@ -562,7 +562,7 @@ namespace Riscontro.Disegno
             // 1000x800 frame came out 1080x880 with riuscito = true — and so
             // did any other word («outer»). The bridge's Forma accepts enum
             // values without regard to case and rewrites the top-level ones in
-            // the catalogue spelling (Ponte/Forma.cs, pattern S20), but the
+            // the catalogue spelling (Bridge/Shape.cs, pattern S20), but the
             // nested «frame» the server builds is not in the catalogue schema
             // at all, and the bench and the add-in do not go through the
             // bridge: no check upstream sees every caller. Here the value is
@@ -1459,7 +1459,7 @@ namespace Riscontro.Disegno
         //   swGussetThicknessType_e Inner/BothSides/Outer. Qui si usano solo
         //   per NOME.
         //
-        // ── MISURATO (28/9/2026, sonda Controlli\Fazzoletto\Programma.cs) ──
+        // ── MISURATO (28/9/2026, sonda Checks\Gusset\Program.cs) ──
         //
         // Sulla T di tubolari 80x80x5 (lunga 600 in X, corta 300 in Z, la corta
         // tagliata dalla lunga), fra la faccia alta della lunga e la faccia
@@ -2370,7 +2370,7 @@ namespace Riscontro.Disegno
         /// it added was removed, or not (N30). «The part is as it was» only when
         /// the deletion answered true AND IsWeldment reads false again; a count
         /// of bodies that changed is said too. -1 bodies is «not read». No
-        /// interop type in the signature: Prove.Contratti calls it by reflection.
+        /// interop type in the signature: Oce.Solid.Agent.ContractTests calls it by reflection.
         /// </summary>
         internal static string WeldmentRemovalNote(
             string name, bool selected, bool deleted, bool? weldmentAfter, int bodiesBefore, int bodiesAfter)
@@ -2564,7 +2564,7 @@ namespace Riscontro.Disegno
         /// defined by swSolidworksWeldmentEndCondOptions_e»), for the four words
         /// the catalogue offers, whatever their case; -1 for anything else,
         /// «none» included (finding N22: see TagliaMembri). No interop type in
-        /// the signature: Prove.Contratti calls it by reflection.
+        /// the signature: Oce.Solid.Agent.ContractTests calls it by reflection.
         /// </summary>
         internal static int TrimEndCondition(string asked)
         {

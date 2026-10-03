@@ -6,23 +6,23 @@
 //
 //  WHAT IT DOES
 //
-//  Driven by Controlli/lingua/name-map.tsv (types case_key, free_case_key,
+//  Driven by Checks/language/name-map.tsv (types case_key, free_case_key,
 //  case_family, case_name, folder, file and summary_key), in this order:
 //
 //    1. moves the folders and files of the bench this window owns, with
 //       `git mv`: Banco/casi (the case folders under it included),
 //       Banco/casi-in-attesa, Banco/compiti and Banco/resoconto. A case file
 //       takes the English case name, any other file the English file name.
-//       Banco/ itself and the files at its root are renamed in window 3 (.6);
+//       Bench/ itself and the files at its root are renamed in window 3 (.6);
 //    2. rewrites every case: the keys of the case schema (walked through the
-//       contexts of Banco/case-keys.json, so an argument name is never taken
+//       contexts of Bench/case-keys.json, so an argument name is never taken
 //       for a case key), the free notes to the "_" convention, the family,
 //       the case name, the twin of a must-fail block, and every case name
 //       and bench path written inside a value. Operations, arguments and
 //       selectors stay as they are: they are the MCP surface, window 2 (.5).
 //       A plan (a file whose root is an array) is the bridge's protocol: only
 //       its free notes and the names inside its values are rewritten;
-//    3. rewrites Banco/case-keys.json (the read keys, the documented keys,
+//    3. rewrites Bench/case-keys.json (the read keys, the documented keys,
 //       the children; the frozen free keys are gone, they now start with "_");
 //    4. rewrites the keys of the bench summary (Banco/resoconto/ultimo.json)
 //       and the case names in it;
@@ -59,22 +59,22 @@
 //  says something else, so a rerun on a later main cannot lose the way back.
 //
 //  USAGE
-//    node Controlli/lingua/window-1-cases.js              the window, on this repository
-//    node Controlli/lingua/window-1-cases.js --reverse    the window backwards
-//    node Controlli/lingua/window-1-cases.js --todo <TODO.md>
+//    node Checks/language/window-1-cases.js              the window, on this repository
+//    node Checks/language/window-1-cases.js --reverse    the window backwards
+//    node Checks/language/window-1-cases.js --todo <TODO.md>
 //        only that file: bench paths, case names and --famiglia values, outside
-//        the closed entries (the rule of Controlli/percorsi-del-todo.js: an old
+//        the closed entries (the rule of Checks/todo-paths.js: an old
 //        path inside a closed entry is history). Prints what it changed.
-//    node Controlli/lingua/window-1-cases.js --check
+//    node Checks/language/window-1-cases.js --check
 //        writes nothing: is the tree after the window? Counts the cases, the
 //        plans, the twin references and whether they resolve, the frozen free
 //        keys, and every Italian name of the window still in the bench. Exit 1
 //        if anything is left.
-//    node Controlli/lingua/window-1-cases.js --reverse-proof <rev>
+//    node Checks/language/window-1-cases.js --reverse-proof <rev>
 //        extracts HEAD into a temporary folder, runs --reverse there, and
 //        compares the bench files of <rev> (cases, plans, case keys, summary,
 //        tasks) with what came back: same paths, same bytes, same JSON.
-//    node Controlli/lingua/window-1-cases.js --load-proof <rev>
+//    node Checks/language/window-1-cases.js --load-proof <rev>
 //        writes nothing: reads the cases of <rev> and of this tree the way the
 //        bench's loader reads them and compares them position by position
 //        (shape, keys only as the map says, strings only by renamed names,
@@ -104,14 +104,14 @@ const cp = require('child_process');
 const os = require('os');
 
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
-const MAP_REL = 'Controlli/lingua/name-map.tsv';
+const MAP_REL = 'Checks/language/name-map.tsv';
 
 // ── what this window owns, in Italian (the names of the tree before it) ─────
-const BENCH = 'Banco';                                   // renamed in .6
+const BENCH = 'Bench';                                   // renamed in .6
 const TOPS = ['casi', 'casi-in-attesa', 'compiti', 'resoconto'];
 const CASE_TOPS = ['casi', 'casi-in-attesa'];
 const REGRESSION_FOLDER = 'regressione';
-const CASE_KEYS_REL = 'Banco/case-keys.json';
+const CASE_KEYS_REL = 'Bench/case-keys.json';
 const SUMMARY_REL = 'Banco/resoconto/ultimo.json';
 // The folders of Banco/casi at 1ccb18a. `forma` and `pezzi` are not tracked
 // (plans of hand runs, ignored by git): a path through them keeps its name.
@@ -120,7 +120,7 @@ const CASE_FOLDERS = ['asola', 'asse', 'assiemi', 'coppie', 'corpi', 'esporta', 
   'ripeti', 'ritrovare', 'rivoluzione', 'saldature', 'smusso', 'specchia', 'tavola', 'telai', 'testo',
   'togliere', 'verifica', 'viste'];
 // Files of the moved folders whose name is distinctive enough to be
-// rewritten when a text names them alone (LEGGIMI.md is not: Banco/ keeps one).
+// rewritten when a text names them alone (README.md is not: Bench/ keeps one).
 const LONE_FILE_NAMES = ['ultimo.json', 'E2-i-due-casi.md', 'COME_SI_CONTA.md', 'staffa_a_elle.json',
   'telaio_da_un_metro.json'];
 // Case names that are also plain words of the prose and of the code: written
@@ -130,10 +130,10 @@ const NOT_A_NAME_ALONE = new Set(['cilindro']);
 // Files that keep their Italian on purpose, or history: never rewritten.
 const EXCLUDED = new Set([
   'CHANGELOG.md',                               // history is not rewritten
-  'Controlli/lingua/name-map.tsv',              // the map: Italian on purpose
-  'Controlli/lingua/name-map-extract.js',       // its extractor: Italian on purpose
-  'Controlli/lingua/baseline.json',             // rewritten by detect-italian.js --write-baseline
-  'Controlli/lingua/window-1-cases.js',         // this file
+  'Checks/language/name-map.tsv',              // the map: Italian on purpose
+  'Checks/language/name-map-extract.js',       // its extractor: Italian on purpose
+  'Checks/language/baseline.json',             // rewritten by detect-italian.js --write-baseline
+  'Checks/language/window-1-cases.js',         // this file
 ]);
 
 // ENGLISH_FROZEN_FREE: the frozen free notes of 1ccb18a written in English.
@@ -154,7 +154,7 @@ const ENGLISH_FROZEN_FREE = {
 };
 // ENGLISH_CASE_KEYS: English keys of the case schema at 1ccb18a that are also
 // the English name of an Italian case key. Reverse leaves them alone in their
-// context. Checked against Banco/case-keys.json by every forward run.
+// context. Checked against Bench/case-keys.json by every forward run.
 const ENGLISH_CASE_KEYS = { assembly_configuration: ['name'] };
 
 const BINARY = new Set(['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.tif', '.tiff', '.webp',
@@ -234,7 +234,7 @@ function direction(map, reverse) {
   d.caseTops = CASE_TOPS.map(src);
   d.caseFolders = CASE_FOLDERS.map(src);
   d.regressionFolder = src(REGRESSION_FOLDER);
-  d.summaryRel = reverse ? 'Banco/' + need('resoconto') + '/' + map.file.get('ultimo.json') : SUMMARY_REL;
+  d.summaryRel = reverse ? 'Banco/' + need('resoconto') + '/' + map.file.get('ultimo.json') : SUMMARY_REL;  // window-3: keep (the folder of the bench before window 1)
   d.loneFiles = LONE_FILE_NAMES.map(f => (reverse ? (map.file.get(f) || cannot('no file row for ' + f)) : f));
   d.notAlone = new Set([...NOT_A_NAME_ALONE].map(n => (reverse ? map.case_name.get(n) : n)));
   for (const f of CASE_FOLDERS.concat(TOPS)) need(f);
@@ -279,7 +279,7 @@ function textRewriter(d) {
   const SEG = '[A-Za-z0-9_.*<>\\-]+';
   const tops = d.tops.slice().sort((a, b) => b.length - a.length).map(escapeRx).join('|');
   const full = new RegExp('(?<![A-Za-z0-9_\\-])(' + escapeRx(d.bench) + ')(' + SEP + ')(' + tops + ')((?:' + SEP + SEG + ')*)(?![A-Za-z0-9_\\-])', 'g');
-  // a case folder written from Banco/ (`casi/tavola/...`), or the pending
+  // a case folder written from Bench/ (`casi/tavola/...`), or the pending
   // cases; `compiti/` and `resoconto/` alone only before one of their files
   const caseTopAlone = d.caseTops.slice().sort((a, b) => b.length - a.length).map(escapeRx).join('|');
   const bare = new RegExp('(?<![A-Za-z0-9_\\-./\\\\])(' + caseTopAlone + '|' + escapeRx(d.tops[2]) + '|' + escapeRx(d.tops[3]) + ')((?:' + SEP + SEG + ')+)(?![A-Za-z0-9_\\-])', 'g');
@@ -289,7 +289,7 @@ function textRewriter(d) {
   // a case folder followed by a glob of its cases: `ponte/c2_*`, `assiemi/*`
   // (the folder changes; the glob is a prefix of names and stays)
   const pairGlob = new RegExp('(?<![A-Za-z0-9_\\-./\\\\])(' + folders + ')(' + SEP + ')([A-Za-z0-9_]*\\*)', 'g');
-  // the option of the bench and the parameter of banco.ps1 that pick one case folder
+  // the option of the bench and the parameter of bench.ps1 that pick one case folder
   const famOpt = new RegExp('(--?famiglia)(\\s+)(' + folders + ')(?![A-Za-z0-9_\\-])', 'gi');
   const lone = new RegExp('`(' + tops + ')(' + SEP + ')`', 'g');
   const loneFile = new RegExp('(?<![A-Za-z0-9_\\-./\\\\])(' + d.loneFiles.map(escapeRx).join('|') + ')(?![A-Za-z0-9_\\-])', 'g');
@@ -821,7 +821,7 @@ function runTodo(opts) {
     const h = l.match(/^#{2,4} \[([ x~])\]/);
     if (h) state = h[1];
     // a `(com'era)` section is the original wording of an entry: history,
-    // like a closed entry (and so read by Controlli/percorsi-del-todo.js)
+    // like a closed entry (and so read by Checks/todo-paths.js)
     else if (/^#{2,4} \(com'era\)/.test(l)) state = 'x';
     else if (/^#{1,4} /.test(l)) state = null;
     if (state === 'x') { if (rewriteText(l, {}) !== l) skippedClosed++; continue; }
@@ -984,10 +984,10 @@ function runReverseProof(opts) {
 
 // ── --load-proof ─────────────────────────────────────────────────────────────
 // The cases load the same before and after, read the way the bench's loader
-// reads them (Banco/CasiDichiarati.cs): every JSON file of the case folders,
+// reads them (Bench/DeclaredCases.cs): every JSON file of the case folders,
 // a root array is a plan and a root object a case, the declared name must be
 // the file's name, and the keys are walked through the contexts of each
-// tree's own Banco/case-keys.json. Old and new are compared position by
+// tree's own Bench/case-keys.json. Old and new are compared position by
 // position, independently of the rewriting code above:
 //   - same shape (types, array lengths, number and order of keys);
 //   - a key may change only as the map says (case_key, free_case_key, or the
@@ -1138,16 +1138,16 @@ function runLoadProof(opts) {
     walk(a, b, root, nf);
   }
   for (const f of newFiles) problems.push('a new file with no old one: ' + f);
-  // the run order (Banco/CasiDichiarati.cs: all families together, by file name)
-  // the list of the loader's families: the string array of CasiDichiarati.cs
+  // the run order (Bench/DeclaredCases.cs: all families together, by file name)
+  // the list of the loader's families: the string array of DeclaredCases.cs
   // whose every item is a folder of the cases of that tree
   const familiesOf = (root, top) => {
-    const s = fs.readFileSync(path.join(root, BENCH, 'CasiDichiarati.cs'), 'utf8');
+    const s = fs.readFileSync(path.join(root, BENCH, 'DeclaredCases.cs'), 'utf8');
     for (const m of s.matchAll(/string\[\] \w+ =\s*\{([\s\S]*?)\};/g)) {
       const items = [...m[1].matchAll(/"([^"]+)"/g)].map(x => x[1]);
       if (items.length && items.every(x => fs.existsSync(path.join(root, BENCH, top, x)))) return items;
     }
-    cannot('no list of families in ' + path.join(root, BENCH, 'CasiDichiarati.cs'));
+    cannot('no list of families in ' + path.join(root, BENCH, 'DeclaredCases.cs'));
   };
   const runOrder = (root, top, files) => { const fam = familiesOf(root, top); const base = (p) => p.split('/').pop(); return files.filter(p => { const s = p.split('/'); return s.length === 4 && s[1] === top && fam.includes(s[2]); }).sort((x, y) => (base(x) < base(y) ? -1 : base(x) > base(y) ? 1 : 0)); };
   const orderOld = runOrder(old, CASE_TOPS[0], oldFiles).map(p => mapRel(fwd, p));

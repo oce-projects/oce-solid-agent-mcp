@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using static Prove.Contratti.Programma;
-using static Condiviso.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Programma;
+using static Shared.ClienteMcp;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// A DESCRIPTION SHOWN TO THE MODEL TEACHES THE VALUES ITS SCHEMA TAKES (W3.1-bis.5).
@@ -17,7 +17,7 @@ namespace Prove.Contratti
     /// «Predefinito: passaggio» next to an enum [clearance, threaded, ...] teaches
     /// the model the Italian value, which works until W3.1-bis.11 only because of
     /// the aliases, and is refused after. Red when, in the description of an
-    /// argument of the catalogue (Strumenti/catalogo.json), an Italian value of
+    /// argument of the catalogue (Tools/catalog.json), an Italian value of
     /// THAT argument (the enum_value rows of the name map whose English value the
     /// enum lists) stands where the sentence uses it as a value:
     ///   after «Predefinito» / «default»; as «value = ...»; as «value (gloss)»;
@@ -56,7 +56,7 @@ namespace Prove.Contratti
         // English argument -> English value -> Italian value (enum_value rows).
         private static Dictionary<string, Dictionary<string, string>> ReadEnumValues()
         {
-            var file = Path.Combine(Radice(), "Controlli", "lingua", "name-map.tsv");
+            var file = Path.Combine(Radice(), "Checks", "language", "name-map.tsv");
             if (!File.Exists(file)) { Segna("the name map is there", false, "missing " + file); return null; }
             var map = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
             foreach (var line in File.ReadAllLines(file, Encoding.UTF8))
@@ -129,7 +129,7 @@ namespace Prove.Contratti
 
         private static void Catalogue(Dictionary<string, Dictionary<string, string>> map)
         {
-            var file = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+            var file = Path.Combine(Radice(), "Tools", "catalog.json");
             if (!File.Exists(file)) { Segna("the catalogue is there", false, "missing " + file); return; }
             var ser = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
             var catalogue = ser.DeserializeObject(File.ReadAllText(file, Encoding.UTF8)) as Dictionary<string, object>;
@@ -218,7 +218,7 @@ namespace Prove.Contratti
 
         private static List<string> FamiliesOfTheCatalogue()
         {
-            var file = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+            var file = Path.Combine(Radice(), "Tools", "catalog.json");
             var ser = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
             var c = ser.DeserializeObject(File.ReadAllText(file, Encoding.UTF8)) as Dictionary<string, object>;
             var f = c != null && c.ContainsKey("families") ? c["families"] as Dictionary<string, object> : null;
@@ -234,7 +234,7 @@ namespace Prove.Contratti
             {
                 var it = new HashSet<string>(StringComparer.Ordinal);
                 var en = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var line in File.ReadAllLines(Path.Combine(Radice(), "Controlli", "lingua", "name-map.tsv"), Encoding.UTF8))
+                foreach (var line in File.ReadAllLines(Path.Combine(Radice(), "Checks", "language", "name-map.tsv"), Encoding.UTF8))
                 {
                     var c = line.Split('\t');
                     if (c.Length < 3 || c[0] != "argument") continue;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// RIORDINARE L'ALBERO (voce Z-F3): uno svuotamento messo prima di un foro da'
@@ -74,7 +74,7 @@ namespace Riscontro.Disegno
         /// order of the features and the volume. A volume that cannot be read,
         /// before or now, is not «the same»: the sentence that says nothing
         /// changed needs both. Kept apart from the document so that
-        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         /// </summary>
         internal static string TreeReadBackFault(
             IList<string> orderBefore, IList<string> orderNow, double? volumeBefore, double? volumeNow)

@@ -1,7 +1,7 @@
 [
  {
   "class": "detector-lexicon",
-  "file": "^(?:Controlli/lingua|Checks/language)/lexicon\\.json$",
+  "file": "^Checks/language/lexicon\\.json$",
   "json_path": "^(function_words|elided_forms|content_words|workshop_words|weak_words|identifier_only_words|identifier_function_stop|italian_suffixes|protocol_keys|exception_sentinels|injection_samples|holdout_workshop_terms)(\\[|\\.|$)",
   "applies_to": [
    "detector",
@@ -13,7 +13,7 @@
  },
  {
   "class": "detector-lexicon",
-  "file": "^(?:Controlli/lingua|Checks/language)/exceptions\\.json$",
+  "file": "^Checks/language/exceptions\\.json$",
   "json_path": "^\\[\\d+\\]\\.(pattern|file|json_path)$",
   "applies_to": [
    "detector",
@@ -25,7 +25,7 @@
  },
  {
   "class": "detector-lexicon",
-  "file": "^(?:Controlli/lingua|Checks/language)/baseline\\.json$",
+  "file": "^Checks/language/baseline\\.json$",
   "json_path": "^(files|sets)(\\[|\\.|$)",
   "applies_to": [
    "detector",
@@ -70,7 +70,7 @@
  },
  {
   "class": "solidworks-localized",
-  "file": "^(?:Banco/CasiDichiarati|Bench/DeclaredCases)\\.cs$",
+  "file": "^Bench/DeclaredCases\\.cs$",
   "pattern": "Acciaio",
   "applies_to": [
    "detector",
@@ -82,7 +82,7 @@
  },
  {
   "class": "solidworks-localized",
-  "file": "^(?:Banco|Bench)/Program\\.cs$",
+  "file": "^Bench/Program\\.cs$",
   "pattern": "Estrusione",
   "applies_to": [
    "detector",
@@ -94,7 +94,7 @@
  },
  {
   "class": "data-becomes-geometry",
-  "file": "^(?:Banco|Bench)/cases/text/",
+  "file": "^Bench/cases/text/",
   "pattern": "PROVA",
   "applies_to": [
    "detector",
@@ -106,7 +106,7 @@
  },
  {
   "class": "todo-reader",
-  "file": "^(?:Controlli/percorsi-del-todo|Checks/todo-paths)\\.js$",
+  "file": "^Checks/todo-paths\\.js$",
   "pattern": "\\^\\\\s\\*\\\\\\(da creare\\\\\\)",
   "applies_to": [
    "detector",
@@ -118,7 +118,7 @@
  },
  {
   "class": "todo-reader",
-  "file": "^(?:Controlli/rimandi-del-todo|Checks/todo-references)\\.js$",
+  "file": "^Checks/todo-references\\.js$",
   "pattern": "\\\\\\\\bvedi\\\\\\\\s\\+\\(\\?:anche\\\\\\\\s\\+\\)\\?\\(\\?:la\\\\\\\\s\\+voce\\\\\\\\s\\+\\)\\?|\\^\\(Il\\|La\\|Le\\|Lo\\|Un\\|Una\\|Questa\\|Questo\\|Quella\\|Quello\\|Non\\|Che\\|Come\\|Perche\\|E\\|Ma\\|Si\\|No\\|Sono\\|Ha\\|Era\\|Anche\\|Tutte\\|Tutti\\|Due\\|Tre\\|Adesso\\|Oggi\\|Nel\\|Nella\\|Dal\\|Della\\|Con\\|Per\\|Senza\\|Dove\\|Quando\\|Cosa\\|Chi\\|Piu\\|Meno\\|Prima\\|Dopo\\|Sopra\\|Sotto\\)\\$",
   "applies_to": [
    "detector",
@@ -130,7 +130,7 @@
  },
  {
   "class": "todo-reader",
-  "file": "^(?:Controlli/conta-todo|Checks/count-todo)\\.js$",
+  "file": "^Checks/count-todo\\.js$",
   "pattern": "traccia originale\\|progetto originale\\|tenut\\[ao\\] per\\|per riferimento\\|com'era scritta|FATTO il|proprietario\\|decisa dal\\|force-push\\|deploy\\|tag v0\\|licenza commerciale|\\\\\\*\\\\\\*decisione\\\\\\*\\\\\\*|documento aperto\\|sul documento\\|\\\\\\.sldprt\\|\\\\\\.sldasm\\|assieme aperto\\|pezzo aperto\\|una tavola aperta\\|apre un\\|aprire un\\|oltre il tetto\\|guarda_il_pezzo|BLOCCATA\\|forse-mai\\|non stimabile|traccia originale\\|tenuta per riferimento|dipende\\(\\?:\\\\s\\+interamente\\)\\?\\\\s\\+da\\\\s\\+\\[\\^\\.;\\)\\]\\*|volume \\(\\?:tolto\\|del\\|di\\|calcolato\\|vero\\)\\|ingombro \\(\\?:di\\|del\\|letto\\|dei\\)\\|massa \\(\\?:del\\|di\\)\\|area del contorno\\|corpi indipendenti|\\\\\\*\\\\\\*firme:\\\\\\*\\\\\\*\\|\\\\\\*\\\\\\*sonda:\\\\\\*\\\\\\* \\*s\\|sonda: \\*s\\\\u00ec\\|giro di banco\\|caso di banco\\|banco verde",
   "applies_to": [
    "detector",
@@ -142,7 +142,7 @@
  },
  {
   "class": "todo-reader",
-  "file": "^(?:Prove/Programma|Tests/Program)\\.cs$",
+  "file": "^Tests/Program\\.cs$",
   "pattern": "traccia originale\\|progetto originale\\|tenut\\[ao\\] per\\|per riferimento\\|com'era scritta",
   "applies_to": [
    "detector",
@@ -154,7 +154,7 @@
  },
  {
   "class": "transition",
-  "file": "^(?:Controlli/lingua|Checks/language)/name-map\\.tsv$",
+  "file": "^Checks/language/name-map\\.tsv$",
   "pattern": "(?<=^[a-z_]+\\t)[^\\t]+",
   "applies_to": [
    "detector",
@@ -166,7 +166,7 @@
  },
  {
   "class": "transition",
-  "file": "^(?:Banco|Bench)/cases/aliases/[^/]+\\.json$",
+  "file": "^Bench/cases/aliases/[^/]+\\.json$",
   "pattern": "\\b(?:estrudi_rettangolo|lunghezza_mm|larghezza_mm|spessore_mm|centrato|frontale)\\b|@faccia\\(verso=davanti\\)",
   "applies_to": [
    "detector",
@@ -178,7 +178,7 @@
  },
  {
   "class": "transition",
-  "file": "^(?:Prove|Tests)/AliasLayerContract\\.cs$",
+  "file": "^Tests/AliasLayerContract\\.cs$",
   "pattern": "PROVA A VUOTO|non esiste",
   "applies_to": [
    "detector",
@@ -190,7 +190,7 @@
  },
  {
   "class": "transition",
-  "file": "^(?:Controlli/lingua|Checks/language)/window-2-surface\\.js$",
+  "file": "^Checks/language/window-2-surface\\.js$",
   "pattern": "\\bgenere\\b",
   "applies_to": [
    "detector",
@@ -202,7 +202,7 @@
  },
  {
   "class": "transition",
-  "file": "^(?:Banco|Bench)/tasks/score-autonomous\\.js$",
+  "file": "^Bench/tasks/score-autonomous\\.js$",
   "pattern": "\\b(?:esiti|riuscita|corpi_totali|stato_dopo|orlo|esporta_stl)\\b",
   "applies_to": [
    "detector",

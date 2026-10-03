@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.ProvaInquadratura
+namespace Checks.FramingTest
 {
     /// <summary>
     /// IL PEZZO CI STA DENTRO AL FOTOGRAMMA? (voce V5)
@@ -38,7 +38,7 @@ namespace Controlli.ProvaInquadratura
     /// costa piu' di mille token, e meta' fotogramma di sfondo e' meta' di quel
     /// costo buttata.
     ///
-    ///     Controlli\ProvaInquadratura\bin\ProvaInquadratura.exe
+    ///     Checks\FramingTest\bin\FramingTest.exe
     ///
     /// Non tocca nessun documento gia' aperto: se ne crea uno suo e lo chiude.
     /// </summary>
@@ -65,14 +65,14 @@ namespace Controlli.ProvaInquadratura
         {
             string percorsoLibreria = argomenti.Length > 0
                 ? argomenti[0]
-                : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Riscontro.Disegno.dll");
+                : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(percorsoLibreria))
             {
                 Console.Error.WriteLine("non trovo la libreria: " + percorsoLibreria);
                 return 2;
             }
             _libreria = Assembly.Load(File.ReadAllBytes(percorsoLibreria));
-            _vista = _libreria.GetType("Riscontro.Disegno.VistaDelPezzo", false);
+            _vista = _libreria.GetType("Oce.Solid.Agent.Core.VistaDelPezzo", false);
             if (_vista == null)
             {
                 Console.Error.WriteLine("VistaDelPezzo non c'e' in " + percorsoLibreria);

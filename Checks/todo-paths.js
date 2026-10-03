@@ -1,5 +1,5 @@
 // =============================================================================
-//  percorsi-del-todo.js - i file citati nelle voci APERTE esistono ancora?
+//  todo-paths.js - i file citati nelle voci APERTE esistono ancora?
 // =============================================================================
 //
 //  PERCHE' ESISTE
@@ -9,14 +9,14 @@
 //  aperta che manda a un file che non c'e' piu' non e' un dettaglio: chi la
 //  legge prova, non trova, e conclude che la voce sia vecchia.
 //
-//  E' il gemello di `Controlli/firme-del-todo.ps1`, che fa la stessa cosa con
+//  E' il gemello di `Checks/todo-signatures.ps1`, che fa la stessa cosa con
 //  le API: si verifica la cosa, non cio' che la descrive.
 //
 //  ── DUE COSE IMPARATE SCRIVENDOLO, E TUTT'E DUE CONTANO ─────────────────────
 //
 //  1. **I percorsi sono scritti da dove si lavora.** Il TODO scrive
-//     `cases/drawing/...` intendendo `Banco/cases/drawing/...`, e `Catalogo/...`
-//     intendendo `Riscontro.Disegno/Catalogo/...`. La prima stesura li
+//     `cases/drawing/...` intendendo `Bench/cases/drawing/...`, e `Catalogo/...`
+//     intendendo `Oce.Solid.Agent.Core/Catalog/...`. La prima stesura li
 //     segnalava tutti come mancanti: trentatre' allarmi, quasi tutti falsi.
 //     Adesso si provano le cartelle da cui si lavora davvero.
 //
@@ -27,24 +27,24 @@
 //     e quelle a meta': sono le uniche che qualcuno seguira'.
 //
 //  USO
-//      node Controlli/percorsi-del-todo.js
-//      node Controlli/percorsi-del-todo.js --tutti      anche le voci chiuse
+//      node Checks/todo-paths.js
+//      node Checks/todo-paths.js --tutti      anche le voci chiuse
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
 
 const radice = path.join(__dirname, '..');
 const tutti = process.argv.includes('--tutti');
-// IL FILE SI PUO' PASSARE, come in `conta-todo.js`: serve a far scattare
+// IL FILE SI PUO' PASSARE, come in `count-todo.js`: serve a far scattare
 // questa sonda su una copia rotta, che e' l'unico modo di crederle.
-const { trovaIlTodo } = require('./dov-e-il-todo.js');
+const { trovaIlTodo } = require('./where-is-the-todo.js');
 const fileTodo = trovaIlTodo(radice, process.argv);
 if (!fileTodo) process.exit(0);
 const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // Le cartelle da cui il TODO scrive i percorsi.
-const BASI = ['', 'Banco', 'Banco/cases', 'Riscontro.Disegno', 'Strumenti',
-              'Controlli', 'Prove', 'Mcp', 'Ponte'];
+const BASI = ['', 'Banco', 'Bench/cases', 'Oce.Solid.Agent.Core', 'Strumenti',
+              'Checks', 'Tests', 'Mcp', 'Bridge'];
 
 // ── CARTELLE DI UN ALTRO REPOSITORY ─────────────────────────────────────────
 //
@@ -59,7 +59,7 @@ const BASI = ['', 'Banco', 'Banco/cases', 'Riscontro.Disegno', 'Strumenti',
 // sovra-segnala: il modo di sbagliare non e' la regola, e' il confine di
 // cio' che la regola puo' vedere.
 // E `scratchpad/` non e' versionata **per scelta** (sta scritto in
-// Banco/LEGGIMI.md): un file citato di li' non e' un riferimento rotto, e'
+// Bench/README.md): un file citato di li' non e' un riferimento rotto, e'
 // una traccia di come fu misurato. Segnalarlo ogni volta insegnerebbe a
 // ignorare l'elenco.
 // E `docs/` e' di OpenPDM, dove vivono le note di integrazione (per esempio
@@ -75,7 +75,7 @@ const ALTROVE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\/
 // «voce chiusa», e tenerle distinte e il punto: tre motivi diversi per cui
 // un percorso non si trova, e solo uno e un difetto.
 // A name made at run time is not a file to open either: the bench writes its
-// report of a run as `Banco/report/AAAAMMGG_hhmm.md`, one per date. The TODO
+// report of a run as `Bench/report/AAAAMMGG_hhmm.md`, one per date. The TODO
 // quotes the pattern; window 1 of W3.1-bis (.4) moved it from its Italian
 // folder, and before that the pattern was found only because a closed entry
 // quoted it first.
@@ -96,7 +96,7 @@ function dove(p) {
 // ── I FILE DA CREARE, dichiarati (28/9/2026) ────────────────────────────────
 //
 // Una voce aperta che progetta del lavoro nomina i file che quel lavoro
-// creera': `Strumenti/coverage.json` non c'e' perche' la voce non e' ancora
+// creera': `Tools/coverage.json` non c'e' perche' la voce non e' ancora
 // fatta, non perche' qualcuno l'abbia rinominato. Le Sezioni T e U (i due
 // workflow del 27/9) ne citano sette, e il gancio fermava il push.
 //

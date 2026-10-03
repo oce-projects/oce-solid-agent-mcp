@@ -5,10 +5,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using ProvaSaldatura;
-using static Prove.Contratti.Programma;
+using Oce.Solid.Agent.Bench;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// EVERY CASE CARRIES ONLY KEYS THE BENCH READS (entry W3.1-bis.2, item 4),
@@ -18,7 +18,7 @@ namespace Prove.Contratti
     ///
     /// The bench refuses a case with an unknown key as a bench error, and a
     /// bench error is found after a hundred minutes. The same rule, from the
-    /// same code (`Banco/CaseKeys.cs`, compiled here too), runs on every case
+    /// same code (`Bench/CaseKeys.cs`, compiled here too), runs on every case
     /// of the tree in a second: the bench is the last defence, not the first.
     ///
     /// ── WHAT IS SEEN FAILING, EVERY RUN ─────────────────────────────────────
@@ -45,7 +45,7 @@ namespace Prove.Contratti
     {
         /// <summary>
         /// THE FROZEN LIST ONLY SHRINKS. The free keys written before this net
-        /// existed were frozen in Banco/case-keys.json; when one is renamed with
+        /// existed were frozen in Bench/case-keys.json; when one is renamed with
         /// the prefix (or moved into the prose of the case), its entry goes and
         /// this number goes down in the same commit. A new free key without the
         /// prefix would need both files changed, which is the point.
@@ -62,7 +62,7 @@ namespace Prove.Contratti
             Gruppo("the bench refuses unknown case keys (W3.1-bis.2, item 4)");
 
             var root = Radice();
-            var listPath = Path.Combine(root, "Banco", CaseKeys.FileName);
+            var listPath = Path.Combine(root, "Bench", CaseKeys.FileName);
             string listText;
             CaseKeys keys;
             try
@@ -105,14 +105,14 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// Every JSON object under Banco/cases/&lt;folder&gt;/: the regression folder
+        /// Every JSON object under Bench/cases/&lt;folder&gt;/: the regression folder
         /// with its own root, every other folder as declared cases. Arrays are
-        /// plans for corri_piani.js, and the bench skips them too.
+        /// plans for run_plans.js, and the bench skips them too.
         /// </summary>
         internal static List<OneCase> CasesOfTheTree(string root, CaseKeys keys, List<string> unreadable)
         {
             var all = new List<OneCase>();
-            var folder = Path.Combine(root, "Banco", "cases");
+            var folder = Path.Combine(root, "Bench", "cases");
             if (!Directory.Exists(folder)) return all;
             foreach (var dir in Directory.GetDirectories(folder).OrderBy(x => x, StringComparer.Ordinal))
             {
@@ -298,7 +298,7 @@ namespace Prove.Contratti
                   keys.FrozenCount == FrozenFreeCeiling
                       ? FrozenFreeCeiling + " pairs (context, key)"
                       : keys.FrozenCount < FrozenFreeCeiling
-                          ? "the list went down to " + keys.FrozenCount + ": lower FrozenFreeCeiling in Prove/CaseKeysTests.cs to match"
+                          ? "the list went down to " + keys.FrozenCount + ": lower FrozenFreeCeiling in Tests/CaseKeysTests.cs to match"
                           : "the list grew to " + keys.FrozenCount + " from " + FrozenFreeCeiling +
                             ": a new free note starts with «" + CaseKeys.FreePrefix + "», it is not frozen");
 
@@ -375,12 +375,12 @@ namespace Prove.Contratti
 
         /// <summary>
         /// The sources of the bench that read cases, without their comments:
-        /// every Banco/*.cs but the two of this net.
+        /// every Bench/*.cs but the two of this net.
         /// </summary>
         internal static List<string> BenchSources(string root)
         {
             var list = new List<string>();
-            var folder = Path.Combine(root, "Banco");
+            var folder = Path.Combine(root, "Bench");
             if (!Directory.Exists(folder)) return list;
             foreach (var f in Directory.GetFiles(folder, "*.cs").OrderBy(x => x, StringComparer.Ordinal))
             {
@@ -475,7 +475,7 @@ namespace Prove.Contratti
     /// THE BENCH REPORT NAMES EVERY TEST BY FILE:METHOD:ORDINAL (entry W3.1-bis.2,
     /// item 7), checked without SOLIDWORKS.
     ///
-    /// The identity is computed by `Banco/TestLedger.cs` from the caller
+    /// The identity is computed by `Bench/TestLedger.cs` from the caller
     /// information of the compiler and a scan of the source. Three things are
     /// proved here, every run:
     ///
@@ -653,11 +653,11 @@ namespace Prove.Contratti
                   "; recorders declared: " + string.Join(",", declared) + "; calls: " + scan.Calls.Count);
         }
 
-        /// <summary>The source next to this build first (Prove/ of the checkout), then the path the compiler gave.</summary>
+        /// <summary>The source next to this build first (Tests/ of the checkout), then the path the compiler gave.</summary>
         private static string ReadSource(string callerFile)
         {
             if (string.IsNullOrEmpty(callerFile)) return null;
-            var here = Path.Combine(Radice(), "Prove", Path.GetFileName(callerFile));
+            var here = Path.Combine(Radice(), "Tests", Path.GetFileName(callerFile));
             if (File.Exists(here)) return File.ReadAllText(here);
             return File.Exists(callerFile) ? File.ReadAllText(callerFile) : null;
         }
@@ -779,7 +779,7 @@ namespace Prove.Contratti
         /// </summary>
         private static void TheBenchSources()
         {
-            var folder = Path.Combine(Radice(), "Banco");
+            var folder = Path.Combine(Radice(), "Bench");
             var files = Directory.Exists(folder) ? Directory.GetFiles(folder, "*.cs").OrderBy(x => x, StringComparer.Ordinal).ToList()
                                                  : new List<string>();
             var texts = files.ToDictionary(f => Path.GetFileName(f), f => File.ReadAllText(f));
@@ -817,7 +817,7 @@ namespace Prove.Contratti
             Segna("the bench ledger uses exactly the declared recorders",
                   named.Count > 0 && named.SetEquals(declared),
                   built == null || !built.Success
-                      ? "the construction of the ledger is not in Banco/Program.cs any more: this check must follow it"
+                      ? "the construction of the ledger is not in Bench/Program.cs any more: this check must follow it"
                       : "built with " + string.Join(", ", named) + "; declared " + string.Join(", ", declared));
         }
     }

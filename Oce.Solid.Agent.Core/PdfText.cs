@@ -5,12 +5,12 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// IL TESTO DI UN PDF ESPORTATO, letto senza attrezzi (voci GT3-bis, Z-C9).
     ///
-    /// Misurato il 24/9/2026 con `Controlli/TestoNelPdf`: il PDF che SOLIDWORKS
+    /// Misurato il 24/9/2026 con `Checks/PdfText`: il PDF che SOLIDWORKS
     /// esporta porta il testo della tavola COME TESTO — cercabile, copiabile,
     /// anche quello risolto da una proprieta' — ma nei flussi e' scritto come
     /// INDICI DI GLIFO dentro stringhe esadecimali, e le lettere stanno nelle

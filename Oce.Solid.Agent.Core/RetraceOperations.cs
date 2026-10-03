@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// UN'IMMAGINE DA RICALCARE, IN SCALA, IN UNO SCHIZZO (voce Z-F5).
@@ -72,7 +72,7 @@ namespace Riscontro.Disegno
         /// SetOrigin answering false, a placement that could not be read back, or
         /// a width, height or origin read back more than
         /// <see cref="PicturePlacementToleranceMm"/> away from the one asked. All
-        /// in mm. Kept apart from the document so that Prove.Contratti can call
+        /// in mm. Kept apart from the document so that Oce.Solid.Agent.ContractTests can call
         /// it without SOLIDWORKS.
         /// </summary>
         internal static string PicturePlacementFault(

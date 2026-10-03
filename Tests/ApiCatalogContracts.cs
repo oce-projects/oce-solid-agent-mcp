@@ -5,10 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using static Prove.Contratti.Programma;
-using static Condiviso.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Programma;
+using static Shared.ClienteMcp;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// api_search AND api_signature (entry U1.1).
@@ -16,8 +16,8 @@ namespace Prove.Contratti
     /// ── WHAT IS CHECKED, AND AGAINST WHAT ──────────────────────────────
     ///
     ///   * ApiSignatureMatchesInventory: the C# formatter of
-    ///     Riscontro.Disegno\Api\ApiCatalog.cs against the inventory that
-    ///     Controlli\api-inventory.ps1 writes from PowerShell, reading the
+    ///     Oce.Solid.Agent.Core\Api\ApiCatalog.cs against the inventory that
+    ///     Checks\api-inventory.ps1 writes from PowerShell, reading the
     ///     same assembly with a different engine. 13,945 exposed members plus
     ///     983 hidden, zero differences. It checks the FORMATTER (overloads,
     ///     `&amp;` parameters, properties), not the truth of the API.
@@ -65,7 +65,7 @@ namespace Prove.Contratti
                 return;
             }
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 Segna("the library is built", false,
@@ -82,7 +82,7 @@ namespace Prove.Contratti
             if (_catalog == null)
             {
                 Segna("ApiCatalog exists in the library", false,
-                      "no type Riscontro.Disegno.Api.ApiCatalog in " + library);
+                      "no type Oce.Solid.Agent.Core.Api.ApiCatalog in " + library);
                 return;
             }
 
@@ -112,9 +112,9 @@ namespace Prove.Contratti
                 _resolverOn = true;
             }
             // From the bytes: the repository is on a network drive, where
-            // LoadFrom answers NotSupportedException (see Carica.cs).
+            // LoadFrom answers NotSupportedException (see Load.cs).
             var asm = Assembly.Load(File.ReadAllBytes(library));
-            return asm.GetType("Riscontro.Disegno.Api.ApiCatalog", false);
+            return asm.GetType("Oce.Solid.Agent.Core.Api.ApiCatalog", false);
         }
 
         private static object Call(string method, params object[] args)
@@ -136,7 +136,7 @@ namespace Prove.Contratti
 
         private static string KnowledgeJson()
         {
-            var file = Path.Combine(Radice(), "Strumenti", "api_knowledge.json");
+            var file = Path.Combine(Radice(), "Tools", "api_knowledge.json");
             return File.Exists(file) ? File.ReadAllText(file, Encoding.UTF8) : null;
         }
 
@@ -166,7 +166,7 @@ namespace Prove.Contratti
 
         private static void InventoryMatches(string redist)
         {
-            var script = Path.Combine(Radice(), "Controlli", "api-inventory.ps1");
+            var script = Path.Combine(Radice(), "Checks", "api-inventory.ps1");
             var dir = Path.Combine(Path.GetTempPath(), "api_inventory_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(dir);
             var members = Path.Combine(dir, "members.txt");
@@ -388,7 +388,7 @@ namespace Prove.Contratti
             var json = KnowledgeJson();
             if (json == null)
             {
-                Segna("Strumenti\\api_knowledge.json exists", false, "missing");
+                Segna("Tools\\api_knowledge.json exists", false, "missing");
                 return;
             }
             var problems = (string[])Call("KnowledgeProblems", json);

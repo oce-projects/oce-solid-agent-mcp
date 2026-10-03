@@ -4,13 +4,13 @@ using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// LA QUOTA CHE RESTA SENZA SPIGOLO, VISTA DALLO STATO (voce Z-A2).
     ///
     /// `IAnnotation.IsDangling` e' morto per le quote in tavola fuori processo:
-    /// misurato il 24/9/2026 con `Controlli/Orfana`, resta falso su una quota il
+    /// misurato il 24/9/2026 con `Checks/Orphan`, resta falso su una quota il
     /// cui spigolo e' stato soppresso. Dalla libreria 0.113.0 lo stato della
     /// tavola conta le quote attaccate solo a spigoli che la vista non mostra
     /// piu' (`dimensions_orphan`, `dimensions_orphan_total`).

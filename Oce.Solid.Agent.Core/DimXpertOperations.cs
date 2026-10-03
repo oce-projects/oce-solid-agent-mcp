@@ -5,7 +5,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 using SolidWorks.Interop.swdimxpert;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LE QUOTE NEL MODELLO, DA DIMXPERT (voce Z-H3).
@@ -14,7 +14,7 @@ namespace Riscontro.Disegno
     ///
     /// La voce diceva «serve la stessa spunta di Utilities». Non serve niente:
     /// `IModelDocExtension.get_DimXpertManager` sta nell'interop del NUCLEO, e
-    /// `Controlli/DimXpert` il 24/9/2026 ha quotato una piastra con un foro
+    /// `Checks/DimXpert` il 24/9/2026 ha quotato una piastra con un foro
     /// senza nessun add-in — Ø20, 10, 60, 100, e il foro a 50 e 30.
     ///
     /// ── DUE COSE CHE SI SANNO SOLO MISURANDO ──────────────────────────────

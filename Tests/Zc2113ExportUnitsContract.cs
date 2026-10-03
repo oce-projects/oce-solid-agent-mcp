@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE Z-C21.13 FIXES OF THE STEP EXPORT AND OF THE DOCUMENT UNITS, WHERE
@@ -30,7 +30,7 @@ namespace Prove.Contratti
     /// The methods are static, with no interop in the signature, and are called
     /// on the BUILT library by reflection: no SOLIDWORKS. On library 0.143.0
     /// every check is red: the three methods are missing, and
-    /// OperazioniEsporta.cs sets the protocol to 242.
+    /// ExportOperations.cs sets the protocol to 242.
     /// </summary>
     internal static class Zc2113ExportUnitsContract
     {
@@ -43,7 +43,7 @@ namespace Prove.Contratti
 
             NoBare242WhereSwStepApIsSet();
 
-            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of the Z-C21.13 export and unit fixes",
@@ -68,7 +68,7 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
             if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
@@ -210,7 +210,7 @@ namespace Prove.Contratti
 
         // ── C5-7: no bare 242 where swStepAP is set ──────────────────────────
         //
-        // Until 0.143.0 OperazioniEsporta.cs mapped AP242 to the protocol value 242
+        // Until 0.143.0 ExportOperations.cs mapped AP242 to the protocol value 242
         // and wrote it into swStepAP: accepted, read back, and an AP203 file.
         // The rule is narrowed to the files whose CODE (comments and strings
         // blanked by ObsoleteCallScanner.Strip) names swStepAP, so that a 242
@@ -221,7 +221,7 @@ namespace Prove.Contratti
         {
             const string name = "C5-7: a library file that sets swStepAP has no bare 242 in its code " +
                                 "(swStepAP = 242 wrote an AP203 file)";
-            var folder = Path.Combine(Radice(), "Riscontro.Disegno");
+            var folder = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
             if (!Directory.Exists(folder)) { Segna(name, false, "missing " + folder); return; }
             var bare242 = new Regex(@"(?<![\w.])242(?![\w.])");
             var found = new List<string>();

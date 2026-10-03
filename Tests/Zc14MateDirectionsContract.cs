@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// THE SECOND NUMBER FOR A MATE: THE DIRECTIONS IT BLOCKS, AND THE REDUNDANT
@@ -37,7 +37,7 @@ namespace Prove.Contratti
     ///    library; the S3 data is also checked to tell the rule of the moved
     ///    direction from the rule of the whole transform, so that it cannot pass
     ///    under both;
-    ///  * the rest is read in the source of OperazioniAccoppia.cs and of the
+    ///  * the rest is read in the source of MateOperations.cs and of the
     ///    catalogue: `mate` reads the directions before AddMate5 and after it,
     ///    takes out the mate it made by the object AddMate5 returned and refuses
     ///    when the verdict is redundant, the test follows the probe (fixed
@@ -73,9 +73,9 @@ namespace Prove.Contratti
         private const BindingFlags Any =
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 
-        private const string Library = "Riscontro.Disegno";
-        private const string Mates = "OperazioniAccoppia.cs";
-        private const string Catalogue = "Catalogo/Operazioni.cs";
+        private const string Library = "Oce.Solid.Agent.Core";
+        private const string Mates = "MateOperations.cs";
+        private const string Catalogue = "Catalog/Operations.cs";
 
         /// <summary>
         /// The library's own member names this group reads, in one literal as
@@ -625,7 +625,7 @@ namespace Prove.Contratti
 
         private static void PureRules()
         {
-            var library = Path.Combine(Radice(), Library, "bin", "Release", "Riscontro.Disegno.dll");
+            var library = Path.Combine(Radice(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 NonQui("the pure rules of Z-C14 (the moves, the rule per direction, the redundant decision, the removal)",
@@ -650,7 +650,7 @@ namespace Prove.Contratti
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Riscontro.Disegno.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
             }
             catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 

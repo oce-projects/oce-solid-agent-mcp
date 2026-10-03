@@ -1,6 +1,6 @@
 # Accende i ganci di git di questo repository.
 #
-#     .\Controlli\installa-ganci.ps1
+#     .\Checks\install-hooks.ps1
 #
 # Va lanciato UNA VOLTA per clone. Git non versiona `.git\hooks`, quindi un
 # gancio scritto nel repository non e' acceso finche' qualcuno non lo dice a
@@ -15,7 +15,7 @@
 $ErrorActionPreference = 'Stop'
 $qui = Split-Path -Parent $MyInvocation.MyCommand.Path
 $radice = Split-Path -Parent $qui
-$ganci = Join-Path $qui 'ganci'
+$ganci = Join-Path $qui 'hooks'
 
 if (-not (Test-Path (Join-Path $radice '.git'))) {
     Write-Host "Qui non c'e' un repository git: niente da accendere." -ForegroundColor Yellow
@@ -26,7 +26,7 @@ if (-not (Test-Path $ganci)) { throw "non trovo $ganci" }
 # Il percorso si scrive RELATIVO alla radice e con le barre in avanti: git lo
 # risolve rispetto alla radice del lavoro, e un percorso assoluto di questa
 # macchina finirebbe nel `.git\config` di chi lo copia.
-$relativo = 'Controlli/ganci'
+$relativo = 'Checks/hooks'
 
 Push-Location $radice
 try {
@@ -42,5 +42,5 @@ Get-ChildItem $ganci -File | ForEach-Object {
     Write-Host ("    " + $_.Name) -ForegroundColor DarkGray
 }
 Write-Host ""
-Write-Host "  Da adesso `git push` lancia controlla-pubblicabilita.ps1 e si" -ForegroundColor White
+Write-Host "  Da adesso `git push` lancia check-publishability.ps1 e si" -ForegroundColor White
 Write-Host "  ferma se quello esce 1. Per saltarlo una volta: git push --no-verify" -ForegroundColor DarkGray

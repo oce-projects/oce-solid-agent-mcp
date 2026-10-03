@@ -5,7 +5,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// L'ASSIEME SI TOCCA? (voce GA10)
@@ -341,7 +341,7 @@ namespace Riscontro.Disegno
         /// instead. `possible` is null when it is not known (a flag unread, or
         /// a list shorter than the count): the head then counts them all, as
         /// before, and says it could not tell. No interop type in the
-        /// signature: Prove.Contratti calls it by reflection.
+        /// signature: Oce.Solid.Agent.ContractTests calls it by reflection.
         /// </summary>
         internal static string InterferenceVerdict(
             int counted, int? possible, bool volumesRead, double totalVolume, double possibleVolume,
@@ -390,7 +390,7 @@ namespace Riscontro.Disegno
         /// swComponentSuppressionState_e answer of GetSuppression2 for each
         /// component, null where it could not be read; then the count is -1,
         /// «not known», and so is `suppressed`. No interop type in the
-        /// signature: Prove.Contratti calls it by reflection.
+        /// signature: Oce.Solid.Agent.ContractTests calls it by reflection.
         /// </summary>
         internal static int ComponentsLookedAt(int?[] states, out int suppressed)
         {
@@ -441,7 +441,7 @@ namespace Riscontro.Disegno
         /// No interop type in the signature or the body, on purpose: the
         /// branches a bench case cannot build (no array, a short one, an item
         /// of another type) can be tested without SOLIDWORKS if this is moved
-        /// to a file Prove.Contratti compiles.
+        /// to a file Oce.Solid.Agent.ContractTests compiles.
         /// </summary>
         internal static string InterferenceListProblem(
             int counted, int? arrayLength, int notInterferences, string whyNoList)

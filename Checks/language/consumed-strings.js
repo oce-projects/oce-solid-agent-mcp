@@ -8,8 +8,8 @@
 //
 //  Some programs of this repository find out what another one did by reading
 //  its output: the installer decides that the bridge started when the
-//  bridge's own sentence shows up in what it printed; `Banco/banco.ps1`
-//  builds the bench report out of the lines `ProvaSaldatura` writes; the
+//  bridge's own sentence shows up in what it printed; `Bench/bench.ps1`
+//  builds the bench report out of the lines `Oce.Solid.Agent.Bench` writes; the
 //  release script reads the summary line of the contract suite. The two
 //  sides are compiled separately and nothing ties them together: translate
 //  the producer's sentence and the consumer keeps looking for the old one,
@@ -43,12 +43,12 @@
 //  does not, `IgnoreCase` nearby switches it off.
 //
 //  USAGE
-//    node Controlli/lingua/consumed-strings.js              check the inventory (default)
-//    node Controlli/lingua/consumed-strings.js --self-test  the check, on fake files: every fake must end as expected
-//    node Controlli/lingua/consumed-strings.js --find       candidates: consumer literals produced by another program
-//    node Controlli/lingua/consumed-strings.js --find --all ... also the ones already in the inventory
-//    node Controlli/lingua/consumed-strings.js --rebind <id> <line>   bind an entry to the consumer literal on that line
-//    node Controlli/lingua/consumed-strings.js --root <dir>   run on another checkout
+//    node Checks/language/consumed-strings.js              check the inventory (default)
+//    node Checks/language/consumed-strings.js --self-test  the check, on fake files: every fake must end as expected
+//    node Checks/language/consumed-strings.js --find       candidates: consumer literals produced by another program
+//    node Checks/language/consumed-strings.js --find --all ... also the ones already in the inventory
+//    node Checks/language/consumed-strings.js --rebind <id> <line>   bind an entry to the consumer literal on that line
+//    node Checks/language/consumed-strings.js --root <dir>   run on another checkout
 //
 //  EXIT CODES
 //    0  every entry is produced (check), every fake ended as expected (self-test)
@@ -63,7 +63,7 @@ const cp = require('child_process');
 const crypto = require('crypto');
 
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
-const INVENTORY = 'Controlli/lingua/consumed-strings.json';
+const INVENTORY = 'Checks/language/consumed-strings.json';
 // a hole: the place of a value computed at run time inside a literal
 const HOLE = '\u0000';
 const MIN_RUN = 3;
@@ -424,7 +424,7 @@ function inside(spans, offset) {
 }
 
 // `via`, when given, is a helper of the consumer that does the search with
-// the literal it receives (banco.ps1 has `Prendi "<regex>"`): its literal
+// the literal it receives (bench.ps1 has `Prendi "<regex>"`): its literal
 // arguments are sites too, of the kind and case the entry declares.
 function sitesOf(text, lang, via) {
   const lexed = lexFile(text, lang);
@@ -694,8 +694,8 @@ function runCheck(root, inv) {
 function unitOf(file) {
   const parts = file.split('/');
   if (langOf(file) !== 'cs') return file;
-  if (parts.length === 1 || ['Mcp', 'Ponte', 'Strumenti'].includes(parts[0])) return 'bridge';
-  if (parts[0] === 'Controlli' && parts.length > 2) return parts.slice(0, 2).join('/');
+  if (parts.length === 1 || ['Mcp', 'Bridge', 'Tools'].includes(parts[0])) return 'bridge';
+  if (parts[0] === 'Checks' && parts.length > 2) return parts.slice(0, 2).join('/');
   return parts[0];
 }
 
@@ -787,14 +787,14 @@ function selfTest() {
       files: { 'C.cs': consumerCs.replace('the bridge is standing', 'the bridge stands'), 'P.cs': producerCs },
       entry: entry('C.cs', 'the bridge is standing', 'literal', ['P.cs']) },
     { name: 'a regular expression with two alternatives, both produced: green', expect: true,
-      files: { 'banco.ps1': reader, 'B.cs': bench },
-      entry: entry('banco.ps1', '^(PARTIAL RUN|[0-9]+ checks,)', 'regex', ['B.cs']) },
+      files: { 'bench.ps1': reader, 'B.cs': bench },
+      entry: entry('bench.ps1', '^(PARTIAL RUN|[0-9]+ checks,)', 'regex', ['B.cs']) },
     { name: 'a regular expression with two alternatives, one no longer produced: red', expect: false,
-      files: { 'banco.ps1': reader, 'B.cs': bench.replace('PARTIAL RUN', 'INCOMPLETE RUN') },
-      entry: entry('banco.ps1', '^(PARTIAL RUN|[0-9]+ checks,)', 'regex', ['B.cs']) },
+      files: { 'bench.ps1': reader, 'B.cs': bench.replace('PARTIAL RUN', 'INCOMPLETE RUN') },
+      entry: entry('bench.ps1', '^(PARTIAL RUN|[0-9]+ checks,)', 'regex', ['B.cs']) },
     { name: '-match ignores case: a producer in another case is green', expect: true,
-      files: { 'banco.ps1': reader, 'B.cs': bench.replace('PARTIAL RUN', 'Partial run') },
-      entry: entry('banco.ps1', '^(PARTIAL RUN|[0-9]+ checks,)', 'regex', ['B.cs']) },
+      files: { 'bench.ps1': reader, 'B.cs': bench.replace('PARTIAL RUN', 'Partial run') },
+      entry: entry('bench.ps1', '^(PARTIAL RUN|[0-9]+ checks,)', 'regex', ['B.cs']) },
     { name: '.Contains does not ignore case: a producer in another case is red', expect: false,
       files: { 'C.ps1': 'if ($out.Contains(' + Q + 'Bridge Ready' + Q + ')) { }', 'P.cs': producerCs.replace('the bridge is standing.', 'bridge ready') },
       entry: entry('C.ps1', 'Bridge Ready', 'literal', ['P.cs']) },

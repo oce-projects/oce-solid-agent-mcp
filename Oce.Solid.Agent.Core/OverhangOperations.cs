@@ -5,7 +5,7 @@ using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// LE SOVRASPORGENZE: cosa non si stampa senza supporti. (voce GP16)
@@ -479,7 +479,7 @@ namespace Riscontro.Disegno
             // c'era `true`: un corpo nascosto per guardare dentro il pezzo usciva
             // dall'analisi senza che niente lo dicesse, e «prints_without_supports»
             // poteva dire si' su un corpo che pende. Lo stato usa `false` da tempo
-            // (StatoDocumento.cs, «e il false e' voluto»), e con `true` qui «C2»
+            // (DocumentState.cs, «e il false e' voluto»), e con `true` qui «C2»
             // indicava un corpo diverso da quello dello stato.
             //
             // La guida NON dice se `GetTessTriangles` risponde sulle facce di un

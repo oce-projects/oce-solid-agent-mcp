@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// LE PROVE CHE GIRANO SU UNA MACCHINA QUALUNQUE (voce F7).
@@ -218,23 +218,23 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// Il catalogo che il ponte serve: `bin\catalogo.json`, e se non c'e' la
-        /// copia versionata `Strumenti\catalogo.json` — che e' esattamente il
+        /// Il catalogo che il ponte serve: `bin\catalog.json`, e se non c'e' la
+        /// copia versionata `Tools\catalog.json` — che e' esattamente il
         /// file che `build.ps1` rigenera e copia in `bin\`.
         ///
         /// QUATTRO CONTROLLI TENEVANO ROSSA LA CI DA CINQUE PUSH (misurato il
         /// 25/9/2026, dalla 0.85.0 alla 0.88.0): cercavano solo `bin\`, che in
         /// un clone pulito non esiste, e dicevano «il catalogo servito non
         /// c'e'». Non era un difetto del catalogo, e nemmeno una cosa che la CI
-        /// non potesse fare: il file da leggere c'era, in `Strumenti\`.
+        /// non potesse fare: il file da leggere c'era, in `Tools\`.
         /// `ProveLeDescrizioni` lo faceva gia' giusto. *Una CI sempre rossa si
         /// impara a non guardarla, ed e' il modo in cui un rosso vero passa.*
         /// </summary>
         internal static string CatalogoServito()
         {
-            var inBin = Path.Combine(Radice(), "bin", "catalogo.json");
+            var inBin = Path.Combine(Radice(), "bin", "catalog.json");
             if (File.Exists(inBin)) return inBin;
-            return Path.Combine(Radice(), "Strumenti", "catalogo.json");
+            return Path.Combine(Radice(), "Tools", "catalog.json");
         }
 
         internal static string Breve(string s)
@@ -244,7 +244,7 @@ namespace Prove.Contratti
             return s.Length > 110 ? s.Substring(0, 110) + "..." : s;
         }
 
-        /// <summary>La radice del repository, due livelli sopra `Prove\bin\`.</summary>
+        /// <summary>La radice del repository, due livelli sopra `Tests\bin\`.</summary>
         internal static string Radice()
         {
             var bin = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
@@ -271,7 +271,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// `Prove/LEGGIMI.md` dice quanti controlli ci sono. Deve essere vero.
+        /// `Tests/README.md` dice quanti controlli ci sono. Deve essere vero.
         ///
         /// Il 16/9/2026 diceva **54** mentre ne giravano **99**: un numero
         /// giusto quando fu scritto, invecchiato da solo mentre la suite
@@ -306,7 +306,7 @@ namespace Prove.Contratti
 
             int veri = Esiti.Count + 1;
 
-            var leggimi = Path.Combine(Radice(), "Prove", "LEGGIMI.md");
+            var leggimi = Path.Combine(Radice(), "Tests", "README.md");
             if (!File.Exists(leggimi))
             {
                 Segna("il LEGGIMI c'e'", false, leggimi);
@@ -348,7 +348,7 @@ namespace Prove.Contratti
             System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             Console.OutputEncoding = Encoding.UTF8;
 
-            Console.WriteLine("Prove.Contratti — senza SOLIDWORKS, su questa macchina qualunque");
+            Console.WriteLine("Oce.Solid.Agent.ContractTests — senza SOLIDWORKS, su questa macchina qualunque");
             Console.WriteLine("radice: " + Radice());
 
             if (FingiSenzaInterop)
@@ -504,7 +504,7 @@ namespace Prove.Contratti
         ///
         /// Un file `.cs` che non compare fra i `<Compile Include>` **non viene
         /// compilato**. Se qualcuno lo referenzia, MSBuild lo dice subito ed e'
-        /// successo davvero il 16/9/2026 con `OperazioniAssieme.cs`: due errori,
+        /// successo davvero il 16/9/2026 con `AssemblyOperations.cs`: due errori,
         /// riparato in trenta secondi.
         ///
         /// **Il caso pericoloso e' l'altro.** Se nessuno lo referenzia ancora —
@@ -527,33 +527,33 @@ namespace Prove.Contratti
             Gruppo("i sorgenti stanno nei progetti");
 
             // cartella (relativa alla radice) -> csproj che la deve elencare.
-            // I `Controlli\<attrezzo>\` hanno un csproj per attrezzo e stanno
+            // I `Checks\<attrezzo>\` hanno un csproj per attrezzo e stanno
             // fuori dalla soluzione apposta: non si controllano qui.
             var mappa = new[]
             {
-                new { Dove = new[] { @"Riscontro.Disegno", @"Riscontro.Disegno\Catalogo",
-                                     @"Riscontro.Disegno\Properties", @"Riscontro.Disegno\Api" },
-                      Progetto = @"Riscontro.Disegno\Riscontro.Disegno.csproj" },
-                new { Dove = new[] { @"Ponte", @"Strumenti", @"Mcp" },
+                new { Dove = new[] { @"Oce.Solid.Agent.Core", @"Oce.Solid.Agent.Core\Catalog",
+                                     @"Oce.Solid.Agent.Core\Properties", @"Oce.Solid.Agent.Core\Api" },
+                      Progetto = @"Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj" },
+                new { Dove = new[] { @"Bridge", @"Tools", @"Mcp" },
                       Progetto = @"Oce.Solid.Agent.csproj" },
-                new { Dove = new[] { @"Banco" }, Progetto = @"Banco\ProvaSaldatura.csproj" },
-                new { Dove = new[] { @"Prove" }, Progetto = @"Prove\Prove.Contratti.csproj" },
+                new { Dove = new[] { @"Bench" }, Progetto = @"Bench\Oce.Solid.Agent.Bench.csproj" },
+                new { Dove = new[] { @"Tests" }, Progetto = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
 
-                // `Condiviso\` LA COMPILANO IN DUE, e qui basta nominarne uno.
+                // `Shared\` LA COMPILANO IN DUE, e qui basta nominarne uno.
                 //
                 // Il controllo e' a senso unico: «ogni sorgente sotto questa
                 // cartella compare in quel progetto». Che il banco compili gli
                 // stessi file non lo rende falso, e chiedere che una cartella
                 // stia in un progetto SOLO renderebbe rosso proprio il modo in
-                // cui `Attese.cs` e' condiviso da giorni.
+                // cui `Expectations.cs` e' condiviso da giorni.
                 //
-                // Senza questa riga `Condiviso\` sarebbe l'unica cartella di
+                // Senza questa riga `Shared\` sarebbe l'unica cartella di
                 // sorgenti che nessuno guarda: un file messo li' e dimenticato
                 // fuori dai csproj non verrebbe compilato e non lo direbbe
                 // nessuno — il difetto per cui questo controllo esiste.
-                new { Dove = new[] { @"Condiviso" },
-                      Progetto = @"Prove\Prove.Contratti.csproj" },
-                new { Dove = new[] { @"Installer" }, Progetto = @"Installer\Installa.csproj" },
+                new { Dove = new[] { @"Shared" },
+                      Progetto = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
+                new { Dove = new[] { @"Installer" }, Progetto = @"Installer\Installer.csproj" },
             };
 
             int guardati = 0;
@@ -587,7 +587,7 @@ namespace Prove.Contratti
                             continue;
                         guardati++;
                         // Si cerca il NOME fra virgolette: copre sia
-                        // `Include="Pippo.cs"` sia `Include="Ponte\Pippo.cs"`.
+                        // `Include="Pippo.cs"` sia `Include="Bridge\Pippo.cs"`.
                         if (testo.IndexOf(nome + "\"", StringComparison.OrdinalIgnoreCase) < 0)
                             fuori.Add(cartella + "\\" + nome + " → " + m.Progetto);
                     }
@@ -622,7 +622,7 @@ namespace Prove.Contratti
         ///
         /// ── COSA GUARDA, E COSA NO ───────────────────────────────────────
         ///
-        /// Solo i sorgenti del PONTE e della LIBRERIA: `Banco\` e `Prove\`
+        /// Solo i sorgenti del PONTE e della LIBRERIA: `Bench\` e `Tests\`
         /// leggono variabili che servono a chi sviluppa, non a chi installa, e
         /// pretenderle nel README vorrebbe dire riempirlo di roba che a chi
         /// legge non serve.
@@ -642,14 +642,14 @@ namespace Prove.Contratti
             catch (Exception ex) { Segna("il README si legge", false, ex.Message); return; }
 
             // `GetEnvironmentVariable("X")` e la scorciatoia `Variabile("X")`
-            // di `Ponte\Percorsi.cs`. La seconda e' proprio quella che nascondeva
+            // di `Bridge\Paths.cs`. La seconda e' proprio quella che nascondeva
             // `RISCONTRO_RADICE` e `RISCONTRO_SOLA_LETTURA` a un grep fatto sul
             // nome lungo: **cercare una sola forma vuol dire trovarne una sola.**
             var forma = new System.Text.RegularExpressions.Regex(
                 @"(?:GetEnvironmentVariable|Variabile)\(""([A-Z][A-Z_0-9]+)""\)");
 
             var trovate = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (var cartella in new[] { "Ponte", "Strumenti", "Mcp", "Riscontro.Disegno" })
+            foreach (var cartella in new[] { "Bridge", "Tools", "Mcp", "Oce.Solid.Agent.Core" })
             {
                 var piena = Path.Combine(Radice(), cartella);
                 if (!Directory.Exists(piena)) continue;
@@ -679,7 +679,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// I NUMERI IN `Banco\LEGGIMI.md` SONO QUANTI SONO I FILE DAVVERO.
+        /// I NUMERI IN `Bench\README.md` SONO QUANTI SONO I FILE DAVVERO.
         ///
         /// ── PERCHE' ESISTE ───────────────────────────────────────────────
         ///
@@ -707,7 +707,7 @@ namespace Prove.Contratti
         {
             Gruppo("il LEGGIMI del banco conta i file giusti");
 
-            var leggimi = Path.Combine(Radice(), "Banco", "LEGGIMI.md");
+            var leggimi = Path.Combine(Radice(), "Bench", "README.md");
             if (!File.Exists(leggimi)) { Segna("il LEGGIMI del banco c'e'", false, leggimi); return; }
             string testo;
             try { testo = File.ReadAllText(leggimi); }
@@ -743,7 +743,7 @@ namespace Prove.Contratti
             var assenti = new List<string>();
             foreach (var v in dichiarati)
             {
-                var cartella = Path.Combine(Radice(), "Banco", "cases", v.Key);
+                var cartella = Path.Combine(Radice(), "Bench", "cases", v.Key);
                 if (!Directory.Exists(cartella)) { assenti.Add(v.Key); continue; }
                 int veri = Directory.GetFiles(cartella, "*.json", SearchOption.TopDirectoryOnly).Length;
                 if (veri != v.Value)
@@ -766,7 +766,7 @@ namespace Prove.Contratti
         ///
         /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
         ///
-        /// Trovato il 18/9/2026 leggendo `EsecutorePiano.cs` per un'altra
+        /// Trovato il 18/9/2026 leggendo `PlanExecutor.cs` per un'altra
         /// ragione: `ControlliPreliminari()` — che gira **prima del primo
         /// passo di ogni piano**, e per tutti e quattro gli strumenti del ponte
         /// — ammette solo `swDocPART` e, se `AncheSuTavole`, `swDocDRAWING`.
@@ -801,7 +801,7 @@ namespace Prove.Contratti
             Gruppo("il catalogo promette solo documenti che l'esecutore ammette");
 
             // ── 1. i tipi che l'esecutore ammette, letti dal suo sorgente ──
-            var sorgente = Path.Combine(Radice(), "Riscontro.Disegno", "EsecutorePiano.cs");
+            var sorgente = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(sorgente))
             {
                 Segna("il sorgente dell'esecutore c'e'", false, sorgente);
@@ -818,7 +818,7 @@ namespace Prove.Contratti
                 // silenzio: una prova che non trova cio' che cerca e passa e'
                 // peggio di nessuna prova.
                 Segna("trovo la riga che decide i tipi ammessi", false,
-                      "«bool ammesso» non c'e' piu' in EsecutorePiano.cs: " +
+                      "«bool ammesso» non c'e' piu' in PlanExecutor.cs: " +
                       "la prova va riscritta, non tolta");
                 return;
             }
@@ -834,7 +834,7 @@ namespace Prove.Contratti
                   string.Join(", ", ammessi));
 
             // ── 2. le famiglie che il catalogo SERVE ai client ─────────────
-            var json = Path.Combine(Radice(), "bin", "catalogo.json");
+            var json = Path.Combine(Radice(), "bin", "catalog.json");
             // Come nel gruppo «il catalogo» (voce F9-bis): dove il ponte non si
             // poteva compilare, `bin\\` e' vuota e il file buono e' quello in
             // repository. Questo controllo legge un JSON e un sorgente C#: non ha
@@ -842,7 +842,7 @@ namespace Prove.Contratti
             // fare una verifica che si poteva fare.
             if (!ProdottoDaBuild(json) && !IlPonteSiPotevaCompilare())
             {
-                var inRepository = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+                var inRepository = Path.Combine(Radice(), "Tools", "catalog.json");
                 if (File.Exists(inRepository)) json = inRepository;
             }
             if (!File.Exists(json))
@@ -902,7 +902,7 @@ namespace Prove.Contratti
                   sconosciute.Count == 0
                       ? "tutte e " + famiglie.Count
                       : "FAMIGLIA NUOVA E NON CLASSIFICATA: " + string.Join(", ", sconosciute) +
-                        " — dire su che tipo di documento gira, in Prove\\Programma.cs");
+                        " — dire su che tipo di documento gira, in Tests\\Program.cs");
 
             var promesse = famiglie
                 .Where(f => serve.ContainsKey(f) && !ammessi.Contains(serve[f]))
@@ -949,8 +949,8 @@ namespace Prove.Contratti
         ///
         /// ── IL DIFETTO CHE QUESTO CONTROLLO PRENDE ───────────────────────
         ///
-        /// `Banco\CasiDichiarati.cs` ha un elenco ESPLICITO di famiglie, e
-        /// scorre solo quelle. Una cartella nuova sotto `Banco\cases\` che non
+        /// `Bench\DeclaredCases.cs` ha un elenco ESPLICITO di famiglie, e
+        /// scorre solo quelle. Una cartella nuova sotto `Bench\cases\` che non
         /// finisca in quell'elenco contiene file che **sembrano prove e non
         /// girano mai**: nessun errore, nessun avviso, e il conto delle prove
         /// non se ne accorge perche' quei casi non sono mai esistiti per lui.
@@ -965,7 +965,7 @@ namespace Prove.Contratti
         ///
         /// Sotto `cases\` ci sono due cose diverse: i CASI (oggetti con dei
         /// passi e delle attese, che il banco esegue) e i PIANI (array, che
-        /// lancia `corri_piani.js` a mano). Le cartelle di soli piani —
+        /// lancia `run_plans.js` a mano). Le cartelle di soli piani —
         /// `ponte\`, `limiti\`, `viste\`, `pezzi\`, `forma\` — stanno fuori
         /// dall'elenco ed e' giusto cosi'.
         ///
@@ -978,8 +978,8 @@ namespace Prove.Contratti
         {
             Gruppo("le cartelle di casi stanno nell'elenco che il banco scorre");
 
-            var sorgente = Path.Combine(Radice(), "Banco", "CasiDichiarati.cs");
-            var radiceCasi = Path.Combine(Radice(), "Banco", "cases");
+            var sorgente = Path.Combine(Radice(), "Bench", "DeclaredCases.cs");
+            var radiceCasi = Path.Combine(Radice(), "Bench", "cases");
             if (!File.Exists(sorgente) || !Directory.Exists(radiceCasi))
             {
                 Segna("il banco e i suoi casi ci sono", false,
@@ -995,7 +995,7 @@ namespace Prove.Contratti
                 // un controllo che sparisce in silenzio e' peggio di uno che
                 // non c'e' mai stato.
                 Segna("trovo l'elenco delle famiglie", false,
-                      "non c'e' nessun «Famiglie = { ... }» in CasiDichiarati.cs");
+                      "non c'e' nessun «Famiglie = { ... }» in DeclaredCases.cs");
                 return;
             }
 
@@ -1041,13 +1041,13 @@ namespace Prove.Contratti
                   mute.Count == 0
                       ? conCasi + " cartelle con casi su " + guardate + ", tutte scorse"
                       : "MUTE, i loro casi non girano mai: " + string.Join(", ", mute) +
-                        " — si aggiungono a «Famiglie» in Banco\\CasiDichiarati.cs");
+                        " — si aggiungono a «Famiglie» in Bench\\DeclaredCases.cs");
         }
 
         /// <summary>
         /// Dove sta il TODO, o `null` se in questo clone non c'e'.
         ///
-        /// Stesso ordine di `Controlli\dov-e-il-todo.js`, e per lo stesso
+        /// Stesso ordine di `Checks\where-is-the-todo.js`, e per lo stesso
         /// motivo: la variabile `TODO_MD` per chi lo tiene altrove,
         /// `note-interne\TODO.md` dove sta oggi, e la radice dov'era prima —
         /// cosi' un clone vecchio continua a funzionare senza accorgersene.
@@ -1168,7 +1168,7 @@ namespace Prove.Contratti
         {
             Gruppo("il rifiuto delle quote dice ancora quello che serve");
 
-            var file = Path.Combine(Radice(), "Riscontro.Disegno", "OperazioniTavola.cs");
+            var file = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "DrawingOperations.cs");
             if (!File.Exists(file)) { Segna("il sorgente c'e'", false, file); return; }
             string codice;
             try { codice = File.ReadAllText(file); }
@@ -1181,7 +1181,7 @@ namespace Prove.Contratti
             if (codice.IndexOf(ancora, StringComparison.Ordinal) < 0)
             {
                 Segna("trovo il rifiuto di model_dimensions", false,
-                      "«" + ancora + "» non c'e' piu' in OperazioniTavola.cs: " +
+                      "«" + ancora + "» non c'e' piu' in DrawingOperations.cs: " +
                       "se l'import e' stato riparato questa prova va RISCRITTA, non tolta");
                 return;
             }
@@ -1222,8 +1222,8 @@ namespace Prove.Contratti
         ///
         /// Ce ne sono **due copie**, e vivono in due posti:
         ///
-        ///   Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll   <- il banco
-        ///   bin\Riscontro.Disegno.dll                             <- il ponte
+        ///   Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll   <- il banco
+        ///   bin\Oce.Solid.Agent.Core.dll                             <- il ponte
         ///
         /// La seconda la mette `build.ps1`. Chi compila **il solo progetto**
         /// della libreria — che e' la cosa piu' naturale del mondo mentre si
@@ -1250,20 +1250,20 @@ namespace Prove.Contratti
         {
             Gruppo("le TRE copie della libreria sono la stessa");
 
-            var delBanco = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release",
-                                        "Riscontro.Disegno.dll");
-            var delPonte = Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll");
+            var delBanco = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release",
+                                        "Oce.Solid.Agent.Core.dll");
+            var delPonte = Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Core.dll");
 
             // ── LA TERZA, CHE QUESTO CONTROLLO NON GUARDAVA ──────────────
             //
-            // `Banco\bin\Riscontro.Disegno.dll` e' quella che
-            // `ProvaSaldatura.exe` carica DAVVERO, e per due giorni questo
+            // `Bench\bin\Oce.Solid.Agent.Core.dll` e' quella che
+            // `Oce.Solid.Agent.Bench.exe` carica DAVVERO, e per due giorni questo
             // gruppo si e' chiamato «il ponte e il banco caricano la stessa
             // libreria» confrontando due copie di cui **nessuna delle due
             // era quella del banco in esecuzione**. La prima e' la sorgente
-            // da cui `banco.ps1` la copia compilando.
+            // da cui `bench.ps1` la copia compilando.
             //
-            // Il 24/9/2026 e' costato un giro: lanciato `ProvaSaldatura.exe`
+            // Il 24/9/2026 e' costato un giro: lanciato `Oce.Solid.Agent.Bench.exe`
             // a mano per iterare in fretta, ha caricato la copia del giorno
             // prima e ha detto che due predefiniti appena implementati **non
             // esistevano**. Erano nel sorgente e nelle altre due DLL.
@@ -1272,8 +1272,8 @@ namespace Prove.Contratti
             // — niente lo impedisce — ma dice **subito** che le copie sono
             // divergute, invece di lasciarlo scoprire a un resoconto che
             // accusa il codice sbagliato.
-            var accantoAlBanco = Path.Combine(Radice(), "Banco", "bin",
-                                              "Riscontro.Disegno.dll");
+            var accantoAlBanco = Path.Combine(Radice(), "Bench", "bin",
+                                              "Oce.Solid.Agent.Core.dll");
 
             bool c1 = ProdottoDaBuild(delBanco), c2 = ProdottoDaBuild(delPonte);
 
@@ -1283,7 +1283,7 @@ namespace Prove.Contratti
             if (!c1 && !c2 && !IlPonteSiPotevaCompilare())
             {
                 NonQui("il ponte e il banco caricano la stessa libreria",
-                       "qui SOLIDWORKS non c'e': Riscontro.Disegno.dll non si compila, " +
+                       "qui SOLIDWORKS non c'e': Oce.Solid.Agent.Core.dll non si compila, " +
                        "e due file che non esistono non si possono confrontare.");
                 return;
             }
@@ -1308,35 +1308,35 @@ namespace Prove.Contratti
 
             // ── E LA TERZA COPIA: SI GUARDA LA RADICE, NON IL SINTOMO ────
             //
-            // `Banco\bin\Riscontro.Disegno.dll` e' un RESIDUO: `banco.ps1`
+            // `Bench\bin\Oce.Solid.Agent.Core.dll` e' un RESIDUO: `bench.ps1`
             // passa `--libreria` puntando alla sorgente, e nessuno aggiorna
             // quella copia. Pretendere che combaci sarebbe un rosso perenne
             // su un file che il giro vero non guarda mai.
             //
             // Cio' che conta e' il PREDEFINITO: cosa carica
-            // `ProvaSaldatura.exe` se qualcuno lo lancia a mano senza
+            // `Oce.Solid.Agent.Bench.exe` se qualcuno lo lancia a mano senza
             // `--libreria`. Fino al 24/9/2026 era la copia accanto a se', e
             // mi ha fatto misurare per un giro il codice di sei versioni
             // prima dicendo che due predefiniti appena scritti «non
-            // esistevano». Adesso e' la stessa che usa `banco.ps1`.
+            // esistevano». Adesso e' la stessa che usa `bench.ps1`.
             //
             // Si legge dal SORGENTE, perche' e' li' che la scelta vive, e
             // perche' un controllo che leggesse il residuo tornerebbe a
             // sorvegliare il sintomo.
-            var sorgenteBanco = Path.Combine(Radice(), "Banco", "Program.cs");
+            var sorgenteBanco = Path.Combine(Radice(), "Bench", "Program.cs");
             if (File.Exists(sorgenteBanco))
             {
                 var testo = File.ReadAllText(sorgenteBanco);
                 bool cercaLaBuona =
                     testo.IndexOf("LibreriaPredefinita", StringComparison.Ordinal) >= 0 &&
-                    testo.IndexOf("\"Riscontro.Disegno\", \"bin\", \"Release\"",
+                    testo.IndexOf("\"Oce.Solid.Agent.Core\", \"bin\", \"Release\"",
                                   StringComparison.Ordinal) >= 0;
                 Segna("senza «--libreria» il banco cerca PRIMA la libreria appena compilata",
                       cercaLaBuona,
                       cercaLaBuona
                           ? "il ripiego accanto all'eseguibile resta, ma viene dopo"
                           : "il predefinito punta accanto all'eseguibile: chi lancia " +
-                            "`ProvaSaldatura.exe` a mano misura una copia che nessuno " +
+                            "`Oce.Solid.Agent.Bench.exe` a mano misura una copia che nessuno " +
                             "aggiorna");
 
                 // E se il residuo c'e', lo si DICE — senza accusare: sapere
@@ -1386,7 +1386,7 @@ namespace Prove.Contratti
                         (v1.StartsWith(informativa, StringComparison.Ordinal)
                             ? ""
                             : " — si allinea AssemblyInformationalVersion in " +
-                              "Riscontro.Disegno\\Properties\\AssemblyInfo.cs"));
+                              "Oce.Solid.Agent.Core\\Properties\\AssemblyInfo.cs"));
         }
 
         /// <summary>
@@ -1426,7 +1426,7 @@ namespace Prove.Contratti
                 var file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "prove.xml");
                 var x = new StringBuilder();
                 x.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                x.AppendLine("<testsuites name=\"Prove.Contratti\" tests=\"" + Esiti.Count +
+                x.AppendLine("<testsuites name=\"Oce.Solid.Agent.ContractTests\" tests=\"" + Esiti.Count +
                              "\" failures=\"" + Falliti +
                              "\" skipped=\"" + NonEseguibiliQui + "\">");
                 foreach (var g in Esiti.GroupBy(e => e.Gruppo))

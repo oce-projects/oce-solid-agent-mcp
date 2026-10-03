@@ -1,9 +1,9 @@
 # =============================================================================
-#  moduli-di-solidworks.ps1 - quali moduli ci sono DAVVERO su questa
+#  solidworks-modules.ps1 - quali moduli ci sono DAVVERO su questa
 #                             postazione, e quali sono registrati  (voci Z-H*)
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come banco.ps1 e per la stessa ragione.
+#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
 #
 #  PERCHE' ESISTE
 #
@@ -32,7 +32,7 @@
 #    vede.
 #
 #  USO
-#      .\Controlli\moduli-di-solidworks.ps1
+#      .\Checks\solidworks-modules.ps1
 # =============================================================================
 
 $ErrorActionPreference = "Continue"

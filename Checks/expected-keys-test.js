@@ -10,7 +10,7 @@
 //  cases (.4) and of what the bridge writes. A reader that says
 //  `catalogo.operazioni || []` or `$cat.operazioni` (a missing property is
 //  $null in PowerShell, without an error) keeps running after the rename and
-//  prints zeros that look like a measure. Every such reader of `Controlli/`
+//  prints zeros that look like a measure. Every such reader of `Checks/`
 //  now exits non-zero when an expected key is missing; this script feeds each
 //  one a fake input without the key and expects the failure, and feeds it the
 //  real input (or a well-formed fake) and expects it to pass the key check.
@@ -18,22 +18,22 @@
 //
 //  The readers, and the grep that found them (`|| []`, `?.`, properties read
 //  from ConvertFrom-Json objects, every JSON.parse and ConvertFrom-Json in
-//  `Controlli/` and `.github/passi/`):
+//  `Checks/` and `.github/steps/`):
 //
-//    Controlli/conta-provate.js             catalogue and cases
-//    Controlli/controlla-catalogo.ps1       catalogue
-//    Controlli/domande-senza-risposta.js    the question registry of the bridge
-//    Controlli/prova-x2.js                  the answers of the bridge (--self-test)
-//    Controlli/lingua/detect-italian.js     lexicon.json and baseline.json
+//    Checks/count-tested.js             catalogue and cases
+//    Checks/check-catalog.ps1       catalogue
+//    Checks/questions-without-answer.js    the question registry of the bridge
+//    Checks/test-x2.js                  the answers of the bridge (--self-test)
+//    Checks/language/detect-italian.js     lexicon.json and baseline.json
 //
 //  Readers looked at and left as they are, with the reason: measure.js reads
 //  `labels` with a fallback on purpose (a new draw has none yet, and an
-//  empty draw fails its own "not enough lines" check); prova-installatore.js
+//  empty draw fails its own "not enough lines" check); test-installer.js
 //  reads a client configuration whose missing `mcpServers` already fails its
 //  checks; ci-proof.ps1 turns a missing step into "no step", which fails the
 //  expectation.
 //
-//      node Controlli/expected-keys-test.js
+//      node Checks/expected-keys-test.js
 //
 //  Exit 0 when every case is as expected, 1 otherwise. About 10 seconds (it
 //  starts Windows PowerShell for the catalogue check).
@@ -50,11 +50,11 @@ const work = fs.mkdtempSync(path.join(os.tmpdir(), 'expected-keys-'));
 
 // The readers, and the keys they expect (the names are the protocol of today:
 // when a window renames a key, the reader and this table change together).
-const COUNT_TESTED = 'Controlli/conta-provate.js';
-const CATALOGUE_CHECK = 'Controlli/controlla-catalogo.ps1';
-const QUESTIONS = 'Controlli/domande-senza-risposta.js';
-const PROBE_X2 = 'Controlli/prova-x2.js';
-const GATE = 'Controlli/lingua/detect-italian.js';
+const COUNT_TESTED = 'Checks/count-tested.js';
+const CATALOGUE_CHECK = 'Checks/check-catalog.ps1';
+const QUESTIONS = 'Checks/questions-without-answer.js';
+const PROBE_X2 = 'Checks/test-x2.js';
+const GATE = 'Checks/language/detect-italian.js';
 const KEY = {
   operations: 'operations', families: 'families', name: 'name', family: 'family',
   when: 'timestamp', kind: 'kind', similar: 'similar',
@@ -93,7 +93,7 @@ function renamed(obj, from, to) {
 }
 
 // ── fake inputs ─────────────────────────────────────────────────────────────
-const realCataloguePath = path.join(ROOT, 'Strumenti', 'catalogo.json');
+const realCataloguePath = path.join(ROOT, 'Tools', 'catalog.json');
 const realCatalogue = JSON.parse(fs.readFileSync(realCataloguePath, 'utf8'));
 const operations = realCatalogue[KEY.operations];
 const firstOp = operations[0];
@@ -128,11 +128,11 @@ const registryRenamed = write('registry-renamed.jsonl', JSON.stringify(renamed(r
 // the gate reads its lexicon from a checkout: a tiny git repository
 function gateRoot(name, mutateLexicon) {
   const dir = path.join(work, name);
-  fs.mkdirSync(path.join(dir, 'Controlli', 'lingua'), { recursive: true });
-  const lex = JSON.parse(fs.readFileSync(path.join(ROOT, 'Controlli', 'lingua', 'lexicon.json'), 'utf8'));
+  fs.mkdirSync(path.join(dir, 'Checks', 'language'), { recursive: true });
+  const lex = JSON.parse(fs.readFileSync(path.join(ROOT, 'Checks', 'language', 'lexicon.json'), 'utf8'));
   mutateLexicon(lex);
-  fs.writeFileSync(path.join(dir, 'Controlli', 'lingua', 'lexicon.json'), JSON.stringify(lex, null, 1), 'utf8');
-  fs.copyFileSync(path.join(ROOT, 'Controlli', 'lingua', 'exceptions.json'), path.join(dir, 'Controlli', 'lingua', 'exceptions.json'));
+  fs.writeFileSync(path.join(dir, 'Checks', 'language', 'lexicon.json'), JSON.stringify(lex, null, 1), 'utf8');
+  fs.copyFileSync(path.join(ROOT, 'Checks', 'language', 'exceptions.json'), path.join(dir, 'Checks', 'language', 'exceptions.json'));
   fs.writeFileSync(path.join(dir, 'notes.md'), 'A line of English.\n', 'utf8');
   cp.execFileSync('git', ['init', '-q', dir], { stdio: 'ignore' });
   cp.execFileSync('git', ['-C', dir, '-c', 'core.autocrlf=false', 'add', '-A'], { stdio: 'ignore' });
@@ -181,7 +181,7 @@ const cases = [
 // library these two are skipped, and the run says so.
 const libraryIndex = process.argv.indexOf('--library');
 const library = libraryIndex >= 0 ? path.resolve(process.argv[libraryIndex + 1])
-  : path.join(ROOT, 'Riscontro.Disegno', 'bin', 'Release', 'Riscontro.Disegno.dll');
+  : path.join(ROOT, 'Oce.Solid.Agent.Core', 'bin', 'Release', 'Oce.Solid.Agent.Core.dll');
 const skipped = [];
 if (fs.existsSync(library)) {
   const extraFamily = 'an_unused_family';

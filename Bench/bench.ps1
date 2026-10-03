@@ -1,5 +1,5 @@
 # =============================================================================
-#  banco.ps1 - un comando solo, e un resoconto su disco   (voce F2)
+#  bench.ps1 - un comando solo, e un resoconto su disco   (voce F2)
 # =============================================================================
 #
 #  QUESTO FILE E' IN ASCII PURO, E NON E' UN VEZZO. PowerShell 5.1 legge uno
@@ -21,7 +21,7 @@
 #       16 KB" passa da 15.6k a 16.2k e FALLISCE senza che il codice sia
 #       cambiato. Costa mezz'ora cercare una regressione che non c'e'.
 #    4. lancia il banco e misura quanto ci mette.
-#    5. scrive Banco\report\AAAAMMGG_hhmm.md e .json, piu' last.json.
+#    5. scrive Bench\report\AAAAMMGG_hhmm.md e .json, piu' last.json.
 #
 #  PERCHE' IL RESOCONTO. "Gira solo quando qualcuno lo lancia a mano" e' meta'
 #  del problema; l'altra meta' e' che NON LASCIA TRACCIA. Un numero che non sta
@@ -43,13 +43,13 @@
 #       il giro non e' valido. Vince sul 2 e sull'1: chi legge un 1 si mette
 #       a cercare cosa ha rotto, e non ha rotto niente.
 #
-#      .\Banco\banco.ps1
-#      .\Banco\banco.ps1 -Gruppo viste          una famiglia sola (voce F13)
-#      .\Banco\banco.ps1 -Famiglia reanchor    solo quella cartella di casi (E19)
-#      .\Banco\banco.ps1 -Lento                 anche le prove che costano minuti
-#      .\Banco\banco.ps1 -Muta                  perturba i casi (voce F6)
-#      .\Banco\banco.ps1 -Regressione           i riferimenti sotto modifica (F8)
-#      .\Banco\banco.ps1 -SaltaCompilazione     il binario che c'e' gia'
+#      .\Bench\bench.ps1
+#      .\Bench\bench.ps1 -Gruppo viste          una famiglia sola (voce F13)
+#      .\Bench\bench.ps1 -Famiglia reanchor    solo quella cartella di casi (E19)
+#      .\Bench\bench.ps1 -Lento                 anche le prove che costano minuti
+#      .\Bench\bench.ps1 -Muta                  perturba i casi (voce F6)
+#      .\Bench\bench.ps1 -Regressione           i riferimenti sotto modifica (F8)
+#      .\Bench\bench.ps1 -SaltaCompilazione     il binario che c'e' gia'
 # =============================================================================
 
 param(
@@ -69,7 +69,7 @@ $Banco  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Radice = Split-Path -Parent $Banco
 
 if ([string]::IsNullOrWhiteSpace($Libreria)) {
-    $Libreria = Join-Path $Radice "Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll"
+    $Libreria = Join-Path $Radice "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll"
 }
 
 function Muori($codice, $messaggio) {
@@ -92,8 +92,8 @@ if (-not $SaltaCompilazione) {
         Muori 2 "non trovo MSBuild. Lancia con -SaltaCompilazione se hai gia' i binari."
     }
 
-    foreach ($progetto in @("Riscontro.Disegno\Riscontro.Disegno.csproj",
-                            "Banco\ProvaSaldatura.csproj")) {
+    foreach ($progetto in @("Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj",
+                            "Bench\Oce.Solid.Agent.Bench.csproj")) {
         $pieno = Join-Path $Radice $progetto
         Write-Output ("compilo " + $progetto)
         & $msbuild $pieno /p:Configuration=Release /v:m /nologo | Out-Null
@@ -118,13 +118,13 @@ try {
 
 # --- 3. via i documenti rimasti aperti --------------------------------------
 
-$chiudi = Join-Path $Radice "Controlli\ChiudiScarti\bin\ChiudiScarti.exe"
+$chiudi = Join-Path $Radice "Checks\CloseLeftovers\bin\CloseLeftovers.exe"
 $openAfterCleanup = -1
 if (Test-Path $chiudi) {
     # Its last line says how many documents are still open: the count decides
     # the restart below (late-bound ISldWorks calls fail from PowerShell with
     # TYPE_E_ELEMENTNOTFOUND, measured 2/10/2026).
-    # The bench's work folder is local (see Banco/Attese.cs); the old one
+    # The bench's work folder is local (see Bench/Expectations.cs); the old one
     # next to the repository is still closed too, for documents of older runs.
     $benchWork = if ($env:OCE_BENCH_WORK) { $env:OCE_BENCH_WORK } else { Join-Path $env:TEMP "oce-bench-work" }
     $cleanup = & $chiudi --chiudi $benchWork (Join-Path $Banco "lavoro") 2>&1
@@ -183,7 +183,7 @@ if (-not [string]::IsNullOrWhiteSpace($Gruppo)) { $argomenti += @("--gruppo", $G
 # «casi». Parziale come -Gruppo, e scritto nel riepilogo.
 if (-not [string]::IsNullOrWhiteSpace($Famiglia)) { $argomenti += @("--famiglia", $Famiglia) }
 
-$eseguibile = Join-Path $Banco "bin\ProvaSaldatura.exe"
+$eseguibile = Join-Path $Banco "bin\Oce.Solid.Agent.Bench.exe"
 if (-not (Test-Path $eseguibile)) { Muori 2 ("non trovo " + $eseguibile) }
 
 $inizio = Get-Date
@@ -197,13 +197,13 @@ if (Test-Path $outputNextToBench) { Remove-Item $outputNextToBench -Force -Error
 # "Continue" SOLO QUI, E CON UN MOTIVO MISURATO. Con $ErrorActionPreference a
 # "Stop", la PRIMA riga che il banco scrive su stderr diventa un errore
 # terminante di PowerShell: lo script muore a questa riga con un
-# NativeCommandError che nomina banco.ps1 e non dice niente del banco.
+# NativeCommandError che nomina bench.ps1 e non dice niente del banco.
 #
 # E' successo. Il banco non partiva per un TypeInitializationException, e
 # quello che si vedeva era:
 #
-#     ProvaSaldatura.exe :
-#     In <la cartella del clone>\Banco\banco.ps1:138 car:1
+#     Oce.Solid.Agent.Bench.exe :
+#     In <la cartella del clone>\Bench\bench.ps1:138 car:1
 #     + & $eseguibile $argomenti 2>&1 | Tee-Object -FilePath $uscita
 #
 # senza una parola sull'eccezione, e con `ultimo-giro.txt` fermo al giro
@@ -301,7 +301,7 @@ if (-not [string]::IsNullOrWhiteSpace($rigaVerdi)) {
 }
 
 # THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5, decision D4): the bench writes
-# them on a line of their own; outside Banco/cases/aliases they must be 0.
+# them on a line of their own; outside Bench/cases/aliases they must be 0.
 $aliasLine = [string]($righe | Where-Object { $_ -match "^alias uses: " } | Select-Object -Last 1)
 $aliasUses = $(if ([string]::IsNullOrWhiteSpace($aliasLine)) { $null } else { $aliasLine.Substring("alias uses: ".Length) })
 

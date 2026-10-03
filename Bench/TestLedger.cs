@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 
-namespace ProvaSaldatura
+namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
     /// EVERY TEST OF A BENCH RUN, BY IDENTITY, AND THE EXPECTATIONS CHECKED PER
@@ -39,12 +39,12 @@ namespace ProvaSaldatura
     /// with the reason, and the bench says so in a test of its own. An
     /// identity that is guessed would be worse than one that is missing.
     ///
-    /// This file is compiled by the bench and by Prove.Contratti, whose
+    /// This file is compiled by the bench and by Oce.Solid.Agent.ContractTests, whose
     /// BenchReportTests see every refusal fire on sources written on purpose.
     ///
     /// ── NAMED LIST TYPES, AND WHY ───────────────────────────────────────────
     ///
-    /// The obsolete-call scanner of Prove.Contratti knows a receiver by a
+    /// The obsolete-call scanner of Oce.Solid.Agent.ContractTests knows a receiver by a
     /// simple type name: an `Add` on a generic list it cannot type is an
     /// undecided call, frozen by count. The lists here have a name of their
     /// own (TestList, CaseList, MemberList, CallList) so that every call on

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using SolidWorks.Interop.swconst;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// THE RAW CODES OF SOLIDWORKS, DECODED TO THEIR ENUM NAMES (Z-C21.6,

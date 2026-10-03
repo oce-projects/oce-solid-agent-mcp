@@ -5,7 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using SolidWorks.Interop.sldworks;
 
-namespace Riscontro.Disegno
+namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// I materiali installati su questa postazione, letti dagli archivi veri.

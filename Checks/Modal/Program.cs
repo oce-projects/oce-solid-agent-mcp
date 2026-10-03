@@ -35,7 +35,7 @@ using SolidWorks.Interop.swconst;
 //  e' CIECA — e lo si scrive.
 //
 //  USO
-//      .\Controlli\Modale\bin\Modale.exe
+//      .\Checks\Modal\bin\Modal.exe
 // =============================================================================
 
 internal static class Programma

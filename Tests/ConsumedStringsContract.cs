@@ -4,21 +4,21 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Prove.Contratti.Programma;
+using static Oce.Solid.Agent.ContractTests.Programma;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// EVERY STRING ANOTHER PROGRAM LOOKS FOR IS STILL PRODUCED (entry
     /// W3.1-bis.2, item 6).
     ///
     /// The installer finds out that the bridge started by reading one of its
-    /// sentences; `Banco/banco.ps1` builds the bench report from the lines of
+    /// sentences; `Bench/bench.ps1` builds the bench report from the lines of
     /// the bench; the release script quotes the summary line of this very
     /// suite. Translate one side and the other keeps searching for the old
     /// text, finds nothing, and mostly says nothing. The pairs are listed in
-    /// `Controlli/lingua/consumed-strings.json` and checked by
-    /// `Controlli/lingua/consumed-strings.js`, which shares its lexers'
+    /// `Checks/language/consumed-strings.json` and checked by
+    /// `Checks/language/consumed-strings.js`, which shares its lexers'
     /// language with the rest of the language tooling (Node); this contract
     /// runs it, with its self-test first: a checker never seen red is not a
     /// checker.
@@ -37,7 +37,7 @@ namespace Prove.Contratti
             Gruppo("every string another program looks for is still produced (W3.1-bis.2)");
 
             var root = Radice();
-            var script = Path.Combine(root, "Controlli", "lingua", "consumed-strings.js");
+            var script = Path.Combine(root, "Checks", "language", "consumed-strings.js");
             if (!File.Exists(script)) { Segna("the consumed-strings check exists", false, script); return; }
 
             string output;

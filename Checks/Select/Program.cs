@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
-namespace Controlli.Seleziona
+namespace Checks.Select
 {
     /// <summary>
     /// SELEZIONA QUALCOSA NEL PEZZO, come farebbe un dito sullo schermo.
@@ -14,10 +14,10 @@ namespace Controlli.Seleziona
     /// stessa strada — e' selezionare per API e poi chiedere allo stato come si
     /// chiama: `ISelectionMgr` non sa da dove arrivi la selezione.
     ///
-    ///     Seleziona.exe faccia 1        la prima faccia del primo corpo
-    ///     Seleziona.exe spigolo 1       il primo spigolo
-    ///     Seleziona.exe corpo 1         il primo corpo
-    ///     Seleziona.exe niente          svuota la selezione
+    ///     Select.exe faccia 1        la prima faccia del primo corpo
+    ///     Select.exe spigolo 1       il primo spigolo
+    ///     Select.exe corpo 1         il primo corpo
+    ///     Select.exe niente          svuota la selezione
     ///
     /// I numeri sono quelli dell'ordine in cui SOLIDWORKS da' le entita', NON
     /// gli identificativi dello stato: sono due numerazioni diverse, ed e'

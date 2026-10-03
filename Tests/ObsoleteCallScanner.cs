@@ -5,12 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Prove.Contratti
+namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// The refined list of obsolete SOLIDWORKS API members
-    /// (Prove/data/obsolete-api-members.tsv, built by
-    /// Controlli/obsolete-api-list.js from the API help).
+    /// (Tests/data/obsolete-api-members.tsv, built by
+    /// Checks/obsolete-api-list.js from the API help).
     /// </summary>
     internal sealed class ObsoleteApiList
     {

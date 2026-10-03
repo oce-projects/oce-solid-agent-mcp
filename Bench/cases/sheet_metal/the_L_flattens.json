@@ -1,7 +1,7 @@
 {
   "name": "the_L_flattens",
   "family": "sheet_metal",
-  "why": "VOCE GP18. La prima operazione della famiglia lamiera, sullo stesso pezzo di `Controlli/Lamiera` (24/9/2026): una L da 50 + 30, profonda 40, spessore 2, raggio 2. Lo sviluppo si sa senza calcolatore, e il DXF che ne esce va a una macchina di taglio: e' la famiglia in cui un difetto silenzioso costa lamiera vera.",
+  "why": "VOCE GP18. La prima operazione della famiglia lamiera, sullo stesso pezzo di `Checks/SheetMetal` (24/9/2026): una L da 50 + 30, profonda 40, spessore 2, raggio 2. Lo sviluppo si sa senza calcolatore, e il DXF che ne esce va a una macchina di taglio: e' la famiglia in cui un difetto silenzioso costa lamiera vera.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",

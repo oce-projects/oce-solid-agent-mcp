@@ -22,7 +22,7 @@
     <OutputPath>bin\</OutputPath>
     <LangVersion>7.3</LangVersion>
     <!-- Two builds of the same source give the same bytes (W3.1-bis.2,
-         Controlli\lingua\same-il.ps1). -->
+         Checks\language\same-il.ps1). -->
     <Deterministic>true</Deterministic>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
@@ -42,9 +42,9 @@
          referenziarla. Adesso la libreria sta qui dentro: e' un riferimento
          di progetto come un altro, e i nomi dei tipi li controlla il
          compilatore invece del cliente. -->
-    <ProjectReference Include="Riscontro.Disegno\Riscontro.Disegno.csproj">
+    <ProjectReference Include="Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj">
       <Project>{7B3C1F42-9A5E-4D18-A6C2-51E0D7B44A93}</Project>
-      <Name>Riscontro.Disegno</Name>
+      <Name>Oce.Solid.Agent.Core</Name>
     </ProjectReference>
   </ItemGroup>
 
@@ -71,26 +71,26 @@
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Programma.cs" />
-    <Compile Include="Mcp\Protocollo.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Mcp\Protocol.cs" />
     <Compile Include="Mcp\Risorse.cs" />
-    <Compile Include="Mcp\Elicitazione.cs" />
-    <Compile Include="Mcp\Avanzamento.cs" />
-    <Compile Include="Ponte\PianoInMemoria.cs" />
-    <Compile Include="Ponte\Sessione.cs" />
-    <Compile Include="Ponte\Documenti.cs" />
-    <Compile Include="Ponte\TurnoSulDocumento.cs" />
-    <Compile Include="Ponte\Percorsi.cs" />
-    <Compile Include="Ponte\Forma.cs" />
-    <Compile Include="Strumenti\Catalogo.cs" />
-    <Compile Include="Strumenti\RegistroDelleDomande.cs" />
-    <Compile Include="Strumenti\Attrezzi.cs" />
+    <Compile Include="Mcp\Elicitation.cs" />
+    <Compile Include="Mcp\Progress.cs" />
+    <Compile Include="Bridge\PlanInMemory.cs" />
+    <Compile Include="Bridge\Session.cs" />
+    <Compile Include="Bridge\Documents.cs" />
+    <Compile Include="Bridge\DocumentTurn.cs" />
+    <Compile Include="Bridge\Paths.cs" />
+    <Compile Include="Bridge\Shape.cs" />
+    <Compile Include="Tools\Catalog.cs" />
+    <Compile Include="Tools\QuestionRegistry.cs" />
+    <Compile Include="Tools\McpTools.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- Il catalogo viaggia con l'eseguibile: senza, il ponte sa eseguire ma
          non sa dire cosa si puo' chiedere. -->
-    <None Include="Strumenti\catalogo.json">
-      <Link>catalogo.json</Link>
+    <None Include="Tools\catalog.json">
+      <Link>catalog.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="App.config" />
@@ -104,7 +104,7 @@
     <!-- WHAT IS KNOWN OF EACH API MEMBER (entry U1.1), read by api_search and
          api_signature. Embedded, not copied: a knowledge file left behind by
          the installer would make every member look never probed. -->
-    <EmbeddedResource Include="Strumenti\api_knowledge.json" />
+    <EmbeddedResource Include="Tools\api_knowledge.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 

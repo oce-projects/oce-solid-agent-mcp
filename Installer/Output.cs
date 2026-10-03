@@ -8,7 +8,7 @@ namespace Oce.Solid.Agent.Installer
     /// <summary>
     /// WHERE THE OUTPUT OF A RUN WITHOUT THE WINDOW GOES (entry H19, B2).
     ///
-    /// Installa.exe is a Windows (GUI) program, so that a double click does
+    /// Installer.exe is a Windows (GUI) program, so that a double click does
     /// not open a black console behind the window. The price: started from a
     /// shell it has no console of its own, and until 0.126.0 the silent and
     /// uninstall modes printed into nothing. Only --aiuto attached to the
@@ -36,18 +36,18 @@ namespace Oce.Solid.Agent.Installer
     // were the same on both versions; the console output was not:
     //
     //   form                                                    exit code seen        output on the console
-    //   PowerShell: & .\Installa.exe ...                        none: not waited for  0.126.0 yes (after the prompt); 0.125.0 none
+    //   PowerShell: & .\Installer.exe ...                        none: not waited for  0.126.0 yes (after the prompt); 0.125.0 none
     //   PowerShell: Start-Process -Wait -PassThru -NoNewWindow  right ($p.ExitCode)   0.126.0 yes; 0.125.0 none
-    //   PowerShell: cmd /c Installa.exe ...                     right                 0.126.0 yes; 0.125.0 none
-    //   PowerShell: cmd /c "start "" /wait Installa.exe ..."    WRONG: 0 both times   0.126.0 yes; 0.125.0 none
-    //   cmd, batch file: Installa.exe ... then %ERRORLEVEL%     right                 0.126.0 yes; 0.125.0 none
-    //   cmd, batch file: start "" /wait Installa.exe ...        right                 0.126.0 yes; 0.125.0 none
-    //   PowerShell: & .\Installa.exe ... | Out-Null             right (a pipe waits)  into the pipe
+    //   PowerShell: cmd /c Installer.exe ...                     right                 0.126.0 yes; 0.125.0 none
+    //   PowerShell: cmd /c "start "" /wait Installer.exe ..."    WRONG: 0 both times   0.126.0 yes; 0.125.0 none
+    //   cmd, batch file: Installer.exe ... then %ERRORLEVEL%     right                 0.126.0 yes; 0.125.0 none
+    //   cmd, batch file: start "" /wait Installer.exe ...        right                 0.126.0 yes; 0.125.0 none
+    //   PowerShell: & .\Installer.exe ... | Out-Null             right (a pipe waits)  into the pipe
     //
     // The forms INSTALL-FOR-AI gives: Start-Process -Wait -PassThru
     // -NoNewWindow for PowerShell, `start "" /wait` inside a batch file for
     // cmd. The one-line `cmd /c "start /wait ..."` must not be used.
-    // Controlli/prova-installatore.js launches the first two exactly so (B2).
+    // Checks/test-installer.js launches the first two exactly so (B2).
     internal static class Output
     {
         private const int StdOutput = -11;
