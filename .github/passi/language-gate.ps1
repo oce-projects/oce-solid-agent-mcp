@@ -79,12 +79,21 @@ $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
 if (-not $Root) { $Root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)) }
 $root = (Resolve-Path $Root).Path
-$detectorRel = 'Controlli/lingua/detect-italian.js'
-$baselineRel = 'Controlli/lingua/baseline.json'
-$selfRel = '.github/passi/language-gate.ps1'
-$configPaths = @('Controlli/lingua/detect-italian.js', 'Controlli/lingua/lexicon.json', 'Controlli/lingua/exceptions.json',
-                 '.github/passi/language-gate.ps1', '.github/workflows/prove.yml', '.github/workflows/language-gate.yml',
+# Rename window 3 (W3.1-bis.6) moves the gate's folder from Controlli/lingua
+# to Checks/language, this script from .github/passi to .github/steps and
+# prove.yml to tests.yml. Each commit is read where ITS files are (the newer
+# names first), so the commits on both sides of the move are judged; a commit
+# whose first parent has the gate and that has none under either name is a
+# failure, not "before the gate".
+$langDirs = @('Checks/language', 'Controlli/lingua')
+$selfRels = @('.github/steps/language-gate.ps1', '.github/passi/language-gate.ps1')
+$configPaths = @('Checks/language/detect-italian.js', 'Checks/language/lexicon.json', 'Checks/language/exceptions.json',
+                 'Controlli/lingua/detect-italian.js', 'Controlli/lingua/lexicon.json', 'Controlli/lingua/exceptions.json',
+                 '.github/steps/language-gate.ps1', '.github/passi/language-gate.ps1',
+                 '.github/workflows/tests.yml', '.github/workflows/prove.yml', '.github/workflows/language-gate.yml',
                  '.github/CODEOWNERS')
+$detectorRel = 'Checks/language/detect-italian.js'
+$baselineRel = 'Checks/language/baseline.json'
 
 function Invoke-Git {
     # Windows PowerShell turns a native command's stderr into a terminating
@@ -98,11 +107,25 @@ function Invoke-Git {
 
 function Test-GitObject([string] $spec) { return (Invoke-Git cat-file -e $spec).Code -eq 0 }
 
+# The folder of the gate's files in a commit (Checks/language or, before
+# rename window 3, Controlli/lingua), or $null when it has no detector.
+function Get-LangDir([string] $commit) {
+    foreach ($d in $langDirs) { if (Test-GitObject "${commit}:$d/detect-italian.js") { return $d } }
+    return $null
+}
+function Get-DetectorRel([string] $commit) { $d = Get-LangDir $commit; if ($d) { return "$d/detect-italian.js" } return $null }
+function Get-BaselineRel([string] $commit) { $d = Get-LangDir $commit; if ($d) { return "$d/baseline.json" } return $null }
+function Get-SelfRel([string] $commit) {
+    foreach ($s in $selfRels) { if (Test-GitObject "${commit}:$s") { return $s } }
+    return $null
+}
+
 # A commit whose detector can judge commits from the object store: it has the
 # detector, and the detector knows --config-rev.
 function Test-PerCommitGate([string] $commit) {
-    if (-not (Test-GitObject "${commit}:$detectorRel")) { return $false }
-    return (Invoke-Git grep -q -F -e "'--config-rev'" $commit '--' $detectorRel).Code -eq 0
+    $rel = Get-DetectorRel $commit
+    if (-not $rel) { return $false }
+    return (Invoke-Git grep -q -F -e "'--config-rev'" $commit '--' $rel).Code -eq 0
 }
 
 # A blob written byte for byte: a PowerShell redirection would re-encode it.
@@ -126,7 +149,7 @@ New-Item -ItemType Directory -Force $work | Out-Null
 $detectors = @{}
 # The detector of a commit, extracted once per distinct blob.
 function Get-Detector([string] $commit) {
-    $blob = ((Invoke-Git rev-parse "${commit}:$detectorRel").Out | Select-Object -First 1)
+    $blob = ((Invoke-Git rev-parse ("${commit}:" + (Get-DetectorRel $commit))).Out | Select-Object -First 1)
     if (-not $detectors.ContainsKey($blob)) {
         $file = Join-Path $work "detect-$blob.js"
         Save-GitBlob $blob $file
@@ -188,11 +211,17 @@ try {
     Write-Output "language gate: base $Base ($baseSha), head $head"
 
     # -- the script that judges is the one of the base ------------------------
-    if (-not $Delegated -and $baseSha -and (Test-GitObject "${baseSha}:$selfRel") -and (Test-PerCommitGate $baseSha)) {
+    $selfRel = if ($baseSha) { Get-SelfRel $baseSha } else { $null }
+    if (-not $Delegated -and $baseSha -and $selfRel -and (Test-PerCommitGate $baseSha)) {
         $mine = ((Invoke-Git hash-object $MyInvocation.MyCommand.Definition).Out | Select-Object -First 1)
         $theirs = ((Invoke-Git rev-parse "${baseSha}:$selfRel").Out | Select-Object -First 1)
         if ($mine -ne $theirs) {
             Write-Output "language gate: $selfRel changed in this range; the copy of the base judges it."
+            if (-not ((Invoke-Git grep -q -F -e 'Get-LangDir' $baseSha '--' $selfRel).Code -eq 0)) {
+                Write-Output "language gate: WARNING - the copy of the base looks for the gate only under Controlli/lingua:"
+                Write-Output "    a commit of this range that has it under Checks/language is skipped there, as if it came before the gate."
+                Write-Output "    Merge the commit that teaches the gate both folder names first, or judge with this copy (-Delegated)."
+            }
             $copy = Join-Path $work 'language-gate-of-the-base.ps1'
             Save-GitBlob $theirs $copy
             $shell = (Get-Process -Id $PID).Path
@@ -212,7 +241,16 @@ try {
         $subject = ((Invoke-Git log -1 --format=%s $c).Out | Select-Object -First 1)
         Write-Output ""
         Write-Output "commit $short  $subject"
-        if (-not (Test-GitObject "${c}:$detectorRel")) { Write-Output "    before the gate: nothing to judge"; continue }
+        $detectorRel = Get-DetectorRel $c
+        $baselineRel = Get-BaselineRel $c
+        if (-not $detectorRel) {
+            $p0 = ((Invoke-Git rev-list --parents -n 1 $c).Out | Select-Object -First 1) -split ' ' | Select-Object -Skip 1 | Select-Object -First 1
+            if ($p0 -and (Get-DetectorRel $p0)) {
+                Write-Output "  LANGUAGE GATE: $short has no detector under $($langDirs -join ' or '), and its parent had one: a commit cannot step out of the gate"
+                $failed = $true; continue
+            }
+            Write-Output "    before the gate: nothing to judge"; continue
+        }
         if (-not (Test-PerCommitGate $c)) {
             # the first commits of W3.1-bis.1, before the review: their
             # detector cannot read a commit from the object store, and their
@@ -243,7 +281,7 @@ try {
         } else { Write-Output "    a. within its own baseline" }
 
         $parents = @(((Invoke-Git rev-list --parents -n 1 $c).Out | Select-Object -First 1) -split ' ' | Select-Object -Skip 1)
-        $gated = @($parents | Where-Object { (Test-PerCommitGate $_) -and (Test-GitObject "${_}:$baselineRel") })
+        $gated = @($parents | Where-Object { (Test-PerCommitGate $_) -and (Test-GitObject ("${_}:" + (Get-BaselineRel $_))) })
         if ($parents.Count -eq 0 -or -not ($gated -contains $parents[0])) {
             Write-Output "    the first parent has no gate: this commit introduces it, only (a) applies"
             continue
@@ -308,7 +346,7 @@ try {
 
     # -- a release tag: no transition left ------------------------------------
     $tags = @((Invoke-Git tag --points-at $head).Out | Where-Object { $_ -match '^v\d' })
-    if ($tags.Count -gt 0 -and (Test-GitObject "${head}:$detectorRel")) {
+    if ($tags.Count -gt 0 -and (Get-DetectorRel $head)) {
         $r = Invoke-Detector (Get-Detector $head) @('--rev', $head, '--config-rev', $head, '--zero', 'transition', '--baseline', "git:$head", '--quiet')
         if ($r.Code -eq 1) {
             Write-Output ("LANGUAGE GATE: release tag " + ($tags -join ', ') + " with Italian still in transition:")

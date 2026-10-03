@@ -128,7 +128,23 @@ const ACCENTED = '\u00e0\u00e8\u00e9\u00ec\u00f2\u00f9\u00c0\u00c8\u00c9\u00cc\u
 const LETTER = 'A-Za-z\u00c0-\u00ff';
 
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
-const LANG_DIR = path.join('Controlli', 'lingua');
+// The folder of the gate's own files. Rename window 3 (W3.1-bis.6) moves it
+// from Controlli/lingua to Checks/language: a commit is read where ITS files
+// are, so the gate judges the commits on both sides of the move (the newer
+// name first).
+const LANG_DIRS = ['Checks/language', 'Controlli/lingua'];
+function langDirOnDisk(root) {
+  for (const d of LANG_DIRS) if (fs.existsSync(path.join(root, d, 'lexicon.json'))) return d;
+  return LANG_DIRS[0];
+}
+function showFromRev(root, rev, name, stdio) {
+  let last = null;
+  for (const d of LANG_DIRS) {
+    try { return cp.execFileSync('git', ['-C', root, 'show', rev + ':' + d + '/' + name], { maxBuffer: 256 << 20, stdio }); }
+    catch (err) { last = err; }
+  }
+  throw last;
+}
 
 // -----------------------------------------------------------------------------
 //  Configuration
@@ -142,9 +158,8 @@ function readJson(file) {
 // (`--config-rev`): the CI judges a commit with the lexicon and the
 // exceptions of its PARENT, so a commit cannot loosen the rules it is judged by.
 function readConfigFile(root, rev, name) {
-  if (!rev) return readJson(path.join(root, LANG_DIR, name));
-  const buf = cp.execFileSync('git', ['-C', root, 'show', rev + ':' + LANG_DIR.replace(/\\/g, '/') + '/' + name],
-    { maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'pipe'] });
+  if (!rev) return readJson(path.join(root, langDirOnDisk(root), name));
+  const buf = showFromRev(root, rev, name, ['ignore', 'pipe', 'pipe']);
   return JSON.parse(buf.toString('utf8').replace(/^\ufeff/, ''));
 }
 
@@ -257,8 +272,12 @@ function validateExceptions(list, lex, cfg) {
     }
     if (e.json_path) {
       if (e.class !== 'detector-lexicon') fail(where + ': json_path is allowed only for the class detector-lexicon');
-      if (!e.file || !/^\^Controlli\/lingua\/[A-Za-z0-9_.\\-]+\$$/.test(e.file))
-        fail(where + ': a json_path exception must name exactly one file of Controlli/lingua/ (^Controlli/lingua/<name>$)');
+      // one file of the gate's folder; while rename window 3 is in flight the
+      // file may be named under both folder names:
+      // ^(?:Controlli/lingua|Checks/language)/<name>$
+      if (!e.file || !/^\^(?:Checks\/language|Controlli\/lingua|\(\?:Controlli\/lingua\|Checks\/language\))\/[A-Za-z0-9_.\\-]+\$$/.test(e.file))
+        fail(where + ': a json_path exception must name exactly one file of Controlli/lingua/ (^Controlli/lingua/<name>$; ' +
+          'Checks/language/ once rename window 3 has moved the folder)');
       if (!e.json_path.startsWith('^')) fail(where + ': json_path must be anchored with ^');
       try { out.jsonPath = new RegExp(e.json_path); } catch (err) { fail(where + ': json_path does not compile: ' + err.message); }
       if (out.jsonPath.test('') || out.jsonPath.test('x')) fail(where + ': json_path matches everything');
@@ -1452,8 +1471,7 @@ function loadBaseline(spec, root) {
     for (const rev of spec.slice(4).split('+')) {
       let buf;
       try {
-        buf = cp.execFileSync('git', ['-C', root, 'show', rev + ':Controlli/lingua/baseline.json'],
-          { maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'ignore'] });
+        buf = showFromRev(root, rev, 'baseline.json', ['ignore', 'pipe', 'ignore']);
       } catch (err) {
         console.log('language gate: no baseline.json in ' + rev);
         return null;
@@ -1537,7 +1555,7 @@ function main() {
     return 0;
   }
 
-  const baselineFile = path.join(root, LANG_DIR, 'baseline.json');
+  const baselineFile = path.join(root, langDirOnDisk(root), 'baseline.json');
   if (args.write !== null) {
     if (args.rev) { console.log('LANGUAGE GATE: --write-baseline works on the working tree, not on --rev'); return 2; }
     const target = args.write ? path.resolve(args.write) : baselineFile;
