@@ -175,30 +175,55 @@ function eachLine(text, fn) {
 // ── the formats without a parser here ───────────────────────────────────────
 // YAML: whole-line # comments and trailing ones (` #` outside quotes); the
 // lines of a block scalar (key: |) are text, not comments, as in the detector.
+// A quote opens a quoted scalar only where a scalar starts (the start of the
+// line, after "key: ", after "- ", after [ { , in a flow, after an anchor or a
+// tag); a quote in the middle of a plain scalar (run: echo 'a # b') is a
+// character of it, and the # after a blank there IS a comment. A quoted
+// scalar may run over several lines: its lines are text, not comments.
 function yamlComments(text) {
   const out = [];
   let block = -1;
+  let q = null;        // the quote of a quoted scalar still open from a line before
+  let flow = 0;        // the depth of [ { still open
   eachLine(text, (l, at) => {
     const indent = l.length - l.trimStart().length;
     const t = l.trim();
-    if (block >= 0) {
+    if (q === null && block >= 0) {
       if (!t || indent > block) return;
       block = -1;
     }
-    if (!t) return;
-    if (t.startsWith('#')) { out.push([at + indent, at + l.length]); return; }
+    if (q === null && !t) return;
+    if (q === null && flow === 0 && t.startsWith('#')) { out.push([at + indent, at + l.length]); return; }
     let cut = -1;
-    let q = null;
-    for (let i = 0; i < l.length; i++) {
+    let start = q === null;  // a scalar may start here
+    let i = 0;
+    for (; i < l.length; i++) {
       const c = l[i];
-      if (q) { if (c === q) { if (q === "'" && l[i + 1] === "'") i++; else q = null; } else if (c === '\\' && q === '"') i++; continue; }
-      if ((c === '"' || c === "'") && (i === 0 || /[\s:\-[{,]/.test(l[i - 1]))) { q = c; continue; }
-      if (c === '#' && i > 0 && /\s/.test(l[i - 1])) { cut = i; break; }
+      if (q) {
+        if (c === q) { if (q === "'" && l[i + 1] === "'") i++; else { q = null; start = false; } } else if (c === '\\' && q === '"') i++;
+        continue;
+      }
+      const blankBefore = i === 0 || /\s/.test(l[i - 1]);
+      if (c === '#' && blankBefore) { cut = i; break; }
+      if (/\s/.test(c)) continue;
+      if (start) {
+        if (c === '"' || c === "'") { q = c; continue; }
+        if (c === '-' && (i + 1 === l.length || /\s/.test(l[i + 1]))) continue;   // a sequence entry
+        if (c === '?' && (i + 1 === l.length || /\s/.test(l[i + 1]))) continue;   // a complex key
+        if (c === '[' || c === '{') { flow++; continue; }
+        if (c === '&' || c === '!') { while (i + 1 < l.length && !/\s/.test(l[i + 1])) i++; continue; }  // an anchor or a tag
+        start = false;
+      }
+      if (c === ':' && (i + 1 === l.length || /\s/.test(l[i + 1]) || (flow && /[,\]}]/.test(l[i + 1])))) { start = true; continue; }
+      if (flow && (c === '[' || c === '{')) { flow++; start = true; continue; }
+      if (flow && (c === ']' || c === '}')) { flow--; start = false; continue; }
+      if (flow && c === ',') { start = true; continue; }
     }
-    const code = (cut >= 0 ? l.slice(0, cut) : l).trim();
     if (cut >= 0) out.push([at + cut, at + l.length]);
-    const m = /^(?:-\s+)?[A-Za-z0-9_.-]+:\s+([|>][-+]?)$/.exec(code);
-    if (m) block = indent;
+    if (q !== null) return;
+    const code = (cut >= 0 ? l.slice(0, cut) : l).trim();
+    const m = /^(?:-\s+)?(?:(?:[A-Za-z0-9_.-]+|"[^"]*"|'[^']*'):\s+)?([|>][-+0-9]*)$/.exec(code);
+    if (m && (code.length > m[1].length)) block = indent;
   });
   return out;
 }
@@ -403,9 +428,16 @@ function factsOf(lines) {
     else if (text[m.index + w.length] === '(') names.push(w + '(');
   }
   f.names = sorted(names);
-  // a marker that a check of the repository reads in the comments: it is code for that check
-  f.markers = sorted(text.match(/ZERO-E-ZERO:?/g) || []);
+  // a marker that a check of the repository reads in the comments: it is code for that check.
+  // ZERO-E-ZERO: is read by Checks/zero-or-unknown.js; OBSOLETE-MEASURED: <case> by
+  // Tests/ObsoleteCallScanner.cs; Guide: <page>.html, UNDOCUMENTED: and MEASURED: <case> by
+  // Tests/SelectionMarksContract.cs (with the value inside the quote between guillemets, below)
+  f.markers = sorted((text.match(/ZERO-E-ZERO:?|OBSOLETE-MEASURED:\s*[A-Za-z0-9_-]+|(?<![\w-])MEASURED:\s*[A-Za-z0-9_-]+|UNDOCUMENTED:|Guide:\s*\w+(?:~\w+)?\.html/g) || [])
+    .map(m => m.replace(/\s+/g, ' ')));
   f.guillemets = [(text.match(/\u00ab/g) || []).length, (text.match(/\u00bb/g) || []).length].join(',');
+  // the numbers inside each quote between guillemets stay inside it (a contract reads the value
+  // of a constant inside the quote of its guide page)
+  f.quoteNumbers = sorted([...text.matchAll(/\u00ab([^\u00bb]*)\u00bb/g)].map(m => (m[1].match(/\d+/g) || []).join(',')));
   // the keywords of a PowerShell help comment (.SYNOPSIS ...): only the keywords
   // that PowerShell reads, with the argument of those that take one (a line that
   // starts with ".NET" is prose)
@@ -426,7 +458,7 @@ const BULLET = /^(?:[-*+\u2022]\s|\d+[.)]\s|\([a-z0-9]\)\s|[a-z]\)\s)/;
 const NEWLINES = /[\r\n\u0085\u2028\u2029]/;
 
 // The problems between the bodies of a block before and after a translation.
-function compareBodies(orig, now, block) {
+function compareBodies(orig, now, block, lang) {
   const problems = [];
   if (now.length !== orig.length) {
     problems.push('the number of lines changed: ' + orig.length + ' before, ' + now.length + ' after (the block keeps its lines and rewraps inside them)');
@@ -440,6 +472,16 @@ function compareBodies(orig, now, block) {
   if (block.close && now.some(b => b.includes(block.close))) problems.push('a line holds the closing delimiter ' + block.close + ' of its comment');
   if (block.close === '-->' && now.some((b, i) => (b.match(/--/g) || []).length > (orig[i].match(/--/g) || []).length))
     problems.push('a line holds a double hyphen, not allowed inside an XML comment');
+  // a body that ends with a hyphen right before --> writes --->, which is not well-formed XML
+  if (block.close === '-->' && /-$/.test(now[now.length - 1]) && !/-$/.test(orig[orig.length - 1]))
+    problems.push('the last line ends with a hyphen, and a hyphen before --> is not allowed in an XML comment');
+  // a C# documentation comment is XML: a stray < or & (or one lost) breaks it, or changes an entity
+  if (lang === 'cs' && (block.open === '///' || block.open === '/**')) {
+    for (const ch of ['<', '>', '&']) {
+      const count = (list) => list.reduce((n, s) => n + s.split(ch).length - 1, 0);
+      if (count(orig) !== count(now)) problems.push('the count of "' + ch + '" in a documentation comment changed (' + count(orig) + ' before, ' + count(now) + ' after): its XML would break');
+    }
+  }
   orig.forEach((o, i) => {
     const b = now[i];
     const oEmpty = o.trim() === '', bEmpty = b.trim() === '';
@@ -611,11 +653,11 @@ function applyChunk(root, chunk, translated, opts) {
       const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
       const isOriginal = same(cbBodies, ob.text);
       if (!isOriginal) {
-        if (same(cbBodies, finalBodies) && compareBodies(ob.text, cand, ob).length === 0) { already++; continue; }
+        if (same(cbBodies, finalBodies) && compareBodies(ob.text, cand, ob, kind).length === 0) { already++; continue; }
         r.problems.push(where + ': STALE, the text in the file is no longer the original of the chunk');
         continue;
       }
-      const p = compareBodies(ob.text, cand, ob);
+      const p = compareBodies(ob.text, cand, ob, kind);
       if (p.length) { for (const x of p) r.problems.push(where + ': ' + x); continue; }
       cb.lines.forEach((l, i) => { if (finalBodies[i] !== l.body) edits.push({ bs: l.bs, be: l.be, to: finalBodies[i] }); });
     }
@@ -756,7 +798,7 @@ function checkAll(root, rev, opts) {
       // the object store holds LF and a Windows checkout CRLF: line ends are not compared here
       const eol = (s) => s.replace(/\r\n/g, '\n');
       if (eol(masked(d.cur.text, ab)) !== eol(masked(d.prev.text, bb))) row.problems.push('the text outside the comments differs from ' + rev);
-      ab.forEach((b, i) => { for (const p of compareBodies(bodiesOf(bb[i]), bodiesOf(b), b)) row.problems.push('block at lines ' + b.start + '-' + b.end + ': ' + p); });
+      ab.forEach((b, i) => { for (const p of compareBodies(bodiesOf(bb[i]), bodiesOf(b), b, d.kind)) row.problems.push('block at lines ' + b.start + '-' + b.end + ': ' + p); });
     }
     if (PARSED[d.kind]) streams.push({ d, row });
     row.before = [...italianLines(root, d.x.was, d.prev.text).values()].reduce((n, v) => n + v, 0);
@@ -870,7 +912,10 @@ function fixtures() {
       '      - run: |',
       '          # not a comment, a script line',
       '          echo hi',
-      '      - name: "quoted # not a comment"']) },
+      '      - name: "quoted # not a comment"',
+      '      - run: "a quoted scalar',
+      '          # over two lines, not a comment"',
+      "      - run: echo 'a quote inside a plain scalar # IS a comment'"]) },
     'e.csproj': { text: crlf([
       '<Project>',
       '  <!-- First note about the build. -->',
@@ -898,7 +943,7 @@ const EXPECTED_BLOCKS = [
   ['a.cs', 1, 2, 'line', '//'], ['a.cs', 5, 8, 'line', '///'], ['a.cs', 11, 11, 'block', '/*'], ['a.cs', 14, 14, 'line', '//'], ['a.cs', 16, 19, 'block', '/*'],
   ['b.js', 2, 3, 'line', '//'], ['b.js', 5, 5, 'line', '//'], ['b.js', 7, 7, 'block', '/*'], ['b.js', 8, 9, 'block', '/*'],
   ['c.ps1', 2, 7, 'block', '<#'], ['c.ps1', 9, 9, 'line', '#'], ['c.ps1', 10, 10, 'line', '#'],
-  ['d.yml', 1, 2, 'line', '#'], ['d.yml', 3, 3, 'line', '#'], ['d.yml', 6, 6, 'line', '#'],
+  ['d.yml', 1, 2, 'line', '#'], ['d.yml', 3, 3, 'line', '#'], ['d.yml', 6, 6, 'line', '#'], ['d.yml', 16, 16, 'line', '#'],
   ['e.csproj', 2, 2, 'block', '<!--'], ['e.csproj', 4, 5, 'block', '<!--'],
   ['hook', 2, 3, 'line', '#'], ['hook', 7, 7, 'line', '#'],
 ];
@@ -971,6 +1016,9 @@ function selfTest() {
       ['the comment closed early in a block', 'a.cs', t => { const b = blockOf(t, 'a.cs', 16); b.text[1] = b.text[1] + ' */ int y = 2; /*'; }, 'closing delimiter'],
       ['the comment closed early in a PowerShell block', 'c.ps1', t => { const b = blockOf(t, 'c.ps1', 2); b.text[4] = 'The name to use. #> $z = 1 <#'; }, 'closing delimiter'],
       ['a double hyphen in an XML comment', 'e.csproj', t => { blockOf(t, 'e.csproj', 2).text[0] = ' First -- note about the build. '; }, 'double hyphen'],
+      ['a hyphen right before --> in an XML comment', 'e.csproj', t => { blockOf(t, 'e.csproj', 2).text[0] = ' First note about the build-'; }, 'hyphen before -->'],
+      ['a stray < in a documentation comment', 'a.cs', t => { const b = blockOf(t, 'a.cs', 5); b.text[1] = b.text[1].replace(/for 3 items/i, 'for < 3 items'); }, 'documentation comment'],
+      ['a stray & in a documentation comment', 'a.cs', t => { const b = blockOf(t, 'a.cs', 5); b.text[1] = b.text[1].replace(/for 3 items/i, 'for 3 items & more'); }, 'documentation comment'],
       ['a line end inside a line', 'b.js', t => { blockOf(t, 'b.js', 5).text[0] = ' trailing\n note'; }, 'line end'],
       ['an empty line filled', 'a.cs', t => { const b = blockOf(t, 'a.cs', 16); b.text[0] = ' filled'; }, 'was empty'],
       ['the indentation changed', 'a.cs', t => { const b = blockOf(t, 'a.cs', 16); b.text[1] = '   ' + b.text[1].trimStart(); }, 'indentation'],
@@ -995,6 +1043,17 @@ function selfTest() {
       say(compareBodies(orig, now, { close: '' }).length === 0, 'a placeholder in angle brackets, an ordinal and a "64-bit" are not references: accepted when reworded');
       const lost = [' format "<hash upper>  <name of file>" and the 15 day, a 64 bit step'];
       say(compareBodies(orig, lost, { close: '' }).some(p => p.includes('numbers')), 'refused, seen red: the number of an ordinal changed');
+    }
+    // the markers the contracts read in the comments, and the value inside a quote
+    {
+      const orig = [' OBSOLETE-MEASURED: probe-x, UNDOCUMENTED: then MEASURED: probe-y; Guide: ISketch~Add.html says «the value 4», and 5'];
+      const ok = [' OBSOLETE-MEASURED: probe-x, UNDOCUMENTED: then MEASURED: probe-y; Guide: ISketch~Add.html SAYS «THE value 4», AND 5'];
+      say(compareBodies(orig, ok, { close: '' }).length === 0, 'markers and quotes reworded around them: accepted');
+      const red = (what, now, part) => say(compareBodies(orig, [now], { close: '' }).some(p => p.includes(part)), 'refused, seen red: ' + what);
+      red('the case of an OBSOLETE-MEASURED: marker changed', orig[0].replace('OBSOLETE-MEASURED: probe-x', 'OBSOLETE-MEASURED: probe-z'), 'markers');
+      red('a MEASURED: marker translated', orig[0].replace('then MEASURED:', 'then measured:'), 'markers');
+      red('an UNDOCUMENTED: marker translated', orig[0].replace('UNDOCUMENTED:', 'undocumented:'), 'markers');
+      red('a number moved out of the quote', orig[0].replace('the value 4», and 5', 'the value 5», and 4'), 'quoteNumbers');
     }
     // the text in the file is no longer the original
     {
