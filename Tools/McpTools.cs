@@ -10,41 +10,41 @@ using Oce.Solid.Agent.Bridge;
 namespace Oce.Solid.Agent.Tools
 {
     /// <summary>
-    /// I cinque strumenti che il ponte espone.
+    /// The five tools the bridge exposes.
     ///
-    /// PERCHE' CINQUE E NON TRENTOTTO.
-    /// Le operazioni di disegno sono trentotto, e la tentazione e' di esporne
-    /// una per strumento. Sarebbe sbagliato per due ragioni misurate nel
-    /// progetto:
+    /// WHY FIVE AND NOT THIRTY-EIGHT.
+    /// There are thirty-eight drawing operations, and the temptation is to expose
+    /// one per tool. That would be wrong for two reasons measured in the
+    /// project:
     ///
-    ///   1. **il costo.** Gli schemi interi delle trentotto operazioni sono
-    ///      decine di migliaia di caratteri in ogni singola richiesta. Il
-    ///      catalogo a due livelli del server esiste esattamente per questo.
-    ///   2. **l'ordine giusto.** Il difetto piu' caro di questo progetto non e'
-    ///      un'operazione sbagliata: e' un'operazione giusta fatta ALLA CIECA.
-    ///      Gli strumenti in fila — guarda, cerca, approfondisci, fai —
-    ///      rendono difficile saltare il primo.
+    ///   1. **the cost.** The whole schemas of the thirty-eight operations are
+    ///      tens of thousands of characters in every single request. The
+    ///      server's two-level catalogue exists exactly for this.
+    ///   2. **the right order.** The costliest defect of this project is not
+    ///      a wrong operation: it is a right operation done BLINDLY.
+    ///      The tools in a row — look, search, go deeper, do —
+    ///      make it hard to skip the first.
     ///
-    /// `inspect_part` non e' un accessorio: e' il primo, e senza di lui gli
-    /// identificativi che gli altri vogliono (`F1`, `E4`, `Corpo1`) non
-    /// esistono.
+    /// `inspect_part` is not an accessory: it is the first, and without it the
+    /// identifiers the others want (`F1`, `E4`, `Corpo1`) do not
+    /// exist.
     ///
-    /// **IL QUINTO E' `undo`, ed e' arrivato dopo (voce R1).** Non e'
-    /// un'operazione di disegno, e sta fuori dal catalogo per una ragione
-    /// precisa: le operazioni si eseguono dentro `build`, cioe' dentro un
-    /// piano, e annullare un piano da dentro il piano stesso e' un nodo. Il
-    /// motivo per cui gli strumenti non sono trentotto — non esporre le
-    /// operazioni una per una — non riguarda un gesto che operazione non e'.
+    /// **THE FIFTH IS `undo`, and it came later (entry R1).** It is not
+    /// a drawing operation, and it sits outside the catalogue for a
+    /// precise reason: operations are executed inside `build`, that is inside a
+    /// plan, and undoing a plan from inside the plan itself is a knot. The
+    /// reason the tools are not thirty-eight — not exposing the
+    /// operations one by one — does not concern a gesture that is not an operation.
     ///
-    /// **Togliere una lavorazione invece SI'**, ed e' nel catalogo
-    /// (`suppress_feature`, `delete_feature`, voce R2): quelle sono
-    /// operazioni sul pezzo come tutte le altre, si scrivono dentro un piano e
-    /// hanno senso in mezzo a una sequenza. La differenza con `undo` non e'
-    /// «toglie» contro «aggiunge»: e' che `undo` disfa **un piano**, e un
-    /// piano non e' geometria.
+    /// **Removing a feature, on the other hand, YES**, and it is in the catalogue
+    /// (`suppress_feature`, `delete_feature`, entry R2): those are
+    /// operations on the part like all the others, written inside a plan and
+    /// meaningful in the middle of a sequence. The difference from `undo` is not
+    /// «removes» against «adds»: it is that `undo` undoes **a plan**, and a
+    /// plan is not geometry.
     ///
-    /// Fino alla 0.31.0 questo ponte diceva **ventuno volte** «annullalo con
-    /// Ctrl+Z» a un destinatario che non ha una tastiera.
+    /// Up to 0.31.0 this bridge said **twenty-one times** «undo it with
+    /// Ctrl+Z» to a recipient that has no keyboard.
     /// </summary>
     internal sealed class McpTools
     {
@@ -52,22 +52,22 @@ namespace Oce.Solid.Agent.Tools
         private readonly Catalog _catalog;
 
         /// <summary>
-        /// Cosa e' stato chiesto e non c'era (voce Z-G7). Non e' un log:
-        /// e' l'unico posto da cui si puo' sapere quale operazione
-        /// costruire dopo, invece di sceglierla come abbiamo scelto le
-        /// cinque senza casi di banco — a intuito.
+        /// What was asked for and was not there (entry Z-G7). It is not a log:
+        /// it is the only place from which one can know which operation to
+        /// build next, instead of choosing it as we chose the
+        /// five without bench cases — by gut feeling.
         ///
-        /// Non e' mai null: se non c'e' dove scrivere, tace da solo. Un
-        /// `if (_registro != null)` sparso in quattro punti e' il modo in
-        /// cui il quinto punto se lo dimentica.
+        /// It is never null: if there is nowhere to write, it stays silent by itself. An
+        /// `if (_registro != null)` scattered in four places is the way
+        /// the fifth place forgets it.
         /// </summary>
         private readonly QuestionRegistry _registry;
 
         public McpTools(Session session, Catalog catalog)
             : this(session, catalog, new QuestionRegistry()) { }
 
-        /// <summary>Con un registro dato: lo usano le prove, che non
-        /// vogliono scrivere accanto all'eseguibile.</summary>
+        /// <summary>With a given registry: the checks use it, as they do not
+        /// want to write next to the executable.</summary>
         public McpTools(Session session, Catalog catalog,
                         QuestionRegistry registry)
         {
@@ -265,24 +265,24 @@ namespace Oce.Solid.Agent.Tools
                             },
                         },
                         new[] { "steps" }),
-                    // Rieseguire lo stesso piano NON rimette il pezzo
-                    // com'era: fa un secondo foro. Dichiararlo idempotente
-                    // inviterebbe un client a riprovare da solo dopo un
-                    // errore di rete.
+                    // Running the same plan again does NOT put the part back
+                    // as it was: it makes a second hole. Declaring it idempotent
+                    // would invite a client to retry by itself after a
+                    // network error.
                     readOnlyMode: false, destructive: true, idempotent: false),
 
-                // MISURA E' DISEGNA SENZA IL PERMESSO DI TOCCARE.
+                // MEASURING AND DRAWING WITHOUT THE PERMISSION TO TOUCH.
                 //
-                // Non e' una comodita' ed e' l'unico modo di dire la verita' nel
-                // protocollo: le annotazioni MCP viaggiano su `tools/list`,
-                // cioe' stanno sullo STRUMENTO e partono prima che esista una
-                // chiamata. Finche' c'era solo `build`, il client leggeva
-                // «distruttivo» e chiedeva conferma anche per
-                // `mass_properties`, che non muove un millimetro cubo — e chi
-                // conferma dieci volte di fila smette di leggere cosa conferma.
-                // Non si poteva riparare dentro `build`: al momento
-                // dell'annotazione non si sa ancora quale operazione arrivera'.
-                // Serviva uno strumento in piu', e questo e' quello.
+                // It is not a convenience and it is the only way to tell the truth in the
+                // protocol: MCP annotations travel on `tools/list`,
+                // that is they sit on the TOOL and leave before any call
+                // exists. As long as there was only `build`, the client read
+                // «destructive» and asked for confirmation even for
+                // `mass_properties`, which does not move a cubic millimetre — and whoever
+                // confirms ten times in a row stops reading what they confirm.
+                // It could not be repaired inside `build`: at the time
+                // of the annotation it is not yet known which operation will arrive.
+                // One more tool was needed, and this is it.
                 Tool(
                     "measure",
                     "MISURA il pezzo senza toccarlo. Prende le stesse " +
@@ -331,10 +331,10 @@ namespace Oce.Solid.Agent.Tools
                             },
                         },
                         new[] { "steps" }),
-                    // Idempotente sul serio, e non per cortesia: misurare due
-                    // volte da' due volte la stessa risposta perche' non
-                    // cambia niente in mezzo. E' la differenza con `build`,
-                    // che al secondo giro fa un SECONDO foro.
+                    // Idempotent for real, and not out of courtesy: measuring twice
+                    // gives the same answer twice because nothing
+                    // changes in between. It is the difference from `build`,
+                    // which on the second run makes a SECOND hole.
                     readOnlyMode: true, destructive: false, idempotent: true),
 
                 Tool(
@@ -365,12 +365,12 @@ namespace Oce.Solid.Agent.Tools
                     "reads as before the plan; otherwise I say what the press took " +
                     "away and whether it came back.",
                     Object(new Dictionary<string, object>(), new string[0]),
-                    // NON e' idempotente: chiamarlo due volte non annulla due
-                    // volte lo stesso piano — la seconda toglierebbe quello
-                    // che c'era PRIMA, cioe' lavoro che questo ponte non ha
-                    // fatto. Il ricordo si cancella dopo il primo, ma
-                    // dichiararlo idempotente inviterebbe un client a
-                    // riprovare da solo dopo un errore di rete.
+                    // It is NOT idempotent: calling it twice does not undo the same plan
+                    // twice — the second would take away what
+                    // was there BEFORE, that is work this bridge did not
+                    // do. The memory is erased after the first, but
+                    // declaring it idempotent would invite a client to
+                    // retry by itself after a network error.
                     readOnlyMode: false, destructive: true, idempotent: false),
 
                 Tool(
@@ -431,12 +431,12 @@ namespace Oce.Solid.Agent.Tools
                             },
                         },
                         new[] { "action" }),
-                    // NON e' di sola lettura: «create», «open», «activate» e
-                    // «close» cambiano il documento davanti. NON e' distruttivo:
-                    // «close» rifiuta un documento con modifiche non salvate,
-                    // quindi chiude solo cio' che e' gia' tutto su disco, e non
-                    // butta niente. NON e' idempotente: «create» due volte fa due
-                    // documenti. Still true for hidden documents (Z-C21.13 N11):
+                    // It is NOT read-only: «create», «open», «activate» and
+                    // «close» change the document in front. It is NOT destructive:
+                    // «close» refuses a document with unsaved changes,
+                    // so it closes only what is already all on disk, and
+                    // throws nothing away. It is NOT idempotent: «create» twice makes two
+                    // documents. Still true for hidden documents (Z-C21.13 N11):
                     // a close that would take hidden documents with unsaved
                     // changes is refused.
                     readOnlyMode: false, destructive: false, idempotent: false),
@@ -592,14 +592,14 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Lo strumento «document» (voci Z-B1, Z-B2, Z-B5, Z-B6).
+        /// The «document» tool (entries Z-B1, Z-B2, Z-B5, Z-B6).
         ///
-        /// Tutto il lavoro sta in `Bridge/Documents.cs`; qui c'e' la parte che
-        /// solo il ponte sa fare: quando il documento davanti cambia, quello
-        /// che era stato guardato non vale piu', e le firme con lui. E' la
-        /// regola di Z-A1 — i tre campi che parlano dello stesso pezzo si
-        /// buttano insieme — applicata al punto in cui il ponte stesso cambia
-        /// documento. La voce Z-B6 lo aveva scritto prima che esistesse.
+        /// All the work is in `Bridge/Documents.cs`; here is the part that
+        /// only the bridge can do: when the document in front changes, what
+        /// had been looked at no longer holds, and neither do the signatures. It is the
+        /// rule of Z-A1 — the three fields that speak of the same part are
+        /// thrown away together — applied at the point where the bridge itself changes
+        /// document. Entry Z-B6 had written it before it existed.
         /// </summary>
         private Dictionary<string, object> Document(Dictionary<string, object> arguments)
         {
@@ -639,8 +639,8 @@ namespace Oce.Solid.Agent.Tools
                 {
                     var closed = _session.CloseDocument(TextOf(arguments, "path"), out error);
                     if (closed == null) return Protocol.Content(error, true);
-                    // Il documento guardato potrebbe essere proprio quello chiuso:
-                    // si butta lo sguardo come per ogni cambio di documento.
+                    // The document looked at might be the very one that was closed:
+                    // the look is thrown away as for every document change.
                     _seen = null;
                     _signatureSeen = null;
                     _seenSignatures = null;
@@ -657,10 +657,10 @@ namespace Oce.Solid.Agent.Tools
             }
             if (card == null) return Protocol.Content(error, true);
 
-            // IL DOCUMENTO DAVANTI E' CAMBIATO (o potrebbe esserlo): quello che
-            // era stato guardato e le sue firme si buttano INSIEME. «build» a
-            // questo punto risponde «non ho ancora guardato nessun pezzo», che
-            // e' la verita'.
+            // THE DOCUMENT IN FRONT HAS CHANGED (or might have): what
+            // had been looked at and its signatures are thrown away TOGETHER. «build» at
+            // this point answers «non ho ancora guardato nessun pezzo», which
+            // is the truth.
             _seen = null;
             _signatureSeen = null;
             _seenSignatures = null;
@@ -679,20 +679,20 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Il filo dell'avanzamento della chiamata in corso (voce W2.2).
+        /// The progress thread of the call in progress (entry W2.2).
         ///
-        /// Non e' mai null: spento quando il client non ha messo un gettone.
-        /// Cosi' i punti che lo usano non hanno un `if` ciascuno.
+        /// It is never null: switched off when the client did not send a token.
+        /// This way the places that use it do not each have an `if`.
         /// </summary>
         private Mcp.Progress.Wire _wire = new Mcp.Progress.Wire(null);
 
         public Dictionary<string, object> Invoke(
             string itemName, Dictionary<string, object> arguments, object token = null)
         {
-            // UN FILO NUOVO A OGNI CHIAMATA. Il contatore di `progress` deve
-            // crescere DENTRO una richiesta; fra richieste diverse ricomincia,
-            // e tenerne uno solo vorrebbe dire che la seconda chiamata parte
-            // da dove era arrivata la prima.
+            // A NEW THREAD FOR EVERY CALL. The `progress` counter must
+            // grow INSIDE a request; between different requests it starts again,
+            // and keeping a single one would mean that the second call starts
+            // from where the first one got to.
             _wire = new Mcp.Progress.Wire(token);
 
             // THE NAMES OF BEFORE W3.1-bis.5 (Oce.Solid.Agent.Core/Alias.cs,
@@ -761,19 +761,19 @@ namespace Oce.Solid.Agent.Tools
                 case "api_search": return ApiSearch(arguments);
                 case "api_signature": return ApiSignature(arguments);
                 default:
-                    // E PRIMA DI RISPONDERE, SI SCRIVE (voce Z-G7): questo
-                    // e' il punto che sapeva e taceva.
+                    // AND BEFORE ANSWERING, WE WRITE (entry Z-G7): this
+                    // is the point that knew and kept quiet.
                     _registry.ToolThatDoesNotExist(itemName);
 
-                    // SI DICE QUALI CI SONO, non solo che questo non c'e'.
+                    // WE SAY WHICH ONES EXIST, not just that this one does not.
                     //
-                    // Un modello che ha sbagliato nome non ha modo di
-                    // correggersi leggendo «non conosco x»: puo' solo
-                    // riprovare a indovinare, ed e' il modo in cui si finisce
-                    // per chiamare tre volte la stessa cosa sbagliata. I nomi
-                    // sono sette: stanno in una riga, e costano meno di un giro
-                    // in piu'. E' la stessa regola dei rifiuti delle
-                    // operazioni — il criterio, non il verdetto.
+                    // A model that got the name wrong has no way to
+                    // correct itself by reading «non conosco x»: it can only
+                    // try guessing again, and that is how one ends up
+                    // calling the same wrong thing three times. The names
+                    // are seven: they fit in one line, and cost less than one more
+                    // run. It is the same rule as the refusals of the
+                    // operations — the criterion, not the verdict.
                     return Protocol.Content(
                         "Non conosco lo strumento «" + itemName + "». Ci sono " +
                         "questi: " + string.Join(", ", ToolNames) + ". " +
@@ -786,99 +786,99 @@ namespace Oce.Solid.Agent.Tools
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// L'ultimo documento che «inspect_part» ha descritto.
+        /// The last document that «inspect_part» described.
         ///
-        /// Non e' un ricordo di comodo: e' il contratto fra i due strumenti.
-        /// Un piano nasce guardando UN documento, e va eseguito su QUELLO.
+        /// It is not a convenience memory: it is the contract between the two tools.
+        /// A plan is born by looking at ONE document, and must be executed on THAT one.
         /// </summary>
         private Dictionary<string, object> _seen;
 
         /// <summary>
-        /// COM'ERA FATTO IL PEZZO quando «inspect_part» l'ha guardato
-        /// (voce X2) — non QUALE pezzo era, che e' `_guardato`.
+        /// HOW THE PART WAS MADE when «inspect_part» looked at it
+        /// (entry X2) — not WHICH part it was, which is `_guardato`.
         ///
-        /// ── DUE DOMANDE CHE SEMBRANO UNA ─────────────────────────────
+        /// ── TWO QUESTIONS THAT LOOK LIKE ONE ─────────────────────────
         ///
-        /// «E' lo stesso documento?» e «e' ancora lo stesso pezzo?» hanno
-        /// risposte diverse, e finora se ne guardava una sola. Titolo e
-        /// percorso combaciano benissimo mentre qualcuno, nel frattempo, ha
-        /// tirato una quota a mano nella finestra di SOLIDWORKS: il
-        /// documento e' quello, il pezzo no.
+        /// «Is it the same document?» and «is it still the same part?» have
+        /// different answers, and so far only one was looked at. Title and
+        /// path match perfectly while someone, in the meantime, has
+        /// pulled a dimension by hand in the SOLIDWORKS window: the
+        /// document is the same, the part is not.
         ///
-        /// Conta perche' **gli uid delle facce sono posizionali**. Un piano
-        /// nasce da una lettura e i suoi `F1`, `F2` parlano di quel momento;
-        /// se la geometria e' cambiata, «F1» indica un'altra faccia e
-        /// l'operazione riesce sul posto sbagliato — che e' il difetto gia'
-        /// misurato il 14 settembre con le due tasche, tutte e due
+        /// It matters because **the face uids are positional**. A plan
+        /// is born from a reading and its `F1`, `F2` speak of that moment;
+        /// if the geometry has changed, «F1» points to another face and
+        /// the operation succeeds in the wrong place — which is the defect already
+        /// measured on 14 September with the two pockets, both
         /// «succeeded: true».
         ///
-        /// ── COSA CI SI METTE, E PERCHE' SOLO QUESTO ──────────────────
+        /// ── WHAT GOES IN, AND WHY ONLY THIS ──────────────────────────
         ///
-        /// Volume, numero di lavorazioni, data di scrittura del file. Tre
-        /// cose **gia' tutte in mano**: non costano una lettura in piu' e
-        /// non chiedono niente a SOLIDWORKS che non sia gia' stato chiesto.
-        /// Non e' un'impronta forte e non vuole esserlo — *un confronto che
-        /// costa quanto la cosa che protegge non lo fa nessuno.*
+        /// Volume, number of features, write date of the file. Three
+        /// things **already all in hand**: they cost no extra reading and
+        /// ask SOLIDWORKS for nothing that has not already been asked.
+        /// It is not a strong fingerprint and does not want to be — *a comparison that
+        /// costs as much as the thing it protects is done by nobody.*
         ///
-        /// **Cosa NON prende, detto qui invece che scoperto:** una modifica
-        /// che lascia il volume identico e non tocca il conto delle
-        /// lavorazioni — spostare un foro senza cambiarne il diametro, per
-        /// dire. Quella passa, e per prenderla servirebbe un'impronta della
-        /// geometria che questa non e'.
+        /// **What it does NOT catch, said here instead of discovered:** a change
+        /// that leaves the volume identical and does not touch the count of
+        /// features — moving a hole without changing its diameter, say.
+        /// That one passes, and to catch it a fingerprint of the
+        /// geometry would be needed, which this is not.
         /// </summary>
         private Dictionary<string, object> _signatureSeen;
 
         /// <summary>
-        /// Com'erano fatte le entita' quando «inspect_part» le ha
-        /// descritte: uid -> punto, normale, area, lunghezza.
+        /// How the entities were made when «inspect_part» described
+        /// them: uid -> point, normal, area, length.
         ///
-        /// GLI UID SONO POSIZIONALI. L'add-in li riassegna a ogni lettura
-        /// ordinando le facce per area, quindi basta un passo che cambia
-        /// il pezzo perche' «F1» indichi un'altra faccia. Un piano pero'
-        /// nasce da UNA lettura: i suoi uid parlano di quel momento li'.
+        /// THE UIDS ARE POSITIONAL. The add-in reassigns them at every reading
+        /// by ordering the faces by area, so one step that changes
+        /// the part is enough for «F1» to point to another face. A plan, however, is
+        /// born from ONE reading: its uids speak of that moment.
         ///
-        /// MISURATO il 14 settembre 2026, tre passi in una sola chiamata a
-        /// «build» su un blocco 200x100x20:
-        ///   1. estrudi il blocco          -> F1 = faccia di sopra, 20.000 mm2
-        ///   2. tasca Ø60 profonda 5 su F1 -> la faccia di sopra scende a
-        ///      17.172,57 mm2 e passa DIETRO a quella di sotto nell'ordine
-        ///   3. tasca Ø10 profonda 5 su F1 -> «F1» adesso e' quella di SOTTO
-        /// Tutti e tre i passi hanno risposto «succeeded: true». La tasca
-        /// piccola e' finita sulla faccia sbagliata, le profondita' erano
-        /// quelle chieste, e il volume tornava: 385.470,1 mm3, esatto. Non
-        /// c'era niente, in quella risposta, che facesse sospettare.
+        /// MEASURED on 14 September 2026, three steps in a single call to
+        /// «build» on a 200x100x20 block:
+        ///   1. extrude the block          -> F1 = top face, 20,000 mm2
+        ///   2. Ø60 pocket 5 deep on F1    -> the top face drops to
+        ///      17,172.57 mm2 and goes BEHIND the bottom one in the order
+        ///   3. Ø10 pocket 5 deep on F1    -> «F1» is now the BOTTOM one
+        /// All three steps answered «succeeded: true». The small
+        /// pocket ended up on the wrong face, the depths were
+        /// the ones asked for, and the volume added up: 385,470.1 mm3, exact. There
+        /// was nothing, in that answer, to raise suspicion.
         ///
-        /// L'add-in sa gia' difendersi: legge «_signatures» dagli argomenti e
-        /// confronta. Ma quella chiave la scriveva solo il server di
-        /// OpenPDM, e qui non la scriveva nessuno — quindi il confronto
-        /// non aveva termini e passava sempre. Questo campo e' il termine
-        /// che mancava.
+        /// The add-in already knows how to defend itself: it reads «_signatures» from the arguments and
+        /// compares. But that key was written only by the OpenPDM
+        /// server, and here nobody wrote it — so the comparison
+        /// had no terms and always passed. This field is the term
+        /// that was missing.
         /// </summary>
         private Dictionary<string, object> _seenSignatures;
 
         /// <summary>
-        /// L'ultimo piano eseguito, il documento su cui e' andato, e com'era il
-        /// documento subito dopo (voce W2.7).
+        /// The last plan executed, the document it went on, and how the
+        /// document was right after (entry W2.7).
         ///
-        /// Servono tutti e tre INSIEME: il piano da solo non distingue un
-        /// rinvio da una ripetizione voluta su un documento diverso, e lo stato
-        /// da solo non dice niente su cosa si stia richiedendo.
+        /// All three are needed TOGETHER: the plan alone does not tell a
+        /// resend from a deliberate repetition on a different document, and the state
+        /// alone says nothing about what is being asked for.
         /// </summary>
         private string _lastPlanDone;
         private Dictionary<string, object> _planDocument;
         private string _summaryAfterPlan;
 
         /// <summary>
-        /// Quante viste al massimo in una sola risposta.
+        /// How many views at most in a single answer.
         ///
-        /// Tre bastano a definire una forma — isometrica piu' due — e sono
-        /// gia' tre volte il costo dello stato scritto. Nove (tutte quelle
-        /// che esistono) sarebbero un ordine di grandezza in piu' per un
-        /// pezzo, e nessuno le guarderebbe tutte.
+        /// Three are enough to define a shape — isometric plus two — and are
+        /// already three times the cost of the written state. Nine (all those
+        /// that exist) would be an order of magnitude more for one
+        /// part, and nobody would look at them all.
         /// </summary>
         private const int MaximumViews = 3;
 
-        /// <summary>Larghezza e altezza del fotogramma.</summary>
+        /// <summary>Width and height of the frame.</summary>
         private const int ViewWidth = 1024;
         private const int ViewHeight = 768;
 
@@ -895,36 +895,36 @@ namespace Oce.Solid.Agent.Tools
             var requestedItems = RequestedViews(arguments);
             var section = Take(arguments, "section") as Dictionary<string, object>;
             if (requestedItems.Count == 0 && section == null)
-                // Il testo per chi legge, i dati per chi li deve usare (W2.4).
+                // The text for whoever reads, the data for whoever has to use them (W2.4).
                 return Protocol.ContentWithData(Protocol.InJson(docState), docState);
 
-            // LO STATO ESCE COMUNQUE, anche se nessuna fotografia riesce.
-            // Un `inspect_part` che fallisce perche' non si e' potuto
-            // scattare toglierebbe a chi legge anche l'elenco delle facce —
-            // cioe' l'unica cosa che gli serviva davvero. I motivi delle
-            // fotografie mancate si dicono nel testo, accanto allo stato.
+            // THE STATE COMES OUT ANYWAY, even if no photograph succeeds.
+            // An `inspect_part` that fails because a shot could not
+            // be taken would take from the reader also the list of faces —
+            // that is the only thing they really needed. The reasons for the
+            // missed photographs are said in the text, next to the state.
             var images = new List<KeyValuePair<string, byte[]>>();
             var missed = new List<string>();
             var succeeded = new List<string>();
 
             foreach (var which in requestedItems)
             {
-                // LO STESSO DOCUMENTO DELLO STATO, PRIMA DI OGNI SCATTO.
+                // THE SAME DOCUMENT AS THE STATE, BEFORE EVERY SHOT.
                 //
-                // `State` e `Snapshot` chiedono a SOLIDWORKS qual e' il
-                // documento davanti, ognuna per conto suo: fra le due
-                // chiamate basta che chi lavora porti avanti un'altra
-                // finestra e il ponte risponde con la fotografia di un pezzo
-                // e le misure di un altro. Nessun errore, nessun avviso,
-                // un'immagine che contraddice l'elenco accanto a cui sta.
+                // `State` and `Snapshot` ask SOLIDWORKS which is the
+                // document in front, each on its own: between the two
+                // calls it is enough for the person working to bring another
+                // window forward and the bridge answers with the photograph of one part
+                // and the measures of another. No error, no warning,
+                // an image that contradicts the list next to which it sits.
                 //
-                // E' esattamente il difetto costato «Parte4» l'11 settembre,
-                // rifatto nella forma piu' pura: due letture di `ActiveDoc`
-                // trattate come se fossero una sola.
+                // It is exactly the defect that cost «Parte4» on 11 September,
+                // redone in its purest form: two readings of `ActiveDoc`
+                // treated as if they were one.
                 //
-                // Si controlla A OGNI GIRO e non una volta sola: tre viste
-                // sono tre ridisegni e un paio di secondi, e la finestra
-                // puo' cambiare durante.
+                // It is checked AT EVERY ROUND and not just once: three views
+                // are three redraws and a couple of seconds, and the window
+                // may change during that time.
                 var now = _session.Identity(_session.ActiveDocument());
                 if (!Session.SameDocument(_seen, now))
                 {
@@ -949,10 +949,10 @@ namespace Oce.Solid.Agent.Tools
                 }
             }
 
-            // ── LO SPACCATO, se lo hanno chiesto (voce V4) ───────────────
+            // ── THE CUTAWAY, if they asked for it (entry V4) ────────────
             //
-            // Viene DOPO le viste esterne e prima del testo: nell'ordine in cui
-            // si guarda un pezzo, prima da fuori e poi dentro.
+            // It comes AFTER the external views and before the text: in the order in which
+            // a part is looked at, first from outside and then inside.
             if (section != null)
             {
                 var nowSec = _session.Identity(_session.ActiveDocument());
@@ -972,22 +972,22 @@ namespace Oce.Solid.Agent.Tools
                                   System.Globalization.CultureInfo.InvariantCulture); }
                         catch { }
 
-                    // UNA SEZIONE SI GUARDA DI FRONTE, e non e' una preferenza.
+                    // A SECTION IS LOOKED AT HEAD-ON, and it is not a preference.
                     //
-                    // Il primo giro la fotografava nell'orientamento corrente,
-                    // cioe' in isometrica. Misurato: un modello a cui e' stata
-                    // data quella immagine ha letto la parete «6 volte
-                    // nell'altezza» e il fondo «8», quando il vero e' **12,5**
-                    // per tutti e due — sbagliato del 40-50%.
+                    // The first run photographed it in the current orientation,
+                    // that is isometric. Measured: a model that was
+                    // given that image read the wall «6 times
+                    // the height» and the bottom «8», when the truth is **12.5**
+                    // for both — wrong by 40-50%.
                     //
-                    // Non era colpa sua: in isometrica uno spessore sottile e'
-                    // scorciato, e sembra piu' grosso di quello che e'. Guardata
-                    // perpendicolarmente al piano di taglio, la sezione e' in
-                    // scala vera nelle due direzioni che contano.
+                    // It was not its fault: in isometric a thin thickness is
+                    // foreshortened, and looks thicker than it is. Looked at
+                    // perpendicular to the cutting plane, the section is true
+                    // to scale in the two directions that matter.
                     //
-                    // La vista si ricava dal piano, e non si chiede: chi chiede
-                    // uno spaccato sul piano destro vuole guardarlo da destra.
-                    // Poterla scegliere sarebbe un modo in piu' di sbagliare.
+                    // The view is derived from the plane, and is not asked for: whoever asks for
+                    // a cutaway on the right plane wants to look at it from the right.
+                    // Being able to choose it would be one more way to get it wrong.
                     var png = _session.Cutaway(
                         ViewFacing(plane), plane, offset,
                         ViewWidth, ViewHeight, out var why);
@@ -1007,32 +1007,32 @@ namespace Oce.Solid.Agent.Tools
             var text = new StringBuilder();
             if (succeeded.Count > 0)
             {
-                // LA DIDASCALIA PRIMA DELLE IMMAGINI, E NELL'ORDINE.
-                // Le immagini arrivano senza nome: sapere che la prima e'
-                // l'isometrica e la seconda la frontale e' la differenza fra
-                // una vista e un indovinello.
+                // THE CAPTION BEFORE THE IMAGES, AND IN ORDER.
+                // The images arrive without a name: knowing that the first is
+                // the isometric and the second the front one is the difference between
+                // a view and a riddle.
                 text.Append(succeeded.Count == 1
                     ? "Qui sotto la vista " + succeeded[0] + " del pezzo."
                     : "Qui sotto " + succeeded.Count + " viste del pezzo, in " +
                       "quest'ordine: " + string.Join(", ", succeeded) + ".");
-                // ── UN NUMERO LETTO DA UN'IMMAGINE NON E' AUTOREVOLE ──────
+                // ── A NUMBER READ FROM AN IMAGE IS NOT AUTHORITATIVE ───────
                 //
-                // La didascalia diceva gia' dove stanno le misure. Non
-                // diceva la cosa che conta: che leggerle DALLA FOTOGRAFIA
-                // sbaglia, e di quanto. Su questo progetto e' successo due
-                // volte, misurato tutt'e due:
+                // The caption already said where the measures are. It did not
+                // say the thing that matters: that reading them FROM THE PHOTOGRAPH
+                // gets them wrong, and by how much. On this project it has happened twice,
+                // measured both times:
                 //
-                //   - una corona di fori **90 letta 79** dalla sola
-                //     isometrica, con confidenza piena;
-                //   - una parete di **12,5 letta «6»** e un fondo di 12,5
-                //     letto «8», sbagliati del 40-50%, perche' in
-                //     isometrica uno spessore sottile e' scorciato.
+                //   - a crown of holes **90 read as 79** from the isometric
+                //     alone, with full confidence;
+                //   - a wall of **12.5 read as «6»** and a bottom of 12.5
+                //     read as «8», wrong by 40-50%, because in
+                //     isometric a thin thickness is foreshortened.
                 //
-                // Nessuno dei due errori si accorge di se': il numero che
-                // esce e' plausibile, e viene usato per il passo dopo.
-                // **Dire "le misure sono nello stato" non basta** — va
-                // detto che quelle dell'immagine sono SBAGLIATE, e come si
-                // prende quella vera (voce Z-C10).
+                // Neither error notices itself: the number that
+                // comes out is plausible, and is used for the next step.
+                // **Saying "the measures are in the state" is not enough** — it must be
+                // said that those of the image are WRONG, and how to get
+                // the true one (entry Z-C10).
                 text.Append(" Le fotografie mostrano la FORMA. **I numeri " +
                              "letti da un'immagine non sono autorevoli**: su " +
                              "queste stesse viste un diametro di 90 e' stato " +
@@ -1054,27 +1054,27 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Quali viste ha chiesto chi legge: nomi veri, senza doppioni, al
-        /// massimo <see cref="MaximumViews"/>.
+        /// Which views the reader asked for: real names, without duplicates, at
+        /// most <see cref="MaximumViews"/>.
         ///
-        /// UN NOME SBAGLIATO NON SI SCARTA IN SILENZIO: arriva a
-        /// `PartView.Fire`, che risponde con l'elenco di quelli veri.
-        /// Scartarlo qui vorrebbe dire rispondere «ecco il pezzo» a chi ha
-        /// chiesto una vista che non ha mai avuto — e non capirebbe perche'
-        /// manca.
+        /// A WRONG NAME IS NOT DISCARDED IN SILENCE: it arrives at
+        /// `PartView.Fire`, which answers with the list of the real ones.
+        /// Discarding it here would mean answering «here is the part» to someone who
+        /// asked for a view it never had — and they would not understand why
+        /// it is missing.
         /// </summary>
         private static List<string> RequestedViews(Dictionary<string, object> arguments)
         {
-            // `Strings` C'ERA GIA', e fa esattamente la cosa difficile: una
-            // stringa e' un `IEnumerable` **di caratteri**, quindi
-            // `views: "isometric"` — l'errore piu' naturale del mondo, e lo
-            // schema chiede un elenco — scorso come sequenza darebbe tre viste
-            // che si chiamano «i», «s», «o». Tre rifiuti incomprensibili al
-            // posto della fotografia chiesta.
+            // `Strings` WAS ALREADY THERE, and does exactly the hard thing: a
+            // string is an `IEnumerable` **of characters**, so
+            // `views: "isometric"` — the most natural error in the world, and the
+            // schema asks for a list — scanned as a sequence would give three views
+            // called «i», «s», «o». Three incomprehensible refusals in
+            // place of the photograph asked for.
             //
-            // Scriverne una seconda copia qui sarebbe stato il difetto che
-            // questo progetto ha visto tre volte oggi: la regola giusta gia'
-            // scritta da un'altra parte, e una riga nuova che non la fa.
+            // Writing a second copy of it here would have been the defect that
+            // this project has seen three times today: the right rule already
+            // written elsewhere, and a new line that does not follow it.
             var outside = new List<string>();
             foreach (var x in Strings(Take(arguments, "views")))
             {
@@ -1088,13 +1088,13 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// La vista da cui si guarda uno spaccato: quella perpendicolare al
-        /// piano di taglio.
+        /// The view from which a cutaway is looked at: the one perpendicular to the
+        /// cutting plane.
         ///
-        /// Null per un piano che non si conosce — e allora si scatta
-        /// nell'orientamento corrente, che e' meglio di niente: il rifiuto per
-        /// il nome sbagliato lo fa `CaptureInSection`, che conosce i piani veri,
-        /// e farlo anche qui vorrebbe dire scrivere due volte lo stesso elenco.
+        /// Null for a plane that is not known — and then the shot is taken in the
+        /// current orientation, which is better than nothing: the refusal for
+        /// the wrong name is done by `CaptureInSection`, which knows the real planes,
+        /// and doing it here too would mean writing the same list twice.
         /// </summary>
         private static string ViewFacing(string plane)
         {
@@ -1108,9 +1108,9 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// I nomi come vettore, che e' la forma che JSON Schema vuole per
-        /// `enum`: un `IEnumerable&lt;string&gt;` serializzato diventa
-        /// un oggetto, non un elenco.
+        /// The names as an array, which is the form JSON Schema wants for
+        /// `enum`: a serialized `IEnumerable&lt;string&gt;` becomes
+        /// an object, not a list.
         /// </summary>
         private static string[] Names(IEnumerable<string> names)
         {
@@ -1118,28 +1118,28 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// L'ANCORA NON SI MANDA A CHI LEGGE, e non e' per risparmiare posto —
-        /// anche se ne risparmia.
+        /// THE ANCHOR IS NOT SENT TO THE READER, and it is not to save space —
+        /// even though it does save some.
         ///
-        /// `point_mm` e `anchor` fanno due mestieri diversi e hanno due
-        /// destinatari diversi:
+        /// `point_mm` and `anchor` do two different jobs and have two different
+        /// recipients:
         ///
-        ///   * `point_mm` serve a **selezionare**: e' un punto garantito sulla
-        ///     faccia, e chi legge lo usa per dire dove lavorare;
-        ///   * `anchor` serve a **riconoscere**: e' il baricentro d'area, che
-        ///     non sta necessariamente sulla faccia (quello di una faccia a
-        ///     ferro di cavallo cade nel vuoto) e non si puo' usare per
-        ///     selezionare niente.
+        ///   * `point_mm` serves to **select**: it is a point guaranteed to be on the
+        ///     face, and the reader uses it to say where to work;
+        ///   * `anchor` serves to **recognise**: it is the area centroid, which
+        ///     is not necessarily on the face (that of a horseshoe-shaped
+        ///     face falls in the void) and cannot be used to
+        ///     select anything.
         ///
-        /// Mandarli tutti e due vorrebbe dire offrire due punti a chi ne deve
-        /// usare uno, e la scelta sbagliata non darebbe errore: darebbe un foro
-        /// fuori dal materiale.
+        /// Sending both would mean offering two points to someone who must
+        /// use one, and the wrong choice would give no error: it would give a hole
+        /// outside the material.
         ///
-        /// E il posto conta lo stesso: su un telaio da quattro barre l'ancora
-        /// su sessanta facce sono **1.400 caratteri**, e lo stato passava da
-        /// 15.700 a 17.171 — oltre il tetto dei 16 KB che il banco sorveglia.
+        /// And space matters all the same: on a four-bar frame the anchor
+        /// on sixty faces is **1,400 characters**, and the state went from
+        /// 15,700 to 17,171 — over the 16 KB ceiling the bench watches.
         ///
-        /// Si toglie DOPO aver costruito le firme, che se la portano dietro.
+        /// It is removed AFTER building the signatures, which carry it along.
         /// </summary>
         private static void RemoveAnchors(Dictionary<string, object> docState)
         {
@@ -1152,23 +1152,23 @@ namespace Oce.Solid.Agent.Tools
                 var entry = v as Dictionary<string, object>;
                 if (entry == null) continue;
                 entry.Remove("anchor");
-                // IL PERSIST ID SI TOGLIE PER DUE RAGIONI, e la seconda basta
-                // da sola. Non e' leggibile — e' un blob opaco, e chi legge non
-                // ci puo' fare niente. E pesa: 375-423 byte per faccia, cioe'
-                // ~530 caratteri in base64, che su sessanta facce sono ~32 KB,
-                // il DOPPIO dell'intero tetto dello stato.
+                // THE PERSIST ID IS REMOVED FOR TWO REASONS, and the second is enough
+                // on its own. It is not readable — it is an opaque blob, and the reader cannot
+                // do anything with it. And it weighs: 375-423 bytes per face, that is
+                // ~530 characters in base64, which on sixty faces is ~32 KB,
+                // DOUBLE the whole ceiling of the state.
                 entry.Remove("persist_id");
             }
         }
 
         /// <summary>
-        /// Cosa basta per riconoscere la stessa entita' fra due letture.
+        /// What is enough to recognise the same entity between two readings.
         ///
-        /// Gli stessi quattro campi che usa il server di OpenPDM, cosi' le
-        /// due strade dicono la stessa cosa all'add-in. Chi confronta
-        /// davvero e' lui, e guarda punto e normale: l'area di una faccia
-        /// cambia in modo legittimo — ci si fa un foro — mentre
-        /// l'orientamento no.
+        /// The same four fields the OpenPDM server uses, so the
+        /// two paths say the same thing to the add-in. The one that really
+        /// compares is the add-in, and it looks at point and normal: the area of a face
+        /// changes legitimately — a hole is made in it — while the
+        /// orientation does not.
         /// </summary>
         private static Dictionary<string, object> StateSignatures(
             Dictionary<string, object> docState)
@@ -1176,31 +1176,31 @@ namespace Oce.Solid.Agent.Tools
             if (docState == null) return null;
             var outside = new Dictionary<string, object>();
 
-            // LA SCATOLA DEL PEZZO, la stessa per tutte le entita'.
+            // THE PART'S BOX, the same for all the entities.
             //
-            // Sta nella firma di ognuna e non una volta sola in fondo perche'
-            // `_signatures` e' una mappa uid -> firma, e chi la legge cerca per uid:
-            // una chiave che uid non e' sarebbe un caso speciale da ricordarsi
-            // in tre posti. Sei numeri per entita' in un allegato che porta gia'
-            // ~530 caratteri di persist ID a faccia non si notano.
+            // It sits in the signature of each one and not once at the bottom because
+            // `_signatures` is a uid -> signature map, and whoever reads it looks up by uid:
+            // a key that is not a uid would be a special case to remember
+            // in three places. Six numbers per entity in an attachment that already carries
+            // ~530 characters of persist ID per face go unnoticed.
             //
-            // SERVE SOLO A SCRIVERE UNA FRASE (voce E10): dove stava la faccia
-            // rispetto al pezzo, quando il pezzo e' cambiato. Il motivo per cui
-            // non puo' diventare un criterio di identita' sta per esteso in
+            // IT SERVES ONLY TO WRITE A SENTENCE (entry E10): where the face was
+            // relative to the part, when the part has changed. The reason it
+            // cannot become an identity criterion is set out at length in
             // `Oce.Solid.Agent.Core/Sentences.cs`.
             double[] partBoxValue = PartBox(docState);
 
-            // I CORPI SONO ENTITA' COME LE ALTRE: per un saldato sono LE
-            // entita', e «tappa le estremita' di C1» nomina corpi.
+            // THE BODIES ARE ENTITIES LIKE THE OTHERS: for a welded part they are THE
+            // entities, and «cap the ends of C1» names bodies.
             foreach (var family in new[] { "faces", "edges", "feature", "axes", "bodies" })
             {
-                // SI SCORRE COME IEnumerable, NON SI CASTA A object[].
-                // Lo stato arriva dall'add-in con i suoi tipi veri, e la' le
-                // famiglie sono List<Dictionary<string, object>>: un
-                // «as object[]» torna null in silenzio, e il 14 settembre 2026
-                // questo controllo e' rimasto spento per quello. Passando da
-                // IEnumerable va bene tutte e due le forme, anche quella che
-                // arriva da un JSON.
+                // IT IS SCANNED AS IEnumerable, NOT CAST TO object[].
+                // The state arrives from the add-in with its real types, and there the
+                // families are List<Dictionary<string, object>>: an
+                // «as object[]» returns null in silence, and on 14 September 2026
+                // this check stayed switched off because of that. Going through
+                // IEnumerable both forms are fine, even the one that
+                // comes from a JSON.
                 var entries = (docState.TryGetValue(family, out var g) ? g : null)
                            as System.Collections.IEnumerable;
                 if (entries == null) continue;
@@ -1210,53 +1210,53 @@ namespace Oce.Solid.Agent.Tools
                     if (entry == null || !entry.TryGetValue("uid", out var uid) || uid == null)
                         continue;
                     var signature = new Dictionary<string, object>();
-                    // `feature` e `feature_id` servono alla
-                    // corroborazione del ritrovamento (voce E3): senza, una
-                    // faccia di un'altra lavorazione finita nello stesso posto
-                    // e' indistinguibile da quella che si cercava.
-                    // `center_mm` e `bounding_box_mm` sono la firma dei CORPI, e
-                    // fino alla 0.24.0 non venivano copiati: per «C1» la firma
-                    // usciva vuota, `SignatureMatches` non aveva niente da
-                    // confrontare e rispondeva sempre di si'. I corpi erano
-                    // controllati per ESISTENZA e non per IDENTITA'.
+                    // `feature` and `feature_id` serve the
+                    // corroboration of the finding (entry E3): without them, a
+                    // face of another feature that ended up in the same place
+                    // is indistinguishable from the one being looked for.
+                    // `center_mm` and `bounding_box_mm` are the signature of the BODIES, and
+                    // up to 0.24.0 they were not copied: for «C1» the signature
+                    // came out empty, `SignatureMatches` had nothing to
+                    // compare and always answered yes. The bodies were
+                    // checked for EXISTENCE and not for IDENTITY.
                     foreach (var theField in new[]
                              {
                                  "point_mm", "normal", "area_mm2", "length_mm",
                                  "feature_id", "center_mm", "bounding_box_mm", "anchor",
                                  "feature_id",
-                                 // LA DIREZIONE DI UN ASSE (voce E4): senza, la
-                                 // firma dell'asse avrebbe solo un punto, e un asse
-                                 // girato attorno a quel punto passerebbe.
+                                 // THE DIRECTION OF AN AXIS (entry E4): without it, the
+                                 // signature of the axis would have only a point, and an axis
+                                 // turned around that point would pass.
                                  "direction",
-                                 // IL PERSIST ID VIAGGIA QUI E SOLO QUI.
-                                 // E' il CANDIDATO del ritrovamento (voce E6):
-                                 // ~530 caratteri in base64 per faccia, che
-                                 // nello stato sarebbero ~32 KB su sessanta
-                                 // facce — il doppio del tetto. La firma non va
-                                 // a nessun modello, e' un allegato interno al
-                                 // passo, e li' il posto non e' un problema.
+                                 // THE PERSIST ID TRAVELS HERE AND ONLY HERE.
+                                 // It is the CANDIDATE of the finding (entry E6):
+                                 // ~530 characters in base64 per face, which
+                                 // in the state would be ~32 KB on sixty
+                                 // faces — double the ceiling. The signature does not go
+                                 // to any model, it is an attachment internal to the
+                                 // step, and there space is not a problem.
                                  "persist_id",
                              })
                         if (entry.TryGetValue(theField, out var x) && x != null)
                             signature[theField] = x;
 
-                    // IL NOME DELLA LAVORAZIONE SI RISOLVE QUI.
+                    // THE FEATURE'S NAME IS RESOLVED HERE.
                     //
-                    // Lo stato lo scrive una volta sola, in una mappa in fondo,
-                    // perche' ripeterlo su sessanta facce faceva sforare il
-                    // tetto dei 16 KB. La firma invece se lo porta esteso: non
-                    // va a nessun modello — e' un allegato interno al passo — e
-                    // serve a scrivere un rifiuto che nomina la lavorazione
-                    // attesa invece di darne il numero.
+                    // The state writes it only once, in a map at the bottom,
+                    // because repeating it on sixty faces made the 16 KB ceiling
+                    // overflow. The signature instead carries it in full: it does not
+                    // go to any model — it is an attachment internal to the step — and
+                    // it serves to write a refusal that names the expected
+                    // feature instead of giving its number.
                     if (signature.TryGetValue("feature_id", out var featId) && featId != null)
                     {
                         var itemName = FeatureName(docState, featId);
                         if (itemName != null) signature["feature"] = itemName;
                     }
-                    // DOPO il conteggio di sopra, mai prima: una firma che
-                    // avesse SOLO la scatola del pezzo non direbbe niente di
-                    // quell'entita', e finirebbe lo stesso in `_signatures` facendo
-                    // credere che una firma ci sia.
+                    // AFTER the count above, never before: a signature that
+                    // had ONLY the part's box would say nothing about that
+                    // entity, and would end up in `_signatures` all the same, making
+                    // people believe a signature is there.
                     if (signature.Count > 0 && partBoxValue != null)
                         signature["box_part_mm"] = partBoxValue;
                     if (signature.Count > 0) outside[Convert.ToString(uid)] = signature;
@@ -1265,7 +1265,7 @@ namespace Oce.Solid.Agent.Tools
             return outside.Count > 0 ? outside : null;
         }
 
-        /// <summary>Titolo e percorso presi dallo stato, senza ripassare dal COM.</summary>
+        /// <summary>Title and path taken from the state, without going through COM again.</summary>
         private static Dictionary<string, object> StateIdentity(
             Dictionary<string, object> docState)
         {
@@ -1278,15 +1278,15 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// La firma leggera di uno stato: volume, quante lavorazioni, quando
-        /// il file e' stato scritto (voce X2). Vedi <see cref="_signatureSeen"/>.
+        /// The light signature of a state: volume, how many features, when
+        /// the file was written (entry X2). See <see cref="_signatureSeen"/>.
         ///
-        /// Le chiavi che mancano NON diventano zero. Un pezzo senza volume —
-        /// un documento vuoto — ha una firma senza `volume_mm3`, e un
-        /// confronto fra «non c'era» e «adesso c'e'» e' una differenza vera
-        /// che va detta; metterci uno zero la trasformerebbe in «il volume e'
-        /// passato da 0 a 96000», che e' un'altra frase e racconta un'altra
-        /// cosa.
+        /// The keys that are missing do NOT become zero. A part without volume —
+        /// an empty document — has a signature without `volume_mm3`, and a
+        /// comparison between «there was none» and «now there is» is a real difference
+        /// that must be said; putting a zero in would turn it into «the volume
+        /// went from 0 to 96000», which is another sentence and tells another
+        /// story.
         /// </summary>
         private static Dictionary<string, object> LightSignature(
             Dictionary<string, object> docState)
@@ -1301,9 +1301,9 @@ namespace Oce.Solid.Agent.Tools
                 e is System.Collections.IList list)
                 f["features"] = list.Count;
 
-            // LA DATA DEL FILE PRENDE CIO' CHE IL VOLUME NON VEDE: un salvataggio
-            // fatto da fuori. Un pezzo mai salvato non ha un file, e non avere la
-            // chiave e' la risposta giusta — non «data zero».
+            // THE FILE'S DATE CATCHES WHAT THE VOLUME DOES NOT SEE: a save
+            // made from outside. A part never saved has no file, and not having the
+            // key is the right answer — not «date zero».
             var filePath = Convert.ToString(
                 docState.TryGetValue("path", out var p) ? p : "");
             if (!string.IsNullOrWhiteSpace(filePath))
@@ -1320,14 +1320,14 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Cosa e' cambiato fra due firme, in italiano, oppure `null` se non
-        /// e' cambiato niente (voce X2).
+        /// What changed between two signatures, in Italian, or `null` if
+        /// nothing changed (entry X2).
         ///
-        /// **SI FERMA COL CRITERIO, NON CON UN VERDETTO.** «Il volume e'
-        /// passato da 96.000 a 94.500 da quando l'hai guardato» si puo'
-        /// controllare; «lo stato e' cambiato» obbliga a fidarsi. La
-        /// differenza conta perche' un avviso che non si puo' verificare si
-        /// impara a ignorare, ed e' il rischio scritto nella voce.
+        /// **IT STOPS WITH THE CRITERION, NOT WITH A VERDICT.** «Il volume e'
+        /// passato da 96.000 a 94.500 da quando l'hai guardato» can be
+        /// checked; «the state has changed» forces one to trust. The
+        /// difference matters because a warning that cannot be verified is
+        /// learned to be ignored, and that is the risk written in the entry.
         /// </summary>
         internal static string WhatChanged(
             Dictionary<string, object> before, Dictionary<string, object> now)
@@ -1388,8 +1388,8 @@ namespace Oce.Solid.Agent.Tools
             var descriptionText = _catalog.Description(itemName);
             if (descriptionText == null)
             {
-                // UN ERRORE CHE AIUTA invece di uno che constata: chi ha
-                // sbagliato nome quasi sempre ne ha in mente uno vicino.
+                // AN ERROR THAT HELPS instead of one that merely states: whoever
+                // got the name wrong almost always has a nearby one in mind.
                 var similar = _catalog.Similar(itemName);
                 _registry.OperationThatDoesNotExist(itemName, similar);
                 return Protocol.Content(
@@ -1403,50 +1403,50 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Il giro vero: si esegue, e SI GUARDA COS'E' VENUTO.
+        /// The real run: it is executed, and WE LOOK AT WHAT CAME OUT.
         ///
-        /// Il risultato non e' «riuscito». Sono le misure di ogni passo — il
-        /// volume tolto, il diametro vero del foro, quante pareti ha forato —
-        /// e lo stato del documento DOPO. E' l'unica forma che permette a chi
-        /// ha chiesto di accorgersi che il pezzo non e' quello che voleva.
+        /// The result is not «succeeded». It is the measures of every step — the
+        /// volume removed, the real diameter of the hole, how many walls it pierced —
+        /// and the state of the document AFTER. It is the only form that lets the one
+        /// who asked notice that the part is not what they wanted.
         /// </summary>
         /// <summary>
-        /// La frase che si aggiunge a ogni rifiuto di FORMA.
+        /// The sentence added to every refusal of FORM.
         ///
-        /// Il piano si controlla tutto prima di cominciare, quindi un errore al
-        /// passo 3 ferma anche i primi due. La risposta pero' elenca solo il
-        /// passo che ha sbagliato, e senza questa frase chi legge puo' credere
-        /// che i precedenti siano stati eseguiti — e mettersi a cercare nel
-        /// documento una piastra che non c'e'.
+        /// The plan is checked in full before starting, so an error at
+        /// step 3 also stops the first two. The answer, however, lists only the
+        /// step that got it wrong, and without this sentence the reader may believe
+        /// that the previous ones were executed — and start looking in the
+        /// document for a plate that is not there.
         /// </summary>
         private const string NothingTouched =
             " Il piano non e' stato eseguito per niente: il documento e' rimasto " +
             "com'era. Correggi questo passo e rimanda il piano intero.";
 
         /// <summary>
-        /// `measure` — `build` senza il permesso di toccare.
+        /// `measure` — `build` without the permission to touch.
         ///
-        /// IL CANCELLO STA QUI E NON DENTRO `Build`, e il motivo e' che deve
-        /// scattare PRIMA che il piano cominci. Un piano di tre misure e
-        /// un'estrusione, fermato al quarto passo, avrebbe gia' misurato tre
-        /// volte e poi rifiutato: chi legge la risposta vede tre misure buone e
-        /// un errore, e non ha modo di sapere che il pezzo e' ancora intatto
-        /// solo per fortuna. Qui si guardano TUTTI i passi, e se uno solo non e'
-        /// una verifica non parte niente.
+        /// THE GATE IS HERE AND NOT INSIDE `Build`, and the reason is that it must
+        /// fire BEFORE the plan begins. A plan of three measures and
+        /// an extrusion, stopped at the fourth step, would already have measured three
+        /// times and then refused: whoever reads the answer sees three good measures and
+        /// an error, and has no way to know that the part is still intact
+        /// only by luck. Here ALL the steps are looked at, and if even one is not
+        /// a verification nothing starts.
         ///
-        /// SI DICE CON QUALE STRUMENTO SI FA, non solo che qui non si fa. Un
-        /// rifiuto che non porta da nessuna parte costringe chi legge a
-        /// indovinare, e indovinare e' il modo in cui si sbaglia in silenzio.
+        /// WE SAY WITH WHICH TOOL IT IS DONE, not just that here it is not done. A
+        /// refusal that leads nowhere forces the reader to
+        /// guess, and guessing is the way one gets it wrong in silence.
         /// </summary>
         /// <summary>
-        /// L'impronta di un piano: le operazioni e i loro argomenti, in ordine.
+        /// The fingerprint of a plan: the operations and their arguments, in order.
         ///
-        /// SI SERIALIZZA IN JSON e si passa per uno SHA-1 invece di confrontare
-        /// le strutture: due dizionari con le stesse chiavi in ordine diverso
-        /// sono lo stesso piano, e `InJson` li scrive nello stesso modo. Un
-        /// confronto fatto a mano sui dizionari avrebbe dovuto decidere cosa
-        /// conta e cosa no, e ogni decisione di quel genere e' un posto dove
-        /// due piani diversi diventano uguali.
+        /// IT IS SERIALIZED TO JSON and passed through a SHA-1 instead of comparing
+        /// the structures: two dictionaries with the same keys in a different order
+        /// are the same plan, and `InJson` writes them the same way. A
+        /// comparison done by hand on the dictionaries would have had to decide what
+        /// counts and what does not, and every decision of that kind is a place where
+        /// two different plans become equal.
         /// </summary>
         private static string PlanFingerprint(object[] steps)
         {
@@ -1465,19 +1465,19 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Com'e' messo il documento, in poche misure: volume, corpi, quante
-        /// lavorazioni.
+        /// How the document stands, in a few measures: volume, bodies, how many
+        /// features.
         ///
-        /// NON e' una firma crittografica dello stato intero, ed e' voluto. Lo
-        /// stato completo cambia anche quando il pezzo non cambia — un uid che
-        /// si rinumera, una faccia che entra o esce dal tetto — e un confronto
-        /// su tutto direbbe «diverso» ogni volta, spegnendo il controllo senza
-        /// che nessuno se ne accorga. **Un controllo che non scatta mai e' un
-        /// controllo spento**, e questo e' il modo piu' comune di spegnerne uno:
-        /// renderlo troppo sensibile.
+        /// It is NOT a cryptographic signature of the whole state, and that is deliberate. The
+        /// complete state changes even when the part does not change — a uid that
+        /// is renumbered, a face that enters or leaves the ceiling — and a comparison
+        /// on everything would say «different» every time, switching the check off without
+        /// anyone noticing. **A check that never fires is a
+        /// check that is switched off**, and this is the most common way of switching one off:
+        /// making it too sensitive.
         ///
-        /// Le tre misure qui prese cambiano quando il PEZZO cambia, e non
-        /// cambiano quando cambia solo come lo si e' guardato.
+        /// The three measures taken here change when the PART changes, and do not
+        /// change when only the way it was looked at changes.
         /// </summary>
         private static string StateSummary(Dictionary<string, object> docState)
         {
@@ -1501,18 +1501,18 @@ namespace Oce.Solid.Agent.Tools
                     "Non c'e' niente da misurare: «steps» deve essere un elenco " +
                     "di {operazione, argomenti}.", true);
 
-            // UN CANCELLO CHE NON SA NIENTE DEVE CHIUDERE, NON APRIRE.
+            // A GATE THAT KNOWS NOTHING MUST CLOSE, NOT OPEN.
             //
-            // Il cancello qui sotto decide guardando la FAMIGLIA, e la famiglia
-            // la sa solo il catalogo. Se il catalogo non si e' caricato,
-            // `Family()` risponde null per tutto, ogni passo passa il
-            // controllo, e `measure` — che si e' dichiarata di sola lettura nel
-            // protocollo, e per cui il client ha gia' deciso di NON chiedere
-            // conferma — eseguirebbe un'estrusione.
+            // The gate below decides by looking at the FAMILY, and the family
+            // is known only to the catalogue. If the catalogue did not load,
+            // `Family()` answers null for everything, every step passes the
+            // check, and `measure` — which declared itself read-only in the
+            // protocol, and for which the client has already decided NOT to ask for
+            // confirmation — would execute an extrusion.
             //
-            // Sarebbe un difetto che non da' errore nella sua forma peggiore:
-            // la difesa sparisce esattamente quando qualcosa e' gia' andato
-            // storto, e il sintomo e' che tutto funziona.
+            // It would be a defect that gives no error in its worst form:
+            // the defence disappears exactly when something has already gone
+            // wrong, and the symptom is that everything works.
             if (_catalog.LoadingError != null)
                 return Protocol.Content(
                     "Non posso misurare: il catalogo non si e' caricato (" +
@@ -1527,13 +1527,13 @@ namespace Oce.Solid.Agent.Tools
             {
                 var planStep = steps[i] as Dictionary<string, object>;
                 string itemName = planStep == null ? null : Text(planStep, "operation");
-                if (string.IsNullOrWhiteSpace(itemName)) continue;   // lo dira' Disegna
+                if (string.IsNullOrWhiteSpace(itemName)) continue;   // Build will say so
 
                 string family = _catalog.Family(itemName);
-                // Un'operazione che il catalogo non conosce NON e' un problema
-                // di questo cancello: lo dice `Build`, con i suggerimenti di
-                // `Similar`. Qui si tace, altrimenti lo stesso sbaglio darebbe
-                // due messaggi diversi a seconda dello strumento.
+                // An operation that the catalogue does not know is NOT a problem
+                // for this gate: `Build` says it, with the suggestions of
+                // `Similar`. Here we stay silent, otherwise the same mistake would give
+                // two different messages depending on the tool.
                 if (family == null) continue;
                 if (!string.Equals(family, ReadOnlyFamily, StringComparison.OrdinalIgnoreCase))
                     outOfPlace.Add("il passo " + (i + 1) + ", «" + itemName +
@@ -1552,46 +1552,46 @@ namespace Oce.Solid.Agent.Tools
                     "leggere «measure»: «list_operations» con famiglia «" +
                     ReadOnlyFamily + "».", true);
 
-            // SENZA la guardia sulla ripetizione: misurare due volte la stessa
-            // cosa e' legittimo, e `measure` si dichiara idempotente.
+            // WITHOUT the guard on repetition: measuring the same
+            // thing twice is legitimate, and `measure` declares itself idempotent.
             return RunPlan(arguments, checkIfRepeated: false);
         }
 
         /// <summary>
-        /// L'unica famiglia che non tocca il pezzo.
+        /// The only family that does not touch the part.
         ///
-        /// NON c'e' anche «identity» qui, e va detto perche' e' il verso in cui
-        /// sbagliare costa di piu': `set_property`, `create_configuration` e
-        /// `activate_configuration` SCRIVONO nel documento. Dichiararle di sola
-        /// lettura vorrebbe dire un client che non chiede conferma mentre
-        /// qualcuno cambia la configurazione attiva di un pezzo confermato.
+        /// «identity» is NOT here too, and it must be said because it is the direction in
+        /// which being wrong costs most: `set_property`, `create_configuration` and
+        /// `activate_configuration` WRITE into the document. Declaring them read-only
+        /// would mean a client that does not ask for confirmation while
+        /// someone changes the active configuration of a confirmed part.
         /// </summary>
         private const string ReadOnlyFamily = "checks";
 
         /// <summary>
-        /// LA PROVA A VUOTO: sbagliare senza toccare il pezzo (voce Z-G6).
+        /// THE DRY RUN: getting it wrong without touching the part (entry Z-G6).
         ///
-        /// ── PERCHE' SERVE ────────────────────────────────────────────
+        /// ── WHY IT IS NEEDED ─────────────────────────────────────────
         ///
-        /// `build` controlla gia' tutto il piano prima di cominciare, ed
-        /// e' il pezzo piu' prezioso del ponte: un piano sbagliato non tocca
-        /// niente. Ma quel controllo **non era raggiungibile senza eseguire**:
-        /// per sapere se un piano regge bisognava lanciarlo, e un piano che
-        /// regge a meta' lascia meta' pezzo fatto.
+        /// `build` already checks the whole plan before starting, and it
+        /// is the most valuable piece of the bridge: a wrong plan touches
+        /// nothing. But that check **was not reachable without executing**:
+        /// to know whether a plan holds one had to launch it, and a plan that
+        /// holds halfway leaves half a part made.
         ///
-        /// ── COSA GUARDA, E SOPRATTUTTO COSA NO ───────────────────────
+        /// ── WHAT IT LOOKS AT, AND ABOVE ALL WHAT IT DOES NOT ─────────
         ///
-        /// Senza SOLIDWORKS si puo' dire molto: che l'operazione esista, che
-        /// gli argomenti obbligatori ci siano, che non ce ne siano di
-        /// **sconosciuti** — un argomento scritto male viene ignorato in
-        /// silenzio, ed e' il difetto che non da' errore — e che un
-        /// riferimento a un passo precedente punti a un passo che esiste.
+        /// Without SOLIDWORKS a lot can be said: that the operation exists, that
+        /// the mandatory arguments are there, that there are no
+        /// **unknown** ones — a misspelled argument is ignored in
+        /// silence, and it is the defect that gives no error — and that a
+        /// reference to a previous step points to a step that exists.
         ///
-        /// Non si puo' dire se un `uid` e' ancora valido, se il documento e'
-        /// del tipo giusto, se la faccia c'e' ancora: per quello va letto il
-        /// documento. **La risposta lo dice a chiare lettere**, perche' una
-        /// prova a vuoto che tace su cio' che non ha guardato e' peggio di
-        /// nessuna prova: fa credere che il piano sia a posto.
+        /// It cannot say whether a `uid` is still valid, whether the document is
+        /// of the right type, whether the face is still there: for that the
+        /// document must be read. **The answer says so in plain words**, because a
+        /// dry run that stays silent about what it did not look at is worse than
+        /// no dry run: it makes people believe the plan is fine.
         /// </summary>
         private Dictionary<string, object> TestThePlan(Dictionary<string, object> arguments)
         {
@@ -1606,9 +1606,9 @@ namespace Oce.Solid.Agent.Tools
 
             var trouble = new List<string>();
 
-            // L'AVANZAMENTO DELLA PROVA A VUOTO (voce W2.2). Qui non si
-            // esegue niente, quindi il totale e' il numero dei passi e basta:
-            // non c'e' nessuna seconda meta' da aspettare.
+            // THE PROGRESS OF THE DRY RUN (entry W2.2). Nothing is executed
+            // here, so the total is the number of steps and that is all:
+            // there is no second half to wait for.
             _wire.Total = steps.Length;
 
             for (int i = 0; i < steps.Length; i++)
@@ -1646,9 +1646,9 @@ namespace Oce.Solid.Agent.Tools
                     {
                         var theField = Convert.ToString(r);
                         if (string.IsNullOrEmpty(theField)) continue;
-                        // `x_rif` vale per `x_uid` e viceversa: il catalogo
-                        // dichiara obbligatorio uno dei due, e chiederli
-                        // tutti e due sarebbe un rifiuto sbagliato.
+                        // `x_rif` holds for `x_uid` and vice versa: the catalogue
+                        // declares one of the two mandatory, and asking for
+                        // both would be a wrong refusal.
                         var twin = theField.EndsWith("_uid", StringComparison.Ordinal)
                             ? theField.Substring(0, theField.Length - 4) + "_ref"
                             : theField.EndsWith("_ref", StringComparison.Ordinal)
@@ -1663,15 +1663,15 @@ namespace Oce.Solid.Agent.Tools
                     foreach (var theField in data.Keys)
                     {
                         if (property.ContainsKey(theField)) continue;
-                        // UN ARGOMENTO SCONOSCIUTO NON E' UN DETTAGLIO: viene
-                        // ignorato in silenzio, e il pezzo esce diverso da
-                        // come lo si e' chiesto senza nessun errore.
+                        // AN UNKNOWN ARGUMENT IS NOT A DETAIL: it is
+                        // ignored in silence, and the part comes out different from
+                        // how it was asked for, without any error.
                         trouble.Add(location + " («" + itemName + "»): «" + theField +
                                  "» non e' un argomento di questa operazione, " +
                                  "e verrebbe IGNORATO");
                     }
 
-                // I riferimenti a un passo precedente: `{step: N, kind: ...}`.
+                // The references to a previous step: `{step: N, kind: ...}`.
                 foreach (var pair in data)
                 {
                     if (!pair.Key.EndsWith("_ref", StringComparison.Ordinal)) continue;
@@ -1695,8 +1695,8 @@ namespace Oce.Solid.Agent.Tools
             foreach (var g in trouble) text.Append("  - " + g + "\n");
             if (trouble.Count > 0) text.Append("\n");
 
-            // COSA NON E' STATO GUARDATO. Questa parte c'e' SEMPRE, anche
-            // quando il piano regge -- soprattutto quando regge.
+            // WHAT WAS NOT LOOKED AT. This part is ALWAYS there, even
+            // when the plan holds -- especially when it holds.
             text.Append("Controllati: i nomi delle operazioni, gli argomenti " +
                          "obbligatori, quelli sconosciuti (che verrebbero " +
                          "ignorati in silenzio) e i rimandi a passi " +
@@ -1715,8 +1715,8 @@ namespace Oce.Solid.Agent.Tools
         }
         private Dictionary<string, object> Build(Dictionary<string, object> arguments)
         {
-            // LA PROVA A VUOTO NON TOCCA NIENTE, e non vuole nemmeno che
-            // SOLIDWORKS sia agganciato: serve proprio a sbagliare prima.
+            // THE DRY RUN TOUCHES NOTHING, and does not even want
+            // SOLIDWORKS to be attached: it exists precisely to get things wrong first.
             var requested = Take(arguments, "dry_run");
             bool test = false;
             if (requested != null) { try { test = Convert.ToBoolean(requested); } catch { } }
@@ -1725,39 +1725,39 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Il corpo di `build`, con o senza la guardia sulla ripetizione.
+        /// The body of `build`, with or without the guard on repetition.
         ///
-        /// ── PERCHE' `measure` NON LA VUOLE, ED E' UN BUG TROVATO SCRIVENDOLA ──
+        /// ── WHY `measure` DOES NOT WANT IT, AND IT IS A BUG FOUND WHILE WRITING IT ──
         ///
-        /// `measure` passa di qui: sono le stesse operazioni, con un cancello
-        /// davanti. Ma **misurare due volte la stessa cosa e' legittimo** — anzi,
-        /// e' il caso normale: si guarda, si pensa, si riguarda. E siccome una
-        /// misura non cambia il documento, lo stato dopo e' identico allo stato
-        /// prima: la guardia sulla ripetizione avrebbe visto un piano identico
-        /// su un documento identico e **avrebbe rifiutato la seconda misura.**
+        /// `measure` goes through here: they are the same operations, with a gate
+        /// in front. But **measuring the same thing twice is legitimate** — indeed,
+        /// it is the normal case: you look, you think, you look again. And since a
+        /// measure does not change the document, the state after is identical to the state
+        /// before: the guard on repetition would have seen an identical plan
+        /// on an identical document and **would have refused the second measure.**
         ///
-        /// Non sarebbe stato solo scomodo: `measure` si dichiara
-        /// `idempotentHint: true` nelle annotazioni, e un client legge quella
-        /// riga per decidere se puo' riprovare da solo. Rifiutare il secondo
-        /// tentativo avrebbe reso quella dichiarazione **una bugia nel
-        /// protocollo** — la stessa categoria di difetto che `measure` esiste per
-        /// non avere.
+        /// It would not just have been inconvenient: `measure` declares itself
+        /// `idempotentHint: true` in the annotations, and a client reads that
+        /// line to decide whether it can retry by itself. Refusing the second
+        /// attempt would have made that declaration **a lie in the
+        /// protocol** — the same category of defect `measure` exists in order
+        /// not to have.
         ///
-        /// Un parametro con valore predefinito su `Build` sarebbe bastato, ma
-        /// qui si tiene la regola di casa: metodo nuovo, nome diverso.
+        /// A parameter with a default value on `Build` would have been enough, but
+        /// here the house rule is kept: new method, different name.
         /// </summary>
         /// <summary>
-        /// LE OPERAZIONI CHE NON SI ANNULLANO (voce W2.5).
+        /// THE OPERATIONS THAT CANNOT BE UNDONE (entry W2.5).
         ///
-        /// **Una sola, e il criterio conta piu' dell'elenco**: ci finisce
-        /// cio' che toglie qualcosa che non si puo' rimettere con
-        /// un'operazione del catalogo. `suppress_feature` non c'e',
-        /// perche' esiste `reactivate`; `delete_feature` si', perche' una
-        /// lavorazione eliminata non torna.
+        /// **Only one, and the criterion matters more than the list**: what ends up
+        /// here is what removes something that cannot be put back with
+        /// an operation of the catalogue. `suppress_feature` is not here,
+        /// because `reactivate` exists; `delete_feature` is, because a
+        /// deleted feature does not come back.
         ///
-        /// Un elenco lungo sarebbe peggio: chi conferma dieci volte di fila
-        /// smette di leggere cosa conferma, ed e' la stessa ragione per cui
-        /// `measure` esiste separata da `build`.
+        /// A long list would be worse: whoever confirms ten times in a row
+        /// stops reading what they confirm, and it is the same reason
+        /// `measure` exists separate from `build`.
         /// </summary>
         private static readonly string[] CannotBeUndone = { "delete_feature" };
 
@@ -1770,18 +1770,18 @@ namespace Oce.Solid.Agent.Tools
                     "Il piano e' vuoto: «steps» deve essere un elenco di " +
                     "{operazione, argomenti}.", true);
 
-            // ── SI CHIEDE PRIMA DI TOCCARE QUALUNQUE COSA (voce W2.5) ──
+            // ── WE ASK BEFORE TOUCHING ANYTHING (entry W2.5) ──
             //
-            // Prima anche di guardare se SOLIDWORKS e' agganciato, e non e'
-            // un dettaglio d'ordine: leggere lo stato del documento e' gia'
-            // una conversazione con SOLIDWORKS, e una conversazione con
-            // SOLIDWORKS puo' non tornare (voce Z-C4). La domanda riguarda
-            // l'intenzione, e l'intenzione si puo' chiedere a costo zero.
+            // Even before looking at whether SOLIDWORKS is attached, and it is not
+            // a detail of order: reading the state of the document is already
+            // a conversation with SOLIDWORKS, and a conversation with
+            // SOLIDWORKS may not come back (entry Z-C4). The question concerns
+            // the intention, and the intention can be asked at zero cost.
             //
-            // `measure` non passa di qui con `checkIfRepeated` falso? Passa,
-            // ma non puo' eseguire operazioni distruttive: il cancello e'
-            // prima. Chiedere conferma li' sarebbe chiedere il permesso di
-            // fare una cosa che verra' rifiutata comunque.
+            // Does `measure` not come through here with `checkIfRepeated` false? It does,
+            // but it cannot execute destructive operations: the gate is
+            // before. Asking for confirmation there would be asking permission to
+            // do something that will be refused anyway.
             if (checkIfRepeated)
             {
                 var toConfirm = new List<string>();
@@ -1816,9 +1816,9 @@ namespace Oce.Solid.Agent.Tools
                     }
                     else
                     {
-                        // IL RIPIEGO SI DICHIARA (voce W2.5). Andare avanti
-                        // in silenzio sarebbe il modo in cui una difesa
-                        // sparisce senza che nessuno se ne accorga.
+                        // THE FALLBACK IS DECLARED (entry W2.5). Going on
+                        // in silence would be the way a defence
+                        // disappears without anyone noticing.
                         Protocol.Note(
                             "[ponte] " + string.Join(", ", toConfirm) +
                             ": non ho potuto chiedere conferma all'utente — " +
@@ -1831,44 +1831,44 @@ namespace Oce.Solid.Agent.Tools
             if (!_session.Attached)
                 return Protocol.Content("Il ponte non e' agganciato a SolidWorks.", true);
 
-            // SENZA ANCORA: questa lettura serve a sapere su QUALE documento si
-            // lavora, quanto volume c'era e quante lavorazioni erano gia' in
-            // errore. Non se ne costruiscono firme (quelle si fanno su «after»,
-            // piu' sotto) e non torna a chi legge. L'ancora costa un
-            // GetTessTriangles per faccia, e qui si pagava per buttarla.
+            // WITHOUT ANCHOR: this reading serves to know on WHICH document one is
+            // working, how much volume there was and how many features were already in
+            // error. No signatures are built from it (those are made on «after»,
+            // further down) and it does not go back to the reader. The anchor costs one
+            // GetTessTriangles per face, and here we paid for it only to throw it away.
             var before = _session.StateWithoutAnchor(out var readError);
             if (before == null)
                 return Protocol.Content(readError, true);
 
-            // SI DISEGNA SUL DOCUMENTO CHE SI E' GUARDATO, NON SU QUELLO DAVANTI.
+            // WE DRAW ON THE DOCUMENT THAT WAS LOOKED AT, NOT ON THE ONE IN FRONT.
             //
-            // Il ponte lavora sul documento ATTIVO, e il documento attivo e'
-            // quello la cui finestra sta davanti: cambia se qualcuno clicca,
-            // se un'altra operazione ne apre uno, se SolidWorks ne porta uno in
-            // primo piano da solo. Il 14 settembre 2026 e' successo davvero —
-            // un blocco 314x274x52 estruso dentro il pezzo di qualcun altro,
-            // senza un errore, senza un avviso.
+            // The bridge works on the ACTIVE document, and the active document is
+            // the one whose window is in front: it changes if someone clicks,
+            // if another operation opens one, if SolidWorks brings one to the
+            // foreground by itself. On 14 September 2026 it really happened —
+            // a 314x274x52 block extruded inside someone else's part,
+            // without an error, without a warning.
             //
-            // Qui non si indovina e non si cambia finestra da soli: si
-            // CONFRONTA con quello che «inspect_part» aveva descritto, e se
-            // non combacia ci si ferma. Chi sa cosa sta facendo puo' dire
-            // esplicitamente «si', quello davanti» con `qualunque_documento`.
+            // Here we do not guess and do not switch window by ourselves: we
+            // COMPARE with what «inspect_part» had described, and if it
+            // does not match we stop. Whoever knows what they are doing can say
+            // explicitly «yes, the one in front» with `qualunque_documento`.
             var now = StateIdentity(before);
             var named = Text(arguments, "document");
 
-            // SI NOMINA IL DOCUMENTO, NON SI SPEGNE IL CONTROLLO.
+            // WE NAME THE DOCUMENT, WE DO NOT SWITCH THE CHECK OFF.
             //
-            // La prima versione aveva un `qualunque_documento: true` per
-            // scavalcare il rifiuto. Era un difetto: un argomento che
-            // disattiva una difesa e' un invito a disattivarla, e chi lo
-            // incontra ha tutti gli incentivi per riprovare con quello
-            // acceso — cioe' la difesa sparisce proprio nel caso in cui
-            // serviva.
+            // The first version had a `qualunque_documento: true` to
+            // override the refusal. It was a defect: an argument that
+            // disables a defence is an invitation to disable it, and whoever
+            // meets it has every incentive to retry with it
+            // switched on — that is, the defence disappears precisely in the case where
+            // it was needed.
             //
-            // Nominare il documento chiede la stessa cosa in una forma che
-            // non si puo' dare a caso: per scriverne il nome bisogna averlo
-            // guardato. Un booleano lo mette chiunque; un nome sbagliato
-            // viene rifiutato come tutto il resto.
+            // Naming the document asks for the same thing in a form that
+            // cannot be given at random: to write its name one has to have looked
+            // at it. A boolean can be set by anyone; a wrong name
+            // is refused like everything else.
             bool namedIt =
                 !string.IsNullOrWhiteSpace(named) &&
                 Bridge.Session.SameDocument(
@@ -1901,17 +1901,17 @@ namespace Oce.Solid.Agent.Tools
                         "quello che c'e' adesso, ripeti passando «document»: \"" +
                         ReadableName(now) + "\".", true);
             }
-            // ── LO STESSO DOCUMENTO, CON DENTRO UN'ALTRA COSA (voce X2) ──
+            // ── THE SAME DOCUMENT, WITH SOMETHING ELSE INSIDE (entry X2) ──
             //
-            // Il controllo qui sopra chiede «e' lo stesso documento?». Questo
-            // chiede «e' ancora lo stesso pezzo?», e sono due domande diverse:
-            // titolo e percorso combaciano anche mentre qualcuno tira una
-            // quota a mano nella finestra di SOLIDWORKS.
+            // The check above asks «is it the same document?». This one
+            // asks «is it still the same part?», and they are two different questions:
+            // title and path match even while someone pulls a
+            // dimension by hand in the SOLIDWORKS window.
             //
-            // Si guarda SOLO se il documento davanti e' quello guardato. Se il
-            // piano ne nomina un altro, la firma vecchia parla di un pezzo
-            // diverso e confrontarla produrrebbe una frase vera su due cose
-            // che non c'entrano niente.
+            // It is looked at ONLY if the document in front is the one looked at. If the
+            // plan names another one, the old signature speaks of a different
+            // part and comparing it would produce a true sentence about two things
+            // that have nothing to do with each other.
             bool theCheckedOne =
                 _seen != null && Bridge.Session.SameDocument(_seen, now);
 
@@ -1931,33 +1931,33 @@ namespace Oce.Solid.Agent.Tools
                         "identificativi nuovi.", true);
             }
 
-            // LE FIRME VALGONO SOLO SUL DOCUMENTO CHE LE HA PRODOTTE.
-            // Se il piano nomina un altro documento, gli uid del piano non
-            // parlano di questo e allegare le firme vecchie produrrebbe
-            // rifiuti che non c'entrano niente. Meglio nessun confronto che
-            // un confronto fra due pezzi diversi.
+            // THE SIGNATURES HOLD ONLY ON THE DOCUMENT THAT PRODUCED THEM.
+            // If the plan names another document, the uids of the plan do not
+            // speak of this one and attaching the old signatures would produce
+            // refusals that have nothing to do with it. Better no comparison than
+            // a comparison between two different parts.
             var signatures = theCheckedOne ? _seenSignatures : null;
 
-            // ── TRE CAMPI CHE DEVONO PARLARE DELLO STESSO PEZZO (Z-A1) ──
+            // ── THREE FIELDS THAT MUST SPEAK OF THE SAME PART (Z-A1) ──
             //
-            // `_seen` dice QUALE documento, `_signatureSeen` e
-            // `_seenSignatures` dicono COM'ERA. Finche' questa riga spostava
-            // solo il primo, bastava un piano che nominasse un altro
-            // documento — `document: "..."`, la strada legittima — perche'
-            // da quel momento `_guardato` indicasse il pezzo nuovo e le
-            // firme il pezzo vecchio.
+            // `_seen` says WHICH document, `_signatureSeen` and
+            // `_seenSignatures` say HOW IT WAS. As long as this line moved
+            // only the first, a plan that named another
+            // document — `document: "..."`, the legitimate path — was enough for
+            // `_guardato` from then on to point to the new part and the
+            // signatures to the old part.
             //
-            // Il guaio non si vede subito: si vede alla chiamata DOPO, dove
-            // `theCheckedOne` torna vero e il confronto gira contro le
-            // firme di un altro pezzo. O rifiuta un piano buono dicendo «il
-            // pezzo e' cambiato», o — peggio — lascia passare un piano su
-            // uid che non valgono piu'.
+            // The trouble is not seen immediately: it is seen at the NEXT call, where
+            // `theCheckedOne` comes back true and the comparison runs against the
+            // signatures of another part. Either it refuses a good plan saying «the
+            // part has changed», or — worse — lets through a plan on
+            // uids that no longer hold.
             //
-            // Il principio giusto e' scritto nel commento qui sopra, per la
-            // variabile locale: **meglio nessun confronto che un confronto
-            // fra due pezzi diversi.** Qui lo si applica anche ai campi che
-            // restano: se il documento cambia, le firme vecchie si buttano.
-            // Le rifara' `inspect_part`, oppure la fine di questo piano.
+            // The right principle is written in the comment above, for the
+            // local variable: **better no comparison than a comparison
+            // between two different parts.** Here it is applied also to the fields that
+            // remain: if the document changes, the old signatures are thrown away.
+            // `inspect_part` will redo them, or the end of this plan.
             if (!theCheckedOne)
             {
                 _seenSignatures = null;
@@ -1965,24 +1965,24 @@ namespace Oce.Solid.Agent.Tools
             }
             _seen = now;
 
-            // ── LO STESSO PIANO, DUE VOLTE (voce W2.7) ──────────────────
+            // ── THE SAME PLAN, TWICE (entry W2.7) ──────────────────────
             //
-            // Un client che non riceve la risposta — rete, timeout, riavvio —
-            // rimanda la stessa richiesta. E' il comportamento normale di
-            // qualunque client, ed e' documentato nelle annotazioni di questo
-            // ponte: `build` **non** e' idempotente, rieseguire lo stesso
-            // piano non rimette il pezzo com'era, **fa un secondo foro**.
+            // A client that does not receive the answer — network, timeout, restart —
+            // resends the same request. It is the normal behaviour of
+            // any client, and it is documented in the annotations of this
+            // bridge: `build` is **not** idempotent, running the same
+            // plan again does not put the part back as it was, **it makes a second hole**.
             //
-            // Finora niente lo fermava. Adesso si', e il criterio e' stretto
-            // apposta: si rifiuta **solo** se il piano e' identico a quello di
-            // prima **e** il documento e' ancora esattamente come quel piano
-            // l'ha lasciato. Le due condizioni insieme descrivono un caso solo:
-            // il rinvio.
+            // Until now nothing stopped it. Now it does, and the criterion is narrow
+            // on purpose: it refuses **only** if the plan is identical to the previous
+            // one **and** the document is still exactly as that plan
+            // left it. The two conditions together describe a single case:
+            // the resend.
             //
-            // Non basta la prima. Due piani identici su documenti in stati
-            // diversi fanno cose diverse e possono essere tutti e due voluti.
-            // E non basta la seconda: un documento che non e' cambiato non e'
-            // di per se' un motivo per rifiutare.
+            // The first alone is not enough. Two identical plans on documents in different
+            // states do different things and may both be wanted.
+            // And the second is not enough: a document that has not changed is not
+            // in itself a reason to refuse.
             string planFingerprint = PlanFingerprint(steps);
             if (checkIfRepeated &&
                 _lastPlanDone != null &&
@@ -2004,29 +2004,29 @@ namespace Oce.Solid.Agent.Tools
                     "non un rinvio.", true);
             }
 
-            // IL PIANO SI CONTROLLA TUTTO PRIMA DI TOCCARE IL DOCUMENTO.
+            // THE PLAN IS CHECKED IN FULL BEFORE TOUCHING THE DOCUMENT.
             //
-            // Nome dell'operazione, percorsi e forma degli argomenti si vedono
-            // leggendo, senza aprire niente. Prima si controllavano a mano a
-            // mano: un errore di forma al passo 3 fermava il piano con i primi
-            // due GIA' COSTRUITI, e nel documento restava mezzo pezzo per una
-            // cosa che si poteva dire prima di cominciare.
+            // The name of the operation, the paths and the shape of the arguments can be seen
+            // by reading, without opening anything. Before, they were checked one at a
+            // time: a form error at step 3 stopped the plan with the first
+            // two ALREADY BUILT, and half a part was left in the document for
+            // something that could have been said before starting.
             //
-            // Adesso o il piano e' scrivibile tutto, o non si tocca niente.
+            // Now either the plan is entirely writable, or nothing is touched.
             var toDo = new List<Oce.Solid.Agent.Core.PlanStep>();
             var outcomes = new List<object>();
             bool everythingFine = true;
             int order = 0;
 
-            // L'AVANZAMENTO DI UN PIANO VERO SI RACCONTA IN DUE META'
-            // (voce W2.2): prima lo si controlla tutto a documento intatto,
-            // poi lo si esegue. Il totale le tiene insieme — la seconda meta'
-            // la manda `PlanInMemory`, che riprende il conto da dove questo
-            // giro l'ha lasciato invece di ricalcolarselo.
+            // THE PROGRESS OF A REAL PLAN IS TOLD IN TWO HALVES
+            // (entry W2.2): first it is checked in full with the document intact,
+            // then it is executed. The total keeps them together — the second half
+            // is sent by `PlanInMemory`, which resumes the count from where this
+            // run left it instead of recalculating it.
             //
-            // Dire «passo 3 di 5» durante il controllo e poi ricominciare da
-            // «1 di 5» all'esecuzione farebbe tornare indietro la barra di chi
-            // legge, e la specifica pretende che `progress` cresca.
+            // Saying «step 3 of 5» during the check and then starting again from
+            // «1 of 5» at execution would make the reader's bar go back,
+            // and the specification demands that `progress` grow.
             _wire.Total = steps.Length * 2;
 
             foreach (var p in steps)
@@ -2041,11 +2041,11 @@ namespace Oce.Solid.Agent.Tools
                 var itsItems = Take(planStep, "arguments") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
 
-                // SI CONTROLLA IL NOME PRIMA DI ESEGUIRE. L'add-in, davanti a
-                // un nome che non conosce ma con dei «contours» dentro, ricade
-                // sull'estrusione di profilo: comodo per le ricette del server,
-                // pericoloso qui, dove un nome storto diventerebbe un pezzo
-                // storto senza che nessuno dica niente.
+                // THE NAME IS CHECKED BEFORE EXECUTING. The add-in, faced with
+                // a name it does not know but with some «contours» inside, falls back
+                // on the profile extrusion: handy for the server's recipes,
+                // dangerous here, where a crooked name would become a crooked
+                // part without anyone saying anything.
                 if (!_catalog.Knows(itemName))
                 {
                     var similar = _catalog.Similar(itemName);
@@ -2076,9 +2076,9 @@ namespace Oce.Solid.Agent.Tools
                 // catalogue spells it.
                 itemName = Text(_catalog.Find(itemName), "name") ?? itemName;
 
-                // I PERCORSI SI CONTROLLANO PRIMA DI ESEGUIRE.
-                // Sono l'unica cosa che questo ponte scrive fuori dal
-                // documento aperto, e arrivano da un testo generato.
+                // THE PATHS ARE CHECKED BEFORE EXECUTING.
+                // They are the only thing this bridge writes outside the
+                // open document, and they come from generated text.
                 var crookedPath = Bridge.Paths.Check(itsItems);
                 if (crookedPath != null)
                 {
@@ -2092,15 +2092,15 @@ namespace Oce.Solid.Agent.Tools
                     break;
                 }
 
-                // GLI ARGOMENTI RISPETTANO LO SCHEMA CHE ABBIAMO
-                // DICHIARATO NOI? Il ponte offre trentasei operazioni con
-                // schemi dettagliati: non guardarli vuol dire che lo
-                // schema serve solo a suggerire, e che uno «thickness_mm»
-                // dimenticato arriva a valle come zero — un'estrusione di
-                // spessore nullo, rifiutata da SOLIDWORKS con un messaggio
-                // suo, nel migliore dei casi.
+                // DO THE ARGUMENTS RESPECT THE SCHEMA WE DECLARED
+                // OURSELVES? The bridge offers thirty-six operations with
+                // detailed schemas: not looking at them means that the
+                // schema only serves to suggest, and that a forgotten «thickness_mm»
+                // arrives downstream as zero — an extrusion of
+                // null thickness, refused by SOLIDWORKS with a message of
+                // its own, in the best case.
                 //
-                // SOLO LA FORMA, MAI IL MERITO: vedi Bridge/Shape.cs.
+                // ONLY THE FORM, NEVER THE MERIT: see Bridge/Shape.cs.
                 //
                 // AND THE FORMA REWRITES `suoi` IN PLACE (Z-C21.10, S20): an
                 // enum value accepted with a different case («Superiore»)
@@ -2121,19 +2121,19 @@ namespace Oce.Solid.Agent.Tools
                     break;
                 }
 
-                // GLI IDENTIFICATIVI CITATI ESISTONO DAVVERO?
+                // DO THE IDENTIFIERS CITED REALLY EXIST?
                 //
-                // E' l'altra meta' della difesa anti-deriva, e prende un caso
-                // che le FIRME non possono prendere: un piano che crea il pezzo
-                // da zero e poi cita «F1» non ha nessuna firma da confrontare,
-                // perche' quando lo stato e' stato letto quella faccia non
-                // c'era. Nessuna firma, nessun confronto, e il piano passa.
+                // It is the other half of the anti-drift defence, and it catches a case
+                // that the SIGNATURES cannot catch: a plan that creates the part
+                // from scratch and then cites «F1» has no signature to compare,
+                // because when the state was read that face did not
+                // exist. No signature, no comparison, and the plan passes.
                 //
-                // Misurato il 14/9/2026: `[extrude_rectangle, cylindrical_cut
-                // su F1]` su un documento vuoto riusciva, volume 117.738,1. Il
-                // foro e' finito sulla faccia piu' grande — che in quel caso era
-                // anche quella giusta, ma **non l'aveva scelta nessuno**: «F1»
-                // e' posizionale e si rinumera per area a ogni lettura.
+                // Measured on 14/9/2026: `[extrude_rectangle, cylindrical_cut
+                // su F1]` on an empty document succeeded, volume 117,738.1. The
+                // hole ended up on the largest face — which in that case was
+                // also the right one, but **nobody had chosen it**: «F1»
+                // is positional and is renumbered by area at every reading.
                 var crookedUid = UidsThatDoNotExist(
                     _catalog.Schema(itemName), itsItems, before);
                 if (crookedUid != null)
@@ -2148,10 +2148,10 @@ namespace Oce.Solid.Agent.Tools
                     break;
                 }
 
-                // LE FIRME DI QUANDO IL PIANO E' NATO, ALLEGATE AL PASSO.
-                // Non si sovrascrive quello che il chiamante ha gia' messo:
-                // un piano che porta le sue firme sa meglio di noi di cosa
-                // sta parlando.
+                // THE SIGNATURES FROM WHEN THE PLAN WAS BORN, ATTACHED TO THE STEP.
+                // What the caller has already put there is not overwritten:
+                // a plan that carries its own signatures knows better than we do what
+                // it is talking about.
                 if (signatures != null && !itsItems.ContainsKey("_signatures"))
                     itsItems["_signatures"] = signatures;
 
@@ -2164,10 +2164,10 @@ namespace Oce.Solid.Agent.Tools
                 });
             }
 
-            // IL GIRO E' QUELLO DELLA LIBRERIA, NON UNO NOSTRO.
-            // Da qui arrivano i riferimenti fra passi («la faccia in cima a
-            // quello che hai fatto al passo 1») e la voce di annullamento
-            // unica: un solo Ctrl+Z disfa il piano intero.
+            // THE RUN IS THE LIBRARY'S, NOT OUR OWN.
+            // From here come the references between steps («the face on top of
+            // what you did at step 1») and the single undo entry:
+            // one Ctrl+Z undoes the whole plan.
             // What the executor said about its document and its undo entry
             // (Z-C21.14). Stays null when the plan never reached it: refused
             // above, before anything was written.
@@ -2191,9 +2191,9 @@ namespace Oce.Solid.Agent.Tools
                 if (!string.IsNullOrEmpty(runError))
                 {
                     everythingFine = false;
-                    // Un piano fermato PRIMA del primo passo non lascia nessun
-                    // esito: senza questo, la risposta sarebbe un elenco vuoto
-                    // e un «succeeded» implicito che nessuno ha detto.
+                    // A plan stopped BEFORE the first step leaves no
+                    // outcome: without this, the answer would be an empty list
+                    // and an implicit «succeeded» that nobody said.
                     if (done == null || done.Count == 0)
                         outcomes.Add(new Dictionary<string, object>
                         {
@@ -2279,47 +2279,47 @@ namespace Oce.Solid.Agent.Tools
                 frontIsThePlans = frontIdentity != null &&
                                   Bridge.Session.SameDocument(planIdentity, frontIdentity);
 
-            // «state_after» E' LA LETTURA SUCCESSIVA, E VA FIRMATA COME TALE.
+            // «state_after» IS THE NEXT READING, AND MUST BE SIGNED AS SUCH.
             //
-            // Questa risposta porta con se' lo stato del documento dopo i
-            // passi, con gli identificativi nuovi: chi legge scrivera' il
-            // piano seguente su QUESTI, non su quelli di «inspect_part».
-            // Se le firme restassero quelle di prima, il piano seguente —
-            // scritto giusto — verrebbe rifiutato perche' confrontato con una
-            // lettura che il suo autore non ha mai visto. Sarebbe un rifiuto
-            // di cio' che e' corretto, che e' il difetto peggiore dei due.
-            // E LA FIRMA SEGUE LA STESSA REGOLA (voce X2). Il pezzo e'
-            // cambiato, ma l'ha cambiato il ponte facendo quello che gli e'
-            // stato chiesto: se la firma restasse quella di
-            // «inspect_part», il `build` seguente si fermerebbe
-            // dicendo «qualcuno ha toccato il pezzo a mano». Sarebbe il
-            // falso positivo che la voce X2 metteva fra i rischi, e sarebbe
-            // fastidioso al punto giusto per insegnare a ignorare l'avviso.
+            // This answer carries with it the state of the document after the
+            // steps, with the new identifiers: the reader will write the
+            // next plan on THESE, not on those of «inspect_part».
+            // If the signatures stayed those from before, the next plan —
+            // written correctly — would be refused because it was compared with a
+            // reading its author never saw. It would be a refusal
+            // of what is correct, which is the worse defect of the two.
+            // AND THE SIGNATURE FOLLOWS THE SAME RULE (entry X2). The part has
+            // changed, but the bridge changed it doing what it was
+            // asked to do: if the signature stayed that of
+            // «inspect_part», the next `build` would stop
+            // saying «someone touched the part by hand». It would be the
+            // false positive that entry X2 listed among the risks, and it would be
+            // annoying in just the right measure to teach people to ignore the warning.
             if (after != null && frontIsThePlans)
             {
                 _seenSignatures = StateSignatures(after);
                 _signatureSeen = LightSignature(after);
 
-                // ── E ANCHE CHI E', NON SOLO COM'E' FATTO ────────────────
+                // ── AND ALSO WHO IT IS, NOT JUST HOW IT IS MADE ─────────────
                 //
-                // `_guardato` veniva riportato all'identita' letta PRIMA di
-                // eseguire, e un piano che contiene `save_document` cambia
-                // l'identita' del documento mentre gira: prima del salvataggio
-                // e' «Parte1597» senza percorso, dopo e' un percorso su disco.
+                // `_guardato` used to be brought back to the identity read BEFORE
+                // executing, and a plan that contains `save_document` changes the
+                // document's identity while it runs: before the save
+                // it is «Parte1597» without a path, after it is a path on disk.
                 //
-                // **Il `build` seguente veniva rifiutato**, con un messaggio
-                // giusto e una causa sbagliata: «il documento e' cambiato,
-                // avevi guardato Parte1597». Era cambiato, si' — l'aveva
-                // cambiato il ponte facendo quello che gli era stato chiesto.
+                // **The next `build` was refused**, with a correct
+                // message and a wrong cause: «the document has changed,
+                // you had looked at Parte1597». It had changed, yes — the bridge
+                // had changed it doing what it had been asked to do.
                 //
-                // Trovato il 23/9/2026 con una sonda che preparava una tavola:
-                // estrudi -> taglia -> salva -> create_drawing, che e' la
-                // sequenza piu' normale che esista, e il quarto passo non
-                // partiva. Il banco non poteva vederlo: chiama la libreria,
-                // non il ponte. L'ha visto il gruppo che passa dalla porta del
-                // cliente (voce F14), il giorno dopo essere nato.
+                // Found on 23/9/2026 with a probe that prepared a drawing:
+                // extrude -> cut -> save -> create_drawing, which is the most
+                // ordinary sequence there is, and the fourth step did not
+                // start. The bench could not see it: it calls the library,
+                // not the bridge. It was seen by the group that goes through the client's
+                // door (entry F14), the day after it was born.
                 //
-                // `undo` faceva gia' cosi' tre metodi piu' sotto. Qui no.
+                // `undo` already did this three methods further down. Here it did not.
                 _seen = StateIdentity(after);
             }
             else
@@ -2333,9 +2333,9 @@ namespace Oce.Solid.Agent.Tools
 
             var result = new Dictionary<string, object>
             {
-                // SI DICE SEMPRE SU COSA SI E' LAVORATO. Anche quando e' ovvio:
-                // e' l'unico modo perche' chi legge se ne accorga quando ovvio
-                // non era.
+                // WE ALWAYS SAY WHAT WAS WORKED ON. Even when it is obvious:
+                // it is the only way for the reader to notice when obvious
+                // was not.
                 ["document"] = ReadableName(now),
                 ["outcomes"] = outcomes,
                 ["state_after"] = after,
@@ -2363,17 +2363,17 @@ namespace Oce.Solid.Agent.Tools
             if (planRun != null)
                 result["undo_entry_recorded"] = planRun.UndoEntryOnPlanDocument;
 
-            // IL CONTEGGIO DEGLI ERRORI SI DA' COME DELTA, NON COME NUMERO.
+            // THE COUNT OF ERRORS IS GIVEN AS A DELTA, NOT AS A NUMBER.
             //
-            // «features_in_error: 1» dopo un piano sembra dire «il piano ha
-            // rotto qualcosa». Puo' voler dire l'opposto: il pezzo era gia'
-            // rotto quando e' arrivato, e il piano non c'entra. Il numero
-            // assoluto mente su chi sia stato, ed e' il rischio scritto nella
-            // voce D5.
+            // «features_in_error: 1» after a plan seems to say «the plan
+            // broke something». It may mean the opposite: the part was already
+            // broken when it arrived, and the plan has nothing to do with it. The
+            // absolute number lies about who did it, and it is the risk written in
+            // entry D5.
             //
-            // Si dice quanti ce n'erano prima solo quando cambia qualcosa: su
-            // un pezzo sano che resta sano non c'e' niente da dire, e ripeterlo
-            // a ogni risposta e' posto tolto a cio' che conta.
+            // We say how many there were before only when something changes: on
+            // a healthy part that stays healthy there is nothing to say, and repeating it
+            // in every answer is space taken from what matters.
             int errorsBefore = FeaturesInError(before);
             // The same document as `before` (Z-C21.14), not the window in front.
             int errorsAfter = FeaturesInError(planStateAfter);
@@ -2394,17 +2394,17 @@ namespace Oce.Solid.Agent.Tools
                               "non le ha rotte questo piano.";
             }
 
-            // ── IL RICORDO PER «undo» (voce R1) ───────────────────────
+            // ── THE MEMORY FOR «undo» (entry R1) ──────────────────────
             //
-            // Si tiene com'era il pezzo quando questo piano ha finito: e'
-            // l'unica cosa che permettera' di ritirarlo senza rischiare di
-            // togliere il lavoro di qualcun altro.
+            // We keep how the part was when this plan finished: it is the
+            // only thing that will allow withdrawing it without risking
+            // taking away somebody else's work.
             //
-            // SI SCRIVE ANCHE QUANDO IL PIANO E' FALLITO A META', ed e' il caso
-            // che conta di piu': un piano fermato al passo 3 lascia i primi due
-            // costruiti, e sono proprio quelli che chi legge vuole ritirare.
-            // Il messaggio di errore glielo dice gia' («quello che era gia'
-            // stato costruito resta»).
+            // IT IS WRITTEN ALSO WHEN THE PLAN FAILED HALFWAY, and it is the case
+            // that matters most: a plan stopped at step 3 leaves the first two
+            // built, and those are exactly the ones the reader wants to withdraw.
+            // The error message already tells them so («what had already
+            // been built stays»).
             //
             // WHAT IS KEPT (Z-C21.14, review F1): the plan's document by its
             // COM reference (review F11: a save changes the name, not the
@@ -2442,12 +2442,12 @@ namespace Oce.Solid.Agent.Tools
             //    entry on another document) drops the memory, and the reason is
             //    kept for the refusal, with what to do (review F12).
             //
-            // Di solito, in questo progetto, **rifiutare cio' che e' corretto e'
-            // il peggiore dei due modi di sbagliare**. Qui no, e vale la pena
-            // dire perche': un rifiuto di troppo costa a chi legge una
-            // rilettura e un piano nuovo; un annullamento di troppo cancella il
-            // lavoro di una persona, e nessun messaggio lo rimette. Quando i due
-            // errori non costano uguale, il criterio si rovescia.
+            // Usually, in this project, **refusing what is correct is
+            // the worse of the two ways of being wrong**. Not here, and it is worth
+            // saying why: one refusal too many costs the reader a
+            // re-reading and a new plan; one undo too many erases a person's
+            // work, and no message puts it back. When the two
+            // errors do not cost the same, the criterion is reversed.
             // On the plan's document (Z-C21.14): `before` was read on it before
             // the plan, `planStateAfter` after, whatever window is in front now.
             double? volBefore = NumberOf(before, "volume_mm3");
@@ -2457,10 +2457,10 @@ namespace Oce.Solid.Agent.Tools
             var snapshotBefore = PartSnapshot.Of(before);
             var snapshotAfter = PartSnapshot.Of(planStateAfter);
 
-            // Un volume che non si e' letto non conta come «changed» (voce
-            // Z-C8): qui si sbaglia nel verso di NON ricordare, per la ragione
-            // scritta sopra — un annullamento di troppo cancella il lavoro di
-            // una persona.
+            // A volume that was not read does not count as «changed» (entry
+            // Z-C8): here we err on the side of NOT remembering, for the reason
+            // written above — one undo too many erases a person's
+            // work.
             bool hasBuilt =
                 planStateAfter != null &&
                 (featAfter != featBefore ||
@@ -2510,14 +2510,14 @@ namespace Oce.Solid.Agent.Tools
                     break;
             }
 
-            // SI RICORDA COSA SI E' FATTO, e solo se qualcosa si e' fatto
-            // davvero (voce W2.7). Un piano rifiutato in blocco non ha toccato
-            // niente: ricordarlo farebbe rifiutare il secondo tentativo di chi
-            // ha appena corretto l'errore — cioe' la difesa scatterebbe contro
-            // il caso che deve lasciar passare.
-            // E non si ricorda niente di una MISURA: non ha cambiato il pezzo,
-            // e ricordarla farebbe rifiutare un `build` successivo che per
-            // caso avesse la stessa impronta.
+            // WE REMEMBER WHAT WAS DONE, and only if something was really done
+            // (entry W2.7). A plan refused as a whole touched
+            // nothing: remembering it would make the second attempt of whoever
+            // has just corrected the error be refused — that is, the defence would fire against
+            // the case it must let through.
+            // And nothing is remembered of a MEASURE: it did not change the part,
+            // and remembering it would make a later `build` be refused that by
+            // chance had the same fingerprint.
             // The plan's document and its own summary (review F6): up to bridge
             // 0.125.0 the document was the plan's and the summary the window
             // in front's, so after [..., create_drawing] a resent plan on the part
@@ -2529,24 +2529,24 @@ namespace Oce.Solid.Agent.Tools
                 _summaryAfterPlan = StateSummary(planStateAfter);
             }
 
-            // I dati escono anche quando il piano e' andato male (W2.4): e'
-            // proprio allora che un programma ha piu' bisogno di leggerli senza
-            // ri-analizzare una stringa — quale passo, quale misura, quale
-            // rifiuto.
+            // The data come out also when the plan went badly (W2.4): it is
+            // precisely then that a program most needs to read them without
+            // re-parsing a string — which step, which measure, which
+            // refusal.
             return Protocol.ContentWithData(
                 Protocol.InJson(result), result, !everythingFine);
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // R1 — ritirare quello che si e' fatto
+        // R1 — withdrawing what was done
         // ─────────────────────────────────────────────────────────────────
         /// <summary>
-        /// Com'era il pezzo quando l'ultimo piano ha finito.
+        /// How the part was when the last plan finished.
         ///
-        /// E' l'unica cosa che permette di annullare senza rischiare di
-        /// togliere il lavoro di qualcun altro: se il pezzo non e' piu' cosi',
-        /// fra il piano e adesso e' successo qualcosa, e quel qualcosa non
-        /// l'ha fatto questo ponte.
+        /// It is the only thing that allows undoing without risking
+        /// taking away somebody else's work: if the part is no longer like this,
+        /// between the plan and now something happened, and that something was not
+        /// done by this bridge.
         /// </summary>
         private sealed class LastPlan
         {
@@ -2790,41 +2790,41 @@ namespace Oce.Solid.Agent.Tools
             "undo by hand (Edit > Undo), seeing what each step takes away.";
 
         /// <summary>
-        /// Quanto si puo' sbagliare un volume e considerarlo lo stesso.
+        /// How far a volume may be off and still be considered the same.
         ///
-        /// Un millesimo di mm³: SOLIDWORKS ricalcola il volume a ogni rebuild e
-        /// l'ultima cifra balla. Piu' stretto di cosi' rifiuterebbe pezzi
-        /// identici; piu' largo lascerebbe passare una modifica vera — un foro
-        /// Ø1 profondo 1 sono 0,79 mm³, quasi mille volte questa soglia.
+        /// One thousandth of a mm³: SOLIDWORKS recalculates the volume at every rebuild and
+        /// the last digit dances. Tighter than this it would refuse identical
+        /// parts; wider it would let a real change through — a Ø1 hole
+        /// 1 deep is 0.79 mm³, almost a thousand times this threshold.
         /// </summary>
         private const double VolumeDeviationMm3 = 0.001;
 
         /// <summary>
-        /// RITIRA L'ULTIMO PIANO.
+        /// WITHDRAWS THE LAST PLAN.
         ///
-        /// PERCHE' ESISTE. Fino alla 0.31.0 questo ponte diceva **ventuno
-        /// volte** al modello «annullalo con Ctrl+Z». Il destinatario di quei
-        /// messaggi e' un modello linguistico, che non ha una tastiera: era una
-        /// riparazione offerta a qualcuno che non poteva prenderla. E le
-        /// trentasei operazioni sono tutte additive o parametriche, quindi
-        /// l'albero poteva solo crescere: un modello che si accorgeva di aver
-        /// sbagliato aveva due strade, tutte e due sbagliate — costruirci sopra,
-        /// o rifare il pezzo da capo.
+        /// WHY IT EXISTS. Up to 0.31.0 this bridge said **twenty-one
+        /// times** to the model «undo it with Ctrl+Z». The recipient of those
+        /// messages is a language model, which has no keyboard: it was a
+        /// repair offered to someone who could not take it. And the
+        /// thirty-six operations are all additive or parametric, so
+        /// the tree could only grow: a model that noticed it had
+        /// got it wrong had two paths, both wrong — build on top of it,
+        /// or redo the part from scratch.
         ///
-        /// LA MACCHINA C'ERA GIA'. `PlanExecutor` apre e chiude una voce di
-        /// annullamento intorno a ogni piano (voce B8, misurata: «un solo
-        /// Ctrl+Z riporta il documento al valore di volume_before_mm3»). Si
-        /// azionava solo con una tastiera umana. E' la stessa forma della
-        /// sezione V — la capacita' c'e', e non arriva a chi legge.
+        /// THE MACHINE WAS ALREADY THERE. `PlanExecutor` opens and closes an undo
+        /// entry around every plan (entry B8, measured: «one
+        /// Ctrl+Z brings the document back to the value of volume_before_mm3»). It was
+        /// triggered only by a human keyboard. It is the same shape as
+        /// section V — the capability is there, and it does not reach the reader.
         ///
-        /// ── IL RIFIUTO VIENE PRIMA ────────────────────────────────────────
+        /// ── THE REFUSAL COMES FIRST ──────────────────────────────────
         ///
-        /// Fra il piano e questa chiamata il progettista puo' aver lavorato a
-        /// mano. Premere annulla allora gli toglie il SUO lavoro, ed e' un
-        /// danno che nessun messaggio ripara. Quindi si confrontano DUE
-        /// numeri che la risposta di `build` gia' conteneva — il volume e
-        /// quante lavorazioni ci sono — e se non tornano **ci si ferma e si
-        /// dice cosa e' cambiato**.
+        /// Between the plan and this call the designer may have worked by
+        /// hand. Pressing undo then takes away THEIR work, and it is a
+        /// damage that no message repairs. So TWO numbers that the answer of
+        /// `build` already contained are compared — the volume and
+        /// how many features there are — and if they do not match **we stop and
+        /// say what changed**.
         ///
         /// Since Z-C21.14 (review F1) the feature names, their IDs and their
         /// order are compared too: a reorder or a rename done after the plan by
@@ -2943,9 +2943,9 @@ namespace Oce.Solid.Agent.Tools
 
             var back = PartSnapshot.Of(stateAfter);
             var before = memory.Before;
-            // SE IL VOLUME NON SI LEGGE, NON SI RIFA' ALLA CIECA (voce Z-C8):
-            // «non e' tornato» porterebbe a un passo avanti che potrebbe
-            // rimettere proprio il piano appena tolto.
+            // IF THE VOLUME CANNOT BE READ, WE DO NOT REDO BLINDLY (entry Z-C8):
+            // «it did not come back» would lead to a step forward that might
+            // put back the very plan that was just taken away.
             if (back.Volume == null || before == null || before.Volume == null)
             {
                 _lastPlan = null;
@@ -3046,19 +3046,19 @@ namespace Oce.Solid.Agent.Tools
                     }), true);
             }
 
-            // RIUSCITO: IL RICORDO SI CANCELLA.
-            // Un secondo «undo» non deve disfare quello che c'era PRIMA del
-            // piano: quello non l'ha fatto questo ponte, e la pila degli
-            // annullamenti non sa distinguere.
+            // SUCCEEDED: THE MEMORY IS ERASED.
+            // A second «undo» must not undo what was there BEFORE the
+            // plan: this bridge did not do that, and the undo stack
+            // cannot tell the difference.
             _lastPlan = null;
             _noMemoryBecause =
                 "The last «undo» already withdrew the plan; one more step back would take away what " +
                 "was there before it, which this bridge did not make.";
 
-            // GLI IDENTIFICATIVI NON SONO PIU' QUELLI, e chi legge deve
-            // saperlo dalla risposta invece di scoprirlo al piano seguente:
-            // gli uid sono posizionali e si rinumerano per area a ogni
-            // lettura. Si firma questa lettura, esattamente come fa `build`.
+            // THE IDENTIFIERS ARE NO LONGER THE SAME, and the reader must
+            // know it from the answer instead of finding out at the next plan:
+            // the uids are positional and are renumbered by area at every
+            // reading. This reading is signed, exactly as `build` does.
             _seen = StateIdentity(stateAfter);
             _seenSignatures = StateSignatures(stateAfter);
             _signatureSeen = LightSignature(stateAfter);
@@ -3311,7 +3311,7 @@ namespace Oce.Solid.Agent.Tools
                    "going on, and make it again with «build» if you need it.";
         }
 
-        /// <summary>Una riga di confronto, solo se i due numeri sono diversi.</summary>
+        /// <summary>A comparison line, only if the two numbers are different.</summary>
         private static string Comparison(string what, double expected, double found, string units)
         {
             if (Math.Abs(expected - found) <= VolumeDeviationMm3) return "";
@@ -3327,12 +3327,12 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Un numero dello stato, o **null se lo stato dice di non saperlo**
-        /// (voce Z-C8): la chiave c'e' e vale null, cioe' la lettura e' fallita.
-        /// ZERO-E-ZERO: una chiave ASSENTE vale zero — lo stato non scrive il
-        /// volume di una parte senza corpi solidi, ne' di una tavola o di un
-        /// assieme, e li' zero e' vero. Fino al 25/9/2026 assente voleva dire
-        /// anche «non letto», e un annullamento giusto poteva essere rifatto.
+        /// A number from the state, or **null if the state says it does not know**
+        /// (entry Z-C8): the key is there and is null, that is the reading failed.
+        /// ZERO-E-ZERO: an ABSENT key is worth zero — the state does not write the
+        /// volume of a part without solid bodies, nor of a drawing or of an
+        /// assembly, and there zero is true. Until 25/9/2026 absent also meant
+        /// «not read», and a correct undo could be redone.
         /// </summary>
         private static double? NumberOf(Dictionary<string, object> docState, string key)
         {
@@ -3345,13 +3345,13 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Quante lavorazioni ha il pezzo, comprese quelle che il tetto ha
-        /// lasciato fuori.
+        /// How many features the part has, including those the ceiling
+        /// left out.
         ///
-        /// SENZA `feature_not_listed` QUESTO CONTEGGIO MENTIREBBE su ogni
-        /// pezzo con piu' di ottanta lavorazioni: si fermerebbe a ottanta e
-        /// direbbe «non e' cambiato niente» anche dopo dieci fori nuovi. E'
-        /// esattamente il difetto della voce E12, ripetuto da questa parte.
+        /// WITHOUT `feature_not_listed` THIS COUNT WOULD LIE on every
+        /// part with more than eighty features: it would stop at eighty and
+        /// say «nothing has changed» even after ten new holes. It is
+        /// exactly the defect of entry E12, repeated on this side.
         /// </summary>
         private static int HowManyFeatures(Dictionary<string, object> docState)
         {
@@ -3373,26 +3373,26 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// GLI IDENTIFICATIVI CHE IL PASSO CITA E CHE NELLO STATO NON C'ERANO.
-        /// Null se e' tutto a posto.
+        /// THE IDENTIFIERS THE STEP CITES THAT WERE NOT IN THE STATE.
+        /// Null if all is well.
         ///
-        /// Si guardano solo i campi che lo schema chiama `*_uid`: sono quelli
-        /// che nominano geometria **che c'era gia'**. La geometria creata dal
-        /// piano stesso si nomina con `*_rif`, che cita il PASSO e non
-        /// l'identificativo — ed e' l'unico modo, perche' al momento in cui il
-        /// piano si scrive quella faccia non esiste e nessuno le puo' dare un
-        /// nome.
+        /// Only the fields that the schema calls `*_uid` are looked at: they are those
+        /// that name geometry **that was already there**. The geometry created by the
+        /// plan itself is named with `*_rif`, which cites the STEP and not
+        /// the identifier — and it is the only way, because at the time the
+        /// plan is written that face does not exist and nobody can give it a
+        /// name.
         ///
-        /// PERCHE' NON BASTAVANO LE FIRME. La firma confronta un identificativo
-        /// con la geometria che descriveva quando il piano e' nato. Se la
-        /// faccia **non esisteva affatto**, non c'e' nessuna firma: niente da
-        /// confrontare, nessun rifiuto, e il piano passa. La firma protegge
-        /// dallo spostamento; questo protegge dall'invenzione.
+        /// WHY THE SIGNATURES WERE NOT ENOUGH. The signature compares an identifier
+        /// with the geometry it described when the plan was born. If the face
+        /// **did not exist at all**, there is no signature: nothing to
+        /// compare, no refusal, and the plan passes. The signature protects
+        /// against displacement; this protects against invention.
         ///
-        /// NON SI RIFIUTA IL LEGITTIMO. Un piano che crea geometria e poi ci
-        /// lavora sopra e' normale, e passa: usa `*_rif`. Il messaggio lo dice,
-        /// perche' un rifiuto che non indica la strada buona insegna soltanto a
-        /// riprovare a caso.
+        /// THE LEGITIMATE IS NOT REFUSED. A plan that creates geometry and then
+        /// works on it is normal, and passes: it uses `*_rif`. The message says so,
+        /// because a refusal that does not point to the good way only teaches
+        /// to retry at random.
         /// </summary>
         private static string UidsThatDoNotExist(
             Dictionary<string, object> schema,
@@ -3417,9 +3417,9 @@ namespace Oce.Solid.Agent.Tools
                 {
                     if (existing.Contains(uid)) continue;
 
-                    // SI DICE COSA C'E', non solo cosa manca. Su un documento
-                    // vuoto l'elenco e' vuoto, ed e' proprio quello il caso in
-                    // cui chi legge deve capire che deve cambiare strada.
+                    // WE SAY WHAT IS THERE, not just what is missing. On an empty
+                    // document the list is empty, and that is precisely the case in
+                    // which the reader must understand that they must change path.
                     string whatIsThere = existing.Count == 0
                         ? "Nel pezzo che ho guardato non c'era nessun identificativo: " +
                           "era vuoto."
@@ -3441,46 +3441,46 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Tutti i nomi che quello stato ha davvero MOSTRATO: gli uid di facce,
-        /// spigoli, corpi, assi e lavorazioni, piu' i nomi di lavorazione che lo
-        /// stato scrive in giro per altre vie.
+        /// All the names that that state really SHOWED: the uids of faces,
+        /// edges, bodies, axes and features, plus the feature names that the
+        /// state writes around by other ways.
         ///
-        /// LA REGOLA: SI RACCOGLIE CIO' CHE LO STATO HA SCRITTO, NON CIO' CHE
-        /// AVEVA IN MENTE DI SCRIVERE.
+        /// THE RULE: WE COLLECT WHAT THE STATE WROTE, NOT WHAT IT
+        /// HAD IN MIND TO WRITE.
         ///
-        /// Questo controllo blocca un piano PRIMA di eseguirlo quando cita un
-        /// nome che non c'era. Se raccoglie meno nomi di quanti lo stato ne ha
-        /// mostrati, rifiuta lavoro legittimo — e lo rifiuta nel modo peggiore,
-        /// perche' chi ha scritto il piano quel nome l'ha letto nella risposta
-        /// precedente e ha ragione a fidarsene.
+        /// This check blocks a plan BEFORE executing it when it cites a
+        /// name that was not there. If it collects fewer names than the state
+        /// showed, it refuses legitimate work — and refuses it in the worst way,
+        /// because whoever wrote the plan read that name in the previous
+        /// answer and is right to trust it.
         ///
-        /// Fino alla 0.25.2 guardava solo il campo `uid` delle cinque famiglie.
-        /// Ma lo stato pubblica nomi di lavorazione anche in tre altri posti:
+        /// Up to 0.25.2 it looked only at the `uid` field of the five families.
+        /// But the state publishes feature names in three other places too:
         ///
-        ///   * `from_feature` su ogni faccia — ed e' messo li' apposta per
-        ///     «quel foro portalo a M10»;
-        ///   * `created_by` su ogni corpo;
-        ///   * la mappa `features` in fondo.
+        ///   * `from_feature` on every face — and it is put there on purpose for
+        ///     «take that hole to M10»;
+        ///   * `created_by` on every body;
+        ///   * the `features` map at the bottom.
         ///
-        /// E l'elenco `feature` invece e' FILTRATO per tipo e tagliato a
-        /// `MaxFeature`. Quindi bastava un pezzo con piu' di ottanta
-        /// lavorazioni, o una lavorazione di un tipo che non entra nell'elenco,
-        /// perche' lo stato mostrasse un nome e il controllo lo dichiarasse
-        /// inesistente.
+        /// And the `feature` list instead is FILTERED by type and cut at
+        /// `MaxFeature`. So a part with more than eighty features
+        /// was enough, or a feature of a type that does not enter the list,
+        /// for the state to show a name and the check to declare it
+        /// nonexistent.
         ///
-        /// SI ALLARGA E NON SI STRINGE. L'insieme e' unico e non distingue le
-        /// famiglie: `face_uid` accetta anche un nome di lavorazione. E'
-        /// voluto — questo e' un controllo di ESISTENZA, non di tipo, e chi
-        /// sbaglia famiglia viene fermato dopo con un messaggio che sa dire di
-        /// che tipo e' quell'entita' (`IDoNotWorkOn`). Stringere qui vorrebbe
-        /// dire rischiare un rifiuto sbagliato per guadagnare un messaggio
-        /// leggermente migliore.
+        /// IT WIDENS AND DOES NOT NARROW. The set is single and does not distinguish the
+        /// families: `face_uid` also accepts a feature name. It is
+        /// deliberate — this is a check of EXISTENCE, not of type, and whoever
+        /// gets the family wrong is stopped later with a message that can say what
+        /// type that entity is (`IDoNotWorkOn`). Narrowing here would mean
+        /// risking a wrong refusal to gain a slightly better
+        /// message.
         /// </summary>
         private static HashSet<string> StateUid(Dictionary<string, object> docState)
         {
             var outside = new HashSet<string>(StringComparer.Ordinal);
 
-            // 1. Gli uid veri e propri.
+            // 1. The uids proper.
             foreach (var family in new[] { "faces", "edges", "bodies", "axes", "feature" })
                 foreach (var entry in EntriesOf(docState, family))
                 {
@@ -3489,7 +3489,7 @@ namespace Oce.Solid.Agent.Tools
                         outside.Add(Convert.ToString(uid));
                 }
 
-            // 2. I nomi di lavorazione scritti sulle facce e sui corpi.
+            // 2. The feature names written on the faces and on the bodies.
             foreach (var entry in EntriesOf(docState, "faces"))
             {
                 object itemName;
@@ -3503,8 +3503,8 @@ namespace Oce.Solid.Agent.Tools
                     outside.Add(Convert.ToString(itemName));
             }
 
-            // 3. La mappa delle lavorazioni: le CHIAVI sono i numeri, i VALORI
-            //    sono i nomi. Chi scrive un piano copia il nome, non il numero.
+            // 3. The features map: the KEYS are the numbers, the VALUES
+            //    are the names. Whoever writes a plan copies the name, not the number.
             object raw;
             if (docState.TryGetValue("features", out raw))
             {
@@ -3519,11 +3519,11 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Le voci di una famiglia dello stato, come dizionari.
+        /// The entries of a family of the state, as dictionaries.
         ///
-        /// Le famiglie sono `List&lt;Dictionary&lt;...&gt;&gt;`, non `object[]`: un
-        /// `as object[]` qui tornerebbe null in silenzio e il controllo direbbe
-        /// «non esiste» su tutto. E' gia' successo una volta, con le firme.
+        /// The families are `List&lt;Dictionary&lt;...&gt;&gt;`, not `object[]`: an
+        /// `as object[]` here would return null in silence and the check would say
+        /// «does not exist» about everything. It has already happened once, with the signatures.
         /// </summary>
         private static IEnumerable<Dictionary<string, object>> EntriesOf(
             Dictionary<string, object> docState, string family)
@@ -3539,7 +3539,7 @@ namespace Oce.Solid.Agent.Tools
             }
         }
 
-        /// <summary>Un valore che puo' essere una stringa o un elenco di stringhe.</summary>
+        /// <summary>A value that may be a string or a list of strings.</summary>
         private static IEnumerable<string> Strings(object val)
         {
             if (val is string s) { if (s.Length > 0) yield return s; yield break; }
@@ -3554,9 +3554,9 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// L'elenco, ma corto. Su un pezzo con quattrocento facce scriverli
-        /// tutti non aiuta nessuno: i primi dodici bastano a far capire che
-        /// forma hanno i nomi.
+        /// The list, but short. On a part with four hundred faces writing them
+        /// all helps nobody: the first twelve are enough to show what
+        /// shape the names have.
         /// </summary>
         private static string List(HashSet<string> uid)
         {
@@ -3568,9 +3568,9 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Il nome di una lavorazione, dalla mappa che lo stato scrive in
-        /// fondo. Null se non c'e': meglio una firma senza nome che una firma
-        /// con un nome inventato.
+        /// The name of a feature, from the map the state writes at the
+        /// bottom. Null if it is not there: better a signature without a name than a signature
+        /// with an invented name.
         /// </summary>
         private static string FeatureName(Dictionary<string, object> docState, object id)
         {
@@ -3585,15 +3585,15 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// La scatola del pezzo — {minX,minY,minZ,maxX,maxY,maxZ} in mm —
-        /// ricavata dai due campi che lo stato pubblica: l'angolo
-        /// (`bounding_box_from_mm`) e i lati (`bounding_box_mm`).
+        /// The part's box — {minX,minY,minZ,maxX,maxY,maxZ} in mm —
+        /// derived from the two fields the state publishes: the corner
+        /// (`bounding_box_from_mm`) and the sides (`bounding_box_mm`).
         ///
-        /// Null se uno dei due manca. NON si inventa l'angolo mettendolo a
-        /// zero: uno stato che dichiarasse una scatola appoggiata all'origine
-        /// quando il pezzo e' centrato su di essa farebbe scrivere «stava a
-        /// meta' del lato» di una faccia che stava all'estremo, e una
-        /// spiegazione sbagliata e' peggio di nessuna spiegazione.
+        /// Null if either is missing. The corner is NOT invented by setting it to
+        /// zero: a state that declared a box resting on the origin
+        /// when the part is centred on it would make people write «it was halfway
+        /// along the side» of a face that was at the extreme, and a wrong
+        /// explanation is worse than no explanation.
         /// </summary>
         private static double[] PartBox(Dictionary<string, object> docState)
         {
@@ -3607,7 +3607,7 @@ namespace Oce.Solid.Agent.Tools
             };
         }
 
-        /// <summary>Tre numeri da un campo dello stato, o null.</summary>
+        /// <summary>Three numbers from a field of the state, or null.</summary>
         private static double[] ThreeNumbers(Dictionary<string, object> docState, string key)
         {
             if (docState == null || !docState.TryGetValue(key, out var v) || v == null) return null;
@@ -3627,9 +3627,9 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Quante lavorazioni in errore aveva quello stato. Zero anche quando
-        /// il campo non c'e' — ed e' giusto: lo stato lo scrive solo quando ce
-        /// ne sono.
+        /// How many features in error that state had. Zero even when
+        /// the field is not there — and it is right: the state writes it only when there
+        /// are some.
         /// </summary>
         private static int FeaturesInError(Dictionary<string, object> docState)
         {
@@ -3664,23 +3664,23 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// Uno strumento, con le sue ANNOTAZIONI.
+        /// A tool, with its ANNOTATIONS.
         ///
-        /// PERCHE' LE ANNOTAZIONI NON SONO UN DETTAGLIO DI PROTOCOLLO.
-        /// Il client MCP le usa per decidere se fermarsi a chiedere conferma a
-        /// chi sta lavorando. Senza, `inspect_part` — che non tocca niente —
-        /// e `build` — che modifica il pezzo in modo che nessuno annulla per
-        /// lui — arrivano al client identici, e il client tratta identiche due
-        /// cose che non lo sono.
+        /// WHY THE ANNOTATIONS ARE NOT A PROTOCOL DETAIL.
+        /// The MCP client uses them to decide whether to stop and ask the person
+        /// working for confirmation. Without them, `inspect_part` — which touches nothing —
+        /// and `build` — which modifies the part in a way nobody undoes for
+        /// them — reach the client identical, and the client treats as identical two
+        /// things that are not.
         ///
-        /// Per un progetto la cui tesi e' «nessuna geometria esiste senza che
-        /// qualcuno l'abbia confermata», dichiararle e' il minimo.
+        /// For a project whose thesis is «no geometry exists unless
+        /// someone has confirmed it», declaring them is the minimum.
         ///
-        /// `idempotente` merita una riga: `build` NON lo e'. Rieseguire lo
-        /// stesso piano non rimette il pezzo com'era — fa un SECONDO foro.
-        /// Dichiararlo idempotente inviterebbe un client a riprovare da solo
-        /// dopo un errore di rete, e il pezzo uscirebbe con il doppio delle
-        /// lavorazioni senza che nessuno l'abbia chiesto.
+        /// `idempotente` deserves a line: `build` is NOT. Running the
+        /// same plan again does not put the part back as it was — it makes a SECOND hole.
+        /// Declaring it idempotent would invite a client to retry by itself
+        /// after a network error, and the part would come out with double the
+        /// features without anyone having asked.
         /// </summary>
         private static Dictionary<string, object> Tool(
             string itemName,
@@ -3693,15 +3693,15 @@ namespace Oce.Solid.Agent.Tools
             return new Dictionary<string, object>
             {
                 ["name"] = itemName,
-                // IL TITOLO STA IN DUE POSTI, E NON E' UNA RIPETIZIONE.
+                // THE TITLE IS IN TWO PLACES, AND IT IS NOT A REPETITION.
                 //
-                // Nelle revisioni recenti dello spec MCP `title` e' un campo di
-                // PRIMO LIVELLO dello strumento; prima stava solo dentro
-                // `annotations`, dove resta per compatibilita'. Un client nuovo
-                // legge quello di sopra, uno vecchio quello di sotto, e
-                // scriverne uno solo vuol dire che meta' dei client mostra il
-                // nome tecnico `inspect_part` a chi sta lavorando.
-                // Scriverli tutti e due costa due righe e nessuna scelta.
+                // In the recent revisions of the MCP spec `title` is a
+                // TOP-LEVEL field of the tool; before, it was only inside
+                // `annotations`, where it stays for compatibility. A new client
+                // reads the one above, an old one the one below, and
+                // writing only one means that half of the clients show the
+                // technical name `inspect_part` to the person working.
+                // Writing both costs two lines and no choice.
                 ["title"] = HumanTitle(itemName),
                 ["description"] = descriptionText,
                 ["inputSchema"] = schema,
@@ -3711,21 +3711,21 @@ namespace Oce.Solid.Agent.Tools
                     ["readOnlyHint"] = readOnlyMode,
                     ["destructiveHint"] = destructive,
                     ["idempotentHint"] = idempotent,
-                    // Il mondo esterno qui e' SolidWorks: un programma che non
-                    // controlliamo, con documenti che cambiano sotto i piedi.
+                    // The outside world here is SolidWorks: a program that we do not
+                    // control, with documents that change under our feet.
                     ["openWorldHint"] = true,
                 },
             };
         }
 
         /// <summary>
-        /// I nomi degli strumenti, per il messaggio di «non lo conosco».
+        /// The names of the tools, for the «non lo conosco» message.
         ///
-        /// Scritti a mano e non ricavati da `Items()`: costruire l'elenco vero
-        /// per rispondere a un errore vorrebbe dire ricostruire sessanta schemi
-        /// JSON per stampare sei parole. Il prezzo di averli scritti due volte
-        /// e' che possono divergere — e infatti c'e' un controllo di contratto
-        /// che confronta questo elenco con quello che esce da `tools/list`.
+        /// Written by hand and not derived from `Items()`: building the real list
+        /// to answer an error would mean rebuilding sixty JSON schemas
+        /// to print six words. The price of having written them twice
+        /// is that they can diverge — and indeed there is a contract check
+        /// that compares this list with the one coming out of `tools/list`.
         /// </summary>
         internal static readonly string[] ToolNames =
         {

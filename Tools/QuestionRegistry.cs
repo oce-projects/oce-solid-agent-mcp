@@ -8,88 +8,88 @@ using System.Text;
 namespace Oce.Solid.Agent.Tools
 {
     /// <summary>
-    /// IL REGISTRO DELLE DOMANDE SENZA RISPOSTA (voce Z-G7)
+    /// THE REGISTRY OF UNANSWERED QUESTIONS (entry Z-G7)
     ///
-    /// ── PERCHE' ESISTE ──────────────────────────────────────────────────
+    /// ── WHY IT EXISTS ────────────────────────────────────────────────────
     ///
-    /// Le cinque operazioni del catalogo che al 23/9/2026 non avevano nessun
-    /// caso di banco — `circular_pattern`, `weld_bead`, `gusset`,
-    /// `trim_members`, `end_cap` — **le abbiamo scelte noi**. (Il
-    /// 25/9, scrivendo quei casi, due si sono scoperte mai funzionanti e una
-    /// e' uscita dal catalogo: scelte a tavolino, e nemmeno misurate.) Quali
-    /// servano davvero non lo sa nessuno, e chiederlo alle persone non lo fa
-    /// sapere: chi usa il ponte non ha l'elenco di cosa non c'e'.
+    /// The five operations of the catalogue that at 23/9/2026 had no
+    /// bench case — `circular_pattern`, `weld_bead`, `gusset`,
+    /// `trim_members`, `end_cap` — **we chose ourselves**. (On
+    /// 25/9, writing those cases, two turned out never to have worked and one
+    /// left the catalogue: chosen at a desk, and not even measured.) Which ones
+    /// are really needed nobody knows, and asking people does not make it
+    /// known: whoever uses the bridge does not have the list of what is not there.
     ///
-    /// In OpenPDM il registro delle domande e' cio' che ha fatto trovare il
-    /// difetto «libreria cartella / libreria stato»: non si e' scoperto
-    /// chiedendo, si e' letto li'. Questo ponte aveva lo stesso dato in mano e
-    /// lo buttava via — il caso `default` di `McpTools.Invoke` **sa** che gli
-    /// e' stato chiesto uno strumento che non esiste, risponde bene, e non lo
-    /// scrive da nessuna parte.
+    /// In OpenPDM the registry of questions is what made the
+    /// defect «folder library / state library» be found: it was not discovered
+    /// by asking, it was read there. This bridge had the same data in hand and
+    /// threw it away — the `default` case of `McpTools.Invoke` **knows** that
+    /// a tool that does not exist was asked for, answers well, and does not
+    /// write it anywhere.
     ///
-    /// **Tre modelli diversi che inventano lo stesso nome sono la prossima
-    /// operazione da costruire, e non e' opinione.**
+    /// **Three different models inventing the same name are the next
+    /// operation to build, and it is not opinion.**
     ///
-    /// ── COSA NON SCRIVE, E NON E' UNA DIMENTICANZA ──────────────────────
+    /// ── WHAT IT DOES NOT WRITE, AND IT IS NOT AN OVERSIGHT ───────────────
     ///
-    /// Solo il nome chiesto, di che tipo era la domanda, e i nomi vicini che
-    /// il catalogo aveva proposto. **Niente argomenti, niente percorsi,
-    /// niente nomi di documento.**
+    /// Only the name asked for, what kind of question it was, and the nearby names that
+    /// the catalogue had proposed. **No arguments, no paths,
+    /// no document names.**
     ///
-    /// Un registro che copia gli argomenti di una chiamata diventa in un
-    /// pomeriggio un file pieno di percorsi di rete e di nomi di commessa, e
-    /// questo repository ha gia' un problema di dati personali che ne
-    /// impedisce la pubblicazione. Un nome inventato da un modello non e' il
-    /// dato di nessuno; il percorso in cui sta il pezzo lo e'.
+    /// A registry that copies the arguments of a call becomes in one
+    /// afternoon a file full of network paths and job names, and
+    /// this repository already has a personal data problem that
+    /// prevents its publication. A name invented by a model is nobody's
+    /// data; the path where the part sits is.
     ///
-    /// I `similar` si scrivono perche' sono **la meta' utile della misura**:
-    /// distinguono «il modello ha sbagliato a scrivere un nome che c'e'» da
-    /// «il modello chiede una cosa che non esiste». Il primo caso si aggiusta
-    /// con un sinonimo, il secondo e' lavoro da fare.
+    /// The `similar` ones are written because they are **the useful half of the measure**:
+    /// they distinguish «the model misspelled a name that exists» from
+    /// «the model asks for something that does not exist». The first case is fixed
+    /// with a synonym, the second is work to be done.
     ///
-    /// ── E NON PUO' FAR FALLIRE LA CHIAMATA CHE OSSERVA ──────────────────
+    /// ── AND IT CANNOT MAKE THE CALL IT OBSERVES FAIL ─────────────────────
     ///
-    /// Due regole, tutte e due assolute:
+    /// Two rules, both absolute:
     ///
-    ///  1. **Non scrive mai su stdout.** Li' passa il JSON-RPC: una riga di
-    ///     troppo non e' un log sporco, e' il protocollo rotto. Questa classe
-    ///     non nomina `Console` da nessuna parte, e c'e' un controllo di
-    ///     contratto che lo pretende leggendo il sorgente.
-    ///  2. **Non solleva mai.** Installato in `Program Files` la cartella non
-    ///     e' scrivibile; su una macchina con due ponti aperti il file puo'
-    ///     essere occupato; il disco puo' essere pieno. In tutti questi casi
-    ///     si tace e si va avanti. *Un registro che fa fallire la chiamata che
-    ///     doveva osservare e' peggio di nessun registro.*
+    ///  1. **It never writes to stdout.** That is where JSON-RPC passes: one line
+    ///     too many is not a dirty log, it is the protocol broken. This class
+    ///     does not name `Console` anywhere, and there is a contract
+    ///     check that demands it by reading the source.
+    ///  2. **It never raises.** Installed in `Program Files` the folder is not
+    ///     writable; on a machine with two bridges open the file may
+    ///     be busy; the disk may be full. In all these cases
+    ///     we stay silent and carry on. *A registry that makes the call it
+    ///     was supposed to observe fail is worse than no registry.*
     ///
-    /// Il motivo dell'ultimo silenzio resta in `WhyItWasSilent`, che nessuno
-    /// stampa: serve a una prova, per non dover credere sulla parola che il
-    /// silenzio fosse voluto.
+    /// The reason for the last silence stays in `WhyItWasSilent`, which nobody
+    /// prints: it serves a check, so as not to have to take on trust that
+    /// the silence was deliberate.
     ///
-    /// ── LA FORMA: UNA RIGA PER DOMANDA, NON UN CONTEGGIO ────────────────
+    /// ── THE FORM: ONE LINE PER QUESTION, NOT A COUNT ─────────────────────
     ///
-    /// JSONL in aggiunta, non un JSON riscritto. Riscrivere vorrebbe dire
-    /// leggere-modificare-scrivere, e due ponti aperti sulla stessa macchina
-    /// — che qui succede — si mangerebbero le righe a vicenda senza che
-    /// nessuno se ne accorga. In aggiunta, il peggio che capita e' una riga
-    /// persa.
+    /// JSONL appended, not a JSON rewritten. Rewriting would mean
+    /// read-modify-write, and two bridges open on the same machine
+    /// — which happens here — would eat each other's lines without
+    /// anyone noticing. Appending, the worst that happens is one line
+    /// lost.
     ///
-    /// Contare e' un problema di chi legge: `Checks/questions-without-answer.js`.
+    /// Counting is the reader's problem: `Checks/questions-without-answer.js`.
     /// </summary>
     internal sealed class QuestionRegistry
     {
         public const string FileName = "domande-senza-risposta.jsonl";
 
-        /// <summary>Il file su cui si scrive, o null se non si e' trovato dove.</summary>
+        /// <summary>The file being written to, or null if no place was found.</summary>
         public string FilePath { get; }
 
         /// <summary>
-        /// Perche' l'ultima scrittura non e' avvenuta, o null se e' andata.
-        /// Non lo stampa nessuno: esiste perche' una prova possa verificare
-        /// che il silenzio era voluto e non un ramo morto.
+        /// Why the last write did not happen, or null if it went through.
+        /// Nobody prints it: it exists so that a check can verify
+        /// that the silence was deliberate and not a dead branch.
         /// </summary>
         public string WhyItWasSilent { get; private set; }
 
-        /// <summary>Quante righe questa istanza ha scritto davvero.</summary>
+        /// <summary>How many lines this instance really wrote.</summary>
         public int Written { get; private set; }
 
         public QuestionRegistry() : this(DefaultPath()) { }
@@ -100,17 +100,17 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// DUE NOMI DI VARIABILE E UN RIPIEGO, come per il catalogo.
+        /// TWO VARIABLE NAMES AND A FALLBACK, as for the catalogue.
         ///
-        /// `RISCONTRO_REGISTRO` dice il file per intero. Senza, si scrive
-        /// accanto all'eseguibile — che su una macchina di sviluppo e'
-        /// scrivibile e su una installata quasi mai, e va bene cosi': la
-        /// regola 2 dice che allora si tace.
+        /// `RISCONTRO_REGISTRO` gives the whole file. Without it, we write
+        /// next to the executable — which on a development machine is
+        /// writable and on an installed one almost never, and that is fine: rule
+        /// 2 says that then we stay silent.
         ///
-        /// Impostarla a stringa vuota **non** e' come non impostarla: e' il
-        /// modo di dire «non registrare niente», e va rispettato senza
-        /// ripieghi, altrimenti chi la svuota per zittire il registro si
-        /// ritrova a scrivere accanto all'eseguibile.
+        /// Setting it to an empty string is **not** the same as not setting it: it is the
+        /// way of saying «record nothing», and it must be respected without
+        /// fallbacks, otherwise whoever empties it to silence the registry
+        /// finds themselves writing next to the executable.
         /// </summary>
         public static string DefaultPath()
         {
@@ -138,14 +138,14 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// LA RIGA, SEPARATA DA CHI LA SCRIVE.
+        /// THE LINE, SEPARATED FROM WHOEVER WRITES IT.
         ///
-        /// Prende l'orologio invece di leggerlo, cosi' una prova puo' fissare
-        /// la data e confrontare la riga intera. E serializza con lo stesso
-        /// `Protocol.InJson` del resto del ponte, invece di incollare
-        /// virgolette a mano: un modello puo' benissimo inventarsi
-        /// un'operazione che si chiama `taglia"a"meta`, e una riga JSONL rotta
-        /// rende illeggibile il file da li' in poi.
+        /// It takes the clock instead of reading it, so a check can fix
+        /// the date and compare the whole line. And it serializes with the same
+        /// `Protocol.InJson` as the rest of the bridge, instead of gluing
+        /// quotes by hand: a model may very well invent
+        /// an operation called `taglia"a"meta`, and a broken JSONL line
+        /// makes the file unreadable from then on.
         /// </summary>
         public static string Line(
             DateTime timestamp, string typ, string itemName, IEnumerable<string> similar)
@@ -175,19 +175,19 @@ namespace Oce.Solid.Agent.Tools
             }
             if (string.IsNullOrWhiteSpace(itemName))
             {
-                // Un nome vuoto non e' una domanda: `McpTools` risponde gia'
-                // «manca «operation»», ed e' un guaio di forma del piano, non
-                // una cosa che qualcuno voleva e non c'era. Registrarlo
-                // riempirebbe il file di righe che non insegnano niente.
+                // An empty name is not a question: `McpTools` already answers
+                // «manca «operation»», and it is a form problem of the plan, not
+                // something somebody wanted and was not there. Recording it
+                // would fill the file with lines that teach nothing.
                 WhyItWasSilent = "nome vuoto: non e' una domanda";
                 return;
             }
 
             try
             {
-                // `Append` apre e chiude subito: il file resta occupato per il
-                // tempo di una riga, e due ponti aperti non si bloccano a
-                // vicenda per tutta la sessione.
+                // `Append` opens and closes at once: the file stays busy for the
+                // time of one line, and two open bridges do not block each
+                // other for the whole session.
                 File.AppendAllText(
                     FilePath,
                     Line(DateTime.Now, typ, itemName, similar) + Environment.NewLine,
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.Tools
             }
             catch (Exception ex)
             {
-                // REGOLA 2. Qui si tace, e il motivo resta in mano a chi prova.
+                // RULE 2. Here we stay silent, and the reason stays in the hands of whoever tests.
                 WhyItWasSilent = ex.GetType().Name + ": " + ex.Message;
             }
         }

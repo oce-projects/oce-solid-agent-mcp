@@ -7,19 +7,19 @@ using System.Reflection;
 namespace Oce.Solid.Agent.Tools
 {
     /// <summary>
-    /// Il catalogo delle operazioni, letto da `catalog.json`.
+    /// The catalogue of operations, read from `catalog.json`.
     ///
-    /// UNA SOLA FONTE DI VERITA', E UNA COPIA ONESTA.
-    /// Il catalogo vero vive nel server, in `ai_disegno.py`: li' stanno le
-    /// descrizioni scritte per essere lette da un modello, gli schemi, i
-    /// limiti, e il campo `provata` che decide cosa esiste. Questo ponte e'
-    /// scritto in C# e non puo' importare Python, quindi si porta dietro una
-    /// copia — rigenerata con un comando (`Tools/update.md`), mai
-    /// scritta a mano.
+    /// A SINGLE SOURCE OF TRUTH, AND AN HONEST COPY.
+    /// The real catalogue lives in the server, in `ai_disegno.py`: there are
+    /// the descriptions written to be read by a model, the schemas, the
+    /// limits, and the `provata` field that decides what exists. This bridge
+    /// is written in C# and cannot import Python, so it carries along a
+    /// copy — regenerated with one command (`Tools/update.md`), never
+    /// written by hand.
     ///
-    /// NEL FILE CI SONO SOLO LE OPERAZIONI PROVATE. E' la regola del catalogo
-    /// a due livelli: un'operazione che non e' stata costruita dentro
-    /// SolidWorks e misurata non si offre a nessuno, nemmeno di qui.
+    /// THE FILE HOLDS ONLY THE PROVEN OPERATIONS. It is the rule of the
+    /// two-level catalogue: an operation that has not been built inside
+    /// SolidWorks and measured is offered to nobody, not even from here.
     /// </summary>
     internal sealed class Catalog
     {
@@ -33,18 +33,18 @@ namespace Oce.Solid.Agent.Tools
 
         public Catalog()
         {
-            // ── DUE NOMI, E UNO SOLO E' QUELLO DI QUESTO PRODOTTO ───────
+            // ── TWO NAMES, AND ONLY ONE IS THIS PRODUCT'S ───────────────
             //
-            // `RISCONTRO_CATALOGO` e' il nome nuovo. `OPENPDM_CATALOGO` era il
-            // vecchio, e **resta letto**: chi l'ha impostata su una macchina
-            // installata non deve accorgersi di niente, e una variabile che
-            // smette di funzionare senza dirlo e' il difetto che non da'
-            // errore — il catalogo non si carica, il ponte esegue lo stesso, e
-            // nessuno sa piu' dire cosa si puo' chiedere.
+            // `RISCONTRO_CATALOGO` is the new name. `OPENPDM_CATALOGO` was the
+            // old one, and it **is still read**: whoever set it on an installed
+            // machine must not notice anything, and a variable that stops
+            // working without saying so is the defect that gives no error —
+            // the catalogue does not load, the bridge runs all the same, and
+            // nobody can tell any more what can be asked for.
             //
-            // L'ordine conta: se sono impostate tutte e due vince la nuova.
-            // Chi ne imposta due diverse ha gia' un guaio, e almeno sa quale
-            // delle due comanda.
+            // Order matters: if both are set, the new one wins.
+            // Whoever sets two different ones already has a problem, and at least
+            // knows which of the two is in charge.
             FilePath = Environment.GetEnvironmentVariable("RISCONTRO_CATALOGO");
             if (string.IsNullOrWhiteSpace(FilePath))
                 FilePath = Environment.GetEnvironmentVariable("OPENPDM_CATALOGO");
@@ -86,9 +86,9 @@ namespace Oce.Solid.Agent.Tools
         public bool Knows(string itemName) => Find(itemName) != null;
 
         /// <summary>
-        /// Lo schema grezzo di un'operazione, per chi deve confrontarci gli
-        /// argomenti. `Description` lo impacchetta per il modello; qui
-        /// serve nudo.
+        /// The raw schema of an operation, for whoever has to compare its
+        /// arguments against it. `Description` packs it for the model; here
+        /// it is needed bare.
         /// </summary>
         public Dictionary<string, object> Schema(string itemName)
         {
@@ -105,14 +105,14 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// La famiglia di un'operazione, o `null` se l'operazione non c'e'.
+        /// The family of an operation, or `null` if the operation does not exist.
         ///
-        /// Serve allo strumento `measure`, che deve poter dire di NO a
-        /// un'operazione che tocca il pezzo — e per dirlo deve sapere di che
-        /// famiglia e'. E' un METODO NUOVO e non un parametro in piu' su
-        /// `Find`: il banco e le prove chiamano questa classe per riflessione,
-        /// e cambiare l'insieme delle firme rompe chi chiama anche quando il
-        /// compilatore tace.
+        /// It serves the `measure` tool, which must be able to say NO to
+        /// an operation that touches the part — and to say it, it must know
+        /// which family it belongs to. It is a NEW METHOD and not one more
+        /// parameter on `Find`: the bench and the checks call this class by
+        /// reflection, and changing the set of signatures breaks the callers
+        /// even when the compiler stays silent.
         /// </summary>
         public string Family(string itemName)
         {
@@ -124,12 +124,12 @@ namespace Oce.Solid.Agent.Tools
             _operations.Select(o => Convert.ToString(Take(o, "name")));
 
         /// <summary>
-        /// L'elenco corto: nome e una riga, raggruppato per famiglia.
+        /// The short list: name and one line, grouped by family.
         ///
-        /// Non si mandano gli schemi interi: sono decine di migliaia di
-        /// caratteri, e chi legge ne usa due o tre. Lo schema si chiede quando
-        /// serve, con `describe_operation` — e' il catalogo a due livelli,
-        /// che qui vale per lo stesso motivo per cui vale nel server.
+        /// The whole schemas are not sent: they are tens of thousands of
+        /// characters, and the reader uses two or three. The schema is asked
+        /// for when needed, with `describe_operation` — it is the two-level
+        /// catalogue, which holds here for the same reason it holds in the server.
         /// </summary>
         public object Items(string wantedFamily)
         {
@@ -187,14 +187,14 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// I nomi che somigliano, per un errore che aiuta invece di
-        /// constatare.
+        /// Similar names, for an error that helps instead of merely
+        /// stating the fact.
         ///
-        /// SI CONFRONTANO LE RADICI, non le parole. Il primo tentativo
-        /// cercava la parola intera dentro il nome, e su «asole» non
-        /// trovava «slot» — cioe' falliva proprio nel caso per cui era
-        /// stato scritto: chi sbaglia un nome quasi sempre ne ha in mente
-        /// uno vicino, e lo sbaglia di una lettera.
+        /// THE ROOTS ARE COMPARED, not the words. The first attempt
+        /// looked for the whole word inside the name, and for «asole» it
+        /// did not find «slot» — that is, it failed in the very case it
+        /// had been written for: whoever gets a name wrong almost always has
+        /// a nearby one in mind, and is off by one letter.
         /// </summary>
         public List<string> Similar(string itemName)
         {
