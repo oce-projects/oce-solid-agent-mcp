@@ -8,56 +8,56 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// UN ESEMPIO CHE IL CLIENT NON PUO' COPIARE E' PEGGIO DI NESSUN ESEMPIO
-    /// (voce Z-G1).
+    /// AN EXAMPLE THAT THE CLIENT CANNOT COPY IS WORSE THAN NO EXAMPLE
+    /// (entry Z-G1).
     ///
-    /// ── PERCHE' GLI ESEMPI ───────────────────────────────────────────────
+    /// ── WHY THE EXAMPLES ─────────────────────────────────────────────────
     ///
-    /// Uno schema dice quali campi sono leciti; **non dice quale combinazione
-    /// costruisce un pezzo**. Sono due cose diverse, e la seconda si impara
-    /// solo vedendola.
+    /// A schema says which fields are lawful; **it does not say which combination
+    /// builds a part**. They are two different things, and the second is learned
+    /// only by seeing it.
     ///
-    /// ── PERCHE' NON SI INVENTANO ─────────────────────────────────────────
+    /// ── WHY THEY ARE NOT INVENTED ────────────────────────────────────────
     ///
-    /// Ogni esempio e' copiato da un passo che il banco ha **eseguito e
-    /// misurato**. Un esempio scritto a mano e' una promessa; uno copiato da un
-    /// caso verde e' un fatto. La differenza si vede il giorno in cui
-    /// l'operazione cambia e l'esempio resta indietro: il caso diventa rosso,
-    /// la promessa no.
+    /// Every example is copied from a step that the bench has **executed and
+    /// measured**. A hand-written example is a promise; one copied from a
+    /// green case is a fact. The difference shows on the day when
+    /// the operation changes and the example stays behind: the case turns red,
+    /// the promise does not.
     ///
-    /// ── E LA TRAPPOLA CHE QUESTO GRUPPO GUARDA ───────────────────────────
+    /// ── AND THE TRAP THAT THIS GROUP WATCHES ──────────────────────────────
     ///
-    /// Il 23/9/2026, su 71 operazioni, **47 non avevano un esempio copiabile**:
-    /// i loro casi usano selettori che vivono solo nel banco —
-    /// `@face(normal=up)`, `@edge(axis=Z)` — o i segnaposto `{LAVORO}` e
-    /// `{PROFILI}`, che il banco sostituisce e un client no.
+    /// On 23/9/2026, out of 71 operations, **47 did not have a copyable example**:
+    /// their cases use selectors that live only in the bench —
+    /// `@face(normal=up)`, `@edge(axis=Z)` — or the placeholders `{LAVORO}` and
+    /// `{PROFILI}`, which the bench replaces and a client does not.
     ///
-    /// Copiarli lo stesso avrebbe prodotto ventiquattro esempi buoni e
-    /// quarantasette **trappole**: un modello che copia `@face(normal=up)`
-    /// riceve un rifiuto per un motivo che non capisce, e la prossima volta non
-    /// si fida piu' del catalogo. Per questo la copertura e' 24/71 e non 71/71,
-    /// e per questo questo gruppo la guarda a ogni giro.
+    /// Copying them all the same would have produced twenty-four good examples and
+    /// forty-seven **traps**: a model that copies `@face(normal=up)`
+    /// gets a refusal for a reason it does not understand, and next time it
+    /// no longer trusts the catalogue. That is why the coverage is 24/71 and not 71/71,
+    /// and that is why this group watches it on every run.
     /// </summary>
     internal static class ExamplesTests
     {
         /// <summary>
-        /// Quante operazioni hanno un esempio. Ventiquattro il 23/9/2026, e
-        /// **puo' solo salire**: si alza scrivendo un caso di banco che usi
-        /// argomenti da client invece che selettori del banco — cioe'
-        /// migliorando la prova, non l'esempio. **25** il 27/9/2026: `fix_component`
-        /// nasce con l'esempio copiato dal suo caso (`fixed_is_not_mated`).
-        /// **26**: `global_variable`, dal suo caso (`wall_has_a_name`).
+        /// How many operations have an example. Twenty-four on 23/9/2026, and it
+        /// **can only go up**: it is raised by writing a bench case that uses
+        /// client arguments instead of bench selectors — that is,
+        /// by improving the check, not the example. **25** on 27/9/2026: `fix_component`
+        /// is born with the example copied from its case (`fixed_is_not_mated`).
+        /// **26**: `global_variable`, from its case (`wall_has_a_name`).
         /// **27**: `reorder_feature` (`order_changes_the_part`).
         /// **28**: `mirror_component` (`right_bracket_and_left_bracket`).
         /// **29**: `edit_extrusion` (`blind_becomes_through`).
-        /// **30**: `rib` (`rib_in_the_corner_of_the_l`), voce W1.2. Le
-        /// altre tre lavorazioni della guida (`fillet_face`,
-        /// `fill_pattern`, `gusset`) nascono senza: i loro casi verdi
-        /// nominano le facce coi selettori del banco.
+        /// **30**: `rib` (`rib_in_the_corner_of_the_l`), entry W1.2. The
+        /// other three features of the guide (`fillet_face`,
+        /// `fill_pattern`, `gusset`) are born without one: their green cases
+        /// name the faces with the bench selectors.
         /// </summary>
         private const int Floor = 30;
 
-        /// <summary>Cio' che un client non puo' copiare.</summary>
+        /// <summary>What a client cannot copy.</summary>
         private static readonly string[] BenchOnly = { "@", "{LAVORO}", "{PROFILI}", "{DATI}", "{SOLIDWORKS}" };
 
         internal static void All()
@@ -100,23 +100,23 @@ namespace Oce.Solid.Agent.ContractTests
                 if (string.IsNullOrWhiteSpace(example)) continue;
                 withExample++;
 
-                // ── E' JSON? ─────────────────────────────────────────────
+                // ── IS IT JSON? ───────────────────────────────────────────
                 Dictionary<string, object> arguments = null;
                 try { arguments = s.DeserializeObject(example) as Dictionary<string, object>; }
                 catch (Exception ex) { unreadable.Add(itemName + ": " + ex.Message); continue; }
                 if (arguments == null) { unreadable.Add(itemName + ": non e' un oggetto"); continue; }
 
-                // ── E' COPIABILE? ────────────────────────────────────────
+                // ── IS IT COPYABLE? ───────────────────────────────────────
                 foreach (var bad in BenchOnly)
                     if (example.Contains(bad))
                         contaminated.Add(itemName + " contiene «" + bad + "»");
 
-                // ── E I CAMPI ESISTONO NELLO SCHEMA? ─────────────────────
+                // ── AND DO THE FIELDS EXIST IN THE SCHEMA? ────────────────
                 //
-                // Un esempio che nomina un campo che lo schema non ha e' un
-                // esempio invecchiato: l'operazione e' cambiata e lui no. E'
-                // il difetto piu' probabile di questa voce, perche' l'esempio
-                // non viene eseguito da nessuno.
+                // An example that names a field that the schema does not have is an
+                // aged example: the operation has changed and it has not. It is
+                // the most likely defect of this entry, because nobody
+                // executes the example.
                 var schema = sc as Dictionary<string, object>;
                 object pg;
                 var props = schema != null && schema.TryGetValue("properties", out pg)
@@ -139,7 +139,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("ogni esempio e' JSON leggibile", unreadable.Count == 0,
                   unreadable.Count == 0 ? "tutti" : string.Join(" | ", unreadable));
 
-            // QUESTO E' IL CONTROLLO CHE CONTA.
+            // THIS IS THE CHECK THAT COUNTS.
             Check("nessun esempio usa qualcosa che vive solo nel banco",
                   contaminated.Count == 0,
                   contaminated.Count == 0

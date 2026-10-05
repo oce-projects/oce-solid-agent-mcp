@@ -8,31 +8,31 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// DUE DESCRIZIONI DEL CATALOGO CHE SI SMENTISCONO (voce Z-C15).
+    /// TWO CATALOGUE DESCRIPTIONS THAT CONTRADICT EACH OTHER (entry Z-C15).
     ///
-    /// Il 24/9/2026 `model_dimensions` diceva di essere «l'unico modo di
-    /// quotare che questo catalogo offre», nello stesso catalogo in cui
-    /// `drawing_dimension` quota. Il modello riceve le due frasi nella stessa
-    /// risposta di `list_operations` e non ha modo di sapere quale e' vera.
+    /// On 24/9/2026 `model_dimensions` said it was «the only way to
+    /// dimension that this catalogue offers», in the same catalogue in which
+    /// `drawing_dimension` dimensions. The model receives the two sentences in the same
+    /// `list_operations` response and has no way of knowing which is true.
     ///
-    /// Non e' un caso, e' una famiglia: una descrizione scritta quando
-    /// un'operazione era sola invecchia il giorno in cui ne arriva una sorella,
-    /// e nessuno la rilegge — chi scrive la sorella legge la propria.
+    /// It is not a one-off, it is a family: a description written when
+    /// an operation was alone ages the day a sister arrives,
+    /// and nobody rereads it — whoever writes the sister reads their own.
     ///
-    /// QUINDI: una descrizione che si dichiara l'UNICA non puo' stare in una
-    /// famiglia con due operazioni. Se l'una e' davvero l'unica per un certo
-    /// scopo, lo dice con lo scopo («l'unica che importa le quote del pezzo»),
-    /// non con la famiglia intera.
+    /// SO: a description that declares itself the ONLY one cannot stand in a
+    /// family with two operations. If one is really the only one for a certain
+    /// purpose, it says so with the purpose («the only one that imports the part's dimensions»),
+    /// not with the whole family.
     /// </summary>
     internal static class DescriptionsTests
     {
         /// <summary>
-        /// Le frasi con cui una descrizione si proclama sola. Scritte in
-        /// minuscolo, e confrontate col testo in minuscolo.
+        /// The phrases with which a description proclaims itself alone. Written in
+        /// lowercase, and compared with the text in lowercase.
         ///
-        /// NON c'e' «l'unico modo» da solo: `set_dimension` dice «PRIMA
-        /// l'unico modo era cancellare e rifare», che e' storia, non una
-        /// pretesa. Visto al primo giro di questo controllo, che lo dava rosso.
+        /// There is NO «l'unico modo» on its own: `set_dimension` says «PRIMA
+        /// l'unico modo era cancellare e rifare», which is history, not a
+        /// claim. Seen on the first run of this check, which gave it red.
         /// </summary>
         private static readonly string[] Exclusive =
         {

@@ -10,27 +10,27 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// IL BANCO E' STATO LANCIATO SU QUESTA VERSIONE? (voce F9)
+    /// HAS THE BENCH BEEN RUN ON THIS VERSION? (entry F9)
     ///
-    /// ── PERCHE' UNA PROVA SENZA SOLIDWORKS PUO' DIRLO ────────────────────
+    /// ── WHY A CHECK WITHOUT SOLIDWORKS CAN SAY SO ─────────────────────────
     ///
-    /// La CI non puo' pilotare SOLIDWORKS — nessun runner con licenza — ma
-    /// puo' fare una cosa che vale quasi altrettanto: **rifiutare una consegna
-    /// in cui nessuno ha lanciato il banco.** E' il pezzo di disciplina che si
-    /// compra a due ore, invece del runner con licenza che non si compra
-    /// affatto.
+    /// The CI cannot drive SOLIDWORKS — no runner with a licence — but it
+    /// can do something that is worth almost as much: **refuse a delivery
+    /// in which nobody ran the bench.** It is the piece of discipline that is
+    /// bought for two hours, instead of the licensed runner that cannot be
+    /// bought at all.
     ///
-    /// L'unica prova che il banco sia girato e' `Bench/report/last.json`,
-    /// che `bench.ps1` scrive a ogni giro ed e' l'unico file di `report/`
-    /// versionato.
+    /// The only proof that the bench ran is `Bench/report/last.json`,
+    /// which `bench.ps1` writes on every run and which is the only file of `report/`
+    /// under version control.
     ///
-    /// ── E IL DIFETTO SILENZIOSO DA TEMERE ───────────────────────────────
+    /// ── AND THE SILENT DEFECT TO FEAR ───────────────────────────────────
     ///
-    /// Una CI che compila un progetto vuoto perche' il filtro dei csproj e'
-    /// sbagliato, e resta verde per mesi. Per questo qui non si guarda solo che
-    /// il file ci sia: si guarda che le prove siano state **piu' di zero**, che
-    /// nessuna sia fallita, e che il giro non sia **piu' vecchio dell'ultima
-    /// modifica alle operazioni**.
+    /// A CI that builds an empty project because the csproj filter is
+    /// wrong, and stays green for months. That is why here we do not only look
+    /// for the file to be there: we look for the checks to have been **more than zero**, for
+    /// none of them to have failed, and for the run not to be **older than the last
+    /// change to the operations**.
     /// </summary>
     internal static class BenchTests
     {
@@ -57,10 +57,10 @@ namespace Oce.Solid.Agent.ContractTests
             catch (Exception ex) { Check("il resoconto si legge", false, ex.Message); return; }
             if (benchRun == null) { Check("il resoconto e' un oggetto", false, ""); return; }
 
-            // ── PIU' DI ZERO PROVE ───────────────────────────────────────
+            // ── MORE THAN ZERO CHECKS ─────────────────────────────────────
             //
-            // «0 prove, 0 fallite» e' verde e non vuol dire niente. E' la
-            // forma che prende una suite che si e' svuotata.
+            // «0 prove, 0 fallite» is green and means nothing. It is the
+            // shape a suite takes when it has emptied itself.
             int passed = Integer(benchRun, "passed");
             Check("il giro ha misurato qualcosa", passed > 0, passed + " prove passate");
             Check("nessuna prova fallita", Integer(benchRun, "failed") == 0,
@@ -70,27 +70,27 @@ namespace Oce.Solid.Agent.ContractTests
             Check("il giro e' uscito 0", Integer(benchRun, "exit_code") == 0,
                   "uscita " + Integer(benchRun, "exit_code"));
 
-            // ── NON UN GIRO PARZIALE ─────────────────────────────────────
+            // ── NOT A PARTIAL RUN ─────────────────────────────────────────
             //
-            // `--gruppo` e' comodo mentre si lavora e non vale come consegna:
-            // il riepilogo lo dice, e qui si legge.
+            // `--gruppo` is handy while working and does not count as a delivery:
+            // the summary says so, and here it is read.
             string summary = Convert.ToString(benchRun.ContainsKey("summary") ? benchRun["summary"] : "");
             Check("non e' un giro parziale",
                   summary.IndexOf("GIRO PARZIALE", StringComparison.Ordinal) < 0,
                   summary);
 
-            // ── LA VERSIONE DELLA LIBRERIA E' QUELLA DI ADESSO ───────────
+            // ── THE LIBRARY VERSION IS THE CURRENT ONE ────────────────────
             string declared = AssemblyVersion();
             string didRun = Convert.ToString(benchRun.ContainsKey("library") ? benchRun["library"] : "");
             Check("il banco ha girato sulla libreria di adesso",
                   declared != null && didRun.StartsWith(declared, StringComparison.Ordinal),
                   "AssemblyInfo dice " + (declared ?? "?") + ", il giro dice " + didRun);
 
-            // ── E NON PRIMA DELL'ULTIMA MODIFICA ALLE OPERAZIONI ────────
+            // ── AND NOT BEFORE THE LAST CHANGE TO THE OPERATIONS ──────────
             //
-            // Il controllo che conta: una libreria toccata dopo l'ultimo giro
-            // e' una libreria non provata, anche se il numero di versione
-            // combacia perche' qualcuno si e' dimenticato di alzarlo.
+            // The check that counts: a library touched after the last run
+            // is an untested library, even if the version number
+            // matches because somebody forgot to raise it.
             DateTime? timestamp = Data(Convert.ToString(benchRun.ContainsKey("timestamp") ? benchRun["timestamp"] : ""));
             if (timestamp == null)
             {
@@ -98,30 +98,30 @@ namespace Oce.Solid.Agent.ContractTests
             }
             else
             {
-                // ── DUE META', E PRIMA SE NE GUARDAVA UNA (voce K14) ─────
+                // ── TWO HALVES, AND BEFORE ONLY ONE WAS WATCHED (entry K14) ─────
                 //
-                // Il banco e' fatto di due cose: la LIBRERIA che misura e il
-                // CODICE DEL BANCO che decide cosa misurare. Questa guardia
-                // guardava solo la prima, quindi una prova nuova, un
-                // contatore nuovo o un'attesa piu' severa entravano in
-                // repository senza che niente chiedesse «e l'hai fatto
-                // girare?».
+                // The bench is made of two things: the LIBRARY that measures and the
+                // BENCH CODE that decides what to measure. This guard
+                // watched only the first, so a new check, a new
+                // counter or a stricter expectation went into the
+                // repository without anything asking «and did you
+                // run it?».
                 //
-                // Non e' teoria: il 23/9/2026 sono entrati nel banco la
-                // scrivania pulita (K12) e il conto dei documenti CAD
-                // (K2-bis) mentre un giro era gia' partito, e il resoconto
-                // committato raccontava un banco che nel repository non
-                // c'era piu'. Non era falso — quel giro c'e' stato — ma
-                // rispondeva a una domanda diversa da quella che sembrava:
-                // non «questo banco e' verde» ma «un banco di qualche ora fa
-                // lo era».
+                // This is not theory: on 23/9/2026 the clean
+                // desk (K12) and the count of CAD documents
+                // (K2-bis) went into the bench while a run had already started, and the committed
+                // report described a bench that was no
+                // longer in the repository. It was not false — that run did happen — but it
+                // answered a different question from the one it seemed to answer:
+                // not «this bench is green» but «a bench from a few hours ago
+                // was».
                 LookAtTouch("le operazioni", "Oce.Solid.Agent.Core", timestamp.Value);
                 LookAtTouch("il banco", "Bench", timestamp.Value);
             }
 
-            // Fuori dall'`if`: la regola si prova anche quando il resoconto
-            // non c'e'. Una guardia che si controlla solo quando c'e' gia'
-            // qualcosa da guardare tace proprio nel caso peggiore.
+            // Outside the `if`: the rule is checked even when the report
+            // is not there. A guard that is checked only when there is already
+            // something to guard stays silent exactly in the worst case.
             TestTouchRule();
         }
 
@@ -140,9 +140,9 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// `AssemblyVersion` letta dal SORGENTE, non dalla DLL compilata: qui
-        /// si vuole sapere cosa dichiara il repository, non cosa c'e' in `bin`
-        /// — che potrebbe essere di ieri.
+        /// `AssemblyVersion` read from the SOURCE, not from the compiled DLL: here
+        /// we want to know what the repository declares, not what is in `bin`
+        /// — which could be from yesterday.
         /// </summary>
         private static string AssemblyVersion()
         {
@@ -158,57 +158,57 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Quando le operazioni sono state toccate l'ultima volta, secondo git.
-        /// Null se git non c'e' o non risponde — e in quel caso il controllo
-        /// lo DICE invece di passare.
+        /// When the operations were last touched, according to git.
+        /// Null if git is not there or does not answer — and in that case the check
+        /// SAYS so instead of passing.
         /// </summary>
         /// <summary>
-        /// Quando la libreria e' stata toccata l'ultima volta SENZA che nello
-        /// stesso commit entrasse anche un resoconto del banco.
+        /// When the library was last touched WITHOUT a bench report
+        /// entering the same commit.
         ///
-        /// ── PRIMA QUESTO CONTROLLO NON POTEVA PASSARE MAI ─────────────────
+        /// ── BEFORE, THIS CHECK COULD NEVER PASS ─────────────────
         ///
-        /// Chiedeva `git log -1 -- Oce.Solid.Agent.Core` e confrontava quella data
-        /// con l'ora del giro. Ma il giro si lancia, scrive `last.json`, e
-        /// POI si committa tutto insieme — libreria e resoconto nello stesso
-        /// commit. La data del commit e' quindi per costruzione posteriore
-        /// all'ora del giro che contiene. Misurato su b35550d: giro 21:12:13,
-        /// commit 21:13:52, novantanove secondi dopo contro una tolleranza di
-        /// sessanta.
+        /// It asked `git log -1 -- Oce.Solid.Agent.Core` and compared that date
+        /// with the time of the run. But the run is launched, writes `last.json`, and
+        /// THEN everything is committed together — library and report in the same
+        /// commit. The date of the commit is therefore by construction later
+        /// than the time of the run it contains. Measured on b35550d: run 21:12:13,
+        /// commit 21:13:52, ninety-nine seconds later against a tolerance of
+        /// sixty.
         ///
-        /// Non mancava per poco: mancava sempre. *Un controllo che non puo'
-        /// diventare verde e' peggio di nessun controllo — si legge come una
-        /// difesa, fallisce a ogni giro, e chi lo guarda impara a non
-        /// guardarlo.*
+        /// It was not missing by a little: it was always missing. *A check that cannot
+        /// become green is worse than no check — it reads like a
+        /// defense, fails on every run, and whoever looks at it learns not to
+        /// look at it.*
         ///
-        /// ── LA DOMANDA VERA, E COME SI RISPONDE ───────────────────────────
+        /// ── THE REAL QUESTION, AND HOW IT IS ANSWERED ───────────────────────
         ///
-        /// Non «quand'e' l'ultimo commit sulla libreria», ma **la libreria e'
-        /// stata toccata dopo l'ultimo giro?**. Un commit che porta con se' un
-        /// resoconto nuovo E' il giro: e' la consegna, e il resoconto che
-        /// contiene la valida. Un commit che tocca la libreria e NON porta un
-        /// resoconto nuovo e' invece esattamente il caso da prendere —
-        /// qualcuno ha cambiato il codice e non ha rilanciato.
+        /// Not «when is the last commit on the library», but **was the library
+        /// touched after the last run?**. A commit that brings with it a new
+        /// report IS the run: it is the delivery, and the report it
+        /// contains validates it. A commit that touches the library and does NOT bring a
+        /// new report is instead exactly the case to catch —
+        /// somebody changed the code and did not run it again.
         ///
-        /// Quindi si scorrono i commit sulla libreria e ci si ferma al primo
-        /// che non tocca anche `Bench/report/last.json`.
+        /// So the commits on the library are scanned, stopping at the first one
+        /// that does not also touch `Bench/report/last.json`.
         /// </summary>
         /// <summary>
-        /// «Git non ha risposto» e «non c'e' niente da trovare» erano lo
-        /// stesso `null`, e il primo dei due si stampava col messaggio
-        /// dell'altro.
+        /// «Git did not answer» and «there is nothing to find» were the
+        /// same `null`, and the first of the two was printed with the message
+        /// of the other.
         ///
-        /// Un repository giovane — nessun commit sulla libreria senza
-        /// resoconto accanto — non ha niente di non provato, ed e' un VERDE.
-        /// Git che non risponde e' un ROSSO: senza di lui il controllo non
-        /// esiste, e un controllo che non esiste non va scambiato per uno che
-        /// non ha trovato niente.
+        /// A young repository — no commit on the library without a
+        /// report next to it — has nothing untested, and is a GREEN.
+        /// Git not answering is a RED: without it the check does not
+        /// exist, and a check that does not exist must not be mistaken for one that
+        /// found nothing.
         /// </summary>
         private sealed class Touch
         {
             public bool GitHasAnswered;
             public DateTime? When;
-            /// <summary>Da dove viene la data: serve a chi legge il rosso.</summary>
+            /// <summary>Where the date comes from: it is for whoever reads the red.</summary>
             public string Why;
         }
 
@@ -234,14 +234,14 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Il giro e' posteriore all'ultima modifica a `path`?
+        /// Is the run later than the last change to `path`?
         ///
-        /// LA TOLLERANZA DI UN MINUTO NON E' UN ARROTONDAMENTO: il giro
-        /// scrive `last.json` e POI si committa, quindi la data del commit
-        /// e' per costruzione posteriore all'ora del giro che contiene. I
-        /// commit che portano il resoconto si saltano apposta; il minuto
-        /// copre il caso in cui l'orologio del commit e quello del giro
-        /// differiscano di poco.
+        /// THE ONE-MINUTE TOLERANCE IS NOT A ROUNDING: the run
+        /// writes `last.json` and THEN is committed, so the date of the commit
+        /// is by construction later than the time of the run it contains. The
+        /// commits that bring the report are skipped on purpose; the minute
+        /// covers the case in which the clock of the commit and that of the run
+        /// differ slightly.
         /// </summary>
         private static void LookAtTouch(string what, string filePath, DateTime timestamp)
         {
@@ -268,36 +268,36 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// IL VERDETTO, STACCATO DA CHI LEGGE GIT E IL DISCO.
+        /// THE VERDICT, SEPARATED FROM WHO READS GIT AND THE DISK.
         ///
-        /// Sta da solo perche' un controllo che non si puo' far fallire
-        /// apposta non e' un controllo, e far fallire apposta `git log`
-        /// vorrebbe dire costruire un repository finto. Cosi' invece si
-        /// passano due date e si guarda cosa risponde.
+        /// It stands alone because a check that cannot be made to fail
+        /// on purpose is not a check, and making `git log` fail on purpose
+        /// would mean building a fake repository. This way instead two
+        /// dates are passed and we look at what it answers.
         ///
-        /// ── IL BUCO CHE QUESTA FUNZIONE CHIUDE ──────────────────────────
+        /// ── THE HOLE THIS FUNCTION CLOSES ───────────────────────────────
         ///
-        /// `LastChangeWithoutReport` chiede a **`git log`**: la storia
-        /// committata, e nient'altro. Ma il codice **non vive li'** mentre lo
-        /// si scrive: vive nell'albero di lavoro, ed e' da li' che `build.ps1`
-        /// costruisce la DLL che poi gira. Fra la modifica e il commit c'e'
-        /// una finestra in cui il controllo diceva **«non c'e' niente di non
-        /// provato»** guardando un albero pieno di roba mai passata al banco.
+        /// `LastChangeWithoutReport` asks **`git log`**: the committed
+        /// history, and nothing else. But the code **does not live there** while it
+        /// is being written: it lives in the working tree, and it is from there that `build.ps1`
+        /// builds the DLL that then runs. Between the change and the commit there is
+        /// a window in which the check said **«non c'e' niente di non
+        /// provato»** while looking at a tree full of stuff never passed through the bench.
         ///
-        /// Misurato il 23/9/2026: `Oce.Solid.Agent.Core/Catalog/Operations.cs`
-        /// toccato alle 19:18, ultimo giro del banco alle 15:23, e il
-        /// controllo **verde** — perche' l'ultimo *commit* su quella cartella
-        /// era del 15/9. Verde per il motivo sbagliato, che e' il modo in cui
-        /// una guardia smette di servire senza che nessuno se ne accorga.
+        /// Measured on 23/9/2026: `Oce.Solid.Agent.Core/Catalog/Operations.cs`
+        /// touched at 19:18, last bench run at 15:23, and the
+        /// check **green** — because the last *commit* on that folder
+        /// was from 15/9. Green for the wrong reason, which is the way in which
+        /// a guard stops being useful without anyone noticing.
         ///
-        /// E la finestra non era stretta: in quel momento l'albero teneva
-        /// 29 file modificati e 31 nuovi.
+        /// And the window was not narrow: at that moment the tree held
+        /// 29 modified files and 31 new ones.
         /// </summary>
         /// <summary>
-        /// Quali di questi nomi contano per «il giro e' vecchio?».
+        /// Which of these names count for «is the run old?».
         ///
-        /// Sta da solo per poterlo provare: la regola e' una riga, e una
-        /// riga dentro un `foreach` non si puo' interrogare.
+        /// It stands alone to be able to test it: the rule is one line, and a
+        /// line inside a `foreach` cannot be interrogated.
         /// </summary>
         internal static List<string> CodeOnly(IEnumerable<string> names)
         {
@@ -324,22 +324,22 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Il piu' recente fra i file sporchi sotto `path`, o null se
-        /// l'albero e' pulito li' sotto.
+        /// The most recent among the dirty files under `path`, or null if
+        /// the tree is clean there.
         ///
-        /// TRE COMANDI E NON `status --porcelain`, e il motivo e' `Git()`:
-        /// quel lettore fa `Trim()` su ogni riga, e `--porcelain` mette lo
-        /// stato in **colonne fisse** che il Trim mangia. Questi tre danno
-        /// nomi nudi, uno per riga, e non c'e' niente da sbagliare a
-        /// riconoscerli:
+        /// THREE COMMANDS AND NOT `status --porcelain`, and the reason is `Git()`:
+        /// that reader does `Trim()` on every line, and `--porcelain` puts the
+        /// status in **fixed columns** that the Trim eats. These three give
+        /// bare names, one per line, and there is nothing to get wrong in
+        /// recognizing them:
         ///
-        ///     diff --name-only              modificati non in indice
-        ///     diff --name-only --cached     modificati in indice
-        ///     ls-files --others             nuovi, non ancora tracciati
+        ///     diff --name-only              modified, not in the index
+        ///     diff --name-only --cached     modified, in the index
+        ///     ls-files --others             new, not yet tracked
         ///
-        /// Un file CANCELLATO si salta: `File.Exists` e' falso e non c'e'
-        /// nessun codice nuovo da provare. Una cancellazione va provata anche
-        /// lei, ma non con una data di modifica che non esiste piu'.
+        /// A DELETED file is skipped: `File.Exists` is false and there is
+        /// no new code to test. A deletion must be tested too, but
+        /// not with a modification date that no longer exists.
         /// </summary>
         private static DateTime? LastChangeInTheWorkTree(string filePath)
         {
@@ -357,23 +357,23 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 if (string.IsNullOrWhiteSpace(itemName)) continue;
 
-                // UN `.md` NON E' CODICE, e chiederne conto costa settanta
-                // minuti di CAD.
+                // A `.md` IS NOT CODE, and asking it to account for itself costs seventy
+                // minutes of CAD.
                 //
-                // Questa guardia esiste per una cosa sola: **non consegnare
-                // codice su cui il banco non ha girato**. Un LEGGIMI non
-                // cambia cosa fa il banco — e il 24/9/2026 ha fatto scattare
-                // il rosso perche' un conteggio nel LEGGIMI era stato
-                // corretto DUE MINUTI dopo un giro verde, per allinearlo a
-                // due casi che quel giro aveva gia' provato.
+                // This guard exists for one thing only: **not to deliver
+                // code on which the bench has not run**. A README does not
+                // change what the bench does — and on 24/9/2026 it triggered
+                // the red because a count in the README had been
+                // corrected TWO MINUTES after a green run, to align it with
+                // two cases that that run had already tested.
                 //
-                // E' lo stesso principio della guardia Z-A1, che conta le
-                // righe di codice e non quelle grezze perche' *contare le
-                // grezze punisce chi spiega*.
+                // It is the same principle as the Z-A1 guard, which counts
+                // lines of code and not raw ones because *counting
+                // raw ones punishes whoever explains*.
                 //
-                // ATTENZIONE A COSA **NON** SI SALTA: i `.json` di
-                // `Bench/cases/` sono DATI che cambiano cosa il banco misura,
-                // e restano contati. Si salta solo `.md`.
+                // BEWARE OF WHAT IS **NOT** SKIPPED: the `.json` files of
+                // `Bench/cases/` are DATA that change what the bench measures,
+                // and stay counted. Only `.md` is skipped.
                 if (itemName.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
 
                 var full = Path.Combine(Root(),
@@ -386,12 +386,12 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// E ADESSO LA REGOLA SI FA FALLIRE APPOSTA, in tutt'e due i versi.
+        /// AND NOW THE RULE IS MADE TO FAIL ON PURPOSE, in both directions.
         ///
-        /// L'ultimo caso e' quello vero: e' il verde falso che c'era prima.
-        /// Quando git non trovava **nessun** commit non provato, la guardia
-        /// rispondeva «non c'e' niente di non provato» — e quella frase era
-        /// falsa esattamente quando l'albero era pieno.
+        /// The last case is the real one: it is the false green that existed before.
+        /// When git found **no** untested commit, the guard
+        /// answered «non c'e' niente di non provato» — and that sentence was
+        /// false exactly when the tree was full.
         /// </summary>
         private static void TestTouchRule()
         {
@@ -425,12 +425,12 @@ namespace Oce.Solid.Agent.ContractTests
                   withoutCommit.When == dirty,
                   "era il verde falso: git taceva e l'albero era pieno");
 
-            // ── E UN `.md` NON CONTA, MA UN `.json` SI' ──────────────────
+            // ── AND A `.md` DOES NOT COUNT, BUT A `.json` DOES ───────────
             //
-            // Le due meta' della stessa regola, e la seconda e' quella che
-            // impedisce all'eccezione di allargarsi: i casi dichiarati sono
-            // `.json`, cambiano cosa il banco misura, e devono continuare a
-            // pretendere un giro nuovo.
+            // The two halves of the same rule, and the second is the one that
+            // stops the exception from widening: the declared cases are
+            // `.json`, they change what the bench measures, and must keep
+            // demanding a new run.
             Check("un LEGGIMI toccato dopo il giro non lo invalida",
                   CodeOnly(new[] { "Bench/README.md" }).Count == 0,
                   "una riga di documentazione non cambia cosa fa il banco");

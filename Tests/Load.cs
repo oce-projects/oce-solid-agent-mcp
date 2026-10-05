@@ -6,23 +6,23 @@ using System.Reflection;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// CARICARE IL PONTE SENZA AVERE SOLIDWORKS.
+    /// LOADING THE BRIDGE WITHOUT HAVING SOLIDWORKS.
     ///
-    /// Il ponte e' un `.exe` che referenzia `Oce.Solid.Agent.Core.dll` e l'interop
-    /// di Dassault. Qui dentro servono due classi che di SOLIDWORKS non sanno
-    /// niente — `Catalog` e `Session.SameDocument` — e .NET carica le
-    /// dipendenze **una alla volta, quando servono**: finche' non si tocca un
-    /// tipo che ha bisogno dell'interop, l'interop non serve.
+    /// The bridge is an `.exe` that references `Oce.Solid.Agent.Core.dll` and the Dassault
+    /// interop. In here two classes are needed that know nothing about SOLIDWORKS
+    /// — `Catalog` and `Session.SameDocument` — and .NET loads the
+    /// dependencies **one at a time, when needed**: as long as one does not touch a
+    /// type that needs the interop, the interop is not needed.
     ///
-    /// Quello che serve e' dire a .NET dove stanno i vicini di casa: un `.exe`
-    /// caricato **dai byte** non ha una cartella, e le sue dipendenze non le
-    /// trova da solo. `LoadFrom` non si puo' usare perche' questo repository
-    /// sta su un'unita' di rete, e li' il caricatore risponde
+    /// What is needed is to tell .NET where the neighbours live: an `.exe`
+    /// loaded **from the bytes** has no folder, and cannot find its dependencies
+    /// by itself. `LoadFrom` cannot be used because this repository
+    /// lives on a network drive, and there the loader answers
     /// `NotSupportedException` (0x80131515).
     ///
-    /// Se un giorno una di queste due classi cominciasse a toccare l'interop,
-    /// il caricamento fallirebbe **qui**, con un messaggio che lo dice — che e'
-    /// esattamente cio' che si vuole sapere.
+    /// If one day one of these two classes began to touch the interop,
+    /// the loading would fail **here**, with a message that says so — which is
+    /// exactly what one wants to know.
     /// </summary>
     internal static class Load
     {
@@ -40,24 +40,24 @@ namespace Oce.Solid.Agent.ContractTests
                 {
                     var itemName = new AssemblyName(argument.Name).Name;
 
-                    // SE CHIEDE SE STESSO, GLIELO SI RIDA'.
+                    // IF IT ASKS FOR ITSELF, IT IS GIVEN BACK.
                     //
-                    // Un assembly caricato DAI BYTE non ha un percorso, e .NET
-                    // non lo ritrova per nome: appena un tipo di quell'assembly
-                    // ne nomina un altro dello stesso assembly, parte una
-                    // richiesta di risoluzione che senza questa riga finisce in
+                    // An assembly loaded FROM THE BYTES has no path, and .NET
+                    // does not find it again by name: as soon as a type of that assembly
+                    // names another one of the same assembly, a resolution
+                    // request starts that without this line ends in
                     // «non e' stato possibile caricare oce-solid-agent-mcp,
-                    // Version=0.0.0.0» — un messaggio che sembra un file
-                    // mancante e invece e' un file gia' in memoria.
+                    // Version=0.0.0.0» — a message that looks like a missing
+                    // file and is instead a file already in memory.
                     if (_bridge != null &&
                         string.Equals(itemName, its, StringComparison.OrdinalIgnoreCase))
                         return _bridge;
 
                     var file = Path.Combine(nextTo, itemName + ".dll");
-                    // SI RISPONDE NULL PER QUELLO CHE NON C'E', e va bene: se
-                    // e' l'interop di SOLIDWORKS, vuol dire che qualcuno ha
-                    // toccato un tipo che qui non si puo' toccare, e
-                    // l'eccezione che ne esce lo dice per nome.
+                    // NULL IS ANSWERED FOR WHAT IS NOT THERE, and that is fine: if
+                    // it is the SOLIDWORKS interop, it means that somebody has
+                    // touched a type that cannot be touched here, and
+                    // the exception that comes out says so by name.
                     if (!File.Exists(file)) return null;
                     try { return Assembly.Load(File.ReadAllBytes(file)); } catch { return null; }
                 };
@@ -69,10 +69,10 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static Type Class(Assembly asm, string itemName)
         {
-            // `GetTypes()` su un assembly con dipendenze mancanti alza
-            // `ReflectionTypeLoadException` e porta con se' i tipi che E'
-            // riuscito a caricare: quelli bastano, e buttarli via per un tipo
-            // che non c'entra sarebbe pignoleria.
+            // `GetTypes()` on an assembly with missing dependencies raises
+            // `ReflectionTypeLoadException` and brings with it the types that IT
+            // managed to load: those are enough, and throwing them away for a type
+            // that is not relevant would be pedantry.
             Type[] types;
             try { types = asm.GetTypes(); }
             catch (ReflectionTypeLoadException ex) { types = ex.Types.Where(t => t != null).ToArray(); }

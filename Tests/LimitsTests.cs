@@ -8,63 +8,63 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// UN LIMITE MISURATO CHE LA DESCRIZIONE NON DICE COSTA UN TURNO A VUOTO
-    /// (voci Z-G5 e Z-C11).
+    /// A MEASURED LIMIT THAT THE DESCRIPTION DOES NOT SAY COSTS A WASTED TURN
+    /// (entries Z-G5 and Z-C11).
     ///
-    /// ── LE DUE META' DELLA STESSA COSA ───────────────────────────────────
+    /// ── THE TWO HALVES OF THE SAME THING ─────────────────────────────────
     ///
-    /// Quando un'operazione rifiuta, qualcuno ha gia' misurato quel limite e
-    /// ci ha scritto un caso di banco. Ma **il modello non legge i casi di
-    /// banco**: legge il catalogo. Se la descrizione tace, l'unico modo che ha
-    /// di scoprire il limite e' sbatterci contro — e un rifiuto costa un giro,
-    /// mentre un limite dichiarato costa zero.
+    /// When an operation refuses, somebody has already measured that limit and
+    /// written a bench case for it. But **the model does not read the bench
+    /// cases**: it reads the catalogue. If the description is silent, the only way it has
+    /// to discover the limit is to bump into it — and a refusal costs a run,
+    /// while a declared limit costs zero.
     ///
-    /// *Dichiarare un limite prima di provare vale piu' di un rifiuto.*
+    /// *Declaring a limit before trying is worth more than a refusal.*
     ///
-    /// E l'altra meta' (Z-C11): **ogni rifiuto nasce con la sua gemella
-    /// verde**. Il rischio speculare — rifiutare un pezzo legittimo — non lo
-    /// rivede nessuno, perche' un rifiuto sbagliato *sembra* prudenza. La
-    /// gemella e' cio' che distingue una guardia da un'operazione che dice
-    /// sempre di no, ed e' capitato davvero: la prima versione di
-    /// `section_view` rifiutava tutto, e il difetto e' uscito al primo
-    /// uso vero.
+    /// And the other half (Z-C11): **every refusal is born with its green
+    /// twin**. The mirror risk — refusing a legitimate part — is not
+    /// reviewed by anybody, because a wrong refusal *looks* like prudence. The
+    /// twin is what tells a guard from an operation that always
+    /// says no, and it really happened: the first version of
+    /// `section_view` refused everything, and the defect came out at the first
+    /// real use.
     ///
-    /// ── PERCHE' QUI E NON NEL BANCO ──────────────────────────────────────
+    /// ── WHY HERE AND NOT IN THE BENCH ─────────────────────────────────────
     ///
-    /// Il banco le gemelle le controlla gia', **ma dopo un'ora di giro e con
-    /// SOLIDWORKS acceso**. Un caso di rifiuto scritto senza gemella e' un
-    /// errore di scrittura, non di misura: si vede leggendo il JSON, in un
-    /// decimo di secondo, e chi lo scrive deve saperlo prima di lanciare il
-    /// banco, non dopo.
+    /// The bench already checks the twins, **but after an hour of running and with
+    /// SOLIDWORKS on**. A refusal case written without a twin is a
+    /// writing error, not a measurement error: it is seen by reading the JSON, in a
+    /// tenth of a second, and whoever writes it must know before launching the
+    /// bench, not after.
     /// </summary>
     internal static class LimitsTests
     {
         /// <summary>
-        /// Quante operazioni hanno un rifiuto provato dal banco e **non lo
-        /// dicono** nella loro descrizione. **Zero, dal 23/9/2026.**
+        /// How many operations have a refusal tested by the bench and **do not
+        /// say it** in their description. **Zero, since 23/9/2026.**
         ///
-        /// Erano dodici quella mattina — asola, activate_configuration,
+        /// There were twelve that morning — slot, activate_configuration,
         /// activate_sheet, create_configuration, drawing_dimension, linear_pattern,
-        /// rivoluzione, chamfer_edges, suppress_feature, specchia,
-        /// cylindrical_cut, rectangular_cut — e ognuna aveva un limite
-        /// gia' misurato, con tanto di caso di banco che lo pretende, che il
-        /// modello poteva scoprire **solo sbattendoci contro**.
+        /// revolve, chamfer_edges, suppress_feature, mirror,
+        /// cylindrical_cut, rectangular_cut — and each had a limit
+        /// already measured, with a bench case that demands it, which the
+        /// model could discover **only by bumping into it**.
         ///
-        /// Le frasi nuove non sono inventate: sono il messaggio che il caso
-        /// pretende, girato al futuro. *Un limite dichiarato costa zero turni;
-        /// lo stesso limite scoperto da un rifiuto ne costa uno.*
+        /// The new sentences are not invented: they are the message that the case
+        /// demands, turned to the future. *A declared limit costs zero turns;
+        /// the same limit discovered by a refusal costs one.*
         ///
-        /// E' un TETTO, e da zero non puo' che salire — cioe' non puo'. Una
-        /// guardia nuova senza la frase che la dichiara fa diventare rosso
-        /// questo controllo **il giorno in cui la si scrive**, che e' l'unico
-        /// giorno in cui qualcuno la sta guardando.
+        /// It is a CEILING, and from zero it can only go up — that is, it cannot. A
+        /// new guard without the sentence that declares it turns this check red
+        /// **on the day it is written**, which is the only day
+        /// on which somebody is looking at it.
         /// </summary>
         private const int Mute = 0;
 
         /// <summary>
-        /// Le parole con cui una descrizione dichiara un limite. Sono quelle
-        /// che il catalogo usa davvero, non quelle che «dovrebbe» usare: un
-        /// elenco inventato a tavolino direbbe che tutte tacciono.
+        /// The words with which a description declares a limit. They are the ones
+        /// the catalogue really uses, not the ones it «should» use: a
+        /// list invented at a desk would say that all of them are silent.
         /// </summary>
         private static readonly string[] Telltales =
         {
@@ -76,20 +76,20 @@ namespace Oce.Solid.Agent.ContractTests
         };
 
         /// <summary>
-        /// Quanti casi dichiarati citano un corpo PER NUMERO («C1», «C2») in un
-        /// campo `_uid`. Misurato il 25/9/2026: l'ordine dei corpi nello stato
-        /// viene da `GetBodies2`, **non segue la creazione e cambia fra un giro
-        /// e l'altro** (tre membri strutturali: C1 = la corta in un giro, la
-        /// lunga nell'altro). Molti di questi casi hanno un corpo solo quando
-        /// lo citano, e sono innocui; gli altri sono l'elenco della voce Z-C16.
-        /// Il banco ha `@body(name=...)`, che segue l'ordine di creazione.
+        /// How many declared cases cite a body BY NUMBER («C1», «C2») in a
+        /// `_uid` field. Measured on 25/9/2026: the order of the bodies in the state
+        /// comes from `GetBodies2`, **does not follow creation and changes between one run
+        /// and the next** (three structural members: C1 = the short one in one run, the
+        /// long one in the other). Many of these cases have a single body when
+        /// they cite it, and are harmless; the others are the list of entry Z-C16.
+        /// The bench has `@body(name=...)`, which follows the creation order.
         ///
-        /// **12 al 25/9/2026**, visto rosso a tetto zero prima di fissarlo (i due
-        /// rifiuti su `C9`, che non esiste in nessun ordine, restano fuori).
+        /// **12 at 25/9/2026**, seen red with a zero ceiling before fixing it (the two
+        /// refusals on `C9`, which exists in no order, stay out).
         /// </summary>
         private const int BodiesByNumberCap = 12;
 
-        /// <summary>I «C\d+» scritti a mano nei campi `_uid` degli argomenti.</summary>
+        /// <summary>The «C\d+» written by hand in the `_uid` fields of the arguments.</summary>
         private static IEnumerable<string> BodiesByNumber(object arguments)
         {
             var d = arguments as Dictionary<string, object>;
@@ -129,31 +129,31 @@ namespace Oce.Solid.Agent.ContractTests
             var file = Directory.GetFiles(folder, "*.json", SearchOption.AllDirectories);
             var names = new HashSet<string>(
                 file.Select(f => Path.GetFileNameWithoutExtension(f)), StringComparer.Ordinal);
-            // LA TOLLERANZA SENZA IL PERCHE'. Il banco la ferma come errore di
-            // banco — ma dopo un'ora di giro. Il 24/9/2026 sera un caso nuovo
-            // l'ha fatto: un giro intero perso per una riga che si vede leggendo
-            // il JSON. Qui si vede prima di lanciare.
+            // THE TOLERANCE WITHOUT THE WHY. The bench stops it as a bench
+            // error — but after an hour of running. On the evening of 24/9/2026 a new case
+            // did it: a whole run lost for a line that is seen by reading
+            // the JSON. Here it is seen before launching.
             var withoutWhy = new List<string>();
             var muteSteps = new List<string>();
-            // LA GEMELLA FINTA: stessa operazione e argomenti IDENTICI al rifiuto.
-            // Il banco la ferma come errore di banco (voce F5) — dopo un'ora. Il
-            // 25/9/2026 e' successo con `flat_pattern_dxf`, dove il rifiuto dipende
-            // dallo stato e non da un argomento. Qui si confronta prima.
-            var refusalsToCompare = new List<Tuple<string, string, string, string>>(); // caso, operazione, argomenti, gemella
+            // THE FAKE TWIN: same operation and arguments IDENTICAL to the refusal.
+            // The bench stops it as a bench error (entry F5) — after an hour. On
+            // 25/9/2026 it happened with `flat_pattern_dxf`, where the refusal depends
+            // on the state and not on an argument. Here it is compared beforehand.
+            var refusalsToCompare = new List<Tuple<string, string, string, string>>(); // case, operation, arguments, twin
             var argumentsPerCase = new Dictionary<string, List<Tuple<string, string>>>(StringComparer.Ordinal);
-            // LA GEMELLA COME LA GUARDA IL BANCO (25/9/2026): il primo passo
-            // RIUSCITO della stessa operazione, e almeno un argomento in comune.
+            // THE TWIN AS THE BENCH SEES IT (25/9/2026): the first SUCCEEDED
+            // step of the same operation, and at least one argument in common.
             var caseSteps = new Dictionary<string, List<Tuple<string, Dictionary<string, object>, bool>>>(StringComparer.Ordinal);
             var refusalsWithTwin = new List<Tuple<string, string, Dictionary<string, object>, string>>();
-            // LA GEMELLA CON GLI STESSI ARGOMENTI SU UN ALTRO PEZZO (28/9/2026):
-            // caso, operazione, argomenti, gemella, indice del passo, frase
-            // dichiarata. Si guarda con `Expectations.ResembleInPart`, la stessa
-            // funzione del banco, e non con le due regole qui sopra.
+            // THE TWIN WITH THE SAME ARGUMENTS ON ANOTHER PART (28/9/2026):
+            // case, operation, arguments, twin, index of the step, declared
+            // sentence. It is looked at with `Expectations.ResembleInPart`, the same
+            // function as the bench, and not with the two rules above.
             var refusalsInPart = new List<Tuple<string, string, Dictionary<string, object>, string, int, string>>();
             var rawSteps = new Dictionary<string, object[]>(StringComparer.Ordinal);
             var js = new JavaScriptSerializer();
             var casesWithNumbers = new SortedSet<string>(StringComparer.Ordinal);
-            // Z-C6: operazione -> casi dichiarati che la usano in un passo.
+            // Z-C6: operation -> declared cases that use it in a step.
             var casesPerOp = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
             foreach (var f in file)
@@ -167,8 +167,8 @@ namespace Oce.Solid.Agent.ContractTests
                 if (testCase == null) { planes++; continue; }
                 declared++;
 
-                // Le attese stanno nei passi («attese») e, per la regressione,
-                // in «after». Si guardano tutte e due.
+                // The expectations are in the steps («expect») and, for the regression,
+                // in «after». Both are looked at.
                 Action<object, string> checkExpectations = (list, location) =>
                 {
                     foreach (var at in (list as object[]) ?? new object[0])
@@ -197,11 +197,11 @@ namespace Oce.Solid.Agent.ContractTests
                     if (planStep == null) continue;
                     object at0;
                     if (planStep.TryGetValue("expect", out at0)) checkExpectations(at0, "passo " + number);
-                    // UN PASSO CHE NON MISURA NIENTE (25/9/2026): il banco lo
-                    // ferma come errore di banco — dopo un'ora e mezza di giro, e
-                    // fermando tutto il caso li'. E' successo col caso della
-                    // tavola guardata: tre fori senza attese, e le attese della
-                    // tavola non sono mai girate. Si vede leggendo il JSON.
+                    // A STEP THAT MEASURES NOTHING (25/9/2026): the bench stops it
+                    // as a bench error — after an hour and a half of running, and
+                    // stopping the whole case there. It happened with the case of the
+                    // drawing that was looked at: three holes without expectations, and the expectations of the
+                    // drawing never ran. It is seen by reading the JSON.
                     else if (!planStep.ContainsKey("must_fail")) muteSteps.Add(itemName + " / passo " + number);
                     object opN, argN;
                     string opName = planStep.TryGetValue("operation", out opN) ? Convert.ToString(opN) : "";
@@ -219,10 +219,10 @@ namespace Oce.Solid.Agent.ContractTests
                     if (!casesPerOp.TryGetValue(opName, out opCases))
                         casesPerOp[opName] = opCases = new HashSet<string>(StringComparer.Ordinal);
                     opCases.Add(itemName);
-                    // IL CORPO PER NUMERO (Z-C16). Un «C2» scritto a mano in un
-                    // campo `_uid`: si esclude solo il numero che il rifiuto
-                    // stesso nomina nel messaggio atteso (`C9` che non esiste
-                    // e' il punto del caso, e non dipende dall'ordine).
+                    // THE BODY BY NUMBER (Z-C16). A hand-written «C2» in a
+                    // `_uid` field: only the number that the refusal
+                    // itself names in the expected message is excluded (`C9`, which does not exist,
+                    // is the point of the case, and does not depend on the order).
                     foreach (var cited in BodiesByNumber(argN))
                     {
                         object dvC; string expectedInMessage = "";
@@ -262,7 +262,7 @@ namespace Oce.Solid.Agent.ContractTests
                     refusedOperations.TryGetValue(operation, out howMany);
                     refusedOperations[operation] = howMany + 1;
 
-                    // ── LA GEMELLA (Z-C11) ───────────────────────────────
+                    // ── THE TWIN (Z-C11) ─────────────────────────────────────
                     object g;
                     string twin = refusal.TryGetValue("twin", out g)
                         ? Convert.ToString(g) : null;
@@ -270,11 +270,11 @@ namespace Oce.Solid.Agent.ContractTests
                     else if (!names.Contains(twin))
                         absentTwins.Add(itemName + " -> «" + twin + "» non esiste");
 
-                    // ── E IL MESSAGGIO DEV'ESSERE PRETESO ────────────────
+                    // ── AND THE MESSAGE MUST BE DEMANDED ─────────────────────
                     //
-                    // «deve fallire» senza dire con quale messaggio e' quasi
-                    // niente: qualunque errore lo soddisfa, compreso quello
-                    // sbagliato. Il banco lo pretende gia'; qui si vede subito.
+                    // «must fail» without saying with which message is almost
+                    // nothing: any error satisfies it, including the
+                    // wrong one. The bench already demands it; here it is seen at once.
                     object m;
                     var messages = refusal.TryGetValue("message_includes", out m)
                         ? m as object[] : null;
@@ -283,10 +283,10 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
 
-            // IL TETTO CALA E NON SALE (Z-C16). I casi che li citano ancora
-            // sono l'elenco da guardare uno per uno; un caso NUOVO che cita un
-            // corpo per numero fa diventare rosso questo controllo il giorno in
-            // cui lo si scrive: si usa `@body(name=...)`.
+            // THE CEILING GOES DOWN AND DOES NOT GO UP (Z-C16). The cases that still cite them
+            // are the list to look at one by one; a NEW case that cites a
+            // body by number turns this check red on the day
+            // it is written: `@body(name=...)` is used.
             Check("i casi che citano un corpo per numero non aumentano (Z-C16)",
                   casesWithNumbers.Count <= BodiesByNumberCap,
                   casesWithNumbers.Count + " casi (tetto " + BodiesByNumberCap + "): " +
@@ -310,27 +310,27 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 List<Tuple<string, string>> twinSteps;
                 if (!argumentsPerCase.TryGetValue(r.Item4, out twinSteps)) continue;
-                // UN CASO PUO' ESSERE GEMELLA DI SE STESSO (il passo verde e il
-                // rifiuto nello stesso file): li' il rifiuto si trova da solo fra
-                // i passi, e va contato una volta di piu'. Visto al primo giro di
-                // questo controllo, su `two_sheets_and_the_same_projection_angle`.
+                // A CASE CAN BE THE TWIN OF ITSELF (the green step and the
+                // refusal in the same file): there the refusal finds itself among
+                // the steps, and must be counted once more. Seen on the first run of
+                // this check, on `two_sheets_and_the_same_projection_angle`.
                 int equal = 0;
                 foreach (var p in twinSteps)
                     if (p.Item1 == r.Item2 && p.Item2 == r.Item3) equal++;
                 if (equal > (r.Item4 == r.Item1 ? 1 : 0))
                     fake.Add(r.Item1 + " -> " + r.Item4 + " (" + r.Item2 + " " + r.Item3 + ")");
             }
-            // E NON BASTA CHE NON SIA IDENTICA: il banco la confronta col PRIMO
-            // passo riuscito della stessa operazione e pretende almeno un
-            // argomento in comune con lo stesso valore (`Expectations.Resemble`,
-            // la stessa funzione che usa lui). Il 25/9/2026 il rifiuto su «V9»
-            // aveva in comune «count» col SECONDO passo della gemella e niente
-            // col primo: errore di banco dopo cento minuti di giro.
+            // AND IT IS NOT ENOUGH THAT IT IS NOT IDENTICAL: the bench compares it with the FIRST
+            // succeeded step of the same operation and demands at least one
+            // argument in common with the same value (`Expectations.Resemble`,
+            // the same function it uses). On 25/9/2026 the refusal on «V9»
+            // had «count» in common with the SECOND step of the twin and nothing
+            // with the first: bench error after a hundred minutes of running.
             var far = new List<string>();
             foreach (var r in refusalsWithTwin)
             {
                 List<Tuple<string, Dictionary<string, object>, bool>> stepsG;
-                if (!caseSteps.TryGetValue(r.Item4, out stepsG)) continue;   // gemella assente: si dice qui sotto
+                if (!caseSteps.TryGetValue(r.Item4, out stepsG)) continue;   // twin absent: said below
                 Dictionary<string, object> itsItems = null;
                 foreach (var p in stepsG)
                     if (p.Item1 == r.Item2 && !p.Item3) { itsItems = p.Item2; break; }
@@ -343,8 +343,8 @@ namespace Oce.Solid.Agent.ContractTests
                 if (!Oce.Solid.Agent.Bench.Expectations.Resemble(r.Item3, itsItems, out why))
                     far.Add(r.Item1 + " -> " + r.Item4 + ": " + why);
             }
-            // Le gemelle dichiarate sul pezzo: il primo passo riuscito della
-            // stessa operazione nella gemella, e i passi prima di lui.
+            // The twins declared on the part: the first succeeded step of the
+            // same operation in the twin, and the steps before it.
             foreach (var r in refusalsInPart)
             {
                 object[] stepsG, mySteps;
@@ -405,7 +405,7 @@ namespace Oce.Solid.Agent.ContractTests
                       ? "nessun «deve_fallire» che accetti qualunque errore"
                       : string.Join(" | ", withoutMessage));
 
-            // ── E LE DESCRIZIONI? (Z-G5) ────────────────────────────────
+            // ── AND THE DESCRIPTIONS? (Z-G5) ─────────────────────────────
             var catalog = ServedCatalog();
             if (!File.Exists(catalog))
             {
@@ -455,9 +455,9 @@ namespace Oce.Solid.Agent.ContractTests
                       ? refusedOperations.Count + " operazioni con almeno un rifiuto provato"
                       : "fuori catalogo: " + string.Join(", ", outsideCatalog));
 
-            // IL TETTO CALA E NON SALE. Una guardia nuova senza la frase che la
-            // dichiara fa diventare rosso questo controllo, ed e' il momento in
-            // cui serve: dopo, nessuno ci torna piu'.
+            // THE CEILING GOES DOWN AND DOES NOT GO UP. A new guard without the sentence that
+            // declares it turns this check red, and it is the moment in
+            // which it is needed: afterwards, nobody comes back to it.
             Check("le descrizioni mute non sono aumentate", mute.Count <= Mute,
                   mute.Count + " mute su " + refusedOperations.Count +
                   " (tetto " + Mute + "): " + string.Join(", ", mute));
@@ -473,29 +473,29 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Le operazioni a catalogo che oggi NON possono avere un caso verde, e
-        /// perche'. Ognuna si ricontrolla: se esce dal catalogo o trova un caso
-        /// che la usa, il permesso va tolto — come in Z-C7, dove un'eccezione per
-        /// una riga che non c'e' piu' e' un buco che resta aperto.
+        /// The operations in the catalogue that today can NOT have a green case, and
+        /// why. Each is rechecked: if it leaves the catalogue or finds a case
+        /// that uses it, the permission must be removed — as in Z-C7, where an exception for
+        /// a line that is no longer there is a hole that stays open.
         /// </summary>
         private static readonly Dictionary<string, string> WithoutGreenCase =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                // (26/9/2026) `model_dimensions` non e' piu' qui: fuori processo
-                // porta le quote (7 sullo stesso pezzo di Z-C1, due sonde), e ha la
-                // sua coppia vera: `dimensions/dimensions_come_from_the_model`.
+                // (26/9/2026) `model_dimensions` is no longer here: out of process
+                // it carries the dimensions (7 on the same part as Z-C1, two probes), and has its
+                // true pair: `dimensions/dimensions_come_from_the_model`.
             };
 
         /// <summary>
-        /// LA SECONDA META' DI Z-C6: `Provata = true` deve puntare a un caso che
-        /// ha GIRATO, verde, nell'ultimo giro — non a un caso che esiste.
+        /// THE SECOND HALF OF Z-C6: `Provata = true` must point to a case that
+        /// RAN, green, in the last run — not to a case that exists.
         ///
-        /// Il 25/9/2026, scrivendo i casi che mancavano, due operazioni «provate»
-        /// si sono scoperte mai funzionanti (`trim_members`, `weld_bead`)
-        /// e una e' uscita dal catalogo (`gusset`). «Provata» voleva dire che
-        /// qualcuno ci aveva scritto true. Adesso lo dice il banco: scrive i nomi
-        /// dei casi verdi in `last.json` («green_cases»), e qui si incrociano
-        /// col catalogo servito.
+        /// On 25/9/2026, writing the cases that were missing, two «tested» operations
+        /// turned out never to have worked (`trim_members`, `weld_bead`)
+        /// and one left the catalogue (`gusset`). «Provata» meant that
+        /// somebody had written true there. Now the bench says it: it writes the names
+        /// of the green cases in `last.json` («green_cases»), and here they are crossed
+        /// with the catalogue served.
         /// </summary>
         private static void EveryOperationHasAGreenCase(
             HashSet<string> inCatalog, Dictionary<string, HashSet<string>> casesPerOp, string lastJson)

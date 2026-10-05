@@ -6,25 +6,25 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// QUANTE VOLTE IL PIANO CHIEDE «QUAL E' IL DOCUMENTO ATTIVO?» (voce Z-C5).
+    /// HOW MANY TIMES THE PLAN ASKS «WHICH IS THE ACTIVE DOCUMENT?» (entry Z-C5).
     ///
-    /// ── PERCHE' IL NUMERO E' IL CONTROLLO ────────────────────────────────
+    /// ── WHY THE NUMBER IS THE CHECK ───────────────────────────────────────
     ///
-    /// `_sw.IActiveDoc2` e' un globale, e la risposta cambia da sola: basta che
-    /// qualcuno clicchi su un'altra finestra di SOLIDWORKS. **Due letture dello
-    /// stesso globale non sono una lettura fatta due volte: sono due domande
-    /// diverse**, e fra l'una e l'altra c'e' una finestra in cui la risposta
-    /// puo' cambiare.
+    /// `_sw.IActiveDoc2` is a global, and the answer changes by itself: it is enough for
+    /// someone to click on another SOLIDWORKS window. **Two readings of the
+    /// same global are not one reading done twice: they are two different
+    /// questions**, and between the one and the other there is a window in which the answer
+    /// can change.
     ///
-    /// Il 18/9/2026 la voce Z-C5 le ha contate a mano — sei, e una sola seguita
-    /// dal confronto — e quel conto e' rimasto in un file di testo, dove
-    /// invecchia da solo. Qui lo fa il giro, ogni volta, in un decimo di
-    /// secondo e senza SOLIDWORKS.
+    /// On 18/9/2026 entry Z-C5 counted them by hand — six, and only one followed
+    /// by the comparison — and that count stayed in a text file, where it
+    /// ages by itself. Here the run does it, every time, in a tenth of a
+    /// second and without SOLIDWORKS.
     ///
-    /// **Non e' un divieto: e' un tetto.** Una lettura in piu' non e'
-    /// necessariamente sbagliata — ma dev'essere una decisione, non una svista,
-    /// e questo controllo costringe chi la aggiunge a passare di qui e
-    /// aggiornare il numero sapendo cosa sta aggiornando.
+    /// **It is not a ban: it is a ceiling.** One more reading is not
+    /// necessarily wrong — but it must be a decision, not an oversight,
+    /// and this check forces whoever adds it to come through here and
+    /// update the number knowing what they are updating.
     /// </summary>
     internal static class DocumentTests
     {
@@ -65,8 +65,8 @@ namespace Oce.Solid.Agent.ContractTests
             for (int i = 0; i < lines.Length; i++)
             {
                 var r = lines[i];
-                // I COMMENTI PARLANO DI QUESTE LETTURE, e sono tanti: contarli
-                // vorrebbe dire che spiegare il problema lo peggiora.
+                // THE COMMENTS TALK ABOUT THESE READINGS, and there are many: counting them
+                // would mean that explaining the problem makes it worse.
                 var withoutSpaces = r.TrimStart();
                 if (withoutSpaces.StartsWith("//", StringComparison.Ordinal) ||
                     withoutSpaces.StartsWith("///", StringComparison.Ordinal)) continue;
@@ -78,28 +78,28 @@ namespace Oce.Solid.Agent.ContractTests
                   howMany + " letture (tetto " + Cap + "), alle righe " +
                   string.Join(", ", location));
 
-            // E IL TETTO NON DEV'ESSERE PIU' LARGO DEL VERO. Un tetto messo
-            // alto «per stare tranquilli» non e' un tetto: e' un numero che non
-            // ha mai detto di no, e il giorno in cui servirebbe non lo dira'.
+            // AND THE CEILING MUST NOT BE WIDER THAN THE TRUTH. A ceiling set
+            // high «to be on the safe side» is not a ceiling: it is a number that has
+            // never said no, and the day it would be needed it will not say it.
             Check("il tetto e' quello vero, non uno comodo",
                   howMany == Cap,
                   howMany == Cap
                       ? howMany + ", the ones listed in the comment"
                       : howMany + " left: if that is meant, lower the ceiling");
 
-            // ── E CHI DECIDE NON SE LO RIPESCA ──────────────────────────
+            // ── AND WHOEVER DECIDES DOES NOT FISH IT OUT AGAIN ──────────
             //
-            // Il difetto vero non era il numero: era che `PreliminaryChecks`
-            // leggeva il globale per conto suo e poi il piano lo rileggeva.
-            // Approvavano due documenti diversi senza che niente lo dicesse.
+            // The real defect was not the number: it was that `PreliminaryChecks`
+            // read the global on its own account and then the plan read it again.
+            // They approved two different documents without anything saying so.
             string text = File.ReadAllText(file);
             Check("i controlli preliminari RICEVONO il documento",
                   Regex.IsMatch(text,
                       @"private string PreliminaryChecks\(\s*IModelDoc2 \w+\s*\)"),
                   "non `PreliminaryChecks()`");
 
-            // E che li riceva non basta se poi se lo ripesca lo stesso: si
-            // guarda il corpo del metodo, non solo la firma.
+            // And receiving it is not enough if it then fishes it out again all the same: we
+            // look at the body of the method, not only the signature.
             int start = text.IndexOf("private string PreliminaryChecks(",
                                        StringComparison.Ordinal);
             string body = start < 0 ? "" : text.Substring(start);
@@ -190,8 +190,8 @@ namespace Oce.Solid.Agent.ContractTests
             return null;
         }
 
-        /// <summary>Il corpo del metodo, fino alla chiusura della graffa —
-        /// contata, non indovinata da un'indentazione.</summary>
+        /// <summary>The body of the method, up to the closing brace —
+        /// counted, not guessed from an indentation.</summary>
         private static bool BodyReads(string fromHere)
         {
             int braces = 0;

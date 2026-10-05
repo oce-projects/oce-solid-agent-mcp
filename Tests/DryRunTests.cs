@@ -6,23 +6,23 @@ using static Shared.McpClient;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// SBAGLIARE SENZA TOCCARE IL PEZZO (voce Z-G6).
+    /// GETTING IT WRONG WITHOUT TOUCHING THE PART (entry Z-G6).
     ///
-    /// ── PERCHE' QUESTE PROVE VALGONO PIU' DELLE ALTRE DI OGGI ────────────
+    /// ── WHY THESE CHECKS ARE WORTH MORE THAN THE OTHERS OF TODAY ──────────
     ///
-    /// Quasi tutti i controlli scritti il 23/9/2026 guardano un file: il
-    /// catalogo, un sorgente, un JSON. Questi **parlano col ponte vero**, su
-    /// stdio, come farebbe un client — e lo fanno **con SOLIDWORKS chiuso**,
-    /// che e' esattamente la condizione in cui la prova a vuoto deve servire.
+    /// Almost all the checks written on 23/9/2026 look at a file: the
+    /// catalogue, a source, a JSON. These **talk to the real bridge**, over
+    /// stdio, as a client would — and they do so **with SOLIDWORKS closed**,
+    /// which is exactly the condition in which the dry run must be of use.
     ///
-    /// Non e' una prova di struttura: e' una prova di comportamento.
+    /// It is not a check of structure: it is a check of behaviour.
     ///
-    /// ── E LA RIGA CHE CONTA DI PIU' ──────────────────────────────────────
+    /// ── AND THE LINE THAT COUNTS THE MOST ─────────────────────────────────
     ///
-    /// Che la risposta dica **cosa non ha guardato**. Una prova a vuoto che
-    /// tace sui limiti fa credere che il piano sia a posto, e allora il guaio
-    /// arriva un passo dopo invece che subito — con in piu' la fiducia di chi
-    /// l'aveva chiesta.
+    /// That the response says **what it did not look at**. A dry run that
+    /// stays silent about its limits makes one believe the plan is fine, and then the trouble
+    /// arrives one step later instead of at once — with, on top, the trust of whoever
+    /// had asked for it.
     /// </summary>
     internal static class DryRunTests
     {
@@ -42,12 +42,12 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
 
-                // ── UN PIANO SBAGLIATO IN QUATTRO MODI DIVERSI ───────────
+                // ── A PLAN WRONG IN FOUR DIFFERENT WAYS ───────────────────
                 //
-                // 1. un'operazione che non esiste
-                // 2. un argomento obbligatorio che manca
-                // 3. un argomento SCONOSCIUTO, che verrebbe ignorato in silenzio
-                // 4. un rimando a un passo che non c'e' ancora
+                // 1. an operation that does not exist
+                // 2. a required argument that is missing
+                // 3. an UNKNOWN argument, which would be silently ignored
+                // 4. a reference to a step that is not there yet
                 var bad = Obj(Ask(p, 20,
                     "{\"jsonrpc\":\"2.0\",\"id\":20,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" +
@@ -77,9 +77,9 @@ namespace Oce.Solid.Agent.ContractTests
                       text.Contains("width_mm") || text.Contains("thickness_mm"),
                       "su «extrude_rectangle» manca piu' di un obbligatorio");
 
-                // IL PIU' PREZIOSO DEI QUATTRO: un argomento scritto male non
-                // da' nessun errore, viene ignorato, e il pezzo esce diverso
-                // da come lo si e' chiesto. E' il difetto che non si vede.
+                // THE MOST PRECIOUS OF THE FOUR: a badly written argument gives
+                // no error, it is ignored, and the part comes out different
+                // from how it was asked for. It is the defect that is not seen.
                 Check("prende l'argomento SCONOSCIUTO, che verrebbe ignorato",
                       text.Contains("depth_mm") &&
                       text.IndexOf("IGNORATO", StringComparison.OrdinalIgnoreCase) >= 0,
@@ -100,11 +100,11 @@ namespace Oce.Solid.Agent.ContractTests
                       text.Contains("NON controllati") && text.Contains("uid"),
                       "tacere sui limiti farebbe credere che il piano sia a posto");
 
-                // ── UN PIANO BUONO NON VIENE BOCCIATO ────────────────────
+                // ── A GOOD PLAN IS NOT REJECTED ───────────────────────────
                 //
-                // La meta' che di solito non si prova. Un controllo che boccia
-                // anche cio' che va bene si smette di usarlo, e allora non
-                // protegge piu' niente.
+                // The half that is usually not tested. A check that rejects
+                // even what is fine gets abandoned, and then it
+                // no longer protects anything.
                 var good = Obj(Ask(p, 21,
                     "{\"jsonrpc\":\"2.0\",\"id\":21,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" +
@@ -121,13 +121,13 @@ namespace Oce.Solid.Agent.ContractTests
                       goodText.Contains("NON controllati"),
                       "soprattutto quando regge");
 
-                // ── E `dry_run` E' DICHIARATO NELLO SCHEMA ─────────────────
+                // ── AND `dry_run` IS DECLARED IN THE SCHEMA ───────────────
                 //
-                // Una capacita' che c'e' e non si vede in `tools/list` e' una
-                // capacita' che nessun modello usera' mai.
-                // LA RIGA GREZZA, non il dizionario: `Convert.ToString` su un
-                // `Dictionary` da' il nome del tipo, e questa riga era nata
-                // rossa proprio cosi' — cercava «dry_run» dentro
+                // A capability that exists and is not seen in `tools/list` is a
+                // capability that no model will ever use.
+                // THE RAW LINE, not the dictionary: `Convert.ToString` on a
+                // `Dictionary` gives the name of the type, and this line was born
+                // red exactly like that — it looked for «dry_run» inside
                 // «System.Collections.Generic.Dictionary...».
                 var toolsLine = Ask(p, 22,
                     "{\"jsonrpc\":\"2.0\",\"id\":22,\"method\":\"tools/list\",\"params\":{}}");

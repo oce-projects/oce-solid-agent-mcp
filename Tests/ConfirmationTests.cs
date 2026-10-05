@@ -6,24 +6,24 @@ using static Shared.McpClient;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// CHIEDERE ALL'UTENTE, NON AL MODELLO (voce W2.5).
+    /// ASK THE USER, NOT THE MODEL (entry W2.5).
     ///
-    /// ── PERCHE' NON BASTA UNA FRASE ──────────────────────────────────────
+    /// ── WHY A SENTENCE IS NOT ENOUGH ─────────────────────────────────────
     ///
-    /// Le conferme di questo ponte erano frasi che il modello rilegge:
-    /// «attenzione, questa operazione non si annulla». Una conferma che passa
-    /// dal modello e' una conferma **che il modello puo' interpretare** — e
-    /// interpretare una richiesta di permesso vuol dire, prima o poi,
-    /// concedersela da solo.
+    /// The confirmations of this bridge were sentences that the model rereads:
+    /// «careful, this operation cannot be undone». A confirmation that goes
+    /// through the model is a confirmation **that the model can interpret** — and
+    /// interpreting a request for permission means, sooner or later,
+    /// granting it to oneself.
     ///
-    /// `elicitation/create` la fa arrivare a chi sta davanti allo schermo.
+    /// `elicitation/create` makes it reach whoever is in front of the screen.
     ///
-    /// ── E QUESTE PROVE SONO DI COMPORTAMENTO ─────────────────────────────
+    /// ── AND THESE CHECKS ARE OF BEHAVIOUR ─────────────────────────────────
     ///
-    /// Il client finto **dichiara** `elicitation`, riceve la domanda, e
-    /// risponde `decline`. Il ponte deve fermarsi e **non toccare niente** —
-    /// e lo si vede senza SOLIDWORKS, perche' la conferma si chiede PRIMA di
-    /// qualunque conversazione col CAD.
+    /// The fake client **declares** `elicitation`, receives the question, and
+    /// answers `decline`. The bridge must stop and **touch nothing** —
+    /// and this can be seen without SOLIDWORKS, because the confirmation is asked BEFORE
+    /// any conversation with the CAD.
     /// </summary>
     internal static class ConfirmationTests
     {
@@ -34,7 +34,7 @@ namespace Oce.Solid.Agent.ContractTests
             var executable = BridgeOrNotHere("la conferma sul ponte vero");
             if (executable == null) return;
 
-            // ── 1. UN CLIENT CHE SA CHIEDERE, E DICE DI NO ───────────────
+            // ── 1. A CLIENT THAT KNOWS HOW TO ASK, AND SAYS NO ───────────
             var p = Open(executable);
             if (p == null) { Check("il ponte parte", false, ""); return; }
             try
@@ -44,15 +44,15 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"elicitation\":{}}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
 
-                // Si manda il piano SENZA aspettare la risposta: quello che
-                // deve arrivare per primo e' la DOMANDA del ponte.
+                // The plan is sent WITHOUT waiting for the answer: what
+                // must arrive first is the bridge's QUESTION.
                 Write(p,
                     "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"steps\":[" +
                     "{\"operation\":\"delete_feature\",\"arguments\":" +
                     "{\"feature_uid\":\"Taglio-Estrusione1\"}}]}}}");
 
-                // La domanda deve arrivare prima di qualunque risposta.
+                // The question must arrive before any answer.
                 Dictionary<string, object> question = null;
                 object questionId = null;
                 for (int i = 0; i < 8 && question == null; i++)
@@ -73,8 +73,8 @@ namespace Oce.Solid.Agent.ContractTests
                     var parameters = Inside(question, "params") as Dictionary<string, object>;
                     var message = Convert.ToString(Inside(parameters, "message"));
 
-                    // LA DOMANDA DEVE DIRE COSA SI STA PER PERDERE. «Confermi?»
-                    // da solo e' un pulsante, non una domanda.
+                    // THE QUESTION MUST SAY WHAT IS ABOUT TO BE LOST. «Confirm?»
+                    // on its own is a button, not a question.
                     Check("e la domanda nomina l'operazione",
                           message != null && message.Contains("delete_feature"),
                           Short(message));
@@ -102,9 +102,9 @@ namespace Oce.Solid.Agent.ContractTests
                     Check("e a un «no» SI FERMA", text != null && text.Contains("Fermato"),
                           Short(text));
 
-                    // LA RIGA PIU' IMPORTANTE: non basta fermarsi, bisogna
-                    // dire che non si e' toccato niente. Chi legge «fermato»
-                    // senza quella frase deve andare a controllare il pezzo.
+                    // THE MOST IMPORTANT LINE: it is not enough to stop, one must
+                    // say that nothing was touched. Whoever reads «stopped»
+                    // without that sentence has to go and check the part.
                     Check("e dice di non aver toccato niente",
                           text != null &&
                           text.IndexOf("non ho toccato niente", StringComparison.OrdinalIgnoreCase) >= 0,
@@ -113,12 +113,12 @@ namespace Oce.Solid.Agent.ContractTests
             }
             finally { Close(p); }
 
-            // ── 2. UN CLIENT CHE NON SA CHIEDERE: IL RIPIEGO E' DICHIARATO ─
+            // ── 2. A CLIENT THAT DOES NOT KNOW HOW TO ASK: THE FALLBACK IS DECLARED ─
             //
-            // Qui il ponte va avanti come prima — non e' un peggioramento, e'
-            // il comportamento di sempre — ma **lo dice**. Un ripiego taciuto
-            // e' il modo in cui una difesa sparisce senza che nessuno se ne
-            // accorga.
+            // Here the bridge goes on as before — it is not a worsening, it is
+            // the usual behaviour — but **it says so**. An unspoken fallback
+            // is the way a defense disappears without anyone
+            // noticing.
             var q = Open(executable);
             if (q == null) { Check("il ponte riparte", false, ""); return; }
             try
@@ -134,9 +134,9 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"operation\":\"delete_feature\",\"arguments\":" +
                     "{\"feature_uid\":\"Taglio-Estrusione1\"}}]}}}"));
 
-                // Senza SOLIDWORKS il piano si ferma subito dopo, e va bene: la
-                // cosa da provare e' che **non sia rimasto appeso** ad aspettare
-                // una conferma che questo client non sa dare.
+                // Without SOLIDWORKS the plan stops right after, and that is fine: the
+                // thing to test is that it **has not stayed hung** waiting for
+                // a confirmation that this client does not know how to give.
                 Check("con un client che non sa chiedere, NON resta appeso",
                       response != null,
                       "risponde invece di aspettare una conferma impossibile");

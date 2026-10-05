@@ -10,15 +10,15 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// IL CATALOGO, che e' l'interfaccia vera verso il modello (voce C1/F7).
+    /// THE CATALOGUE, which is the real interface to the model (entry C1/F7).
     ///
-    /// Si legge per RIFLESSIONE dal ponte gia' compilato — `Catalog` e la sua
-    /// `Similar()` vivono li' — e il file `catalog.json` glielo si indica con
-    /// `OPENPDM_CATALOGO`, che e' la stessa variabile che userebbe chi installa
-    /// il pacchetto altrove.
+    /// It is read by REFLECTION from the already compiled bridge — `Catalog` and its
+    /// `Similar()` live there — and the `catalog.json` file is pointed out to it with
+    /// `OPENPDM_CATALOGO`, which is the same variable that whoever installs
+    /// the package elsewhere would use.
     ///
-    /// Niente di tutto questo tocca SOLIDWORKS: `Catalog` legge un file JSON e
-    /// confronta stringhe.
+    /// None of this touches SOLIDWORKS: `Catalog` reads a JSON file and
+    /// compares strings.
     /// </summary>
     internal static class CatalogTests
     {
@@ -28,17 +28,17 @@ namespace Oce.Solid.Agent.ContractTests
 
             var json = Path.Combine(Root(), "bin", "catalog.json");
 
-            // IL CONTENUTO DEL CATALOGO SI PUO' LEGGERE ANCHE QUI (voce F9-bis).
+            // THE CONTENT OF THE CATALOGUE CAN BE READ HERE TOO (entry F9-bis).
             //
-            // `bin\\catalog.json` lo produce `build.ps1`, che senza interop non
-            // gira: su un runner senza SOLIDWORKS questo gruppo si fermava alla
-            // prima riga e trentadue controlli sul CONTENUTO — famiglie, campi
-            // obbligatori, nomi doppi — non venivano fatti benche' non
-            // c'entrino niente con SOLIDWORKS. Leggono un JSON.
+            // `bin\\catalog.json` is produced by `build.ps1`, which without interop does not
+            // run: on a runner without SOLIDWORKS this group stopped at the
+            // first line and thirty-two checks on the CONTENT — families, required
+            // fields, duplicate names — were not done although they have
+            // nothing to do with SOLIDWORKS. They read a JSON.
             //
-            // `Tools\\catalog.json` e' lo stesso file, sta in repository ed
-            // e' quello che `build.ps1` COPIA in `bin\\`. Si ripiega li', e si dice.
-            // Il confronto fra i due resta impossibile, e piu' sotto lo dichiara.
+            // `Tools\\catalog.json` is the same file, it is in the repository and
+            // it is the one that `build.ps1` COPIES into `bin\\`. We fall back there, and we say so.
+            // The comparison between the two stays impossible, and further down it says so.
             bool fromRepository = false;
             if (!ProductFromBuild(json))
             {
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             TheReadmeStatesTheRightNumber(operations.Length);
 
-            // ── OGNI OPERAZIONE HA I CAMPI CHE SERVONO ───────────────────
+            // ── EVERY OPERATION HAS THE FIELDS THAT ARE NEEDED ────────────
             var without = new List<string>();
             var families = new HashSet<string>(StringComparer.Ordinal);
             var catalogNames = new HashSet<string>(StringComparer.Ordinal);
@@ -96,11 +96,11 @@ namespace Oce.Solid.Agent.ContractTests
             Check("ogni operazione ha nome, famiglia, sommario, descrizione, schema",
                   without.Count == 0, string.Join("; ", without.Take(4)));
 
-            // ── LE FAMIGLIE DICHIARATE SONO QUELLE USATE ─────────────────
+            // ── THE DECLARED FAMILIES ARE THE USED ONES ───────────────────
             //
-            // Una famiglia usata e non dichiarata e' un'operazione che nel
-            // menu non compare: il modello non la vede, e nessuno se ne
-            // accorge finche' non la cerca per nome.
+            // A family that is used and not declared is an operation that does not
+            // appear in the menu: the model does not see it, and nobody notices
+            // until they look for it by name.
             var declared = (root.ContainsKey("families") ? root["families"] : null)
                              as Dictionary<string, object>;
             if (declared == null) Check("il catalogo dichiara le famiglie", false, "");
@@ -112,21 +112,21 @@ namespace Oce.Solid.Agent.ContractTests
                                         : "usate e non dichiarate: " + string.Join(", ", orfane));
             }
 
-            // ── NESSUN PERCORSO DI QUESTA MACCHINA ───────────────────────
+            // ── NO PATH OF THIS MACHINE ───────────────────────────────────
             //
-            // Il catalogo lo legge un modello, e finira' in un pacchetto che
-            // va altrove. Un «S:\PDM\...» dentro una descrizione e' un
-            // indirizzo che da quella macchina non esiste, e chi legge non ha
-            // modo di saperlo.
-            // ── E IL CONTROLLO HA GIA' SCATTATO PER IL MOTIVO SBAGLIATO ──
+            // The catalogue is read by a model, and will end up in a package that
+            // goes elsewhere. An «S:\PDM\...» inside a description is an
+            // address that does not exist from that machine, and whoever reads has no
+            // way of knowing it.
+            // ── AND THE CHECK HAS ALREADY TRIGGERED FOR THE WRONG REASON ──
             //
-            // La prima scrittura cercava «O:\» senza distinguere maiuscole e
-            // minuscole, e ha trovato **«tipo:\n»**: due lettere, i due punti e
-            // la barra di un a-capo. Un rosso che scatta per un'altra ragione
-            // non prova niente e sembra identico a uno che funziona.
+            // The first version looked for «O:\» without distinguishing upper and
+            // lower case, and found **«tipo:\n»**: two letters, the colon and
+            // the backslash of a newline. A red that triggers for another reason
+            // proves nothing and looks identical to one that works.
             //
-            // La lettera di unita' e' una lettera **non preceduta da un'altra
-            // lettera**: cosi' «NO:\n» e «tipo:\n» non la sono, e «S:\PDM» si'.
+            // A drive letter is a letter **not preceded by another
+            // letter**: so «NO:\n» and «tipo:\n» are not one, and «S:\PDM» is.
             var text = File.ReadAllText(json);
             var bad = new List<string>();
             foreach (System.Text.RegularExpressions.Match m in
@@ -145,35 +145,35 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ================================================================
-        // IL JSON E' UN PRODOTTO, E UN PRODOTTO PUO' ESSERE VECCHIO
+        // THE JSON IS A PRODUCT, AND A PRODUCT CAN BE OLD
         // ================================================================
 
         /// <summary>
-        /// `catalog.json` combacia ancora con il catalogo C# che lo genera?
+        /// Does `catalog.json` still match the C# catalogue that generates it?
         ///
-        /// COSTATO UN GIRO IL 22/9/2026. Scritta l'operazione
-        /// `note`, compilata, il ponte l'ha rifiutata con «non
+        /// IT COST A RUN ON 22/9/2026. The operation `note` was written,
+        /// compiled, and the bridge refused it with «non
         /// esiste nessuna operazione «note». Forse cercavi:
-        /// drawing_dimension» — mentre esisteva, era nel dispatcher ed era
-        /// dentro la DLL che il ponte aveva appena caricato. Mancava solo dal
-        /// JSON, che e' l'unica cosa che il ponte guarda per sapere cosa
-        /// esiste.
+        /// drawing_dimension» — while it existed, it was in the dispatcher and it was
+        /// inside the DLL the bridge had just loaded. It was missing only from the
+        /// JSON, which is the only thing the bridge looks at to know what
+        /// exists.
         ///
-        /// E `Tools/update.md` diceva: *«`build.ps1` rigenera il file a
-        /// ogni pacchetto, quindi non puo' restare indietro senza che qualcuno
-        /// cancelli quel passo»*. **Non e' vero con `-BridgeOnly`**, che e' il
-        /// modo in cui si compila mentre si itera. Una garanzia scritta in un
-        /// documento non e' una garanzia: e' una speranza con una fonte.
+        /// And `Tools/update.md` said: *«`build.ps1` regenerates the file at
+        /// every package, so it cannot fall behind unless somebody
+        /// deletes that step»*. **It is not true with `-BridgeOnly`**, which is the
+        /// way one builds while iterating. A guarantee written in a
+        /// document is not a guarantee: it is a hope with a source.
         ///
-        /// Lo strumento per accorgersene c'era gia' — `--controlla` esce 1 se
-        /// non combacia, e dice DOVE — e nessuno lo chiamava.
+        /// The tool to notice it was already there — `--controlla` exits 1 if
+        /// it does not match, and says WHERE — and nobody called it.
         ///
-        /// SI GUARDANO DUE COPPIE, e sono difetti diversi:
-        /// il C# contro `Tools/catalog.json` (qualcuno ha toccato le
-        /// operazioni e non ha riesportato), e `Tools/` contro `bin/`
-        /// (qualcuno ha riesportato e non ha rifatto il pacchetto, quindi il
-        /// ponte carica ancora quello vecchio — ed e' esattamente il caso di
-        /// oggi).
+        /// TWO PAIRS ARE LOOKED AT, and they are different defects:
+        /// the C# against `Tools/catalog.json` (somebody touched the
+        /// operations and did not export again), and `Tools/` against `bin/`
+        /// (somebody exported again and did not rebuild the package, so the
+        /// bridge still loads the old one — and it is exactly the case of
+        /// today).
         /// </summary>
         private static void TheCatalogHasNotFallenBehind()
         {
@@ -195,7 +195,7 @@ namespace Oce.Solid.Agent.ContractTests
                 return;
             }
 
-            // 1. IL C# CONTRO IL JSON ESPORTATO.
+            // 1. THE C# AGAINST THE EXPORTED JSON.
             string said = "";
             int output = -1;
             try
@@ -223,8 +223,8 @@ namespace Oce.Solid.Agent.ContractTests
                 return;
             }
 
-            // La riga utile e' quella che dice DOVE differiscono: un «sono
-            // diversi» su settantamila caratteri manda a cercare a occhio.
+            // The useful line is the one that says WHERE they differ: a «they
+            // are different» on seventy thousand characters sends you searching by eye.
             string line = said.Replace("\r", " ").Replace("\n", " ");
             if (line.Length > 160) line = line.Substring(0, 160) + "...";
 
@@ -233,7 +233,7 @@ namespace Oce.Solid.Agent.ContractTests
                               : "NON combacia: si rigenera con "
                                 + ".\\bin\\Oce.Solid.Agent.Catalog.exe Tools\\catalog.json — " + line);
 
-            // 2. E QUELLO CHE CARICA IL PONTE E' LO STESSO?
+            // 2. AND IS WHAT THE BRIDGE LOADS THE SAME?
             if (!File.Exists(package))
             {
                 if (!TheBridgeCouldBeBuilt())
@@ -274,36 +274,36 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ================================================================
-        // QUELLO CHE SI ESEGUE E QUELLO CHE SI VEDE
+        // WHAT IS EXECUTED AND WHAT IS SEEN
         // ================================================================
 
         /// <summary>
-        /// Ogni operazione che il dispatcher sa eseguire deve stare o nel
-        /// catalogo, o nell'elenco delle non provate. In nessun altro posto.
+        /// Every operation the dispatcher can execute must be either in the
+        /// catalogue, or in the list of the untested ones. In no other place.
         ///
-        /// IL BUCO CHE QUESTO CONTROLLO PRENDE, misurato il 22/9/2026.
-        /// `ExecutableNames` ne contava **70**, `catalog.json` ne dichiarava
-        /// **68**, e le due che mancavano — `center_marks` e
-        /// `drawing_cut_list` — erano fuori **per una buona ragione**
-        /// (`Provata=false`: le API dicono di si' e non creano niente, 0 -> 0).
+        /// THE HOLE THIS CHECK CATCHES, measured on 22/9/2026.
+        /// `ExecutableNames` counted **70** of them, `catalog.json` declared
+        /// **68**, and the two that were missing — `center_marks` and
+        /// `drawing_cut_list` — were out **for a good reason**
+        /// (`Provata=false`: the APIs say yes and create nothing, 0 -> 0).
         ///
-        /// Ma fino a qui nessuno confrontava i due elenchi, e la stessa
-        /// differenza l'avrebbe prodotta un'operazione **dimenticata**:
-        /// scritta, funzionante, mai aggiunta a `Operations.cs`. Quella non
-        /// darebbe nessun errore da nessuna parte — il banco la proverebbe
-        /// (legge `ExecutableNames`), il catalogo non la direbbe, e nessun
-        /// modello potrebbe chiamarla. **Il difetto che non da' errore**,
-        /// applicato all'unica cosa che il modello usa per sapere cosa esiste.
+        /// But until here nobody compared the two lists, and the same
+        /// difference would have been produced by a **forgotten** operation:
+        /// written, working, never added to `Operations.cs`. That one would
+        /// give no error anywhere — the bench would test it
+        /// (it reads `ExecutableNames`), the catalogue would not mention it, and no
+        /// model could call it. **The defect that gives no error**,
+        /// applied to the only thing the model uses to know what exists.
         ///
-        /// SI LEGGE `ExecutableNames` DAL SORGENTE, e non per riflessione:
-        /// quella costante vive in `SwOperations`, che tocca l'interop di
-        /// Dassault — caricarne il tipo qui dentro vorrebbe dire pretendere
-        /// SOLIDWORKS in un giro che deve girare senza. Le non provate invece
-        /// si chiedono a `Export.NotTested()`, che e' esattamente cio' che
-        /// l'esportatore usa per decidere: non una seconda copia della regola.
+        /// `ExecutableNames` IS READ FROM THE SOURCE, and not by reflection:
+        /// that constant lives in `SwOperations`, which touches the Dassault
+        /// interop — loading its type in here would mean demanding
+        /// SOLIDWORKS in a run that must run without it. The untested ones instead
+        /// are asked of `Export.NotTested()`, which is exactly what
+        /// the exporter uses to decide: not a second copy of the rule.
         ///
-        /// Leggerne ZERO e' un fallimento, non un successo: un elenco vuoto
-        /// farebbe passare ogni confronto.
+        /// Reading ZERO of them is a failure, not a success: an empty list
+        /// would make every comparison pass.
         /// </summary>
         private static void EveryExecutableIsDeclared(HashSet<string> inCatalog)
         {
@@ -329,12 +329,12 @@ namespace Oce.Solid.Agent.ContractTests
                   executables.Count + " nomi in ExecutableNames");
             if (executables.Count < 30) return;
 
-            // Le non provate, chieste a chi decide chi resta fuori dal file.
+            // The untested ones, asked of whoever decides who stays out of the file.
             //
-            // Si chiedono ALLA LIBRERIA COMPILATA, e li' la macchina conta: senza
-            // interop non esiste nessuna DLL da interrogare. Il conto
-            // «eseguibili = nel catalogo + non provate» non si puo' fare, e un
-            // conto che non si puo' fare non si finge riuscito.
+            // They are asked OF THE COMPILED LIBRARY, and there the machine counts: without
+            // interop there is no DLL to interrogate. The count
+            // «executable = in the catalogue + untested» cannot be done, and a
+            // count that cannot be done is not pretended to have succeeded.
             if (!ProductFromBuild(Path.Combine(Root(), "bin", "Oce.Solid.Agent.Core.dll")) &&
                 !TheBridgeCouldBeBuilt())
             {
@@ -348,7 +348,7 @@ namespace Oce.Solid.Agent.ContractTests
             try
             {
                 var bridge = Path.Combine(Root(), "bin", "oce-solid-agent-mcp.exe");
-                Load.Bridge(bridge);   // installa il risolutore per bin\
+                Load.Bridge(bridge);   // installs the solver for bin\
                 var dll = Path.Combine(Root(), "bin", "Oce.Solid.Agent.Core.dll");
                 var library = Assembly.Load(File.ReadAllBytes(dll));
                 var export = Load.Class(library, "Export");
@@ -377,7 +377,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             var outside = new HashSet<string>(notTested, StringComparer.Ordinal);
 
-            // 1. Eseguibile e invisibile: il difetto che questo controllo esiste per prendere.
+            // 1. Executable and invisible: the defect this check exists to catch.
             var invisible = executables.Where(n => !inCatalog.Contains(n) && !outside.Contains(n))
                                        .OrderBy(n => n, StringComparer.Ordinal).ToList();
             Check("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
@@ -387,8 +387,8 @@ namespace Oce.Solid.Agent.ContractTests
                         " nel catalogo + " + outside.Count + " non provate"
                       : "eseguibili e invisibili al modello: " + string.Join(", ", invisible));
 
-            // 2. Il verso opposto: una voce di catalogo che il dispatcher non sa eseguire
-            //    e' una promessa che si scopre falsa solo chiamandola.
+            // 2. The opposite direction: a catalogue entry that the dispatcher cannot execute
+            //    is a promise that is found false only by calling it.
             var promises = inCatalog.Where(n => !executables.Contains(n))
                                       .OrderBy(n => n, StringComparer.Ordinal).ToList();
             Check("ogni operazione del catalogo e' davvero eseguibile",
@@ -396,7 +396,7 @@ namespace Oce.Solid.Agent.ContractTests
                   promises.Count == 0 ? "" : "nel catalogo e non nel dispatcher: " +
                                              string.Join(", ", promises));
 
-            // 3. E una non provata non deve essere finita nel file lo stesso.
+            // 3. And an untested one must not have ended up in the file all the same.
             var escaped = outside.Where(inCatalog.Contains)
                                 .OrderBy(n => n, StringComparer.Ordinal).ToList();
             Check("nessuna operazione non provata e' finita nel catalogo",
@@ -406,19 +406,19 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// `Catalog.Similar()`: il caso per cui la funzione e' stata riscritta.
+        /// `Catalog.Similar()`: the case for which the function was rewritten.
         ///
-        /// Il primo tentativo cercava la parola intera dentro il nome, e su
-        /// «asole» **non trovava «slot»** — cioe' falliva proprio dove
-        /// serviva: chi sbaglia un nome quasi sempre ne ha in mente uno vicino,
-        /// e lo sbaglia di una lettera.
+        /// The first attempt looked for the whole word inside the name, and on
+        /// «asole» **it did not find «slot»** — that is, it failed exactly where
+        /// it was needed: whoever gets a name wrong almost always has a close one in mind,
+        /// and gets it wrong by one letter.
         /// </summary>
         private static void Similar()
         {
-            // «NON QUI» SE LA MACCHINA NON PUO' COMPILARE IL PONTE, ROSSO SE PUO'
-            // E NESSUNO HA LANCIATO build.ps1: la regola sta in un posto solo.
-            // Prima qui c'era un rosso secco, e in CI (dove il ponte non si
-            // compila mai) teneva rossa la CI a ogni push.
+            // «NOT HERE» IF THE MACHINE CANNOT BUILD THE BRIDGE, RED IF IT CAN
+            // AND NOBODY RAN build.ps1: the rule is in one place only.
+            // Before there was a flat red here, and in CI (where the bridge is never
+            // built) it kept the CI red on every push.
             var bridge = BridgeOrNotHere("Catalog.Similar: i nomi vicini a quello sbagliato");
             if (bridge == null) return;
 
@@ -428,8 +428,8 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 Environment.SetEnvironmentVariable(
                     "OPENPDM_CATALOGO", Path.Combine(Root(), "bin", "catalog.json"));
-                // SI CARICA DAI BYTE: `LoadFrom` su un'unita' di rete risponde
-                // NotSupportedException, e questo repository sta su S:.
+                // IT IS LOADED FROM THE BYTES: `LoadFrom` on a network drive answers
+                // NotSupportedException, and this repository lives on S:.
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "Catalog");
                 if (typ == null) { Check("Catalog.Similar: la classe c'e'", false, "Catalog assente"); return; }
@@ -455,22 +455,22 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ================================================================
-        // IL NUMERO SCRITTO NEL README E' UNA MISURA, E INVECCHIA COME TUTTE
+        // THE NUMBER WRITTEN IN THE README IS A MEASUREMENT, AND IT AGES LIKE ALL OF THEM
         //
-        // Il 16/9/2026 il README diceva «trentotto operazioni» in due punti
-        // mentre il catalogo ne aveva sessanta. Nessun controllo poteva
-        // accorgersene: i documenti non si compilano, non si eseguono, e
-        // nessuno li rilegge finche' non servono a qualcuno che non c'era.
+        // On 16/9/2026 the README said «trentotto operazioni» in two places
+        // while the catalogue had sixty. No check could
+        // notice it: documents are not compiled, not executed, and
+        // nobody rereads them until they are needed by someone who was not there.
         //
-        // E' ESATTAMENTE IL DIFETTO CHE NON DA' ERRORE, applicato ai
-        // documenti: il README sembra giusto, si legge bene, e dice il falso.
-        // Chi lo legge non ha modo di accorgersene — e' la sua unica fonte.
+        // IT IS EXACTLY THE DEFECT THAT GIVES NO ERROR, applied to
+        // documents: the README looks right, reads well, and says what is false.
+        // Whoever reads it has no way of noticing — it is their only source.
         //
-        // Il controllo cerca solo DUE forme, non tutti i numeri che compaiono:
-        // «<numero> operazioni» e «operazioni di disegno sono <numero>». Cosi'
-        // «Cinque, non sessanta» (che parla degli STRUMENTI) non lo fa
-        // scattare: un controllo che grida su una frase giusta si impara a
-        // ignorare, ed e' peggio di nessun controllo.
+        // The check looks for only TWO forms, not all the numbers that appear:
+        // «<numero> operazioni» and «operazioni di disegno sono <numero>». This way
+        // «Cinque, non sessanta» (which is about the TOOLS) does not make it
+        // trigger: a check that shouts at a correct sentence gets learned to be
+        // ignored, and that is worse than no check.
         // ================================================================
         private static void TheReadmeStatesTheRightNumber(int howMany)
         {

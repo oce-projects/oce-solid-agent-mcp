@@ -7,51 +7,51 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// TRE CAMPI CHE DEVONO PARLARE DELLO STESSO PEZZO (voce Z-A1).
+    /// THREE FIELDS THAT MUST SPEAK OF THE SAME PART (entry Z-A1).
     ///
-    /// ── IL DIFETTO, TROVATO IL 23/9/2026 ─────────────────────────────────
+    /// ── THE DEFECT, FOUND ON 23/9/2026 ───────────────────────────────────
     ///
-    /// Il ponte tiene tre cose sul documento che ha guardato:
+    /// The bridge keeps three things about the document it has looked at:
     ///
-    ///     _guardato        QUALE documento
-    ///     _signatureSeen   com'era, in breve (volume, lavorazioni, file)
-    ///     _seenSignatures      le firme delle singole facce
+    ///     _guardato        WHICH document
+    ///     _signatureSeen   how it was, in short (volume, features, files)
+    ///     _seenSignatures      the signatures of the individual faces
     ///
-    /// In `RunPlan` c'era una riga che spostava **solo la prima**:
-    /// `_guardato = adesso;`. Bastava un piano che nominasse un altro documento
-    /// — `document: "..."`, la strada legittima e documentata — perche' da quel
-    /// momento `_guardato` indicasse il pezzo nuovo e le firme il pezzo vecchio.
+    /// In `RunPlan` there was a line that moved **only the first**:
+    /// `_guardato = adesso;`. It was enough for a plan to name another document
+    /// — `document: "..."`, the legitimate and documented way — for, from that
+    /// moment on, `_guardato` to point to the new part and the signatures to the old one.
     ///
-    /// ── PERCHE' NON SI VEDEVA ────────────────────────────────────────────
+    /// ── WHY IT WAS NOT SEEN ───────────────────────────────────────────────
     ///
-    /// Perche' il guaio non arriva li': arriva **alla chiamata dopo**. A quel
-    /// punto il documento davanti e' quello nuovo, `theCheckedOne` torna vero,
-    /// e il confronto gira contro le firme di un altro pezzo. Due esiti, tutti
-    /// e due sbagliati: rifiutare un piano buono dicendo «il pezzo e'
-    /// cambiato», oppure **lasciar passare** un piano su uid che non valgono
-    /// piu' — che e' il difetto che questo progetto insegue da settimane.
+    /// Because the trouble does not arrive there: it arrives **at the next call**. At that
+    /// point the document in front is the new one, `theCheckedOne` comes back true,
+    /// and the comparison runs against the signatures of another part. Two outcomes, both
+    /// wrong: refusing a good plan saying «il pezzo e'
+    /// cambiato», or **letting through** a plan on uids that are no
+    /// longer valid — which is the defect this project has chased for weeks.
     ///
-    /// ── E IL PRINCIPIO ERA GIA' SCRITTO DUE RIGHE SOPRA ──────────────────
+    /// ── AND THE PRINCIPLE WAS ALREADY WRITTEN TWO LINES ABOVE ─────────────
     ///
-    /// Il commento della variabile locale `firme` diceva: *«meglio nessun
-    /// confronto che un confronto fra due pezzi diversi»*. Era giusto, era li',
-    /// e valeva per la variabile locale — non per i campi che restano. **Una
-    /// regola scritta per meta' e' una regola che qualcuno applichera' per
-    /// meta'.**
+    /// The comment of the local variable `firme` said: *«better no
+    /// comparison than a comparison between two different parts»*. It was right, it was there,
+    /// and it held for the local variable — not for the fields that remain. **A
+    /// rule written by half is a rule that somebody will apply by
+    /// half.**
     /// </summary>
     internal static class DocumentSignaturesTests
     {
         /// <summary>
-        /// Le righe in cui `_guardato` cambia **da solo**, cioe' senza che
-        /// nelle otto righe DI CODICE attorno le firme siano rifatte o buttate.
+        /// The lines in which `_guardato` changes **by itself**, that is, without
+        /// the signatures being redone or thrown away in the eight lines OF CODE around it.
         ///
-        /// ── DI CODICE, E NON RIGHE GREZZE ────────────────────────────────
+        /// ── OF CODE, AND NOT RAW LINES ────────────────────────────────
         ///
-        /// La prima stesura contava le righe grezze ed e' **nata rossa su un
-        /// punto corretto**: i tre campi stavano nello stesso blocco, separati
-        /// da venticinque righe di commento che spiegavano perche'. Contare le
-        /// righe grezze qui vuol dire punire chi spiega, in un repository in
-        /// cui spiegare e' la regola.
+        /// The first draft counted raw lines and was **born red on a
+        /// correct point**: the three fields stood in the same block, separated
+        /// by twenty-five lines of comments explaining why. Counting
+        /// raw lines here means punishing whoever explains, in a repository in
+        /// which explaining is the rule.
         /// </summary>
         internal static List<string> Sole(string[] lines)
         {
@@ -91,10 +91,10 @@ namespace Oce.Solid.Agent.ContractTests
         {
             Group("le firme non sopravvivono al cambio di documento (Z-A1)");
 
-            // ── PRIMA: LA REGOLA SA DIRE DI NO? ──────────────────────────
+            // ── FIRST: CAN THE RULE SAY NO? ──────────────────────────────
             //
-            // Il difetto vero, ridotto a quattro righe. Se questa non scatta,
-            // il verde sul sorgente non vuol dire niente.
+            // The real defect, reduced to four lines. If this one does not trigger,
+            // the green on the source means nothing.
             var defect = new[]
             {
                 "            var signatures = theCheckedOne ? _seenSignatures : null;",
@@ -105,11 +105,11 @@ namespace Oce.Solid.Agent.ContractTests
             Check("la regola prende il difetto vero", Sole(defect).Count == 1,
                   Sole(defect).Count == 1 ? Sole(defect)[0] : "NON l'ha preso");
 
-            // ── E NON PUNISCE CHI SPIEGA ─────────────────────────────────
+            // ── AND IT DOES NOT PUNISH WHOEVER EXPLAINS ───────────────────
             //
-            // L'altra meta', ed e' quella su cui questo controllo e' gia'
-            // caduto una volta: i tre campi insieme, con venticinque righe di
-            // commento in mezzo.
+            // The other half, and it is the one on which this check has already
+            // fallen once: the three fields together, with twenty-five lines of
+            // comments in between.
             var good = new List<string>
             {
                 "                _seenSignatures = StateSignatures(after);",
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("e non punisce chi spiega", Sole(good.ToArray()).Count == 0,
                   "venticinque righe di commento fra le firme e `_seen`");
 
-            // ── POI: IL SORGENTE VERO ────────────────────────────────────
+            // ── THEN: THE REAL SOURCE ─────────────────────────────────────
             var file = Path.Combine(Root(), "Tools", "McpTools.cs");
             if (!File.Exists(file))
             {
@@ -135,7 +135,7 @@ namespace Oce.Solid.Agent.ContractTests
                       ? "ogni cambio di documento rifa' o butta le firme"
                       : string.Join(" | ", sole));
 
-            // ── E IL CASO PRECISO CHE IL DIFETTO SFRUTTAVA ───────────────
+            // ── AND THE PRECISE CASE THAT THE DEFECT EXPLOITED ────────────
             var text = File.ReadAllText(file);
             Check("un documento nominato butta le firme vecchie",
                   Regex.IsMatch(text,

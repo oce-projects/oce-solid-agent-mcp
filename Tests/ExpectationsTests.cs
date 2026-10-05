@@ -6,13 +6,13 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// IL VALUTATORE DELLE ATTESE, contro stati finti scritti a mano.
+    /// THE EVALUATOR OF THE EXPECTATIONS, against fake states written by hand.
     ///
-    /// **Se e' rotto lui, tutta la suite con SOLIDWORKS diventa verde gratis**:
-    /// un confronto che risponde sempre «si'» non si vede da nessuna parte, se
-    /// non da qui. E' il motivo per cui questo gruppo esiste, e per cui il
-    /// valutatore e' stato spostato in un file che compila anche dove il CAD
-    /// non c'e'.
+    /// **If it is broken, the whole suite with SOLIDWORKS becomes green for free**:
+    /// a comparison that always answers «yes» is not seen anywhere, except
+    /// from here. It is the reason this group exists, and for which the
+    /// evaluator was moved into a file that compiles even where the CAD
+    /// is not there.
     /// </summary>
     internal static class ExpectationsTests
     {
@@ -39,13 +39,13 @@ namespace Oce.Solid.Agent.ContractTests
 
             string d;
 
-            // ── IL NUMERO GIUSTO PASSA, QUELLO SBAGLIATO NO ───────────────
+            // ── THE RIGHT NUMBER PASSES, THE WRONG ONE DOES NOT ───────────
             Check("numero giusto: verde",
                   Expectations.Matches(Expectation("measurements.removed_mm3", 1234.5), null, docState, measurements, out d), d);
             Check("numero sbagliato: rosso",
                   !Expectations.Matches(Expectation("measurements.removed_mm3", 1234.6), null, docState, measurements, out d), d);
 
-            // ── LA TOLLERANZA E' ASSOLUTA, E SERVE IL PERCHE' ─────────────
+            // ── THE TOLERANCE IS ABSOLUTE, AND THE WHY IS NEEDED ──────────
             var withTolerance = Expectation("measurements.removed_mm3", 1234.0);
             withTolerance["tolerance"] = 1.0;
             withTolerance["tolerance_why"] = "e' una prova, e il numero e' scritto a mano";
@@ -62,10 +62,10 @@ namespace Oce.Solid.Agent.ContractTests
                   Raise(() => { string x; Expectations.Matches(withoutWhy, null, docState, measurements, out x); },
                        "tolerance_why"));
 
-            // ── IL CAMPO ASSENTE NON E' UNO ZERO (voce F4) ────────────────
+            // ── THE ABSENT FIELD IS NOT A ZERO (entry F4) ─────────────────
             //
-            // E' la trappola nella sua forma letterale: un dizionario che non
-            // trova la chiave torna null, e null confrontato con null passa.
+            // It is the trap in its literal form: a dictionary that does not
+            // find the key returns null, and null compared with null passes.
             Check("campo assente: non si valuta, e dice quali c'erano",
                   Raise(() => { string x; Expectations.Matches(Expectation("measurements.non_esiste", 0.0), null, docState, measurements, out x); },
                        "campo assente: measurements.non_esiste"));
@@ -73,11 +73,11 @@ namespace Oce.Solid.Agent.ContractTests
                   Raise(() => { string x; Expectations.Matches(Expectation("measurements.non_esiste", 0.0), null, docState, measurements, out x); },
                        "faces_removed, facing, removed_mm3"));
 
-            // ── UN NULL DICHIARATO SI MISURA ──────────────────────────────
+            // ── A DECLARED NULL IS MEASURED ───────────────────────────────
             Check("«material: null» si misura, non e' assente",
                   Expectations.Matches(Expectation("state.material", ""), null, docState, measurements, out d), d);
 
-            // ── GLI ELENCHI DI NUMERI ─────────────────────────────────────
+            // ── THE LISTS OF NUMBERS ──────────────────────────────────────
             Check("elenco di numeri giusto: verde",
                   Expectations.Matches(Expectation("state.bounding_box_mm", new List<object> { 100.0, 60.0, 40.0 }),
                                   null, docState, measurements, out d), d);
@@ -88,40 +88,40 @@ namespace Oce.Solid.Agent.ContractTests
                   !Expectations.Matches(Expectation("state.bounding_box_mm", new List<object> { 100.0, 60.0 }),
                                    null, docState, measurements, out d), d);
 
-            // ── DENTRO UN ELENCO, PER INDICE ──────────────────────────────
+            // ── INSIDE A LIST, BY INDEX ───────────────────────────────────
             Check("stato.facce[1].area_mm2 si legge",
                   Expectations.Matches(Expectation("state.faces[1].area_mm2", 2000.0), null, docState, measurements, out d), d);
             Check("un indice oltre la fine: non si valuta",
                   Raise(() => { string x; Expectations.Matches(Expectation("state.faces[9].area_mm2", 0.0), null, docState, measurements, out x); },
                        "campo assente"));
 
-            // ── LE MISURE DEL DOCUMENTO, SENZA DOCUMENTO ─────────────────
+            // ── THE MEASUREMENTS OF THE DOCUMENT, WITHOUT A DOCUMENT ──────
             //
-            // Qui SOLIDWORKS non c'e': `volume_mm3` non si puo' misurare, e il
-            // valutatore lo DICE invece di rispondere zero.
+            // Here SOLIDWORKS is not there: `volume_mm3` cannot be measured, and the
+            // evaluator SAYS so instead of answering zero.
             Check("«volume_mm3» senza documento: lo dice",
                   Raise(() => { string x; Expectations.Matches(Expectation("volume_mm3", 0.0), null, docState, measurements, out x); },
                        "si misura sul documento"));
 
-            // E con un documento finto — una funzione che torna numeri — si
-            // misura eccome: e' il ponte che il banco vero gli passa.
+            // And with a fake document — a function that returns numbers — it
+            // is measured all right: it is the bridge that the real bench passes to it.
             Func<string, object> fake = c => c == "volume_mm3" ? (object)240000.0 : null;
             Check("«volume_mm3» con chi sa misurarlo: verde",
                   Expectations.Matches(Expectation("volume_mm3", 240000.0), fake, docState, measurements, out d), d);
 
-            // ── UN NOME CHE NON ESISTE ────────────────────────────────────
+            // ── A NAME THAT DOES NOT EXIST ────────────────────────────────
             //
-            // L'ELENCO DEI NOMI NON STA PIU' NEL VALUTATORE, e questa e' la
-            // prova che non ci torni. Ci stava, e si e' scollato: due misure
-            // nuove aggiunte a chi misura e dimenticate qui uscivano come «non
-            // so misurare «last_plane_mm»: i nomi sono …» con accanto
-            // l'elenco vecchio — un messaggio che diceva il falso su se stesso,
-            // e che dava ERRORE DI BANCO a una prova che il ponte superava.
+            // THE LIST OF NAMES IS NO LONGER IN THE EVALUATOR, and this is the
+            // proof that it does not go back. It was there, and it came unstuck: two new measurements
+            // added to whoever measures and forgotten here came out as «non
+            // so misurare «last_plane_mm»: i nomi sono …» with the old
+            // list next to it — a message that said what was false about itself,
+            // and that gave ERRORE DI BANCO to a check that the bridge passed.
             //
-            // Adesso il valutatore non giudica i nomi: li passa a chi il
-            // documento ce l'ha, ed e' quello a dire che non li conosce. Si
-            // verifica il passaggio (la funzione viene davvero chiamata) e che
-            // la frase del rifiuto arrivi intera a chi legge.
+            // Now the evaluator does not judge the names: it passes them to whoever has the
+            // document, and it is that one who says it does not know them. The passing is
+            // verified (the function is really called) and that
+            // the sentence of the refusal reaches the reader whole.
             bool arrived = false;
             Func<string, object> strict = c =>
             {
@@ -134,18 +134,18 @@ namespace Oce.Solid.Agent.ContractTests
                        "non so misurare «pippo»"));
             Check("un «cosa» sconosciuto viene davvero chiesto a chi misura", arrived);
 
-            // ── DUE PROFILI DIVERSI NON SI SCRIVONO UGUALI ────────────────
+            // ── TWO DIFFERENT PROFILES ARE NOT WRITTEN THE SAME ───────────
             //
-            // E' IL ROSSO DI UN DIFETTO CHE E' SCATTATO DAVVERO. Il confronto
-            // fra un caso che deve fallire e la sua gemella usava
-            // `Convert.ToString`, che su un `object[]` torna «System.Object[]»:
-            // il rifiuto della rivoluzione e la sua gemella differiscono SOLO
-            // nei contorni, e il banco li ha chiamati «una copia».
+            // IT IS THE RED OF A DEFECT THAT REALLY TRIGGERED. The comparison
+            // between a case that must fail and its twin used
+            // `Convert.ToString`, which on an `object[]` returns «System.Object[]»:
+            // the refusal of the revolve and its twin differ ONLY
+            // in the contours, and the bench called them «a copy».
             //
-            // Le due righe qui sotto sono le due facce della stessa cecita':
-            // liste diverse devono scriversi diverse, liste uguali uguali —
-            // perche' una funzione che torna sempre stringhe diverse passerebbe
-            // la prima prova e romperebbe il confronto lo stesso.
+            // The two lines below are the two faces of the same blindness:
+            // different lists must be written different, equal lists equal —
+            // because a function that always returns different strings would pass
+            // the first check and break the comparison all the same.
             Func<double[], object> profile = p =>
             {
                 var points = new List<object>();
@@ -168,12 +168,12 @@ namespace Oce.Solid.Agent.ContractTests
                   Expectations.HowItIsWritten(1.5) == "1.5", Expectations.HowItIsWritten(1.5));
             Check("il niente ha un nome", Expectations.HowItIsWritten(null) == "(niente)");
 
-            // ── UN ELENCO CHE NUMERI NON NE HA ───────────────────────────
+            // ── A LIST THAT HAS NO NUMBERS ────────────────────────────────
             //
-            // `["C2"]` — i corpi su cui una booleana ha lavorato. Fino alla
-            // 0.81.0 usciva «non e' un elenco di numeri: System.String[]»: un
-            // messaggio vero e inutile, perche' il caso chiedeva una cosa
-            // sensata e il valutatore non sapeva confrontarla.
+            // `["C2"]` — the bodies a boolean worked on. Until
+            // 0.81.0 it came out as «non e' un elenco di numeri: System.String[]»: a
+            // true and useless message, because the case asked something
+            // sensible and the evaluator did not know how to compare it.
             var withLists = new Dictionary<string, object>
             {
                 ["utensili"] = new List<object> { "C2", "C3" },
@@ -206,11 +206,11 @@ namespace Oce.Solid.Agent.ContractTests
                                    null, docState, measurements, out d) &&
                   d.IndexOf("non e' un elenco", StringComparison.Ordinal) >= 0, d);
 
-            // ── LA GEMELLA HA A CHE VEDERE COL RIFIUTO? (F5) ──────────────
+            // ── HAS THE TWIN ANYTHING TO DO WITH THE REFUSAL? (F5) ────────
             //
-            // La regola sta qui e non accanto al banco perche' e' aritmetica
-            // su due dizionari: i suoi rossi si provano in un millesimo di
-            // secondo, e sono quattro casi che a mano non si guardano mai.
+            // The rule lives here and not next to the bench because it is arithmetic
+            // on two dictionaries: its reds are tested in a thousandth of a
+            // second, and they are four cases that nobody ever looks at by hand.
             Func<string, string, Dictionary<string, object>> arg2 = (a, b) =>
                 new Dictionary<string, object> { ["face_uid"] = a, ["x_mm"] = b };
             string d2;
@@ -226,9 +226,9 @@ namespace Oce.Solid.Agent.ContractTests
                   !Expectations.Resemble(arg2("F1", "10"), arg2("F5", "40"), out d2) &&
                   d2.IndexOf("non si parlano", StringComparison.Ordinal) >= 0, d2);
 
-            // L'ECCEZIONE DELL'ARITA'. `create_axis` prende `face_uid` e basta:
-            // due casi che differiscono per quello non possono averne uno in
-            // comune, e rifiutarli vieterebbe la coppia a meta' del catalogo.
+            // THE EXCEPTION OF THE ARITY. `create_axis` takes `face_uid` and nothing else:
+            // two cases that differ in that cannot have one in
+            // common, and refusing them would forbid the pair for half the catalogue.
             Func<string, Dictionary<string, object>> arg1 = a =>
                 new Dictionary<string, object> { ["face_uid"] = a };
             Check("gemella di un'operazione con UN argomento solo: accettata",
@@ -240,10 +240,10 @@ namespace Oce.Solid.Agent.ContractTests
             Check("un argomento solo, ma uguale: resta una copia",
                   !Expectations.Resemble(arg1("F1"), arg1("F1"), out d2), d2);
 
-            // LA DIFFERENZA DICHIARATA NEL PEZZO (28/9/2026, nervatura W1.2):
-            // stessi argomenti, passi prima diversi. Nei due versi, perche' una
-            // dichiarazione che passa sempre e' l'argomento finto di prima con
-            // un altro nome.
+            // THE DIFFERENCE DECLARED IN THE PART (28/9/2026, rib W1.2):
+            // same arguments, different steps before. In both directions, because a
+            // declaration that always passes is the fake argument from before
+            // under another name.
             Func<string, double, object> partStep = (plane, thickness) => new Dictionary<string, object>
             {
                 ["operation"] = "extrude_rectangle",
@@ -265,18 +265,18 @@ namespace Oce.Solid.Agent.ContractTests
             Check("la differenza nel pezzo dichiarata senza dire quale: rifiutata",
                   !Expectations.ResembleInPart(arg2("F1", "10"), arg2("F1", "10"), plate, box, " ", out d2), d2);
 
-            // I contorni sono liste: e' il caso che ha rotto il confronto.
+            // The contours are lists: it is the case that broke the comparison.
             Check("gemelle che differiscono solo in una lista: accettate",
                   Expectations.Resemble(
                       new Dictionary<string, object> { ["contours"] = straddling, ["angle_deg"] = 360.0 },
                       new Dictionary<string, object> { ["contours"] = cylinder, ["angle_deg"] = 360.0 },
                       out d2), d2);
 
-            // ── UN'ATTESA SU UNA FRASE ───────────────────────────────────
+            // ── AN EXPECTATION ON A SENTENCE ──────────────────────────────
             //
-            // `non_contiene` e' la meta' che conta: una frase che dichiara «il
-            // profilo Ø30 per 40» su un pezzo che quel profilo non ce l'ha
-            // piu' e' il difetto che non da' errore.
+            // `non_contiene` is the half that counts: a sentence that declares «the
+            // Ø30 by 40 profile» on a part that no longer has that profile
+            // is the defect that gives no error.
             var withShape = new Dictionary<string, object>
             {
                 ["shape"] = "una rivoluzione del profilo D30 per 40, D20 per 30",
@@ -310,14 +310,14 @@ namespace Oce.Solid.Agent.ContractTests
             Check("frase: una stringa sola vale come elenco di uno",
                   Expectations.Matches(sentence("rivoluzione", null), null, withShape, measurements, out d), d);
 
-            // ── E UN ELENCO NON E' «System.String[]» ─────────────────────
+            // ── AND A LIST IS NOT «System.String[]» ───────────────────────
             //
-            // `measurements.profiles[0].measurements` e' un elenco: chiedere che CONTENGA
-            // una voce e' la cosa piu' naturale del mondo, e fino alla 0.91.0
-            // falliva con «non dice "80X80X5": System.String[]» — un messaggio
-            // vero e inutile. Per «uguale» gli elenchi di testo erano gia'
-            // stati insegnati; per «contiene» no, e nessuno se n'era accorto
-            // perche' nessun caso lo chiedeva.
+            // `measurements.profiles[0].measurements` is a list: asking that it CONTAIN
+            // an entry is the most natural thing in the world, and until 0.91.0
+            // it failed with «non dice "80X80X5": System.String[]» — a true
+            // and useless message. For «equals» the lists of text had already
+            // been taught; for «contains» they had not, and nobody had noticed
+            // because no case asked for it.
             var withList = new Dictionary<string, object>
             {
                 ["measurements"] = new[] { "80X80X5", "100X100X6", "40X40X3" },
@@ -341,9 +341,9 @@ namespace Oce.Solid.Agent.ContractTests
                   !Expectations.Matches(list("measurements", new List<object> { "999X999X9" }, null),
                                    null, docState, withList, out d) &&
                   d.IndexOf("non dice", StringComparison.Ordinal) >= 0, d);
-            // IL MESSAGGIO NON DEVE PIU' DIRE IL NOME DEL TIPO. E' la meta'
-            // che conta: il rosso c'era anche prima, ma diceva una cosa da cui
-            // non si poteva ripartire.
+            // THE MESSAGE MUST NO LONGER SAY THE NAME OF THE TYPE. It is the half
+            // that counts: the red was there before too, but it said something from which
+            // one could not start again.
             Check("elenco ROSSO: il messaggio mostra le voci, non «System.String[]»",
                   !Expectations.Matches(list("measurements", new List<object> { "999X999X9" }, null),
                                    null, docState, withList, out d) &&
@@ -356,21 +356,21 @@ namespace Oce.Solid.Agent.ContractTests
                   !Expectations.Matches(list("measurements", null, new List<object> { "40X40X3" }),
                                    null, docState, withList, out d) &&
                   d.IndexOf("dice ancora", StringComparison.Ordinal) >= 0, d);
-            // UN ELENCO VUOTO NON CONTIENE NIENTE, e non e' un campo assente:
-            // e' un elenco che c'e' ed e' vuoto. Le due cose si distinguono.
+            // AN EMPTY LIST CONTAINS NOTHING, and it is not an absent field:
+            // it is a list that is there and is empty. The two things are told apart.
             Check("elenco ROSSO: un elenco vuoto non contiene niente",
                   !Expectations.Matches(list("vuoto", new List<object> { "any" }, null),
                                    null, docState, withList, out d), d);
-            // UN CAMPO ASSENTE NON E' UNA FRASE VUOTA, e non e' nemmeno un
-            // rosso: e' un errore di banco, come per ogni altra misura. Il
-            // caso chiede una cosa che nello stato non c'e', e va detto.
+            // AN ABSENT FIELD IS NOT AN EMPTY SENTENCE, and it is not even a
+            // red: it is a bench error, as for every other measurement. The
+            // case asks for something that is not in the state, and it must be said.
             Check("frase ROSSO: un campo che non c'e' non si valuta",
                   Raise(() => { string x;
                                Expectations.Matches(sentence(new List<object> { "x" }, null), null,
                                                new Dictionary<string, object>(), measurements, out x); },
                        "campo assente"));
-            // E se invece chi misura risponde «niente», quello si': e' un
-            // rosso, perche' la frase c'era da fare e non c'e'.
+            // And if instead whoever measures answers «nothing», that yes: it is a
+            // red, because the sentence was due and is not there.
             Check("frase ROSSO: chi misura risponde niente, e la frase manca",
                   !Expectations.Matches(
                       new Dictionary<string, object>
@@ -389,7 +389,7 @@ namespace Oce.Solid.Agent.ContractTests
                       string x; Expectations.Matches(a, null, withShape, measurements, out x);
                   }, "decidi quale dei due"));
 
-            // ── I SELETTORI: ZERO O PIU' D'UNA SI RIFIUTANO ───────────────
+            // ── THE SELECTORS: ZERO OR MORE THAN ONE ARE REFUSED ──────────
             Check("selettore: una faccia sola si prende",
                   Expectations.Select("@face(normal=front)", docState) == "F1");
             Check("selettore: nessuna faccia, si rifiuta",
@@ -406,9 +406,9 @@ namespace Oce.Solid.Agent.ContractTests
             Check("selettore: due facce uguali, si rifiuta invece di indovinare",
                   Raise(() => Expectations.Select("@face(normal=front)", due), "ne ho trovate 2"));
 
-            // IL CORPO PER NOME (25/9/2026): i numeri C1, C2... non seguono
-            // l'ordine di creazione e cambiano fra un giro e l'altro. Lo stato
-            // qui e' scritto al contrario apposta, e il nome ha le parentesi.
+            // THE BODY BY NAME (25/9/2026): the numbers C1, C2... do not follow
+            // the order of creation and change between one run and the next. The state
+            // here is written backwards on purpose, and the name has the brackets.
             var bodies = new Dictionary<string, object>
             {
                 ["bodies"] = new List<object>
@@ -422,8 +422,8 @@ namespace Oce.Solid.Agent.ContractTests
             Check("selettore: @body con un nome che non c'e', si rifiuta",
                   Raise(() => Expectations.Select("@body(name=TUBO 80X80X5(3))", bodies), "non l'ho trovata"));
 
-            // LO SPIGOLO PER DOVE STA (voce E18): x, y, z leggono point_mm. I
-            // quattro spigoli lunghi 120 di una piastra si distinguono solo cosi'.
+            // THE EDGE BY WHERE IT IS (entry E18): x, y, z read point_mm. The
+            // four edges 120 long of a plate are told apart only like this.
             Func<string, double, double, Dictionary<string, object>> edge = (uid, x, z) =>
                 new Dictionary<string, object>
                 {
@@ -449,10 +449,10 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Alza, e il messaggio contiene quel pezzo? Un controllo che si
-        /// accontentasse di «ha alzato» passerebbe anche per l'eccezione
-        /// sbagliata — ed e' successo abbastanza volte in questo progetto da
-        /// non volerlo piu'.
+        /// Does it raise, and does the message contain that piece? A check that
+        /// was satisfied with «it raised» would pass for the wrong
+        /// exception too — and it has happened often enough in this project that
+        /// we do not want it any more.
         /// </summary>
         private static bool Raise(Action f, string part)
         {

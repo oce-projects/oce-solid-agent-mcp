@@ -9,57 +9,57 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// OGNI CAMPO OBBLIGATORIO E' UNA DECISIONE PRESA, NON UNA DIMENTICANZA
-    /// (voce Z-G3).
+    /// EVERY REQUIRED FIELD IS A DECISION TAKEN, NOT AN OVERSIGHT
+    /// (entry Z-G3).
     ///
-    /// ── IL FATTO DA CUI NASCE ────────────────────────────────────────────
+    /// ── THE FACT IT IS BORN FROM ─────────────────────────────────────────
     ///
-    /// Al modello non mancava il permesso di saltare il materiale: gli mancava
-    /// **un valore**. Cinque riscritture della regola non hanno cambiato
-    /// niente, perche' il problema non era il permesso.
+    /// The model did not lack the permission to skip the material: it lacked
+    /// **a value**. Five rewritings of the rule changed
+    /// nothing, because the problem was not the permission.
     ///
-    /// Un campo obbligatorio o e' **una quota del pezzo** — e allora si chiede
-    /// davvero, perche' nessuno la puo' indovinare — oppure ha **un valore
-    /// d'officina**, e allora andrebbe dichiarato invece di essere preteso.
+    /// A required field is either **a dimension of the part** — and then it is really
+    /// asked for, because nobody can guess it — or it has **a workshop
+    /// value**, and then it should be declared instead of being demanded.
     ///
-    /// ── LA MISURA, il 23/9/2026 ──────────────────────────────────────────
+    /// ── THE MEASUREMENT, on 23/9/2026 ────────────────────────────────────
     ///
-    ///     92  campi obbligatori in tutto il catalogo  (la voce diceva 91)
-    ///      0  ne dichiarano un predefinito
-    ///     58  sono quote o riferimenti: si chiedono, e va bene cosi'
-    ///     34  non sono ne' l'uno ne' l'altro: SERVE UNA DECISIONE
+    ///     92  required fields in the whole catalogue  (the entry said 91)
+    ///      0  declare a default for them
+    ///     58  are dimensions or references: they are asked for, and that is fine
+    ///     34  are neither the one nor the other: A DECISION IS NEEDED
     ///
-    /// ── E LA DECISIONE STA SCRITTA QUI SOTTO, UNA PER UNA ────────────────
+    /// ── AND THE DECISION IS WRITTEN HERE BELOW, ONE BY ONE ───────────────
     ///
-    /// Non e' burocrazia: e' la differenza fra «nessuno ci ha pensato» e
-    /// «qualcuno ci ha pensato e ha deciso di chiederlo». Le due cose si
-    /// leggono uguali nel JSON, e solo una delle due si puo' migliorare.
+    /// It is not bureaucracy: it is the difference between «nobody thought about it» and
+    /// «somebody thought about it and decided to ask for it». The two things
+    /// read the same in the JSON, and only one of the two can be improved.
     ///
-    /// Un campo obbligatorio nuovo che non sia una quota fa diventare rosso
-    /// questo controllo: la decisione va presa **mentre si scrive**, non sei
-    /// mesi dopo.
+    /// A new required field that is not a dimension turns this check
+    /// red: the decision must be taken **while writing**, not six
+    /// months later.
     /// </summary>
     internal static class RequiredFieldsTests
     {
         /// <summary>
-        /// Un campo il cui nome dice gia' che e' una quota o un riferimento a
-        /// qualcosa di geometrico. Per questi la decisione e' automatica: si
-        /// chiedono.
+        /// A field whose name already says that it is a dimension or a reference to
+        /// something geometric. For these the decision is automatic: they are
+        /// asked for.
         /// </summary>
         private static readonly Regex Dimension = new Regex(
             @"_mm$|_deg$|^teeth$|^module|^segments$|^point(?!s)|_uid$|^faces$",
             RegexOptions.Compiled);
 
         /// <summary>
-        /// I campi obbligatori che NON sono quote, e perche' restano
-        /// obbligatori. Il testo e' la decisione, e va letto: dove c'e'
-        /// «CANDIDATO» la decisione e' stata presa e **non e' ancora
-        /// eseguita**.
+        /// The required fields that are NOT dimensions, and why they stay
+        /// required. The text is the decision, and it must be read: where there is
+        /// «CANDIDATO» the decision has been taken and **has not yet been
+        /// carried out**.
         /// </summary>
         private static readonly Dictionary<string, string> Decided =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                // ── SI CHIEDONO: sono il lavoro, non un contorno ──────────
+                // ── THEY ARE ASKED FOR: they are the work, not a side matter ──
                 { "extrude_profile.contours", "e' la sagoma: senza, non c'e' niente da estrudere" },
                 { "revolve.contours", "idem" },
                 { "extrude_on_face.contours", "idem" },
@@ -107,7 +107,7 @@ namespace Oce.Solid.Agent.ContractTests
                 { "sketch_picture.plane", "su quale piano sta il disegno lo sa chi lo guarda: un piano d'ufficio lo metterebbe di traverso" },
                 { "geometric_tolerance.characteristic", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
 
-                // ── DIPENDONO DALL'OFFICINA, NON DA NOI (voce Z-G8) ───────
+                // ── THEY DEPEND ON THE WORKSHOP, NOT ON US (entry Z-G8) ──────
                 { "structural_member.profile_path",
                   "la libreria dei profili e' di QUESTA officina: un predefinito " +
                   "nostro sarebbe il percorso della nostra macchina. Vedi Z-G8" },
@@ -115,23 +115,23 @@ namespace Oce.Solid.Agent.ContractTests
                 { "rectangular_frame.profile_path", "idem" },
                 { "rectangular_frame.configuration", "idem" },
 
-                // ── I DUE CANDIDATI SONO STATI FATTI il 24/9/2026 ─────────
+                // ── THE TWO CANDIDATES WERE DONE on 24/9/2026 ────────────────
                 //
-                // `apply_material.material` -> S235JR e
-                // `combine_bodies.operation` -> «union» non sono piu'
-                // obbligatori: hanno un predefinito d'officina, e la
-                // risposta dichiara di averlo usato (`measurements.note_assumption`).
+                // `apply_material.material` -> S235JR and
+                // `combine_bodies.operation` -> «union» are no longer
+                // required: they have a workshop default, and the
+                // response declares having used it (`measurements.note_assumption`).
                 //
-                // Le loro righe sono uscite da qui, e non e' una perdita:
-                // questo elenco spiega perche' un campo SI CHIEDE, e quei
-                // due non si chiedono piu'. Una decisione che riguarda un
-                // campo che non esiste e' rumore, e c'e' un controllo
-                // apposta che lo dice — e' scattato su queste due righe
-                // appena il catalogo e' stato rigenerato.
+                // Their lines have left here, and it is not a loss:
+                // this list explains why a field IS ASKED FOR, and those
+                // two are no longer asked for. A decision about a
+                // field that does not exist is noise, and there is a check
+                // for that — it triggered on these two lines
+                // as soon as the catalogue was regenerated.
                 //
-                // Cosa li sorveglia adesso: il controllo in fondo a questo
-                // file, che pretende il `default` nel catalogo SERVITO, piu'
-                // i quattro casi di banco a coppie.
+                // What watches them now: the check at the bottom of this
+                // file, which demands the `default` in the SERVED catalogue, plus
+                // the four bench cases in pairs.
             };
 
         internal static void All()
@@ -193,10 +193,10 @@ namespace Oce.Solid.Agent.ContractTests
                       ? Decided.Count + " decisioni, tutte in `RequiredFieldsTests.cs`"
                       : "SENZA DECISIONE: " + string.Join(", ", withoutDecision));
 
-            // ── E UNA DECISIONE PER UN CAMPO CHE NON C'E' PIU' E' RUMORE ──
+            // ── AND A DECISION FOR A FIELD THAT IS NO LONGER THERE IS NOISE ──
             //
-            // Stessa ragione dell'elenco delle eccezioni in Z-C7: un permesso
-            // scaduto copre il giorno in cui qualcuno riscrive quel punto.
+            // Same reason as the list of exceptions in Z-C7: an expired permission
+            // covers the day somebody rewrites that spot.
             var ghosts = Decided.Keys.Where(k => !foundItems.Contains(k)).ToList();
             Check("e nessuna decisione riguarda un campo che non esiste piu'",
                   ghosts.Count == 0,
@@ -204,13 +204,13 @@ namespace Oce.Solid.Agent.ContractTests
                       ? "nessuna decisione scaduta"
                       : "non esistono piu': " + string.Join(", ", ghosts));
 
-            // ── I CANDIDATI RIMASTI, se ce ne sono ───────────────────────
+            // ── THE CANDIDATES LEFT, if there are any ─────────────────────
             //
-            // Questo contatore pretendeva `> 0` perche' contava lavoro
-            // PROMESSO, e finche' ce n'era serviva a non dimenticarlo. Il
-            // 24/9/2026 i due candidati sono stati fatti, e un controllo che
-            // pretende l'esistenza di lavoro da fare diventerebbe rosso
-            // proprio quando il lavoro finisce. Adesso si limita a dirli.
+            // This counter demanded `> 0` because it counted PROMISED work,
+            // and as long as there was some it served not to forget it. On
+            // 24/9/2026 the two candidates were done, and a check that
+            // demands the existence of work to do would become red
+            // precisely when the work ends. Now it limits itself to telling them.
             var candidates = Decided.Where(x => x.Value.StartsWith("CANDIDATO", StringComparison.Ordinal))
                                   .Select(x => x.Key).ToList();
             Check("i campi che avrebbero un valore d'officina sono nominati", true,
@@ -219,26 +219,26 @@ namespace Oce.Solid.Agent.ContractTests
                       : candidates.Count + " candidati, non ancora fatti: " +
                         string.Join(", ", candidates));
 
-            // ── E I DUE FATTI SI GUARDANO NEL CATALOGO SERVITO ───────────
+            // ── AND THE TWO FACTS ARE LOOKED AT IN THE SERVED CATALOGUE ───
             //
-            // Non basta che siano usciti da `required`: un campo tolto e
-            // basta e' un campo che il ponte accettera' vuoto senza mettere
-            // niente. Il `default` nello schema e' cio' che lo ANNUNCIA al
-            // modello, ed e' la meta' che si puo' controllare da qui —
-            // l'altra meta' (che il valore venga applicato davvero e
-            // dichiarato) la misurano i quattro casi di banco.
+            // It is not enough that they have left `required`: a field removed and
+            // that is all is a field that the bridge will accept empty without putting in
+            // anything. The `default` in the schema is what ANNOUNCES it to the
+            // model, and it is the half that can be checked from here —
+            // the other half (that the value really be applied and
+            // declared) is measured by the four bench cases.
             DeclaredDefault(entries, "apply_material", "material", "S235JR");
             DeclaredDefault(entries, "combine_bodies", "operation", "union");
         }
 
         /// <summary>
-        /// Il campo ha un `default` nel catalogo servito, ed e' quel valore,
-        /// e NON e' piu' fra gli obbligatori.
+        /// The field has a `default` in the served catalogue, and it is that value,
+        /// and it is NOT among the required any more.
         ///
-        /// Tutte e tre le cose insieme: un `default` accanto a un campo
-        /// ancora obbligatorio non serve a nessuno, e un campo tolto da
-        /// `required` senza `default` e' peggio di prima — il modello non
-        /// sa che puo' ometterlo, e se lo omette non sa cosa riceve.
+        /// All three things together: a `default` next to a field that is
+        /// still required is of no use to anybody, and a field removed from
+        /// `required` without `default` is worse than before — the model does not
+        /// know that it can omit it, and if it omits it it does not know what it receives.
         /// </summary>
         private static void DeclaredDefault(
             object[] entries, string operation, string theField, string expected)

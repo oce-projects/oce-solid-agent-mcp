@@ -8,15 +8,15 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// `Session.SameDocument()` — LA GUARDIA CHE NON AVEVA UNA PROVA.
+    /// `Session.SameDocument()` — THE GUARD THAT HAD NO CHECK.
     ///
-    /// E' la funzione che impedisce al ponte di lavorare sul documento di
-    /// qualcun altro: piu' sessioni sullo stesso SOLIDWORKS, il documento
-    /// «active» e' stato globale condiviso, e il 14/9/2026 un blocco estruso e'
-    /// finito nel pezzo dell'altra sessione. Fino a oggi quella guardia non
-    /// aveva **nemmeno una prova**.
+    /// It is the function that stops the bridge from working on somebody
+    /// else's document: several sessions on the same SOLIDWORKS, the
+    /// «active» document is a shared global, and on 14/9/2026 an extruded block
+    /// ended up in the part of the other session. Until today that guard
+    /// had **not even one check**.
     ///
-    /// Confronta due dizionari. Non tocca SOLIDWORKS, e infatti sta qui.
+    /// It compares two dictionaries. It does not touch SOLIDWORKS, and indeed it is here.
     /// </summary>
     internal static class SessionTests
     {
@@ -45,17 +45,17 @@ namespace Oce.Solid.Agent.ContractTests
             Func<string, string, Dictionary<string, object>> id = (filePath, docTitle) =>
                 new Dictionary<string, object> { ["path"] = filePath, ["document_title"] = docTitle };
 
-            // ── IL PERCORSO VINCE SUL TITOLO ─────────────────────────────
+            // ── THE PATH WINS OVER THE TITLE ─────────────────────────────
             //
-            // E' l'unica cosa che non cambia. Due documenti col titolo uguale e
-            // il percorso diverso sono due pezzi diversi, e prenderli per uno
-            // e' esattamente il difetto da cui questa funzione difende.
+            // It is the only thing that does not change. Two documents with the same title and
+            // a different path are two different parts, and taking them for one
+            // is exactly the defect that this function defends against.
             Check("stesso percorso, titolo diverso: lo stesso documento",
                   equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\b.SLDPRT", "Parte2")));
             Check("percorso diverso, titolo uguale: NON lo stesso documento",
                   !equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\c.SLDPRT", "Parte1")));
 
-            // ── LE DUE BARRE SONO LA STESSA BARRA ────────────────────────
+            // ── THE TWO BACKSLASHES ARE THE SAME BACKSLASH ───────────────
             Check("«/» e «\\» sono lo stesso percorso",
                   equal(id("S:/a/b.SLDPRT", ""), id(@"S:\a\b.SLDPRT", "")));
             Check("maiuscole e minuscole non contano",
@@ -63,23 +63,23 @@ namespace Oce.Solid.Agent.ContractTests
             Check("gli spazi attorno non contano",
                   equal(id(@"  S:\a\b.SLDPRT  ", ""), id(@"S:\a\b.SLDPRT", "")));
 
-            // ── I MAI SALVATI SI CONFRONTANO PER TITOLO ──────────────────
+            // ── THE NEVER-SAVED ARE COMPARED BY TITLE ────────────────────
             Check("senza percorso, il titolo decide",
                   equal(id("", "Parte286"), id("", "Parte286")));
             Check("senza percorso, titoli diversi: documenti diversi",
                   !equal(id("", "Parte286"), id("", "Parte287")));
 
-            // ── DUE IDENTITA' VUOTE NON SONO LO STESSO DOCUMENTO ─────────
+            // ── TWO EMPTY IDENTITIES ARE NOT THE SAME DOCUMENT ───────────
             //
-            // E' il caso che conta: «non so chi sei» e «non so chi sei» non
-            // fanno «siete la stessa persona». Rispondere di si' qui vorrebbe
-            // dire lasciar passare qualunque documento.
+            // It is the case that counts: «I do not know who you are» and «I do not know who you are» do not
+            // make «you are the same person». Answering yes here would mean
+            // letting any document through.
             Check("due identita' vuote NON sono lo stesso documento",
                   !equal(id("", ""), id("", "")));
             Check("null non e' lo stesso di niente", !equal(null, id("", "Parte1")));
             Check("null e null non sono lo stesso documento", !equal(null, null));
 
-            // ── UNO SALVATO E UNO NO: diversi ────────────────────────────
+            // ── ONE SAVED AND ONE NOT: different ─────────────────────────
             Check("uno salvato e uno mai salvato, stesso titolo: diversi",
                   !equal(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
 
@@ -91,14 +91,14 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// LE PROPRIETA' DEL FILE DICONO LA VERSIONE (voce H14).
+        /// THE PROPERTIES OF THE FILE SAY THE VERSION (entry H14).
         ///
-        /// Tasto destro -> Proprieta' -> Dettagli sul ponte e sull'installatore
-        /// diceva 0.0.0.0: la versione vera era solo una risorsa letta a run
-        /// time. Adesso un bersaglio di MSBuild la scrive da VERSION.txt, e qui
-        /// si rilegge dal FILE, come la legge chi guarda — non dalla risorsa.
-        /// L'installatore si controlla solo se e' stato costruito; se non c'e'
-        /// lo si dice, e non si da' verde.
+        /// Right click -> Properties -> Details on the bridge and on the installer
+        /// said 0.0.0.0: the real version was only a resource read at run
+        /// time. Now an MSBuild target writes it from VERSION.txt, and here
+        /// it is read back from the FILE, as whoever looks reads it — not from the resource.
+        /// The installer is checked only if it was built; if it is not there
+        /// that is said, and no green is given.
         /// </summary>
         private static void TheFileVersion(string bridge)
         {
@@ -126,11 +126,11 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// «NON INSTALLATO» E «NON APERTO» SONO DUE COSE (voce H16).
+        /// «NOT INSTALLED» AND «NOT OPEN» ARE TWO THINGS (entry H16).
         ///
-        /// Un solo `catch (COMException)` dava la stessa frase per tutte e due,
-        /// e chi installa per conto di qualcuno faceva aprire un programma che
-        /// non c'era. Le tre risposte si provano per codice, senza SOLIDWORKS.
+        /// A single `catch (COMException)` gave the same sentence for both,
+        /// and whoever installs on behalf of somebody made a program open that
+        /// was not there. The three answers are tested by code, without SOLIDWORKS.
         /// Since entry H19 (B3) the installer reads the exit code of --prova and
         /// no sentence (H19InstallerContract checks the codes): these checks
         /// keep the two sentences for a person apart, nothing more.
@@ -165,23 +165,23 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// IL LUCCHETTO FRA DUE PONTI, VISTO SCATTARE (voce W2.9).
+        /// THE LOCK BETWEEN TWO BRIDGES, SEEN TRIGGERING (entry W2.9).
         ///
-        /// La voce era «scritta il 16/9/2026, da vedere scattare» da otto
-        /// giorni, e diceva che per vederla servivano due ponti veri su un
-        /// documento vero — cioe' SOLIDWORKS. Non e' cosi': il lucchetto e' un
-        /// mutex con nome in `Local\`, e un mutex con nome lo tiene qualunque
-        /// processo della stessa sessione. Qui lo tiene un SECONDO PROCESSO
-        /// (una PowerShell figlia), e `Take` deve rispondere `null` — che e'
-        /// il rifiuto del ponte. Poi il processo muore senza rilasciarlo, e
-        /// `Take` deve riuscire: Windows dice «abbandonato», e il ponte lo
-        /// tratta come libero.
+        /// The entry had been «written on 16/9/2026, to be seen triggering» for eight
+        /// days, and said that to see it two real bridges on a real
+        /// document were needed — that is SOLIDWORKS. It is not so: the lock is a
+        /// named mutex in `Local\`, and a named mutex is held by any
+        /// process of the same session. Here it is held by a SECOND PROCESS
+        /// (a child PowerShell), and `Take` must answer `null` — which is
+        /// the refusal of the bridge. Then the process dies without releasing it, and
+        /// `Take` must succeed: Windows says «abandoned», and the bridge
+        /// treats it as free.
         ///
-        /// *Un controllo mai visto scattare non e' un controllo* — e questo si
-        /// poteva vedere da sempre, senza il CAD.
+        /// *A check never seen triggering is not a check* — and this one
+        /// could have been seen all along, without the CAD.
         ///
-        /// COSA NON PROVA: che il ponte, in `Session.cs`, chiami `Take` sul
-        /// documento giusto. Quella meta' vuole due ponti e SOLIDWORKS.
+        /// WHAT IT DOES NOT TEST: that the bridge, in `Session.cs`, calls `Take` on the
+        /// right document. That half wants two bridges and SOLIDWORKS.
         /// </summary>
         private static void TheTurnFires(string bridge)
         {
@@ -199,8 +199,8 @@ namespace Oce.Solid.Agent.ContractTests
             }
             catch (Exception ex) { Check("DocumentTurn si carica", false, ex.ToString()); return; }
 
-            // Un percorso che non esiste e che nessun ponte vero sta usando:
-            // il lucchetto e' suo e basta.
+            // A path that does not exist and that no real bridge is using:
+            // the lock is its own and that is all.
             var fake = new FakeDocument(
                 @"C:\prova-turno\" + Guid.NewGuid().ToString("N") + ".sldprt", "prova");
             var key = keyOf.Invoke(null, new object[] { fake, null }) as string;
@@ -210,13 +210,13 @@ namespace Oce.Solid.Agent.ContractTests
             Func<IDisposable> test = () =>
                 take.Invoke(null, new object[] { fake, null }) as IDisposable;
 
-            // 1. libero: si prende, e rilasciandolo torna libero.
+            // 1. free: it is taken, and by releasing it it becomes free again.
             var t1 = test();
             Check("libero: il turno si prende", t1 != null);
             if (t1 != null) t1.Dispose();
 
-            // 2. lo tiene UN ALTRO PROCESSO: il ponte deve rifiutare.
-            //    La figlia prende il mutex, scrive «preso» e aspetta.
+            // 2. held by ANOTHER PROCESS: the bridge must refuse.
+            //    The child takes the mutex, writes «preso» and waits.
             string ready = Path.Combine(Path.GetTempPath(), "turno-" + key.Substring(0, 12) + ".txt");
             try { File.Delete(ready); } catch { }
             string command =
@@ -249,7 +249,7 @@ namespace Oce.Solid.Agent.ContractTests
                                  : "Take ha dato il turno anche se un altro processo lo teneva");
                 if (t2 != null) t2.Dispose();
 
-                // 3. il processo MUORE senza rilasciare: il turno torna libero.
+                // 3. the process DIES without releasing: the turn becomes free again.
                 child.Kill();
                 child.WaitForExit(5000);
                 var t3 = test();
@@ -263,7 +263,7 @@ namespace Oce.Solid.Agent.ContractTests
                 try { File.Delete(ready); } catch { }
             }
 
-            // 4. un altro documento non e' toccato dal lucchetto del primo.
+            // 4. another document is not touched by the lock of the first.
             var tA = test();
             var other = new FakeDocument(@"C:\prova-turno\altro-" + Guid.NewGuid().ToString("N") + ".sldprt", "altro");
             var tB = take.Invoke(null, new object[] { other, null }) as IDisposable;
@@ -273,18 +273,18 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// «E' lo stesso documento?» e «e' ancora lo stesso pezzo?» (voce X2).
+        /// «Is it the same document?» and «is it still the same part?» (entry X2).
         ///
-        /// `SameDocument` risponde alla prima e basta: titolo e percorso
-        /// combaciano benissimo mentre qualcuno tira una quota a mano nella
-        /// finestra di SOLIDWORKS. `WhatChanged` risponde alla seconda,
-        /// confrontando due firme leggere — volume, numero di lavorazioni,
-        /// data di scrittura del file.
+        /// `SameDocument` answers the first and nothing more: title and path
+        /// match perfectly well while somebody drags a dimension by hand in the
+        /// SOLIDWORKS window. `WhatChanged` answers the second,
+        /// comparing two light signatures — volume, number of features,
+        /// file write date.
         ///
-        /// SI PROVA QUI E NON SUL CAD perche' e' una funzione pura su due
-        /// dizionari: metterla dietro a un documento vero vorrebbe dire una
-        /// prova che gira solo su questa macchina, per misurare del confronto
-        /// di stringhe.
+        /// IT IS TESTED HERE AND NOT ON THE CAD because it is a pure function on two
+        /// dictionaries: putting it behind a real document would mean a
+        /// check that runs only on this machine, to measure a string
+        /// comparison.
         /// </summary>
         private static void ThePartHasChanged(string bridge)
         {
@@ -313,22 +313,22 @@ namespace Oce.Solid.Agent.ContractTests
                 return d;
             };
 
-            // ── NIENTE DI CAMBIATO E' `null`, NON UNA FRASE VUOTA ────────
+            // ── NOTHING CHANGED IS `null`, NOT AN EMPTY SENTENCE ─────────
             //
-            // Il chiamante scrive `if (cambiato != null)`. Una stringa vuota
-            // passerebbe quel controllo e fermerebbe «build» dicendo niente:
-            // il peggiore dei due modi di sbagliare, perche' l'avviso c'e' e
-            // non si capisce di cosa parli.
+            // The caller writes `if (cambiato != null)`. An empty string
+            // would pass that check and would stop «build» saying nothing:
+            // the worse of the two ways of getting it wrong, because the warning is there and
+            // it is not clear what it is about.
             Check("due firme uguali: non e' cambiato niente",
                   whichOne(signature(96000.0, 3), signature(96000.0, 3)) == null,
                   Convert.ToString(whichOne(signature(96000.0, 3), signature(96000.0, 3)) ?? "(null)"));
 
-            // ── IL VOLUME, COL NUMERO DI PRIMA E QUELLO DI ADESSO ────────
+            // ── THE VOLUME, WITH THE PREVIOUS NUMBER AND THE CURRENT ONE ──
             //
-            // «Il volume e' cambiato» obbliga a fidarsi; «da 96000 a 94500» si
-            // controlla. E' il criterio scritto nella voce X2, ed e' la
-            // differenza fra un avviso che si legge e uno che si impara a
-            // ignorare.
+            // «The volume has changed» obliges one to trust; «da 96000 a 94500» can be
+            // checked. It is the criterion written in entry X2, and it is the
+            // difference between a warning that is read and one that one learns to
+            // ignore.
             var v = whichOne(signature(96000.0, 3), signature(94500.0, 3));
             Check("il volume cambiato si dice, con i due numeri",
                   v != null && v.Contains("96000") && v.Contains("94500"), v ?? "(null)");
@@ -337,37 +337,37 @@ namespace Oce.Solid.Agent.ContractTests
             Check("una lavorazione in piu' si dice, con i due conti",
                   l != null && l.Contains("3") && l.Contains("4"), l ?? "(null)");
 
-            // ── DUE COSE CAMBIATE SI DICONO TUTTE E DUE ──────────────────
+            // ── TWO THINGS CHANGED ARE BOTH TOLD ─────────────────────────
             //
-            // Fermarsi alla prima differenza farebbe leggere «il volume e'
-            // cambiato» a chi ha anche una lavorazione in piu', e la seconda
-            // verrebbe fuori solo al giro dopo.
+            // Stopping at the first difference would make «the volume has
+            // changed» be read by whoever also has one more feature, and the second
+            // would come out only on the next run.
             var due = whichOne(signature(96000.0, 3), signature(94500.0, 4));
             Check("due differenze si dicono tutte e due",
                   due != null && due.Contains("volume") && due.Contains("lavorazioni"),
                   due ?? "(null)");
 
-            // ── «NON C'ERA» E «ADESSO C'E'» E' UNA DIFFERENZA ───────────
+            // ── «IT WAS NOT THERE» AND «NOW IT IS» IS A DIFFERENCE ───────
             //
-            // Un documento vuoto non ha volume. Trattare la chiave mancante
-            // come zero direbbe «il volume e' passato da 0 a 96000», che e' una
-            // frase su un pezzo che non e' mai esistito.
+            // An empty document has no volume. Treating the missing key
+            // as zero would say «the volume went from 0 to 96000», which is a
+            // sentence about a part that has never existed.
             var born = whichOne(signature(null, 0), signature(96000.0, 1));
             Check("da «nessun volume» a un volume: e' una differenza",
                   born != null && born.Contains("nessuno"), born ?? "(null)");
 
-            // ── SENZA UN TERMINE NON SI CONFRONTA ────────────────────────
+            // ── WITHOUT A TERM, NO COMPARISON ────────────────────────────
             //
-            // `null` vuol dire «non ho guardato niente», e non e' «e' tutto
-            // uguale» ne' «e' cambiato tutto»: e' l'assenza della domanda. Se
-            // rispondesse «changed», «build» si fermerebbe sempre alla prima
-            // chiamata dopo un ponte appena partito.
+            // `null` means «I looked at nothing», and it is not «everything is the
+            // same» nor «everything has changed»: it is the absence of the question. If it
+            // answered «changed», «build» would always stop at the first
+            // call after a bridge that has just started.
             Check("senza la firma di prima non si dice niente",
                   whichOne(null, signature(96000.0, 3)) == null);
             Check("senza la firma di adesso non si dice niente",
                   whichOne(signature(96000.0, 3), null) == null);
 
-            // ── LA DATA DEL FILE ─────────────────────────────────────────
+            // ── THE DATE OF THE FILE ─────────────────────────────────────
             var written1 = new Dictionary<string, object>(StringComparer.Ordinal)
                 { ["file_written"] = "2026-09-23T05:00:00.0000000Z" };
             var written2 = new Dictionary<string, object>(StringComparer.Ordinal)
@@ -379,24 +379,24 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// LA CHIAVE DEL LUCCHETTO FRA PROCESSI (voce W2.9).
+        /// THE KEY OF THE LOCK BETWEEN PROCESSES (entry W2.9).
         ///
-        /// Che due processi si escludano a vicenda lo garantisce Windows: non
-        /// c'e' niente da provare li'. **Quello che si puo' sbagliare e' la
-        /// chiave**, e sbagliarla ha due facce, tutt'e due silenziose:
+        /// That two processes exclude each other is guaranteed by Windows: there is
+        /// nothing to test there. **What can go wrong is the
+        /// key**, and getting it wrong has two faces, both silent:
         ///
-        ///   - due documenti DIVERSI con la stessa chiave si bloccano a vicenda
-        ///     senza motivo, e chi lavora vede un rifiuto che non capisce;
-        ///   - lo stesso documento con due chiavi diverse **non si blocca**, e
-        ///     il lucchetto non serve a niente pur sembrando esserci.
+        ///   - two DIFFERENT documents with the same key block each other
+        ///     for no reason, and whoever works sees a refusal they do not understand;
+        ///   - the same document with two different keys **does not block**, and
+        ///     the lock is of no use although it seems to be there.
         ///
-        /// La seconda e' quella pericolosa: la difesa c'e', si vede nel codice,
-        /// e non protegge. E' il difetto che non da' errore applicato a un
-        /// lucchetto.
+        /// The second is the dangerous one: the defense is there, it can be seen in the code,
+        /// and it does not protect. It is the defect that gives no error applied to a
+        /// lock.
         ///
-        /// Si prova per riflessione su `KeyOf`, che e' privata: i documenti
-        /// sono finti — basta che rispondano a `GetPathName` e `GetTitle`,
-        /// perche' il ponte li interroga cosi'.
+        /// It is tested by reflection on `KeyOf`, which is private: the documents
+        /// are fake — it is enough that they answer `GetPathName` and `GetTitle`,
+        /// because the bridge interrogates them that way.
         /// </summary>
         private static void TheTurnKey(string bridge)
         {
@@ -429,10 +429,10 @@ namespace Oce.Solid.Agent.ContractTests
             Check("percorsi diversi, chiavi diverse",
                   key(@"S:\a\b.sldprt", "") != key(@"S:\a\c.sldprt", ""));
 
-            // IL CASO CHE UN TRONCAMENTO AVREBBE ROTTO: due file nella stessa
-            // cartella profondissima, diversi solo per l'ultima lettera. Con la
-            // chiave ricavata dal percorso troncato sarebbero la stessa cosa, e
-            // due pezzi diversi si bloccherebbero a vicenda.
+            // THE CASE THAT A TRUNCATION WOULD HAVE BROKEN: two files in the same
+            // very deep folder, different only in the last letter. With the
+            // key derived from the truncated path they would be the same thing, and
+            // two different parts would block each other.
             string along = @"S:\" + new string('x', 200) + @"\";
             Check("due file in una cartella profondissima restano distinti",
                   key(along + "uno.sldprt", "") != key(along + "due.sldprt", ""),
@@ -444,20 +444,20 @@ namespace Oce.Solid.Agent.ContractTests
             Check("titoli diversi, chiavi diverse",
                   key("", "Parte286") != key("", "Parte287"));
 
-            // NIENTE DI NIENTE: nessuna chiave, e quindi nessun lucchetto.
-            // Bloccare su una chiave inventata unirebbe documenti diversi e
-            // lascerebbe passare quelli uguali: farebbe l'opposto di cio' che
-            // serve.
+            // NOTHING IN, NOTHING OUT: no key, and therefore no lock.
+            // Locking on an invented key would merge different documents and
+            // let the equal ones through: it would do the opposite of what
+            // is needed.
             Check("senza percorso NE titolo non c'e' chiave", key("", "") == null,
                   "un lucchetto su una chiave inventata e' peggio di nessun lucchetto");
         }
 
         /// <summary>
-        /// Un documento finto: risponde solo alle due domande che il ponte fa.
+        /// A fake document: it answers only the two questions that the bridge asks.
         ///
-        /// `DocumentTurn` interroga per riflessione (`InvokeMember`), quindi
-        /// non serve implementare `IModelDoc2` — cosa che qui, senza SOLIDWORKS,
-        /// non si potrebbe nemmeno fare.
+        /// `DocumentTurn` interrogates by reflection (`InvokeMember`), so
+        /// there is no need to implement `IModelDoc2` — something that here, without SOLIDWORKS,
+        /// could not even be done.
         /// </summary>
         private sealed class FakeDocument
         {

@@ -7,18 +7,18 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// `if (errore != 0)` PUO' ESSERE ESATTAMENTE ROVESCIATO (voce Z-C7).
+    /// `if (errore != 0)` CAN BE EXACTLY BACKWARDS (entry Z-C7).
     ///
-    /// ── IL FATTO, MISURATO ───────────────────────────────────────────────
+    /// ── THE FACT, MEASURED ───────────────────────────────────────────────
     ///
-    /// `swAddMateError_NoError` vale **1**; `ErrorUknown` vale **0**. Su quella
-    /// API un `if (errore != 0)` dichiara fallito un accoppiamento **riuscito**,
-    /// e non da' nessun sintomo: l'accoppiamento c'e', il messaggio dice di no.
+    /// `swAddMateError_NoError` is worth **1**; `ErrorUknown` is worth **0**. On that
+    /// API an `if (errore != 0)` declares a **successful** mate failed,
+    /// and gives no symptom: the mate is there, the message says no.
     ///
-    /// E non e' un caso isolato. Il 23/9/2026, per riflessione sulle interop di
-    /// SOLIDWORKS 2021 SP5.1 — `Checks\error-enum.ps1`, che rifa' la
-    /// misura quando serve — su **38** enum di errore o stato, **13** hanno
-    /// «niente errore» diverso da zero:
+    /// And it is not an isolated case. On 23/9/2026, by reflection on the interops of
+    /// SOLIDWORKS 2021 SP5.1 — `Checks\error-enum.ps1`, which redoes the
+    /// measurement when needed — out of **38** error or status enums, **13** have
+    /// «no error» different from zero:
     ///
     ///     swAddMateError_e                  swAddMateError_NoError        1
     ///     swBodyMaterialApplicationError_e  ..._NoError                   1
@@ -34,42 +34,42 @@ namespace Oce.Solid.Agent.ContractTests
     ///     swReplaceComponentError_e         swReplaceComponent_Success    1
     ///     swUpdateProgressError_e           ..._Success                   1
     ///
-    /// **Un terzo.** Non e' una stranezza di un'API: e' una probabilita'.
+    /// **A third.** It is not a quirk of one API: it is a probability.
     ///
-    /// ── PERCHE' L'ELENCO E' SCRITTO QUI E NON LETTO ──────────────────────
+    /// ── WHY THE LIST IS WRITTEN HERE AND NOT READ ─────────────────────────
     ///
-    /// Perche' queste prove girano **dove SOLIDWORKS non c'e'** — in CI non ci
-    /// sono le interop da interrogare. Quindi l'elenco e' un dato copiato, e un
-    /// dato copiato invecchia da solo: per questo esiste lo script che lo rifa',
-    /// ed e' nominato qui sopra invece di essere sottinteso.
+    /// Because these checks run **where SOLIDWORKS is not** — in CI there are
+    /// no interops to interrogate. So the list is copied data, and
+    /// copied data ages by itself: that is why the script that redoes it exists,
+    /// and it is named above instead of being left implicit.
     ///
-    /// ── LA REGOLA, CHE E' PIU' SEMPLICE DELL'ELENCO ──────────────────────
+    /// ── THE RULE, WHICH IS SIMPLER THAN THE LIST ──────────────────────────
     ///
-    /// Non serve sapere quale enum torna quale API in ogni punto: basta **non
-    /// confrontare mai un errore con una cifra**. Il membro col nome si legge,
-    /// non si puo' sbagliare di segno, e se la cifra cambia fra due versioni di
-    /// SOLIDWORKS continua a funzionare.
+    /// There is no need to know which enum comes back from which API at every point: it is enough **never
+    /// to compare an error with a digit**. The member with the name is read,
+    /// it cannot be got wrong in sign, and if the digit changes between two versions of
+    /// SOLIDWORKS it keeps working.
     ///
-    /// Le eccezioni esistono e stanno in un elenco con il **perche' misurato**
-    /// accanto — non «mi sembra giusto».
+    /// The exceptions exist and are in a list with the **measured why**
+    /// next to them — not «it seems right to me».
     /// </summary>
     internal static class ErrorEnumTests
     {
         /// <summary>
-        /// Un errore o uno stato confrontato con una CIFRA invece che col
-        /// membro che ha il nome.
+        /// An error or a status compared with a DIGIT instead of with the
+        /// member that has the name.
         ///
-        /// Solo `==` e `!=`: `&gt; 0.5` su una tolleranza non c'entra niente, e
-        /// un controllo che urla sulle tolleranze si smette di leggere.
+        /// Only `==` and `!=`: `&gt; 0.5` on a tolerance has nothing to do with it, and
+        /// a check that shouts about tolerances stops being read.
         /// </summary>
         private static readonly Regex Suspicious = new Regex(
             @"\b\w*(?:err|errore|error|stato|status)\w*\s*(?:==|!=)\s*\d+(?![\d.])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>
-        /// Le righe che hanno il permesso, e perche'. Il perche' e' una MISURA,
-        /// non un'opinione: chi aggiunge una riga qui deve aver letto il valore
-        /// dell'enum, non averlo supposto.
+        /// The lines that have permission, and why. The why is a MEASUREMENT,
+        /// not an opinion: whoever adds a line here must have read the value
+        /// of the enum, not supposed it.
         /// </summary>
         private static readonly Dictionary<string, string> Allowed =
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -94,11 +94,11 @@ namespace Oce.Solid.Agent.ContractTests
         {
             Group("gli errori non si confrontano con una cifra (Z-C7)");
 
-            // ── PRIMA: LA GUARDIA HA I DENTI? ────────────────────────────
+            // ── FIRST: DOES THE GUARD HAVE TEETH? ────────────────────────
             //
-            // Un controllo statico su sorgenti puliti non scatta mai, e uno che
-            // non scatta mai e' indistinguibile da uno rotto. Prima di dire
-            // «nessuna riga sospetta» si dimostra che le riconoscerebbe.
+            // A static check on clean sources never triggers, and one that
+            // never triggers is indistinguishable from a broken one. Before saying
+            // «no suspicious line» one proves that it would recognize them.
             var mustFire = new[]
             {
                 "if (errore != 0) return null;",
@@ -112,9 +112,9 @@ namespace Oce.Solid.Agent.ContractTests
                   taken == mustFire.Length,
                   taken + " su " + mustFire.Length);
 
-            // E NON DEVE URLARE SU TUTTO. Una guardia che segnala anche cio' che
-            // va bene viene disattivata, ed e' il modo piu' comune in cui un
-            // controllo muore.
+            // AND IT MUST NOT SHOUT AT EVERYTHING. A guard that flags even what
+            // is fine gets switched off, and it is the most common way in which a
+            // check dies.
             var mustStaySilent = new[]
             {
                 "if (errore != (int)swAddMateError_e.swAddMateError_NoError)",
@@ -129,7 +129,7 @@ namespace Oce.Solid.Agent.ContractTests
                   shouted.Count == 0 ? "quattro righe legittime, zero falsi allarmi"
                                     : "falsi allarmi: " + string.Join(" | ", shouted));
 
-            // ── POI: I SORGENTI ──────────────────────────────────────────
+            // ── THEN: THE SOURCES ─────────────────────────────────────────
             var folder = Path.Combine(Root(), "Oce.Solid.Agent.Core");
             if (!Directory.Exists(folder))
             {
@@ -147,10 +147,10 @@ namespace Oce.Solid.Agent.ContractTests
                     var r = lines[i];
                     var bare = r.TrimStart();
 
-                    // I COMMENTI DI QUESTO REPOSITORY PARLANO DEL PROBLEMA, e
-                    // spesso citano la riga sbagliata per spiegarla. Contarli
-                    // vorrebbe dire che spiegare un difetto lo fa diventare un
-                    // difetto.
+                    // THE COMMENTS OF THIS REPOSITORY TALK ABOUT THE PROBLEM, and
+                    // often quote the wrong line to explain it. Counting them
+                    // would mean that explaining a defect makes it become a
+                    // defect.
                     if (bare.StartsWith("//", StringComparison.Ordinal)) continue;
                     inspected++;
 
@@ -173,11 +173,11 @@ namespace Oce.Solid.Agent.ContractTests
                         " eccezione dichiarata"
                       : string.Join(" | ", foundOnes));
 
-            // ── E LE ECCEZIONI ESISTONO ANCORA? ─────────────────────────
+            // ── AND DO THE EXCEPTIONS STILL EXIST? ──────────────────────
             //
-            // Un permesso per una riga che non c'e' piu' e' un buco che resta
-            // aperto: il giorno in cui qualcuno riscrive quel punto sbagliando,
-            // il permesso lo copre.
+            // A permission for a line that is no longer there is a hole that stays
+            // open: the day somebody rewrites that spot getting it wrong,
+            // the permission covers it.
             foreach (var p in Allowed)
             {
                 bool alive = false;

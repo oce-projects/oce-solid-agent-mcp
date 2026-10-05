@@ -4,22 +4,22 @@
           Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
 
   <!-- ===================================================================
-       LE PROVE CHE GIRANO SENZA SOLIDWORKS (voce F7)
+       THE CHECKS THAT RUN WITHOUT SOLIDWORKS (entry F7)
 
-       UN PROGETTO A SE', E NON UN MODO DI `Oce.Solid.Agent.Bench.exe`. Il csproj
-       del banco risolve l'interop con un `HintPath` dentro
-       `...\SOLIDWORKS\api\redist`: su una macchina senza SOLIDWORKS quel
-       percorso non esiste e la COMPILAZIONE fallisce. Un flag non basta —
-       il problema e' prima del runtime.
+       A PROJECT OF ITS OWN, AND NOT A MODE OF `Oce.Solid.Agent.Bench.exe`. The csproj
+       of the bench resolves the interop with a `HintPath` inside
+       `...\SOLIDWORKS\api\redist`: on a machine without SOLIDWORKS that
+       path does not exist and the BUILD fails. A flag is not enough —
+       the problem is before the runtime.
 
-       QUI DENTRO NON C'E' NESSUN RIFERIMENTO A `SolidWorks.Interop.*`, e
-       non e' una preferenza: e' il controllo. Se qualcuno ne aggiunge uno,
-       questo progetto smette di essere quello che dice di essere, e il
-       modo piu' semplice di accorgersene e' che non compili piu' altrove.
+       THERE IS NO REFERENCE TO `SolidWorks.Interop.*` IN HERE, and
+       it is not a preference: it is the check. If somebody adds one,
+       this project stops being what it says it is, and the
+       simplest way to notice is that it no longer builds elsewhere.
 
-       Cio' che serve dalla libreria e dal ponte si prende per RIFLESSIONE
-       o parlandoci via stdio, come farebbe un cliente qualunque.
-       =================================================================== -->
+       What is needed from the library and from the bridge is taken by REFLECTION
+       or by talking to them over stdio, as any customer would.
+       ===================================================================-->
 
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
@@ -28,11 +28,11 @@
     <RootNamespace>Oce.Solid.Agent.ContractTests</RootNamespace>
     <AssemblyName>Oce.Solid.Agent.ContractTests</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <!-- x64 COME IL PONTE, e non e' un dettaglio di gusto: un `AnyCPU`
-         eseguibile su .NET Framework parte a 32 bit (`Prefer32Bit` e' vero di
-         default), e caricare l'immagine x64 del ponte da un processo a 32 bit
-         da' `BadImageFormatException` — un messaggio che parla di «file o
-         assembly non caricabile» e sembra un file mancante. -->
+    <!-- x64 LIKE THE BRIDGE, and it is not a matter of taste: an `AnyCPU`
+         executable on .NET Framework starts as 32-bit (`Prefer32Bit` is true by
+         default), and loading the x64 image of the bridge from a 32-bit process
+         gives `BadImageFormatException` — a message that speaks of «file o
+         assembly non caricabile» and looks like a missing file.-->
     <PlatformTarget>x64</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
     <OutputPath>bin\</OutputPath>
@@ -118,9 +118,9 @@
     <Compile Include="H19InstallerContract.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="SafetyNetSelfTests.cs" />
-    <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
-         Non una copia: una copia diverge, e il giorno che diverge la suite
-         col CAD comincia a passare per ragioni che qui non si vedono. -->
+    <!-- THE EVALUATOR OF THE EXPECTATIONS, the same file that the bench compiles.
+         Not a copy: a copy diverges, and the day it diverges the suite
+         with the CAD starts passing for reasons that are not seen here.-->
     <Compile Include="..\Bench\Expectations.cs">
       <Link>Expectations.cs</Link>
     </Compile>

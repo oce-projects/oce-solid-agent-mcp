@@ -8,29 +8,29 @@ using static Shared.McpClient;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// L'AVANZAMENTO E L'ANNULLAMENTO, COL MECCANISMO DEL PROTOCOLLO (voce W2.2)
+    /// PROGRESS AND CANCELLATION, WITH THE MECHANISM OF THE PROTOCOL (entry W2.2)
     ///
-    /// ── PERCHE' SI PUO' MISURARE SENZA SOLIDWORKS ───────────────────────
+    /// ── WHY IT CAN BE MEASURED WITHOUT SOLIDWORKS ─────────────────────────
     ///
-    /// Perche' `notifications/progress` e' protocollo, non CAD. E perche' il
-    /// ponte ha gia' la **prova a vuoto** (`dry_run: true`, voce Z-G6): controlla
-    /// un piano passo per passo con SOLIDWORKS chiuso. Quel giro manda le sue
-    /// notifiche come qualunque altro, quindi la catena intera — gettone che
-    /// entra, notifiche che escono, gettone che torna identico — si guarda
-    /// end-to-end su stdio col ponte vero.
+    /// Because `notifications/progress` is protocol, not CAD. And because the
+    /// bridge already has the **dry run** (`dry_run: true`, entry Z-G6): it checks
+    /// a plan step by step with SOLIDWORKS closed. That run sends its
+    /// notifications like any other, so the whole chain — token that
+    /// comes in, notifications that go out, token that comes back identical — is looked at
+    /// end-to-end over stdio with the real bridge.
     ///
-    /// Cio' che NON si misura qui e' l'avanzamento durante l'esecuzione vera,
-    /// che vuole un documento aperto. Quella meta' la manda `PlanInMemory`,
-    /// e siccome e' una classe del ponte e non della libreria **la si pilota
-    /// direttamente**: le si chiede il passo successivo e si guarda cosa e'
-    /// partito. Non e' il giro vero, ma non e' nemmeno una lettura del codice.
+    /// What is NOT measured here is the progress during the real execution,
+    /// which needs an open document. That half is sent by `PlanInMemory`,
+    /// and since it is a class of the bridge and not of the library **it is driven
+    /// directly**: it is asked for the next step and we look at what
+    /// went out. It is not the real run, but it is not a reading of the code either.
     ///
-    /// ── LA REGOLA CHE SI FA FALLIRE APPOSTA ─────────────────────────────
+    /// ── THE RULE THAT IS MADE TO FAIL ON PURPOSE ──────────────────────────
     ///
-    /// La specifica pretende che `progress` **cresca**. Una regola del genere,
-    /// lasciata a chi chiama, si scopre rotta dentro un client — cioe' mai.
-    /// Qui si passa al filo un valore che non cresce e si pretende che lo
-    /// scarti.
+    /// The specification demands that `progress` **grow**. A rule like that,
+    /// left to the caller, is found broken inside a client — that is, never.
+    /// Here a value that does not grow is passed to the thread and it is demanded that it
+    /// reject it.
     /// </summary>
     internal static class ProgressTests
     {
@@ -48,7 +48,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  gli attrezzi comuni
+        //  common tools
         // ─────────────────────────────────────────────────────────────────
 
         private static Type _progress;
@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.ContractTests
             BindingFlags.Static | BindingFlags.Instance;
 
         // ─────────────────────────────────────────────────────────────────
-        //  1. IL GETTONE: dove sta, e che si rimanda com'e' arrivato
+        //  1. THE TOKEN: where it is, and that it is sent back as it arrived
         // ─────────────────────────────────────────────────────────────────
 
         private static void TheToken()
@@ -81,8 +81,8 @@ namespace Oce.Solid.Agent.ContractTests
             var typ = Progress();
             if (typ == null)
             {
-                // Senza ponte: «non qui» in CI, rosso dove SOLIDWORKS c'e' (e
-                // allora manca build.ps1). Col ponte e senza la classe: rosso.
+                // Without the bridge: «not here» in CI, red where SOLIDWORKS is there (and
+                // then build.ps1 is missing). With the bridge and without the class: red.
                 if (BridgeOrNotHere("l'avanzamento: il gettone, la notifica, il filo") == null) return;
                 Check("la classe Progress c'e'", false, "il ponte c'e' ma la classe non si carica");
                 return;
@@ -115,10 +115,10 @@ namespace Oce.Solid.Agent.ContractTests
             Check("un gettone di testo si legge",
                   Convert.ToString(withString) == "abc-1", Convert.ToString(withString));
 
-            // IL CASO CHE CONTA. La specifica ammette anche un INTERO, e un
-            // `42` che tornasse indietro come `"42"` non combacerebbe piu' con
-            // niente dalla parte del client -- che non avrebbe modo di dire
-            // perche'. Quindi non si guarda: si ricopia.
+            // THE CASE THAT COUNTS. The specification also admits an INTEGER, and a
+            // `42` that came back as `"42"` would no longer match
+            // anything on the client's side -- which would have no way of saying
+            // why. So it is not looked at: it is copied back.
             var withNumber = read(new Dictionary<string, object>
             {
                 ["_meta"] = new Dictionary<string, object> { ["progressToken"] = 42 },
@@ -136,7 +136,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  2. LA FORMA DELLA NOTIFICA
+        //  2. THE SHAPE OF THE NOTIFICATION
         // ─────────────────────────────────────────────────────────────────
 
         private static void TheNotification()
@@ -185,7 +185,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  3. IL FILO: spento se nessuno l'ha chiesto, e `progress` cresce
+        //  3. THE THREAD: off if nobody asked for it, and `progress` grows
         // ─────────────────────────────────────────────────────────────────
 
         private static void TheWire()
@@ -203,7 +203,7 @@ namespace Oce.Solid.Agent.ContractTests
             Action<object, double> total = (f, t) =>
                 wireT.GetProperty("Total", Everywhere).SetValue(f, t);
 
-            // ── SPENTO: nessun gettone, nessuna notifica ──────────────────
+            // ── OFF: no token, no notification ───────────────────────────
             var off = newItem(null);
             Check("senza gettone il filo e' spento", !(bool)read(off, "On"), "");
             total(off, 3);
@@ -213,7 +213,7 @@ namespace Oce.Solid.Agent.ContractTests
                   Convert.ToInt32(read(off, "Mandate")) == 0,
                   "chi non ha chiesto di essere aggiornato non viene disturbato");
 
-            // ── ACCESO ────────────────────────────────────────────────────
+            // ── ON ───────────────────────────────────────────────────────
             var isOn = newItem("g");
             total(isOn, 4);
             planStep(isOn, 1, "uno");
@@ -225,7 +225,7 @@ namespace Oce.Solid.Agent.ContractTests
                   Convert.ToDouble(read(isOn, "Last")) == 2,
                   "serve a chi riprende il conto: l'esecuzione dopo il controllo");
 
-            // ── LA REGOLA DELLA SPECIFICA, FATTA FALLIRE APPOSTA ──────────
+            // ── THE RULE OF THE SPECIFICATION, MADE TO FAIL ON PURPOSE ────
             planStep(isOn, 2, "di nuovo due");
             planStep(isOn, 1, "indietro a uno");
             Check("un passo che NON cresce viene scartato",
@@ -239,18 +239,18 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  3-bis. IL TEMPO ACCANTO AL PASSO (voce S0)
+        //  3-bis. THE TIME NEXT TO THE STEP (entry S0)
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// S0 non chiede «un avanzamento»: chiede che chi guarda da fuori
-        /// distingua **«sta lavorando» da «e' piantato» senza guardare la
-        /// CPU**. Il numero del passo da solo non lo dice — «passo 3 di 5»
-        /// e' identico se quel passo e' cominciato due secondi fa o undici
-        /// minuti fa.
+        /// S0 does not ask for «a progress report»: it asks that whoever looks from outside
+        /// tell **«it is working» from «it is stuck» without looking at the
+        /// CPU**. The step number alone does not say it — «passo 3 di 5»
+        /// is identical whether that step started two seconds ago or eleven
+        /// minutes ago.
         ///
-        /// L'orologio si passa al filo, quindi qui lo si fissa e si guarda
-        /// **la stringa esatta** invece di sperare che assomigli.
+        /// The clock is passed to the thread, so here it is fixed and we look at
+        /// **the exact string** instead of hoping it looks similar.
         /// </summary>
         private static void TheTimeAlongside()
         {
@@ -266,7 +266,7 @@ namespace Oce.Solid.Agent.ContractTests
             { Check("il filo accetta un orologio", false,
                     "senza, il tempo scritto non si puo' guardare"); return; }
 
-            // L'orologio finto: parte fermo, e lo si sposta a mano.
+            // The fake clock: it starts stopped, and is moved by hand.
             var now = new DateTime(2026, 9, 24, 10, 0, 0);
             Func<DateTime> clock = () => now;
 
@@ -275,10 +275,10 @@ namespace Oce.Solid.Agent.ContractTests
             var notify = typ.GetMethod("Notify", Everywhere);
             var planStep = wireT.GetMethod("Step", Everywhere);
 
-            // Per leggere cosa SCRIVE senza un canale aperto si guarda
-            // `Elapsed` e si ricostruisce la stringa? No: si guarderebbe
-            // una copia della regola invece della regola. Si chiama
-            // `ColTempo` direttamente.
+            // To read what it WRITES without an open channel, do we look at
+            // `Elapsed` and rebuild the string? No: we would be looking at
+            // a copy of the rule instead of the rule. `ColTempo` is
+            // called directly.
             var colTempo = wireT.GetMethod("ColTempo", Everywhere);
             if (colTempo == null)
             { Check("ColTempo() c'e'", false, ""); return; }
@@ -297,9 +297,9 @@ namespace Oce.Solid.Agent.ContractTests
             Check("sopra il minuto si scrive minuti e secondi",
                   write("passo 3") == "passo 3 \u2014 2m14s", write("passo 3"));
 
-            // QUESTO E' IL CASO DI S0: undici minuti sullo stesso passo.
-            // Senza il tempo, «passo 3 di 5» e' identico a due secondi fa, e
-            // chi guarda non sa se aspettare o uccidere il processo.
+            // THIS IS THE CASE OF S0: eleven minutes on the same step.
+            // Without the time, «passo 3 di 5» is identical to two seconds ago, and
+            // whoever looks does not know whether to wait or to kill the process.
             now = now.AddMinutes(9);
             Check("e a undici minuti si vede che e' tanto",
                   write("passo 3") == "passo 3 \u2014 11m14s", write("passo 3"));
@@ -312,9 +312,9 @@ namespace Oce.Solid.Agent.ContractTests
                       .GetValue(wire)).TotalSeconds - 674) < 0.001,
                   "674 secondi");
 
-            // E il tempo finisce DAVVERO nella notifica, non solo in
-            // `ColTempo`: la differenza fra le due cose e' un metodo giusto
-            // che nessuno chiama.
+            // And the time REALLY ends up in the notification, not only in
+            // `ColTempo`: the difference between the two things is a correct method
+            // that nobody calls.
             wireT.GetProperty("Total", Everywhere).SetValue(wire, 3.0);
             planStep.Invoke(wire, new object[] { 1.0, "passo 1" });
             var seen = (Dictionary<string, object>)notify.Invoke(null,
@@ -326,7 +326,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  4. PlanInMemory: la meta' che conta, pilotata a mano
+        //  4. PlanInMemory: the half that counts, driven by hand
         // ─────────────────────────────────────────────────────────────────
 
         private static void ThePlanInMemory()
@@ -344,20 +344,20 @@ namespace Oce.Solid.Agent.ContractTests
             if (constructor == null)
             { Check("PlanInMemory accetta un filo", false, "nessun costruttore a due"); return; }
 
-            // `PlanStep` STA NELLA LIBRERIA, NON NEL PONTE, e cercarlo
-            // fra i tipi del ponte non poteva funzionare -- ci ho provato, ed
-            // e' andato rosso subito. Lo si prende dal costruttore che lo usa:
-            // `List<PlanStep>`. Cosi' non c'e' nessun assembly da
-            // indovinare, e se un giorno il tipo cambiasse la prova seguirebbe
-            // invece di rompersi.
+            // `PlanStep` LIVES IN THE LIBRARY, NOT IN THE BRIDGE, and looking for it
+            // among the types of the bridge could not work -- I tried, and
+            // it went red at once. It is taken from the constructor that uses it:
+            // `List<PlanStep>`. This way there is no assembly to
+            // guess, and if one day the type changed the check would follow
+            // instead of breaking.
             var stepT = constructor.GetParameters()[0]
                 .ParameterType.GetGenericArguments().FirstOrDefault();
             if (stepT == null)
             { Check("il primo parametro e' una lista di passi", false,
                     constructor.GetParameters()[0].ParameterType.Name); return; }
 
-            // Tre passi finti. Non si esegue niente: si chiede a questa classe
-            // il passo successivo, che e' cio' che fa l'esecutore.
+            // Three fake steps. Nothing is executed: this class is asked for
+            // the next step, which is what the executor does.
             var itemList = (System.Collections.IList)Activator.CreateInstance(
                 typeof(List<>).MakeGenericType(stepT));
             for (int i = 1; i <= 3; i++)
@@ -370,15 +370,15 @@ namespace Oce.Solid.Agent.ContractTests
 
             var wire = Activator.CreateInstance(wireT, new object[] { "g" });
             wireT.GetProperty("Total", Everywhere).SetValue(wire, 6.0);
-            // Il controllo del piano ha gia' raccontato tre passi: l'esecuzione
-            // deve ripartire da quattro, non da uno.
+            // The check of the plan has already told three steps: the execution
+            // must restart from four, not from one.
             wireT.GetMethod("Step", Everywhere).Invoke(wire, new object[] { 3.0, "controllo finito" });
 
             var plane = constructor.Invoke(new[] { itemList, wire });
             var next = planeT.GetMethod("NextAsync", Everywhere);
 
             var seen = new List<double>();
-            for (int i = 0; i < 4; i++)   // tre passi e poi la fine
+            for (int i = 0; i < 4; i++)   // three steps and then the end
             {
                 next.Invoke(plane, new object[] { null });
                 seen.Add(Convert.ToDouble(wireT.GetProperty("Last", Everywhere).GetValue(wire)));
@@ -396,7 +396,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  5. L'ANNULLAMENTO: un no detto, non un silenzio
+        //  5. CANCELLATION: a no that is said, not a silence
         // ─────────────────────────────────────────────────────────────────
 
         private static void TheUndoSaysNo()
@@ -440,7 +440,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  6. SUL PONTE VERO, SU STDIO, SENZA SOLIDWORKS
+        //  6. ON THE REAL BRIDGE, OVER STDIO, WITHOUT SOLIDWORKS
         // ─────────────────────────────────────────────────────────────────
 
         private static void OnTheRealBridge()
@@ -457,11 +457,11 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
 
-                // ── CON IL GETTONE ────────────────────────────────────────
+                // ── WITH THE TOKEN ─────────────────────────────────────────
                 //
-                // `dry_run: true` controlla il piano passo per passo e non tocca
-                // niente: gira con SOLIDWORKS chiuso, ed e' l'unico giro del
-                // ponte che si puo' guardare per intero su questa macchina.
+                // `dry_run: true` checks the plan step by step and touches
+                // nothing: it runs with SOLIDWORKS closed, and it is the only run of the
+                // bridge that can be looked at in full on this machine.
                 const string three =
                     "{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                     "{\"length_mm\":100,\"width_mm\":50,\"thickness_mm\":5}}," +
@@ -492,12 +492,12 @@ namespace Oce.Solid.Agent.ContractTests
                       Enumerable.Range(1, numbers.Count - 1).All(i => numbers[i] > numbers[i - 1]),
                       string.Join(", ", numbers));
 
-                // ── SENZA IL GETTONE: SILENZIO ────────────────────────────
+                // ── WITHOUT THE TOKEN: SILENCE ─────────────────────────────
                 //
-                // E' la meta' che si dimentica. Mandare avanzamenti a chi non
-                // li ha chiesti e' rumore sul canale del protocollo, e un
-                // client che non li aspetta puo' benissimo non saperli
-                // leggere.
+                // It is the half that gets forgotten. Sending progress reports to whoever did not
+                // ask for them is noise on the protocol channel, and a
+                // client that does not expect them may very well not know how to
+                // read them.
                 int beforeWithout = p.Views.Count;
                 Ask(p, 31,
                     "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"tools/call\",\"params\":" +
@@ -510,12 +510,12 @@ namespace Oce.Solid.Agent.ContractTests
                           ? "zero notifiche, come deve essere"
                           : without.Count + " notifiche non richieste");
 
-                // ── L'ANNULLAMENTO NON E' PIU' UN SILENZIO ────────────────
+                // ── CANCELLATION IS NO LONGER A SILENCE ─────────────────────
                 int beforeAnn = p.Views.Count;
                 Write(p,
                     "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\"," +
                     "\"params\":{\"requestId\":30,\"reason\":\"basta cosi'\"}}");
-                // Si aspetta che il ponte dica qualcosa, e poi si guarda cosa.
+                // We wait for the bridge to say something, and then we look at what.
                 Line(p, 3000);
                 var said = p.Views.Skip(beforeAnn)
                     .Where(r => r != null && r.Contains("annullamento chiesto")).ToList();
@@ -524,9 +524,9 @@ namespace Oce.Solid.Agent.ContractTests
                       said.Count > 0 ? Short(said[0])
                                       : "niente: e' il no-op silenzioso che la voce descriveva");
 
-                // E soprattutto: il ponte e' ancora vivo. Una notifica non
-                // gestita che facesse morire il giro sarebbe peggio del
-                // silenzio.
+                // And above all: the bridge is still alive. An unhandled
+                // notification that made the run die would be worse than
+                // silence.
                 var after = Obj(Ask(p, 32,
                     "{\"jsonrpc\":\"2.0\",\"id\":32,\"method\":\"ping\",\"params\":{}}"));
                 Check("e il ponte risponde ancora dopo averla ricevuta",
@@ -537,19 +537,19 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Le `notifications/progress` arrivate dopo il segno `da`.
+        /// The `notifications/progress` that arrived after the mark `da`.
         ///
-        /// Si filtra per metodo e non per contenuto: sul canale passano anche
-        /// le `notifications/message` del ponte, e contarle sarebbe un verde
-        /// per il motivo sbagliato.
+        /// It is filtered by method and not by content: on the channel there also pass
+        /// the `notifications/message` of the bridge, and counting them would be a green
+        /// for the wrong reason.
         /// </summary>
         /// <summary>
-        /// Mette un valore, che sia una proprieta' o un campo.
+        /// Sets a value, whether it is a property or a field.
         ///
-        /// Provare tutt'e due invece di indovinare: un `SetValue` su una
-        /// proprieta' che non esiste non fa niente e non lo dice, e il passo
-        /// resterebbe senza nome — con la prova verde per il motivo sbagliato.
-        /// Qui se non si e' potuto scrivere, si segna rosso.
+        /// Trying both instead of guessing: a `SetValue` on a
+        /// property that does not exist does nothing and does not say so, and the step
+        /// would stay without a name — with the check green for the wrong reason.
+        /// Here, if it could not be written, it is marked red.
         /// </summary>
         private static void Put(Type typ, object obj, string itemName, object val)
         {

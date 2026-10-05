@@ -8,40 +8,40 @@ using System.Text;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// LE PROVE CHE GIRANO SU UNA MACCHINA QUALUNQUE (voce F7).
+    /// THE CHECKS THAT RUN ON ANY MACHINE (entry F7).
     ///
-    /// ── PERCHE' ESISTONO ──────────────────────────────────────────────────
+    /// ── WHY THEY EXIST ──────────────────────────────────────────────────────
     ///
-    /// Sono le uniche prove che girano **senza licenza, senza CAD, in
-    /// secondi**. Il banco vero apre SOLIDWORKS e dura un quarto d'ora: va
-    /// benissimo la sera prima di committare, e non serve a niente in una CI
-    /// o sulla macchina di chi apre questo repository per la prima volta.
+    /// They are the only checks that run **without a licence, without CAD, in
+    /// seconds**. The real bench opens SOLIDWORKS and lasts a quarter of an hour: it is
+    /// fine the evening before committing, and it is of no use in a CI
+    /// or on the machine of whoever opens this repository for the first time.
     ///
-    /// E il valutatore delle attese **deve** stare qui: se e' rotto lui, tutta
-    /// la suite con SOLIDWORKS diventa verde gratis.
+    /// And the evaluator of the expectations **must** live here: if it is broken, the whole
+    /// suite with SOLIDWORKS becomes green for free.
     ///
-    /// ── COSA PROVA ────────────────────────────────────────────────────────
+    /// ── WHAT IT TESTS ────────────────────────────────────────────────────────
     ///
-    ///   * il **catalogo**: campi, famiglie, nessun percorso di questa macchina
-    ///     dentro le descrizioni, e `Similar()` che su «asole» trova «slot»;
-    ///   * `Session.SameDocument()` — la guardia contro il blocco estruso
-    ///     nel pezzo di qualcun altro, che fino a oggi non aveva una prova;
-    ///   * il **protocollo MCP**, parlando col ponte su stdin/stdout come
-    ///     farebbe un cliente;
-    ///   * il **valutatore delle attese**, contro stati finti scritti a mano.
+    ///   * the **catalogue**: fields, families, no path of this machine
+    ///     inside the descriptions, and `Similar()` which on «asole» finds «slot»;
+    ///   * `Session.SameDocument()` — the guard against the extruded block
+    ///     in somebody else's part, which until today had no check;
+    ///   * the **MCP protocol**, talking to the bridge on stdin/stdout as
+    ///     a client would;
+    ///   * the **evaluator of the expectations**, against fake states written by hand.
     ///
-    /// ── E SCRIVE `prove.xml` ─────────────────────────────────────────────
+    /// ── AND IT WRITES `prove.xml` ────────────────────────────────────────
     ///
-    /// In formato JUnit, che e' quello che ogni CI sa leggere senza che
-    /// nessuno le insegni niente.
+    /// In JUnit format, which is what every CI knows how to read without
+    /// anybody teaching it anything.
     /// </summary>
     internal static class Program
     {
         internal static int FailedOnes;
 
         /// <summary>
-        /// Quanti controlli NON hanno potuto girare su questa macchina.
-        /// Non sono verdi e non sono rossi: vedi <see cref="NotHere"/>.
+        /// How many checks could NOT run on this machine.
+        /// They are neither green nor red: see <see cref="NotHere"/>.
         /// </summary>
         internal static int NotRunnableHere;
 
@@ -69,51 +69,51 @@ namespace Oce.Solid.Agent.ContractTests
         {
             if (!ok) FailedOnes++;
             Outcomes.Add(new Outcome { Group = _group, Name = itemName, Ok = ok, Detail = detail });
-            // UN VERDE SI ACCORCIA, UN ROSSO NO. Il dettaglio di una prova
-            // rossa e' l'unica cosa che si legge davvero, e troncarlo a
-            // centodieci caratteri vuol dire rilanciare per vedere il resto.
+            // A GREEN IS SHORTENED, A RED IS NOT. The detail of a red
+            // check is the only thing that is really read, and truncating it to
+            // a hundred and ten characters means running again to see the rest.
             Console.WriteLine((ok ? "  OK   " : "  NO   ") + itemName.PadRight(58) +
                               (ok ? Truncated(detail) : detail));
         }
 
         /// <summary>
-        /// UN CONTROLLO CHE **NON POTEVA** GIRARE QUI NON E' VERDE E NON E' ROSSO.
+        /// A CHECK THAT **COULD NOT** RUN HERE IS NEITHER GREEN NOR RED.
         ///
-        /// ── IL DIFETTO CHE HA FATTO NASCERE QUESTA TERZA VOCE ─────────────
+        /// ── THE DEFECT THAT GAVE BIRTH TO THIS THIRD ENTRY ────────────────
         ///
-        /// 23/9/2026, voce F9-bis. La CI di questo repository non e' MAI
-        /// diventata verde, e il motivo non era un difetto del codice: il suo
-        /// primo passo era `msbuild Oce.Solid.Agent.csproj`, e quel progetto
-        /// referenzia `SolidWorks.Interop.*` con un `HintPath` sull'installazione
-        /// di SOLIDWORKS. Su un runner di GitHub quella cartella non c'e' e non
-        /// ci sara'. **Misurato, non dedotto**: compilando con
-        /// `/p:SwInstallPath=Z:\non-esiste` escono duecento e passa
+        /// 23/9/2026, entry F9-bis. The CI of this repository NEVER
+        /// turned green, and the reason was not a defect of the code: its
+        /// first step was `msbuild Oce.Solid.Agent.csproj`, and that project
+        /// references `SolidWorks.Interop.*` with a `HintPath` on the SOLIDWORKS
+        /// installation. On a GitHub runner that folder is not there and will not
+        /// be. **Measured, not deduced**: building with
+        /// `/p:SwInstallPath=Z:\non-esiste` two hundred errors come out, and among them
         /// `CS0246: il nome di tipo IModelDoc2 non e' stato trovato`.
         ///
-        /// Il README intanto diceva «la CI compila, lancia i controlli di
-        /// contratto e rifiuta una consegna in cui nessuno ha lanciato il
-        /// banco». Le ultime due erano vere in teoria e irraggiungibili in
-        /// pratica, perche' la prima non arrivava mai in fondo. **Una CI che
-        /// non e' mai girata e' un distintivo, non una prova.**
+        /// The README meanwhile said «the CI builds, runs the contract
+        /// checks and refuses a delivery in which nobody ran the
+        /// bench». The last two were true in theory and unreachable in
+        /// practice, because the first never got to the end. **A CI that
+        /// has never run is a badge, not a proof.**
         ///
-        /// ── PERCHE' NON BASTA SALTARE ─────────────────────────────────────
+        /// ── WHY SKIPPING IS NOT ENOUGH ───────────────────────────────────
         ///
-        /// La tentazione e' `if (!File.Exists(ponte)) return;`: la suite
-        /// diventa verde e nessuno sa piu' che meta' dei controlli non e'
-        /// stata fatta. E' il difetto che questo repository rimprovera
-        /// altrove, applicato alla propria CI.
+        /// The temptation is `if (!File.Exists(ponte)) return;`: the suite
+        /// becomes green and nobody knows any more that half of the checks was not
+        /// done. It is the defect that this repository reproaches
+        /// elsewhere, applied to its own CI.
         ///
-        /// Quindi: la voce c'e' lo stesso, si stampa `--`, si conta a parte, e
-        /// finisce in `prove.xml` come `<skipped>` — che ogni CI sa mostrare.
+        /// So: the entry is there all the same, `--` is printed, it is counted separately, and
+        /// it ends up in `prove.xml` as `<skipped>` — which every CI knows how to show.
         ///
-        /// ── E «NON POTEVA» SI DIMOSTRA, NON SI DICHIARA ───────────────────
+        /// ── AND «COULD NOT» IS PROVED, NOT DECLARED ────────────────────────
         ///
-        /// La distinzione che conta e' fra **non si puo' qui** e **ti sei
-        /// dimenticato di compilare**. Danno lo stesso sintomo — l'eseguibile
-        /// non c'e' — e sono due difetti opposti. Si separano guardando
-        /// l'interop: se sulla macchina non c'e', il ponte NON POTEVA esistere;
-        /// se c'e', l'eseguibile manca perche' qualcuno non ha lanciato
-        /// `build.ps1`, e quello **resta rosso**.
+        /// The distinction that counts is between **cannot be done here** and **you
+        /// forgot to build**. They give the same symptom — the executable
+        /// is not there — and they are two opposite defects. They are separated by looking at
+        /// the interop: if it is not on the machine, the bridge COULD NOT exist;
+        /// if it is, the executable is missing because somebody did not run
+        /// `build.ps1`, and that **stays red**.
         /// </summary>
         internal static void NotHere(string itemName, string why)
         {
@@ -124,25 +124,25 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Dove sta l'interop di Dassault su QUESTA macchina, o `null`.
+        /// Where the Dassault interop is on THIS machine, or `null`.
         ///
-        /// Stesso ordine dei `.csproj` — `SW_INSTALL_PATH`, poi `SW_REDIST`,
-        /// poi il posto di serie — perche' la domanda e' esattamente «msbuild
-        /// l'avrebbe trovata?», e cercarla con un ordine diverso da quello
-        /// della build risponderebbe a un'altra domanda.
+        /// Same order as the `.csproj` files — `SW_INSTALL_PATH`, then `SW_REDIST`,
+        /// then the default location — because the question is exactly «would msbuild
+        /// have found it?», and looking for it in an order different from that
+        /// of the build would answer another question.
         /// </summary>
         /// <summary>
-        /// «Comportati come un runner senza SOLIDWORKS», qui e adesso.
+        /// «Behave like a runner without SOLIDWORKS», here and now.
         ///
-        /// Le voci «non eseguibile qui» le vedrebbe solo una macchina nuda, e
-        /// questa non lo e': senza questo interruttore il codice che le scrive
-        /// resterebbe non provato fino alla prima corsa di CI — cioe' si
-        /// dovrebbe credere che funzioni. **Un controllo mai visto scattare non
-        /// e' un controllo.**
+        /// The «non eseguibile qui» entries would be seen only by a bare machine, and
+        /// this one is not: without this switch the code that writes them
+        /// would stay untested until the first CI run — that is, one would
+        /// have to believe it works. **A check never seen triggering is not
+        /// a check.**
         ///
-        /// Non e' una scorciatoia per far passare qualcosa: sotto simulazione il
-        /// riepilogo lo grida e i saltati si contano lo stesso, quindi usarla
-        /// per «diventare verdi» renderebbe il buco piu' visibile, non meno.
+        /// It is not a shortcut to make something pass: under simulation the
+        /// summary shouts it and the skipped ones are counted all the same, so using it
+        /// to «become green» would make the hole more visible, not less.
         /// </summary>
         internal static bool PretendWithoutInterop
         {
@@ -150,8 +150,8 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Un file che lo produce `build.ps1`, e quindi che su una macchina
-        /// senza interop non puo' esistere. Sotto simulazione non esiste mai.
+        /// A file that `build.ps1` produces, and which therefore cannot exist on a machine
+        /// without the interop. Under simulation it never exists.
         /// </summary>
         internal static bool ProductFromBuild(string filePath)
         {
@@ -181,9 +181,9 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Vero se su questa macchina il ponte SI SAREBBE POTUTO compilare.
-        /// Non dice che sia stato compilato: dice che, se manca, la colpa e'
-        /// di chi non ha lanciato `build.ps1` e non della macchina.
+        /// True if on this machine the bridge COULD HAVE been built.
+        /// It does not say that it was built: it says that, if it is missing, the fault is
+        /// of whoever did not run `build.ps1` and not of the machine.
         /// </summary>
         internal static bool TheBridgeCouldBeBuilt()
         {
@@ -191,12 +191,12 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// L'eseguibile del ponte, oppure una voce «non qui» e `null`.
+        /// The executable of the bridge, or a «not here» entry and `null`.
         ///
-        /// Tre gruppi facevano la stessa cosa in tre modi leggermente diversi
-        /// (`ProtocolTests`, `SessionTests`, `CatalogTests`): la regola su
-        /// quando un ponte mancante e' colpa della macchina stava scritta tre
-        /// volte, ed e' il modo in cui due delle tre restano indietro.
+        /// Three groups did the same thing in three slightly different ways
+        /// (`ProtocolTests`, `SessionTests`, `CatalogTests`): the rule on
+        /// when a missing bridge is the machine's fault was written three
+        /// times, and it is the way in which two of the three fall behind.
         /// </summary>
         internal static string BridgeOrNotHere(string whatDoesNotRun)
         {
@@ -218,17 +218,17 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Il catalogo che il ponte serve: `bin\catalog.json`, e se non c'e' la
-        /// copia versionata `Tools\catalog.json` — che e' esattamente il
-        /// file che `build.ps1` rigenera e copia in `bin\`.
+        /// The catalogue that the bridge serves: `bin\catalog.json`, and if it is not there the
+        /// versioned copy `Tools\catalog.json` — which is exactly the
+        /// file that `build.ps1` regenerates and copies into `bin\`.
         ///
-        /// QUATTRO CONTROLLI TENEVANO ROSSA LA CI DA CINQUE PUSH (misurato il
-        /// 25/9/2026, dalla 0.85.0 alla 0.88.0): cercavano solo `bin\`, che in
-        /// un clone pulito non esiste, e dicevano «il catalogo servito non
-        /// c'e'». Non era un difetto del catalogo, e nemmeno una cosa che la CI
-        /// non potesse fare: il file da leggere c'era, in `Tools\`.
-        /// `DescriptionsTests` lo faceva gia' giusto. *Una CI sempre rossa si
-        /// impara a non guardarla, ed e' il modo in cui un rosso vero passa.*
+        /// FOUR CHECKS HAD KEPT THE CI RED FOR FIVE PUSHES (measured on
+        /// 25/9/2026, from 0.85.0 to 0.88.0): they looked only in `bin\`, which in
+        /// a clean clone does not exist, and said «the served catalogue is
+        /// not there». It was not a defect of the catalogue, nor something the CI
+        /// could not do: the file to read was there, in `Tools\`.
+        /// `DescriptionsTests` already did it right. *An always-red CI gets learned
+        /// not to be looked at, and it is the way in which a real red goes through.*
         /// </summary>
         internal static string ServedCatalog()
         {
@@ -244,7 +244,7 @@ namespace Oce.Solid.Agent.ContractTests
             return s.Length > 110 ? s.Substring(0, 110) + "..." : s;
         }
 
-        /// <summary>La radice del repository, due livelli sopra `Tests\bin\`.</summary>
+        /// <summary>The root of the repository, two levels above `Tests\bin\`.</summary>
         internal static string Root()
         {
             var bin = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
@@ -252,11 +252,11 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// La versione del prodotto, letta da `VERSION.txt` nel repository.
+        /// The version of the product, read from `VERSION.txt` in the repository.
         ///
-        /// Null se non si legge: chi la usa deve poter dire «non lo so»
-        /// invece di confrontare con una stringa vuota e trovarla diversa
-        /// da tutto.
+        /// Null if it cannot be read: whoever uses it must be able to say «I do not know»
+        /// instead of comparing with an empty string and finding it different
+        /// from everything.
         /// </summary>
         internal static string RepositoryVersion()
         {
@@ -271,30 +271,30 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// `Tests/README.md` dice quanti controlli ci sono. Deve essere vero.
+        /// `Tests/README.md` says how many checks there are. It must be true.
         ///
-        /// Il 16/9/2026 diceva **54** mentre ne giravano **99**: un numero
-        /// giusto quando fu scritto, invecchiato da solo mentre la suite
-        /// cresceva. Chi legge quel file non ha modo di accorgersene — e' la
-        /// sua unica fonte. E' lo stesso difetto del README che prometteva
-        /// trentotto operazioni su sessanta, e la difesa e' la stessa: far
-        /// leggere il documento a un controllo.
+        /// On 16/9/2026 it said **54** while **99** were running: a number
+        /// right when it was written, aged by itself while the suite
+        /// grew. Whoever reads that file has no way of noticing — it is their
+        /// only source. It is the same defect as the README that promised
+        /// thirty-eight operations out of sixty, and the defense is the same: make
+        /// a check read the document.
         ///
-        /// SI CONTA ANCHE QUESTO CONTROLLO. Gira per ultimo, quindi quando
-        /// guarda `Outcomes.Count` se stesso non c'e' ancora: il numero scritto
-        /// nel documento deve valere `Esiti.Count + 1`. Non e' una furbizia,
-        /// e' l'unico conto che torna — e il documento deve dire il totale che
-        /// l'utente legge a schermo, non quello meno uno.
+        /// THIS CHECK IS COUNTED TOO. It runs last, so when it
+        /// looks at `Outcomes.Count` it itself is not there yet: the number written
+        /// in the document must equal `Esiti.Count + 1`. It is not a trick,
+        /// it is the only count that adds up — and the document must say the total that
+        /// the user reads on the screen, not that minus one.
         /// </summary>
         private static void TheReadmeSaysHowManyThereAre()
         {
             Group("il LEGGIMI delle prove");
 
-            // IL CONTO VALE PER UN GIRO INTERO (voce F9-bis). Dove SOLIDWORKS
-            // non c'e', un gruppo da quaranta controlli diventa UNA riga «non
-            // eseguibile qui»: il totale crolla, il LEGGIMI ha ancora ragione, e
-            // questo controllo diventerebbe rosso accusando il documento giusto.
-            // Un controllo che sa di non poter rispondere lo dice.
+            // THE COUNT HOLDS FOR A WHOLE RUN (entry F9-bis). Where SOLIDWORKS
+            // is not there, a group of forty checks becomes ONE «non
+            // eseguibile qui» line: the total collapses, the README is still right, and
+            // this check would turn red accusing the right document.
+            // A check that knows it cannot answer says so.
             if (NotRunnableHere > 0)
             {
                 NotHere("il LEGGIMI dice quanti controlli ci sono, e sono quelli veri",
@@ -317,9 +317,9 @@ namespace Oce.Solid.Agent.ContractTests
             try { text = File.ReadAllText(readme); }
             catch (Exception ex) { Check("il LEGGIMI si legge", false, ex.Message); return; }
 
-            // Si cerca SOLO la forma «<numero> controlli»: il file parla anche
-            // di secondi e di licenze, e una regola larga griderebbe su una
-            // frase giusta.
+            // ONLY the form «<numero> controlli» is looked for: the file also speaks
+            // of seconds and licences, and a broad rule would shout at a
+            // correct sentence.
             var foundItems = System.Text.RegularExpressions.Regex.Matches(
                 text, @"(\d+)\s+controlli");
             if (foundItems.Count == 0)
@@ -435,10 +435,10 @@ namespace Oce.Solid.Agent.ContractTests
                              done + " fatti davvero)";
             Console.WriteLine(summary);
 
-            // IL NUMERO DA SOLO SI LEGGEREBBE COME UN VERDE. Chi guarda una CI
-            // legge «0 falliti» e va avanti: se meta' dei controlli non ha
-            // girato, quel numero e' vero e ingannevole insieme, ed e'
-            // esattamente il difetto che questo repository rimprovera altrove.
+            // THE NUMBER ALONE WOULD READ AS A GREEN. Whoever looks at a CI
+            // reads «0 falliti» and moves on: if half of the checks did not
+            // run, that number is true and misleading at once, and it is
+            // exactly the defect that this repository reproaches elsewhere.
             if (NotRunnableHere > 0)
             {
                 Console.WriteLine();
@@ -449,14 +449,14 @@ namespace Oce.Solid.Agent.ContractTests
                 Console.WriteLine("  «provato e passa» e «non provato» resta visibile.");
             }
 
-            // IL MINIMO E' DICHIARATO E SI CONTROLLA. Una suite che si svuota
-            // — un file di prove tolto, un gruppo che esce prima — resterebbe
-            // verde con tre controlli, e «0 falliti» suonerebbe uguale.
+            // THE MINIMUM IS DECLARED AND IS CHECKED. A suite that empties itself
+            // — a check file removed, a group that exits early — would stay
+            // green with three checks, and «0 falliti» would sound the same.
             //
-            // SI CONTANO I FATTI, NON LE VOCI (voce F9-bis). Contando
-            // `Outcomes.Count` la soglia l'avrebbero superata anche venticinque
-            // righe «non eseguibile qui»: un minimo che si lascia soddisfare
-            // da cio' che non ha girato non e' un minimo.
+            // THE FACTS ARE COUNTED, NOT THE ENTRIES (entry F9-bis). By counting
+            // `Outcomes.Count` the threshold would have been passed even by twenty-five
+            // «non eseguibile qui» lines: a minimum that lets itself be satisfied
+            // by what did not run is not a minimum.
             const int DeclaredMinimum = 25;
             if (done < DeclaredMinimum)
             {
@@ -472,15 +472,15 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// QUESTO PROGETTO NON REFERENZIA L'INTEROP, E LO CONTROLLA DA SOLO.
+        /// THIS PROJECT DOES NOT REFERENCE THE INTEROP, AND CHECKS IT BY ITSELF.
         ///
-        /// E' la ragione per cui esiste: girare dove SOLIDWORKS non c'e'. Se
-        /// qualcuno aggiunge un riferimento al csproj — perche' «serviva un
-        /// tipo» — la promessa cade, e su questa macchina non lo noterebbe
-        /// nessuno: qui SOLIDWORKS c'e', e compila lo stesso.
+        /// It is the reason it exists: to run where SOLIDWORKS is not there. If
+        /// somebody adds a reference to the csproj — because «a type
+        /// was needed» — the promise falls, and on this machine nobody would notice:
+        /// here SOLIDWORKS is there, and it builds all the same.
         ///
-        /// Si guardano i riferimenti dell'assembly, non il testo del csproj: il
-        /// csproj si puo' leggere in dieci modi, i riferimenti veri sono uno.
+        /// The references of the assembly are looked at, not the text of the csproj: the
+        /// csproj can be read in ten ways, the real references are one.
         /// </summary>
         private static void NoInterop()
         {
@@ -498,37 +498,37 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// OGNI SORGENTE STA NEL SUO `.csproj`.
+        /// EVERY SOURCE IS IN ITS `.csproj`.
         ///
-        /// ── IL DIFETTO CHE QUESTO CONTROLLO PRENDE ───────────────────────
+        /// ── THE DEFECT THIS CHECK CATCHES ────────────────────────────────
         ///
-        /// Un file `.cs` che non compare fra i `<Compile Include>` **non viene
-        /// compilato**. Se qualcuno lo referenzia, MSBuild lo dice subito ed e'
-        /// successo davvero il 16/9/2026 con `AssemblyOperations.cs`: due errori,
-        /// riparato in trenta secondi.
+        /// A `.cs` file that does not appear among the `<Compile Include>` **is not
+        /// compiled**. If somebody references it, MSBuild says so at once, and it
+        /// really happened on 16/9/2026 with `AssemblyOperations.cs`: two errors,
+        /// fixed in thirty seconds.
         ///
-        /// **Il caso pericoloso e' l'altro.** Se nessuno lo referenzia ancora —
-        /// una classe nuova, un'operazione appena scritta e non ancora
-        /// collegata al dispatcher — **la build resta verde e il codice non
-        /// esiste**. Si scrive un file, si compila, tutto passa, e quel file non
-        /// e' nel programma. Nessun errore, da nessuna parte.
+        /// **The dangerous case is the other one.** If nobody references it yet —
+        /// a new class, an operation just written and not yet
+        /// connected to the dispatcher — **the build stays green and the code does not
+        /// exist**. A file is written, it is built, everything passes, and that file is not
+        /// in the program. No error, anywhere.
         ///
-        /// E' il difetto che non da' errore applicato al PROGETTO invece che al
-        /// pezzo, e non c'era nessun controllo che lo prendesse.
+        /// It is the defect that gives no error applied to the PROJECT instead of to the
+        /// part, and there was no check that caught it.
         ///
-        /// ── PERCHE' STA QUI E NON IN UNO SCRIPT ──────────────────────────
+        /// ── WHY IT IS HERE AND NOT IN A SCRIPT ────────────────────────────
         ///
-        /// Uno script bisogna ricordarsi di lanciarlo, ed e' esattamente il
-        /// modo in cui il gancio `pre-push` e' nato (voce W2.10): il controllo
-        /// c'era, mancava che qualcuno lo eseguisse. Qui gira a ogni giro.
+        /// A script has to be remembered to be launched, and it is exactly the
+        /// way the `pre-push` hook was born (entry W2.10): the check
+        /// was there, what was missing was somebody running it. Here it runs on every run.
         /// </summary>
         private static void EverySourceIsInItsOwnProject()
         {
             Group("i sorgenti stanno nei progetti");
 
-            // cartella (relativa alla radice) -> csproj che la deve elencare.
-            // I `Checks\<attrezzo>\` hanno un csproj per attrezzo e stanno
-            // fuori dalla soluzione apposta: non si controllano qui.
+            // folder (relative to the root) -> csproj that must list it.
+            // The `Checks\<attrezzo>\` have one csproj per tool and stand
+            // outside the solution on purpose: they are not checked here.
             var map = new[]
             {
                 new { Dove = new[] { @"Oce.Solid.Agent.Core", @"Oce.Solid.Agent.Core\Catalog",
@@ -539,18 +539,18 @@ namespace Oce.Solid.Agent.ContractTests
                 new { Dove = new[] { @"Bench" }, Progetto = @"Bench\Oce.Solid.Agent.Bench.csproj" },
                 new { Dove = new[] { @"Tests" }, Progetto = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
 
-                // `Shared\` LA COMPILANO IN DUE, e qui basta nominarne uno.
+                // `Shared\` IS BUILT BY TWO, and here naming one is enough.
                 //
-                // Il controllo e' a senso unico: «ogni sorgente sotto questa
-                // cartella compare in quel progetto». Che il banco compili gli
-                // stessi file non lo rende falso, e chiedere che una cartella
-                // stia in un progetto SOLO renderebbe rosso proprio il modo in
-                // cui `Expectations.cs` e' condiviso da giorni.
+                // The check is one-way: «every source under this
+                // folder appears in that project». That the bench builds the
+                // same files does not make it false, and asking that a folder
+                // be in ONE project only would turn red precisely the way in
+                // which `Expectations.cs` has been shared for days.
                 //
-                // Senza questa riga `Shared\` sarebbe l'unica cartella di
-                // sorgenti che nessuno guarda: un file messo li' e dimenticato
-                // fuori dai csproj non verrebbe compilato e non lo direbbe
-                // nessuno — il difetto per cui questo controllo esiste.
+                // Without this line `Shared\` would be the only folder of
+                // sources that nobody looks at: a file put there and forgotten
+                // outside the csproj files would not be built and nobody would say
+                // so — the defect this check exists for.
                 new { Dove = new[] { @"Shared" },
                       Progetto = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
                 new { Dove = new[] { @"Installer" }, Progetto = @"Installer\Installer.csproj" },
@@ -575,19 +575,19 @@ namespace Oce.Solid.Agent.ContractTests
                 {
                     var full = Path.Combine(Root(), folder);
                     if (!Directory.Exists(full)) continue;
-                    // SOLO il primo livello: `obj\` e `bin\` sono pieni di
-                    // sorgenti generati che nessun csproj elenca, e che non
-                    // devono entrare nel conto.
+                    // ONLY the first level: `obj\` and `bin\` are full of
+                    // generated sources that no csproj lists, and that must
+                    // not enter the count.
                     foreach (var f in Directory.GetFiles(full, "*.cs", SearchOption.TopDirectoryOnly))
                     {
                         var itemName = Path.GetFileName(f);
-                        // Generati dal compilatore, mai elencati a mano.
+                        // Generated by the compiler, never listed by hand.
                         if (itemName.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
                             itemName.IndexOf("AssemblyAttributes", StringComparison.OrdinalIgnoreCase) >= 0)
                             continue;
                         inspected++;
-                        // Si cerca il NOME fra virgolette: copre sia
-                        // `Include="Pippo.cs"` sia `Include="Bridge\Pippo.cs"`.
+                        // The NAME is looked for between quotes: it covers both
+                        // `Include="Pippo.cs"` and `Include="Bridge\Pippo.cs"`.
                         if (text.IndexOf(itemName + "\"", StringComparison.OrdinalIgnoreCase) < 0)
                             outside.Add(folder + "\\" + itemName + " → " + m.Progetto);
                     }
@@ -604,32 +604,32 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// OGNI VARIABILE D'AMBIENTE CHE IL PONTE LEGGE STA NEL README.
+        /// EVERY ENVIRONMENT VARIABLE THAT THE BRIDGE READS IS IN THE README.
         ///
-        /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
+        /// ── WHY THIS CHECK EXISTS ────────────────────────────────────────
         ///
-        /// Trovate il 17/9/2026 leggendo il README per un'altra ragione:
-        /// **tre variabili su otto non c'erano**, e due delle tre erano
-        /// `RISCONTRO_RADICE` e `RISCONTRO_SOLA_LETTURA` — cioe' le uniche due
-        /// con cui si dice al ponte dove NON deve scrivere. Chi installa legge
-        /// la tabella, non i sorgenti: una difesa che c'e' nel codice e non nel
-        /// README **e' una difesa che nessuno accende**, e il pezzo lo scopre
-        /// riscrivendo una libreria condivisa.
+        /// Found on 17/9/2026 reading the README for another reason:
+        /// **three variables out of eight were not there**, and two of the three were
+        /// `RISCONTRO_RADICE` and `RISCONTRO_SOLA_LETTURA` — that is, the only two
+        /// with which the bridge is told where it must NOT write. Whoever installs reads
+        /// the table, not the sources: a defense that is in the code and not in the
+        /// README **is a defense that nobody switches on**, and the part finds it out
+        /// by rewriting a shared library.
         ///
-        /// Non e' pignoleria documentale: e' lo stesso difetto delle altre
-        /// prove di contratto qui dentro — due elenchi scritti in due posti
-        /// divergono, e il momento in cui divergono nessuno lo vede.
+        /// It is not documentary pedantry: it is the same defect as the other
+        /// contract checks in here — two lists written in two places
+        /// diverge, and the moment they diverge nobody sees it.
         ///
-        /// ── COSA GUARDA, E COSA NO ───────────────────────────────────────
+        /// ── WHAT IT LOOKS AT, AND WHAT IT DOES NOT ────────────────────────
         ///
-        /// Solo i sorgenti del PONTE e della LIBRERIA: `Bench\` e `Tests\`
-        /// leggono variabili che servono a chi sviluppa, non a chi installa, e
-        /// pretenderle nel README vorrebbe dire riempirlo di roba che a chi
-        /// legge non serve.
+        /// Only the sources of the BRIDGE and of the LIBRARY: `Bench\` and `Tests\`
+        /// read variables that are for whoever develops, not for whoever installs, and
+        /// demanding them in the README would mean filling it with stuff that is of no use
+        /// to whoever reads it.
         ///
-        /// Il nome si cerca **in tutto il README**, non solo nella tabella: una
-        /// variabile spiegata per esteso in un paragrafo e' documentata. Il
-        /// controllo non pretende una forma, pretende che il nome ci sia.
+        /// The name is looked for **in the whole README**, not only in the table: a
+        /// variable explained at length in a paragraph is documented. The
+        /// check does not demand a form, it demands that the name be there.
         /// </summary>
         private static void EveryEnvironmentVariableIsInTheReadme()
         {
@@ -641,10 +641,10 @@ namespace Oce.Solid.Agent.ContractTests
             try { text = File.ReadAllText(readme); }
             catch (Exception ex) { Check("il README si legge", false, ex.Message); return; }
 
-            // `GetEnvironmentVariable("X")` e la scorciatoia `Variable("X")`
-            // di `Bridge\Paths.cs`. La seconda e' proprio quella che nascondeva
-            // `RISCONTRO_RADICE` e `RISCONTRO_SOLA_LETTURA` a un grep fatto sul
-            // nome lungo: **cercare una sola forma vuol dire trovarne una sola.**
+            // `GetEnvironmentVariable("X")` and the shortcut `Variable("X")`
+            // of `Bridge\Paths.cs`. The second is exactly the one that hid
+            // `RISCONTRO_RADICE` and `RISCONTRO_SOLA_LETTURA` from a grep done on the
+            // long name: **looking for one form only means finding only one.**
             var shape = new System.Text.RegularExpressions.Regex(
                 @"(?:GetEnvironmentVariable|Variable)\(""([A-Z][A-Z_0-9]+)""\)");
 
@@ -664,9 +664,9 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
 
-            // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE, e non prova niente.
-            // Se un giorno le cartelle cambiano nome, questa riga diventa rossa
-            // invece di lasciare che il controllo si spenga in silenzio.
+            // A CHECK THAT FINDS NOTHING ALWAYS PASSES, and proves nothing.
+            // If one day the folders change name, this line turns red
+            // instead of letting the check switch itself off silently.
             Check("ci sono variabili da controllare", foundOnes.Count >= 6,
                   foundOnes.Count + ": " + string.Join(", ", foundOnes));
 
@@ -679,29 +679,29 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// I NUMERI IN `Bench\README.md` SONO QUANTI SONO I FILE DAVVERO.
+        /// THE NUMBERS IN `Bench\README.md` ARE HOW MANY FILES THERE REALLY ARE.
         ///
-        /// ── PERCHE' ESISTE ───────────────────────────────────────────────
+        /// ── WHY IT EXISTS ─────────────────────────────────────────────────
         ///
-        /// Il LEGGIMI del banco ha una tabella «cartella / quanti casi / cosa
-        /// provano». Guardata il 17/9/2026: **quattro numeri su venti erano
-        /// sbagliati** — `features` diceva 2 e ne aveva 7, `ripeti` 3 e ne
-        /// aveva 6. Nessuno se n'era accorto, perche' un numero in un documento
-        /// non fallisce: invecchia.
+        /// The README of the bench has a table «folder / how many cases / what they
+        /// test». Looked at on 17/9/2026: **four numbers out of twenty were
+        /// wrong** — `features` said 2 and had 7, `ripeti` 3
+        /// and had 6. Nobody had noticed, because a number in a document does not
+        /// fail: it ages.
         ///
-        /// E' lo stesso difetto che il README aveva sul conto delle operazioni
-        /// («trentotto» quando erano sessanta), riparato allo stesso modo: non
-        /// ricontando a mano — *un conteggio fatto a mano invecchia mentre lo si
-        /// scrive* — ma facendolo ricontare a ogni giro.
+        /// It is the same defect that the README had on the count of operations
+        /// («thirty-eight» when there were sixty), repaired in the same way: not
+        /// by recounting by hand — *a count done by hand ages while it is
+        /// being written* — but by having it recounted on every run.
         ///
-        /// ── LA SOMMA, E NON LA RIGA ──────────────────────────────────────
+        /// ── THE SUM, AND NOT THE LINE ─────────────────────────────────────
         ///
-        /// Una cartella puo' comparire **due volte** nella tabella, e adesso ce
-        /// n'e' una: `cases/drawing/` contiene sia i piani a mano sia i casi
-        /// dichiarati, ed e' elencata in tutt'e due i blocchi con due numeri
-        /// diversi. Si sommano le righe della stessa cartella e si confronta la
-        /// somma: 7 + 1 = 8 file. Pretendere che ogni riga da sola combaci
-        /// renderebbe rossa una tabella giusta.
+        /// A folder can appear **twice** in the table, and now there is
+        /// one: `cases/drawing/` contains both the hand-written plans and the declared
+        /// cases, and it is listed in both blocks with two different
+        /// numbers. The lines of the same folder are added up and the
+        /// sum is compared: 7 + 1 = 8 files. Demanding that every line on its own match
+        /// would turn a correct table red.
         /// </summary>
         private static void TheBenchReadmeCountsTheRightFiles()
         {
@@ -713,16 +713,16 @@ namespace Oce.Solid.Agent.ContractTests
             try { text = File.ReadAllText(readme); }
             catch (Exception ex) { Check("il LEGGIMI del banco si legge", false, ex.Message); return; }
 
-            // `cases/<nome>/` seguito da spazi e da un numero. Le righe di
-            // continuazione (la descrizione che va a capo) non hanno il numero
-            // e non corrispondono: e' voluto.
+            // `cases/<nome>/` followed by spaces and a number. The
+            // continuation lines (the description that wraps) do not have the number
+            // and do not match: it is intended.
             //
-            // A INIZIO RIGA, e il perche' e' misurato (25/9/2026): senza `^` il
-            // conto prendeva anche la frase che RACCONTA la vecchia riga
-            // («Questa riga prima la contava ... «cases/forma/ 5»»), e
-            // `cases/forma/` non e' nel repository per scelta. In locale passava,
-            // perche' i cinque file ci sono; in un clone pulito — la CI — era
-            // «nominate e non esistenti: forma», rosso a ogni push dalla 0.85.0.
+            // AT THE START OF THE LINE, and the reason is measured (25/9/2026): without `^` the
+            // count also took the sentence that TELLS the old line
+            // («This line used to count it ... «cases/forma/ 5»»), and
+            // `cases/forma/` is not in the repository by choice. Locally it passed,
+            // because the five files are there; in a clean clone — the CI — it was
+            // «nominate e non esistenti: forma», red on every push since 0.85.0.
             var shape = new System.Text.RegularExpressions.Regex(
                 @"^cases/([a-z_]+)/\s+(\d+)", System.Text.RegularExpressions.RegexOptions.Multiline);
 
@@ -734,8 +734,8 @@ namespace Oce.Solid.Agent.ContractTests
                 declared[itemName] = (declared.ContainsKey(itemName) ? declared[itemName] : 0) + n;
             }
 
-            // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE. Se la tabella cambia
-            // forma, questa riga diventa rossa invece di spegnersi in silenzio.
+            // A CHECK THAT FINDS NOTHING ALWAYS PASSES. If the table changes
+            // shape, this line turns red instead of switching itself off silently.
             Check("ci sono cartelle da controllare", declared.Count >= 15,
                   declared.Count + " righe «cases/<nome>/ N»");
 
@@ -762,45 +762,45 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// OGNI FAMIGLIA DEL CATALOGO HA UN TIPO DI DOCUMENTO SU CUI PUO' GIRARE.
+        /// EVERY FAMILY OF THE CATALOGUE HAS A DOCUMENT TYPE IT CAN RUN ON.
         ///
-        /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
+        /// ── WHY THIS CHECK EXISTS ─────────────────────────────────────────
         ///
-        /// Trovato il 18/9/2026 leggendo `PlanExecutor.cs` per un'altra
-        /// ragione: `PreliminaryChecks()` — che gira **prima del primo
-        /// passo di ogni piano**, e per tutti e quattro gli strumenti del ponte
-        /// — ammette solo `swDocPART` e, se `AlsoOnDrawings`, `swDocDRAWING`.
-        /// Gli assiemi no. Intanto il catalogo servito ai client elencava tre
-        /// operazioni di famiglia `assemblies`.
+        /// Found on 18/9/2026 reading `PlanExecutor.cs` for another
+        /// reason: `PreliminaryChecks()` — which runs **before the first
+        /// step of every plan**, and for all four tools of the bridge
+        /// — admits only `swDocPART` and, if `AlsoOnDrawings`, `swDocDRAWING`.
+        /// Not assemblies. Meanwhile the catalogue served to the clients listed three
+        /// operations of the `assemblies` family.
         ///
-        /// **Il ponte prometteva operazioni che avrebbe rifiutato prima di
-        /// cominciare, e nessuna delle 710 prove del banco poteva vederlo: il
-        /// banco chiama la LIBRERIA, non il ponte.** Due misure vere di due
-        /// cose diverse, e chi legge il numero grande crede che copra anche
-        /// l'altra.
+        /// **The bridge promised operations that it would have refused before
+        /// starting, and none of the 710 checks of the bench could see it:
+        /// the bench calls the LIBRARY, not the bridge.** Two true measurements
+        /// of two different things, and whoever reads the big number believes
+        /// it covers the other too.
         ///
-        /// ── COME LO GUARDA ───────────────────────────────────────────────
+        /// ── HOW IT LOOKS AT IT ────────────────────────────────────────────
         ///
-        /// Dal sorgente, non da un elenco scritto a mano: i tipi ammessi si
-        /// leggono da `PreliminaryChecks` con una regex sui token
-        /// `swDoc...`, cosi' il giorno che qualcuno ne aggiunge o ne toglie uno
-        /// questa prova se ne accorge invece di restare d'accordo con se stessa.
+        /// From the source, not from a hand-written list: the admitted types are
+        /// read from `PreliminaryChecks` with a regex on the `swDoc...`
+        /// tokens, so the day somebody adds or removes one
+        /// this check notices instead of staying in agreement with itself.
         ///
-        /// ── COSA **NON** PRENDE, e va detto ──────────────────────────────
+        /// ── WHAT IT DOES **NOT** CATCH, and it must be said ───────────────
         ///
-        /// Guarda le FAMIGLIE, non le singole operazioni. `interference_check`
-        /// sta in famiglia `checks` e vuole un assieme: questa prova la
-        /// classifica come «part» e la lascia passare. Il rimedio vero e' un
-        /// campo `RequestedDocument` su `OperationSpec` — voce a se',
-        /// perche' tocca la libreria. Finche' non c'e', **questa prova copre la
-        /// famiglia e non il caso singolo**, ed e' scritto qui perche' chi la
-        /// vede verde non creda che copra di piu'.
+        /// It looks at the FAMILIES, not at the single operations. `interference_check`
+        /// is in the `checks` family and wants an assembly: this check
+        /// classifies it as «part» and lets it pass. The real remedy is a
+        /// `RequestedDocument` field on `OperationSpec` — an entry of its own,
+        /// because it touches the library. Until it is there, **this check covers the
+        /// family and not the single case**, and it is written here so that whoever
+        /// sees it green does not believe it covers more.
         /// </summary>
         private static void EveryCatalogFamilyHasAnAllowedDocument()
         {
             Group("il catalogo promette solo documenti che l'esecutore ammette");
 
-            // ── 1. i tipi che l'esecutore ammette, letti dal suo sorgente ──
+            // ── 1. the types the executor admits, read from its source ──
             var source = Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(source))
             {
@@ -814,9 +814,9 @@ namespace Oce.Solid.Agent.ContractTests
             int da = code.IndexOf("bool allowed", StringComparison.Ordinal);
             if (da < 0)
             {
-                // Se la riga cambia forma questa prova NON deve passare in
-                // silenzio: una prova che non trova cio' che cerca e passa e'
-                // peggio di nessuna prova.
+                // If the line changes shape this check MUST NOT pass in
+                // silence: a check that does not find what it looks for and passes is
+                // worse than no check.
                 Check("trovo la riga che decide i tipi ammessi", false,
                       "«bool allowed» non c'e' piu' in PlanExecutor.cs: " +
                       "la prova va riscritta, non tolta");
@@ -833,13 +833,13 @@ namespace Oce.Solid.Agent.ContractTests
             Check("l'esecutore ammette almeno un tipo di documento", allowed.Count >= 1,
                   string.Join(", ", allowed));
 
-            // ── 2. le famiglie che il catalogo SERVE ai client ─────────────
+            // ── 2. the families the catalogue SERVES to the clients ─────────
             var json = Path.Combine(Root(), "bin", "catalog.json");
-            // Come nel gruppo «il catalogo» (voce F9-bis): dove il ponte non si
-            // poteva compilare, `bin\\` e' vuota e il file buono e' quello in
-            // repository. Questo controllo legge un JSON e un sorgente C#: non ha
-            // niente da chiedere a SOLIDWORKS, e fermarsi qui vorrebbe dire non
-            // fare una verifica che si poteva fare.
+            // As in the group «il catalogo» (entry F9-bis): where the bridge could not
+            // be built, `bin\\` is empty and the good file is the one in the
+            // repository. This check reads a JSON and a C# source: it has
+            // nothing to ask SOLIDWORKS, and stopping here would mean not
+            // doing a verification that could be done.
             if (!ProductFromBuild(json) && !TheBridgeCouldBeBuilt())
             {
                 var inRepository = Path.Combine(Root(), "Tools", "catalog.json");
@@ -873,11 +873,11 @@ namespace Oce.Solid.Agent.ContractTests
             Check("ci sono famiglie da controllare", families.Count >= 5,
                   families.Count + ": " + string.Join(", ", families));
 
-            // ── 3. su che tipo di documento ha senso ognuna ────────────────
-            // Tre righe scritte a mano, e il loro compito e' proprio di NON
-            // sapere tutto: una famiglia che non conoscono e' ROSSA, non verde.
-            // Cosi' l'elenco non puo' invecchiare in silenzio — chi ne aggiunge
-            // una deve dire su cosa gira.
+            // ── 3. on which type of document each one makes sense ────────
+            // Three hand-written lines, and their job is precisely NOT to
+            // know everything: a family they do not know is RED, not green.
+            // This way the list cannot age in silence — whoever adds
+            // one must say what it runs on.
             var serve = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 { "assemblies",      "swDocASSEMBLY" },
@@ -919,60 +919,60 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// DUE VOCI DEL TODO NON SI CHIAMANO ALLO STESSO MODO.
+        /// TWO ENTRIES OF THE TODO ARE NOT CALLED THE SAME WAY.
         ///
-        /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
+        /// ── WHY THIS CHECK EXISTS ─────────────────────────────────────────
         ///
-        /// Il 17/9/2026 sono state innestate 65 voci nuove (la «sezione Z»),
-        /// chiamate `A1`, `B3`, `C3`… **Trentasette di quei nomi erano gia'
-        /// usati, nello stesso file, da voci diverse — e trentatre' di quelle
-        /// erano chiuse.** «Fai C3» portava a una voce verde del 14/9 che non
-        /// c'entrava niente: chi ci arrivava concludeva che il lavoro era
-        /// fatto, e la voce vera restava invisibile.
+        /// On 17/9/2026 65 new entries were grafted in (the «Z section»),
+        /// called `A1`, `B3`, `C3`… **Thirty-seven of those names were already
+        /// used, in the same file, by different entries — and thirty-three of
+        /// those were closed.** «Do C3» led to a green entry of 14/9 that had
+        /// nothing to do with it: whoever got there concluded that the work was
+        /// done, and the real entry stayed invisible.
         ///
-        /// Nessun errore da nessuna parte, che e' la firma di questa famiglia
-        /// di difetti — la stessa di `40x40x3` contro `40X40X3` e di `.sldprt`
-        /// contro `.SLDPRT`, applicata all'indice del lavoro invece che ai dati.
+        /// No error anywhere, which is the signature of this family
+        /// of defects — the same as `40x40x3` against `40X40X3` and `.sldprt`
+        /// against `.SLDPRT`, applied to the index of the work instead of to the data.
         ///
-        /// ── L'ECCEZIONE, ED E' UNA CONVENZIONE VERA ──────────────────────
+        /// ── THE EXCEPTION, AND IT IS A REAL CONVENTION ────────────────────
         ///
-        /// Quando una voce viene rifatta, l'originale si tiene sotto col nome
-        /// di prima e la dicitura «traccia originale, tenuta per riferimento»:
-        /// li' il nome doppio e' voluto e dice qualcosa. Quindi il doppione si
-        /// accetta **solo** se una delle due e' una traccia.
+        /// When an entry is redone, the original is kept below with the previous name
+        /// and the wording «traccia originale, tenuta per riferimento»:
+        /// there the double name is intended and says something. So the duplicate is
+        /// accepted **only** if one of the two is a trace.
         ///
-        /// Non si pretende che il TODO sia in un formato: si pretende che due
-        /// cose diverse non si chiamino uguale.
+        /// The TODO is not required to be in a format: what is required is that two
+        /// different things not be called the same.
         /// </summary>
         /// <summary>
-        /// OGNI CARTELLA DI CASI STA NELL'ELENCO CHE IL BANCO SCORRE.
+        /// EVERY CASE FOLDER IS IN THE LIST THAT THE BENCH SCANS.
         ///
-        /// ── IL DIFETTO CHE QUESTO CONTROLLO PRENDE ───────────────────────
+        /// ── THE DEFECT THIS CHECK CATCHES ─────────────────────────────────
         ///
-        /// `Bench\DeclaredCases.cs` ha un elenco ESPLICITO di famiglie, e
-        /// scorre solo quelle. Una cartella nuova sotto `Bench\cases\` che non
-        /// finisca in quell'elenco contiene file che **sembrano prove e non
-        /// girano mai**: nessun errore, nessun avviso, e il conto delle prove
-        /// non se ne accorge perche' quei casi non sono mai esistiti per lui.
+        /// `Bench\DeclaredCases.cs` has an EXPLICIT list of families, and
+        /// scans only those. A new folder under `Bench\cases\` that does not
+        /// end up in that list contains files that **look like checks and never
+        /// run**: no error, no warning, and the count of the checks
+        /// does not notice because those cases never existed for it.
         ///
-        /// E' successo il 23/9/2026 scrivendo la voce Z-C6: la cartella
-        /// `saldature\` e' nata col suo primo caso dentro, e sarebbe rimasta
-        /// muta. *Un elenco scritto a mano e' una cosa che un giorno qualcuno
-        /// dimentica di allungare, e il modo in cui lo dimentica e' non
-        /// accorgersene.*
+        /// It happened on 23/9/2026 writing entry Z-C6: the folder
+        /// `saldature\` was born with its first case inside, and would have stayed
+        /// mute. *A hand-written list is a thing that one day somebody
+        /// forgets to lengthen, and the way they forget it is by not
+        /// noticing.*
         ///
-        /// ── PERCHE' SI GUARDA LA FORMA DEI FILE, NON IL NOME ─────────────
+        /// ── WHY THE SHAPE OF THE FILES IS LOOKED AT, NOT THE NAME ─────────
         ///
-        /// Sotto `cases\` ci sono due cose diverse: i CASI (oggetti con dei
-        /// passi e delle attese, che il banco esegue) e i PIANI (array, che
-        /// lancia `run_plans.js` a mano). Le cartelle di soli piani —
-        /// `ponte\`, `limiti\`, `viste\`, `pezzi\`, `forma\` — stanno fuori
-        /// dall'elenco ed e' giusto cosi'.
+        /// Under `cases\` there are two different things: the CASES (objects with
+        /// steps and expectations, which the bench executes) and the PLANS (arrays, which
+        /// `run_plans.js` launches by hand). The folders of plans only —
+        /// `ponte\`, `limiti\`, `viste\`, `pezzi\`, `forma\` — stand outside
+        /// the list and rightly so.
         ///
-        /// Quindi il controllo non chiede «ogni cartella e' nell'elenco»:
-        /// chiede «ogni cartella che contiene almeno un CASO e' nell'elenco».
-        /// La differenza e' fra un controllo che descrive la realta' e uno che
-        /// pretende un ordine che non c'e'.
+        /// So the check does not ask «every folder is in the list»:
+        /// it asks «every folder that contains at least one CASE is in the list».
+        /// The difference is between a check that describes reality and one that
+        /// demands an order that is not there.
         /// </summary>
         private static void EveryCasesFolderIsInTheList()
         {
@@ -991,9 +991,9 @@ namespace Oce.Solid.Agent.ContractTests
             var block = System.Text.RegularExpressions.Regex.Match(text, @"Families\s*=\s*\{([\s\S]*?)\};");
             if (!block.Success)
             {
-                // SE L'ELENCO SPARISCE, SPARISCE ANCHE QUESTO CONTROLLO: e
-                // un controllo che sparisce in silenzio e' peggio di uno che
-                // non c'e' mai stato.
+                // IF THE LIST DISAPPEARS, THIS CHECK DISAPPEARS TOO: and
+                // a check that disappears in silence is worse than one that
+                // was never there.
                 Check("trovo l'elenco delle famiglie", false,
                       "non c'e' nessun «Families = { ... }» in DeclaredCases.cs");
                 return;
@@ -1007,10 +1007,10 @@ namespace Oce.Solid.Agent.ContractTests
                   listed.Count + " famiglie");
             if (listed.Count < 10) return;
 
-            // `regression` NON sta nell'elenco, e non e' un difetto: ha un
-            // giro suo (`--regressione`), con un valutatore suo. Sta scritto
-            // qui e non in un elenco di eccezioni generico, perche' e' una
-            // sola e ha un motivo.
+            // `regression` is NOT in the list, and it is not a defect: it has a
+            // run of its own (`--regressione`), with an evaluator of its own. It is written
+            // here and not in a generic list of exceptions, because it is
+            // only one and it has a reason.
             var outsideByDesign = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regression" };
 
             var mute = new List<string>();
@@ -1024,8 +1024,8 @@ namespace Oce.Solid.Agent.ContractTests
                 {
                     string raw;
                     try { raw = File.ReadAllText(f); } catch { continue; }
-                    // UN CASO E' UN OGGETTO, UN PIANO E' UN ARRAY. Stessa
-                    // distinzione strutturale che fa il banco.
+                    // A CASE IS AN OBJECT, A PLAN IS AN ARRAY. The same
+                    // structural distinction that the bench makes.
                     var t = raw.TrimStart();
                     if (t.StartsWith("{") && t.IndexOf("\"steps\"", StringComparison.Ordinal) >= 0)
                     { hasCases = true; break; }
@@ -1045,12 +1045,12 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Dove sta il TODO, o `null` se in questo clone non c'e'.
+        /// Where the TODO is, or `null` if in this clone it is not there.
         ///
-        /// Stesso ordine di `Checks\where-is-the-todo.js`, e per lo stesso
-        /// motivo: la variabile `TODO_MD` per chi lo tiene altrove,
-        /// `note-interne\TODO.md` dove sta oggi, e la radice dov'era prima —
-        /// cosi' un clone vecchio continua a funzionare senza accorgersene.
+        /// Same order as `Checks\where-is-the-todo.js`, and for the same
+        /// reason: the `TODO_MD` variable for whoever keeps it elsewhere,
+        /// `note-interne\TODO.md` where it is today, and the root where it was before —
+        /// so an old clone keeps working without noticing.
         /// </summary>
         private static string WhereTheTodoIs()
         {
@@ -1070,18 +1070,18 @@ namespace Oce.Solid.Agent.ContractTests
         {
             Group("nel TODO due voci non si chiamano allo stesso modo");
 
-            // IL TODO NON E' PIU' NEL REPOSITORY PUBBLICO: e' un diario di
-            // lavoro e vive in `note-interne\`, che il .gitignore esclude.
+            // THE TODO IS NO LONGER IN THE PUBLIC REPOSITORY: it is a work
+            // journal and lives in `note-interne\`, which the .gitignore excludes.
             //
-            // QUI PRIMA C'ERA `Check(..., false, ...)`, cioe' un ROSSO. Su
-            // questa macchina non sarebbe mai scattato; su ogni clone sarebbe
-            // stato rosso sempre, per un file che chi clona non ha e non deve
-            // avere - una prova che fallisce per tutti tranne chi l'ha scritta
-            // non misura il codice, misura chi lo esegue.
+            // HERE THERE USED TO BE `Check(..., false, ...)`, that is a RED. On
+            // this machine it would never have triggered; on every clone it would
+            // have been red always, for a file that whoever clones does not have and must not
+            // have - a check that fails for everybody except whoever wrote it
+            // does not measure the code, it measures whoever runs it.
             //
-            // Adesso la prova si SALTA dicendolo. Il conto dei controlli
-            // scende di uno invece di salire di un rosso, che e' la differenza
-            // fra «non l'ho controllato» e «l'ho controllato e va male».
+            // Now the check is SKIPPED, and says so. The count of the checks
+            // goes down by one instead of going up by a red, which is the difference
+            // between «I did not check it» and «I checked it and it goes badly».
             var todo = WhereTheTodoIs();
             if (todo == null)
             {
@@ -1099,7 +1099,7 @@ namespace Oce.Solid.Agent.ContractTests
                 @"traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-            // nome -> quante volte, e quante di quelle erano tracce
+            // name -> how many times, and how many of those were traces
             var howMany = new Dictionary<string, int>(StringComparer.Ordinal);
             var traces = new Dictionary<string, int>(StringComparer.Ordinal);
             int totali = 0;
@@ -1115,16 +1115,16 @@ namespace Oce.Solid.Agent.ContractTests
                     traces[itemName] = (traces.ContainsKey(itemName) ? traces[itemName] : 0) + 1;
             }
 
-            // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE. Se un giorno le
-            // intestazioni cambiano forma, questa riga diventa rossa invece di
-            // lasciare che il controllo si spenga in silenzio.
+            // A CHECK THAT FINDS NOTHING ALWAYS PASSES. If one day the
+            // headings change shape, this line turns red instead of
+            // letting the check switch itself off silently.
             Check("ci sono voci da controllare", totali >= 100, totali + " intestazioni");
 
             var doubled = new List<string>();
             foreach (var v in howMany)
             {
                 int t = traces.ContainsKey(v.Key) ? traces[v.Key] : 0;
-                // una voce viva piu' le sue tracce: va bene. Due vive no.
+                // one live entry plus its traces: fine. Two live ones, no.
                 if (v.Value - t > 1)
                     doubled.Add(v.Key + " (×" + v.Value + ", di cui tracce: " + t + ")");
             }
@@ -1138,31 +1138,31 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// IL RIFIUTO DI `model_dimensions` DICE ANCORA QUELLO CHE SERVE.
+        /// THE REFUSAL OF `model_dimensions` STILL SAYS WHAT IS NEEDED.
         ///
-        /// ── PERCHE' ESISTE, E COSA NON E' ────────────────────────────────
+        /// ── WHY IT EXISTS, AND WHAT IT IS NOT ─────────────────────────────
         ///
-        /// Misurato il 18/9/2026: su un pezzo costruito dal ponte, con **sette
-        /// quote tutte marcate per il disegno**, cinque strade di import ne
-        /// portavano **zero**. **Il 26/9/2026 l'import funziona fuori processo**
-        /// (7 quote sullo stesso pezzo, due sonde) e la prova di comportamento
-        /// c'e': `dimensions/dimensions_come_from_the_model`, col rifiuto senza viste e
-        /// la gemella verde (Z-C1-bis, Z-E7 chiusa). Questo controllo resta per il
-        /// giorno in cui l'import torna a portare zero quote: allora il messaggio
-        /// qui sotto e' di nuovo tutto cio' che un modello riceve.
+        /// Measured on 18/9/2026: on a part built by the bridge, with **seven
+        /// dimensions all marked for the drawing**, five import routes
+        /// brought **zero**. **On 26/9/2026 the import works out of process**
+        /// (7 dimensions on the same part, two probes) and the behaviour check
+        /// is there: `dimensions/dimensions_come_from_the_model`, with the refusal without views and
+        /// the green twin (Z-C1-bis, Z-E7 closed). This check stays for the
+        /// day the import goes back to bringing zero dimensions: then the message
+        /// below is once again all that a model receives.
         ///
-        /// In quel caso **quel messaggio e' tutto cio' che un modello riceve
-        /// quando chiede le quote**, ed e' la parte che funziona: dice quante
-        /// quote ha il pezzo, **quante sono marcate** — il dato che divide in
-        /// due le cause possibili — e l'elenco delle strade provate. Se qualcuno
-        /// lo accorcia «perche' era lungo», non se ne accorge nessuno.
+        /// In that case **that message is all that a model receives
+        /// when it asks for the dimensions**, and it is the part that works: it says how many
+        /// dimensions the part has, **how many are marked** — the datum that splits the
+        /// possible causes in two — and the list of the routes tried. If somebody
+        /// shortens it «because it was long», nobody notices.
         ///
-        /// ── COSA GUARDA, E COSA NON PUO' GUARDARE ────────────────────────
+        /// ── WHAT IT LOOKS AT, AND WHAT IT CANNOT LOOK AT ──────────────────
         ///
-        /// Guarda il **sorgente**, non l'esecuzione: qui SOLIDWORKS non c'e'.
-        /// Quindi prova che le frasi ci sono ancora, **non** che il rifiuto
-        /// scatta e nemmeno che dice il vero: quello lo prova il caso di banco
-        /// della coppia (dal 26/9/2026).
+        /// It looks at the **source**, not at the execution: here SOLIDWORKS is not there.
+        /// So it proves that the sentences are still there, **not** that the refusal
+        /// triggers nor that it says the truth: that is proved by the bench case
+        /// of the pair (since 26/9/2026).
         /// </summary>
         private static void TheDimensionsRefusalStillSaysWhatIsNeeded()
         {
@@ -1174,9 +1174,9 @@ namespace Oce.Solid.Agent.ContractTests
             try { code = File.ReadAllText(file); }
             catch (Exception ex) { Check("il sorgente si legge", false, ex.Message); return; }
 
-            // L'ANCORA. Se sparisce, questo controllo non ha piu' un soggetto e
-            // deve diventare ROSSO: una prova che non trova cio' che cerca e
-            // passa e' peggio di nessuna prova.
+            // THE ANCHOR. If it disappears, this check no longer has a subject and
+            // must turn RED: a check that does not find what it looks for and
+            // passes is worse than no check.
             const string anchor = "Non e' arrivata nessuna quota";
             if (code.IndexOf(anchor, StringComparison.Ordinal) < 0)
             {
@@ -1187,8 +1187,8 @@ namespace Oce.Solid.Agent.ContractTests
             }
             Check("trovo il rifiuto di model_dimensions", true, "");
 
-            // Ogni pezzo, e accanto PERCHE' quel pezzo: un elenco di stringhe
-            // senza il motivo e' la prima cosa che qualcuno taglia.
+            // Every piece, and next to it WHY that piece: a list of strings
+            // without the reason is the first thing somebody cuts.
             var parts = new[]
             {
                 new[] { "marcate per il disegno",
@@ -1216,35 +1216,35 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// LA LIBRERIA CHE CARICA IL PONTE E' LA STESSA CHE MISURA IL BANCO.
+        /// THE LIBRARY THAT THE BRIDGE LOADS IS THE SAME ONE THAT THE BENCH MEASURES.
         ///
-        /// ── PERCHE' ESISTE, E QUANTO E' COSTATA ──────────────────────────
+        /// ── WHY IT EXISTS, AND WHAT IT COST ───────────────────────────────
         ///
-        /// Ce ne sono **due copie**, e vivono in due posti:
+        /// There are **two copies**, and they live in two places:
         ///
-        ///   Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll   <- il banco
-        ///   bin\Oce.Solid.Agent.Core.dll                             <- il ponte
+        ///   Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll   <- the bench
+        ///   bin\Oce.Solid.Agent.Core.dll                             <- the bridge
         ///
-        /// La seconda la mette `build.ps1`. Chi compila **il solo progetto**
-        /// della libreria — che e' la cosa piu' naturale del mondo mentre si
-        /// itera — aggiorna la prima e **non** la seconda.
+        /// The second is put there by `build.ps1`. Whoever builds **the library project
+        /// alone** — which is the most natural thing in the world while
+        /// iterating — updates the first and **not** the second.
         ///
-        /// Il 18/9/2026 sono divergute di quattro versioni per nove ore.
-        /// Il banco misurava 0.98.4 e il ponte girava 0.98.1: una riparazione
-        /// e' stata provata tre volte dal ponte e **non e' mai stata provata**,
-        /// perche' in quel binario non c'era. Il sintomo era perfetto —
-        /// l'operazione «non rifiutava» — e la causa non era nel codice.
+        /// On 18/9/2026 they diverged by four versions for nine hours.
+        /// The bench measured 0.98.4 and the bridge was running 0.98.1: a repair
+        /// was tested three times by the bridge and **was never tested**,
+        /// because it was not in that binary. The symptom was perfect —
+        /// the operation «did not refuse» — and the cause was not in the code.
         ///
-        /// *Due copie della stessa cosa in due posti divergono, e il giorno in
-        /// cui divergono nessuno lo vede: si vede il sintomo, mesi dopo,
-        /// travestito da difetto del codice.*
+        /// *Two copies of the same thing in two places diverge, and the day
+        /// they diverge nobody sees it: the symptom is seen, months later,
+        /// disguised as a defect of the code.*
         ///
-        /// ── COSA GUARDA ─────────────────────────────────────────────────
+        /// ── WHAT IT LOOKS AT ──────────────────────────────────────────────
         ///
-        /// Le due versioni, e basta. Non i byte: un rebuild senza modifiche
-        /// cambia i byte e non cambia niente di cio' che conta.
-        /// Se una delle due manca lo dice e **non passa**: una prova che non
-        /// trova cio' che cerca e passa e' peggio di nessuna prova.
+        /// The two versions, and that is all. Not the bytes: a rebuild with no changes
+        /// changes the bytes and changes nothing of what counts.
+        /// If one of the two is missing it says so and **does not pass**: a check that does not
+        /// find what it looks for and passes is worse than no check.
         /// </summary>
         private static void TheBridgeLibraryIsTheSAMEAsTheBench()
         {
@@ -1254,32 +1254,32 @@ namespace Oce.Solid.Agent.ContractTests
                                         "Oce.Solid.Agent.Core.dll");
             var bridge = Path.Combine(Root(), "bin", "Oce.Solid.Agent.Core.dll");
 
-            // ── LA TERZA, CHE QUESTO CONTROLLO NON GUARDAVA ──────────────
+            // ── THE THIRD, WHICH THIS CHECK DID NOT LOOK AT ──────────────
             //
-            // `Bench\bin\Oce.Solid.Agent.Core.dll` e' quella che
-            // `Oce.Solid.Agent.Bench.exe` carica DAVVERO, e per due giorni questo
-            // gruppo si e' chiamato «il ponte e il banco caricano la stessa
-            // libreria» confrontando due copie di cui **nessuna delle due
-            // era quella del banco in esecuzione**. La prima e' la sorgente
-            // da cui `bench.ps1` la copia compilando.
+            // `Bench\bin\Oce.Solid.Agent.Core.dll` is the one that
+            // `Oce.Solid.Agent.Bench.exe` REALLY loads, and for two days this
+            // group called itself «il ponte e il banco caricano la stessa
+            // libreria» while comparing two copies of which **neither
+            // was the one of the bench in execution**. The first is the source
+            // from which `bench.ps1` copies it while building.
             //
-            // Il 24/9/2026 e' costato un giro: lanciato `Oce.Solid.Agent.Bench.exe`
-            // a mano per iterare in fretta, ha caricato la copia del giorno
-            // prima e ha detto che due predefiniti appena implementati **non
-            // esistevano**. Erano nel sorgente e nelle altre due DLL.
+            // On 24/9/2026 it cost a run: `Oce.Solid.Agent.Bench.exe` launched
+            // by hand to iterate quickly loaded the copy from the day
+            // before and said that two defaults just implemented **did not
+            // exist**. They were in the source and in the other two DLLs.
             //
-            // Questo controllo non impedisce di lanciare l'eseguibile a mano
-            // — niente lo impedisce — ma dice **subito** che le copie sono
-            // divergute, invece di lasciarlo scoprire a un resoconto che
-            // accusa il codice sbagliato.
+            // This check does not prevent launching the executable by hand
+            // — nothing prevents it — but it says **at once** that the copies have
+            // diverged, instead of leaving it to be discovered by a report that
+            // accuses the wrong code.
             var nextToBench = Path.Combine(Root(), "Bench", "bin",
                                               "Oce.Solid.Agent.Core.dll");
 
             bool c1 = ProductFromBuild(bench), c2 = ProductFromBuild(bridge);
 
-            // Senza interop la libreria non si poteva compilare: mancano tutte e
-            // due perche' la macchina non ce la fa, non perche' qualcuno abbia
-            // sbagliato. Vedi `NotHere`.
+            // Without the interop the library could not be built: both are missing
+            // because the machine cannot do it, not because somebody
+            // made a mistake. See `NotHere`.
             if (!c1 && !c2 && !TheBridgeCouldBeBuilt())
             {
                 NotHere("il ponte e il banco caricano la stessa libreria",
@@ -1306,23 +1306,23 @@ namespace Oce.Solid.Agent.ContractTests
                         " — chi ha compilato il solo progetto ha aggiornato il primo e " +
                         "non il secondo: si rilancia .\\build.ps1, che li allinea");
 
-            // ── E LA TERZA COPIA: SI GUARDA LA RADICE, NON IL SINTOMO ────
+            // ── AND THE THIRD COPY: WE LOOK AT THE ROOT, NOT THE SYMPTOM ──
             //
-            // `Bench\bin\Oce.Solid.Agent.Core.dll` e' un RESIDUO: `bench.ps1`
-            // passa `--libreria` puntando alla sorgente, e nessuno aggiorna
-            // quella copia. Pretendere che combaci sarebbe un rosso perenne
-            // su un file che il giro vero non guarda mai.
+            // `Bench\bin\Oce.Solid.Agent.Core.dll` is a LEFTOVER: `bench.ps1`
+            // passes `--libreria` pointing at the source, and nobody updates
+            // that copy. Demanding that it match would be a perennial red
+            // on a file that the real run never looks at.
             //
-            // Cio' che conta e' il PREDEFINITO: cosa carica
-            // `Oce.Solid.Agent.Bench.exe` se qualcuno lo lancia a mano senza
-            // `--libreria`. Fino al 24/9/2026 era la copia accanto a se', e
-            // mi ha fatto misurare per un giro il codice di sei versioni
-            // prima dicendo che due predefiniti appena scritti «non
-            // esistevano». Adesso e' la stessa che usa `bench.ps1`.
+            // What counts is the DEFAULT: what `Oce.Solid.Agent.Bench.exe`
+            // loads if somebody launches it by hand without `--libreria`. Until 24/9/2026 it was
+            // the copy next to itself, and it
+            // made me measure for a run the code of six versions before
+            // saying that two defaults just written «did not
+            // exist». Now it is the same one that `bench.ps1` uses.
             //
-            // Si legge dal SORGENTE, perche' e' li' che la scelta vive, e
-            // perche' un controllo che leggesse il residuo tornerebbe a
-            // sorvegliare il sintomo.
+            // It is read from the SOURCE, because that is where the choice lives, and
+            // because a check that read the leftover would go back to
+            // watching the symptom.
             var benchSource = Path.Combine(Root(), "Bench", "Program.cs");
             if (File.Exists(benchSource))
             {
@@ -1339,8 +1339,8 @@ namespace Oce.Solid.Agent.ContractTests
                             "`Oce.Solid.Agent.Bench.exe` a mano misura una copia che nessuno " +
                             "aggiorna");
 
-                // E se il residuo c'e', lo si DICE — senza accusare: sapere
-                // che e' vecchio spiega un log confuso di sei mesi fa.
+                // And if the leftover is there, it is SAID — without accusing: knowing
+                // that it is old explains a confusing log from six months ago.
                 var leftoverCheck = "e si sa se accanto all'eseguibile c'e' un residuo vecchio";
                 if (ProductFromBuild(nextToBench))
                 {
@@ -1361,21 +1361,21 @@ namespace Oce.Solid.Agent.ContractTests
                     Check(leftoverCheck, true, "there is none: nothing stale next to the executable");
             }
 
-            // ── E IL TERZO NUMERO, QUELLO CHE NESSUNO GUARDA ─────────────
+            // ── AND THE THIRD NUMBER, THE ONE NOBODY LOOKS AT ─────────────
             //
-            // `AssemblyInformationalVersion` e' la versione che Windows mostra
-            // nelle proprieta' del file. Nessun codice la legge, e per questo
-            // invecchia da sola: il 18/9/2026 diceva 0.61.0 con l'assembly a
-            // 0.66.0, e' stata corretta, e il 22/9/2026 diceva **0.94.0 con
-            // l'assembly a 0.99.0** — cinque versioni indietro, di nuovo.
+            // `AssemblyInformationalVersion` is the version that Windows shows
+            // in the properties of the file. No code reads it, and that is why it
+            // ages by itself: on 18/9/2026 it said 0.61.0 with the assembly at
+            // 0.66.0, it was corrected, and on 22/9/2026 it said **0.94.0 with
+            // the assembly at 0.99.0** — five versions behind, again.
             //
-            // Sopra quella riga c'era gia' un commento che raccontava il
-            // difetto per esteso. Non e' servito, e non poteva servire: **un
-            // commento non e' un controllo**. Chi allinea il numero a mano lo
-            // riallinea finche' se ne ricorda, e poi smette.
+            // Above that line there was already a comment telling the
+            // defect at length. It did not help, and it could not help: **a
+            // comment is not a check**. Whoever aligns the number by hand
+            // realigns it as long as they remember, and then stops.
             //
-            // Si guarda il binario e non il sorgente: quello che finisce nel
-            // pacchetto e' il binario.
+            // The binary is looked at and not the source: what ends up in the
+            // package is the binary.
             string notice = VersionInformation(bench);
             Check("la versione mostrata da Windows e' quella vera",
                   notice != null &&
@@ -1390,8 +1390,8 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// `AssemblyInformationalVersion` del file, cioe' quella che si legge
-        /// in Proprieta' → Dettagli → Versione prodotto. `null` se non c'e'.
+        /// `AssemblyInformationalVersion` of the file, that is the one read
+        /// in Properties → Details → Product version. `null` if it is not there.
         /// </summary>
         private static string VersionInformation(string filePath)
         {
@@ -1405,9 +1405,9 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// La versione di un assembly, letta senza caricarlo nel processo:
-        /// caricarlo vorrebbe dire tenerselo, e questa suite gira anche dove
-        /// l'interop di Dassault non c'e'.
+        /// The version of an assembly, read without loading it into the process:
+        /// loading it would mean keeping it, and this suite runs also where the
+        /// Dassault interop is not there.
         /// </summary>
         private static string Version(string dll)
         {
@@ -1416,8 +1416,8 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// `prove.xml` in formato JUnit: e' quello che ogni CI sa leggere senza
-        /// che nessuno le insegni niente.
+        /// `prove.xml` in JUnit format: it is what every CI knows how to read without
+        /// anybody teaching it anything.
         /// </summary>
         private static void WriteJUnit()
         {
@@ -1438,11 +1438,11 @@ namespace Oce.Solid.Agent.ContractTests
                     {
                         x.Append("    <testcase classname=\"" + Xml(g.Key) +
                                  "\" name=\"" + Xml(e.Name) + "\"");
-                        // UN SALTATO NON E' UN PASSATO, nemmeno nell'XML: un
-                        // `<testcase />` nudo e' un verde per chiunque legga il
-                        // file, e il file lo legge una CI che poi mostra un segno
-                        // di spunta. `<skipped>` e' la voce che JUnit ha proprio
-                        // per questo, e ogni interfaccia la sa disegnare diversa.
+                        // A SKIPPED IS NOT A PASSED, not even in the XML: a bare
+                        // `<testcase />` is a green for whoever reads the
+                        // file, and the file is read by a CI that then shows a tick
+                        // mark. `<skipped>` is the entry that JUnit has precisely
+                        // for this, and every interface knows how to draw it differently.
                         if (e.NotHere)
                         {
                             x.AppendLine(">");

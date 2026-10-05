@@ -9,37 +9,37 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// IL REGISTRO DELLE DOMANDE SENZA RISPOSTA (voce Z-G7)
+    /// THE REGISTER OF THE QUESTIONS WITHOUT AN ANSWER (entry Z-G7)
     ///
-    /// Il registro esiste per rispondere a una domanda che nessuno sa
-    /// rispondere a memoria: **quale operazione costruire dopo.** Le cinque
-    /// del catalogo senza casi di banco le abbiamo scelte a intuito, e questo
-    /// file e' il modo di smettere.
+    /// The register exists to answer a question that nobody can answer
+    /// from memory: **which operation to build next.** The five
+    /// of the catalogue without bench cases we chose by intuition, and this
+    /// file is the way to stop doing so.
     ///
-    /// ── PERCHE' SI PUO' PROVARE SENZA SOLIDWORKS ────────────────────────
+    /// ── WHY IT CAN BE TESTED WITHOUT SOLIDWORKS ──────────────────────────
     ///
-    /// Perche' non ne sa niente: scrive una riga di testo quando gli dicono
-    /// che un nome non c'era. E' la parte del ponte che si puo' misurare per
-    /// intero sulla macchina della CI.
+    /// Because it knows nothing about it: it writes a line of text when it is told
+    /// that a name was not there. It is the part of the bridge that can be measured
+    /// in full on the CI machine.
     ///
-    /// ── LE DUE REGOLE CHE QUI SI PRETENDONO, NON SI SPERANO ─────────────
+    /// ── THE TWO RULES THAT HERE ARE DEMANDED, NOT HOPED FOR ──────────────
     ///
-    ///  1. **Mai su stdout**, dove passa il JSON-RPC. Si legge il SORGENTE e
-    ///     si pretende che la parola `Console` non ci sia. Una regola che
-    ///     riguarda un canale si controlla sul canale, non sulle intenzioni.
-    ///  2. **Mai un'eccezione.** Si punta il registro su un percorso
-    ///     impossibile e si pretende che la chiamata torni lo stesso — e che
-    ///     il motivo del silenzio sia rimasto scritto, perche' un `catch`
-    ///     vuoto e un `catch` che non e' mai stato eseguito si assomigliano
-    ///     troppo.
+    ///  1. **Never on stdout**, where the JSON-RPC passes. The SOURCE is read and
+    ///     it is demanded that the word `Console` not be there. A rule that
+    ///     concerns a channel is checked on the channel, not on intentions.
+    ///  2. **Never an exception.** The register is pointed at an impossible
+    ///     path and it is demanded that the call come back all the same — and that
+    ///     the reason for the silence has stayed written, because an empty
+    ///     `catch` and a `catch` that has never been executed look too much
+    ///     alike.
     ///
-    /// ── E IL PUNTO CHE SI DIMENTICA ─────────────────────────────────────
+    /// ── AND THE POINT THAT GETS FORGOTTEN ────────────────────────────────
     ///
-    /// I posti in cui il ponte sa che gli e' stato chiesto qualcosa che non
-    /// c'e' sono quattro. Il difetto prevedibile non e' sbagliarne uno: e'
-    /// aggiungere il quinto e non registrarlo. Quindi non si conta a quattro
-    /// — si pretende che **ogni** punto che chiede `_catalogo.Simili(` scriva
-    /// anche nel registro, cosi' il quinto nasce gia' sorvegliato.
+    /// The places where the bridge knows it was asked for something that is not
+    /// there are four. The foreseeable defect is not getting one wrong: it is
+    /// adding the fifth and not registering it. So we do not count to four
+    /// — it is demanded that **every** point that asks `_catalogo.Simili(` also
+    /// write in the register, so that the fifth is born already watched.
     /// </summary>
     internal static class RegistryTests
     {
@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  1. LA FORMA DELLA RIGA
+        //  1. THE SHAPE OF THE LINE
         // ─────────────────────────────────────────────────────────────────
 
         private static void TheLineShape()
@@ -81,7 +81,7 @@ namespace Oce.Solid.Agent.ContractTests
             Func<string, string, string[], string> doIt = (t, n, s) =>
                 (string)line.Invoke(null, new object[] { timestamp, t, n, s });
 
-            // ── una riga normale ──────────────────────────────────────────
+            // ── a normal line ────────────────────────────────────────────
             var normal = doIt("operation", "ripiega_lamiera",
                               new[] { "piega_lamiera" });
             Check("la riga porta quando, tipo e nome",
@@ -96,13 +96,13 @@ namespace Oce.Solid.Agent.ContractTests
                   !normal.Contains("\n") && !normal.Contains("\r"),
                   normal.Length + " caratteri, nessun a capo");
 
-            // ── il nome che un modello puo' davvero inventarsi ────────────
+            // ── the name that a model can really invent ──────────────────
             //
-            // Non e' un caso di fantasia: il nome lo scrive un modello, e
-            // basta una virgoletta per rendere illeggibile il file DA LI' IN
-            // POI -- non la riga, il file. Per questo si serializza con lo
-            // stesso `Protocol.InJson` del resto del ponte invece di
-            // incollare virgolette a mano.
+            // It is not a fanciful case: the name is written by a model, and
+            // one quotation mark is enough to make the file unreadable FROM THEN ON
+            // -- not the line, the file. That is why it is serialized with the
+            // same `Protocol.InJson` as the rest of the bridge instead of
+            // pasting quotation marks by hand.
             var bad = doIt("operation", "taglia\"a\"meta" + "\n" + "riga2", null);
             Check("un nome con le virgolette non spezza la riga",
                   !bad.Contains("\n") && !bad.Contains("\r"),
@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.ContractTests
                   ReadsBack(bad, "taglia\"a\"meta" + "\n" + "riga2"),
                   "il nome torna indietro identico, a capo compreso");
 
-            // ── `similar` c'e' solo quando c'e' qualcosa ───────────────────
+            // ── `similar` is there only when there is something ─────────────
             var without = doIt("strumento", "guarda_la_tavola", null);
             Check("senza nomi vicini il campo «similar» non compare",
                   !without.Contains("similar"),
@@ -123,11 +123,11 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// La riga si rilegge come JSON e il nome torna indietro identico?
+        /// Is the line read back as JSON and does the name come back identical?
         ///
-        /// Non si usa un parser scritto qui: si chiede a chi legge il JSON nel
-        /// ponte, perche' la domanda vera e' *«il ponte si rilegge?»* e non
-        /// *«assomiglia a JSON?»*.
+        /// A parser written here is not used: the one that reads JSON in the
+        /// bridge is asked, because the real question is *«can the bridge read it back?»* and not
+        /// *«does it look like JSON?»*.
         /// </summary>
         private static bool ReadsBack(string line, string expectedName)
         {
@@ -150,7 +150,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  2. IL SILENZIO E' VOLUTO, E SI VEDE
+        //  2. THE SILENCE IS INTENDED, AND IT SHOWS
         // ─────────────────────────────────────────────────────────────────
 
         private static void TheSilenceIsWanted()
@@ -163,7 +163,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var asm = Load.Bridge(bridge);
                 typ = Load.Class(asm, "QuestionRegistry");
-                if (typ == null) return;   // gia' detto sopra
+                if (typ == null) return;   // already said above
             }
             catch { return; }
 
@@ -186,11 +186,11 @@ namespace Oce.Solid.Agent.ContractTests
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(reg);
 
-            // ── SCRIVE DAVVERO ────────────────────────────────────────────
+            // ── IT REALLY WRITES ──────────────────────────────────────────
             //
-            // Prima di provare che tace quando deve, si prova che parla
-            // quando puo'. Un registro che tace sempre passerebbe ogni prova
-            // sul silenzio.
+            // Before proving that it is silent when it must be, it is proved that it speaks
+            // when it can. A register that is always silent would pass every check
+            // on silence.
             var file = Path.Combine(Path.GetTempPath(),
                                     "registro-prova-" + Guid.NewGuid().ToString("N") + ".jsonl");
             try
@@ -213,7 +213,7 @@ namespace Oce.Solid.Agent.ContractTests
             }
             finally { try { File.Delete(file); } catch { } }
 
-            // ── IL NOME VUOTO NON E' UNA DOMANDA ──────────────────────────
+            // ── THE EMPTY NAME IS NOT A QUESTION ──────────────────────────
             var file2 = Path.Combine(Path.GetTempPath(),
                                      "registro-prova-" + Guid.NewGuid().ToString("N") + ".jsonl");
             try
@@ -227,11 +227,11 @@ namespace Oce.Solid.Agent.ContractTests
             }
             finally { try { File.Delete(file2); } catch { } }
 
-            // ── NON PUO' SCRIVERE: TACE, E NON SOLLEVA ────────────────────
+            // ── IT CANNOT WRITE: IT STAYS SILENT, AND DOES NOT RAISE ──────
             //
-            // Il percorso impossibile e' un file VERO usato come cartella:
-            // succede davvero, e non dipende dai permessi della macchina che
-            // esegue la prova -- che su un runner sono diversi da qui.
+            // The impossible path is a REAL file used as a folder:
+            // it really happens, and it does not depend on the permissions of the machine that
+            // runs the check -- which on a runner are different from here.
             var obstacle = Path.GetTempFileName();
             try
             {
@@ -251,7 +251,7 @@ namespace Oce.Solid.Agent.ContractTests
             }
             finally { try { File.Delete(obstacle); } catch { } }
 
-            // ── NESSUN FILE SU CUI SCRIVERE ───────────────────────────────
+            // ── NO FILE TO WRITE ON ───────────────────────────────────────
             var withoutFile = constructor.Invoke(new object[] { null });
             bool raised2 = false;
             try { annotate(withoutFile, "ToolThatDoesNotExist", "x_qualunque"); }
@@ -263,7 +263,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  3. OGNI PUNTO CHE SA, SCRIVE
+        //  3. EVERY POINT THAT KNOWS, WRITES
         // ─────────────────────────────────────────────────────────────────
 
         private static void EveryPlaceThatKnowsWritesIt()
@@ -280,8 +280,8 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 if (lines[i].IndexOf("_catalog.Similar(", StringComparison.Ordinal) < 0)
                     continue;
-                // La scrittura sta subito accanto: tre righe bastano, e non
-                // cosi' tante da prendere quella del punto successivo.
+                // The write is right next to it: three lines are enough, and not
+                // so many as to catch the one of the next point.
                 var window = string.Join("\n",
                     lines.Skip(i).Take(4));
                 if (window.IndexOf("_registry.OperationThatDoesNotExist",
@@ -304,10 +304,10 @@ namespace Oce.Solid.Agent.ContractTests
                                 StringComparison.Ordinal) >= 0,
                   "e' il punto che sapeva e taceva: il `default` di Invoke");
 
-            // ── LA REGOLA SI FA FALLIRE APPOSTA ───────────────────────────
+            // ── THE RULE IS MADE TO FAIL ON PURPOSE ───────────────────────
             //
-            // Su righe finte, perche' far fallire quella vera vorrebbe dire
-            // togliere una chiamata dal ponte.
+            // On fake lines, because making the real one fail would mean
+            // removing a call from the bridge.
             var fakeBroken = new[]
             {
                 "                var similar = _catalog.Similar(itemName);",
@@ -351,9 +351,9 @@ namespace Oce.Solid.Agent.ContractTests
             if (!File.Exists(source))
             { Check("QuestionRegistry.cs si legge", false, source); return; }
 
-            // Si guarda il CODICE, non i commenti: la spiegazione della regola
-            // nomina `Console` apposta, e un controllo che punisse la propria
-            // documentazione si farebbe cancellare la documentazione.
+            // The CODE is looked at, not the comments: the explanation of the rule
+            // names `Console` on purpose, and a check that punished its own
+            // documentation would get its documentation deleted.
             var code = WithoutComments(File.ReadAllText(source));
             var foundItems = Regex.Matches(code, @"\bConsole\s*\.").Count;
 
@@ -369,9 +369,9 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Via i commenti di riga e di blocco. Non e' un parser di C# e non
-        /// deve esserlo: qui serve solo a non leggere la prosa che spiega la
-        /// regola come se fosse una violazione della regola.
+        /// Away with the line and block comments. It is not a C# parser and must not
+        /// be: here it serves only not to read the prose that explains the
+        /// rule as if it were a violation of the rule.
         /// </summary>
         private static string WithoutComments(string text)
         {

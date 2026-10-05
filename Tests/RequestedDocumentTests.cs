@@ -9,34 +9,34 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// OGNI OPERAZIONE DICE SU CHE DOCUMENTO GIRA (voce Z-D0-ter).
+    /// EVERY OPERATION SAYS WHICH DOCUMENT IT RUNS ON (entry Z-D0-ter).
     ///
-    /// ── PERCHE' LA FAMIGLIA NON BASTAVA ──────────────────────────────────
+    /// ── WHY THE FAMILY WAS NOT ENOUGH ────────────────────────────────────
     ///
-    /// `Z-D0-bis` confrontava le FAMIGLIE del catalogo coi tipi di documento
-    /// che l'esecutore ammette, ed e' stato un buon controllo: e' nato rosso e
-    /// ha trovato un buco vero. Ma la famiglia e' un'approssimazione, e
-    /// `checks` lo dimostra da sola:
+    /// `Z-D0-bis` compared the FAMILIES of the catalogue with the document types
+    /// that the executor admits, and it was a good check: it was born red and
+    /// found a real hole. But the family is an approximation, and
+    /// `checks` proves it by itself:
     ///
-    ///     cartiglio                -> TAVOLA
-    ///     interference_check    -> ASSIEME
-    ///     mass_properties       -> PARTE      ... e altre cinque
+    ///     cartiglio                -> DRAWING
+    ///     interference_check       -> ASSEMBLY
+    ///     mass_properties          -> PART      ... and five more
     ///
-    /// Tre documenti diversi sotto la stessa etichetta. Finche' non era
-    /// scritto, quel fatto viveva nella testa di chi aveva scritto
-    /// l'operazione e in una frase di prosa **che nessun controllo legge**.
+    /// Three different documents under the same label. As long as it was not
+    /// written, that fact lived in the head of whoever had written
+    /// the operation and in a sentence of prose **that no check reads**.
     ///
-    /// ── E SERVE AL MODELLO, NON SOLO AL CONTROLLO ────────────────────────
+    /// ── AND IT SERVES THE MODEL, NOT ONLY THE CHECK ──────────────────────
     ///
-    /// Un'operazione che dichiara su che documento gira e' un'operazione che
-    /// il modello **non prova** sul documento sbagliato. Provarlo costa un
-    /// turno, e il rifiuto che ne segue costa la fiducia nel catalogo.
+    /// An operation that declares which document it runs on is an operation that
+    /// the model **does not try** on the wrong document. Trying it costs a
+    /// turn, and the refusal that follows costs trust in the catalogue.
     /// </summary>
     internal static class RequestedDocumentTests
     {
-        /// <summary>I valori che il campo puo' prendere, e nient'altro. Un
-        /// vocabolario aperto diventa «part», «Parte», «part», «part» in
-        /// sei mesi, e allora nessun controllo lo puo' piu' leggere.</summary>
+        /// <summary>The values that the field can take, and nothing else. An
+        /// open vocabulary becomes «part», «Parte», «part», «part» in
+        /// six months, and then no check can read it any more.</summary>
         private static readonly string[] Allowed =
             { "part", "assembly", "drawing", "any", "none" };
 
@@ -107,12 +107,12 @@ namespace Oce.Solid.Agent.ContractTests
                       ? "solo: " + string.Join(", ", Allowed)
                       : string.Join(" | ", outsideVocabulary));
 
-            // ── LA PROVA CHE IL CAMPO SERVIVA ───────────────────────────
+            // ── THE PROOF THAT THE FIELD WAS NEEDED ──────────────────────
             //
-            // Se ogni famiglia avesse un documento solo, questo campo sarebbe
-            // un doppione della famiglia e andrebbe tolto. Il controllo lo
-            // dice invece di lasciarlo credere: le famiglie MISTE sono la
-            // ragione per cui la voce esiste.
+            // If every family had a single document, this field would be
+            // a duplicate of the family and should be removed. The check says
+            // so instead of letting it be believed: the MIXED families are
+            // the reason the entry exists.
             var mixed = perFamily.Where(x => x.Value.Count > 1)
                 .Select(x => x.Key + " (" + string.Join(", ", x.Value.OrderBy(s => s)) + ")")
                 .ToList();
@@ -122,13 +122,13 @@ namespace Oce.Solid.Agent.ContractTests
                       ? "famiglie con piu' di un documento: " + string.Join(" | ", mixed)
                       : "NESSUNA famiglia mista: il campo e' un doppione, toglilo");
 
-            // ── E CIO' CHE DICHIARA DEV'ESSERE ESEGUIBILE ───────────────
+            // ── AND WHAT IT DECLARES MUST BE EXECUTABLE ──────────────────
             //
-            // L'esecutore ammette certi tipi di documento e basta (la stessa
-            // lettura che fa Z-D0-bis, dal sorgente e non dal testo del
-            // csproj). Un'operazione che dichiarasse un documento che
-            // l'esecutore rifiuta sarebbe una promessa irraggiungibile —
-            // esattamente il difetto che Z-D0-bis trovo' sulle famiglie.
+            // The executor admits certain document types and nothing else (the same
+            // reading that Z-D0-bis does, from the source and not from the text of the
+            // csproj). An operation that declared a document that
+            // the executor refuses would be an unreachable promise —
+            // exactly the defect that Z-D0-bis found on the families.
             string executor = Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(executor))
             {

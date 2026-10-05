@@ -2,11 +2,11 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 22094,
+  "comments": 8430,
   "strings": 54069,
   "markdown": 11388,
   "json_values": 54655,
-  "identifiers": 1715,
+  "identifiers": 1714,
   "json_keys": 14,
   "protocol": 845,
   "paths": 0,
@@ -1554,15 +1554,14 @@
    "transition": 4
   },
   "Tests/BenchTests.cs": {
-   "comments": 988,
-   "strings": 218
+   "strings": 218,
+   "comments": 11
   },
   "Tests/CatalogTests.cs": {
-   "comments": 778,
-   "strings": 314
+   "strings": 314,
+   "comments": 20
   },
   "Tests/ConfirmationTests.cs": {
-   "comments": 196,
    "strings": 57
   },
   "Tests/DescriptionValuesContract.cs": {
@@ -1570,39 +1569,34 @@
    "strings": 9
   },
   "Tests/DescriptionsTests.cs": {
-   "comments": 135,
+   "comments": 6,
    "strings": 47
   },
   "Tests/DocumentSignaturesTests.cs": {
-   "comments": 256,
+   "comments": 4,
    "strings": 84
   },
   "Tests/DocumentTests.cs": {
-   "comments": 209,
+   "comments": 1,
    "strings": 35
   },
   "Tests/DryRunTests.cs": {
-   "comments": 217,
    "strings": 157
   },
   "Tests/ErrorEnumTests.cs": {
-   "comments": 300,
    "strings": 89
   },
   "Tests/ExamplesTests.cs": {
-   "comments": 246,
    "strings": 75
   },
   "Tests/ExpectationsTests.cs": {
-   "comments": 640,
-   "strings": 495
+   "strings": 495,
+   "comments": 14
   },
   "Tests/ForbiddenSignaturesTests.cs": {
-   "comments": 231,
    "strings": 87
   },
   "Tests/ImagesTests.cs": {
-   "comments": 186,
    "strings": 55
   },
   "Tests/LanguageGateTests.cs": {
@@ -1610,63 +1604,62 @@
    "strings": 4
   },
   "Tests/LeashTests.cs": {
-   "comments": 299,
-   "strings": 203
+   "strings": 203,
+   "comments": 4
   },
   "Tests/LimitsTests.cs": {
-   "comments": 884,
-   "strings": 275
+   "strings": 275,
+   "comments": 1
   },
   "Tests/Load.cs": {
-   "comments": 195
+   "comments": 4
   },
   "Tests/ObsoleteCallScanner.cs": {
    "comments": 1
   },
   "Tests/Oce.Solid.Agent.ContractTests.csproj": {
-   "comments": 133
+   "comments": 2
   },
   "Tests/Program.cs": {
-   "comments": 2938,
+   "comments": 28,
    "strings": 719
   },
   "Tests/ProgressTests.cs": {
-   "comments": 587,
-   "strings": 485
+   "strings": 485,
+   "comments": 5
   },
   "Tests/ProtocolTests.cs": {
-   "comments": 960,
-   "strings": 257
+   "strings": 257,
+   "comments": 1
   },
   "Tests/README.md": {
    "markdown": 1588
   },
   "Tests/RefusalsTests.cs": {
-   "comments": 1297,
+   "comments": 134,
    "strings": 56
   },
   "Tests/RegistryTests.cs": {
-   "comments": 418,
    "strings": 308
   },
   "Tests/RequestedDocumentTests.cs": {
-   "comments": 199,
+   "comments": 2,
    "strings": 83
   },
   "Tests/RequiredFieldsTests.cs": {
-   "comments": 452,
+   "comments": 1,
    "strings": 418
   },
   "Tests/SelectionMarksContract.cs": {
    "comments": 4
   },
   "Tests/SentinelTests.cs": {
-   "comments": 475,
-   "strings": 224
+   "strings": 224,
+   "comments": 3
   },
   "Tests/SessionTests.cs": {
-   "comments": 688,
-   "strings": 353
+   "strings": 353,
+   "comments": 2
   },
   "Tests/ShapeSpellingContract.cs": {
    "comments": 1,
@@ -2885,7 +2878,6 @@
    "materiale_predefinito",
    "medio",
    "membro_strutturale",
-   "mentre",
    "messe",
    "mezza_v",
    "mezzo_cilindro_180",

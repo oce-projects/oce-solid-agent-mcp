@@ -11,33 +11,33 @@ using static Shared.McpClient;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// IL PROTOCOLLO MCP, parlando col ponte come farebbe un cliente.
+    /// THE MCP PROTOCOL, talking to the bridge as a customer would.
     ///
-    /// Si lancia `oce-solid-agent-mcp.exe` come sottoprocesso e gli si danno
-    /// righe su stdin. Tutto gira **senza SOLIDWORKS**, perche' il ponte parte
-    /// comunque e dice il motivo dopo: e' una proprieta' del ponte, ed e' anche
-    /// il primo controllo di questo gruppo.
+    /// `oce-solid-agent-mcp.exe` is launched as a subprocess and lines are given
+    /// to it on stdin. Everything runs **without SOLIDWORKS**, because the bridge starts
+    /// anyway and says why afterwards: it is a property of the bridge, and it is also
+    /// the first check of this group.
     ///
-    /// ── IL TIMEOUT NON E' UNA COMODITA' ──────────────────────────────────
+    /// ── THE TIMEOUT IS NOT A CONVENIENCE ──────────────────────────────────
     ///
-    /// Leggere da un sottoprocesso senza bloccarsi vuole **un timeout su ogni
-    /// riga attesa**: senza, una prova che fallisce APPENDE il comando invece
-    /// di diventare rossa, e in una CI vuol dire un lavoro che non finisce mai
-    /// invece di un rosso che si legge.
+    /// Reading from a subprocess without blocking requires **a timeout on every
+    /// line awaited**: without it, a check that fails HANGS the command instead
+    /// of turning red, and in a CI that means a job that never ends
+    /// instead of a red that can be read.
     ///
-    /// E il difetto silenzioso da temere e' l'altro: **una prova di protocollo
-    /// che «passa» perche' ha letto zero righe in attesa di zero righe.** Per
-    /// questo ogni attesa dice quante righe vuole, e zero righe non e' mai un
-    /// verde.
+    /// And the silent defect to fear is the other one: **a protocol check
+    /// that «passes» because it read zero lines waiting for zero lines.** For
+    /// this reason every wait says how many lines it wants, and zero lines is never a
+    /// green.
     /// </summary>
     internal static class ProtocolTests
     {
-        // LA PRIMA CHIAMATA COSTA PIU' DELLE ALTRE: il ponte all'`initialize`
-        // si aggancia a SOLIDWORKS, e se SOLIDWORKS c'e' ed e' occupato quella
-        // riga puo' tardare parecchio. Venti secondi non bastavano, e il
-        // sintomo era ingannevole: l'`initialize` risultava senza risposta e
-        // poi la sua riga arrivava addosso alla prova dopo.
-        // TimeoutMs sta in Shared/McpClient.cs: lo usano in due.
+        // THE FIRST CALL COSTS MORE THAN THE OTHERS: on `initialize` the bridge
+        // attaches itself to SOLIDWORKS, and if SOLIDWORKS is there and busy that
+        // line may be very late. Twenty seconds were not enough, and the
+        // symptom was misleading: `initialize` appeared to have no answer and
+        // then its line landed on the next check.
+        // TimeoutMs is in Shared/McpClient.cs: two use it.
 
         internal static void All()
         {
@@ -51,7 +51,7 @@ namespace Oce.Solid.Agent.ContractTests
                 if (p == null) { Check("il ponte parte", false, "non e' partito"); return; }
                 Check("il ponte parte anche senza SOLIDWORKS", true, "");
 
-                // ── initialize RIMANDA LA VERSIONE RICEVUTA ───────────────
+                // ── initialize SENDS BACK THE VERSION RECEIVED ────────────────
                 var r = Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
@@ -67,17 +67,17 @@ namespace Oce.Solid.Agent.ContractTests
                       Convert.ToString(Inside(result, "protocolVersion")) == "2024-11-05",
                       Convert.ToString(Inside(result, "protocolVersion")));
 
-                // ── E LA VERSIONE CHE ANNUNCIA E' QUELLA VERA ─────────────
+                // ── AND THE VERSION IT ANNOUNCES IS THE REAL ONE ─────────────
                 //
-                // Non lo era: `Program.cs` teneva `const Versione =
-                // "0.2.0"` mentre `VERSION.txt` diceva 0.80.0, e ci e'
-                // rimasto per settantotto versioni minori. Non c'era niente
-                // di sbagliato nel codice — c'erano DUE posti dove scrivere
-                // lo stesso numero, e uno dei due nessuno lo rileggeva.
+                // It was not: `Program.cs` held `const Versione =
+                // "0.2.0"` while `VERSION.txt` said 0.80.0, and it stayed
+                // that way for seventy-eight minor versions. There was nothing
+                // wrong in the code — there were TWO places to write
+                // the same number, and one of the two nobody reread.
                 //
-                // Il rimedio e' una fonte sola (`VERSION.txt` dentro
-                // l'eseguibile). Questa riga e' cio' che impedisce che
-                // tornino a essere due.
+                // The remedy is a single source (`VERSION.txt` inside
+                // the executable). This line is what stops them
+                // from becoming two again.
                 var expected = RepositoryVersion();
                 var info = Inside(result, "serverInfo") as Dictionary<string, object>;
                 var called = Convert.ToString(Inside(info, "version"));
@@ -87,35 +87,35 @@ namespace Oce.Solid.Agent.ContractTests
                           ? "VERSION.txt non si legge"
                           : "annunciata «" + called + "», VERSION.txt dice «" + expected + "»");
 
-                // ── UNA NOTIFICA NON RICEVE RISPOSTA ──────────────────────
+                // ── A NOTIFICATION RECEIVES NO ANSWER ──────────────────────
                 //
-                // Una riga senza `id` e' una notifica, e rispondere a una
-                // notifica e' una violazione che nessun cliente segnala.
+                // A line without `id` is a notification, and answering a
+                // notification is a violation that no customer reports.
                 //
-                // NON SI MISURA CON UN'ATTESA A VUOTO. «Non e' arrivato niente
-                // in un secondo e mezzo» e' vero anche quando il ponte e'
-                // semplicemente lento, ed e' il difetto silenzioso di questo
-                // gruppo: una prova che passa perche' ha letto zero righe in
-                // attesa di zero righe. Si manda la notifica, SUBITO DOPO una
-                // domanda vera, e si guarda che la PRIMA riga che torna sia la
-                // risposta a quella: se la notifica avesse avuto una risposta,
-                // sarebbe arrivata prima.
+                // IT IS NOT MEASURED WITH AN EMPTY WAIT. «Nothing arrived
+                // in a second and a half» is true also when the bridge is
+                // simply slow, and it is the silent defect of this
+                // group: a check that passes because it read zero lines waiting
+                // for zero lines. The notification is sent, RIGHT AFTER a
+                // real question, and we look that the FIRST line that comes back is
+                // the answer to that one: if the notification had had an answer,
+                // it would have arrived first.
                 Write(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
                 Write(p, "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}");
 
-                // SI SALTANO LE NOTIFICHE DEL PONTE, non le risposte.
+                // THE BRIDGE'S NOTIFICATIONS ARE SKIPPED, not the answers.
                 //
-                // Dalla 0.58.0 il ponte manda `notifications/message` (voce
-                // W2.8), e una di quelle puo' arrivare fra le due righe. Non
-                // c'entra niente con quello che questo controllo misura: la
-                // domanda e' «la prima RISPOSTA e' quella alla richiesta con
-                // id, o c'e' una risposta alla notifica davanti?».
+                // Since 0.58.0 the bridge sends `notifications/message` (entry
+                // W2.8), and one of those may arrive between the two lines. It has
+                // nothing to do with what this check measures: the
+                // question is «is the first ANSWER the one to the request with
+                // id, or is there an answer to the notification in front?».
                 //
-                // Il controllo pero' NON si allarga a «ignora tutto cio' che non
-                // ha id»: si salta solo `notifications/message`, che e' roba
-                // nostra e riconoscibile. Se il ponte cominciasse a mandare
-                // qualcos'altro senza id, questo se ne accorgerebbe — ed e' il
-                // punto.
+                // The check however is NOT widened to «ignore everything that has no
+                // id»: only `notifications/message` is skipped, which is stuff
+                // of ours and recognizable. If the bridge started sending
+                // something else without id, this would notice — and that is the
+                // point.
                 string before = null;
                 Dictionary<string, object> objBefore = null;
                 var upToA = Environment.TickCount + TimeoutMs;
@@ -138,13 +138,13 @@ namespace Oce.Solid.Agent.ContractTests
                     : Obj(Ask(p, 2,
                         "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"));
                 var tools = Inside(Inside(itemList, "result"), "tools") as object[];
-                // SEI DALLA 0.57.0, non cinque: e' nato `measure` (voce W2.3).
-                // SETTE DALLA 0.87.0: e' nato `document` (voci Z-B1/B2/B5/B6),
-                // e questa riga e' stata cambiata apposta, non trovata rossa.
-                // Il numero si assertisce ESATTO e non «almeno»: uno strumento
-                // in piu' che appare senza che nessuno l'abbia voluto e' un
-                // pezzo di superficie pubblica comparso per sbaglio, e questo e'
-                // il solo posto che se ne accorge.
+                // SIX SINCE 0.57.0, not five: `measure` was born (entry W2.3).
+                // SEVEN SINCE 0.87.0: `document` was born (entries Z-B1/B2/B5/B6),
+                // and this line was changed on purpose, not found red.
+                // The number is asserted EXACT and not «at least»: one more tool
+                // that appears without anybody wanting it is a
+                // piece of public surface that appeared by mistake, and this is
+                // the only place that notices.
                 // NINE SINCE 0.112.0: api_search and api_signature (entry
                 // U1.1). Changed on purpose, like the seventh.
                 Check("tools/list gives exactly nine tools",
@@ -152,13 +152,13 @@ namespace Oce.Solid.Agent.ContractTests
                       tools == null ? "(niente)" : tools.Length + " strumenti: " +
                           string.Join(", ", tools.Select(s => Convert.ToString(Inside(s, "name")))));
 
-                // ── LE ANNOTAZIONI DICONO LA VERITA' ──────────────────────
+                // ── THE ANNOTATIONS TELL THE TRUTH ───────────────────────
                 //
-                // Sono l'unica cosa che il client legge PRIMA di chiamare, e
-                // decidono se si ferma a chiedere conferma. Sbagliarle nel verso
-                // comodo — un'operazione che toglie materiale dichiarata
-                // innocua — e' il difetto che non da' errore, spostato dal pezzo
-                // al protocollo.
+                // They are the only thing the client reads BEFORE calling, and
+                // they decide whether it stops to ask for confirmation. Getting them wrong in the
+                // convenient direction — an operation that removes material declared
+                // harmless — is the defect that gives no error, moved from the part
+                // to the protocol.
                 Func<string, string, string> ann = (toolName, theField) =>
                 {
                     var s = tools?.FirstOrDefault(
@@ -183,12 +183,12 @@ namespace Oce.Solid.Agent.ContractTests
                                     StringComparison.OrdinalIgnoreCase),
                       ann("build", "idempotentHint") ?? "(manca)");
 
-                // «document» cambia il documento davanti: NON e' di sola
-                // lettura, anche se non tocca la geometria. Un client che lo
-                // credesse di sola lettura lo chiamerebbe senza chiedere, e il
-                // piano successivo scriverebbe in un pezzo diverso da quello
-                // che chi lavora ha davanti. E NON e' idempotente: «create» due
-                // volte fa due documenti.
+                // «document» changes the document in front: it is NOT read-only,
+                // even if it does not touch the geometry. A client that
+                // believed it read-only would call it without asking, and the
+                // next plan would write into a different part from the one
+                // the person working has in front. And it is NOT idempotent: «create» twice
+                // makes two documents.
                 Check("«document» NON si dichiara di sola lettura",
                       string.Equals(ann("document", "readOnlyHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
@@ -214,24 +214,24 @@ namespace Oce.Solid.Agent.ContractTests
                     !string.IsNullOrWhiteSpace(Convert.ToString(Inside(s, "description"))));
                 Check("ogni strumento ha nome e descrizione", namesOk);
 
-                // `title` DI PRIMO LIVELLO, non solo dentro `annotations`.
-                // Nelle revisioni recenti dello spec sta sullo strumento; un
-                // client nuovo che legge solo li' mostrerebbe il nome tecnico
-                // `inspect_part` a chi sta lavorando.
+                // `title` AT THE FIRST LEVEL, not only inside `annotations`.
+                // In the recent revisions of the spec it is on the tool; a
+                // new client that reads only there would show the technical name
+                // `inspect_part` to whoever is working.
                 bool titlesOk = tools != null && tools.All(s =>
                     !string.IsNullOrWhiteSpace(Convert.ToString(Inside(s, "title"))));
                 Check("ogni strumento ha un «title» di primo livello", titlesOk,
                       tools == null ? "(niente)" : string.Join(", ",
                           tools.Select(s => Convert.ToString(Inside(s, "title")))));
 
-                // ── UNO STRUMENTO CHE NON C'E' ────────────────────────────
+                // ── A TOOL THAT IS NOT THERE ─────────────────────────────
                 //
-                // `isError: true` DENTRO IL CONTENUTO, non un errore JSON-RPC:
-                // la distinzione e' scritta in `Mcp/Protocol.cs` e fino a
-                // oggi non la verificava nessuno. Un errore di protocollo dice
-                // «il cliente ha sbagliato a parlare»; questo dice «lo
-                // strumento non esiste», ed e' una cosa che il modello deve
-                // poter leggere e correggere da solo.
+                // `isError: true` INSIDE THE CONTENT, not a JSON-RPC error:
+                // the distinction is written in `Mcp/Protocol.cs` and until
+                // today nobody verified it. A protocol error says
+                // «the client got the talking wrong»; this one says «the
+                // tool does not exist», and it is something the model must
+                // be able to read and correct by itself.
                 var unknown = Obj(Ask(p, 3,
                     "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"strumento_che_non_esiste\",\"arguments\":{}}}"));
@@ -243,14 +243,14 @@ namespace Oce.Solid.Agent.ContractTests
                       its != null && its.ContainsKey("isError") &&
                       Convert.ToString(its["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase));
 
-                // L'ELENCO NEL MESSAGGIO E' QUELLO VERO, non una copia
-                // invecchiata. Il messaggio di «non lo conosco» nomina gli
-                // strumenti scritti a mano in `ToolNames`; qui si
-                // confronta con quelli che `tools/list` ha appena dichiarato.
-                // Se domani nasce un settimo strumento e nessuno aggiorna
-                // quella riga, il modello che ha sbagliato nome riceve un
-                // elenco in cui il settimo non c'e' — e conclude che non
-                // esiste. Un elenco incompleto e' peggio di nessun elenco.
+                // THE LIST IN THE MESSAGE IS THE REAL ONE, not an aged
+                // copy. The «I do not know it» message names the
+                // tools written by hand in `ToolNames`; here it is
+                // compared with the ones `tools/list` has just declared.
+                // If tomorrow a seventh tool is born and nobody updates
+                // that line, the model that got the name wrong receives a
+                // list in which the seventh is not there — and concludes that it does not
+                // exist. An incomplete list is worse than no list.
                 var unknownText = TextOf(its);
                 var missingItems = tools == null ? new List<string>() : tools
                     .Select(s => Convert.ToString(Inside(s, "name")))
@@ -263,17 +263,17 @@ namespace Oce.Solid.Agent.ContractTests
                           ? "tutti e " + (tools == null ? 0 : tools.Length)
                           : "non nominati: " + string.Join(", ", missingItems));
 
-                // ── «measure» RIFIUTA CIO' CHE TOCCA IL PEZZO ─────────────
+                // ── «measure» REFUSES WHAT TOUCHES THE PART ───────────────
                 //
-                // E' il criterio della voce W2.3, e va provato COL CASO ROSSO:
-                // uno strumento che si dichiara di sola lettura e poi accetta
-                // un'estrusione non e' un comodo, e' una bugia nel protocollo —
-                // e il client ha gia' deciso di non chiedere conferma sulla
-                // base di quella dichiarazione.
+                // It is the criterion of entry W2.3, and it must be tested WITH THE RED CASE:
+                // a tool that declares itself read-only and then accepts
+                // an extrusion is not a convenience, it is a lie in the protocol —
+                // and the client has already decided not to ask for confirmation on the
+                // basis of that declaration.
                 //
-                // Questo rifiuto arriva SENZA SOLIDWORKS: il cancello guarda
-                // le famiglie prima di toccare la sessione. Percio' e' provabile
-                // qui, dove SOLIDWORKS non c'e'.
+                // This refusal arrives WITHOUT SOLIDWORKS: the gate looks at
+                // the families before touching the session. Therefore it can be tested
+                // here, where SOLIDWORKS is not there.
                 var touches = Obj(Ask(p, 4,
                     "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"measure\",\"arguments\":{\"steps\":[" +
@@ -283,8 +283,8 @@ namespace Oce.Solid.Agent.ContractTests
                       itsTouch != null && itsTouch.ContainsKey("isError") &&
                       Convert.ToString(itsTouch["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase),
                       Short(TextOf(itsTouch)));
-                // E LO DICE COL CRITERIO, non con un verdetto: chi legge deve
-                // sapere CON QUALE strumento si fa, altrimenti deve indovinare.
+                // AND IT SAYS SO WITH THE CRITERION, not with a verdict: whoever reads must
+                // know WITH WHICH tool it is done, otherwise they must guess.
                 Check("il rifiuto dice con quale strumento si fa",
                       TextOf(itsTouch).IndexOf("build", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(TextOf(itsTouch)));
@@ -292,12 +292,12 @@ namespace Oce.Solid.Agent.ContractTests
                       TextOf(itsTouch).IndexOf("niente", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(TextOf(itsTouch)));
 
-                // ── I DATI ESCONO ANCHE IN FORMA LEGGIBILE (voce W2.4) ───
+                // ── THE DATA ALSO COME OUT IN A READABLE FORM (entry W2.4) ──
                 //
-                // `list_operations` non tocca SOLIDWORKS, quindi e' l'unico
-                // strumento con dati veri che si possa provare qui. Il testo
-                // deve restare — i client che leggono solo `content` sono la
-                // maggioranza — e `structuredContent` deve esserci ACCANTO.
+                // `list_operations` does not touch SOLIDWORKS, so it is the only
+                // tool with real data that can be tested here. The text
+                // must stay — the clients that read only `content` are the
+                // majority — and `structuredContent` must be there NEXT TO it.
                 var list = Obj(Ask(p, 5,
                     "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"list_operations\",\"arguments\":{}}}"));
@@ -309,11 +309,11 @@ namespace Oce.Solid.Agent.ContractTests
                       itsList["structuredContent"] != null,
                       itsList != null && itsList.ContainsKey("structuredContent")
                           ? "c'e'" : "manca");
-                // NIENTE `outputSchema`, ed e' una scelta: chi lo dichiara DEVE
-                // rispettarlo, e la forma dello stato cambia col documento. Uno
-                // schema parziale farebbe rifiutare risposte giuste. Se un
-                // giorno comparisse senza che nessuno abbia deciso la forma,
-                // questo controllo lo dice.
+                // NO `outputSchema`, and it is a choice: whoever declares it MUST
+                // respect it, and the shape of the state changes with the document. A
+                // partial schema would make correct answers be rejected. If one
+                // day it appeared without anybody having decided the shape,
+                // this check says so.
                 bool conSchema = tools != null && tools.Any(
                     s => Inside(s, "outputSchema") != null);
                 Check("nessuno strumento dichiara un «outputSchema» a meta'", !conSchema,
@@ -321,13 +321,13 @@ namespace Oce.Solid.Agent.ContractTests
                           ? "qualcuno lo dichiara: o la forma e' stabile e va scritto tutto, o va tolto"
                           : "nessuno, come deciso");
 
-                // ── IL LIVELLO DI RACCONTO SI PUO' CHIEDERE (voce W2.8) ──
+                // ── THE LEVEL OF NARRATION CAN BE ASKED FOR (entry W2.8) ────
                 //
-                // E il caso rosso conta piu' di quello verde: un livello che non
-                // esiste dev'essere un ERRORE. Accettarlo e ignorarlo
-                // lascerebbe il client convinto di aver alzato la soglia mentre
-                // i messaggi continuano ad arrivare — o, peggio, convinto di
-                // sentire tutto mentre non sente piu' niente.
+                // And the red case counts more than the green one: a level that does not
+                // exist must be an ERROR. Accepting it and ignoring it
+                // would leave the client convinced it had raised the threshold while
+                // the messages keep arriving — or, worse, convinced it
+                // hears everything while it no longer hears anything.
                 var levelOk = Obj(Ask(p, 6,
                     "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"logging/setLevel\"," +
                     "\"params\":{\"level\":\"warning\"}}"));
@@ -349,10 +349,10 @@ namespace Oce.Solid.Agent.ContractTests
                              .IndexOf("emergency", StringComparison.Ordinal) >= 0,
                       Short(Convert.ToString(Inside(levelError, "message"))));
 
-                // ── LE RISORSE (voce W2.12) ───────────────────────────────
+                // ── THE RESOURCES (entry W2.12) ──────────────────────────────
                 //
-                // Il catalogo si puo' ATTACCARE invece che chiedere. Tre cose
-                // da provare, e la terza e' quella che conta.
+                // The catalogue can be ATTACHED instead of asked for. Three things
+                // to test, and the third is the one that counts.
                 var resourceList = Obj(Ask(p, 40,
                     "{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"resources/list\",\"params\":{}}"));
                 var risorse = Inside(Inside(resourceList, "result"), "resources") as object[];
@@ -372,14 +372,14 @@ namespace Oce.Solid.Agent.ContractTests
                       schemas == null ? "(niente)" : schemas.Length + ": " +
                           string.Join(", ", schemas.Select(x => Convert.ToString(Inside(x, "uriTemplate")))));
 
-                // ── E QUESTA E' LA PROVA VERA: **LE DUE PORTE, UNA COSA** ──
+                // ── AND THIS IS THE REAL CHECK: **THE TWO DOORS, ONE THING** ──
                 //
-                // La risorsa e lo strumento devono rispondere lo STESSO testo.
-                // Se un giorno qualcuno scrive l'elenco «anche» dentro
-                // `Risorse`, qui diventa rosso — ed e' l'unico posto che se ne
-                // accorgerebbe, perche' le due strade non si incontrano mai da
-                // sole. *Due porte sulla stessa cosa diventano due cose il
-                // giorno in cui una delle due si scrive a parte.*
+                // The resource and the tool must answer the SAME text.
+                // If one day somebody writes the list «also» inside
+                // `Risorse`, here it turns red — and it is the only place that
+                // would notice, because the two roads never meet by
+                // themselves. *Two doors on the same thing become two things the
+                // day one of the two is written separately.*
                 var reading = Obj(Ask(p, 42,
                     "{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"resources/read\",\"params\":" +
                     "{\"uri\":\"catalog://operations\"}}"));
@@ -405,9 +405,9 @@ namespace Oce.Solid.Agent.ContractTests
                           ? "(una delle due e' vuota)"
                           : resourceText.Length + " caratteri contro " + toolText.Length);
 
-                // ── UN URI CHE NON ESISTE DICE COSA ESISTE ────────────────
+                // ── A URI THAT DOES NOT EXIST SAYS WHAT EXISTS ───────────────
                 //
-                // Il caso rosso: senza, «non trovato» sarebbe un vicolo cieco.
+                // The red case: without it, «not found» would be a dead end.
                 var missing = Obj(Ask(p, 44,
                     "{\"jsonrpc\":\"2.0\",\"id\":44,\"method\":\"resources/read\",\"params\":" +
                     "{\"uri\":\"catalog://operation/questa_non_esiste\"}}"));
@@ -432,12 +432,12 @@ namespace Oce.Solid.Agent.ContractTests
                       crooked != null && crooked.ContainsKey("id") && crooked["id"] == null,
                       crooked == null ? "(niente)" : Convert.ToString(crooked["id"]));
 
-                // ── SU STDOUT NON C'E' NIENTE CHE NON SIA JSON ───────────
+                // ── ON STDOUT THERE IS NOTHING THAT IS NOT JSON ─────────────
                 //
-                // LA TRAPPOLA NUMERO UNO DEI SERVER MCP SU STDIO: una riga di
-                // log finita su stdout rompe il cliente, che legge JSON riga
-                // per riga. E' dichiarata due volte nei commenti del ponte e
-                // non l'ha mai provata nessuno.
+                // THE NUMBER ONE TRAP OF MCP SERVERS OVER STDIO: a log line
+                // that ends up on stdout breaks the customer, who reads JSON line
+                // by line. It is declared twice in the comments of the bridge and
+                // nobody has ever tested it.
                 Check("su stdout ogni riga e' JSON",
                       p.LinesNotJson.Count == 0,
                       p.LinesNotJson.Count == 0
@@ -453,21 +453,21 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// IL CASO ROSSO DEL CANCELLO DI `measure`.
+        /// THE RED CASE OF THE `measure` GATE.
         ///
-        /// `measure` decide guardando la FAMIGLIA dell'operazione, e la famiglia
-        /// la sa solo il catalogo. Se il catalogo non si carica, ogni famiglia
-        /// e' `null`, **ogni passo passerebbe il controllo**, e uno strumento
-        /// che si e' dichiarato di sola lettura — per cui il client ha gia'
-        /// deciso di non chiedere conferma — eseguirebbe un'estrusione.
+        /// `measure` decides by looking at the FAMILY of the operation, and the family
+        /// is known only to the catalogue. If the catalogue does not load, every family
+        /// is `null`, **every step would pass the check**, and a tool
+        /// that declared itself read-only — so the client has already
+        /// decided not to ask for confirmation — would execute an extrusion.
         ///
-        /// E' la forma peggiore del difetto che non da' errore: **la difesa
-        /// sparisce proprio quando qualcosa e' gia' andato storto**, e il
-        /// sintomo e' che tutto funziona.
+        /// It is the worst form of the defect that gives no error: **the defense
+        /// disappears exactly when something has already gone wrong**, and the
+        /// symptom is that everything works.
         ///
-        /// Si provoca sul serio, con `OPENPDM_CATALOGO` puntata a un file che
-        /// non c'e' — la stessa variabile che userebbe chi installa il pacchetto
-        /// altrove. *Un controllo mai visto scattare non e' un controllo.*
+        /// It is provoked for real, with `OPENPDM_CATALOGO` pointed at a file that
+        /// is not there — the same variable that whoever installs the package
+        /// elsewhere would use. *A check never seen triggering is not a check.*
         /// </summary>
         private static void WithoutCatalogMeasureCloses(string bridge)
         {

@@ -8,186 +8,186 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// UN «NO» SENZA UNA STRADA COSTA UN TURNO A CHI LO LEGGE (voce Z-G4).
+    /// A «NO» WITHOUT A WAY FORWARD COSTS A TURN TO WHOEVER READS IT (entry Z-G4).
     ///
-    /// ── IL FATTO ─────────────────────────────────────────────────────────
+    /// ── THE FACT ──────────────────────────────────────────────────────────
     ///
     /// «Il profilo non ha la misura 40X40X3. Nel file quella misura si scrive
-    /// 40x40x3» ha corretto il modello **in un turno**. «Il profilo non ha
-    /// quella misura» lo avrebbe mandato a indovinare.
+    /// 40x40x3» corrected the model **in one turn**. «Il profilo non ha
+    /// quella misura» would have sent it off guessing.
     ///
-    /// La differenza non e' cortesia: e' il numero di giri che serve per
-    /// arrivare al pezzo. Un rifiuto che nomina l'alternativa e' una
-    /// correzione; uno che dice solo no e' un ostacolo.
+    /// The difference is not courtesy: it is the number of runs needed to
+    /// reach the part. A refusal that names the alternative is a
+    /// correction; one that says only no is an obstacle.
     ///
-    /// ── LA MISURA, E PERCHE' NON E' QUELLA DELLA VOCE ────────────────────
+    /// ── THE MEASUREMENT, AND WHY IT IS NOT THE ONE OF THE ENTRY ───────────
     ///
-    /// La voce Z-G4 diceva «~162 punti di rifiuto, ~39 (24%) dicono anche cosa
-    /// fare». Contati il 23/9/2026 su tutti i `.cs` della libreria: i punti
-    /// sono **576** — `grep -c "Failed("` ne trova 577, meno la definizione —
-    /// e quelli che offrono una strada sono **66**, cioe' l'**11%**.
+    /// Entry Z-G4 said «~162 refusal points, ~39 (24%) also say what to
+    /// do». Counted on 23/9/2026 on all the `.cs` of the library: the points
+    /// are **576** — `grep -c "Failed("` finds 577, minus the definition —
+    /// and those that offer a way forward are **66**, that is **11%**.
     ///
-    /// Il numero della voce era una stima su un sottoinsieme; questo e' il
-    /// conto intero. *Piu' punti e percentuale piu' bassa: la voce sottostimava
-    /// il lavoro, non lo sopravvalutava.*
+    /// The number of the entry was an estimate on a subset; this is the
+    /// whole count. *More points and a lower percentage: the entry underestimated
+    /// the work, it did not overestimate it.*
     ///
-    /// ── PERCHE' UNA CRICCA E NON UNA CORREZIONE ──────────────────────────
+    /// ── WHY A RATCHET AND NOT A CORRECTION ──────────────────────────────────
     ///
-    /// Cinquecentodieci messaggi da riscrivere sono le due giornate che la voce
-    /// stima, e non si fanno in un pomeriggio. Ma **si puo' impedire che
-    /// peggiori**: il numero qui sotto e' un pavimento, e ogni messaggio che
-    /// impara a dire cosa fare lo alza. Un rifiuto nuovo scritto muto fa
-    /// scendere la percentuale e il controllo diventa rosso.
+    /// Five hundred and ten messages to rewrite are the two days that the entry
+    /// estimates, and they are not done in an afternoon. But **it can be prevented from
+    /// getting worse**: the number below is a floor, and every message that
+    /// learns to say what to do raises it. A new refusal written mute makes
+    /// the percentage go down and the check turns red.
     ///
-    /// ── E IL RILEVATORE E' GENEROSO APPOSTA ──────────────────────────────
+    /// ── AND THE DETECTOR IS GENEROUS ON PURPOSE ───────────────────────────
     ///
-    /// Le parole che contano come «strada» sono un elenco largo — «usa»,
-    /// «metti», «oppure», «si scrive»… Largo vuol dire che **sovrastima** i
-    /// messaggi buoni: il vero 11% e' probabilmente piu' basso. Un rilevatore
-    /// severo avrebbe prodotto un numero piu' lusinghiero da migliorare e meno
-    /// vero, e *si puo' barare aggiungendo la parola «oppure»* — ma barare
-    /// qui vorrebbe dire scrivere un messaggio peggiore apposta, e a quel
-    /// punto il problema non e' il controllo.
+    /// The words that count as a «way forward» are a broad list — «usa»,
+    /// «metti», «oppure», «si scrive»… Broad means that it **overestimates** the
+    /// good messages: the real 11% is probably lower. A strict detector
+    /// would have produced a more flattering number to improve and a less
+    /// true one, and *one can cheat by adding the word «oppure»* — but cheating
+    /// here would mean writing a worse message on purpose, and at that
+    /// point the problem is not the check.
     /// </summary>
     internal static class RefusalsTests
     {
         /// <summary>
-        /// Quanti rifiuti, sui **537 che hanno un messaggio proprio**, offrono
-        /// una strada. **Ottantatre il 23/9/2026, cioe' il 15%.** Puo' solo
-        /// salire.
+        /// How many refusals, out of the **537 that have a message of their own**, offer
+        /// a way forward. **Eighty-three on 23/9/2026, that is 15%.** It can only
+        /// go up.
         ///
-        /// ── DUE NUMERI NELLO STESSO GIORNO, E IL SECONDO NON E' UN PROGRESSO ──
+        /// ── TWO NUMBERS ON THE SAME DAY, AND THE SECOND IS NOT PROGRESS ───────
         ///
-        /// La prima misura diceva **66**. Poi l'elenco dei rimedi e' stato
-        /// guardato accanto ai messaggi veri, e contava muto
-        /// «So fare: filettato, passaggio, lamato, svasato» — che **nomina le
-        /// alternative**, cioe' fa esattamente quello che la voce chiede. Con
-        /// le forme che il codice usa davvero il conto e' 83.
+        /// The first measurement said **66**. Then the list of remedies was
+        /// looked at next to the real messages, and it counted as mute
+        /// «So fare: filettato, passaggio, lamato, svasato» — which **names the
+        /// alternatives**, that is it does exactly what the entry asks. With
+        /// the forms the code really uses the count is 83.
         ///
-        /// *Fra 66 e 83 non ha lavorato nessuno: e' migliorato il rilevatore.*
-        /// Scriverlo qui e' il punto — un pavimento che sale senza che nessuno
-        /// abbia scritto un messaggio migliore insegna a leggere quel numero
-        /// come un risultato, e la volta dopo nessuno controlla.
+        /// *Between 66 and 83 nobody worked: the detector improved.*
+        /// Writing it here is the point — a floor that rises without anybody
+        /// having written a better message teaches to read that number
+        /// as a result, and the next time nobody checks.
         ///
-        /// **84 dal 24/9/2026, e stavolta e' lavoro vero.** Togliendo il
-        /// ripiego cablato alla libreria dei profili, `weldment_profiles` ha
-        /// guadagnato un rifiuto che distingue «non so dove sia» da «non c'e'»
-        /// e dice quale variabile impostare. Prima i due casi davano lo stesso
-        /// messaggio, con un percorso vuoto fra virgolette.
+        /// **84 since 24/9/2026, and this time it is real work.** By removing the
+        /// fallback hard-wired into the profile library, `weldment_profiles` has
+        /// gained a refusal that tells «I do not know where it is» from «it is not there»
+        /// and says which variable to set. Before, the two cases gave the same
+        /// message, with an empty path between quotes.
         ///
-        /// **85 dal 24/9/2026 sera (libreria 0.113.0).** `set_dimension` ha un
-        /// rifiuto nuovo — l'apertura che esce dal materiale (voce E18 c) — e
-        /// dice la strada: «sposta prima l'apertura, poi cambia la quota».
+        /// **85 since the evening of 24/9/2026 (library 0.113.0).** `set_dimension` has a
+        /// new refusal — the opening that leaves the material (entry E18 c) — and
+        /// it says the way forward: «sposta prima l'apertura, poi cambia la quota».
         ///
-        /// **87 con le operazioni nuove della stessa versione**: `base_flange`
-        /// («allunga il tratto o stringi il raggio») e `flat_pattern_dxf` («salvalo
+        /// **87 with the new operations of the same version**: `base_flange`
+        /// («allunga il tratto o stringi il raggio») and `flat_pattern_dxf` («salvalo
         /// prima»).
         ///
-        /// **88 dal 25/9/2026 (libreria 0.114.0)**: `weld_bead`
-        /// riscritto su due facce, coi rifiuti nuovi che dicono quale faccia
-        /// indicare invece.
+        /// **88 since 25/9/2026 (library 0.114.0)**: `weld_bead`
+        /// rewritten on two faces, with the new refusals that say which face to
+        /// indicate instead.
         ///
-        /// **90 dal 25/9/2026 (libreria 0.116.0)**: l'ancora (voce E18), coi
-        /// rifiuti che dicono come ancorare l'asse mancante e a quale spigolo
-        /// vivo attaccarsi invece che al bordo di uno smusso.
+        /// **90 since 25/9/2026 (library 0.116.0)**: the anchor (entry E18), with the
+        /// refusals that say how to anchor the missing axis and to which live
+        /// edge to attach rather than to the border of a chamfer.
         ///
-        /// **75 dal 25/9/2026 (libreria 0.117.0), e SCENDE senza che nessun
-        /// messaggio sia peggiorato.** I rifiuti nuovi di Z-C8 avevano fatto
-        /// salire il conto a 92, e guardandoli uno per uno nessuno dei due
-        /// scatti era una strada: «prima di scrivere» contiene «scriv», e un
-        /// rifiuto chiuso sulla sua riga si prendeva il «metti» del rifiuto
-        /// SUCCESSIVO, perche' il rilevatore leggeva sempre la riga dopo.
-        /// Corretto il rilevatore (si ferma a fine messaggio), il conto vero e'
-        /// 75: quindici «strade» erano in prestito dal vicino. Misurato con
-        /// una replica del rilevatore su HEAD e sull'albero: 75 e 75.
-        /// *E' la storia del 66 e dell'83 al contrario: un rilevatore piu'
-        /// onesto abbassa il numero, e va scritto per la stessa ragione.*
+        /// **75 since 25/9/2026 (library 0.117.0), and it GOES DOWN without any
+        /// message having got worse.** The new refusals of Z-C8 had raised the count
+        /// to 92, and looking at them one by one neither of the two
+        /// triggers was a way forward: «prima di scrivere» contains «scriv», and a
+        /// refusal closed on its own line took the «metti» of the NEXT
+        /// refusal, because the detector always read the following line.
+        /// The detector was corrected (it stops at the end of the message), the real count is
+        /// 75: fifteen «ways forward» were borrowed from the neighbour. Measured with
+        /// a replica of the detector on HEAD and on the tree: 75 and 75.
+        /// *It is the story of 66 and 83 the other way round: a more
+        /// honest detector lowers the number, and it must be written for the same reason.*
         ///
-        /// **76 dal 26/9/2026 (libreria 0.121.0):** il rifiuto nuovo di
-        /// `set_dimension` sullo smusso o il raccordo che non ci sta piu' dice
-        /// la strada («cambia o togli prima lo smusso o il raccordo, poi la
+        /// **76 since 26/9/2026 (library 0.121.0):** the new refusal of
+        /// `set_dimension` on the chamfer or fillet that no longer fits says
+        /// the way forward («cambia o togli prima lo smusso o il raccordo, poi la
         /// quota»).
         ///
-        /// **77 dal 26/9/2026 (libreria 0.122.0):** `edge_flange` rifiuta
-        /// una flangia senza niente di dritto dicendo fin dove si puo' scendere.
-        /// **78, stessa libreria:** `hem` rifiuta un aperto senza gioco dicendo
-        /// che senza gioco si chiama «closed».
-        /// **79 dalla libreria 0.123.0:** `sketched_bend` rifiuta i 180 gradi
-        /// nominando «hem».
-        /// **81 dalla libreria 0.124.0:** `hole_table` dice su quale
-        /// vista va (V2) e cosa fare della doppia quotatura; `drawing_dimension`
-        /// nomina la tabella fori fra le cose gia' quotate.
-        /// **89, stessa libreria:** le tre annotazioni (rugosita', datum,
-        /// tolleranza geometrica) dicono cosa fare per ogni rifiuto — la lettera
-        /// libera, togliere il riferimento, mettere il datum prima.
-        /// **90, libreria 0.125.0:** `flat_pattern_view` su un pezzo che non e' di
-        /// lamiera dice che non c'e' uno sviluppo da mettere in tavola. **93:**
-        /// `drawing_weld_symbol` dice su quale vista provare quando il giunto non
-        /// si vede, e toglie da se' il simbolo nato sbagliato (o dice di toglierlo).
-        /// **94:** la distinta in tavola senza posto dice di nascondere colonne o
-        /// di togliere x/y e lasciar scegliere il posto. **98:** le lettere di
-        /// sezioni e dettagli («Usa un'altra lettera»), le croci (i raccordi:
-        /// «Chiedi fori»; un foro senza croce: l'opzione del documento) e
-        /// `dimension_tolerance` («Scegli un grado fra 5 e 11», l'esempio della
-        /// bilaterale). **100:** dalla revisione avversariale — la quota angolare
-        /// («Scegli una quota lineare») e la quota non mostrata («mostra la quota»).
-        /// **106:** GT9 — la distinta base e la bollatura dicono cosa mettere prima
-        /// (la vista di un assieme, la distinta prima della bollatura) e cosa usare
-        /// per un saldato. **108:** Z-D1/Z-D6 — un documento che non e' ne' pezzo
-        /// ne' assieme («Aprimi il pezzo o l'assieme»), lo STL di un assieme («usa
-        /// export_step»), la rilettura dello STEP d'assieme («toglilo e richiedimelo»).
-        /// **109:** Z-D5 — `fix_component` fuori da un assieme («Aprimi l'assieme»).
-        /// **116:** Z-F1 — `global_variable` e `link_dimension`: il nome fatto male (con
-        /// gli esempi), valore o espressione, il nome gia' preso («usa parete»), la
-        /// variabile che non esiste («creala con global_variable»), il pezzo da aprire.
-        /// **119:** Z-F3 — `reorder_feature`: lo spostamento impossibile («spostala
-        /// rispetto a una lavorazione che viene dopo»), i nomi mancanti, il pezzo.
-        /// **122:** Z-F5 — `sketch_picture`: il PDF («convertilo in PNG»),
-        /// il file che non e' un'immagine («PNG, JPG…»), l'immagine da risalvare.
-        /// **125:** GA11 — `mirror_component`: il modo che manca (spiega i tre), fuori
-        /// da un assieme («c'e' specchia»), il file che c'e' gia' («cambia suffisso»).
-        /// **128:** Z-F4 — `edit_extrusion`: la lavorazione che non e' un'estrusione
-        /// («c'e' set_dimension»), «through_all» su un'estrusione («dimmi depth_mm»),
-        /// passante o profondita'.
-        /// **145 dalla voce Z-C21.2 (28/9/2026, ramo z-c21-2-difetti-silenziosi):**
-        /// i difetti silenziosi diventati rifiuti dicono la strada — la quota di
-        /// sola lettura («togli prima la sola lettura»), la guidata («cambia
-        /// invece la quota che la guida»), edit_extrusion a due versi
-        /// («cambiala a mano, oppure… set_dimension»), concentrico e tangente
-        /// (coincidente, parallelo… con le facce piane), la griglia in
+        /// **77 since 26/9/2026 (library 0.122.0):** `edge_flange` refuses
+        /// a flange with nothing straight, saying how far one can go down.
+        /// **78, same library:** `hem` refuses an open one without clearance, saying
+        /// that without clearance it is called «closed».
+        /// **79 since library 0.123.0:** `sketched_bend` refuses 180 degrees
+        /// naming «hem».
+        /// **81 since library 0.124.0:** `hole_table` says on which
+        /// view it goes (V2) and what to do about the double dimensioning; `drawing_dimension`
+        /// names the hole table among the things already dimensioned.
+        /// **89, same library:** the three annotations (surface finish, datum,
+        /// geometric tolerance) say what to do for every refusal — the free
+        /// letter, removing the reference, putting the datum first.
+        /// **90, library 0.125.0:** `flat_pattern_view` on a part that is not
+        /// sheet metal says there is no flat pattern to put on the drawing. **93:**
+        /// `drawing_weld_symbol` says on which view to try when the joint is not
+        /// visible, and removes by itself the symbol born wrong (or says to remove it).
+        /// **94:** the bill of materials on the drawing without room says to hide columns or
+        /// to remove x/y and let it choose the place. **98:** the letters of
+        /// sections and details («Usa un'altra lettera»), the center marks (the fillets:
+        /// «Chiedi fori»; a hole without a mark: the option of the document) and
+        /// `dimension_tolerance` («Scegli un grado fra 5 e 11», the example of the
+        /// bilateral). **100:** from the adversarial review — the angular dimension
+        /// («Scegli una quota lineare») and the dimension not shown («mostra la quota»).
+        /// **106:** GT9 — the bom and the balloons say what to put first
+        /// (the view of an assembly, the bom before the balloons) and what to use
+        /// for a weldment. **108:** Z-D1/Z-D6 — a document that is neither part
+        /// nor assembly («Aprimi il pezzo o l'assieme»), the STL of an assembly («usa
+        /// export_step»), the rereading of the assembly STEP («toglilo e richiedimelo»).
+        /// **109:** Z-D5 — `fix_component` outside an assembly («Aprimi l'assieme»).
+        /// **116:** Z-F1 — `global_variable` and `link_dimension`: the badly made name (with
+        /// the examples), value or expression, the name already taken («usa parete»), the
+        /// variable that does not exist («creala con global_variable»), the part to open.
+        /// **119:** Z-F3 — `reorder_feature`: the impossible move («spostala
+        /// rispetto a una lavorazione che viene dopo»), the missing names, the part.
+        /// **122:** Z-F5 — `sketch_picture`: the PDF («convertilo in PNG»),
+        /// the file that is not an image («PNG, JPG…»), the image to save again.
+        /// **125:** GA11 — `mirror_component`: the mode that is missing (it explains the three), outside
+        /// an assembly («c'e' specchia»), the file that is already there («cambia suffisso»).
+        /// **128:** Z-F4 — `edit_extrusion`: the feature that is not an extrusion
+        /// («c'e' set_dimension»), «through_all» on an extrusion («dimmi depth_mm»),
+        /// through-all or depth.
+        /// **145 since entry Z-C21.2 (28/9/2026, branch z-c21-2-difetti-silenziosi):**
+        /// the silent defects that became refusals say the way forward — the read-only
+        /// dimension («togli prima la sola lettura»), the driven one («cambia
+        /// invece la quota che la guida»), edit_extrusion in two directions
+        /// («cambiala a mano, oppure… set_dimension»), concentric and tangent
+        /// (coincident, parallel… with the planar faces), the grid in
         /// suppress_instance («fai la ripetizione con una direzione sola»),
-        /// l'ancora su una faccia curva («togli ancora e dai x_mm e y_mm») e
-        /// sullo spigolo che non si lascia guardare («ancoralo a un altro
-        /// spigolo»), il foro fuori dal pezzo. Nove in piu' secondo il
-        /// rilevatore: il numero l'ha dato il controllo, l'elenco qui sopra e'
-        /// quello dei messaggi nuovi e non una corrispondenza uno a uno.
-        /// **146, stessa voce, dopo la revisione:** meno due — i rifiuti intermedi di
-        /// `hole_wizard` (prima del posizionamento) non ci sono piu', e contavano
-        /// solo perche' «RemoveCut» contiene «togli» — e piu' tre: in
-        /// `combine_bodies` uid e `_ref` dati insieme («togli uno dei due»), e il
-        /// passo di `main_body_ref` che lascia piu' corpi («nominalo con
+        /// the anchor on a curved face («togli ancora e dai x_mm e y_mm») and
+        /// on the edge that cannot be looked at («ancoralo a un altro
+        /// spigolo»), the hole outside the part. Nine more according to the
+        /// detector: the number was given by the check, the list above is
+        /// that of the new messages and not a one-to-one correspondence.
+        /// **146, same entry, after the review:** minus two — the intermediate refusals of
+        /// `hole_wizard` (before the positioning) are no longer there, and counted
+        /// only because «RemoveCut» contains «togli» — and plus three: in
+        /// `combine_bodies` uid and `_ref` given together («togli uno dei due»), and the
+        /// step of `main_body_ref` that leaves several bodies («nominalo con
         /// «main_body_uid»»).
-        /// **213 dalle quattro lavorazioni della guida (28/9/2026, ramo
-        /// quattro-lavorazioni):** +67, quanto ha contato il controllo sull'albero
-        /// unito, e torna con la somma delle repliche dei quattro scrittori file per
-        /// file. **+15, voce GP7 (`fillet_face`):** la stessa faccia due volte e
-        /// le facce parallele indicano «fillet_edges»; il raccordo che non nasce,
-        /// che nasce di un altro tipo, che rompe qualcosa o che non cambia il volume
-        /// dice di provare un raggio piu' piccolo o «fillet_edges». **+18, voce
-        /// W1.1 (`fill_pattern`):** la direzione che manca («indica uno spigolo
-        /// dritto… oppure… create_axis»), la faccia non piana, la direzione fuori dalla
-        /// faccia, il passo e le copie per giro, e il NULL che nomina linear_pattern /
-        /// circular_pattern. **+10, voce W1.2 (`rib`):** l'estremo fuori dal
-        /// piano, la linea troppo corta, la nervatura che non nasce in nessun verso
-        /// («extrude_on_face»), il piano da dire. **+24, voce GP20 (`gusset`):**
-        /// i rifiuti nuovi nominano l'alternativa — indica le facce, usa il
-        /// triangolare, togli la posizione, prova lati piu' corti,
+        /// **213 from the four features of the guide (28/9/2026, branch
+        /// quattro-lavorazioni):** +67, as much as the check counted on the merged
+        /// tree, and it matches the sum of the replicas of the four file writers, file by
+        /// file. **+15, entry GP7 (`fillet_face`):** the same face twice and
+        /// parallel faces point to «fillet_edges»; the fillet that is not born,
+        /// that is born of another type, that breaks something or does not change the volume
+        /// says to try a smaller radius or «fillet_edges». **+18, entry
+        /// W1.1 (`fill_pattern`):** the direction that is missing («indica uno spigolo
+        /// dritto… oppure… create_axis»), the non-planar face, the direction outside the
+        /// face, the pitch and the copies per run, and the NULL that names linear_pattern /
+        /// circular_pattern. **+10, entry W1.2 (`rib`):** the end outside the
+        /// plane, the line too short, the rib that is not born in either direction
+        /// («extrude_on_face»), the plane to be named. **+24, entry GP20 (`gusset`):**
+        /// the new refusals name the alternative — indicate the faces, use the
+        /// triangular one, remove the position, try shorter sides,
         /// «weld_bead».
-        /// **216 dalla correzione della revisione (stesso ramo):** +3. Il raccordo
-        /// di faccia che toglie un volume diverso dal conto a mano nomina
-        /// «fillet_edges»; la nervatura che, fallendo, lascia nell'albero una
-        /// lavorazione che non e' una «Rib» nomina «extrude_on_face»; il
-        /// fazzoletto nato di un tipo diverso da «Gusset» nomina lati piu' corti e
+        /// **216 from the correction of the review (same branch):** +3. The face
+        /// fillet that removes a volume different from the hand count names
+        /// «fillet_edges»; the rib that, failing, leaves in the tree a
+        /// feature that is not a «Rib» names «extrude_on_face»; the
+        /// gusset born of a type different from «Gusset» names shorter sides and
         /// «weld_bead».
         /// **217, Z-C21.2-ter:** +1, and it is the detector, not a better message:
         /// the new refusal of «mirror_component» for a mirror born with the wrong
@@ -257,7 +257,7 @@ namespace Oce.Solid.Agent.ContractTests
         private const int ShareFloorWithText = 937;
 
         /// <summary>
-        /// Le aperture con cui questo codice dice no.
+        /// The openings with which this code says no.
         /// </summary>
         private static readonly string[] Aperture = { "Failed(", "Rifiuta(", "NonPosso(" };
 
@@ -281,8 +281,8 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// Le parole con cui un messaggio indica una strada. Elenco volutamente
-        /// largo: vedi il commento in testa.
+        /// The words with which a message points to a way forward. A deliberately
+        /// broad list: see the comment at the top.
         ///
         /// BILINGUAL SINCE W3.1-bis.2 (30/9/2026). The refusals are being
         /// translated message by message (W3.1-bis.8), and a refusal that loses
@@ -332,14 +332,14 @@ namespace Oce.Solid.Agent.ContractTests
             new Remedy("con «", new[] { "with «" }, "Round it with «fillet_edges»."),
             new Remedy("oppure", new[] { ", or " }, "Tell me the path, or save the part first."),
 
-            // AGGIUNTE IL 23/9/2026, GUARDANDO I MESSAGGI VERI. La prima
-            // stesura dell'elenco era scritta a tavolino e contava muto
-            // «So fare: filettato, passaggio, lamato, svasato», che **nomina
-            // le alternative** ed e' esattamente cio' che la voce chiede.
+            // ADDED ON 23/9/2026, LOOKING AT THE REAL MESSAGES. The first
+            // draft of the list was written at a desk and counted as mute
+            // «So fare: filettato, passaggio, lamato, svasato», which **names
+            // the alternatives** and is exactly what the entry asks for.
             //
-            // Il numero che si alza qui si alza perche' il RILEVATORE e'
-            // migliorato, non i messaggi: va detto, altrimenti il prossimo
-            // che legge il pavimento crede che qualcuno abbia lavorato.
+            // The number that rises here rises because the DETECTOR
+            // improved, not the messages: it must be said, otherwise the next
+            // person who reads the floor believes that somebody worked.
             new Remedy("so fare", new[] { "i can do", "i can make", "i know how" },
                        "I can make: tapped, clearance, counterbore, countersink."),
             new Remedy("per esempio", new[] { "for example", "for instance", "e.g." }, "Give a size, for example 40x40x3."),
@@ -414,7 +414,7 @@ namespace Oce.Solid.Agent.ContractTests
                   total + " punti: " + withText + " con un messaggio proprio, " +
                   forward + " che ne inoltrano uno scritto altrove");
 
-            // IL PAVIMENTO SALE E NON SCENDE.
+            // THE FLOOR GOES UP AND DOES NOT GO DOWN.
             Check("i rifiuti con una strada non sono diminuiti",
                   withRoad >= Floor,
                   withRoad + " su " + withText + " (" + (withText == 0 ? 0 : withRoad * 100 / withText) +
@@ -425,8 +425,8 @@ namespace Oce.Solid.Agent.ContractTests
                       ? withRoad + ", as measured"
                       : "sono " + withRoad + ": alza il pavimento a questo numero");
 
-            // DOVE STANNO I MUTI, perche' un numero senza un indirizzo non fa
-            // cominciare nessuno.
+            // WHERE THE MUTE ONES ARE, because a number without an address does not
+            // make anybody start.
             var perFile = tally.Refusals.Where(r => !r.Italian && !r.English)
                 .GroupBy(r => r.File).ToDictionary(g => g.Key, g => g.Count());
             var worse = perFile.OrderByDescending(x => x.Value).Take(5)
@@ -551,17 +551,17 @@ namespace Oce.Solid.Agent.ContractTests
                     if (bare.StartsWith("//", StringComparison.Ordinal)) continue;
                     if (!Aperture.Any(a => r.Contains(a))) continue;
 
-                    // IL MESSAGGIO CONTINUA SULLE RIGHE DOPO. Fermarsi alla
-                    // prima vorrebbe dire giudicare mute quasi tutte: qui i
-                    // messaggi lunghi sono la norma, e sono proprio quelli che
-                    // la strada ce l'hanno.
+                    // THE MESSAGE CONTINUES ON THE FOLLOWING LINES. Stopping at the
+                    // first would mean judging almost all of them mute: here
+                    // long messages are the norm, and they are precisely the ones that
+                    // do have a way forward.
                     //
-                    // MA NON OLTRE LA FINE DEL SUO. Fino al 25/9/2026 il ciclo
-                    // leggeva sempre almeno la riga dopo, anche quando il
-                    // messaggio si chiudeva sulla sua: un rifiuto breve si
-                    // prendeva il «metti» del rifiuto successivo, e il
-                    // pavimento e' salito di uno senza che nessuno scrivesse un
-                    // messaggio migliore.
+                    // BUT NOT BEYOND ITS END. Until 25/9/2026 the loop
+                    // always read at least the following line, even when the
+                    // message closed on its own: a short refusal
+                    // took the «metti» of the next refusal, and the
+                    // floor rose by one without anybody writing a
+                    // better message.
                     var text = r;
                     if (!r.Contains(");"))
                     for (int j = i + 1; j < lines.Length && j < i + 12; j++)
@@ -573,14 +573,14 @@ namespace Oce.Solid.Agent.ContractTests
 
                     tally.Points++;
 
-                    // ── TRE SPECIE, NON DUE ──────────────────────────────
+                    // ── THREE KINDS, NOT TWO ─────────────────────────────
                     //
-                    // `return Failed(error)` non e' un rifiuto muto: e' un
-                    // rifiuto che **inoltra** un messaggio scritto altrove.
-                    // Giudicarlo qui vorrebbe dire contarlo due volte — una
-                    // dove il testo c'e' e una dove passa — e gonfiare il
-                    // problema. Un punto senza nemmeno una virgoletta non ha
-                    // un messaggio da giudicare.
+                    // `return Failed(error)` is not a mute refusal: it is a
+                    // refusal that **forwards** a message written elsewhere.
+                    // Judging it here would mean counting it twice — once
+                    // where the text is and once where it passes — and inflating the
+                    // problem. A point without even a quotation mark has no
+                    // message to judge.
                     if (text.IndexOf('"') < 0) { tally.Forwarded++; continue; }
 
                     tally.WithText++;
