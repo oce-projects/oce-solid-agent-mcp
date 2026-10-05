@@ -43,7 +43,7 @@ if (!fileTodo) process.exit(0);
 const lines = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // Le cartelle da cui il TODO scrive i percorsi.
-const BASES = ['', 'Banco', 'Bench/cases', 'Oce.Solid.Agent.Core', 'Strumenti',
+const BASES = ['', 'Bench', 'Bench/cases', 'Oce.Solid.Agent.Core', 'Tools',
               'Checks', 'Tests', 'Mcp', 'Bridge'];
 
 // ── CARTELLE DI UN ALTRO REPOSITORY ─────────────────────────────────────────
@@ -107,10 +107,41 @@ function location(p) {
 const TO_CREATE = /^\s*\(da creare\)/;
 const announced = new Set();
 
+// ── THE RENAME ENTRY KEEPS THE NAMES OF BEFORE (decision D10) ───────────────
+//
+// The entry W3.1-bis is the record of the rename into English: it quotes the
+// folders and files by the names they had when each window was planned, on
+// purpose, as the CHANGELOG does. Window 3 (W3.1-bis.6) moved the folders,
+// and its `--todo` rewrites every open entry except this one. A path of that
+// entry that does not exist is judged in the names of after: if the name map
+// turns it into a file that exists, it is a name of before, not a broken
+// reference. Only inside that entry: anywhere else an old name is a stale
+// pointer and stays red.
+const RENAME_ENTRY = /^(#{2,5}) (?:\[[ x~]\] )?W3\.1-bis\b/;
+let renameMap = null;
+function nameOfAfter(p) {
+  if (renameMap === null) {
+    try { renameMap = require('./language/window-3-identifiers.js').loadMap(root); }
+    catch (e) { renameMap = false; }
+  }
+  if (!renameMap) return null;
+  const segs = p.split('/');
+  const out = segs.map((s, i) => (i === segs.length - 1 ? renameMap.file.get(s) : renameMap.folder.get(s) || renameMap.project.get(s)) || s);
+  const q = out.join('/');
+  return q !== p && location(q) ? q : null;
+}
+
 let stateEntry = null;          // ' ', 'x' o '~' della voce in cui siamo
+let renameLevel = 0;            // heading level of the entry W3.1-bis while inside it
 const citations = new Map();   // percorso -> stato della voce
+const inRenameEntry = new Set();
+const outsideRenameEntry = new Set();
 
 for (const line of lines) {
+  const hl = /^(#{1,5}) /.exec(line);
+  if (hl && renameLevel && hl[1].length <= renameLevel && !RENAME_ENTRY.test(line)) renameLevel = 0;
+  const re = RENAME_ENTRY.exec(line);
+  if (re && !renameLevel) renameLevel = re[1].length;
   const h = line.match(/^#{2,4} \[([ x~])\]/);
   if (h) stateEntry = h[1];
   // A `(com'era)` heading is the original wording of an entry, kept for
@@ -128,6 +159,10 @@ for (const line of lines) {
     if (!EXTENSIONS.some(e => p.toLowerCase().endsWith(e))) continue;
     if (TO_CREATE.test(line.slice(m.index + m[0].length))) announced.add(p);
     if (!citations.has(p)) citations.set(p, stateEntry);
+    // judged per citation: the same old path quoted again in another open
+    // entry is a stale pointer there, whatever the rename entry says
+    if (renameLevel) inRenameEntry.add(p);
+    else if (stateEntry !== 'x') outsideRenameEntry.add(p);
   }
 }
 
@@ -135,12 +170,14 @@ const missingItems = [];
 const otherRepo = [];
 const historical = [];
 const toDo = [];
+const renamedBefore = [];
 let ok = 0;
 for (const [p, docState] of citations) {
   if (ELSEWHERE.some(r => r.test(p)) || TRANSIENTS.some(r => r.test(p))) { otherRepo.push(p); continue; }
   const b = location(p);
   if (b) { ok++; if (all) console.log('  ok   ' + p + (b === '(radice)' ? '' : '   [sotto ' + b + ']')); continue; }
   if (docState === 'x') historical.push(p);      // voce chiusa: e' un nome di allora
+  else if (inRenameEntry.has(p) && !outsideRenameEntry.has(p) && nameOfAfter(p)) renamedBefore.push(p);
   else if (announced.has(p)) toDo.push(p);   // voce aperta che dice «(da creare)»
   else missingItems.push(p + (docState === null ? '   (fuori da una voce)' : ''));
 }
@@ -150,6 +187,7 @@ console.log('che esistono:     ' + ok);
 console.log('in voci CHIUSE, e non si toccano: ' + historical.length);
 console.log('altrove o transitori:             ' + otherRepo.length);
 console.log('annunciati «(da creare)»:         ' + toDo.length);
+console.log('names of before, in the entry W3.1-bis: ' + renamedBefore.length);
 console.log('');
 if (missingItems.length === 0) {
   console.log('Nessuna voce aperta manda a un file che non c\'e\'.');

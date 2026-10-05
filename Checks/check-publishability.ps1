@@ -98,7 +98,16 @@ $binary = @(
 # `Checks\` solo dopo. Un'eccezione legata al percorso avrebbe segnalato come
 # fuga il controllo stesso a ogni commit precedente allo spostamento. I file si
 # spostano, il loro mestiere no.
-$twoChecks = @('check-catalog.ps1', 'check-publishability.ps1')
+#
+# A move keeps the name; a rename does not. Window 3 of W3.1-bis renamed these
+# files into English, and the history that is pushed still carries them under
+# the names they had before (the commits before the move, and the merges that
+# bring them in): the same files, the same job, so each list below names a
+# file by both its names. $renamedBy3 is that pairing, from the name map.
+$renamedBy3 = @{ 'check-catalog.ps1' = 'controlla-catalogo.ps1'; 'check-publishability.ps1' = 'controlla-pubblicabilita.ps1';
+                 'cleanup-history.js' = 'bonifica-storia.js'; 'CatalogTests.cs' = 'ProveCatalogo.cs' }
+function WithNamesOfBefore($names) { @($names) + @($names | Where-Object { $renamedBy3.ContainsKey($_) } | ForEach-Object { $renamedBy3[$_] }) }
+$twoChecks = WithNamesOfBefore @('check-catalog.ps1', 'check-publishability.ps1')
 
 # L'ECCEZIONE ERA SUL FILE, E DOVEVA ESSERE SULLA FORMA. TRE INDIRIZZI VERI
 # SONO USCITI DA QUI.
@@ -169,7 +178,7 @@ $nameOnly = @('LICENSE', 'NOTICE') + $twoChecks
 
 # Chi sostituisce il percorso di scratchpad lo deve scrivere per trovarlo:
 # `cleanup-history.js` ha lo schema, questo controllo ha il pattern.
-$sessionOnly = @('cleanup-history.js', 'check-publishability.ps1')
+$sessionOnly = WithNamesOfBefore @('cleanup-history.js', 'check-publishability.ps1')
 
 # LA STRUTTURA DI UN ALTRO REPOSITORY, CHE E' PRIVATO.
 #
@@ -208,7 +217,7 @@ $InsideAnotherRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
 # mano, e chi lo scrive a mano in un documento che spiega perche' non si scrive
 # lo sta facendo apposta. I file generati - il catalogo, i casi del banco -
 # restano coperti.
-$talkAboutDisks = @('CHANGELOG.md', 'CatalogTests.cs') + $twoChecks
+$talkAboutDisks = (WithNamesOfBefore @('CHANGELOG.md', 'CatalogTests.cs')) + $twoChecks
 
 # NON si puo' chiamare questa funzione `Git`: PowerShell non distingue maiuscole
 # e minuscole nei nomi di comando, quindi `& git` qui dentro risolverebbe alla
