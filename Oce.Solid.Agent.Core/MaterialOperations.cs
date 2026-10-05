@@ -179,9 +179,9 @@ namespace Oce.Solid.Agent.Core
                 // field that whoever reads does not learn to look at.
                 ["note_assumption"] = assumed
                     ? "material: «" + DefaultMaterial + "» — DEFAULT of " +
-                      "this workshop, you did not request it. If you need something else, " +
+                      "this workshop, you have not asked for it. If you need something else, " +
                       "write «material» in the step."
-                    : "material: «" + requested + "» — you requested it.",
+                    : "material: «" + requested + "» — you asked for it.",
             };
             if (beforeCount > 0)
                 measurements["replaces"] = string.Join(", ", before, 0, beforeCount);

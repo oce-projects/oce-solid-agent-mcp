@@ -361,9 +361,9 @@ namespace Oce.Solid.Agent.Core
                 ["operation"] = asRequested,
                 ["note_assumption"] = assumed
                     ? "operation: «" + DefaultOperation + "» — DEFAULT, " +
-                      "you did not request it. «subtract» and «intersect» are requested " +
+                      "you have not asked for it. «subtract» and «intersect» are requested " +
                       "by name."
-                    : "operation: «" + asRequested + "» — you requested it.",
+                    : "operation: «" + asRequested + "» — you asked for it.",
                 ["main_body"] = mainName,
                 ["tool_bodies"] = toolNames.ToArray(),
                 ["bodies_before"] = bodiesBefore,

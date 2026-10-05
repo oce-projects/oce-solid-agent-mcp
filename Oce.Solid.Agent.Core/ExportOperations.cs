@@ -227,7 +227,7 @@ namespace Oce.Solid.Agent.Core
             if (stlPreferencesNote != null) measurements["preferences_not_restored"] = stlPreferencesNote;
             if (!printable)
                 measurements["exported_anyway"] =
-                    "You requested it with «export_anyway»: the file is there and the part " +
+                    "You asked for it with «export_anyway»: the file is there and the part " +
                     "was not right. " + verdictValue;
 
             // A FILE THAT DOES NOT ADD UP IS NOT A FILE. On a binary STL the

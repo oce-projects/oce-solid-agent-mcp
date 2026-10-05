@@ -36,6 +36,23 @@
 //  records: the constant text that contains it, ignoring case, or the template
 //  that does). A message and the case that asserts it are in the same chunk,
 //  and the translator gives the new substring together with the new message.
+//  An assertion of values computed at run time ("-157 a 157", "Ø30 per 40")
+//  is linked by HOLES: the unit whose holes stand where its numbers, names
+//  with a digit and texts between guillemets are, its words being the unit's.
+//  A translated substring may not be WIDER than the old one (held by more than
+//  twice as many producer literals, and by more than three more): one common
+//  word in place of a phrase of its own lets the case pass on another message.
+//
+//  PROBES GO WITH THEIR MESSAGE TOO. A probe is a lone literal a program
+//  compares another's output with (Contains, IndexOf, StartsWith, includes, a
+//  regular expression that tests, == or case, -match/-like/-eq), held by an
+//  Italian unit of the code: the contracts of Tests/, the bench, the scripts
+//  of Checks/. Left behind, a probe that demanded a text goes red, and one
+//  that demanded its absence (IndexOf(..) < 0, -notmatch) stays green for
+//  ever. A probe whose words are Italian is an item of the cluster of its
+//  messages (a narrow one, at most six units) or of the last chunk (a wide
+//  one); any other only guards. The files that read the owner's notes are
+//  not probes (NOT_PROBES).
 //
 //  THE CHUNKS
 //    --extract <dir> [--pilot Bridge,Installer]
@@ -70,7 +87,12 @@
 //                            in the new text of a unit that satisfied the old
 //                            one, or a not_contains whose new substring is in no
 //                            producer, or whose message is not translated in the
-//                            same run;
+//                            same run, or a new substring WIDER than the old;
+//                          - a probe whose new text none of its messages will
+//                            hold (narrow: none of those this run changes), or
+//                            a message that would leave a narrow probe outside
+//                            the run with nothing to find (a wide one is in
+//                            the last chunk and the check judges it);
 //                          - a regular expression of a consumer whose skeleton
 //                            (everything that is not a letter) changed;
 //                          - a file where, once written, the text outside the
@@ -363,11 +385,41 @@ function templateMatch(T, runs) {
   return false;
 }
 
+// THE HOLES TAKE THE VALUES. An assertion that holds values computed at run time
+// (a range of two numbers, a diameter by a length, two view names, the name
+// of a plane between guillemets, all with the words of the message) is in no
+// literal and fits no {0} template: it is satisfied by a unit whose holes stand
+// where its numbers, its names with a digit and its text between guillemets
+// are, the words around them being the unit's own. Without this such an
+// assertion has no producer, and a translation of its message leaves it
+// pointing at nothing with no check that sees it.
+const HOLE_MARK = '\u0000';
+const VALUE_TOKEN = /«([^«»]+)»|[-+]?\d+(?:[.,]\d+)*|[A-Za-z_][\w-]*\d[\w-]*/g;
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function holesPattern(value) {
+  let src = '', literal = '', at = 0, tokens = 0;
+  for (const m of value.matchAll(VALUE_TOKEN)) {
+    src += escRe(value.slice(at, m.index));
+    literal += value.slice(at, m.index);
+    if (m[1] !== undefined) { src += '«(?:' + HOLE_MARK + '|' + escRe(m[1]) + ')»'; literal += '««»»'; }
+    else src += '(?:' + HOLE_MARK + '|' + escRe(m[0]) + ')';
+    tokens++;
+    at = m.index + m[0].length;
+  }
+  src += escRe(value.slice(at));
+  literal += value.slice(at);
+  // the words of the unit must be there: two letters at least outside the values
+  if (!tokens || (literal.match(/[A-Za-zÀ-ÿ]/g) || []).length < 2) return null;
+  return new RegExp(src, 'i');
+}
+const holesText = (parts) => parts.map(p => (p === null ? HOLE_MARK : p)).join('');
+
 // does the unit (as snapshot parts) satisfy the value, the way the bench asks?
 function satisfies(parts, value, how) {
   const V = value.toUpperCase();
   if (!V) return false;
   if (how === 'template') { const runs = templateRuns(parts); return !!runs && templateMatch(V, runs); }
+  if (how === 'holes') { const re = holesPattern(value); return !!re && re.test(holesText(parts)); }
   for (const p of parts) {
     if (p === null) continue;
     const up = p.toUpperCase();
@@ -391,10 +443,121 @@ function linkAssertions(list, producerUnits) {
       const T = x.value.toUpperCase();
       for (const u of templates) if (templateMatch(T, u.runs)) x.template.push(u.id);
     }
-    x.satisfiers = x.candidates.length ? x.candidates : x.template;
-    x.how = x.candidates.length ? 'contains' : x.template.length ? 'template' : null;
+    x.holes = [];
+    if (!x.candidates.length && !x.template.length && x.value) {
+      const re = holesPattern(x.value);
+      if (re) for (const u of units) if (u.parts.includes(null) && re.test(holesText(u.parts))) x.holes.push(u.id);
+    }
+    x.satisfiers = x.candidates.length ? x.candidates : x.template.length ? x.template : x.holes;
+    x.how = x.candidates.length ? 'contains' : x.template.length ? 'template' : x.holes.length ? 'holes' : null;
   }
   return units;
+}
+// how a satisfier of an assertion is matched: whole, contained, by a {0} template, by holes
+function howOf(a, key) {
+  if (a.kind === 'equals' && (a.equal || []).includes(key)) return 'equal';
+  return a.how === 'template' || a.how === 'holes' ? a.how : 'contains';
+}
+
+// ── the programs that look for a text: the probes ──────────────────────────
+// A PROBE is a lone literal a program compares the output of another with: the
+// argument of Contains, IndexOf, StartsWith, EndsWith, includes, a regular
+// expression that tests a text, the side of a == or a case, the right side of
+// a PowerShell -match, -like, -eq. A probe whose literal is held by an Italian
+// unit of the code is a consumer of that message just as an entry of the
+// consumed-strings inventory is: translate the message and leave the probe,
+// and a contract that demanded the text goes red, while one that demanded its
+// ABSENCE (IndexOf(..) < 0, !Contains, -notmatch) goes blind and stays green
+// for ever. The probe changes with its message, in the same run.
+const PROBE_CALLS = /^(Contains|IndexOf|LastIndexOf|StartsWith|EndsWith|includes|indexOf|lastIndexOf|startsWith|endsWith|IsMatch|Match|Matches|search|match)$/;
+// Files whose comparisons read something other than the output of the programs
+const NOT_PROBES = [
+  { file: /^Checks\/(count-todo|todo-[\w-]+|where-is-the-todo|obsolete-api-list)\.(js|ps1)$/,
+    why: 'they read the owner’s notes (TODO.md, outside the repository, Italian by decision), not the output of a program' },
+];
+function probeShape(f, u) {
+  if (f.lang === 'json' || inCatalogue(f.rel)) return null;
+  if (NOT_PROBES.some(x => x.file.test(f.rel))) return null;
+  if (u.leaves.length !== 1 || u.leaves[0].k !== 't') return null;
+  const l = u.leaves[0];
+  const value = l.cooked;
+  if (value.trim().length < 3 || !/[A-Za-zÀ-ÿ]{3,}/.test(value)) return null;
+  const before = f.text.slice(Math.max(0, l.s - 80), l.s), after = f.text.slice(l.e, l.e + 120);
+  const tail = after.split(/[;{]/)[0];
+  let how = null, nocase = false, neg = false;
+  if (u.kind === 'regex') {
+    const flags = f.text.slice(l.ie + 1, l.e);
+    if (/^\s*\.\s*(test|exec)\s*\(/.test(after) || /\.\s*(match|matchAll|replace|search|split)\s*\(\s*$/.test(before)) { how = 'regex'; nocase = flags.includes('i'); }
+    neg = /!\s*$/.test(before);
+  } else if (f.lang === 'ps') {
+    const op = /-(c|i)?(not)?(match|like|eq|ne|contains)\s*$/i.exec(before);
+    const meth = /\.\s*(Contains|IndexOf|StartsWith|EndsWith)\s*\(\s*$/i.exec(before);
+    if (op) {
+      const kind = op[3].toLowerCase();
+      how = kind === 'match' ? 'regex' : kind === 'like' ? 'like' : 'equal';
+      nocase = (op[1] || '').toLowerCase() !== 'c';
+      neg = !!op[2] || kind === 'ne';
+    } else if (meth) { how = 'contains'; nocase = /IgnoreCase/.test(tail); }
+  } else {
+    const callee = calleeLast(u.ctx[0] || '');
+    if (PROBE_CALLS.test(callee)) {
+      how = /^(IsMatch|Match|Matches)$/.test(callee) ? 'regex' : 'contains';
+      nocase = /IgnoreCase/.test(tail) || /to(Lower|Upper)(Case|Invariant)?\(\)\s*\.\s*\w+\s*\(\s*$/.test(before);
+      neg = /^[^;{}()]*\)\s*(<\s*0|===?\s*-1)/.test(after) || /!\s*[\w$.\[\]()]*\.\s*\w+\s*\(\s*$/.test(before);
+    } else if (/(?:[!=]==?)\s*$/.test(before) || /^\s*[!=]==?/.test(after) || /\bcase\s+$/.test(before)) {
+      how = 'equal';
+      neg = /!==?\s*$/.test(before) || /^\s*!==?/.test(after);
+    }
+  }
+  if (!how) return null;
+  return { value, how, nocase, neg };
+}
+// does a unit (snapshot parts) hold what the probe looks for?
+function probeHolds(parts, value, how, nocase) {
+  const norm = (s) => (nocase ? s.toLowerCase() : s);
+  const V = norm(value);
+  if (how === 'regex' || how === 'like') {
+    let re;
+    try {
+      re = how === 'like'
+        ? new RegExp('^' + value.split('').map(c => (c === '*' ? '.*' : c === '?' ? '.' : escRe(c))).join('') + '$', nocase ? 'i' : '')
+        : new RegExp(value, nocase ? 'i' : '');
+    } catch (e) { return false; }
+    return parts.some(p => p !== null && re.test(p)) || re.test(holesText(parts));
+  }
+  for (const p of parts) {
+    if (p === null) continue;
+    if (how === 'equal' ? norm(p) === V : norm(p).includes(V)) return true;
+  }
+  return false;
+}
+// The probes of a model, with the code units that hold their text.
+function probesOf(model) {
+  const sites = [];
+  for (const f of model.files.values()) for (const u of f.units) {
+    const p = probeShape(f, u);
+    if (p) sites.push(Object.assign({ key: keyOf(f.rel, u.id), file: f.rel, unit: u.id, line: u.line }, p));
+  }
+  const siteKeys = new Set(sites.map(s => s.key));
+  const code = [];
+  for (const f of model.files.values()) {
+    if (f.lang === 'json' || inCatalogue(f.rel)) continue;
+    for (const u of f.units) {
+      const k = keyOf(f.rel, u.id);
+      if (siteKeys.has(k)) continue;
+      code.push({ key: k, file: f.rel, unit: u.id, italian: !!u.italian, parts: SCAN.snapshotParts(u) });
+    }
+  }
+  const out = [];
+  for (const s of sites) {
+    const prods = code.filter(c => probeHolds(c.parts, s.value, s.how, s.nocase));
+    if (!prods.some(c => c.italian)) continue;
+    s.producers = prods.map(c => ({ key: c.key, file: c.file, unit: c.unit, italian: c.italian }));
+    if (prods.length > PROBE_MAX) continue;   // it matches a large part of the code: a pattern of the code, not a message it reads
+    s.home = prods.length > K_NARROW ? 'wide' : 'narrow';
+    out.push(s);
+  }
+  return out;
 }
 
 function casesOf(root, rels, read) {
@@ -454,7 +617,9 @@ function caseKeysInfo(root, read) {
 
 
 // ── the model: items, assertions, consumers, clusters ───────────────────────
-const K_NARROW = 6;      // an assertion with more satisfier units than this is "wide"
+const K_NARROW = 6;
+const PROBE_MAX = 40;    // a literal more than this many code units hold is not the probe of a message
+const WIDER_SLACK = 3;   // a translated assertion may match this many producer literals more than the old one (and up to twice as many)      // an assertion with more satisfier units than this is "wide"
 const LOCKED_STYLES = new Set(['raw', 'u8', 'interp-raw', 'template-bad']);
 const keyOf = (file, unit) => file + '#' + unit;
 
@@ -515,7 +680,9 @@ function buildModel(root, rev, opts) {
     if (f.lang === 'json') { if (u.assertion) u.kind = 'assertion'; else u.kind = kindOfUnit(f.rel, 'json', u, ck); }
     else u.kind = u.kind === 'regex' ? 'regex' : kindOfUnit(f.rel, f.lang, u, ck);
   }
-  return { root, rev, cfg, rels, read, files, ck, cases, assertions, producerRels: prodRels, producerUnits };
+  const model = { root, rev, cfg, rels, read, files, ck, cases, assertions, producerRels: prodRels, producerUnits };
+  model.probes = opts.noItalian ? [] : probesOf(model);
+  return model;
 }
 
 // The consumer unit of every entry of the consumed-strings inventory
@@ -663,7 +830,36 @@ function collectItems(model) {
     // a narrow assertion changes in the same run as its messages; a wide one has the weak guard and its own last chunk
     if (it.home === 'cluster') for (const s of liveItalian) { const p = items.get(s.key); if (p) p.satisfies.push(it.key); }
   }
-  return { items, deferred, consumers, unsupported, links };
+  // the probes: a program that looks for the text of a message follows it (a narrow one in the same cluster).
+  // A probe whose own words are Italian is an item, translated with its messages; one that is not ("volume",
+  // «slot») stays as it is and only guards: a run that would take its text out of every message is refused.
+  const inventoryUnits = new Set(consumers.filter(c => c.unit).map(c => keyOf(c.entry.consumer.file, c.unit.id)));
+  const probes = new Map();
+  for (const pr of model.probes || []) {
+    if (inventoryUnits.has(pr.key)) continue;   // an entry of the inventory: coupled above
+    probes.set(pr.key, pr);
+    const words = pr.how === 'regex' || pr.how === 'like' ? pr.value.replace(/\\[A-Za-z]/g, ' ').replace(/[^\p{L}' ]+/gu, ' ') : pr.value;
+    pr.italian = DET.proseVerdict(words, model.cfg).italian;
+    let it = items.get(pr.key);
+    if (!it && pr.italian) {
+      const f = model.files.get(pr.file);
+      const u = f.byId.get(pr.unit);
+      const d = describeUnit(u);
+      if (d.fixed.length !== d.parts.length) {
+        it = Object.assign({ key: pr.key, file: pr.file, lang: f.lang, unit: pr.unit, line: u.line, endLine: u.endLine, kind: 'probe', cls: 'message',
+          ctx: u.ctx, to: u.to, words: 0, assertionRef: null, satisfies: [], consumedBy: [], consumer: null, unsupported: false, follows: true }, d);
+        items.set(pr.key, it);
+      }
+    }
+    if (it) it.probe = { how: pr.how, nocase: pr.nocase, neg: pr.neg, home: pr.home, value: pr.value, producers: pr.producers };
+    for (const q of pr.producers) {
+      const pi = items.get(q.key);
+      if (!pi || pi === it) continue;
+      (pi.probedBy || (pi.probedBy = [])).push(pr.key);
+      if (it && pr.home === 'narrow') links.push([pr.key, q.key]);
+    }
+  }
+  return { items, deferred, consumers, unsupported, links, probes };
 }
 
 // ── clusters and chunks ─────────────────────────────────────────────────────
@@ -732,6 +928,7 @@ function planChunks(model, coll, opts) {
   const wide = [];
   for (const it of items.values()) {
     if (linkedKeys.has(it.key)) continue;
+    if (it.probe && it.probe.home === 'wide') { wide.push(it); continue; }   // like a wide assertion: last, once its messages are
     if (it.lang !== 'json') { addToFolder(it.file, it); continue; }
     if (it.cls === 'assertion') {
       if (it.home === 'cluster') {
@@ -816,10 +1013,13 @@ function chunkJson(model, coll, chunk, idOf, base) {
   const items = chunk.items.map(it => {
     const o = { id: idByKey.get(it.key), file: it.file, unit: it.unit, kind: it.kind, class: it.cls, line: it.line, end_line: it.endLine, words: it.words,
       parts: it.parts, fixed: it.fixed, holes: it.holes, hole_sk: it.holeSk, show: it.show };
-    if (it.follows) o.follows = it.nested_in ? 'hole of ' + it.nested_in : 'argument of ' + it.argument_of;
+    if (it.follows) o.follows = it.nested_in ? 'hole of ' + it.nested_in : it.argument_of ? 'argument of ' + it.argument_of : it.probe ? 'probe of its messages' : it.consumer ? 'consumer of its producers' : 'assertion of its messages';
     if (it.ctx && it.ctx.length) o.ctx = it.ctx;
     if (it.to) o.to = it.to;
     if (it.consumer) o.consumer = { id: it.consumer.id, kind: it.consumer.kind, produced_by: it.consumer.units.map(k => ({ file: k.slice(0, k.indexOf('#')), unit: k.slice(k.indexOf('#') + 1), chunk: idOf.get(k) || null, show: showOf(k) })) };
+    if (it.probe) o.probe = { how: it.probe.how, nocase: it.probe.nocase, neg: it.probe.neg, home: it.probe.home, value: it.probe.value,
+      producers: it.probe.producers.map(p => ({ file: p.file, unit: p.unit, italian: p.italian, chunk: idOf.get(p.key) || null, show: p.italian ? showOf(p.key) : undefined })) };
+    if (it.probedBy && it.probedBy.length) o.probed_by = it.probedBy.map(k => { const pi = coll.probes.get(k); return { item: idByKey.get(k) || null, file: pi.file, unit: pi.unit, chunk: idOf.get(k) || null, value: pi.value, how: pi.how, nocase: pi.nocase, neg: pi.neg, home: pi.home, translatable: pi.italian, producers: pi.producers.map(p => ({ file: p.file, unit: p.unit })) }; });
     if (it.consumedBy.length) o.consumed_by = it.consumedBy.map(k => ({ item: idByKey.get(k) || null, file: k.slice(0, k.indexOf('#')), unit: k.slice(k.indexOf('#') + 1), chunk: idOf.get(k) || null }));
     if (it.satisfies.length) o.satisfies = it.satisfies.map(k => { const a = coll.items.get(k); return { item: idByKey.get(k) || null, file: a.file, unit: a.unit, chunk: idOf.get(k) || null, kind: a.assertionRef.kind, value: a.parts[0] }; });
     if (it.cls === 'assertion') {
@@ -889,6 +1089,7 @@ function runExtract(root, dir, opts) {
       for (const s of it.satisfiers || []) if (s.chunk && s.chunk !== cj.id) r.add(s.chunk);
       if (it.consumer) for (const p of it.consumer.produced_by) if (p.chunk && p.chunk !== cj.id) r.add(p.chunk);
       for (const s of it.satisfies || []) if (s.chunk && s.chunk !== cj.id) r.add(s.chunk);
+      if (it.probe) for (const p of it.probe.producers) if (p.chunk && p.chunk !== cj.id) r.add(p.chunk);
     }
     return [...r].sort();
   };
@@ -1085,6 +1286,8 @@ function applyRun(root, list, opts) {
     if (item.consumer) for (const p of item.consumer.produced_by) want.add(p.file);
     for (const s of item.satisfies || []) want.add(s.file);
     for (const s of item.consumed_by || []) want.add(s.file);
+    if (item.probe) for (const p of item.probe.producers) want.add(p.file);
+    for (const pb of item.probed_by || []) for (const p of pb.producers || []) want.add(p.file);
   }
   const cur = new Map();
   const entries = [];
@@ -1138,12 +1341,12 @@ function applyRun(root, list, opts) {
     if (home === 'cluster') {
       for (const s of live) {
         const parts = textNow(keyOf(s.file, s.unit));
-        const how = item.assertion.kind === 'equals' && s.equal ? 'equal' : (item.assertion.how === 'template' ? 'template' : 'contains');
+        const how = item.assertion.kind === 'equals' && s.equal ? 'equal' : (item.assertion.how === 'template' || item.assertion.how === 'holes' ? item.assertion.how : 'contains');
         if (!parts) { fail(where, 'the unit ' + s.file + '#' + s.unit + ' that satisfied the old text cannot be read now'); continue; }
         if (!satisfies(parts, v, how)) fail(where, 'the new text «' + v + '» is not in ' + s.file + '#' + s.unit + ' as it will be (it held «' + item.parts[0] + '»): the message and the case change together');
       }
     } else if (home === 'wide') {
-      const ok = live.some(s => { const parts = textNow(keyOf(s.file, s.unit)); return parts && satisfies(parts, v, item.assertion.how === 'template' ? 'template' : 'contains'); });
+      const ok = live.some(s => { const parts = textNow(keyOf(s.file, s.unit)); return parts && satisfies(parts, v, item.assertion.how === 'template' || item.assertion.how === 'holes' ? item.assertion.how : 'contains'); });
       if (!ok) fail(where, 'the new text «' + v + '» is in none of the ' + live.length + ' units that satisfied the old one «' + item.parts[0] + '»: translate the message first');
       else {
         const have = live.filter(s => { const parts = textNow(keyOf(s.file, s.unit)); return parts && satisfies(parts, v, 'contains'); }).length;
@@ -1164,6 +1367,59 @@ function applyRun(root, list, opts) {
       const ek = keyOf(item.file, eu);
       const parts = textNow(ek);
       if (parts && !satisfies(parts, v, 'contains')) fail(where, 'an echo of this text (' + eu + ') does not hold the new text');
+    }
+  }
+  // 4b. the probes: a program that looks for the text of a message still finds it in the messages as they will be.
+  //   - a probe of the run: at least one unit that held its old text holds its new text, and (narrow) every such
+  //     unit this run changes holds it: the probe and the messages of its cluster are written to agree;
+  //   - a message of the run that a probe outside the run reads: at least one unit of that probe still holds what
+  //     it looks for, or the run would leave it pointing at nothing (a negative guard green for ever).
+  const whereOf = (chunk, item) => item.file + '#' + item.unit + ' (' + chunk + ' ' + item.id + ')';
+  const changesInRun = (k) => { const x = tr.get(k); return !!x && Array.isArray(x.t.parts) && !x.t.parts.every((y, i) => y === x.item.parts[i]); };
+  const holdsNow = (pr, value, how, nocase) => { const parts = textNow(keyOf(pr.file, pr.unit)); return !!parts && probeHolds(parts, value, how, nocase); };
+  const seenProbe = new Set();
+  for (const [key, { chunk, item, t }] of tr) {
+    if (!item.probe || !Array.isArray(t.parts)) continue;
+    seenProbe.add(key);
+    const v = t.parts[0], where = whereOf(chunk, item), pb = item.probe;
+    if (!v || !v.trim()) { fail(where, 'the new text of a probe is empty'); continue; }
+    const holding = pb.producers.filter(pr => holdsNow(pr, v, pb.how, pb.nocase));
+    if (!holding.length) { fail(where, 'the program looks for «' + v + '» (it looked for «' + item.parts[0] + '»), and none of the ' + pb.producers.length + ' units that held the old text will hold it: translate the messages first, or in the same run'); continue; }
+    if (pb.home === 'narrow') {
+      const lost = pb.producers.filter(pr => changesInRun(keyOf(pr.file, pr.unit)) && !holding.includes(pr)).map(pr => pr.file + '#' + pr.unit);
+      if (lost.length) fail(where, 'the program looks for «' + v + '» (it looked for «' + item.parts[0] + '»), and ' + lost.slice(0, 3).join(', ') + ', translated in this run, will not hold it: the probe and its messages change together and agree');
+    }
+  }
+  for (const [key, { chunk, item }] of tr) {
+    if (!item.probed_by || !changesInRun(key)) continue;
+    for (const pb of item.probed_by) {
+      const pk = keyOf(pb.file, pb.unit);
+      // a wide probe is in the last chunk, like a wide assertion: a run cannot wait for it, the check sees it
+      if (seenProbe.has(pk) || pb.home !== 'narrow') continue;
+      const prods = pb.producers || [{ file: item.file, unit: item.unit }];
+      if (!prods.some(pr => holdsNow(pr, pb.value, pb.how, pb.nocase)))
+        fail(whereOf(chunk, item), 'a program looks for «' + pb.value + '» (' + pb.file + ' ' + pb.unit + ', chunk ' + pb.chunk + ') and after this run no message holds it: the message and that program change in the same run, or the message keeps those words');
+    }
+  }
+  // 4c. a translated assertion is not WIDER than the one it replaces: a substring that many other messages hold
+  // (a bare "request" or "SIDE" in place of the phrase the case asserted) lets the case pass on the wrong message
+  const widened = [...tr.values()].filter(x => x.item.class === 'assertion' && x.item.assertion && x.item.assertion.how === 'contains' &&
+    Array.isArray(x.t.parts) && x.t.parts[0] !== x.item.parts[0]);
+  if (widened.length) {
+    const listP = [];
+    const entriesP = [];
+    for (const rel of producerFiles(root, readerOf(root, null))) {
+      try { entriesP.push({ key: rel, lang: langOf(rel), text: readSource(root, rel).text }); } catch (e) { /* a missing file is not a producer */ }
+    }
+    for (const [rel, f] of SCAN.scanMany(entriesP, { calls: [] })) {
+      for (const u of f.units) { const k = keyOf(rel, u.id); const np = newPartsOf.get(k); listP.push({ id: k, parts: SCAN.snapshotParts(np ? withParts(u, np) : u) }); }
+    }
+    const idxP = SNAP.unitIndex(listP);
+    for (const x of widened) {
+      const was = (x.item.satisfiers || []).filter(z => !z.catalogue).length;
+      const v = x.t.parts[0];
+      const n = SNAP.candidatesFor(idxP, listP, v).candidates.length;
+      if (n > Math.max(2 * was, was + WIDER_SLACK)) fail(whereOf(x.chunk, x.item), 'the new substring «' + v + '» is WIDER than «' + x.item.parts[0] + '»: ' + n + ' producer literals will hold it, ' + was + ' held the old one; take words that belong to this message only');
     }
   }
   // data items: their echoes change with them
@@ -1436,7 +1692,7 @@ function checkAll(root, rev, opts) {
     if (v === a.value) stats.unchanged++; else stats.translated++;
     const live = a.satisfiers.filter(k => !inCatalogue(k.slice(0, k.indexOf('#'))));
     const cat = a.satisfiers.filter(k => inCatalogue(k.slice(0, k.indexOf('#'))));
-    const how = (k) => (a.kind === 'equals' && a.equal.includes(k) ? 'equal' : (a.how === 'template' ? 'template' : 'contains'));
+    const how = (k) => howOf(a, k);
     if (!a.satisfiers.length) {
       stats.free++;
       if (v !== a.value) notes.push('assertion ' + a.file + a.unit + ' had no producer and changed («' + a.value + '» to «' + v + '»): check by hand that what it reads is translated too');
@@ -1452,12 +1708,40 @@ function checkAll(root, rev, opts) {
       stats.wide++;
       if (!holding.length) red.push({ a, v, msg: '«' + v + '» is in none of the ' + live.length + ' literals that satisfied «' + a.value + '»: it points at nothing' });
     }
+    // a translated substring that other messages hold too asserts less than the one it replaces
+    if (v !== a.value && a.how === 'contains') {
+      const was = a.candidates.filter(k => !inCatalogue(k.slice(0, k.indexOf('#')))).length;
+      const nowCount = SNAP.candidatesFor(nowIndex, nowProducers, v).candidates.length;
+      if (nowCount > Math.max(2 * was, was + WIDER_SLACK)) red.push({ a, v, wider: true, msg: 'the new substring «' + v + '» is WIDER than «' + a.value + '»: ' + nowCount + ' producer literals hold it, ' + was + ' held the old one, so the case would pass on other messages; take words that belong to this message only' });
+    }
     if (a.kind === 'not_contains') {
       stats.not_contains++;
-      if (!SNAP.candidatesFor(nowIndex, nowProducers, v).candidates.length) red.push({ a, v, msg: 'a not_contains: «' + v + '» is in no producer, it asserts nothing' });
+      const present = a.how === 'holes' ? nowProducers.some(p => satisfies(p.parts, v, 'holes')) : SNAP.candidatesFor(nowIndex, nowProducers, v).candidates.length > 0;
+      if (!present) red.push({ a, v, msg: 'a not_contains: «' + v + '» is in no producer, it asserts nothing' });
     }
   }
   for (const r of red) rowOf(r.a.file).problems.push('assertion ' + r.a.unit + ' (' + r.a.kind + '): ' + r.msg);
+  // 2b. the probes: every program that looked for the text of an Italian message still finds it
+  const pstats = { total: 0, narrow: 0, wide: 0, translated: 0, red: 0, negative: 0 };
+  const nowParts = (k) => { const u = nowUnits.get(k); return u ? SCAN.snapshotParts(u) : null; };
+  for (const pb of base.probes || []) {
+    pstats.total++;
+    pstats[pb.home]++;
+    if (pb.neg) pstats.negative++;
+    const nu = nowUnits.get(pb.key);
+    if (!nu || nu.leaves.length !== 1 || nu.leaves[0].k !== 't') { pstats.red++; rowOf(pb.file).problems.push('probe ' + pb.unit + ': the literal is gone'); continue; }
+    const v = nu.leaves[0].cooked;
+    if (v !== pb.value) pstats.translated++;
+    const holding = pb.producers.filter(p => { const parts = nowParts(p.key); return parts && probeHolds(parts, v, pb.how, pb.nocase); });
+    // over the whole tree the guard is the wide one (a unit that held the old text holds the current one): which of
+    // its units a program reads is not known here. Inside a run the narrow probes are held to every unit (--apply).
+    if (holding.length) continue;
+    pstats.red++;
+    const lost = pb.producers.filter(p => !holding.includes(p)).map(p => p.key);
+    rowOf(pb.file).problems.push('probe ' + pb.unit + ' (line ' + nu.line + ', ' + pb.how + (pb.neg ? ', NEGATIVE: a guard that would stay green for ever' : '') + '): «' + v + '» ' +
+      (holding.length ? 'is no longer in ' + lost.slice(0, 3).join(', ') : 'is in none of the ' + pb.producers.length + ' units that held «' + pb.value + '»: it points at nothing'));
+  }
+  stats.probes = pstats;
   // 3. Italian that is left, outside the catalogue
   const left = { strings: 0, json_values: 0, files: 0 };
   for (const f of now.files.values()) {
@@ -1466,7 +1750,7 @@ function checkAll(root, rev, opts) {
     for (const u of f.units) if (u.italian) w += u.words;
     if (w) { left[f.lang === 'json' ? 'json_values' : 'strings'] += w; left.files++; }
   }
-  return { rows, notes, stats, left, rev, touched: touched.length, red: red.length };
+  return { rows, notes, stats, left, rev, touched: touched.length, red: red.filter(r => !r.wider).length, wider: red.filter(r => r.wider).length };
 }
 
 function runCheck(root, rev, opts) {
@@ -1484,7 +1768,8 @@ function runCheck(root, rev, opts) {
   }
   for (const n of r.notes.slice(0, 20)) console.log('  note: ' + n);
   const s = r.stats;
-  console.log('assertions: ' + s.total + ' (' + s.unchanged + ' unchanged, ' + s.translated + ' translated); strict ' + s.strict + ', wide ' + s.wide + ', without producer ' + s.free + ', with a catalogue literal still to follow in .9: ' + s.catalogue_pending + '; not_contains ' + s.not_contains + '; ' + r.red + ' pointing at nothing');
+  console.log('assertions: ' + s.total + ' (' + s.unchanged + ' unchanged, ' + s.translated + ' translated); strict ' + s.strict + ', wide ' + s.wide + ', without producer ' + s.free + ', with a catalogue literal still to follow in .9: ' + s.catalogue_pending + '; not_contains ' + s.not_contains + '; ' + r.red + ' pointing at nothing, ' + r.wider + ' wider than the text they replace');
+  if (s.probes) console.log('probes (programs that look for the text of a message): ' + s.probes.total + ' (narrow ' + s.probes.narrow + ', wide ' + s.probes.wide + ', negative ' + s.probes.negative + ', translated ' + s.probes.translated + '); ' + s.probes.red + ' broken');
   console.log('files touched: ' + r.touched + ', with a difference outside the texts or a broken invariant: ' + bad);
   console.log('Italian left outside the catalogue: strings ' + r.left.strings + ' words, json_values ' + r.left.json_values + ' words in ' + r.left.files + ' files');
   const cons = checkConsumed(root);
@@ -1554,6 +1839,22 @@ function fixtureFiles() {
     '            if (b) return Failed("' + IT("Vy svyr aba r' fhy qvfpb: «") + '" + p + "' + IT("» r' shbev") + '");',
     '            return Failed("' + IT("dhrfgb aba r' znv nppnqhgb cevzn, irqv uggcf://rknzcyr.pbz/qbp") + '");',
     '        }',
+    '        string Range(int a, int b)',
+    '        {',
+    '            return Failed("' + IT("vy inyber qryyn dhbgn in qn ") + '" + a + "' + IT(" n ") + '" + b + "' + IT(", aba byger vy obeqb qry crmmb") + '");',
+    '        }',
+    '    }',
+    '}']);
+  files['Tests/T.cs'] = lf([
+    'namespace Demo',
+    '{',
+    '    class T',
+    '    {',
+    '        static void Check(string label, bool ok, string detail) { }',
+    '        void Run(string text)',
+    '        {',
+    '            Check("the guard", text.IndexOf("' + IT("r' shbev") + '", System.StringComparison.Ordinal) < 0, "detail");',
+    '        }',
     '    }',
     '}']);
   files['Bench/case-keys.json'] = JSON.stringify({
@@ -1570,6 +1871,7 @@ function fixtureFiles() {
     steps: [
       { operation: 'open_file', arguments: { name: IT("vy crmmb qv cebin") }, must_fail: { message_includes: [IT("aba r' fhy qvfpb")], twin: 't' } },
       { operation: 'go', expect: [{ what: 'm', includes: IT('gebingv'), does_not_include: IT("aba r' znv nppnqhgb"), why: IT("vy sbeb p'r' qniireb, aba qngb"), equal_to: IT("vy crmmb qv cebin") }] },
+      { operation: 'range', must_fail: { message_includes: [IT('qn 3 n 7')], twin: 't' } },
     ] }, null, 1) + '\n';
   files['Checks/probe.js'] = lf([
     "'use strict';",
@@ -1608,6 +1910,9 @@ function goodTranslations() {
     'Bridge/A.cs#Open:s15': ['copies'],
     'Oce.Solid.Agent.Core/Ops.cs#Go:s1': ['The file is not on disk: «', '» is outside'],
     'Oce.Solid.Agent.Core/Ops.cs#Go:s2': ['this never happened before, see https://example.com/doc'],
+    'Oce.Solid.Agent.Core/Ops.cs#Range:s1': ['the value of the dimension goes from ', ' to ', ', not beyond the edge of the part'],
+    'Tests/T.cs#Run:s2': ['is outside'],
+    'Bench/cases/fam/c1.json#$.steps[2].must_fail.message_includes[0]': ['from 3 to 7'],
     'Checks/probe.js#<file>:s2': ['the rest is stopped'],
     'Checks/probe.js#<file>:s3': ['found ', ' characters, not said'],
     'Checks/probe.js#<file>:s4': ['rest is stopped|touched'],
@@ -1669,6 +1974,15 @@ function selfTest() {
       'plan: two folders that share a message asserted by a case make one linked chunk, with the assertion');
     const consumerItems = allItems.filter(i => i.consumer);
     say(consumerItems.length === 2 && consumerItems.every(i => i.chunk === (linkedChunk && linkedChunk.chunk.id) || true), 'extract: the two consumers of the inventory are items with the producers that hold their text (' + consumerItems.map(i => i.consumer.id).join(', ') + ')');
+    {
+      const probe = allItems.find(i => i.file === 'Tests/T.cs');
+      const holder = allItems.find(i => i.file === 'Oce.Solid.Agent.Core/Ops.cs' && i.unit === 'Go:s1');
+      const holes = allItems.find(i => i.class === 'assertion' && i.unit === '$.steps[2].must_fail.message_includes[0]');
+      say(!!probe && !!probe.probe && probe.probe.neg === true && !!holder && probe.chunk === holder.chunk && (holder.probed_by || []).length === 1,
+        'extract: a contract that looks for the text of a message (a negative IndexOf) is a probe in the chunk of that message (' + JSON.stringify(probe && probe.probe && { how: probe.probe.how, neg: probe.probe.neg, home: probe.probe.home }) + ')');
+      say(!!holes && holes.assertion.how === 'holes' && holes.satisfiers.length === 1 && holes.satisfiers[0].unit === 'Range:s1',
+        'extract: an assertion of computed values ("from 3 to 7") is linked to the message whose holes hold them');
+    }
     const data = allItems.find(i => i.class === 'data');
     say(!!data && (data.echoes || []).length >= 1, 'extract: a value the case writes into the program is data, with its echoes');
     // 2. apply: the good case, then every refusal
@@ -1678,7 +1992,7 @@ function selfTest() {
       const items = picked.map(i => ({ id: i.id, parts: (good[i.file + '#' + i.unit] || i.parts).slice(), data_ok: i.class === 'data' || undefined }));
       const t = items.map(x => x);
       const chunk = { id: 'fx', folder: 'fx', items: picked.map(i => ({ id: i.id, file: i.file, unit: i.unit, kind: i.kind, class: i.class, line: i.line, words: i.words, parts: i.parts.slice(), fixed: i.fixed.slice(), holes: i.holes.slice(), hole_sk: i.hole_sk.slice(), show: i.show,
-        consumer: i.consumer, consumed_by: i.consumed_by, satisfies: i.satisfies, assertion: i.assertion, satisfiers: i.satisfiers, echoes: i.echoes })) };
+        consumer: i.consumer, consumed_by: i.consumed_by, satisfies: i.satisfies, assertion: i.assertion, satisfiers: i.satisfiers, echoes: i.echoes, probe: i.probe, probed_by: i.probed_by })) };
       const translated = { id: 'fx', items: t };
       if (mutate) mutate(translated, chunk);
       return [{ id: 'fx', chunk, translated }];
@@ -1689,7 +2003,7 @@ function selfTest() {
     const run = (list, extra) => applyRun(root, list, Object.assign({ dry: true }, extra || {}));
     const refused = (r, part) => r.problems.some(p => p.msg.includes(part) || p.where.includes(part));
     const green = run(mk());
-    say(green.problems.length === 0 && green.files.length === 5, 'apply: the translation of the five fixture files is accepted in every language (' + green.problems.slice(0, 3).map(p => p.where + ': ' + p.msg).join(' | ') + green.files.map(f => f.file.split('/').pop()).join(',') + ')');
+    say(green.problems.length === 0 && green.files.length === 6, 'apply: the translation of the six fixture files is accepted in every language (' + green.problems.slice(0, 3).map(p => p.where + ': ' + p.msg).join(' | ') + green.files.map(f => f.file.split('/').pop()).join(',') + ')');
     const cases = [
       ['a number changed', 'Bridge/A.cs', (t) => setPart(t, 'Bridge/A.cs', 'Open:s1', 1, '». Try «open_file»; see doc.json at 5.'), 'numbers'],
       ['a placeholder lost', 'Bridge/A.cs', (t) => setPart(t, 'Bridge/A.cs', 'Open:s2', 0, 'The hole of 5 mm is not valid, steps'), 'placeholders'],
@@ -1715,6 +2029,11 @@ function selfTest() {
       ['an assertion whose new text is not in the message', null, (t) => setPart(t, 'Bench/cases/fam/c1.json', '$.steps[0].must_fail.message_includes[0]', 0, 'is not anywhere'), 'is not in'],
       ['an assertion changed with the message left as it was', null, (t, c) => { setPart(t, 'Oce.Solid.Agent.Core/Ops.cs', 'Go:s1', 0, IT("Vy svyr aba r' fhy qvfpb: «")); setPart(t, 'Oce.Solid.Agent.Core/Ops.cs', 'Go:s1', 1, IT("» r' shbev")); }, 'is not in'],
       ['a not_contains whose new text is in no producer', null, (t) => setPart(t, 'Bench/cases/fam/c1.json', '$.steps[1].expect[0].does_not_include', 0, 'never mentioned'), 'is not in'],
+      ['an assertion of computed values left as it was when its message is translated', null, (t) => setPart(t, 'Bench/cases/fam/c1.json', '$.steps[2].must_fail.message_includes[0]', 0, IT('qn 3 n 7')), 'is not in'],
+      ['a translated assertion WIDER than the one it replaces', null, (t) => setPart(t, 'Bench/cases/fam/c1.json', '$.steps[0].must_fail.message_includes[0]', 0, 'not'), 'WIDER'],
+      ['a message translated, the contract that guards the absence of its text left as it was', null, (t) => setPart(t, 'Tests/T.cs', 'Run:s2', 0, IT("r' shbev")), 'will hold it'],
+      ['a probe translated to words its message does not hold', null, (t) => setPart(t, 'Tests/T.cs', 'Run:s2', 0, 'lies outside'), 'will hold it'],
+      ['a message translated in a run without the program that looks for its text', 'Oce.Solid.Agent.Core/Ops.cs', (t) => {}, 'no message holds it'],
     ];
     for (const [what, file, mutate, part] of cases) {
       const only = file ? ((i) => i.file === file || (file === 'Bridge/A.cs' && false)) : null;
@@ -1778,7 +2097,11 @@ function selfTest() {
     mutate('Bench/cases/fam/c1.json', '"is not on disk"', '"nowhere at all"', 'an assertion whose text is in no literal', 'points at nothing');
     mutate('Bench/cases/fam/c1.json', '"never happened"', '"never occurred"', 'a not_contains whose text is in no producer', 'not_contains');
     mutate('Bench/cases/fam/c1.json', '"operation": "go"', '"operation": "stop"', 'a case changed outside its texts', 'not Italian');
-        mutate('Checks/probe.js', 'rest is stopped|touched', 'rest is stopped+|touched', 'a regular expression with another skeleton', 'skeleton');
+    mutate('Checks/probe.js', 'rest is stopped|touched', 'rest is stopped+|touched', 'a regular expression with another skeleton', 'skeleton');
+    mutate('Bench/cases/fam/c1.json', '"is not on disk"', '"not"', 'a translated assertion wider than the one it replaces', 'WIDER');
+    mutate('Oce.Solid.Agent.Core/Ops.cs', 'goes from ', 'runs between ', 'a message of computed values translated away from its assertion', 'from 3 to 7');
+    mutate('Tests/T.cs', '"is outside"', '"lies outside"', 'a contract that guards the absence of a text no message holds (green for ever)', 'points at nothing');
+    mutate('Oce.Solid.Agent.Core/Ops.cs', '» is outside', '» is beyond', 'a message translated away from the text its contract looks for', 'points at nothing');
     {
       const full = path.join(root, 'Bridge/A.cs');
       const keep = fs.readFileSync(full);

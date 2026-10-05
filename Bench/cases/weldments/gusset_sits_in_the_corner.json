@@ -62,7 +62,7 @@
                      "thickness_mm": 5, "leg1_mm": 60, "leg2_mm": 60,
                      "position": "center" },
       "must_fail": {
-        "message_includes": ["parallel", "SIDE"],
+        "message_includes": ["parallel", "SIDE face"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "gusset_sits_in_the_corner" } },
