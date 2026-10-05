@@ -213,8 +213,8 @@ namespace Oce.Solid.Agent.Core
             // THE ORDER CHANGED WITHOUT THE PART CHANGING is said: it usually means
             // that the two features do not touch each other, and moving them was not needed.
             if (volumeBefore != null && volumeAfter != null && Math.Abs(volumeBefore.Value - volumeAfter.Value) < 0.01 && bodiesBefore == bodiesAfter)
-                measurements["warning"] = "L'ordine e' cambiato ma il pezzo no (stesso volume, stessi corpi): quelle due " +
-                                       "lavorazioni non si toccano, e l'ordine fra loro non conta.";
+                measurements["warning"] = "The order changed but the part did not (same volume, same bodies): those two " +
+                                       "features do not touch, and the order between them does not matter.";
             _log("[agente] " + nameF + " spostata " + location + " di " + nameG);
             return SucceededWithoutCreating(measurements);
         }

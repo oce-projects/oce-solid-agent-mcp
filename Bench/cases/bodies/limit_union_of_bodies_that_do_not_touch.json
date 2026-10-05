@@ -17,7 +17,7 @@
       "arguments": { "operation": "union", "main_body_uid": "@body(name=Estrusione-Estrusione1)" },
       "_why_the_main_one": "Per somigliare alla gemella senza esserne una copia: con gli stessi argomenti di «requested_combine» la differenza starebbe solo nella geometria, che il confronto delle gemelle non vede. Il principale nominato per nome non cambia l'unione.",
       "must_fail": {
-        "message_includes": ["non ha creato niente", "non si toccano"],
+        "message_includes": ["created nothing", "do not touch"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "requested_combine" } }

@@ -168,16 +168,16 @@ namespace Oce.Solid.Agent.Installer
                 {
                     Title = ".NET Framework 4.8",
                     Outcome = Outcome.Warning,
-                    Detail = "non riesco a leggerne la versione dal registro",
-                    WhatToDo = "Se l'installazione fallisce, e' probabilmente questo.",
+                    Detail = "I cannot read its version from the registry",
+                    WhatToDo = "If the installation fails, this is probably why.",
                 };
 
             return new CheckItem
             {
                 Title = ".NET Framework 4.8",
                 Outcome = Outcome.Male,
-                Detail = "installato release " + release + ", ne serve almeno 528040",
-                WhatToDo = "Scarica .NET Framework 4.8 da " +
+                Detail = "installed release " + release + ", at least 528040 is needed",
+                WhatToDo = "Download .NET Framework 4.8 from " +
                            "https://dotnet.microsoft.com/download/dotnet-framework/net48",
             };
         }
@@ -276,28 +276,28 @@ namespace Oce.Solid.Agent.Installer
                 bool tested = main == TestedVersion;
                 return new CheckItem
                 {
-                    Title = "SOLIDWORKS installato",
+                    Title = "SOLIDWORKS installed",
                     Outcome = tested || main <= 0 ? Outcome.Fine : Outcome.Warning,
                     Detail = redist + (string.IsNullOrWhiteSpace(v) ? "" : "  (interop " + v +
                                 (anno == null ? "" : ", SOLIDWORKS " + anno) + ")"),
                     WhatToDo = tested || main <= 0 ? null :
-                        "Il ponte e' provato solo su SOLIDWORKS 2021 SP5.1. Con la " + anno + " si installa lo " +
-                        "stesso, ma nessuno l'ha misurata: " + (main > TestedVersion
-                            ? "e' piu' nuova di quella provata, e certe API possono essersi mosse."
-                            : "e' piu' vecchia di quella provata; si puo' provare, e se qualcosa non va dillo."),
+                        "The bridge is only tested on SOLIDWORKS 2021 SP5.1. With " + anno + " it installs just the " +
+                        "same, but nobody has measured it: " + (main > TestedVersion
+                            ? "it is newer than the one tested, and some APIs may have moved."
+                            : "it is older than the one tested; you can try, and if something goes wrong, say so."),
                 };
             }
 
             return new CheckItem
             {
-                Title = "SOLIDWORKS installato",
+                Title = "SOLIDWORKS installed",
                 Outcome = Outcome.Male,
-                Detail = "non trovo la cartella api\\redist",
+                Detail = "cannot find the api\\redist folder",
                 // There is no Browse button for SOLIDWORKS, in the window or
                 // anywhere else (entry H19, A7): the text named one.
                 WhatToDo =
-                    "Serve SOLIDWORKS installato su questa macchina: le librerie di " +
-                    "interoperabilita' si prendono da li' e non sono incluse qui. " +
+                    "SOLIDWORKS must be installed on this machine: the interoperability libraries " +
+                    "are taken from there and are not included here. " +
                     "If it is installed in a non-standard folder, pass --redist <its api\\redist folder>, " +
                     "or set SW_INSTALL_PATH to its root (the folder that ends in \\SOLIDWORKS).",
             };
@@ -308,29 +308,29 @@ namespace Oce.Solid.Agent.Installer
             if (Payload.Embedded)
                 return new CheckItem
                 {
-                    Title = "Ponte da installare",
+                    Title = "Bridge to install",
                     Outcome = Outcome.Fine,
-                    Detail = "incluso in questo installatore",
+                    Detail = "included in this installer",
                 };
 
             var nextTo = Path.Combine(ThisExeFolder, ExecutableName);
             if (File.Exists(nextTo))
                 return new CheckItem
                 {
-                    Title = "Ponte da installare",
+                    Title = "Bridge to install",
                     Outcome = Outcome.Fine,
-                    Detail = "preso dalla cartella dell'installatore",
+                    Detail = "taken from the installer's folder",
                 };
 
             return new CheckItem
             {
-                Title = "Ponte da installare",
+                Title = "Bridge to install",
                 Outcome = Outcome.Male,
-                Detail = "non trovo " + ExecutableName,
+                Detail = "cannot find " + ExecutableName,
                 WhatToDo =
-                    "Questo installatore non ha il ponte dentro e non lo trova " +
-                    "accanto a se'. Se hai clonato il repository, compila prima " +
-                    "con build.ps1: produce un Installer.exe completo.",
+                    "This installer does not have the bridge inside and cannot find it " +
+                    "next to itself. If you cloned the repository, build first " +
+                    "with build.ps1: it produces a complete Installer.exe.",
             };
         }
 
@@ -370,9 +370,9 @@ namespace Oce.Solid.Agent.Installer
             if (Payload.Contains(LibraryName))
                 return new CheckItem
                 {
-                    Title = "Operazioni di disegno",
+                    Title = "Drawing operations",
                     Outcome = Outcome.Fine,
-                    Detail = LibraryName + " e' dentro l'installatore",
+                    Detail = LibraryName + " is inside the installer",
                 };
 
             var nextTo = FindLibraryNextTo();
@@ -383,7 +383,7 @@ namespace Oce.Solid.Agent.Installer
                 catch { }
                 return new CheckItem
                 {
-                    Title = "Operazioni di disegno",
+                    Title = "Drawing operations",
                     Outcome = Outcome.Fine,
                     Detail = nextTo + (string.IsNullOrWhiteSpace(v) ? "" : "  (" + v + ")"),
                 };
@@ -397,13 +397,13 @@ namespace Oce.Solid.Agent.Installer
             // broken package that gets installed is discovered by whoever uses it.
             return new CheckItem
             {
-                Title = "Operazioni di disegno",
+                Title = "Drawing operations",
                 Outcome = Outcome.Male,
-                Detail = LibraryName + " non c'e' ne' dentro ne' accanto",
+                Detail = LibraryName + " is neither inside nor next to it",
                 WhatToDo =
-                    "Questo installatore e' incompleto. Se hai clonato il " +
-                    "repository, compila con build.ps1: produce un Installer.exe " +
-                    "con il ponte e le operazioni dentro.",
+                    "This installer is incomplete. If you cloned the " +
+                    "repository, build with build.ps1: it produces an Installer.exe " +
+                    "with the bridge and the operations inside.",
             };
         }
 
@@ -416,19 +416,19 @@ namespace Oce.Solid.Agent.Installer
             if (open)
                 return new CheckItem
                 {
-                    Title = "SOLIDWORKS aperto adesso",
+                    Title = "SOLIDWORKS open right now",
                     Outcome = Outcome.Fine,
-                    Detail = "la verifica finale potra' guardare il documento",
+                    Detail = "the final check will be able to look at the document",
                 };
 
             return new CheckItem
             {
-                Title = "SOLIDWORKS aperto adesso",
+                Title = "SOLIDWORKS open right now",
                 Outcome = Outcome.Warning,
                 Detail = "closed",
                 WhatToDo =
-                    "Non serve per installare. Serve per usare il ponte: si " +
-                    "aggancia a una sessione che c'e' gia', non ne avvia una.",
+                    "It is not needed to install. It is needed to use the bridge: it " +
+                    "attaches to a session that already exists, it does not start one.",
             };
         }
 
@@ -444,7 +444,7 @@ namespace Oce.Solid.Agent.Installer
             string folder, Action<string> tell)
         {
             if (string.IsNullOrWhiteSpace(folder))
-                throw new Exception("Non mi hai detto dove installare.");
+                throw new Exception("You did not tell me where to install.");
 
             Directory.CreateDirectory(folder);
             tell("cartella: " + folder);
@@ -457,12 +457,12 @@ namespace Oce.Solid.Agent.Installer
             // the new one AFTER. Neither reading is a promise: if
             // one fails, it says «version not readable».
             var executable = Path.Combine(folder, ExecutableName);
-            string old = File.Exists(executable) ? VersionOf(executable) ?? "versione non leggibile" : null;
+            string old = File.Exists(executable) ? VersionOf(executable) ?? "unreadable version" : null;
             Payload.Extract(ExecutableName, executable, tell);
-            string newOne = VersionOf(executable) ?? "versione non leggibile";
-            if (old == null) tell("installo la " + newOne);
-            else if (old == newOne) tell("reinstallo la " + newOne + " (era gia' questa)");
-            else tell("aggiorno dalla " + old + " alla " + newOne);
+            string newOne = VersionOf(executable) ?? "unreadable version";
+            if (old == null) tell("installing " + newOne);
+            else if (old == newOne) tell("reinstalling " + newOne + " (it was already this one)");
+            else tell("updating from " + old + " to " + newOne);
             Payload.Extract(CatalogName, Path.Combine(folder, CatalogName), tell);
             Payload.ExtractIfPresent(
                 ExecutableName + ".config",
@@ -489,8 +489,8 @@ namespace Oce.Solid.Agent.Installer
 
             if (!File.Exists(executable))
                 throw new Exception(
-                    "Ho finito senza errori ma " + ExecutableName + " non c'e'. " +
-                    "Non lo chiamo riuscito.");
+                    "I finished without errors but " + ExecutableName + " is not there. " +
+                    "I do not call it a success.");
 
             return executable;
         }
@@ -577,7 +577,7 @@ namespace Oce.Solid.Agent.Installer
                     if (!p.WaitForExit(60000))
                     {
                         try { p.Kill(); } catch { }
-                        return "Il ponte non ha risposto entro un minuto.";
+                        return "The bridge did not answer within a minute.";
                     }
                     code = p.ExitCode;
                     return (err.Result + mid.Result).Trim();
@@ -585,7 +585,7 @@ namespace Oce.Solid.Agent.Installer
             }
             catch (Exception ex)
             {
-                return "Non riesco a eseguire il ponte: " + ex.Message;
+                return "I cannot run the bridge: " + ex.Message;
             }
         }
 
@@ -600,7 +600,7 @@ namespace Oce.Solid.Agent.Installer
             var left = new List<string>();
             if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
             {
-                tell("niente da togliere in " + folder);
+                tell("nothing to remove in " + folder);
                 return left;
             }
 
@@ -617,7 +617,7 @@ namespace Oce.Solid.Agent.Installer
                 }
                 catch (Exception ex)
                 {
-                    tell("non riesco a togliere " + itemName + ": " + ex.Message);
+                    tell("cannot remove " + itemName + ": " + ex.Message);
                     left.Add(itemName);
                 }
             }
@@ -627,11 +627,11 @@ namespace Oce.Solid.Agent.Installer
                 if (!Directory.EnumerateFileSystemEntries(folder).Any())
                 {
                     Directory.Delete(folder);
-                    tell("tolta la cartella");
+                    tell("removed the folder");
                 }
                 else if (left.Count == 0)
                 {
-                    tell("la cartella resta: dentro c'e' anche altro, e non e' mio.");
+                    tell("the folder stays: there is other stuff inside, and it is not mine.");
                 }
             }
             catch { }

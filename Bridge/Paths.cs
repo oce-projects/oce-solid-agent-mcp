@@ -80,7 +80,7 @@ namespace Oce.Solid.Agent.Bridge
             }
             catch (Exception ex)
             {
-                return "Il percorso «" + filePath + "» non e' un percorso valido (" +
+                return "The path «" + filePath + "» is not a valid path (" +
                        ex.Message + ").";
             }
 
@@ -88,33 +88,33 @@ namespace Oce.Solid.Agent.Bridge
             // that a save path has never needed
             // to be.
             if (full.IndexOf(':') != full.LastIndexOf(':'))
-                return "Il percorso «" + filePath + "» contiene due volte i due punti: " +
-                       "non lo tocco.";
+                return "The path «" + filePath + "» has a colon twice: " +
+                       "I will not touch it.";
 
             var root = Variable("RISCONTRO_RADICE");
             if (!string.IsNullOrWhiteSpace(root))
             {
                 if (!Below(full, root))
-                    return "Posso scrivere solo dentro «" + root + "» (lo dice la " +
-                           "variabile RISCONTRO_RADICE di questa installazione), e «" +
-                           full + "» e' fuori. Scegli un percorso li' dentro.";
+                    return "I can only write inside «" + root + "» (the " +
+                           "variable RISCONTRO_RADICE of this installation says so), and «" +
+                           full + "» is outside. Choose a path inside it.";
             }
 
             foreach (var forbidden in Forbidden())
             {
                 if (Below(full, forbidden))
-                    return "Non scrivo dentro «" + forbidden + "»: e' una cartella di " +
-                           "sistema o di programma. «" + full + "» finisce li'. " +
-                           "Scegli una cartella di lavoro, per esempio dentro Documenti.";
+                    return "I do not write inside «" + forbidden + "»: it is a " +
+                           "system or program folder. «" + full + "» ends up there. " +
+                           "Choose a working folder, for example inside Documents.";
             }
 
             foreach (var single in ReadOnly())
             {
                 if (Below(full, single))
-                    return "«" + single + "» e' dichiarata di sola lettura su questa " +
-                           "installazione (variabile RISCONTRO_SOLA_LETTURA): di " +
-                           "solito sono le librerie condivise, e riscriverle tocca il " +
-                           "lavoro di tutti. «" + full + "» finisce li'.";
+                    return "«" + single + "» is declared read-only on this " +
+                           "installation (variable RISCONTRO_SOLA_LETTURA): usually " +
+                           "these are the shared libraries, and rewriting them touches " +
+                           "everyone's work. «" + full + "» ends up there.";
             }
 
             return null;

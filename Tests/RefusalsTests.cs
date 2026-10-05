@@ -238,8 +238,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// the code around them: the same count, 216 of 937, on the tree before
         /// the window (4c9e465) and after it. The 22 more of the old 238 were
         /// variables and methods whose Italian names held a remedy word.
+        /// **217, W3.1-bis.8 pilot (5/10/2026): +1.** The refusals of the cluster of
+        /// cases that assert the messages of Bridge/ are English now: the count of
+        /// remedies went from 216 to 217 of 937 with the translation.
         /// </summary>
-        private const int Floor = 216;
+        private const int Floor = 217;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -253,7 +256,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 216;   // 3/10/2026, W3.1-bis.6: judged on the literals, 216 of 937 before and after the window
+        private const int ShareFloorWithRemedy = 217;   // 5/10/2026, W3.1-bis.8 pilot: 217 of 937 (216 before the pilot, 216 before and after window 3)
         private const int ShareFloorWithText = 937;
 
         /// <summary>

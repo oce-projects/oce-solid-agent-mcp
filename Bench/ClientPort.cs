@@ -269,7 +269,7 @@ namespace Oce.Solid.Agent.Bench
             var no = ResponseText(Mcp.Ask(p, 10, Call(10, "document",
                 "{\"action\":\"open\",\"path\":\"" + nonexistent.Replace("\\", "\\\\") + "\"}")));
             Check("documento: «open» su un file che non esiste rifiuta, e davanti resta quello di prima",
-                  no.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) >= 0 && front() == docTitle,
+                  no.IndexOf("does not exist", StringComparison.OrdinalIgnoreCase) >= 0 && front() == docTitle,
                   "davanti «" + front() + "» — " + Short(no));
 
             // ── open a real file: the new part is saved, closed, reopened
@@ -339,7 +339,7 @@ namespace Oce.Solid.Agent.Bench
             var dirty = ResponseText(Mcp.Ask(p, 13, Call(13, "document",
                 "{\"action\":\"close\",\"path\":\"" + docTitle + "\"}")));
             Check("documento: «close» su un documento con modifiche non salvate rifiuta, e resta aperto",
-                  dirty.IndexOf("modifiche non salvate", StringComparison.OrdinalIgnoreCase) >= 0 && open2(docTitle),
+                  dirty.IndexOf("unsaved changes", StringComparison.OrdinalIgnoreCase) >= 0 && open2(docTitle),
                   "ancora aperto " + open2(docTitle) + " — " + Short(dirty));
 
             // ── and the TWIN: a document just opened, without modifications ──

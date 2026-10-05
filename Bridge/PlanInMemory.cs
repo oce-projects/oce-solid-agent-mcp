@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Bridge
             if (_next >= _steps.Count) return Task.FromResult(NextStep.Fine());
             var thisOne = _steps[_next++];
             _wire.Step(_startedAt + _next,
-                        "eseguo il passo " + _next + " di " + _steps.Count +
+                        "running step " + _next + " of " + _steps.Count +
                         ": " + thisOne.Operation);
             return Task.FromResult(NextStep.This(thisOne));
         }

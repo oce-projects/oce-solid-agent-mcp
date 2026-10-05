@@ -15,7 +15,7 @@
     { "operation": "export_stl",
       "arguments": { "path": "{LAVORO}\\gp2_due_corpi.stl" },
       "must_fail": {
-        "message_includes": ["Non esporto", "2 corpi", "export_anyway"],
+        "message_includes": ["I do not export", "2 corpi", "export_anyway"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "box_twelve_triangles" } }

@@ -20,7 +20,7 @@
         { "what": "measurements.byte", "equal_to": 1284,
           "_why_1284": "84 + 50*24" },
         { "what": "measurements.exported_anyway",
-          "includes": ["L'hai chiesto tu", "2 corpi"],
+          "includes": ["request", "2 corpi"],
           "why": "il file scritto contro il parere della verifica lo dice nella risposta, e dice anche che cosa non andava" },
         { "what": "measurements.check",
           "includes": ["Non lo esporterei"],

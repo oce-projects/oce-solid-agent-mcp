@@ -37,7 +37,7 @@
                      "end_face_uid": "@face(area~=40800,normal=back,n=1)",
                      "leg_mm": 4 },
       "must_fail": {
-        "message_includes": ["non si toccano"],
+        "message_includes": ["do not touch"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "weld_bead_goes_between_touching_faces" } },
@@ -47,7 +47,7 @@
                      "end_face_uid": "@face(area~=40800,normal=front,n=2)",
                      "leg_mm": 4 },
       "must_fail": {
-        "message_includes": ["parallel", "non formano un angolo"],
+        "message_includes": ["parallel", "do not form an angle"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "weld_bead_goes_between_touching_faces" } },

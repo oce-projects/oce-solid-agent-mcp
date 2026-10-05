@@ -801,9 +801,9 @@ namespace Oce.Solid.Agent.Core
 
             if (feature == null)
                 return Failed(
-                    "Il membro strutturale non e' stato creato. Di solito e' il " +
-                    "percorso: segmenti che non si toccano, o che si incrociano " +
-                    "in un modo che il profilo non riesce a girare." + WithoutSketch(model));
+                    "The structural member was not created. Usually it is the " +
+                    "path: segments that do not touch, or that cross " +
+                    "in a way the profile cannot turn." + WithoutSketch(model));
 
             double length = segments.Sum(s => Distance(s.Da, s.A));
             var measurements = new Dictionary<string, object>
@@ -1629,10 +1629,10 @@ namespace Oce.Solid.Agent.Core
             double cosine = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
             if (Math.Abs(cosine) > 0.999)
                 return Failed(
-                    "Le due facce sono parallele: si appoggiano una sull'altra o stanno affiancate, " +
-                    "e non formano un angolo. Il fazzoletto va nell'angolo fra due facce che si " +
-                    "incontrano lungo uno spigolo: per una barra in battuta su un'altra indica la " +
-                    "faccia LATERALE della barra e la faccia su cui arriva, non la sua testa.");
+                    "The two faces are parallel: they rest on one another or lie side by side, " +
+                    "and do not form an angle. The gusset goes in the corner between two faces that " +
+                    "meet along an edge: for a bar butted against another, point to the " +
+                    "SIDE face of the bar and the face it arrives on, not its end.");
             double cx = n1[1] * n2[2] - n1[2] * n2[1];
             double cy = n1[2] * n2[0] - n1[0] * n2[2];
             double cz = n1[0] * n2[1] - n1[1] * n2[0];
@@ -1648,9 +1648,9 @@ namespace Oce.Solid.Agent.Core
             double contact = Math.Max(t1, t2);
             if (contact < 0.01)
                 return Failed(
-                    "Le due facce non si toccano: nessuno spigolo dell'una sta sull'altra, e il " +
-                    "fazzoletto va nell'angolo dove due barre si incontrano. Indica la faccia su cui " +
-                    "la barra arriva e la faccia LATERALE della barra che ci arriva sopra.");
+                    "The two faces do not touch: no edge of one lies on the other, and the " +
+                    "gusset goes in the corner where two bars meet. Point to the face the " +
+                    "bar arrives on and the SIDE face of the bar that arrives on top of it.");
 
             // ── THE PART FIRST, read before touching anything ───────────────
             double? volumeBefore = VolumeMm3(model);
@@ -2118,11 +2118,11 @@ namespace Oce.Solid.Agent.Core
             if (nFrom != null && nA != null && nFrom.Length >= 3 && nA.Length >= 3
                 && Math.Abs(nFrom[0] * nA[0] + nFrom[1] * nA[1] + nFrom[2] * nA[2]) > 0.999)
                 return Failed(
-                    "Le due facce sono parallele: si appoggiano una sull'altra o stanno " +
-                    "affiancate, e non formano un angolo. Il cordone d'angolo va fra due " +
-                    "facce che si incontrano lungo uno spigolo e fanno un angolo — per " +
-                    "una barra in battuta su un'altra, e' la faccia LATERALE della barra " +
-                    "contro la faccia su cui arriva, non la sua testa.");
+                    "The two faces are parallel: they rest on one another or lie " +
+                    "side by side, and do not form an angle. The corner bead goes between two " +
+                    "faces that meet along an edge and make an angle — for " +
+                    "a bar butted against another, it is the SIDE face of the bar " +
+                    "against the face it arrives on, not its end.");
 
             // One direction that touches is enough; but «they do not touch» can be said only
             // if both directions have answered.
@@ -2134,10 +2134,10 @@ namespace Oce.Solid.Agent.Core
             double contact = Math.Max(l1, l2);
             if (contact < 0.01)
                 return Failed(
-                    "Le due facce non si toccano: nessuno spigolo dell'una sta " +
-                    "sull'altra. SOLIDWORKS il cordone lo creerebbe lo stesso (misurato: " +
-                    "fra due facce lontane nasce, con un lato diverso da quello chiesto), " +
-                    "e in distinta finirebbe una saldatura che non esiste.");
+                    "The two faces do not touch: no edge of one lies " +
+                    "on the other. SOLIDWORKS would create the bead all the same (measured: " +
+                    "between two distant faces it is born, with a side different from the one asked), " +
+                    "and a weld that does not exist would end up in the BOM.");
 
             // Z-C21.7 (L9-3): InsertCosmeticWeldBead2, not the obsolete
             // InsertCosmeticWeldBead (IFeatureManager~InsertCosmeticWeldBead.html:

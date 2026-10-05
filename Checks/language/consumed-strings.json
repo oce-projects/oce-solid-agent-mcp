@@ -249,7 +249,7 @@
       "what": "the installer says it reinstalls over an existing installation",
       "consumer": {
         "file": "Checks/test-installer.js",
-        "sha1": "c5bb0934d4b8",
+        "sha1": "e08a21f199df",
         "kind": "literal",
         "line_hint": 116
       },
@@ -262,7 +262,7 @@
       "what": "the installer's line that says it installs or updates a client configuration",
       "consumer": {
         "file": "Checks/test-installer.js",
-        "sha1": "a546f472c7f7",
+        "sha1": "cc8af0fa31ca",
         "kind": "regex",
         "line_hint": 117
       },
@@ -288,7 +288,7 @@
       "what": "the installer says a client configuration file is locked",
       "consumer": {
         "file": "Checks/test-installer.js",
-        "sha1": "c8c161566957",
+        "sha1": "adec79fd87d0",
         "kind": "regex",
         "line_hint": 157
       },
@@ -301,7 +301,7 @@
       "what": "the same message, taken as a whole line for the probe's report",
       "consumer": {
         "file": "Checks/test-installer.js",
-        "sha1": "4ac08fdcd891",
+        "sha1": "0c622931c045",
         "kind": "regex",
         "line_hint": 158
       },
@@ -444,7 +444,7 @@
       "what": "the document tool refuses to open a file that does not exist",
       "consumer": {
         "file": "Bench/ClientPort.cs",
-        "sha1": "fb27b318596e",
+        "sha1": "59db6ba4a6af",
         "kind": "literal",
         "line_hint": 271
       },
@@ -457,7 +457,7 @@
       "what": "the document tool refuses to close a document with unsaved changes",
       "consumer": {
         "file": "Bench/ClientPort.cs",
-        "sha1": "fbf65b89121c",
+        "sha1": "7049412dbb7c",
         "kind": "literal",
         "line_hint": 341
       },

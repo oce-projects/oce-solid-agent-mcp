@@ -51,7 +51,7 @@ namespace Oce.Solid.Agent.Bridge
         {
             error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (sw == null) { error = "The bridge is not attached to SolidWorks."; return null; }
 
             int preference, expected;
             string typeName;
@@ -68,8 +68,8 @@ namespace Oce.Solid.Agent.Bridge
                     typeName = "assembly";
                     break;
                 default:
-                    error = "«variant» vale «part» o «assembly». Una tavola nasce da un " +
-                             "pezzo, con «create_drawing» dentro un piano.";
+                    error = "«variant» is «part» or «assembly». A drawing starts from a " +
+                             "part, with «create_drawing» inside a plan.";
                     return null;
             }
 
@@ -77,23 +77,23 @@ namespace Oce.Solid.Agent.Bridge
             try { model = sw.GetUserPreferenceStringValue(preference) ?? ""; } catch { }
             if (string.IsNullOrWhiteSpace(model))
             {
-                error = "SOLIDWORKS non ha un modello predefinito per un " + typeName +
-                         " (Opzioni > Posizioni dei file > Modelli di documento). Senza, " +
-                         "NewDocument aprirebbe una finestra di scelta che nessuno chiude.";
+                error = "SOLIDWORKS has no default template for a " + typeName +
+                         " (Options > File Locations > Document Templates). Without one, " +
+                         "NewDocument would open a choice window that nobody closes.";
                 return null;
             }
             if (!File.Exists(model))
             {
-                error = "Il modello predefinito per un " + typeName + " non c'e': «" +
-                         model + "». Se sta su un disco di rete, potrebbe non " +
-                         "rispondere in questo momento.";
+                error = "The default template for a " + typeName + " does not exist: «" +
+                         model + "». If it is on a network drive, it may not " +
+                         "be answering right now.";
                 return null;
             }
 
             var doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
             if (doc == null)
             {
-                error = "NewDocument non ha creato niente, col modello «" + model + "».";
+                error = "NewDocument created nothing, with the template «" + model + "».";
                 return null;
             }
 
@@ -125,10 +125,10 @@ namespace Oce.Solid.Agent.Bridge
         {
             error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (sw == null) { error = "The bridge is not attached to SolidWorks."; return null; }
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                error = "«path» e' obbligatorio: il file da aprire, col percorso intero.";
+                error = "«path» is required: the file to open, with its full path.";
                 return null;
             }
             filePath = filePath.Trim().Trim('"');
@@ -140,20 +140,20 @@ namespace Oce.Solid.Agent.Bridge
                 case ".sldasm": typ = (int)swDocumentTypes_e.swDocASSEMBLY; break;
                 case ".slddrw": typ = (int)swDocumentTypes_e.swDocDRAWING; break;
                 default:
-                    error = "Apro solo file SOLIDWORKS: .sldprt, .sldasm, .slddrw. Uno " +
-                             "STEP o un IGES si importano, non si aprono: e' un'altra strada.";
+                    error = "I only open SOLIDWORKS files: .sldprt, .sldasm, .slddrw. A " +
+                             "STEP or an IGES is imported, not opened: that is another way.";
                     return null;
             }
             if (!Path.IsPathRooted(filePath))
             {
-                error = "Voglio il percorso intero, non «" + filePath + "»: un percorso " +
-                         "relativo dipende da dove SOLIDWORKS crede di essere.";
+                error = "I want the full path, not «" + filePath + "»: a relative path " +
+                         "depends on where SOLIDWORKS thinks it is.";
                 return null;
             }
             if (!File.Exists(filePath))
             {
-                error = "Il file non esiste: «" + filePath + "». Il documento davanti " +
-                         "non e' cambiato.";
+                error = "The file does not exist: «" + filePath + "». The active document " +
+                         "did not change.";
                 return null;
             }
 
@@ -186,8 +186,8 @@ namespace Oce.Solid.Agent.Bridge
                 (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref errors, ref warnings) as IModelDoc2;
             if (doc == null || errors != 0)
             {
-                error = "SOLIDWORKS non ha aperto «" + filePath + "»: " + OpeningErrors(errors) +
-                         (warnings != 0 ? " Avvisi: " + OpeningWarnings(warnings) + "." : "");
+                error = "SOLIDWORKS did not open «" + filePath + "»: " + OpeningErrors(errors) +
+                         (warnings != 0 ? " Warnings: " + OpeningWarnings(warnings) + "." : "");
                 return null;
             }
 
@@ -195,9 +195,9 @@ namespace Oce.Solid.Agent.Bridge
             string open = doc.GetPathName() ?? "";
             if (!string.Equals(Normal(open), Normal(filePath), StringComparison.OrdinalIgnoreCase))
             {
-                error = "Ho chiesto «" + filePath + "» e SOLIDWORKS dice di aver aperto «" +
-                         open + "». Non lo uso: potrebbe essere un altro file con lo " +
-                         "stesso nome.";
+                error = "I asked for «" + filePath + "» and SOLIDWORKS says it opened «" +
+                         open + "». I will not use it: it could be another file with the " +
+                         "same name.";
                 return null;
             }
 
@@ -215,7 +215,7 @@ namespace Oce.Solid.Agent.Bridge
             error = null;
             hidden = 0;
             var sw = _sw as ISldWorks;
-            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (sw == null) { error = "The bridge is not attached to SolidWorks."; return null; }
 
             var active = ActiveDocument();
             var outside = new List<Dictionary<string, object>>();
@@ -240,10 +240,10 @@ namespace Oce.Solid.Agent.Bridge
         {
             error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (sw == null) { error = "The bridge is not attached to SolidWorks."; return null; }
             if (string.IsNullOrWhiteSpace(which))
             {
-                error = "«path» e' obbligatorio: il percorso o il titolo di un documento aperto.";
+                error = "«path» is required: the path or the title of an open document.";
                 return null;
             }
             which = which.Trim().Trim('"');
@@ -252,9 +252,9 @@ namespace Oce.Solid.Agent.Bridge
             var found = FindOpen(sw, which, out titles);
             if (found == null)
             {
-                error = "«" + which + "» non e' fra i documenti aperti. Aperti adesso: " +
-                         (titles.Count == 0 ? "nessuno" : "«" + string.Join("», «", titles) + "»") +
-                         ". Il documento davanti non e' cambiato.";
+                error = "«" + which + "» is not among the open documents. Open now: " +
+                         (titles.Count == 0 ? "none" : "«" + string.Join("», «", titles) + "»") +
+                         ". The active document did not change.";
                 return null;
             }
             return BringToFront(sw, found, out error);
@@ -275,10 +275,10 @@ namespace Oce.Solid.Agent.Bridge
         {
             error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (sw == null) { error = "The bridge is not attached to SolidWorks."; return null; }
             if (string.IsNullOrWhiteSpace(which))
             {
-                error = "«path» e' obbligatorio: il percorso o il titolo del documento da chiudere.";
+                error = "«path» is required: the path or the title of the document to close.";
                 return null;
             }
             which = which.Trim().Trim('"');
@@ -287,8 +287,8 @@ namespace Oce.Solid.Agent.Bridge
             var doc = FindOpen(sw, which, out titles);
             if (doc == null)
             {
-                error = "«" + which + "» non e' fra i documenti aperti. Aperti adesso: " +
-                         (titles.Count == 0 ? "nessuno" : "«" + string.Join("», «", titles) + "»") + ".";
+                error = "«" + which + "» is not among the open documents. Open now: " +
+                         (titles.Count == 0 ? "none" : "«" + string.Join("», «", titles) + "»") + ".";
                 return null;
             }
 
@@ -297,9 +297,9 @@ namespace Oce.Solid.Agent.Bridge
             string docTitle = doc.GetTitle() ?? "";
             if (dirty)
             {
-                error = "«" + docTitle + "» ha modifiche non salvate: non lo chiudo, le butterei. " +
-                         "Salvalo prima («save_document», dentro un piano), oppure chiudilo a " +
-                         "mano se quelle modifiche sono da buttare.";
+                error = "«" + docTitle + "» has unsaved changes: I do not close it, I would throw them away. " +
+                         "Save it first («save_document», inside a plan), or close it by " +
+                         "hand if those changes are to be thrown away.";
                 return null;
             }
 
@@ -498,9 +498,9 @@ namespace Oce.Solid.Agent.Bridge
             };
             if (isReadOnly)
                 card["warning"] =
-                    "SOLA LETTURA: di solito vuol dire che un collega ha il file aperto. " +
-                    "«build» non ci scrive: le modifiche resterebbero in memoria e il " +
-                    "salvataggio fallirebbe, o finirebbe in una copia.";
+                    "READ ONLY: usually it means a colleague has the file open. " +
+                    "«build» does not write to it: the changes would stay in memory and the " +
+                    "save would fail, or end up in a copy.";
             return card;
         }
 
@@ -511,7 +511,7 @@ namespace Oce.Solid.Agent.Bridge
                 case (int)swDocumentTypes_e.swDocPART: return "part";
                 case (int)swDocumentTypes_e.swDocASSEMBLY: return "assembly";
                 case (int)swDocumentTypes_e.swDocDRAWING: return "drawing";
-                default: return "altro (" + typ + ")";
+                default: return "other (" + typ + ")";
             }
         }
 
@@ -535,21 +535,21 @@ namespace Oce.Solid.Agent.Bridge
         private static string OpeningErrors(int e)
         {
             var names = new List<string>();
-            if ((e & (int)swFileLoadError_e.swFileNotFoundError) != 0) names.Add("file non trovato");
-            if ((e & (int)swFileLoadError_e.swInvalidFileTypeError) != 0) names.Add("tipo di file non valido");
-            if ((e & (int)swFileLoadError_e.swFutureVersion) != 0) names.Add("salvato da una versione piu' nuova di SOLIDWORKS");
-            if ((e & (int)swFileLoadError_e.swGenericError) != 0) names.Add("errore generico");
+            if ((e & (int)swFileLoadError_e.swFileNotFoundError) != 0) names.Add("file not found");
+            if ((e & (int)swFileLoadError_e.swInvalidFileTypeError) != 0) names.Add("invalid file type");
+            if ((e & (int)swFileLoadError_e.swFutureVersion) != 0) names.Add("saved by a newer version of SOLIDWORKS");
+            if ((e & (int)swFileLoadError_e.swGenericError) != 0) names.Add("generic error");
             return names.Count == 0 ? "codice " + e : string.Join(", ", names) + " (codice " + e + ")";
         }
 
         private static string OpeningWarnings(int a)
         {
             var names = new List<string>();
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ReadOnly) != 0) names.Add("aperto in sola lettura");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_SharingViolation) != 0) names.Add("il file e' in uso da un altro");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_AlreadyOpen) != 0) names.Add("era gia' aperto");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_NeedsRegen) != 0) names.Add("va ricostruito");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ModelOutOfDate) != 0) names.Add("modello non aggiornato");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ReadOnly) != 0) names.Add("opened read-only");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_SharingViolation) != 0) names.Add("the file is in use by someone else");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_AlreadyOpen) != 0) names.Add("was already open");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_NeedsRegen) != 0) names.Add("needs a rebuild");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ModelOutOfDate) != 0) names.Add("model out of date");
             return names.Count == 0 ? "codice " + a : string.Join(", ", names) + " (codice " + a + ")";
         }
     }

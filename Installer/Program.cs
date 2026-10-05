@@ -80,8 +80,8 @@ namespace Oce.Solid.Agent.Installer
                 // An installer that disappears without saying anything is the quickest
                 // way to make people conclude that the program is broken.
                 MessageBox.Show(
-                    "L'installatore si e' fermato per un errore che non ha saputo " +
-                    "gestire:\n\n" + ex.Message + "\n\n" + ex.GetType().Name,
+                    "The installer stopped because of an error it could not " +
+                    "handle:\n\n" + ex.Message + "\n\n" + ex.GetType().Name,
                     Steps.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
@@ -146,7 +146,7 @@ namespace Oce.Solid.Agent.Installer
             bool keepClient = arguments.Any(a => Equal(a, "--keep-client"));
             var chosenConfig = Value(arguments, "--config");
             Action<string> tell = line => Console.WriteLine("  " + line);
-            Console.WriteLine(Steps.ProductName + " - disinstallazione");
+            Console.WriteLine(Steps.ProductName + " - uninstall");
             Console.WriteLine("  cartella: " + folder);
 
             bool entryLeft = false;
@@ -168,7 +168,7 @@ namespace Oce.Solid.Agent.Installer
             try { left = Steps.Uninstall(folder, tell); }
             catch (Exception ex)
             {
-                Console.WriteLine("Disinstallazione fallita: " + ex.Message);
+                Console.WriteLine("Uninstall failed: " + ex.Message);
                 return 1;
             }
             if (left.Count > 0)
@@ -258,7 +258,7 @@ namespace Oce.Solid.Agent.Installer
             // launched the command, with its code page: a long dash
             // or an accent come out as a diamond with a question mark, and
             // an installer that prints broken characters looks broken itself.
-            Console.WriteLine(Steps.ProductName + " - installazione silenziosa");
+            Console.WriteLine(Steps.ProductName + " - silent install");
 
             var checks = Steps.Check(redist);
             foreach (var c in checks)
@@ -269,7 +269,7 @@ namespace Oce.Solid.Agent.Installer
             }
             if (checks.Any(c => c.Outcome == Outcome.Male))
             {
-                Console.WriteLine("Mi fermo: ci sono cose da sistemare.");
+                Console.WriteLine("I stop here: there are things to fix.");
                 return ExitNothingInstalled;
             }
 
@@ -321,7 +321,7 @@ namespace Oce.Solid.Agent.Installer
             try { executable = Steps.Install(folder, tell); }
             catch (Exception ex)
             {
-                Console.WriteLine("Installazione fallita: " + ex.Message);
+                Console.WriteLine("Install failed: " + ex.Message);
                 return ExitNothingInstalled;
             }
 
@@ -343,8 +343,8 @@ namespace Oce.Solid.Agent.Installer
                         // H15): an open client reads the configuration only at
                         // startup, and whoever installs from a script does not see it.
                         if (Configuration.IsOpen(client))
-                            tell("ATTENZIONE: " + client.Name + " e' aperto adesso: chiudilo e " +
-                                     "riaprilo, se no non legge la configurazione nuova.");
+                            tell("WARNING: " + client.Name + " is open right now: close it and " +
+                                     "reopen it, or it will not read the new configuration.");
                     }
                     catch (Exception ex)
                     {
@@ -377,10 +377,10 @@ namespace Oce.Solid.Agent.Installer
             // self-test says which, not its text (entry H19, B3).
             if (Steps.SelfTestAccepted(code))
             {
-                Console.WriteLine("Installato in " + folder);
+                Console.WriteLine("Installed in " + folder);
                 return ExitInstalled;
             }
-            Console.WriteLine("Installato, ma il giro secco non ha confermato: leggi sopra.");
+            Console.WriteLine("Installed, but the dry run did not confirm: read above.");
             return ExitNotConfirmed;
         }
 
@@ -398,21 +398,21 @@ namespace Oce.Solid.Agent.Installer
         }
 
         private static string Help() =>
-            Steps.ProductName + " - installatore\n\n" +
-            "  Installer.exe                      apre la finestra\n" +
-            "  Installer.exe --silenzioso         installa senza finestra\n" +
+            Steps.ProductName + " - installer\n\n" +
+            "  Installer.exe                      opens the window\n" +
+            "  Installer.exe --silenzioso         installs without a window\n" +
             "\n" +
             "  Installer.exe --verify [--json]    checks an installation, as a client would find it\n" +
             "\n" +
-            "  --cartella <percorso>   dove installare (predefinito: " +
+            "  --cartella <path>       where to install (default: " +
             Steps.DefaultFolder + ")\n" +
-            "  --redist <percorso>     la cartella api\\redist di SOLIDWORKS\n" +
-            "  --senza-client          non toccare la configurazione dei client MCP\n" +
-            "  --config <percorso>     collega QUEL file invece di cercare i client\n" +
+            "  --redist <path>         the api\\redist folder of SOLIDWORKS\n" +
+            "  --senza-client          do not touch the configuration of the MCP clients\n" +
+            "  --config <path>         wire THAT file instead of looking for the clients\n" +
             "  --weldment-profiles <folder>  the weldment profiles (.sldlfp) for profili_saldatura,\n" +
             "                          written as PROFILI_SALDATURA in the client's env\n" +
             "  --log <file>            also write the run to this file\n" +
-            "  --disinstalla           toglie l'installazione, senza aprire la finestra\n" +
+            "  --disinstalla           removes the installation, without opening the window\n" +
             "  --keep-client           with --disinstalla: leave the MCP client entry in place\n" +
             "  --verify                files, client entries, SOLIDWORKS, the bridge's self-test\n" +
             "                          and an MCP handshake; exit 0 all green, 2 warnings, 1 failed\n" +
@@ -424,7 +424,7 @@ namespace Oce.Solid.Agent.Installer
             "  PowerShell: (Start-Process Installer.exe -ArgumentList '--silenzioso' -Wait -PassThru -NoNewWindow).ExitCode\n" +
             "  cmd, in a batch file: start \"\" /wait Installer.exe --silenzioso, then %ERRORLEVEL%\n" +
             "\n" +
-            "Non serve l'amministratore: installa nella cartella dell'utente e non\n" +
-            "scrive nel registro di sistema.";
+            "No administrator needed: it installs in the user's folder and does not\n" +
+            "write to the system registry.";
     }
 }

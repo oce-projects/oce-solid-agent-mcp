@@ -138,8 +138,8 @@ outcome("2. c'e' una copia di sicurezza del config", bak.length > 0, bak.join("\
 // every release and the case would turn red for the wrong reason.
 const version = fs.readFileSync(path.join(ROOT, "VERSION.txt"), "utf8").trim();
 outcome("2. dice che reinstalla la stessa versione, e quale",
-  r2.testo.includes("reinstallo la " + version),
-  (r2.testo.match(/^.*(installo|aggiorno).*$/mi) || ["nessuna riga di versione"])[0].trim());
+  r2.testo.includes("reinstalling " + version),
+  (r2.testo.match(/^.*(installing|updating).*$/mi) || ["nessuna riga di versione"])[0].trim());
 
 // H15: the backup copies are pruned. Before, they were never removed: ten
 // installations, ten .bak in %APPDATA%. The name carries the seconds, so between
@@ -578,8 +578,8 @@ if (!fs.existsSync(signal)) {
   const remains = fs.readdirSync(BENCH).filter(f => f.startsWith("bloccato.json."));
   outcome("4. exit code 3: files installed, the client not wired (H19 B1)", r4.uscita === 3,
     "exit " + r4.uscita);
-  outcome("4. dice che il file e' bloccato", /bloccato/i.test(r4.testo),
-    (r4.testo.match(/^.*bloccat.*$/mi) || [r4.testo.slice(-300)])[0].trim());
+  outcome("4. dice che il file e' bloccato", /locked/i.test(r4.testo),
+    (r4.testo.match(/^.*locked.*$/mi) || [r4.testo.slice(-300)])[0].trim());
   outcome("4. il config e' rimasto identico, byte per byte",
     Buffer.compare(byte4, fs.readFileSync(cfg4)) === 0, null);
   outcome("4. non resta un .parziale e non nasce una copia",

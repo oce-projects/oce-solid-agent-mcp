@@ -26,7 +26,7 @@
     { "operation": "suppress_instance",
       "arguments": { "feature_uid": "@feature(kind=LPattern,n=1)", "copies": [9] },
       "must_fail": {
-        "message_includes": ["non e' cambiato", "copies_done", "rimesso la ripetizione com'era"],
+        "message_includes": ["did not change", "copies_done", "rimesso la ripetizione com'era"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "skip_the_second_copy" } },

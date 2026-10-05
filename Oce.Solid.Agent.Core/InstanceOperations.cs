@@ -233,11 +233,11 @@ namespace Oce.Solid.Agent.Core
             {
                 string restored = PutBack(model, repetition, port, alreadySkipped);
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "Le facce della ripetizione sono passate da {0} a {1}, ma {2} {3} di «{4}» ne " +
-                    "valgono {5} ({6} per copia): {7} Guarda «copies_done» su questa ripetizione. {8}",
-                    facesBefore, facesAfter, howMany, howMany == 1 ? "copia" : "copie", uid,
+                    "The faces of the pattern went from {0} to {1}, but {2} {3} of «{4}» are " +
+                    "worth {5} ({6} per copy): {7} Look at «copies_done» on this pattern. {8}",
+                    facesBefore, facesAfter, howMany, howMany == 1 ? "copy" : "copies", uid,
                     seedFaces * howMany, seedFaces,
-                    reactivate ? "qualche copia rimessa non e' tornata." : "qualche copia tolta non c'era.",
+                    reactivate ? "some restored copy did not come back." : "some removed copy was not there.",
                     restored));
             }
 
@@ -256,15 +256,15 @@ namespace Oce.Solid.Agent.Core
                 string restored = PutBack(model, repetition, port, alreadySkipped);
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
-                    "Ho scritto la modifica e SOLIDWORKS ha detto di si', ma il pezzo non " +
-                    "e' cambiato: le facce della ripetizione erano {0} e sono {1}. Quasi " +
-                    "sempre vuol dire che {2} non {3}: una ripetizione costruisce le copie " +
-                    "che stanno nel materiale e risponde «riuscito» lo stesso, quindi la " +
-                    "copia {4} puo' non esserci mai stata. Guarda «copies_done» su questa " +
-                    "ripetizione prima di togliere. {5}",
+                    "I wrote the change and SOLIDWORKS said yes, but the part did " +
+                    "not change: the faces of the pattern were {0} and are {1}. Almost " +
+                    "always it means that, for {2}, {3}: a pattern builds the copies " +
+                    "that lie in the material and answers «succeeded» all the same, so the " +
+                    "copy {4} may never have been there. Look at «copies_done» on this " +
+                    "pattern before removing. {5}",
                     facesBefore, facesAfter,
-                    copies.Count == 1 ? "quella copia" : "quelle copie",
-                    reactivate ? "mancava" : "c'era",
+                    copies.Count == 1 ? "that copy" : "those copies",
+                    reactivate ? "it was not missing" : "it was not there",
                     Items(copies),
                     restored));
             }

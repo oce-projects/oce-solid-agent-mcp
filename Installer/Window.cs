@@ -40,7 +40,7 @@ namespace Oce.Solid.Agent.Installer
 
         public Window()
         {
-            Text = Steps.ProductName + " — installazione";
+            Text = Steps.ProductName + " — install";
             Size = new Size(820, 754);
             MinimumSize = new Size(720, 654);
             StartPosition = FormStartPosition.CenterScreen;
@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.Installer
 
             Add(new Label
             {
-                Text = "Collega Claude a SOLIDWORKS",
+                Text = "Connect Claude to SOLIDWORKS",
                 Font = new Font("Segoe UI", 15F, FontStyle.Regular),
                 Location = new Point(18, y), AutoSize = true,
             });
@@ -67,15 +67,15 @@ namespace Oce.Solid.Agent.Installer
 
             Add(new Label
             {
-                Text = "Installa il ponte e scrive la configurazione del client. " +
-                       "Non serve l'amministratore: niente registro, niente Program Files.",
+                Text = "Installs the bridge and writes the client configuration. " +
+                       "No administrator needed: no registry, no Program Files.",
                 ForeColor = Color.DimGray,
                 Location = new Point(18, y), Size = new Size(760, 34),
             });
             y += 40;
 
             // ── controls ────────────────────────────────────────────────
-            Add(Subtitle("Cosa c'e' su questa macchina", ref y));
+            Add(Subtitle("What is on this machine", ref y));
 
             _checks.Location = new Point(18, y);
             _checks.Size = new Size(766, 132);
@@ -101,7 +101,7 @@ namespace Oce.Solid.Agent.Installer
             // a question with no right answer, and whoever does not know what to
             // answer thinks they got something wrong.
             var nextTo = Steps.FindLibraryNextTo();
-            _addin.Text = nextTo ?? "dentro l'installatore";
+            _addin.Text = nextTo ?? "inside the installer";
             _addin.ReadOnly = true;
             _addin.ForeColor = Color.Gray;
             Field(_addin, ref y);
@@ -119,7 +119,7 @@ namespace Oce.Solid.Agent.Installer
             FieldWithButton(_weldmentProfiles, "Browse…", ref y, ChooseWeldmentProfiles);
 
             // ── client ───────────────────────────────────────────────────
-            Add(Subtitle("Quali programmi collegare", ref y));
+            Add(Subtitle("Which programs to connect", ref y));
             _client.Location = new Point(18, y);
             _client.Size = new Size(766, 54);
             _client.CheckOnClick = true;
@@ -252,14 +252,14 @@ namespace Oce.Solid.Agent.Installer
             {
                 var already = Configuration.HowItIsConfigured(c);
                 var label = c.Name +
-                    (c.Installed ? "" : "  (non risulta installato)") +
-                    (already != null ? "  — gia' collegato" : "");
+                    (c.Installed ? "" : "  (not installed)") +
+                    (already != null ? "  — already connected" : "");
                 _client.Items.Add(label, c.Installed);
             }
 
             _install.Enabled = !locked;
             _outcome.Text = locked
-                ? "Ci sono cose da sistemare prima di installare (righe in rosso)."
+                ? "There are things to fix before installing (rows in red)."
                 : "Pronto.";
             _outcome.ForeColor = locked ? Color.FromArgb(190, 30, 30) : Color.DimGray;
         }
@@ -289,14 +289,14 @@ namespace Oce.Solid.Agent.Installer
                     throw new Exception("the weldment profiles folder does not exist: " + weldmentProfiles);
                 if (weldmentProfiles.Length == 0) weldmentProfiles = null;
 
-                Write("— installazione —");
+                Write("— install —");
                 var executable = Steps.Install(_folder.Text, Write);
 
                 // THE CLIENTS: this is the real job. Anyone can copy two files;
                 // writing the right entry in a hidden JSON without
                 // deleting the other servers, not so.
                 Write("");
-                Write("— collegamento —");
+                Write("— connection —");
                 bool someone = false, notWired = false;
                 for (int i = 0; i < _foundClients.Count; i++)
                 {
@@ -307,8 +307,8 @@ namespace Oce.Solid.Agent.Installer
                         Program.Wire(client, executable, _redist, weldmentProfiles, null, Write);
                         someone = true;
                         if (Configuration.IsOpen(client))
-                            Write("  ATTENZIONE: " + client.Name + " e' aperto adesso. " +
-                                   "Chiudilo e riaprilo, se no non legge la configurazione nuova.");
+                            Write("  WARNING: " + client.Name + " is open right now. " +
+                                   "Close it and reopen it, or it will not read the new configuration.");
                     }
                     catch (Exception ex) { Write("  " + client.Name + ": " + ex.Message); notWired = true; }
                 }
@@ -321,7 +321,7 @@ namespace Oce.Solid.Agent.Installer
                 // THE DRY RUN: it is the only thing that lets one say
                 // «installed» knowing that it is true.
                 Write("");
-                Write("— prova —");
+                Write("— test —");
                 int code;
                 foreach (var line in Steps.Test(executable, _redist, out code)
                              .Split('\n')) Write("  " + line.TrimEnd());
@@ -331,13 +331,13 @@ namespace Oce.Solid.Agent.Installer
                 // failure, including SOLIDWORKS not installed.
                 if (code == Steps.SelfTestAttached && !notWired)
                 {
-                    _outcome.Text = "Fatto: il ponte gira e vede il documento aperto.";
+                    _outcome.Text = "Done: the bridge runs and sees the open document.";
                     _outcome.ForeColor = Color.FromArgb(0, 120, 40);
                 }
                 else if (Steps.SelfTestAccepted(code) && !notWired)
                 {
-                    _outcome.Text = "Installato. SOLIDWORKS non e' aperto, quindi la " +
-                                  "verifica completa non si e' potuta fare.";
+                    _outcome.Text = "Installed. SOLIDWORKS is not open, so the " +
+                                  "full check could not be done.";
                     _outcome.ForeColor = Color.FromArgb(160, 110, 0);
                 }
                 else
@@ -352,7 +352,7 @@ namespace Oce.Solid.Agent.Installer
             {
                 Write("");
                 Write("FERMATO: " + ex.Message);
-                _outcome.Text = "Non installato: " + ex.Message;
+                _outcome.Text = "Not installed: " + ex.Message;
                 _outcome.ForeColor = Color.FromArgb(190, 30, 30);
             }
             finally { _install.Enabled = true; }
@@ -361,14 +361,14 @@ namespace Oce.Solid.Agent.Installer
         private void Uninstall()
         {
             var response = MessageBox.Show(
-                "Tolgo i file del ponte da:\n\n" + _folder.Text + "\n\n" +
-                "e la voce dalla configurazione dei programmi collegati.\n\n" +
-                "I tuoi pezzi e le tue tavole non vengono toccati.",
+                "I am removing the bridge files from:\n\n" + _folder.Text + "\n\n" +
+                "and the entry from the configuration of the connected programs.\n\n" +
+                "Your parts and your drawings are not touched.",
                 "Disinstallare?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
             if (response != DialogResult.OK) return;
 
             _registry.Clear();
-            Write("— disinstallazione —");
+            Write("— uninstall —");
             foreach (var client in _foundClients)
             {
                 try { Program.Unwire(client, _folder.Text, null, Write); }

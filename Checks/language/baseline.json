@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1793,
-  "strings": 54058,
+  "strings": 52506,
   "markdown": 11388,
-  "json_values": 54655,
-  "identifiers": 1714,
+  "json_values": 54633,
+  "identifiers": 1713,
   "json_keys": 14,
-  "protocol": 845,
+  "protocol": 837,
   "paths": 0,
   "transition": 2192
  },
@@ -32,7 +32,7 @@
   },
   "Bench/ClientPort.cs": {
    "comments": 5,
-   "strings": 279
+   "strings": 274
   },
   "Bench/DeclaredCases.cs": {
    "comments": 49,
@@ -156,7 +156,7 @@
    "json_values": 56
   },
   "Bench/cases/bodies/limit_union_of_bodies_that_do_not_touch.json": {
-   "json_values": 94
+   "json_values": 87
   },
   "Bench/cases/bodies/limit_unknown_boolean.json": {
    "json_values": 26
@@ -408,7 +408,7 @@
    "json_values": 29
   },
   "Bench/cases/export/limit_two_bodies_do_not_export.json": {
-   "json_values": 69
+   "json_values": 68
   },
   "Bench/cases/export/limit_wrong_extension.json": {
    "json_values": 44
@@ -426,7 +426,7 @@
    "json_values": 2
   },
   "Bench/cases/export/two_bodies_exported_by_force.json": {
-   "json_values": 109
+   "json_values": 107
   },
   "Bench/cases/extrusions/anchored_rectangular_boss_follows_the_centerline.json": {
    "json_values": 53
@@ -630,7 +630,7 @@
    "json_values": 131
   },
   "Bench/cases/patterns/limit_copy_that_never_existed.json": {
-   "json_values": 235
+   "json_values": 232
   },
   "Bench/cases/patterns/limit_direction_from_a_curved_edge.json": {
    "json_values": 170
@@ -930,10 +930,10 @@
    "json_values": 330
   },
   "Bench/cases/weldments/gusset_sits_in_the_corner.json": {
-   "json_values": 442
+   "json_values": 439
   },
   "Bench/cases/weldments/weld_bead_goes_between_touching_faces.json": {
-   "json_values": 288
+   "json_values": 282
   },
   "Bench/collect_views.js": {
    "strings": 21
@@ -983,22 +983,11 @@
   "Bench/test_undo.js": {
    "strings": 88
   },
-  "Bridge/Documents.cs": {
-   "strings": 242
-  },
-  "Bridge/Paths.cs": {
-   "strings": 71
-  },
-  "Bridge/PlanInMemory.cs": {
-   "strings": 3
-  },
   "Bridge/Session.cs": {
-   "strings": 222,
    "comments": 1
   },
   "Bridge/Shape.cs": {
-   "comments": 5,
-   "strings": 48
+   "comments": 5
   },
   "CHANGELOG.md": {
    "markdown": 361
@@ -1202,7 +1191,7 @@
    "comments": 13
   },
   "Checks/test-installer.js": {
-   "strings": 169
+   "strings": 167
   },
   "Checks/test-x2.js": {
    "comments": 4,
@@ -1232,21 +1221,6 @@
   },
   "INSTALL-FOR-AI.md": {
    "markdown": 5
-  },
-  "Installer/Configuration.cs": {
-   "strings": 77
-  },
-  "Installer/Payload.cs": {
-   "strings": 40
-  },
-  "Installer/Program.cs": {
-   "strings": 77
-  },
-  "Installer/Steps.cs": {
-   "strings": 215
-  },
-  "Installer/Window.cs": {
-   "strings": 88
   },
   "Mcp/Risorse.cs": {
    "strings": 34
@@ -1281,7 +1255,7 @@
   },
   "Oce.Solid.Agent.Core/BodyOperations.cs": {
    "comments": 7,
-   "strings": 690
+   "strings": 613
   },
   "Oce.Solid.Agent.Core/BomOperations.cs": {
    "comments": 2,
@@ -1375,7 +1349,7 @@
    "strings": 266
   },
   "Oce.Solid.Agent.Core/ExportOperations.cs": {
-   "strings": 514
+   "strings": 478
   },
   "Oce.Solid.Agent.Core/FaceFilletOperations.cs": {
    "strings": 530,
@@ -1406,7 +1380,7 @@
   },
   "Oce.Solid.Agent.Core/InstanceOperations.cs": {
    "comments": 4,
-   "strings": 274
+   "strings": 194
   },
   "Oce.Solid.Agent.Core/InterferenceOperations.cs": {
    "strings": 153,
@@ -1417,7 +1391,7 @@
    "comments": 1
   },
   "Oce.Solid.Agent.Core/MaterialOperations.cs": {
-   "strings": 29
+   "strings": 13
   },
   "Oce.Solid.Agent.Core/MeasureOperations.cs": {
    "comments": 8,
@@ -1467,7 +1441,7 @@
    "strings": 247
   },
   "Oce.Solid.Agent.Core/ReorderOperations.cs": {
-   "strings": 142
+   "strings": 121
   },
   "Oce.Solid.Agent.Core/ReplaceOperations.cs": {
    "strings": 162,
@@ -1518,7 +1492,7 @@
   },
   "Oce.Solid.Agent.Core/SwOperations.cs": {
    "comments": 150,
-   "strings": 3288
+   "strings": 3253
   },
   "Oce.Solid.Agent.Core/TextOperations.cs": {
    "comments": 5,
@@ -1529,7 +1503,7 @@
    "strings": 233
   },
   "Oce.Solid.Agent.Core/WeldmentOperations.cs": {
-   "strings": 1402,
+   "strings": 1218,
    "comments": 53
   },
   "Program.cs": {
@@ -1654,7 +1628,7 @@
    "comments": 3
   },
   "Tests/SessionTests.cs": {
-   "strings": 353,
+   "strings": 340,
    "comments": 2
   },
   "Tests/ShapeSpellingContract.cs": {
@@ -2572,7 +2546,6 @@
    "filettatura_cosmetica",
    "filetto_su_un_perno",
    "filo",
-   "finestra",
    "fingi",
    "firma",
    "firme",
@@ -3436,7 +3409,6 @@
    "Anteriore",
    "Assistente",
    "Attese",
-   "Avvisi",
    "BANCO",
    "Banco",
    "Breve",
@@ -3581,15 +3553,11 @@
    "adesso",
    "agente",
    "aggiorna",
-   "aggiornata",
-   "aggiorno",
    "aggiungi",
-   "aggiunta",
    "aggiunto",
    "aiuto",
    "ala",
    "albero",
-   "alla",
    "allineato",
    "allora",
    "alta",
@@ -3838,7 +3806,6 @@
    "generale",
    "generico",
    "geometria",
-   "gestire",
    "gia",
    "giro",
    "gli",
@@ -3871,7 +3838,6 @@
    "installato",
    "installato4",
    "installatore",
-   "installo",
    "interne",
    "interno",
    "intero",
@@ -3905,7 +3871,6 @@
    "lunghezza_mm",
    "mai",
    "manca",
-   "mancava",
    "marca",
    "marcata",
    "marcate",

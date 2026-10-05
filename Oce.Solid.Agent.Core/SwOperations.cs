@@ -3738,9 +3738,9 @@ namespace Oce.Solid.Agent.Core
             double after = fromSystem(ApiHelpers.ReadDimension(dimension));
             if (Math.Abs(after - val) > 0.001)
                 return Failed(
-                    "La quota «" + dimensionName + "» dice ancora " +
-                    after.ToString("0.###") + " " + units + " invece di " + val + ": il " +
-                    "valore non ha preso. Il pezzo non e' cambiato.");
+                    "The dimension «" + dimensionName + "» still says " +
+                    after.ToString("0.###") + " " + units + " instead of " + val + ": the " +
+                    "value did not take. The part did not change.");
 
             double? volumeAfter = VolumeMm3(model);
             int bodiesAfter = CountSolidBodies(model);
@@ -8141,9 +8141,9 @@ namespace Oce.Solid.Agent.Core
             if (!_stepsDone.TryGetValue(number, out planStep) || planStep == null)
             {
                 reason =
-                    $"Il riferimento «{theField}» cita il passo {number}, ma di quel " +
-                    "passo non ho la geometria: o non e' ancora stato eseguito, " +
-                    "o non ha creato niente.";
+                    $"The reference «{theField}» cites step {number}, but of that " +
+                    "step I have no geometry: either it has not been run yet, " +
+                    "or it created nothing.";
                 return null;
             }
             return planStep;

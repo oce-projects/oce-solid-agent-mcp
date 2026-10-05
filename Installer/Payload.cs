@@ -71,8 +71,8 @@ namespace Oce.Solid.Agent.Installer
         {
             if (!ExtractIfPresent(file, destination, tell))
                 throw new Exception(
-                    "Non trovo «" + file + "»: non e' dentro l'installatore ne' " +
-                    "accanto a lui. L'installatore e' incompleto.");
+                    "I cannot find «" + file + "»: it is neither inside the installer nor " +
+                    "next to it. The installer is incomplete.");
         }
 
         /// <summary>Writes the file if it is there. Returns false if it was not.</summary>
@@ -100,7 +100,7 @@ namespace Oce.Solid.Agent.Installer
             {
                 if (Steps.EqualPaths(nextTo, destination))
                 {
-                    tell(file + " e' gia' al suo posto");
+                    tell(file + " is already in place");
                     return true;
                 }
                 using (var s = File.OpenRead(nextTo)) WriteWithCare(s, destination);
@@ -135,15 +135,15 @@ namespace Oce.Solid.Agent.Installer
             catch (UnauthorizedAccessException)
             {
                 throw new Exception(
-                    "Non ho il permesso di scrivere in «" + folder + "». " +
-                    "Scegli un'altra cartella, per esempio dentro Documenti.");
+                    "I do not have permission to write in «" + folder + "». " +
+                    "Choose another folder, for example inside Documents.");
             }
             catch (IOException ex) when (File.Exists(destination))
             {
                 throw new Exception(
-                    "«" + Path.GetFileName(destination) + "» e' in uso: probabilmente " +
-                    "il ponte sta girando dentro un client MCP aperto. Chiudi il " +
-                    "client e riprova. (" + ex.Message + ")");
+                    "«" + Path.GetFileName(destination) + "» is in use: the bridge is probably " +
+                    "running inside an open MCP client. Close the " +
+                    "client and try again. (" + ex.Message + ")");
             }
             finally
             {

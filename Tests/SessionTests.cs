@@ -151,14 +151,14 @@ namespace Oce.Solid.Agent.ContractTests
 
             var open = sentence(0x800401E3);
             Check("MK_E_UNAVAILABLE: the sentence says SOLIDWORKS is not running",
-                  open.IndexOf("non risulta aperto", StringComparison.Ordinal) >= 0, open);
+                  open.IndexOf("does not seem to be open", StringComparison.Ordinal) >= 0, open);
             foreach (var c in new uint[] { 0x800401F3, 0x80040154 })
             {
                 var t = sentence(c);
-                Check("0x" + c.ToString("X8") + ": dice «non e' installato»",
-                      t.IndexOf("non e' installato", StringComparison.Ordinal) >= 0, t);
+                Check("0x" + c.ToString("X8") + ": says «is not installed»",
+                      t.IndexOf("is not installed", StringComparison.Ordinal) >= 0, t);
                 Check("0x" + c.ToString("X8") + ": and does NOT say it is not running (it is not installed)",
-                      t.IndexOf("non risulta aperto", StringComparison.Ordinal) < 0, t);
+                      t.IndexOf("does not seem to be open", StringComparison.Ordinal) < 0, t);
             }
             var other = sentence(0x80004005);
             Check("un codice qualunque si dice in esadecimale", other.Contains("0x80004005"), other);

@@ -96,10 +96,10 @@ namespace Oce.Solid.Agent.Core
             bool force = Bool(a, "export_anyway", false);
             if (!printable && !force)
                 return Failed(
-                    "Non esporto: " + verdictValue + "\n\n" +
-                    "Un STL non porta con se' niente che dica che il pezzo era cosi': " +
-                    "si apre, si affetta e si stampa lo stesso. Sistema il pezzo, " +
-                    "oppure passa «export_anyway»: true se sai quello che fai.");
+                    "I do not export: " + verdictValue + "\n\n" +
+                    "An STL carries nothing with it that says the part was like this: " +
+                    "it opens, gets sliced and is printed all the same. Fix the part, " +
+                    "or pass «export_anyway»: true if you know what you are doing.");
 
             // ── 2. DOVE ──────────────────────────────────────────────────
             string location = Str(a, "path", null);
@@ -227,8 +227,8 @@ namespace Oce.Solid.Agent.Core
             if (stlPreferencesNote != null) measurements["preferences_not_restored"] = stlPreferencesNote;
             if (!printable)
                 measurements["exported_anyway"] =
-                    "L'hai chiesto tu con «export_anyway»: il file c'e' e il pezzo " +
-                    "non era a posto. " + verdictValue;
+                    "You requested it with «export_anyway»: the file is there and the part " +
+                    "was not right. " + verdictValue;
 
             // A FILE THAT DOES NOT ADD UP IS NOT A FILE. On a binary STL the
             // size is exactly 84 + 50 per triangle: if it does not add up, the

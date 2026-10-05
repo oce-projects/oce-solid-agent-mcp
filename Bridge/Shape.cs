@@ -69,12 +69,12 @@ namespace Oce.Solid.Agent.Bridge
                 if (!arguments.TryGetValue(itemName, out v) || v == null) missingItems.Add(itemName);
             }
             if (missingItems.Count == 1)
-                return "Per «" + operation + "» serve «" + missingItems[0] + "», e non c'e'." +
+                return "For «" + operation + "», «" + missingItems[0] + "» is needed, and it is missing." +
                        Suggest(property, missingItems[0]);
             if (missingItems.Count > 1)
-                return "Per «" + operation + "» servono " +
+                return "For «" + operation + "», " +
                        string.Join(", ", missingItems.Select(x => "«" + x + "»")) +
-                       ", e non ci sono.";
+                       " are needed, and they are missing.";
 
             // ── 2. what is there, but of the wrong form ─────────────
             //
@@ -153,27 +153,27 @@ namespace Oce.Solid.Agent.Bridge
                 case "number":
                 case "integer":
                     if (!ANumber(val))
-                        return "Per «" + operation + "», «" + itemName + "» vuole un numero e " +
-                               "invece e' " + WhatItIsCalled(val) + ".";
+                        return "For «" + operation + "», «" + itemName + "» wants a number and " +
+                               "instead it is " + WhatItIsCalled(val) + ".";
                     break;
 
                 case "boolean":
                     if (!(val is bool))
-                        return "Per «" + operation + "», «" + itemName + "» vuole vero o falso e " +
-                               "invece e' " + WhatItIsCalled(val) + ".";
+                        return "For «" + operation + "», «" + itemName + "» wants true or false and " +
+                               "instead it is " + WhatItIsCalled(val) + ".";
                     break;
 
                 case "array":
                     if (val is string || !(val is IEnumerable))
-                        return "Per «" + operation + "», «" + itemName + "» vuole un elenco e " +
-                               "invece e' " + WhatItIsCalled(val) + ".";
+                        return "For «" + operation + "», «" + itemName + "» wants a list and " +
+                               "instead it is " + WhatItIsCalled(val) + ".";
                     break;
 
                 case "object":
                     var inside = val as Dictionary<string, object>;
                     if (inside == null)
-                        return "Per «" + operation + "», «" + itemName + "» vuole un oggetto e " +
-                               "invece e' " + WhatItIsCalled(val) + ".";
+                        return "For «" + operation + "», «" + itemName + "» wants an object and " +
+                               "instead it is " + WhatItIsCalled(val) + ".";
                     if (depth < MaximumDepth)
                     {
                         var crooked = Nested(operation, itemName, rule, inside, depth + 1);
@@ -220,9 +220,9 @@ namespace Oce.Solid.Agent.Bridge
                     catalogueSpelling = sameWord[0];
                     return null;
                 }
-                return "Per «" + operation + "», «" + itemName + "» puo' essere solo " +
+                return "For «" + operation + "», «" + itemName + "» can only be " +
                        string.Join(", ", allowed.Select(x => "«" + x + "»")) +
-                       ", e invece dice «" + written + "».";
+                       ", and instead it says «" + written + "».";
             }
 
             return null;
@@ -251,12 +251,12 @@ namespace Oce.Solid.Agent.Bridge
                 .ToList();
 
             if (missingItems.Count == 1)
-                return "Per «" + operation + "», «" + filePath + "» deve dire anche «" +
-                       missingItems[0] + "», e non lo dice.";
+                return "For «" + operation + "», «" + filePath + "» must also say «" +
+                       missingItems[0] + "», and it does not.";
             if (missingItems.Count > 1)
-                return "Per «" + operation + "», «" + filePath + "» deve dire anche " +
+                return "For «" + operation + "», «" + filePath + "» must also say " +
                        string.Join(", ", missingItems.Select(x => "«" + x + "»")) +
-                       ", e non li dice.";
+                       ", and it does not.";
 
             // ── what is there, but of the wrong form ──
             // Over a copy, as in Check: an enum value such as
@@ -305,9 +305,9 @@ namespace Oce.Solid.Agent.Bridge
         {
             if (v == null) return "vuoto";
             if (v is bool) return "vero/falso";
-            if (v is string) return "un testo («" + v + "»)";
-            if (v is Dictionary<string, object>) return "un oggetto";
-            if (v is IEnumerable) return "un elenco";
+            if (v is string) return "a text («" + v + "»)";
+            if (v is Dictionary<string, object>) return "an object";
+            if (v is IEnumerable) return "a list";
             return "un " + v.GetType().Name;
         }
 

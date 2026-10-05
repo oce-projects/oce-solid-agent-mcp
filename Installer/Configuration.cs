@@ -170,9 +170,9 @@ namespace Oce.Solid.Agent.Installer
         public static string Connect(
             Client client, string executable, string redist, string weldmentProfiles, Action<string> tell)
         {
-            if (client == null) throw new Exception("Nessun client scelto.");
+            if (client == null) throw new Exception("No client chosen.");
             if (string.IsNullOrWhiteSpace(executable) || !File.Exists(executable))
-                throw new Exception("Non trovo il ponte da collegare: " + executable);
+                throw new Exception("I cannot find the bridge to connect: " + executable);
 
             var root = Read(client.File);
             var server = Below(root, "mcpServers");
@@ -192,7 +192,7 @@ namespace Oce.Solid.Agent.Installer
             {
                 entry["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
                 if (env.ContainsKey("SW_REDIST"))
-                    tell("aggiungo SW_REDIST: SOLIDWORKS non e' nel percorso solito");
+                    tell("adding SW_REDIST: SOLIDWORKS is not in the usual place");
                 if (env.ContainsKey("PROFILI_SALDATURA"))
                     tell("adding PROFILI_SALDATURA: " + env["PROFILI_SALDATURA"]);
             }
@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.Installer
             server[ServerName] = entry;
 
             var copy = Write(client.File, root, tell);
-            tell((existed ? "aggiornata" : "aggiunta") + " la voce «" + ServerName +
+            tell((existed ? "updated" : "added") + " the entry «" + ServerName +
                      "» in " + client.Name);
             return copy;
         }
@@ -311,7 +311,7 @@ namespace Oce.Solid.Agent.Installer
         {
             if (client == null || !File.Exists(client.File))
             {
-                tell("niente da scollegare");
+                tell("nothing to disconnect");
                 return false;
             }
             var root = Read(client.File);
@@ -319,7 +319,7 @@ namespace Oce.Solid.Agent.Installer
             object entry;
             if (!server.TryGetValue(ServerName, out entry))
             {
-                tell("la voce non c'era");
+                tell("the entry was not there");
                 return false;
             }
             if (!string.IsNullOrWhiteSpace(folder) && !PointsInto(entry, folder))
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.Installer
             }
             server.Remove(ServerName);
             Write(client.File, root, tell);
-            tell("tolta la voce da " + client.Name);
+            tell("removed the entry from " + client.Name);
             return true;
         }
 
@@ -400,18 +400,18 @@ namespace Oce.Solid.Agent.Installer
                 // up in the branch below, and whoever had the client open was told that
                 // their JSON was not valid.
                 throw new Exception(
-                    "Non riesco a leggere «" + file + "»: e' bloccato da un altro " +
-                    "programma, e non l'ho toccato. Di solito e' il client stesso " +
-                    "aperto: chiudilo e riprova. (" + ex.Message + ")");
+                    "I cannot read «" + file + "»: it is locked by another " +
+                    "program, and I did not touch it. Usually it is the client itself " +
+                    "open: close it and try again. (" + ex.Message + ")");
             }
             catch (Exception ex)
             {
                 // A broken file is NOT silently replaced with a new one:
                 // inside there might be ten servers configured by hand.
                 throw new Exception(
-                    "Il file di configurazione «" + file + "» non e' JSON valido e non " +
-                    "me la sento di riscriverlo: dentro potrebbe esserci altro lavoro. " +
-                    "Aprilo e sistemalo, poi riprova. (" + ex.Message + ")");
+                    "The configuration file «" + file + "» is not valid JSON and I do not " +
+                    "feel like rewriting it: there may be other work inside. " +
+                    "Open it and fix it, then try again. (" + ex.Message + ")");
             }
         }
 
@@ -447,9 +447,9 @@ namespace Oce.Solid.Agent.Installer
                 catch (IOException ex)
                 {
                     throw new Exception(
-                        "Il file «" + file + "» e' bloccato da un altro programma, e non " +
-                        "l'ho toccato. Di solito e' il client stesso aperto: chiudilo e " +
-                        "riprova. (" + ex.Message + ")");
+                        "The file «" + file + "» is locked by another program, and I did not " +
+                        "touch it. Usually it is the client itself open: close it and " +
+                        "try again. (" + ex.Message + ")");
                 }
             }
 
@@ -491,7 +491,7 @@ namespace Oce.Solid.Agent.Installer
             var copy = file + CopyPrefix +
                         DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
             File.Copy(file, copy, true);
-            tell?.Invoke("copia di sicurezza: " + Path.GetFileName(copy));
+            tell?.Invoke("backup copy: " + Path.GetFileName(copy));
             PruneCopies(file, tell ?? (s => { }));
             return copy;
         }
@@ -529,7 +529,7 @@ namespace Oce.Solid.Agent.Installer
                     catch { }
                 }
                 if (our.Count > 0)
-                    tell("tolte " + our.Count + " copie di sicurezza vecchie (ne tengo " + KeptCopies + ")");
+                    tell("removed " + our.Count + " old backup copies (keeping " + KeptCopies + ")");
             }
             catch { /* failing to clean up is no reason not to install*/ }
         }

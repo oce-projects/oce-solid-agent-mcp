@@ -164,9 +164,9 @@ namespace Oce.Solid.Agent.Bridge
                     }
                 }
                 Mcp.Protocol.Note(
-                    "[ponte] non trovo " + itemName + ": indica dove e' installato " +
-                    "SolidWorks nella variabile SW_INSTALL_PATH (la radice, " +
-                    "quella che finisce con «\\SOLIDWORKS»).");
+                    "[bridge] cannot find " + itemName + ": say where " +
+                    "SolidWorks is installed in the variable SW_INSTALL_PATH (the root, " +
+                    "the one that ends with «\\SOLIDWORKS»).");
                 return null;
             };
         }
@@ -194,8 +194,8 @@ namespace Oce.Solid.Agent.Bridge
             // works, which is the worst defect.
             if (!File.Exists(LibraryPath))
                 Mcp.Protocol.Note(
-                    "[ponte] «" + LibraryPath + "» non esiste; uso quella " +
-                    "caricata insieme all'eseguibile.");
+                    "[bridge] «" + LibraryPath + "» does not exist; using the one " +
+                    "loaded with the executable.");
 
             try
             {
@@ -219,16 +219,16 @@ namespace Oce.Solid.Agent.Bridge
                         StringComparison.OrdinalIgnoreCase))
                 {
                     Mcp.Protocol.Note(
-                        "[ponte] avviso: avevi indicato «" + LibraryPath +
-                        "» ma sto usando «" + really + "». Le operazioni sono " +
-                        "quelle del secondo.");
+                        "[bridge] warning: you said «" + LibraryPath +
+                        "» but I am using «" + really + "». The operations are " +
+                        "those of the second.");
                     LibraryPath = really;
                 }
             }
             catch (Exception ex)
             {
                 Failure = AttachFailure.Other;
-                return "La libreria di disegno non si carica: " + ex.Message;
+                return "The drawing library does not load: " + ex.Message;
             }
 
             // OCE_NO_ATTACH: START WITHOUT TOUCHING SOLIDWORKS (entry H19, L1).
@@ -262,7 +262,7 @@ namespace Oce.Solid.Agent.Bridge
             catch (Exception ex)
             {
                 Failure = AttachFailure.Other;
-                return "Non riesco ad agganciarmi a SolidWorks: " + ex.Message;
+                return "I cannot attach to SolidWorks: " + ex.Message;
             }
 
             Failure = AttachFailure.None;
@@ -316,15 +316,15 @@ namespace Oce.Solid.Agent.Bridge
             switch (unchecked((uint)hresult))
             {
                 case 0x800401E3:
-                    return "SolidWorks non risulta aperto. Questo ponte si aggancia a " +
-                           "una sessione che c'e' gia': aprilo, apri un pezzo, e riprova.";
+                    return "SolidWorks does not seem to be open. This bridge attaches to " +
+                           "a session that already exists: open it, open a part, and try again.";
                 case 0x800401F3:
                 case 0x80040154:
-                    return "SolidWorks non e' installato su questa macchina, o non e' " +
-                           "registrato: Windows non conosce «SldWorks.Application». " +
-                           "Aprirlo non basta — va installato, o riparato dall'Installation Manager.";
+                    return "SolidWorks is not installed on this machine, or is not " +
+                           "registered: Windows does not know «SldWorks.Application». " +
+                           "Opening it is not enough — it has to be installed, or repaired from the Installation Manager.";
                 default:
-                    return "Non riesco ad agganciarmi a SolidWorks (codice 0x" +
+                    return "I cannot attach to SolidWorks (code 0x" +
                            unchecked((uint)hresult).ToString("X8") + ").";
             }
         }
@@ -372,9 +372,9 @@ namespace Oce.Solid.Agent.Bridge
             }
             if (_pid <= 0)
                 Mcp.Protocol.Note(
-                    "[ponte] non sono riuscito a sapere il processo di SolidWorks: " +
-                    "se si chiude a meta' di un piano, me ne accorgero' dall'errore " +
-                    "della chiamata e non prima.");
+                    "[bridge] I could not find out the SolidWorks process: " +
+                    "if it closes in the middle of a plan, I will notice it from the error " +
+                    "of the call and not before.");
         }
 
         /// <summary>
@@ -432,10 +432,10 @@ namespace Oce.Solid.Agent.Bridge
         private string Disappeared()
         {
             _lossReason =
-                "SolidWorks si e' chiuso: il processo a cui ero agganciato " +
-                "(PID " + _pid + ") non c'e' piu'. Quello che era gia' stato " +
-                "costruito e' rimasto nel documento e NON e' stato salvato. " +
-                "Riapri SolidWorks, riapri il pezzo, e rilancia il ponte.";
+                "SolidWorks closed: the process I was attached to " +
+                "(PID " + _pid + ") is gone. What had already been " +
+                "built stayed in the document and was NOT saved. " +
+                "Reopen SolidWorks, reopen the part, and restart the bridge.";
             return _lossReason;
         }
 
@@ -683,7 +683,7 @@ namespace Oce.Solid.Agent.Bridge
             var doc = ActiveDocument();
             if (doc == null)
             {
-                error = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "There is no open document in SolidWorks.";
                 return null;
             }
             try
@@ -693,7 +693,7 @@ namespace Oce.Solid.Agent.Bridge
             }
             catch (Exception ex)
             {
-                error = "Non riesco a leggere il documento: " + ex.Message;
+                error = "I cannot read the document: " + ex.Message;
                 return null;
             }
         }
@@ -725,14 +725,14 @@ namespace Oce.Solid.Agent.Bridge
             var doc = ActiveDocument();
             if (doc == null)
             {
-                error = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "There is no open document in SolidWorks.";
                 return null;
             }
 
             var model = doc as IModelDoc2;
             if (model == null)
             {
-                error = "Il documento davanti non si lascia fotografare.";
+                error = "The active document cannot be photographed.";
                 return null;
             }
 
@@ -767,14 +767,14 @@ namespace Oce.Solid.Agent.Bridge
             var doc = ActiveDocument();
             if (doc == null)
             {
-                error = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "There is no open document in SolidWorks.";
                 return null;
             }
 
             var model = doc as IModelDoc2;
             if (model == null)
             {
-                error = "Il documento davanti non si lascia fotografare.";
+                error = "The active document cannot be photographed.";
                 return null;
             }
 
@@ -811,9 +811,9 @@ namespace Oce.Solid.Agent.Bridge
         public string StepBack()
         {
             var doc = ActiveDocument() as IModelDoc2;
-            if (doc == null) return "Non c'e' nessun documento aperto in SolidWorks.";
+            if (doc == null) return "There is no open document in SolidWorks.";
             try { doc.EditUndo2(1); return null; }
-            catch (Exception ex) { return "SOLIDWORKS non ha annullato: " + ex.Message; }
+            catch (Exception ex) { return "SOLIDWORKS did not undo: " + ex.Message; }
         }
 
         /// <summary>
@@ -838,9 +838,9 @@ namespace Oce.Solid.Agent.Bridge
         public string StepForward()
         {
             var doc = ActiveDocument() as IModelDoc2;
-            if (doc == null) return "Non c'e' nessun documento aperto in SolidWorks.";
+            if (doc == null) return "There is no open document in SolidWorks.";
             try { doc.EditRedo2(1); return null; }
-            catch (Exception ex) { return "SOLIDWORKS non ha rifatto: " + ex.Message; }
+            catch (Exception ex) { return "SOLIDWORKS did not redo: " + ex.Message; }
         }
 
         /// <summary>
@@ -918,7 +918,7 @@ namespace Oce.Solid.Agent.Bridge
             var doc = ActiveDocument();
             if (doc == null)
             {
-                error = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "There is no open document in SolidWorks.";
                 return null;
             }
 
@@ -938,11 +938,11 @@ namespace Oce.Solid.Agent.Bridge
                 if (turn == null)
                 {
                     error =
-                        "Un altro ponte sta gia' lavorando su questo documento (" +
-                        whose + "). Non eseguo: due piani sullo stesso pezzo, " +
-                        "uno sopra l'altro, danno un pezzo che non e' nessuno dei " +
-                        "due e nessuno dei due se ne accorge. Aspetta che finisca, " +
-                        "oppure lavora su un altro documento.";
+                        "Another bridge is already working on this document (" +
+                        whose + "). I do not run: two plans on the same part, " +
+                        "one on top of the other, give a part that is neither of the " +
+                        "two, and neither of them notices. Wait for it to finish, " +
+                        "or work on another document.";
                     // Another writer is on this document now (review F4).
                     LastTurnRefusedDocument = doc;
                     return null;
@@ -978,7 +978,7 @@ namespace Oce.Solid.Agent.Bridge
                 f => System.Threading.Tasks.Task.FromResult(f()))
             {
                 // The name that the user reads in the «Undo» menu of SOLIDWORKS.
-                UndoName = "Ponte MCP",
+                UndoName = "MCP bridge",
 
                 // HERE YES, AND ONLY HERE. The bridge works on purpose on parts just
                 // opened and never saved: without this, its normal case
@@ -1065,9 +1065,9 @@ namespace Oce.Solid.Agent.Bridge
             // ZERO-E-ZERO: `outcomes` is our list, not a reading from the CAD.
             int done = outcomes == null ? 0 : outcomes.Count;
             return disappeared +
-                   " Si e' fermato dopo " + done +
-                   (done == 1 ? " passo" : " passi") +
-                   ". Quello che SolidWorks aveva risposto per ultimo: «" +
+                   " It stopped after " + done +
+                   (done == 1 ? " step" : " steps") +
+                   ". What SolidWorks last answered: «" +
                    original + "».";
         }
     }

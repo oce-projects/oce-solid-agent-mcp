@@ -132,8 +132,8 @@ namespace Oce.Solid.Agent.Core
             else if (asRequested == "subtract") typ = (int)swBodyOperationType_e.SWBODYCUT;
             else if (asRequested == "intersect") typ = (int)swBodyOperationType_e.SWBODYINTERSECT;
             else return Failed(
-                "Non hai detto che booleana fare, o non la conosco: «" + asRequested +
-                "». Ci sono «union», «subtract» e «intersect».");
+                "You did not say which boolean to do, or I do not know it: «" + asRequested +
+                "». There are «union», «subtract» and «intersect».");
 
             var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             // ZERO-E-ZERO: `GetBodies2` above is not in a try — a dead
@@ -319,11 +319,11 @@ namespace Oce.Solid.Agent.Core
             // certain.
             if (feature == null)
                 return Failed(
-                    "La booleana «" + asRequested + "» non ha creato niente, e SOLIDWORKS " +
-                    "non dice perche': questa chiamata risponde «niente» e basta. Di solito " +
-                    "i corpi non si toccano davvero: «union» vuole corpi che si " +
-                    "compenetrano o si toccano, «subtract» e «intersect» vogliono che si " +
-                    "sovrappongano. Guarda gli ingombri con «body_bounding_box».");
+                    "The boolean «" + asRequested + "» created nothing, and SOLIDWORKS " +
+                    "does not say why: this call answers «nothing» and that is it. Usually " +
+                    "the bodies do not touch for real: «union» wants bodies that " +
+                    "interpenetrate or touch, «subtract» and «intersect» want them to " +
+                    "overlap. Look at the bounding boxes with «body_bounding_box».");
 
             try { model.EditRebuild3(); } catch { }
 
@@ -345,10 +345,10 @@ namespace Oce.Solid.Agent.Core
             if (reread && typ == (int)swBodyOperationType_e.SWBODYADD &&
                 bodiesAfter >= bodiesBefore)
                 return Failed(
-                    "L'unione ha creato la feature ma i corpi sono passati da " + bodiesBefore +
-                    " a " + bodiesAfter + ": non si sono fusi. Di solito e' che non si toccano " +
-                    "davvero. Non ti confermo un pezzo diverso da quello che ti ho mostrato: " +
-                    "ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "The union created the feature but the bodies went from " + bodiesBefore +
+                    " to " + bodiesAfter + ": they did not merge. Usually it is that they do not touch " +
+                    "for real. I do not confirm a part different from the one I showed you: " +
+                    "withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             if (reread && volumeAfter <= 0)
                 return Failed(
@@ -360,10 +360,10 @@ namespace Oce.Solid.Agent.Core
             {
                 ["operation"] = asRequested,
                 ["note_assumption"] = assumed
-                    ? "operazione: «" + DefaultOperation + "» — PREDEFINITO, " +
-                      "non l'hai chiesto tu. «subtract» e «intersect» si chiedono " +
-                      "per nome."
-                    : "operazione: «" + asRequested + "» — l'hai chiesto tu.",
+                    ? "operation: «" + DefaultOperation + "» — DEFAULT, " +
+                      "you did not request it. «subtract» and «intersect» are requested " +
+                      "by name."
+                    : "operation: «" + asRequested + "» — you requested it.",
                 ["main_body"] = mainName,
                 ["tool_bodies"] = toolNames.ToArray(),
                 ["bodies_before"] = bodiesBefore,

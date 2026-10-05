@@ -178,10 +178,10 @@ namespace Oce.Solid.Agent.Core
                 // asked for: a field that appears only in the odd case is a
                 // field that whoever reads does not learn to look at.
                 ["note_assumption"] = assumed
-                    ? "materiale: «" + DefaultMaterial + "» — PREDEFINITO di " +
-                      "questa officina, non l'hai chiesto tu. Se ti serve altro, " +
-                      "scrivi «material» nel passo."
-                    : "materiale: «" + requested + "» — l'hai chiesto tu.",
+                    ? "material: «" + DefaultMaterial + "» — DEFAULT of " +
+                      "this workshop, you did not request it. If you need something else, " +
+                      "write «material» in the step."
+                    : "material: «" + requested + "» — you requested it.",
             };
             if (beforeCount > 0)
                 measurements["replaces"] = string.Join(", ", before, 0, beforeCount);
