@@ -1,19 +1,19 @@
 # =============================================================================
-#  Gli eseguibili esistono davvero, prima di credere a un esito
+#  The executables really exist, before believing a result
 # =============================================================================
 #
-#  UNA CI CHE COMPILA IL VUOTO RESTA VERDE PER MESI. Si guarda che i file ci
-#  siano, e soprattutto si guarda quello che DOVEVA esserci: su un runner con
-#  SOLIDWORKS un ponte mancante e' un difetto vero, e senza questa riga la
-#  suite lo chiamerebbe "non eseguibile qui" -- cioe' scuserebbe un difetto con
-#  una limitazione della macchina.
+#  A CI THAT BUILDS NOTHING STAYS GREEN FOR MONTHS. It checks that the files
+#  are there, and above all it checks what MUST have been there: on a runner with
+#  SOLIDWORKS a missing bridge is a real defect, and without this line the
+#  suite would call it "not runnable here" -- that is, it would excuse a defect
+#  with a limitation of the machine.
 #
 #      .\.github\steps\executables-exist.ps1 -InteropIsThere si
 # =============================================================================
 
 [CmdletBinding()]
 param(
-    # 'si' oppure 'no': lo dice il passo `interop-is-there.ps1`.
+    # 'si' or 'no': the step `interop-is-there.ps1` says which.
     [string] $InteropIsThere = 'no'
 )
 

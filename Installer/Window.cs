@@ -8,19 +8,19 @@ using System.Windows.Forms;
 namespace Oce.Solid.Agent.Installer
 {
     /// <summary>
-    /// LA FINESTRA.
+    /// THE WINDOW.
     ///
-    /// Scritta a mano, senza designer: e' un file solo, si legge tutto, e non
-    /// c'e' un .resx che diverge da quello che si vede.
+    /// Written by hand, without a designer: it is a single file, it can be read in full, and
+    /// there is no .resx that diverges from what is seen.
     ///
-    /// COSA DEVE FARE, IN ORDINE DI IMPORTANZA:
-    /// 1. dire cosa manca PRIMA che qualcuno prema un bottone, e cosa fare;
-    /// 2. installare;
-    /// 3. collegare Claude — che e' il lavoro vero, e quello che nessuno
-    ///    riesce a fare a mano senza sbagliare un percorso in un JSON;
-    /// 4. dimostrare che funziona, con il giro secco;
-    /// 5. potersi disinstallare, perche' un installatore da cui non si torna
-    ///    indietro non si prova volentieri.
+    /// WHAT IT MUST DO, IN ORDER OF IMPORTANCE:
+    /// 1. say what is missing BEFORE anyone presses a button, and what to do;
+    /// 2. install;
+    /// 3. connect Claude — which is the real job, and the one that nobody
+    ///    manages to do by hand without getting a path wrong in a JSON;
+    /// 4. prove that it works, with the dry run;
+    /// 5. be able to uninstall itself, because an installer from which there is no way back
+    ///    is not tried willingly.
     /// </summary>
     internal sealed class Window : Form
     {
@@ -74,7 +74,7 @@ namespace Oce.Solid.Agent.Installer
             });
             y += 40;
 
-            // ── controlli ────────────────────────────────────────────────
+            // ── controls ────────────────────────────────────────────────
             Add(Subtitle("Cosa c'e' su questa macchina", ref y));
 
             _checks.Location = new Point(18, y);
@@ -95,11 +95,11 @@ namespace Oce.Solid.Agent.Installer
             FieldWithButton(_folder, "Sfoglia…", ref y, ChooseFolder);
 
             Add(Subtitle("Add-in OpenPDM (facoltativo)", ref y));
-            // LE OPERAZIONI NON SI CHIEDONO PIU'. Dalla 0.6.0 stanno nel
-            // carico: il campo resta per DIRE da dove vengono, in sola
-            // lettura. Chiedere un file che il pacchetto gia' contiene e'
-            // una domanda senza risposta giusta, e chi non sa cosa
-            // rispondere pensa di aver sbagliato qualcosa.
+            // THE OPERATIONS ARE NOT ASKED FOR ANY MORE. Since 0.6.0 they are in the
+            // payload: the field stays to SAY where they come from, read
+            // only. Asking for a file that the package already contains is
+            // a question with no right answer, and whoever does not know what to
+            // answer thinks they got something wrong.
             var nextTo = Steps.FindLibraryNextTo();
             _addin.Text = nextTo ?? "dentro l'installatore";
             _addin.ReadOnly = true;
@@ -150,7 +150,7 @@ namespace Oce.Solid.Agent.Installer
             Add(_uninstall);
             y += 42;
 
-            // ── registro ─────────────────────────────────────────────────
+            // ── log ─────────────────────────────────────────────────────
             _registry.Location = new Point(18, y);
             _registry.Size = new Size(766, 150);
             _registry.Multiline = true;
@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.Installer
             y += 34;
         }
 
-        /// <summary>Un campo largo tutta la riga, senza bottone accanto.</summary>
+        /// <summary>A field as wide as the whole row, with no button next to it.</summary>
         private void Field(TextBox theField, ref int y)
         {
             theField.Location = new Point(18, y);
@@ -292,9 +292,9 @@ namespace Oce.Solid.Agent.Installer
                 Write("— installazione —");
                 var executable = Steps.Install(_folder.Text, Write);
 
-                // I CLIENT: e' il lavoro vero. Copiare due file lo sa fare
-                // chiunque; scrivere la voce giusta in un JSON nascosto senza
-                // cancellare gli altri server no.
+                // THE CLIENTS: this is the real job. Anyone can copy two files;
+                // writing the right entry in a hidden JSON without
+                // deleting the other servers, not so.
                 Write("");
                 Write("— collegamento —");
                 bool someone = false, notWired = false;
@@ -318,8 +318,8 @@ namespace Oce.Solid.Agent.Installer
                     Write(Configuration.BlockToPaste(executable, _redist, weldmentProfiles));
                 }
 
-                // IL GIRO SECCO: e' l'unica cosa che permette di dire
-                // «installato» sapendo che e' vero.
+                // THE DRY RUN: it is the only thing that lets one say
+                // «installed» knowing that it is true.
                 Write("");
                 Write("— prova —");
                 int code;

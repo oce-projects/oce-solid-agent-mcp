@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
-  Oce.Solid.Agent.Catalog — scrive catalog.json dal catalogo C#.
+  Oce.Solid.Agent.Catalog — writes catalog.json from the C# catalog.
 
-  Non referenzia le interop di SOLIDWORKS e non ne ha bisogno: il catalogo e'
-  dati, e per scriverlo non serve che SOLIDWORKS sia installato. Referenzia
-  pero' `Oce.Solid.Agent.Core`, che le interop le vuole a tempo di compilazione —
-  quindi per ora la macchina che rigenera il catalogo deve avere SOLIDWORKS.
+  It does not reference the SOLIDWORKS interops and does not need them: the catalog is
+  data, and writing it does not require SOLIDWORKS to be installed. It does reference
+  `Oce.Solid.Agent.Core`, though, which needs the interops at compile time —
+  so for now the machine that regenerates the catalog must have SOLIDWORKS.
 
-  SI POTREBBE SPEZZARE, e non si fa adesso: mettere il catalogo in una libreria
-  sua libererebbe questo eseguibile da SOLIDWORKS, ma aggiungerebbe un terzo
-  progetto per un guadagno che oggi non serve a nessuno. Quando servira' — il
-  giorno in cui una build automatica senza SOLIDWORKS dovra' controllare il
-  catalogo — sara' il momento di farlo, e questa riga sara' il promemoria.
+  IT COULD BE SPLIT, and it is not done now: putting the catalog in a library of
+  its own would free this executable from SOLIDWORKS, but it would add a third
+  project for a gain nobody needs today. When it is needed — the day an
+  automatic build without SOLIDWORKS has to check the catalog — that will be
+  the moment to do it, and this line will be the reminder.
 -->
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"

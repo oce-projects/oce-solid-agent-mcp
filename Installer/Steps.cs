@@ -8,7 +8,7 @@ using Microsoft.Win32;
 
 namespace Oce.Solid.Agent.Installer
 {
-    /// <summary>Com'e' andato un controllo: verde, giallo, rosso.</summary>
+    /// <summary>How a check went: green, yellow, red.</summary>
     internal enum Outcome { Fine, Warning, Male }
 
     internal sealed class CheckItem
@@ -16,22 +16,22 @@ namespace Oce.Solid.Agent.Installer
         public string Title;
         public Outcome Outcome;
         public string Detail;
-        /// <summary>Cosa deve fare chi legge, se c'e' qualcosa da fare.</summary>
+        /// <summary>What whoever reads must do, if there is something to do.</summary>
         public string WhatToDo;
     }
 
     /// <summary>
-    /// I CONTROLLI E L'INSTALLAZIONE, SENZA INTERFACCIA.
+    /// THE CHECKS AND THE INSTALLATION, WITHOUT INTERFACE.
     ///
-    /// Sta separato dalla finestra di proposito: cosi' la stessa logica si puo'
-    /// eseguire senza finestra (`Installer.exe /silenzioso`) e, soprattutto, si
-    /// puo' leggere senza dover leggere anche il codice dei bottoni.
+    /// It is kept apart from the window on purpose: so the same logic can
+    /// be run without a window (`Installer.exe /silenzioso`) and, above all, it
+    /// can be read without having to read the code of the buttons too.
     ///
-    /// LA REGOLA DI QUESTO FILE: un controllo che fallisce deve dire COSA FARE,
-    /// non solo che e' fallito. «MSBuild non trovato» manda su un motore di
-    /// ricerca; «installa Build Tools for Visual Studio 2022, carico di lavoro
-    /// Sviluppo desktop .NET» fa ripartire il lavoro. E' la stessa regola che
-    /// vale per i messaggi di errore delle operazioni di disegno.
+    /// THE RULE OF THIS FILE: a check that fails must say WHAT TO DO,
+    /// not only that it failed. «MSBuild not found» sends one to a search
+    /// engine; «install Build Tools for Visual Studio 2022, workload
+    /// .NET desktop development» gets the work going again. It is the same rule
+    /// that holds for the error messages of the drawing operations.
     /// </summary>
     internal static class Steps
     {
@@ -39,23 +39,23 @@ namespace Oce.Solid.Agent.Installer
         public const string ExecutableName = "oce-solid-agent-mcp.exe";
         public const string CatalogName = "catalog.json";
         /// <summary>
-        /// Le operazioni di disegno. **Sta nel carico**, non si cerca sulla
-        /// macchina: fino alla 0.5.0 era `OpenPDM.SwAddin.dll`, codice
-        /// privato che il pacchetto non poteva contenere, e l'installatore
-        /// doveva andarla a cercare. Adesso ce l'ha dentro.
+        /// The drawing operations. **It is in the payload**, not looked for on the
+        /// machine: up to 0.5.0 it was `OpenPDM.SwAddin.dll`, private
+        /// code that the package could not contain, and the installer
+        /// had to go and look for it. Now it has it inside.
         /// </summary>
         public const string LibraryName = "Oce.Solid.Agent.Core.dll";
 
         /// <summary>
-        /// I file che l'installazione mette nella cartella, e quindi gli UNICI
-        /// che la disinstallazione toglie.
+        /// The files that the installation puts in the folder, and therefore the ONLY ones
+        /// that the uninstall removes.
         ///
-        /// UNA LISTA SOLA PER I DUE VERSI (voce H15). Prima la disinstallazione
-        /// aveva la sua, e ci cercava `Oce.Solid.Agent.pdb` — un file che
-        /// nessuna versione ha mai installato: fino alla 0.27.0 si chiamava
-        /// `SolidWorksMcp.pdb`, e in tutti e due i casi `Install` non l'ha mai
-        /// estratto. Due liste che dovrebbero dire la stessa cosa si separano
-        /// il giorno in cui se ne tocca una.
+        /// ONE SINGLE LIST FOR BOTH DIRECTIONS (entry H15). Before, the uninstall
+        /// had its own, and looked in it for `Oce.Solid.Agent.pdb` — a file that
+        /// no version ever installed: up to 0.27.0 it was called
+        /// `SolidWorksMcp.pdb`, and in both cases `Install` never
+        /// extracted it. Two lists that should say the same thing drift apart
+        /// the day one of them is touched.
         /// </summary>
         public static readonly string[] InstalledFiles =
         {
@@ -112,7 +112,7 @@ namespace Oce.Solid.Agent.Installer
             }
         }
 
-        /// <summary>Dove va installato, se chi installa non dice altro.</summary>
+        /// <summary>Where to install, if whoever installs says nothing else.</summary>
         public static string DefaultFolder =>
             Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -122,7 +122,7 @@ namespace Oce.Solid.Agent.Installer
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
 
         // ─────────────────────────────────────────────────────────────────
-        // I controlli
+        // The checks
         // ─────────────────────────────────────────────────────────────────
 
         public static List<CheckItem> Check(string redist)
@@ -140,8 +140,8 @@ namespace Oce.Solid.Agent.Installer
 
         private static CheckItem CheckFramework()
         {
-            // .NET Framework 4.8 c'e' di serie da Windows 10 1903. Su macchine
-            // piu' vecchie va messo a mano, ed e' l'unico prerequisito vero.
+            // .NET Framework 4.8 comes with Windows 10 since 1903. On older
+            // machines it has to be installed by hand, and it is the only real prerequisite.
             int release = 0;
             try
             {
@@ -161,8 +161,8 @@ namespace Oce.Solid.Agent.Installer
                     Detail = "release " + release,
                 };
 
-            // Se siamo arrivati a eseguire questo codice, un .NET c'e'. Quindi
-            // il caso «zero» e' «non riesco a leggerlo», non «non c'e'».
+            // If we got to run this code, a .NET is there. So
+            // the «zero» case is «I cannot read it», not «it is not there».
             if (release == 0)
                 return new CheckItem
                 {
@@ -211,7 +211,7 @@ namespace Oce.Solid.Agent.Installer
                 candidates.Add(Path.Combine(pf, @"SolidWorks Corp\SolidWorks\api\redist"));
             }
 
-            // Anche le installazioni per anno: SOLIDWORKS 2024, 2025...
+            // Also the installations by year: SOLIDWORKS 2024, 2025...
             foreach (var pf in new[]
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
@@ -231,10 +231,10 @@ namespace Oce.Solid.Agent.Installer
             return null;
         }
 
-        /// <summary>La versione principale di SOLIDWORKS provata: 29 = 2021 (SP5.1).</summary>
+        /// <summary>The major version of SOLIDWORKS tested: 29 = 2021 (SP5.1).</summary>
         public const int TestedVersion = 29;
 
-        /// <summary>«29.5.1.1» -> 29; 0 se non si legge. 29 e' la 2021: l'anno e' 1992 + la principale.</summary>
+        /// <summary>«29.5.1.1» -> 29; 0 if it cannot be read. 29 is 2021: the year is 1992 + the major.</summary>
         public static int MainVersion(string v)
         {
             if (string.IsNullOrWhiteSpace(v)) return 0;
@@ -266,11 +266,11 @@ namespace Oce.Solid.Agent.Installer
                         Path.Combine(redist, "SolidWorks.Interop.sldworks.dll")).FileVersion;
                 }
                 catch { }
-                // LA VERSIONE PROVATA SI DICHIARA (voce H17, decisione del proprietario del
-                // 27/9/2026): il ponte e' misurato solo su SOLIDWORKS 2021 SP5.1
-                // (interop 29.5.1). Una versione diversa non si blocca: si avvisa.
-                // Le piu' vecchie si possono provare quando serve, le piu' nuove no
-                // (la licenza su cui si prova non le installa).
+                // THE TESTED VERSION IS DECLARED (entry H17, decision of the owner of
+                // 27/9/2026): the bridge is measured only on SOLIDWORKS 2021 SP5.1
+                // (interop 29.5.1). A different version is not blocked: a warning is given.
+                // The older ones can be tried when needed, the newer ones cannot
+                // (the license on which we test does not install them).
                 int main = MainVersion(v);
                 string anno = main > 0 ? (main + 1992).ToString() : null;
                 bool tested = main == TestedVersion;
@@ -335,16 +335,16 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// La libreria che sta ACCANTO a questo eseguibile, se c'e'.
+        /// The library that is NEXT TO this executable, if there is one.
         ///
-        /// NON si va piu' a cercarla per la macchina, e non e' una
-        /// semplificazione: cercarla vorrebbe dire installare, su una
-        /// macchina che ha per caso una copia vecchia da qualche parte,
-        /// QUELLA copia — con le operazioni di due settimane fa e nessuno
-        /// che lo dica. Il carico ce l'ha, e quella e' la buona.
+        /// It is NOT looked for around the machine any more, and it is not a
+        /// simplification: looking for it would mean installing, on a
+        /// machine that happens to have an old copy somewhere,
+        /// THAT copy — with the operations of two weeks ago and nobody
+        /// to say so. The payload has it, and that one is the good one.
         ///
-        /// Serve solo al caso di chi lancia l'installatore appena compilato
-        /// dalla cartella `bin`, dove il carico non e' ancora incorporato.
+        /// It serves only the case of whoever launches the installer just compiled
+        /// from the `bin` folder, where the payload is not yet embedded.
         /// </summary>
         public static string FindLibraryNextTo()
         {
@@ -358,12 +358,12 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// Le operazioni di disegno ci sono? Dalla 0.6.0 la risposta e' quasi
-        /// sempre «si', le ho dentro»: e' una constatazione, non piu' una
-        /// domanda a chi installa.
+        /// Are the drawing operations there? Since 0.6.0 the answer is almost
+        /// always «yes, I have them inside»: it is a statement of fact, no longer a
+        /// question to whoever installs.
         ///
-        /// Il caso che resta e' l'installatore lanciato dalla cartella `bin`
-        /// appena compilata, dove il carico non e' ancora incorporato.
+        /// The case that remains is the installer launched from the `bin` folder
+        /// just compiled, where the payload is not yet embedded.
         /// </summary>
         private static CheckItem CheckLibrary()
         {
@@ -389,12 +389,12 @@ namespace Oce.Solid.Agent.Installer
                 };
             }
 
-            // ADESSO E' BLOCCANTE, E PRIMA NON LO ERA.
-            // Quando le operazioni stavano in una DLL privata, non averle era
-            // normale e l'installazione aveva senso lo stesso: il ponte
-            // partiva e diceva di non essere agganciato. Adesso le operazioni
-            // sono parte del prodotto: se mancano, il pacchetto e' rotto, e un
-            // pacchetto rotto che si installa lo scopre chi lo usa.
+            // IT IS BLOCKING NOW, AND BEFORE IT WAS NOT.
+            // When the operations lived in a private DLL, not having them was
+            // normal and the installation made sense all the same: the bridge
+            // started and said it was not attached. Now the operations
+            // are part of the product: if they are missing, the package is broken, and a
+            // broken package that gets installed is discovered by whoever uses it.
             return new CheckItem
             {
                 Title = "Operazioni di disegno",
@@ -433,12 +433,12 @@ namespace Oce.Solid.Agent.Installer
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // L'installazione
+        // The installation
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Copia il ponte nella cartella scelta. Ritorna il percorso
-        /// dell'eseguibile installato, o solleva con un motivo leggibile.
+        /// Copies the bridge into the chosen folder. Returns the path
+        /// of the installed executable, or throws with a readable reason.
         /// </summary>
         public static string Install(
             string folder, Action<string> tell)
@@ -449,13 +449,13 @@ namespace Oce.Solid.Agent.Installer
             Directory.CreateDirectory(folder);
             tell("cartella: " + folder);
 
-            // 1. il ponte e il catalogo
+            // 1. the bridge and the catalog
             //
-            // DA QUALE VERSIONE A QUALE (voce H15). Chi reinstalla vuole sapere
-            // se sta aggiornando o rimettendo la stessa: si legge `VERSION.txt`
-            // dentro l'eseguibile che c'e' PRIMA di sovrascriverlo, e dentro
-            // quello nuovo DOPO. Nessuna delle due letture e' una promessa: se
-            // una non riesce, si dice «versione non leggibile».
+            // FROM WHICH VERSION TO WHICH (entry H15). Whoever reinstalls wants to know
+            // whether they are updating or putting back the same one: `VERSION.txt` is read
+            // inside the executable that is there BEFORE overwriting it, and inside
+            // the new one AFTER. Neither reading is a promise: if
+            // one fails, it says «version not readable».
             var executable = Path.Combine(folder, ExecutableName);
             string old = File.Exists(executable) ? VersionOf(executable) ?? "versione non leggibile" : null;
             Payload.Extract(ExecutableName, executable, tell);
@@ -468,22 +468,22 @@ namespace Oce.Solid.Agent.Installer
                 ExecutableName + ".config",
                 Path.Combine(folder, ExecutableName + ".config"), tell);
 
-            // 2. LE OPERAZIONI. Prima dal carico; se il carico non ce l'ha
-            //    (installatore lanciato dalla cartella bin appena
-            //    compilata), da accanto all'eseguibile. Se non c'e' ne'
-            //    l'una ne' l'altra si SOLLEVA: un ponte installato che non
-            //    disegna e' peggio di un'installazione che si ferma.
-            //    `Extract` guarda prima dentro il carico e poi accanto
-            //    all'installatore, e solleva se non c'e' ne' l'una ne' l'altra.
-            //    Solleva ed e' giusto: un ponte installato che non disegna e'
-            //    peggio di un'installazione che si ferma dicendo cosa manca.
+            // 2. THE OPERATIONS. First from the payload; if the payload does not have them
+            //    (installer launched from the bin folder just
+            //    compiled), from next to the executable. If neither
+            //    the one nor the other is there, it THROWS: an installed bridge that does not
+            //    draw is worse than an installation that stops.
+            //    `Extract` looks first inside the payload and then next
+            //    to the installer, and throws if neither the one nor the other is there.
+            //    It throws and rightly so: an installed bridge that does not draw is
+            //    worse than an installation that stops saying what is missing.
             var library = Path.Combine(folder, LibraryName);
             Payload.Extract(LibraryName, library, tell);
 
-            // 3. le note legali viaggiano con il programma
+            // 3. the legal notices travel with the program
             //
-            // Un file nuovo estratto qui va anche in `InstalledFiles`, se no la
-            // disinstallazione lo lascia li' per sempre.
+            // A new file extracted here also goes into `InstalledFiles`, otherwise the
+            // uninstall leaves it there forever.
             foreach (var itemName in new[] { "LICENSE", "NOTICE" })
                 Payload.ExtractIfPresent(itemName, Path.Combine(folder, itemName), tell);
 
@@ -496,13 +496,13 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// La versione scritta in `VERSION.txt` dentro un eseguibile del
-        /// ponte, o null se non si legge.
+        /// The version written in `VERSION.txt` inside a bridge
+        /// executable, or null if it cannot be read.
         ///
-        /// Si carica dai BYTE, non dal file: `LoadFrom` e `ReflectionOnlyLoadFrom`
-        /// tengono il file aperto fino all'uscita, e l'eseguibile appena letto
-        /// e' proprio quello da sovrascrivere. La versione del file Win32 non
-        /// serve: dice 0.0.0.0 (voce H14).
+        /// It is loaded from the BYTES, not from the file: `LoadFrom` and `ReflectionOnlyLoadFrom`
+        /// keep the file open until exit, and the executable just read
+        /// is exactly the one to overwrite. The version of the Win32 file is not
+        /// needed: it says 0.0.0.0 (entry H14).
         /// </summary>
         public static string VersionOf(string executable)
         {
@@ -537,8 +537,8 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// Il giro secco: `--prova` non tocca niente, si aggancia e racconta.
-        /// E' l'unico modo di dire «installato» sapendo che e' vero.
+        /// The dry run: `--prova` touches nothing, it attaches and tells.
+        /// It is the only way to say «installed» knowing that it is true.
         ///
         /// THE EXIT CODE DECIDES, NOT THE TEXT (entry H19, B3). Until 0.125.0
         /// success was a phrase of the bridge, or the phrase that said
@@ -570,8 +570,8 @@ namespace Oce.Solid.Agent.Installer
 
                 using (var p = Process.Start(startup))
                 {
-                    // `--prova` scrive su stderr di proposito: stdout appartiene
-                    // al protocollo e li' non ci va nient'altro.
+                    // `--prova` writes to stderr on purpose: stdout belongs
+                    // to the protocol and nothing else goes there.
                     var err = p.StandardError.ReadToEndAsync();
                     var mid = p.StandardOutput.ReadToEndAsync();
                     if (!p.WaitForExit(60000))
@@ -590,8 +590,8 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// Toglie i file installati, and the files the bridge writes beside
-        /// itself. Non tocca la configurazione del client. Returns the files
+        /// Removes the installed files, and the files the bridge writes beside
+        /// itself. It does not touch the client configuration. Returns the files
         /// of ours that could NOT be removed (entry H19, A5): until 0.125.0 a
         /// locked file was mentioned in a line and the uninstall still exited 0.
         /// </summary>
@@ -604,10 +604,10 @@ namespace Oce.Solid.Agent.Installer
                 return left;
             }
 
-            // Si cancellano SOLO i file che questo installatore mette. Una
-            // `Directory.Delete(recursive)` su una cartella scelta da chi
-            // installa e' il modo classico di cancellare il desktop di
-            // qualcuno per un percorso incollato male.
+            // ONLY the files that this installer puts are deleted. A
+            // `Directory.Delete(recursive)` on a folder chosen by whoever
+            // installs is the classic way of deleting someone's desktop
+            // because of a badly pasted path.
             foreach (var itemName in InstalledFiles.Concat(BridgeOwnFiles))
             {
                 var f = Path.Combine(folder, itemName);

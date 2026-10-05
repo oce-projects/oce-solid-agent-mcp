@@ -3,63 +3,63 @@ using System;
 namespace Shared
 {
     /// <summary>
-    /// QUANDO SOLIDWORKS SE N'E' ANDATO, LE PROVE DOPO NON SONO ROSSE:
-    /// NON SONO STATE FATTE (voce K17).
+    /// WHEN SOLIDWORKS HAS GONE AWAY, THE LATER CHECKS ARE NOT RED:
+    /// THEY WERE NOT DONE (entry K17).
     ///
-    /// ── QUANTO E' COSTATO NON AVERLA ─────────────────────────────────────
+    /// ── WHAT IT COST NOT TO HAVE IT ──────────────────────────────────────
     ///
-    /// Il 23/9/2026, giro delle 15:36. Dopo un'ora e mezza di lavoro pulito —
-    /// 312 controlli verdi — SOLIDWORKS ha smesso di produrre documenti:
-    /// `NewDocument` ha risposto `null`, e da li' in avanti ha risposto `null`
-    /// a tutti. Il banco aveva gia' la voce F12, quindi ha DETTO cosa non era
-    /// riuscito a preparare, per ognuno:
+    /// On 23/9/2026, the 15:36 run. After an hour and a half of clean work —
+    /// 312 green checks — SOLIDWORKS stopped producing documents:
+    /// `NewDocument` answered `null`, and from there on it answered `null`
+    /// to everyone. The bench already had entry F12, so it SAID what it had not
+    /// managed to prepare, for each one:
     ///
-    ///     NO   detail_enlarges   SOLIDWORKS non ha prodotto la parte
-    ///     NO   loft_is_not_a_cone      SOLIDWORKS non ha prodotto la parte
-    ///     NO   plate_bounding_box     SOLIDWORKS non ha prodotto la parte
+    ///     NO   detail_enlarges   SOLIDWORKS did not produce the part
+    ///     NO   loft_is_not_a_cone      SOLIDWORKS did not produce the part
+    ///     NO   plate_bounding_box     SOLIDWORKS did not produce the part
     ///     ...
     ///
-    /// Nove casi rossi in fila, e poi il processo si e' piantato dentro la
-    /// chiamata COM successiva — `Responding=False` sul processo di
-    /// SOLIDWORKS, nessuna finestra modale aperta, titolo senza nome
-    /// documento. Il banco e' rimasto li' a tempo indeterminato: non ha una
-    /// scadenza sulle chiamate alla libreria, solo sul ponte.
+    /// Nine red cases in a row, and then the process got stuck inside the
+    /// next COM call — `Responding=False` on the SOLIDWORKS process, no modal
+    /// window open, title without a document name. The bench stayed
+    /// there indefinitely: it has no deadline on the calls to the
+    /// library, only on the bridge.
     ///
-    /// DUE DIFETTI, NON UNO:
+    /// TWO DEFECTS, NOT ONE:
     ///
-    ///   1. Il resoconto diceva **rosso** dove il vero fatto era «non
-    ///      misurato». Chi legge «detail_enlarges: NO» va a guardare
-    ///      il caso — che era giusto — invece di guardare SOLIDWORKS.
+    ///   1. The report said **red** where the true fact was «not
+    ///      measured». Whoever reads «detail_enlarges: NO» goes to look at
+    ///      the case — which was right — instead of looking at SOLIDWORKS.
     ///
-    ///   2. Il giro **continuava**. Quaranta minuti di prove contro un
-    ///      programma morto, e il verdetto finale sarebbe stato un elenco di
-    ///      rossi che non dicono niente su niente.
+    ///   2. The run **kept going**. Forty minutes of checks against a
+    ///      dead program, and the final verdict would have been a list of
+    ///      reds that say nothing about anything.
     ///
-    /// Il messaggio della F12 finiva gia' con «Guarda quanti documenti sono
-    /// rimasti aperti, e rilancia». Era il rimedio giusto scritto nel posto
-    /// sbagliato: **a un umano che forse non c'e'**. Qui il banco lo fa da se'.
+    /// The message of F12 already ended with «Look how many documents are
+    /// still open, and run again». It was the right remedy written in the
+    /// wrong place: **to a human who may not be there**. Here the bench does it by itself.
     ///
-    /// ── PERCHE' TRE, E PERCHE' DI FILA ───────────────────────────────────
+    /// ── WHY THREE, AND WHY IN A ROW ────────────────────────────────────────
     ///
-    /// Una parte nuova che non nasce UNA volta puo' essere il pezzo: un
-    /// modello di documento che manca, un disco pieno, un caso che ha lasciato
-    /// SOLIDWORKS in un modo strano e il successivo si riprende. Tre di fila
-    /// senza che in mezzo ne nasca una sola non e' piu' il pezzo: e' il
-    /// programma.
+    /// A new part that is not born ONE time can be the piece: a
+    /// missing document template, a full disk, a case that left
+    /// SOLIDWORKS in a strange way and the next one recovers. Three in a row
+    /// without a single one being born in between is no longer the piece: it is the
+    /// program.
     ///
-    /// «Di fila» e' la parte che conta, ed e' per questo che
-    /// <see cref="Succeeded"/> azzera. Un conto che non si azzera confonde tre
-    /// fallimenti sparsi in ottocento controlli — che sono rumore normale —
-    /// con tre fallimenti attaccati, che sono un programma che non c'e' piu'.
+    /// «In a row» is the part that counts, and that is why
+    /// <see cref="Succeeded"/> resets. A count that does not reset confuses three
+    /// failures scattered over eight hundred checks — which are normal noise —
+    /// with three failures stuck together, which are a program that is no longer there.
     ///
-    /// ── PERCHE' STA QUI E NON NEL BANCO ──────────────────────────────────
+    /// ── WHY IT LIVES HERE AND NOT IN THE BENCH ─────────────────────────────
     ///
-    /// Perche' una guardia che nessuno ha mai visto scattare non e' una
-    /// guardia. Per vederla scattare nel banco servirebbe far morire
-    /// SOLIDWORKS a comando; in `Shared` la compila anche
-    /// `Oce.Solid.Agent.ContractTests`, dove SOLIDWORKS non c'e' affatto, e li' la si fa
-    /// fallire apposta ogni volta che si lanciano le prove — in un decimo di
-    /// secondo, senza CAD.
+    /// Because a guard that nobody has ever seen trip is not a
+    /// guard. To see it trip in the bench one would have to make
+    /// SOLIDWORKS die on command; in `Shared` it is also compiled by
+    /// `Oce.Solid.Agent.ContractTests`, where SOLIDWORKS is not there at all, and there it is made to
+    /// fail on purpose every time the checks are run — in a tenth of a
+    /// second, without CAD.
     /// </summary>
     internal sealed class SolidWorksSentinel
     {
@@ -67,25 +67,25 @@ namespace Shared
         private int _inARow;
 
         /// <summary>
-        /// Quanti erano NEL MOMENTO IN CUI E' SCATTATA. Non e' la stessa cosa
-        /// di <see cref="InARow"/>: quello e' un contatore vivo, e chi
-        /// chiedesse il referto dopo che qualcosa ha chiamato
-        /// <see cref="Succeeded"/> leggerebbe «0 tentativi di fila andati a
-        /// vuoto» in un messaggio che annuncia una morte.
+        /// How many there were AT THE MOMENT IT TRIPPED. It is not the same thing
+        /// as <see cref="InARow"/>: that one is a live counter, and whoever
+        /// asked for the report after something called
+        /// <see cref="Succeeded"/> would read «0 attempts in a row gone
+        /// empty» in a message that announces a death.
         ///
-        /// E' successo il 23/9/2026, nella prova scritta per il referto: il
-        /// controllo passava lo stesso perche' cercava la cifra «3», che nella
-        /// frase c'era — era la SOGLIA. Un numero giusto nel posto sbagliato
-        /// che copre un numero sbagliato: la prova adesso pretende «3
-        /// tentativi», non «da qualche parte c'e' un 3».
+        /// It happened on 23/9/2026, in the check written for the report: the
+        /// check passed all the same because it looked for the digit «3», which was in the
+        /// sentence — it was the THRESHOLD. A right number in the wrong place
+        /// that covers a wrong number: the check now demands «3
+        /// attempts», not «somewhere there is a 3».
         /// </summary>
         private int _whenItFires;
 
         /// <summary>
-        /// Quanti fallimenti DI FILA prima di dire che il programma non c'e'
-        /// piu'. Tre nel banco; il costruttore lo prende perche' le prove
-        /// devono poter provare anche la soglia uno e la soglia cinque —
-        /// altrimenti si proverebbe il numero tre, non la regola.
+        /// How many failures IN A ROW before saying that the program is no
+        /// longer there. Three in the bench; the constructor takes it because the checks
+        /// must be able to test the threshold one and the threshold five as well —
+        /// otherwise one would be testing the number three, not the rule.
         /// </summary>
         internal SolidWorksSentinel(int threshold)
         {
@@ -97,28 +97,28 @@ namespace Shared
             _threshold = threshold;
         }
 
-        /// <summary>Vero quando il programma va considerato morto. Non torna
-        /// piu' falso: da qui in poi non si misura piu' niente, si dice cosa
-        /// non si e' misurato.</summary>
+        /// <summary>True when the program must be considered dead. It does not go
+        /// back to false: from here on nothing is measured any more, it is said what
+        /// was not measured.</summary>
         internal bool HasGone { get; private set; }
 
-        /// <summary>Quanti fallimenti di fila in questo momento. Serve al
-        /// messaggio: «tre di fila» e' un fatto, «e' morto» e' una
-        /// conclusione, e chi legge ha diritto al fatto.</summary>
+        /// <summary>How many failures in a row at this moment. It is needed by the
+        /// message: «three in a row» is a fact, «it is dead» is a
+        /// conclusion, and the reader is entitled to the fact.</summary>
         internal int InARow { get { return _inARow; } }
 
-        /// <summary>La soglia con cui e' stata costruita, per il messaggio.</summary>
+        /// <summary>The threshold it was built with, for the message.</summary>
         internal int Threshold { get { return _threshold; } }
 
-        /// <summary>Un documento e' nato: il conto riparte da zero.</summary>
+        /// <summary>A document was born: the count starts again from zero.</summary>
         internal void Succeeded()
         {
             _inARow = 0;
         }
 
         /// <summary>
-        /// Un documento non e' nato. Torna vero quando questo e' il fallimento
-        /// che fa scattare la sentinella — o uno successivo.
+        /// A document was not born. It returns true when this is the failure
+        /// that trips the sentinel — or a later one.
         /// </summary>
         internal bool Failed()
         {
@@ -132,9 +132,9 @@ namespace Shared
         }
 
         /// <summary>
-        /// Cosa dire a chi legge il resoconto. Porta i NUMERI: quanti di fila
-        /// e su quale soglia. «SOLIDWORKS non risponde» senza numeri non si
-        /// distingue da un'opinione.
+        /// What to say to whoever reads the report. It carries the NUMBERS: how many in a row
+        /// and on which threshold. «SOLIDWORKS does not respond» without numbers cannot be
+        /// told apart from an opinion.
         /// </summary>
         internal string Report()
         {

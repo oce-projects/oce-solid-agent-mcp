@@ -6,27 +6,27 @@ using System.Reflection;
 namespace Oce.Solid.Agent.Installer
 {
     /// <summary>
-    /// IL PONTE DENTRO L'INSTALLATORE.
+    /// THE BRIDGE INSIDE THE INSTALLER.
     ///
-    /// L'obiettivo e' **un file solo**: chi installa scarica `Installer.exe`,
-    /// doppio clic, finito. Niente zip da scompattare, niente «metti questo
-    /// accanto a quello», niente cartella che si perde a meta' strada.
+    /// The goal is **a single file**: whoever installs downloads `Installer.exe`,
+    /// double click, done. No zip to unpack, no «put this
+    /// next to that», no folder that gets lost halfway.
     ///
-    /// Quindi `oce-solid-agent-mcp.exe` e `catalog.json` viaggiano come RISORSE
-    /// INCORPORATE dentro questo eseguibile e vengono scritte su disco al
-    /// momento dell'installazione.
+    /// So `oce-solid-agent-mcp.exe` and `catalog.json` travel as EMBEDDED
+    /// RESOURCES inside this executable and are written to disk at the
+    /// moment of installation.
     ///
-    /// DUE MODI, E IL SECONDO SERVE A CHI SVILUPPA.
-    /// Se le risorse non ci sono — perche' si sta eseguendo l'installatore
-    /// appena compilato dentro `bin\`, senza essere passati da `build.ps1` —
-    /// si prendono i file accanto all'eseguibile. Cosi' lo stesso installatore
-    /// funziona sia come pacchetto da distribuire sia come strumento di chi ci
-    /// lavora sopra, senza due strade da tenere allineate.
+    /// TWO MODES, AND THE SECOND SERVES WHOEVER DEVELOPS.
+    /// If the resources are not there — because the installer just
+    /// compiled is being run inside `bin\`, without having gone through `build.ps1` —
+    /// the files next to the executable are taken. So the same installer
+    /// works both as a package to distribute and as a tool for whoever
+    /// works on it, without two roads to keep aligned.
     ///
-    /// L'ADD-IN NON STA QUI. `OpenPDM.SwAddin.dll` non e' incorporato ne' mai
-    /// lo sara' in un pacchetto pubblico: e' codice privato, e un installatore
-    /// pubblico che se lo porta dietro lo pubblica. Si cerca sulla macchina di
-    /// chi installa, e se non c'e' si dice cosa manca.
+    /// THE ADD-IN IS NOT HERE. `OpenPDM.SwAddin.dll` is not embedded nor will it ever
+    /// be in a public package: it is private code, and a public installer
+    /// that carries it around publishes it. It is looked for on the machine of
+    /// whoever installs, and if it is not there, it says what is missing.
     /// </summary>
     internal static class Payload
     {
@@ -35,29 +35,29 @@ namespace Oce.Solid.Agent.Installer
         private static string[] Risorse =>
             Assembly.GetExecutingAssembly().GetManifestResourceNames();
 
-        /// <summary>C'e' almeno il ponte, incorporato?</summary>
+        /// <summary>Is at least the bridge there, embedded?</summary>
         public static bool Embedded =>
             Risorse.Any(r => r.EndsWith(
                 Steps.ExecutableName, StringComparison.OrdinalIgnoreCase));
 
         private static string ResourceName(string file)
         {
-            // Si cerca per suffisso invece che per nome esatto: MSBuild
-            // costruisce il nome della risorsa dal percorso, e una cartella in
-            // piu' o in meno cambierebbe la stringa senza che nessuno se ne
-            // accorga fino all'installazione.
+            // It is looked for by suffix instead of by exact name: MSBuild
+            // builds the name of the resource from the path, and one folder more
+            // or less would change the string without anyone
+            // noticing until the installation.
             return Risorse.FirstOrDefault(r =>
                 r.EndsWith("." + file, StringComparison.OrdinalIgnoreCase) ||
                 r.Equals(Prefix + file, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
-        /// Il file c'e'? Guarda dove guarderebbe <see cref="ExtractIfPresent"/>:
-        /// prima dentro il carico, poi accanto all'installatore.
+        /// Is the file there? It looks where <see cref="ExtractIfPresent"/> would look:
+        /// first inside the payload, then next to the installer.
         ///
-        /// Serve ai controlli, che devono poter dire «ce l'ho» **prima** di
-        /// scrivere qualcosa su disco: un controllo che per rispondere deve
-        /// installare non e' un controllo.
+        /// It serves the checks, which must be able to say «I have it» **before**
+        /// writing anything to disk: a check that has to install in order to
+        /// answer is not a check.
         /// </summary>
         public static bool Contains(string file)
         {
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Installer
             catch { return false; }
         }
 
-        /// <summary>Scrive il file, o solleva dicendo perche' non ci riesce.</summary>
+        /// <summary>Writes the file, or throws saying why it cannot.</summary>
         public static void Extract(string file, string destination, Action<string> tell)
         {
             if (!ExtractIfPresent(file, destination, tell))
@@ -75,11 +75,11 @@ namespace Oce.Solid.Agent.Installer
                     "accanto a lui. L'installatore e' incompleto.");
         }
 
-        /// <summary>Scrive il file se c'e'. Ritorna false se non c'era.</summary>
+        /// <summary>Writes the file if it is there. Returns false if it was not.</summary>
         public static bool ExtractIfPresent(
             string file, string destination, Action<string> tell)
         {
-            // 1. incorporato
+            // 1. embedded
             var itemName = ResourceName(file);
             if (itemName != null)
             {
@@ -94,7 +94,7 @@ namespace Oce.Solid.Agent.Installer
                 }
             }
 
-            // 2. accanto all'installatore
+            // 2. next to the installer
             var nextTo = Path.Combine(Steps.ThisExeFolder, file);
             if (File.Exists(nextTo))
             {
@@ -112,13 +112,13 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// Scrive prima un file temporaneo e poi rinomina.
+        /// Writes a temporary file first and then renames.
         ///
-        /// Se l'installazione muore a meta' — disco pieno, antivirus, corrente —
-        /// quello che resta sul disco e' la versione vecchia intera, non una
-        /// nuova troncata. Un eseguibile troncato non da' un errore leggibile:
-        /// da' «impossibile caricare il file o l'assembly», che manda a cercare
-        /// una dipendenza mancante che non manca.
+        /// If the installation dies halfway — full disk, antivirus, power —
+        /// what is left on the disk is the whole old version, not a
+        /// truncated new one. A truncated executable does not give a readable error:
+        /// it gives «could not load file or assembly», which sends one looking for
+        /// a missing dependency that is not missing.
         /// </summary>
         private static void WriteWithCare(Stream source, string destination)
         {

@@ -7,20 +7,20 @@ using System.Web.Script.Serialization;
 namespace Oce.Solid.Agent.Mcp
 {
     /// <summary>
-    /// MCP su stdio: JSON-RPC 2.0, un messaggio per riga.
+    /// MCP over stdio: JSON-RPC 2.0, one message per line.
     ///
-    /// PERCHE' SCRITTO A MANO E NON CON UNA LIBRERIA.
-    /// Questo programma gira su .NET Framework 4.8, perche' deve caricare
-    /// l'add-in vero di SolidWorks che e' compilato per quello. Le librerie MCP
-    /// per .NET vogliono runtime moderni. La parte di protocollo che serve qui
-    /// e' piccola — tre metodi e un formato di errore — e riscriverla costa
-    /// meno che portarsi dietro un runtime in piu' sulla postazione di un
-    /// progettista.
+    /// WHY HAND-WRITTEN AND NOT WITH A LIBRARY.
+    /// This program runs on .NET Framework 4.8, because it has to load
+    /// the real SolidWorks add-in, which is compiled for that. The MCP libraries
+    /// for .NET want modern runtimes. The part of the protocol needed here
+    /// is small — three methods and an error format — and rewriting it costs
+    /// less than carrying one more runtime onto a designer's
+    /// workstation.
     ///
-    /// UNA RIGA PER MESSAGGIO, E STDOUT E' SOLO DEL PROTOCOLLO.
-    /// Qualunque cosa scritta su stdout che non sia un messaggio JSON rompe la
-    /// conversazione senza dire perche': i messaggi di servizio vanno su
-    /// stderr, sempre. E' la trappola numero uno di ogni server MCP su stdio.
+    /// ONE LINE PER MESSAGE, AND STDOUT BELONGS TO THE PROTOCOL ALONE.
+    /// Anything written on stdout that is not a JSON message breaks the
+    /// conversation without saying why: service messages go on
+    /// stderr, always. It is the number one trap of every MCP server over stdio.
     /// </summary>
     internal static class Protocol
     {
@@ -41,7 +41,7 @@ namespace Oce.Solid.Agent.Mcp
             return Json.DeserializeObject(text) as Dictionary<string, object>;
         }
 
-        /// <summary>Scrive un messaggio su stdout. Una riga, niente altro.</summary>
+        /// <summary>Writes a message on stdout. One line, nothing else.</summary>
         public static void Send(TextWriter output, object message)
         {
             output.Write(InJson(message));
@@ -50,32 +50,32 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// DOVE VA A FINIRE QUELLO CHE IL PONTE RACCONTA (voce W2.8).
+        /// WHERE WHAT THE BRIDGE TELLS ENDS UP (entry W2.8).
         ///
-        /// `stderr` resta e non si tocca: e' l'unico posto che funziona **prima**
-        /// che un client esista — l'aggancio a SOLIDWORKS, il catalogo che non
-        /// si carica, `--prova` — ed e' quello che si guarda quando qualcosa non
-        /// parte. Toglierlo per «fare le cose per bene nel protocollo» vorrebbe
-        /// dire perdere le uniche righe che spiegano un avvio fallito.
+        /// `stderr` stays and is not touched: it is the only place that works **before**
+        /// a client exists — the attachment to SOLIDWORKS, the catalog that does not
+        /// load, `--prova` — and it is what one looks at when something does not
+        /// start. Removing it to «do things properly in the protocol» would mean
+        /// losing the only lines that explain a failed start.
         ///
-        /// Quello che si AGGIUNGE e' `notifications/message`, che MCP prevede
-        /// apposta: cosi' le stesse righe arrivano anche a chi sta dall'altra
-        /// parte del tubo, che oggi non le vede **affatto**. Quando l'operazione
-        /// dice «ho ritrovato la faccia F3 spostata di 2 mm», quella riga
-        /// spiega perche' il pezzo e' venuto cosi', e finiva in un terminale che
-        /// nessuno guarda.
+        /// What is ADDED is `notifications/message`, which MCP provides for
+        /// exactly this: so the same lines also reach whoever is on the other
+        /// side of the pipe, who today does not see them **at all**. When the operation
+        /// says «I found face F3 again, moved by 2 mm», that line
+        /// explains why the part came out that way, and it used to end up in a terminal that
+        /// nobody looks at.
         ///
-        /// Il canale si accende solo quando il ciclo dei messaggi e' partito:
-        /// prima di allora scrivere su stdout sarebbe scrivere a nessuno, e
-        /// **una riga non-JSON su stdout rompe il client** (e' la trappola
-        /// numero uno dei server MCP su stdio, gia' sorvegliata da una prova).
+        /// The channel is switched on only when the message loop has started:
+        /// before then writing to stdout would be writing to nobody, and
+        /// **a non-JSON line on stdout breaks the client** (it is the number
+        /// one trap of MCP servers over stdio, already guarded by a check).
         /// </summary>
         private static TextWriter _channel;
         private static string _level = "info";
 
         /// <summary>
-        /// I livelli in ordine, come li elenca lo spec (syslog). Un messaggio
-        /// esce se il suo livello e' **almeno** quello chiesto dal client.
+        /// The levels in order, as the spec lists them (syslog). A message
+        /// goes out if its level is **at least** the one the client asked for.
         /// </summary>
         private static readonly string[] Levels =
         {
@@ -85,17 +85,17 @@ namespace Oce.Solid.Agent.Mcp
         public static void TurnOnChannel(TextWriter output) { _channel = output; }
 
         /// <summary>
-        /// Una notifica sul canale registrato, e **non solleva mai**.
+        /// A notification on the registered channel, and **it never throws**.
         ///
-        /// Stessa ragione di `SendAsNotification`, scritta li' e valida
-        /// qui: se scrivere la notifica fallisse e l'errore risalisse, si
-        /// perderebbe la RISPOSTA a cui la notifica era accessoria. *Un
-        /// racconto che fa fallire la cosa raccontata e' peggio del
-        /// silenzio.*
+        /// Same reason as `SendAsNotification`, written there and valid
+        /// here: if writing the notification failed and the error went up, the
+        /// RESPONSE to which the notification was incidental would be lost. *A
+        /// story that makes the thing told fail is worse than
+        /// silence.*
         ///
-        /// Senza canale non fa niente: e' il caso del ponte lanciato con
-        /// `--prova`, e di ogni prova che costruisce il messaggio senza
-        /// avere nessuno a cui mandarlo.
+        /// Without a channel it does nothing: it is the case of the bridge launched with
+        /// `--prova`, and of every check that builds the message without
+        /// having anyone to send it to.
         /// </summary>
         internal static void NotifyOnChannel(object message)
         {
@@ -106,9 +106,9 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// `logging/setLevel`. Un livello che non si riconosce **non si
-        /// applica**: cambiarlo a caso vorrebbe dire far sparire messaggi senza
-        /// che nessuno l'abbia chiesto. Torna `true` se e' stato accettato.
+        /// `logging/setLevel`. A level that is not recognized **is not
+        /// applied**: changing it at random would mean making messages disappear without
+        /// anyone having asked. It returns `true` if it was accepted.
         /// </summary>
         public static bool SetLevel(string level)
         {
@@ -132,11 +132,11 @@ namespace Oce.Solid.Agent.Mcp
             if (channel == null) return;
             if (Array.IndexOf(Levels, level) < Array.IndexOf(Levels, _level)) return;
 
-            // TUTTO DENTRO UN try CHE NON RILANCIA, e non e' pigrizia: se
-            // scrivere la notifica fallisse e l'errore risalisse, si
-            // perderebbe la RISPOSTA a cui la notifica era accessoria. Un
-            // racconto che fa fallire la cosa raccontata e' peggio del silenzio.
-            // E non si chiama `Note` qui dentro: sarebbe ricorsione infinita.
+            // EVERYTHING INSIDE A try THAT DOES NOT RETHROW, and it is not laziness: if
+            // writing the notification failed and the error went up, the
+            // RESPONSE to which the notification was incidental would be lost. A
+            // story that makes the thing told fail is worse than silence.
+            // And `Note` is not called in here: it would be infinite recursion.
             try
             {
                 Send(channel, new Dictionary<string, object>
@@ -165,11 +165,11 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// Un errore di PROTOCOLLO: la richiesta era malformata o il metodo non
-        /// esiste. NON si usa per un'operazione di disegno che fallisce — quello
-        /// e' un risultato, e va nel contenuto con `isError`, altrimenti chi
-        /// chiama non puo' distinguere «non ti ho capito» da «il pezzo non e'
-        /// venuto».
+        /// A PROTOCOL error: the request was malformed or the method does not
+        /// exist. It is NOT used for a drawing operation that fails — that
+        /// is a result, and goes in the content with `isError`, otherwise whoever
+        /// calls cannot tell «I did not understand you» from «the part did not
+        /// come out».
         /// </summary>
         public static Dictionary<string, object> Error(object id, int code, string message)
         {
@@ -185,7 +185,7 @@ namespace Oce.Solid.Agent.Mcp
             };
         }
 
-        /// <summary>Il risultato di uno strumento: testo, con o senza errore.</summary>
+        /// <summary>The result of a tool: text, with or without error.</summary>
         public static Dictionary<string, object> Content(string text, bool isError = false)
         {
             return new Dictionary<string, object>
@@ -199,72 +199,72 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// Lo stesso contenuto, PIU' i dati in forma leggibile da un programma
-        /// (voce W2.4).
+        /// The same content, PLUS the data in a form readable by a program
+        /// (entry W2.4).
         ///
-        /// ── COSA CAMBIA PER CHI LEGGE ───────────────────────────────────
+        /// ── WHAT CHANGES FOR WHOEVER READS ───────────────────────────────
         ///
-        /// Fino alla 0.57.0 tutto usciva come **testo**: lo stato del documento,
-        /// le misure di un piano, il catalogo. Un modello linguistico lo legge
-        /// benissimo; un programma no — deve ri-analizzare del JSON che era gia'
-        /// JSON prima di essere messo dentro una stringa. `structuredContent` e'
-        /// il campo che MCP prevede apposta, e costa una riga.
+        /// Up to 0.57.0 everything came out as **text**: the state of the document,
+        /// the measures of a plan, the catalog. A language model reads it
+        /// very well; a program does not — it has to re-parse JSON that was already
+        /// JSON before being put inside a string. `structuredContent` is
+        /// the field MCP provides for exactly this, and it costs one line.
         ///
-        /// ── PERCHE' IL TESTO RESTA ──────────────────────────────────────
+        /// ── WHY THE TEXT STAYS ──────────────────────────────────────
         ///
-        /// Non si sostituisce: si affianca. I client che leggono solo `content`
-        /// sono la maggioranza, e togliergli il testo vorrebbe dire rompere
-        /// tutti per far comodo a qualcuno. Lo dice anche lo spec: i due campi
-        /// convivono, e il testo e' quello che si mostra a una persona.
+        /// It is not replaced: it is put alongside. The clients that read only `content`
+        /// are the majority, and taking the text away from them would mean breaking
+        /// all of them to suit a few. The spec says it too: the two fields
+        /// coexist, and the text is what is shown to a person.
         ///
-        /// ── E PERCHE' NON SI DICHIARA UN `outputSchema` ─────────────────
+        /// ── AND WHY AN `outputSchema` IS NOT DECLARED ─────────────────
         ///
-        /// Lo spec e' netto: uno strumento che dichiara `outputSchema` **deve**
-        /// restituire uno `structuredContent` conforme. Lo stato di un documento
-        /// cambia forma con quello che c'e' dentro — un assieme ha
-        /// `components`, una tavola ha `sheets`, una parte ha `faces` — e ogni
-        /// campo nuovo aggiunto qui diventerebbe una promessa da mantenere.
+        /// The spec is clear: a tool that declares `outputSchema` **must**
+        /// return a conforming `structuredContent`. The state of a document
+        /// changes shape with what is inside it — an assembly has
+        /// `components`, a drawing has `sheets`, a part has `faces` — and every
+        /// new field added here would become a promise to keep.
         ///
-        /// Uno schema **parziale e' peggio di nessuno schema**: un client che
-        /// valida rifiuterebbe risposte giuste. Quindi qui si da' il dato senza
-        /// promettere la forma, e lo schema si dichiara il giorno in cui la
-        /// forma e' stabile per davvero — che e' una decisione, non una riga di
-        /// codice. Scritto qui perche' il prossimo che passa non lo aggiunga
-        /// «perche' mancava».
+        /// A **partial schema is worse than no schema**: a client that
+        /// validates would reject right answers. So here the data is given without
+        /// promising the shape, and the schema is declared the day the
+        /// shape is really stable — which is a decision, not a line of
+        /// code. Written here so that the next one who passes does not add it
+        /// «because it was missing».
         ///
-        /// UN NOME DIVERSO invece di un parametro in piu' su `Content`: la
-        /// stessa lezione gia' pagata due volte, l'ultima con
+        /// A DIFFERENT NAME instead of one more parameter on `Content`: the
+        /// same lesson already paid for twice, the last time with
         /// `ContentWithImages`.
         /// </summary>
         public static Dictionary<string, object> ContentWithData(
             string text, object data, bool isError = false)
         {
             var outside = Content(text, isError);
-            // NON si scrive il campo quando non c'e' niente da metterci: un
-            // `structuredContent: null` e' una promessa disattesa, e un client
-            // che lo trova puo' solo dedurre che qualcosa e' andato storto.
+            // The field is NOT written when there is nothing to put in it: a
+            // `structuredContent: null` is a promise not kept, and a client
+            // that finds it can only conclude that something went wrong.
             if (data != null) outside["structuredContent"] = data;
             return outside;
         }
 
         /// <summary>
-        /// Testo PIU' immagini, che e' la sola forma in cui un modello puo'
-        /// VEDERE il pezzo invece di leggerne l'elenco delle facce.
+        /// Text PLUS images, which is the only form in which a model can
+        /// SEE the part instead of reading the list of its faces.
         ///
-        /// MCP prevede un contenuto di tipo `image`: i byte in base64 e il tipo
-        /// MIME accanto. Fino alla 0.31.0 questo protocollo sapeva fare solo
-        /// `text`, e il ponte non aveva nessuna strada per far uscire
-        /// un'immagine — mentre la capacita' di scattarla esisteva, provata, nel
-        /// banco.
+        /// MCP provides a content of type `image`: the bytes in base64 and the MIME
+        /// type next to them. Up to 0.31.0 this protocol could only do
+        /// `text`, and the bridge had no way of getting
+        /// an image out — while the ability to take it existed, proven, in the
+        /// bench.
         ///
-        /// IL TESTO VA PER PRIMO, e non e' una questione di gusto: descrive cosa
-        /// si sta guardando. Un'immagine senza didascalia in mezzo a una
-        /// conversazione e' un indovinello.
+        /// THE TEXT GOES FIRST, and it is not a matter of taste: it describes what
+        /// is being looked at. An image without a caption in the middle of a
+        /// conversation is a riddle.
         ///
-        /// UN NOME DIVERSO invece di un parametro in piu' su `Content`:
-        /// cambiare l'insieme delle firme di un metodo rompe chi lo chiama per
-        /// riflessione anche quando il compilatore tace. E' la lezione della
-        /// 0.25.1, applicata prima di ricascarci.
+        /// A DIFFERENT NAME instead of one more parameter on `Content`:
+        /// changing the set of signatures of a method breaks whoever calls it by
+        /// reflection even when the compiler is silent. It is the lesson of
+        /// 0.25.1, applied before falling into it again.
         /// </summary>
         public static Dictionary<string, object> ContentWithImages(
             string text, IEnumerable<KeyValuePair<string, byte[]>> images)

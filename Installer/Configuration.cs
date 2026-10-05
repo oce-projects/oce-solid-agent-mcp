@@ -9,13 +9,13 @@ using System.Web.Script.Serialization;
 
 namespace Oce.Solid.Agent.Installer
 {
-    /// <summary>Un client MCP che si puo' configurare da qui.</summary>
+    /// <summary>An MCP client that can be configured from here.</summary>
     internal sealed class Client
     {
         public string Name;
         public string File;
         public bool Installed;
-        /// <summary>Come si chiama il processo, per sapere se e' aperto adesso.</summary>
+        /// <summary>What the process is called, to know whether it is open right now.</summary>
         public string ServerProcess;
         /// <summary>
         /// Claude Code: wired through `claude mcp add` when `claude` is on
@@ -25,27 +25,27 @@ namespace Oce.Solid.Agent.Installer
     }
 
     /// <summary>
-    /// COLLEGARE CLAUDE A SOLIDWORKS.
+    /// CONNECTING CLAUDE TO SOLIDWORKS.
     ///
-    /// E' questo il lavoro vero dell'installatore. Copiare due file lo sa fare
-    /// chiunque; il punto dove ci si perde e' l'ultimo: aprire un file JSON
-    /// nascosto in %APPDATA%, capire dove va incollato il blocco, non rompere
-    /// quello che c'era gia', e sapere che Claude va riavviato perche' legga.
+    /// This is the real job of the installer. Anyone can copy two files;
+    /// the place where one gets lost is the last one: opening a hidden JSON
+    /// file in %APPDATA%, understanding where the block goes, not breaking
+    /// what was already there, and knowing that Claude must be restarted for it to read.
     ///
-    /// TRE REGOLE, TUTTE E TRE PAGATE DA QUALCUN ALTRO PRIMA DI NOI:
+    /// THREE RULES, ALL THREE PAID FOR BY SOMEONE ELSE BEFORE US:
     ///
-    /// 1. NON SI SOVRASCRIVE IL FILE. Chi usa Claude ha spesso altri server
-    ///    MCP configurati. Un installatore che scrive il suo blocco e basta
-    ///    glieli cancella tutti, e se ne accorgera' domani senza collegare la
-    ///    cosa all'installazione di ieri. Si legge, si aggiunge la propria
-    ///    voce, si riscrive tutto il resto com'era.
+    /// 1. THE FILE IS NOT OVERWRITTEN. Whoever uses Claude often has other MCP
+    ///    servers configured. An installer that writes its block and nothing else
+    ///    deletes them all, and they will notice tomorrow without connecting the
+    ///    matter to yesterday's installation. It reads, adds its own
+    ///    entry, rewrites everything else as it was.
     ///
-    /// 2. SI FA UNA COPIA PRIMA. Sempre, anche quando il file sembra semplice.
-    ///    Costa un millisecondo e vale la differenza fra un errore e un danno.
+    /// 2. A COPY IS MADE FIRST. Always, even when the file looks simple.
+    ///    It costs a millisecond and is worth the difference between an error and damage.
     ///
-    /// 3. SI DICE DI RIAVVIARE. Claude legge questo file all'avvio. Senza
-    ///    riavvio non succede niente, e «non succede niente» e' il modo piu'
-    ///    rapido di far concludere che l'installazione e' fallita.
+    /// 3. IT SAYS TO RESTART. Claude reads this file at startup. Without a
+    ///    restart nothing happens, and «nothing happens» is the quickest way to
+    ///    make people conclude that the installation failed.
     /// </summary>
     internal static class Configuration
     {
@@ -60,7 +60,7 @@ namespace Oce.Solid.Agent.Installer
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Quali client ci sono su questa macchina
+        // Which clients are on this machine
         // ─────────────────────────────────────────────────────────────────
 
         public static List<Client> FoundClients()
@@ -88,9 +88,9 @@ namespace Oce.Solid.Agent.Installer
             {
                 try
                 {
-                    // «Installato» vuol dire che c'e' la CARTELLA del client:
-                    // il file di configurazione puo' non esistere ancora, ed e'
-                    // il caso normale di chi non ha mai aggiunto un server MCP.
+                    // «Installed» means that the client's FOLDER is there:
+                    // the configuration file may not exist yet, and that is
+                    // the normal case of someone who has never added an MCP server.
                     //
                     // NOT FOR CLAUDE CODE (H19 review): its file sits in the
                     // user's profile, a folder that always exists, so Claude
@@ -159,13 +159,13 @@ namespace Oce.Solid.Agent.Installer
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Scrivere
+        // Writing
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Aggiunge (o aggiorna) la voce del ponte nella configurazione del
-        /// client, lasciando intatto tutto il resto. Ritorna il percorso della
-        /// copia di sicurezza, o null se il file non esisteva.
+        /// Adds (or updates) the bridge entry in the configuration of the
+        /// client, leaving everything else intact. Returns the path of the
+        /// backup copy, or null if the file did not exist.
         /// </summary>
         public static string Connect(
             Client client, string executable, string redist, string weldmentProfiles, Action<string> tell)
@@ -182,9 +182,9 @@ namespace Oce.Solid.Agent.Installer
                 ["command"] = executable,
             };
 
-            // `env` solo se serve davvero: una variabile scritta «tanto per»
-            // e' una cosa in piu' che puo' diventare sbagliata quando qualcuno
-            // sposta SOLIDWORKS, e nessuno andra' a rileggerla.
+            // `env` only if really needed: a variable written «just in case»
+            // is one more thing that can become wrong when someone
+            // moves SOLIDWORKS, and nobody will go back and reread it.
             object previous;
             server.TryGetValue(ServerName, out previous);
             var env = MergedEnv(EnvOf(previous), redist, weldmentProfiles, tell);
@@ -298,7 +298,7 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// Toglie la voce del ponte, lasciando gli altri server.
+        /// Removes the bridge entry, leaving the other servers.
         ///
         /// ONLY OUR OWN ENTRY (entry H19, A5). With <paramref name="folder"/>
         /// given, the entry is removed only if its command is the bridge in
@@ -363,7 +363,7 @@ namespace Oce.Solid.Agent.Installer
             catch { return null; }
         }
 
-        /// <summary>Cosa c'e' scritto adesso per questo server, se c'e'.</summary>
+        /// <summary>What is written now for this server, if anything.</summary>
         public static string HowItIsConfigured(Client client)
         {
             try
@@ -381,7 +381,7 @@ namespace Oce.Solid.Agent.Installer
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Leggere e scrivere il file
+        // Reading and writing the file
         // ─────────────────────────────────────────────────────────────────
 
         private static Dictionary<string, object> Read(string file)
@@ -396,9 +396,9 @@ namespace Oce.Solid.Agent.Installer
             }
             catch (IOException ex)
             {
-                // Un file che NON SI LEGGE non e' un file rotto: prima finiva
-                // nel ramo sotto, e a chi aveva il client aperto si diceva che
-                // il suo JSON non era valido.
+                // A file that CANNOT BE READ is not a broken file: it used to end
+                // up in the branch below, and whoever had the client open was told that
+                // their JSON was not valid.
                 throw new Exception(
                     "Non riesco a leggere «" + file + "»: e' bloccato da un altro " +
                     "programma, e non l'ho toccato. Di solito e' il client stesso " +
@@ -406,8 +406,8 @@ namespace Oce.Solid.Agent.Installer
             }
             catch (Exception ex)
             {
-                // Un file rotto NON si sostituisce in silenzio con uno nuovo:
-                // dentro potrebbero esserci dieci server configurati a mano.
+                // A broken file is NOT silently replaced with a new one:
+                // inside there might be ten servers configured by hand.
                 throw new Exception(
                     "Il file di configurazione «" + file + "» non e' JSON valido e non " +
                     "me la sento di riscriverlo: dentro potrebbe esserci altro lavoro. " +
@@ -435,12 +435,12 @@ namespace Oce.Solid.Agent.Installer
             var folder = Path.GetDirectoryName(file);
             if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
 
-            // UN FILE TENUTO DA UN ALTRO PROGRAMMA SI SCOPRE PRIMA (voce H15).
-            // Prima lo si scopriva a meta': copia fatta, `.parziale` scritto,
-            // poi `File.Delete` che solleva — e il `.parziale` restava accanto
-            // al file vero per sempre. Adesso si prova ad aprirlo in scrittura
-            // esclusiva: se non si lascia, ci si ferma senza aver toccato
-            // niente, e lo si dice con parole che fanno sapere cosa fare.
+            // A FILE HELD BY ANOTHER PROGRAM IS DISCOVERED FIRST (entry H15).
+            // It used to be discovered halfway: copy made, `.parziale` written,
+            // then `File.Delete` throws — and the `.parziale` stayed next to
+            // the real file forever. Now it is tried to open it for exclusive
+            // writing: if it does not allow it, we stop without having touched
+            // anything, and say so in words that make clear what to do.
             if (File.Exists(file))
             {
                 try { using (File.Open(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { } }
@@ -467,9 +467,9 @@ namespace Oce.Solid.Agent.Installer
             }
             catch
             {
-                // Qualunque cosa sia andata storta, il `.parziale` non resta:
-                // un file a meta' accanto a quello vero e' la cosa che fa
-                // pensare a chi apre la cartella che si puo' usare quello.
+                // Whatever went wrong, the `.parziale` does not stay:
+                // a half file next to the real one is the thing that makes
+                // whoever opens the folder think that one can be used.
                 try { if (File.Exists(temporary)) File.Delete(temporary); } catch { }
                 throw;
             }
@@ -486,8 +486,8 @@ namespace Oce.Solid.Agent.Installer
         public static string Backup(string file, Action<string> tell)
         {
             if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) return null;
-            // Il nome della copia porta la data: cosi' si capisce quale e'
-            // quale.
+            // The name of the copy carries the date: so it is clear which is
+            // which.
             var copy = file + CopyPrefix +
                         DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
             File.Copy(file, copy, true);
@@ -499,19 +499,19 @@ namespace Oce.Solid.Agent.Installer
         private const string CopyPrefix = ".prima-di-oce-solid-agent-";
 
         /// <summary>
-        /// Quante copie di sicurezza per file si tengono. Tre bastano a tornare
-        /// indietro di due installazioni sbagliate di fila; oltre e' solo roba
-        /// che si accumula in %APPDATA% e che nessuno guarda.
+        /// How many backup copies per file are kept. Three are enough to go back
+        /// two wrong installations in a row; beyond that it is just stuff
+        /// that piles up in %APPDATA% and that nobody looks at.
         /// </summary>
         public const int KeptCopies = 3;
 
         /// <summary>
-        /// Toglie le copie di sicurezza piu' vecchie, tenendo le ultime
-        /// <see cref="KeptCopies"/> (voce H15: prima non si ripulivano mai, e
-        /// dieci installazioni lasciavano dieci `.bak`).
+        /// Removes the oldest backup copies, keeping the last
+        /// <see cref="KeptCopies"/> (entry H15: before they were never cleaned up, and
+        /// ten installations left ten `.bak`).
         ///
-        /// Tocca SOLO i file con il nostro prefisso accanto a quel file: una
-        /// copia fatta a mano da chi usa il client non e' nostra.
+        /// It touches ONLY the files with our prefix next to that file: a
+        /// copy made by hand by whoever uses the client is not ours.
         /// </summary>
         private static void PruneCopies(string file, Action<string> tell)
         {
@@ -531,22 +531,22 @@ namespace Oce.Solid.Agent.Installer
                 if (our.Count > 0)
                     tell("tolte " + our.Count + " copie di sicurezza vecchie (ne tengo " + KeptCopies + ")");
             }
-            catch { /* non poter pulire non e' un motivo per non installare */ }
+            catch { /* failing to clean up is no reason not to install*/ }
         }
 
         /// <summary>
-        /// Rimette a capo e indenta il JSON.
+        /// Puts the line breaks back and indents the JSON.
         ///
-        /// `JavaScriptSerializer` scrive tutto su una riga sola. Tecnicamente
-        /// e' JSON valido; praticamente vuol dire che chi apre il file dopo di
-        /// noi trova una riga da duemila caratteri dove prima c'era qualcosa di
-        /// leggibile, e non puo' piu' correggerlo a mano. Un installatore che
-        /// rende illeggibile un file di configurazione dell'utente ha fatto un
-        /// danno anche se il contenuto e' giusto.
+        /// `JavaScriptSerializer` writes everything on a single line. Technically
+        /// it is valid JSON; practically it means that whoever opens the file after
+        /// us finds a line of two thousand characters where before there was something
+        /// readable, and can no longer fix it by hand. An installer that
+        /// makes a user's configuration file unreadable has done
+        /// damage even if the content is right.
         ///
-        /// Si lavora sul testo e non sull'oggetto perche' serve solo spaziatura:
-        /// l'unica cosa da cui stare attenti sono le stringhe, dove parentesi e
-        /// virgole non sono struttura.
+        /// It works on the text and not on the object because only spacing is needed:
+        /// the only thing to be careful about is the strings, where brackets and
+        /// commas are not structure.
         /// </summary>
         private static string Indent(string json)
         {
@@ -609,7 +609,7 @@ namespace Oce.Solid.Agent.Installer
             catch { return false; }
         }
 
-        /// <summary>Il blocco da incollare a mano, per chi usa un altro client.</summary>
+        /// <summary>The block to paste by hand, for whoever uses another client.</summary>
         public static string BlockToPaste(string executable, string redist, string weldmentProfiles)
         {
             var entry = new Dictionary<string, object> { ["command"] = executable };

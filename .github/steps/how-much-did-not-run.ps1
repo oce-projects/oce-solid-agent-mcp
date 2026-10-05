@@ -1,13 +1,13 @@
 # =============================================================================
-#  Quanto di questo giro NON ha potuto girare, scritto dove si vede
+#  How much of this run could NOT run, written where it can be seen
 # =============================================================================
 #
-#  IL NUMERO CHE NON SI DEVE POTER NON VEDERE. Un verde di GitHub e' un segno
-#  di spunta: chi lo guarda non apre il log. Il conto dei saltati va nel
-#  riepilogo della corsa, dove si legge senza aprire niente.
+#  THE NUMBER THAT MUST NOT BE POSSIBLE TO MISS. A green from GitHub is a tick
+#  mark: whoever looks at it does not open the log. The count of skipped tests goes
+#  into the summary of the run, where it is read without opening anything.
 #
-#  Legge `prove.xml`, che e' JUnit e porta gia' `<skipped>` per caso e
-#  `skipped=` per suite.
+#  It reads `prove.xml`, which is JUnit and already carries `<skipped>` per case
+#  and `skipped=` per suite.
 #
 #      .\.github\steps\how-much-did-not-run.ps1
 # =============================================================================
@@ -45,8 +45,8 @@ $r += "- **$($red.Count)** falliti"
 $r += "- **$($skippedOnes.Count)** non eseguibili qui"
 if ($skippedOnes.Count -gt 0) {
     $r += ""
-    # Apici singoli: dentro ci sono le virgolette della citazione, e in una
-    # stringa fra virgolette doppie sarebbero la fine della stringa.
+    # Single quotes: inside are the quotation marks of the quote, and in a
+    # string between double quotes they would be the end of the string.
     $r += '"Non eseguibile qui" **non vuol dire passato**: su questo runner SOLIDWORKS'
     $r += "non c'e', quindi il ponte non si poteva nemmeno compilare e i controlli che"
     $r += "gli parlano non hanno girato."

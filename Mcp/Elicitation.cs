@@ -6,55 +6,55 @@ using System.IO;
 namespace Oce.Solid.Agent.Mcp
 {
     /// <summary>
-    /// CHIEDERE ALL'UTENTE, NON AL MODELLO (voce W2.5).
+    /// ASK THE USER, NOT THE MODEL (entry W2.5).
     ///
-    /// ── IL PROBLEMA ──────────────────────────────────────────────────────
+    /// ── THE PROBLEM ──────────────────────────────────────────────────────
     ///
-    /// Le conferme di questo ponte sono **frasi che il modello rilegge**:
-    /// «attenzione, questa operazione non si annulla». Una conferma che passa
-    /// dal modello e' una conferma che il modello puo' interpretare — e
-    /// interpretare una richiesta di conferma vuol dire, prima o poi,
-    /// concedersela da solo.
+    /// The confirmations of this bridge are **sentences that the model rereads**:
+    /// «attention, this operation cannot be undone». A confirmation that goes
+    /// through the model is a confirmation that the model can interpret — and
+    /// to interpret a request for confirmation means, sooner or later,
+    /// granting it to oneself.
     ///
-    /// Il protocollo ha un modo di chiedere **all'utente**: `elicitation/create`
-    /// (MCP 2025-06-18). Il server manda una richiesta, il client la mostra a
-    /// chi sta davanti allo schermo, e risponde `accept`, `decline` o `cancel`.
+    /// The protocol has a way to ask **the user**: `elicitation/create`
+    /// (MCP 2025-06-18). The server sends a request, the client shows it to
+    /// whoever is in front of the screen, and answers `accept`, `decline` or `cancel`.
     ///
-    /// ── LA PARTE DIFFICILE: IL GIRO E' SINCRONO ──────────────────────────
+    /// ── THE HARD PART: THE LOOP IS SYNCHRONOUS ───────────────────────────
     ///
-    /// Questo ponte legge una riga, la serve, risponde. Per chiedere qualcosa
-    /// **nel mezzo** di una chiamata bisogna scrivere una richiesta e poi
-    /// leggere da `stdin` finche' non arriva la risposta con quell'id.
+    /// This bridge reads a line, serves it, answers. To ask something
+    /// **in the middle** of a call one has to write a request and then
+    /// read from `stdin` until the answer with that id arrives.
     ///
-    /// E mentre si aspetta puo' arrivare **altro**: un'altra richiesta del
-    /// client, una notifica. Buttarla sarebbe un difetto silenzioso — il client
-    /// aspetterebbe per sempre una risposta che nessuno gli dara'. Quindi si
-    /// mette da parte, e il giro principale la serve appena puo'.
+    /// And while waiting **something else** can arrive: another request from the
+    /// client, a notification. Throwing it away would be a silent defect — the client
+    /// would wait forever for an answer that nobody will give it. So it is
+    /// put aside, and the main loop serves it as soon as it can.
     ///
-    /// ── E SE IL CLIENT NON SA CHIEDERE ───────────────────────────────────
+    /// ── AND IF THE CLIENT CANNOT ASK ───────────────────────────────────
     ///
-    /// Non tutti i client supportano l'elicitation. Il ripiego e' **dichiarato,
-    /// non silenzioso**: si va avanti come prima — che e' il comportamento di
-    /// sempre, non un peggioramento — ma la risposta **dice** che la conferma
-    /// non si e' potuta chiedere. Un ripiego taciuto e' il modo in cui una
-    /// difesa sparisce senza che nessuno se ne accorga.
+    /// Not all clients support elicitation. The fallback is **declared,
+    /// not silent**: it goes on as before — which is the behavior
+    /// it always had, not a worsening — but the answer **says** that the confirmation
+    /// could not be asked. A fallback kept quiet is the way a
+    /// defense disappears without anyone noticing.
     /// </summary>
     public static class Elicitation
     {
         /// <summary>
-        /// Le righe arrivate mentre si aspettava una risposta, che il giro
-        /// principale deve ancora servire. Vedi il commento in testa.
+        /// The lines that arrived while an answer was awaited, which the main
+        /// loop still has to serve. See the comment at the top.
         /// </summary>
         private static readonly ConcurrentQueue<string> _backlog =
             new ConcurrentQueue<string>();
 
-        /// <summary>Il client ha dichiarato di saper chiedere all'utente?</summary>
+        /// <summary>Has the client declared that it can ask the user?</summary>
         public static bool ClientCanAsk { get; private set; }
 
         /// <summary>
-        /// Si legge da `initialize`: `capabilities.elicitation`. Una capacita'
-        /// non dichiarata **non si presume**: chiedere a un client che non sa
-        /// rispondere vorrebbe dire appendere la chiamata fino alla scadenza.
+        /// It is read from `initialize`: `capabilities.elicitation`. A capability
+        /// that is not declared **is not presumed**: asking a client that cannot
+        /// answer would mean hanging the call until the deadline.
         /// </summary>
         public static void ReadCapabilities(Dictionary<string, object> parameters)
         {
@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Mcp
             ClientCanAsk = capacity.ContainsKey("elicitation");
         }
 
-        /// <summary>La prossima riga messa da parte, o null.</summary>
+        /// <summary>The next line put aside, or null.</summary>
         public static string Backlog()
         {
             string line;
@@ -77,12 +77,12 @@ namespace Oce.Solid.Agent.Mcp
         private static int _nextId = 9000;
 
         /// <summary>
-        /// Chiede conferma all'utente e torna **vero solo se ha detto di si'**.
+        /// Asks the user for confirmation and returns **true only if they said yes**.
         ///
-        /// Torna falso per `decline`, per `cancel`, per una risposta che non si
-        /// capisce e per la scadenza. *Il dubbio vale no*: su un'operazione che
-        /// non si annulla, interpretare un silenzio come un si' sarebbe il
-        /// difetto peggiore di tutti.
+        /// It returns false for `decline`, for `cancel`, for an answer that is not
+        /// understood and for the deadline. *Doubt counts as no*: on an operation that
+        /// cannot be undone, interpreting a silence as a yes would be the
+        /// worst defect of all.
         /// </summary>
         public static bool Confirm(TextWriter output, TextReader input,
                                     string message, int expiryMs = 300000)
@@ -98,10 +98,10 @@ namespace Oce.Solid.Agent.Mcp
                 ["params"] = new Dictionary<string, object>
                 {
                     ["message"] = message,
-                    // UNO SCHEMA VUOTO, e non e' pigrizia: qui non si chiede un
-                    // dato, si chiede un permesso. La risposta che conta e'
-                    // `action`, e chiedere un campo in piu' vorrebbe dire far
-                    // compilare un modulo per dire di si'.
+                    // AN EMPTY SCHEMA, and it is not laziness: here one does not ask for a
+                    // piece of data, one asks for a permission. The answer that counts is
+                    // `action`, and asking for one more field would mean making the user
+                    // fill in a form to say yes.
                     ["requestedSchema"] = new Dictionary<string, object>
                     {
                         ["type"] = "object",
@@ -116,7 +116,7 @@ namespace Oce.Solid.Agent.Mcp
                 string line;
                 try { line = input.ReadLine(); }
                 catch { return false; }
-                if (line == null) return false;          // il client se n'e' andato
+                if (line == null) return false;          // the client has gone away
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
                 Dictionary<string, object> m;
@@ -128,15 +128,15 @@ namespace Oce.Solid.Agent.Mcp
                 if (!m.TryGetValue("id", out its) ||
                     Convert.ToString(its) != id.ToString())
                 {
-                    // NON E' LA MIA RISPOSTA: si mette da parte. Buttarla
-                    // lascerebbe il client ad aspettare per sempre.
+                    // NOT MY ANSWER: it is put aside. Throwing it away
+                    // would leave the client waiting forever.
                     _backlog.Enqueue(line);
                     continue;
                 }
 
                 var result = (m.TryGetValue("result", out var r)
                     ? r as Dictionary<string, object> : null);
-                if (result == null) return false;      // un `error` e' un no
+                if (result == null) return false;      // an `error` is a no
                 object action;
                 if (!result.TryGetValue("action", out action)) return false;
                 return string.Equals(Convert.ToString(action), "accept",

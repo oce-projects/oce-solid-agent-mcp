@@ -5,32 +5,32 @@ using Oce.Solid.Agent.Core;
 namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
-    /// IL PIANO CHE ARRIVA DA MCP, servito a <see cref="PlanExecutor"/> un
-    /// passo alla volta.
+    /// THE PLAN THAT COMES FROM MCP, served to <see cref="PlanExecutor"/> one
+    /// step at a time.
     ///
-    /// PERCHE' ESISTE, VISTO CHE IL PIANO E' GIA' TUTTO QUI.
-    /// Perche' l'esecutore non deve sapere da dove vengono i passi: nell'add-in
-    /// glieli da' il server di OpenPDM, qui glieli da' questa lista. Il confine
-    /// e' <see cref="IPlanSource"/>, e senza di lui il ponte avrebbe dovuto
-    /// riscriversi il giro di esecuzione — che e' esattamente quello che
-    /// faceva, e che gli costava tre cose:
+    /// WHY IT EXISTS, GIVEN THAT THE PLAN IS ALL HERE ALREADY.
+    /// Because the executor must not know where the steps come from: in the add-in
+    /// the OpenPDM server gives them to it, here this list gives them. The boundary
+    /// is <see cref="IPlanSource"/>, and without it the bridge would have had to
+    /// rewrite for itself the execution loop — which is exactly what it
+    /// used to do, and which cost it three things:
     ///
-    ///   * niente riferimenti fra passi: «il foro sulla faccia in cima a quello
-    ///     che hai fatto al passo 1» non si poteva scrivere, perche' la
-    ///     geometria dei passi gia' fatti non veniva tenuta da nessuna parte;
-    ///   * niente voce di annullamento unica: `Ctrl+Z` disfaceva un passo solo,
-    ///     e per tornare indietro da un piano di cinque passi ne servivano
-    ///     cinque — sperando di non averne premuto uno di troppo;
-    ///   * una seconda implementazione, piu' povera, dello stesso ciclo. Due
-    ///     implementazioni sono due comportamenti che divergono, e le prove si
-    ///     fanno su una sola delle due.
+    ///   * no references between steps: «the hole on the top face of what
+    ///     you did at step 1» could not be written, because the
+    ///     geometry of the steps already done was not kept anywhere;
+    ///   * no single undo entry: `Ctrl+Z` undid only one step,
+    ///     and to go back from a plan of five steps five were needed
+    ///     — hoping not to have pressed one too many;
+    ///   * a second, poorer implementation of the same cycle. Two
+    ///     implementations are two behaviors that diverge, and the checks are
+    ///     done on only one of the two.
     ///
-    /// QUI NON SI VALIDA NIENTE, ed e' voluto. Nome dell'operazione, percorsi e
-    /// forma degli argomenti si controllano **tutti insieme prima**, in
-    /// `McpTools.Build`, e se qualcosa non va il documento non viene toccato
-    /// affatto. Validare a mano a mano vorrebbe dire fermarsi al passo 3 con i
-    /// primi due gia' costruiti, cioe' lasciare in giro mezzo pezzo per un
-    /// errore che si poteva vedere senza aprire niente.
+    /// NOTHING IS VALIDATED HERE, and it is intended. Operation name, paths and
+    /// shape of the arguments are checked **all together beforehand**, in
+    /// `McpTools.Build`, and if anything is wrong the document is not touched
+    /// at all. Validating as one goes would mean stopping at step 3 with the
+    /// first two already built, that is, leaving half a part lying around for an
+    /// error that could have been seen without opening anything.
     /// </summary>
     internal sealed class PlanInMemory : IPlanSource
     {
@@ -38,24 +38,24 @@ namespace Oce.Solid.Agent.Bridge
         private int _next;
 
         /// <summary>
-        /// Il filo dell'avanzamento (voce W2.2), e da che numero riprendere.
+        /// The progress thread (entry W2.2), and from which number to resume.
         ///
-        /// QUESTO E' IL PUNTO CHE CONTA, e non il controllo del piano: il
-        /// controllo dura millisecondi, l'esecuzione puo' durare minuti. La
-        /// notifica parte da `NextAsync`, cioe' **prima** che il passo
-        /// cominci — dire «sto per fare il passo 3 di 5» serve; dirlo dopo che
-        /// e' finito serve molto meno.
+        /// THIS IS THE POINT THAT COUNTS, and not the check of the plan: the
+        /// check lasts milliseconds, the execution can last minutes. The
+        /// notification goes out from `NextAsync`, that is **before** the step
+        /// begins — saying «I am about to do step 3 of 5» is useful; saying it after
+        /// it has finished is much less useful.
         ///
-        /// E non e' servito toccare la libreria: l'esecutore chiede il passo
-        /// successivo a questa classe, che sta nel ponte. L'aggancio c'era
-        /// gia', mancava solo chi lo usasse.
+        /// And the library did not need to be touched: the executor asks this class,
+        /// which lives in the bridge, for the next step. The hook was already
+        /// there, it was only missing someone to use it.
         /// </summary>
         private readonly Mcp.Progress.Wire _wire;
         private readonly double _startedAt;
 
         /// <summary>
-        /// Com'e' andato ogni passo, nell'ordine in cui sono stati eseguiti.
-        /// E' la risposta che il ponte manda indietro.
+        /// How each step went, in the order in which they were executed.
+        /// It is the answer that the bridge sends back.
         /// </summary>
         public readonly List<Dictionary<string, object>> Outcomes =
             new List<Dictionary<string, object>>();
@@ -67,18 +67,18 @@ namespace Oce.Solid.Agent.Bridge
         {
             _steps = steps;
             _wire = wire ?? new Mcp.Progress.Wire(null);
-            // Da dove riprendere: se il controllo del piano ha gia' raccontato
-            // cinque passi, l'esecuzione comincia a sei. Chiederlo al filo
-            // invece di calcolarlo vuol dire che i due punti non possono
-            // dire numeri che si sovrappongono.
+            // Where to resume from: if the check of the plan has already told
+            // five steps, the execution starts at six. Asking the thread
+            // instead of computing it means that the two points cannot
+            // say numbers that overlap.
             _startedAt = _wire.Last;
         }
 
         public Task<NextStep> NextAsync(Dictionary<string, object> docState)
         {
-            // Lo stato non serve: chi doveva guardarlo — il controllo
-            // d'identita' del documento — lo fa l'esecutore, sul documento
-            // vero e non su una fotografia.
+            // The state is not needed: whoever had to look at it — the identity
+            // check of the document — is the executor, on the real
+            // document and not on a photograph.
             if (_next >= _steps.Count) return Task.FromResult(NextStep.Fine());
             var thisOne = _steps[_next++];
             _wire.Step(_startedAt + _next,

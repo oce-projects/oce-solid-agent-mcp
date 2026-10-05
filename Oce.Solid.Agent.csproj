@@ -6,18 +6,18 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <OutputType>Exe</OutputType>
     <RootNamespace>Oce.Solid.Agent</RootNamespace>
-    <!-- IL NOME DELL'ESEGUIBILE E' QUELLO DEL PACCHETTO, NON DEL NAMESPACE.
-         `oce-solid-agent-mcp.exe` e' cio' che finisce nella configurazione di
-         ogni client MCP, nell'installatore e nei comandi del README: deve
-         coincidere con il nome del repository e del pacchetto, o chi copia una
-         riga dalla documentazione trova un file che non c'e'.
-         Il namespace resta in PascalCase con i punti, che e' la convenzione
-         .NET; il file no, e i due non devono somigliarsi per forza. -->
+    <!-- THE NAME OF THE EXECUTABLE IS THAT OF THE PACKAGE, NOT OF THE NAMESPACE.
+         `oce-solid-agent-mcp.exe` is what ends up in the configuration of
+         every MCP client, in the installer and in the README commands: it must
+         match the name of the repository and of the package, or whoever copies a
+         line from the documentation finds a file that is not there.
+         The namespace stays in PascalCase with dots, which is the .NET
+         convention; the file does not, and the two need not look alike.-->
     <AssemblyName>oce-solid-agent-mcp</AssemblyName>
-    <!-- .NET Framework 4.8 non e' una scelta di gusto: l'add-in vero e'
-         compilato per quello, e questo ponte lo carica per riflessione. -->
+    <!-- .NET Framework 4.8 is not a matter of taste: the real add-in is
+         compiled for that, and this bridge loads it by reflection.-->
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <!-- x64 come SolidWorks: un processo a 32 bit non si aggancia. -->
+    <!-- x64 like SolidWorks: a 32 bit process does not attach.-->
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>bin\</OutputPath>
     <LangVersion>7.3</LangVersion>
@@ -30,18 +30,18 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Dove sta SOLIDWORKS: serve solo per le interop, che NON entrano nel
-         pacchetto (Private=False). Si scavalca con /p:SwInstallPath=... -->
+    <!-- Where SOLIDWORKS is: needed only for the interops, which do NOT go in the
+         package (Private=False). It is overridden with /p:SwInstallPath=...-->
     <SwInstallPath Condition="'$(SwInstallPath)' == ''">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS</SwInstallPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- LE OPERAZIONI DI DISEGNO, CHIAMATE E NON RIFLESSE.
-         Fino alla 0.5.0 il ponte caricava OpenPDM.SwAddin.dll a mano,
-         perche' quella DLL e' privata e questo repository non poteva
-         referenziarla. Adesso la libreria sta qui dentro: e' un riferimento
-         di progetto come un altro, e i nomi dei tipi li controlla il
-         compilatore invece del cliente. -->
+    <!-- THE DRAWING OPERATIONS, CALLED AND NOT REFLECTED.
+         Up to 0.5.0 the bridge loaded OpenPDM.SwAddin.dll by hand,
+         because that DLL is private and this repository could not
+         reference it. Now the library is in here: it is a project reference
+         like any other, and the type names are checked by the
+         compiler instead of by the customer.-->
     <ProjectReference Include="Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj">
       <Project>{7B3C1F42-9A5E-4D18-A6C2-51E0D7B44A93}</Project>
       <Name>Oce.Solid.Agent.Core</Name>
@@ -49,10 +49,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Interop di SOLIDWORKS: il ponte passa ISldWorks e IModelDoc2
-         tipizzati alla libreria. Private=False, quindi restano dove le ha
-         messe l'installazione e non finiscono ne' nel repository ne' nel
-         pacchetto. -->
+    <!-- SOLIDWORKS interops: the bridge passes ISldWorks and IModelDoc2
+         typed to the library. Private=False, so they stay where the
+         installation put them and end up neither in the repository nor in the
+         package.-->
     <Reference Include="SolidWorks.Interop.sldworks">
       <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.sldworks.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
@@ -87,8 +87,8 @@
     <Compile Include="Tools\McpTools.cs" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Il catalogo viaggia con l'eseguibile: senza, il ponte sa eseguire ma
-         non sa dire cosa si puo' chiedere. -->
+    <!-- The catalog travels with the executable: without it, the bridge can execute but
+         cannot say what can be asked.-->
     <None Include="Tools\catalog.json">
       <Link>catalog.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -96,10 +96,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <!-- UNA SOLA FONTE PER LA VERSIONE. `Program.Version` la legge da
-         qui invece di tenerne una copia a mano, che e' rimasta ferma a
-         0.2.0 per settantotto versioni minori senza che nessuno la
-         confrontasse con niente. -->
+    <!-- A SINGLE SOURCE FOR THE VERSION. `Program.Version` reads it from
+         here instead of keeping a copy by hand, which stayed stuck at
+         0.2.0 for seventy-eight minor versions without anyone
+         comparing it with anything.-->
     <EmbeddedResource Include="VERSION.txt" />
     <!-- WHAT IS KNOWN OF EACH API MEMBER (entry U1.1), read by api_search and
          api_signature. Embedded, not copied: a knowledge file left behind by
@@ -108,12 +108,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 
-  <!-- LA VERSIONE WIN32 DA VERSION.txt (voce H14). Chi faceva tasto destro ->
-       Proprieta' -> Dettagli sull'eseguibile leggeva 0.0.0.0: la versione vera
-       era solo una risorsa letta a run time. Un bersaglio di MSBuild e non un
-       passo di build.ps1, cosi' vale per OGNI strada che compila il progetto,
-       anche msbuild a mano. La suite di contratto controlla che le proprieta'
-       del file dicano la stessa cosa di VERSION.txt. -->
+  <!-- THE WIN32 VERSION FROM VERSION.txt (entry H14). Whoever right clicked ->
+       Properties -> Details on the executable read 0.0.0.0: the real version
+       was only a resource read at run time. An MSBuild target and not a
+       step of build.ps1, so that it holds for EVERY road that builds the project,
+       even msbuild by hand. The contract suite checks that the file properties
+       say the same thing as VERSION.txt.-->
   <Target Name="VersioneDaFile" BeforeTargets="CoreCompile">
     <ReadLinesFromFile File="$(MSBuildThisFileDirectory)VERSION.txt">
       <Output TaskParameter="Lines" PropertyName="VersionePonte" />

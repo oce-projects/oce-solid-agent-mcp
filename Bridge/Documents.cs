@@ -8,37 +8,37 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
-    /// IL CICLO DI VITA DEL DOCUMENTO: crearne uno, aprirne uno, sapere quali
-    /// sono aperti, portarne uno davanti, chiuderne uno che non ha niente da
-    /// salvare (voci Z-B6, Z-B1, Z-B5, Z-B2).
+    /// THE LIFE CYCLE OF THE DOCUMENT: creating one, opening one, knowing which
+    /// are open, bringing one to the front, closing one that has nothing to
+    /// save (entries Z-B6, Z-B1, Z-B5, Z-B2).
     ///
-    /// ── PERCHE' STA NEL PONTE E NON NEL CATALOGO ────────────────────────────
+    /// ── WHY IT LIVES IN THE BRIDGE AND NOT IN THE CATALOG ───────────────────
     ///
-    /// Le operazioni del catalogo sono passi di un piano, e un piano lavora SU
-    /// un documento: l'esecutore lo tiene per mano dall'inizio alla fine, lo
-    /// confronta passo per passo, e chiude tutto dentro una voce di
-    /// annullamento. Creare o aprire un documento non e' un passo di quel
-    /// genere — e' cambiare il documento su cui si lavora. E chi sa «quale
-    /// pezzo ho guardato» e' il ponte (`_guardato`, le firme viste): la voce
-    /// Z-B6 lo diceva gia', «cambia il documento attivo da dentro il ponte, e
-    /// deve invalidare le firme nello stesso istante».
+    /// The operations of the catalog are steps of a plan, and a plan works ON
+    /// a document: the executor holds it by the hand from beginning to end, compares
+    /// it step by step, and closes everything inside an undo
+    /// entry. Creating or opening a document is not a step of that
+    /// kind — it is changing the document one works on. And whoever knows «which
+    /// part I have looked at» is the bridge (`_guardato`, the signatures seen): entry
+    /// Z-B6 already said it, «it changes the active document from inside the bridge, and
+    /// it must invalidate the signatures at the same instant».
     ///
-    /// Fino a qui, senza nessun documento aperto il ponte rispondeva «non c'e'
-    /// nessun documento aperto» e si fermava: per cominciare un pezzo da zero
-    /// serviva una persona che cliccasse File > Nuovo. La prova del nove (P1)
-    /// non si poteva nemmeno cominciare da sola.
+    /// Up to here, with no document open the bridge answered «there is
+    /// no document open» and stopped: to start a part from scratch
+    /// a person was needed who would click File > New. The acid test (P1)
+    /// could not even start by itself.
     ///
-    /// ── LE TRAPPOLE, scritte nelle voci e tenute qui ───────────────────────
+    /// ── THE TRAPS, written in the entries and kept here ─────────────────────
     ///
-    ///  - Un modello di documento sbagliato NON da' errore: da' un documento del
-    ///    TIPO sbagliato, che si scopre quando un cast fallisce piu' avanti. Il
-    ///    tipo si RILEGGE dopo la creazione.
-    ///  - `OpenDoc6` riuscito non vuol dire «aperto il file chiesto»: si rilegge
-    ///    `GetPathName()` e si confronta.
-    ///  - Un file gia' aperto da un collega su una cartella di rete si apre in
-    ///    sola lettura SENZA chiedere niente (Z-B2). Si dice, sempre.
-    ///  - `ActivateDoc3` riuscito non vuol dire «davanti c'e' quello»: si
-    ///    rilegge il documento attivo.
+    ///  - A wrong document template gives NO error: it gives a document of the wrong
+    ///    TYPE, which is discovered when a cast fails further on. The
+    ///    type is REREAD after creation.
+    ///  - A successful `OpenDoc6` does not mean «the requested file is open»: `GetPathName()`
+    ///    is reread and compared.
+    ///  - A file already open by a colleague on a network folder opens
+    ///    read-only WITHOUT asking anything (Z-B2). It is always said.
+    ///  - A successful `ActivateDoc3` does not mean «that one is in front»: the
+    ///    active document is reread.
     ///  - `ActivateDoc3` with swDontRebuildActiveDoc does not rebuild by
     ///    itself: if Errors carries swDocNeedsRebuildWarning, EditRebuild3 is
     ///    called here, or a first read-only step right after would measure
@@ -46,7 +46,7 @@ namespace Oce.Solid.Agent.Bridge
     /// </summary>
     internal sealed partial class Session
     {
-        /// <summary>Crea una parte o un assieme vuoti dal modello predefinito.</summary>
+        /// <summary>Creates an empty part or assembly from the default template.</summary>
         public Dictionary<string, object> CreateDocument(string typ, out string error)
         {
             error = null;
@@ -97,8 +97,8 @@ namespace Oce.Solid.Agent.Bridge
                 return null;
             }
 
-            // IL TIPO SI RILEGGE: un modello sbagliato da' un documento del tipo
-            // sbagliato senza nessun errore.
+            // THE TYPE IS REREAD: a wrong template gives a document of the wrong
+            // type with no error at all.
             int real = doc.GetType();
             if (real != expected)
             {
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.Bridge
             return outside;
         }
 
-        /// <summary>Apre un file SOLIDWORKS dal disco e lo porta davanti.</summary>
+        /// <summary>Opens a SOLIDWORKS file from disk and brings it to the front.</summary>
         public Dictionary<string, object> OpenDocument(string filePath, out string error)
         {
             error = null;
@@ -157,9 +157,9 @@ namespace Oce.Solid.Agent.Bridge
                 return null;
             }
 
-            // GIA' APERTO: non si riapre, si porta davanti. Riaprirlo darebbe un
-            // avviso «gia' aperto» e nessun cambiamento, che si legge come un
-            // successo solo se si sa cosa guardare.
+            // ALREADY OPEN: it is not reopened, it is brought to the front. Reopening it would give an
+            // «already open» warning and no change, which reads as a
+            // success only if one knows what to look at.
             //
             // A PART LOADED HIDDEN BY AN ASSEMBLY IS FOUND AND SHOWN TOO
             // (finding C4-4, measured: it works). ISldWorks~GetOpenDocumentByName.html
@@ -191,7 +191,7 @@ namespace Oce.Solid.Agent.Bridge
                 return null;
             }
 
-            // IL FILE APERTO E' QUELLO CHIESTO? Si rilegge, non si crede.
+            // IS THE OPEN FILE THE REQUESTED ONE? It is reread, not believed.
             string open = doc.GetPathName() ?? "";
             if (!string.Equals(Normal(open), Normal(filePath), StringComparison.OrdinalIgnoreCase))
             {
@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.Bridge
                 return null;
             }
 
-            // E DAVANTI C'E' LUI? OpenDoc6 di solito lo attiva; si controlla.
+            // AND IS IT IN FRONT? OpenDoc6 usually activates it; it is checked.
             var outside = BringToFront(sw, doc, out error);
             if (outside == null) return null;
             outside["was_already_open"] = false;
@@ -209,7 +209,7 @@ namespace Oce.Solid.Agent.Bridge
             return outside;
         }
 
-        /// <summary>I documenti aperti e visibili, con quale e' davanti.</summary>
+        /// <summary>The documents that are open and visible, with which one is in front.</summary>
         public List<Dictionary<string, object>> Documents(out int hidden, out string error)
         {
             error = null;
@@ -225,9 +225,9 @@ namespace Oce.Solid.Agent.Bridge
             {
                 bool visible = true;
                 try { visible = doc.Visible; } catch { }
-                // I NASCOSTI SONO I PEZZI CARICATI DENTRO UN ASSIEME: sono
-                // documenti per SOLIDWORKS e non per chi lavora. Si contano e
-                // si dicono, non si elencano.
+                // THE HIDDEN ONES ARE THE PARTS LOADED INSIDE AN ASSEMBLY: they are
+                // documents for SOLIDWORKS and not for whoever works. They are counted and
+                // reported, not listed.
                 if (visible) outside.Add(Card(doc, active));
                 else hidden++;
                 doc = doc.GetNext() as IModelDoc2;
@@ -235,7 +235,7 @@ namespace Oce.Solid.Agent.Bridge
             return outside;
         }
 
-        /// <summary>Porta davanti un documento gia' aperto, per percorso o titolo.</summary>
+        /// <summary>Brings an already open document to the front, by path or title.</summary>
         public Dictionary<string, object> ActivateDocument(string which, out string error)
         {
             error = null;
@@ -261,15 +261,15 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Chiude un documento aperto, per percorso o titolo, e RIFIUTA se ha
-        /// modifiche non salvate (voce Z-B1).
+        /// Closes an open document, by path or title, and REFUSES if it has
+        /// unsaved changes (entry Z-B1).
         ///
-        /// Non c'e' un «chiudi buttando le modifiche»: chi lavora per conto di
-        /// qualcuno non decide di buttare il suo lavoro, e un'opzione che lo fa
-        /// e' un'opzione che prima o poi si passa per sbaglio. Chi vuole
-        /// buttarle chiude a mano, e la finestra di SOLIDWORKS glielo chiede.
+        /// There is no «close discarding the changes»: whoever works on behalf of
+        /// someone does not decide to throw away their work, and an option that does it
+        /// is an option that sooner or later is passed by mistake. Whoever wants to
+        /// discard them closes by hand, and the SOLIDWORKS window asks them.
         ///
-        /// SI RILEGGE che sia chiuso davvero: `CloseDoc` torna `void`.
+        /// IT IS REREAD that it is really closed: `CloseDoc` returns `void`.
         /// </summary>
         public Dictionary<string, object> CloseDocument(string which, out string error)
         {
@@ -366,9 +366,9 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Un documento aperto e visibile, per percorso o — se non e' mai stato
-        /// salvato — per titolo. `titoli` riporta cosa c'era, per dirlo in un
-        /// rifiuto.
+        /// An open and visible document, by path or — if it has never been
+        /// saved — by title. `titoli` reports what there was, to say it in a
+        /// refusal.
         /// </summary>
         private IModelDoc2 FindOpen(ISldWorks sw, string which, out List<string> titles)
         {
@@ -394,7 +394,7 @@ namespace Oce.Solid.Agent.Bridge
             return found;
         }
 
-        // ── attrezzi ────────────────────────────────────────────────────────
+        // ── tools ────────────────────────────────────────────────────────
 
         /// <summary>
         /// Brings <paramref name="doc"/> to the front by its file name or path,

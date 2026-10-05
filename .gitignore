@@ -7,95 +7,95 @@ Installer/Payload/
 *.suo
 .vs/
 
-# L'uscita dell'ultimo giro di banco: cambia a ogni lancio e non e' una
-# misura finche' non ha un formato. Quello lo decide la voce F2; fino ad
-# allora resta un file di lavoro.
+# The output of the last bench run: it changes at every launch and is not a
+# measurement until it has a format. That is decided by entry F2; until
+# then it stays a working file.
 Bench/ultimo-giro.txt
 Bench/ultimo-ponte.txt
 
-# Il diario del giro IN CORSO, riga per riga col tempo accanto. E' il file che
-# si guarda mentre il banco gira, per sapere a che punto e' e se e' piantato:
-# dura quanto il giro e lo riscrive quello dopo.
+# The journal of the run IN PROGRESS, line by line with the time next to it. It is the file that
+# is looked at while the bench runs, to know how far it has got and whether it is stuck:
+# it lasts as long as the run and the next one rewrites it.
 Bench/in-corso.txt
 
-# Il resoconto di ogni giro (voce F2): un .md e un .json per lancio, piu'
-# `last.json`. Cambiano a ogni giro e sono la misura di QUESTA macchina in
-# QUESTO momento: versionarli riempirebbe la storia di file che nessuno
-# rilegge e che a ogni merge divergono. Il numero che vale — quello che va in
-# un README o in una decisione — si copia a mano, con la data.
-# SI ESCLUDE IL CONTENUTO, NON LA CARTELLA: con `Bench/report/` git non ci
-# entra nemmeno, e la riga di eccezione qui sotto non avrebbe nessun effetto.
-# E' un difetto che non da' errore — il file semplicemente non viene versionato,
-# e la CI dice «il banco non e' stato eseguito» per sempre.
+# The report of every run (entry F2): one .md and one .json per launch, plus
+# `last.json`. They change at every run and are the measurement of THIS machine at
+# THIS moment: versioning them would fill the history with files nobody
+# rereads and that diverge at every merge. The number that counts — the one that goes in
+# a README or a decision — is copied by hand, with the date.
+# THE CONTENT IS EXCLUDED, NOT THE FOLDER: with `Bench/report/` git does not
+# even enter it, and the exception line below would have no effect.
+# It is a defect that gives no error — the file is simply not versioned,
+# and the CI says «the bench was not run» forever.
 Bench/report/*
-# ... TRANNE `last.json`, e non e' un'eccezione di comodo (voce F9).
-# E' l'unica prova che qualcuno il banco l'ha lanciato: la CI non puo'
-# pilotare SOLIDWORKS, ma puo' RIFIUTARE UNA CONSEGNA in cui nessuno l'ha
-# fatto. Senza questo file in repository quel controllo non esiste.
+# ... EXCEPT `last.json`, and it is not an exception of convenience (entry F9).
+# It is the only proof that someone ran the bench: the CI cannot
+# drive SOLIDWORKS, but it can REFUSE A DELIVERY in which nobody did.
+# Without this file in the repository that check does not exist.
 !Bench/report/last.json
 
-# Una riga per giro, in coda: serve a CONTARE le prove che falliscono a caso
-# (voce F12). E' il registro di QUESTA macchina — chi lancia il banco altrove
-# ha i suoi giri, e mescolarli in un file versionato darebbe un conteggio che
-# non e' di nessuno. Il numero, quando serve a decidere, si copia nel TODO con
-# la data.
+# One line per run, at the end: it serves to COUNT the checks that fail at random
+# (entry F12). It is the log of THIS machine — whoever runs the bench elsewhere
+# has their own runs, and mixing them in a versioned file would give a count that
+# belongs to nobody. The number, when it is needed to decide, is copied into the TODO with
+# the date.
 Bench/storico.txt
 
-# I pezzi che il banco crea mentre prova: usa e getta, e con dentro percorsi
-# di questa macchina. I casi li nominano con `{BANCO}`, che il runner risolve
-# qui — cosi' nessun caso porta in giro il nome di chi lavora.
+# The parts the bench creates while testing: disposable, and with machine
+# paths inside. The cases name them with `{BANCO}`, which the runner resolves
+# here — so that no case carries around the name of whoever works.
 Bench/lavoro/
 
-# Il materiale della misura V2: venti PNG e cinque stati, ~1,5 MB, rifatti da
-# `collect_views.js` in un minuto. Non e' la misura — la misura e' il numero
-# che finisce nel README — e un repository non porta in giro i fotogrammi da
-# cui e' stata ricavata. I PIANI invece sono versionati (`cases/views/`):
-# quelli sono la parte che si deve poter rifare uguale.
+# The material of measurement V2: twenty PNGs and five states, ~1.5 MB, redone by
+# `collect_views.js` in a minute. It is not the measurement — the measurement is the number
+# that ends up in the README — and a repository does not carry around the frames
+# from which it was derived. The PLANS on the other hand are versioned (`cases/views/`):
+# those are the part that must be repeatable.
 Bench/viste/
 
-# I piani che un modello isolato scrive nella misura V3: li rifa' lui a ogni
-# giro, e versionarli vorrebbe dire congelare la risposta di UN modello di UN
-# giorno come se fosse la misura. La misura e' il numero, e sta nel README.
+# The plans that an isolated model writes in measurement V3: it redoes them at every
+# run, and versioning them would mean freezing the answer of ONE model of ONE
+# day as if it were the measurement. The measurement is the number, and it is in the README.
 Bench/cases/forma/
 
-# `bin/` e `obj/` sopra bastano anche per Bench/, ed e' voluto che le
-# librerie di Dassault non ci finiscano nemmeno: il csproj del banco le
-# referenzia con Private=False, quindi in bin/ non vengono copiate.
-# Due difese per lo stesso guaio, perche' ridistribuire un binario Dassault
-# e' il tipo di errore che si scopre il giorno della pubblicazione.
+# `bin/` and `obj/` above are enough for Bench/ too, and it is intended that the
+# Dassault libraries do not even end up there: the bench csproj
+# references them with Private=False, so they are not copied into bin/.
+# Two defenses for the same trouble, because redistributing a Dassault binary
+# is the kind of mistake that is discovered on the day of publication.
 
-# Gli schemi di bonifica specifici di un impianto: nominano cose interne
-# (nomi di server, cartelle di rete), e uno strumento versionato che le nomina
-# pubblica proprio cio che serviva a togliere. Il meccanismo sta in
-# Checks/cleanup-history.js ed e pubblico; i nomi restano su ogni macchina.
+# The cleanup patterns specific to a plant: they name internal things
+# (server names, network folders), and a versioned tool that names them
+# publishes exactly what it was meant to remove. The mechanism is in
+# Checks/cleanup-history.js and is public; the names stay on each machine.
 #
-# LA REGOLA E' LARGA APPOSTA, e prima era il nome di quel file soltanto. La
-# convenzione `.local.js` era gia' nata e funzionava: allargarla adesso esclude
-# il PROSSIMO file con dentro nomi di impianto prima che esista, invece che il
-# giorno dopo averlo pubblicato.
+# THE RULE IS WIDE ON PURPOSE, and before it was the name of that file only. The
+# `.local.js` convention had already been born and worked: widening it now excludes
+# the NEXT file with plant names inside before it exists, instead of the
+# day after it has been published.
 Checks/*.local.js
 
-# Le note che servono solo a noi. Ci stanno:
+# The notes that are only for us. They are:
 #
-#   TODO.md                 il diario di lavoro: diciassettemila righe che
-#                           nominano l'autore, le postazioni, le decisioni
-#                           ancora da prendere e i giudizi su progetti altrui.
-#                           Cinque sonde lo controllano e continuano a farlo da
-#                           qui; su un clone che non ce l'ha si fermano dicendo
-#                           che non hanno controllato (Checks/where-is-the-todo.js).
-#   CONFRONTO.md            il confronto con un progetto altrui, nominato.
-#   PROVE-INSTALLATORE.md   gli esiti di UNA sessione di collaudo del
-#                           14/9/2026, ferma a Installer.exe 0.7.1.
+#   TODO.md                 the work journal: seventeen thousand lines that
+#                           name the author, the workstations, the decisions
+#                           still to be made and the judgments on other people's projects.
+#                           Five probes check it and keep doing so from
+#                           here; on a clone that does not have it they stop saying
+#                           that they did not check (Checks/where-is-the-todo.js).
+#   CONFRONTO.md            the comparison with someone else's project, by name.
+#   PROVE-INSTALLATORE.md   the results of ONE acceptance session of
+#                           14/9/2026, stopped at Installer.exe 0.7.1.
 #
-# SENZA QUESTA RIGA IL PRIMO `git add -A` LI RIMETTE DENTRO. Ed e' esattamente
-# cosi' che c'erano finiti la prima volta: nessuno li aveva mai esclusi.
+# WITHOUT THIS LINE THE FIRST `git add -A` PUTS THEM BACK IN. And it is exactly
+# how they ended up there the first time: nobody had ever excluded them.
 note-interne/
 
-# I backup che l'installatore fa della configurazione del client prima di
-# toccarla: hanno il timestamp nel nome e nascono nella cartella dove si
-# collauda. Oggi non ne e' tracciato nessuno; costa una riga tenerli fuori
-# prima che uno nasca durante una prova e finisca in un commit.
+# The backups that the installer makes of the client configuration before
+# touching it: they have the timestamp in the name and are born in the folder where
+# testing happens. Today none is tracked; it costs one line to keep them out
+# before one is born during a test and ends up in a commit.
 *.bak
 
-# Le worktree degli agenti (workflow): copie di lavoro separate, mai versionate.
+# The agents' worktrees (workflow): separate working copies, never versioned.
 .claude/

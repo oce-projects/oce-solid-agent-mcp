@@ -4,16 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <!-- WinExe e non Exe: senza, si apre una finestra nera del prompt dietro
-         alla finestra dell'installatore, e la prima impressione di un
-         installatore e' meta' del suo lavoro. -->
+    <!-- WinExe and not Exe: without it, a black prompt window opens behind
+         the installer window, and the first impression of an
+         installer is half of its job.-->
     <OutputType>WinExe</OutputType>
     <RootNamespace>Oce.Solid.Agent.Installer</RootNamespace>
     <AssemblyName>Installer</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <!-- x64 come il ponte e come SOLIDWORKS. L'installatore legge la versione
-         di DLL a 64 bit: un processo a 32 bit vedrebbe un'altra vista del
-         registro e un'altra Program Files. -->
+    <!-- x64 like the bridge and like SOLIDWORKS. The installer reads the 64 bit
+         DLL version: a 32 bit process would see another view of the
+         registry and another Program Files.-->
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
     <LangVersion>7.3</LangVersion>
@@ -44,26 +44,26 @@
   </ItemGroup>
   <ItemGroup>
     <!--
-      IL PONTE DENTRO L'INSTALLATORE.
+      THE BRIDGE INSIDE THE INSTALLER.
 
-      Tutto quello che sta in Payload\ diventa una risorsa incorporata, cosi'
-      `Installer.exe` e' UN FILE SOLO: si scarica, doppio clic, finito. Niente
-      zip da scompattare, niente «metti questo accanto a quello».
+      Everything in Payload\ becomes an embedded resource, so that
+      `Installer.exe` is A SINGLE FILE: download, double click, done. No
+      zip to unpack, no «put this next to that».
 
-      La cartella e' vuota nel repository e la riempie build.ps1 subito prima di
-      compilare. Se e' vuota, l'installatore compila lo stesso e cerca i file
-      accanto a se': e' il modo in cui lavora chi sviluppa, senza dover
-      mantenere due strade diverse.
+      The folder is empty in the repository and build.ps1 fills it right before
+      compiling. If it is empty, the installer compiles all the same and looks for the files
+      next to itself: it is the way the developer works, without having to
+      maintain two different roads.
 
-      L'add-in NON si mette qui: e' codice privato, e un installatore pubblico
-      che se lo porta dietro lo pubblica.
+      The add-in is NOT put here: it is private code, and a public installer
+      that carries it around publishes it.
     -->
     <EmbeddedResource Include="Payload\**\*" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 
-  <!-- LA VERSIONE WIN32 DA VERSION.txt (voce H14): stessa regola del ponte.
-       Tasto destro -> Proprieta' -> Dettagli su Installer.exe diceva 0.0.0.0. -->
+  <!-- THE WIN32 VERSION FROM VERSION.txt (entry H14): same rule as the bridge.
+       Right click -> Properties -> Details on Installer.exe said 0.0.0.0.-->
   <Target Name="VersioneDaFile" BeforeTargets="CoreCompile">
     <ReadLinesFromFile File="$(MSBuildThisFileDirectory)..\VERSION.txt">
       <Output TaskParameter="Lines" PropertyName="VersionePonte" />

@@ -2,41 +2,30 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 144880,
+  "comments": 133054,
   "strings": 54069,
   "markdown": 11388,
   "json_values": 54655,
-  "identifiers": 1727,
+  "identifiers": 1726,
   "json_keys": 14,
   "protocol": 845,
   "paths": 0,
   "transition": 2192
  },
  "files": {
-  ".gitattributes": {
-   "comments": 176
-  },
   ".github/steps/executables-exist.ps1": {
-   "comments": 54,
+   "comments": 1,
    "strings": 30
   },
   ".github/steps/how-much-did-not-run.ps1": {
-   "comments": 65,
    "strings": 37
   },
   ".github/steps/interop-is-there.ps1": {
-   "comments": 118,
    "strings": 10
   },
   ".github/workflows/tests.yml": {
-   "comments": 391,
+   "comments": 18,
    "strings": 28
-  },
-  ".gitignore": {
-   "comments": 485
-  },
-  "App.config": {
-   "comments": 55
   },
   "Bench/ClientPort.cs": {
    "comments": 995,
@@ -1002,27 +991,21 @@
    "comments": 302,
    "strings": 88
   },
-  "Bridge/DocumentTurn.cs": {
-   "comments": 365
-  },
   "Bridge/Documents.cs": {
-   "comments": 388,
    "strings": 242
   },
   "Bridge/Paths.cs": {
-   "comments": 295,
    "strings": 71
   },
   "Bridge/PlanInMemory.cs": {
-   "comments": 314,
    "strings": 3
   },
   "Bridge/Session.cs": {
-   "comments": 1983,
-   "strings": 222
+   "strings": 222,
+   "comments": 1
   },
   "Bridge/Shape.cs": {
-   "comments": 484,
+   "comments": 5,
    "strings": 48
   },
   "CHANGELOG.md": {
@@ -1289,52 +1272,27 @@
    "markdown": 5
   },
   "Installer/Configuration.cs": {
-   "comments": 469,
    "strings": 77
   },
-  "Installer/Installer.csproj": {
-   "comments": 121
-  },
   "Installer/Payload.cs": {
-   "comments": 244,
    "strings": 40
   },
   "Installer/Program.cs": {
-   "comments": 218,
    "strings": 77
   },
   "Installer/Steps.cs": {
-   "comments": 648,
    "strings": 215
   },
   "Installer/Window.cs": {
-   "comments": 138,
    "strings": 88
   },
-  "Installer/app.manifest": {
-   "comments": 82
-  },
-  "Mcp/Elicitation.cs": {
-   "comments": 301
-  },
-  "Mcp/Progress.cs": {
-   "comments": 427
-  },
-  "Mcp/Protocol.cs": {
-   "comments": 701
-  },
   "Mcp/Risorse.cs": {
-   "comments": 394,
    "strings": 34
   },
   "NOTICE": {
    "markdown": 196
   },
-  "Oce.Solid.Agent.Catalog/Oce.Solid.Agent.Catalog.csproj": {
-   "comments": 75
-  },
   "Oce.Solid.Agent.Catalog/Program.cs": {
-   "comments": 79,
    "strings": 33
   },
   "Oce.Solid.Agent.Core/Alias.cs": {
@@ -1655,11 +1613,7 @@
    "comments": 3048,
    "strings": 1402
   },
-  "Oce.Solid.Agent.csproj": {
-   "comments": 217
-  },
   "Program.cs": {
-   "comments": 688,
    "strings": 166
   },
   "QUICKSTART.md": {
@@ -1669,17 +1623,9 @@
    "markdown": 2524
   },
   "Shared/Leash.cs": {
-   "comments": 292,
    "strings": 44
   },
-  "Shared/McpClient.cs": {
-   "comments": 407
-  },
-  "Shared/PreparationFailed.cs": {
-   "comments": 148
-  },
   "Shared/SolidWorksSentinel.cs": {
-   "comments": 512,
    "strings": 34
   },
   "Tests/AliasLayerContract.cs": {
@@ -1829,7 +1775,6 @@
    "markdown": 491
   },
   "build.ps1": {
-   "comments": 517,
    "strings": 103
   }
  },
@@ -3226,7 +3171,6 @@
    "puntoSull",
    "punto_mm",
    "quadrato",
-   "qualcosa",
    "quale",
    "qualita",
    "qualsiasi",

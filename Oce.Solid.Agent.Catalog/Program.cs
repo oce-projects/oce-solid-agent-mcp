@@ -6,24 +6,24 @@ using Oce.Solid.Agent.Core.Catalog;
 namespace Oce.Solid.Agent.Catalog
 {
     /// <summary>
-    /// Scrive `catalog.json` dal catalogo C#.
+    /// Writes `catalog.json` from the C# catalog.
     ///
-    ///     Oce.Solid.Agent.Catalog.exe                 stampa il JSON
-    ///     Oce.Solid.Agent.Catalog.exe file.json       lo scrive li'
-    ///     Oce.Solid.Agent.Catalog.exe --controlla f   dice solo se combacia (esce 1 se no)
+    ///     Oce.Solid.Agent.Catalog.exe                 prints the JSON
+    ///     Oce.Solid.Agent.Catalog.exe file.json       writes it there
+    ///     Oce.Solid.Agent.Catalog.exe --controlla f   only says whether it matches (exits 1 if not)
     ///
-    /// **Non serve ne' Python, ne' docker, ne' la rete.** Prima serviva tutto e
-    /// tre: chi clonava il repository non poteva rigenerare il catalogo, e un
-    /// file che non si puo' rigenerare e' un file che nessuno osa toccare.
+    /// **It needs neither Python, nor docker, nor the network.** It used to need all
+    /// three: whoever cloned the repository could not regenerate the catalog, and a
+    /// file that cannot be regenerated is a file nobody dares to touch.
     /// </summary>
     internal static class Program
     {
         private static int Main(string[] args)
         {
-            // UTF-8 SENZA BOM E A CAPO SOLO AVANZAMENTO RIGA.
-            // Il file di prima era cosi', e il criterio con cui si e' verificata
-            // la traduzione e' che il nuovo fosse identico byte per byte. Un
-            // BOM o un CRLF renderebbero diverso un file che e' uguale.
+            // UTF-8 WITHOUT BOM AND LINE FEED ONLY AS LINE END.
+            // The previous file was like that, and the criterion by which the translation
+            // was verified is that the new one is byte for byte identical. A
+            // BOM or a CRLF would make a file that is equal come out different.
             var withoutBom = new UTF8Encoding(false);
 
             string json = Export.Json();
@@ -53,8 +53,8 @@ namespace Oce.Solid.Agent.Catalog
                     return 0;
                 }
 
-                // SI DICE DOVE, NON SOLO CHE. Un «sono diversi» su un file da
-                // settantamila caratteri manda a cercare a occhio.
+                // SAY WHERE, NOT ONLY THAT. A «they differ» on a file of
+                // seventy thousand characters sends the reader looking by eye.
                 int i = 0;
                 int fin = Math.Min(old.Length, json.Length);
                 while (i < fin && old[i] == json[i]) i++;

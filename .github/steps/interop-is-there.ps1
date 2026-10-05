@@ -1,20 +1,20 @@
 # =============================================================================
-#  C'e' l'interop di Dassault su questa macchina?
+#  Is the Dassault interop on this machine?
 # =============================================================================
 #
-#  Scrive `ce=si|no` (e `dove=...`) su $env:GITHUB_OUTPUT, cosi' che il passo
-#  che compila il ponte possa saltarsi da solo dove non si puo' compilare.
+#  Writes `ce=si|no` (and `dove=...`) to $env:GITHUB_OUTPUT, so that the step
+#  that builds the bridge can skip itself where it cannot build.
 #
-#  PERCHE' STA IN UN FILE E NON DENTRO IL WORKFLOW. Il difetto che ha fatto
-#  nascere la voce F9-bis e' "la CI non e' mai girata": scrivere PowerShell
-#  dentro un YAML che nessuno esegue e' lo stesso difetto spostato di un
-#  livello -- un errore di sintassi si scoprirebbe alla prima corsa, cioe' mai.
-#  In un `.ps1` lo prende `Checks\check-workflow.ps1`, che gira in
-#  locale, e lo si puo' lanciare a mano.
+#  WHY IT LIVES IN A FILE AND NOT INSIDE THE WORKFLOW. The defect that gave rise
+#  to the entry F9-bis is "the CI has never run": writing PowerShell
+#  inside a YAML that nobody executes is the same defect moved up one
+#  level -- a syntax error would be found on the first run, that is, never.
+#  In a `.ps1` it is caught by `Checks\check-workflow.ps1`, which runs
+#  locally, and it can be launched by hand.
 #
-#  SI CERCA DOVE CERCA MSBUILD, NELLO STESSO ORDINE. La domanda e' esattamente
-#  "msbuild l'avrebbe trovata?": cercarla altrove risponderebbe a un'altra
-#  domanda.
+#  IT LOOKS WHERE MSBUILD LOOKS, IN THE SAME ORDER. The question is exactly
+#  "would msbuild have found it?": looking for it elsewhere would answer a
+#  different question.
 # =============================================================================
 
 $ErrorActionPreference = 'Stop'
@@ -29,9 +29,9 @@ foreach ($p in $places) {
     if (Test-Path (Join-Path $p 'SolidWorks.Interop.sldworks.dll')) { $found = $p; break }
 }
 
-# Fuori da GitHub (cioe' quando si lancia a mano per provarlo) non c'e'
-# $env:GITHUB_OUTPUT: si stampa e basta, invece di esplodere. Uno script che
-# si puo' provare solo dentro la CI e' uno script che non si prova.
+# Outside GitHub (that is, when it is launched by hand to try it) there is no
+# $env:GITHUB_OUTPUT: it just prints, instead of blowing up. A script that
+# can only be tried inside the CI is a script that is never tried.
 function SayIt($line) {
     Write-Output $line
     if ($env:GITHUB_OUTPUT) { $line | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8 }

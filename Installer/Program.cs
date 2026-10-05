@@ -9,11 +9,11 @@ namespace Oce.Solid.Agent.Installer
     internal static class Program
     {
         /// <summary>
-        /// STAThread non e' una formalita': senza, le finestre di dialogo del
-        /// sistema — «Sfoglia», e i controlli che usano il COM — si comportano
-        /// in modo imprevedibile o si piantano. E' l'errore che si scopre solo
-        /// quando qualcuno clicca il bottone sbagliato su una macchina
-        /// diversa dalla tua.
+        /// STAThread is not a formality: without it, the system dialog
+        /// windows — «Browse», and the controls that use COM — behave
+        /// unpredictably or hang. It is the error that is found only when
+        /// someone clicks the wrong button on a machine
+        /// different from yours.
         /// </summary>
         [STAThread]
         private static int Main(string[] arguments)
@@ -26,13 +26,13 @@ namespace Oce.Solid.Agent.Installer
                 return 0;
             }
 
-            // MODO SILENZIOSO: per chi installa su piu' postazioni, o da uno
-            // script di distribuzione. Fa le stesse cose della finestra e
-            // scrive su console invece che in un riquadro.
-            // TOGLIERE SENZA APRIRE LA FINESTRA.
-            // Chi ha installato da script deve poter togliere da script, e
-            // la prova che la cartella NON si cancella quando dentro resta
-            // roba d'altri va potuta rifare senza un dito sul mouse.
+            // SILENT MODE: for whoever installs on several workstations, or from a
+            // distribution script. It does the same things as the window and
+            // writes to the console instead of to a box.
+            // REMOVE WITHOUT OPENING THE WINDOW.
+            // Whoever installed from a script must be able to remove from a script, and
+            // the proof that the folder is NOT deleted when there remains
+            // stuff belonging to others inside must be repeatable without a finger on the mouse.
             bool uninstall = arguments.Any(a => Equal(a, "--disinstalla"));
             bool verify = arguments.Any(a => Equal(a, "--verify"));
             bool silent = arguments.Any(a => Equal(a, "--silenzioso") || Equal(a, "-s"));
@@ -77,8 +77,8 @@ namespace Oce.Solid.Agent.Installer
             }
             catch (Exception ex)
             {
-                // Un installatore che sparisce senza dire niente e' il modo
-                // piu' rapido di far concludere che il programma e' rotto.
+                // An installer that disappears without saying anything is the quickest
+                // way to make people conclude that the program is broken.
                 MessageBox.Show(
                     "L'installatore si e' fermato per un errore che non ha saputo " +
                     "gestire:\n\n" + ex.Message + "\n\n" + ex.GetType().Name,
@@ -90,7 +90,7 @@ namespace Oce.Solid.Agent.Installer
         // ── THE EXIT CODES OF A SILENT INSTALL (entry H19, B1) ────────────
         //
         // Until 0.125.0 a silent install exited 0 when no client had been
-        // wired at all: the exceptions of Collega were printed and swallowed,
+        // wired at all: the exceptions of Connect were printed and swallowed,
         // and with no client found nothing was printed. INSTALL-FOR-AI told
         // an assistant to read the exit code, and the exit code said
         // "installed". Now, checked in this order:
@@ -129,7 +129,7 @@ namespace Oce.Solid.Agent.Installer
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Toglie l'installazione.
+        /// Removes the installation.
         ///
         /// AND THE CLIENT ENTRY, UNLESS --keep-client (entry H19, A5; decision
         /// L0b, the author's default, the owner can change it: H15 point 3).
@@ -189,10 +189,10 @@ namespace Oce.Solid.Agent.Installer
         /// <summary>The clients a run touches: the one file of --config, or those found installed.</summary>
         private static List<Client> ClientsToTouch(string chosenConfig)
         {
-            // CON --config SI COLLEGA QUEL FILE E BASTA.
-            // Non si va a cercare quali client sono installati: chi ha
-            // indicato un file sa cosa vuole, e andare a toccarne altri
-            // sarebbe fare piu' di quello che e' stato chiesto.
+            // WITH --config THAT FILE IS WIRED AND THAT IS ALL.
+            // It does not go looking for which clients are installed: whoever
+            // indicated a file knows what they want, and going to touch others
+            // would be doing more than what was asked.
             return string.IsNullOrWhiteSpace(chosenConfig)
                 ? Configuration.FoundClients().Where(c => c.Installed).ToList()
                 : new List<Client> { new Client { Name = "file indicato", File = chosenConfig, Installed = true } };
@@ -254,10 +254,10 @@ namespace Oce.Solid.Agent.Installer
 
             Action<string> tell = line => Console.WriteLine("  " + line);
 
-            // SOLO ASCII SU CONSOLE. Ci si attacca alla console di chi ha
-            // lanciato il comando, con la sua tabella codici: un trattino lungo
-            // o un accento escono come un rombo con un punto interrogativo, e
-            // un installatore che stampa caratteri rotti sembra rotto lui.
+            // ASCII ONLY ON THE CONSOLE. We attach to the console of whoever
+            // launched the command, with its code page: a long dash
+            // or an accent come out as a diamond with a question mark, and
+            // an installer that prints broken characters looks broken itself.
             Console.WriteLine(Steps.ProductName + " - installazione silenziosa");
 
             var checks = Steps.Check(redist);
@@ -339,9 +339,9 @@ namespace Oce.Solid.Agent.Installer
                     try
                     {
                         Wire(client, executable, redist, weldmentProfiles, chosenConfig, tell);
-                        // La finestra lo diceva, il modo silenzioso no (voce
-                        // H15): un client aperto legge la configurazione solo
-                        // all'avvio, e chi installa da script non lo vede.
+                        // The window said it, the silent mode did not (entry
+                        // H15): an open client reads the configuration only at
+                        // startup, and whoever installs from a script does not see it.
                         if (Configuration.IsOpen(client))
                             tell("ATTENZIONE: " + client.Name + " e' aperto adesso: chiudilo e " +
                                      "riaprilo, se no non legge la configurazione nuova.");
@@ -371,9 +371,9 @@ namespace Oce.Solid.Agent.Installer
                                   "block above, then run Installer.exe --verify. (exit 3)");
                 return ExitClientNotWired;
             }
-            // «Installato» si dice solo se il giro secco lo conferma, oppure se
-            // l'unico motivo per cui non conferma e' che SOLIDWORKS e' chiuso —
-            // che non e' un problema di installazione. The exit code of the
+            // «Installed» is said only if the dry run confirms it, or if
+            // the only reason why it does not confirm is that SOLIDWORKS is closed —
+            // which is not an installation problem. The exit code of the
             // self-test says which, not its text (entry H19, B3).
             if (Steps.SelfTestAccepted(code))
             {
@@ -390,9 +390,9 @@ namespace Oce.Solid.Agent.Installer
 
         private static void Show(string text)
         {
-            // Un eseguibile WinExe non ha una console propria: ci si attacca a
-            // quella di chi l'ha lanciato, se c'e'. Senza questo, `--aiuto` da
-            // un prompt non stamperebbe niente.
+            // A WinExe executable does not have a console of its own: it attaches to
+            // that of whoever launched it, if there is one. Without this, `--aiuto` from
+            // a prompt would print nothing.
             if (!Output.AttachIfNeeded()) MessageBox.Show(text, Steps.ProductName);
             else Console.WriteLine(text);
         }

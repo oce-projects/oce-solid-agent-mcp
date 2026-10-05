@@ -5,61 +5,61 @@ using Oce.Solid.Agent.Tools;
 namespace Oce.Solid.Agent.Mcp
 {
     /// <summary>
-    /// IL CATALOGO COME **RISORSA**, non solo come strumento (voce W2.12).
+    /// THE CATALOG AS A **RESOURCE**, not only as a tool (entry W2.12).
     ///
-    /// ── CHE DIFFERENZA FA, VISTO CHE IL CONTENUTO E' LO STESSO ──────────
+    /// ── WHAT DIFFERENCE IT MAKES, GIVEN THAT THE CONTENT IS THE SAME ────
     ///
-    /// Uno strumento lo chiama il MODELLO, quando decide di chiamarlo. Una
-    /// risorsa la attacca **chi usa il client**, prima ancora che il modello
-    /// parli: si sceglie dall'elenco e finisce nel contesto. Sono due momenti
-    /// diversi e due decisioni di due persone diverse.
+    /// A tool is called by the MODEL, when it decides to call it. A
+    /// resource is attached by **whoever uses the client**, before the model
+    /// even speaks: it is chosen from the list and ends up in the context. They are two different
+    /// moments and two decisions by two different people.
     ///
-    /// Per questo catalogo la differenza e' concreta: `list_operations` costa
-    /// un giro di strumento — il modello deve prima capire che gli serve, poi
-    /// chiederlo, poi leggere la risposta. Chi lavora sa gia' che gli serve, e
-    /// con una risorsa lo mette li' e basta. **Non e' un'altra copia del
-    /// catalogo: e' un'altra porta sulla stessa.**
+    /// For this catalog the difference is concrete: `list_operations` costs
+    /// a tool round — the model must first understand that it needs it, then
+    /// ask for it, then read the answer. Whoever works already knows they need it, and
+    /// with a resource they just put it there. **It is not another copy of the
+    /// catalog: it is another door onto the same one.**
     ///
-    /// ── E QUI C'ERA IL PERICOLO VERO ────────────────────────────────────
+    /// ── AND HERE WAS THE REAL DANGER ────────────────────────────────────
     ///
-    /// Due porte sulla stessa cosa diventano due cose il giorno in cui una
-    /// delle due si scrive a parte. Percio' questa classe **non sa niente del
-    /// catalogo**: prende lo stesso oggetto `Catalog` che usano gli strumenti
-    /// e chiama gli stessi due metodi, `Items(null)` e `Description(nome)`.
-    /// Non c'e' nessun punto in cui si possa scrivere «anche» qui.
-    /// Una prova di contratto lo verifica byte per byte, perche' *una regola
-    /// che sta solo in un commento e' una regola che un giorno qualcuno non
-    /// legge.*
+    /// Two doors onto the same thing become two things the day one
+    /// of the two is written separately. So this class **knows nothing about the
+    /// catalog**: it takes the same `Catalog` object that the tools use
+    /// and calls the same two methods, `Items(null)` and `Description(nome)`.
+    /// There is no point where one could write «also» here.
+    /// A contract check verifies it byte for byte, because *a rule
+    /// that lives only in a comment is a rule that one day someone does not
+    /// read.*
     ///
-    /// ── PERCHE' UNA RISORSA SOLA PIU' UN MODELLO DI URI ─────────────────
+    /// ── WHY ONE RESOURCE PLUS A URI TEMPLATE ────────────────────────────
     ///
-    /// Le operazioni sono piu' di sessanta — **il numero non si scrive qui**,
-    /// perche' cambia e un numero fermo in un commento diventa una bugia (e' la
-    /// stessa ragione per cui il README e' controllato da una prova invece che
-    /// a memoria). Elencarle una per una come risorse
-    /// vorrebbe dire mandare sessanta righe a ogni `resources/list`, e chi
-    /// guarda l'elenco cerca *il catalogo*, non `fillet_edges`. Percio':
+    /// The operations are more than sixty — **the number is not written here**,
+    /// because it changes and a fixed number in a comment becomes a lie (it is the
+    /// same reason why the README is checked by a test instead of
+    /// by memory). Listing them one by one as resources
+    /// would mean sending sixty lines on every `resources/list`, and whoever
+    /// looks at the list is looking for *the catalog*, not `fillet_edges`. So:
     ///
-    ///   - **una risorsa**, `catalog://operations`, che e' l'elenco corto —
-    ///     la stessa cosa che risponde `list_operations`;
-    ///   - **un modello di URI**, `catalog://operation/{name}`, per lo schema
-    ///     completo di una sola. Un modello di URI e' la forma che il
-    ///     protocollo ha per dire «ce ne sono tante e si chiamano cosi'»
-    ///     invece di elencarle.
+    ///   - **one resource**, `catalog://operations`, which is the short list —
+    ///     the same thing that `list_operations` answers;
+    ///   - **a URI template**, `catalog://operation/{name}`, for the full
+    ///     schema of a single one. A URI template is the form the
+    ///     protocol has for saying «there are many and they are called like this»
+    ///     instead of listing them.
     ///
-    /// E' lo stesso catalogo a due livelli che regge gli strumenti, detto nel
-    /// vocabolario delle risorse.
+    /// It is the same two-level catalog that holds up the tools, said in the
+    /// vocabulary of resources.
     /// </summary>
     internal sealed class Risorse
     {
         /// <summary>
-        /// L'elenco corto. Scritto una volta sola perche' compare in tre
-        /// posti — l'elenco, la lettura e la prova — e tre stringhe uguali
-        /// scritte a mano diventano tre stringhe diverse.
+        /// The short list. Written only once because it appears in three
+        /// places — the list, the reading and the check — and three equal strings
+        /// written by hand become three different strings.
         /// </summary>
         public const string UriList = "catalog://operations";
 
-        /// <summary>La parte fissa di `catalog://operation/&lt;name&gt;`.</summary>
+        /// <summary>The fixed part of `catalog://operation/&lt;name&gt;`.</summary>
         public const string OperationPrefix = "catalog://operation/";
 
         private readonly Catalog _catalog;
@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Mcp
         public Risorse(Catalog catalog) { _catalog = catalog; }
 
         /// <summary>
-        /// Cosa c'e' da attaccare. Una voce sola: vedi sopra.
+        /// What there is to attach. A single entry: see above.
         /// </summary>
         public object Items()
         {
@@ -90,7 +90,7 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// I modelli di URI: le operazioni una per una, senza elencarle.
+        /// The URI templates: the operations one by one, without listing them.
         /// </summary>
         public object Models()
         {
@@ -110,12 +110,12 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// Il contenuto di un URI, o `null` se questo URI non lo conosco.
+        /// The content of a URI, or `null` if I do not know this URI.
         ///
-        /// **`null` non e' un errore silenzioso**: chi chiama lo trasforma in
-        /// un errore di protocollo che dice quali URI esistono. Qui si torna
-        /// `null` e basta perche' questa classe non sa come si scrive un
-        /// errore JSON-RPC, e non deve saperlo.
+        /// **`null` is not a silent error**: whoever calls turns it into
+        /// a protocol error that says which URIs exist. Here `null` is returned
+        /// and nothing else because this class does not know how a JSON-RPC
+        /// error is written, and must not need to.
         /// </summary>
         public object Read(string uri)
         {
@@ -127,10 +127,10 @@ namespace Oce.Solid.Agent.Mcp
             if (uri.StartsWith(OperationPrefix, StringComparison.Ordinal))
             {
                 var itemName = uri.Substring(OperationPrefix.Length);
-                // Un URI puo' arrivare con le lettere non ASCII codificate.
-                // I nomi delle operazioni sono tutti ASCII, ma `%20` su un
-                // nome sbagliato deve dare «non conosco quel nome», non «URI
-                // storto»: sono due messaggi diversi per chi legge.
+                // A URI can arrive with the non-ASCII letters encoded.
+                // The names of the operations are all ASCII, but `%20` on a
+                // wrong name must give «I do not know that name», not «crooked
+                // URI»: they are two different messages for the reader.
                 try { itemName = Uri.UnescapeDataString(itemName); } catch { }
                 var descriptionText = _catalog.Description(itemName);
                 if (descriptionText == null) return null;
@@ -141,8 +141,8 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// I nomi che somigliano a quello chiesto, per l'errore. Sta qui e non
-        /// in chi chiama perche' e' il catalogo a saperlo.
+        /// The names that resemble the one asked for, for the error. It lives here and not
+        /// in the caller because the catalog is what knows it.
         /// </summary>
         public List<string> Similar(string uri)
         {
@@ -163,10 +163,10 @@ namespace Oce.Solid.Agent.Mcp
                     {
                         ["uri"] = uri,
                         ["mimeType"] = "application/json",
-                        // IL TESTO, NON L'OGGETTO. `resources/read` vuole
-                        // `text` o `blob`: mandare l'oggetto strutturato
-                        // sarebbe una risposta che sembra giusta e che un
-                        // client legge vuota.
+                        // THE TEXT, NOT THE OBJECT. `resources/read` wants
+                        // `text` or `blob`: sending the structured object
+                        // would be an answer that looks right and that a
+                        // client reads as empty.
                         ["text"] = Protocol.InJson(data),
                     },
                 },

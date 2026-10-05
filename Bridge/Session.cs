@@ -4,70 +4,70 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Oce.Solid.Agent.Core;
-// ATTENZIONE AL NOME: SolidWorks.Interop.sldworks ha un tipo `Environment`,
-// che rende ambiguo `Environment.GetEnvironmentVariable`. Qui sotto quelle
-// chiamate sono qualificate `System.Environment`: non e prolissita, senza
-// non compila.
+// BEWARE OF THE NAME: SolidWorks.Interop.sldworks has a type `Environment`,
+// which makes `Environment.GetEnvironmentVariable` ambiguous. Below, those
+// calls are qualified `System.Environment`: it is not verbosity, without it
+// it does not compile.
 using SolidWorks.Interop.sldworks;
 
 namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
-    /// L'aggancio a SolidWorks e alla libreria di disegno vera.
+    /// The attachment to SolidWorks and to the real drawing library.
     ///
-    /// NON SI RISCRIVE NIENTE. Le operazioni di disegno sono quelle di
-    /// `Oce.Solid.Agent.Core`, chiamate direttamente: cosi' quello che si
-    /// prova da qui e' ESATTAMENTE quello che il progettista avra' in mano.
-    /// Una seconda implementazione «solo per le prove» misurerebbe se stessa —
-    /// che e' il modo piu' elegante di non misurare niente.
+    /// NOTHING IS REWRITTEN. The drawing operations are those of
+    /// `Oce.Solid.Agent.Core`, called directly: so what is
+    /// tested from here is EXACTLY what the designer will have in hand.
+    /// A second implementation «only for tests» would measure itself —
+    /// which is the most elegant way of measuring nothing.
     ///
-    /// Fino all'add-in 0.46.0 la libreria caricata era `OpenPDM.SwAddin.dll`,
-    /// cioe' il ponte tirava dentro tutto il PDM per disegnare un foro, e la
-    /// riflessione era l'unico modo: quella DLL e' privata e questo
-    /// repository non poteva referenziarla.
+    /// Up to add-in 0.46.0 the library loaded was `OpenPDM.SwAddin.dll`,
+    /// that is the bridge pulled in the whole PDM to draw a hole, and
+    /// reflection was the only way: that DLL is private and this
+    /// repository could not reference it.
     ///
-    /// Dalla 0.6.0 `Oce.Solid.Agent.Core` sta qui dentro e si referenzia come
-    /// un progetto qualunque. **La riflessione sui tipi della libreria non
-    /// c'e' piu'**: i nomi sono nomi, non stringhe, e un errore di battitura
-    /// lo prende il compilatore invece del cliente.
+    /// Since 0.6.0 `Oce.Solid.Agent.Core` is in here and is referenced like
+    /// any project. **Reflection on the types of the library is
+    /// gone**: names are names, not strings, and a typing error
+    /// is caught by the compiler instead of by the customer.
     ///
-    /// Resta il late binding verso SOLIDWORKS (`ActiveDocument`,
-    /// `Identity`, `Invoke`), e non e' una svista: e' la strada misurata,
-    /// e il commento sopra `ActiveDocument` racconta perche'.
+    /// The late binding towards SOLIDWORKS remains (`ActiveDocument`,
+    /// `Identity`, `Invoke`), and it is not an oversight: it is the measured road,
+    /// and the comment above `ActiveDocument` tells why.
     ///
-    /// NON SI AVVIA SOLIDWORKS. Ci si aggancia a una sessione che c'e' gia'.
-    /// Un ponte che avvia il programma decide per conto di chi lo usa quale
-    /// versione, quale licenza e quale documento: se non e' aperto, si dice e
-    /// ci si ferma.
+    /// SOLIDWORKS IS NOT STARTED. It attaches to a session that is already there.
+    /// A bridge that starts the program decides on behalf of whoever uses it which
+    /// version, which license and which document: if it is not open, it says so and
+    /// stops.
     /// </summary>
-    // `partial`: il ciclo di vita del documento (nuovo, apri, elenca, attiva)
-    // sta in Bridge/Documents.cs, voci Z-B1, Z-B2, Z-B5, Z-B6.
+    // `partial`: the life cycle of the document (new, open, list, activate)
+    // is in Bridge/Documents.cs, entries Z-B1, Z-B2, Z-B5, Z-B6.
     internal sealed partial class Session
     {
-        private object _sw;                 // ISldWorks, tenuto come object
+        private object _sw;                 // ISldWorks, kept as object
 
         /// <summary>
-        /// L'assembly della libreria, tenuto SOLO per dirne la versione.
-        /// I tipi non si cercano piu' qui dentro: si nominano.
+        /// The assembly of the library, kept ONLY to tell its version.
+        /// The types are no longer looked for in here: they are named.
         /// </summary>
         private Assembly _library;
         private bool _loaded;
 
         /// <summary>
-        /// Dove sta la libreria di disegno. Si puo' cambiare con
+        /// Where the drawing library is. It can be changed with
         /// `RISCONTRO_DISEGNO`.
         ///
-        /// **Non e' piu' `OpenPDM.SwAddin.dll`.** Le operazioni sono uscite
-        /// dall'add-in e vivono in `Oce.Solid.Agent.Core.dll` (add-in 0.47.0): il
-        /// ponte non ha piu' bisogno del PDM per disegnare.
+        /// **It is no longer `OpenPDM.SwAddin.dll`.** The operations left
+        /// the add-in and live in `Oce.Solid.Agent.Core.dll` (add-in 0.47.0): the
+        /// bridge no longer needs the PDM to draw.
         ///
-        /// Da quando la libreria e' referenziata invece che caricata a mano,
-        /// **questa proprieta' non decide piu' niente**: .NET carica la DLL da
-        /// solo, accanto all'eseguibile. Serve a due cose, tutte e due di chi
-        /// legge e non del programma — dire QUALE file si sta usando davvero, e
-        /// avvisare se qualcuno ha impostato una variabile che punta altrove,
-        /// invece di lasciargli credere che quella variabile conti ancora.
-        /// La vecchia `OPENPDM_ADDIN` resta letta per lo stesso motivo.
+        /// Since the library is referenced instead of loaded by hand,
+        /// **this property no longer decides anything**: .NET loads the DLL by
+        /// itself, next to the executable. It serves two things, both for whoever
+        /// reads and not for the program — saying WHICH file is really being used, and
+        /// warning if someone has set a variable that points elsewhere,
+        /// instead of letting them believe that variable still counts.
+        /// The old `OPENPDM_ADDIN` is still read for the same reason.
         /// </summary>
         public string LibraryPath { get; private set; }
 
@@ -84,8 +84,8 @@ namespace Oce.Solid.Agent.Bridge
         public AttachFailure Failure { get; private set; } = AttachFailure.None;
 
         /// <summary>
-        /// Dove SolidWorks tiene le sue librerie di interoperabilita'.
-        /// Si puo' cambiare con SW_INSTALL_PATH (vedi <see cref="RedistRequested"/>).
+        /// Where SolidWorks keeps its interoperability libraries.
+        /// It can be changed with SW_INSTALL_PATH (see <see cref="RedistRequested"/>).
         /// </summary>
         private static readonly string[] RedistPlaces =
         {
@@ -94,28 +94,28 @@ namespace Oce.Solid.Agent.Bridge
         };
 
         /// <summary>
-        /// LA CARTELLA REDIST CHIESTA DA CHI HA INSTALLATO, O `null` (voce H10).
+        /// THE REDIST FOLDER REQUESTED BY WHOEVER INSTALLED, OR `null` (entry H10).
         ///
-        /// ── PERCHE' DUE VARIABILI, E PERCHE' UNA SOLA E' QUELLA GIUSTA ───
+        /// ── WHY TWO VARIABLES, AND WHY ONLY ONE IS THE RIGHT ONE ───
         ///
-        /// C'erano **tre modi** di dire dove sta SOLIDWORKS, con **due
-        /// significati**: la radice dell'installazione (`SW_INSTALL_PATH`, che
-        /// i `.csproj` leggono gia') e la sottocartella `api\redist`
-        /// (`SW_REDIST`). Nessuno dei due era sbagliato, ma *due nomi per la
-        /// stessa cosa sono due cose che un giorno divergono*, e qui
-        /// divergevano gia': chi impostava quella per compilare doveva
-        /// impostare **anche** l'altra per far girare il ponte, senza che
-        /// niente glielo dicesse.
+        /// There were **three ways** of saying where SOLIDWORKS is, with **two
+        /// meanings**: the installation root (`SW_INSTALL_PATH`, which
+        /// the `.csproj` files already read) and the `api\redist` subfolder
+        /// (`SW_REDIST`). Neither was wrong, but *two names for the
+        /// same thing are two things that one day diverge*, and here they
+        /// were diverging already: whoever set one in order to build had to
+        /// set **also** the other to make the bridge run, without
+        /// anything telling them.
         ///
-        /// **Vince la radice.** Da `...\SOLIDWORKS` si ricava `api\redist`; al
-        /// contrario no — da una sottocartella si risalirebbe per convenzione,
-        /// e una convenzione indovinata e' il posto dove nascono i percorsi
-        /// plausibili e sbagliati.
+        /// **The root wins.** From `...\SOLIDWORKS` one derives `api\redist`; the
+        /// other way round no — from a subfolder one would go up by convention,
+        /// and a guessed convention is the place where plausible
+        /// and wrong paths are born.
         ///
-        /// `SW_REDIST` **resta letto**, e resta secondo: chi ce l'ha gia' nel
-        /// proprio profilo non deve accorgersi di niente. *Una variabile che
-        /// smette di funzionare senza dirlo e' peggio di una che non c'e' mai
-        /// stata.*
+        /// `SW_REDIST` **is still read**, and stays second: whoever already has it in
+        /// their own profile must not notice anything. *A variable that
+        /// stops working without saying so is worse than one that was never
+        /// there.*
         /// </summary>
         internal static string RedistRequested()
         {
@@ -127,18 +127,18 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// LE LIBRERIE DI DASSAULT NON SI COPIANO NEL REPOSITORY.
+        /// THE DASSAULT LIBRARIES ARE NOT COPIED INTO THE REPOSITORY.
         ///
-        /// L'add-in e' compilato contro `SolidWorks.Interop.sldworks.dll`:
-        /// appena si tocca un documento, .NET va a cercarla e la cerca
-        /// accanto all'eseguibile. Metterla li' vorrebbe dire ridistribuire
-        /// un binario di Dassault dentro un repository — e legarsi a una
-        /// versione, che e' il modo piu' sicuro di rompersi al prossimo
-        /// aggiornamento di SolidWorks.
+        /// The add-in is compiled against `SolidWorks.Interop.sldworks.dll`:
+        /// as soon as a document is touched, .NET goes to look for it and looks next
+        /// to the executable. Putting it there would mean redistributing
+        /// a Dassault binary inside a repository — and tying oneself to a
+        /// version, which is the surest way of breaking at the next
+        /// SolidWorks update.
         ///
-        /// Si prende invece quella INSTALLATA su questa macchina. Cosi' la
-        /// versione e' sempre quella giusta per definizione: e' la stessa
-        /// che sta girando.
+        /// The one INSTALLED on this machine is taken instead. So the
+        /// version is always the right one by definition: it is the same
+        /// one that is running.
         /// </summary>
         private static void FindTheSolidWorksLibraries()
         {
@@ -172,8 +172,8 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Si aggancia, oppure spiega perche' no. Non solleva: un ponte che
-        /// muore all'avvio non fa in tempo a dire niente a chi lo chiama.
+        /// It attaches, or explains why not. It does not throw: a bridge that
+        /// dies at startup has no time to say anything to whoever calls it.
         /// </summary>
         public string Attach()
         {
@@ -186,12 +186,12 @@ namespace Oce.Solid.Agent.Bridge
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
                     "Oce.Solid.Agent.Core.dll");
 
-            // NON SI RIFIUTA PIU' SE IL FILE NON C'E' DOVE CI SI ASPETTA.
-            // Il tipo adesso e' compilato dentro: se .NET non trovasse la
-            // DLL, il ponte non sarebbe nemmeno partito. Rifiutare qui
-            // vorrebbe dire fermarsi per un percorso sbagliato mentre la
-            // libreria giusta e' gia' in mano — un rifiuto di cio' che
-            // funziona, che e' il difetto peggiore.
+            // IT NO LONGER REFUSES IF THE FILE IS NOT WHERE IT IS EXPECTED.
+            // The type is now compiled in: if .NET could not find the
+            // DLL, the bridge would not even have started. Refusing here
+            // would mean stopping for a wrong path while the right
+            // library is already in hand — a refusal of what
+            // works, which is the worst defect.
             if (!File.Exists(LibraryPath))
                 Mcp.Protocol.Note(
                     "[ponte] «" + LibraryPath + "» non esiste; uso quella " +
@@ -199,15 +199,15 @@ namespace Oce.Solid.Agent.Bridge
 
             try
             {
-                // SI DICE QUALE FILE, ANCHE SE ADESSO IL TIPO E' COMPILATO.
+                // IT SAYS WHICH FILE, EVEN IF THE TYPE IS NOW COMPILED.
                 //
-                // `SwOperations` arriva dal riferimento di progetto, quindi
-                // .NET la carica da solo dalla cartella dell'eseguibile. Ma
-                // chi ha impostato RISCONTRO_DISEGNO o OPENPDM_ADDIN si
-                // aspetta che serva a qualcosa, e una variabile che non fa
-                // niente e' peggio di una che non esiste: si tocca il tipo e
-                // si guarda DA DOVE e' venuto davvero, poi lo si confronta
-                // con quello che era stato chiesto.
+                // `SwOperations` comes from the project reference, so
+                // .NET loads it by itself from the executable's folder. But
+                // whoever set RISCONTRO_DISEGNO or OPENPDM_ADDIN
+                // expects it to serve some purpose, and a variable that does
+                // nothing is worse than one that does not exist: the type is touched and
+                // it is seen WHERE it really came from, then it is compared
+                // with what had been asked.
                 _library = typeof(SwOperations).Assembly;
                 _loaded = true;
 
@@ -299,13 +299,13 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Cosa dire quando `GetActiveObject("SldWorks.Application")` fallisce
-        /// (voce H16). Sono DUE mancanze diverse con due azioni diverse, e fino
-        /// alla 0.87.0 avevano un messaggio solo:
+        /// What to say when `GetActiveObject("SldWorks.Application")` fails
+        /// (entry H16). They are TWO different shortcomings with two different actions, and up
+        /// to 0.87.0 they had one message only:
         ///
-        ///   MK_E_UNAVAILABLE    0x800401E3   installato, non aperto  -> aprilo
-        ///   CO_E_CLASSSTRING    0x800401F3   il ProgID non c'e'      -> non e' installato
-        ///   REGDB_E_CLASSNOTREG 0x80040154   classe non registrata   -> idem
+        ///   MK_E_UNAVAILABLE    0x800401E3   installed, not open      -> open it
+        ///   CO_E_CLASSSTRING    0x800401F3   the ProgID is not there  -> it is not installed
+        ///   REGDB_E_CLASSNOTREG 0x80040154   class not registered     -> same
         ///
         /// Since entry H19 (B3) no program reads these sentences: the installer
         /// reads the exit code of `--prova`, which comes from FailureOf. They are
@@ -330,33 +330,33 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Il PID del processo `SLDWORKS.exe` a cui ci si e' agganciati.
-        /// `0` quando non si e' riusciti a saperlo.
+        /// The PID of the `SLDWORKS.exe` process that we attached to.
+        /// `0` when it was not possible to find out.
         /// </summary>
         private int _pid;
 
         /// <summary>
-        /// Si chiede a SOLIDWORKS qual e' il suo processo, e si tiene il numero.
+        /// SOLIDWORKS is asked which is its process, and the number is kept.
         ///
-        /// PERCHE' NON `Process.GetProcessesByName("SLDWORKS")`. Su questa
-        /// macchina di sessioni SOLIDWORKS ce n'e' piu' di una — e' scritto fra
-        /// i vincoli del progetto e ci si e' gia' sbagliati una volta: cercare
-        /// per nome trova *un* processo, non *il* processo a cui questo ponte
-        /// parla, e un controllo che guarda il processo sbagliato risponde
-        /// «vivo» mentre il proprio e' morto. E' il difetto che non da' errore,
-        /// in un controllo scritto per prenderlo.
+        /// WHY NOT `Process.GetProcessesByName("SLDWORKS")`. On this
+        /// machine there is more than one SOLIDWORKS session — it is written among
+        /// the constraints of the project and we have already been wrong once: searching
+        /// by name finds *a* process, not *the* process this bridge
+        /// talks to, and a check that looks at the wrong process answers
+        /// «alive» while its own is dead. It is the defect that gives no error,
+        /// in a check written to catch it.
         ///
-        /// SI FA A RIFLESSIONE e si accetta di non riuscirci: `_sw` e' tenuto
-        /// come `object` apposta, e se `GetProcessID` non c'e' su questa
-        /// versione dell'interfaccia il ponte deve funzionare **come prima**,
-        /// non rifiutare. Un controllo nuovo che diventa una nuova causa di
-        /// rifiuto e' un peggioramento, non una difesa.
+        /// IT IS DONE BY REFLECTION and failure is accepted: `_sw` is kept
+        /// as `object` on purpose, and if `GetProcessID` is not there on this
+        /// version of the interface the bridge must work **as before**,
+        /// not refuse. A new check that becomes a new cause of
+        /// refusal is a worsening, not a defense.
         /// </summary>
         private void RememberProcess()
         {
             _pid = 0;
-            // Un nuovo aggancio cancella il ricordo del vecchio: e' proprio la
-            // cosa che si fa dopo aver riavviato SOLIDWORKS.
+            // A new attachment erases the memory of the old one: it is exactly the
+            // thing that is done after restarting SOLIDWORKS.
             _lossReason = null;
             if (_sw == null) return;
             try
@@ -366,9 +366,9 @@ namespace Oce.Solid.Agent.Bridge
             }
             catch
             {
-                // Volutamente muto: si dice una volta sola, e piu' sotto, che
-                // il controllo non e' disponibile. Gridarlo a ogni aggancio
-                // insegnerebbe a ignorarlo.
+                // Deliberately mute: it is said once only, and further down, that
+                // the check is not available. Shouting it at every attachment
+                // would teach people to ignore it.
             }
             if (_pid <= 0)
                 Mcp.Protocol.Note(
@@ -378,24 +378,24 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// SOLIDWORKS e' ancora li'? Torna `null` se si', il motivo se no.
+        /// Is SOLIDWORKS still there? Returns `null` if yes, the reason if not.
         ///
-        /// Va chiamata PRIMA di un piano e FRA un passo e l'altro. Senza, un
-        /// SOLIDWORKS che si chiude a meta' si manifesta come un riferimento
-        /// nullo tre chiamate dopo, in un punto che non ha niente a che vedere
-        /// con la causa — e chi legge l'errore cerca il difetto dove non e'.
+        /// It must be called BEFORE a plan and BETWEEN one step and the next. Without it, a
+        /// SOLIDWORKS that closes halfway shows up as a null reference
+        /// three calls later, at a point that has nothing to do with
+        /// the cause — and whoever reads the error looks for the defect where it is not.
         ///
-        /// **Quando il PID non si e' potuto sapere, questa risponde `null`**,
-        /// cioe' «per quanto ne so, vivo». Non e' una svista: il controllo che
-        /// non c'e' non deve diventare un rifiuto. Che non ci sia e' gia' stato
-        /// detto all'aggancio.
+        /// **When the PID could not be found out, this answers `null`**,
+        /// that is «as far as I know, alive». It is not an oversight: the check that
+        /// is not there must not become a refusal. That it is not there has already been
+        /// said at the attachment.
         /// </summary>
         public string SolidWorksHasGone()
         {
-            // UNA VOLTA CHE SE N'E' ANDATO, RESTA ANDATO.
-            // Il motivo si tiene e si ripete: dalla seconda chiamata in poi non
-            // si va a ricontrollare un processo che non c'e', e soprattutto non
-            // si degrada il messaggio.
+            // ONCE IT HAS GONE AWAY, IT STAYS GONE.
+            // The reason is kept and repeated: from the second call on one does not
+            // go and recheck a process that is not there, and above all the
+            // message is not degraded.
             if (_lossReason != null) return _lossReason;
             if (_pid <= 0) return null;
             try
@@ -406,14 +406,14 @@ namespace Oce.Solid.Agent.Bridge
             }
             catch (ArgumentException)
             {
-                // Process.GetProcessById alza ArgumentException quando il
-                // processo non esiste piu'. E' il caso che stiamo cercando.
+                // Process.GetProcessById raises ArgumentException when the
+                // process no longer exists. It is the case we are looking for.
                 return Disappeared();
             }
             catch
             {
-                // Qualunque altro guaio (permessi, WMI che non risponde) NON e'
-                // una prova che SOLIDWORKS sia morto: si tace.
+                // Any other trouble (permissions, WMI not answering) is NOT
+                // a proof that SOLIDWORKS is dead: we stay silent.
                 return null;
             }
         }
@@ -421,13 +421,13 @@ namespace Oce.Solid.Agent.Bridge
         private string _lossReason;
 
         /// <summary>
-        /// NON si azzera `_sw` qui, ed e' una scelta.
+        /// `_sw` is NOT reset here, and it is a choice.
         ///
-        /// Azzerarlo sembrava igiene — l'oggetto COM e' morto comunque — ma
-        /// rende `Attached` falsa, e allora `build` risponde «Il ponte non
-        /// e' agganciato a SolidWorks»: vero, generico, e **peggiore** del
-        /// messaggio che questa funzione ha appena costruito. Si sarebbe
-        /// sostituita la causa con un sintomo, un giro dopo averla trovata.
+        /// Resetting it seemed hygiene — the COM object is dead anyway — but
+        /// it makes `Attached` false, and then `build` answers «The bridge is not
+        /// attached to SolidWorks»: true, generic, and **worse** than the
+        /// message this function has just built. The cause would have been
+        /// replaced by a symptom, one run after having found it.
         /// </summary>
         private string Disappeared()
         {
@@ -457,16 +457,16 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Il documento che SolidWorks ha davanti, o null.
+        /// The document that SolidWorks has in front, or null.
         ///
-        /// IL NOME GIUSTO NON E' QUELLO DEL C#. Chiamando per riflessione
-        /// su un oggetto COM si passa dal suo IDispatch, e li' dentro non
-        /// c'e' `IActiveDoc2` — quello e' il nome che l'interoperabilita'
-        /// tipizzata espone in C#. Il nome che il COM conosce e'
-        /// `ActiveDoc`. Chiedere quello sbagliato non da' errore utile:
-        /// l'eccezione viene ingoiata e il ponte risponde «non c'e' nessun
-        /// documento aperto» mentre ce ne sono venti — misurato l'11
-        /// settembre 2026 alla prima prova del ponte.
+        /// THE RIGHT NAME IS NOT THE C# ONE. Calling by reflection
+        /// on a COM object goes through its IDispatch, and in there there is
+        /// no `IActiveDoc2` — that is the name that typed interoperability
+        /// exposes in C#. The name that COM knows is
+        /// `ActiveDoc`. Asking for the wrong one gives no useful error:
+        /// the exception is swallowed and the bridge answers «there is no
+        /// document open» while there are twenty — measured on 11
+        /// September 2026 at the first test of the bridge.
         /// </summary>
         public object ActiveDocument()
         {
@@ -484,18 +484,18 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// CHI E' il documento: titolo e percorso, per poterlo riconoscere dopo.
+        /// WHO the document is: title and path, to be able to recognize it afterwards.
         ///
-        /// PERCHE' SERVE, ED E' COSTATO UN PEZZO DI QUALCUN ALTRO.
-        /// Il 14 settembre 2026 una sessione di prova ha estruso un blocco
-        /// 314x274x52 dentro «Parte4», che non era il suo documento. Non per un
-        /// difetto di geometria: fra la creazione del proprio pezzo e la
-        /// chiamata, il documento ATTIVO era cambiato — una finestra portata
-        /// davanti, e il ponte ha lavorato su quella. Nessun errore, nessun
-        /// avviso, geometria scritta nel pezzo sbagliato.
+        /// WHY IT IS NEEDED, AND IT COST SOMEONE ELSE'S PART.
+        /// On 14 September 2026 a test session extruded a 314x274x52
+        /// block inside «Parte4», which was not its document. Not because of a
+        /// geometry defect: between the creation of its own part and the
+        /// call, the ACTIVE document had changed — a window brought
+        /// to the front, and the bridge worked on that one. No error, no
+        /// warning, geometry written in the wrong part.
         ///
-        /// E' il difetto che questo progetto esiste per rendere impossibile,
-        /// nella sua forma piu' pura, e stava nel ponte.
+        /// It is the defect that this project exists to make impossible,
+        /// in its purest form, and it was in the bridge.
         /// </summary>
         public Dictionary<string, object> Identity(object doc)
         {
@@ -517,11 +517,11 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Due identita' sono lo stesso documento?
+        /// Are two identities the same document?
         ///
-        /// Il PERCORSO vince quando c'e': e' l'unica cosa che non cambia. Il
-        /// titolo e' il ripiego per i documenti mai salvati, che percorso non
-        /// ne hanno — e sono proprio quelli su cui si lavora in prova.
+        /// The PATH wins when there is one: it is the only thing that does not change. The
+        /// title is the fallback for documents never saved, which have no path
+        /// — and they are exactly the ones worked on in tests.
         /// </summary>
         public static bool SameDocument(
             Dictionary<string, object> a, Dictionary<string, object> b)
@@ -542,12 +542,12 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Lo stato del documento attivo: e' quello che il modello DEVE vedere
-        /// prima di proporre qualunque cosa.
+        /// The state of the active document: it is what the model MUST see
+        /// before proposing anything.
         /// </summary>
         /// <summary>
-        /// Lo stato del documento, ancora compresa: e' la lettura da cui si
-        /// costruiscono le FIRME dei passi.
+        /// The state of the document, anchor included: it is the reading from which
+        /// the SIGNATURES of the steps are built.
         /// </summary>
         public Dictionary<string, object> State(out string error)
         {
@@ -555,24 +555,24 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Lo stato del documento SENZA l'ancora.
+        /// The state of the document WITHOUT the anchor.
         ///
-        /// L'ancora costa: un `GetTessTriangles` e un baricentro pesato per
-        /// area su OGNI faccia. Su un telaio saldato sono decine di chiamate
-        /// COM per un dato che serve a una cosa sola — corroborare il
-        /// ritrovamento di una faccia — e quindi solo a chi costruisce le
-        /// firme.
+        /// The anchor costs: a `GetTessTriangles` and an area-weighted
+        /// centroid on EVERY face. On a welded frame that is dozens of COM calls
+        /// for a datum that serves one thing only — corroborating the
+        /// finding of a face — and therefore only whoever builds the
+        /// signatures.
         ///
-        /// Fino alla 0.25.2 il flag era cablato a `true` e la si pagava anche
-        /// per la lettura «before» di `build`, che serve solo a sapere su
-        /// quale documento si lavora, quanto volume c'era e quante lavorazioni
-        /// erano in errore: tre cose che l'ancora non riguarda. Quello stato
-        /// non torna nemmeno a chi legge.
+        /// Up to 0.25.2 the flag was hardwired to `true` and it was paid for even
+        /// for the «before» reading of `build`, which only serves to know on
+        /// which document one is working, how much volume there was and how many features
+        /// were in error: three things the anchor is not about. That state does not
+        /// even come back to whoever reads.
         ///
-        /// Il nome e' diverso invece di essere un parametro in piu' sullo
-        /// stesso metodo: e' la lezione di `ReadWithAnchor` — cambiare
-        /// l'insieme delle firme di un metodo rompe chi lo chiama per
-        /// riflessione, anche quando il compilatore non dice niente.
+        /// The name is different instead of being one more parameter on the
+        /// same method: it is the lesson of `ReadWithAnchor` — changing the
+        /// set of signatures of a method breaks whoever calls it by
+        /// reflection, even when the compiler says nothing.
         /// </summary>
         public Dictionary<string, object> StateWithoutAnchor(out string error)
         {
@@ -699,9 +699,9 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Lo stato del documento. Il secondo parametro e' l'applicazione:
-        /// senza, lo stato non sa dire quali ALTRI documenti sono aperti, e
-        /// per le tavole quello non e' un di piu' ma una precondizione.
+        /// The state of the document. The second parameter is the application:
+        /// without it, the state cannot say which OTHER documents are open, and
+        /// for drawings that is not an extra but a precondition.
         /// </summary>
         private DocumentState ReadState(object doc, bool withAnchor)
         {
@@ -709,15 +709,15 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// UNA FOTOGRAFIA del documento attivo, in PNG. Null col motivo.
+        /// A PHOTOGRAPH of the active document, as PNG. Null with the reason.
         ///
-        /// Sta qui e non in `McpTools` per la stessa ragione di `State`: e'
-        /// `Session` che sa qual e' il documento davanti, e trovarlo e' la
-        /// meta' difficile — il commento sopra `ActiveDocument` racconta
-        /// quanto e' costata.
+        /// It is here and not in `McpTools` for the same reason as `State`: it is
+        /// `Session` that knows which is the document in front, and finding it is the
+        /// hard half — the comment above `ActiveDocument` tells
+        /// how much it cost.
         ///
-        /// Il nome e' nuovo e non un parametro in piu' su qualcosa che c'era:
-        /// vedi `StateWithoutAnchor`, stessa regola, stessa pagina.
+        /// The name is new and not one more parameter on something that existed:
+        /// see `StateWithoutAnchor`, same rule, same page.
         /// </summary>
         public byte[] Snapshot(string which, int width, int height, out string error)
         {
@@ -739,25 +739,25 @@ namespace Oce.Solid.Agent.Bridge
             return PartView.Fire(model, which, width, height, out error);
         }
 
-        /// <summary>I nomi delle viste che si possono chiedere.</summary>
+        /// <summary>The names of the views that can be asked for.</summary>
         public static IEnumerable<string> ViewNames
         {
             get { return PartView.ViewNames; }
         }
 
-        /// <summary>I piani su cui si puo' sezionare.</summary>
+        /// <summary>The planes on which one can section.</summary>
         public static IEnumerable<string> PlaneNames
         {
             get { return PartView.PlaneNames; }
         }
 
         /// <summary>
-        /// UNO SPACCATO del documento attivo, in PNG (voce V4). Null col
-        /// motivo.
+        /// A CUTAWAY of the active document, as PNG (entry V4). Null with the
+        /// reason.
         ///
-        /// Nome nuovo accanto a `Snapshot`, non parametri in piu' su quella:
-        /// stessa regola di `StateWithoutAnchor`, e qui vale doppio perche'
-        /// `Snapshot` e' gia' chiamata da `McpTools`.
+        /// New name next to `Snapshot`, not more parameters on that one:
+        /// same rule as `StateWithoutAnchor`, and here it counts double because
+        /// `Snapshot` is already called by `McpTools`.
         /// </summary>
         public byte[] Cutaway(
             string which, string plane, double offsetMm,
@@ -783,25 +783,25 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// UN PASSO INDIETRO sul documento davanti. Torna il motivo se non si
-        /// e' potuto, null se e' andata.
+        /// ONE STEP BACK on the document in front. It returns the reason if it
+        /// could not be done, null if it went well.
         ///
-        /// PERCHE' `EditUndo2` E NON `RunCommand`. Il comando di menu dipende
-        /// dalla lingua dell'installazione e da cosa ha il fuoco; `EditUndo2`
-        /// e' l'API, e fa la stessa cosa che fa `Ctrl+Z` su
-        /// `Checks\Undo`, dove e' gia' provata.
+        /// WHY `EditUndo2` AND NOT `RunCommand`. The menu command depends on
+        /// the language of the installation and on what has the focus; `EditUndo2`
+        /// is the API, and it does the same thing that `Ctrl+Z` does on
+        /// `Checks\Undo`, where it is already proven.
         ///
-        /// UN PASSO SOLO, E NON E' UN DETTAGLIO. `PlanExecutor` apre e chiude
-        /// UNA voce di annullamento intorno all'intero piano
-        /// (`StartRecordingUndoObject` / `FinishRecordingUndoObject`): un passo
-        /// indietro disfa il piano intero. E' il criterio di chiusura della
-        /// voce B8, gia' misurato. Chiederne due vorrebbe dire disfare anche
-        /// qualcosa che questo ponte non ha fatto.
+        /// ONE STEP ONLY, AND IT IS NOT A DETAIL. `PlanExecutor` opens and closes
+        /// ONE undo entry around the whole plan
+        /// (`StartRecordingUndoObject` / `FinishRecordingUndoObject`): one step
+        /// back undoes the whole plan. It is the closing criterion of
+        /// entry B8, already measured. Asking for two would mean undoing also
+        /// something this bridge did not do.
         ///
-        /// `EditUndo2` torna `void`: non dice se ha annullato. Chi chiama deve
-        /// GUARDARE il documento dopo — che e' esattamente cio' che fa
-        /// `McpTools.Undo`, e l'unica ragione per cui questa operazione e'
-        /// difendibile.
+        /// `EditUndo2` returns `void`: it does not say whether it undid. Whoever calls must
+        /// LOOK at the document afterwards — which is exactly what
+        /// `McpTools.Undo` does, and the only reason this operation is
+        /// defensible.
         ///
         /// AND A WRONG PRESS CANNOT BE TAKEN BACK when what it removed was an
         /// undo entry recorded through the API (see `StepForward`, probe
@@ -823,7 +823,7 @@ namespace Oce.Solid.Agent.Bridge
         /// anything came back.
         ///
         /// WHAT IT CAN AND CANNOT PUT BACK (measured, probe `redo`, 1/10/2026;
-        /// RAG note 82zz_duodecies, section «La sonda viva di M19»): an
+        /// RAG note 82zz_duodecies, section «The live probe of M19»): an
         /// ordinary API action that was not recorded (an extrusion made without
         /// Start/FinishRecordingUndoObject) is redone at once. An undo entry
         /// RECORDED through the API is never redone: not with EditRedo2(1) or
@@ -844,32 +844,32 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// IL PIANO INTERO, ESEGUITO DALLA LIBRERIA E NON DAL PONTE.
+        /// THE WHOLE PLAN, EXECUTED BY THE LIBRARY AND NOT BY THE BRIDGE.
         ///
-        /// Fino alla 0.14.0 il ponte aveva un giro suo: un
-        /// <see cref="SwOperations"/> nuovo a ogni passo e `stepsDone` a
-        /// `null`. Funzionava, e costava tre cose misurabili:
+        /// Up to 0.14.0 the bridge had a loop of its own: a new
+        /// <see cref="SwOperations"/> at every step and `stepsDone` set to
+        /// `null`. It worked, and it cost three measurable things:
         ///
-        ///   * **niente riferimenti fra passi.** Un piano di due passi in cui il
-        ///     secondo diceva «la faccia in cima a quello che hai fatto al passo
-        ///     1» falliva con «di quel passo non ho la geometria». Misurato il
-        ///     14/9/2026: passo 1 riuscito, volume 120.000, passo 2 rifiutato;
-        ///   * **niente voce di annullamento unica.** `Ctrl+Z` disfaceva un
-        ///     passo solo;
-        ///   * **una seconda implementazione dello stesso ciclo**, piu' povera
-        ///     di quella che l'add-in usa tutti i giorni. Due implementazioni
-        ///     sono due comportamenti che divergono, e le prove si fanno su una
-        ///     sola delle due.
+        ///   * **no references between steps.** A plan of two steps in which the
+        ///     second said «the face on top of what you did at step
+        ///     1» failed with «I do not have the geometry of that step». Measured on
+        ///     14/9/2026: step 1 succeeded, volume 120,000, step 2 refused;
+        ///   * **no single undo entry.** `Ctrl+Z` undid only one
+        ///     step;
+        ///   * **a second implementation of the same cycle**, poorer
+        ///     than the one the add-in uses every day. Two implementations
+        ///     are two behaviors that diverge, and the checks are done on only
+        ///     one of the two.
         ///
-        /// Adesso il ciclo e' <see cref="PlanExecutor"/>, lo stesso
-        /// dell'add-in, e il ponte gli passa i passi attraverso
+        /// Now the cycle is <see cref="PlanExecutor"/>, the same one
+        /// as the add-in, and the bridge passes it the steps through
         /// <see cref="PlanInMemory"/>.
         ///
-        /// SUL FILO E SULL'ASINCRONO. Il ponte e' sincrono: legge una riga da
-        /// standard input, risponde, ricomincia. Non c'e' nessun filo di
-        /// SOLIDWORKS separato su cui accodare, quindi `onThreadSw` esegue
-        /// sul posto e `GetAwaiter().GetResult()` non puo' incastrarsi — tutte
-        /// le attese si completano prima di essere attese.
+        /// ON THE THREAD AND ON ASYNC. The bridge is synchronous: it reads a line from
+        /// standard input, answers, starts again. There is no separate SOLIDWORKS
+        /// thread on which to queue, so `onThreadSw` executes
+        /// in place and `GetAwaiter().GetResult()` cannot get stuck — all
+        /// the waits complete before being awaited.
         /// </summary>
         public List<Dictionary<string, object>> ExecutePlan(
             List<PlanStep> steps, out string error)
@@ -905,13 +905,13 @@ namespace Oce.Solid.Agent.Bridge
             LastPlanExecutorThrew = false;
             LastTurnRefusedDocument = null;
 
-            // PRIMA DI TUTTO: c'e' ancora qualcuno dall'altra parte?
+            // FIRST OF ALL: is anyone still on the other side?
             //
-            // Senza questa riga, un SOLIDWORKS chiuso dopo l'aggancio si
-            // manifesta come `ActiveDocument()` che torna null, e il ponte
-            // risponde «non c'e' nessun documento aperto» — che e' vero e manda
-            // a cercare la cosa sbagliata: si va ad aprire un pezzo dentro un
-            // SOLIDWORKS che non esiste piu'.
+            // Without this line, a SOLIDWORKS closed after the attachment shows up as
+            // `ActiveDocument()` returning null, and the bridge
+            // answers «there is no document open» — which is true and sends
+            // one looking for the wrong thing: one goes to open a part inside a
+            // SOLIDWORKS that no longer exists.
             error = SolidWorksHasGone();
             if (error != null) return null;
 
@@ -922,17 +922,17 @@ namespace Oce.Solid.Agent.Bridge
                 return null;
             }
 
-            // ── UN PONTE ALLA VOLTA SU UN DOCUMENTO (voce W2.9) ─────────
+            // ── ONE BRIDGE AT A TIME ON A DOCUMENT (entry W2.9) ─────────
             //
-            // Il precedente e' gia' costato: due sessioni sullo stesso
-            // SOLIDWORKS, e una prova finita dentro il pezzo dell'altra — un
-            // blocco 314x274x52 estruso nel documento di qualcun altro, senza
-            // un errore e senza un avviso. Li' si e' riparato tenendo il
-            // riferimento `IModelDoc2` invece dell'attivo, e basta **dentro un
-            // processo**. Fra due PROCESSI-ponte quel riferimento non dice
-            // niente: sono due oggetti COM diversi che guardano lo stesso file.
+            // The precedent has already cost: two sessions on the same
+            // SOLIDWORKS, and a test that ended up inside the other's part — a
+            // 314x274x52 block extruded into someone else's document, without
+            // an error and without a warning. There it was repaired by keeping the
+            // `IModelDoc2` reference instead of the active one, and that is enough **inside one
+            // process**. Between two bridge PROCESSES that reference says
+            // nothing: they are two different COM objects looking at the same file.
             //
-            // Qui il turno se lo prendono a vicenda con un mutex di sistema.
+            // Here they take turns with a system mutex.
             using (var turn = DocumentTurn.Take(doc, out string whose))
             {
                 if (turn == null)
@@ -952,13 +952,13 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Il piano vero e proprio, una volta che il turno sul documento e'
-        /// nostro.
+        /// The plan proper, once the turn on the document is
+        /// ours.
         ///
-        /// NON prende `doc`: `PlanExecutor` lavora attraverso `_sw` e trova il
-        /// documento da se'. Passarglielo sarebbe un parametro che dice il falso
-        /// su cosa serve a questo metodo — e il primo che lo legge penserebbe
-        /// che il documento arrivi di qui.
+        /// It does NOT take `doc`: `PlanExecutor` works through `_sw` and finds the
+        /// document by itself. Passing it would be a parameter that says something false
+        /// about what this method needs — and the first to read it would think
+        /// that the document arrives from here.
         ///
         /// It takes <paramref name="expectedDocument"/>, which is not the
         /// document but the identity the executor checks the active one
@@ -977,29 +977,29 @@ namespace Oce.Solid.Agent.Bridge
                 line => Mcp.Protocol.Note("  " + line),
                 f => System.Threading.Tasks.Task.FromResult(f()))
             {
-                // Il nome che l'utente legge nel menu «Annulla» di SOLIDWORKS.
+                // The name that the user reads in the «Undo» menu of SOLIDWORKS.
                 UndoName = "Ponte MCP",
 
-                // QUI SI', E SOLO QUI. Il ponte lavora apposta su parti appena
-                // aperte e mai salvate: senza questo, il suo caso normale
-                // sarebbe rifiutato con «salvalo su disco prima». Nell'add-in
-                // resta falso, e c'e' un controllo che lo sorveglia.
+                // HERE YES, AND ONLY HERE. The bridge works on purpose on parts just
+                // opened and never saved: without this, its normal case
+                // would be refused with «save it to disk first». In the add-in
+                // it stays false, and there is a check that watches over it.
                 DocumentWithoutFile = true,
 
-                // E anche qui, e solo qui. Il catalogo del ponte porta cinque
-                // operazioni di tavola: rifiutare le tavole renderebbe inutili
-                // proprio quelle. L'assistente dell'add-in disegna pezzi, e li'
-                // resta falso.
+                // AND HERE TOO, AND ONLY HERE. The bridge catalog carries five
+                // drawing operations: refusing drawings would make
+                // exactly those useless. The add-in's assistant draws parts, and there
+                // it stays false.
                 AlsoOnDrawings = true,
 
-                // E il terzo, per la stessa ragione esatta. Il catalogo del
-                // ponte porta `insert_component`, `mate`,
-                // `replace_component` e `interference_check`: fino al
-                // 18/9/2026 le ELENCAVA e l'esecutore le avrebbe rifiutate
-                // prima del primo passo, senza che niente lo dicesse.
-                // Il banco non poteva accorgersene: chiama la libreria, non il
-                // ponte. Adesso c'e' un controllo che confronta le famiglie del
-                // catalogo coi tipi ammessi — `Tests\Program.cs` →
+                // AND THE THIRD, for the exact same reason. The catalog of the
+                // bridge carries `insert_component`, `mate`,
+                // `replace_component` and `interference_check`: until
+                // 18/9/2026 it LISTED them and the executor would have refused them
+                // before the first step, without anything saying so.
+                // The bench could not notice: it calls the library, not the
+                // bridge. Now there is a check that compares the families of the
+                // catalog with the allowed types — `Tests\Program.cs` →
                 // `EveryCatalogFamilyHasAnAllowedDocument`.
                 AlsoOnAssemblies = true,
             };
@@ -1018,10 +1018,10 @@ namespace Oce.Solid.Agent.Bridge
                 LastPlanResult = outcome;
                 LastPlanExecutorThrew = false;
 
-                // L'ERRORE SI RIPORTA ANCHE QUANDO GLI ESITI LO DICONO GIA'.
-                // Un piano fermato PRIMA del primo passo — documento sbagliato,
-                // controlli preliminari — non lascia nessun esito, e senza
-                // questo il ponte risponderebbe «nessun passo, tutto bene».
+                // THE ERROR IS REPORTED EVEN WHEN THE OUTCOMES ALREADY SAY SO.
+                // A plan stopped BEFORE the first step — wrong document,
+                // preliminary checks — leaves no outcome, and without
+                // this the bridge would answer «no step, all is well».
                 if (!outcome.Completed && !string.IsNullOrEmpty(outcome.Error))
                     error = NameTheTrueCause(outcome.Error, source.Outcomes);
                 return source.Outcomes;
@@ -1039,22 +1039,22 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Se il piano si e' fermato E nel frattempo SOLIDWORKS e' sparito, la
-        /// causa e' quella — non il messaggio della chiamata che ha trovato il
-        /// vuoto.
+        /// If the plan stopped AND in the meantime SOLIDWORKS has gone, the
+        /// cause is that — not the message of the call that found
+        /// the void.
         ///
-        /// PERCHE' SI GUARDA DOPO E NON SOLO PRIMA. Il controllo all'inizio
-        /// prende il caso «era gia' chiuso»; questo prende quello che conta di
-        /// piu': **chiuso a meta' piano**. Li' l'errore che arriva su e' quello
-        /// della prima chiamata che ha trovato il riferimento morto — un
-        /// «Riferimento a un oggetto non impostato», o un HRESULT — e chi lo
-        /// legge va a cercare un difetto nell'operazione che stava girando.
+        /// WHY IT IS LOOKED AT AFTER AND NOT ONLY BEFORE. The check at the start
+        /// catches the case «it was already closed»; this one catches the one that matters
+        /// more: **closed halfway through the plan**. There the error that comes up is that
+        /// of the first call that found the dead reference — an
+        /// «Object reference not set to an instance of an object», or an HRESULT — and whoever
+        /// reads it goes looking for a defect in the operation that was running.
         ///
-        /// Il messaggio originale NON si butta: si dice tutt'e due le cose,
-        /// perche' se un giorno le due non combaciassero — SOLIDWORKS vivo e
-        /// un errore vero — buttare l'originale avrebbe nascosto la cosa da
-        /// riparare. E si dice **quanti passi erano gia' andati**, che e' cio'
-        /// che serve per sapere com'e' rimasto il documento.
+        /// The original message is NOT thrown away: both things are said,
+        /// because if one day the two did not match — SOLIDWORKS alive and
+        /// a real error — throwing away the original would have hidden the thing to
+        /// repair. And **how many steps had already gone** is said, which is what
+        /// is needed to know how the document was left.
         /// </summary>
         private string NameTheTrueCause(
             string original, List<Dictionary<string, object>> outcomes)
@@ -1062,7 +1062,7 @@ namespace Oce.Solid.Agent.Bridge
             var disappeared = SolidWorksHasGone();
             if (disappeared == null) return original;
 
-            // ZERO-E-ZERO: `outcomes` e' la nostra lista, non una lettura dal CAD.
+            // ZERO-E-ZERO: `outcomes` is our list, not a reading from the CAD.
             int done = outcomes == null ? 0 : outcomes.Count;
             return disappeared +
                    " Si e' fermato dopo " + done +

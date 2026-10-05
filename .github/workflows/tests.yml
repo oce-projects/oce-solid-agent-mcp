@@ -1,39 +1,39 @@
 # =============================================================================
-#  Le prove che una macchina senza SOLIDWORKS puo' davvero fare  (voci F9, F9-bis)
+#  The checks that a machine without SOLIDWORKS can really do  (entries F9, F9-bis)
 # =============================================================================
 #
-#  QUESTO FILE E' STATO RISCRITTO IL 23/9/2026 PERCHE' NON POTEVA DIVENTARE
-#  VERDE, E NON L'AVEVA MAI FATTO.
+#  THIS FILE WAS REWRITTEN ON 23/9/2026 BECAUSE IT COULD NOT TURN GREEN,
+#  AND NEVER HAD.
 #
-#  La stesura precedente cominciava con `msbuild Oce.Solid.Agent.csproj`. Quel
-#  progetto — e `Oce.Solid.Agent.Core`, che gli sta sotto — referenzia
-#  `SolidWorks.Interop.sldworks` e `SolidWorks.Interop.swconst` con un
-#  `HintPath` dentro l'installazione di SOLIDWORKS. Nessun runner di GitHub ha
-#  quella cartella, e le interop sono di Dassault: non si possono mettere in
-#  repository ne' scaricare.
+#  The previous draft began with `msbuild Oce.Solid.Agent.csproj`. That
+#  project — and `Oce.Solid.Agent.Core`, which sits under it — references
+#  `SolidWorks.Interop.sldworks` and `SolidWorks.Interop.swconst` with a
+#  `HintPath` inside the SOLIDWORKS installation. No GitHub runner has
+#  that folder, and the interops belong to Dassault: they can be neither put
+#  in the repository nor downloaded.
 #
-#  MISURATO, NON DEDOTTO. Compilando in locale con
-#  `/p:SwInstallPath=Z:\non-esiste` escono duecento e passa errori
+#  MEASURED, NOT DEDUCED. Building locally with
+#  `/p:SwInstallPath=Z:\non-esiste` gives two hundred and some errors
 #  `CS0246: il nome di tipo o di spazio dei nomi 'IModelDoc2' non e' stato
-#  trovato`. Il primo passo falliva sempre, quindi i due passi utili — le prove
-#  di contratto e il rifiuto di una consegna senza banco — non venivano
-#  raggiunti mai.
+#  trovato`. The first step always failed, so the two useful steps — the contract
+#  checks and the refusal of a delivery without a bench run — were
+#  never reached.
 #
-#  Il README intanto diceva «la CI compila, lancia i controlli di contratto e
-#  rifiuta una consegna in cui nessuno ha lanciato il banco». Vero sulla carta,
-#  irraggiungibile in pratica. **Una CI che non e' mai girata e' un distintivo,
-#  non una prova** — ed e' esattamente il difetto che questo repository
-#  rimprovera altrove.
+#  Meanwhile the README said «the CI builds, runs the contract checks and
+#  refuses a delivery in which nobody has run the bench». True on paper,
+#  unreachable in practice. **A CI that has never run is a badge,
+#  not a proof** — and it is exactly the defect this repository
+#  blames on others.
 #
-#  ── E IL POWERSHELL STA IN FILE, NON QUI DENTRO ────────────────────────────
+#  ── AND THE POWERSHELL LIVES IN FILES, NOT IN HERE ─────────────────────────
 #
-#  I passi in `pwsh` chiamano `.github\steps\*.ps1`. Codice dentro un YAML che
-#  nessuno esegue e' lo stesso difetto di questa voce spostato di un livello:
-#  un errore di sintassi si scoprirebbe alla prima corsa, cioe' mai. In un
-#  `.ps1` lo prende `Checks\check-workflow.ps1`, che gira in locale, e
-#  ogni passo si puo' lanciare a mano.
+#  The `pwsh` steps call `.github\steps\*.ps1`. Code inside a YAML that
+#  nobody executes is the same defect of this entry moved up one level:
+#  a syntax error would be found on the first run, that is, never. In a
+#  `.ps1` it is caught by `Checks\check-workflow.ps1`, which runs locally, and
+#  every step can be launched by hand.
 #
-#  ── COSA FA ADESSO ─────────────────────────────────────────────────────────
+#  ── WHAT IT DOES NOW ───────────────────────────────────────────────────────
 #
 #    0. the language gate (entry W3.1-bis.1): the Italian in the repository
 #       may go down, never up. Every commit of the range is judged against
@@ -43,41 +43,41 @@
 #       only Node, so it runs first. On a pull request the same script also
 #       runs from language-gate.yml (pull_request_target), where the copy of
 #       the BASE judges: this file comes from the pull request itself;
-#    1. guarda se l'interop di Dassault c'e' su questo runner;
-#    2. compila il ponte SOLO se c'e' (su GitHub non c'e'; su un runner
-#       self-hosted con SOLIDWORKS installato si', e allora lo compila davvero);
-#    3. compila `Tests\Oce.Solid.Agent.ContractTests.csproj`, che di interop non ne ha —
-#       e c'e' un controllo dentro la suite che verifica proprio questo;
-#    4. lancia `Oce.Solid.Agent.ContractTests.exe`.
+#    1. checks whether the Dassault interop is on this runner;
+#    2. builds the bridge ONLY if it is (on GitHub it is not; on a
+#       self-hosted runner with SOLIDWORKS installed it is, and then it really builds it);
+#    3. builds `Tests\Oce.Solid.Agent.ContractTests.csproj`, which has no interop —
+#       and there is a check inside the suite that verifies exactly this;
+#    4. runs `Oce.Solid.Agent.ContractTests.exe`.
 #
-#  ── E COSA LA SUITE FA, QUANDO IL PONTE NON C'E' ───────────────────────────
+#  ── AND WHAT THE SUITE DOES WHEN THE BRIDGE IS NOT THERE ───────────────────
 #
-#  Non salta in silenzio. I gruppi che hanno bisogno dell'eseguibile del ponte
-#  — il protocollo MCP, `Session.SameDocument`, l'esportatore del catalogo,
-#  il confronto fra le due librerie — scrivono una voce **«non eseguibile
-#  qui»**, che si conta a parte, si stampa e finisce in `prove.xml` come
-#  `<skipped>`. Il riepilogo dice `N controlli, 0 falliti, M non eseguibili qui
-#  (K fatti davvero)`, e il minimo dichiarato si misura sui **fatti**: una
-#  suite tutta saltata non supera la soglia.
+#  It does not skip in silence. The groups that need the executable of the bridge
+#  — the MCP protocol, `Session.SameDocument`, the catalog exporter,
+#  the comparison between the two libraries — write an entry **«not runnable
+#  here»**, which is counted apart, printed and ends up in `prove.xml` as
+#  `<skipped>`. The summary says `N controlli, 0 falliti, M non eseguibili qui
+#  (K fatti davvero)`, and the declared minimum is measured on the **facts**: a
+#  suite that is all skipped does not pass the threshold.
 #
-#  Quello che invece si puo' fare senza SOLIDWORKS si fa lo stesso, e non e'
-#  poco: il valutatore delle attese, i sorgenti che stanno nei loro `.csproj`,
-#  i documenti che contano i file giusti, il contenuto del catalogo (letto da
-#  `Tools\catalog.json`, che sta in repository), e il rifiuto di una
-#  consegna in cui nessuno ha lanciato il banco.
+#  What can be done without SOLIDWORKS is done all the same, and it is not
+#  little: the evaluator of the expectations, the sources that live in their `.csproj`,
+#  the documents that count the right files, the content of the catalog (read from
+#  `Tools\catalog.json`, which is in the repository), and the refusal of a
+#  delivery in which nobody has run the bench.
 #
-#  ── E COSA QUESTO NON PROVA (voce K4, 18/9/2026, ancora valida) ────────────
+#  ── AND WHAT THIS DOES NOT PROVE (entry K4, 18/9/2026, still valid) ────────
 #
-#  Il controllo sul banco NON e' una verifica indipendente.
-#  `Bench/report/last.json` e' un file che **produciamo e committiamo
-#  noi**: la CI controlla che dichiari un giro intero, coerente con la libreria
-#  di adesso e posteriore all'ultima modifica alle operazioni. E' una guardia
-#  contro la NOSTRA distrazione — il commit fatto senza aver rilanciato il
-#  banco — non contro un banco che mentisse. Se il resoconto dicesse il falso,
-#  la CI lo crederebbe.
+#  The check on the bench is NOT an independent verification.
+#  `Bench/report/last.json` is a file that **we produce and commit
+#  ourselves**: the CI checks that it declares a whole run, consistent with the
+#  current library and later than the last change to the operations. It is a guard
+#  against OUR own distraction — the commit made without having rerun the
+#  bench — not against a bench that lied. If the report said something false,
+#  the CI would believe it.
 #
-#  L'unica cosa che renderebbe quel punto una verifica vera e' un runner con
-#  SOLIDWORKS, e non c'e'.
+#  The only thing that would make that point a real verification is a runner with
+#  SOLIDWORKS, and there is none.
 # =============================================================================
 
 name: prove
@@ -104,9 +104,9 @@ jobs:
       - name: Prendi il codice
         uses: actions/checkout@v4
         with:
-          # La prova «il banco e' posteriore all'ultima modifica alle
-          # operazioni» chiede a git quando `Oce.Solid.Agent.Core` e' stato
-          # toccato: con un clone superficiale quella data non esiste.
+          # The check «the bench is later than the last change to the
+          # operations» asks git when `Oce.Solid.Agent.Core` was
+          # last touched: with a shallow clone that date does not exist.
           fetch-depth: 0
 
       # The language gate (entry W3.1-bis.1). The base is the commit before a

@@ -7,41 +7,41 @@ using System.Linq;
 namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
-    /// GLI ARGOMENTI RISPETTANO LO SCHEMA CHE IL CATALOGO DICHIARA?
+    /// DO THE ARGUMENTS RESPECT THE SCHEMA THAT THE CATALOG DECLARES?
     ///
-    /// Il ponte offre trentasei operazioni con schemi dettagliati e poi, fino
-    /// alla 0.9.0, non guardava se gli argomenti li rispettassero: lo schema
-    /// serviva solo a suggerire. Uno `thickness_mm` dimenticato arrivava a `Num()`
-    /// come zero e diventava un'estrusione di spessore nullo, che SOLIDWORKS
-    /// rifiuta con un messaggio suo — nel migliore dei casi.
+    /// The bridge offers thirty-six operations with detailed schemas and then, up
+    /// to 0.9.0, did not look at whether the arguments respected them: the schema
+    /// served only to suggest. A forgotten `thickness_mm` reached `Num()`
+    /// as zero and became an extrusion of zero thickness, which SOLIDWORKS
+    /// refuses with a message of its own — in the best case.
     ///
-    /// SI CONTROLLA LA FORMA, MAI IL MERITO. E' la riga da tenere in mente
-    /// leggendo questo file, e il confine e' preciso:
+    /// THE FORM IS CHECKED, NEVER THE MERIT. It is the line to keep in mind
+    /// while reading this file, and the boundary is precise:
     ///
-    ///   forma  = c'e' il parametro obbligatorio? e' un numero dove serve un
-    ///            numero? e' uno dei valori ammessi?
-    ///   merito = quel numero ha senso? quel centro sta dentro il materiale?
+    ///   form  = is the mandatory parameter there? is it a number where a
+    ///            number is needed? is it one of the allowed values?
+    ///   merit = does that number make sense? is that center inside the material?
     ///
-    /// Il merito non si giudica qui, e non e' pigrizia: allargare un foro ha il
-    /// centro **esattamente nel vuoto**, e un controllo zelante lo rifiuterebbe.
-    /// Rifiutare cio' che e' soltanto insolito e' il difetto peggiore di tutti,
-    /// perche' un rifiuto sbagliato non lo rivede nessuno mentre una
-    /// spiegazione sbagliata la corregge chi legge in tre secondi.
+    /// The merit is not judged here, and it is not laziness: enlarging a hole has its
+    /// center **exactly in the void**, and a zealous check would refuse it.
+    /// Refusing what is merely unusual is the worst defect of all,
+    /// because nobody reviews a wrong refusal whereas a wrong
+    /// explanation is corrected in three seconds by whoever reads.
     ///
-    /// UN INTERO E' UN NUMERO. Il difetto piu' facile da scrivere qui e' un
-    /// `type: number` che rifiuta il `20` di un JSON perche' arriva come intero:
-    /// bloccherebbe operazioni che oggi funzionano, e lo farebbe con un
-    /// messaggio che parla di tipi.
+    /// AN INTEGER IS A NUMBER. The easiest defect to write here is a
+    /// `type: number` that refuses the `20` of a JSON because it arrives as an integer:
+    /// it would block operations that work today, and it would do so with a
+    /// message that talks about types.
     /// </summary>
     internal static class Shape
     {
         /// <summary>
-        /// Ritorna il motivo del rifiuto, o null se gli argomenti vanno bene.
+        /// Returns the reason for the refusal, or null if the arguments are fine.
         ///
-        /// Uno schema che non si capisce **non e' un rifiuto**: se il catalogo
-        /// e' scritto in un modo che questo controllo non sa leggere, il
-        /// problema e' del controllo, e fermare l'operazione vorrebbe dire far
-        /// pagare a chi disegna un difetto nostro.
+        /// A schema that is not understood **is not a refusal**: if the catalog
+        /// is written in a way that this check cannot read, the
+        /// problem is the check's, and stopping the operation would mean making
+        /// whoever draws pay for a defect of ours.
         ///
         /// IT ALSO REWRITES, IN <paramref name="arguments"/> ITSELF, every enum
         /// value spelled differently from the catalogue (Z-C21.10, pattern
@@ -61,7 +61,7 @@ namespace Oce.Solid.Agent.Bridge
 
             arguments = arguments ?? new Dictionary<string, object>();
 
-            // ── 1. quello che deve esserci ───────────────────────────────
+            // ── 1. what must be there ───────────────────────────────
             var missingItems = new List<string>();
             foreach (var itemName in Items(Take(schema, "required")))
             {
@@ -76,18 +76,18 @@ namespace Oce.Solid.Agent.Bridge
                        string.Join(", ", missingItems.Select(x => "«" + x + "»")) +
                        ", e non ci sono.";
 
-            // ── 2. quello che c'e', ma della forma sbagliata ─────────────
+            // ── 2. what is there, but of the wrong form ─────────────
             //
             // OVER A COPY OF THE ENTRIES, because an enum value can be
-            // rewritten in `arguments` on the way (see Sbaglia). On .NET
+            // rewritten in `arguments` on the way (see Fail). On .NET
             // Framework even overwriting an existing key bumps the
             // dictionary's version, and the next MoveNext of a foreach over
             // that same dictionary throws InvalidOperationException.
             foreach (var entry in arguments.ToList())
             {
-                // Le chiavi che cominciano con il trattino basso non sono
-                // parametri dell'operazione: sono roba nostra («_signatures»), e lo
-                // schema giustamente non le nomina.
+                // Keys that start with an underscore are not
+                // parameters of the operation: they are our own stuff («_signatures»), and the
+                // schema rightly does not name them.
                 if (entry.Key.StartsWith("_")) continue;
 
                 object raw;
@@ -105,36 +105,36 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Quanto in profondita' si scende dentro gli oggetti annidati.
+        /// How deep one goes into nested objects.
         ///
-        /// Gli schemi di questo catalogo arrivano a due livelli
-        /// (`feature_rif.passo`). Tre e' un margine, e il tetto c'e' perche' un
-        /// controllo che si chiama da solo senza fondo e' un modo di piantarsi.
+        /// The schemas of this catalog reach two levels
+        /// (`feature_rif.passo`). Three is a margin, and the ceiling is there because a
+        /// check that calls itself with no bottom is a way of getting stuck.
         /// </summary>
         private const int MaximumDepth = 3;
 
         /// <summary>
-        /// Controlla un valore contro la sua regola. Scende anche DENTRO gli
-        /// oggetti annidati, e fino alla 0.25.2 non lo faceva.
+        /// Checks a value against its rule. It also goes down INTO
+        /// nested objects, and up to 0.25.2 it did not.
         ///
-        /// LA PROMESSA CHE NON ERA MANTENUTA. La descrizione dello strumento
-        /// `build` dice al modello: «Il piano viene controllato TUTTO prima di
-        /// cominciare: se un passo qualunque ha un nome sbagliato o argomenti
-        /// che non rispettano lo schema, non viene eseguito niente e il
-        /// documento resta com'era». `PlanInMemory` ripete la stessa
-        /// garanzia.
+        /// THE PROMISE THAT WAS NOT KEPT. The description of the tool
+        /// `build` tells the model: «The plan is checked ENTIRELY before
+        /// starting: if any step has a wrong name or arguments
+        /// that do not respect the schema, nothing is executed and the
+        /// document stays as it was». `PlanInMemory` repeats the same
+        /// guarantee.
         ///
-        /// Ma il controllo si fermava al primo livello: per `type: "object"`
-        /// verificava che fosse un oggetto e basta, senza guardare il `required`
-        /// e le `properties` dentro. Lo schema di `linear_pattern` dichiara
-        /// `feature_ref` come oggetto con `required: ["step", "kind"]`, e un
-        /// piano di quattro passi il cui quarto scrive `feature_ref: {}`
-        /// passava tutta la validazione preventiva. I primi tre passi venivano
-        /// costruiti nel documento, poi il quarto falliva.
+        /// But the check stopped at the first level: for `type: "object"`
+        /// it verified that it was an object and nothing else, without looking at the `required`
+        /// and the `properties` inside. The schema of `linear_pattern` declares
+        /// `feature_ref` as an object with `required: ["step", "kind"]`, and a
+        /// plan of four steps whose fourth writes `feature_ref: {}`
+        /// passed the whole preventive validation. The first three steps were
+        /// built in the document, then the fourth failed.
         ///
-        /// Il documento restava a meta'. La garanzia di tutto-o-niente e'
-        /// esattamente cio' per cui questo controllo esiste: mantenerla solo al
-        /// primo livello vuol dire non mantenerla.
+        /// The document was left half done. The all-or-nothing guarantee is
+        /// exactly what this check exists for: keeping it only at the
+        /// first level means not keeping it.
         ///
         /// <paramref name="catalogueSpelling"/> is not null only when the value
         /// is an enum written with a different case: it is the catalogue's
@@ -182,13 +182,13 @@ namespace Oce.Solid.Agent.Bridge
                     break;
 
                 case "string":
-                    // Un numero dove va una stringa NON si rifiuta: chi scrive
-                    // «configuration: 80» intende «"80"», e rifiutarlo sarebbe
-                    // pignoleria che costa un giro a chi disegna.
+                    // A number where a string goes is NOT refused: whoever writes
+                    // «configuration: 80» means «"80"», and refusing it would be
+                    // pedantry that costs a round to whoever draws.
                     break;
             }
 
-            // ── i valori ammessi ─────────────────────────────────────────
+            // ── the allowed values ───────────────────────────────────
             //
             // THE VALUE GOES ON SPELLED AS THE CATALOGUE SPELLS IT (Z-C21.10,
             // pattern S20). The case of a word is form, not merit, so
@@ -229,13 +229,13 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Dentro un oggetto annidato: prima cio' che manca, poi cio' che c'e'
-        /// della forma sbagliata. E' la stessa forma di <see cref="Check"/>,
-        /// un livello piu' giu'.
+        /// Inside a nested object: first what is missing, then what is there
+        /// of the wrong form. It is the same form as <see cref="Check"/>,
+        /// one level further down.
         ///
-        /// Il nome del campo si scrive per esteso — «feature_rif.passo» — o chi
-        /// legge il messaggio non sa dove guardare: lo stesso nome «step» puo'
-        /// stare sotto tre riferimenti diversi nello stesso schema.
+        /// The name of the field is written in full — «feature_rif.passo» — or whoever
+        /// reads the message does not know where to look: the same name «step» can
+        /// be under three different references in the same schema.
         /// </summary>
         private static string Nested(
             string operation, string filePath, Dictionary<string, object> rule,
@@ -244,7 +244,7 @@ namespace Oce.Solid.Agent.Bridge
             var property = Take(rule, "properties") as Dictionary<string, object>;
             if (property == null) return null;
 
-            // ── quello che manca ──
+            // ── what is missing ──
             var mandatory = Items(Take(rule, "required"));
             var missingItems = mandatory
                 .Where(n => !val.ContainsKey(n) || val[n] == null)
@@ -258,8 +258,8 @@ namespace Oce.Solid.Agent.Bridge
                        string.Join(", ", missingItems.Select(x => "«" + x + "»")) +
                        ", e non li dice.";
 
-            // ── quello che c'e', ma della forma sbagliata ──
-            // Over a copy, as in Controlla: an enum value such as
+            // ── what is there, but of the wrong form ──
+            // Over a copy, as in Check: an enum value such as
             // «faccia_rif.genere» can be rewritten in `value_text` on the way.
             foreach (var entry in val.ToList())
             {
@@ -281,9 +281,9 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Un intero JSON e' un numero. Il difetto piu' facile da scrivere in
-        /// questo file e' un `type: number` che rifiuta il `20` di
-        /// `"thickness_mm": 20` perche' il deserializzatore l'ha fatto `int`.
+        /// A JSON integer is a number. The easiest defect to write in
+        /// this file is a `type: number` that refuses the `20` of
+        /// `"thickness_mm": 20` because the deserializer made it an `int`.
         /// </summary>
         private static bool ANumber(object v)
         {
@@ -292,9 +292,9 @@ namespace Oce.Solid.Agent.Bridge
                 v is int || v is uint || v is long || v is ulong ||
                 v is float || v is double || v is decimal) return true;
 
-            // Anche un numero scritto fra virgolette: chi manda «"20"» ha detto
-            // venti, e fermarlo per le virgolette sarebbe rifiutare cio' che si
-            // e' capito benissimo.
+            // Also a number written between quotes: whoever sends «"20"» said
+            // twenty, and stopping it for the quotes would be refusing what was
+            // understood perfectly well.
             var s = v as string;
             double _;
             return s != null &&
@@ -311,7 +311,7 @@ namespace Oce.Solid.Agent.Bridge
             return "un " + v.GetType().Name;
         }
 
-        /// <summary>La descrizione del parametro mancante, se il catalogo ne ha una.</summary>
+        /// <summary>The description of the missing parameter, if the catalog has one.</summary>
         private static string Suggest(Dictionary<string, object> property, string itemName)
         {
             object raw;

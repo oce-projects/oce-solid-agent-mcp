@@ -6,17 +6,17 @@
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
         <!--
-          NIENTE ELEVAZIONE, ED E' UNA SCELTA.
+          NO ELEVATION, AND IT IS A CHOICE.
 
-          Questo installatore scrive in due posti, tutti e due dell'utente:
-          %LOCALAPPDATA% per i file del ponte, e la configurazione del client
-          MCP. Non tocca Program Files, non scrive nel registro di macchina,
-          non registra componenti COM.
+          This installer writes in two places, both belonging to the user:
+          %LOCALAPPDATA% for the bridge files, and the configuration of the MCP
+          client. It does not touch Program Files, does not write to the machine
+          registry, does not register COM components.
 
-          Chiedere l'amministratore quando non serve e' il modo piu' rapido di
-          insegnare a chi installa che il prompt dell'UAC si clicca senza
-          leggerlo. E in molte officine il progettista l'amministratore non ce
-          l'ha proprio: un installatore che lo chiede non si puo' usare.
+          Asking for the administrator when it is not needed is the quickest way to
+          teach whoever installs that the UAC prompt is clicked without
+          reading it. And in many workshops the designer does not have the administrator
+          at all: an installer that asks for it cannot be used.
         -->
         <requestedExecutionLevel level="asInvoker" uiAccess="false" />
       </requestedPrivileges>
@@ -25,8 +25,8 @@
 
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
-      <!-- Windows 10 / 11. Senza questa dichiarazione, le API di versione
-           mentono e riportano 6.2 (Windows 8). -->
+      <!-- Windows 10 / 11. Without this declaration, the version APIs
+           lie and report 6.2 (Windows 8).-->
       <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
       <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" />
     </application>
@@ -34,9 +34,9 @@
 
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
-      <!-- Senza questo, su uno schermo 4K la finestra esce sfocata e i
-           controlli si sovrappongono. Un progettista CAD lo schermo grande
-           ce l'ha sempre. -->
+      <!-- Without this, on a 4K screen the window comes out blurred and the
+           controls overlap. A CAD designer always has
+           the big screen.-->
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2,permonitor</dpiAwareness>
     </windowsSettings>

@@ -9,38 +9,38 @@ using Oce.Solid.Agent.Tools;
 namespace Oce.Solid.Agent
 {
     /// <summary>
-    /// Il giro principale: legge una riga, risponde una riga.
+    /// The main loop: reads a line, answers a line.
     ///
-    /// STDOUT E' SOLO DEL PROTOCOLLO. Qualunque altra cosa scritta li' rompe la
-    /// conversazione senza dire perche'. Tutto il resto — l'aggancio, gli
-    /// errori, quello che l'add-in racconta — va su stderr.
+    /// STDOUT BELONGS TO THE PROTOCOL ALONE. Anything else written there breaks the
+    /// conversation without saying why. Everything else — the attachment, the
+    /// errors, what the add-in tells — goes to stderr.
     ///
-    /// SI PARTE ANCHE SE SOLIDWORKS NON C'E'. Un server MCP che muore
-    /// all'avvio non fa in tempo a spiegarsi: chi lo lancia vede solo un
-    /// processo finito. Qui si parte comunque e il motivo si legge chiamando
-    /// uno strumento — che e' il posto dove chi usa il ponte sta guardando.
+    /// IT STARTS EVEN IF SOLIDWORKS IS NOT THERE. An MCP server that dies
+    /// at startup has no time to explain itself: whoever launches it sees only a
+    /// finished process. Here it starts anyway and the reason can be read by calling
+    /// a tool — which is the place where whoever uses the bridge is looking.
     /// </summary>
     internal static class Program
     {
         /// <summary>
-        /// LA VERSIONE SI LEGGE DA `VERSION.txt`, CHE VIAGGIA DENTRO
-        /// L'ESEGUIBILE COME RISORSA.
+        /// THE VERSION IS READ FROM `VERSION.txt`, WHICH TRAVELS INSIDE
+        /// THE EXECUTABLE AS A RESOURCE.
         ///
-        /// Qui c'era `const string Versione = "0.2.0"`, e c'e' rimasta
-        /// **per settantotto versioni minori**: il ponte diceva 0.2.0
-        /// nell'`initialize` mentre `VERSION.txt` era a 0.80.0. Chi
-        /// registra la conversazione MCP si portava dietro un numero falso,
-        /// e nessuno poteva accorgersene perche' non c'era niente con cui
-        /// confrontarlo.
+        /// There used to be `const string Versione = "0.2.0"` here, and it stayed
+        /// **for seventy-eight minor versions**: the bridge said 0.2.0
+        /// in `initialize` while `VERSION.txt` was at 0.80.0. Whoever
+        /// recorded the MCP conversation carried around a false number,
+        /// and nobody could notice because there was nothing to
+        /// compare it with.
         ///
-        /// E' la stessa marcescenza che il TODO si era gia' curata in
-        /// testa il 16/9/2026 — quella riga diceva «Ponte 0.2.0» ed era
-        /// vera il 14 — ma nel codice, dove si vede ancora meno.
+        /// It is the same rot that the TODO had already cured at
+        /// its top on 16/9/2026 — that line said «Bridge 0.2.0» and was
+        /// true on the 14th — but in the code, where it is seen even less.
         ///
-        /// Se la risorsa non si legge si risponde **«sconosciuta»**, non
-        /// un numero di ripiego: *un numero sbagliato e' peggio di un
-        /// numero mancante*, perche' chi lo legge non ha modo di sapere
-        /// che e' sbagliato.
+        /// If the resource cannot be read the answer is **«unknown»**, not
+        /// a fallback number: *a wrong number is worse than a
+        /// missing number*, because whoever reads it has no way of knowing
+        /// that it is wrong.
         /// </summary>
         private static readonly string Version = VersionFromResource();
 
@@ -87,19 +87,19 @@ namespace Oce.Solid.Agent
             var tools = new McpTools(session, catalog);
             var output = Console.Out;
 
-            // DA QUI IN POI IL PONTE RACCONTA ANCHE AL CLIENT (voce W2.8).
-            // Non prima: il ciclo dei messaggi non e' ancora partito, e una riga
-            // su stdout senza nessuno che legga righe JSON e' solo rumore che
-            // rompe chi arrivera' dopo.
+            // FROM HERE ON THE BRIDGE ALSO TELLS THE CLIENT (entry W2.8).
+            // Not before: the message loop has not started yet, and a line
+            // on stdout with nobody reading JSON lines is only noise that
+            // breaks whoever comes next.
             Protocol.TurnOnChannel(output);
 
-            // GLI ARRETRATI PRIMA DI STDIN (voce W2.5).
+            // THE BACKLOG BEFORE STDIN (entry W2.5).
             //
-            // Mentre il ponte aspetta la risposta a una conferma, il client
-            // puo' mandare altro. Quelle righe vengono messe da parte
-            // invece che buttate — buttarle lascerebbe il client ad
-            // aspettare per sempre una risposta che nessuno gli dara' — e
-            // il giro le serve qui, appena puo'.
+            // While the bridge waits for the answer to a confirmation, the client
+            // may send something else. Those lines are put aside
+            // instead of thrown away — throwing them away would leave the client
+            // waiting forever for an answer that nobody will give it — and
+            // the loop serves them here, as soon as it can.
             string line;
             while ((line = Elicitation.Backlog() ?? Console.In.ReadLine()) != null)
             {
@@ -121,9 +121,9 @@ namespace Oce.Solid.Agent
                 var parameters = message.TryGetValue("params", out var p)
                     ? p as Dictionary<string, object> : null;
 
-                // Le NOTIFICHE non hanno id e non vogliono risposta. Rispondere
-                // a una notifica e' il modo piu' rapido di confondere chi
-                // ascolta: si ritroverebbe una risposta che non aspettava.
+                // NOTIFICATIONS have no id and want no answer. Answering
+                // a notification is the quickest way to confuse whoever
+                // is listening: they would find an answer they were not expecting.
                 bool isNotification = !message.ContainsKey("id");
 
                 try
@@ -155,34 +155,34 @@ namespace Oce.Solid.Agent
             switch (method)
             {
                 case "initialize":
-                    // COSA SA FARE IL CLIENT si legge QUI e una volta sola
-                    // (voce W2.5): `capabilities.elicitation` dice se sa
-                    // chiedere una conferma all'utente. Presumerlo vorrebbe
-                    // dire appendere una chiamata aspettando una risposta
-                    // che non arrivera' mai.
+                    // WHAT THE CLIENT CAN DO is read HERE and only once
+                    // (entry W2.5): `capabilities.elicitation` says whether it can
+                    // ask the user for a confirmation. Presuming it would mean
+                    // hanging a call waiting for an answer
+                    // that will never arrive.
                     Elicitation.ReadCapabilities(parameters);
                     return Protocol.Response(id, new Dictionary<string, object>
                     {
-                        // La versione del protocollo si rimanda com'e' arrivata
-                        // quando la si riconosce: dichiararne una sola vuol
-                        // dire rompersi al primo aggiornamento del client.
+                        // The protocol version is sent back as it arrived
+                        // when it is recognized: declaring only one would mean
+                        // breaking at the first update of the client.
                         ["protocolVersion"] = ProtocolVersion(parameters),
                         ["capabilities"] = new Dictionary<string, object>
                         {
                             ["tools"] = new Dictionary<string, object>(),
-                            // Il catalogo si puo' anche ATTACCARE invece che
-                            // chiedere (W2.12). Senza questa riga un client non
-                            // prova nemmeno `resources/list`, e la porta c'e'
-                            // ma nessuno la vede. `subscribe` e `listChanged`
-                            // restano fuori apposta: **il catalogo non cambia
-                            // mentre il ponte gira** — e' un file letto
-                            // all'avvio — e dichiarare una capacita' che non si
-                            // esercita e' una promessa che qualcuno aspettera'.
+                            // The catalog can also be ATTACHED instead of
+                            // asked for (W2.12). Without this line a client does not
+                            // even try `resources/list`, and the door is there
+                            // but nobody sees it. `subscribe` and `listChanged`
+                            // stay out on purpose: **the catalog does not change
+                            // while the bridge runs** — it is a file read at
+                            // startup — and declaring a capability that is not
+                            // exercised is a promise that someone will wait for.
                             ["resources"] = new Dictionary<string, object>(),
-                            // Il ponte racconta cosa fa, e lo dichiara: senza
-                            // questa riga un client non sa che puo' chiedere
-                            // `logging/setLevel`, e le notifiche gli arrivano
-                            // senza che le abbia mai potute regolare (W2.8).
+                            // The bridge tells what it does, and declares it: without
+                            // this line a client does not know that it can ask for
+                            // `logging/setLevel`, and the notifications reach it
+                            // without it ever having been able to adjust them (W2.8).
                             ["logging"] = new Dictionary<string, object>(),
                         },
                         ["serverInfo"] = new Dictionary<string, object>
@@ -211,13 +211,13 @@ namespace Oce.Solid.Agent
                 case "ping":
                     return Protocol.Response(id, new Dictionary<string, object>());
 
-                // Il client decide quanto vuole sentire (voce W2.8).
+                // The client decides how much it wants to hear (entry W2.8).
                 //
-                // UN LIVELLO CHE NON SI RICONOSCE E' UN ERRORE, non un silenzio:
-                // accettarlo e ignorarlo lascerebbe il client convinto di aver
-                // alzato la soglia mentre i messaggi continuano ad arrivare —
-                // oppure, peggio, convinto di sentire tutto mentre non sente
-                // niente.
+                // A LEVEL THAT IS NOT RECOGNIZED IS AN ERROR, not a silence:
+                // accepting it and ignoring it would leave the client convinced it had
+                // raised the threshold while the messages keep arriving —
+                // or, worse, convinced it hears everything while it hears
+                // nothing.
                 case "logging/setLevel":
                 {
                     var wanted = parameters != null && parameters.TryGetValue("level", out var lv)
@@ -236,13 +236,13 @@ namespace Oce.Solid.Agent
                         ["tools"] = tools.Items(),
                     });
 
-                // ── LE RISORSE (voce W2.12) ─────────────────────────────
+                // ── THE RESOURCES (entry W2.12) ─────────────────────────────
                 //
-                // Stesso catalogo degli strumenti, presa da un'altra porta:
-                // `Risorse` riceve l'oggetto `Catalog` che e' gia' in mano e
-                // non ne costruisce un altro. Costruirne un altro vorrebbe dire
-                // rileggere il file, e due letture dello stesso file in momenti
-                // diversi sono due cataloghi che possono differire.
+                // Same catalog as the tools, taken from another door:
+                // `Risorse` receives the `Catalog` object that is already in hand and
+                // does not build another one. Building another would mean
+                // rereading the file, and two readings of the same file at different
+                // moments are two catalogs that may differ.
                 case "resources/list":
                     return Protocol.Response(id, new Dictionary<string, object>
                     {
@@ -277,9 +277,9 @@ namespace Oce.Solid.Agent
                         return Protocol.Response(id, content);
                     }
 
-                    // UN URI CHE NON ESISTE DICE COSA ESISTE. Un «non trovato»
-                    // nudo lascia a chi chiede l'unico rimedio che non
-                    // funziona: riprovare uguale.
+                    // A URI THAT DOES NOT EXIST SAYS WHAT EXISTS. A bare «not
+                    // found» leaves the asker the only remedy that does not
+                    // work: trying again the same.
                     var similar = risorse.Similar(uri);
                     return Protocol.Error(
                         id, Protocol.InvalidParameters,
@@ -300,32 +300,32 @@ namespace Oce.Solid.Agent
                     if (string.IsNullOrWhiteSpace(itemName))
                         return Protocol.Error(
                             id, Protocol.InvalidParameters, "manca «name»");
-                    // IL GETTONE DELL'AVANZAMENTO (voce W2.2). Sta su
-                    // `params._meta`, cioe' accanto a `name` e non dentro
-                    // `arguments`: e' del PROTOCOLLO, non dello strumento,
-                    // e un client generico lo mette li' senza sapere niente
-                    // di cosa fa questo ponte.
+                    // THE PROGRESS TOKEN (entry W2.2). It sits on
+                    // `params._meta`, that is next to `name` and not inside
+                    // `arguments`: it belongs to the PROTOCOL, not to the tool,
+                    // and a generic client puts it there without knowing anything
+                    // about what this bridge does.
                     return Protocol.Response(
                         id, tools.Invoke(itemName, itsItems, Progress.Token(parameters)));
                 }
 
-                // ── L'ANNULLAMENTO, E UN NO DETTO (voce W2.2) ─────────────
+                // ── CANCELLATION, AND A NO THAT IS SAID (entry W2.2) ─────────────
                 //
-                // Prima cadeva qui sotto, nel `default`. Ed essendo una
-                // NOTIFICA, il giro principale scartava la risposta d'errore:
-                // **un no-op silenzioso**. Il client restava convinto di aver
-                // annullato qualcosa.
+                // Before, it fell through here below, into the `default`. And being a
+                // NOTIFICATION, the main loop discarded the error response:
+                // **a silent no-op**. The client stayed convinced it had
+                // cancelled something.
                 //
-                // Questo ponte NON puo' interrompere una chiamata in corso, e
-                // non e' una mancanza da riparare con piu' codice: serve una
-                // richiesta alla volta sullo stesso thread perche' SOLIDWORKS
-                // vuole STA. Mentre una chiamata gira, stdin non viene letto —
-                // quindi quando questa riga arriva, la richiesta che nomina e'
-                // gia' finita.
+                // This bridge CANNOT interrupt a call in progress, and
+                // it is not a shortcoming to repair with more code: it serves one
+                // request at a time on the same thread because SOLIDWORKS
+                // wants STA. While a call runs, stdin is not read —
+                // so when this line arrives, the request it names is
+                // already finished.
                 //
-                // La specifica dice che una `cancelled` si puo' ignorare. Qui
-                // non si ignora: si DICE. *Un no dichiarato si puo' leggere;
-                // un silenzio no.*
+                // The specification says that a `cancelled` may be ignored. Here
+                // it is not ignored: it is SAID. *A declared no can be read;
+                // a silence cannot.*
                 case "notifications/cancelled":
                     Protocol.Note(UndoNotPossible(parameters));
                     return null;
@@ -338,11 +338,11 @@ namespace Oce.Solid.Agent
         }
 
         /// <summary>
-        /// Cosa si risponde a `notifications/cancelled` (voce W2.2).
+        /// What is answered to `notifications/cancelled` (entry W2.2).
         ///
-        /// Sta da sola per poterla leggere in una prova senza far partire un
-        /// ponte: la cosa che conta di questa risposta e' **che dica il
-        /// numero della richiesta e il perche'**, e quello si guarda qui.
+        /// It stands alone so that it can be read in a check without starting a
+        /// bridge: the thing that matters about this answer is **that it says the
+        /// number of the request and why**, and that is looked at here.
         /// </summary>
         internal static string UndoNotPossible(
             Dictionary<string, object> parameters)
@@ -481,8 +481,8 @@ namespace Oce.Solid.Agent
         }
 
         /// <summary>
-        /// `--prova`: un giro secco senza client, per sapere se il ponte sta in
-        /// piedi su questa macchina. Stampa su stderr e non tocca il pezzo.
+        /// `--prova`: a dry run without a client, to know whether the bridge stands
+        /// on this machine. It prints to stderr and does not touch the part.
         /// </summary>
         private static int Test(Session session, Catalog catalog)
         {
@@ -509,20 +509,20 @@ namespace Oce.Solid.Agent
                 return code;
             }
 
-            // AGGANCIATO E SENZA DOCUMENTI E' UN PONTE IN PIEDI (voce H6-bis).
+            // ATTACHED AND WITHOUT DOCUMENTS IS A BRIDGE THAT STANDS (entry H6-bis).
             //
-            // Qui prima si chiedeva lo stato e, senza un documento aperto, lo
-            // stato torna null: il giro secco usciva 1, e l'installatore diceva
-            // «Installato, ma il giro secco non ha confermato» — con SOLIDWORKS
-            // acceso e vuoto, che e' lo stato normale di chi ha appena acceso il
-            // computer. Trovato il 14/9, rimasto senza casella fino al 24/9, e
-            // visto di nuovo quella sera: il banco aveva chiuso tutto e il caso 2
-            // di `Checks/test-installer.js` e' diventato rosso.
+            // Here the state used to be asked and, without an open document, the
+            // state returns null: the dry run exited 1, and the installer said
+            // «Installed, but the dry run did not confirm» — with SOLIDWORKS
+            // on and empty, which is the normal state of whoever has just turned on the
+            // computer. Found on 14/9, left without a checkbox until 24/9, and
+            // seen again that evening: the bench had closed everything and case 2
+            // of `Checks/test-installer.js` turned red.
             //
-            // Tre esiti e non due: agganciato con un documento (lo misura),
-            // agganciato senza documenti (lo dice, ed e' in piedi), non agganciato
-            // (esce 1, sopra). Che abbia parlato con SOLIDWORKS lo dice gia' la
-            // riga col numero di versione, stampata all'aggancio.
+            // Three outcomes and not two: attached with a document (it measures it),
+            // attached without documents (it says so, and it stands), not attached
+            // (exits 1, above). That it spoke with SOLIDWORKS is already said by the
+            // line with the version number, printed at the attachment.
             if (session.ActiveDocument() == null)
             {
                 Protocol.Note("[prova] nessun documento aperto: agganciato, niente da misurare.");

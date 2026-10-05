@@ -3,43 +3,43 @@ using System;
 namespace Shared
 {
     /// <summary>
-    /// QUANDO UNA CHIAMATA NON TORNA, ALMENO SI SA QUALE (voci K18 e Z-C4).
+    /// WHEN A CALL DOES NOT RETURN, AT LEAST WE KNOW WHICH ONE (entries K18 and Z-C4).
     ///
-    /// ── COSA E' COSTATO NON AVERLO ───────────────────────────────────────
+    /// ── WHAT IT COST NOT TO HAVE IT ───────────────────────────────────────
     ///
-    /// Il 23/9/2026 tre giri di banco sono morti appesi. Il processo era vivo,
-    /// SOLIDWORKS `Responding=False`, **zero CPU su tutti e due**, nessuna
-    /// finestra modale: fermo dentro `NewDocument`, che stava leggendo il
-    /// modello di documento da una condivisione di rete con una presa sopra.
+    /// On 23/9/2026 three bench runs died hanging. The process was alive,
+    /// SOLIDWORKS `Responding=False`, **zero CPU on both**, no modal
+    /// window: stopped inside `NewDocument`, which was reading the
+    /// document template from a network share with a plug on it.
     ///
-    /// La sentinella (voce K17) non poteva aiutare: **conta le risposte**, e
-    /// li' non tornava nessuna risposta da contare. Il giro e' rimasto appeso
-    /// finche' qualcuno non ha guardato — e **nessuno guarda un giro che sta
-    /// andando bene**.
+    /// The sentinel (entry K17) could not help: **it counts the answers**, and
+    /// there no answer was coming back to be counted. The run stayed hanging
+    /// until someone looked — and **nobody looks at a run that is
+    /// going well**.
     ///
-    /// ── COSA FA, E SOPRATTUTTO COSA NON FA ───────────────────────────────
+    /// ── WHAT IT DOES, AND ABOVE ALL WHAT IT DOES NOT DO ───────────────────
     ///
-    /// **Non salva la chiamata.** Una chiamata COM piantata non si annulla: il
-    /// thread che la fa resta li' per sempre, e non c'e' niente da fare al
-    /// riguardo. Promettere un «timeout che riprova» sarebbe la solita
-    /// guardia che non fa cio' che dice.
+    /// **It does not save the call.** A stuck COM call cannot be cancelled: the
+    /// thread making it stays there forever, and there is nothing to be done
+    /// about it. Promising a «timeout that retries» would be the usual
+    /// guard that does not do what it says.
     ///
-    /// Quello che fa e' trasformare **un'attesa infinita e muta** in **un
-    /// referto**: quale operazione, da quanto, su quale documento. Poi chi lo
-    /// usa decide — nel banco, si stampa e si muore, perche' con SOLIDWORKS
-    /// piantato le prove che seguono non misurerebbero niente.
+    /// What it does is turn **an infinite and mute wait** into **a
+    /// report**: which operation, for how long, on which document. Then whoever
+    /// uses it decides — in the bench, it prints and dies, because with SOLIDWORKS
+    /// stuck the checks that follow would measure nothing.
     ///
-    /// ── PERCHE' UN BATTITO E NON UN THREAD DI LAVORO ─────────────────────
+    /// ── WHY A HEARTBEAT AND NOT A WORKER THREAD ───────────────────────────
     ///
-    /// La strada ovvia — eseguire la chiamata su un altro thread e aspettarla
-    /// con una scadenza — **e' sbagliata qui**: l'interop di SOLIDWORKS e' a
-    /// thread singolo (STA), e spostare le chiamate su un thread qualunque le
-    /// fa passare per il marshalling COM, cioe' aggiunge un modo nuovo di
-    /// piantarsi al posto di toglierne uno.
+    /// The obvious road — run the call on another thread and wait for it
+    /// with a deadline — **is wrong here**: the SOLIDWORKS interop is
+    /// single-threaded (STA), and moving the calls onto any thread makes
+    /// them go through COM marshalling, that is, it adds a new way of
+    /// getting stuck instead of removing one.
     ///
-    /// Qui il thread che lavora non cambia mai: **annuncia** cosa sta per fare
-    /// e **dice** quando ha finito. Un guardiano, da fuori, guarda l'orologio.
-    /// Non tocca il lavoro: lo guarda.
+    /// Here the thread that works never changes: it **announces** what it is about to do
+    /// and **says** when it has finished. A guardian, from outside, watches the clock.
+    /// It does not touch the work: it watches it.
     /// </summary>
     internal sealed class Leash
     {
@@ -48,10 +48,10 @@ namespace Shared
         private DateTime _da;
 
         /// <summary>
-        /// Da quanto una chiamata puo' durare prima che si dica che e' appesa.
-        /// Non e' «quanto dovrebbe durare»: e' **quanto oltre ogni dubbio**.
-        /// Un valore stretto trasforma una prova lenta in un falso allarme, e
-        /// un falso allarme spegne il guardiano il giorno dopo.
+        /// How long a call may last before it is said to be hung.
+        /// It is not «how long it should last»: it is **how long beyond any doubt**.
+        /// A tight value turns a slow check into a false alarm, and
+        /// a false alarm switches the guardian off the next day.
         /// </summary>
         internal int ExpiryMs { get; private set; }
 
@@ -65,25 +65,25 @@ namespace Shared
             ExpiryMs = expiryMs;
         }
 
-        /// <summary>Sta per cominciare una chiamata, e si dice quale.</summary>
+        /// <summary>A call is about to start, and it says which.</summary>
         internal void Begin(string what, DateTime now)
         {
             lock (_key) { _what = what; _da = now; }
         }
 
-        /// <summary>E' tornata. Da qui in poi non c'e' niente da sorvegliare —
-        /// il guardiano deve tacere, altrimenti la prima pausa fra due prove
-        /// diventerebbe un allarme.</summary>
+        /// <summary>It has returned. From here on there is nothing to watch —
+        /// the guardian must stay quiet, otherwise the first pause between two checks
+        /// would become an alarm.</summary>
         internal void Finished()
         {
             lock (_key) { _what = null; }
         }
 
         /// <summary>
-        /// Cosa e' appeso in questo momento, oppure `null`. Prende l'ora da
-        /// fuori: un orologio passato e' un orologio che si puo' far mentire
-        /// in una prova, e **una guardia che non si puo' far scattare non si
-        /// puo' credere**.
+        /// What is hung at this moment, or `null`. It takes the time from
+        /// outside: a clock that is passed in is a clock that can be made to lie
+        /// in a check, and **a guard that cannot be made to trip cannot
+        /// be believed**.
         /// </summary>
         internal string Hanging(DateTime now)
         {
@@ -100,8 +100,8 @@ namespace Shared
             }
         }
 
-        /// <summary>Per il resoconto: da quanto dura quella in corso, in
-        /// secondi, o -1 se non ce n'e' nessuna.</summary>
+        /// <summary>For the report: how long the current one has lasted, in
+        /// seconds, or -1 if there is none.</summary>
         internal int ForHowManySeconds(DateTime now)
         {
             lock (_key)

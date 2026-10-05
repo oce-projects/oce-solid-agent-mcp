@@ -7,30 +7,30 @@ using System.Text;
 namespace Shared
 {
     /// <summary>
-    /// PARLARE COL PONTE COME FAREBBE UN CLIENTE MCP: il trasporto, e basta.
+    /// TALKING TO THE BRIDGE AS AN MCP CLIENT WOULD: the transport, and nothing else.
     ///
-    /// ── PERCHE' STA QUI E NON IN UNO DEI DUE PROGETTI ────────────────────
+    /// ── WHY IT LIVES HERE AND NOT IN ONE OF THE TWO PROJECTS ───────────────
     ///
-    /// Lo usano in due. `Oce.Solid.Agent.ContractTests` da giorni, per provare il protocollo
-    /// **senza** SOLIDWORKS; il banco da adesso (voce F14), per far passare
-    /// dei casi **dalla porta del cliente**, con un documento vero davanti.
+    /// Two use it. `Oce.Solid.Agent.ContractTests` for days, to test the protocol
+    /// **without** SOLIDWORKS; the bench from now on (entry F14), to run
+    /// cases **through the client's door**, with a real document in front.
     ///
-    /// Copiarlo sarebbe stato piu' rapido e sbagliato. Dentro c'e' una cosa
-    /// che e' costata un pomeriggio — il BOM UTF-8 che `AutoFlush = true`
-    /// scrive davanti alla prima riga, tre byte che facevano rispondere al
-    /// ponte «Primitiva JSON non valida» mentre il sintomo sembrava
-    /// «initialize non risponde». *Un difetto pagato una volta si ripara in un
-    /// posto solo, altrimenti si paga di nuovo nella copia.*
+    /// Copying it would have been quicker and wrong. Inside there is something
+    /// that cost an afternoon — the UTF-8 BOM that `AutoFlush = true`
+    /// writes before the first line, three bytes that made the
+    /// bridge answer «Invalid JSON primitive» while the symptom looked like
+    /// «initialize does not respond». *A defect paid for once is fixed in one
+    /// place only, otherwise it is paid for again in the copy.*
     ///
-    /// Qui non c'e' nessuna asserzione: chi chiama decide cosa pretendere.
+    /// There is no assertion here: whoever calls decides what to demand.
     /// </summary>
     internal static class McpClient
     {
         /// <summary>
-        /// Quanto si aspetta una risposta. NON E' UNA COMODITA': senza, una
-        /// prova che fallisce appende il comando invece di diventare rossa.
-        /// Novanta secondi perche' il primo `tools/call` aggancia SOLIDWORKS,
-        /// e se SOLIDWORKS c'e' ed e' occupato quella riga puo' tardare.
+        /// How long a response is awaited. IT IS NOT A CONVENIENCE: without it, a
+        /// check that fails hangs the command instead of turning red.
+        /// Ninety seconds because the first `tools/call` attaches to SOLIDWORKS,
+        /// and if SOLIDWORKS is there and busy that line can take long.
         /// </summary>
         internal const int TimeoutMs = 90000;
         // ==================================================================
@@ -42,9 +42,9 @@ namespace Shared
             public readonly System.Collections.Concurrent.BlockingCollection<string> Lines =
                 new System.Collections.Concurrent.BlockingCollection<string>();
             public readonly List<string> LinesNotJson = new List<string>();
-            /// <summary>Tutto quello che e' arrivato, per poterlo DIRE quando
-            /// una prova va rossa: «non e' arrivato niente» senza dire cos'e'
-            /// arrivato invece costa un'ora a chi legge.</summary>
+            /// <summary>Everything that arrived, so that it can be TOLD when
+            /// a check goes red: «nothing arrived» without saying what
+            /// arrived instead costs the reader an hour.</summary>
             public readonly List<string> Views = new List<string>();
             public int LinesRead;
 
@@ -56,15 +56,15 @@ namespace Shared
         }
 
         /// <summary>
-        /// Il ponte, ma con il catalogo rotto di proposito.
+        /// The bridge, but with the catalog deliberately broken.
         ///
-        /// METODO A PARTE E NON UN PARAMETRO IN PIU' SU `Open`. Aggiungere un
-        /// argomento con valore predefinito e' gia' costato un banco intero
-        /// (nota `80zf`: «Mancata corrispondenza nel numero dei parametri», da
-        /// 88/0 a 70/58), e la riparazione che ha funzionato fu **un nome
-        /// diverso**. Qui `Open` non e' chiamato per riflessione, ma la regola
-        /// si tiene lo stesso: costa una riga e toglie una categoria di
-        /// sorprese.
+        /// A SEPARATE METHOD AND NOT ONE MORE PARAMETER ON `Open`. Adding an
+        /// argument with a default value has already cost a whole bench run
+        /// (note `80zf`: «Parameter count mismatch», from
+        /// 88/0 to 70/58), and the repair that worked was **a different
+        /// name**. Here `Open` is not called by reflection, but the rule
+        /// holds all the same: it costs one line and removes a category of
+        /// surprises.
         /// </summary>
         internal static Bridge OpenWithBrokenCatalog(string executable)
         {
@@ -80,24 +80,24 @@ namespace Shared
 
         internal static Bridge Open(string executable, string fakeCatalog)
         {
-            // ── IL BOM CHE HA ROTTO LA PRIMA RIGA ────────────────────────
+            // ── THE BOM THAT BROKE THE FIRST LINE ───────────────────────
             //
-            // `Process.StandardInput` su .NET Framework nasce con la codifica
-            // di `Console.InputEncoding`, e appena creato gli si mette
-            // `AutoFlush = true` — che **fa un Flush**, e un Flush di uno
-            // `StreamWriter` UTF-8 scrive il preambolo: tre byte, `EF BB BF`,
-            // davanti alla prima riga.
+            // `Process.StandardInput` on .NET Framework is born with the encoding
+            // of `Console.InputEncoding`, and as soon as it is created
+            // `AutoFlush = true` is set on it — which **does a Flush**, and a Flush of a
+            // UTF-8 `StreamWriter` writes the preamble: three bytes, `EF BB BF`,
+            // before the first line.
             //
-            // Il ponte ha risposto `-32700: Primitiva JSON non valida`, ed era
-            // vero — quello che gli arrivava non era JSON, erano tre byte e poi
-            // del JSON. Il sintomo pero' sembrava tutt'altro, «initialize non
-            // risponde», perche' la riga d'errore non porta l'id della
-            // richiesta: si e' visto solo stampando le righe arrivate.
+            // The bridge answered `-32700: Primitiva JSON non valida`, and it was
+            // true — what reached it was not JSON, it was three bytes and then
+            // some JSON. The symptom, though, looked like something else, «initialize does not
+            // respond», because the error line does not carry the id of the
+            // request: it was seen only by printing the lines that arrived.
             //
-            // **E' la trappola numero uno dei clienti MCP su stdio**, la gemella
-            // di quella che questo gruppo prova sul ponte. Si ripara prima di
-            // far partire il processo, con una UTF-8 che il preambolo non ce
-            // l'ha.
+            // **It is the number one trap of MCP clients over stdio**, the twin
+            // of the one this group tests on the bridge. It is fixed before
+            // starting the process, with a UTF-8 that does not have the
+            // preamble.
             try { Console.InputEncoding = new UTF8Encoding(false); } catch { }
 
             try
@@ -118,10 +118,10 @@ namespace Shared
                         },
                     },
                 };
-                // `OPENPDM_CATALOGO` e' la stessa variabile che userebbe chi
-                // installa il pacchetto altrove: puntarla a un file che non
-                // c'e' e' il modo onesto di provare cosa fa il ponte quando il
-                // catalogo non si carica.
+                // `OPENPDM_CATALOGO` is the same variable that whoever
+                // installs the package elsewhere would use: pointing it at a file that
+                // does not exist is the honest way to test what the bridge does when the
+                // catalog does not load.
                 if (fakeCatalog != null)
                     p.ServerProcess.StartInfo.EnvironmentVariables["OPENPDM_CATALOGO"] = fakeCatalog;
                 p.ServerProcess.OutputDataReceived += (s, e) =>
@@ -130,14 +130,14 @@ namespace Shared
                     p.LinesRead++;
                     p.Views.Add(e.Data);
                     var t = e.Data.Trim();
-                    // QUELLO CHE NON E' JSON SI TIENE DA PARTE, non si butta:
-                    // e' il controllo, non un incidente.
+                    // WHAT IS NOT JSON IS KEPT ASIDE, not thrown away:
+                    // it is the check, not an accident.
                     if (t.Length > 0 && !(t.StartsWith("{") || t.StartsWith("[")))
                         p.LinesNotJson.Add(t);
                     p.Lines.Add(e.Data);
                 };
-                // stderr NON si guarda: e' li' che il ponte racconta, ed e'
-                // giusto che ci racconti.
+                // stderr is NOT watched: that is where the bridge tells its story, and it
+                // is right that it tells it to us.
                 p.ServerProcess.ErrorDataReceived += (s, e) => { };
                 p.ServerProcess.Start();
                 p.ServerProcess.BeginOutputReadLine();
@@ -147,7 +147,7 @@ namespace Shared
             catch { return null; }
         }
 
-        /// <summary>Una riga sullo stdin del ponte. Vedi `Open` per il BOM.</summary>
+        /// <summary>A line on the stdin of the bridge. See `Open` for the BOM.</summary>
         internal static void Write(Bridge p, string line)
         {
             p.ServerProcess.StandardInput.Write(line + "\n");
@@ -155,9 +155,9 @@ namespace Shared
         }
 
         /// <summary>
-        /// Una riga, o null dopo il timeout. **Il timeout e' obbligatorio**:
-        /// senza, una prova che fallisce appende il comando invece di diventare
-        /// rossa.
+        /// A line, or null after the timeout. **The timeout is mandatory**:
+        /// without it, a check that fails hangs the command instead of turning
+        /// red.
         /// </summary>
         internal static string Line(Bridge p, int ms)
         {
@@ -168,9 +168,9 @@ namespace Shared
         internal static string Ask(Bridge p, int id, string request)
         {
             Write(p, request);
-            // Si scarta quello che non e' la risposta attesa: il ponte puo'
-            // scrivere altro, e cercare l'id e' l'unico modo che non dipende
-            // dall'ordine.
+            // What is not the expected response is discarded: the bridge may
+            // write other things, and looking for the id is the only way that does not depend
+            // on the order.
             var expiry = Environment.TickCount + TimeoutMs;
             while (Environment.TickCount < expiry)
             {
@@ -209,12 +209,12 @@ namespace Shared
         }
 
         /// <summary>
-        /// Il testo dentro un `result` di `tools/call`: `content[0].text`.
+        /// The text inside a `result` of `tools/call`: `content[0].text`.
         ///
-        /// Torna la stringa vuota e non `null` quando non c'e': un'attesa che
-        /// cerca una parola dentro un `null` esploderebbe, e l'esplosione si
-        /// leggerebbe come un difetto del ponte invece che come «il contenuto
-        /// era vuoto».
+        /// It returns the empty string and not `null` when there is none: an expectation that
+        /// looks for a word inside a `null` would blow up, and the blow-up would
+        /// be read as a defect of the bridge instead of as «the content
+        /// was empty».
         /// </summary>
         internal static string TextOf(Dictionary<string, object> result)
         {

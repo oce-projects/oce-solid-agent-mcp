@@ -1,41 +1,41 @@
-# I GANCI DI GIT DEVONO RESTARE A FINE RIGA UNIX, SEMPRE.
+# GIT HOOKS MUST STAY WITH UNIX LINE ENDINGS, ALWAYS.
 #
-# Su Windows `core.autocrlf` e' `true` di serie (verificato su questa macchina):
-# git converte i file di testo in CRLF quando li tira fuori. Un `pre-push` con
-# CRLF viene passato a `sh`, che legge la prima riga come «/bin/sh\r» e risponde
+# On Windows `core.autocrlf` is `true` by default (verified on this machine):
+# git converts text files to CRLF when it checks them out. A `pre-push` with
+# CRLF is passed to `sh`, which reads the first line as «/bin/sh\r» and answers
 #
 #     bad interpreter: /bin/sh^M: no such file or directory
 #
-# Il gancio non parte, il push parte lo stesso, e **non c'e' nessun messaggio che
-# dica che il controllo e' saltato**: il push riesce, che e' esattamente quello
-# che sarebbe successo senza gancio. E' il difetto che non da' errore, applicato
-# a una difesa — la difesa sparisce e il sintomo e' «tutto bene».
+# The hook does not start, the push goes ahead all the same, and **there is no message that
+# says the check was skipped**: the push succeeds, which is exactly what
+# would have happened without a hook. It is the defect that gives no error, applied
+# to a defense — the defense disappears and the symptom is «all is well».
 #
-# Non e' ipotetico: succede al primo clone su una macchina Windows qualunque,
-# cioe' su tutte quelle su cui gira questo progetto.
+# It is not hypothetical: it happens at the first clone on any Windows machine,
+# that is, on all those on which this project runs.
 Checks/hooks/* text eol=lf
 
-# Gli script di shell in generale, per la stessa ragione.
+# Shell scripts in general, for the same reason.
 *.sh text eol=lf
 
-# NON si dichiara niente per i `.ps1`: con `core.autocrlf=true` arrivano gia'
-# in CRLF, che e' quello che serve, e aggiungere una riga qui vorrebbe dire
-# rinormalizzare file che stanno bene — un diff enorme in cambio di niente.
-# Una regola che ripete il comportamento predefinito e' solo un modo di
-# rompere qualcosa il giorno che il predefinito cambia.
+# NOTHING is declared for the `.ps1` files: with `core.autocrlf=true` they already arrive
+# in CRLF, which is what is needed, and adding a line here would mean
+# renormalizing files that are fine — a huge diff in exchange for nothing.
+# A rule that repeats the default behavior is only a way of
+# breaking something the day the default changes.
 
-# I file di SOLIDWORKS sono binari e non vanno toccati da nessuna conversione:
-# un `.sldprt` con le fine riga «riparate» e' un file rotto.
+# SOLIDWORKS files are binary and must not be touched by any conversion:
+# a `.sldprt` with its line endings «repaired» is a broken file.
 *.sldprt binary
 *.slddrw binary
 *.sldasm binary
 *.sldlfp binary
 *.sldmat binary
 
-# IL CATALOGO RESTA A FINE RIGA UNIX, come lo scrive `Oce.Solid.Agent.Catalog.exe`.
-# Misurato il 25/9/2026 su un clone pulito da GitHub: git lo tirava fuori in
-# CRLF (153.225 byte), il generatore lo riscriveva in LF (150.270), e `build.ps1`
-# diceva a chiunque clonasse «catalog.json RIGENERATO: era indietro rispetto al
-# C#» — un falso allarme, stesso contenuto riga per riga. Un avviso che scatta
-# sempre si impara a non leggerlo, e il giorno che e' vero passa.
+# THE CATALOG STAYS WITH UNIX LINE ENDINGS, as `Oce.Solid.Agent.Catalog.exe` writes it.
+# Measured on 25/9/2026 on a clean clone from GitHub: git checked it out in
+# CRLF (153,225 bytes), the generator rewrote it in LF (150,270), and `build.ps1`
+# told whoever cloned «catalog.json REGENERATED: it was behind the
+# C#» — a false alarm, same content line by line. A warning that always trips
+# is learned not to be read, and the day it is true it passes.
 Tools/catalog.json text eol=lf

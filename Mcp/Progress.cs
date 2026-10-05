@@ -4,45 +4,45 @@ using System.Collections.Generic;
 namespace Oce.Solid.Agent.Mcp
 {
     /// <summary>
-    /// L'AVANZAMENTO, COL MECCANISMO DEL PROTOCOLLO (voce W2.2)
+    /// PROGRESS, WITH THE MECHANISM OF THE PROTOCOL (entry W2.2)
     ///
-    /// ── PERCHE' NON UN SECONDO STRUMENTO «A CHE PUNTO SEI» ──────────────
+    /// ── WHY NOT A SECOND TOOL «HOW FAR ARE YOU» ─────────────────────────
     ///
-    /// Perche' esiste gia' nella specifica MCP 2025-06-18, e reinventarlo
-    /// costerebbe di piu' per farsi capire da meno gente: un client generico
-    /// sa leggere `notifications/progress`, e non sapra' mai leggere uno
-    /// strumento inventato qui.
+    /// Because it already exists in the MCP 2025-06-18 specification, and reinventing it
+    /// would cost more to be understood by fewer people: a generic client
+    /// can read `notifications/progress`, and will never know how to read a tool
+    /// invented here.
     ///
-    /// Il client che vuole essere aggiornato mette un `progressToken` dentro
-    /// `params._meta` della richiesta. Chi non lo mette non vuole essere
-    /// aggiornato, e allora **non si manda niente**: una notifica che nessuno
-    /// aspetta e' rumore sul canale del protocollo.
+    /// The client that wants to be kept up to date puts a `progressToken` inside
+    /// `params._meta` of the request. Whoever does not put it does not want to be
+    /// updated, and then **nothing is sent**: a notification that nobody
+    /// is waiting for is noise on the channel of the protocol.
     ///
-    /// ── IL GETTONE SI RIMANDA COM'E' ARRIVATO ───────────────────────────
+    /// ── THE TOKEN IS SENT BACK AS IT ARRIVED ─────────────────────────────
     ///
-    /// La specifica ammette una stringa o un intero. Questo codice non lo
-    /// guarda: lo tiene come `object` e lo ricopia. Interpretarlo vorrebbe
-    /// dire poterlo cambiare — un `42` che torna indietro come `"42"` non
-    /// combacia piu' con niente dalla parte del client, e il client non ha
-    /// modo di dire perche'.
+    /// The specification admits a string or an integer. This code does not
+    /// look at it: it keeps it as an `object` and copies it back. Interpreting it would mean
+    /// being able to change it — a `42` that comes back as `"42"` no longer
+    /// matches anything on the client's side, and the client has no
+    /// way to say why.
     ///
-    /// ── «progress» DEVE CRESCERE, E QUI NON PUO' NON CRESCERE ───────────
+    /// ── «progress» MUST GROW, AND HERE IT CANNOT FAIL TO GROW ───────────
     ///
-    /// La specifica lo pretende. Lasciarlo a chi chiama vorrebbe dire
-    /// scoprirlo rotto in un client, cioe' mai. Il <see cref="Wire"/> tiene
-    /// l'ultimo valore mandato e **scarta** un passo che non cresce: una
-    /// regola sola, in un posto solo, che non si puo' dimenticare in nessuno
-    /// dei quattro punti che la usano.
+    /// The specification demands it. Leaving it to the caller would mean
+    /// discovering it broken in a client, that is, never. The <see cref="Wire"/> keeps
+    /// the last value sent and **discards** a step that does not grow: a
+    /// single rule, in a single place, that cannot be forgotten in any
+    /// of the four points that use it.
     /// </summary>
     internal static class Progress
     {
         /// <summary>
-        /// Il gettone dentro `params._meta.progressToken`, o null se il
-        /// client non ne ha messo uno.
+        /// The token inside `params._meta.progressToken`, or null if the
+        /// client did not put one.
         ///
-        /// Una stringa vuota vale come «niente»: e' quasi sempre un campo
-        /// riempito male, e rimandarla indietro non aiuterebbe nessuno a
-        /// riconoscere la propria richiesta.
+        /// An empty string counts as «nothing»: it is almost always a badly
+        /// filled field, and sending it back would not help anyone
+        /// recognize their own request.
         /// </summary>
         public static object Token(Dictionary<string, object> parameters)
         {
@@ -60,12 +60,12 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// La notifica, staccata da chi la manda, cosi' si puo' guardare
-        /// senza un canale aperto.
+        /// The notification, detached from whoever sends it, so that it can be looked at
+        /// without an open channel.
         ///
-        /// `total` si omette quando non si sa quanti passi saranno: la
-        /// specifica lo permette, e scrivere un totale inventato darebbe a
-        /// chi legge una barra di avanzamento che mente.
+        /// `total` is omitted when it is not known how many steps there will be: the
+        /// specification allows it, and writing an invented total would give
+        /// the reader a progress bar that lies.
         /// </summary>
         public static Dictionary<string, object> Notify(
             object token, double done, double total, string message)
@@ -87,12 +87,12 @@ namespace Oce.Solid.Agent.Mcp
         }
 
         /// <summary>
-        /// IL FILO DI UNA RICHIESTA: il gettone, e quanto e' gia' stato detto.
+        /// THE THREAD OF A REQUEST: the token, and how much has already been said.
         ///
-        /// Si costruisce sempre, anche senza gettone: cosi' i punti che lo
-        /// usano non hanno un `if` ciascuno. Un `if (filo != null)` sparso in
-        /// quattro posti e' il modo in cui il quinto se lo dimentica —
-        /// e' la stessa ragione per cui `McpTools._registro` non e' mai null.
+        /// It is always built, even without a token: so the points that use
+        /// it do not each have an `if`. An `if (filo != null)` scattered over
+        /// four places is the way the fifth forgets it —
+        /// it is the same reason why `McpTools._registro` is never null.
         /// </summary>
         internal sealed class Wire
         {
@@ -101,36 +101,36 @@ namespace Oce.Solid.Agent.Mcp
             private readonly DateTime _start;
             private double _last;
 
-            /// <summary>Quante notifiche sono davvero partite.</summary>
+            /// <summary>How many notifications really went out.</summary>
             public int Mandate { get; private set; }
 
-            /// <summary>Quanti passi sono stati scartati perche' non crescevano.</summary>
+            /// <summary>How many steps were discarded because they did not grow.</summary>
             public int Discarded { get; private set; }
 
             /// <summary>
-            /// Quanti passi in tutto, se si sa. Zero vuol dire «non lo so»,
-            /// e allora `total` non viene mandato affatto.
+            /// How many steps in all, if known. Zero means «I do not know»,
+            /// and then `total` is not sent at all.
             ///
-            /// STA QUI E NON NEI PUNTI CHE MANDANO, e non e' comodita': un
-            /// piano di cinque passi si annuncia due volte — una quando lo si
-            /// controlla, una quando lo si esegue — e i due punti stanno in
-            /// due file diversi. Se ciascuno si calcolasse il totale per conto
-            /// suo, prima o poi direbbero numeri diversi e la barra di chi
-            /// legge tornerebbe indietro.
+            /// IT LIVES HERE AND NOT IN THE POINTS THAT SEND, and it is not convenience: a
+            /// plan of five steps is announced twice — once when it is
+            /// checked, once when it is executed — and the two points are in
+            /// two different files. If each worked out the total on its own
+            /// account, sooner or later they would say different numbers and the reader's
+            /// bar would go backwards.
             /// </summary>
             public double Total { get; set; }
 
             /// <summary>
-            /// L'ultimo valore mandato. Serve a chi riprende il conto dove
-            /// un altro l'ha lasciato — l'esecuzione dopo il controllo —
-            /// senza doversi ricordare quanti passi aveva l'altro.
+            /// The last value sent. It serves whoever resumes the count where
+            /// another left it — the execution after the check —
+            /// without having to remember how many steps the other had.
             /// </summary>
             public double Last { get { return _last; } }
 
         /// <summary>
-        /// L'OROLOGIO SI PASSA, NON SI LEGGE, e per la solita ragione: una
-        /// prova che non puo' fissare l'ora non puo' guardare cosa viene
-        /// scritto. E' la stessa scelta di `Leash` e `SolidWorksSentinel`.
+        /// THE CLOCK IS PASSED IN, NOT READ, and for the usual reason: a
+        /// check that cannot fix the time cannot look at what is
+        /// written. It is the same choice as `Leash` and `SolidWorksSentinel`.
         /// </summary>
             public Wire(object token) : this(token, () => DateTime.Now) { }
 
@@ -141,24 +141,24 @@ namespace Oce.Solid.Agent.Mcp
                 _start = _clock();
             }
 
-            /// <summary>Da quanto sta lavorando.</summary>
+            /// <summary>For how long it has been working.</summary>
             public TimeSpan Elapsed { get { return _clock() - _start; } }
 
-            /// <summary>Il client ha chiesto di essere aggiornato?</summary>
+            /// <summary>Has the client asked to be kept up to date?</summary>
             public bool On { get { return _token != null; } }
 
             /// <summary>
-            /// IL TEMPO ACCANTO AL PASSO (voce S0).
+            /// THE TIME NEXT TO THE STEP (entry S0).
             ///
-            /// Il criterio di S0 non chiede «un avanzamento»: chiede che chi
-            /// guarda da fuori sappia distinguere **«sta lavorando» da «e'
-            /// piantato» senza guardare la CPU**. Il numero del passo da solo
-            /// non lo dice — «passo 3 di 5» e' identico se il passo 3 e'
-            /// cominciato due secondi fa o undici minuti fa.
+            /// The criterion of S0 does not ask for «a progress report»: it asks that whoever
+            /// watches from outside can tell **«it is working» from «it is
+            /// stuck» without looking at the CPU**. The step number alone
+            /// does not say it — «step 3 of 5» is identical whether step 3
+            /// began two seconds ago or eleven minutes ago.
             ///
-            /// Si scrive come lo legge una persona (`2m14s`, non `134`): il
-            /// `message` e' l'unico campo della notifica che un umano legge,
-            /// e metterci dei secondi crudi vorrebbe dire farglieli dividere.
+            /// It is written as a person reads it (`2m14s`, not `134`): the
+            /// `message` is the only field of the notification that a human reads,
+            /// and putting raw seconds in it would mean making them do the division.
             /// </summary>
             private string ColTempo(string message)
             {

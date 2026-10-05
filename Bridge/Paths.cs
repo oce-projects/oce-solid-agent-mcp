@@ -6,50 +6,50 @@ using System.Linq;
 namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
-    /// DOVE SI PUO' SCRIVERE.
+    /// WHERE IT IS ALLOWED TO WRITE.
     ///
-    /// Alcune operazioni prendono un percorso e ci scrivono sopra: salvare il
-    /// pezzo, salvare la tavola, esportare il PDF. Quel percorso arriva dal
-    /// MODELLO, cioe' da un testo generato: non e' un ingresso fidato, ed e'
-    /// l'unico punto del ponte che tocca il disco fuori dal documento aperto.
+    /// Some operations take a path and write over it: saving the
+    /// part, saving the drawing, exporting the PDF. That path comes from the
+    /// MODEL, that is from generated text: it is not a trusted input, and it is
+    /// the only point of the bridge that touches the disk outside the open document.
     ///
-    /// Senza un controllo, «salva in ..\..\..\Windows\System32\qualcosa» e'
-    /// una richiesta come un'altra. Non serve malizia perche' faccia danno:
-    /// basta un percorso plausibile e sbagliato.
+    /// Without a check, «save in ..\..\..\Windows\System32\something» is
+    /// a request like any other. No malice is needed for it to do damage:
+    /// a plausible and wrong path is enough.
     ///
-    /// TRE REGOLE, IN ORDINE DI SEVERITA'.
+    /// THREE RULES, IN ORDER OF SEVERITY.
     ///
-    /// 1. UNA RADICE, SE C'E'. Con `RISCONTRO_RADICE` impostata, si scrive solo
-    ///    sotto quella cartella e basta. E' la configurazione da usare quando
-    ///    il ponte gira senza qualcuno che guarda.
+    /// 1. A ROOT, IF THERE IS ONE. With `RISCONTRO_RADICE` set, it writes only
+    ///    under that folder and nowhere else. It is the configuration to use when
+    ///    the bridge runs with nobody watching.
     ///
-    /// 2. CARTELLE VIETATE, SEMPRE. Le cartelle di sistema e l'installazione di
-    ///    SOLIDWORKS non si toccano mai, nemmeno senza radice impostata. Non
-    ///    perche' qualcuno lo chiederebbe apposta, ma perche' un percorso
-    ///    relativo sbagliato ci finisce da solo.
+    /// 2. FORBIDDEN FOLDERS, ALWAYS. The system folders and the installation of
+    ///    SOLIDWORKS are never touched, not even without a root set. Not
+    ///    because someone would ask for it on purpose, but because a wrong relative
+    ///    path ends up there on its own.
     ///
-    /// 3. LE LIBRERIE DELL'AZIENDA, se dichiarate in `RISCONTRO_SOLA_LETTURA`.
-    ///    E' una regola nata da un fatto: inserendo un membro strutturale,
-    ///    SOLIDWORKS apre da solo il file di libreria dei profili e lo lascia
-    ///    marcato come modificato. Da li' un salvataggio qualunque riscrive la
-    ///    libreria di tutti. Dichiarare quelle cartelle di sola lettura e'
-    ///    piu' economico che accorgersene dopo.
+    /// 3. THE COMPANY LIBRARIES, if declared in `RISCONTRO_SOLA_LETTURA`.
+    ///    It is a rule born from a fact: when inserting a structural member,
+    ///    SOLIDWORKS opens by itself the profile library file and leaves it
+    ///    marked as modified. From there any save rewrites the
+    ///    library of everyone. Declaring those folders read-only is
+    ///    cheaper than noticing afterwards.
     ///
-    /// Il messaggio dice sempre QUALE regola ha fermato la scrittura e cosa
-    /// fare: un rifiuto che non si sa aggirare in modo legittimo e' un difetto
-    /// quanto un permesso di troppo.
+    /// The message always says WHICH rule stopped the write and what to
+    /// do: a refusal that cannot be legitimately worked around is as much a defect
+    /// as one permission too many.
     /// </summary>
     internal static class Paths
     {
-        /// <summary>I nomi di argomento che contengono un percorso su cui si scrive.</summary>
+        /// <summary>The argument names that contain a path that is written to.</summary>
         private static readonly string[] WritingFields =
         {
             "path", "file", "percorso_pdf", "percorso_file", "destinazione",
         };
 
         /// <summary>
-        /// Controlla tutti i percorsi dentro gli argomenti di una operazione.
-        /// Ritorna null se va bene, altrimenti il motivo del rifiuto.
+        /// Checks all the paths inside the arguments of an operation.
+        /// Returns null if all is well, otherwise the reason for the refusal.
         /// </summary>
         public static string Check(Dictionary<string, object> arguments)
         {
@@ -72,10 +72,10 @@ namespace Oce.Solid.Agent.Bridge
             string full;
             try
             {
-                // Path.GetFullPath risolve «..» e i separatori misti: e' il
-                // passo che trasforma un percorso in cio' che toccherebbe
-                // davvero. Va fatto PRIMA di qualunque confronto, se no si
-                // confronta una stringa e si scrive altrove.
+                // Path.GetFullPath resolves «..» and mixed separators: it is the
+                // step that turns a path into what it would really
+                // touch. It must be done BEFORE any comparison, otherwise a
+                // string is compared and something elsewhere is written.
                 full = Path.GetFullPath(filePath);
             }
             catch (Exception ex)
@@ -84,9 +84,9 @@ namespace Oce.Solid.Agent.Bridge
                        ex.Message + ").";
             }
 
-            // Niente flussi, niente dispositivi, niente percorsi di rete non
-            // dichiarati: sono tutte cose che un percorso di salvataggio non
-            // ha mai bisogno di essere.
+            // No streams, no devices, no undeclared network paths: they are all things
+            // that a save path has never needed
+            // to be.
             if (full.IndexOf(':') != full.LastIndexOf(':'))
                 return "Il percorso «" + filePath + "» contiene due volte i due punti: " +
                        "non lo tocco.";
@@ -151,8 +151,8 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Cartelle dichiarate di sola lettura, separate da punto e virgola.
-        /// Esempio: `RISCONTRO_SOLA_LETTURA=S:\CAD;S:\_LIBRERIE`
+        /// Folders declared read-only, separated by semicolons.
+        /// Example: `RISCONTRO_SOLA_LETTURA=S:\CAD;S:\_LIBRERIE`
         /// </summary>
         private static IEnumerable<string> ReadOnly()
         {
@@ -164,11 +164,11 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// `pieno` sta dentro `folder`?
+        /// Is `pieno` inside `folder`?
         ///
-        /// Il separatore in coda non e' pignoleria: senza, «C:\Dati2» risulta
-        /// dentro «C:\Dati», e un controllo che dice di si' quando e' no e' un
-        /// controllo che non c'e'.
+        /// The trailing separator is not pedantry: without it, «C:\Dati2» turns out to be
+        /// inside «C:\Dati», and a check that says yes when it is no is a
+        /// check that is not there.
         /// </summary>
         private static bool Below(string full, string folder)
         {

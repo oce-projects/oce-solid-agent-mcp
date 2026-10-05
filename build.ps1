@@ -1,35 +1,35 @@
 # =============================================================================
-#  Compila tutto e produce UN SOLO file: dist\Installer.exe
+#  Builds everything and produces A SINGLE file: dist\Installer.exe
 # =============================================================================
 #
-#  Tre passi, in quest'ordine perche' il secondo dipende dal primo:
+#  Three steps, in this order because the second depends on the first:
 #
-#    1. compila il ponte             -> bin\oce-solid-agent-mcp.exe
-#    2. lo mette in Installer\Payload\ come risorsa da incorporare
-#    3. compila l'installatore       -> dist\Installer.exe, che se lo porta dentro
+#    1. builds the bridge             -> bin\oce-solid-agent-mcp.exe
+#    2. puts it in Installer\Payload\ as a resource to embed
+#    3. builds the installer          -> dist\Installer.exe, which carries it inside
 #
-#  Il risultato e' un eseguibile unico da dare a chiunque: si scarica, doppio
-#  clic, e Claude parla con SOLIDWORKS. Nessun altro file da mettere accanto.
+#  The result is a single executable to give to anyone: download, double
+#  click, and Claude talks to SOLIDWORKS. No other file to put next to it.
 #
-#  COSA FINISCE DENTRO: il ponte, il catalogo, la configurazione, le note
-#  legali E LE OPERAZIONI (Oce.Solid.Agent.Core.dll). Fino alla 0.5.0 le
-#  operazioni stavano in OpenPDM.SwAddin.dll, codice privato che un pacchetto
-#  pubblico non poteva incorporare senza pubblicarlo: l'installatore doveva
-#  cercarlo sulla macchina di chi installa, e chi non ce l'aveva installava un
-#  ponte che si fermava subito. Da quando la libreria e' in questo repository
-#  quella ragione non c'e' piu'.
+#  WHAT ENDS UP INSIDE: the bridge, the catalog, the configuration, the legal
+#  notices AND THE OPERATIONS (Oce.Solid.Agent.Core.dll). Up to 0.5.0 the
+#  operations lived in OpenPDM.SwAddin.dll, private code that a public
+#  package could not embed without publishing it: the installer had to
+#  look for it on the machine of whoever installs, and whoever did not have it installed a
+#  bridge that stopped immediately. Since the library is in this repository
+#  that reason is gone.
 #
-#  COSA CONTINUA A NON FINIRE DENTRO: le interop di Dassault. Quelle si
-#  prendono dall'installazione di SOLIDWORKS di chi installa — sono sue, e
-#  sono per definizione della versione giusta.
+#  WHAT STILL DOES NOT END UP INSIDE: the Dassault interops. Those are
+#  taken from the SOLIDWORKS installation of whoever installs — they are theirs, and
+#  they are by definition of the right version.
 #
-#      .\build.ps1              compila e impacchetta
-#      .\build.ps1 -Clean     cancella prima bin, obj e dist
-#      .\build.ps1 -BridgeOnly   solo il ponte, senza installatore
+#      .\build.ps1              builds and packages
+#      .\build.ps1 -Clean     deletes bin, obj and dist first
+#      .\build.ps1 -BridgeOnly   only the bridge, without installer
 #
 #      .\build.ps1 -SwInstallPath 'D:\...\SOLIDWORKS'
 #      $env:SW_INSTALL_PATH = 'D:\...\SOLIDWORKS'
-#                               se SOLIDWORKS non e' nel posto di serie
+#                               if SOLIDWORKS is not in the default place
 #
 # =============================================================================
 
@@ -38,19 +38,19 @@ param(
     [switch] $Clean,
     [switch] $BridgeOnly,
 
-    # DOVE STA SOLIDWORKS. I .csproj lo leggono gia' da /p:SwInstallPath, ma
-    # questo script non lo passava: chi ha SOLIDWORKS in un posto non standard
-    # non poteva compilare con `.\build.ps1` e doveva chiamare msbuild a mano,
-    # cosa che il README non diceva. La cartella e' la RADICE
-    # dell'installazione, non `api\redist`: i .csproj ci aggiungono loro il
-    # resto.
+    # WHERE SOLIDWORKS IS. The .csproj files already read it from /p:SwInstallPath, but
+    # this script did not pass it: whoever has SOLIDWORKS in a non-standard place
+    # could not build with `.\build.ps1` and had to call msbuild by hand,
+    # which the README did not say. The folder is the ROOT
+    # of the installation, not `api\redist`: the .csproj files add the
+    # rest themselves.
     [string] $SwInstallPath
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
-# Anche da variabile d'ambiente, cosi' non va ripetuto a ogni chiamata.
+# Also from an environment variable, so it does not have to be repeated at every call.
 if (-not $SwInstallPath -and $env:SW_INSTALL_PATH) { $SwInstallPath = $env:SW_INSTALL_PATH }
 $location = @()
 if ($SwInstallPath) {
@@ -69,9 +69,9 @@ function Die($t) { Write-Host "  $t" -ForegroundColor Red; exit 1 }
 # -----------------------------------------------------------------------------
 Step "MSBuild"
 # -----------------------------------------------------------------------------
-# NON si usa quello dentro C:\Windows\Microsoft.NET: e' la versione del
-# framework, non sa leggere questi csproj e fallisce con «OutputPath non
-# impostato», che manda a cercare la cosa sbagliata. Misurato.
+# The one inside C:\Windows\Microsoft.NET is NOT used: it is the version of the
+# framework, it does not know how to read these csproj and fails with «OutputPath not
+# set», which sends one looking for the wrong thing. Measured.
 $msbuild = $null
 $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
 if (Test-Path $vswhere) {
@@ -122,16 +122,16 @@ if ($BridgeOnly) { Step "Fatto"; Ok $bridge; exit 0 }
 # -----------------------------------------------------------------------------
 Step "1b. Il catalogo"
 # -----------------------------------------------------------------------------
-# SI RIGENERA, NON SI SPERA.
+# IT IS REGENERATED, NOT HOPED FOR.
 #
-# `catalog.json` e' un PRODOTTO del catalogo C#. Finche' lo si rigenerava a
-# mano — e prima serviva il server, docker e la rete — poteva restare indietro
-# rispetto al codice senza che nulla lo dicesse: il ponte avrebbe dichiarato
-# operazioni con descrizioni vecchie, o taciuto operazioni nuove.
+# `catalog.json` is a PRODUCT of the C# catalog. As long as it was regenerated by
+# hand — and before that the server, docker and the network were needed — it could fall behind
+# the code without anything saying so: the bridge would have declared
+# operations with old descriptions, or kept silent about new operations.
 #
-# Qui si riscrive a ogni pacchetto, e se cambia lo si dice: un file che cambia
-# durante una build e' una cosa che chi guarda deve vedere, non una sorpresa
-# nel prossimo `git status`.
+# Here it is rewritten at every package, and if it changes it says so: a file that changes
+# during a build is something the person looking must see, not a surprise
+# in the next `git status`.
 & $msbuild (Join-Path $root "Oce.Solid.Agent.Catalog\Oce.Solid.Agent.Catalog.csproj") -p:Configuration=Release -v:m -nologo @location
 if ($LASTEXITCODE -ne 0) { Die "compilazione dell'esportatore del catalogo fallita" }
 
@@ -140,17 +140,17 @@ $catalog = Join-Path $root "Tools\catalog.json"
 $beforeBytes = $null
 if (Test-Path $catalog) { $beforeBytes = [IO.File]::ReadAllBytes($catalog) }
 
-# UN ESEGUIBILE CHE SCRIVE SU stderr NON E' UN ESEGUIBILE CHE FALLISCE.
+# AN EXECUTABLE THAT WRITES TO stderr IS NOT AN EXECUTABLE THAT FAILS.
 #
-# `Oce.Solid.Agent.Catalog.exe` stampa su stderr la riga «[catalogo] scritto ...»,
-# che e' un resoconto e non un errore. Ma con `$ErrorActionPreference = 'Stop'`
-# PowerShell 5.1 avvolge ogni riga di stderr di un comando nativo in un
-# ErrorRecord (`NativeCommandError`) e FERMA lo script, anche con l'eseguibile
-# uscito 0. Il build si interrompeva a meta' dicendo che era andato male
-# mentre era andato bene, e il catalogo risultava scritto.
+# `Oce.Solid.Agent.Catalog.exe` prints to stderr the line «[catalog] written ...»,
+# which is a report and not an error. But with `$ErrorActionPreference = 'Stop'`
+# PowerShell 5.1 wraps every stderr line of a native command in an
+# ErrorRecord (`NativeCommandError`) and STOPS the script, even with the executable
+# having exited 0. The build was interrupted halfway saying it had gone badly
+# when it had gone well, and the catalog turned out to be written.
 #
-# Si abbassa la preferenza SOLO intorno alla chiamata nativa, e si continua a
-# guardare $LASTEXITCODE, che e' l'unica cosa che dice davvero com'e' andata.
+# The preference is lowered ONLY around the native call, and one keeps
+# looking at $LASTEXITCODE, which is the only thing that really says how it went.
 $oldPreference = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 & $exporter $catalog
@@ -168,20 +168,20 @@ if ($null -eq $beforeBytes) {
     Note "era indietro rispetto al C#. Guarda il diff prima di committare."
 }
 
-# Il ponte legge quello che sta accanto a lui, non quello in Tools\.
+# The bridge reads what is next to it, not what is in Tools\.
 Copy-Item $catalog (Join-Path $root "bin\catalog.json") -Force
 
 # -----------------------------------------------------------------------------
 Step "1c. Le sonde"
 # -----------------------------------------------------------------------------
-# LE SONDE SI COMPILANO A OGNI PACCHETTO, e non per scrupolo.
+# THE PROBES ARE COMPILED AT EVERY PACKAGE, and not out of scruple.
 #
-# Misurato il 25/9/2026: `Checks\NewPart` e `Checks\BrokenBody` non
-# compilavano dalla 0.86.0 — `Environment` ambiguo fra System e l'interop di
-# SOLIDWORKS — e nessuno se n'era accorto per tre versioni, perche'
-# `build-checks.ps1` si lancia a mano e nessuno lo lanciava. Una sonda
-# che non compila e' una misura che non si puo' rifare il giorno che serve.
-# Costa tredici secondi.
+# Measured on 25/9/2026: `Checks\NewPart` and `Checks\BrokenBody` had not
+# compiled since 0.86.0 — `Environment` ambiguous between System and the SOLIDWORKS
+# interop — and nobody had noticed for three versions, because
+# `build-checks.ps1` is run by hand and nobody ran it. A probe
+# that does not compile is a measurement that cannot be redone the day it is needed.
+# It costs thirteen seconds.
 $oldPreference = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "Checks\build-checks.ps1") *> $null
@@ -197,12 +197,12 @@ $payload = Join-Path $root "Installer\Payload"
 if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $payload | Out-Null
 
-# Quello che serve al ponte per girare, e le note legali che devono viaggiare
-# con il programma.
+# What the bridge needs in order to run, and the legal notices that must travel
+# with the program.
 #
-# `Oce.Solid.Agent.Core.dll` E' OBBLIGATORIO, non facoltativo: senza, il ponte
-# si installa e poi non disegna. Un pacchetto che si monta e non funziona e'
-# peggio di uno che rifiuta di montarsi.
+# `Oce.Solid.Agent.Core.dll` IS MANDATORY, not optional: without it, the bridge
+# installs and then does not draw. A package that assembles and does not work is
+# worse than one that refuses to assemble.
 $toBring = @(
     @{ da = "bin\oce-solid-agent-mcp.exe";        a = "oce-solid-agent-mcp.exe";        obbligatorio = $true  },
     @{ da = "bin\Oce.Solid.Agent.Core.dll";    a = "Oce.Solid.Agent.Core.dll";    obbligatorio = $true  },
@@ -242,9 +242,9 @@ Copy-Item $exe $final -Force
 # -----------------------------------------------------------------------------
 Step "Verifica"
 # -----------------------------------------------------------------------------
-# Un pacchetto piu' piccolo del ponte che dovrebbe contenere e' un pacchetto
-# che non lo contiene. E' un controllo grossolano e prende il caso che conta:
-# la cartella Payload dimenticata o vuota.
+# A package smaller than the bridge it should contain is a package
+# that does not contain it. It is a coarse check and it catches the case that matters:
+# the Payload folder forgotten or empty.
 $bigBridge = (Get-Item $bridge).Length
 $bigExe = (Get-Item $final).Length
 if ($bigExe -le $bigBridge) {
@@ -256,16 +256,16 @@ if ($bigExe -le $bigBridge) {
 Ok ("Installer.exe  " + [math]::Round($bigExe / 1KB) + " kB  (ponte incorporato)")
 Note $final
 
-# IL CHECKSUM ACCANTO AL FILE, SEMPRE.
+# THE CHECKSUM NEXT TO THE FILE, ALWAYS.
 #
-# La distribuzione decisa (voce H8) e' "il file piu' il suo checksum, consegnato
-# a mano". Finche' il checksum si calcolava a mano non esisteva quasi mai, e
-# QUICKSTART.md diceva di confrontarlo con un file che nessuno produceva: una
-# istruzione che non si puo' eseguire e' peggio di nessuna istruzione, perche'
-# chi la segue conclude di aver verificato.
+# The decided distribution (entry H8) is "the file plus its checksum, delivered
+# by hand". As long as the checksum was computed by hand it almost never existed, and
+# QUICKSTART.md said to compare it with a file that nobody produced: an
+# instruction that cannot be executed is worse than no instruction, because
+# whoever follows it concludes they have verified.
 #
-# Il formato e' quello di `sha256sum`: "<hash minuscolo>  <nome file>". Due
-# spazi, e il solo NOME e non il percorso, cosi' vale su qualunque macchina.
+# The format is that of `sha256sum`: "<lowercase hash>  <file name>". Two
+# spaces, and the NAME alone and not the path, so it holds on any machine.
 $fingerprint = (Get-FileHash $final -Algorithm SHA256).Hash.ToLowerInvariant()
 $fingerprintFile = $final + ".sha256"
 Set-Content -Path $fingerprintFile -Encoding ascii -NoNewline `
@@ -274,11 +274,11 @@ Ok ("Installer.exe.sha256  " + $fingerprint.Substring(0, 16) + "...")
 Note $fingerprintFile
 
 Write-Host ""
-# ADESSO SI PUO' DIRE, PERCHE' E' VERO.
-# Questa riga ha detto per una versione «installabile da chiunque, usabile da
-# chi ha gia' l'add-in»: il carico non poteva contenere le operazioni, che
-# stavano in una DLL privata. Da quando stanno in Oce.Solid.Agent.Core.dll,
-# dentro questo repository, il carico se le porta. L'unica cosa che serve
-# sulla macchina di chi installa e' SOLIDWORKS, per le sue interop.
+# NOW IT CAN BE SAID, BECAUSE IT IS TRUE.
+# This line used to say for a version «installable by anyone, usable by
+# whoever already has the add-in»: the payload could not contain the operations, which
+# were in a private DLL. Since they are in Oce.Solid.Agent.Core.dll,
+# inside this repository, the payload carries them. The only thing needed
+# on the machine of whoever installs is SOLIDWORKS, for its interops.
 Write-Host "  Un file solo. Dallo a chiunque abbia SOLIDWORKS." -ForegroundColor White
 Write-Host "  Prova:  .\dist\Installer.exe --aiuto" -ForegroundColor DarkGray
