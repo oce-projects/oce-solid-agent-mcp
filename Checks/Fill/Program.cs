@@ -50,9 +50,9 @@ using SolidWorks.Interop.swconst;
 //  No EditDelete, no AddDimension, no SimpleHole2 / ActivateSelectedFeature (they open PropertyManager pages).
 //
 //  USAGE      Checks\Fill\bin\Fill.exe [--keep]
-//             (costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c))
+//             (built by Checks\build-checks.ps1 (and by build.ps1, step 1c))
 //
-//  ESITO DEL 28/9/2026, SOLIDWORKS 29.5.1 (l'uscita della sonda, com'era):
+//  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    PROBE FILL (W1.1) — SOLIDWORKS 29.5.1
 //          selezionati 3 (marca 4: 1, 5: 2, 1: 1, 16384: 1)

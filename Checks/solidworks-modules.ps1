@@ -1,37 +1,37 @@
 # =============================================================================
-#  solidworks-modules.ps1 - quali moduli ci sono DAVVERO su questa
-#                             postazione, e quali sono registrati  (voci Z-H*)
+#  solidworks-modules.ps1 - which modules are REALLY on this
+#                             workstation, and which are registered  (entries Z-H*)
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
+#  THIS FILE IS PURE ASCII, like bench.ps1 and for the same reason.
 #
-#  PERCHE' ESISTE
+#  WHY IT EXISTS
 #
-#  Le voci Z-H1..Z-H5 chiedono tutte la stessa cosa: "il modulo c'e' o va
-#  acceso?". E' una domanda che si risponde con una MISURA, non leggendo il
-#  listino: un binario sul disco non vuol dire che sia registrato, e un CLSID
-#  registrato non vuol dire che la licenza lo faccia partire.
+#  Entries Z-H1..Z-H5 all ask the same thing: "is the module there or does it need
+#  turning on?". It is a question answered with a MEASUREMENT, not by reading the
+#  price list: a binary on the disk does not mean that it is registered, and a registered
+#  CLSID does not mean that the licence makes it start.
 #
-#  Tre livelli, e vanno distinti:
+#  Three levels, and they must be told apart:
 #
-#    1. IL FILE C'E'         -> il modulo e' stato installato almeno una volta
-#    2. L'INTEROP LO DESCRIVE -> si puo' programmare contro di lui
-#    3. IL CLSID E' REGISTRATO -> si puo' CREARE l'oggetto
+#    1. THE FILE IS THERE         -> the module was installed at least once
+#    2. THE INTEROP DESCRIBES IT  -> one can program against it
+#    3. THE CLSID IS REGISTERED   -> the object can be CREATED
 #
-#  Il terzo e' l'unico che conta per sapere se una chiamata partira'. E nemmeno
-#  lui basta: la licenza si vede solo provando.
+#  The third is the only one that counts to know whether a call will start. And not even
+#  it is enough: the licence only shows by trying.
 #
-#  ── DUE TRAPPOLE, MISURATE ──────────────────────────────────────────────────
+#  ── TWO TRAPS, MEASURED ─────────────────────────────────────────────────────
 #
-#  - **MAI `Win32_Product`.** Interrogarlo fa RICONFIGURARE ogni pacchetto MSI
-#    della macchina: su questa postazione ha rotto l'avvio di SOLIDWORKS. Qui
-#    si guardano file e registro, e basta.
-#  - **CI SONO DUE ALBERI INSTALLATI** (`...\SOLIDWORKS` e `...\SOLIDWORKS (2)`)
-#    e alcuni CLSID puntano al secondo. Lo script stampa il percorso che il
-#    registro dichiara, non quello che ci si aspetta: se puntano altrove, si
-#    vede.
+#  - **NEVER `Win32_Product`.** Querying it makes EVERY MSI package of the
+#    machine be RECONFIGURED: on this workstation it broke the start of SOLIDWORKS. Here
+#    we look at files and registry, and that is all.
+#  - **THERE ARE TWO INSTALLED TREES** (`...\SOLIDWORKS` and `...\SOLIDWORKS (2)`)
+#    and some CLSIDs point to the second. The script prints the path that the
+#    registry declares, not the one that is expected: if they point elsewhere, it
+#    shows.
 #
-#  USO
+#  USAGE
 #      .\Checks\solidworks-modules.ps1
 # =============================================================================
 
@@ -52,16 +52,16 @@ function FileC($filePath) {
     return "NO"
 }
 
-# CERCA, NON PRESUMERE.
+# SEARCH, DO NOT ASSUME.
 #
-# La prima stesura cercava `cosworks.dll` nella radice di SOLIDWORKS e
-# rispondeva **NO**. Il file c'era, in `SOLIDWORKS\Simulation\`. Una sonda che
-# guarda nel posto sbagliato dice «non c'e'» con la stessa sicurezza di
-# un'assenza vera, e quella risposta finisce in un TODO come se fosse una
-# misura.
+# The first draft looked for `cosworks.dll` in the root of SOLIDWORKS and
+# answered **NO**. The file was there, in `SOLIDWORKS\Simulation\`. A probe that
+# looks in the wrong place says «it is not there» with the same assurance as
+# a true absence, and that answer ends up in a TODO as if it were a
+# measurement.
 #
-# Qui si cerca sotto la radice e si stampa DOVE si e' trovato: il percorso e'
-# parte della misura, non un dettaglio.
+# Here we search under the root and print WHERE it was found: the path is
+# part of the measurement, not a detail.
 function Find($itemName) {
     try {
         $f = Get-ChildItem -Path $root -Filter $itemName -Recurse -File -ErrorAction SilentlyContinue |
@@ -74,9 +74,9 @@ function Find($itemName) {
     return "NON TROVATO sotto la radice"
 }
 
-# I coclass di un interop: sono le classi che si possono creare con `new`.
-# Prenderli dall'interop stesso e non da una nota e' il punto -- una nota
-# invecchia, l'assembly no.
+# The coclasses of an interop: they are the classes that can be created with `new`.
+# Taking them from the interop itself and not from a note is the point -- a note
+# ages, the assembly does not.
 function Coclass($dll) {
     if (-not (Test-Path $dll)) { return @() }
     try {
@@ -89,18 +89,18 @@ function Coclass($dll) {
     } catch { return @() }
 }
 
-# SI USA L'API .NET, NON IL PROVIDER `HKLM:`.
+# THE .NET API IS USED, NOT THE `HKLM:` PROVIDER.
 #
-# Misurato il 23/9/2026: con `Test-Path HKLM:\...` questa sonda non finiva. Il
-# Document Manager dichiara **piu' di sessanta coclass**, e ognuna costava
-# qualche secondo di provider -- due giri uccisi dalla scadenza, nessuna misura.
-# `OpenSubKey` fa la stessa domanda in un millesimo del tempo.
+# Measured on 23/9/2026: with `Test-Path HKLM:\...` this probe did not finish. The
+# Document Manager declares **more than sixty coclasses**, and each one cost
+# a few seconds of provider -- two runs killed by the timeout, no measurement.
+# `OpenSubKey` asks the same question in a thousandth of the time.
 #
-# Un attrezzo che non finisce non e' lento: e' un attrezzo che non risponde.
+# A tool that does not finish is not slow: it is a tool that does not answer.
 function Recorded($guid) {
-    # HKCU PRIMA DI HKLM, come Windows fonde HKCR. Questa funzione guardava
-    # solo HKLM: e' l'errore che questa casa ha gia' pagato con l'add-in
-    # (HKCU\Software\Classes nasconde HKLM). Corretto il 24/9/2026 (voce K20).
+    # HKCU BEFORE HKLM, as Windows merges HKCR. This function looked
+    # only at HKLM: it is the mistake that this house has already paid for with the add-in
+    # (HKCU\Software\Classes hides HKLM). Corrected on 24/9/2026 (entry K20).
     try {
         foreach ($root in @([Microsoft.Win32.Registry]::CurrentUser,
                               [Microsoft.Win32.Registry]::LocalMachine)) {
@@ -118,12 +118,12 @@ function Recorded($guid) {
     return $null
 }
 
-# SI STAMPANO SOLO QUELLE REGISTRATE, piu' il conto delle altre.
+# ONLY THE REGISTERED ONES ARE PRINTED, plus the count of the others.
 #
-# Il primo giro elencava 26 `SwDMDocumentNClass` una per una, tutte «non
-# registrato», e la riga che contava -- la fabbrica, l'unica che si crea con
-# `new` -- spariva in mezzo. Un elenco che si legge male e' un elenco che non
-# si legge, e allora la misura non e' stata fatta.
+# The first run listed 26 `SwDMDocumentNClass` one by one, all «non
+# registrato», and the line that counted -- the factory, the only one created with
+# `new` -- vanished in the middle. A list that reads badly is a list that is not
+# read, and then the measurement has not been done.
 function List($dll) {
     $cc = Coclass $dll
     $reg = 0
@@ -133,11 +133,11 @@ function List($dll) {
     }
     Line "coclass nell'interop" ("" + $cc.Count + ", di cui registrate: " + $reg)
     if ($reg -eq 0 -and $cc.Count -gt 0) {
-        # QUESTA RIGA DICEVA «il modulo e' sul disco ma non si puo' creare», ed
-        # era una conclusione cieca: il 24/9/2026 Simulation ha girato (voce S3)
-        # e le coclass del SUO interop risultano 0 registrate su 80, come qui.
-        # Le coclass dell'interop non sono l'add-in. L'add-in si risolve piu'
-        # sotto, dal suo ProgID, con un controllo positivo (voce K20).
+        # THIS LINE SAID «il modulo e' sul disco ma non si puo' creare», and it
+        # was a blind conclusion: on 24/9/2026 Simulation ran (entry S3)
+        # and the coclasses of ITS interop turn out 0 registered out of 80, as here.
+        # The coclasses of the interop are not the add-in. The add-in is resolved further
+        # down, from its ProgID, with a positive control (entry K20).
         Write-Output "    nessuna coclass dell'interop e' registrata. NON vuol dire che il"
         Write-Output "    modulo non si carichi: vedi la risoluzione dell'add-in in fondo."
     }
@@ -200,39 +200,39 @@ List (Join-Path $redist "SolidWorks.Interop.SWRoutingLib.dll")
 Write-Output ""
 
 # ==============================================================================
-# GLI ADD-IN, RISOLTI DAVVERO -- e con due controlli positivi (voce K20)
+# THE ADD-INS, REALLY RESOLVED -- and with two positive controls (entry K20)
 # ==============================================================================
 #
-# QUI C'ERA «GLI ADD-IN REGISTRATI, la risposta piu' corta di tutte»: la
-# chiave HKLM\SOFTWARE\SolidWorks\AddIns, e «un modulo che non compare qui
-# non parte dentro SOLIDWORKS». Era FALSO, e lo si e' visto il 24/9/2026:
+# HERE THERE WAS «THE REGISTERED ADD-INS, the shortest answer of all»: the
+# key HKLM\SOFTWARE\SolidWorks\AddIns, and «a module that does not appear here
+# does not start inside SOLIDWORKS». It was FALSE, and it was seen on 24/9/2026:
 #
-#   - quella chiave elenca solo gli add-in di TERZE PARTI (OpenPDM, Composer,
-#     Marketplace...). I moduli di Dassault stanno altrove, o in nessuna chiave;
-#   - Simulation non compare in NESSUNA delle tre chiavi -- ne' AddIns, ne'
-#     SOLIDWORKS 2021\AddIns, ne' AddInsStartup -- e quel giorno ha girato
-#     (voce S3, 54,3 MPa contro 60,0 a mano).
+#   - that key lists only the THIRD-PARTY add-ins (OpenPDM, Composer,
+#     Marketplace...). The Dassault modules are elsewhere, or in no key;
+#   - Simulation appears in NONE of the three keys -- neither AddIns, nor
+#     SOLIDWORKS 2021\AddIns, nor AddInsStartup -- and that day it ran
+#     (entry S3, 54.3 MPa against 60.0 by hand).
 #
-# Su questa riga poggiavano Z-H1, Z-H3, Z-H4 e S4: «non si puo' creare», «serve
-# l'Installation Manager», «non si costruisce niente». Un controllo che da'
-# la stessa risposta per un modulo acceso e per uno spento non misura niente,
-# e nessuno l'aveva mai visto dire la verita' su un caso noto.
+# On this line rested Z-H1, Z-H3, Z-H4 and S4: «it cannot be created», «the
+# Installation Manager is needed», «nothing can be built». A check that gives
+# the same answer for a module that is on and for one that is off measures nothing,
+# and nobody had ever seen it tell the truth on a known case.
 #
-# ADESSO: ogni add-in si risolve come fa Windows -- ProgID -> CLSID ->
-# InprocServer32 -> file, cercando in HKCU\Software\Classes PRIMA che in HKLM
-# (e' l'ordine con cui si fonde HKCR, e questa casa lo ha gia' pagato), con i
-# due casi che la prima stesura della sonda ha sbagliato:
+# NOW: every add-in is resolved the way Windows does it -- ProgID -> CLSID ->
+# InprocServer32 -> file, looking in HKCU\Software\Classes BEFORE HKLM
+# (it is the order in which HKCR is merged, and this house has already paid for it), with the
+# two cases that the first draft of the probe got wrong:
 #
-#   - add-in .NET: InprocServer32 vale `mscoree.dll`, e il file vero sta in
-#     `CodeBase`. La prima sonda diceva «FILE ASSENTE» per OpenPDM, che e'
-#     installato e parte da solo;
-#   - percorsi relativi: `.\sldUtils\SwLoaderSw.dll` e' relativo alla radice di
+#   - .NET add-in: InprocServer32 is `mscoree.dll`, and the real file is in
+#     `CodeBase`. The first probe said «FILE ASSENTE» for OpenPDM, which is
+#     installed and starts by itself;
+#   - relative paths: `.\sldUtils\SwLoaderSw.dll` is relative to the root of
 #     SOLIDWORKS.
 #
-# E DUE CONTROLLI POSITIVI, che devono risultare raggiungibili o lo script
-# dichiara cieco il proprio criterio ed esce 1:
-#   Simulation  (un modulo Dassault che non sta in nessuna chiave di add-in)
-#   OpenPDM     (un add-in .NET, registrato in HKCU)
+# AND TWO POSITIVE CONTROLS, which must turn out reachable or the script
+# declares its own criterion blind and exits 1:
+#   Simulation  (a Dassault module that is in no add-in key)
+#   OpenPDM     (a .NET add-in, registered in HKCU)
 $regHKCU = [Microsoft.Win32.Registry]::CurrentUser
 $regHKLM = [Microsoft.Win32.Registry]::LocalMachine
 
@@ -290,7 +290,7 @@ function Startup($guid) {
     return "va acceso a mano"
 }
 
-# I moduli, per ProgID. Si aggiungono qui, non si indovinano.
+# The modules, by ProgID. They are added here, not guessed.
 $modules = @(
     @{ nome = "Simulation";          progId = "SldWorks.Simulation";         positivo = $true },
     @{ nome = "OpenPDM (add-in .NET)"; guid = "{0FED85A2-3F4A-4F2C-8DCF-7C8AE1E15A5C}"; positivo = $true },
@@ -319,8 +319,8 @@ foreach ($m in $modules) {
 }
 Write-Output ""
 
-# Le tre chiavi di add-in, per completezza: dicono chi e' elencato, non chi
-# si carica.
+# The three add-in keys, for completeness: they say who is listed, not who
+# gets loaded.
 Write-Output "=== LE TRE CHIAVI DI ADD-IN (chi e' elencato, NON chi si carica) ==="
 foreach ($c in @(
     @{ n = "HKLM AddIns";                 r = $regHKLM; p = "SOFTWARE\SolidWorks\AddIns" },

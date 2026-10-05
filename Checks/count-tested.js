@@ -1,32 +1,32 @@
 // =============================================================================
-//  Quante operazioni «provate» hanno davvero qualcosa che le prova  (voce Z-C6)
+//  How many «tested» operations really have something that tests them  (entry Z-C6)
 // =============================================================================
 //
-//  `Provata = true` nel catalogo vuol dire due cose diverse che nel file si
-//  leggono uguali:
+//  `Provata = true` in the catalogue means two different things that in the file
+//  read the same:
 //
-//    - «qualcuno l'ha misurata una volta»   <- una firma nel changelog
-//    - «qualcosa la controlla a ogni giro»  <- un caso che gira
+//    - «somebody measured it once»          <- a signature in the changelog
+//    - «something checks it on every run»   <- a case that runs
 //
-//  Questo conta la seconda. Per ogni operazione a catalogo guarda se esiste
-//  qualcosa che la esercita, e distingue TRE modi, perche' non valgono uguale:
+//  This counts the second. For every operation in the catalogue it looks whether there is
+//  something that exercises it, and distinguishes THREE ways, because they are not worth the same:
 //
-//    caso dichiarato   un file in `Bench\cases\` con dentro delle attese.
-//                      Gira a ogni giro, e se il comportamento cambia diventa
-//                      rosso. E' l'unico che vale del tutto.
+//    caso dichiarato   a file in `Bench\cases\` with expectations inside.
+//                      It runs on every run, and if the behaviour changes it turns
+//                      red. It is the only one that is worth it fully.
 //
-//    C# del banco      un gruppo scritto a mano. Gira a ogni giro e asserisce
-//                      in C#: vale, ed e' scritto qui perche' non si legga
-//                      come un buco.
+//    C# del banco      a group written by hand. It runs on every run and asserts
+//                      in C#: it is worth it, and it is written here so that it is not
+//                      read as a hole.
 //
-//    piano a mano      un ARRAY in `cases\drawing\`, che lancia `run_plans.js`.
-//                      **Non gira in nessun giro e non asserisce niente**: e'
-//                      un appunto di come si e' misurato, non una prova.
+//    piano a mano      an ARRAY in `cases\drawing\`, which launches `run_plans.js`.
+//                      **It runs in no run and asserts nothing**: it is
+//                      a note of how it was measured, not a check.
 //
-//  PERCHE' NON E' ANCORA UN CONTROLLO DI CONTRATTO. Misurato il 23/9/2026:
-//  cinque operazioni a catalogo non sono esercitate da niente. Una guardia che
-//  nasce con cinque rossi permanenti e' un elenco che qualcuno silenziera'; si
-//  sistemano prima quelle, poi la guardia si accende su un campo pulito.
+//  WHY IT IS NOT A CONTRACT CHECK YET. Measured on 23/9/2026:
+//  five operations in the catalogue are exercised by nothing. A guard that
+//  is born with five permanent reds is a list that somebody will silence; those
+//  are fixed first, then the guard is turned on over a clean field.
 //
 //      node Checks\count-tested.js
 //      node Checks\count-tested.js --solo-orfane
@@ -78,11 +78,11 @@ function stopIfMissing() {
   process.exit(1);
 }
 
-// ── LE OPERAZIONI CHE UN CLIENT VEDE ─────────────────────────────────────
+// ── THE OPERATIONS THAT A CLIENT SEES ────────────────────────────────────
 //
-// Si legge il catalogo esportato e non il C#: e' quello che arriva al client,
-// ed e' quello di cui `Provata = true` e' la promessa. L'esportatore lascia
-// gia' fuori le `Provata = false` e lo dice a voce mentre scrive il file.
+// We read the exported catalogue and not the C#: it is what reaches the client,
+// and it is what `Provata = true` is the promise of. The exporter already leaves
+// out the `Provata = false` ones and says so out loud while writing the file.
 let catalog;
 try { catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8').replace(/^\ufeff/, '')); }
 catch (e) {
@@ -97,9 +97,9 @@ if (expectKey(catalog, 'operations', 'array', 'catalogue')) {
 stopIfMissing();
 const operations = catalog.operations.map((o) => o.name).sort();
 
-// ── CHI LE ESERCITA ──────────────────────────────────────────────────────
-const fromCases = new Map();     // operazione -> [casi]
-const fromRegression = new Map();   // operazione -> [casi di regressione]
+// ── WHO EXERCISES THEM ───────────────────────────────────────────────────
+const fromCases = new Map();     // operation -> [cases]
+const fromRegression = new Map();   // operation -> [regression cases]
 let plansText = '';
 let howManyCases = 0;
 
@@ -121,9 +121,9 @@ function scroll(folder) {
     try { raw = fs.readFileSync(p, 'utf8'); j = JSON.parse(raw.replace(/^\ufeff/, '')); }
     catch (e) { missingKeys.push(where + ': does not parse (' + e.message + ')'); continue; }
 
-    // UN PIANO E' UN ARRAY, UN CASO E' UN OGGETTO. La differenza e'
-    // strutturale, come gia' scritto in `DeclaredCases.cs`: non si indovina
-    // dal nome del file.
+    // A PLAN IS AN ARRAY, A CASE IS AN OBJECT. The difference is
+    // structural, as already written in `DeclaredCases.cs`: it cannot be guessed
+    // from the file name.
     if (Array.isArray(j)) {
       // a plan is read as text below, but its steps carry the same key
       j.forEach((step, i) => expectKey(step, 'operation', 'string', where + ', step ' + (i + 1)));
@@ -138,12 +138,12 @@ function scroll(folder) {
     // regression case): with neither, its operations would be counted as none.
     const lists = ['steps', 'build'].filter((k) => Object.prototype.hasOwnProperty.call(j, k));
     if (lists.length === 0) missingKeys.push(where + ': neither "steps" nor "build"');
-    // I CASI DI REGRESSIONE NON SONO CASI DI UN GIRO NORMALE (25/9/2026). Il
-    // loro `costruisci` gira solo con `-Regression`, e questo script li
-    // contava come «caso dichiarato»: il riconteggio del 24/9 diceva 72 su 73,
-    // e il controllo di contratto sui casi VERDI dell'ultimo giro ha trovato
-    // tre operazioni (hole_wizard, extrude_on_face, fillet_edges) che in
-    // un giro normale non toccava nessuno. Adesso stanno in un modo a parte.
+    // THE REGRESSION CASES ARE NOT CASES OF A NORMAL RUN (25/9/2026). Their
+    // `costruisci` runs only with `-Regression`, and this script
+    // counted them as «caso dichiarato»: the recount of 24/9 said 72 out of 73,
+    // and the contract check on the GREEN cases of the last run found
+    // three operations (hole_wizard, extrude_on_face, fillet_edges) that in
+    // a normal run nobody touched. Now they sit in a separate way.
     for (const key of lists) {
       if (!expectKey(j, key, 'array', where)) continue;
       const target = key === 'steps' ? fromCases : fromRegression;

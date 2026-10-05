@@ -9,31 +9,31 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  TestoNelPdf — il testo di una tavola esce dal PDF come TESTO? (GT3-bis)
+//  TestoNelPdf — does the text of a drawing come out of the PDF as TEXT? (GT3-bis)
 // =============================================================================
 //
-//  GT3 ha provato che il cartiglio MOSTRA una proprieta' (`INote.GetText()`
-//  restituisce il testo risolto). Resta l'altra domanda: il PDF che va in
-//  officina la CONTIENE come testo, o l'esportatore l'ha fatta diventare
-//  contorni? Un PDF coi contorni si apre, si vede uguale, e non e' cercabile ne'
-//  copiabile: nessun errore da nessuna parte.
+//  GT3 proved that the title block SHOWS a property (`INote.GetText()`
+//  returns the resolved text). The other question remains: does the PDF that goes to
+//  the shop CONTAIN it as text, or has the exporter turned it into
+//  outlines? A PDF with outlines opens, looks the same, and is neither searchable nor
+//  copyable: no error anywhere.
 //
-//  LA TAVOLA: vuota, dal modello di default, con due note sul foglio —
-//    una scritta a mano:        PROVA123
-//    una legata a proprieta':   $PRP:"Descrizione"  con Descrizione = PROVA456
-//  La seconda e' il caso del cartiglio: il testo che SOLIDWORKS risolve.
+//  THE DRAWING: empty, from the default template, with two notes on the sheet —
+//    one written by hand:       PROVA123
+//    one tied to a property:    $PRP:"Descrizione"  with Descrizione = PROVA456
+//  The second is the case of the title block: the text that SOLIDWORKS resolves.
 //
-//  TRE LETTURE DEL PDF, dalla piu' povera alla piu' ricca:
-//    1. i byte grezzi del file;
-//    2. i flussi /FlateDecode decompressi (quello che un caso di banco puo'
-//       fare senza dipendere da niente);
-//    3. `pdftotext`, se c'e' (quello che vede chi cerca nel PDF).
+//  THREE READINGS OF THE PDF, from the poorest to the richest:
+//    1. the raw bytes of the file;
+//    2. the decompressed /FlateDecode streams (what a bench case can
+//       do without depending on anything);
+//    3. `pdftotext`, if present (what whoever searches the PDF sees).
 //
-//  IL ROSSO, nella stessa corsa: ASSENTE987 non e' nella tavola e NON deve
-//  trovarsi con nessuna delle tre letture. Una ricerca che trova tutto non
-//  prova niente.
+//  THE RED, in the same run: ASSENTE987 is not in the drawing and MUST NOT
+//  be found by any of the three readings. A search that finds everything proves
+//  nothing.
 //
-//  USO
+//  USAGE
 //      .\Checks\PdfText\bin\PdfText.exe            [--tieni]
 // =============================================================================
 
@@ -88,7 +88,7 @@ internal static class Program
                  (n2 == null ? "(non nata)" : n2.GetText()) + "»");
             if (n1 == null || n2 == null) { Console.WriteLine("  una nota non e' nata"); return 4; }
 
-            // ── IL PDF, come lo scrive export_pdf ──────────────────────
+            // ── THE PDF, as export_pdf writes it ───────────────────────
             var data = sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;
             if (data == null) { Console.WriteLine("  niente opzioni PDF"); return 4; }
             data.ViewPdfAfterSaving = false;
@@ -210,9 +210,9 @@ internal static class Program
     }
 
     /// <summary>
-    /// Tutti i flussi del file, decompressi e messi in fila. Si decomprimono
-    /// quelli che si lasciano decomprimere (zlib: due byte di intestazione e
-    /// poi deflate); gli altri si aggiungono cosi' come sono.
+    /// All the streams of the file, decompressed and put in a row. Those that
+    /// can be decompressed are decompressed (zlib: two header bytes and
+    /// then deflate); the others are added as they are.
     /// </summary>
     private static string Decompress(byte[] b, out int flows, out int decompressed)
     {
@@ -254,21 +254,21 @@ internal static class Program
     }
 
     /// <summary>
-    /// Il testo dei flussi di contenuto, DECODIFICATO con le tabelle
-    /// /ToUnicode (voce GT3-bis). E' la quarta lettura, e quella che un caso di
-    /// banco puo' fare senza `pdftotext`.
+    /// The text of the content streams, DECODED with the /ToUnicode
+    /// tables (entry GT3-bis). It is the fourth reading, and the one that a bench
+    /// case can do without `pdftotext`.
     ///
-    /// Misurato il 24/9 tardi: SOLIDWORKS scrive il testo come indici di glifo
-    /// (stringhe esadecimali in Tj/TJ), e la corrispondenza con le lettere sta
-    /// nelle CMap /ToUnicode (`bfchar`, `bfrange`). Non si ricostruisce quale
-    /// carattere usa quale CMap: si decodifica ogni stringa con ognuna, e si
-    /// tiene tutto. Una stringa decodificata con la tabella sbagliata da'
-    /// spazzatura, non PROVA123 — e il rosso ASSENTE987 e' li' per dirlo se
-    /// non fosse cosi'.
+    /// Measured late on 24/9: SOLIDWORKS writes the text as glyph indices
+    /// (hexadecimal strings in Tj/TJ), and the correspondence with the letters sits
+    /// in the /ToUnicode CMaps (`bfchar`, `bfrange`). We do not reconstruct which
+    /// character uses which CMap: every string is decoded with each one, and
+    /// everything is kept. A string decoded with the wrong table gives
+    /// garbage, not PROVA123 — and the red ASSENTE987 is there to say so if
+    /// it were not so.
     /// </summary>
     internal static string DecodeWithCMap(string flows)
     {
-        // 1. le tabelle: da ogni blocco begincmap..endcmap
+        // 1. the tables: from every begincmap..endcmap block
         var tables = new List<Dictionary<int, string>>();
         int i = 0;
         while ((i = flows.IndexOf("begincmap", i, StringComparison.Ordinal)) >= 0)
@@ -295,8 +295,8 @@ internal static class Program
             i = fine + 7;
         }
 
-        // 2. le stringhe esadecimali dei blocchi di testo, decodificate con
-        //    ogni tabella, a due byte per codice (Identity-H) e a uno.
+        // 2. the hexadecimal strings of the text blocks, decoded with
+        //    every table, at two bytes per code (Identity-H) and at one.
         var outside = new StringBuilder();
         foreach (System.Text.RegularExpressions.Match s in System.Text.RegularExpressions.Regex.Matches(
                      flows, @"<([0-9A-Fa-f\s]{2,})>"))

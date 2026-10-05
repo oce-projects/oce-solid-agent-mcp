@@ -1,23 +1,23 @@
 # =============================================================================
-#  La libreria com'era a una certa versione        (voce F10)
+#  The library as it was at a certain version        (entry F10)
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO: PowerShell 5.1 legge uno script senza BOM come
-#  ANSI, e un messaggio storto si legge peggio di uno brutto.
+#  THIS FILE IS PURE ASCII: PowerShell 5.1 reads a script without a BOM as
+#  ANSI, and a crooked message reads worse than an ugly one.
 #
-#  A COSA SERVE. Una prova custodisce davvero il suo difetto solo se, lanciata
-#  contro il codice di PRIMA della riparazione, diventa rossa. Per farlo serve
-#  quella libreria, e ricompilarla a mano vuol dire cercare il commit, fare un
-#  worktree, compilare, ricordarsi di cancellarlo.
+#  WHAT IT IS FOR. A check really guards its defect only if, run
+#  against the code from BEFORE the repair, it turns red. For that we need
+#  that library, and rebuilding it by hand means finding the commit, making a
+#  worktree, compiling, remembering to delete it.
 #
 #      .\Checks\library-of-the-time.ps1 0.70.0
 #      -> ...\libreria-di-allora\0.70.0\Oce.Solid.Agent.Core.dll
 #
 #      .\Bench\bench.ps1 -Library <quel percorso> -Group casi
 #
-#  PERCHE' FUNZIONA, E DA QUANDO. In questo repository **un commit e' una
-#  versione**: `git log` su `AssemblyInfo.cs` mostra una riga per numero, senza
-#  salti. La DLL non va quindi conservata da nessuna parte -- si ricostruisce.
+#  WHY IT WORKS, AND SINCE WHEN. In this repository **a commit is a
+#  version**: `git log` on `AssemblyInfo.cs` shows one line per number, without
+#  gaps. So the DLL does not need to be kept anywhere -- it is rebuilt.
 #
 #  THE HISTORICAL COMPARISON STARTS AT LIBRARY 0.150.1 (rename window 3,
 #  decision D11). Before it the library, its namespaces, its types and the
@@ -34,11 +34,11 @@ param(
     [switch] $Clean
 )
 
-# NON "Stop", E NON E' PIGRIZIA. git scrive sullo standard error anche quando
-# tutto va bene -- «Preparing worktree (detached HEAD ...)» -- e PowerShell 5.1
-# trasforma ogni riga di stderr di un eseguibile in un record d'errore. Con
-# "Stop" lo script si ferma su un messaggio di successo.
-# Gli esiti si guardano dove contano: su $LASTEXITCODE, uno per uno.
+# NOT "Stop", AND IT IS NOT LAZINESS. git writes on standard error even when
+# everything goes well -- «Preparing worktree (detached HEAD ...)» -- and PowerShell 5.1
+# turns every stderr line of an executable into an error record. With
+# "Stop" the script stops on a success message.
+# The outcomes are looked at where they count: on $LASTEXITCODE, one by one.
 $ErrorActionPreference = "Continue"
 
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -57,10 +57,10 @@ if ($Clean) {
     exit 0
 }
 
-# --- il commit che DICHIARA quella versione ---------------------------------
+# --- the commit that DECLARES that version ----------------------------------
 #
-# Si cerca dentro AssemblyInfo.cs, non nei messaggi di commit: il messaggio lo
-# scrive una persona, la riga `AssemblyVersion` la legge il compilatore.
+# We search inside AssemblyInfo.cs, not in the commit messages: the message is
+# written by a person, the `AssemblyVersion` line is read by the compiler.
 $commit = $null
 $history = git -C $Root log --format=%H -- Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs
 foreach ($c in $history) {
@@ -76,15 +76,15 @@ if ($commit -eq $null) {
 }
 Write-Output ("versione " + $Version + " -> commit " + $commit.Substring(0, 7))
 
-# --- un worktree usa e getta ------------------------------------------------
+# --- a throwaway worktree ---------------------------------------------------
 if (Test-Path $Where) { Remove-Item $Where -Recurse -Force }
 git -C $Root worktree prune
-# `2>&1` perche' «Preparing worktree» git lo scrive su stderr anche quando
-# riesce, e lasciarlo passare riempie di rosso un comando andato bene.
+# `2>&1` because «Preparing worktree» git writes to stderr even when it
+# succeeds, and letting it through fills a command that went well with red.
 git -C $Root worktree add --detach $Where $commit 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { Die "git worktree non e' riuscito" }
 
-# --- si compila -------------------------------------------------------------
+# --- we compile -------------------------------------------------------------
 $msbuild = $null
 foreach ($p in @(
     "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe",

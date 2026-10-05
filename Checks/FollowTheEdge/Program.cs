@@ -5,38 +5,38 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  SeguiIlBordo — un foro quotato contro uno SPIGOLO lo segue? (voce E18, a e b)
+//  SeguiIlBordo — does a hole dimensioned against an EDGE follow it? (entry E18, a and b)
 // =============================================================================
 //
-//  Tre dei quattro silenzi di `--regressione` sono coordinate dentro uno
-//  schizzo che non seguono il bordo quando il pezzo cambia (K5). La cura che la
-//  voce propone si regge su DUE fatti che nessuno ha misurato fuori processo:
+//  Three of the four silences of `--regressione` are coordinates inside a
+//  sketch that do not follow the edge when the part changes (K5). The cure that the
+//  entry proposes rests on TWO facts that nobody has measured out of process:
 //
-//    (a) una quota fra il centro di un cerchio dello schizzo e uno spigolo del
-//        MODELLO si crea da API, resta guidante, e trascina il foro quando lo
-//        spigolo si sposta;
-//    (b) un punto messo a meta' di una linea di costruzione, i cui estremi sono
-//        a meta' di due spigoli opposti, resta al CENTRO della faccia quando la
-//        piastra cresce da una parte sola.
+//    (a) a dimension between the centre of a sketch circle and an edge of the
+//        MODEL is created from the API, stays driving, and drags the hole when the
+//        edge moves;
+//    (b) a point put halfway along a construction line, whose ends are
+//        at the middle of two opposite edges, stays at the CENTRE of the face when the
+//        plate grows on one side only.
 //
-//  IL PEZZO: una piastra 200 x 120 x 20 dal piano frontale, con le due quote
-//  del rettangolo messe qui (cosi' si possono cambiare), e in UNO schizzo sulla
-//  faccia davanti tre fori da 10 passanti:
-//    A — a 20 dallo spigolo destro e a 20 da quello alto   (quote allo spigolo)
-//    B — al centro, sulla mezzeria di una linea fra i due fianchi (relazioni)
-//    C — a coordinate assolute (-60, -30), niente relazioni (il GEMELLO: il
-//        vecchio modo deve restare dov'e')
+//  THE PART: a plate 200 x 120 x 20 from the front plane, with the two dimensions
+//  of the rectangle set here (so they can be changed), and in ONE sketch on the
+//  front face three through holes of 10:
+//    A — at 20 from the right edge and at 20 from the top one   (dimensions to the edge)
+//    B — in the centre, on the midline of a line between the two sides (relations)
+//    C — at absolute coordinates (-60, -30), no relations (the TWIN: the
+//        old way must stay where it is)
 //
-//  Poi la lunghezza 200 -> 260 e l'altezza 120 -> 180, e dopo ognuna si
-//  rimisura: A a (xmax-20, ymax-20), B al centro dell'ingombro, C fermo. Il
-//  pezzo cresce dalla parte che decide SOLIDWORKS (il rettangolo non e'
-//  ancorato): il criterio e' scritto rispetto all'ingombro, quindi vale da
-//  qualunque parte cresca.
+//  Then the length 200 -> 260 and the height 120 -> 180, and after each one we
+//  measure again: A at (xmax-20, ymax-20), B at the centre of the bounding box, C still. The
+//  part grows on the side that SOLIDWORKS decides (the rectangle is not
+//  anchored): the criterion is written with respect to the bounding box, so it holds from
+//  whichever side it grows.
 //
-//  E dopo ogni ricostruzione: nessuna lavorazione in errore. Uno schizzo
-//  sovravincolato non da' errore in `Insert*`: da' una lavorazione rossa dopo.
+//  And after every rebuild: no feature in error. An over-constrained
+//  sketch gives no error in `Insert*`: it gives a red feature afterwards.
 //
-//  USO
+//  USAGE
 //      .\Checks\FollowTheEdge\bin\FollowTheEdge.exe            [--tieni]
 // =============================================================================
 
@@ -77,7 +77,7 @@ internal static class Program
             _doc = (IModelDoc2)_sw.NewDocument(model, 0, 0, 0);
             if (_doc == null) { Console.WriteLine("  NewDocument -> null"); return 4; }
 
-            // ── LA PIASTRA, con le sue due quote ────────────────────────
+            // ── THE PLATE, with its two dimensions ──────────────────────
             _doc.ClearSelection2(true);
             if (!SelectBasePlane(_doc, 1))
             { Console.WriteLine("  non trovo «Piano frontale»"); return 4; }
@@ -109,7 +109,7 @@ internal static class Program
             Says("piastra: ingombro " + Box(box) + ", quote " + Mm(qLen.SystemValue) + " e " + Mm(qAlt.SystemValue));
             double zFront = Math.Abs(box[2]) > Math.Abs(box[5]) ? box[2] : box[5];
 
-            // ── LO SCHIZZO SULLA FACCIA DAVANTI ─────────────────────────
+            // ── THE SKETCH ON THE FRONT FACE ─────────────────────────
             _doc.ClearSelection2(true);
             if (!_doc.Extension.SelectByID2("", "FACE", 0.03, 0.01, zFront, false, 0, null, 0))
             { Console.WriteLine("  non seleziono la faccia davanti a Z " + Mm(zFront)); return 4; }
@@ -117,18 +117,18 @@ internal static class Program
             var sketch = _doc.SketchManager.ActiveSketch;
             var tr = sketch.ModelToSketchTransform;
 
-            // MISURATO il primo giro (24/9 sera): la piastra cresce a SINISTRA e
-            // in BASSO (X -160..100, Y -120..60), e l'angolo in alto a destra
-            // resta fermo. Un foro quotato solo all'angolo che non si muove
-            // passa senza provare niente. Quindi due fori quotati, uno per
-            // angolo, e ognuno si giudica contro i SUOI spigoli: da qualunque
-            // parte cresca, uno dei due deve muoversi davvero.
+            // MEASURED the first run (evening of 24/9): the plate grows to the LEFT and
+            // DOWNWARDS (X -160..100, Y -120..60), and the top right corner
+            // stays still. A hole dimensioned only at the corner that does not move
+            // passes without proving anything. So two dimensioned holes, one per
+            // corner, and each is judged against ITS OWN edges: from whichever
+            // side it grows, one of the two must really move.
             //
-            // I FORI SI RICONOSCONO DAL DIAMETRO: A 6, D 8, B 10, C 12. Il primo
-            // giro li riconosceva dalla vicinanza al punto atteso, e un foro
-            // rimasto fermo poteva essere scambiato per un altro.
+            // THE HOLES ARE RECOGNISED BY THE DIAMETER: A 6, D 8, B 10, C 12. The first
+            // run recognised them by the closeness to the expected point, and a hole
+            // that stayed still could be mistaken for another.
 
-            // A: in basso a sinistra, a 20 dallo spigolo sinistro e da quello basso
+            // A: bottom left, at 20 from the left edge and from the bottom one
             var cA = Circle(tr, -0.080, -0.040, zFront, 0.003);
             var pA = (ISketchPoint)((ISketchArc)cA).GetCenterPoint2();
             var qA1 = DimensionToEdge(pA, -0.100, 0.0, zFront, -0.115, -0.045, zFront);
@@ -136,7 +136,7 @@ internal static class Program
             Says("A (Ø6): quote allo spigolo " + (qA1 == null ? "NON NATA" : Mm(qA1.SystemValue)) + " (sinistro), " +
                  (qA2 == null ? "NON NATA" : Mm(qA2.SystemValue)) + " (basso)");
 
-            // D: in alto a destra, a 20 dallo spigolo destro e da quello alto
+            // D: top right, at 20 from the right edge and from the top one
             var cD = Circle(tr, 0.080, 0.040, zFront, 0.004);
             var pD = (ISketchPoint)((ISketchArc)cD).GetCenterPoint2();
             var qD1 = DimensionToEdge(pD, 0.100, 0.0, zFront, 0.115, 0.045, zFront);
@@ -144,16 +144,16 @@ internal static class Program
             Says("D (Ø8): quote allo spigolo " + (qD1 == null ? "NON NATA" : Mm(qD1.SystemValue)) + " (destro), " +
                  (qD2 == null ? "NON NATA" : Mm(qD2.SystemValue)) + " (alto)");
 
-            // B: al centro. Due varianti, una per giro (--b=bordi | --b=convertiti).
+            // B: in the centre. Two variants, one per run (--b=bordi | --b=convertiti).
             var cB = Circle(tr, 0.0, 0.0, zFront, 0.005);
             var pB = (ISketchPoint)((ISketchArc)cB).GetCenterPoint2();
             ISketchSegment line = null;
             if (_variant == "convertiti")
             {
-                // Gli spigoli sinistro e destro CONVERTITI nello schizzo (seguono
-                // il modello da soli) e messi a COSTRUZIONE, se no entrerebbero
-                // nel profilo del taglio. La mezzeria si appoggia a loro: sono
-                // entita' dello schizzo, non spigoli del modello.
+                // The left and right edges CONVERTED into the sketch (they follow
+                // the model by themselves) and set to CONSTRUCTION, otherwise they would enter
+                // the profile of the cut. The midline rests on them: they are
+                // sketch entities, not model edges.
                 var sx = Convert(-0.100, 0.0, zFront);
                 var dx = Convert(0.100, 0.0, zFront);
                 line = Centerline(tr, zFront);
@@ -175,7 +175,7 @@ internal static class Program
             }
             RelationBetweenSketches(pB, line, "sgATMIDDLE");
 
-            // C: il gemello, a coordinate assolute
+            // C: the twin, at absolute coordinates
             Circle(tr, -0.040, 0.030, zFront, 0.006);
             Says("C (Ø12): a (-40, 30), senza relazioni");
 
@@ -192,14 +192,14 @@ internal static class Program
             var beforeC = Hole(Holes(), 0.006);
             mistakes += Verify("dopo il taglio", beforeC);
 
-            // ── LA PIASTRA CAMBIA ────────────────────────────────────────
+            // ── THE PLATE CHANGES ────────────────────────────────────────
             qLen.SetSystemValue3(0.260, (int)swSetValueInConfiguration_e.swSetValue_InAllConfigurations, null);
             _doc.EditRebuild3();
             int s1 = Verify("lunghezza 200 -> 260", beforeC);
             if (s1 > 0)
             {
-                // Una ricostruzione PIENA risolve i riferimenti che quella
-                // normale lascia rotti? Se si', e' un problema d'ordine.
+                // Does a FULL rebuild solve the references that the normal
+                // one leaves broken? If so, it is an ordering problem.
                 _doc.ForceRebuild3(false);
                 s1 = Verify("lunghezza 200 -> 260, dopo ForceRebuild3", beforeC);
             }
@@ -242,7 +242,7 @@ internal static class Program
         }
     }
 
-    // ── misure ───────────────────────────────────────────────────────────
+    // ── measurements ─────────────────────────────────────────────────────
 
     private static int Verify(string timestamp, double[] cBefore)
     {
@@ -254,7 +254,7 @@ internal static class Program
         Console.WriteLine("      " + timestamp + ": ingombro " + Box(box) + ", fori " + holes.Count + ", cose che non vanno " + errors);
         if (errors > 0)
         {
-            // QUALE lavorazione, e con che codice: il primo giro diceva solo «1».
+            // WHICH feature, and with what code: the first run only said «1».
             try
             {
                 object feats, codes, warnings;
@@ -327,7 +327,7 @@ internal static class Program
         return better;
     }
 
-    /// <summary>I centri dei fori: le facce cilindriche, dal punto sull'asse.</summary>
+    /// <summary>The centres of the holes: the cylindrical faces, from the point on the axis.</summary>
     private static List<double[]> Holes()
     {
         var outside = new List<double[]>();
@@ -356,7 +356,7 @@ internal static class Program
         return (bodies[0] as IBody2).GetBodyBox() as double[];
     }
 
-    // ── schizzo ──────────────────────────────────────────────────────────
+    // ── sketch ───────────────────────────────────────────────────────────
 
     private static double[] Sk(MathTransform tr, double x, double y, double z)
     {
@@ -364,10 +364,10 @@ internal static class Program
         return (double[])((IMathPoint)p.MultiplyTransform(tr)).ArrayData;
     }
 
-    // AddToDB a vero mentre si disegna: senza, SOLIDWORKS aggiunge da solo le
-    // relazioni che «indovina» (coincidenze con gli spigoli, orizzontali), e
-    // sommate a quelle messe apposta sovravincolano lo schizzo appena il pezzo
-    // cambia. Misurato il 24/9 sera: 5 sovravincolanti dopo la prima modifica.
+    // AddToDB true while drawing: without it, SOLIDWORKS adds by itself the
+    // relations that it «guesses» (coincidences with the edges, horizontals), and
+    // added to those put in on purpose they over-constrain the sketch as soon as the part
+    // changes. Measured on the evening of 24/9: 5 over-constraining ones after the first change.
     private static bool _withoutInferences = System.Environment.GetCommandLineArgs().Length > 0 &&
         Array.IndexOf(System.Environment.GetCommandLineArgs(), "--con-inferenze") < 0;
 
@@ -391,8 +391,8 @@ internal static class Program
     }
 
     /// <summary>
-    /// Converte nello schizzo lo spigolo del modello che passa per (x, y, z) e
-    /// lo mette a costruzione. Il segmento nuovo e' quello che prima non c'era.
+    /// Converts into the sketch the edge of the model that passes through (x, y, z) and
+    /// sets it to construction. The new segment is the one that was not there before.
     /// </summary>
     private static ISketchSegment Convert(double x, double y, double z)
     {
@@ -423,9 +423,9 @@ internal static class Program
     }
 
     /// <summary>
-    /// Una quota fra un punto dello schizzo e lo spigolo del modello che passa
-    /// per (ex, ey, ez), con il testo in (tx, ty, tz). Si rilegge il valore:
-    /// una quota nata «a caso» fra due cose sbagliate avrebbe un altro numero.
+    /// A dimension between a sketch point and the edge of the model that passes
+    /// through (ex, ey, ez), with the text at (tx, ty, tz). The value is read back:
+    /// a dimension born «by chance» between two wrong things would have another number.
     /// </summary>
     private static IDimension DimensionToEdge(ISketchPoint p, double ex, double ey, double ez,
                                                double tx, double ty, double tz)

@@ -9,49 +9,49 @@ using SolidWorks.Interop.swconst;
 namespace Checks.RoleCoverage
 {
     /// <summary>
-    /// QUANTE FACCE HANNO UN RUOLO UNIVOCO? (misura che dimensiona la voce E7)
+    /// HOW MANY FACES HAVE A UNIQUE ROLE? (measurement that sizes entry E7)
     ///
-    /// E7 propone di nominare una faccia per SIGNIFICATO invece che per
-    /// posizione: «il fondo della tasca fatta al passo 2» resta il fondo della
-    /// tasca qualunque quota si cambi a monte.
+    /// E7 proposes naming a face by MEANING instead of by
+    /// position: «the floor of the pocket made at step 2» stays the floor of the
+    /// pocket whatever dimension is changed upstream.
     ///
-    /// Meta' del meccanismo esiste gia' e funziona, in `References.cs`, ma
-    /// vale solo DENTRO un piano: risolve «la faccia superiore di quello che
-    /// hai fatto al passo 1» perche' quel passo e' ancora in mano, con la sua
-    /// direzione di estrusione. Per una faccia che esiste GIA' nell'albero
-    /// quella direzione non c'e'.
+    /// Half of the mechanism already exists and works, in `References.cs`, but
+    /// it only holds INSIDE a plan: it resolves «the top face of what
+    /// you made at step 1» because that step is still in hand, with its
+    /// extrusion direction. For a face that ALREADY exists in the tree
+    /// that direction is not there.
     ///
-    /// La voce E7 chiede espressamente un numero prima di costruire:
+    /// Entry E7 expressly asks for a number before building:
     ///
-    ///   «Copertura da dichiarare come numero: su venti facce citate a caso in
-    ///   dieci pezzi di prova, quante hanno un ruolo univoco. Se e' sotto meta',
-    ///   questa e' un complemento, non la strada principale, E VA SCRITTO.»
+    ///   «Coverage to be declared as a number: out of twenty faces cited at random in
+    ///   ten test parts, how many have a unique role. If it is under half,
+    ///   this is a complement, not the main road, AND IT MUST BE WRITTEN DOWN.»
     ///
-    /// Questo attrezzo misura quel numero sul documento aperto, senza cambiare
-    /// niente. Si lancia su un pezzo per volta.
+    /// This tool measures that number on the open document, without changing
+    /// anything. It is run on one part at a time.
     ///
     ///     Checks\RoleCoverage\bin\RoleCoverage.exe
     ///
-    /// I QUATTRO RUOLI, e cosa serve a ciascuno per essere deciso:
+    /// THE FOUR ROLES, and what each one needs to be decided:
     ///
-    ///   hole_face     la sola geometria: c'e' UNA faccia cilindrica?
-    ///   top_face    la DIREZIONE della lavorazione, piu' la geometria
-    ///   bottom_face    la DIREZIONE
-    ///   pocket_floor     la DIREZIONE
+    ///   hole_face     the geometry alone: is there ONE cylindrical face?
+    ///   top_face    the DIRECTION of the feature, plus the geometry
+    ///   bottom_face    the DIRECTION
+    ///   pocket_floor     the DIRECTION
     ///
-    /// Tre su quattro dipendono dalla direzione. Questo attrezzo prova a
-    /// ricavarla dalla definizione della lavorazione e DICE quando non ci
-    /// riesce, invece di contare quella faccia come «senza ruolo» e far
-    /// sembrare il problema geometrico quando e' di informazione mancante.
+    /// Three out of four depend on the direction. This tool tries to
+    /// derive it from the definition of the feature and SAYS when it does not
+    /// manage to, instead of counting that face as «without role» and making
+    /// the problem look geometric when it is one of missing information.
     ///
-    /// Esce sempre 0: e' una misura, non un controllo. Un numero basso non e'
-    /// un fallimento, e' la risposta.
+    /// It always exits 0: it is a measurement, not a check. A low number is not
+    /// a failure, it is the answer.
     /// </summary>
     internal static class Program
     {
         /// <summary>
-        /// Quanto una normale deve essere allineata alla direzione per contare
-        /// come «perpendicolare al taglio». Stesso valore di `References`.
+        /// How much a normal must be aligned with the direction to count
+        /// as «perpendicular to the cut». Same value as `References`.
         /// </summary>
         private const double Cosine = 0.99;
 
@@ -76,7 +76,7 @@ namespace Checks.RoleCoverage
             var faces = AllFaces(doc);
             Console.WriteLine("  facce totali: " + faces.Count);
 
-            // ── a quale lavorazione appartiene ogni faccia ──────────────────
+            // ── which feature each face belongs to ──────────────────────────
             var perFeature = new Dictionary<int, List<IFace2>>();
             var featureName = new Dictionary<int, string>();
             var direction = new Dictionary<int, double[]>();
@@ -104,7 +104,7 @@ namespace Checks.RoleCoverage
             Console.WriteLine("  lavorazioni con facce: " + perFeature.Count);
             Console.WriteLine();
 
-            // ── il ruolo di ogni faccia, lavorazione per lavorazione ────────
+            // ── the role of each face, feature by feature ───────────────────
             int unique = 0, ambiguous = 0, withoutRole = 0, withoutDirection = 0;
             var roleCount = new Dictionary<string, int>();
 
@@ -114,7 +114,7 @@ namespace Checks.RoleCoverage
                 var dir = direction[entry.Key];
                 var roleOf = new Dictionary<IFace2, string>();
 
-                // hole_face: l'unica che NON ha bisogno della direzione.
+                // hole_face: the only one that does NOT need the direction.
                 var cylindrical = its.Where(Cylindrical).ToList();
                 if (cylindrical.Count == 1) roleOf[cylindrical[0]] = "hole_face";
 
@@ -142,11 +142,11 @@ namespace Checks.RoleCoverage
                     else withoutRole++;
                 }
 
-                // PIU' DI UNA FACCIA CILINDRICA NON E' «NESSUN RUOLO»: e'
-                // un'ambiguita', e in `References` fa scattare un rifiuto
-                // invece di una scelta. Contarla insieme alle facce che un
-                // ruolo non ce l'hanno proprio confonderebbe due problemi
-                // diversi: uno si risolve aggiungendo vocabolario, l'altro no.
+                // MORE THAN ONE CYLINDRICAL FACE IS NOT «NO ROLE»: it is
+                // an ambiguity, and in `References` it triggers a refusal
+                // instead of a choice. Counting it together with the faces that have no
+                // role at all would confuse two different problems:
+                // one is solved by adding vocabulary, the other is not.
                 if (cylindrical.Count > 1) ambiguous += cylindrical.Count;
 
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
@@ -155,7 +155,7 @@ namespace Checks.RoleCoverage
                     dir == null ? "   [direzione non leggibile]" : ""));
             }
 
-            // ── il numero che la voce E7 chiede ────────────────────────────
+            // ── the number that entry E7 asks for ──────────────────────────
             Console.WriteLine();
             Console.WriteLine("=== Il numero");
             int total = faces.Count;
@@ -214,15 +214,15 @@ namespace Checks.RoleCoverage
         }
 
         /// <summary>
-        /// La direzione di una lavorazione, se si riesce a leggerla.
+        /// The direction of a feature, if it can be read.
         ///
-        /// E' IL DATO CHE DECIDE TRE RUOLI SU QUATTRO, e dentro un piano arriva
-        /// gratis perche' il passo se lo porta dietro. Qui va ricostruito dalla
-        /// definizione, e non sempre c'e': una rivoluzione non ha una direzione
-        /// di estrusione, un raccordo nemmeno.
+        /// IT IS THE DATUM THAT DECIDES THREE ROLES OUT OF FOUR, and inside a plan it arrives
+        /// for free because the step carries it along. Here it must be rebuilt from the
+        /// definition, and it is not always there: a revolve has no extrusion
+        /// direction, a fillet neither.
         ///
-        /// Si legge dalla normale del PIANO DELLO SCHIZZO, che e' il dato piu'
-        /// stabile: la direzione di estrusione e' perpendicolare al profilo.
+        /// It is read from the normal of the SKETCH PLANE, which is the most
+        /// stable datum: the extrusion direction is perpendicular to the profile.
         /// </summary>
         private static double[] DirectionOf(IFeature featureItem)
         {
@@ -235,15 +235,15 @@ namespace Checks.RoleCoverage
                     if (sketch != null)
                     {
                         var m = sketch.ModelToSketchTransform as IMathTransform;
-                        // `Inverse()` risponde un `object`, non un
-                        // `IMathTransform`: senza la conversione non compila, e
-                        // con un `as` sbagliato tornerebbe null in silenzio.
+                        // `Inverse()` answers an `object`, not an
+                        // `IMathTransform`: without the conversion it does not compile, and
+                        // with a wrong `as` it would return null silently.
                         var reverse = m == null ? null : m.Inverse() as IMathTransform;
                         if (reverse != null)
                         {
                             var data = reverse.ArrayData as double[];
-                            // La terza colonna della rotazione e' la normale
-                            // del piano dello schizzo.
+                            // The third column of the rotation is the normal
+                            // of the sketch plane.
                             if (data != null && data.Length >= 9)
                                 return Normalize(new[] { data[6], data[7], data[8] });
                         }

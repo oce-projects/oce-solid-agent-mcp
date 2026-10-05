@@ -1,48 +1,48 @@
-// Conta le voci del TODO, e dice i numeri che il TODO stesso dichiara.
+// Counts the entries of the TODO, and tells the numbers that the TODO itself declares.
 //
-//     node Checks/count-todo.js            i numeri
-//     node Checks/count-todo.js --righe    e anche quali voci sono aperte
-//     node Checks/count-todo.js --blocchi  e COSA le blocca, una per una
+//     node Checks/count-todo.js            the numbers
+//     node Checks/count-todo.js --righe    and also which entries are open
+//     node Checks/count-todo.js --blocchi  and WHAT blocks them, one by one
 //
-// ── PERCHE' «COSA LE BLOCCA» E NON SOLO «QUANTE» ─────────────────────────
+// ── WHY «WHAT BLOCKS THEM» AND NOT ONLY «HOW MANY» ───────────────────────
 //
-// Un numero solo — «95 aperte» — non dice cosa si puo' fare adesso, e le 95
-// non sono la stessa cosa: alcune aspettano una decisione che non e' mia,
-// altre vogliono SOLIDWORKS acceso e un giro di banco da un'ora, altre sono
-// codice e documenti che si scrivono e si verificano in pochi minuti.
+// A single number — «95 open» — does not say what can be done now, and the 95
+// are not the same thing: some wait for a decision that is not mine,
+// others want SOLIDWORKS running and a bench run of an hour, others are
+// code and documents that are written and verified in a few minutes.
 //
-// Il 23/9/2026 questa differenza e' diventata concreta: SOLIDWORKS era
-// inagibile per una presa rimasta su un file di rete, e senza questo elenco
-// la risposta a «cosa faccio nel frattempo?» sarebbe stata leggere 15.000
-// righe a occhio.
+// On 23/9/2026 this difference became concrete: SOLIDWORKS was
+// unusable because of a lock left on a network file, and without this list
+// the answer to «what do I do in the meantime?» would have been reading 15,000
+// lines by eye.
 //
-// ── E LA CLASSIFICAZIONE E' UN INDIZIO, NON UNA SENTENZA ─────────────────
+// ── AND THE CLASSIFICATION IS A HINT, NOT A SENTENCE ─────────────────────
 //
-// Si legge il CORPO della voce e si cercano i segni che il TODO usa gia':
-// «**firme:**» vuol dire che c'e' un'API da misurare; «**sonda:** si'» che
-// serve provarla su SOLIDWORKS; «proprietario» che la decisione non e' di
-// chi programma. Sono spie, e una spia sbaglia: il conto e' un punto di
-// partenza per guardare, non un verdetto. Per questo l'elenco stampa i
-// TITOLI e non solo i numeri — cosi' chi legge puo' contestarlo.
+// The BODY of the entry is read and we look for the signs that the TODO already uses:
+// «**firme:**» means there is an API to measure; «**sonda:** si'» that it
+// must be tried on SOLIDWORKS; «proprietario» that the decision is not
+// up to whoever programs. They are warning lights, and a warning light errs: the count is a starting
+// point for looking, not a verdict. That is why the list prints the
+// TITLES and not only the numbers — so that whoever reads can dispute it.
 //
-// ── PERCHE' STA QUI E NON IN `scratchpad/` ────────────────────────────────
+// ── WHY IT LIVES HERE AND NOT IN `scratchpad/` ────────────────────────────
 //
-// Il TODO diceva «si ricontano con `node scratchpad/conta_todo.js`», e quello
-// script NON ESISTE: `scratchpad/` non e' versionata, quindi sparisce a ogni
-// sessione e non e' mai arrivata a nessun altro. Un'istruzione che indica un
-// file assente e' peggio di nessuna istruzione: chi la legge prova, fallisce,
-// e conclude che il conteggio non si puo' rifare — cosi' la riga scritta a
-// mano resta com'e' e invecchia.
+// The TODO said «they are recounted with `node scratchpad/conta_todo.js`», and that
+// script DOES NOT EXIST: `scratchpad/` is not versioned, so it disappears at every
+// session and never reached anybody else. An instruction that points to an
+// absent file is worse than no instruction: whoever reads it tries, fails,
+// and concludes that the count cannot be redone — so the line written by
+// hand stays as it is and ages.
 //
-// E' lo stesso difetto che il TODO rimprovera ai numeri scritti a mano,
-// applicato allo strumento che doveva impedirlo.
+// It is the same defect that the TODO reproaches to hand-written numbers,
+// applied to the tool that was supposed to prevent it.
 //
-// ── DUE DENOMINATORI, E VANNO DETTI TUTTI E DUE ───────────────────────────
+// ── TWO DENOMINATORS, AND BOTH MUST BE SAID ───────────────────────────────
 //
-// Fra le voci con la casella vuota ce ne sono alcune che NON sono lavoro da
-// fare: sono «tracce originali tenute per riferimento», cioe' la storia di una
-// voce gia' chiusa. Contarle come aperte gonfia il lavoro residuo; non dirlo
-// affatto lo sgonfia. Si dicono tutti e due i numeri.
+// Among the entries with an empty box there are some that are NOT work to
+// be done: they are «tracce originali tenute per riferimento», that is the history of an
+// entry already closed. Counting them as open inflates the residual work; not saying it
+// at all deflates it. Both numbers are said.
 const fs = require("fs");
 const path = require("path");
 
@@ -53,9 +53,9 @@ const showLines = process.argv.includes("--righe");
 
 const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
 
-// IL CORPO SERVE QUANTO IL TITOLO. Le spie («firme:», «sonda:») stanno
-// sotto l'intestazione, non dentro: una voce letta per titolo e' una voce
-// letta a meta'.
+// THE BODY MATTERS AS MUCH AS THE TITLE. The warning lights («firme:», «sonda:») sit
+// under the heading, not inside it: an entry read by its title is an entry
+// read halfway.
 const entries = [];
 for (let i = 0; i < lines.length; i++) {
   const m = lines[i].match(/^#### \[([ x~])\] (.+)$/);
@@ -65,8 +65,8 @@ for (let i = 0; i < lines.length; i++) {
     if (/^#{1,4} /.test(lines[j]) && !/^#### \[/.test(lines[j])) break;
     body.push(lines[j]);
   }
-  // Il CODICE della voce (`Z-G7`, `W2.2`, `S3`, `GA11`) si tiene: senza,
-  // «dipende da Y1» resta una frase e non una cosa che si puo' guardare.
+  // The CODE of the entry (`Z-G7`, `W2.2`, `S3`, `GA11`) is kept: without it,
+  // «dipende da Y1» stays a sentence and not a thing that can be looked at.
   const c = m[2].match(/^([A-Z]{1,2}[0-9]+(?:[.-][0-9A-Za-z]+)*|[A-Z]-[A-Z][0-9]+(?:-[a-z]+)?)\b/);
   entries.push({
     stato: m[1], titolo: m[2], corpo: body.join(' '),
@@ -78,27 +78,27 @@ const full = entries.filter((v) => v.stato === "x");
 const meta = entries.filter((v) => v.stato === "~");
 const open = entries.filter((v) => v.stato === " ");
 
-// UNA TRACCIA NON HA LA CASELLA, E QUESTO SCRIPT ADESSO LO PRETENDE.
+// A TRACE HAS NO BOX, AND THIS SCRIPT NOW DEMANDS IT.
 //
-// Qui si cercavano le tracce solo fra le `[ ]`, e se ne trovava UNA. La
-// rilettura del 24/9/2026 ne ha contate 54: 49 stavano a `[~]`, dove questo
-// filtro non guardava, e contavano come lavoro «a meta'». Il conto diceva 87
-// voci a meta' e le vere erano 36; il totale diceva 312 e le voci vere erano
-// 258. *Il numero che doveva impedire di gonfiare il lavoro lo gonfiava, e lo
-// faceva con la regola giusta applicata a un quinto dei casi.*
+// Here the traces were searched only among the `[ ]`, and ONE was found. The
+// re-reading of 24/9/2026 counted 54: 49 sat at `[~]`, where this
+// filter did not look, and counted as «a meta'» work. The count said 87
+// entries halfway and the real ones were 36; the total said 312 and the real entries were
+// 258. *The number that was supposed to prevent inflating the work inflated it, and it
+// did so with the right rule applied to a fifth of the cases.*
 //
-// La regola del TODO (in testa al file) e': una traccia perde la casella e
-// diventa `(com'era)`. Quindi una traccia CON la casella non e' da contare
-// a parte: e' un difetto del file, e lo script esce 1. Lo stesso
-// riconoscimento di Tests/Program.cs, perche' due regole per la stessa
-// cosa divergono.
+// The rule of the TODO (at the top of the file) is: a trace loses its box and
+// becomes `(com'era)`. So a trace WITH the box is not to be counted
+// separately: it is a defect of the file, and the script exits 1. The same
+// recognition as Tests/Program.cs, because two rules for the same
+// thing diverge.
 const TRACE = /traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta/i;
 const traces = entries.filter((v) => TRACE.test(v.titolo) && !/FATTO il/.test(v.titolo));
 const realWork = open.length - traces.filter((v) => v.stato === " ").length;
 
-// E UNA CASELLA FUORI DAI `####` NON LA VEDE NESSUNO. W3.1 — 30-50 ore,
-// prerequisito della pubblicazione — stava a `###` ed era invisibile a questo
-// conto, al controllo sui nomi doppi e al grep che la testa del file indica.
+// AND A BOX OUTSIDE THE `####` IS SEEN BY NOBODY. W3.1 — 30-50 hours,
+// prerequisite of the publication — sat at `###` and was invisible to this
+// count, to the check on duplicate names and to the grep that the head of the file indicates.
 const offLevel = [];
 for (let i = 0; i < lines.length; i++) {
   if (/^(#{1,3}|#{5,6}) \[[ x~]\] /.test(lines[i])) offLevel.push(i + 1);
@@ -142,82 +142,82 @@ console.log(
 if (defects) process.exitCode = 1;
 
 if (process.argv.includes("--blocchi")) {
-  // Le spie, in ordine di forza: una decisione del proprietario batte
-  // tutto (non e' lavoro nostro), poi SOLIDWORKS, poi il resto.
-  // QUARTA CORREZIONE, il 23/9/2026: una voce marcata **decisione** nel suo
-  // titolo non e' lavoro da scrivere, e' una scelta da fare -- e se riguarda
-  // un file di chi lavora qui, non la prende chi programma.
+  // The warning lights, in order of strength: a decision of the owner beats
+  // everything (it is not our work), then SOLIDWORKS, then the rest.
+  // FOURTH CORRECTION, on 23/9/2026: an entry marked **decisione** in its
+  // title is not work to be written, it is a choice to be made -- and if it concerns
+  // a file of whoever works here, it is not taken by whoever programs.
   //
-  // J4 («decidere cosa fare del documento sporco»: annullare, tenere o
-  // rifare un pezzo su cui c'e' lavoro recente) finiva fra le "fattibili
-  // adesso". Non lo e': la scelta e' del proprietario del pezzo.
+  // J4 («decide what to do with the dirty document»: undo, keep or
+  // redo a part on which there is recent work) ended up among the "doable
+  // now". It is not: the choice belongs to the owner of the part.
   //
-  // **Questa spia e' stata corretta quattro volte in un giorno**, e resta
-  // una spia. Il numero che stampa e' un punto di partenza per guardare, non
-  // un verdetto -- per questo stampa anche i TITOLI, cosi' chi legge puo'
-  // contestarlo invece di crederlo.
+  // **This warning light was corrected four times in one day**, and it remains
+  // a warning light. The number it prints is a starting point for looking, not
+  // a verdict -- that is why it also prints the TITLES, so whoever reads can
+  // dispute it instead of believing it.
   const owner = (v) =>
     /proprietario|decisa dal|force-push|deploy|tag v0|licenza commerciale/i.test(
       v.titolo + " " + v.corpo) ||
     /\*\*decisione\*\*/i.test(v.titolo);
-  // LA SPIA PIU' FORTE E' IL NOME DI UN'API. La prima versione cercava
-  // «**firme:**» e «sonda: si'», e lasciava fra le fattibili GP10 — che
-  // parla di `InsertRib` per dieci righe — perche' quella voce e' scritta
-  // come una citazione, senza i campi. Una voce che nomina un'API di
-  // SOLIDWORKS vuole SOLIDWORKS: non c'e' modo di misurarla altrove.
+  // THE STRONGEST WARNING LIGHT IS THE NAME OF AN API. The first version searched for
+  // «**firme:**» and «sonda: si'», and left GP10 among the doable ones — which
+  // talks about `InsertRib` for ten lines — because that entry is written
+  // as a quotation, without the fields. An entry that names a SOLIDWORKS
+  // API wants SOLIDWORKS: there is no way to measure it elsewhere.
   const api = /\bI[A-Z]\w+\.\w+\(|\bsw[A-Z]\w+_e\b|\b(?:Insert|Create|Get|Set|Add)[A-Z]\w+\(/;
 
-  // TERZA CORREZIONE, il 23/9/2026: un lavoro che si misura SU UN DOCUMENTO
-  // vuole SOLIDWORKS anche se non nomina nessuna API.
+  // THIRD CORRECTION, on 23/9/2026: a job that is measured ON A DOCUMENT
+  // wants SOLIDWORKS even if it names no API.
   //
-  // Le prime due stesure mandavano fra le "fattibili adesso" Z-B7 (scegliere
-  // una vite da una cartella dell'officina e aprirla), Z-A11 ("gira sul
-  // documento aperto") e Y3 (aprire un .sldprt sconosciuto e raccontarlo).
-  // Nessuna delle tre si puo' fare col CAD spento.
+  // The first two drafts sent among the "doable now" Z-B7 (choosing
+  // a screw from a workshop folder and opening it), Z-A11 ("runs on the
+  // open document") and Y3 (opening an unknown .sldprt and telling about it).
+  // None of the three can be done with the CAD off.
   //
-  // **Un criterio che promette lavoro che non si puo' fare e' peggio di
-  // nessun criterio**: la prima volta ci si prova, la seconda non lo si
-  // legge piu'.
+  // **A criterion that promises work that cannot be done is worse than
+  // no criterion**: the first time one tries, the second time it is
+  // no longer read.
   const document =
     /documento aperto|sul documento|\.sldprt|\.sldasm|assieme aperto|pezzo aperto|una tavola aperta|apre un|aprire un|oltre il tetto|guarda_il_pezzo/i;
 
-  // QUINTA CORREZIONE, il 23/9/2026: una voce che si dichiara **BLOCCATA**
-  // o «forse-mai» non e' lavoro fattibile adesso, ed e' la voce stessa a
-  // dirlo. E11 («rollback come oracolo», bloccata e con la misura che non la
-  // chiude) finiva in cima all'elenco delle cose da fare.
+  // FIFTH CORRECTION, on 23/9/2026: an entry that declares itself **BLOCCATA**
+  // or «forse-mai» is not work that can be done now, and it is the entry itself
+  // that says so. E11 («rollback as oracle», blocked and with the measurement that does not
+  // close it) ended up at the top of the list of things to do.
   //
-  // Cinque correzioni in un giorno. Il numero e' utile, e **non e' un
-  // verdetto**: ogni volta che si e' guardata una voce dell'elenco da
-  // vicino, l'elenco si e' accorciato.
+  // Five corrections in one day. The number is useful, and **it is not a
+  // verdict**: every time an entry of the list was looked at
+  // closely, the list got shorter.
   const locked = (v) => /BLOCCATA|forse-mai|non stimabile/i.test(v.titolo);
 
-  // SESTA CORREZIONE, il 24/9/2026, e questa non e' una regex: e' un
-  // controllo.
+  // SIXTH CORRECTION, on 24/9/2026, and this is not a regex: it is a
+  // check.
   //
-  // L'elenco «si puo' fare adesso» mi ha mandato su **Y2** («dipende da
-  // Y1») e su **Z-B7** («ore: dipende interamente da B1 e B3»). Tutt'e due
-  // dichiarano la propria dipendenza **in chiaro**, e tutt'e due dipendono
-  // da voci ancora aperte. Nessuna delle due si poteva cominciare.
+  // The list «si puo' fare adesso» sent me to **Y2** («dipende da
+  // Y1») and to **Z-B7** («ore: dipende interamente da B1 e B3»). Both
+  // declare their own dependency **in plain words**, and both depend
+  // on entries that are still open. Neither of the two could be started.
   //
-  // Qui non si indovina niente: si legge il codice che la voce ha scritto
-  // da sola e si guarda com'e' messa quella voce. Se la voce citata non
-  // esiste, **non si blocca**: sarebbe una sentenza su un refuso.
-  // LE TRACCE NON CONTANO, e ci sono cascato lo stesso giorno in cui ho
-  // scritto la regola.
+  // Here nothing is guessed: we read the code that the entry wrote
+  // by itself and look at how that entry stands. If the cited entry does not
+  // exist, **it does not block**: it would be a sentence on a typo.
+  // THE TRACES DO NOT COUNT, and I fell for it the same day in which I
+  // wrote the rule.
   //
-  // Il TODO tiene, accanto a una voce chiusa, la sua «traccia originale
-  // tenuta per riferimento»: **stesso codice**, e a `~` per sempre perche'
-  // e' un ricordo, non lavoro. Sono decine. Costruendo la mappa senza
-  // saltarle, l'ultima scritta vinceva — cioe' la traccia — e `B1`
-  // risultava aperta benche' la B1 vera sia chiusa dal 14/9/2026.
+  // The TODO keeps, next to a closed entry, its «traccia originale
+  // tenuta per riferimento»: **same code**, and at `~` forever because
+  // it is a memory, not work. There are dozens. Building the map without
+  // skipping them, the last one written won — that is the trace — and `B1`
+  // turned out open although the real B1 has been closed since 14/9/2026.
   //
-  // Z-B7 e' finita cosi' fra le «bloccate», e la cosa che aspettava era
-  // gia' fatta da dieci giorni. *Una spia che accusa una cosa fatta manda
-  // a cercare nel posto sbagliato, che e' peggio che tacere.*
+  // Z-B7 thus ended up among the «blocked», and the thing it was waiting for was
+  // already done for ten days. *A warning light that accuses a thing done sends
+  // to look in the wrong place, which is worse than keeping quiet.*
   //
-  // E se lo stesso codice restasse ambiguo, vince la voce piu' avanti: fra
-  // due righe che parlano della stessa cosa, quella chiusa e' l'ultima
-  // parola.
+  // And if the same code stayed ambiguous, the entry further down wins: between
+  // two lines that talk about the same thing, the closed one is the last
+  // word.
   const trace = (v) => /traccia originale|tenuta per riferimento/i.test(v.titolo);
   const order = { "x": 2, "~": 1, " ": 0 };
   const stateOf = new Map();
@@ -239,11 +239,11 @@ if (process.argv.includes("--blocchi")) {
     return null;
   };
 
-  // SETTIMA. **W2.6** dice «Finita quando: volume tolto pari all'area del
+  // SEVENTH. **W2.6** says «Finita quando: volume tolto pari all'area del
   // contorno per la profondita'; e due corpi indipendenti dopo, con
-  // l'ingombro di tutti e due letto». Non nomina nessuna API e non nomina
-  // nessun documento — ma un volume e un ingombro **si leggono da un pezzo
-  // vero**, e non c'e' nessun altro posto da cui leggerli.
+  // l'ingombro di tutti e due letto». It names no API and names
+  // no document — but a volume and a bounding box **are read from a real
+  // part**, and there is no other place to read them from.
   const measureOnPart =
     /volume (?:tolto|del|di|calcolato|vero)|ingombro (?:di|del|letto|dei)|massa (?:del|di)|area del contorno|corpi indipendenti/i;
 

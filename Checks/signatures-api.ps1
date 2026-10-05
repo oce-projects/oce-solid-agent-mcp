@@ -1,32 +1,32 @@
 # =============================================================================
-#  signatures-api.ps1 - cosa dice l'INTEROP, non la pagina di documentazione
-#                                                       (voci W1.1 e W1.2)
+#  signatures-api.ps1 - what the INTEROP says, not the documentation page
+#                                                       (entries W1.1 and W1.2)
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
+#  THIS FILE IS PURE ASCII, like bench.ps1 and for the same reason.
 #
-#  PERCHE' ESISTE
+#  WHY IT EXISTS
 #
-#  Le voci W1.1 e W1.2 poggiano su frasi lette in una pagina web: "Obsolete",
-#  "non dichiara nessun valore di ritorno", "elenca come accessore solo
-#  GetDefinition". Sono affermazioni verificabili, e finche' non si verificano
-#  restano **citazioni**.
+#  Entries W1.1 and W1.2 rest on sentences read on a web page: "Obsolete",
+#  "does not declare any return value", "lists as the only accessor
+#  GetDefinition". They are verifiable statements, and until they are verified
+#  they remain **quotations**.
 #
-#  La regola di casa e' quella: si verifica la cosa, non cio' che la descrive.
-#  Un docstring invecchia, un assembly no -- e qui l'assembly e' quello
-#  installato su QUESTA postazione, cioe' esattamente quello contro cui il
-#  codice gira.
+#  The house rule is that one: we verify the thing, not what describes it.
+#  A docstring ages, an assembly does not -- and here the assembly is the one
+#  installed on THIS workstation, that is exactly the one against which the
+#  code runs.
 #
-#  NON SERVE CHE SOLIDWORKS SIA APERTO: serve che sia installato.
+#  SOLIDWORKS DOES NOT NEED TO BE OPEN: it needs to be installed.
 #
-#  USO
+#  USAGE
 #      .\Checks\signatures-api.ps1
 # =============================================================================
 
-# `-TestMe` AGGIUNGE UNA PRETESA CHE NON PUO' REGGERE, e serve a vedere
-# questa sonda diventare rossa. Una guardia che non si e' mai vista dire di
-# no non si distingue da una rotta -- e la condizione vera (un aggiornamento
-# di SOLIDWORKS che cambia una firma) non si puo' provocare a comando.
+# `-TestMe` ADDS A CLAIM THAT CANNOT HOLD, and it serves to see
+# this probe turn red. A guard that has never been seen to say
+# no cannot be told from a broken one -- and the real condition (a SOLIDWORKS
+# update that changes a signature) cannot be provoked on demand.
 param([switch]$TestMe)
 
 $ErrorActionPreference = "Continue"
@@ -41,13 +41,13 @@ if (-not (Test-Path $sldworks)) { Write-Output "non trovo $sldworks"; exit 2 }
 $asm = [Reflection.Assembly]::LoadFrom($sldworks)
 $cst = [Reflection.Assembly]::LoadFrom($swconst)
 
-# ── E SIMULATION, CHE E' UN INTEROP A PARTE (voce S3) ────────────
+# ── AND SIMULATION, WHICH IS AN INTEROP APART (entry S3) ─────────
 #
-# `cosworks` non e' dentro `sldworks`: e' un assembly suo, e su una
-# macchina senza Simulation installato non c'e' affatto. Qui non si
-# muore: si salta la sezione dicendolo. Un controllo che pretende un
-# modulo che l'officina non ha comprato sarebbe rosso per sempre e
-# smetterebbe di essere letto.
+# `cosworks` is not inside `sldworks`: it is an assembly of its own, and on a
+# machine without Simulation installed it is not there at all. Here we do not
+# die: the section is skipped saying so. A check that demands a
+# module that the shop has not bought would be red forever and
+# would stop being read.
 $cosworks = Join-Path $redist "SolidWorks.Interop.cosworks.dll"
 $sim = $null
 if (Test-Path $cosworks) { $sim = [Reflection.Assembly]::LoadFrom($cosworks) }
@@ -96,16 +96,16 @@ function Obsolete($m) {
     return "SI': " + $a[0].Message
 }
 
-# ── I VALORI ATTESI, E IL VERDETTO ──────────────────────────────────────────
+# ── THE EXPECTED VALUES, AND THE VERDICT ────────────────────────────────────
 #
-# Fino al 23/9/2026 questa sonda STAMPAVA e usciva 0 comunque. Una
-# contestazione avversariale l'ha chiamata col suo nome: «niente valori
-# attesi, niente confronto, niente exit 1 -- non e' un controllo di
-# regressione, e' un promemoria».
+# Until 23/9/2026 this probe PRINTED and exited 0 anyway. An adversarial
+# challenge called it by its name: «no expected values,
+# no comparison, no exit 1 -- it is not a regression check, it is a
+# reminder».
 #
-# Adesso cio' che ci si aspetta e' scritto QUI, e se una firma cambia la
-# sonda esce 1 e dice quale. *Un attrezzo che non puo' dire di no non
-# sorveglia niente.*
+# Now what is expected is written HERE, and if a signature changes the
+# probe exits 1 and says which. *A tool that cannot say no guards
+# nothing.*
 $trouble = @()
 function Expect($what, $expected, $found) {
     if ("$found" -eq "$expected") { Line $what ("ok  " + $found); return }
@@ -117,7 +117,7 @@ Write-Output ""
 Write-Output ("interop: " + $sldworks)
 Write-Output ""
 
-# -- W1.1: FeatureFillPattern e la strada nuova ---------------------------------
+# -- W1.1: FeatureFillPattern and the new road ---------------------------------
 Write-Output "=== W1.1  FeatureFillPattern e' davvero Obsolete? ==="
 $ffp = Method "IFeatureManager" "FeatureFillPattern"
 Line "IFeatureManager.FeatureFillPattern" $(if ($ffp) { "c'e'" } else { "NON c'e'" })
@@ -139,11 +139,11 @@ if ($pa) {
     Line "  ITablePatternFeatureData.PointArray" $(if ($p) { "c'e', " + $p.PropertyType.Name } else { "NON c'e'" })
 }
 
-# le marche che la voce cita, lette dall'enum invece che dalla pagina
-# IL NOME L'AVEVO INDOVINATO, ed e' esattamente la cosa che questa sonda
-# esiste per non fare: `swFeatureManagerCreateDefinitionType_e` non esiste.
-# Le marche stanno in `swFeatureNameID_e`, e si trovano cercandole invece di
-# ricordarsele.
+# the marks that the entry cites, read from the enum instead of from the page
+# I HAD GUESSED THE NAME, and it is exactly the thing that this probe
+# exists to prevent: `swFeatureManagerCreateDefinitionType_e` does not exist.
+# The marks are in `swFeatureNameID_e`, and are found by searching for them instead of
+# remembering them.
 $e = $cst.GetTypes() | Where-Object { $_.Name -eq "swFeatureNameID_e" } | Select-Object -First 1
 if ($e) {
     foreach ($n in [Enum]::GetNames($e)) {
@@ -152,7 +152,7 @@ if ($e) {
 } else { Line "  swFeatureNameID_e" "non trovato" }
 Write-Output ""
 
-# -- W1.2: InsertRib e come si rilegge ------------------------------------------
+# -- W1.2: InsertRib and how it is read back ------------------------------------
 Write-Output "=== W1.2  InsertRib torna davvero void? ==="
 $rib = Method "IFeatureManager" "InsertRib"
 Line "IFeatureManager.InsertRib" $(if ($rib) { "c'e'" } else { "NON c'e'" })
@@ -168,23 +168,23 @@ Line "IRibFeatureData2" $(if ($rfd) { "c'e'" } else { "NON c'e'" })
 $gd = Method "IFeature" "GetDefinition"
 Line "IFeature.GetDefinition" $(if ($gd) { "c'e', ritorna " + $gd.ReturnType.Name } else { "NON c'e'" })
 
-# e la via "moderna" esiste per la nervatura?
+# and does the "modern" way exist for the rib?
 #
-# `-cmatch '^swFmRib'` E NON `-match "Rib"`: il confronto di PowerShell ignora
-# le maiuscole, e la prima stesura rispondeva **swFmAttribute** -- perche'
-# "Att-RIB-ute" contiene "rib". Una riga che deve dire si' o no aveva detto
-# si' per una sillaba.
+# `-cmatch '^swFmRib'` AND NOT `-match "Rib"`: the PowerShell comparison ignores
+# case, and the first draft answered **swFmAttribute** -- because
+# "Att-RIB-ute" contains "rib". A line that must say yes or no had said
+# yes because of one syllable.
 if ($e) {
     $rib2 = [Enum]::GetNames($e) | Where-Object { $_ -cmatch '^swFmRib' }
     Line "CreateDefinition ha una marca per la nervatura?" $(if ($rib2) { $rib2 -join ", " } else { "NO -- nessun swFmRib*" })
 }
 Write-Output ""
 
-# ── LE PRETESE ──────────────────────────────────────────────────────────────
+# ── THE CLAIMS ──────────────────────────────────────────────────────────────
 #
-# Solo i fatti su cui una voce del TODO poggia una decisione. Non si pretende
-# tutto: un elenco che pretende tutto diventa rosso a ogni aggiornamento di
-# SOLIDWORKS per ragioni che non interessano nessuno, e allora si spegne.
+# Only the facts on which an entry of the TODO rests a decision. Not everything is
+# claimed: a list that claims everything turns red at every SOLIDWORKS update
+# for reasons that interest nobody, and then it is turned off.
 Write-Output "=== QUELLO CHE LE VOCI DANNO PER BUONO ==="
 Expect "W1.1 FeatureFillPattern esiste" "True" ([bool](Method "IFeatureManager" "FeatureFillPattern"))
 Expect "W1.1 ...e NON e' marcato Obsolete" "NO -- l'interop non lo marca" (Obsolete (Method "IFeatureManager" "FeatureFillPattern"))
@@ -196,29 +196,29 @@ Expect "GA11 MirrorComponents3 ha 14 argomenti" "14" ((Method "IAssemblyDoc" "Mi
 Expect "Z-B5 ActivateDoc3 ha 4 argomenti" "4" ((Method "ISldWorks" "ActivateDoc3").GetParameters().Count)
 Expect "GP18 GetFlatPatternFolder esiste" "True" ([bool](Method "IFeatureManager" "GetFlatPatternFolder"))
 
-# -- I QUATTRO «DA ACCERTARE» ACCERTATI IL 24/9/2026 ---------------------------
+# -- THE FOUR «TO BE ESTABLISHED» ESTABLISHED ON 24/9/2026 ---------------------
 #
-# Quattro voci del TODO dicevano «non verificato» / «da accertare quale».
-# Nessuna delle quattro voleva SOLIDWORKS acceso: volevano che qualcuno
-# leggesse l'interop. Adesso letto, e messo qui perche' un fatto accertato
-# una volta e mai piu' guardato torna «da accertare» da solo.
+# Four entries of the TODO said «not verified» / «which one to be established».
+# None of the four needed SOLIDWORKS running: they needed somebody to
+# read the interop. Now read, and put here because a fact established
+# once and never looked at again turns back into «to be established» by itself.
 Write-Output ""
 Write-Output "=== i quattro accertati il 24/9/2026 ==="
 
-# GT5: il 33 era giusto, e la nota di 80r era vera.
+# GT5: the 33 was right, and the note of 80r was true.
 Expect "GT5 il 33 e' HoleTableTemplates" "33" (CostValue "swUserPreferenceStringValue_e" "swFileLocationsHoleTableTemplates")
 Expect "GT5 GetUserPreferenceStringValue torna String" "String" ((Method "ISldWorks" "GetUserPreferenceStringValue").ReturnType.Name)
 Expect "GT5 ...e vuole 1 argomento" "1" ((Method "ISldWorks" "GetUserPreferenceStringValue").GetParameters().Count)
 
-# GT2: l'inserimento della distinta sta su IView, non sull'annotazione.
+# GT2: the insertion of the bill of materials sits on IView, not on the annotation.
 Expect "GT2 InsertWeldmentTable sta su IView" "True" ([bool](Method "IView" "InsertWeldmentTable"))
 
-# GA6: perche' GetTotalTransform e non GetXform -- una ragione, non un gusto.
+# GA6: why GetTotalTransform and not GetXform -- a reason, not a taste.
 Expect "GA6 GetTotalTransform torna MathTransform" "MathTransform" ((Method "IComponent2" "GetTotalTransform").ReturnType.Name)
 Expect "GA6 GetXform torna un Object nudo" "Object" ((Method "IComponent2" "GetXform").ReturnType.Name)
 Expect "GA6 GetMates torna un Object nudo" "Object" ((Method "IComponent2" "GetMates").ReturnType.Name)
 
-# X2: la riga della filettatura diceva tre cose e due erano sbagliate.
+# X2: the thread line said three things and two were wrong.
 Expect "X2 InsertHelix NON sta su IFeatureManager" "False" ([bool](Method "IFeatureManager" "InsertHelix"))
 Expect "X2 ...sta su IModelDoc2" "True" ([bool](Method "IModelDoc2" "InsertHelix"))
 Expect "X2 ...torna Void" "Void" ((Method "IModelDoc2" "InsertHelix").ReturnType.Name)
@@ -227,14 +227,14 @@ Expect "X2 InsertCutSwept5 torna Feature, non void" "Feature" ((Method "IFeature
 Expect "X2 ...e ha 22 argomenti, non 21" "22" ((Method "IFeatureManager" "InsertCutSwept5").GetParameters().Count)
 Expect "X2 EndVariablePitchHelix torna Feature" "Feature" ((Method "IFeatureManager" "EndVariablePitchHelix").ReturnType.Name)
 
-# -- S3: la catena della mensola in Simulation ---------------------------------
+# -- S3: the chain of the bracket in Simulation --------------------------------
 #
-# Accertata per riflessione il 24/9/2026, SOLIDWORKS INSTALLATO E NON
-# ACCESO. La voce S3 dice «accertare prima, costruire poi»: questo e'
-# l'accertare, e sta qui perche' una firma accertata una volta e mai
-# piu' guardata e' una firma che invecchia.
+# Established by reflection on 24/9/2026, SOLIDWORKS INSTALLED AND NOT
+# RUNNING. Entry S3 says «establish first, build afterwards»: this is
+# the establishing, and it sits here because a signature established once and never
+# looked at again is a signature that ages.
 #
-# I due numeri della voce erano giusti: 589 tipi, 160 interfacce.
+# The two numbers of the entry were right: 589 types, 160 interfaces.
 Write-Output ""
 if (-not $sim) {
     Write-Output "=== S3  Simulation: NON INSTALLATO su questa macchina, sezione saltata ==="
@@ -245,30 +245,30 @@ if (-not $sim) {
     Expect "S3 cosworks ha 589 tipi" "589" ($sim.GetTypes().Count)
     Expect "S3 ...di cui 160 interfacce" "160" (($sim.GetTypes() | Where-Object { $_.IsInterface }).Count)
 
-    # 1-3. arrivare allo studio
+    # 1-3. reaching the study
     Expect "S3 CreateNewStudy3 ha 4 argomenti" "4" ((MethodSim "ICWStudyManager" "CreateNewStudy3").GetParameters().Count)
     Expect "S3 studio statico = 0" "0" (EnumValue "swsAnalysisStudyType_e" "swsAnalysisStudyTypeStatic")
 
-    # 4. il materiale, che NON sta sullo studio
+    # 4. the material, which is NOT on the study
     Expect "S3 SetLibraryMaterial sta su ICWSolidBody" "True" ([bool](MethodSim "ICWSolidBody" "SetLibraryMaterial"))
     Expect "S3 ...e vuole 2 argomenti" "2" ((MethodSim "ICWSolidBody" "SetLibraryMaterial").GetParameters().Count)
-    # E NON c'e' modo di RILEGGERLO: nessun GetMaterial. E' la stessa
-    # forma trovata per la trasparenza (voce Z-D4): un setter senza
-    # lettore. Chi vuole sapere che materiale c'e' deve chiederlo altrove.
+    # And there is NO way to READ IT BACK: no GetMaterial. It is the same
+    # shape found for transparency (entry Z-D4): a setter without a
+    # reader. Whoever wants to know which material is there must ask elsewhere.
     Expect "S3 ...e non esiste nessun GetMaterial" "False" ([bool](MethodSim "ICWSolidBody" "GetMaterial"))
 
-    # 5. vincolo e carico
+    # 5. restraint and load
     Expect "S3 AddRestraint ha 4 argomenti" "4" ((MethodSim "ICWLoadsAndRestraintsManager" "AddRestraint").GetParameters().Count)
     Expect "S3 incastro = 0" "0" (EnumValue "swsRestraintType_e" "swsRestraintTypeFixed")
     Expect "S3 AddForce ha 4 argomenti" "4" ((MethodSim "ICWLoadsAndRestraintsManager" "AddForce").GetParameters().Count)
     Expect "S3 AddForce3 ne ha 21" "21" ((MethodSim "ICWLoadsAndRestraintsManager" "AddForce3").GetParameters().Count)
 
-    # 6. mesh ed esecuzione -- ED E' QUI IL RITROVAMENTO
+    # 6. mesh and run -- AND HERE IS THE FINDING
     Expect "S3 CreateMesh ha 3 argomenti" "3" ((MethodSim "ICWStudy" "CreateMesh").GetParameters().Count)
     Expect "S3 MeshAndRun torna Void" "Void" ((MethodSim "ICWStudy" "MeshAndRun").ReturnType.Name)
     Expect "S3 RunAnalysis torna Int32" "Int32" ((MethodSim "ICWStudy" "RunAnalysis").ReturnType.Name)
 
-    # 7. la tensione
+    # 7. the stress
     Expect "S3 GetMinMaxStress ha 6 argomenti" "6" ((MethodSim "ICWResults" "GetMinMaxStress").GetParameters().Count)
     Expect "S3 von Mises = 9" "9" (EnumValue "swsStressComponent_e" "swsStressComponentVON")
     Expect "S3 N/mm2 = 3" "3" (EnumValue "swsStrengthUnit_e" "swsStrengthUnitNewtonPerSquareMillimeter")

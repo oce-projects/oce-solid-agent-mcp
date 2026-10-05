@@ -7,31 +7,31 @@ using SolidWorks.Interop.swconst;
 namespace Checks.SectionView
 {
     /// <summary>
-    /// LA SEZIONE IN TAVOLA, DAL PRINCIPIO ALLA FINE, SENZA MANI.
+    /// THE SECTION IN THE DRAWING, FROM START TO FINISH, HANDS-FREE.
     ///
-    /// E' la prova che chiude la misura 0.6 e sblocca GT4. `SketchOnSheet`
-    /// aveva risposto alle due domande di mezzo — si traccia sul foglio, e il
-    /// segmento si riprende con `Select4` — ma «si puo' selezionare una linea»
-    /// non e' ancora «esce una sezione». Fra le due c'e'
-    /// `CreateSectionViewAt5`, che vuole quella linea selezionata e non la
-    /// prende in firma.
+    /// It is the check that closes measurement 0.6 and unblocks GT4. `SketchOnSheet`
+    /// had answered the two questions in the middle — one draws on the sheet, and the
+    /// segment is taken back with `Select4` — but «a line can be selected»
+    /// is not yet «a section comes out». Between the two there is
+    /// `CreateSectionViewAt5`, which wants that line selected and does not
+    /// take it in its signature.
     ///
-    /// Il giro, passo per passo:
+    /// The round, step by step:
     ///
-    ///   1. si trova una vista del modello sul foglio, e si legge DOVE sta
-    ///      (`Position`) e QUANTO e' grande (`GetOutline`);
-    ///   2. si entra nel contesto del foglio (`EditSheet`);
-    ///   3. si traccia una linea che ATTRAVERSA la vista da parte a parte:
-    ///      una linea che la sfiora dara' una sezione vuota senza dire niente;
-    ///   4. si seleziona la linea;
-    ///   5. si chiama `CreateSectionViewAt5` in un punto a fianco.
+    ///   1. a view of the model is found on the sheet, and we read WHERE it is
+    ///      (`Position`) and HOW BIG it is (`GetOutline`);
+    ///   2. we enter the context of the sheet (`EditSheet`);
+    ///   3. a line is drawn that CROSSES the view from side to side:
+    ///      a line that grazes it will give an empty section without saying anything;
+    ///   4. the line is selected;
+    ///   5. `CreateSectionViewAt5` is called at a point beside it.
     ///
-    /// E POI SI MISURA SE E' USCITA. Il conto delle viste prima e dopo, e il
-    /// nome di quella nuova. `CreateSectionViewAt5` puo' rispondere un oggetto
-    /// e non aver fatto niente di utile: il numero delle viste e' il riscontro,
-    /// il valore di ritorno e' solo una promessa.
+    /// AND THEN WE MEASURE WHETHER IT CAME OUT. The count of the views before and after, and the
+    /// name of the new one. `CreateSectionViewAt5` can answer an object
+    /// and have done nothing useful: the number of views is the check,
+    /// the return value is only a promise.
     ///
-    ///     SectionView.exe        lavora sulla tavola attiva
+    ///     SectionView.exe        works on the active drawing
     /// </summary>
     internal static class Program
     {
@@ -52,9 +52,9 @@ namespace Checks.SectionView
             var drawing = (IDrawingDoc)doc;
             Console.WriteLine("tavola: " + doc.GetTitle());
 
-            // 1. LA VISTA DA SEZIONARE.
-            // La prima vista del foglio E' il foglio (tipo 1): si salta. Si
-            // prende la prima vista di modello vera.
+            // 1. THE VIEW TO SECTION.
+            // The first view of the sheet IS the sheet (type 1): it is skipped. The
+            // first real model view is taken.
             IView target = null;
             int views = 0;
             var v = drawing.GetFirstView() as IView;
@@ -87,9 +87,9 @@ namespace Checks.SectionView
                 "ingombro sul foglio: x {0:0.####}..{1:0.####}  y {2:0.####}..{3:0.####} m",
                 outline[0], outline[2], outline[1], outline[3]));
 
-            // 3. LA LINEA CHE ATTRAVERSA DA PARTE A PARTE.
-            // Si esce di un decimo dell'altezza sopra e sotto: una linea che
-            // finisce esattamente sul bordo e' un caso limite gratuito.
+            // 3. THE LINE THAT CROSSES FROM SIDE TO SIDE.
+            // It goes out by a tenth of the height above and below: a line that
+            // ends exactly on the border is a free limit case.
             double xCut = (outline[0] + outline[2]) / 2.0;
             double height = outline[3] - outline[1];
             double y1 = outline[1] - height * 0.1;
@@ -109,12 +109,12 @@ namespace Checks.SectionView
                 "linea tracciata in x={0:0.####}, da y={1:0.####} a y={2:0.####}",
                 xCut, y1, y2));
 
-            // Lo schizzo si CHIUDE prima di chiedere la sezione: con uno
-            // schizzo aperto SOLIDWORKS e' dentro un comando, e le API che
-            // creano viste si comportano diversamente.
+            // The sketch is CLOSED before asking for the section: with an open
+            // sketch SOLIDWORKS is inside a command, and the APIs that
+            // create views behave differently.
             try { sketches.InsertSketch(true); } catch { }
 
-            // 4. LA SELEZIONE.
+            // 4. THE SELECTION.
             doc.ClearSelection2(true);
             bool taken = false;
             try { taken = line.Select4(false, null); }
@@ -125,7 +125,7 @@ namespace Checks.SectionView
                 ", tipo: " + (selection.GetSelectedObjectCount2(-1) > 0
                     ? selection.GetSelectedObjectType3(1, -1).ToString() : "-"));
 
-            // 5. LA SEZIONE, a fianco della vista.
+            // 5. THE SECTION, beside the view.
             double xSection = outline[2] + (outline[2] - outline[0]) * 0.8;
             double ySection = (outline[1] + outline[3]) / 2.0;
             object born = null;
@@ -138,7 +138,7 @@ namespace Checks.SectionView
             Console.WriteLine("CreateSectionViewAt5 ha risposto: " +
                 (born == null ? "null" : "un oggetto"));
 
-            // IL RISCONTRO VERO: quante viste ci sono adesso.
+            // THE REAL CHECK: how many views there are now.
             int after = 0;
             string last = "";
             IView lastView = null;
@@ -156,18 +156,18 @@ namespace Checks.SectionView
                 ? "  -> LA SEZIONE C'E'. Ultima vista: «" + last + "»"
                 : "  -> nessuna vista in piu': la sezione NON e' nata");
 
-            // ── IL TRATTEGGIO: DUE NUMERI, E PRIMA E DOPO IL RICALCOLO ──
+            // ── THE HATCHING: TWO NUMBERS, AND BEFORE AND AFTER THE RECALCULATION ──
             //
-            // Misurato il 23/9/2026 perche' l'operazione `section_view`
-            // si e' rifiutata al primo uso vero dicendo «non ha tratteggio»
-            // su un taglio che attraversa una piastra piena. Delle due l'una:
-            // o il tratteggio non c'e' finche' la tavola non si ricalcola, o
-            // il numero che leggevo non e' quello che credevo.
+            // Measured on 23/9/2026 because the operation `section_view`
+            // refused at its first real use saying «non ha tratteggio»
+            // on a cut that crosses a solid plate. It is one of two things:
+            // either the hatching is not there until the drawing is recalculated, or
+            // the number I was reading is not what I believed.
             //
-            // `GetSolidHatchCount(out int ArraySize)` ha DUE uscite — il valore
-            // di ritorno e l'`out` — e finora ne ho usata una sola, scegliendo
-            // a occhio. Qui si stampano tutte e due, prima e dopo
-            // `EditRebuild3`, e si smette di indovinare.
+            // `GetSolidHatchCount(out int ArraySize)` has TWO outputs — the return
+            // value and the `out` — and so far I have used only one, choosing
+            // by eye. Here both are printed, before and after
+            // `EditRebuild3`, and the guessing stops.
             if (lastView != null)
             {
                 int howMany1 = -1, returned1 = -1;
@@ -187,13 +187,13 @@ namespace Checks.SectionView
                 Console.WriteLine("tratteggio DOPO  il ricalcolo: ritorno=" + returned2 +
                                   "  out=" + howMany2);
 
-                // ── E SE IL CONTATORE FOSSE UN ALTRO ────────────────────
+                // ── WHAT IF THE COUNTER WERE ANOTHER ONE ────────────────
                 //
-                // `GetSolidHatchCount` risponde zero prima e dopo il ricalcolo
-                // su una sezione che taglia una piastra piena. O il tratteggio
-                // di una sezione non e' un «solid hatch» per questa API, o si
-                // conta altrove. `IView` ne ha un secondo, `GetFaceHatchCount`,
-                // e finche' non si guardano tutti e due si sta indovinando.
+                // `GetSolidHatchCount` answers zero before and after the recalculation
+                // on a section that cuts a solid plate. Either the hatching
+                // of a section is not a «solid hatch» for this API, or it is
+                // counted elsewhere. `IView` has a second one, `GetFaceHatchCount`,
+                // and until both are looked at we are guessing.
                 int faces = -1;
                 try { faces = lastView.GetFaceHatchCount(); } catch (Exception e)
                 { Console.WriteLine("  GetFaceHatchCount: " + e.Message); }

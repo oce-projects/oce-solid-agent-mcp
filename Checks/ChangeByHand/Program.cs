@@ -6,36 +6,36 @@ using SolidWorks.Interop.swconst;
 namespace Checks.ChangeByHand
 {
     /// <summary>
-    /// CAMBIA IL PEZZO APERTO SENZA PASSARE DAL PONTE (voce X2).
+    /// CHANGES THE OPEN PART WITHOUT GOING THROUGH THE BRIDGE (entry X2).
     ///
-    /// Serve a provare una difesa che, per definizione, non si puo' provare
-    /// dall'interno: «qualcuno ha toccato il pezzo mentre il piano era gia'
-    /// scritto». Finche' la modifica arriva dal ponte, il ponte lo sa e
-    /// aggiorna la sua firma; la difesa scatta solo su una modifica di cui il
-    /// ponte non sa niente. Quindi ci vuole un secondo attore, ed e' questo.
+    /// It is used to test a defence that, by definition, cannot be tested
+    /// from the inside: «somebody touched the part while the plan was already
+    /// written». As long as the change comes from the bridge, the bridge knows it and
+    /// updates its signature; the defence only triggers on a change the
+    /// bridge knows nothing about. So a second actor is needed, and this is it.
     ///
-    /// PERCHE' UN ESEGUIBILE E NON UNO SCRIPT. `ISldWorks` per late binding da
-    /// PowerShell 5.1 risponde TYPE_E_ELEMENTNOTFOUND: PowerShell non risolve i
-    /// metodi sull'IDispatch di SOLIDWORKS. E' la stessa ragione per cui tutte
-    /// le sonde COM di questo progetto sono C# compilati, ed e' scritta anche
-    /// in `Checks\NewPart`.
+    /// WHY AN EXECUTABLE AND NOT A SCRIPT. `ISldWorks` by late binding from
+    /// PowerShell 5.1 answers TYPE_E_ELEMENTNOTFOUND: PowerShell does not resolve the
+    /// methods on the SOLIDWORKS IDispatch. It is the same reason why all
+    /// the COM probes of this project are compiled C#, and it is also written in
+    /// `Checks\NewPart`.
     ///
-    /// COSA FA: estrude un blocchetto sul primo piano di riferimento del
-    /// documento attivo. Non e' «tirare una quota», ed e' onesto dirlo: e' una
-    /// modifica alla geometria che cambia il volume e aggiunge una
-    /// lavorazione, cioe' esattamente le due cose che la firma leggera guarda.
-    /// Una quota tirata a mano cambierebbe il volume e basta, e sarebbe un
-    /// caso PIU' DEBOLE di questo.
+    /// WHAT IT DOES: it extrudes a small block on the first reference plane of the
+    /// active document. It is not «pulling a dimension», and it is honest to say so: it is a
+    /// change to the geometry that changes the volume and adds a
+    /// feature, that is exactly the two things the light signature looks at.
+    /// A dimension pulled by hand would change the volume and nothing else, and would be a
+    /// WEAKER case than this one.
     ///
-    /// NON SALVA. Il documento resta sporco, come lo lascerebbe una persona
-    /// che ha toccato qualcosa e non ha ancora salvato.
+    /// IT DOES NOT SAVE. The document stays dirty, as a person would leave it
+    /// who touched something and has not saved yet.
     ///
-    ///     ChangeByHand.exe            un blocchetto 10x10x10
-    ///     ChangeByHand.exe 25         un blocchetto 25x25x25
+    ///     ChangeByHand.exe            a 10x10x10 block
+    ///     ChangeByHand.exe 25         a 25x25x25 block
     ///
-    /// Esce 0 se ha cambiato qualcosa, 1 se non ci e' riuscito - e in quel
-    /// caso lo dice, perche' una sonda che fallisce in silenzio farebbe
-    /// sembrare verde la difesa che doveva mettere alla prova.
+    /// Exits 0 if it changed something, 1 if it did not manage to - and in that
+    /// case it says so, because a probe that fails silently would make green the
+    /// defence it was supposed to put to the test.
     /// </summary>
     internal static class Program
     {
@@ -74,9 +74,9 @@ namespace Checks.ChangeByHand
 
             Console.WriteLine("documento: " + doc.GetTitle());
 
-            // IL VOLUME PRIMA E DOPO, perche' «ho chiamato l'estrusione» non e'
-            // «il pezzo e' cambiato». E' la stessa regola che il ponte applica
-            // a ogni operazione: si rilegge.
+            // THE VOLUME BEFORE AND AFTER, because «I called the extrusion» is not
+            // «the part has changed». It is the same rule the bridge applies
+            // to every operation: we read back.
             double before = Volume(doc);
 
             IFeature plane = null;
@@ -108,7 +108,7 @@ namespace Checks.ChangeByHand
                 plane.Select2(false, 0);
                 var sm = doc.SketchManager;
                 sm.InsertSketch(true);
-                // Fuori dall'origine, cosi' e' un corpo in piu' e non un taglio.
+                // Away from the origin, so it is one more body and not a cut.
                 sm.CreateCenterRectangle(side / 1000.0, side / 1000.0, 0,
                                          side / 1000.0 + side / 2000.0,
                                          side / 1000.0 + side / 2000.0, 0);
@@ -137,7 +137,7 @@ namespace Checks.ChangeByHand
             return 0;
         }
 
-        /// <summary>Il volume in mm3, o 0 se non si riesce a leggerlo.</summary>
+        /// <summary>The volume in mm3, or 0 if it cannot be read.</summary>
         private static double Volume(IModelDoc2 doc)
         {
             try

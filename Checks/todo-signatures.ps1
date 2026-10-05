@@ -1,46 +1,46 @@
 # =============================================================================
-#  todo-signatures.ps1 - le API citate nel TODO esistono davvero?
+#  todo-signatures.ps1 - do the APIs cited in the TODO really exist?
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
+#  THIS FILE IS PURE ASCII, like bench.ps1 and for the same reason.
 #
-#  PERCHE' ESISTE
+#  WHY IT EXISTS
 #
-#  Decine di voci del TODO poggiano su una firma copiata da una pagina di
-#  documentazione: "IModelDocExtension::InsertSurfaceFinishSymbol3",
-#  "IFace2::GetCorrespondingEntity", "IEquationMgr". Sono promesse, e finche'
-#  nessuno le verifica restano promesse: **una voce che pianifica un lavoro
-#  attorno a un metodo che non esiste e' un lavoro che comincia male.**
+#  Dozens of entries of the TODO rest on a signature copied from a documentation
+#  page: "IModelDocExtension::InsertSurfaceFinishSymbol3",
+#  "IFace2::GetCorrespondingEntity", "IEquationMgr". They are promises, and until
+#  nobody verifies them they remain promises: **an entry that plans a job
+#  around a method that does not exist is a job that starts badly.**
 #
-#  La regola di casa: si verifica la cosa, non cio' che la descrive. Qui la
-#  cosa e' l'interop installato su QUESTA postazione -- cioe' esattamente
-#  quello contro cui il codice girera'.
+#  The house rule: we verify the thing, not what describes it. Here the
+#  thing is the interop installed on THIS workstation -- that is exactly
+#  the one against which the code will run.
 #
-#  NON SERVE CHE SOLIDWORKS SIA APERTO: serve che sia installato.
+#  SOLIDWORKS DOES NOT NEED TO BE OPEN: it needs to be installed.
 #
-#  ── COSA VUOL DIRE "NON TROVATO", E COSA NON VUOL DIRE ──────────────────────
+#  ── WHAT "NOT FOUND" MEANS, AND WHAT IT DOES NOT MEAN ───────────────────────
 #
-#  Vuol dire: con quel nome, su quel tipo, in QUESTA versione, non c'e'.
-#  NON vuol dire che la voce sia sbagliata: puo' essere un refuso nel TODO, un
-#  metodo arrivato in una versione piu' nuova, o un membro che sta su un tipo
-#  diverso da quello citato. **E' un elenco di cose da guardare, non di colpe.**
+#  It means: with that name, on that type, in THIS version, it is not there.
+#  It does NOT mean that the entry is wrong: it may be a typo in the TODO, a
+#  method that arrived in a newer version, or a member that sits on a type
+#  different from the one cited. **It is a list of things to look at, not of faults.**
 #
-#  ── COSA QUESTA SONDA NON VEDE ─────────────────────────────────────────────
+#  ── WHAT THIS PROBE DOES NOT SEE ────────────────────────────────────────────
 #
-#  I nomi scritti SENZA il tipo davanti. Il 23/9/2026 due citazioni sbagliate
-#  le sono passate sotto il naso proprio cosi':
+#  The names written WITHOUT the type in front. On 23/9/2026 two wrong citations
+#  slipped right under its nose exactly like that:
 #
-#      `AutoInsertCenterMarks2`   -- sta su IView, il TODO non lo diceva
-#      `GetRemainingDOFs`         -- sta su IComponent2, idem
+#      `AutoInsertCenterMarks2`   -- it is on IView, the TODO did not say so
+#      `GetRemainingDOFs`         -- it is on IComponent2, ditto
 #
-#  Cercare ogni parola che assomigli a un metodo, senza tipo, vorrebbe dire
-#  raccogliere meta' della prosa e produrre un elenco che nessuno legge --
-#  la malattia che questo file evita per costruzione. Il rimedio non e' una
-#  regex piu' larga: **e' scrivere il tipo davanti al metodo nel TODO.**
+#  Searching every word that looks like a method, without a type, would mean
+#  collecting half of the prose and producing a list that nobody reads --
+#  the disease that this file avoids by construction. The remedy is not a wider
+#  regex: **it is writing the type in front of the method in the TODO.**
 #
-#  USO
+#  USAGE
 #      .\Checks\todo-signatures.ps1
-#      .\Checks\todo-signatures.ps1 -All     anche quelle che ci sono
+#      .\Checks\todo-signatures.ps1 -All     also those that are there
 # =============================================================================
 
 param([switch]$All)
@@ -51,7 +51,7 @@ $redist = "C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist"
 if ($env:SW_INSTALL_PATH) { $redist = Join-Path $env:SW_INSTALL_PATH "api\redist" }
 if (-not (Test-Path $redist)) { Write-Output "non trovo $redist"; exit 2 }
 
-# TUTTE le interop, non solo sldworks: le voci citano anche swconst,
+# ALL the interops, not only sldworks: the entries also cite swconst,
 # swdocumentmgr, gtswutilities, cosworks.
 $types = @{}
 foreach ($dll in (Get-ChildItem $redist -Filter "SolidWorks.Interop.*.dll")) {
@@ -64,12 +64,12 @@ Write-Output ""
 Write-Output ("interop caricate: " + (Get-ChildItem $redist -Filter 'SolidWorks.Interop.*.dll').Count +
               ",  tipi visti: " + $types.Count)
 
-# IL TODO NON E' PIU' NEL REPOSITORY PUBBLICO: e' un diario di lavoro, vive in
-# `note-interne/` e il .gitignore lo esclude. Si cerca dove sta oggi, dove
-# stava prima, e dove lo dice chi lo tiene altrove. Se non c'e', questa sonda
-# NON e' passata: non ha controllato, e lo dice uscendo 0 - perche' tre sonde
-# del TODO girano nel gancio di pre-push, e farle morire qui romperebbe il push
-# a chiunque cloni, per un file che non ha e non deve avere.
+# THE TODO IS NO LONGER IN THE PUBLIC REPOSITORY: it is a work journal, it lives in
+# `note-interne/` and the .gitignore excludes it. It is searched where it is today, where
+# it was before, and where whoever keeps it elsewhere says. If it is not there, this probe
+# has NOT passed: it did not check, and says so by exiting 0 - because three probes
+# of the TODO run in the pre-push hook, and making them die here would break the push
+# for anyone who clones, over a file that they do not have and must not have.
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $todo = $env:TODO_MD
 if (-not $todo -or -not (Test-Path $todo)) {
@@ -88,23 +88,23 @@ if (-not $todo) {
 }
 $text = Get-Content $todo -Raw
 
-# `ITipo::Membro` oppure `ITipo.Membro`. Si prende solo cio' che comincia con
-# I maiuscola seguita da maiuscola: e' la convenzione delle interfacce COM di
-# SOLIDWORKS, e senza quel filtro si raccoglierebbe meta' della prosa.
-# IL MEMBRO E' L'ULTIMO IDENTIFICATORE PRIMA DELLA PARENTESI.
+# `ITipo::Membro` or `ITipo.Membro`. Only what starts with a
+# capital I followed by a capital is taken: it is the convention of the SOLIDWORKS COM interfaces,
+# and without that filter half of the prose would be collected.
+# THE MEMBER IS THE LAST IDENTIFIER BEFORE THE PARENTHESIS.
 #
-# La prima stesura prendeva il primo dopo i due punti, e il TODO scrive le
-# firme come le stampa l'API:
+# The first draft took the first one after the colons, and the TODO writes the
+# signatures as the API prints them:
 #
 #     IModelDocExtension :: SFSymbol InsertSurfaceFinishSymbol3(Int32 ...)
 #
-# cioe' `Tipo :: Ritorno Metodo(`. Risultato: ventitre' "membri mancanti"
-# che erano **tipi di ritorno** -- IView.Object, IDrawingDoc.Void,
-# IFeatureManager.Feature. *Una sonda che urla ventitre' falsi allarmi non
-# la legge nessuno*, ed e' il modo in cui un controllo muore.
+# that is `Tipo :: Ritorno Metodo(`. Result: twenty-three "missing members"
+# that were **return types** -- IView.Object, IDrawingDoc.Void,
+# IFeatureManager.Feature. *A probe that shouts twenty-three false alarms is
+# read by nobody*, and it is the way in which a check dies.
 #
-# Due forme, in quest'ordine: col metodo e la parentesi, oppure una
-# proprieta' senza parentesi.
+# Two forms, in this order: with the method and the parenthesis, or a
+# property without a parenthesis.
 $foundOnes = [ordered]@{}
 
 # 1. `ITipo :: [Ritorno] Metodo(`
@@ -113,28 +113,28 @@ foreach ($m in [regex]::Matches($text, '\b(I[A-Z][a-z]\w*)\s*(?:::|\.)\s*(?:[A-Z
     if (-not $foundOnes.Contains($key)) { $foundOnes[$key] = $true }
 }
 
-# 2. `ITipo.Property` senza parentesi. Il filtro `I[A-Z][a-z]` tiene fuori
-#    le sigle scritte in prosa -- «ISO», «IGES» -- che non sono interfacce.
-# Due negazioni, e servono tutt'e due:
-#   (?!\s*\()            non e' un metodo -- quello lo prende la forma 1
-#   (?!\s+\w+\s*\()     e non e' un TIPO DI RITORNO seguito dal metodo
-# Senza la seconda, `IView :: Object InsertHoleTable3(` produce
-# «IView.Object», che e' il falso allarme di prima travestito.
+# 2. `ITipo.Property` without a parenthesis. The filter `I[A-Z][a-z]` keeps out
+#    the acronyms written in prose -- «ISO», «IGES» -- which are not interfaces.
+# Two negations, and both are needed:
+#   (?!\s*\()            it is not a method -- that is taken by form 1
+#   (?!\s+\w+\s*\()     and it is not a RETURN TYPE followed by the method
+# Without the second, `IView :: Object InsertHoleTable3(` produces
+# «IView.Object», which is the false alarm from before in disguise.
 foreach ($m in [regex]::Matches($text, '\b(I[A-Z][a-z]\w*)\s*(?:::|\.)\s*([A-Z]\w*)\b(?!\s*\()(?!\s+[A-Za-z_]\w*\s*\()')) {
     $key = $m.Groups[1].Value + "." + $m.Groups[2].Value
     if (-not $foundOnes.Contains($key)) { $foundOnes[$key] = $true }
 }
 
-# ── LE CITAZIONI CHE PARLANO DI UN NOME SBAGLIATO ───────────────────────────
+# ── THE CITATIONS THAT TALK ABOUT A WRONG NAME ──────────────────────────────
 #
-# Il 23/9/2026 questa sonda ha trovato quattro firme inesistenti nel TODO. Le
-# correzioni sono state scritte NEL TODO, e le correzioni **nominano il nome
-# sbagliato** per spiegare che e' sbagliato -- cosi' il giro dopo la sonda
-# segnalava la propria documentazione.
+# On 23/9/2026 this probe found four non-existent signatures in the TODO. The
+# corrections were written IN THE TODO, and the corrections **name the wrong
+# name** to explain that it is wrong -- so the next run the probe
+# flagged its own documentation.
 #
-# Non si stringe la ricerca: si dichiara l'eccezione col suo perche', come
-# nell'elenco della voce Z-C7. **Una sonda che si zittisce da sola smette di
-# vedere anche i casi veri.**
+# The search is not narrowed: the exception is declared with its why, as
+# in the list of entry Z-C7. **A probe that silences itself stops
+# seeing the real cases too.**
 $sorry = @{
     "IMate2.Name"            = "la voce Z-A8 la cita per dire che NON esiste: verificato a mano prima, e da questa sonda dopo"
     "IAssemblyDoc.ViewMates" = "citata nella correzione che spiega che non esiste (i membri veri sono AddMate4/5, EditMate3/4, CopyWithMates)"
@@ -155,7 +155,7 @@ foreach ($f in $foundOnes.Keys) {
     if (-not $types.ContainsKey($typeName)) { $absentTypes += $f; continue }
     $t = $types[$typeName]
     $c = @($t.GetMembers() | Where-Object { $_.Name -eq $memberName })
-    # le proprieta' COM compaiono anche come get_Xxx
+    # COM properties also appear as get_Xxx
     if ($c.Count -eq 0) { $c = @($t.GetMembers() | Where-Object { $_.Name -eq ("get_" + $memberName) }) }
     if ($c.Count -eq 0) { $missingItems += $f } else { $ok++; if ($All) { Write-Output ("  ok   " + $f) } }
 }

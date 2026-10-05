@@ -5,49 +5,49 @@ using SolidWorks.Interop.swconst;
 using SolidWorks.Interop.cosworks;
 
 // =============================================================================
-//  Mensola — la misura che dimensiona la sezione S (voce S3)
+//  Bracket — the measurement that sizes section S (entry S3)
 // =============================================================================
 //
-//  PERCHE' UNA MENSOLA E NON UN PEZZO VERO
+//  WHY A BRACKET AND NOT A REAL PART
 //
-//  Perche' di una mensola la risposta si sa **senza il calcolatore**. Un pezzo
-//  vero darebbe un numero che non si puo' contraddire, e un numero che non si
-//  puo' contraddire non e' una verifica: e' una cosa che si guarda e si crede.
+//  Because for a bracket the answer is known **without the computer**. A real
+//  part would give a number that cannot be contradicted, and a number that
+//  cannot be contradicted is not a check: it is something you look at and believe.
 //
-//  Trave 200 x 20 x 10 mm, incastrata a un'estremita', 100 N in punta:
+//  Beam 200 x 20 x 10 mm, fixed at one end, 100 N at the tip:
 //
 //      M = F * L   = 100 * 0,200          = 20 N*m
 //      I = b*h^3/12 = 0,020 * 0,010^3 /12 = 1,6667e-9 m^4
 //      c = h/2                             = 0,005 m
 //      sigma = M*c/I = 20 * 0,005 / 1,6667e-9 = 6,0e7 Pa = 60 MPa
 //
-//  Sessanta esatti. Se l'API dice 60 +/- 10%, la catena regge e la sezione S
-//  si puo' preventivare. Se dice altro, **la famiglia non si costruisce**
-//  finche' non si sa perche' — e' scritto nella voce, ed e' il rischio piu'
-//  grande del progetto: qui un difetto silenzioso non fa un pezzo sbagliato,
-//  fa un calcolo sbagliato che qualcuno firma.
+//  Exactly sixty. If the API says 60 +/- 10%, the chain holds and section S
+//  can be budgeted. If it says anything else, **the family is not built**
+//  until we know why — it is written in the entry, and it is the biggest risk
+//  of the project: here a silent defect does not make a wrong part,
+//  it makes a wrong calculation that somebody signs.
 //
-//  ── COSA SI SA GIA', E COSA NO ──────────────────────────────────────────────
+//  ── WHAT IS ALREADY KNOWN, AND WHAT IS NOT ──────────────────────────────────
 //
-//  La catena delle firme e' accertata per riflessione (voce S3, e 17 attese in
-//  `Checks\signatures-api.ps1`). Quello che la riflessione **non** puo' dire e'
-//  il formato di `Object DispArray` e `Object RefGeom` di `AddRestraint` e
-//  `AddForce`: la firma non lo dichiara, e nessuna lettura lo scoprira'.
-//  E' per quello che questa sonda esiste.
+//  The chain of signatures is established by reflection (entry S3, and 17 expectations in
+//  `Checks\signatures-api.ps1`). What reflection **cannot** tell is
+//  the format of `Object DispArray` and `Object RefGeom` of `AddRestraint` and
+//  `AddForce`: the signature does not declare it, and no reading will find out.
+//  That is why this probe exists.
 //
-//  USO
+//  USAGE
 //      .\Checks\Bracket\bin\Bracket.exe
-//      .\Checks\Bracket\bin\Bracket.exe --tieni     lascia il pezzo aperto
+//      .\Checks\Bracket\bin\Bracket.exe --tieni     leaves the part open
 // =============================================================================
 
 internal static class Program
 {
-    // Il CLSID dell'add-in Simulation, da `HKLM\SOFTWARE\Classes\SldWorks.Simulation\CLSID`.
+    // The CLSID of the Simulation add-in, from `HKLM\SOFTWARE\Classes\SldWorks.Simulation\CLSID`.
     private const string ClsidSimulation = "{1CC93C1D-B0C9-4641-A2AD-D19A5700052E}";
 
     // swsStressComponent_e / swsStrengthUnit_e / swsAnalysisStudyType_e /
-    // swsRestraintType_e / swsForceType_e / swsLinearUnit_e — misurati per
-    // riflessione, non ricordati.
+    // swsRestraintType_e / swsForceType_e / swsLinearUnit_e — measured by
+    // reflection, not remembered.
     private const int VonMises = 9;
     private const int NewtonSuMm2 = 3;
     private const int StaticStudy = 0;
@@ -61,7 +61,7 @@ internal static class Program
     private const double HeightMm = 10.0;
     private const double ForceN = 100.0;
 
-    /// <summary>Il nome esatto nell'archivio DIN, parentesi comprese.</summary>
+    /// <summary>The exact name in the DIN library, brackets included.</summary>
     private const string MaterialName = "1.0037 (S235JR)";
 
     private static int _step;
@@ -94,11 +94,11 @@ internal static class Program
         }
         Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
 
-        // ── L'ADD-IN, PRIMA DI TUTTO IL RESTO ────────────────────────────
+        // ── THE ADD-IN, BEFORE ANYTHING ELSE ─────────────────────────────
         //
-        // Se non e' caricato si esce SUBITO, con un messaggio che dice cosa
-        // fare. Scoprirlo dopo aver creato il pezzo vuol dire lasciare in giro
-        // un documento per niente.
+        // If it is not loaded we exit AT ONCE, with a message that says what to
+        // do. Finding out after creating the part means leaving a document
+        // lying around for nothing.
         object addin = sw.GetAddInObject(ClsidSimulation);
         if (addin == null)
         {
@@ -117,38 +117,38 @@ internal static class Program
             doc = CreateBeam(sw);
             if (doc == null) return 4;
 
-            // ── IL MATERIALE PRIMA DELLO STUDIO, E NON DOPO ──────────────
+            // ── THE MATERIAL BEFORE THE STUDY, NOT AFTER ─────────────────
             //
-            // Questo blocco stava DOPO `CreateNewStudy3`, ed era sbagliato
-            // di ordine. Il materiale veniva applicato, `GetMaterialPropertyName2`
-            // lo rileggeva, tutto sembrava a posto — e `RunAnalysis`
-            // rispondeva **19 = swsRunAnalysisErrorMaterialNotDefined**.
+            // This block used to come AFTER `CreateNewStudy3`, and it was in the
+            // wrong order. The material was applied, `GetMaterialPropertyName2`
+            // read it back, everything looked fine — and `RunAnalysis`
+            // answered **19 = swsRunAnalysisErrorMaterialNotDefined**.
             //
-            // Lo studio fotografa il pezzo quando nasce. Nato su un pezzo
-            // senza materiale, senza materiale resta, e cio' che si attacca
-            // al documento dopo non lo raggiunge.
+            // The study photographs the part when it is born. Born on a part
+            // with no material, it stays without material, and whatever is attached
+            // to the document afterwards does not reach it.
             //
-            // *La rilettura diceva la verita': il materiale c'era davvero. Ma
-            // rispondeva a una domanda diversa da quella che contava — «ce
-            // l'ha il pezzo?» invece di «ce l'ha lo studio?».*
-            // ── IL MATERIALE SI METTE SULLA PARTE, E SI RILEGGE ──────────
+            // *The read-back told the truth: the material really was there. But it
+            // answered a different question from the one that mattered — «does
+            // the part have it?» instead of «does the study have it?».*
+            // ── THE MATERIAL GOES ON THE PART, AND IS READ BACK ──────────
             //
-            // Il primo tentativo passava da Simulation:
+            // The first attempt went through Simulation:
             // `SolidManager -> componente -> corpo -> SetLibraryMaterial("", nome)`.
-            // Ha risposto **0**, che sembra riuscito, e poi `RunAnalysis` ha
-            // dato **19 = swsRunAnalysisErrorMaterialNotDefined**: il
-            // materiale non c'era. Archivio vuoto non vuol dire «quello
-            // predefinito», e lo zero di ritorno non era una conferma.
+            // It answered **0**, which looks like success, and then `RunAnalysis`
+            // gave **19 = swsRunAnalysisErrorMaterialNotDefined**: the
+            // material was not there. An empty library does not mean «the
+            // default one», and the zero returned was not a confirmation.
             //
-            // *Un valore di ritorno che dice zero mentre non ha fatto niente
-            // e' esattamente il difetto che questo progetto insegue* — qui
-            // in casa d'altri, e si e' visto solo perche' il passo dopo ha
-            // avuto il coraggio di lamentarsi.
+            // *A return value that says zero while it has done nothing
+            // is exactly the defect this project hunts* — here
+            // in somebody else's house, and it showed only because the next step
+            // had the courage to complain.
             //
-            // Adesso si applica con l'API di SOLIDWORKS, col percorso pieno
-            // dell'archivio, **e si rilegge**: `SetMaterialPropertyName2`
-            // torna void, quindi l'unico modo di sapere se ha funzionato e'
-            // chiedere al pezzo cos'ha addosso.
+            // Now it is applied with the SOLIDWORKS API, with the full path of
+            // the library, **and read back**: `SetMaterialPropertyName2`
+            // returns void, so the only way to know whether it worked is
+            // to ask the part what it is wearing.
             var partDoc = doc as IPartDoc;
             string archive = ArchiveDin();
             if (archive == null) { Console.WriteLine("  non trovo l'archivio DIN"); return 5; }
@@ -165,15 +165,15 @@ internal static class Program
             }
             Says("materiale «" + put + "» (riletto, non assunto)");
 
-            // ── I TIPI VERI, E NON LE CHIAMATE PER NOME ──────────────────
+            // ── THE REAL TYPES, NOT CALLS BY NAME ────────────────────────
             //
-            // Il primo abbozzo di questa sonda chiamava tutto per nome con
-            // `InvokeMember`, per poter dire QUALE nome mancava invece di non
-            // compilare. `CreateNewStudy3` l'ha rifiutata:
-            // **DISP_E_TYPEMISMATCH**, perche' il late-binding non sa
-            // marshalare un `out Int32`. Con l'interop referenziato il
-            // problema non esiste, e il compilatore controlla le firme —
-            // che e' meglio di un messaggio a runtime.
+            // The first draft of this probe called everything by name with
+            // `InvokeMember`, to be able to say WHICH name was missing instead of
+            // failing to compile. `CreateNewStudy3` rejected it:
+            // **DISP_E_TYPEMISMATCH**, because late binding cannot
+            // marshal an `out Int32`. With the interop referenced the
+            // problem does not exist, and the compiler checks the signatures —
+            // which is better than a message at runtime.
             var callout = addin as CwAddincallback;
             if (callout == null)
             {
@@ -198,22 +198,22 @@ internal static class Program
             }
             Says("studio statico creato (errore " + errStudio + ")");
 
-            // ── 2. IL MATERIALE, CHE STA SUL CORPO ───────────────────────
+            // ── 2. THE MATERIAL, WHICH LIVES ON THE BODY ─────────────────
             //
-            // Tre salti: studio -> SolidManager -> componente -> corpo. Il
-            // materiale NON sta sullo studio, ed e' una delle cose che il
-            // censimento per riflessione aveva gia' corretto.
+            // Three hops: study -> SolidManager -> component -> body. The
+            // material is NOT on the study, and it is one of the things the
+            // census by reflection had already corrected.
 
-            // ── 3. VINCOLO E CARICO: QUI STA L'INCOGNITA ─────────────────
+            // ── 3. RESTRAINT AND LOAD: HERE IS THE UNKNOWN ───────────────
             //
             // `AddRestraint(Int32, Object DispArray, Object RefGeom, out Int32)`
-            // — la firma NON dice cosa mettere in `DispArray`. La riflessione
-            // e' arrivata fin qui e si e' fermata, ed e' il motivo per cui
-            // questa sonda esiste.
+            // — the signature does NOT say what to put in `DispArray`. Reflection
+            // got this far and stopped, and it is the reason this
+            // probe exists.
             //
-            // L'ipotesi che si prova per prima: un `object[]` di `IFace2`,
-            // che e' la forma che tutta l'API di SOLIDWORKS usa per «un
-            // insieme di entita'».
+            // The hypothesis tried first: an `object[]` of `IFace2`,
+            // which is the shape the whole SOLIDWORKS API uses for «a
+            // set of entities».
             CWLoadsAndRestraintsManager loadsHandler = studio.LoadsAndRestraintsManager;
             if (loadsHandler == null) { Console.WriteLine("  LoadsAndRestraintsManager e' null"); return 5; }
 
@@ -237,22 +237,22 @@ internal static class Program
             }
             Says("incastro applicato");
 
-            // La forza: verso -Y, in punta.
-            // ── LA FORZA VUOLE UNA DIREZIONE, L'INCASTRO NO ──────────────
+            // The force: direction -Y, at the tip.
+            // ── THE FORCE NEEDS A DIRECTION, THE FIXED SUPPORT DOES NOT ──
             //
-            // `AddRestraint` ha accettato `object[] { IFace2 }` con `RefGeom`
-            // a null: per un incastro «grounded» non c'e' nessuna direzione da
-            // dare. `AddForce` con la stessa forma ha risposto **errore 2**,
-            // e il motivo e' quello: una forza senza direzione non e' una
-            // forza.
+            // `AddRestraint` accepted `object[] { IFace2 }` with `RefGeom`
+            // null: for a «grounded» fixed support there is no direction to
+            // give. `AddForce` with the same shape answered **error 2**,
+            // and the reason is that one: a force without a direction is not a
+            // force.
             //
-            // Il riferimento e' il PIANO SUPERIORE, lo stesso su cui la trave
-            // e' stata disegnata: la sua normale e' l'asse Y, cioe' la
-            // direzione in cui la mensola flette. Prenderne un altro
-            // darebbe un carico assiale, che su questa trave non produce
-            // flessione e farebbe leggere un numero piccolo e plausibile —
-            // *il modo peggiore di sbagliare, perche' non somiglia a un
-            // errore.*
+            // The reference is the TOP PLANE, the same one the beam
+            // was drawn on: its normal is the Y axis, that is the
+            // direction in which the bracket bends. Taking another one
+            // would give an axial load, which on this beam produces no
+            // bending and would make us read a small, plausible number —
+            // *the worst way to be wrong, because it does not look like
+            // an error.*
             object planeRef = ReferencePlane(doc, 2);
             if (planeRef == null) { Console.WriteLine("  non trovo il piano di riferimento"); return 6; }
 
@@ -263,13 +263,13 @@ internal static class Program
                               ", errore " + errF);
             if (force == null) { Console.WriteLine("  AddForce non ha accettato nemmeno col piano."); return 6; }
 
-            // IL VALORE SI METTE DOPO, sull'oggetto tornato: `AddForce` a
-            // quattro argomenti non ha nessun posto dove metterlo. Accertato
-            // leggendo `ICWForce`, che ha `SetForceComponentValues2` e la
-            // coppia `ForceBeginEdit` / `ForceEndEdit`.
+            // THE VALUE IS SET AFTERWARDS, on the returned object: `AddForce` with
+            // four arguments has no place to put it. Established by
+            // reading `ICWForce`, which has `SetForceComponentValues2` and the
+            // pair `ForceBeginEdit` / `ForceEndEdit`.
             force.ForceBeginEdit();
             force.Unit = NewtonAndMeters;
-            //                    X      Y     Z        valori
+            //                    X      Y     Z        values
             force.SetForceComponentValues2(false, true, false, 0.0, ForceN, 0.0);
             int forceOutcome = force.ForceEndEdit();
             Says("carico di " + ForceN + " N lungo Y (esito " + forceOutcome + ")");
@@ -279,23 +279,23 @@ internal static class Program
                 return 6;
             }
 
-            // ── 4. MESH ED ESECUZIONE ────────────────────────────────────
+            // ── 4. MESH AND RUN ──────────────────────────────────────────
             //
-            // `RunAnalysis()` e NON `MeshAndRun()`: il secondo torna **void**,
-            // e non puo' dire se e' andata. Accertato per riflessione, ed e'
-            // la stessa regola che questo progetto ha gia' pagato altrove —
-            // *il valore che torna da chi ha fatto la cosa non e' la misura
-            // della cosa*, ma qui non torna nemmeno un valore.
-            // ── LA CONVERGENZA, E NON UNA MISURA SOLA ────────────────────
+            // `RunAnalysis()` and NOT `MeshAndRun()`: the second returns **void**,
+            // and cannot say whether it went well. Established by reflection, and it is
+            // the same rule this project has already paid for elsewhere —
+            // *the value returned by whoever did the thing is not the measure
+            // of the thing*, but here not even a value comes back.
+            // ── CONVERGENCE, NOT A SINGLE MEASUREMENT ────────────────────
             //
-            // Il primo giro ha dato **30,33 MPa** contro 60 attesi: la meta'
-            // esatta. Con una mesh da 3,4 mm su uno spessore di 10 ci sono
-            // tre elementi nello spessore, e tre elementi non sanno
-            // descrivere una flessione: la tensione di picco esce bassa.
+            // The first run gave **30.33 MPa** against 60 expected: exactly half.
+            // With a 3.4 mm mesh over a thickness of 10 there are
+            // three elements through the thickness, and three elements cannot
+            // describe a bending: the peak stress comes out low.
             //
-            // *Un numero solo non prova niente, e questo vale in tutt'e due
-            // i versi: se avesse dato 60 al primo colpo non avrei saputo se
-            // era giusto o fortunato.* Si infittisce e si guarda DOVE VA.
+            // *A single number proves nothing, and this holds both
+            // ways: if it had given 60 at the first shot I would not have known whether
+            // it was right or lucky.* We refine the mesh and look at WHERE IT GOES.
             double[] sides = { 4.0, 2.0, 1.0, 0.6 };
             double last = double.NaN;
 
@@ -334,7 +334,7 @@ internal static class Program
                                   (sc >= 0 ? "+" : "") + sc.ToString("0.0") + " %");
             }
 
-            // ── IL VERDETTO, SULL'ULTIMA E PIU' FITTA ────────────────────
+            // ── THE VERDICT, ON THE LAST AND FINEST MESH ─────────────────
             if (double.IsNaN(last))
             {
                 Console.WriteLine();
@@ -371,17 +371,17 @@ internal static class Program
     }
 
     /// <summary>
-    /// La tensione massima dall'array di `GetMinMaxStress`.
+    /// The maximum stress from the array of `GetMinMaxStress`.
     ///
-    /// LA FORMA E' `[nodoMin, valoreMin, nodoMax, valoreMax]`, e la prima
-    /// scrittura di questa sonda prendeva il **massimo dei quattro numeri**.
-    /// Cosi' beccava `11875`, che e' il NUMERO DEL NODO, e lo stampava come
-    /// MPa: 11.875 MPa contro 60 attesi, scarto del 19.691%.
+    /// THE SHAPE IS `[nodoMin, valoreMin, nodoMax, valoreMax]`, and the first
+    /// version of this probe took the **maximum of the four numbers**.
+    /// So it caught `11875`, which is the NODE NUMBER, and printed it as
+    /// MPa: 11,875 MPa against 60 expected, a deviation of 19,691%.
     ///
-    /// *E' andata bene che fosse assurdo.* Se il nodo di picco avesse avuto
-    /// un numero basso — diciamo 58 — avrei letto «58 MPa contro 60 attesi,
-    /// scarto 3%» e avrei scritto che la catena regge. Un numero sbagliato e
-    /// plausibile non si distingue da una misura.
+    /// *It was lucky that it was absurd.* Had the peak node had
+    /// a low number — say 58 — I would have read «58 MPa against 60 expected,
+    /// deviation 3%» and would have written that the chain holds. A wrong and
+    /// plausible number cannot be told apart from a measurement.
     /// </summary>
     private static double TrueMaximum(object read)
     {
@@ -399,12 +399,12 @@ internal static class Program
     }
 
     /// <summary>
-    /// L'archivio DIN, cercato sul disco invece che scritto a mano.
+    /// The DIN library, looked up on disk instead of written by hand.
     ///
-    /// Sta sotto `lang\<lingua>\sldmaterials`, e la lingua cambia da
-    /// installazione a installazione: qui ce ne sono due, italiano e
-    /// inglese. Un percorso costante funzionerebbe su questa macchina e su
-    /// nessun'altra.
+    /// It lives under `lang\<lingua>\sldmaterials`, and the language changes from
+    /// one installation to another: here there are two, Italian and
+    /// English. A constant path would work on this machine and on
+    /// no other.
     /// </summary>
     private static string ArchiveDin()
     {
@@ -421,12 +421,12 @@ internal static class Program
     }
 
     /// <summary>
-    /// Il piano di riferimento, preso come OGGETTO e non come nome.
+    /// The reference plane, taken as an OBJECT and not as a name.
     ///
-    /// `AddForce` vuole la geometria, non la stringa: si seleziona per nome
-    /// e si ripesca l'oggetto dal gestore della selezione. E si deseleziona
-    /// subito: una selezione lasciata in giro cambia cosa fa la chiamata
-    /// successiva, ed e' il genere di legame che non si vede.
+    /// `AddForce` wants the geometry, not the string: we select by name
+    /// and fish the object back out of the selection manager. And we deselect
+    /// at once: a selection left lying around changes what the next call
+    /// does, and it is the kind of coupling that cannot be seen.
     /// </summary>
     // W3.1-bis.2 point 10: `which` is now the tree position of the base plane
     // (1 = front, 2 = top, 3 = right), not its localized name — see
@@ -444,7 +444,7 @@ internal static class Program
         return plane;
     }
 
-    /// <summary>La trave, disegnata e estrusa. Null se non e' venuta.</summary>
+    /// <summary>The beam, drawn and extruded. Null if it did not come out.</summary>
     private static IModelDoc2 CreateBeam(ISldWorks sw)
     {
         string model = sw.GetUserPreferenceStringValue(
@@ -469,11 +469,11 @@ internal static class Program
     }
 
     /// <summary>
-    /// Le due facce di testa: quella a x=0 (incastro) e quella a x=L (carico).
+    /// The two end faces: the one at x=0 (fixed support) and the one at x=L (load).
     ///
-    /// Si scelgono per POSIZIONE e non per indice: l'ordine delle facce non e'
-    /// promesso da nessuna parte, e prenderle per indice vorrebbe dire che la
-    /// prova cambia significato se SOLIDWORKS le rinumera.
+    /// They are chosen by POSITION and not by index: the order of the faces is not
+    /// promised anywhere, and taking them by index would mean that the
+    /// check changes meaning if SOLIDWORKS renumbers them.
     /// </summary>
     private static bool TwoFacesAtTip(IModelDoc2 doc, out IFace2 fixture, out IFace2 forceLoad)
     {
@@ -489,7 +489,7 @@ internal static class Program
             var box = face.GetBox() as double[];
             if (box != null && box.Length >= 6)
             {
-                bool slender = Math.Abs(box[3] - box[0]) < 1e-6;   // spessore nullo in X
+                bool slender = Math.Abs(box[3] - box[0]) < 1e-6;   // zero thickness in X
                 if (slender && Math.Abs(box[0]) < 1e-6) fixture = face;
                 if (slender && Math.Abs(box[0] - L) < 1e-6) forceLoad = face;
             }
@@ -503,12 +503,12 @@ internal static class Program
         return true;
     }
 
-    // ── Le chiamate tardive ─────────────────────────────────────────────
+    // ── Late calls ──────────────────────────────────────────────────────
     //
-    // Gli oggetti di Simulation arrivano come `__ComObject`: senza l'interop
-    // `cosworks` referenziato non hanno un tipo, e si chiamano per nome.
-    // Referenziarlo si puo' — ma cosi' la sonda dice chiaramente QUALE nome
-    // sta cercando quando non lo trova, invece di non compilare.
+    // The Simulation objects arrive as `__ComObject`: without the `cosworks`
+    // interop referenced they have no type, and are called by name.
+    // We could reference it — but this way the probe says clearly WHICH name
+    // it is looking for when it does not find it, instead of failing to compile.
 
     private static object Take(object o, string itemName)
     {

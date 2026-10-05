@@ -5,35 +5,35 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  Lamiera — la misura che dimensiona la famiglia lamiera (voce GP18, passo 2)
+//  Sheet metal — the measurement that sizes the sheet-metal family (entry GP18, step 2)
 // =============================================================================
 //
-//  Il 24/9/2026 si e' saputo che l'officina piega lamiera come lavoro
-//  ricorrente. La famiglia produce il file che va alla macchina di taglio, ed
-//  e' quindi quella in cui un difetto silenzioso costa lamiera vera: prima di
-//  costruire le operazioni, UNA misura che si sa fare a mano.
+//  On 24/9/2026 it became known that the shop bends sheet metal as a recurring
+//  job. The family produces the file that goes to the cutting machine, and
+//  is therefore the one in which a silent defect costs real sheet: before
+//  building the operations, ONE measurement that can be done by hand.
 //
-//  IL PEZZO: una flangia base da uno schizzo aperto a L — un lato da 50 mm, uno
-//  da 30 — spessa T, raggio interno R, profonda 40 mm. Sviluppata, e' un
-//  rettangolo lungo
+//  THE PART: a base flange from an open L-shaped sketch — one side of 50 mm, one
+//  of 30 — thickness T, inner radius R, 40 mm deep. Flattened, it is a
+//  rectangle long
 //
-//      L_piatto = tratto_1 + tratto_2 + BA,    BA = pi/2 * (R + K*T)   (90 gradi)
+//      L_piatto = tratto_1 + tratto_2 + BA,    BA = pi/2 * (R + K*T)   (90 degrees)
 //
-//  dove i due tratti dipendono da COSA rappresenta lo schizzo: le facce interne
-//  (tratti = lato - R) o quelle esterne (tratti = lato - R - T). Non lo si
-//  indovina: si calcolano tutte e due, e la misura dice quale convenzione usa
-//  SOLIDWORKS — come la sonda dello spessore ha detto in che unita' lavora.
+//  where the two segments depend on WHAT the sketch represents: the inner faces
+//  (segments = side - R) or the outer ones (segments = side - R - T). It is not
+//  guessed: both are computed, and the measurement says which convention SOLIDWORKS
+//  uses — as the thickness probe said in which units it works.
 //
-//  T, R e K NON si prendono da qui: si RILEGGONO dalla lamiera creata. Se il
-//  modello di documento ha un K diverso da quello che uno si aspetta, il conto
-//  a mano si fa col K vero.
+//  T, R and K are NOT taken from here: they are READ BACK from the sheet metal created. If the
+//  document template has a K different from the one that one expects, the hand
+//  calculation is done with the real K.
 //
-//  IL CONTROLLO NEI DUE VERSI: il volume sviluppato deve essere uguale a quello
-//  piegato (la lamiera non si allunga ne' si accorcia nel conto: e' la
-//  definizione di fibra neutra). Un rettangolo della lunghezza giusta con il
-//  volume sbagliato vorrebbe dire che si e' misurata un'altra cosa.
+//  THE CHECK IN BOTH DIRECTIONS: the flattened volume must be equal to the
+//  bent one (the sheet does not lengthen or shorten in the count: it is the
+//  definition of neutral fibre). A rectangle of the right length with the
+//  wrong volume would mean that something else was measured.
 //
-//  USO
+//  USAGE
 //      .\Checks\SheetMetal\bin\SheetMetal.exe            [--tieni]
 // =============================================================================
 
@@ -74,7 +74,7 @@ internal static class Program
             doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
             if (doc == null) { Console.WriteLine("  NewDocument -> null"); return 4; }
 
-            // ── lo schizzo aperto a L, sul piano frontale ────────────────
+            // ── the open L-shaped sketch, on the front plane ─────────────
             doc.ClearSelection2(true);
             if (!SelectBasePlane(doc, 1))
             { Console.WriteLine("  non trovo «Piano frontale»"); return 4; }
@@ -92,7 +92,7 @@ internal static class Program
             doc.EditRebuild3();
             Says("flangia base creata: " + flange.Name);
 
-            // ── T, R, K RILETTI dalla lamiera ────────────────────────────
+            // ── T, R, K READ BACK from the sheet metal ───────────────────
             ISheetMetalFeatureData data = null;
             var f = doc.FirstFeature() as IFeature;
             while (f != null && data == null)
@@ -109,13 +109,13 @@ internal static class Program
             double bentVol = Volume(doc);
             Says("volume piegato " + bentVol.ToString("0.0") + " mm^3");
 
-            // ── SVILUPPATA ───────────────────────────────────────────────
+            // ── FLATTENED ────────────────────────────────────────────────
             //
-            // MISURATO il 24/9 sera: `SetBendState(sviluppata)` risponde 0 e il
-            // corpo resta PIEGATO (ingombro 32 x 40 x 52 prima e dopo). Nella
-            // lamiera di oggi lo sviluppo e' una LAVORAZIONE in fondo all'albero,
-            // soppressa: si sviluppa togliendole la soppressione. Si prova
-            // SetBendState lo stesso e si dice cosa ha fatto, poi la lavorazione.
+            // MEASURED on the evening of 24/9: `SetBendState(sviluppata)` answers 0 and the
+            // body stays BENT (bounding box 32 x 40 x 52 before and after). In the
+            // sheet metal of today the flat pattern is a FEATURE at the bottom of the tree,
+            // suppressed: it is flattened by unsuppressing it. SetBendState is tried
+            // all the same and what it did is said, then the feature.
             int stateBefore = doc.GetBendState();
             int outcome = doc.SetBendState((int)swSMBendState_e.swSMBendStateFlattened);
             doc.EditRebuild3();
@@ -149,7 +149,7 @@ internal static class Program
             Console.WriteLine("      ingombro sviluppato: " + boundingBox[0].ToString("0.###") + " x " +
                               boundingBox[1].ToString("0.###") + " x " + boundingBox[2].ToString("0.###") + " mm");
 
-            // ── il conto a mano, nelle due convenzioni ───────────────────
+            // ── the hand calculation, in the two conventions ─────────────
             double ba = Math.PI / 2.0 * (r + k * t);
             double inner = (Side1Mm - r) + (Side2Mm - r) + ba;
             double outer = (Side1Mm - r - t) + (Side2Mm - r - t) + ba;
@@ -161,13 +161,13 @@ internal static class Program
                               (length - outer).ToString("+0.###;-0.###") + ")");
             Console.WriteLine("  l'API, sviluppata:        " + length.ToString("0.###") + " mm");
 
-            // ── il DXF ───────────────────────────────────────────────────
+            // ── the DXF ──────────────────────────────────────────────────
             //
-            // MISURATO il 24/9 sera: `ExportFlatPatternView` su un pezzo MAI
-            // SALVATO apre «Salva con nome» e la chiamata COM non torna finche'
-            // qualcuno non chiude la finestra. Si salva prima; e la chiamata si
-            // fa lo stesso da un altro filo, con un tempo massimo, perche' un
-            // secondo modale non ancora conosciuto non pianti la sonda.
+            // MEASURED on the evening of 24/9: `ExportFlatPatternView` on a NEVER
+            // SAVED part opens «Salva con nome» and the COM call does not return until
+            // somebody closes the window. It is saved first; and the call is
+            // made all the same from another thread, with a maximum time, so that a
+            // second modal not yet known does not hang the probe.
             string savedPart = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
             try { if (File.Exists(savedPart)) File.Delete(savedPart); } catch { }
             int se = 0, knows = 0;

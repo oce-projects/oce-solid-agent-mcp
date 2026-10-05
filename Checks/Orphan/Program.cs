@@ -6,32 +6,32 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  Orfana — `IAnnotation.IsDangling` diventa vero, o e' un campo morto? (Z-A2)
+//  Orphan — does `IAnnotation.IsDangling` become true, or is it a dead field? (Z-A2)
 // =============================================================================
 //
-//  Il 18/9 `IsDangling` rispondeva `false` su 67 annotazioni su 67 — ma erano
-//  tutte note libere, che non possono diventare orfane: un campo che e' falso
-//  mentre non c'e' niente da guardare non e' ancora una misura. Da allora le
-//  quote in tavola si CREANO (`drawing_dimension`, K10), e il rosso si puo'
-//  costruire.
+//  On 18/9 `IsDangling` answered `false` on 67 annotations out of 67 — but they were
+//  all free notes, which cannot become orphans: a field that is false
+//  while there is nothing to look at is not yet a measurement. Since then the
+//  dimensions in the drawing are CREATED (`drawing_dimension`, K10), and the red can be
+//  built.
 //
-//  IL PEZZO: una piastra 100 x 60 x 10 e, sopra, un blocco 20 x 20 alto 20,
-//  come DUE estrusioni. In tavola, vista frontale, si quota lo spigolo alto del
-//  blocco (lungo 20). Poi nel pezzo si SOPPRIME il blocco: lo spigolo non c'e'
-//  piu', la quota resta appesa al niente.
+//  THE PART: a plate 100 x 60 x 10 and, on top, a 20 x 20 block 20 high,
+//  as TWO extrusions. In the drawing, front view, the top edge of the
+//  block is dimensioned (20 long). Then in the part the block is SUPPRESSED: the edge is no
+//  longer there, the dimension stays hanging on nothing.
 //
-//  I DUE VERSI, nella stessa corsa:
-//    verde  — prima di sopprimere, la quota NON e' orfana;
-//    rosso  — dopo, lo e'.
-//  Se dopo continua a dire `false`, il campo e' morto e lo si scrive; e allora
-//  si guarda se `GetAttachedEntities3` dice qualcosa che `IsDangling` tace.
+//  THE TWO DIRECTIONS, in the same run:
+//    green  — before suppressing, the dimension is NOT an orphan;
+//    red    — after, it is.
+//  If afterwards it keeps saying `false`, the field is dead and it is written down; and then
+//  we look at whether `GetAttachedEntities3` says something that `IsDangling` keeps quiet.
 //
-//  La quota si crea come la crea `drawing_dimension`: si seleziona lo spigolo che
-//  la vista mostra e si chiama `AddDimension` in coordinate del FOGLIO, con
-//  `swInputDimValOnCreate` SPENTO (acceso, apre un modale e la chiamata COM non
-//  torna piu').
+//  The dimension is created as `drawing_dimension` creates it: the edge that
+//  the view shows is selected and `AddDimension` is called in SHEET coordinates, with
+//  `swInputDimValOnCreate` OFF (on, it opens a modal and the COM call does not
+//  return any more).
 //
-//  USO
+//  USAGE
 //      .\Checks\Orphan\bin\Orphan.exe            [--tieni]
 // =============================================================================
 
@@ -63,7 +63,7 @@ internal static class Program
         bool askedForTheValue = true, off = false;
         try
         {
-            // ── IL PEZZO, salvato: una vista di tavola vuole un file ─────
+            // ── THE PART, saved: a drawing view wants a file ─────────────
             string model = sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
             part = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
@@ -74,7 +74,7 @@ internal static class Program
             var block = Extrude(part, 0.040, 0.020, 0.060, 0.040, 0.020);
             if (block == null) { Console.WriteLine("  il blocco non e' venuto"); return 4; }
             double vol = Volume(part);
-            // il blocco parte dallo stesso piano della piastra: sporge di 10
+            // the block starts from the same plane as the plate: it protrudes by 10
             Says("pezzo: volume " + vol.ToString("0") + " mm^3 (atteso " + (100 * 60 * 10 + 20 * 20 * 10) +
                  "), blocco «" + block.Name + "»");
 
@@ -84,7 +84,7 @@ internal static class Program
             { Console.WriteLine("  SaveAs -> false, errori " + err); return 4; }
             Says("salvato in " + file);
 
-            // ── LA TAVOLA, con la vista frontale ────────────────────────
+            // ── THE DRAWING, with the front view ────────────────────────
             string drawingMod = sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing);
             drawingDoc = (IModelDoc2)sw.NewDocument(drawingMod, (int)swDwgPaperSizes_e.swDwgPaperA3size, 0.42, 0.297);
@@ -102,7 +102,7 @@ internal static class Program
             drawingDoc.EditRebuild3();
             Says("vista «" + taken + "» -> «" + view.GetName2() + "»");
 
-            // ── LO SPIGOLO ALTO DEL BLOCCO ──────────────────────────────
+            // ── THE TOP EDGE OF THE BLOCK ───────────────────────────────
             var edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
             int n = edges == null ? 0 : edges.Length;
             IEntity chosen = null;
@@ -114,9 +114,9 @@ internal static class Program
                 var a = (e.GetStartVertex() as IVertex)?.GetPoint() as double[];
                 var b = (e.GetEndVertex() as IVertex)?.GetPoint() as double[];
                 if (a == null || b == null) continue;
-                // il blocco sta da Y 0 a 0,020 (estruso dal piano superiore):
-                // lo spigolo alto ha le due Y a 0,020 e corre lungo X per 20
-                // mm. Quelli lungo Z, nella frontale, sono punti.
+                // the block goes from Y 0 to 0.020 (extruded from the top plane):
+                // the top edge has both Y at 0.020 and runs along X for 20
+                // mm. Those along Z, in the front view, are points.
                 if (Math.Abs(a[1] - 0.020) < 1e-6 && Math.Abs(b[1] - 0.020) < 1e-6 &&
                     Math.Abs(Math.Abs(b[0] - a[0]) - 0.020) < 1e-6 && Math.Abs(b[2] - a[2]) < 1e-6)
                 {
@@ -131,7 +131,7 @@ internal static class Program
             }
             Says(descr);
 
-            // ── LA QUOTA, come la crea drawing_dimension ──────────────────
+            // ── THE DIMENSION, as drawing_dimension creates it ───────────
             askedForTheValue = sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
             sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
             off = true;
@@ -150,11 +150,11 @@ internal static class Program
             try { val = born.GetDimension2(0).SystemValue * 1000; } catch { }
             Says("quota nata: " + dimensionsBefore + " -> " + dimensionsAfter + " quote in tavola, valore " + val.ToString("0.###") + " mm");
 
-            // ── VERDE: prima di sopprimere ──────────────────────────────
+            // ── GREEN: before suppressing ───────────────────────────────
             var stateBefore = Read(drawing);
             Says("PRIMA  — " + stateBefore.Summary);
-            // Il verso verde del rivelatore indipendente: prima di sopprimere,
-            // lo spigolo attaccato DEVE essere fra i visibili.
+            // The green direction of the independent detector: before suppressing,
+            // the attached edge MUST be among the visible ones.
             int seenBefore = 0;
             try
             {
@@ -168,7 +168,7 @@ internal static class Program
             Says("rivelatore indipendente, PRIMA: attaccati ancora fra i visibili " + seenBefore + " (atteso 1)");
             if (seenBefore != 1) { Console.WriteLine("  il rivelatore non vede nemmeno lo spigolo giusto: non misura niente"); return 7; }
 
-            // ── IL ROSSO: si sopprime il blocco, e si ricostruisce ──────
+            // ── THE RED: the block is suppressed, and rebuilt ───────────
             bool suppressed = block.SetSuppression2(
                 (int)swFeatureSuppressionAction_e.swSuppressFeature,
                 (int)swInConfigurationOpts_e.swThisConfiguration, null);
@@ -178,15 +178,15 @@ internal static class Program
             drawingDoc.ForceRebuild3(false);
             drawingDoc.EditRebuild3();
 
-            // LA VISTA SI E' AGGIORNATA? Senza questo, «IsDangling falso»
-            // potrebbe voler dire solo che la tavola mostra ancora il blocco.
-            // Misurato il primo giro (24/9 sera): falso, e non si sapeva perche'.
+            // HAS THE VIEW UPDATED? Without this, «IsDangling false»
+            // might only mean that the drawing still shows the block.
+            // Measured the first run (evening of 24/9): false, and it was not known why.
             int edgesBefore = n;
             var sp1 = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
             var afterState = Read(drawing);
             Says("DOPO   — spigoli visibili " + edgesBefore + " -> " + (sp1 == null ? 0 : sp1.Length) + "; " + afterState.Summary);
 
-            // Secondo tentativo: la tavola DAVANTI e ricostruita tutta.
+            // Second attempt: the FRONT drawing is rebuilt entirely.
             int errAtt = 0;
             sw.ActivateDoc3(drawingDoc.GetTitle(), false, (int)swRebuildOnActivation_e.swRebuildActiveDoc, ref errAtt);
             drawingDoc.ForceRebuild3(false);
@@ -195,9 +195,9 @@ internal static class Program
             Says("DOPO, tavola davanti e ricostruita — spigoli visibili " + (sp2 == null ? 0 : sp2.Length) + "; " + after2.Summary);
             if (after2.Orfane > afterState.Orfane) afterState = after2;
 
-            // UN RIVELATORE CHE NON CHIEDE A SOLIDWORKS SE E' ORFANA: lo
-            // spigolo a cui la quota e' attaccata e' ancora fra quelli che la
-            // vista mostra? Se IsDangling e' morto, questo e' quello che resta.
+            // A DETECTOR THAT DOES NOT ASK SOLIDWORKS WHETHER IT IS AN ORPHAN: is the
+            // edge to which the dimension is attached still among those that the
+            // view shows? If IsDangling is dead, this is what is left.
             int seenAttached = 0, attached = 0;
             string valueAfter = "-";
             try { valueAfter = (born.GetDimension2(0).SystemValue * 1000).ToString("0.###") + " mm"; } catch { }
@@ -212,8 +212,8 @@ internal static class Program
                 }
             }
             catch (Exception ex) { Console.WriteLine("      confronto degli attaccati: " + ex.Message); }
-            // E il verso verde dello stesso rivelatore, sul PRIMA: lo spigolo
-            // scelto era fra i visibili per costruzione.
+            // And the green direction of the same detector, on the BEFORE: the edge
+            // chosen was among the visible ones by construction.
             Says("rivelatore indipendente: attaccati " + attached + ", di cui ancora fra i visibili " + seenAttached +
                  "; valore della quota adesso " + valueAfter);
             _orphanPerEdge = attached > 0 && seenAttached == 0;

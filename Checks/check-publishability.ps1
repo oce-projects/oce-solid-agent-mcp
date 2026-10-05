@@ -1,65 +1,65 @@
-# Quello che non deve uscire da questa macchina.
+# What must not leave this machine.
 #
-# Questo repository e' destinato a diventare pubblico. Un percorso con dentro il
-# nome di chi lavora, o l'indirizzo di un server aziendale, non e' un difetto di
-# stile: e' roba di qualcun altro che esce senza che nessuno l'abbia deciso.
+# This repository is meant to become public. A path with the name of whoever works in it,
+# or the address of a company server, is not a style defect: it is somebody
+# else's stuff leaving without anyone having decided it.
 #
 #   .\Checks\check-publishability.ps1
 #
-# Esce 0 se e' pulito, 1 se no.
+# Exits 0 if clean, 1 if not.
 #
 # ------------------------------------------------------------------------------
-# IL PERIMETRO E' SBAGLIATO TRE VOLTE, E LA TERZA E' COSTATA QUASI UN PUSH.
+# THE PERIMETER WAS WRONG THREE TIMES, AND THE THIRD COST ALMOST A PUSH.
 # ------------------------------------------------------------------------------
 #
-#   1. `check-catalog.ps1` guardava dentro `catalog.json` e basta, perche'
-#      quando fu scritto il catalogo era l'unica cosa che usciva. Poi e' uscito
-#      il banco: DICIANNOVE file col percorso della scratchpad di sessione, nome
-#      utente compreso. Il controllo c'era e guardava altrove.
+#   1. `check-catalog.ps1` looked inside `catalog.json` and nothing else, because
+#      when it was written the catalogue was the only thing that went out. Then the
+#      bench went out: NINETEEN files with the path of the session scratchpad, user
+#      name included. The check was there and was looking elsewhere.
 #
-#   2. Allora e' nato questo, che guardava tutto l'albero di lavoro - ma solo i
-#      file con certe estensioni. `App.config`, `app.manifest`, `LICENSE` e
-#      `NOTICE` non ne avevano una buona e non venivano letti da nessuno.
+#   2. So this one was born, which looked at the whole working tree - but only the
+#      files with certain extensions. `App.config`, `app.manifest`, `LICENSE` and
+#      `NOTICE` did not have a good one and were read by nobody.
 #
-#   3. E guardava solo l'ALBERO. Il 14/9/2026, un minuto prima del primo push,
-#      diceva «Pulito»: l'albero era stato riparato davvero. Ma `git push` manda
-#      la STORIA, e nella storia il percorso c'era ancora in 155 punti su 41
-#      commit - perche' i blob vivono in ogni albero intermedio, non solo nei due
-#      commit dove `git log -S` segnala un cambiamento.
+#   3. And it only looked at the TREE. On 14/9/2026, one minute before the first push,
+#      it said «Pulito»: the tree had really been repaired. But `git push` sends
+#      the HISTORY, and in the history the path was still there in 155 places over 41
+#      commits - because blobs live in every intermediate tree, not only in the two
+#      commits where `git log -S` reports a change.
 #
-# LE DUE LEZIONI, scritte qui perche' la quarta volta non costi di nuovo:
+# THE TWO LESSONS, written here so that the fourth time does not cost again:
 #
-#   IL PERIMETRO NON E' UNA LISTA, E' CIO' CHE ESCE. Non piu' un elenco di
-#   estensioni da tenere aggiornato a mano, ma `git ls-files`: quello che git
-#   traccia e' esattamente quello che git spinge. Le estensioni adesso sono una
-#   lista di ESCLUSIONE (i binari): se domani nasce un tipo di file di testo
-#   nuovo, entra da solo nel controllo. Una lista di inclusione sbaglia in
-#   silenzio, una di esclusione sbaglia rumorosamente.
+#   THE PERIMETER IS NOT A LIST, IT IS WHAT GOES OUT. No longer a list of
+#   extensions to keep updated by hand, but `git ls-files`: what git
+#   tracks is exactly what git pushes. The extensions are now an
+#   EXCLUSION list (the binaries): if tomorrow a new type of text file
+#   is born, it enters the check by itself. An inclusion list fails
+#   silently, an exclusion one fails noisily.
 #
-#   SI GUARDA ANCHE LA STORIA, e si guarda l'ALBERO di ogni commit, non il suo
-#   diff. Un `git log -p` avrebbe mostrato due commit; gli alberi ne mostrano
-#   quarantuno.
+#   WE LOOK AT THE HISTORY TOO, and we look at the TREE of every commit, not its
+#   diff. A `git log -p` would have shown two commits; the trees show
+#   forty-one.
 #
 # ------------------------------------------------------------------------------
-# DUE ACCORGIMENTI CHE NON SI DEDUCONO, e sono costati un falso positivo a testa:
+# TWO PRECAUTIONS THAT CANNOT BE DEDUCED, and each cost a false positive:
 #
-#   1. `Select-String` NON distingue maiuscole e minuscole di suo. Cercando
-#      "O:\" trovava `esempio:\n` dentro una descrizione JSON - cioe' "o" +
-#      ":" + l'escape di un a capo. Le lettere di unita' si cercano con
-#      -CaseSensitive e con la regola che prima non ci sia una lettera.
-#   2. I file che NOMINANO i vietati perche' il loro mestiere e' cercarli si
-#      elencano uno per uno. Una regola larga qui sarebbe un buco: l'eccezione
-#      del TODO vale solo per i pattern che la voce A1 discute, e infatti il
-#      nome utente nel TODO c'era ed era una fuga come le altre.
+#   1. `Select-String` does NOT distinguish upper and lower case by itself. Searching
+#      "O:\" it found `esempio:\n` inside a JSON description - that is "o" +
+#      ":" + the escape of a newline. Drive letters are searched with
+#      -CaseSensitive and with the rule that no letter comes before.
+#   2. The files that NAME the forbidden things because their job is to search for them
+#      are listed one by one. A broad rule here would be a hole: the exception
+#      of the TODO only holds for the patterns that entry A1 discusses, and in fact the
+#      user name was in the TODO and it was a leak like the others.
 #
-# NOTA: in ASCII puro, come tutti gli .ps1 del progetto.
+# NOTE: in pure ASCII, like all the .ps1 files of the project.
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $trouble = 0
 
-# Estensioni ESCLUSE: i binari, che Select-String non sa leggere e che non
-# portano testo. Tutto il resto entra, anche cio' che non ha estensione.
+# EXCLUDED extensions: the binaries, which Select-String cannot read and which
+# carry no text. Everything else enters, even what has no extension.
 $binary = @(
     '.dll', '.exe', '.pdb', '.res', '.cache', '.suo', '.zip', '.7z', '.gz',
     '.png', '.jpg', '.jpeg', '.gif', '.ico', '.bmp', '.pdf',
@@ -67,37 +67,37 @@ $binary = @(
 )
 
 # ==============================================================================
-# LE ECCEZIONI, UNA PER PATTERN E MAI UNA PER FILE
+# THE EXCEPTIONS, ONE PER PATTERN AND NEVER ONE PER FILE
 # ==============================================================================
 #
-# QUI STAVA `$possonoNominarli`, tre nomi di file applicati dentro `Lines()` e
-# quindi validi per OGNI pattern: chi era in quell'elenco non veniva controllato
-# per niente. Sembrava stretto - tre nomi soli - e invece era la piu' larga
-# delle eccezioni, perche' non diceva DA COSA esentava.
+# HERE STOOD `$possonoNominarli`, three file names applied inside `Lines()` and
+# therefore valid for EVERY pattern: whoever was in that list was not checked
+# at all. It looked narrow - only three names - and instead it was the widest
+# of the exceptions, because it did not say WHAT it exempted from.
 #
-# **Il conto e' arrivato dentro questo stesso file.** Riparando l'eccezione del
-# TODO ho scritto i due indirizzi veri nel commento che la racconta, e sono
-# rimasti li' senza che niente li segnalasse: il controllo non guardava il
-# controllo. Non l'ha trovato una sonda, l'ha trovato un censimento fatto a
-# mano tre ore dopo.
+# **The bill came inside this very file.** Repairing the exception of the
+# TODO I wrote the two real addresses in the comment that tells it, and they
+# stayed there without anything flagging them: the check did not look at the check.
+# It was not found by a probe, it was found by a census done by hand
+# three hours later.
 #
-# Adesso ogni pattern porta il PROPRIO elenco, e ogni nome in un elenco deve
-# avere un motivo che si legge accanto:
+# Now every pattern carries ITS OWN list, and every name in a list must
+# have a reason that can be read next to it:
 #
-#   $nameOnly        chi deve scrivere «oscar» perche' lo cerca (i due
-#                      controlli) o perche' lo attribuisce (LICENSE, NOTICE).
-#   $sessionOnly    chi deve scrivere il percorso di scratchpad perche' lo
-#                      sostituisce.
-#   $talkAboutDisks  chi deve scrivere `O:` e `W:` perche' li elenca.
-#   l'indirizzo        NESSUNO. Il pattern non nomina se stesso, quindi non
-#                      serve a nessuno un lasciapassare - e chi ne avesse
-#                      bisogno starebbe scrivendo un indirizzo vero.
+#   $nameOnly        whoever must write «oscar» because it searches for it (the two
+#                      checks) or because it attributes it (LICENSE, NOTICE).
+#   $sessionOnly    whoever must write the scratchpad path because it
+#                      replaces it.
+#   $talkAboutDisks  whoever must write `O:` and `W:` because it lists them.
+#   the address        NOBODY. The pattern does not name itself, so nobody
+#                      needs a pass - and whoever needed one
+#                      would be writing a real address.
 #
-# I nomi restano NOMI e non percorsi, e il motivo e' misurato: nella storia
-# `check-catalog.ps1` sta in `Tools\`, perche' e' stato spostato in
-# `Checks\` solo dopo. Un'eccezione legata al percorso avrebbe segnalato come
-# fuga il controllo stesso a ogni commit precedente allo spostamento. I file si
-# spostano, il loro mestiere no.
+# The names stay NAMES and not paths, and the reason is measured: in the history
+# `check-catalog.ps1` lives in `Tools\`, because it was moved to
+# `Checks\` only afterwards. An exception tied to the path would have flagged
+# the check itself as a leak at every commit before the move. Files
+# move, their job does not.
 #
 # A move keeps the name; a rename does not. Window 3 of W3.1-bis renamed these
 # files into English, and the history that is pushed still carries them under
@@ -109,121 +109,121 @@ $renamedBy3 = @{ 'check-catalog.ps1' = 'controlla-catalogo.ps1'; 'check-publisha
 function WithNamesOfBefore($names) { @($names) + @($names | Where-Object { $renamedBy3.ContainsKey($_) } | ForEach-Object { $renamedBy3[$_] }) }
 $twoChecks = WithNamesOfBefore @('check-catalog.ps1', 'check-publishability.ps1')
 
-# L'ECCEZIONE ERA SUL FILE, E DOVEVA ESSERE SULLA FORMA. TRE INDIRIZZI VERI
-# SONO USCITI DA QUI.
+# THE EXCEPTION WAS ON THE FILE, AND IT HAD TO BE ON THE SHAPE. THREE REAL ADDRESSES
+# CAME OUT FROM HERE.
 #
-# Qui stava `$loDiceIlTodo = @('TODO.md')`, passato al pattern `192\.168\.`
-# perche' la voce A1 elenca cosa non deve uscire e per elencarlo lo deve
-# scrivere. Il commento diceva «vale SOLO per i pattern che quella voce
-# discute»; il codice esentava il FILE INTERO, e `Look` confronta il nome del
-# file, non la riga. Fra una stesura e l'altra il TODO e' cresciuto di
-# sedicimila righe, e dentro ci sono finiti tre indirizzi VERI:
+# Here stood `$loDiceIlTodo = @('TODO.md')`, passed to the pattern `192\.168\.`
+# because entry A1 lists what must not go out and to list it has to
+# write it. The comment said «it holds ONLY for the patterns that entry
+# discusses»; the code exempted the WHOLE FILE, and `Look` compares the name of the
+# file, not the line. Between one draft and the next the TODO grew by
+# sixteen thousand lines, and three REAL addresses ended up inside:
 #
-#   TODO.md:12107   l'indirizzo del server di un altro progetto
-#   TODO.md:16569   il percorso UNC della condivisione dietro S:
-#   TODO.md:16750   la stessa, un'altra volta
+#   TODO.md:12107   the server address of another project
+#   TODO.md:16569   the UNC path of the share behind S:
+#   TODO.md:16750   the same one, another time
 #
-# E NON SI SCRIVONO QUI. La prima stesura di questo commento li riportava per
-# esteso, tutti e due, «per chiarezza» - dentro il file che esiste per vietarli,
-# e che si esentava da solo. E' il cortocircuito che `cleanup-history.js` aveva
-# gia' pagato e scritto in cima a se stesso: *uno strumento che toglie una
-# stringa deve nominarla, e cosi' la cura porta la malattia.* Un incidente si
-# racconta con la sua forma, non con il suo valore.
+# AND THEY ARE NOT WRITTEN HERE. The first draft of this comment reported them in
+# full, both of them, «for clarity» - inside the file that exists to forbid them,
+# and which exempted itself. It is the short circuit that `cleanup-history.js` had
+# already paid for and written at the top of itself: *a tool that removes a
+# string must name it, and so the cure carries the disease.* An incident is
+# told by its shape, not by its value.
 #
-# Erano gia' spinti su GitHub. NON erano pubblici: il repository e' ancora
-# privato (verificato con `gh repo view`: visibility PRIVATE), quindi nessun
-# estraneo li ha mai potuti leggere. Ma erano dentro la storia che il giorno
-# della pubblicazione sarebbe uscita tutta insieme, e questo controllo esiste
-# esattamente per quel giorno: girava, diceva «ok nessun indirizzo interno», e
-# aveva ragione secondo la regola che gli era stata data.
+# They had already been pushed to GitHub. They were NOT public: the repository is still
+# private (verified with `gh repo view`: visibility PRIVATE), so no outsider
+# could ever have read them. But they were inside the history that on the day
+# of publication would have gone out all at once, and this check exists
+# exactly for that day: it ran, said «ok nessun indirizzo interno», and
+# was right according to the rule it had been given.
 #
-# LA RIPARAZIONE NON E' UN'ECCEZIONE PIU' STRETTA, e' una regola che guarda la
-# cosa invece di chi l'ha scritta: un indirizzo vero ha una CIFRA dopo il terzo
-# punto, un elenco di regole scrive il jolly. `192.168.*` passa ovunque, un
-# indirizzo con le cifre e' vietato ovunque, TODO compreso. NESSUN FILE HA PIU'
-# UN LASCIAPASSARE SU QUESTO PATTERN - nemmeno questo, e il motivo sta qui
-# sotto, in `$nameOnly`.
+# THE REPAIR IS NOT A NARROWER EXCEPTION, it is a rule that looks at the
+# thing instead of at who wrote it: a real address has a DIGIT after the third
+# dot, a list of rules writes the wildcard. `192.168.*` passes everywhere, an
+# address with digits is forbidden everywhere, TODO included. NO FILE HAS ANY
+# MORE A PASS ON THIS PATTERN - not even this one, and the reason is down
+# here, in `$nameOnly`.
 #
-# Nota che il pattern non nomina se stesso: `192\.168\.\d` come TESTO non
-# combacia con `192\.168\.\d` come REGOLA, perche' dopo il «192» la regola
-# pretende un punto e il testo ha una barra rovescia. E' per questo che questo
-# file puo' scrivere la regola e restare sotto la regola.
+# Note that the pattern does not name itself: `192\.168\.\d` as TEXT does not
+# match `192\.168\.\d` as a RULE, because after the «192» the rule
+# demands a dot and the text has a backslash. That is why this
+# file can write the rule and stay under the rule.
 #
-# *Un'eccezione che nomina un file si allarga da sola ogni volta che il file
-# cresce. Una che descrive la forma no.*
+# *An exception that names a file widens by itself every time the file
+# grows. One that describes the shape does not.*
 $TrueAddress = '192\.168\.\d'
 
-# I DUE FILE IL CUI MESTIERE E' NOMINARE L'AUTORE.
+# THE TWO FILES WHOSE JOB IS TO NAME THE AUTHOR.
 #
-# La regola del nome utente e' passata da `-CaseSensitive` a insensibile,
-# perche' cercava il nome tutto minuscolo e quello con la maiuscola le passava
-# davanti:
-# `Bench\NoPartTests.cs:185` lo portava in un commento, e il controllo
-# diceva «ok». Nessuna parola italiana contiene «oscar», quindi togliere la
-# sensibilita' non costa un solo falso positivo... tranne questi due, dove il
-# nome NON e' una fuga: e' cio' che il file deve dire.
+# The user name rule went from `-CaseSensitive` to insensitive,
+# because it searched for the name all in lower case and the one with the capital passed
+# right under its nose:
+# `Bench\NoPartTests.cs:185` carried it in a comment, and the check
+# said «ok». No Italian word contains «oscar», so removing the
+# sensitivity does not cost a single false positive... except these two, where the
+# name is NOT a leak: it is what the file must say.
 #
-#   LICENSE:189   «Copyright 2026 <autore>» - la riga che la Apache-2.0
-#                 richiede, e senza la quale la licenza non e' concessa a
-#                 nessuno.
-#   NOTICE:2,4    l'attribuzione, che la Apache-2.0 impone di ridistribuire.
+#   LICENSE:189   «Copyright 2026 <autore>» - the line that the Apache-2.0
+#                 requires, and without which the licence is not granted to
+#                 anybody.
+#   NOTICE:2,4    the attribution, which the Apache-2.0 requires to be redistributed.
 #
-# PERCHE' QUESTA ECCEZIONE NON E' QUELLA CHE HA FATTO USCIRE TRE INDIRIZZI.
-# Quella esentava un diario di diciassettemila righe che cresce ogni giorno: si
-# allargava da sola, e nessuno rileggeva cosa ci era finito dentro. Questi sono
-# due testi di licenza che non crescono, in cui il nome sta in tre righe fisse
-# e messe li' apposta. L'eccezione vale SOLO per il pattern del nome: percorsi,
-# indirizzi e lettere di unita' su questi due file restano vietati come altrove.
+# WHY THIS EXCEPTION IS NOT THE ONE THAT LET THREE ADDRESSES OUT.
+# That one exempted a journal of seventeen thousand lines that grows every day: it
+# widened by itself, and nobody reread what had ended up inside. These are
+# two licence texts that do not grow, in which the name sits in three fixed lines
+# put there on purpose. The exception holds ONLY for the name pattern: paths,
+# addresses and drive letters on these two files stay forbidden as elsewhere.
 $nameOnly = @('LICENSE', 'NOTICE') + $twoChecks
 
-# Chi sostituisce il percorso di scratchpad lo deve scrivere per trovarlo:
-# `cleanup-history.js` ha lo schema, questo controllo ha il pattern.
+# Whoever replaces the scratchpad path must write it to find it:
+# `cleanup-history.js` has the schema, this check has the pattern.
 $sessionOnly = WithNamesOfBefore @('cleanup-history.js', 'check-publishability.ps1')
 
-# LA STRUTTURA DI UN ALTRO REPOSITORY, CHE E' PRIVATO.
+# THE STRUCTURE OF ANOTHER REPOSITORY, WHICH IS PRIVATE.
 #
-# Questo ponte nasce da un progetto piu' grande e ci dialoga: nominarlo e
-# raccontare da dove viene il catalogo e' giusto, e il nome nudo di un file
-# (`ai_disegno.py`) e' contesto, non una fuga.
+# This bridge was born from a larger project and talks to it: naming it and
+# telling where the catalogue comes from is fine, and the bare name of a file
+# (`ai_disegno.py`) is context, not a leak.
 #
-# Ma il 24/9/2026 un censimento a mano ha trovato scritto per esteso
-# `api/<file>.py:283`, `services/<file>.py:104` e `:252` - cioe' CARTELLE,
-# FILE e NUMERI DI RIGA di un repository privato, che permettono di
-# ricostruire com'e' fatto dentro senza averlo mai visto. Erano in due posti
-# (`Tools\update.md` e la voce di CHANGELOG che la ricopiava), e nessun
-# controllo li guardava: cercavamo percorsi di QUESTA macchina e indirizzi di
-# QUESTA rete, e non ci era venuto in mente che si potesse pubblicare l'interno
-# di un progetto vicino.
+# But on 24/9/2026 a census by hand found written in full
+# `api/<file>.py:283`, `services/<file>.py:104` and `:252` - that is FOLDERS,
+# FILES and LINE NUMBERS of a private repository, which allow reconstructing how
+# it is made inside without ever having seen it. They were in two places
+# (`Tools\update.md` and the CHANGELOG entry that copied it), and no
+# check looked at them: we searched for paths of THIS machine and addresses of THIS
+# network, and it had not occurred to us that the inside of a neighbouring
+# project could be published.
 #
-# LA FORMA, e non il nome del progetto: in questo repository NON C'E' UN SOLO
-# FILE PYTHON (verificato con `git ls-files '*.py'`: vuoto). Quindi un `.py`
-# con una CARTELLA davanti, o con un NUMERO DI RIGA dietro, parla per forza di
-# casa d'altri. Il nome nudo continua a passare.
+# THE SHAPE, and not the name of the project: in this repository THERE IS NOT A SINGLE
+# PYTHON FILE (verified with `git ls-files '*.py'`: empty). So a `.py`
+# with a FOLDER in front, or with a LINE NUMBER behind, is necessarily talking about
+# somebody else's house. The bare name keeps passing.
 $InsideAnotherRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
 
-# CHI PARLA DELLE LETTERE DI UNITA' PERCHE' STA SPIEGANDO QUESTO CONTROLLO.
+# WHO TALKS ABOUT DRIVE LETTERS BECAUSE THEY ARE EXPLAINING THIS CHECK.
 #
-# Vale SOLO per i pattern `O:` e `W:`, e non tocca il nome utente, i percorsi
-# di sessione e gli indirizzi privati, che su questi stessi file restano
-# vietati come su tutti.
+# It holds ONLY for the `O:` and `W:` patterns, and does not touch the user name, the session
+# paths and the private addresses, which on these same files stay
+# forbidden as on all the others.
 #
-#   CHANGELOG.md       la voce che racconta il falso positivo del 14/9 deve
-#                      citare il pattern che lo causava.
-#   CatalogTests.cs   e' il controllo che cerca i percorsi locali dentro le
-#                      descrizioni del catalogo: il suo mestiere e' nominarli.
+#   CHANGELOG.md       the entry that tells the false positive of 14/9 must
+#                      quote the pattern that caused it.
+#   CatalogTests.cs   is the check that searches for local paths inside the
+#                      catalogue descriptions: its job is to name them.
 #
-# Perche' il buco e' accettabile qui e non altrove: nessuno dei tre e' un file
-# GENERATO. Un percorso di rete vero ci arriva solo se qualcuno lo scrive a
-# mano, e chi lo scrive a mano in un documento che spiega perche' non si scrive
-# lo sta facendo apposta. I file generati - il catalogo, i casi del banco -
-# restano coperti.
+# Why the hole is acceptable here and not elsewhere: none of the three is a
+# GENERATED file. A real network path gets there only if somebody writes it by
+# hand, and whoever writes it by hand in a document that explains why it must not be written
+# is doing it on purpose. The generated files - the catalogue, the bench cases -
+# stay covered.
 $talkAboutDisks = (WithNamesOfBefore @('CHANGELOG.md', 'CatalogTests.cs')) + $twoChecks
 
-# NON si puo' chiamare questa funzione `Git`: PowerShell non distingue maiuscole
-# e minuscole nei nomi di comando, quindi `& git` qui dentro risolverebbe alla
-# funzione stessa invece che all'eseguibile - ricorsione infinita, e l'errore che
-# si legge e' «Overflow della profondita' delle chiamate», che non nomina la
-# causa. Il nome diverso e' la riparazione, come per `ReadWithAnchor`.
+# This function CANNOT be called `Git`: PowerShell does not distinguish upper
+# and lower case in command names, so `& git` in here would resolve to the
+# function itself instead of the executable - infinite recursion, and the error
+# that is read is «Overflow della profondita' delle chiamate», which does not name the
+# cause. The different name is the repair, as for `ReadWithAnchor`.
 function RunGit($arguments) {
     $old = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -231,13 +231,13 @@ function RunGit($arguments) {
 }
 
 # ==============================================================================
-# 1. L'albero di lavoro: cio' che si sta per committare
+# 1. The working tree: what is about to be committed
 # ==============================================================================
 
 function FilesThatGoOut {
-    # Tracciati + non ancora tracciati ma non ignorati. Insieme sono tutto cio'
-    # che un `git add -A` porterebbe dentro. I file ignorati (bin, obj) no: non
-    # escono, e leggerli raddoppia il tempo per niente.
+    # Tracked + not yet tracked but not ignored. Together they are everything
+    # that a `git add -A` would bring in. Ignored files (bin, obj) are not: they do not
+    # go out, and reading them doubles the time for nothing.
     $tracked = @(RunGit @('ls-files'))
     $newItems = @(RunGit @('ls-files', '--others', '--exclude-standard'))
     @($tracked + $newItems) |
@@ -252,12 +252,12 @@ $script:list = $null
 function Lines($pattern, $caseSensitive) {
     if ($null -eq $script:list) { $script:list = @(FilesThatGoOut) }
     if ($script:list.Count -eq 0) { return @() }
-    # -LiteralPath, NON la pipeline. Un array di stringhe mandato a
-    # `Select-String` per pipeline viene preso come TESTO DA CERCARE, non come
-    # elenco di file: il controllo cercava il nome utente dentro i NOMI dei
-    # percorsi e rispondeva «ok nessuno» senza aver aperto un solo file.
-    # Si e' visto solo perche' il pattern `S:\` combacia con ogni percorso
-    # assoluto di questo disco e ha fatto scoppiare la riga qui sotto.
+    # -LiteralPath, NOT the pipeline. An array of strings sent to
+    # `Select-String` through the pipeline is taken as TEXT TO SEARCH FOR, not as a
+    # list of files: the check searched for the user name inside the NAMES of the
+    # paths and answered «ok nessuno» without having opened a single file.
+    # It was seen only because the pattern `S:\` matches every absolute path
+    # of this drive and blew up the line below.
     if ($caseSensitive) { $foundOnes = Select-String -LiteralPath $script:list -Pattern $pattern -CaseSensitive }
     else { $foundOnes = Select-String -LiteralPath $script:list -Pattern $pattern }
     @($foundOnes)
@@ -289,15 +289,15 @@ Look 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $talkA
 Look 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $talkAboutDisks
 
 # ==============================================================================
-# 2. La storia che si sta per spingere
+# 2. The history about to be pushed
 # ==============================================================================
 #
-# Si guarda l'ALBERO di ogni commit da spingere, non il suo diff: un blob
-# introdotto una volta vive in tutti gli alberi successivi finche' non viene
-# tolto, e il diff lo mostra solo due volte.
+# We look at the TREE of every commit to be pushed, not its diff: a blob
+# introduced once lives in all the later trees until it is
+# removed, and the diff shows it only twice.
 #
-# `git grep` cerca dentro un albero senza estrarlo, quindi quarantuno commit
-# costano secondi e non minuti.
+# `git grep` searches inside a tree without extracting it, so forty-one commits
+# cost seconds and not minutes.
 #
 # BINARY FILES ARE SKIPPED BY EXTENSION, NOT BY GIT'S GUESS (entry Z-C22). Here
 # stood `git grep -I`, which skips every blob git takes for binary: a text file
@@ -314,22 +314,22 @@ $upstream = (RunGit @('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{up
 if (-not $upstream) { $upstream = 'origin/main' }
 $exists = (RunGit @('rev-parse', '--verify', '--quiet', $upstream))
 
-# ── IL RIFERIMENTO LOCALE PUO' ESSERE UNA BUGIA, E LO E' STATO ────────────
+# ── THE LOCAL REFERENCE CAN BE A LIE, AND IT WAS ──────────────────────────
 #
-# `git filter-branch -- --all` riscrive anche i riferimenti remoti LOCALI.
-# Dopo la bonifica del 23/9/2026 `origin/main` qui puntava a un commit
-# riscritto: `origin/main..HEAD` dava 29 commit su 104, e questo controllo
-# ha detto «Pulito» dopo averne guardato meno di un terzo.
+# `git filter-branch -- --all` rewrites the LOCAL remote references too.
+# After the cleanup of 23/9/2026 `origin/main` here pointed to a rewritten
+# commit: `origin/main..HEAD` gave 29 commits out of 104, and this check
+# said «Pulito» after having looked at less than a third of them.
 #
-# Il remoto vero, intanto, aveva ancora la storia di prima. Al force-push
-# partiranno tutti e 104 — cioe' il controllo misurava una cosa diversa da
-# quella che sta per succedere, ed e' il modo in cui una difesa vera si
-# trasforma in un timbro.
+# The real remote, meanwhile, still had the previous history. At the force-push
+# all 104 will go out - that is, the check measured something different from
+# what is about to happen, and it is the way a real defence
+# turns into a rubber stamp.
 #
-# Si chiede al remoto dove sta DAVVERO. Se non combacia, il riferimento
-# locale non vale niente e si guarda tutta la storia. Se il remoto non
-# risponde, si guarda tutta la storia lo stesso: fra sbagliare per eccesso e
-# spingere un nome utente, la scelta non e' difficile.
+# We ask the remote where it REALLY is. If it does not match, the local
+# reference is worth nothing and we look at the whole history. If the remote does not
+# answer, we look at the whole history all the same: between erring on the side of excess and
+# pushing a user name, the choice is not hard.
 $allHistory = $false
 $why = ""
 
@@ -372,14 +372,14 @@ if ($toPush.Count -eq 0) {
             $(if ($caseSensitive) { @() } else { @('-i') }) +
             @('-P', '-e', $pattern) + $toPush))
 
-        # Forma di una riga: <sha>:<percorso>:<numero>:<testo>
+        # Shape of a line: <sha>:<percorso>:<numero>:<testo>
         $gaps = @($foundItems | Where-Object {
             if ($_ -notmatch '^([0-9a-f]{7,40}):([^:]+):(\d+):') { return $false }
             $filePath = $Matches[2] -replace '/', '\'
-            # Solo `$except`, cioe' l'eccezione DEL PATTERN. Qui stava anche
-            # `PuoNominarli`, la lista valida per tutti i pattern insieme: e'
-            # sparita, e con lei il lasciapassare che i due controlli avevano
-            # sull'indirizzo interno.
+            # Only `$except`, that is the exception OF THE PATTERN. Here there also stood
+            # `PuoNominarli`, the list valid for all the patterns together: it is
+            # gone, and with it the pass that the two checks had
+            # on the internal address.
             if ($except -contains (Split-Path -Leaf $filePath)) { return $false }
             if ($binary -contains [IO.Path]::GetExtension($filePath).ToLower()) { return $false }
             $true
@@ -407,21 +407,21 @@ if ($toPush.Count -eq 0) {
 }
 
 # ==============================================================================
-# 3. Il disco S:, che si dice invece di nascondere
+# 3. The S: drive, which is stated instead of hidden
 # ==============================================================================
 #
-# Il 24/9/2026 i RIPIEGHI CABLATI sono spariti: la libreria dei profili si dice
-# con `PROFILI_SALDATURA` e i modelli di documento con `MODELLI_SOLIDWORKS`, e
-# senza quelle variabili il banco si ferma subito dicendo cosa manca invece di
-# cercare un disco che su quella macchina non esiste. Un ripiego che funziona su
-# una postazione sola non aiuta nessuno, e intanto pubblica com'e' fatto quel
-# disco.
+# On 24/9/2026 the HARD-WIRED FALLBACKS disappeared: the profile library is stated
+# with `PROFILI_SALDATURA` and the document templates with `MODELLI_SOLIDWORKS`, and
+# without those variables the bench stops at once saying what is missing instead of
+# looking for a drive that on that machine does not exist. A fallback that works on
+# one workstation only helps nobody, and meanwhile it publishes how that
+# drive is laid out.
 #
-# QUESTO ELENCO PERO' RESTA, e non e' diventato inutile: `S:` continua a
-# comparire negli ESEMPI (README, descrizioni del catalogo) e nelle prove che
-# usano percorsi finti. Quelli vanno bene. Cio' che non deve tornare e' una
-# COSTANTE da cui dipende un comportamento - ed e' esattamente quello che
-# questo elenco fa vedere, file per file, a chi legge prima di pubblicare.
+# THIS LIST STAYS, HOWEVER, and has not become useless: `S:` keeps
+# appearing in EXAMPLES (README, catalogue descriptions) and in the checks that
+# use fake paths. Those are fine. What must not come back is a
+# CONSTANT on which a behaviour depends - and that is exactly what
+# this list shows, file by file, to whoever reads before publishing.
 
 Write-Host ""
 Write-Host "=== Percorsi di questa installazione (non vietati, ma da sapere)"

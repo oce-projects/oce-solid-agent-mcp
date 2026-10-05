@@ -7,42 +7,42 @@ using SolidWorks.Interop.swconst;
 namespace Checks.BrokenBody
 {
     /// <summary>
-    /// CHE COSA RISPONDE `Check3` SU UN CORPO SANO, E CHE COSA SU UNO CHE NON
-    /// LO E'. (voce GP1)
+    /// WHAT `Check3` ANSWERS ON A HEALTHY BODY, AND WHAT ON ONE THAT
+    /// IS NOT. (entry GP1)
     ///
-    /// ── LA DOMANDA APERTA CHE QUESTO ATTREZZO CHIUDE ──────────────────────
+    /// ── THE OPEN QUESTION THIS TOOL CLOSES ────────────────────────────────
     ///
-    /// Il censimento delle API (RAG 80p, punto 4) l'ha lasciata scritta cosi':
+    /// The API census (RAG 80p, point 4) left it written like this:
     ///
-    ///   «`IBody2.Check()` e `Check2()` restituiscono `Int32` e non so se zero
-    ///    voglia dire *sano* o *zero difetti controllati*. La risposta
-    ///    sbagliata e' indistinguibile da una giusta.»
+    ///   «`IBody2.Check()` and `Check2()` return `Int32` and I do not know whether zero
+    ///    means *healthy* or *zero defects checked*. The wrong answer
+    ///    cannot be told apart from a right one.»
     ///
-    /// Un'operazione `check_body_geometry` costruita sopra a uno zero di
-    /// cui non si conosce il significato e' il difetto che non da' errore
-    /// nella sua forma piu' cara: dice «sano» su qualunque cosa, e chi la
-    /// chiama esporta uno STL con un buco.
+    /// A `check_body_geometry` operation built on top of a zero whose
+    /// meaning is unknown is the defect that raises no error in
+    /// its most expensive form: it says «healthy» about anything, and whoever
+    /// calls it exports an STL with a hole.
     ///
-    /// ── PERCHE' UN ESEGUIBILE E NON UNO SCRIPT ───────────────────────────
+    /// ── WHY AN EXECUTABLE AND NOT A SCRIPT ────────────────────────────────
     ///
-    /// Stessa ragione di `NewPart`: `ISldWorks.NewDocument` per late
-    /// binding da PowerShell 5.1 risponde `TYPE_E_ELEMENTNOTFOUND`. Provato
-    /// oggi di nuovo, per non ricordarlo male.
+    /// Same reason as `NewPart`: `ISldWorks.NewDocument` by late
+    /// binding from PowerShell 5.1 answers `TYPE_E_ELEMENTNOTFOUND`. Tried
+    /// today again, so as not to remember it wrong.
     ///
-    /// ── LE FIRME, LETTE DALL'INTEROP 29.5.1.1 ────────────────────────────
+    /// ── THE SIGNATURES, READ FROM INTEROP 29.5.1.1 ────────────────────────
     ///
     ///   IBody2.Check()  -> Int32
     ///   IBody2.Check2() -> Int32
-    ///   IBody2.Check3   -> FaultEntity     ** E' UNA PROPRIETA', NON UN METODO **
+    ///   IBody2.Check3   -> FaultEntity     ** IT IS A PROPERTY, NOT A METHOD **
     ///   IBody2.Diagnose() -> DiagnoseResult
     ///   IFaultEntity.Count, get_ErrorCode(i), get_Entity(i), get_Entity2(i)
     ///   IDiagnoseResult.GetGapsCount(), GetCoEdgesAtGap(i)
     ///
-    /// `Check3` proprieta' e non metodo e' una trappola: scritto `Check3()` in
-    /// late binding non da' errore di compilazione, da' un fallimento a
-    /// runtime dentro un `catch` che lo ingoia. I codici hanno un nome —
-    /// `swFaultEntityErrorCode_e`, 36 valori da `swBodyCorrupt = 1` a
-    /// `swEdgeTouchEdge = 36` — e lo zero NON e' fra quelli.
+    /// `Check3` being a property and not a method is a trap: written `Check3()` in
+    /// late binding it gives no compile error, it gives a runtime failure
+    /// inside a `catch` that swallows it. The codes have a name —
+    /// `swFaultEntityErrorCode_e`, 36 values from `swBodyCorrupt = 1` to
+    /// `swEdgeTouchEdge = 36` — and zero is NOT among them.
     /// </summary>
     internal static class Program
     {
@@ -72,7 +72,7 @@ namespace Checks.BrokenBody
             }
             Console.WriteLine("pezzo di prova: " + doc.GetTitle());
 
-            // ── 1. IL SANO: un parallelepipedo 100 x 100 x 20 ─────────────
+            // ── 1. THE HEALTHY ONE: a 100 x 100 x 20 box ──────────────────
             if (!Extrude(doc, -0.05, -0.05, 0.05, 0.05, 0.02, false))
             {
                 Console.Error.WriteLine("non sono riuscito a estrudere il corpo sano.");
@@ -90,27 +90,27 @@ namespace Checks.BrokenBody
             Expect("il solido sano: nessuna fessura", Gaps(healthy[0]) == 0,
                      "fessure = " + Gaps(healthy[0]));
 
-            // ── 2. DUE CORPI CHE SI TOCCANO PER UNO SPIGOLO ───────────────
+            // ── 2. TWO BODIES TOUCHING ALONG AN EDGE ──────────────────────
             //
-            // E' il caso che la voce GP1 nomina. Il secondo blocco parte
-            // esattamente dove finisce il primo, sfalsato: i due si toccano
-            // lungo uno spigolo e non si fondono, perche' `Merge` e' false.
+            // It is the case the entry GP1 names. The second block starts
+            // exactly where the first ends, offset: the two touch
+            // along an edge and do not fuse, because `Merge` is false.
             if (!Extrude(doc, 0.05, 0.05, 0.15, 0.15, 0.02, true))
                 Console.WriteLine("(il secondo blocco non e' venuto: il caso 2 salta)");
             else
                 Tell("due blocchi che si toccano per uno spigolo", Solids(doc));
 
-            // ── 3. UN CORPO DI FOGLIO, CHE SOLIDO NON E' ──────────────────
+            // ── 3. A SHEET BODY, WHICH IS NOT A SOLID ─────────────────────
             //
-            // Non e' rotto: e' APERTO. Per una stampa 3D e' lo stesso guaio —
-            // uno STL che esce da un foglio non racchiude niente — e la
-            // domanda e' se `Check3` lo distingua da un solido.
+            // It is not broken: it is OPEN. For a 3D print it is the same trouble —
+            // an STL coming out of a sheet encloses nothing — and the
+            // question is whether `Check3` tells it apart from a solid.
             var sheet = Surface(doc);
             if (sheet == null)
             {
-                // NON E' UNA PROVA SALTATA, E' L'ATTREZZO CHE NON HA FATTO IL
-                // SUO LAVORO: senza il foglio non si misura niente di quello
-                // per cui esiste, e dirlo verde sarebbe la bugia peggiore.
+                // IT IS NOT A SKIPPED CHECK, IT IS THE TOOL THAT DID NOT DO ITS
+                // JOB: without the sheet nothing is measured of what
+                // it exists for, and calling it green would be the worst lie.
                 Console.Error.WriteLine("la superficie non e' venuta: senza il corpo di foglio " +
                                         "questo attrezzo non misura niente.");
                 return 2;
@@ -118,11 +118,11 @@ namespace Checks.BrokenBody
             Tell("un corpo di foglio (superficie piana)", new[] { sheet });
             Console.WriteLine();
 
-            // ── IL ROSSO CHE QUESTO ATTREZZO ESISTE PER TENERE ────────────
+            // ── THE RED THAT THIS TOOL EXISTS TO KEEP ─────────────────────
             //
-            // Un corpo APERTO passa tre controlli su quattro. Se un giorno
-            // `Check3` imparasse a vederlo, queste tre righe diventerebbero
-            // rosse — ed e' proprio allora che l'operazione va riscritta.
+            // An OPEN body passes three checks out of four. If one day
+            // `Check3` learned to see it, these three lines would turn
+            // red — and that is exactly when the operation must be rewritten.
             Expect("il foglio e' un corpo di foglio, non un solido",
                      TypeName(sheet) == "foglio", "tipo " + TypeName(sheet));
             Expect("il foglio: Check() lo dichiara sano lo stesso", One(sheet, c => c.Check()) == 1,
@@ -139,37 +139,37 @@ namespace Checks.BrokenBody
             return _broken == 0 ? 0 : 1;
         }
 
-        // ── CHE COSA E' USCITO, IL 15/9/2026, SU SOLIDWORKS 2021 ──────────
+        // ── WHAT CAME OUT, ON 15/9/2026, ON SOLIDWORKS 2021 ───────────────
         //
-        //                          Check()  Check2()  Check3.Count  fessure
-        //   solido sano               1        0           0           0
-        //   due solidi che si toccano 1        0           0           0   (ognuno)
-        //   CORPO DI FOGLIO (aperto)  1        0           0           1
+        //                          Check()  Check2()  Check3.Count  gaps
+        //   healthy solid             1        0           0           0
+        //   two solids that touch     1        0           0           0   (each)
+        //   SHEET BODY (open)         1        0           0           1
         //
-        // DUE COSE, E TUTTE E DUE CAMBIANO COME SI SCRIVE L'OPERAZIONE.
+        // TWO THINGS, AND BOTH CHANGE HOW THE OPERATION IS WRITTEN.
         //
-        // 1. `Check()` E `Check2()` HANNO CONVENZIONI OPPOSTE. Sullo stesso
-        //    corpo sano il primo dice 1 e il secondo dice 0. Chi legge uno
-        //    zero di `Check2()` come «falso, cioe' rotto» — o un 1 di
-        //    `Check()` come «un difetto» — ottiene un risultato coerente,
-        //    stabile e rovesciato. Era la domanda aperta del RAG 80p punto 4,
-        //    e la risposta e' peggio dell'incertezza: le due convenzioni
-        //    convivono nella stessa interfaccia.
+        // 1. `Check()` AND `Check2()` HAVE OPPOSITE CONVENTIONS. On the same
+        //    healthy body the first says 1 and the second says 0. Whoever reads
+        //    a zero from `Check2()` as «false, that is broken» — or a 1 from
+        //    `Check()` as «a defect» — gets a result that is consistent,
+        //    stable and upside down. It was the open question of RAG 80p point 4,
+        //    and the answer is worse than the uncertainty: the two conventions
+        //    live together in the same interface.
         //
-        // 2. UN CORPO APERTO PASSA TRE CONTROLLI SU QUATTRO. Il foglio non e'
-        //    «rotto»: e' un corpo valido che non racchiude niente. `Check`,
-        //    `Check2` e `Check3` lo dichiarano sano tutti e tre, e **solo
-        //    `Diagnose().GetGapsCount()` lo vede**. Uno STL che esce di li'
-        //    non contiene un volume, e si stampa come una lamina.
+        // 2. AN OPEN BODY PASSES THREE CHECKS OUT OF FOUR. The sheet is not
+        //    «broken»: it is a valid body that encloses nothing. `Check`,
+        //    `Check2` and `Check3` all three declare it healthy, and **only
+        //    `Diagnose().GetGapsCount()` sees it**. An STL coming out of there
+        //    does not contain a volume, and prints as a foil.
         //
-        //    Un'operazione `check_body_geometry` costruita su `Check3` —
-        //    che e' la via che la voce GP1 nominava per prima — direbbe
-        //    «nessun problema» esattamente sul caso per cui esiste.
+        //    A `check_body_geometry` operation built on `Check3` —
+        //    which is the way entry GP1 named first — would say
+        //    «no problem» exactly on the case it exists for.
         private static int _broken;
 
         /// <summary>
-        /// Il controllo, non il racconto. Senza questo l'attrezzo stampa una
-        /// tabella che nessuno confronta col mese scorso.
+        /// The check, not the story. Without this the tool prints a
+        /// table that nobody compares with last month's.
         /// </summary>
         private static void Expect(string what, bool real, string seen)
         {
@@ -178,9 +178,9 @@ namespace Checks.BrokenBody
         }
 
         /// <summary>
-        /// Quello che le quattro chiamate dicono, senza interpretarle: i numeri
-        /// grezzi accanto ai nomi degli enum, perche' l'interpretazione e' la
-        /// cosa che questo attrezzo esiste per NON dare per scontata.
+        /// What the four calls say, without interpreting them: the raw
+        /// numbers next to the enum names, because the interpretation is the
+        /// thing this tool exists to NOT take for granted.
         /// </summary>
         private static void Tell(string label, IBody2[] bodies)
         {
@@ -228,7 +228,7 @@ namespace Checks.BrokenBody
             catch (Exception ex) { return "ERRORE " + ex.Message; }
         }
 
-        /// <summary>Un intero da una chiamata COM, o -999 se non si e' potuto.</summary>
+        /// <summary>An integer from a COM call, or -999 if it could not be had.</summary>
         private static int One(IBody2 c, Func<IBody2, int> f)
         {
             try { return f(c); }
@@ -269,9 +269,9 @@ namespace Checks.BrokenBody
         }
 
         /// <summary>
-        /// Il nome dell'enum per un codice di difetto. Lo zero non sta
-        /// nell'enum: se compare, e' un valore che la documentazione non
-        /// prevede e va detto cosi' invece di chiamarlo «nessun problema».
+        /// The enum name for a defect code. Zero is not in the
+        /// enum: if it shows up, it is a value the documentation does not
+        /// foresee and it must be said so instead of calling it «no problem».
         /// </summary>
         private static string CodeName(int code)
         {
@@ -326,9 +326,9 @@ namespace Checks.BrokenBody
                     Dang1: 0, Dang2: 0,
                     OffsetReverse1: false, OffsetReverse2: false,
                     TranslateSurface1: false, TranslateSurface2: false,
-                    // MERGE: false vuol dire «lascialo un corpo a se'», ed e'
-                    // quello che serve per avere due solidi che si toccano
-                    // senza fondersi.
+                    // MERGE: false means «leave it a body of its own», and it is
+                    // what is needed to have two solids that touch
+                    // without fusing.
                     Merge: !separate,
                     UseFeatScope: true, UseAutoSelect: true,
                     T0: 0, StartOffset: 0, FlipStartOffset: false);
@@ -356,11 +356,11 @@ namespace Checks.BrokenBody
                     Console.WriteLine("  lo schizzo della superficie non si e' lasciato selezionare");
                     return null;
                 }
-                // STA SU `IModelDoc2` E TORNA UN BOOLEANO, non sul
-                // FeatureManager e non una feature: tutte le altre
-                // `Insert*RefSurface` che tornano una `Feature` stanno sul
-                // FeatureManager, questa no. E' la stessa famiglia di trappole
-                // gia' pagata — «la famiglia non si indovina dal nome».
+                // IT LIVES ON `IModelDoc2` AND RETURNS A BOOLEAN, not on the
+                // FeatureManager and not a feature: all the other
+                // `Insert*RefSurface` that return a `Feature` live on the
+                // FeatureManager, this one does not. It is the same family of traps
+                // already paid for — «the family cannot be guessed from the name».
                 if (!doc.InsertPlanarRefSurface()) return null;
                 var partDoc = doc as IPartDoc;
                 var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSheetBody, false) as object[];
@@ -415,9 +415,9 @@ namespace Checks.BrokenBody
         }
 
         /// <summary>
-        /// Lo schizzo appena chiuso, preso dall'albero e non per nome: dopo il
-        /// primo «Schizzo1» i nomi cambiano, e un nome sbagliato qui vuol dire
-        /// un'estrusione che non parte senza dire perche'.
+        /// The sketch just closed, taken from the tree and not by name: after the
+        /// first «Schizzo1» the names change, and a wrong name here means
+        /// an extrusion that does not start without saying why.
         /// </summary>
         private static bool SelectLastSketch(IModelDoc2 doc)
         {
@@ -437,7 +437,7 @@ namespace Checks.BrokenBody
             catch { return false; }
         }
 
-        /// <summary>I nomi dei piani che l'albero ha davvero, per un messaggio.</summary>
+        /// <summary>The names of the planes the tree really has, for a message.</summary>
         private static string PlaneNames(IModelDoc2 doc)
         {
             try
@@ -467,17 +467,17 @@ namespace Checks.BrokenBody
 
         private static string SearchedOnDisk()
         {
-            // `C:\ProgramData\SolidWorks` e' dove SOLIDWORKS mette i suoi
-            // modelli su qualunque installazione. Accanto c'era il percorso di
-            // un disco di rete di UNA postazione: non serviva a nessun altro e
-            // diceva com'e' fatto quel disco. Adesso e' una variabile, e chi
-            // tiene i modelli altrove lo dice.
+            // `C:\ProgramData\SolidWorks` is where SOLIDWORKS puts its
+            // templates on any installation. Next to it there was the path of
+            // a network drive of ONE workstation: it was of no use to anybody else and
+            // it told how that drive is laid out. Now it is a variable, and whoever
+            // keeps the templates elsewhere says so.
             var folders = new System.Collections.Generic.List<string>
             {
                 @"C:\ProgramData\SolidWorks",
             };
-            // `System.` per esteso: l'interop di SOLIDWORKS ha un suo
-            // `Environment`, e con i due `using` il nome nudo non compila.
+            // `System.` spelled out: the SOLIDWORKS interop has its own
+            // `Environment`, and with the two `using`s the bare name does not compile.
             var its = System.Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
             if (!string.IsNullOrWhiteSpace(its)) folders.Add(its);
             foreach (var c in folders)

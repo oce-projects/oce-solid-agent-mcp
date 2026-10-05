@@ -7,38 +7,38 @@ using SolidWorks.Interop.swconst;
 namespace Checks.DetailView
 {
     /// <summary>
-    /// LA VISTA DI DETTAGLIO, MISURATA INVECE CHE DEDOTTA (voce GT4).
+    /// THE DETAIL VIEW, MEASURED INSTEAD OF DEDUCED (entry GT4).
     ///
-    /// La misura 0.6 ha chiuso la sezione — linea sul foglio, `Select4`,
-    /// `CreateSectionViewAt5`, quattro viste che diventano cinque — e ha
-    /// lasciato scritta una cosa onesta:
+    /// The measurement 0.6 closed the section — line on the sheet, `Select4`,
+    /// `CreateSectionViewAt5`, four views that become five — and
+    /// left an honest thing written:
     ///
-    ///     «Resta non misurato il DETTAGLIO (CreateDetailViewAt4, che vuole un
-    ///      cerchio invece di una linea). Per analogia dovrebbe funzionare
-    ///      uguale — ma "per analogia" e' proprio il salto che qui e' gia'
-    ///      costato una correzione.»
+    ///     «The DETAIL remains unmeasured (CreateDetailViewAt4, which wants a
+    ///      circle instead of a line). By analogy it should work the
+    ///      same — but "by analogy" is exactly the leap that here has already
+    ///      cost a correction.»
     ///
-    /// Questa sonda toglie l'analogia di mezzo. Stessa forma di
-    /// `SectionView`, con tre differenze che potrebbero non essere
-    /// dettagli:
+    /// This probe removes the analogy from the middle. Same shape as
+    /// `SectionView`, with three differences that might not be
+    /// details:
     ///
-    ///   - si traccia un CERCHIO invece di una linea, e sta DENTRO la vista
-    ///     (una sezione vuole attraversarla, un dettaglio vuole starci dentro);
-    ///   - la firma ha dodici argomenti invece di sette;
-    ///   - il cerchio e' un `ISketchSegment` come la linea, quindi `Select4`
-    ///     dovrebbe bastare — ed e' la parte che va vista, non supposta.
+    ///   - a CIRCLE is drawn instead of a line, and it sits INSIDE the view
+    ///     (a section wants to cross it, a detail wants to be inside it);
+    ///   - the signature has twelve arguments instead of seven;
+    ///   - the circle is an `ISketchSegment` like the line, so `Select4`
+    ///     should be enough — and it is the part that must be seen, not assumed.
     ///
     ///     IDrawingDoc :: CreateDetailViewAt4(Double X, Double Y, Double Z,
     ///         Int32 Style, Double Scale1, Double Scale2, String LabelIn,
     ///         Int32 Showtype, Boolean FullOutline, Boolean JaggedOutline,
     ///         Boolean NoOutline, Int32 ShapeIntensity)
     ///
-    /// E POI SI MISURA SE E' USCITA: il conto delle viste prima e dopo, il tipo
-    /// della vista nuova, e quante circonferenze di dettaglio ha la vista di
-    /// partenza (`GetDetailCircleCount2`). Il valore di ritorno e' una
-    /// promessa; il conto e' la misura.
+    /// AND THEN WE MEASURE WHETHER IT CAME OUT: the count of the views before and after, the type
+    /// of the new view, and how many detail circles the starting view has
+    /// (`GetDetailCircleCount2`). The return value is a
+    /// promise; the count is the measure.
     ///
-    ///     DetailView.exe        lavora sulla tavola attiva
+    ///     DetailView.exe        works on the active drawing
     /// </summary>
     internal static class Program
     {
@@ -59,7 +59,7 @@ namespace Checks.DetailView
             var drawing = (IDrawingDoc)doc;
             Console.WriteLine("tavola: " + doc.GetTitle());
 
-            // 1. LA VISTA DA DETTAGLIARE. La prima «view» e' il foglio: si salta.
+            // 1. THE VIEW TO BE DETAILED. The first «view» is the sheet: it is skipped.
             IView target = null;
             int views = 0;
             var v = drawing.GetFirstView() as IView;
@@ -87,18 +87,18 @@ namespace Checks.DetailView
                 "vista «{0}» (tipo {1}), ingombro x {2:0.####}..{3:0.####} y {4:0.####}..{5:0.####} m",
                 target.GetName2(), target.Type, outline[0], outline[2], outline[1], outline[3]));
 
-            // DUE USCITE, E NESSUNA E' OVVIA. Vedi il commento in testa al
-            // file: si stampano tutte e due invece di sceglierne una.
+            // TWO OUTPUTS, AND NEITHER IS OBVIOUS. See the comment at the top of the
+            // file: both are printed instead of choosing one.
             int circlesBefore = -1, returnedBefore = -1;
             try { returnedBefore = target.GetDetailCircleCount2(out circlesBefore); }
             catch (Exception e) { Console.WriteLine("  GetDetailCircleCount2: " + e.Message); }
             Console.WriteLine("circonferenze PRIMA: ritorno=" + returnedBefore + "  out=" + circlesBefore);
 
-            // 2. IL CERCHIO, DENTRO LA VISTA.
+            // 2. THE CIRCLE, INSIDE THE VIEW.
             //
-            // Un quarto del lato minore come raggio: abbastanza grande da
-            // contenere geometria, abbastanza piccolo da stare dentro. Un
-            // cerchio che sborda e' il caso limite gratuito di questa API.
+            // A quarter of the shorter side as radius: big enough to
+            // contain geometry, small enough to stay inside. A
+            // circle that overflows is the free limit case of this API.
             double cx = (outline[0] + outline[2]) / 2.0;
             double cy = (outline[1] + outline[3]) / 2.0;
             double smaller = Math.Min(outline[2] - outline[0], outline[3] - outline[1]);
@@ -122,10 +122,10 @@ namespace Checks.DetailView
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "cerchio tracciato in ({0:0.####}, {1:0.####}) raggio {2:0.####} m", cx, cy, radius));
 
-            // Lo schizzo si CHIUDE prima, come per la sezione.
+            // The sketch is CLOSED first, as for the section.
             try { doc.SketchManager.InsertSketch(true); } catch { }
 
-            // 3. LA SELEZIONE.
+            // 3. THE SELECTION.
             doc.ClearSelection2(true);
             bool taken = false;
             try { taken = circle.Select4(false, null); }
@@ -136,15 +136,15 @@ namespace Checks.DetailView
                 ", tipo: " + (selection.GetSelectedObjectCount2(-1) > 0
                     ? selection.GetSelectedObjectType3(1, -1).ToString() : "-"));
 
-            // 4. IL DETTAGLIO, a fianco della vista.
+            // 4. THE DETAIL, beside the view.
             double xDetail = outline[2] + (outline[2] - outline[0]) * 0.8;
             double yDetail = (outline[1] + outline[3]) / 2.0;
             object born = null;
             try
             {
-                // Style 0, scala 2:1, etichetta B, Showtype 0, senza contorni
-                // speciali. Sono i valori piu' neutri che la firma ammette: qui
-                // si misura SE nasce, non come e' vestita.
+                // Style 0, scale 2:1, label B, Showtype 0, without special
+                // outlines. They are the most neutral values that the signature allows: here
+                // we measure WHETHER it is born, not how it is dressed.
                 born = drawing.CreateDetailViewAt4(
                     xDetail, yDetail, 0.0,
                     (int)swDetViewStyle_e.swDetViewSTANDARD, 2.0, 1.0, "B",
@@ -155,7 +155,7 @@ namespace Checks.DetailView
             Console.WriteLine("CreateDetailViewAt4 ha risposto: " +
                 (born == null ? "null" : "un oggetto"));
 
-            // IL RISCONTRO: quante viste ci sono adesso, e di che tipo e' l'ultima.
+            // THE CHECK: how many views there are now, and what type the last one is.
             int after = 0;
             IView last = null;
             var w = drawing.GetFirstView() as IView;
@@ -171,9 +171,9 @@ namespace Checks.DetailView
             try { returnedAfter = target.GetDetailCircleCount2(out circlesAfter); } catch { }
             Console.WriteLine("circonferenze DOPO : ritorno=" + returnedAfter + "  out=" + circlesAfter);
 
-            // E LA VERSIONE SENZA IL «2», che e' l'altra strada che non si
-            // e' provata. Se rispondesse un conto pulito, il «2» sarebbe una
-            // complicazione gratuita e va scritto.
+            // AND THE VERSION WITHOUT THE «2», which is the other road that has not been
+            // tried. If it answered a clean count, the «2» would be a
+            // gratuitous complication and it must be written down.
             try
             {
                 int old = target.GetDetailCircleCount();
@@ -182,10 +182,10 @@ namespace Checks.DetailView
             catch (Exception e)
             { Console.WriteLine("GetDetailCircleCount (senza il 2): " + e.Message); }
 
-            // E il tratteggio anche qui: un dettaglio mostra la stessa
-            // geometria ingrandita, quindi se la vista di partenza non e'
-            // una sezione non ci si aspetta campitura. Si guarda lo stesso,
-            // perche' «non me lo aspetto» non e' una misura.
+            // And the hatching here too: a detail shows the same
+            // geometry enlarged, so if the starting view is not
+            // a section no hatching is expected. We look anyway,
+            // because «I do not expect it» is not a measurement.
             if (last != null)
             {
                 int faces = -1;

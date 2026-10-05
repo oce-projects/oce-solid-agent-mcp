@@ -5,109 +5,109 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  FaceFilletProbe — GP7, la parte «fillet_face» (face fillet)
+//  FaceFilletProbe — GP7, the «fillet_face» part (face fillet)
 // =============================================================================
 //
-//  CONTESTO (letto da note-interne/TODO.md §GP7, CHANGELOG.md 0.47.0, e dalla
-//  sonda storica RaccordoProva.cs::AFaccia, mai entrata nel repo): quattro tentativi, tutti su un cubo 40x40x40,
-//  faccia superiore + una faccia laterale (facce ADIACENTI, condividono uno
-//  spigolo), tutti con
+//  CONTEXT (read from note-interne/TODO.md §GP7, CHANGELOG.md 0.47.0, and from the
+//  historic probe RaccordoProva.cs::AFaccia, never entered in the repo): four attempts, all on a 40x40x40 cube,
+//  top face + one side face (ADJACENT faces, they share
+//  an edge), all with
 //
 //      FeatureManager.FeatureFillet3(
-//          Options: Propagate | UniformRadius | entrambe | nessuna (4 giri),
+//          Options: Propagate | UniformRadius | both | none (4 runs),
 //          Ftyp:    swFeatureFilletType_e.swFeatureFilletType_Face,
-//          ... marche di selezione = swSimpleFilletWhichFaces_e.swFaceFilletSet1/Set2 ...)
+//          ... selection marks = swSimpleFilletWhichFaces_e.swFaceFilletSet1/Set2 ...)
 //
-//  e tutti e quattro tornano NULL. La voce (TODO GP7) registra l'ipotesi che
-//  serva una coppia di facce NON adiacenti (l'uso "vero" del face fillet: un
-//  blend fra facce separate da un gradino).
+//  and all four return NULL. The entry (TODO GP7) records the hypothesis that
+//  a pair of NON-adjacent faces is needed (the "real" use of the face fillet: a
+//  blend between faces separated by a step).
 //
-//  QUELLO CHE LA GUIDA DICE, E CHE NESSUNO DEI 4 TENTATIVI HA TOCCATO:
+//  WHAT THE GUIDE SAYS, AND NONE OF THE 4 ATTEMPTS TOUCHED:
 //
-//  1) `IFeatureManager::FeatureFillet3` — pagina di riferimento, sezione
-//     Remarks: dichiara il metodo "obsolete" (la sua stessa parola, dalla
-//     versione 2020 in poi) per una lista di casi che include ESPLICITAMENTE
-//     i face fillet, e rimanda per crearli a
-//     CreateDefinition/CreateFeature/ISimpleFilletFeatureData2. SOLIDWORKS
-//     installato: 2021 SP5.1 — il metodo usato in tutti e 4 i tentativi e'
-//     ESATTAMENTE quello che la guida dice essere obsoleto per il tipo
-//     Face. E' verosimile che per questo torni sempre NULL qualunque
-//     combinazione di `Options`, mentre lo stesso metodo funziona per il
-//     raccordo SEMPLICE (Ftyp=Simple, gia' in produzione: vedi
-//     SwOperations.cs::RunFillet) — la stessa pagina elenca anche
-//     quello fra gli obsoleti, ma evidentemente tollerato per compatibilita'
-//     all'indietro sui casi comuni, mentre Face non lo e' in nessuna
-//     combinazione provata.
+//  1) `IFeatureManager::FeatureFillet3` — reference page, section
+//     Remarks: it declares the method "obsolete" (its own word, from
+//     version 2020 onwards) for a list of cases that EXPLICITLY includes
+//     the face fillets, and refers to
+//     CreateDefinition/CreateFeature/ISimpleFilletFeatureData2 to create them. SOLIDWORKS
+//     installed: 2021 SP5.1 — the method used in all 4 attempts is
+//     EXACTLY the one that the guide says is obsolete for the Face
+//     type. It is plausible that for this reason it always returns NULL whatever
+//     combination of `Options`, while the same method works for the
+//     SIMPLE fillet (Ftyp=Simple, already in production: see
+//     SwOperations.cs::RunFillet) — the same page lists that one too
+//     among the obsolete ones, but evidently tolerated for backward
+//     compatibility on the common cases, while Face is not in any
+//     combination tried.
 //
-//  2) `ISimpleFilletFeatureData2` — pagina di riferimento, Remarks, riga
-//     "Face fillet/face-face chamfer": chiede SelectByID2 con Mark=2 per il
-//     primo insieme di facce e Mark=4 per il secondo. L'esempio VBA
-//     incorporato nella stessa pagina (precondizione: un cubo di esempio
-//     SOLIDWORKS 2020, postcondizione un face fillet asimmetrico fra le
-//     facce selezionate) lo conferma:
+//  2) `ISimpleFilletFeatureData2` — reference page, Remarks, line
+//     "Face fillet/face-face chamfer": it asks for SelectByID2 with Mark=2 for the
+//     first set of faces and Mark=4 for the second. The VBA example
+//     embedded in the same page (precondition: a SOLIDWORKS 2020 sample cube,
+//     postcondition an asymmetric face fillet between the
+//     selected faces) confirms it:
 //         swFilletData.Initialize swFaceFillet
-//         ' marche 2 e 4, la seconda selezione in Append
-//     Le marche USATE nei 4 tentativi erano invece 1 e 2 — i valori
-//     dell'enum `swSimpleFilletWhichFaces_e` (letto per riflessione su
+//         ' marks 2 and 4, the second selection in Append
+//     The marks USED in the 4 attempts were instead 1 and 2 — the values
+//     of the enum `swSimpleFilletWhichFaces_e` (read by reflection on
 //     SolidWorks.Interop.swconst.dll: swFaceFilletSet1=1, swFaceFilletSet2=2).
-//     Quell'enum e' il parametro WhichFaceList di ISetFaces/GetFaces — un
-//     posto DIVERSO dalla Mark di selezione — e i suoi valori non
-//     coincidono con le marche che la guida chiede (2 e 4). E' un tranello
-//     nuovo, della stessa famiglia di "l'enum col nome giusto e' quello
-//     sbagliato" gia' pagato su GP8: un nome che sembra il posto giusto.
+//     That enum is the WhichFaceList parameter of ISetFaces/GetFaces — a
+//     DIFFERENT place from the selection Mark — and its values do not
+//     coincide with the marks that the guide asks for (2 and 4). It is a new
+//     trap, of the same family as "the enum with the right name is the wrong
+//     one" already paid for on GP8: a name that looks like the right place.
 //
-//  3) L'esempio VBA della stessa pagina usa due facce ADIACENTI di un cubo
-//     (la voce lo dice esplicitamente nel proprio commento) — esattamente
-//     la geometria dei 4 tentativi falliti. Questo rende debole l'ipotesi
-//     della voce GP7 ("servono facce non adiacenti"): la guida stessa
-//     mostra un face fillet fra facce adiacenti che condividono uno
-//     spigolo.
+//  3) The VBA example of the same page uses two ADJACENT faces of a cube
+//     (the entry says so explicitly in its own comment) — exactly
+//     the geometry of the 4 failed attempts. This makes the hypothesis
+//     of entry GP7 ("non-adjacent faces are needed") weak: the guide itself
+//     shows a face fillet between adjacent faces that share
+//     an edge.
 //
-//  IPOTESI, IN ORDINE DI PROBABILITA':
-//   H1 — API sbagliata: FeatureFillet3 e' obsoleto per Ftyp=Face da SW2020.
-//        Prova: FeatureFillet3.html, Remarks (citato sopra).
-//   H2 — Marche sbagliate: 1/2 invece di 2/4, per aver riusato l'enum
-//        swSimpleFilletWhichFaces_e (pensato per ISetFaces) come se fossero
-//        le Mark di selezione. Prova: ISimpleFilletFeatureData2.html,
-//        Remarks, riga "Face fillet/face-face chamfer", e l'esempio VBA
-//        incorporato nella stessa pagina.
-//   H3 — Anche con API e marche corrette, manca la specifica del profilo
-//        (ConicTypeForCrossSectionProfile): la guida la elenca come passo
-//        esplicito ("Complete the fillet/chamfer type specification...")
-//        prima di poter creare la feature.
-//   H4 (demota quella della voce) — facce non adiacenti: la guida la
-//        smentisce (vedi punto 3), ma si prova comunque un caso a gradino
-//        per chiudere la domanda con un numero, non con una supposizione.
+//  HYPOTHESES, IN ORDER OF PROBABILITY:
+//   H1 — wrong API: FeatureFillet3 is obsolete for Ftyp=Face since SW2020.
+//        Proof: FeatureFillet3.html, Remarks (quoted above).
+//   H2 — wrong marks: 1/2 instead of 2/4, for having reused the enum
+//        swSimpleFilletWhichFaces_e (meant for ISetFaces) as if they were
+//        the selection Marks. Proof: ISimpleFilletFeatureData2.html,
+//        Remarks, line "Face fillet/face-face chamfer", and the VBA example
+//        embedded in the same page.
+//   H3 — Even with the right API and marks, the profile specification is missing
+//        (ConicTypeForCrossSectionProfile): the guide lists it as an
+//        explicit step ("Complete the fillet/chamfer type specification...")
+//        before the feature can be created.
+//   H4 (demotes the one of the entry) — non-adjacent faces: the guide
+//        refutes it (see point 3), but a stepped case is tried anyway
+//        to close the question with a number, not with a supposition.
 //
-//  LA RICETTA DELLA GUIDA (da ISimpleFilletFeatureData2.html + CreateDefinition.html):
+//  THE RECIPE OF THE GUIDE (from ISimpleFilletFeatureData2.html + CreateDefinition.html):
 //   1. swFeatDataObj = FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet)
-//      — swFmFillet e' descritto li' come "constant radius, face, full round
-//      fillet/chamfer": stesso Type per tutti e tre, e' Initialize() dopo che
-//      sceglie quale.
+//      — swFmFillet is described there as "constant radius, face, full round
+//      fillet/chamfer": the same Type for all three, and it is Initialize() afterwards that
+//      chooses which.
 //   2. swFilletData = (SimpleFilletFeatureData2)swFeatDataObj
 //   3. swFilletData.Initialize((int)swSimpleFilletType_e.swFaceFillet)   // = 2
-//   4. Selezionare le facce PRIMA di richiamare CreateFeature:
+//   4. Select the faces BEFORE calling CreateFeature:
 //        SelectData Mark=2 -> Face Set 1
-//        SelectData Mark=4 -> Face Set 2   (Append=true sulla seconda)
-//   5. (facoltativo ma la guida lo chiede per completare il tipo)
+//        SelectData Mark=4 -> Face Set 2   (Append=true on the second)
+//   5. (optional but the guide asks for it to complete the type)
 //      swFilletData.ConicTypeForCrossSectionProfile =
 //          (int)swFeatureFilletProfileType_e.swFeatureFilletCircular
-//   6. swFilletData.DefaultRadius = raggio (simmetrico)
+//   6. swFilletData.DefaultRadius = radius (symmetric)
 //   7. swFeat = FeatureManager.CreateFeature(swFilletData)
 //
-//  Il pezzo: lo stesso cubo 40x40x40 gia' usato nei 4 tentativi (stessa
-//  geometria, per confronto diretto). Faccia superiore (normale +Z) e faccia
-//  laterale (normale +X): condividono lo spigolo verticale a X=+20,Y=+20.
-//  Un raccordo r=5 su quello spigolo (lungo 40) toglie 40*25*(1-pi/4) =
-//  214,6 mm3 — lo stesso numero di controllo gia' usato nella sonda
-//  precedente, per poter confrontare riga per riga.
+//  The part: the same 40x40x40 cube already used in the 4 attempts (same
+//  geometry, for direct comparison). Top face (normal +Z) and side
+//  face (normal +X): they share the vertical edge at X=+20,Y=+20.
+//  A fillet r=5 on that edge (40 long) removes 40*25*(1-pi/4) =
+//  214.6 mm3 — the same control number already used in the
+//  previous probe, to be able to compare line by line.
 //
-//  Niente EditDelete. Niente finestre: nessuna chiamata qui apre un modale
-//  (CreateFeature su un fillet malformato fallisce silenziosamente o solleva
-//  un'eccezione COM, non apre una finestra). Ogni pezzo si chiude senza
-//  salvare, in un blocco finally.
+//  No EditDelete. No windows: no call here opens a modal
+//  (CreateFeature on a malformed fillet fails silently or raises
+//  a COM exception, it does not open a window). Every part is closed without
+//  saving, in a finally block.
 //
-//  ESITO DEL 28/9/2026, SOLIDWORKS 29.5.1 (l'uscita della sonda, com'era):
+//  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    0. CONTROLLO (bug originale: FeatureFillet3 + Ftyp=Face + marche 1/2) : NULL   volume 64000 -> 64000 mm3 (tolti 0, atteso 214,6)   corpi 1 -> 1
 //    1. RICETTA GUIDA (CreateDefinition+Initialize(swFaceFillet)+marche 2/4+profilo) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (tolti 214,6, atteso 214,6)   corpi 1 -> 1
@@ -117,8 +117,8 @@ using SolidWorks.Interop.swconst;
 //       SelectByID2: True/True
 //    5. RICETTA GUIDA con SelectByID2 per coordinate (marche 2/4) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (tolti 214,6, atteso 214,6)   corpi 1 -> 1
 //
-//  USO   Checks\FaceFillet\bin\FaceFillet.exe, con SOLIDWORKS aperto
-//        (costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c)).
+//  USAGE   Checks\FaceFillet\bin\FaceFillet.exe, with SOLIDWORKS open
+//        (built by Checks\build-checks.ps1 (and by build.ps1, step 1c)).
 // =============================================================================
 internal static class FaceFilletProbe
 {
@@ -133,12 +133,12 @@ internal static class FaceFilletProbe
         Variant_H2_WrongMarks();
         Variant_H3_WithoutProfile();
         Bonus_SetFacesTipizzato();
-        // REVISIONE 28/9/2026: H4 tolta dal giro. Le due facce del "gradino"
-        // hanno la STESSA normale (+X) e stanno su piani paralleli sfalsati di
-        // 5 mm: nessuna sfera puo' essere tangente a tutte e due dal lato
-        // dell'aria, quindi quel raccordo e' impossibile per geometria e un
-        // NULL non direbbe niente sull'API. Al suo posto la ricetta con la
-        // selezione ESATTA delle Remarks (SelectByID2 per coordinate).
+        // REVISION 28/9/2026: H4 removed from the run. The two faces of the "step"
+        // have the SAME normal (+X) and sit on parallel planes offset by
+        // 5 mm: no sphere can be tangent to both of them from the side of the
+        // air, so that fillet is impossible by geometry and a
+        // NULL would say nothing about the API. In its place the recipe with the
+        // EXACT selection of the Remarks (SelectByID2 by coordinates).
         // Variant_H4_FacesNotAdjacent();
         Ricetta_SelectByID2();
 
@@ -146,11 +146,11 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // 5. RICETTA con SelectByID2 — le Remarks di ISimpleFilletFeatureData2
-    //    dicono "Call IModelDocExtension::SelectByID2 with Mark = 2 ... Mark = 4":
-    //    stessa ricetta della 1, ma selezione per coordinate invece che con
-    //    IEntity.Select4. Cubo: X,Y in [-20,20], Z in [0,40] (estruso dal
-    //    frontale lungo +Z): faccia alta z=40, fianco x=+20.
+    // 5. RECIPE with SelectByID2 — the Remarks of ISimpleFilletFeatureData2
+    //    say "Call IModelDocExtension::SelectByID2 with Mark = 2 ... Mark = 4":
+    //    same recipe as number 1, but selection by coordinates instead of with
+    //    IEntity.Select4. Cube: X,Y in [-20,20], Z in [0,40] (extruded from the
+    //    front plane along +Z): top face z=40, side x=+20.
     // ------------------------------------------------------------------
     private static void Ricetta_SelectByID2()
     {
@@ -159,7 +159,7 @@ internal static class FaceFilletProbe
             {
                 var data = (SimpleFilletFeatureData2)doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
                 data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
-                // punti presi dal box reale delle due facce, non assunti
+                // points taken from the real box of the two faces, not assumed
                 var ba = up.GetBox() as double[]; var bf = side.GetBox() as double[];
                 bool s1 = doc.Extension.SelectByID2("", "FACE", (ba[0] + ba[3]) / 2, (ba[1] + ba[4]) / 2, (ba[2] + ba[5]) / 2, false, 2, null, 0);
                 bool s2 = doc.Extension.SelectByID2("", "FACE", (bf[0] + bf[3]) / 2, (bf[1] + bf[4]) / 2, (bf[2] + bf[5]) / 2, true, 4, null, 0);
@@ -171,9 +171,9 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // 0. CONTROLLO — riproduce ESATTAMENTE il tentativo gia' fatto (API
-    //    vecchia, marche 1/2), per avere nella stessa sonda il numero di
-    //    partenza. Atteso: NULL, come nei 4 giri gia' registrati.
+    // 0. CONTROL — reproduces EXACTLY the attempt already made (old
+    //    API, marks 1/2), to have the starting number in the same probe.
+    //    Expected: NULL, as in the 4 runs already recorded.
     // ------------------------------------------------------------------
     private static void Check_OriginalBug()
     {
@@ -182,10 +182,10 @@ internal static class FaceFilletProbe
             {
                 var handler = (ISelectionMgr)doc.SelectionManager;
                 var d1 = handler.CreateSelectData();
-                d1.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet1; // = 1 (SBAGLIATA come Mark)
+                d1.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet1; // = 1 (WRONG as a Mark)
                 (up as IEntity).Select4(true, d1);
                 var d2 = handler.CreateSelectData();
-                d2.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet2; // = 2 (SBAGLIATA come Mark)
+                d2.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet2; // = 2 (WRONG as a Mark)
                 (side as IEntity).Select4(true, d2);
 
                 return doc.FeatureManager.FeatureFillet3(
@@ -201,9 +201,9 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // 1. RICETTA DELLA GUIDA — CreateDefinition/Initialize/CreateFeature,
-    //    marche 2 e 4, profilo dichiarato. Atteso: feature creata, tolti
-    //    214,6 mm3.
+    // 1. RECIPE OF THE GUIDE — CreateDefinition/Initialize/CreateFeature,
+    //    marks 2 and 4, profile declared. Expected: feature created, removed
+    //    214.6 mm3.
     // ------------------------------------------------------------------
     private static void Ricetta_Guida()
     {
@@ -219,9 +219,9 @@ internal static class FaceFilletProbe
                 }
 
                 var handler = (ISelectionMgr)doc.SelectionManager;
-                var d1 = handler.CreateSelectData(); d1.Mark = 2; // Face Set 1 — dalla guida
+                var d1 = handler.CreateSelectData(); d1.Mark = 2; // Face Set 1 — from the guide
                 (up as IEntity).Select4(true, d1);
-                var d2 = handler.CreateSelectData(); d2.Mark = 4; // Face Set 2 — dalla guida
+                var d2 = handler.CreateSelectData(); d2.Mark = 4; // Face Set 2 — from the guide
                 (side as IEntity).Select4(true, d2);
 
                 data.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
@@ -232,9 +232,9 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // 2. VARIANTE H2 — stessa API nuova, ma con le marche SBAGLIATE (1/2,
-    //    quelle riusate dall'enum WhichFaceList) per isolare se la marca da
-    //    sola basta a far fallire anche l'API corretta.
+    // 2. VARIANT H2 — same new API, but with the WRONG marks (1/2,
+    //    those reused from the WhichFaceList enum) to isolate whether the mark
+    //    alone is enough to make even the correct API fail.
     // ------------------------------------------------------------------
     private static void Variant_H2_WrongMarks()
     {
@@ -247,10 +247,10 @@ internal static class FaceFilletProbe
 
                 var handler = (ISelectionMgr)doc.SelectionManager;
                 var d1 = handler.CreateSelectData();
-                d1.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet1; // = 1, sbagliata
+                d1.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet1; // = 1, wrong
                 (up as IEntity).Select4(true, d1);
                 var d2 = handler.CreateSelectData();
-                d2.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet2; // = 2, sbagliata
+                d2.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet2; // = 2, wrong
                 (side as IEntity).Select4(true, d2);
 
                 data.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
@@ -261,9 +261,9 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // 3. VARIANTE H3 — API e marche corrette, ma SENZA dichiarare
-    //    ConicTypeForCrossSectionProfile, per vedere se e' davvero
-    //    necessario o se CreateFeature si arrangia con un default.
+    // 3. VARIANT H3 — correct API and marks, but WITHOUT declaring
+    //    ConicTypeForCrossSectionProfile, to see whether it is really
+    //    necessary or whether CreateFeature copes with a default.
     // ------------------------------------------------------------------
     private static void Variant_H3_WithoutProfile()
     {
@@ -280,7 +280,7 @@ internal static class FaceFilletProbe
                 var d2 = handler.CreateSelectData(); d2.Mark = 4;
                 (side as IEntity).Select4(true, d2);
 
-                // Di proposito NON impostato: dati.ConicTypeForCrossSectionProfile
+                // On purpose NOT set: dati.ConicTypeForCrossSectionProfile
                 data.DefaultRadius = 0.005;
 
                 return doc.FeatureManager.CreateFeature(data) as IFeature;
@@ -288,12 +288,12 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // BONUS — la stessa ricetta ma senza passare dalla selezione: le facce
-    // si passano direttamente a SetFaces con un array TIPIZZATO Face2[]
-    // (mai object[]: e' il tranello gia' pagato su GP8/combina_corpi e
-    // sulle API con Body2[]/Face2[]). Usa i valori CORRETTI di
-    // swSimpleFilletWhichFaces_e (qui e' il posto giusto per quell'enum:
-    // e' proprio il parametro WhichFaceList di SetFaces, non una Mark).
+    // BONUS — the same recipe but without going through the selection: the faces
+    // are passed directly to SetFaces with a TYPED array Face2[]
+    // (never object[]: it is the trap already paid for on GP8/combina_corpi and
+    // on the APIs with Body2[]/Face2[]). It uses the CORRECT values of
+    // swSimpleFilletWhichFaces_e (here it is the right place for that enum:
+    // it is precisely the WhichFaceList parameter of SetFaces, not a Mark).
     // ------------------------------------------------------------------
     private static void Bonus_SetFacesTipizzato()
     {
@@ -304,11 +304,11 @@ internal static class FaceFilletProbe
                 var data = (SimpleFilletFeatureData2)dataObj;
                 data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
 
-                doc.ClearSelection2(true); // qui NON si seleziona nulla: si passa via SetFaces
-                // Array TIPIZZATO Face2[], non object[] (vedi memoria
-                // api_sw_array_tipizzati.md): con object[] l'interop passa un
-                // SAFEARRAY di VARIANT e la chiamata puo' rispondere con una
-                // feature fantasma invece che con NULL o un errore vero.
+                doc.ClearSelection2(true); // here NOTHING is selected: we go through SetFaces
+                // TYPED array Face2[], not object[] (see memory
+                // api_sw_array_tipizzati.md): with object[] the interop passes a
+                // SAFEARRAY of VARIANT and the call may answer with a
+                // phantom feature instead of NULL or a real error.
                 data.SetFaces((int)swSimpleFilletWhichFaces_e.swFaceFilletSet1, new Face2[] { (Face2)up });
                 data.SetFaces((int)swSimpleFilletWhichFaces_e.swFaceFilletSet2, new Face2[] { (Face2)side });
 
@@ -320,15 +320,15 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // VARIANTE H4 — demotata dalla guida (l'esempio VBA di
-    // ISimpleFilletFeatureData2 dichiara nel proprio commento di selezionare
-    // facce ADIACENTI con marche 2 e 4), ma si prova comunque per chiudere
-    // la domanda con un numero: due facce con la STESSA
-    // normale (+X), NON adiacenti, separate da un gradino (un secondo
-    // estruso piu' piccolo, ricavato dalla faccia superiore del cubo e
-    // rientrato su tutti i lati — cosi' il gradino nasce lungo qualunque
-    // sia il vero asse di "fianco", senza doverlo indovinare). API e
-    // marche corrette (2/4).
+    // VARIANT H4 — demoted by the guide (the VBA example of
+    // ISimpleFilletFeatureData2 declares in its own comment that it selects
+    // ADJACENT faces with marks 2 and 4), but it is tried anyway to close
+    // the question with a number: two faces with the SAME
+    // normal (+X), NOT adjacent, separated by a step (a second
+    // smaller extrusion, taken from the top face of the cube and
+    // set back on all sides — so the step is born along whichever
+    // is the real "side" axis, without having to guess it). Correct API and
+    // marks (2/4).
     // ------------------------------------------------------------------
     private static void Variant_H4_FacesNotAdjacent()
     {
@@ -346,11 +346,11 @@ internal static class FaceFilletProbe
             var body = (partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
             var faces = (body.GetFaces() as object[]).Cast<IFace2>().ToList();
 
-            // Le due facce con normale +X: quella del blocco base (piu'
-            // bassa lungo Y, l'asse di estrusione) e quella del blocco
-            // rialzato, rientrata e piu' alta lungo Y — NON condividono
-            // uno spigolo, sono separate dalla faccia orizzontale del
-            // gradino (la vecchia "cima" del cubo, ora nel mezzo).
+            // The two faces with normal +X: that of the base block (lower
+            // along Y, the extrusion axis) and that of the raised
+            // block, set back and higher along Y — they do NOT share
+            // an edge, they are separated by the horizontal face of the
+            // step (the old "top" of the cube, now in the middle).
             var candidate = faces.Where(x => Normal(x)[0] > 0.9)
                                   .OrderByDescending(x => MeanDimension(x, 1))
                                   .ToList();
@@ -401,11 +401,11 @@ internal static class FaceFilletProbe
     }
 
     // ------------------------------------------------------------------
-    // Motore comune alle prime 4 scene: stesso cubo, stesse due facce
-    // (alto = normale +Z, fianco = normale +X, adiacenti su uno spigolo),
-    // stessa fotografia prima/dopo, stessa chiusura senza salvare.
-    // `costruisci` riceve (doc, faccia_alto, faccia_fianco) e ritorna la
-    // IFeature (o null) — tutta la parte che cambia fra le scene.
+    // Engine common to the first 4 scenes: same cube, same two faces
+    // (top = normal +Z, side = normal +X, adjacent on an edge),
+    // same before/after photograph, same closing without saving.
+    // `costruisci` receives (doc, faccia_alto, faccia_fianco) and returns the
+    // IFeature (or null) — the whole part that changes between the scenes.
     // ------------------------------------------------------------------
     private static void Run(string label, Func<IModelDoc2, IFace2, IFace2, IFeature> build)
     {
@@ -457,9 +457,9 @@ internal static class FaceFilletProbe
         }
     }
 
-    // La normale di una faccia PIANA, dalla superficie sottostante, girata se
-    // la faccia e' al contrario: la normale di `PlaneParams` e' quella del
-    // piano, non quella della faccia. (Copiata identica da RaccordoProva.cs.)
+    // The normal of a PLANAR face, from the underlying surface, flipped if
+    // the face is reversed: the normal of `PlaneParams` is that of the
+    // plane, not that of the face. (Copied identically from RaccordoProva.cs.)
     private static double[] Normal(IFace2 f)
     {
         try
@@ -474,9 +474,9 @@ internal static class FaceFilletProbe
         catch { return new double[] { 0, 0, 0 }; }
     }
 
-    // Quota media di una faccia piana lungo l'asse `indice` (0=X,1=Y,2=Z),
-    // dal suo box di ingombro — basta per ORDINARE due facce parallele fra
-    // loro, non per misurarle.
+    // Mean position of a planar face along the axis `indice` (0=X,1=Y,2=Z),
+    // from its bounding box — enough to ORDER two parallel faces
+    // among themselves, not to measure them.
     private static double MeanDimension(IFace2 f, int index)
     {
         try
@@ -507,8 +507,8 @@ internal static class FaceFilletProbe
         return bodies == null ? 0 : bodies.Length;
     }
 
-    // Lo stesso cubo 40x40x40 di RaccordoProva.cs::Cubo(), per confrontare
-    // riga per riga con i 4 tentativi gia' registrati.
+    // The same 40x40x40 cube as RaccordoProva.cs::Cubo(), to compare
+    // line by line with the 4 attempts already recorded.
     private static IModelDoc2 Cube()
     {
         string tpl = _sw.GetUserPreferenceStringValue(
@@ -528,23 +528,23 @@ internal static class FaceFilletProbe
         return doc;
     }
 
-    // Un blocco base 40x40x40 (Cube()) con sopra un secondo blocco piu'
-    // piccolo, rientrato SIMMETRICAMENTE su tutti i lati rispetto alla
-    // faccia su cui nasce — cosi' il gradino si forma su qualunque coppia
-    // di assi sia davvero il piano di quella faccia, SENZA dover indovinare
-    // quale coordinata di `CreateCornerRectangle` corrisponda a quale asse
-    // globale (e senza selezionare per COORDINATE, che e' fragile: qui si
-    // seleziona la IFace2 vera, trovata per normale come "alto"/"fianco").
+    // A 40x40x40 base block (Cube()) with a second smaller block
+    // on top, set back SYMMETRICALLY on all sides with respect to the
+    // face on which it is born — so the step forms on whichever pair
+    // of axes is really the plane of that face, WITHOUT having to guess
+    // which coordinate of `CreateCornerRectangle` corresponds to which global
+    // axis (and without selecting by COORDINATES, which is fragile: here the
+    // real IFace2 is selected, found by normal as "top"/"side").
     //
-    // Si parte dalla faccia con normale +Y (nessuna delle due gia' usate,
-    // "alto"=+Z e "fianco"=+X): e' comunque UNA delle sei facce del cubo,
-    // e il suo piano contiene per costruzione i DUE assi diversi dalla sua
-    // normale — quindi contiene sempre X, l'asse di "fianco". Un rettangolo
-    // piu' piccolo e centrato sull'origine del nuovo schizzo (che SOLIDWORKS
-    // mette di default nella proiezione dell'origine del pezzo, e l'origine
-    // e' dentro questa faccia perche' il cubo e' centrato su X e Z) resta
-    // rientrato su tutti e quattro i lati, qualunque sia l'ordine reale
-    // degli assi in quello schizzo.
+    // We start from the face with normal +Y (neither of the two already used,
+    // "top"=+Z and "side"=+X): it is anyway ONE of the six faces of the cube,
+    // and its plane contains by construction the TWO axes different from its
+    // normal — so it always contains X, the "side" axis. A smaller rectangle
+    // centred on the origin of the new sketch (which SOLIDWORKS
+    // puts by default in the projection of the part origin, and the origin
+    // is inside this face because the cube is centred on X and Z) stays
+    // set back on all four sides, whatever the real order
+    // of the axes in that sketch.
     private static IModelDoc2 CubeWithStep()
     {
         var doc = Cube();
@@ -558,8 +558,8 @@ internal static class FaceFilletProbe
         (top as IEntity).Select4(true, null);
         var sm = doc.SketchManager;
         sm.InsertSketch(true);
-        // Rientrato di 0,005 su ogni lato rispetto al mezzo lato del cubo
-        // (0,020): il blocco rialzato risulta 0,030 x 0,030, centrato.
+        // Set back by 0.005 on every side with respect to the half side of the cube
+        // (0.020): the raised block turns out 0.030 x 0.030, centred.
         sm.CreateCornerRectangle(-0.015, -0.015, 0, 0.015, 0.015, 0);
         sm.InsertSketch(false);
         doc.Extension.SelectByID2("Schizzo2", "SKETCH", 0, 0, 0, false, 0, null, 0);

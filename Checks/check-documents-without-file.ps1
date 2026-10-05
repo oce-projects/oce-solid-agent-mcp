@@ -1,49 +1,49 @@
-# Sorveglia le proprieta' di PlanExecutor che il PONTE accende e l'ADD-IN no.
+# Watches the PlanExecutor properties that the BRIDGE turns on and the ADD-IN does not.
 #
-# Sono tre, e hanno la stessa forma: aprono una strada che nell'add-in deve
-# restare chiusa.
+# There are three, and they have the same shape: they open a road that in the add-in must
+# stay closed.
 #
-#   DocumentWithoutFile  lascia lavorare su un documento mai salvato su disco.
-#                       Per il ponte e' il caso normale: si disegna su `Parte1`
-#                       appena aperta. Per l'add-in no, perche' dentro un PDM un
-#                       file non salvato non e' in check-out, e scriverci
-#                       produce modifiche che al salvataggio falliscono o
-#                       finiscono in una copia.
+#   DocumentWithoutFile  lets it work on a document never saved to disk.
+#                       For the bridge it is the normal case: we draw on `Parte1`
+#                       just opened. For the add-in it is not, because inside a PDM an
+#                       unsaved file is not checked out, and writing to it
+#                       produces changes that fail on save or
+#                       end up in a copy.
 #
-#   AlsoOnDrawings       lascia lavorare su una tavola. Il ponte ha cinque
-#                       operazioni di tavola in catalogo; l'assistente
-#                       dell'add-in disegna pezzi, e un piano che gli arriva su
-#                       una tavola e' quasi sempre un errore di chi ha cambiato
-#                       finestra.
+#   AlsoOnDrawings       lets it work on a drawing. The bridge has five
+#                       drawing operations in the catalogue; the add-in's
+#                       assistant draws parts, and a plan that reaches it on
+#                       a drawing is almost always a mistake of whoever changed
+#                       window.
 #
-#   AlsoOnAssemblies      lascia lavorare su un assieme. Aggiunta il 18/9/2026:
-#                       fino a quel giorno l'esecutore rifiutava ogni assieme
-#                       mentre il catalogo servito ne prometteva quattro
-#                       operazioni. Il banco non poteva vederlo, perche' chiama
-#                       la libreria e non il ponte.
+#   AlsoOnAssemblies      lets it work on an assembly. Added on 18/9/2026:
+#                       until that day the executor refused every assembly
+#                       while the served catalogue promised four
+#                       operations on them. The bench could not see it, because it calls
+#                       the library and not the bridge.
 #
-# Il pericolo e' scritto nella voce B8 del TODO ed e' preciso: che qualcuno le
-# metta a vero anche nell'add-in "perche' davano fastidio". Un booleano che
-# disattiva una difesa e' un invito a disattivarla.
+# The danger is written in entry B8 of the TODO and is precise: that somebody
+# sets them to true in the add-in too "because they were annoying". A boolean that
+# turns off a defence is an invitation to turn it off.
 #
-# COSA CONTROLLA, E COSA NON PUO' CONTROLLARE.
-#   1. dentro questo repository: ognuna si definisce una volta sola e si accende
-#      in UN posto solo, e quel posto e' Bridge\Session.cs;
-#   2. dentro l'add-in, SE le sue sorgenti sono raggiungibili da questa
-#      macchina: non devono comparire affatto.
+# WHAT IT CHECKS, AND WHAT IT CANNOT CHECK.
+#   1. inside this repository: each one is defined once only and turned on
+#      in ONE place only, and that place is Bridge\Session.cs;
+#   2. inside the add-in, IF its sources are reachable from this
+#      machine: they must not appear at all.
 #
-# Il secondo dipende da un altro repository. Quando non lo trova NON dice "tutto
-# a posto": dice a voce alta che quella meta' non l'ha guardata. Un controllo
-# che passa per non aver guardato e' peggio di nessun controllo, perche'
-# rassicura.
+# The second depends on another repository. When it does not find it, it does NOT say "all
+# fine": it says out loud that it did not look at that half. A check
+# that passes because it did not look is worse than no check, because
+# it reassures.
 #
 #   .\Checks\check-documents-without-file.ps1
 #
-# Esce 0 se torna tutto, 1 se no.
+# Exits 0 if everything adds up, 1 if not.
 #
-# NOTA: questo file e' in ASCII puro, come tutti gli .ps1 del progetto.
-# PowerShell 5.1 legge uno script senza BOM come ANSI, e un trattino lungo
-# dentro una stringa gli fa sbagliare il parsing.
+# NOTE: this file is pure ASCII, like all the .ps1 files of the project.
+# PowerShell 5.1 reads a script without a BOM as ANSI, and a long dash
+# inside a string makes it misparse.
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -56,7 +56,7 @@ function Fine($line) { Write-Host "  ok $line" }
 Write-Host "=== Dentro questo repository"
 
 foreach ($itemName in $names) {
-    # Dove si DEFINISCE: una volta sola, nella libreria.
+    # Where it is DEFINED: once only, in the library.
     $defs = @(Get-ChildItem -Path (Join-Path $root 'Oce.Solid.Agent.Core') -Filter *.cs -Recurse |
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
         Select-String -SimpleMatch "public bool $itemName")
@@ -66,8 +66,8 @@ foreach ($itemName in $names) {
         Male "$($defs.Count) definizioni di $itemName, attesa una"
     }
 
-    # Dove si ACCENDE: solo il ponte. Si cerca l'ASSEGNAMENTO e non il nome
-    # nudo, cosi' i commenti che ne parlano (compreso questo file) non contano.
+    # Where it is TURNED ON: the bridge only. We search for the ASSIGNMENT and not the bare
+    # name, so the comments that talk about it (this file included) do not count.
     $activations = @(Get-ChildItem -Path $root -Filter *.cs -Recurse |
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
         Select-String -Pattern "$itemName\s*=\s*true")
@@ -89,20 +89,20 @@ foreach ($itemName in $names) {
 Write-Host ""
 Write-Host "=== Dentro l'add-in"
 
-# L'add-in vive in un altro repository. Il percorso si dice con RISCONTRO_ADDIN.
+# The add-in lives in another repository. The path is given with RISCONTRO_ADDIN.
 #
-# QUI C'ERA UN RIPIEGO, e il ripiego era il percorso di QUESTA macchina verso
-# un ALTRO repository che non e' pubblicabile. Su ogni altra macchina non
-# esisteva e il controllo saltava questa meta' dicendolo - cioe' il ripiego non
-# serviva a nessuno tranne che a chi l'aveva scritto, e intanto pubblicava dove
-# tiene le cose. Senza, il messaggio qui sotto spiega gia' cosa fare.
+# THERE USED TO BE A FALLBACK HERE, and the fallback was the path of THIS machine to
+# ANOTHER repository that is not publishable. On every other machine it did not
+# exist and the check skipped this half saying so - that is, the fallback was of
+# no use to anybody except whoever wrote it, and meanwhile it published where
+# it keeps its things. Without it, the message below already explains what to do.
 $addin = $env:RISCONTRO_ADDIN
 
-# `-not $addin` PRIMA di `Test-Path`, e non e' un dettaglio di stile: tolto il
-# ripiego la variabile puo' essere vuota, e `Test-Path $null` in PowerShell 5.1
-# non risponde `$false` - solleva «Impossibile associare l'argomento al
-# parametro Path perche' e' null», che e' un errore non terminante. Lo script
-# proseguirebbe nel ramo sbagliato dopo averlo stampato.
+# `-not $addin` BEFORE `Test-Path`, and it is not a matter of style: with the
+# fallback gone the variable can be empty, and `Test-Path $null` in PowerShell 5.1
+# does not answer `$false` - it raises «Impossibile associare l'argomento al
+# parametro Path perche' e' null», which is a non-terminating error. The script
+# would carry on down the wrong branch after printing it.
 if (-not $addin -or -not (Test-Path $addin)) {
     if ($addin) { Write-Host "  -- sorgenti dell'add-in non raggiungibili da qui ($addin)." }
     else        { Write-Host "  -- RISCONTRO_ADDIN non e' impostata." }

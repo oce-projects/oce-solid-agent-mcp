@@ -7,20 +7,20 @@ using SolidWorks.Interop.swconst;
 namespace Checks.DrawingDimensions
 {
     /// <summary>
-    /// PERCHE' `InsertModelAnnotations3` NON PORTA NESSUNA QUOTA IN TAVOLA.
+    /// WHY `InsertModelAnnotations3` BRINGS NO DIMENSION INTO THE DRAWING.
     ///
-    /// Il pezzo ha undici quote, la tavola ne riceve zero, e l'API non dice
-    /// perche': risponde un elenco vuoto. Provare a indovinare la combinazione
-    /// giusta modificando il codice di produzione e rilanciando il banco costa
-    /// dieci minuti a tentativo; qui si provano tutte in un colpo e si conta
-    /// dopo ognuna.
+    /// The part has eleven dimensions, the drawing receives zero, and the API does not say
+    /// why: it answers an empty list. Trying to guess the right combination
+    /// by modifying the production code and rerunning the bench costs
+    /// ten minutes per attempt; here they are all tried in one go and counted
+    /// after each one.
     ///
-    /// SI CONTA, NON SI GUARDA IL VALORE DI RITORNO. `InsertModelAnnotations3`
-    /// puo' rispondere un elenco e non aver attaccato niente, o rispondere
-    /// vuoto avendo lavorato: l'unico riscontro e' quante annotazioni hanno le
-    /// viste prima e dopo.
+    /// WE COUNT, WE DO NOT LOOK AT THE RETURN VALUE. `InsertModelAnnotations3`
+    /// can answer a list and have attached nothing, or answer
+    /// empty having worked: the only check is how many annotations the
+    /// views have before and after.
     ///
-    ///     DrawingDimensions.exe        lavora sulla tavola attiva
+    ///     DrawingDimensions.exe        works on the active drawing
     /// </summary>
     internal static class Program
     {
@@ -43,7 +43,7 @@ namespace Checks.DrawingDimensions
             _drawing = (IDrawingDoc)_doc;
             Console.WriteLine("tavola: " + _doc.GetTitle());
 
-            // 1. LE VISTE, E COSA HANNO GIA'.
+            // 1. THE VIEWS, AND WHAT THEY ALREADY HAVE.
             var viewNames = new List<string>();
             var v = _drawing.GetFirstView() as IView;
             while (v != null)
@@ -63,9 +63,9 @@ namespace Checks.DrawingDimensions
             }
             Console.WriteLine("quote in tavola, prima: " + Quote());
 
-            // 2. LE QUOTE DEL PEZZO SONO MARCATE PER IL DISEGNO?
-            // E' la domanda che decide se il problema sta nella tavola o nel
-            // pezzo. Si apre il modello referenziato e si guarda.
+            // 2. ARE THE DIMENSIONS OF THE PART MARKED FOR THE DRAWING?
+            // It is the question that decides whether the problem is in the drawing or in the
+            // part. The referenced model is opened and looked at.
             string modelPath = null;
             var before = _drawing.GetFirstView() as IView;
             while (before != null && modelPath == null)
@@ -92,9 +92,9 @@ namespace Checks.DrawingDimensions
             Test("v3 marcate|non marcate|generico", () => V3(fromModel, marked | notMarked | generic, true, false));
             Test("v3 generico, posizione dallo schizzo", () => V3(fromModel, generic, true, true));
 
-            // Le stesse, ma con una vista ATTIVATA prima. E' l'ipotesi
-            // principale: l'API dice «tutte le viste» ma potrebbe volere
-            // comunque un contesto di vista.
+            // The same ones, but with a view ACTIVATED first. It is the main
+            // hypothesis: the API says «all the views» but might
+            // still want a view context.
             foreach (var itemName in viewNames)
             {
                 Test("v3 generico dopo ActivateView(«" + itemName + "»)", () =>
@@ -109,9 +109,9 @@ namespace Checks.DrawingDimensions
                 });
             }
 
-            // La vista SELEZIONATA per identificativo, che non e' la stessa
-            // cosa di ActivateView: una e' il contesto di modifica, l'altra
-            // e' cio' che l'API vede come selezione.
+            // The view SELECTED by identifier, which is not the same
+            // thing as ActivateView: one is the editing context, the other
+            // is what the API sees as a selection.
             foreach (var itemName in viewNames)
             {
                 Test("v3 generico con la vista «" + itemName + "» SELEZIONATA", () =>
@@ -123,12 +123,12 @@ namespace Checks.DrawingDimensions
                 });
             }
 
-            // TUTTI I VALORI DELLA FONTE, uno per uno.
-            // `swImportModelItemsFromEntireModel` vale ZERO in questo interop,
-            // e zero e' anche quello che si passa per sbaglio quando una
-            // costante non esiste: se l'API volesse 1 per «tutto il modello»,
-            // passandole 0 risponderebbe un elenco vuoto senza lamentarsi.
-            // Non si deduce: si provano.
+            // ALL THE SOURCE VALUES, one by one.
+            // `swImportModelItemsFromEntireModel` is ZERO in this interop,
+            // and zero is also what is passed by mistake when a
+            // constant does not exist: if the API wanted 1 for «the whole model»,
+            // passing it 0 it would answer an empty list without complaining.
+            // Nothing is deduced: they are tried.
             for (int source = 0; source <= 4; source++)
             {
                 int f = source;
@@ -136,14 +136,14 @@ namespace Checks.DrawingDimensions
                 Test("v3 fonte=" + f + " generico", () => V3(f, generic, true, false));
             }
 
-            // I valori veri delle costanti, perche' un enum sbagliato da' zero
-            // senza dire niente.
+            // The real values of the constants, because a wrong enum gives zero
+            // without saying anything.
             Console.WriteLine("  (fonte=" + fromModel + " marcate=" + marked +
                 " notMarked=" + notMarked + " generico=" + generic + ")");
 
-            // LE VERSIONI VECCHIE, che hanno il parametro `AllTypes`: quello
-            // che la 3 ha tolto. Con AllTypes a vero la maschera dei tipi non
-            // conta piu', quindi se il guaio fosse li' si vedrebbe qui.
+            // THE OLD VERSIONS, which have the parameter `AllTypes`: the one
+            // that 3 removed. With AllTypes true the type mask no longer
+            // counts, so if the trouble were there it would be seen here.
             Test("v1 AllTypes", () =>
             {
                 _drawing.InsertModelAnnotations(fromModel, true, 0, true);
@@ -167,10 +167,10 @@ namespace Checks.DrawingDimensions
 
             Console.WriteLine();
             Console.WriteLine("quote in tavola, alla fine: " + Quote());
-            // SI RICONTA IN UN ALTRO MODO. Se «zero quote» venisse da un conto
-            // sbagliato invece che da un inserimento mancato, il numero delle
-            // ANNOTAZIONI lo direbbe: sono due strade diverse per la stessa
-            // domanda, e due zeri d'accordo valgono piu' di uno.
+            // WE RECOUNT IN ANOTHER WAY. If «zero dimensions» came from a wrong
+            // count instead of a missed insertion, the number of
+            // ANNOTATIONS would say so: they are two different roads to the same
+            // question, and two zeros in agreement are worth more than one.
             var u = _drawing.GetFirstView() as IView;
             while (u != null)
             {
@@ -207,7 +207,7 @@ namespace Checks.DrawingDimensions
                 ", quote in tavola " + before + " -> " + after);
         }
 
-        /// <summary>Quante quote hanno in tutto le viste della tavola.</summary>
+        /// <summary>How many dimensions the views of the drawing have in all.</summary>
         private static int Quote()
         {
             int n = 0;
@@ -226,11 +226,11 @@ namespace Checks.DrawingDimensions
         }
 
         /// <summary>
-        /// Le quote del pezzo, e se sono marcate per il disegno.
+        /// The dimensions of the part, and whether they are marked for the drawing.
         ///
-        /// E' la domanda che separa «la tavola non le prende» da «il pezzo non
-        /// le offre», e senza risposta si continua a modificare il lato
-        /// sbagliato.
+        /// It is the question that separates «the drawing does not take them» from «the part does not
+        /// offer them», and without an answer we keep modifying the wrong
+        /// side.
         /// </summary>
         private static void LookAtPartDimensions(ISldWorks sw, string filePath)
         {
@@ -256,7 +256,7 @@ namespace Checks.DrawingDimensions
                         try { if (d.MarkedForDrawing) marked++; } catch { }
                         d = f.GetNextDisplayDimension(d) as IDisplayDimension;
                     }
-                    // anche gli schizzi sotto la feature
+                    // also the sketches under the feature
                     var below = f.GetFirstSubFeature() as IFeature;
                     while (below != null)
                     {

@@ -6,30 +6,30 @@ using SolidWorks.Interop.swconst;
 namespace Checks.Select
 {
     /// <summary>
-    /// SELEZIONA QUALCOSA NEL PEZZO, come farebbe un dito sullo schermo.
+    /// SELECTS SOMETHING IN THE PART, as a finger on the screen would.
     ///
-    /// Serve a provare che lo stato sappia dire **cosa e' selezionato**: il
-    /// criterio della voce E9 parla di un click in interfaccia, e un click non
-    /// si puo' scrivere in un banco. Quello che si puo' fare — e che prova la
-    /// stessa strada — e' selezionare per API e poi chiedere allo stato come si
-    /// chiama: `ISelectionMgr` non sa da dove arrivi la selezione.
+    /// It is used to test that the state can say **what is selected**: the
+    /// criterion of entry E9 speaks of a click in the interface, and a click
+    /// cannot be written in a bench. What can be done — and which tests the
+    /// same road — is to select by API and then ask the state what it is
+    /// called: `ISelectionMgr` does not know where the selection comes from.
     ///
-    ///     Select.exe faccia 1        la prima faccia del primo corpo
-    ///     Select.exe spigolo 1       il primo spigolo
-    ///     Select.exe corpo 1         il primo corpo
-    ///     Select.exe niente          svuota la selezione
+    ///     Select.exe faccia 1        the first face of the first body
+    ///     Select.exe spigolo 1       the first edge
+    ///     Select.exe corpo 1         the first body
+    ///     Select.exe niente          empties the selection
     ///
-    /// I numeri sono quelli dell'ordine in cui SOLIDWORKS da' le entita', NON
-    /// gli identificativi dello stato: sono due numerazioni diverse, ed e'
-    /// proprio la differenza che questa prova serve a misurare.
+    /// The numbers are those of the order in which SOLIDWORKS gives the entities, NOT
+    /// the identifiers of the state: they are two different numberings, and it is
+    /// precisely the difference that this check serves to measure.
     /// </summary>
     internal static class Program
     {
         private static int Main(string[] arguments)
         {
-            // `--aggiungi` non svuota la selezione di prima: serve a provare
-            // il caso che la voce E9 nominava come rischio — piu' entita'
-            // selezionate insieme — che altrimenti non si costruisce.
+            // `--aggiungi` does not empty the previous selection: it serves to test
+            // the case that entry E9 named as a risk — several entities
+            // selected together — which otherwise cannot be built.
             bool append = false;
             var clean = new System.Collections.Generic.List<string>();
             foreach (var a in arguments)

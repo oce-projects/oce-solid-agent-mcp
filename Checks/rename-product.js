@@ -1,19 +1,19 @@
-// LA RINOMINA DEL PRODOTTO (voce I1).
+// THE RENAME OF THE PRODUCT (entry I1).
 //
-// Da `SolidWorksMcp` a `Oce.Solid.Agent`, eseguibile `oce-solid-agent-mcp.exe`.
+// From `SolidWorksMcp` to `Oce.Solid.Agent`, executable `oce-solid-agent-mcp.exe`.
 //
-// PERCHE' NON BASTA RINOMINARE IL REPOSITORY. Il marchio intero di Dassault
-// oggi non sta solo nell'URL: sta nel RootNamespace, nell'AssemblyName, nel
-// nome dell'eseguibile che finisce nella configurazione di ogni client MCP,
-// nel payload dell'installatore e nel manifest. Chi scarica il pacchetto si
-// ritrova `SolidWorksMcp.exe` sul disco.
+// WHY RENAMING THE REPOSITORY IS NOT ENOUGH. The whole Dassault trademark
+// today is not only in the URL: it is in the RootNamespace, in the AssemblyName, in the
+// name of the executable that ends up in the configuration of every MCP client,
+// in the payload of the installer and in the manifest. Whoever downloads the package
+// finds `SolidWorksMcp.exe` on the disk.
 //
-// PERCHE' UNO SCRIPT E NON VENTOTTO MODIFICHE A MANO. Perche' si rifa'
-// identico se si sbaglia, perche' si legge cosa ha toccato, e perche' una
-// sostituzione fatta a mano su ventotto file ne dimentica uno -- e quello che
-// dimentica e' esattamente quello che nessuno riguardera' piu'.
+// WHY A SCRIPT AND NOT TWENTY-EIGHT HAND EDITS. Because it is redone
+// identical if one gets it wrong, because one reads what it touched, and because a
+// replacement done by hand on twenty-eight files forgets one -- and the one it
+// forgets is exactly the one that nobody will look at again.
 //
-// COSA NON SI TOCCA, e sono decisioni:
+// WHAT IS NOT TOUCHED, and they are decisions:
 //
 //   * `CHANGELOG.md`: not touched by this script, which removes a trademark.
 //     The historical entries are translated too, in W3.1-bis.10 (decision D2
@@ -21,11 +21,11 @@
 //   * `Oce.Solid.Agent.Core`: not touched by this script, which removes a
 //     trademark. The project and its folder get an English name in
 //     W3.1-bis.6 (decision D6 of 28 September 2026).
-//   * i binari (`bin/`, `dist/`, `Installer/Payload/`): si rigenerano
-//     compilando.
+//   * the binaries (`bin/`, `dist/`, `Installer/Payload/`): they are regenerated
+//     by compiling.
 //
-//   node Checks/rename-product.js            dice cosa farebbe
-//   node Checks/rename-product.js --scrivi   lo fa
+//   node Checks/rename-product.js            says what it would do
+//   node Checks/rename-product.js --scrivi   does it
 
 var fs = require('fs');
 var path = require('path');
@@ -33,49 +33,49 @@ var path = require('path');
 var ROOT = path.resolve(__dirname, '..');
 var WRITE = process.argv.indexOf('--scrivi') >= 0;
 
-// In quest'ordine: le forme piu' lunghe per prime, o una sostituzione corta
-// mangia il pezzo di una lunga e il risultato non e' piu' riparabile.
+// In this order: the longest forms first, or a short replacement
+// eats the piece of a long one and the result is no longer repairable.
 var CHANGES = [
     // namespace e using
     ['SolidWorksMcp.Installer', 'Oce.Solid.Agent.Installer'],
     ['SolidWorksMcp.Strumenti', 'Oce.Solid.Agent.Tools'],
     ['SolidWorksMcp.Ponte', 'Oce.Solid.Agent.Bridge'],
     ['SolidWorksMcp.Mcp', 'Oce.Solid.Agent.Mcp'],
-    // l'eseguibile, col nome del repository: e' quello che finisce nella
-    // configurazione del client MCP e sul disco di chi installa
+    // the executable, with the name of the repository: it is what ends up in the
+    // configuration of the MCP client and on the disk of whoever installs
     ['SolidWorksMcp.exe', 'oce-solid-agent-mcp.exe'],
     ['SolidWorksMcp.csproj', 'Oce.Solid.Agent.csproj'],
-    // il resto: nome del prodotto, RootNamespace, AssemblyName
+    // the rest: product name, RootNamespace, AssemblyName
     ['SolidWorksMcp', 'Oce.Solid.Agent'],
 
-    // LE GRAFIE SEPARATE, che la prima passata non aveva preso ed erano le piu'
-    // visibili di tutte:
+    // THE SEPARATE SPELLINGS, which the first pass had not caught and were the most
+    // visible of all:
     //
-    //   Installer\Steps.cs   ProductName, cioe' quello che legge chi installa
-    //   NOTICE riga 1        la prima riga delle note legali
-    //   Program.cs         il nome che il server dichiara SUL PROTOCOLLO MCP,
-    //                        cioe' quello che vede il client
-    //   README.md riga 1     il titolo
+    //   Installer\Steps.cs   ProductName, that is what whoever installs reads
+    //   NOTICE line 1        the first line of the legal notes
+    //   Program.cs         the name that the server declares ON THE MCP PROTOCOL,
+    //                        that is what the client sees
+    //   README.md line 1     the title
     //
-    // Cercare una sola grafia e credere di aver finito e' lo stesso errore del
-    // percorso di scratchpad, che aveva quattro forme e se ne provavano due.
+    // Looking for a single spelling and believing one has finished is the same mistake as the
+    // scratchpad path, which had four forms and two were tried.
     ['SolidWorks MCP', 'OCE Solid Agent'],
     ['solidworks-mcp', 'oce-solid-agent'],
 ];
 
-// ATTENZIONE: la parola `SolidWorks` DA SOLA non si tocca mai. E' il nome del
-// programma con cui questo software parla, e nominarlo per dire con cosa si e'
-// interoperabili e' uso lecito e necessario. Qui spariscono solo le forme in
-// cui il marchio faceva da NOME DEL PRODOTTO.
+// WARNING: the word `SolidWorks` ALONE is never touched. It is the name of the
+// program that this software talks to, and naming it to say what one is
+// interoperable with is lawful and necessary use. Only the forms in
+// which the trademark acted as the PRODUCT NAME disappear here.
 
-// Estensioni che si toccano. I binari no: si rigenerano compilando.
-// Anche i file SENZA estensione: `NOTICE` e `LICENSE` non ne hanno una, e la
-// prima riga del NOTICE portava il nome del prodotto col marchio dentro. Una
-// lista di estensioni che dimentica i file che non ne hanno e' lo stesso buco
-// gia' trovato nella guardia di pubblicabilita'.
+// Extensions that are touched. Not the binaries: they are regenerated by compiling.
+// Also the files WITHOUT an extension: `NOTICE` and `LICENSE` do not have one, and the
+// first line of the NOTICE carried the product name with the trademark inside. A
+// list of extensions that forgets the files that do not have one is the same hole
+// already found in the publishability guard.
 var TEXT = ['.cs', '.csproj', '.js', '.ps1', '.md', '.json', '.manifest', '.config', '.txt', ''];
 
-// File che NON si toccano, uno per uno e con la ragione accanto.
+// Files that are NOT touched, one by one and with the reason next to them.
 var UNTOUCHABLE = {
     'CHANGELOG.md': 'le voci storiche dicono cosa si chiamava allora',
     'ultimo-giro.txt': 'uscita del banco, si rigenera',
@@ -105,14 +105,14 @@ function benchRun(folder) {
         var text;
         try { text = fs.readFileSync(full, 'utf8'); } catch (e) { continue; }
 
-        // SI CERCA OGNI FORMA, NON LA PRIMA.
+        // EVERY FORM IS SEARCHED, NOT THE FIRST ONE.
         //
-        // Qui c'era `if (testo.indexOf('SolidWorksMcp') < 0) continue;`, e
-        // saltava i file che avevano SOLO le grafie separate -- cioe' proprio
-        // il NOTICE, il titolo del README e il nome del prodotto
-        // nell'installatore. Un filtro d'ingresso piu' stretto dell'elenco
-        // delle sostituzioni e' un modo di non fare meta' del lavoro senza
-        // dirlo: il conteggio finale usciva zero e sembrava «niente da fare».
+        // Here there was `if (testo.indexOf('SolidWorksMcp') < 0) continue;`, and
+        // it skipped the files that had ONLY the separate spellings -- that is precisely
+        // the NOTICE, the title of the README and the product name
+        // in the installer. An entry filter narrower than the list
+        // of replacements is a way of not doing half the work without
+        // saying so: the final count came out zero and looked like «nothing to do».
         var hasSomething = false;
         for (var k = 0; k < CHANGES.length; k++)
             if (text.indexOf(CHANGES[k][0]) >= 0) { hasSomething = true; break; }

@@ -1,31 +1,31 @@
 # =============================================================================
-#  error-enum.ps1 - quali enum di errore di SOLIDWORKS hanno
-#                       "nessun errore" DIVERSO da zero        (voce Z-C7)
+#  error-enum.ps1 - which SOLIDWORKS error enums have
+#                       "no error" DIFFERENT from zero        (entry Z-C7)
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come bench.ps1 e per la stessa ragione.
+#  THIS FILE IS PURE ASCII, like bench.ps1 and for the same reason.
 #
-#  PERCHE' ESISTE
+#  WHY IT EXISTS
 #
-#  `swAddMateError_NoError` vale 1, e `ErrorUknown` vale 0. Un `if (errore != 0)`
-#  su quell'API e' esattamente rovesciato: dichiara fallito un accoppiamento
-#  riuscito, e non da' nessun sintomo -- l'accoppiamento c'e', il messaggio dice
-#  che non c'e'.
+#  `swAddMateError_NoError` is 1, and `ErrorUknown` is 0. An `if (errore != 0)`
+#  on that API is exactly upside down: it declares a successful mate as
+#  failed, and gives no symptom -- the mate is there, the message says
+#  it is not.
 #
-#  Non e' un caso isolato, e questo script serve a dire QUANTI sono invece di
-#  ricordarselo. Li legge per riflessione dalle interop installate su questa
-#  postazione: non serve che SOLIDWORKS sia aperto, serve che sia installato.
+#  It is not an isolated case, and this script serves to say HOW MANY there are instead of
+#  remembering it. It reads them by reflection from the interops installed on this
+#  workstation: SOLIDWORKS does not need to be open, it needs to be installed.
 #
-#  QUANDO RILANCIARLO
+#  WHEN TO RERUN IT
 #
-#  Quando cambia la versione di SOLIDWORKS. L'elenco misurato sta scritto in
-#  `Tests/ErrorEnumTests.cs`, che e' un controllo di contratto e gira anche
-#  in CI, dove le interop NON ci sono: li' l'elenco e' un dato, e un dato
-#  copiato invecchia da solo. Questo script e' il modo di rinfrescarlo.
+#  When the SOLIDWORKS version changes. The measured list is written in
+#  `Tests/ErrorEnumTests.cs`, which is a contract check and also runs
+#  in CI, where the interops are NOT there: there the list is data, and data
+#  that is copied ages by itself. This script is the way to refresh it.
 #
-#  USO
+#  USAGE
 #      .\Checks\error-enum.ps1
-#      .\Checks\error-enum.ps1 -All     anche quelli che valgono 0
+#      .\Checks\error-enum.ps1 -All     also those that are worth 0
 # =============================================================================
 
 param([switch]$All)
@@ -52,10 +52,10 @@ Write-Output ""
 
 $asm = [Reflection.Assembly]::LoadFrom($dll)
 
-# COSA CONTA COME "NIENTE ERRORE". I nomi non sono uniformi: NoError, _Ok,
-# _None, Success. Cercarne uno solo vorrebbe dire non vedere gli altri, e un
-# elenco che non vede meta' dei casi e' peggio di nessun elenco -- perche' si
-# legge come completo.
+# WHAT COUNTS AS "NO ERROR". The names are not uniform: NoError, _Ok,
+# _None, Success. Looking for only one would mean not seeing the others, and a
+# list that does not see half of the cases is worse than no list -- because it
+# reads as complete.
 $good = 'NoError|_Ok$|_None$|Success'
 
 $lines = @()

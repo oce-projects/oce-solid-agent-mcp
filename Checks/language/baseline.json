@@ -2,7 +2,7 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 61844,
+  "comments": 41955,
   "strings": 54069,
   "markdown": 11388,
   "json_values": 54655,
@@ -1015,106 +1015,93 @@
    "markdown": 361
   },
   "Checks/Bracket/Program.cs": {
-   "comments": 854,
    "strings": 232
   },
   "Checks/BrokenBody/Program.cs": {
-   "comments": 562,
    "strings": 165
   },
   "Checks/ChangeByHand/Program.cs": {
-   "comments": 220,
    "strings": 44
   },
   "Checks/CloseLeftovers/Program.cs": {
-   "comments": 221,
+   "comments": 1,
    "strings": 21
   },
   "Checks/DetailView/Program.cs": {
-   "comments": 281,
    "strings": 85
   },
   "Checks/DimXpert/Program.cs": {
-   "comments": 169,
    "strings": 83
   },
   "Checks/DimensionApis/Program.cs": {
-   "comments": 101,
+   "comments": 1,
    "strings": 7
   },
   "Checks/DrawingDimensions/Program.cs": {
-   "comments": 270,
    "strings": 69
   },
   "Checks/EdgeFlange/Program.cs": {
-   "comments": 346,
-   "strings": 98
+   "strings": 98,
+   "comments": 3
   },
   "Checks/ExtrusionType/Program.cs": {
    "strings": 14
   },
   "Checks/FaceFillet/Program.cs": {
-   "comments": 925,
+   "comments": 30,
    "strings": 54
   },
   "Checks/Fill/Program.cs": {
-   "comments": 83,
+   "comments": 73,
    "strings": 51
   },
   "Checks/FollowTheEdge/Program.cs": {
-   "comments": 431,
    "strings": 139
   },
   "Checks/FramingTest/Program.cs": {
-   "comments": 614,
    "strings": 97
   },
   "Checks/GearTest/Program.cs": {
-   "comments": 706,
+   "comments": 8,
    "strings": 72
   },
   "Checks/Gusset/Program.cs": {
-   "comments": 923,
+   "comments": 270,
    "strings": 257
   },
   "Checks/HoleOrFillet/Program.cs": {
-   "comments": 199,
    "strings": 35
   },
   "Checks/Modal/Program.cs": {
-   "comments": 170,
+   "comments": 3,
    "strings": 78
   },
   "Checks/NewPart/Program.cs": {
-   "comments": 136,
    "strings": 12
   },
   "Checks/Option/Program.cs": {
-   "comments": 115,
    "strings": 31
   },
   "Checks/Orphan/Program.cs": {
-   "comments": 286,
    "strings": 189
   },
   "Checks/OutlineTest/Program.cs": {
-   "comments": 516,
-   "strings": 161
+   "strings": 161,
+   "comments": 6
   },
   "Checks/PdfText/Program.cs": {
-   "comments": 228,
+   "comments": 1,
    "strings": 166
   },
   "Checks/PositionsTest/Program.cs": {
-   "comments": 450,
+   "comments": 10,
    "strings": 133
   },
   "Checks/RedTree/Program.cs": {
-   "comments": 147,
    "strings": 24
   },
   "Checks/Rib/Program.cs": {
-   "comments": 86,
+   "comments": 70,
    "strings": 91
   },
   "Checks/RibWithdraw/Program.cs": {
@@ -1122,78 +1109,70 @@
    "strings": 1
   },
   "Checks/RoleCoverage/Program.cs": {
-   "comments": 352,
    "strings": 64
   },
   "Checks/SectionView/Program.cs": {
-   "comments": 315,
-   "strings": 91
+   "strings": 91,
+   "comments": 3
   },
   "Checks/Select/Program.cs": {
-   "comments": 118,
+   "comments": 4,
    "strings": 18
   },
   "Checks/SheetMetal/Program.cs": {
-   "comments": 271,
-   "strings": 145
+   "strings": 145,
+   "comments": 2
   },
   "Checks/SketchOnSheet/Program.cs": {
-   "comments": 320,
    "strings": 111
   },
   "Checks/Thickness/Program.cs": {
-   "comments": 480,
+   "comments": 2,
    "strings": 169
   },
   "Checks/Undo/Program.cs": {
-   "comments": 136,
    "strings": 15
   },
   "Checks/ViewTest/Program.cs": {
-   "comments": 338,
    "strings": 51
   },
   "Checks/build-checks.ps1": {
-   "comments": 366,
    "strings": 33
   },
   "Checks/check-catalog.ps1": {
-   "comments": 389,
+   "comments": 11,
    "strings": 173
   },
   "Checks/check-documents-without-file.ps1": {
-   "comments": 348,
-   "strings": 56
+   "strings": 56,
+   "comments": 7
   },
   "Checks/check-publishability.ps1": {
-   "comments": 1436,
+   "comments": 10,
    "strings": 168
   },
   "Checks/check-workflow.ps1": {
-   "comments": 112,
    "strings": 36
   },
   "Checks/cleanup-history.js": {
-   "comments": 228
+   "comments": 2
   },
   "Checks/count-tested.js": {
-   "comments": 248,
+   "comments": 8,
    "strings": 104
   },
   "Checks/count-todo.js": {
-   "comments": 905,
+   "comments": 50,
    "strings": 90
   },
   "Checks/error-enum.ps1": {
-   "comments": 134,
    "strings": 29
   },
   "Checks/hooks/pre-push": {
-   "comments": 304,
+   "comments": 1,
    "strings": 81
   },
   "Checks/install-hooks.ps1": {
-   "comments": 75,
    "strings": 18
   },
   "Checks/language/name-map.tsv": {
@@ -1216,59 +1195,52 @@
    "strings": 1
   },
   "Checks/library-of-the-time.ps1": {
-   "comments": 142,
+   "comments": 1,
    "strings": 43
   },
   "Checks/prepare-release.ps1": {
-   "comments": 228,
    "strings": 88
   },
   "Checks/questions-without-answer.js": {
-   "comments": 181,
    "strings": 125
   },
   "Checks/rename-product.js": {
-   "comments": 324,
    "strings": 27
   },
   "Checks/signatures-api.ps1": {
-   "comments": 429,
    "strings": 200
   },
   "Checks/solidworks-modules.ps1": {
-   "comments": 523,
-   "strings": 133
+   "strings": 133,
+   "comments": 13
   },
   "Checks/test-installer.js": {
-   "comments": 312,
    "strings": 169
   },
   "Checks/test-x2.js": {
-   "comments": 323,
+   "comments": 4,
    "strings": 70
   },
   "Checks/todo-lines.js": {
-   "comments": 457,
    "strings": 137
   },
   "Checks/todo-paths.js": {
-   "comments": 436,
+   "comments": 4,
    "strings": 59
   },
   "Checks/todo-references.js": {
-   "comments": 207,
+   "comments": 9,
    "strings": 34
   },
   "Checks/todo-signatures.ps1": {
-   "comments": 448,
    "strings": 112
   },
   "Checks/where-is-the-todo.js": {
-   "comments": 137,
+   "comments": 1,
    "strings": 17
   },
   "Checks/zero-or-unknown.js": {
-   "comments": 442,
+   "comments": 6,
    "strings": 145
   },
   "INSTALL-FOR-AI.md": {

@@ -7,96 +7,96 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  probe_fazzoletto — voce GP20: "il fazzoletto non nasce"
+//  probe_fazzoletto — entry GP20: "the gusset is not born"
 // =============================================================================
 //
-//  COSA MISURA QUESTA SONDA E PERCHE'
+//  WHAT THIS PROBE MEASURES AND WHY
 //
-//  Il catalogo (Oce.Solid.Agent.Core/Catalog/Operations.cs, voce "gusset") e
-//  il TODO (voce GP20) elencano 16 varianti provate alla cieca, TUTTE null:
+//  The catalogue (Oce.Solid.Agent.Core/Catalog/Operations.cs, entry "gusset") and
+//  the TODO (entry GP20) list 16 variants tried blindly, ALL null:
 //
-//    marca: nessuna, 1/1, 1/2, ordine invertito         (6)
-//    spessore: interno, esterno, da tutte e due le parti (3)
-//    profilo: triangolare, poligonale                    (\
-//    profilo: lati (BUseLenDim=true), angolo (=false)     ) 4 (incrociate a coppie)
-//    posizione: inizio, centro                            /  (2)
+//    mark: none, 1/1, 1/2, reversed order               (6)
+//    thickness: inside, outside, on both sides           (3)
+//    profile: triangular, polygonal                      (\
+//    profile: sides (BUseLenDim=true), angle (=false)     ) 4 (crossed in pairs)
+//    position: start, centre                              /  (2)
 //                                                    1 base + 15 = 16
 //
-//  NESSUNA di queste 16 varianti compare come "il valore del terzo parametro
-//  del profilo" (ProfileAngle quando BUseLenDim=false, ProfileD4 quando e'
-//  true). La guida API (Insert_Gusset_Feature_Example_CSharp.htm e
+//  NONE of these 16 variants appears as "the value of the third parameter
+//  of the profile" (ProfileAngle when BUseLenDim=false, ProfileD4 when it is
+//  true). The API guide (Insert_Gusset_Feature_Example_CSharp.htm and
 //  Insert_Weldment_Features_Example_CSharp.htm, IFeatureManager~
-//  InsertGussetFeature3) mostra SEMPRE quel terzo valore diverso da zero
-//  (45 gradi, oppure 15 mm) nei DUE unici esempi funzionanti conosciuti. Il
-//  codice spedito nel ponte (WeldmentOperations.cs, Gusset) passa
-//  ProfileD3=0, ProfileAngle=0, ProfileD4=0 SEMPRE: un profilo con angolo o
-//  lato zero e' degenere (si chiude su se stesso), e SOLIDWORKS lo rifiuta
-//  in silenzio — lo stesso difetto "null senza errore su geometria non
-//  valida" gia' pagato altrove in questo progetto (vedi memoria
+//  InsertGussetFeature3) ALWAYS shows that third value different from zero
+//  (45 degrees, or 15 mm) in the TWO only working examples known. The
+//  code shipped in the bridge (WeldmentOperations.cs, Gusset) passes
+//  ProfileD3=0, ProfileAngle=0, ProfileD4=0 ALWAYS: a profile with angle or
+//  side zero is degenerate (it closes on itself), and SOLIDWORKS rejects it
+//  silently — the same defect "null without error on invalid
+//  geometry" already paid for elsewhere in this project (see memory
 //  api-sw-array-tipizzati).
 //
-//  CORREZIONE DELLA REVISIONE (28/9/2026), letta nel codice storico
-//  (prova0089, Gusset(), variante "polygonal", mai entrata nel repo): un
-//  TRIANGOLO non degenere (BIsProfile=false, D1=D2=60) e' GIA' stato provato,
-//  ma SENZA marca, e ha dato null; la marca 1/1 e' stata provata solo col
-//  poligono degenere (Gusset(), "marca1"). La combinazione mai provata e'
-//  quindi profilo valido + marca 1 su entrambe le facce: e' la variante 1.
+//  CORRECTION FROM THE REVIEW (28/9/2026), read in the historic code
+//  (prova0089, Gusset(), variant "polygonal", never entered in the repo): a
+//  non-degenerate TRIANGLE (BIsProfile=false, D1=D2=60) HAS ALREADY been tried,
+//  but WITHOUT a mark, and gave null; the mark 1/1 was tried only with the
+//  degenerate polygon (Gusset(), "marca1"). The combination never tried is
+//  therefore valid profile + mark 1 on both faces: it is variant 1.
 //
-//  Questa e' l'IPOTESI 1, la piu' probabile. Le altre due sonde isolano le
-//  variabili vicine, per non confondere "il profilo era degenere" con "la
-//  marca era sbagliata" o "il meccanismo di selezione (marca) e' diverso
-//  dall'array esplicito":
+//  This is HYPOTHESIS 1, the most probable. The other two probes isolate the
+//  neighbouring variables, so as not to confuse "the profile was degenerate" with "the
+//  mark was wrong" or "the selection mechanism (mark) is different
+//  from the explicit array":
 //
-//    variante 0 — CONTROLLO: la ricetta esatta spedita nel ponte, sulla
-//                 STESSA T di prova di questa sonda. Deve fallire (null) come
-//                 sempre: se qui nascesse, vorrebbe dire che il difetto non
-//                 e' nei parametri ma nella T di prova del ponte.
-//    variante 1 — RICETTA DELLA GUIDA: InsertGussetFeature3, profilo
-//                 TRIANGOLARE (BIsProfile=false), angolo 45 gradi
-//                 (BUseLenDim=false), marca 1 su ENTRAMBE le facce (la
-//                 pagina di riferimento lo dice in Remarks: "select two
+//    variant 0 — CONTROL: the exact recipe shipped in the bridge, on the
+//                 SAME test T of this probe. It must fail (null) as
+//                 always: if it were born here, it would mean that the defect
+//                 is not in the parameters but in the bridge's test T.
+//    variant 1 — RECIPE OF THE GUIDE: InsertGussetFeature3, TRIANGULAR
+//                 profile (BIsProfile=false), angle 45 degrees
+//                 (BUseLenDim=false), mark 1 on BOTH faces (the
+//                 reference page says so in Remarks: "select two
 //                 faces ... with a Mark of 1").
-//    variante 2 — IPOTESI "il profilo degenere e' la sola causa": stessa
-//                 forma POLIGONALE (BIsProfile=true) che il ponte intendeva,
-//                 ma con ProfileD3/ProfileD4 REALI (15 mm, non zero).
-//    variante 3 — IPOTESI "bastava la marca": la ricetta ESATTA del ponte
-//                 (profilo degenere incluso) ma con marca 1/1 vera invece di
-//                 nessuna marca — per isolare la marca da sola.
-//    variante 4 — IPOTESI "e' l'array, non la selezione": stessa ricetta
-//                 della variante 1 ma passata come Face2[] esplicito a
-//                 InsertGussetFeature2 (nessuna selezione, nessuna marca:
-//                 la pagina di riferimento di InsertGussetFeature2 non la
-//                 richiede).
+//    variant 2 — HYPOTHESIS "the degenerate profile is the only cause": same
+//                 POLYGONAL shape (BIsProfile=true) that the bridge intended,
+//                 but with REAL ProfileD3/ProfileD4 (15 mm, not zero).
+//    variant 3 — HYPOTHESIS "the mark was enough": the EXACT recipe of the bridge
+//                 (degenerate profile included) but with a real mark 1/1 instead of
+//                 no mark — to isolate the mark alone.
+//    variant 4 — HYPOTHESIS "it is the array, not the selection": same recipe
+//                 as variant 1 but passed as an explicit Face2[] to
+//                 InsertGussetFeature2 (no selection, no mark:
+//                 the reference page of InsertGussetFeature2 does not
+//                 require it).
 //
-//  Ogni variante costruisce una T FRESCA (due membri strutturali 80x80x5,
-//  600 + 300 mm, tagliati) cosi' un tentativo non lascia residui che
-//  confondano il successivo, e chiude il pezzo senza salvare.
+//  Each variant builds a FRESH T (two structural members 80x80x5,
+//  600 + 300 mm, trimmed) so an attempt leaves no residue that
+//  confuses the next one, and closes the part without saving.
 //
-//  T DI PROVA — stessa di Bench/cases/weldments/weld_bead_goes_between_touching_faces.json:
-//    barra lunga:  segmento (0,0,0) -> (0.6, 0, 0)         [lungo X, sezione in Y-Z]
-//    barra corta:  segmento (0.3,0,0) -> (0.3, 0, 0.3)     [lungo Z, sezione in X-Y]
-//    taglio:       la corta tagliata dalla lunga (EndCond = swEndConditionTrim)
-//  Le due si sovrappongono in Z fra 0 e 0,04 (lo spessore della lunga): il
-//  taglio toglie quella fetta ALLA CORTA, che riparte da Z=+0,04. Dopo il
-//  taglio, la faccia Z=+0,04 della lunga (normale Z, area attesa
-//  0.6 x 0.068 = 0,0408 m^2) e la faccia laterale della corta (normale +-X,
-//  a X=0,26 o X=0,34, area attesa 0.26 x 0.068 = 0,01768 m^2) si toccano
-//  lungo uno spigolo di 68 mm ad angolo retto — le stesse due facce su cui
-//  gia' nasce `weld_bead`.
+//  TEST T — the same as Bench/cases/weldments/weld_bead_goes_between_touching_faces.json:
+//    long bar:   segment (0,0,0) -> (0.6, 0, 0)         [along X, section in Y-Z]
+//    short bar:  segment (0.3,0,0) -> (0.3, 0, 0.3)     [along Z, section in X-Y]
+//    trim:       the short one trimmed by the long one (EndCond = swEndConditionTrim)
+//  The two overlap in Z between 0 and 0.04 (the thickness of the long one): the
+//  trim removes that slice FROM THE SHORT ONE, which restarts from Z=+0.04. After the
+//  trim, the face Z=+0.04 of the long one (normal Z, expected area
+//  0.6 x 0.068 = 0.0408 m^2) and the side face of the short one (normal +-X,
+//  at X=0.26 or X=0.34, expected area 0.26 x 0.068 = 0.01768 m^2) touch
+//  along an edge of 68 mm at a right angle — the same two faces on which
+//  `weld_bead` is already born.
 //
-//  NIENTE EditDelete, niente AddDimension (mai chiamata), niente finestre:
-//  il profilo si controlla con File.Exists PRIMA di chiamare
-//  InsertStructuralWeldment5. Ogni pezzo si chiude senza salvare.
+//  NO EditDelete, no AddDimension (never called), no windows:
+//  the profile is checked with File.Exists BEFORE calling
+//  InsertStructuralWeldment5. Every part is closed without saving.
 //
-//  USO
+//  USAGE
 //      set PROFILI_SALDATURA=<cartella coi .SLDLFP>
-//      Checks\Gusset\bin\Gusset.exe            chiude ogni pezzo di prova
-//      Checks\Gusset\bin\Gusset.exe --tieni    li lascia tutti aperti, per guardare
+//      Checks\Gusset\bin\Gusset.exe            closes every test part
+//      Checks\Gusset\bin\Gusset.exe --tieni    leaves them all open, to look
 //
-//  COMPILAZIONE: costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c), a banco
-//  fermo. Le due DLL dell'interop le copia lo script accanto all'eseguibile.
+//  BUILD: built by Checks\build-checks.ps1 (and by build.ps1, step 1c), with the bench
+//  stopped. The script copies the two interop DLLs next to the executable.
 //
-//  ESITO DEL 28/9/2026, SOLIDWORKS 29.5.1 (l'uscita della sonda, com'era):
+//  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    PROBE FAZZOLETTO — voce GP20 (il fazzoletto di saldatura non nasce)
 //      T di due tubolari 80x80x5 (lunga 600 mm + corta 300 mm, tagliata)
@@ -178,16 +178,16 @@ internal static class Program
     private const string ProfileFileName = "TUBO STRUTTURALE QUADRO.SLDLFP";
     private const string Configuration = "80X80X5";
 
-    // Geometria della T di prova, in metri.
+    // Geometry of the test T, in metres.
     private const double LongX0 = 0.0, LongX1 = 0.6;
     private const double CortaZ0 = 0.0, CortaZ1 = 0.3;
     private const double CortaX = 0.3;
 
-    // Le due facce attese dopo il taglio (vedi il commento in testa al file).
+    // The two faces expected after the trim (see the comment at the top of the file).
     private const double TallLongArea = 0.0408;      // m^2 : 0.6 x 0.068
     private const double AreaLateraleCorta = 0.01768; // m^2 : 0.26 x 0.068
     private const double AreaTolerance = 0.0006;      // +-6 cm^2, generosa
-    private const double DimensionTolerance = 0.0003;     // +-0.3 mm sulla quota costante della faccia
+    private const double DimensionTolerance = 0.0003;     // +-0.3 mm on the constant coordinate of the face
 
     private static bool _keep;
     private static int _step;
@@ -338,23 +338,23 @@ internal static class Program
         return failedInExpectations == 0 ? 0 : 1;
     }
 
-    /// <summary>Una ricetta di argomenti per InsertGussetFeature2/3, piu' come selezionare.</summary>
+    /// <summary>A recipe of arguments for InsertGussetFeature2/3, plus how to select.</summary>
     private sealed class Ricetta
     {
         public string Title;
         public string WhyItFailsOrMaybe;
-        public string Call;   // "InsertGussetFeature3" oppure "InsertGussetFeature2"
+        public string Call;   // "InsertGussetFeature3" or "InsertGussetFeature2"
         public double Depth;
         public short DirType;
         public short LocType;
         public bool IsProfile;
         public double D1, D2, D3, Angle, D4;
         public bool UseLenDim;
-        public int Mark;                 // 0 = nessuna marca (Select4(true, null)); altrimenti Select4 con Mark = Marca su ENTRAMBE le facce
-        public bool FailureExpected;  // true solo per il controllo (variante 0)
+        public int Mark;                 // 0 = no mark (Select4(true, null)); otherwise Select4 with Mark = Marca on BOTH faces
+        public bool FailureExpected;  // true only for the control (variant 0)
     }
 
-    /// <summary>Costruisce una T fresca, prova la ricetta, misura, chiude il pezzo. Torna true se l'esito e' quello atteso.</summary>
+    /// <summary>Builds a fresh T, tries the recipe, measures, closes the part. Returns true if the outcome is the expected one.</summary>
     private static bool RunVariant(ISldWorks sw, string profilePath, Ricetta r)
     {
         IModelDoc2 doc = null;
@@ -370,8 +370,8 @@ internal static class Program
             if (!Cut(doc, shortBody, longBody)) return false;
             Says("corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)");
 
-            // Dopo il taglio i riferimenti ai corpi restano validi (stesso Body2),
-            // ma li ripesco comunque: piu' fedele a "cosa farebbe il ponte".
+            // After the trim the references to the bodies stay valid (same Body2),
+            // but I fish them out again anyway: more faithful to "what the bridge would do".
             if (!ClassifyBodies(doc, out longBody, out shortBody)) return false;
 
             IFace2 tallLongFace, shortSideFace;
@@ -394,8 +394,8 @@ internal static class Program
             {
                 if (r.Call == "InsertGussetFeature2")
                 {
-                    // Nessuna selezione: le facce vanno come array tipizzato Face2[].
-                    // (memoria api-sw-array-tipizzati: object[] da' feature fantasma)
+                    // No selection: the faces go as a typed array Face2[].
+                    // (memory api-sw-array-tipizzati: object[] gives a phantom feature)
                     var faces = new Face2[] { (Face2)tallLongFace, (Face2)shortSideFace };
                     feature = doc.FeatureManager.InsertGussetFeature2(
                         r.Depth, r.DirType, r.LocType, r.IsProfile,
@@ -468,13 +468,13 @@ internal static class Program
     }
 
     /// <summary>
-    /// Seleziona la faccia con Select4. Se marca &lt;= 0, nessuna marca
-    /// (Select4(true, null): la ricetta spedita nel ponte). Se marca &gt; 0,
-    /// COSTRUISCE il SelectData dal SelectionMgr del documento e vi mette
-    /// .Mark = marca — stesso schema di DraftOperations.cs e di
-    /// Checks/EdgeFlange/Program.cs: la marca sta sui DATI di
-    /// selezione, non sull'entita', e senza costruirla `Select4(true, null)`
-    /// non marca niente anche se marca &gt; 0 fosse passato per sbaglio a null.
+    /// Selects the face with Select4. If marca &lt;= 0, no mark
+    /// (Select4(true, null): the recipe shipped in the bridge). If marca &gt; 0,
+    /// it BUILDS the SelectData from the SelectionMgr of the document and sets
+    /// .Mark = marca on it — same scheme as DraftOperations.cs and
+    /// Checks/EdgeFlange/Program.cs: the mark lives on the selection DATA, not
+    /// on the entity, and without building it `Select4(true, null)`
+    /// marks nothing even if marca &gt; 0 were passed by mistake as null.
     /// </summary>
     private static bool SelectFace(IModelDoc2 doc, IFace2 face, int mark)
     {
@@ -490,7 +490,7 @@ internal static class Program
         return ent.Select4(true, sd);
     }
 
-    /// <summary>Le due strutturali fresche: 3D sketch + StructuralMemberGroup + InsertStructuralWeldment5, due volte.</summary>
+    /// <summary>The two fresh structural members: 3D sketch + StructuralMemberGroup + InsertStructuralWeldment5, twice.</summary>
     private static IModelDoc2 BuildT(ISldWorks sw, string profilePath)
     {
         string model = sw.GetUserPreferenceStringValue(
@@ -573,7 +573,7 @@ internal static class Program
         }
     }
 
-    /// <summary>Classifica i due corpi solidi per ingombro in X: il piu' lungo e' la barra lunga.</summary>
+    /// <summary>Classifies the two solid bodies by bounding box in X: the longer one is the long bar.</summary>
     private static bool ClassifyBodies(IModelDoc2 doc, out IBody2 along, out IBody2 shorter)
     {
         along = null; shorter = null;
@@ -601,23 +601,23 @@ internal static class Program
     }
 
     /// <summary>
-    /// La faccia ALTA della lunga e la faccia LATERALE della corta, trovate
-    /// per geometria (area + quota costante su un asse), non per indice:
-    /// stesso principio di Checks/Bracket/Program.cs (TwoFacesAtTip).
+    /// The TOP face of the long one and the SIDE face of the short one, found
+    /// by geometry (area + constant coordinate on an axis), not by index:
+    /// same principle as Checks/Bracket/Program.cs (TwoFacesAtTip).
     ///
-    /// GLI ASSI, DERIVATI DALLA GEOMETRIA DELLA T (non assunti):
-    /// la lunga corre lungo X (sezione nel piano Y-Z, centrata su Y=0,Z=0:
-    /// Y e Z in [-0,04; +0,04]); la corta corre lungo Z, a X=0,3 (sezione nel
-    /// piano X-Y, centrata su X=0,3: X in [0,26; 0,34]) e prima del taglio
-    /// arriva fino a Z=0. Le due si sovrappongono in Z in [0; 0,04] — il
-    /// taglio toglie quella fetta ALLA CORTA, che quindi riparte da Z=+0,04:
-    /// e' la faccia Z=+0,04 della LUNGA (normale Z, non Y: la lunga ha
-    /// quattro facce piane della stessa area per la simmetria della sezione
-    /// quadra — Y=+-0,04 e Z=+-0,04 — e solo Z=+0,04 e' quella su cui la
-    /// corta e' rimasta appoggiata) a toccare la faccia laterale della corta
-    /// (normale X, a X=0,26 o X=0,34: le due facce Y=+-0,04 della corta
-    /// hanno la STESSA area per la stessa ragione, e vanno escluse fissando
-    /// l'asse a 0/X, non lasciandolo libero).
+    /// THE AXES, DERIVED FROM THE GEOMETRY OF THE T (not assumed):
+    /// the long one runs along X (section in the Y-Z plane, centred on Y=0,Z=0:
+    /// Y and Z in [-0.04; +0.04]); the short one runs along Z, at X=0.3 (section in
+    /// the X-Y plane, centred on X=0.3: X in [0.26; 0.34]) and before the trim
+    /// it reaches Z=0. The two overlap in Z in [0; 0.04] — the
+    /// trim removes that slice FROM THE SHORT ONE, which therefore restarts from Z=+0.04:
+    /// it is the face Z=+0.04 of the LONG one (normal Z, not Y: the long one has
+    /// four planar faces of the same area by the symmetry of the square
+    /// section — Y=+-0.04 and Z=+-0.04 — and only Z=+0.04 is the one on which the
+    /// short one is left resting) that touches the side face of the short one
+    /// (normal X, at X=0.26 or X=0.34: the two faces Y=+-0.04 of the short one
+    /// have the SAME area for the same reason, and must be excluded by fixing
+    /// the axis at 0/X, not leaving it free).
     /// </summary>
     private static bool FindTwoFaces(
         IBody2 longBody, IBody2 shortBody,
@@ -629,12 +629,12 @@ internal static class Program
     }
 
     /// <summary>
-    /// Cerca fra le facce del corpo una faccia PIANA con l'area attesa (entro
-    /// tolleranza) e, se richiesto, con la quota dell'asse indicato costante e
-    /// pari al valore atteso. Se il valore atteso e' null, accetta la prima
-    /// faccia piana con l'area giusta e la quota costante su QUELL'asse
-    /// (qualunque essa sia): serve per la corta, che ha due facce laterali
-    /// candidate (x=0.26 e x=0.34) ugualmente valide.
+    /// Looks among the faces of the body for a PLANAR face with the expected area (within
+    /// tolerance) and, if requested, with the coordinate of the given axis constant and
+    /// equal to the expected value. If the expected value is null, it accepts the first
+    /// planar face with the right area and constant coordinate on THAT axis
+    /// (whichever it is): it is needed for the short one, which has two candidate
+    /// side faces (x=0.26 and x=0.34) equally valid.
     /// </summary>
     private static IFace2 FindFace(IBody2 body, double expectedArea, int axis, double? expectedDimension)
     {

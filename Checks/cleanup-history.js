@@ -1,44 +1,44 @@
-// Sostituisce il percorso di scratchpad di sessione col segnaposto {BANCO}
-// dentro l'albero di lavoro corrente. Serve a `git filter-branch --tree-filter`,
-// che lo esegue una volta per ogni commit riscritto.
+// Replaces the session scratchpad path with the placeholder {BANCO}
+// inside the current working tree. It serves `git filter-branch --tree-filter`,
+// which runs it once for every rewritten commit.
 //
-// Perche' esiste: due commit non ancora spinti portavano il nome utente dentro
-// un percorso `C:\Users\<nome>\AppData\Local\Temp\claude\<sessione>\scratchpad`.
-// L'albero di lavoro era gia' stato riparato, la storia no, e
-// `check-publishability.ps1` guardava solo l'albero: diceva «Pulito».
+// Why it exists: two commits not yet pushed carried the user name inside
+// a path `C:\Users\<nome>\AppData\Local\Temp\claude\<sessione>\scratchpad`.
+// The working tree had already been repaired, the history had not, and
+// `check-publishability.ps1` only looked at the tree: it said «Pulito».
 //
-// Vale la stessa forma della riparazione dei casi: non si cancella il percorso,
-// si mette il segnaposto che `run_plans.js` risolve in `Bench/lavoro/`.
+// The same shape as the repair of the cases applies: the path is not deleted,
+// the placeholder is put in that `run_plans.js` resolves to `Bench/lavoro/`.
 
 var fs = require('fs');
 var path = require('path');
 
-// Il percorso di una cartella temporanea di sessione, nelle tre grafie in cui
-// compare: separatore singolo (stringhe verbatim C#), doppio (JSON con escape)
-// e barra dritta. Questo schema non nomina niente di aziendale, quindi sta
-// qui.
+// The path of a temporary session folder, in the three spellings in which it
+// appears: single separator (C# verbatim strings), double (JSON with escapes)
+// and forward slash. This pattern names nothing belonging to the company, so it stays
+// here.
 var PATH = /C:[\\\/]+Users[\\\/]+[^\\\/"\s]+[\\\/]+AppData[\\\/]+Local[\\\/]+Temp[\\\/]+claude[\\\/]+[^\\\/"\s]+[\\\/]+[^\\\/"\s]+[\\\/]+scratchpad/gi;
 
-// ── GLI SCHEMI DI QUESTO IMPIANTO STANNO FUORI DAL REPOSITORY ─────────────
+// ── THE PATTERNS OF THIS PLANT LIVE OUTSIDE THE REPOSITORY ────────────────
 //
-// UNO STRUMENTO CHE TOGLIE UNA STRINGA DEVE NOMINARLA, ed e' un cortocircuito:
-// il 23/9/2026 questa bonifica ha ripulito 140 commit da due cose interne — il
-// nome di un server GPU aziendale e una cartella di rete — e a riscrittura
-// finita la ricerca su tutta la storia ne trovava ancora una occorrenza per
-// ciascuna, in un posto solo: **qui dentro**. La cura portava la malattia.
+// A TOOL THAT REMOVES A STRING MUST NAME IT, and it is a short circuit:
+// on 23/9/2026 this cleanup cleaned 140 commits of two internal things — the
+// name of a company GPU server and a network folder — and when the rewrite
+// was finished the search over the whole history still found one occurrence of
+// each, in one place only: **in here**. The cure carried the disease.
 //
-// Quindi gli schemi specifici di un impianto si mettono in
-// `Checks/bonifica-schemi.local.js`, che NON e' versionato (.gitignore).
-// Il meccanismo resta pubblico e utile a chiunque; i nomi di casa no.
+// So the patterns specific to a plant are put in
+// `Checks/bonifica-schemi.local.js`, which is NOT versioned (.gitignore).
+// The mechanism stays public and useful to anyone; the house names do not.
 //
-// Il file locale esporta un elenco di coppie:
-//     module.exports = [ { schema: /.../g, con: 'testo di ricambio' }, ... ];
-// Se non c'e', si applica il solo PERCORSO e non e' un errore: un clone pulito
-// non ha niente di aziendale da togliere.
+// The local file exports a list of pairs:
+//     module.exports = [ { schema: /.../g, con: 'replacement text' }, ... ];
+// If it is not there, only the PATH is applied and it is not an error: a clean clone
+// has nothing belonging to the company to remove.
 var LOCALS = [];
 try {
     LOCALS = require(path.join(__dirname, 'bonifica-schemi.local.js')) || [];
-} catch (e) { /* non c'e': va bene cosi' */ }
+} catch (e) { /* not there: that is fine*/ }
 
 var EXTENSIONS = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.txt', '.config', '.manifest'];
 var SKIP = ['.git', 'bin', 'obj', 'node_modules'];
@@ -62,11 +62,11 @@ function benchRun(folder) {
         var text;
         try { text = fs.readFileSync(full, 'utf8'); } catch (e) { continue; }
 
-        // NESSUN FILTRO VELOCE. La prima stesura usciva subito se il file non
-        // conteneva «AppData»: con l'aggiunta di schemi nuovi avrebbe saltato
-        // proprio i file da riparare — un filtro di velocita' che diventa un
-        // filtro di correttezza, in silenzio. Su qualche centinaio di file la
-        // differenza non si misura; su un difetto che non da' errore si'.
+        // NO QUICK FILTER. The first draft exited at once if the file did not
+        // contain «AppData»: with the addition of new patterns it would have skipped
+        // the very files to repair — a speed filter that becomes a
+        // correctness filter, silently. Over a few hundred files the
+        // difference cannot be measured; on a defect that raises no error it can.
         var newItem = text.replace(PATH, '{BANCO}');
         for (var k = 0; k < LOCALS.length; k++)
             newItem = newItem.replace(LOCALS[k].schema, LOCALS[k].con);
@@ -79,7 +79,7 @@ function benchRun(folder) {
 
 benchRun(process.cwd());
 
-// Muto di proposito: `filter-branch` esegue questo comando per ogni commit e
-// stampare qui renderebbe illeggibile l'uscita. Il conteggio si verifica dopo,
-// sulla storia riscritta.
+// Mute on purpose: `filter-branch` runs this command for every commit and
+// printing here would make the output unreadable. The count is verified afterwards,
+// on the rewritten history.
 process.exit(0);

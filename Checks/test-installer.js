@@ -1,36 +1,36 @@
-// Le prove dell'installatore che si possono fare su una macchina qualunque.
+// The installer checks that can be done on any machine.
 //
 //     node Checks\test-installer.js            (SOLIDWORKS not touched)
 //     node Checks\test-installer.js --attach   (the real session: bench stopped)
 //
-// Esce 0 se passano tutte, 1 se no.
+// Exits 0 if they all pass, 1 if not.
 //
-// Lavora in una cartella temporanea: LA CONFIGURAZIONE VERA DI CHI PROVA NON
-// SI TOCCA, e non ci si affida al fatto di ricordarsene.
+// It works in a temporary folder: THE REAL CONFIGURATION OF WHOEVER IS TESTING MUST NOT
+// BE TOUCHED, and we do not rely on remembering it.
 //
-// GLI SCENARI SONO SEI, E QUESTO NE ESEGUE TRE E MEZZO.
+// THERE ARE SIX SCENARIOS, AND THIS ONE RUNS THREE AND A HALF.
 //
-//   | # | prova                                   | qui        |
+//   | # | check                                   | here       |
 //   |---|-----------------------------------------|------------|
-//   | 1 | installazione su macchina pulita        | no: VM con SOLIDWORKS e senza il ponte |
-//   | 2 | installazione sopra una precedente      | **si'**    |
-//   | 3 | disinstallazione                        | **si'**    |
-//   | 4 | client aperto durante l'installazione   | **meta'**: il file tenuto da un altro processo si'; Claude Desktop vero no |
-//   | 5 | SOLIDWORKS assente                      | no: serve una macchina senza SOLIDWORKS |
-//   | 6 | config con altri server MCP gia' presenti | **si'**  |
+//   | 1 | installation on a clean machine         | no: VM with SOLIDWORKS and without the bridge |
+//   | 2 | installation over a previous one        | **yes**    |
+//   | 3 | uninstallation                          | **yes**    |
+//   | 4 | client open during the installation     | **half**: the file held by another process yes; the real Claude Desktop no |
+//   | 5 | SOLIDWORKS absent                       | no: needs a machine without SOLIDWORKS |
+//   | 6 | config with other MCP servers already there | **yes**  |
 //
-// Le altre tre si fanno a mano su una macchina che qui non c'e'. Vanno
-// elencate come NON ESEGUITE ovunque se ne riporti l'esito: *una prova non
-// fatta si scrive, non si dichiara passata.*
+// The other three are done by hand on a machine that is not here. They must be
+// listed as NOT RUN wherever their outcome is reported: *a check not
+// done is written down, it is not declared passed.*
 //
-// IL CASO 6 E' IL PIU' IMPORTANTE, e si puo' fare tutto qui: «ci sono gia'
-// altri server MCP, restano intatti?». Non produce nessun sintomo subito — il
-// file sembra scritto bene finche' qualcuno non riapre il client il giorno dopo
-// e trova sparito il server che usava per lavorare.
+// CASE 6 IS THE MOST IMPORTANT, and it can all be done here: «are there already
+// other MCP servers, do they stay intact?». It produces no symptom at once — the
+// file looks well written until somebody reopens the client the next day
+// and finds gone the server they used to work.
 //
-// Si confronta la STRUTTURA, non il testo: se il JSON di prova ha spaziatura
-// diversa da quella che l'installatore produce, un diff dei file interi
-// segnalerebbe un fallimento che non c'e'.
+// The STRUCTURE is compared, not the text: if the test JSON has different spacing
+// from the one the installer produces, a diff of the whole files
+// would report a failure that is not there.
 const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -41,8 +41,8 @@ const ROOT = path.dirname(HERE);
 const INSTALL = process.env.INSTALLA || path.join(ROOT, "dist", "Installer.exe");
 const MODEL = path.join(HERE, "config-with-other-servers.json");
 
-// Si lavora in una cartella temporanea: la configurazione VERA di chi sta
-// provando non si tocca, e non ci si affida al fatto di ricordarsene.
+// We work in a temporary folder: the REAL configuration of whoever is
+// testing is not touched, and we do not rely on remembering it.
 const BENCH = fs.mkdtempSync(path.join(os.tmpdir(), "prova-installatore-"));
 
 // SOLIDWORKS IS NOT TOUCHED UNLESS ASKED (entry H19, L1). The installer runs
@@ -87,7 +87,7 @@ console.log("banco:        " + BENCH);
 
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-// ── CASO 6 — gli altri server restano ────────────────────────────────────
+// ── CASE 6 — the other servers stay ──────────────────────────────────────
 console.log("\n=== CASO 6 - con due server MCP gia' presenti");
 const cfg = path.join(BENCH, "claude_desktop_config.json");
 fs.copyFileSync(MODEL, cfg);
@@ -118,7 +118,7 @@ if (after) {
     equal(before.altreImpostazioniDelClient, after.altreImpostazioniDelClient), null);
 }
 
-// ── CASO 2 — installare sopra una precedente ─────────────────────────────
+// ── CASE 2 — installing over a previous one ──────────────────────────────
 console.log("\n=== CASO 2 - installazione sopra una precedente");
 const r2 = install(["--silenzioso", "--cartella", folder, "--config", cfg]);
 let after2 = null;
@@ -133,18 +133,18 @@ outcome("2. la voce 'solidworks' e' aggiornata, non duplicata",
 const bak = fs.readdirSync(BENCH).filter(f => /\.bak$/i.test(f));
 outcome("2. c'e' una copia di sicurezza del config", bak.length > 0, bak.join("\n"));
 
-// H15: chi reinstalla sa se sta aggiornando o rimettendo la stessa. La
-// versione attesa si legge da VERSION.txt, non si scrive qui: cambierebbe a
-// ogni rilascio e il caso diventerebbe rosso per la ragione sbagliata.
+// H15: whoever reinstalls knows whether it is updating or putting back the same one. The
+// expected version is read from VERSION.txt, not written here: it would change at
+// every release and the case would turn red for the wrong reason.
 const version = fs.readFileSync(path.join(ROOT, "VERSION.txt"), "utf8").trim();
 outcome("2. dice che reinstalla la stessa versione, e quale",
   r2.testo.includes("reinstallo la " + version),
   (r2.testo.match(/^.*(installo|aggiorno).*$/mi) || ["nessuna riga di versione"])[0].trim());
 
-// H15: le copie di sicurezza si potano. Prima non si toglievano mai: dieci
-// installazioni, dieci .bak in %APPDATA%. Il nome porta i secondi, quindi fra
-// un giro e l'altro si aspetta un secondo, se no due copie avrebbero lo stesso
-// nome e il conto non proverebbe niente.
+// H15: the backup copies are pruned. Before, they were never removed: ten
+// installations, ten .bak in %APPDATA%. The name carries the seconds, so between
+// one run and the next we wait a second, otherwise two copies would have the same
+// name and the count would prove nothing.
 const wait = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 for (let i = 0; i < 4; i++) {
   wait(1100);
@@ -551,13 +551,13 @@ if (ATTACH || swRuns) {
   }
 }
 
-// ── CASO 4 — il config tenuto da un altro processo ──────────────────────
+// ── CASE 4 — the config held by another process ─────────────────────────
 //
-// Non e' il caso 4 intero (Claude Desktop vero che tiene il file e magari lo
-// riscrive uscendo): e' la meta' che si puo' fare qui. Un PowerShell figlio
-// apre il file in esclusiva e lo tiene; l'installatore deve fermarsi SENZA
-// averlo toccato — niente `.parziale` lasciato accanto, niente copia nuova —
-// e dirlo con una parola che faccia capire cosa fare.
+// It is not the whole of case 4 (the real Claude Desktop that holds the file and perhaps
+// rewrites it on exit): it is the half that can be done here. A child PowerShell
+// opens the file exclusively and holds it; the installer must stop WITHOUT
+// having touched it — no `.parziale` left next to it, no new copy —
+// and say so with a word that makes clear what to do.
 console.log("\n=== CASO 4 (meta') - il config bloccato da un altro processo");
 const cfg4 = path.join(BENCH, "bloccato.json");
 fs.copyFileSync(MODEL, cfg4);
@@ -586,7 +586,7 @@ if (!fs.existsSync(signal)) {
     remains.length === bakBefore4, remains.join(", ") || "niente accanto");
 }
 
-// ── CASO 3 — disinstallazione ────────────────────────────────────────────
+// ── CASE 3 — uninstallation ──────────────────────────────────────────────
 console.log("\n=== CASO 3 - disinstallazione");
 const extraneous = path.join(folder, "un-mio-log.txt");
 fs.writeFileSync(extraneous, "roba messa da chi usa il programma\n");
@@ -606,13 +606,13 @@ outcome("3. la cartella NON viene cancellata se dentro resta roba d'altri",
 outcome("3. il ponte e' sparito",
   remain !== null && !remain.includes("oce-solid-agent-mcp.exe"),
   remain === null ? "n/d" : remain.join(", "));
-// H15: installazione e disinstallazione leggono la stessa lista. Quello che
-// resta dev'essere SOLO la roba di chi usa il programma.
+// H15: installation and uninstallation read the same list. What
+// remains must be ONLY the stuff of whoever uses the program.
 outcome("3. non resta nessun file dell'installazione",
   remain !== null && remain.length === 1 && remain[0] === "un-mio-log.txt",
   remain === null ? "n/d" : "resta: " + remain.join(", "));
 
-// ── riepilogo ────────────────────────────────────────────────────────────
+// ── summary ──────────────────────────────────────────────────────────────
 const failed = outcomes.filter(e => !e.passa);
 console.log("\n=== RIEPILOGO");
 console.log("  " + (outcomes.length - failed.length) + " PASS, " + failed.length + " FAIL");

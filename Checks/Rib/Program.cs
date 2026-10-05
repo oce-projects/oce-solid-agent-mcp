@@ -32,14 +32,14 @@ using SolidWorks.Interop.swconst;
 //  (height along +Y) but looked for the top face at constant Z and drew the
 //  profile with Y as the horizontal: the shell never happened (A == B) and the
 //  profile fell below the part. Now every face is found by geometry and every
-//  sketch point goes through ModelToSketchTransform (RAG 81r: "il modo per
-//  saperlo non e' ragionarci").
+//  sketch point goes through ModelToSketchTransform (RAG 81r: "the way to
+//  know it is not to reason about it").
 //
 //  CASES (one fresh part each):
 //   L0  L bracket, IsNormToSketch = TRUE (the historical call)       -> control, expected nothing
 //   L1  L bracket, IsNormToSketch = false, ReverseMaterialDir = false -> expected +2700 mm3 (450 mm2 x 6)
 //   L2  L bracket, IsNormToSketch = false, ReverseMaterialDir = true
-//   L3  L bracket, as L1 but the sketch left OPEN at the call (TODO W1.2, "da dove ripartire")
+//   L3  L bracket, as L1 but the sketch left OPEN at the call (TODO W1.2, "where to restart from")
 //   S1  shelled box 40x40x20 (guide shape), line at mid height on the Right plane, parallel, material false
 //   S2  as S1, material true                                           -> expected +720 mm3 (36 x 10 x 2)
 //   P1  plate 40x40x2 with the line 10 mm above (NervaturaProva), parallel, material false
@@ -49,9 +49,9 @@ using SolidWorks.Interop.swconst;
 //  volume delta. NO EditDelete, no AddDimension, no save.
 //
 //  USAGE      Checks\Rib\bin\Rib.exe [--keep]
-//             (costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c))
+//             (built by Checks\build-checks.ps1 (and by build.ps1, step 1c))
 //
-//  ESITO DEL 28/9/2026, SOLIDWORKS 29.5.1 (l'uscita della sonda, com'era):
+//  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    PROBE RIB (W1.2) — SOLIDWORKS 29.5.1
 //      [  -  ] L0 L, normale allo schizzo (come le sonde storiche) (atteso niente)  ->  «Schizzo2» selezionato True, Rib nessuna, volume 55000 -> 55000 (0), corpi 1 -> 1

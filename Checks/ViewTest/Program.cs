@@ -6,33 +6,33 @@ using SolidWorks.Interop.swconst;
 namespace Checks.ViewTest
 {
     /// <summary>
-    /// COME SI RIMETTE A POSTO LA VISTA DI CHI LAVORA? (misura per la voce V1)
+    /// HOW IS THE VIEW OF WHOEVER WORKS PUT BACK? (measurement for entry V1)
     ///
-    /// `PartView` gira il pezzo per fotografarlo e **deve** rimetterlo
-    /// com'era: il ponte si aggancia al documento che un progettista ha davanti,
-    /// e lasciarglielo girato e' un danno vero fatto da un'operazione di sola
-    /// lettura.
+    /// `PartView` turns the part to photograph it and **must** put it back
+    /// as it was: the bridge attaches to the document that a designer has in front of them,
+    /// and leaving it turned is a real damage done by a read-only
+    /// operation.
     ///
-    /// Il 15/9/2026 tre strade sono state provate e bocciate, **una per giro di
-    /// banco da diciassette minuti**:
+    /// On 15/9/2026 three roads were tried and rejected, **one per bench
+    /// run of seventeen minutes**:
     ///
-    ///   1. tenere `IModelView.Transform` e riassegnarlo      -> non torna
-    ///   2. `IModelDoc2.ViewOrientationUndo()`                -> non torna
-    ///   3. la terna Orientation3 + Translation3 + Scale2     -> non torna
+    ///   1. keep `IModelView.Transform` and reassign it      -> does not come back
+    ///   2. `IModelDoc2.ViewOrientationUndo()`                -> does not come back
+    ///   3. the triplet Orientation3 + Translation3 + Scale2     -> does not come back
     ///
-    /// **Questo attrezzo esiste perche' quel prezzo era assurdo.** La domanda
-    /// dura tre secondi: apre una parte, ci mette un blocco, gira la vista,
-    /// prova a rimetterla in tutti i modi che l'API offre, e stampa quali
-    /// funzionano.
+    /// **This tool exists because that price was absurd.** The question
+    /// takes three seconds: it opens a part, puts a block in it, turns the view,
+    /// tries to put it back in all the ways that the API offers, and prints which
+    /// ones work.
     ///
     ///     Checks\ViewTest\bin\ViewTest.exe
     ///
-    /// Non tocca nessun documento gia' aperto: se ne crea uno suo e lo chiude.
+    /// It touches no document already open: it creates one of its own and closes it.
     ///
-    /// COSA CONFRONTA. I sedici numeri di `IModelView.Transform`, che e' l'unica
-    /// descrizione leggibile di «come si vede il pezzo adesso» — ed e' gia'
-    /// misurato che cambia quando la vista cambia, quindi il confronto ha un
-    /// ingresso vero.
+    /// WHAT IT COMPARES. The sixteen numbers of `IModelView.Transform`, which is the only
+    /// readable description of «how the part looks now» — and it is already
+    /// measured that it changes when the view changes, so the comparison has a real
+    /// input.
     /// </summary>
     internal static class Program
     {
@@ -56,8 +56,8 @@ namespace Checks.ViewTest
                 doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
                 if (doc == null) { Console.Error.WriteLine("parte non creata"); return 2; }
 
-                // UN PEZZO CI VUOLE. Su un documento vuoto `ViewZoomtofit2` non
-                // ha niente da inquadrare, e mezza prova non proverebbe niente.
+                // A PART IS NEEDED. On an empty document `ViewZoomtofit2` has
+                // nothing to frame, and half a check would prove nothing.
                 Block(doc, 0.2, 0.1, 0.02);
                 doc.ShowNamedView2("", (int)swStandardViews_e.swIsometricView);
                 doc.GraphicsRedraw2();
@@ -71,7 +71,7 @@ namespace Checks.ViewTest
                 Console.WriteLine("=== come si rimette a posto la vista ===");
                 Console.WriteLine();
 
-                // ── ha senso confrontare? ────────────────────────────────
+                // ── does it make sense to compare? ───────────────────────
                 double[] a = Numbers(view);
                 Turn(doc, swStandardViews_e.swFrontView);
                 double[] b = Numbers(view);
@@ -86,7 +86,7 @@ namespace Checks.ViewTest
                     restore(() => { try { view.Transform = kept; } catch { } });
                 });
 
-                // ── 2. Transform COPIATO (IInverse due volte) ────────────
+                // ── 2. Transform COPIED (IInverse twice) ─────────────────
                 Test(doc, view, "Transform copiato con IInverse x2", restore =>
                 {
                     var alive = view.Transform as IMathTransform;
@@ -101,7 +101,7 @@ namespace Checks.ViewTest
                     restore(() => { try { doc.ViewOrientationUndo(); } catch { } });
                 });
 
-                // ── 4. la terna, per riferimento ─────────────────────────
+                // ── 4. the triplet, by reference ─────────────────────────
                 Test(doc, view, "terna Orientation3/Translation3/Scale2 (riferimento)", restore =>
                 {
                     var o = view.Orientation3;
@@ -115,7 +115,7 @@ namespace Checks.ViewTest
                     });
                 });
 
-                // ── 5. la terna, COPIATA ────────────────────────────────
+                // ── 5. the triplet, COPIED ───────────────────────────────
                 Test(doc, view, "terna COPIATA (IInverse x2 + IScale 1.0)", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
@@ -132,11 +132,11 @@ namespace Checks.ViewTest
                     });
                 });
 
-                // ── 6. la terna copiata, sulla vista RILETTA ────────────
-                // Se `ShowNamedView2` lasciasse stantio l'oggetto `IModelView`,
-                // le scritture andrebbero su qualcosa di scollegato mentre le
-                // letture continuerebbero a funzionare. Si rilegge `ActiveView`
-                // prima di scrivere e si guarda se cambia qualcosa.
+                // ── 6. the copied triplet, on the RE-READ view ───────────
+                // If `ShowNamedView2` left the `IModelView` object stale,
+                // the writes would go to something disconnected while the
+                // reads would keep working. `ActiveView` is re-read
+                // before writing and we look at whether anything changes.
                 Test(doc, view, "terna copiata, su ActiveView riletta", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
@@ -155,13 +155,13 @@ namespace Checks.ViewTest
                     });
                 });
 
-                // ── 7. la terna copiata, in ordine O -> S -> T ──────────
+                // ── 7. the copied triplet, in the order O -> S -> T ──────
                 //
-                // I numeri della prova 5 dicono dove sta il resto: la rotazione
-                // (indici 0-8 della matrice) torna **esatta**, e sbaglia solo
-                // l'indice 9, cioe' la traslazione, di 4,77. Mettendo la scala
-                // per ultima si rimette una traslazione che vale per la scala
-                // di prima. Qui si prova l'ordine opposto.
+                // The numbers of check 5 say where the rest is: the rotation
+                // (indices 0-8 of the matrix) comes back **exact**, and only index 9 is wrong,
+                // that is the translation, by 4.77. Putting the scale
+                // last puts back a translation that holds for the scale
+                // of before. Here the opposite order is tried.
                 Test(doc, view, "terna copiata, in ordine O -> S -> T", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
@@ -178,10 +178,10 @@ namespace Checks.ViewTest
                     });
                 });
 
-                // ── 8. la terna, applicata DUE volte ────────────────────
-                // Se ogni scrittura si porta dietro un ricalcolo delle altre,
-                // un secondo giro sugli stessi valori converge. Se non
-                // converge, non e' un problema di ordine.
+                // ── 8. the triplet, applied TWICE ────────────────────────
+                // If every write carries along a recalculation of the others,
+                // a second round on the same values converges. If it does not
+                // converge, it is not an ordering problem.
                 Test(doc, view, "terna copiata, applicata due volte", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
@@ -201,11 +201,11 @@ namespace Checks.ViewTest
                     });
                 });
 
-                // ── 9. il nome della vista, rimesso ─────────────────────
-                // Funziona SOLO se si partiva da una vista standard, e per
-                // questo non e' una soluzione: l'orientamento di chi lavora
-                // quasi mai ha un nome. Ma se e' l'unica che torna, dice che il
-                // problema sta nelle scritture e non nelle letture.
+                // ── 9. the name of the view, put back ────────────────────
+                // It works ONLY if one started from a standard view, and for
+                // that reason it is not a solution: the orientation of whoever works
+                // almost never has a name. But if it is the only one that comes back, it says that the
+                // problem lies in the writes and not in the reads.
                 Test(doc, view, "ShowNamedView2 sulla vista di partenza", restore =>
                 {
                     restore(() =>
@@ -238,13 +238,13 @@ namespace Checks.ViewTest
         }
 
         /// <summary>
-        /// Una strada: si riparte SEMPRE dall'isometrica inquadrata, si tiene
-        /// nota di com'e', si gira e si zooma, si prova a rimettere, si
-        /// confronta.
+        /// One road: we ALWAYS restart from the framed isometric, we keep
+        /// a note of how it is, we turn and zoom, we try to put it back, we
+        /// compare.
         ///
-        /// La partenza si rifa' a ogni giro perche' la strada precedente puo'
-        /// aver lasciato la vista da un'altra parte, e allora la prova
-        /// successiva partirebbe da un posto che non conosce.
+        /// The start is redone at every run because the previous road may
+        /// have left the view somewhere else, and then the following check
+        /// would start from a place it does not know.
         /// </summary>
         private static void Test(
             IModelDoc2 doc, IModelView view, string itemName, Action<Action<Action>> prepareAndPutBack)
@@ -295,7 +295,7 @@ namespace Checks.ViewTest
             return true;
         }
 
-        /// <summary>Di quanto si e' sbagliato, sul numero che si e' scostato di piu'.</summary>
+        /// <summary>By how much it was wrong, on the number that deviated most.</summary>
         private static string Deviation(double[] a, double[] b)
         {
             if (a == null || b == null || a.Length != b.Length) return "";
@@ -316,7 +316,7 @@ namespace Checks.ViewTest
             Console.WriteLine((ok ? "  OK   " : "  NO   ") + itemName.PadRight(52) + detail);
         }
 
-        /// <summary>Un blocco, in metri: SOLIDWORKS lavora in metri.</summary>
+        /// <summary>A block, in metres: SOLIDWORKS works in metres.</summary>
         private static void Block(IModelDoc2 doc, double l, double w, double h)
         {
             doc.SketchManager.InsertSketch(true);

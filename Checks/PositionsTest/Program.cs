@@ -6,33 +6,33 @@ using Oce.Solid.Agent.Core;
 namespace Checks.PositionsTest
 {
     /// <summary>
-    /// IL GIUDIZIO SULLE POSIZIONI DEI FORI, CONTROLLATO SENZA SOLIDWORKS.
+    /// THE JUDGEMENT ON THE HOLE POSITIONS, CHECKED WITHOUT SOLIDWORKS.
     ///
-    /// PERCHE' ESISTE. Fino alla 0.25.1 il ponte scriveva
-    /// `positions_checked = true` senza condizione, subito dopo una funzione
-    /// che tornava «tutto a posto» anche in QUATTRO strade in cui non aveva
-    /// guardato niente — compresa la piu' frequente, «non ho trovato nessuna
-    /// faccia cilindrica del diametro atteso». E il banco decideva il pass con
-    /// `misure.ContainsKey("positions_checked")`: una chiave sempre scritta.
+    /// WHY IT EXISTS. Up to 0.25.1 the bridge wrote
+    /// `positions_checked = true` unconditionally, right after a function
+    /// that returned «all fine» even in FOUR roads in which it had looked at
+    /// nothing — including the most frequent one, «I found no
+    /// cylindrical face of the expected diameter». And the bench decided the pass with
+    /// `misure.ContainsKey("positions_checked")`: an always-written key.
     ///
-    /// Il ramo che stampava «POSIZIONI NON VERIFICATE» non poteva scattare.
-    /// Un controllo mai visto scattare non e' un controllo.
+    /// The branch that printed «POSIZIONI NON VERIFICATE» could not trigger.
+    /// A check never seen to trigger is not a check.
     ///
-    /// PERCHE' QUI E NON NEL BANCO. Il caso che conta — zero facce cilindriche
-    /// trovate — con SOLIDWORKS acceso non si sa come costringerlo a capitare:
-    /// dipende da come la creazione guidata modella quel particolare foro.
-    /// Separato il giudizio dal COM, quel caso si scrive in una riga.
+    /// WHY HERE AND NOT IN THE BENCH. The case that counts — zero cylindrical faces
+    /// found — with SOLIDWORKS running there is no known way to force it to happen:
+    /// it depends on how the wizard models that particular hole.
+    /// With the judgement separated from COM, that case is written in one line.
     ///
     ///     Checks\PositionsTest\bin\PositionsTest.exe
     ///
-    /// Esce 0 se torna tutto, 1 se no.
+    /// Exits 0 if everything adds up, 1 if not.
     /// </summary>
     internal static class Program
     {
         private static int trouble;
 
-        // Il piano XY, con la normale lungo Z: e' la disposizione di un foro
-        // fatto sulla faccia superiore di una piastra.
+        // The XY plane, with the normal along Z: it is the arrangement of a hole
+        // made on the top face of a plate.
         private static readonly double[] PlaneXy = { 0, 1, 2 };
 
         private static int Main()
@@ -52,17 +52,17 @@ namespace Checks.PositionsTest
         }
 
         // ==================================================================
-        // 1. Le quattro strade in cui prima si passava per buoni
+        // 1. The four roads in which one used to pass for good
         // ==================================================================
 
         private static void TheCaseThatCouldNotBeTested()
         {
             Console.WriteLine("=== Quando non si e' potuto guardare");
 
-            // QUESTO E' IL DIFETTO. La lavorazione esiste, i punti sono stati
-            // chiesti, ma sul pezzo non c'e' nessuna faccia cilindrica del
-            // diametro atteso: i fori potrebbero non esserci affatto.
-            // Prima questa strada usciva come «verificate».
+            // THIS IS THE DEFECT. The feature exists, the points were
+            // requested, but on the part there is no cylindrical face of the
+            // expected diameter: the holes might not be there at all.
+            // Before, this road came out as «verificate».
             Outcome("nessuna faccia cilindrica trovata",
                   PositionsOutcome.NotVerifiable,
                   new List<double[]>(), null, TwoPoints());
@@ -85,9 +85,9 @@ namespace Checks.PositionsTest
                   PositionsOutcome.NotVerifiable,
                   new List<double[]> { ZAxis(30, 20) }, null, new List<double[]>());
 
-            // UN MOTIVO SEMPRE, E MAI VUOTO: chi legge deve sapere PERCHE' non
-            // si e' potuto guardare, o «non verificabile» e' inutile quanto
-            // «verificate» era falso.
+            // A REASON ALWAYS, AND NEVER EMPTY: whoever reads must know WHY it
+            // could not be looked at, or «non verificabile» is as useless as
+            // «verificate» was false.
             string reason;
             PositionsVerdict.Judge(new List<double[]>(), null, PlaneXy, 0.01, TwoPoints(), out reason);
             True("il motivo c'e' ed e' una frase",
@@ -97,7 +97,7 @@ namespace Checks.PositionsTest
         }
 
         // ==================================================================
-        // 2. Quando si puo' guardare davvero
+        // 2. When one can really look
         // ==================================================================
 
         private static void WhenItCanBeChecked()
@@ -108,8 +108,8 @@ namespace Checks.PositionsTest
                   PositionsOutcome.Verified,
                   new List<double[]> { ZAxis(30, 20), ZAxis(70, 20) }, null, TwoPoints());
 
-            // Un asse solo per due fori: il secondo foro non c'e'. Il piu'
-            // lontano dista 40 mm, e si deve dire.
+            // One axis for two holes: the second hole is not there. The farthest
+            // is 40 mm away, and it must be said.
             Outcome("un foro dei due non c'e'",
                   PositionsOutcome.Wrong,
                   new List<double[]> { ZAxis(30, 20) }, null, TwoPoints());
@@ -118,16 +118,16 @@ namespace Checks.PositionsTest
                   PositionsOutcome.Wrong,
                   new List<double[]> { ZAxis(30, 20), ZAxis(72, 20) }, null, TwoPoints());
 
-            // PIU' ASSI CHE FORI NON E' UN ERRORE: un foro lamato ha due facce
-            // cilindriche coassiali, e la lamatura del diametro giusto ci
-            // finisce dentro. Conta che ogni punto chiesto ne abbia uno vicino.
+            // MORE AXES THAN HOLES IS NOT AN ERROR: a counterbored hole has two coaxial
+            // cylindrical faces, and the counterbore of the right diameter ends
+            // up in there. What counts is that every requested point has one close by.
             Outcome("piu' assi che fori (lamatura coassiale)",
                   PositionsOutcome.Verified,
                   new List<double[]> { ZAxis(30, 20), ZAxis(30, 20), ZAxis(70, 20) },
                   null, TwoPoints());
 
-            // La frase del rifiuto deve NOMINARE il foro e lo scostamento:
-            // e' il criterio, non il verdetto.
+            // The sentence of the refusal must NAME the hole and the offset:
+            // it is the criterion, not the verdict.
             string reason;
             var outcome = PositionsVerdict.Judge(
                 new List<double[]> { ZAxis(30, 20), ZAxis(72, 20) },
@@ -141,7 +141,7 @@ namespace Checks.PositionsTest
         }
 
         // ==================================================================
-        // 3. La soglia, guardata da tutt'e due i lati
+        // 3. The threshold, looked at from both sides
         // ==================================================================
 
         private static void TheThreshold()
@@ -151,41 +151,41 @@ namespace Checks.PositionsTest
 
             var requested = new List<double[]> { new double[] { 30, 20 } };
 
-            // Dentro la soglia: 0.09 mm.
+            // Inside the threshold: 0.09 mm.
             Outcome("scostamento 0.09 mm", PositionsOutcome.Verified,
                   new List<double[]> { ZAxis(30.09, 20) }, null, requested);
 
-            // Fuori: 0.11 mm. Due valori a cavallo, non uno solo: una soglia
-            // provata da un lato solo non e' una soglia, e' un esempio.
+            // Outside: 0.11 mm. Two values straddling it, not just one: a threshold
+            // tested from one side only is not a threshold, it is an example.
             Outcome("scostamento 0.11 mm", PositionsOutcome.Wrong,
                   new List<double[]> { ZAxis(30.11, 20) }, null, requested);
 
-            // ESATTAMENTE SULLA SOGLIA NON SI PROVA, e il perche' vale piu'
-            // del caso. Scritto qui perche' e' costato una prova rossa.
+            // EXACTLY ON THE THRESHOLD IS NOT TESTED, and the why is worth more
+            // than the case. Written here because it cost a red check.
             //
-            // Chiedere un foro a 30.1 mm e misurarne uno a 30 da' uno
-            // scostamento di 0.10000000000000142 mm, non 0.1: il giro
-            // millimetri -> metri -> millimetri non torna esatto in virgola
-            // mobile. Il confronto e' `>`, quindi quel caso cade fra gli
-            // Sbagliate, e sarebbe caduto fra i Verificate con un numero
-            // diverso di cifre.
+            // Asking for a hole at 30.1 mm and measuring one at 30 gives an
+            // offset of 0.10000000000000142 mm, not 0.1: the round trip
+            // millimetres -> metres -> millimetres does not come back exact in floating
+            // point. The comparison is `>`, so that case falls among the
+            // Sbagliate, and would have fallen among the Verificate with a different
+            // number of digits.
             //
-            // Un comportamento che dipende dall'ultimo bit non e' un
-            // comportamento da fissare in una prova: si fissa la SEPARAZIONE
-            // fra i due lati, che e' cio' che conta davvero, e la si misura.
-            // IL RUMORE, MISURATO: e' lo scostamento che il calcolo introduce
-            // fra due punti che in millimetri distano esattamente 0.1.
-            // Su questi valori vale circa 1.4e-15 mm.
+            // A behaviour that depends on the last bit is not a
+            // behaviour to pin down in a check: what is pinned is the SEPARATION
+            // between the two sides, which is what really counts, and it is measured.
+            // THE NOISE, AS MEASURED, is the offset that the computation introduces
+            // between two points that in millimetres are exactly 0.1 apart.
+            // On these values it is about 1.4e-15 mm.
             double noise = Math.Abs(
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { Units.M(30.1), Units.M(20), 0.01 },
                     ZAxis(30, 20)) * 1000.0 - 0.1);
 
-            // Fra il rumore e la soglia ci sono quattordici ordini di
-            // grandezza: nessuno scostamento vero puo' essere confuso col
-            // rumore, e nessun rumore puo' far scattare il rifiuto da solo.
-            // E' la stessa forma del ragionamento sulla ruota dentata, dove
-            // fra le due grandezze ce n'erano due.
+            // Between the noise and the threshold there are fourteen orders of
+            // magnitude: no real offset can be confused with the
+            // noise, and no noise can trigger the refusal by itself.
+            // It is the same shape of reasoning as on the gear, where
+            // between the two quantities there were two.
             True("il rumore sta un milione di volte sotto la soglia",
                  noise > 0 && noise * 1e6 < PositionsVerdict.ToleranceMm,
                  "rumore " + noise.ToString("0.0e+00", CultureInfo.InvariantCulture) +
@@ -196,39 +196,39 @@ namespace Checks.PositionsTest
         }
 
         // ==================================================================
-        // 4. La geometria sotto, che non dipende da niente
+        // 4. The geometry underneath, which depends on nothing
         // ==================================================================
 
         private static void TheDistanceFromAxis()
         {
             Console.WriteLine("=== La distanza fra un punto e la retta di un cilindro");
 
-            // Punto sull'asse.
+            // Point on the axis.
             Number("punto sull'asse", 0,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.03, 0.02, 0.05 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 1, 0.0034 }));
 
-            // Punto a 5 mm di lato, con l'asse lungo Z: la quota lungo l'asse
-            // non deve contare.
+            // Point 5 mm to the side, with the axis along Z: the coordinate along the axis
+            // must not count.
             Number("5 mm di lato, a qualunque quota", 0.005,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0.9 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 1, 0.0034 }));
 
-            // Direzione non normalizzata: deve venire uguale.
+            // Non-normalised direction: it must come out the same.
             Number("direzione non normalizzata", 0.005,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0.9 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 7.3, 0.0034 }));
 
-            // Direzione nulla: non si divide per zero, si dice «lontanissimo».
+            // Null direction: we do not divide by zero, we say «very far».
             Number("direzione nulla", double.MaxValue,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 0, 0.0034 }));
 
-            // Argomenti storti: non si esplode.
+            // Crooked arguments: we do not blow up.
             Number("cilindro nullo", double.MaxValue,
                 PositionsVerdict.DistanceFromAxis(new double[] { 0, 0, 0 }, null));
             Number("punto corto", double.MaxValue,
@@ -240,13 +240,13 @@ namespace Checks.PositionsTest
 
         // ==================================================================
 
-        /// <summary>Un asse lungo Z che passa per (x, y) in millimetri.</summary>
+        /// <summary>An axis along Z passing through (x, y) in millimetres.</summary>
         private static double[] ZAxis(double xMm, double yMm)
         {
             return new double[] { Units.M(xMm), Units.M(yMm), 0, 0, 0, 1, 0.0034 };
         }
 
-        /// <summary>Due fori a (30, 20) e (70, 20), in millimetri.</summary>
+        /// <summary>Two holes at (30, 20) and (70, 20), in millimetres.</summary>
         private static List<double[]> TwoPoints()
         {
             return new List<double[]>

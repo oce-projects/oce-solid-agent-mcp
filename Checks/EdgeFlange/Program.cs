@@ -4,25 +4,25 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  EdgeFlange — la flangia a spigolo, prima di scriverla (voce GP18)
+//  EdgeFlange — the edge flange, before writing it (entry GP18)
 // =============================================================================
 //
-//  `InsertSheetMetalEdgeFlange2` vuole un elenco di spigoli E un elenco di
-//  schizzi di profilo. La lunghezza c'e': e' il settimo parametro,
-//  `FlangeOffsetDist` (per riflessione, 25/9/2026 notte), la stessa grandezza
-//  di `IEdgeFlangeFeatureData.OffsetDistance` — la prima stesura di questa
-//  sonda lo leggeva come uno spostamento e passava 0. Quello che non si sa:
-//    1. se con gli schizzi a null la flangia nasce, e lunga quanto;
-//    2. se cambiare OffsetDistance e poi ModifyDefinition la allunga davvero;
-//    3. di quanto cresce lo sviluppo, e con quale convenzione di quota
-//       (OffsetDimType: spigolo virtuale esterno, interno, tangente).
+//  `InsertSheetMetalEdgeFlange2` wants a list of edges AND a list of
+//  profile sketches. The length is there: it is the seventh parameter,
+//  `FlangeOffsetDist` (by reflection, night of 25/9/2026), the same quantity
+//  as `IEdgeFlangeFeatureData.OffsetDistance` — the first draft of this
+//  probe read it as an offset and passed 0. What is not known:
+//    1. whether with the sketches null the flange is born, and how long;
+//    2. whether changing OffsetDistance and then ModifyDefinition really lengthens it;
+//    3. by how much the flat pattern grows, and with which dimension convention
+//       (OffsetDimType: outer virtual sharp, inner, tangent).
 //
-//  IL PEZZO: la L di `Checks/SheetMetal` (50 + 30, T 2, R 2, profonda 40), e
-//  una flangia a 90 gradi sullo spigolo in fondo al lato da 50, portata a 25.
-//  Lo sviluppo prima e dopo, letto togliendo la soppressione a «FlatPattern»
-//  (SetBendState non sviluppa niente: misurato).
+//  THE PART: the L of `Checks/SheetMetal` (50 + 30, T 2, R 2, 40 deep), and
+//  a flange at 90 degrees on the edge at the end of the 50 side, brought to 25.
+//  The flat pattern before and after, read by unsuppressing «FlatPattern»
+//  (SetBendState does not unfold anything: measured).
 //
-//  USO
+//  USAGE
 //      .\Checks\EdgeFlange\bin\EdgeFlange.exe            [--tieni]
 // =============================================================================
 
@@ -34,10 +34,10 @@ internal static class Program
     private static int Main(string[] arguments)
     {
         bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
-        // --testa: salta i tentativi 1-9 (tutti misurati il 25-26/9) e prova
-        // solo il 10, il profilo disegnato sulla faccia di testa.
+        // --testa: skips attempts 1-9 (all measured on 25-26/9) and only tries
+        // number 10, the profile drawn on the end face.
         bool head = Array.IndexOf(arguments, "--testa") >= 0;
-        // --alta=N: l'altezza del rettangolo di profilo in mm (20 se non detta).
+        // --alta=N: the height of the profile rectangle in mm (20 if not given).
         double high = 0.020;
         foreach (var arg in arguments)
             if (arg.StartsWith("--alta=")) high = double.Parse(arg.Substring(7), System.Globalization.CultureInfo.InvariantCulture) / 1000.0;
@@ -70,9 +70,9 @@ internal static class Program
             double s0 = FlatPattern(doc);
             Says("flangia base: " + (base0 != null) + ", sviluppo " + s0.ToString("0.###") + " mm (atteso 80,712)");
 
-            // Lo spigolo in fondo al lato da 50: la L va da x -2 a 50, lo
-            // spigolo esterno in fondo sta a x = 50, lungo Z, sulla faccia di
-            // sotto (y = -2) o di sopra (y = 0). Si prende quello a y = 0.
+            // The edge at the end of the 50 side: the L goes from x -2 to 50, the
+            // outer edge at the end sits at x = 50, along Z, on the face
+            // below (y = -2) or above (y = 0). The one at y = 0 is taken.
             doc.ClearSelection2(true);
             IEdge chosen = null;
             var bodies = ((IPartDoc)doc).GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
@@ -89,19 +89,19 @@ internal static class Program
             if (chosen == null) { Console.WriteLine("  non trovo lo spigolo in fondo al lato da 50"); return 4; }
             Says("spigolo trovato: x 50, y 0, lungo Z per 40");
 
-            // TRE TENTATIVI, perche' la prima corsa ha dato null con gli schizzi
-            // a null e non dice perche'.
+            // THREE ATTEMPTS, because the first run gave null with the sketches
+            // null and does not say why.
             int options = (int)(swInsertEdgeFlangeOptions_e.swInsertEdgeFlangeUseDefaultRadius |
                                 swInsertEdgeFlangeOptions_e.swInsertEdgeFlangeUseDefaultRelief);
-            // TENTATIVI 5 E 6 (25/9/2026 notte). Per riflessione il settimo
-            // parametro si chiama `FlangeOffsetDist`, ed e' la stessa grandezza
-            // di `IEdgeFlangeFeatureData.OffsetDistance`: la LUNGHEZZA della
-            // flangia. I primi quattro tentativi passavano 0 — una flangia lunga
-            // zero, che non nasce senza dire perche'. Qui 20 mm.
-            // TENTATIVI 7 E 8 (26/9/2026). La trappola gia' pagata con le
-            // booleane (memoria «array tipizzati»): un elenco passato come
-            // `object[]` fa rispondere null senza eccezione, e vuole il tipo
-            // vero — `Edge[]` per gli spigoli, `Feature[]` per gli schizzi.
+            // ATTEMPTS 5 AND 6 (night of 25/9/2026). By reflection the seventh
+            // parameter is called `FlangeOffsetDist`, and it is the same quantity
+            // as `IEdgeFlangeFeatureData.OffsetDistance`: the LENGTH of the
+            // flange. The first four attempts passed 0 — a flange of length
+            // zero, which is not born without saying why. Here 20 mm.
+            // ATTEMPTS 7 AND 8 (26/9/2026). The trap already paid for with the
+            // booleans (memory «typed arrays»): a list passed as
+            // `object[]` makes it answer null without an exception, and it wants the real
+            // type — `Edge[]` for the edges, `Feature[]` for the sketches.
             IFeature flange = null;
             for (int t = 1; t <= 8 && flange == null && !head; t++)
             {
@@ -132,10 +132,10 @@ internal static class Program
                     : t == 7 ? "Edge[], schizzi null, LUNGA 20"
                     : "Edge[], Feature[]{null}, LUNGA 20") + "): " + (flange == null ? "null" : flange.Name));
             }
-            // TENTATIVO 9: lo SCHIZZO DI PROFILO, come dice il TODO. Un piano
-            // perpendicolare allo spigolo nel suo vertice d'inizio (marchi 0 e
-            // 1, vincoli perpendicolare + coincidente), e sul piano una linea di
-            // 20 mm che parte dal vertice verso +Y: la direzione della flangia.
+            // ATTEMPT 9: the PROFILE SKETCH, as the TODO says. A plane
+            // perpendicular to the edge at its start vertex (marks 0 and
+            // 1, constraints perpendicular + coincident), and on the plane a line of
+            // 20 mm starting from the vertex towards +Y: the direction of the flange.
             if (flange == null && !head)
             {
                 var v0 = (chosen.GetStartVertex() as IVertex);
@@ -186,13 +186,13 @@ internal static class Program
                 }
             }
 
-            // TENTATIVO 10 (26/9/2026). Il 9 fa nascere una «Bordo-Flangia» che
-            // non aggiunge materiale, e SOLIDWORKS sostituisce lo schizzo con uno
-            // suo: la linea su un piano perpendicolare non e' un profilo. Nella
-            // finestra il profilo della flangia a spigolo e' un RETTANGOLO sul
-            // piano della flangia, col lato di base sullo spigolo. Qui: la faccia
-            // di testa del lato da 50 (x = 50, y da -2 a 0) come piano di schizzo,
-            // e il rettangolo da (y 0, z 0) a (y 20, z 40).
+            // ATTEMPT 10 (26/9/2026). Number 9 makes a «Bordo-Flangia» be born that
+            // adds no material, and SOLIDWORKS replaces the sketch with one of
+            // its own: the line on a perpendicular plane is not a profile. In the
+            // window the profile of the edge flange is a RECTANGLE on the
+            // plane of the flange, with the base side on the edge. Here: the end
+            // face of the 50 side (x = 50, y from -2 to 0) as sketch plane,
+            // and the rectangle from (y 0, z 0) to (y 20, z 40).
             if (flange == null && head)
             {
                 doc.ClearSelection2(true);
@@ -232,9 +232,9 @@ internal static class Program
             }
 
             doc.EditRebuild3();
-            // L'ALBERO, dopo: i tentativi falliti hanno lasciato qualcosa? La
-            // flangia nata e' in errore? E il volume, che dice se la flangia ha
-            // aggiunto materiale davvero.
+            // THE TREE, afterwards: did the failed attempts leave anything? Is the
+            // flange that was born in error? And the volume, which says whether the flange
+            // really added material.
             Console.WriteLine("      albero:");
             var fa = doc.FirstFeature() as IFeature;
             while (fa != null)
@@ -267,13 +267,13 @@ internal static class Program
             Says("OffsetDistance -> 25: ModifyDefinition " + mod + ", riletta " + (data2.OffsetDistance * 1000).ToString("0.###") +
                  " mm, sviluppo " + s2.ToString("0.###") + " (cresciuto di " + (s2 - s0).ToString("0.###") + ")");
 
-            // IL CONTO, misurato il 26/9/2026 (tentativo 10). La lunghezza che la
-            // flangia dichiara (OffsetDistance, allo spigolo virtuale esterno) e'
-            // l'altezza del profilo piu' lo spessore; con la posizione «materiale
-            // dentro» il lato da 50 perde i suoi R + T in fondo. Lo sviluppo
-            // cresce di (Lo - R - T) + BA - (R + T). ModifyDefinition su
-            // OffsetDistance risponde vero e non cambia niente: la lunghezza la
-            // comanda il profilo.
+            // THE COUNT, measured on 26/9/2026 (attempt 10). The length that the
+            // flange declares (OffsetDistance, at the outer virtual sharp) is
+            // the height of the profile plus the thickness; with the position «material
+            // inside» the 50 side loses its R + T at the end. The flat pattern
+            // grows by (Lo - R - T) + BA - (R + T). ModifyDefinition on
+            // OffsetDistance answers true and changes nothing: the length is
+            // commanded by the profile.
             double ba = Math.PI / 2 * (2 + 0.5 * 2);
             double lo = high * 1000 + 2;
             Console.WriteLine();

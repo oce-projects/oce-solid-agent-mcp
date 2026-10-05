@@ -7,21 +7,21 @@ using SolidWorks.Interop.swconst;
 namespace Checks.Undo
 {
     /// <summary>
-    /// UN SOLO CTRL+Z, e il volume prima e dopo.
+    /// A SINGLE CTRL+Z, and the volume before and after.
     ///
-    /// Serve a provare la seconda meta' della voce B8: il ponte raccoglie tutto
-    /// il piano dentro UNA voce di annullamento, quindi un solo Ctrl+Z deve
-    /// riportare il documento al `volume_before_mm3` che il ponte stesso aveva
-    /// stampato. Prima ne servivano tanti quanti i passi — e chi ne premeva uno
-    /// di troppo disfaceva anche il lavoro di prima.
+    /// It serves to test the second half of entry B8: the bridge gathers the whole
+    /// plan inside ONE undo entry, so a single Ctrl+Z must
+    /// bring the document back to the `volume_before_mm3` that the bridge itself had
+    /// printed. Before, as many were needed as there were steps — and whoever pressed one
+    /// too many also undid the work from before.
     ///
-    /// Il volume si stampa PRIMA e DOPO, cosi' il numero non va cercato
-    /// altrove: una prova che chiede di guardare da un'altra parte per sapere
-    /// com'e' andata si fa una volta sola.
+    /// The volume is printed BEFORE and AFTER, so the number does not have to be looked for
+    /// elsewhere: a check that asks to look somewhere else to know
+    /// how it went is done only once.
     ///
-    ///     Undo.exe            annulla una volta
-    ///     Undo.exe 3          annulla tre volte
-    ///     Undo.exe 0          non annulla: stampa solo il volume
+    ///     Undo.exe            undoes once
+    ///     Undo.exe 3          undoes three times
+    ///     Undo.exe 0          does not undo: prints only the volume
     /// </summary>
     internal static class Program
     {
@@ -47,11 +47,11 @@ namespace Checks.Undo
 
             for (int i = 0; i < howMany; i++)
             {
-                // EditUndo2 e non RunCommand: il comando di menu dipende dal
-                // fuoco della finestra, questo agisce sul documento che si ha
-                // in mano. E' la stessa ragione per cui in questo progetto non
-                // ci si fida mai del «documento attivo» quando si puo' tenere
-                // un riferimento.
+                // EditUndo2 and not RunCommand: the menu command depends on the
+                // focus of the window, this one acts on the document that one has
+                // in hand. It is the same reason why in this project one never
+                // trusts the «active document» when it is possible to keep
+                // a reference.
                 try { doc.EditUndo2(1); }
                 catch (Exception e)
                 {
@@ -75,10 +75,10 @@ namespace Checks.Undo
         }
 
         /// <summary>
-        /// Il volume in mm cubi, o null se non c'e' nessun corpo.
+        /// The volume in cubic mm, or null if there is no body.
         ///
-        /// `GetMassProperties2` risponde in metri cubi, come tutte le API di
-        /// SOLIDWORKS: 1e9 e' la conversione, non un fattore di comodo.
+        /// `GetMassProperties2` answers in cubic metres, like all the APIs of
+        /// SOLIDWORKS: 1e9 is the conversion, not a convenience factor.
         /// </summary>
         private static double? Volume(IModelDoc2 doc)
         {

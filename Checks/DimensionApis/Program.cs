@@ -6,21 +6,21 @@ using SolidWorks.Interop.sldworks;
 namespace Checks.DimensionApis
 {
     /// <summary>
-    /// QUALI API PARLANO DI ANNOTAZIONI E QUOTE, lette dall'interop.
+    /// WHICH APIs TALK ABOUT ANNOTATIONS AND DIMENSIONS, read from the interop.
     ///
-    /// Serve quando una chiamata risponde «niente» senza dire perche': prima di
-    /// continuare a variare i parametri della stessa, conviene sapere se ce
-    /// n'e' un'altra. `InsertModelAnnotations3` ha risposto zero con cinque
-    /// valori di fonte, quattro maschere di tipo, la vista attivata e la vista
-    /// selezionata: a quel punto la domanda non e' piu' «quale parametro» ma
-    /// «quale metodo».
+    /// It is needed when a call answers «nothing» without saying why: before
+    /// continuing to vary the parameters of the same one, it is worth knowing whether there
+    /// is another. `InsertModelAnnotations3` answered zero with five
+    /// source values, four type masks, the view activated and the view
+    /// selected: at that point the question is no longer «which parameter» but
+    /// «which method».
     ///
-    /// NON APRE SOLIDWORKS. Legge solo i metadati dell'interop, quindi si puo'
-    /// lanciare anche con il programma chiuso — ed e' anche il motivo per cui
-    /// cio' che trova va poi provato vivo: una firma che esiste non e' una
-    /// chiamata che funziona.
+    /// IT DOES NOT OPEN SOLIDWORKS. It only reads the interop metadata, so it can
+    /// be launched even with the program closed — and it is also the reason why
+    /// what it finds must then be tried live: a signature that exists is not a
+    /// call that works.
     ///
-    ///     DimensionApis.exe [parola]      predefinito: annotation
+    ///     DimensionApis.exe [parola]      default: annotation
     /// </summary>
     internal static class Program
     {
@@ -30,8 +30,8 @@ namespace Checks.DimensionApis
             Console.WriteLine("Cerco «" + word + "» nei metodi dell'interop.");
             Console.WriteLine();
 
-            // LE COSTANTI, non solo i metodi. Un'opzione di sistema che non si
-            // conosce e' indistinguibile da una che non esiste.
+            // THE CONSTANTS, not only the methods. A system option that is not
+            // known cannot be told apart from one that does not exist.
             var constants = typeof(SolidWorks.Interop.swconst.swUserPreferenceToggle_e).Assembly;
             foreach (var e in new[] { "swUserPreferenceToggle_e", "swInsertAnnotation_e", "swFeatureError_e",
                                       "swImportModelItemsSource_e", "swUserPreferenceIntegerValue_e" })

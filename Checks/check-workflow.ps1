@@ -1,23 +1,23 @@
 # =============================================================================
-#  Il PowerShell della CI sta in piedi, e lo si sa QUI (voce F9-bis)
+#  The CI PowerShell stands up, and we know it HERE (entry F9-bis)
 # =============================================================================
 #
-#  Il difetto che ha fatto nascere la voce F9-bis e' "la CI non e' mai girata".
-#  Il rimedio ha aggiunto tre passi in PowerShell: se stessero dentro lo YAML,
-#  un errore di sintassi si scoprirebbe alla prima corsa -- cioe' potenzialmente
-#  mai, che e' esattamente il difetto da cui si veniva.
+#  The defect that gave birth to entry F9-bis is "the CI never ran".
+#  The remedy added three steps in PowerShell: if they sat inside the YAML,
+#  a syntax error would be discovered at the first run -- that is potentially
+#  never, which is exactly the defect we came from.
 #
-#  Quindi i passi stanno in `.github\steps\*.ps1`, e questo li fa leggere al
-#  parser di PowerShell senza eseguirli. Non prova che facciano la cosa giusta:
-#  prova che si possano leggere, che e' il minimo che una CI mai girata non
-#  aveva.
+#  So the steps live in `.github\steps\*.ps1`, and this makes the PowerShell parser
+#  read them without executing them. It does not prove that they do the right thing:
+#  it proves that they can be read, which is the minimum that a CI that never ran
+#  did not have.
 #
-#  SI CONTROLLA ANCHE CHE IL WORKFLOW LI CHIAMI. Uno script perfetto che
-#  nessun passo invoca e' il gemello del rimedio documentato e non eseguito.
+#  IT ALSO CHECKS THAT THE WORKFLOW CALLS THEM. A perfect script that
+#  no step invokes is the twin of the remedy documented and not executed.
 #
 #      .\Checks\check-workflow.ps1
 #
-#  Esce 0 se e' tutto a posto, 1 altrimenti.
+#  Exits 0 if everything is in order, 1 otherwise.
 # =============================================================================
 
 $ErrorActionPreference = 'Stop'
@@ -36,8 +36,8 @@ if (-not (Test-Path $folder)) {
 
 $steps = @(Get-ChildItem $folder -Filter *.ps1 | Sort-Object Name)
 if ($steps.Count -eq 0) {
-    # UN CONTROLLO CHE NON TROVA NIENTE NON E' UN CONTROLLO VERDE. Se un giorno
-    # la cartella si svuota, questo script direbbe "tutto a posto" su zero file.
+    # A CHECK THAT FINDS NOTHING IS NOT A GREEN CHECK. If one day
+    # the folder empties, this script would say "all fine" about zero files.
     Write-Host "  XX  nessun .ps1 in .github\steps: o sono spariti, o sono" -ForegroundColor Red
     Write-Host "      tornati dentro lo YAML, e in tutti e due i casi questo" -ForegroundColor Red
     Write-Host "      controllo non guarda piu' niente." -ForegroundColor Red

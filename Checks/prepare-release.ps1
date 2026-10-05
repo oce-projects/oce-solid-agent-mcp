@@ -1,29 +1,29 @@
 # =============================================================================
-#  prepare-release.ps1 - tutto quello che serve per una Release, tranne
-#                        pubblicarla.
+#  prepare-release.ps1 - everything that is needed for a Release, except
+#                        publishing it.
 # =============================================================================
 #
-#  QUESTO FILE E' IN ASCII PURO, come gli altri .ps1 del progetto.
+#  THIS FILE IS PURE ASCII, like the other .ps1 files of the project.
 #
-#  PERCHE' UN RITO A MANO E NON UNA WORKFLOW
+#  WHY A HAND RITUAL AND NOT A WORKFLOW
 #
-#  Nessun runner di GitHub puo' compilare il ponte: `Oce.Solid.Agent.csproj`
-#  compila contro l'interop di SOLIDWORKS, e su windows-latest l'interop non
-#  c'e' (misurato: CS0246 IModelDoc2). La CI compila solo la suite di contratto,
-#  e lo dice. Un runner self-hosted con una licenza SOLIDWORKS e' una spesa e
-#  una manutenzione; il 24/9/2026 il proprietario ha scelto il rito a mano.
+#  No GitHub runner can compile the bridge: `Oce.Solid.Agent.csproj`
+#  compiles against the SOLIDWORKS interop, and on windows-latest the interop is
+#  not there (measured: CS0246 IModelDoc2). The CI only compiles the contract suite,
+#  and says so. A self-hosted runner with a SOLIDWORKS licence is an expense and
+#  a maintenance burden; on 24/9/2026 the owner chose the hand ritual.
 #
-#  Il rischio del rito a mano e' uno solo, ed e' il solito: che un passo si
-#  salti il giorno che si ha fretta. Quindi i passi che si possono controllare
-#  li controlla questo script, e si ferma al primo che non torna.
+#  The risk of the hand ritual is one only, and it is the usual one: that a step
+#  gets skipped the day one is in a hurry. So the steps that can be checked
+#  are checked by this script, and it stops at the first one that does not add up.
 #
-#  COSA NON FA: non crea il tag, non spinge niente, non pubblica. Stampa i tre
-#  comandi. Pubblicare e' un'azione verso l'esterno, e la fa una persona.
+#  WHAT IT DOES NOT DO: it does not create the tag, does not push anything, does not publish. It prints the three
+#  commands. Publishing is an action towards the outside, and it is done by a person.
 #
-#  USO
+#  USAGE
 #      .\Checks\prepare-release.ps1
 #
-#  ESCE 0 se la release e' pronta, 1 al primo controllo che non passa.
+#  EXITS 0 if the release is ready, 1 at the first check that does not pass.
 # =============================================================================
 
 $ErrorActionPreference = "Stop"
@@ -49,9 +49,9 @@ if ($version -notmatch '^\d+\.\d+\.\d+$') { Stop "VERSION.txt non e' una version
 Ok "VERSION.txt dice $version"
 $tag = "v$version"
 
-# UNA VOCE NEL CHANGELOG, e non una qualunque: quella di QUESTA versione. Le
-# note della Release si prendono da li', e una Release senza note e' un file
-# che nessuno sa cosa cambia.
+# AN ENTRY IN THE CHANGELOG, and not just any one: that of THIS version. The
+# notes of the Release are taken from there, and a Release without notes is a file
+# of which nobody knows what changes.
 $cl = Get-Content (Join-Path $root "CHANGELOG.md") -Encoding UTF8
 $start = -1
 for ($i = 0; $i -lt $cl.Count; $i++) {
@@ -64,8 +64,8 @@ Ok ("CHANGELOG.md ha la voce, " + ($fine - $start) + " righe")
 
 Write-Output ""
 Write-Output "=== il repository"
-# NIENTE DI NON COMMITTATO: il binario deve essere quello di un commit, o
-# nessuno potra' mai dire da che codice viene.
+# NOTHING UNCOMMITTED: the binary must be that of a commit, or
+# nobody will ever be able to say what code it comes from.
 $dirty = @(RunGit @('status', '--porcelain') | Where-Object { $_ })
 if ($dirty.Count -gt 0) {
     $dirty | Select-Object -First 5 | ForEach-Object { Write-Output "     $_" }
@@ -73,8 +73,8 @@ if ($dirty.Count -gt 0) {
 }
 Ok "albero di lavoro pulito"
 
-# E SPINTO: una Release che punta a un commit che il remoto non ha e' un tag
-# che nessun altro puo' risolvere.
+# AND PUSHED: a Release that points to a commit that the remote does not have is a tag
+# that nobody else can resolve.
 $null = RunGit @('fetch', '--quiet', 'origin')
 $locale = (RunGit @('rev-parse', 'HEAD')) | Select-Object -First 1
 $remote = (RunGit @('rev-parse', 'origin/main')) | Select-Object -First 1
@@ -95,18 +95,18 @@ if (-not (Test-Path $exe)) { Stop "manca dist\Installer.exe" }
 if (-not (Test-Path $sha)) { Stop "manca dist\Installer.exe.sha256" }
 Ok ("dist\Installer.exe, " + [int]((Get-Item $exe).Length / 1KB) + " kB")
 
-# LO SHA256 SI RICALCOLA, NON SI CREDE AL FILE ACCANTO. E' il valore che chi
-# scarica confrontera': se il file .sha256 e' rimasto di una compilazione
-# precedente, la verifica che QUICKSTART insegna direbbe "manomesso" a tutti.
+# THE SHA256 IS RECOMPUTED, THE FILE NEXT TO IT IS NOT TRUSTED. It is the value that whoever
+# downloads will compare: if the .sha256 file has been left over from a previous
+# build, the verification that QUICKSTART teaches would say "tampered" to everybody.
 $real = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
 $declared = ((Get-Content $sha -Raw).Trim() -split '\s+')[0].ToLower()
 if ($real -ne $declared) { Stop "lo sha256 accanto all'eseguibile non e' il suo ($declared contro $real)" }
 Ok "sha256 ricalcolato e uguale: $($real.Substring(0,16))..."
 
-# LA SUITE DI CONTRATTO, VERDE. Dentro ci sono i due controlli che una Release
-# deve avere: la versione che il ponte annuncia e' quella di VERSION.txt, e
-# l'ultimo giro di banco e' posteriore all'ultima modifica della libreria e del
-# banco. Una Release su un banco vecchio e' un binario che nessuno ha misurato.
+# THE CONTRACT SUITE, GREEN. Inside there are the two checks that a Release
+# must have: the version that the bridge announces is that of VERSION.txt, and
+# the last bench run is later than the last change to the library and to the
+# bench. A Release on an old bench is a binary that nobody has measured.
 $tests = Join-Path $root "Tests\bin\Oce.Solid.Agent.ContractTests.exe"
 if (-not (Test-Path $tests)) { Stop "manca Tests\bin\Oce.Solid.Agent.ContractTests.exe: si compila Tests\Oce.Solid.Agent.ContractTests.csproj" }
 $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"

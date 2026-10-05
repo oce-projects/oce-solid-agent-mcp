@@ -5,23 +5,23 @@ using SolidWorks.Interop.sldworks;
 namespace Checks.Option
 {
     /// <summary>
-    /// LEGGE E CAMBIA UNA PREFERENZA DI SOLIDWORKS, per numero.
+    /// READS AND CHANGES A SOLIDWORKS PREFERENCE, by number.
     ///
-    /// Serve al banco per isolare una domanda del tipo «non funziona perche'
-    /// l'API e' sbagliata, o perche' un'opzione e' spenta?». Cambiare
-    /// un'opzione dentro il codice di produzione per scoprirlo significa
-    /// ricompilare a ogni tentativo, e lasciarcela per sbaglio.
+    /// It serves the bench to isolate a question of the type «does it not work because
+    /// the API is wrong, or because an option is turned off?». Changing
+    /// an option inside the production code to find out means
+    /// recompiling at every attempt, and leaving it there by mistake.
     ///
-    /// STAMPA SEMPRE IL VALORE DI PRIMA, perche' e' un'impostazione di chi
-    /// lavora e va rimessa com'era. Chi la cambia deve poterla rimettere senza
-    /// ricordarsela.
+    /// IT ALWAYS PRINTS THE PREVIOUS VALUE, because it is a setting of whoever
+    /// works and must be put back as it was. Whoever changes it must be able to put it back without
+    /// remembering it.
     ///
-    ///     Option.exe 248              legge
-    ///     Option.exe 248 on           accende
-    ///     Option.exe 248 off          spegne
+    ///     Option.exe 248              reads
+    ///     Option.exe 248 on           turns on
+    ///     Option.exe 248 off          turns off
     ///
-    /// I numeri sono quelli di `swUserPreferenceToggle_e`; `DimensionApis.exe` li
-    /// elenca cercando per parola.
+    /// The numbers are those of `swUserPreferenceToggle_e`; `DimensionApis.exe` lists
+    /// them by searching for a word.
     /// </summary>
     internal static class Program
     {
@@ -44,18 +44,18 @@ namespace Checks.Option
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
             var sw = (ISldWorks)raw;
 
-            // DUE LIVELLI, E NON SONO INTERCAMBIABILI.
+            // TWO LEVELS, AND THEY ARE NOT INTERCHANGEABLE.
             //
-            // Alcune preferenze stanno nell'APPLICAZIONE (`ISldWorks`), altre
-            // nel DOCUMENTO (`IModelDocExtension`). Chiedere una di documento
-            // all'applicazione **non solleva**: risponde un valore, e
-            // scriverlo non cambia niente. Misurato su
-            // `swDetailingAutoInsertDimsMarkedForDrawing` (248): letto False,
-            // scritto True, riletto **False**, nessun errore.
+            // Some preferences live in the APPLICATION (`ISldWorks`), others
+            // in the DOCUMENT (`IModelDocExtension`). Asking the application for a
+            // document one **does not raise**: it answers a value, and
+            // writing it changes nothing. Measured on
+            // `swDetailingAutoInsertDimsMarkedForDrawing` (248): read False,
+            // written True, read again **False**, no error.
             //
-            // Per questo qui si stampano tutti e due, sempre: un'opzione che
-            // «non si lascia cambiare» quasi sempre e' un'opzione chiesta al
-            // livello sbagliato.
+            // That is why both are printed here, always: an option that
+            // «will not let itself be changed» is almost always an option asked at the
+            // wrong level.
             var doc = sw.ActiveDoc as IModelDoc2;
 
             bool app = false, appOk = false;

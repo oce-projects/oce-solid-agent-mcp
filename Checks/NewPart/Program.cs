@@ -7,22 +7,22 @@ using SolidWorks.Interop.swconst;
 namespace Checks.NewPart
 {
     /// <summary>
-    /// APRE UNA PARTE VUOTA, per far ripartire il banco da zero.
+    /// OPENS AN EMPTY PART, to restart the bench from zero.
     ///
-    /// Serve dopo aver chiuso gli scarti: il ponte lavora sul documento aperto,
-    /// e con SOLIDWORKS a documenti zero non ha niente su cui posarsi.
+    /// It is needed after closing the leftovers: the bridge works on the open document,
+    /// and with SOLIDWORKS at zero documents it has nothing to rest on.
     ///
-    /// Perche' compilato e non uno script. `ISldWorks.NewDocument` per late
-    /// binding da PowerShell 5.1 risponde TYPE_E_ELEMENTNOTFOUND: PowerShell non
-    /// riesce a risolvere il metodo sull'IDispatch di SOLIDWORKS. E' lo stesso
-    /// motivo per cui tutte le sonde COM di questo progetto sono eseguibili C#
-    /// compilati contro l'interop, e non .ps1.
+    /// Why compiled and not a script. `ISldWorks.NewDocument` by late
+    /// binding from PowerShell 5.1 answers TYPE_E_ELEMENTNOTFOUND: PowerShell
+    /// cannot resolve the method on the SOLIDWORKS IDispatch. It is the same
+    /// reason why all the COM probes of this project are C# executables
+    /// compiled against the interop, and not .ps1.
     ///
-    /// IL MODELLO. Si prende quello preferito dall'utente; se la preferenza non
-    /// c'e' o punta a un file sparito, si cerca un .prtdot sul disco. La ricerca
-    /// SCARTA i modelli MBD e quelli in millesimi: hanno unita' e impostazioni
-    /// loro, e una prova che misura in millimetri su un modello in millesimi
-    /// legge numeri giusti e sbagliati insieme.
+    /// THE TEMPLATE. The one preferred by the user is taken; if the preference
+    /// is not there or points to a vanished file, a .prtdot is searched on disk. The search
+    /// DISCARDS the MBD templates and those in thousandths: they have units and settings
+    /// of their own, and a check that measures in millimetres on a template in thousandths
+    /// reads right and wrong numbers together.
     /// </summary>
     internal static class Program
     {
@@ -68,17 +68,17 @@ namespace Checks.NewPart
 
         private static string SearchedOnDisk()
         {
-            // `C:\ProgramData\SolidWorks` e' dove SOLIDWORKS mette i suoi
-            // modelli su qualunque installazione. Accanto c'era il percorso di
-            // un disco di rete di UNA postazione: non serviva a nessun altro e
-            // diceva com'e' fatto quel disco. Adesso e' una variabile, e chi
-            // tiene i modelli altrove lo dice.
+            // `C:\ProgramData\SolidWorks` is where SOLIDWORKS puts its
+            // templates on any installation. Next to it there was the path of
+            // a network drive of ONE workstation: it was of no use to anybody else and
+            // it told how that drive is laid out. Now it is a variable, and whoever
+            // keeps the templates elsewhere says so.
             var folders = new System.Collections.Generic.List<string>
             {
                 @"C:\ProgramData\SolidWorks",
             };
-            // `System.` per esteso: l'interop di SOLIDWORKS ha un suo
-            // `Environment`, e con i due `using` il nome nudo non compila.
+            // `System.` spelled out: the SOLIDWORKS interop has its own
+            // `Environment`, and with the two `using`s the bare name does not compile.
             var its = System.Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
             if (!string.IsNullOrWhiteSpace(its)) folders.Add(its);
             foreach (var c in folders)

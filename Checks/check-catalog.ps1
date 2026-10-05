@@ -1,27 +1,27 @@
 # =============================================================================
-#  Il catalogo dichiara operazioni che l'esecutore sa fare?
+#  Does the catalogue declare operations that the executor can perform?
 # =============================================================================
 #
-#  Esce 0 se tutto torna, 1 se no. E' pensato per essere lanciato prima di una
-#  consegna e da una build automatica.
+#  Exits 0 if everything adds up, 1 if not. It is meant to be run before a
+#  delivery and by an automatic build.
 #
-#  PERCHE' ESISTE. Il catalogo (`catalog.json`) e' l'elenco di cio' che il
-#  modello puo' chiedere; lo switch di `SwOperations.Run` e' l'elenco di cio'
-#  che si puo' davvero fare. Sono due posti, e due posti divergono sempre. Oggi
-#  divergono di tre nomi, e quei tre nomi il modello puo' chiederli: si prende
-#  «operazione sconosciuta» dopo aver scritto un piano intero.
+#  WHY IT EXISTS. The catalogue (`catalog.json`) is the list of what the
+#  model can ask for; the switch of `SwOperations.Run` is the list of
+#  what can really be done. They are two places, and two places always diverge. Today
+#  they diverge by three names, and those three names the model can ask for: it gets
+#  «operazione sconosciuta» after having written a whole plan.
 #
-#  UN CONTROLLO NON DEVE POTER USCIRE 0 PER NON AVER GUARDATO.
-#  E' il difetto che questo controllo rischiava piu' di tutti: leggere i `case`
-#  con una regex su 4.700 righe, non trovarne nessuno, e dichiarare «nessun
-#  disallineamento». Qui ci si difende in tre modi:
-#    1. se il catalogo ha meno di 20 operazioni si esce 1 dicendo che non e'
-#       stato letto, invece di confrontare due insiemi vuoti;
-#    2. se dal sorgente si leggono meno di 20 `case`, idem;
-#    3. l'elenco dichiarato dalla libreria (`SwOperations.ExecutableNames`) e
-#       quello letto dal sorgente devono COMBACIARE fra loro: sono due strade
-#       indipendenti verso lo stesso fatto, e se divergono e' uno dei due a
-#       essere marcio.
+#  A CHECK MUST NOT BE ABLE TO EXIT 0 BECAUSE IT DID NOT LOOK.
+#  It is the defect this check risked more than any other: reading the `case`
+#  with a regex over 4,700 lines, finding none, and declaring «nessun
+#  disallineamento». Here we defend in three ways:
+#    1. if the catalogue has fewer than 20 operations we exit 1 saying it was not
+#       read, instead of comparing two empty sets;
+#    2. if fewer than 20 `case` are read from the source, same;
+#    3. the list declared by the library (`SwOperations.ExecutableNames`) and
+#       the one read from the source must MATCH each other: they are two
+#       independent roads to the same fact, and if they diverge one of the two is
+#       rotten.
 #
 #  EXPECTED KEYS (W3.1-bis.2, item 5). A property of an object read with
 #  ConvertFrom-Json is $null when it is missing, without an error: after a
@@ -57,7 +57,7 @@ function Note($m) { Write-Host "       $m" -ForegroundColor DarkGray }
 Write-Host ""
 Write-Host "=== Il catalogo contro l'esecutore" -ForegroundColor Cyan
 
-# --- 1. il catalogo ----------------------------------------------------------
+# --- 1. the catalogue --------------------------------------------------------
 if (-not (Test-Path -LiteralPath $Catalog)) {
     Write-Host "  [X] non trovo il catalogo: $Catalog" -ForegroundColor Red
     Write-Host ""
@@ -134,7 +134,7 @@ if ($catalogNames.Count -lt 20) {
 }
 Fine ("catalogo: " + $catalogNames.Count + " operazioni")
 
-# --- 2. cio' che l'esecutore DICHIARA di saper fare --------------------------
+# --- 2. what the executor DECLARES it can do --------------------------------
 if (-not (Test-Path -LiteralPath $Library)) {
     Write-Host "  [X] non trovo la libreria: $Library" -ForegroundColor Red
     exit 1
@@ -169,8 +169,8 @@ public static class CatalogueCheckInterop
 '@
 }
 [CatalogueCheckInterop]::Resolve((Join-Path $SwInstallPath 'api\redist'))
-# Load sui byte e non LoadFrom: la libreria puo' stare su un'unita' di rete,
-# dove LoadFrom fallisce con 0x80131515 nominando una dipendenza che non esiste.
+# Load on the bytes and not LoadFrom: the library may sit on a network drive,
+# where LoadFrom fails with 0x80131515 naming a dependency that does not exist.
 $asm = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($Library))
 $typ = $asm.GetType("Oce.Solid.Agent.Core.SwOperations")
 if (-not $typ) {
@@ -186,27 +186,27 @@ if (-not $theField) {
 $declared = @($theField.GetValue($null) | Sort-Object -Unique)
 Fine ("l'esecutore dichiara: " + $declared.Count + " operazioni")
 
-# --- 3. cio' che c'e' DAVVERO nello switch, letto dal sorgente ---------------
-# Seconda strada verso lo stesso fatto: se le due divergono, e' una delle due a
-# essere marcia, e va detto invece di scegliere quella comoda.
+# --- 3. what is REALLY in the switch, read from the source -------------------
+# A second road to the same fact: if the two diverge, one of the two is
+# rotten, and it must be said instead of choosing the convenient one.
 $fromSource = @()
 if (Test-Path -LiteralPath $Source) {
     $text = Get-Content -LiteralPath $Source -Raw -Encoding UTF8
 
-    # SI LEGGONO I «case», NON I «case ... return».
+    # WE READ THE «case» STATEMENTS, NOT THE «case ... return» ONES.
     #
-    # La prima stesura cercava `case "x": return`, e perdeva il primo di una
-    # coppia che ricade sull'altro:
+    # The first draft looked for `case "x": return`, and missed the first of a
+    # pair that falls through to the other:
     #
     #     case "structural_member":
     #     case "rectangular_frame": return StructuralMember(...);
     #
-    # Il controllo denunciava `structural_member` come «dichiarato ma non
-    # nello switch», che era falso. Un controllo che accusa il codice giusto
-    # si smette di guardare dopo due volte.
+    # The check reported `structural_member` as «dichiarato ma non
+    # nello switch», which was false. A check that accuses the right code
+    # stops being looked at after twice.
     #
-    # Si guarda solo dentro il corpo di `Run`, se lo si trova: altrove nel
-    # file ci sono altri switch (nomi di piano, di vista) che non c'entrano.
+    # We only look inside the body of `Run`, if it is found: elsewhere in the
+    # file there are other switches (plane names, view names) that are beside the point.
     #
     # Since W3.1-bis.5 the switch sits in `ExecuteWithCurrentNames`: `Run`
     # translates the names of before the rename (Alias.cs) and hands over. The
@@ -238,7 +238,7 @@ if ($fromSource.Count -lt 20) {
     }
 }
 
-# --- 4. il confronto che conta ----------------------------------------------
+# --- 4. the comparison that counts ------------------------------------------
 $declaredNotRunnable = @($catalogNames | Where-Object { $_ -notin $declared })
 $undeclaredExecutables = @($declared | Where-Object { $_ -notin $catalogNames })
 
@@ -255,15 +255,15 @@ if ($declaredNotRunnable.Count) {
 }
 
 if ($undeclaredExecutables.Count) {
-    # NON e' un errore: un'operazione che c'e' ma non e' dichiarata e'
-    # semplicemente invisibile al modello, che e' il comportamento voluto per
-    # cio' che non e' ancora stato provato.
+    # It is NOT an error: an operation that exists but is not declared is
+    # simply invisible to the model, which is the intended behaviour for
+    # what has not been tested yet.
     Fine ("eseguibili ma non dichiarate: " + $undeclaredExecutables.Count +
           " (invisibili al modello, ed e' voluto)")
     $undeclaredExecutables | ForEach-Object { Note $_ }
 }
 
-# --- 5. la forma di ogni voce ------------------------------------------------
+# --- 5. the shape of every entry ---------------------------------------------
 Write-Host ""
 Write-Host "=== La forma del catalogo" -ForegroundColor Cyan
 
@@ -280,9 +280,9 @@ foreach ($op in $operations) {
 }
 if ($withoutField -eq 0) { Fine "ogni operazione ha nome, famiglia, sommario, descrizione, schema" }
 
-# --- 6. le famiglie ----------------------------------------------------------
-# E' il difetto gia' riparato una volta in esporta_catalogo.py: una famiglia
-# dichiarata e vuota arriva al modello come una porta che non apre su niente.
+# --- 6. the families ---------------------------------------------------------
+# It is the defect already repaired once in esporta_catalogo.py: a family
+# declared and empty reaches the model as a door that opens onto nothing.
 $usedFamilies = @($operations | ForEach-Object { $_.family } | Sort-Object -Unique)
 # (the declared families were read, and required not empty, in step 1)
 $empty = @($familiesDeclared | Where-Object { $_ -notin $usedFamilies })
@@ -298,17 +298,17 @@ if (-not $empty.Count -and -not $notDeclared.Count) {
     Fine ("le " + $usedFamilies.Count + " famiglie tornano")
 }
 
-# --- 7. cosa NON deve comparire nei testi ------------------------------------
-# C2 dell'audit smette di essere un grep da fare a mano e diventa una prova.
+# --- 7. what must NOT appear in the texts ------------------------------------
+# C2 of the audit stops being a grep to run by hand and becomes a check.
 Write-Host ""
 Write-Host "=== Cosa non deve uscire dal catalogo" -ForegroundColor Cyan
-# SI CERCA NEL TESTO DECODIFICATO, NON NEL FILE GREZZO.
+# WE SEARCH THE DECODED TEXT, NOT THE RAW FILE.
 #
-# La prima stesura leggeva il JSON come testo e cercava «O:\» senza distinguere
-# maiuscole. Nel catalogo c'e' la frase «...con il tipo:\n tubolare...», dove
-# `\n` e' l'escape JSON di un a capo: la ricerca trovava `o:` + `\` e
-# denunciava un percorso interno che non esiste. Decodificando, quell'escape
-# diventa un a capo vero e il falso positivo sparisce.
+# The first draft read the JSON as text and searched for «O:\» without distinguishing
+# case. In the catalogue there is the sentence «...con il tipo:\n tubolare...», where
+# `\n` is the JSON escape of a newline: the search found `o:` + `\` and
+# reported an internal path that does not exist. Once decoded, that escape
+# becomes a real newline and the false positive disappears.
 $forbidden = @("S:\", "O:\", "W:\", "OpenPDM", "192.168.", "oscar")
 $decoded = New-Object System.Text.StringBuilder
 function Collect($o) {
@@ -329,9 +329,9 @@ Collect $cat
 $text = $decoded.ToString()
 $foundItems = @()
 foreach ($v in $forbidden) {
-    # I percorsi si cercano rispettando le maiuscole: «O:\» e' un'unita', «o:\»
-    # in mezzo a una frase italiana non lo e' quasi mai. I nomi propri no,
-    # quelli si cercano comunque.
+    # Paths are searched respecting case: «O:\» is a drive, «o:\»
+    # in the middle of an Italian sentence almost never is. Proper names are not,
+    # those are searched anyway.
     $mode = if ($v.EndsWith("\")) { [StringComparison]::Ordinal }
             else { [StringComparison]::OrdinalIgnoreCase }
     if ($text.IndexOf($v, $mode) -ge 0) { $foundItems += $v }
@@ -343,7 +343,7 @@ if ($foundItems.Count) {
     Fine "nessun percorso interno, nome di prodotto o indirizzo"
 }
 
-# --- esito -------------------------------------------------------------------
+# --- outcome -----------------------------------------------------------------
 Write-Host ""
 if ($problems.Count -eq 0) {
     Write-Host "Tutto torna." -ForegroundColor Green

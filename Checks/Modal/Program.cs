@@ -7,34 +7,34 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  Modale — la guardia contro il modale l'ha mai vista scattare qualcuno? (Z-C3)
+//  Modal — has anyone ever seen the guard against the modal trigger? (Z-C3)
 // =============================================================================
 //
-//  `PlanExecutor.PreliminaryChecks` rifiuta un piano se
-//  `ISldWorks.CommandInProgress` e' vero: «SOLIDWORKS e' occupato in un
-//  comando». La frase compare in UN posto del repository, la riga che la
-//  produce. Nessun caso, nessuna prova: una promessa non verificata.
+//  `PlanExecutor.PreliminaryChecks` refuses a plan if
+//  `ISldWorks.CommandInProgress` is true: «SOLIDWORKS e' occupato in un
+//  comando». The sentence appears in ONE place of the repository, the line that
+//  produces it. No case, no check: an unverified promise.
 //
-//  QUI SI APRE UN MODALE VERO e si guarda cosa dicono, mentre e' aperto:
-//    - `CommandInProgress`, letto via COM — con un tempo massimo, perche' una
-//      chiamata COM verso un SOLIDWORKS dentro un ciclo modale puo' non tornare
-//      (e' la trappola che la voce nomina: la guardia che eredita il difetto
-//      che previene);
-//    - `IsWindowEnabled` sulla finestra principale, letto da User32: un
-//      proprietario con un modale aperto e' DISABILITATO, e questa lettura non
-//      passa da SOLIDWORKS, quindi non si puo' appendere.
+//  HERE A REAL MODAL IS OPENED and we look at what they say, while it is open:
+//    - `CommandInProgress`, read via COM — with a maximum time, because a
+//      COM call towards a SOLIDWORKS inside a modal loop may not return
+//      (it is the trap that the entry names: the guard that inherits the defect
+//      that it prevents);
+//    - `IsWindowEnabled` on the main window, read from User32: an
+//      owner with an open modal is DISABLED, and this reading does not
+//      go through SOLIDWORKS, so it cannot hang.
 //
-//  IL MODALE: `SendMsgToUser2`, una finestra di messaggio di SOLIDWORKS. La
-//  chiamata non torna finche' la finestra e' aperta, quindi la si fa da un
-//  altro filo; la sonda trova la finestra (classe #32770 del processo di
-//  SOLIDWORKS) e la chiude con WM_CLOSE.
+//  THE MODAL: `SendMsgToUser2`, a SOLIDWORKS message window. The
+//  call does not return as long as the window is open, so it is made from another
+//  thread; the probe finds the window (class #32770 of the SOLIDWORKS
+//  process) and closes it with WM_CLOSE.
 //
-//  TRE GIRI, alternando chiuso / aperto, con i millisecondi di ogni lettura.
-//  Il criterio della voce: le due letture concordi, 0 falsi positivi e 0 falsi
-//  negativi. Se `CommandInProgress` resta falso col modale aperto, la guardia
-//  e' CIECA — e lo si scrive.
+//  THREE RUNS, alternating closed / open, with the milliseconds of every reading.
+//  The criterion of the entry: the two readings agreeing, 0 false positives and 0 false
+//  negatives. If `CommandInProgress` stays false with the modal open, the guard
+//  is BLIND — and it is written down.
 //
-//  USO
+//  USAGE
 //      .\Checks\Modal\bin\Modal.exe
 // =============================================================================
 
@@ -127,7 +127,7 @@ internal static class Program
                 bool returned = reader.Join(5000);
                 if (!returned) notReturned++;
 
-                // ATTESO: aperto -> finestra DISABILITATA e comando in corso.
+                // EXPECTED: open -> window DISABLED and command in progress.
                 if (enabled == open) bogusUser32++;
                 if (returned && inProgress.HasValue && inProgress.Value != open) bogusCom++;
 
@@ -169,7 +169,7 @@ internal static class Program
         return 7;
     }
 
-    /// <summary>Una finestra di dialogo (#32770) visibile del processo di SOLIDWORKS.</summary>
+    /// <summary>A visible dialog window (#32770) of the SOLIDWORKS process.</summary>
     private static IntPtr DialogOf(uint pid)
     {
         IntPtr found = IntPtr.Zero;

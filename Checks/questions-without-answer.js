@@ -1,38 +1,38 @@
 // =============================================================================
-//  questions-without-answer.js - cosa e' stato chiesto al ponte e non c'era
+//  questions-without-answer.js - what was asked of the bridge and was not there
 // =============================================================================
 //
-//  PERCHE' ESISTE (voce Z-G7)
+//  WHY IT EXISTS (entry Z-G7)
 //
-//  Le cinque operazioni del catalogo senza nessun caso di banco --
+//  The five operations of the catalogue without any bench case --
 //  `circular_pattern`, `weld_bead`, `gusset`, `trim_members`,
-//  `end_cap` -- le abbiamo scelte NOI. Quali servano davvero non lo sa
-//  nessuno, e chiederlo alle persone non lo fa sapere: chi usa il ponte non ha
-//  l'elenco di cio' che non c'e'.
+//  `end_cap` -- were chosen by US. Which ones are really needed nobody knows, and
+//  asking people does not make it known: whoever uses the bridge does not have
+//  the list of what is not there.
 //
-//  Il ponte scrive una riga ogni volta che gli chiedono un nome che non
-//  esiste (`Tools/QuestionRegistry.cs`). Questo attrezzo la legge.
+//  The bridge writes a line every time it is asked for a name that does not
+//  exist (`Tools/QuestionRegistry.cs`). This tool reads it.
 //
-//  ── LA DISTINZIONE CHE VALE, E NON E' IL CONTEGGIO ──────────────────────────
+//  ── THE DISTINCTION THAT COUNTS, AND IT IS NOT THE COUNT ────────────────────
 //
-//  Un nome chiesto dieci volte **con un nome vicino nel catalogo** e' un
-//  sinonimo da aggiungere: l'operazione c'e' gia', si chiama in un altro modo,
-//  e costa una riga.
+//  A name asked ten times **with a close name in the catalogue** is a
+//  synonym to add: the operation is already there, it is called something else,
+//  and it costs one line.
 //
-//  Un nome chiesto dieci volte **senza niente di vicino** e' un'operazione da
-//  costruire. Sono due lavori diversi e un conteggio solo li mescolerebbe, per
-//  questo l'elenco e' diviso in due.
+//  A name asked ten times **with nothing close** is an operation to
+//  build. They are two different jobs and a single count would mix them, which is
+//  why the list is split in two.
 //
-//  ── QUESTO NON E' UNA GUARDIA ───────────────────────────────────────────────
+//  ── THIS IS NOT A GUARD ─────────────────────────────────────────────────────
 //
-//  Esce sempre 0. Non c'e' niente da sbagliare in un registro: se e' vuoto
-//  vuol dire che nessuno ha chiesto niente di sconosciuto, e non e' un guaio.
-//  Non va nel gancio pre-push.
+//  It always exits 0. There is nothing to get wrong in a registry: if it is empty
+//  it means nobody asked for anything unknown, and it is not a problem.
+//  It does not go into the pre-push hook.
 //
-//  USO
+//  USAGE
 //      node Checks/questions-without-answer.js
 //      node Checks/questions-without-answer.js <file.jsonl>
-//      node Checks/questions-without-answer.js --righe    tutte, in ordine di tempo
+//      node Checks/questions-without-answer.js --righe    all of them, in time order
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
@@ -43,9 +43,9 @@ const NAME = 'domande-senza-risposta.jsonl';
 const perLines = process.argv.includes('--righe');
 const given = process.argv.slice(2).find(a => !a.startsWith('--'));
 
-// Gli stessi posti in cui il ponte lo scriverebbe: la variabile, poi accanto
-// all'eseguibile. Se un domani cambiasse l'ordine la' e non qui, questo
-// attrezzo leggerebbe un file vecchio senza dirlo -- quindi si stampa QUALE.
+// The same places in which the bridge would write it: the variable, then next
+// to the executable. If one day the order changed there and not here, this
+// tool would read an old file without saying so -- so WHICH one is printed.
 function location() {
   if (given) return given;
   const fromEnv = process.env.RISCONTRO_REGISTRO;

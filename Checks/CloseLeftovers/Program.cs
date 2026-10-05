@@ -7,39 +7,39 @@ using SolidWorks.Interop.swconst;
 namespace Checks.CloseLeftovers
 {
     /// <summary>
-    /// CHIUDE I DOCUMENTI DI SCARTO LASCIATI APERTI DALLE PROVE.
+    /// CLOSES THE LEFTOVER DOCUMENTS LEFT OPEN BY THE CHECKS.
     ///
-    /// Ogni piano di prova apre una parte nuova e non la chiude. Dopo qualche
-    /// decina di prove SOLIDWORKS si trova quaranta o cinquanta documenti in
-    /// memoria, e non e' solo spreco: **ogni lettura di stato li scorre tutti**,
-    /// a 244 ms di `GetNext()` ciascuno. E' il vero motivo per cui un piano da
-    /// mezzo secondo di lavoro ne impiegava ottantacinque.
+    /// Every check plan opens a new part and does not close it. After a few
+    /// dozen checks SOLIDWORKS has forty or fifty documents in
+    /// memory, and it is not only waste: **every state read walks through all of them**,
+    /// at 244 ms of `GetNext()` each. It is the real reason why a plan of
+    /// half a second of work took eighty-five.
     ///
-    /// COSA CHIUDE, E COSA NON TOCCA.
-    /// Solo due categorie, e la seconda si legge dalla riga di comando:
+    /// WHAT IT CLOSES, AND WHAT IT DOES NOT TOUCH.
+    /// Only two categories, and the second is read from the command line:
     ///
-    ///   1. i documenti MAI SALVATI (percorso vuoto): sono le "ParteNN" che
-    ///      nascono dalle prove e non esistono su disco;
-    ///   2. quelli il cui percorso comincia con una delle cartelle passate come
-    ///      argomento — la scratchpad di sessione, tipicamente.
+    ///   1. the documents NEVER SAVED (empty path): they are the "ParteNN" that
+    ///      are born from the checks and do not exist on disk;
+    ///   2. those whose path starts with one of the folders passed as an
+    ///      argument — the session scratchpad, typically.
     ///
-    /// Tutto il resto resta aperto. Un documento salvato da qualche altra parte
-    /// non e' roba nostra, e chiuderlo senza chiedere sarebbe il modo piu'
-    /// rapido di far perdere del lavoro a qualcuno.
+    /// Everything else stays open. A document saved somewhere else
+    /// is not our stuff, and closing it without asking would be the quickest
+    /// way to make somebody lose work.
     ///
-    /// NON SALVA NIENTE. `CloseDoc` scarta le modifiche non salvate, ed e'
-    /// esattamente quello che si vuole per un pezzo di prova. Per questo la
-    /// prima categoria e' limitata ai documenti SENZA percorso: un file vero
-    /// con modifiche non salvate non finisce mai in questa lista.
+    /// IT SAVES NOTHING. `CloseDoc` discards unsaved changes, and it is
+    /// exactly what is wanted for a test piece. That is why the
+    /// first category is limited to documents WITHOUT a path: a real file
+    /// with unsaved changes never ends up in this list.
     ///
-    ///     CloseLeftovers.exe                       elenca soltanto
-    ///     CloseLeftovers.exe --chiudi [cartelle]   chiude davvero
+    ///     CloseLeftovers.exe                       only lists
+    ///     CloseLeftovers.exe --chiudi [cartelle]   really closes
     ///     CloseLeftovers.exe --chiudi --risparmia "Parte1,Parte2"
     ///
-    /// `--risparmia` serve al banco, ed e' la differenza fra «chiudo i miei
-    /// scarti» e «chiudo tutto quello che non e' salvato». Il banco legge quali
-    /// documenti c'erano PRIMA di cominciare e li nomina qui: cosi' chiude
-    /// quello che ha aperto lui e non quello che aveva aperto qualcun altro.
+    /// `--risparmia` serves the bench, and it is the difference between «I close my
+    /// leftovers» and «I close everything that is not saved». The bench reads which
+    /// documents were there BEFORE starting and names them here: so it closes
+    /// what it opened itself and not what somebody else had opened.
     /// </summary>
     internal static class Program
     {
@@ -70,9 +70,9 @@ namespace Checks.CloseLeftovers
             }
             var sw = (ISldWorks)raw;
 
-            // SI FA L'ELENCO PRIMA, POI SI CHIUDE.
-            // Chiudere mentre si scorre la catena dei documenti la spezza: il
-            // GetNext() successivo parte da un documento che non c'e' piu'.
+            // THE LIST IS MADE FIRST, THEN WE CLOSE.
+            // Closing while walking the chain of documents breaks it: the
+            // next GetNext() starts from a document that is no longer there.
             var toClose = new List<string>();
             var kept = new List<string>();
             var doc = (IModelDoc2)sw.GetFirstDocument();
@@ -104,9 +104,9 @@ namespace Checks.CloseLeftovers
             }
             Console.WriteLine("chiusi: " + done);
 
-            // IL CONTROLLO CHE E' DAVVERO SUCCESSO. Si ricontano i documenti:
-            // CloseDoc non torna niente, e senza ricontare non si distingue
-            // «closed» da «chiamato».
+            // THE CHECK THAT REALLY HAPPENED. The documents are counted again:
+            // CloseDoc returns nothing, and without recounting «closed» cannot be told
+            // apart from «called».
             int remain = 0;
             var d2 = (IModelDoc2)sw.GetFirstDocument();
             while (d2 != null) { remain++; d2 = (IModelDoc2)d2.GetNext(); }
@@ -116,7 +116,7 @@ namespace Checks.CloseLeftovers
 
         private static bool Deviation(string filePath, List<string> folders)
         {
-            if (string.IsNullOrEmpty(filePath)) return true;   // mai salvato
+            if (string.IsNullOrEmpty(filePath)) return true;   // never saved
             string p = filePath.Replace('/', '\\');
             foreach (var c in folders)
                 if (p.StartsWith(c, StringComparison.OrdinalIgnoreCase)) return true;

@@ -6,33 +6,33 @@ using SolidWorks.Interop.swconst;
 using SolidWorks.Interop.gtswutilities;
 
 // =============================================================================
-//  Spessore — la misura che dimensiona la voce Z-H1 (lo spessore minimo di
-//             parete, con SOLIDWORKS Utilities)
+//  Thickness — the measurement that sizes entry Z-H1 (the minimum wall
+//             thickness, with SOLIDWORKS Utilities)
 // =============================================================================
 //
-//  PERCHE' QUESTO PEZZO
+//  WHY THIS PART
 //
-//  Come per la mensola di S3: la risposta si sa SENZA il calcolatore. Una
-//  piastra 100 x 60 alta 2 mm, e sopra, su meta' della sua lunghezza, un blocco
-//  alto 10. Due estrusioni dal piano superiore, nessuna faccia da scegliere:
+//  As for the S3 bracket: the answer is known WITHOUT the computer. A
+//  plate 100 x 60 and 2 mm high, and on top, over half of its length, a block
+//  10 high. Two extrusions from the top plane, no face to choose:
 //
-//      spessore minimo = 2,0 mm   (la meta' bassa)
+//      minimum thickness = 2.0 mm   (the low half)
 //
-//  Il goal lo chiede perche' una parete troppo sottile non da' nessun errore e
-//  cede in barca: e' il difetto che non si vede, portato nella geometria.
+//  The goal asks for it because a wall that is too thin gives no error and
+//  gives way on the boat: it is the defect that cannot be seen, brought into the geometry.
 //
-//  IL CONTROLLO NEI DUE VERSI, e non e' un ornamento. Una sola analisi che
-//  dicesse «2,0» potrebbe essere giusta o fortunata. Quindi due soglie:
+//  THE CHECK IN BOTH DIRECTIONS, and it is not an ornament. A single analysis that
+//  said «2.0» could be right or lucky. So two thresholds:
 //
-//      soglia 3,0 mm  -> la meta' da 2 mm e' SOTTO: facce critiche > 0
-//      soglia 1,5 mm  -> niente e' sotto:           facce critiche = 0
+//      threshold 3.0 mm  -> the 2 mm half is BELOW: critical faces > 0
+//      threshold 1.5 mm  -> nothing is below:       critical faces = 0
 //
-//  Se la seconda trova facce critiche, o la prima non ne trova, il numero non
-//  e' una misura e lo si dice.
+//  If the second finds critical faces, or the first finds none, the number is not
+//  a measurement and it is said so.
 //
-//  ── LA CATENA, accertata per riflessione il 24/9/2026 ───────────────────────
+//  ── THE CHAIN, established by reflection on 24/9/2026 ───────────────────────
 //
-//      ISldWorks.GetAddInObject(CLSID di Utilities.UtilitiesApp) -> IUtilities
+//      ISldWorks.GetAddInObject(CLSID of Utilities.UtilitiesApp) -> IUtilities
 //        .GetToolInterface(gtSWThickChk = 7, out err)             -> IThicknessAnalysis
 //        .Init()
 //        .SetThicknessAnalysisBody(IBody2)
@@ -40,20 +40,20 @@ using SolidWorks.Interop.gtswutilities;
 //        .GetMinTckOnAnalArea(out err) / GetNumCriticalFaces(out err)
 //        .Close()
 //
-//  Cosa la riflessione NON puo' dire, e per cui la sonda esiste: in che UNITA'
-//  vuole la soglia (millimetri del documento o metri dell'API?) e in che unita'
-//  risponde. Si prova e si stampa, invece di indovinare.
+//  What reflection CANNOT say, and why the probe exists: in which UNITS
+//  it wants the threshold (millimetres of the document or metres of the API?) and in which units
+//  it answers. It is tried and printed, instead of guessed.
 //
-//  USO
+//  USAGE
 //      .\Checks\Thickness\bin\Thickness.exe
-//      .\Checks\Thickness\bin\Thickness.exe --tieni     lascia il pezzo aperto
-//      .\Checks\Thickness\bin\Thickness.exe --carica    carica Utilities nella
-//                                                        sessione se non c'e'
+//      .\Checks\Thickness\bin\Thickness.exe --tieni     leaves the part open
+//      .\Checks\Thickness\bin\Thickness.exe --carica    loads Utilities into the
+//                                                        session if it is not there
 // =============================================================================
 
 internal static class Program
 {
-    // Da HKCR\Utilities.UtilitiesApp\CLSID, letto il 24/9/2026 (voce K20).
+    // From HKCR\Utilities.UtilitiesApp\CLSID, read on 24/9/2026 (entry K20).
     private const string ClsidUtilities = "{F80FA0F1-B13D-11d4-944A-000629992CFE}";
 
     // gtSwTools_e / gttckResolutionOptions_e / gtResultOptions_e, per riflessione.
@@ -92,19 +92,19 @@ internal static class Program
             Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message);
             return 2;
         }
-        // Il controllo positivo sull'aggancio: se RevisionNumber non risponde,
-        // un null piu' sotto non direbbe niente (e' successo in S3).
+        // The positive control on the attachment: if RevisionNumber does not answer,
+        // a null further down would say nothing (it happened in S3).
         Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
 
-        // ── L'ADD-IN ─────────────────────────────────────────────────────
+        // ── THE ADD-IN ───────────────────────────────────────────────────
         object addin = sw.GetAddInObject(ClsidUtilities);
         if (addin == null && loadFlag)
         {
-            // CARICARE NELLA SESSIONE, NON ALL'AVVIO. `LoadAddIn` lo accende per
-            // questa sessione e non tocca AddInsStartup: si toglie chiudendo
-            // SOLIDWORKS, o con UnloadAddIn. Solo con --carica: accendere un
-            // modulo nella sessione di chi lavora e' una scelta sua, non della
-            // sonda.
+            // LOAD INTO THE SESSION, NOT AT STARTUP. `LoadAddIn` turns it on for
+            // this session and does not touch AddInsStartup: it is removed by closing
+            // SOLIDWORKS, or with UnloadAddIn. Only with --carica: turning on a
+            // module in the session of whoever works is their choice, not the
+            // probe's.
             string dll = Path.Combine(SolidWorksRoot(sw), "sldUtils", "SwLoaderSw.dll");
             int outcome = sw.LoadAddIn(dll);
             Says("LoadAddIn(" + dll + ") -> " + outcome);
@@ -138,30 +138,30 @@ internal static class Program
             IBody2 body = FirstBody(doc);
             if (body == null) { Console.WriteLine("  nessun corpo solido"); return 4; }
 
-            // Il volume, perche' il pezzo sia quello che si crede prima di
-            // misurarne lo spessore: 100x60x2 + 50x60x8 = 12000 + 24000 mm^3.
+            // The volume, so that the part is what one believes before
+            // measuring its thickness: 100x60x2 + 50x60x8 = 12000 + 24000 mm^3.
             double[] mass = doc.Extension.GetMassProperties2(1, out int massState, false) as double[];
             double volMm3 = mass == null ? double.NaN : mass[3] * 1e9;
             Says("volume " + volMm3.ToString("0") + " mm^3 (atteso 36000)");
 
-            // ── DUE SOGLIE, E IN DUE UNITA' ──────────────────────────────
+            // ── TWO THRESHOLDS, AND IN TWO UNITS ─────────────────────────
             //
-            // Non si sa se la soglia va in millimetri o in metri. Si provano
-            // tutt'e due con la soglia da 3 mm: quella giusta trova facce
-            // critiche e un minimo intorno a 2; quella sbagliata o rifiuta o
-            // risponde qualcosa che si riconosce come assurdo.
+            // It is not known whether the threshold goes in millimetres or in metres. Both are
+            // tried with the 3 mm threshold: the right one finds critical
+            // faces and a minimum around 2; the wrong one either refuses or
+            // answers something recognisable as absurd.
             Console.WriteLine();
             Console.WriteLine("  soglia       risposta  minimo      massimo     facce critiche");
             Console.WriteLine("  ----------   --------  ----------  ----------  --------------");
 
-            // --esplora: una scansione di soglie, per sapere come risponde
-            // l'API quando la soglia scende sotto lo spessore minimo. Il primo
-            // giro vero ha dato «15» con la soglia a 1,5 mm, senza analizzare:
-            // prima di chiamarlo «sotto non c'e' niente» o «error» lo si guarda
-            // per soglie vicine, sopra e sotto i 2 mm.
-            // `System.Environment` per esteso: l'interop di SOLIDWORKS ha un suo
-            // `Environment`, e il nome nudo non compila (e' gia' successo alla
-            // sonda della mensola).
+            // --esplora: a scan of thresholds, to know how
+            // the API answers when the threshold drops below the minimum thickness. The first
+            // real run gave «15» with the threshold at 1.5 mm, without analysing:
+            // before calling it «there is nothing below» or «error» it is looked at
+            // for nearby thresholds, above and below 2 mm.
+            // `System.Environment` spelled out: the SOLIDWORKS interop has its own
+            // `Environment`, and the bare name does not compile (it has already happened to the
+            // bracket probe).
             if (Array.IndexOf(System.Environment.GetCommandLineArgs(), "--esplora") >= 0)
             {
                 foreach (double s in new[] { 0.0010, 0.0015, 0.0019, 0.00199, 0.0020, 0.00201, 0.0021, 0.0025, 0.0030, 0.0050, 0.0099, 0.0101, 0.0150 })
@@ -169,25 +169,25 @@ internal static class Program
                 return 0;
             }
 
-            // ── QUELLO CHE L'API FA DAVVERO, misurato il 24/9/2026 ─────────
+            // ── WHAT THE API REALLY DOES, measured on 24/9/2026 ────────────
             //
-            // Il primo giro provava la soglia in millimetri E in metri. La
-            // risposta: **metri**, in ingresso e in uscita (soglia 0,003 -> 2
-            // facce critiche, minimo 0,0020). E la soglia «3,0» — cioe' 3 METRI,
-            // piu' del pezzo intero — non e' innocua: la chiamata dopo ha
-            // risposto 15. Tolta.
+            // The first run tried the threshold in millimetres AND in metres. The
+            // answer: **metres**, on input and on output (threshold 0.003 -> 2
+            // critical faces, minimum 0.0020). And the threshold «3.0» — that is 3 METRES,
+            // more than the whole part — is not harmless: the next call
+            // answered 15. Removed.
             //
-            // E il verso opposto non ha la forma che la sonda si aspettava. Una
-            // soglia SOTTO lo spessore minimo non da' «zero facce critiche»:
-            // l'analisi non parte e risponde **12009**,
-            // gtWarningTckThinAnalRangeBelowMaxThick — un AVVISO che dice
-            // «sotto questa soglia non c'e' niente». E a cavallo del minimo
-            // (2,00 e 2,01 mm) risponde 15. Misurato con --esplora su tredici
-            // soglie: sotto 2 mm sempre 12009; da 2,1 a 9,9 mm sempre 2 facce e
-            // minimo 2,00; sopra 10 mm, 3 facce. *La sonda aveva scritto il
-            // criterio prima di sapere come l'API dice «niente», e lo ha
-            // scambiato per un fallimento: e' il caso in cui ha fatto bene a
-            // fermarsi invece di chiudere.*
+            // And the opposite direction does not have the shape that the probe expected. A
+            // threshold BELOW the minimum thickness does not give «zero critical faces»:
+            // the analysis does not start and answers **12009**,
+            // gtWarningTckThinAnalRangeBelowMaxThick — a WARNING that says
+            // «below this threshold there is nothing». And straddling the minimum
+            // (2.00 and 2.01 mm) it answers 15. Measured with --esplora on thirteen
+            // thresholds: below 2 mm always 12009; from 2.1 to 9.9 mm always 2 faces and
+            // minimum 2.00; above 10 mm, 3 faces. *The probe had written the
+            // criterion before knowing how the API says «nothing», and mistook it
+            // for a failure: it is the case in which it did well to
+            // stop instead of closing.*
             const double Meters = 1000.0;
             var above = Analyze(utility, body, 0.003, "0,003 m");
             var up = Analyze(utility, body, 0.012, "0,012 m");
@@ -243,12 +243,12 @@ internal static class Program
 
     private sealed class Outcome
     {
-        public int BenchRun;                 // la risposta di RunThinAnalysis2
-        public double Minimum = double.NaN, Maximum = double.NaN;   // in METRI
+        public int BenchRun;                 // the answer of RunThinAnalysis2
+        public double Minimum = double.NaN, Maximum = double.NaN;   // in METRES
         public int Critical = -1;
     }
 
-    /// <summary>Un'analisi dello spessore sottile, con tutti gli esiti stampati.</summary>
+    /// <summary>A thin thickness analysis, with all the outcomes printed.</summary>
     private static Outcome Analyze(IUtilities u, IBody2 body, double threshold, string label)
     {
         int err;
@@ -265,9 +265,9 @@ internal static class Program
             int benchRun = t.RunThinAnalysis2(threshold, HighResolution, WithoutWindow, "", false, false, true);
             if (benchRun != 0)
             {
-                // Una risposta non zero NON e' per forza un errore: 12009 vuol
-                // dire «sotto la soglia non c'e' niente». Si restituisce, e
-                // decide chi chiama.
+                // A non-zero answer is NOT necessarily an error: 12009 means
+                // «below the threshold there is nothing». It is returned, and whoever
+                // calls decides.
                 Console.WriteLine("  " + label.PadRight(12) + " " + benchRun.ToString().PadLeft(8) +
                                   "  (Init " + init + ", corpo " + bodyOk + ")");
                 return new Outcome { BenchRun = benchRun };
@@ -305,9 +305,9 @@ internal static class Program
         var doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
         if (doc == null) { Console.WriteLine("  NewDocument -> null"); return null; }
 
-        // 1. la piastra bassa, intera
+        // 1. the low plate, whole
         if (!Extrusion(doc, 0, 0, LengthMm, WidthMm, PlateMm, false)) return null;
-        // 2. il blocco alto, sulla seconda meta', che si unisce alla piastra
+        // 2. the tall block, on the second half, which joins the plate
         if (!Extrusion(doc, LengthMm / 2.0, 0, LengthMm, WidthMm, BlockMm, true)) return null;
 
         doc.ViewZoomtofit2();
@@ -315,7 +315,7 @@ internal static class Program
         return doc;
     }
 
-    /// <summary>Un rettangolo sul piano superiore, estruso di `heightMm`.</summary>
+    /// <summary>A rectangle on the top plane, extruded by `heightMm`.</summary>
     private static bool Extrusion(IModelDoc2 doc, double x1, double y1, double x2, double y2,
                                    double heightMm, bool merge)
     {
@@ -350,8 +350,8 @@ internal static class Program
 
     private static string SolidWorksRoot(ISldWorks sw)
     {
-        // GetExecutablePath e' la cartella di SLDWORKS.exe: la radice giusta
-        // anche con due alberi installati, che su questa postazione ci sono.
+        // GetExecutablePath is the folder of SLDWORKS.exe: the right root
+        // even with two installed trees, which on this workstation there are.
         try { return sw.GetExecutablePath(); } catch { }
         return @"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS";
     }

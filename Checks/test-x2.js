@@ -1,40 +1,40 @@
 // =============================================================================
-//  La sonda della voce X2: «il pezzo e' cambiato da quando l'hai guardato»
+//  The probe of entry X2: «the part has changed since you looked at it»
 // =============================================================================
 //
-//  Le prove di contratto provano `WhatChanged` — una funzione pura su due
-//  dizionari — e vanno bene per il criterio. Non provano il CABLAGGIO: che la
-//  firma si prenda in `inspect_part`, che si aggiorni dopo un `build`
-//  riuscito, e che il rifiuto esca davvero dalla porta del cliente.
+//  The contract checks test `WhatChanged` — a pure function on two
+//  dictionaries — and are fine for the criterion. They do not test the WIRING: that the
+//  signature is taken in `inspect_part`, that it is updated after a successful
+//  `build`, and that the refusal really comes out of the client's door.
 //
-//  Quel cablaggio ha gia' avuto un difetto, mezz'ora dopo essere stato scritto:
-//  la firma non si aggiornava dopo `build`, quindi `guarda -> disegna ->
-//  disegna` si fermava alla seconda accusando un pezzo che aveva cambiato il
-//  ponte stesso. E' il falso positivo che la voce X2 metteva fra i rischi, e
-//  nessuna prova di contratto poteva vederlo.
+//  That wiring has already had a defect, half an hour after being written:
+//  the signature was not updated after `build`, so `guarda -> disegna ->
+//  disegna` stopped at the second accusing a part that the bridge
+//  itself had changed. It is the false positive that entry X2 put among the risks, and
+//  no contract check could see it.
 //
-//  QUESTA SONDA PROVA LE DUE META', E LA SECONDA CONTA QUANTO LA PRIMA:
+//  THIS PROBE TESTS THE TWO HALVES, AND THE SECOND COUNTS AS MUCH AS THE FIRST:
 //
-//    1. `guarda -> disegna -> disegna` passa. Nessun falso positivo.
-//    2. si tocca il FILE da fuori, e il `build` dopo si ferma dicendo cosa
-//       e' cambiato.
+//    1. `guarda -> disegna -> disegna` passes. No false positive.
+//    2. the FILE is touched from outside, and the following `build` stops saying what
+//       has changed.
 //
-//  CHI CAMBIA IL PEZZO DA FUORI: `Checks\ChangeByHand`, un eseguibile che
-//  si aggancia a SOLIDWORKS ed estrude un blocchetto nel documento attivo.
-//  Serve un secondo attore per forza: finche' la modifica arriva dal ponte,
-//  il ponte lo sa e aggiorna la sua firma, e la difesa non deve scattare.
+//  WHO CHANGES THE PART FROM OUTSIDE: `Checks\ChangeByHand`, an executable that
+//  attaches to SOLIDWORKS and extrudes a small block in the active document.
+//  A second actor is needed of necessity: as long as the change comes from the bridge,
+//  the bridge knows it and updates its signature, and the defence must not trigger.
 //
-//  LA PRIMA STESURA SPOSTAVA LA DATA DEL FILE, e non funzionava. Misurato il
-//  23/9/2026: dopo `save_document` il documento aperto continua a
-//  rispondere `path: ""`. Il file su disco c'e', ma la sessione non ci
-//  si lega, quindi nella firma non c'e' nessuna data da confrontare - e la
-//  sonda diceva «non rileva» su una meta' che non stava nemmeno guardando.
-//  *Una sonda che prova la cosa sbagliata e' peggio di nessuna sonda: da' un
-//  rosso che manda a cercare il difetto dove non c'e'.*
+//  THE FIRST DRAFT MOVED THE DATE OF THE FILE, and it did not work. Measured on
+//  23/9/2026: after `save_document` the open document keeps
+//  answering `path: ""`. The file is on disk, but the session does not
+//  bind to it, so in the signature there is no date to compare - and the
+//  probe said «non rileva» on a half that it was not even looking at.
+//  *A probe that tests the wrong thing is worse than no probe: it gives a
+//  red that sends one looking for the defect where it is not.*
 //
 //      node Checks\test-x2.js
 //
-//  Vuole SOLIDWORKS aperto. Esce 0 se le due meta' passano, 1 altrimenti.
+//  It wants SOLIDWORKS open. Exits 0 if the two halves pass, 1 otherwise.
 // =============================================================================
 'use strict';
 
@@ -56,13 +56,13 @@ function ok(itemName, real, detail) {
   console.log((real ? '  OK   ' : '  NO   ') + itemName.padEnd(56) + (detail || ''));
 }
 
-// ── il ponte, sullo stdio ────────────────────────────────────────────────
+// ── the bridge, on stdio ─────────────────────────────────────────────────
 function openBridge() {
   const p = spawn(BRIDGE, [], { stdio: ['pipe', 'pipe', 'pipe'] });
   p.stderr.on('data', () => {});
   let buffer = '';
-  const expectedValues = new Map();     // id -> chi aspetta
-  const arrived = new Map();   // id -> risposta arrivata prima che la si aspettasse
+  const expectedValues = new Map();     // id -> who is waiting
+  const arrived = new Map();   // id -> answer that arrived before anybody was waiting for it
   p.stdout.on('data', (d) => {
     buffer += d.toString('utf8');
     let i;
@@ -72,7 +72,7 @@ function openBridge() {
       if (!line) continue;
       let o = null;
       try { o = JSON.parse(line); } catch (e) { continue; }
-      // Senza `id` e' una notifica: non e' la risposta di nessuno.
+      // Without `id` it is a notification: it is nobody's answer.
       if (o.id === undefined || o.id === null) continue;
       const chi = expectedValues.get(o.id);
       if (chi) { expectedValues.delete(o.id); chi(o); } else arrived.set(o.id, o);
@@ -106,7 +106,7 @@ function call(itemName, args) {
   };
 }
 
-// Il testo della risposta, e se era un errore.
+// The text of the answer, and whether it was an error.
 //
 // EXPECTED KEYS (W3.1-bis.2, item 5). An answer to tools/call carries
 // `result.content[0].text` (the MCP protocol). The first version read an
@@ -152,8 +152,8 @@ async function main() {
     process.exit(1);
   }
 
-  // SCRIVANIA PULITA PRIMA, come fa `bench.ps1` al passo 3: una sonda che
-  // eredita i documenti della corsa precedente misura anche quelli.
+  // CLEAN DESK FIRST, as `bench.ps1` does at step 3: a probe that
+  // inherits the documents of the previous run measures those too.
   try { fs.mkdirSync(WORK, { recursive: true }); } catch (e) {}
   try { execFileSync(CLOSE, ['--chiudi', WORK], { stdio: 'ignore' }); } catch (e) {}
   try { if (fs.existsSync(PART)) fs.unlinkSync(PART); } catch (e) {}
@@ -179,10 +179,10 @@ async function main() {
     }), 180000));
     ok('il primo disegna passa', !r.male, r.male ? r.testo.slice(0, 160) : '');
 
-    // LA RIGA CHE CONTA. Il primo `build` ha cambiato il volume: se la firma
-    // non si fosse aggiornata, questo secondo si fermerebbe accusando una
-    // modifica a mano che non c'e' stata. E' il falso positivo che la voce X2
-    // metteva fra i rischi, ed e' successo davvero per mezz'ora.
+    // THE LINE THAT COUNTS. The first `build` changed the volume: if the signature
+    // had not been updated, this second one would stop accusing a
+    // hand modification that did not happen. It is the false positive that entry X2
+    // put among the risks, and it really happened for half an hour.
     r = read(await bridge.chiedi(call('build', {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 30, width_mm: 30, thickness_mm: 5 } }],
@@ -196,8 +196,8 @@ async function main() {
     r = read(await bridge.chiedi(call('inspect_part', {})));
     ok('inspect_part prende la firma', !r.male, r.male ? r.testo.slice(0, 110) : '');
 
-    // LA MODIFICA ESTERNA. Un altro processo, che il ponte non conosce,
-    // estrude un blocchetto nel documento attivo.
+    // THE EXTERNAL MODIFICATION. Another process, which the bridge does not know,
+    // extrudes a small block in the active document.
     let saidByChange = "";
     try {
       saidByChange = execFileSync(CHANGE, ['15'], { encoding: 'utf8' }).trim();
@@ -219,9 +219,9 @@ async function main() {
        r.testo.split('\n')[0].slice(0, 130));
     ok('e dice cosa fare', r.testo.indexOf('inspect_part') >= 0, '');
 
-    // E DOPO AVER RILETTO, SI RIPARTE. Un rifiuto da cui non si esce non e'
-    // una difesa, e' un muro: la voce X2 chiede di fermarsi COL CRITERIO, e
-    // il criterio dice cosa fare per proseguire.
+    // AND AFTER READING AGAIN, WE START OVER. A refusal that cannot be left is not
+    // a defence, it is a wall: entry X2 asks to stop WITH THE CRITERION, and
+    // the criterion says what to do to carry on.
     r = read(await bridge.chiedi(call('inspect_part', {})));
     ok('si rilegge', !r.male, '');
     r = read(await bridge.chiedi(call('build', {

@@ -5,24 +5,24 @@ using SolidWorks.Interop.swconst;
 using SolidWorks.Interop.swdimxpert;
 
 // =============================================================================
-//  DimXpert — si raggiunge dal nucleo, senza add-in? (voce Z-H3, e con lei GT8)
+//  DimXpert — can it be reached from the core, without the add-in? (entry Z-H3, and with it GT8)
 // =============================================================================
 //
-//  La voce diceva «serve la stessa spunta» di Utilities. La riflessione del
-//  24/9/2026 sera dice un'altra cosa: `IModelDocExtension.get_DimXpertManager`
-//  sta nell'interop del NUCLEO, e da li' si arriva a `IDimXpertPart` con
-//  AutoDimensionScheme, InsertDatum, InsertGtol. Questa sonda lo prova su un
-//  pezzo, invece di crederlo.
+//  The entry said «the same tick is needed» as Utilities. The reflection of the
+//  evening of 24/9/2026 says something else: `IModelDocExtension.get_DimXpertManager`
+//  sits in the interop of the CORE, and from there one reaches `IDimXpertPart` with
+//  AutoDimensionScheme, InsertDatum, InsertGtol. This probe tests it on a
+//  part, instead of believing it.
 //
-//  IL PEZZO: una piastra 100 x 60 x 10 con un foro passante da 20 al centro,
-//  fatta con UNO schizzo (rettangolo e cerchio insieme): nessuna faccia da
-//  scegliere. Il foro e' la cosa che uno schema di quotatura deve riconoscere.
+//  THE PART: a plate 100 x 60 x 10 with a through hole of 20 in the centre,
+//  made with ONE sketch (rectangle and circle together): no face to
+//  choose. The hole is the thing that a dimensioning scheme must recognise.
 //
-//  IL CONTROLLO NEI DUE VERSI: prima dello schema le annotazioni DimXpert sono
-//  ZERO; dopo sono piu' di zero, e fra le caratteristiche riconosciute c'e' il
-//  foro. Uno schema che «riesce» senza aggiungere niente non e' uno schema.
+//  THE CHECK IN BOTH DIRECTIONS: before the scheme the DimXpert annotations are
+//  ZERO; after they are more than zero, and among the recognised features there is the
+//  hole. A scheme that «succeeds» without adding anything is not a scheme.
 //
-//  USO
+//  USAGE
 //      .\Checks\DimXpert\bin\DimXpert.exe            [--tieni]
 // =============================================================================
 
@@ -72,7 +72,7 @@ internal static class Program
             double expected = 100 * 60 * 10 - Math.PI * 10 * 10 * 10;
             Says("piastra col foro: volume " + vol.ToString("0.0") + " mm^3 (atteso " + expected.ToString("0.0") + ")");
 
-            // ── IL GESTORE DIMXPERT, DAL NUCLEO ──────────────────────────
+            // ── THE DIMXPERT MANAGER, FROM THE CORE ──────────────────────
             string config = doc.ConfigurationManager.ActiveConfiguration.Name;
             var handler = doc.Extension.get_DimXpertManager(config, true) as IDimXpertManager;
             if (handler == null)
@@ -89,14 +89,14 @@ internal static class Program
             int loadBefore = partDoc.GetFeatureCount();
             Says("prima dello schema: " + loadBefore + " caratteristiche, " + annBefore + " annotazioni");
 
-            // MISURATO il 24/9 sera: con le opzioni di serie e niente
-            // selezionato, `AutoDimensionScheme` risponde False e non fa niente.
-            // Le opzioni non hanno campi per i riferimenti: i riferimenti si
-            // SELEZIONANO prima, con un marchio per il primario, il secondario
-            // e il terziario. Quali marchi, non si sa: si provano.
+            // MEASURED on the evening of 24/9: with the default options and nothing
+            // selected, `AutoDimensionScheme` answers False and does nothing.
+            // The options have no fields for the references: the references are
+            // SELECTED first, with a mark for the primary, the secondary
+            // and the tertiary. Which marks, nobody knows: they are tried.
             //
-            // La piastra sta in X 0..100, Y 0..10, Z -60..0 (lo schizzo sul
-            // piano superiore ha la Y dello schizzo verso -Z del modello).
+            // The plate sits in X 0..100, Y 0..10, Z -60..0 (the sketch on the
+            // top plane has the sketch Y towards the model -Z).
             var options = partDoc.GetAutoDimSchemeOption();
             bool done = false;
             int annAfter = annBefore, loadAfter = loadBefore;
@@ -117,15 +117,15 @@ internal static class Program
                     loadAfter = partDoc.GetFeatureCount();
                     Says("marchi " + string.Join("/", marks) + " (selezioni " + s1 + "/" + s2 + "/" + s3 +
                          "): AutoDimensionScheme -> " + done + ", " + loadAfter + " caratteristiche, " + annAfter + " annotazioni");
-                    // NON SI GUARDA `fatto`: misurato il 24/9 sera, risponde
-                    // False anche quando ha messo sei quote giuste. Si guarda
-                    // se le annotazioni ci sono.
+                    // WE DO NOT LOOK AT `fatto`: measured on the evening of 24/9, it answers
+                    // False even when it has put six right dimensions. We look at
+                    // whether the annotations are there.
                     if (annAfter > 3) break;
                 }
                 doc.ClearSelection2(true);
             }
 
-            // Che cosa ha riconosciuto: i tipi delle caratteristiche.
+            // What it recognised: the types of the features.
             bool aHole = false;
             var car = partDoc.GetFeatures() as object[];
             if (car != null)
@@ -138,9 +138,9 @@ internal static class Program
                     if (typ.IndexOf("Hole", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         typ.IndexOf("Cylinder", StringComparison.OrdinalIgnoreCase) >= 0) aHole = true;
                 }
-            // I VALORI, non solo il conteggio: il nome porta il valore fra
-            // parentesi («DistanzaTra2@Piano10(60)»). Sei quote con numeri a
-            // caso sarebbero sei quote, e nessuna giusta.
+            // THE VALUES, not only the count: the name carries the value in
+            // brackets («DistanzaTra2@Piano10(60)»). Six dimensions with random
+            // numbers would be six dimensions, and none of them right.
             var expectedValues = new System.Collections.Generic.List<double> { 20, 10, 60, 100, 50, 30 };
             var ann = partDoc.GetAnnotations() as object[];
             if (ann != null)

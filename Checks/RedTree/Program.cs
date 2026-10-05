@@ -6,26 +6,26 @@ using SolidWorks.Interop.swconst;
 namespace Checks.RedTree
 {
     /// <summary>
-    /// COSA DICE SOLIDWORKS DI UN ALBERO ROTTO, e se lo dice.
+    /// WHAT SOLIDWORKS SAYS ABOUT A BROKEN TREE, and whether it says it.
     ///
-    /// `inspect_part` oggi descrive come normale un pezzo il cui albero e'
-    /// rosso: il modello guarda un pezzo rotto e vede un pezzo sano. E' un
-    /// difetto che non da' errore **dentro gli occhiali**, ed e' la voce D6.
+    /// `inspect_part` today describes as normal a part whose tree is
+    /// red: the model looks at a broken part and sees a healthy part. It is a
+    /// defect that raises no error **inside the glasses**, and it is entry D6.
     ///
-    /// Prima di aggiungere un campo allo stato bisogna sapere che cosa ci si
-    /// puo' mettere dentro, e qui si guarda:
+    /// Before adding a field to the state we need to know what can be
+    /// put inside it, and here we look:
     ///
-    ///   * `IModelDocExtension.NeedsRebuild2` — il documento va ricostruito?
-    ///   * `GetWhatsWrongCount()` / `GetWhatsWrong()` — l'elenco ufficiale dei
-    ///     guai, quello che SOLIDWORKS mostra nella finestra;
-    ///   * `IFeature.GetErrorCode2()` e `IsWarning` — feature per feature.
+    ///   * `IModelDocExtension.NeedsRebuild2` — does the document need rebuilding?
+    ///   * `GetWhatsWrongCount()` / `GetWhatsWrong()` — the official list of
+    ///     troubles, the one that SOLIDWORKS shows in the window;
+    ///   * `IFeature.GetErrorCode2()` and `IsWarning` — feature by feature.
     ///
-    /// SI SPEGNE LA FINESTRA DEGLI ERRORI (`ShowFeatureErrorDialog`). E' la
-    /// stessa lezione di `swInputDimValOnCreate`: un'API che apre un modale
-    /// blocca la chiamata COM per sempre, e un banco non sorvegliato resta li'
-    /// tutta la notte. Si rimette com'era in ogni caso.
+    /// THE ERROR WINDOW IS TURNED OFF (`ShowFeatureErrorDialog`). It is the
+    /// same lesson as `swInputDimValOnCreate`: an API that opens a modal
+    /// blocks the COM call forever, and an unattended bench stays there
+    /// all night. It is put back as it was in any case.
     ///
-    ///     RedTree.exe        guarda il pezzo attivo
+    ///     RedTree.exe        looks at the active part
     /// </summary>
     internal static class Program
     {
@@ -57,17 +57,17 @@ namespace Checks.RedTree
             }
             catch (Exception e) { Console.WriteLine("NeedsRebuild2: " + e.Message); }
 
-            // L'ELENCO UFFICIALE DEI GUAI.
+            // THE OFFICIAL LIST OF TROUBLES.
             try
             {
                 int howMany = doc.Extension.GetWhatsWrongCount();
                 Console.WriteLine("GetWhatsWrongCount: " + howMany);
                 if (howMany > 0)
                 {
-                    // La firma vera di questa installazione e' a TRE uscite,
-                    // non a cinque: `GetWhatsWrong(out Features, out
-                    // ErrorCodes, out Warnings)`. Letta con ControlliApiQuote,
-                    // non ricordata.
+                    // The real signature of this installation has THREE outputs,
+                    // not five: `GetWhatsWrong(out Features, out
+                    // ErrorCodes, out Warnings)`. Read with ControlliApiQuote,
+                    // not remembered.
                     object names = null, errors = null, warnings = null;
                     doc.Extension.GetWhatsWrong(out names, out errors, out warnings);
                     var vn = names as object[];
@@ -113,9 +113,9 @@ namespace Checks.RedTree
         }
 
         /// <summary>
-        /// Il codice tradotto, quando si sa. Quello che non si sa si lascia
-        /// come numero invece di inventargli un nome: un nome sbagliato su un
-        /// codice e' peggio del numero nudo, perche' sembra una spiegazione.
+        /// The translated code, when it is known. What is not known is left
+        /// as a number instead of inventing a name for it: a wrong name on a
+        /// code is worse than the bare number, because it looks like an explanation.
         /// </summary>
         private static string Explain(int code)
         {

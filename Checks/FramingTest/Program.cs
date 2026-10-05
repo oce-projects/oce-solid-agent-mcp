@@ -10,37 +10,37 @@ using SolidWorks.Interop.swconst;
 namespace Checks.FramingTest
 {
     /// <summary>
-    /// IL PEZZO CI STA DENTRO AL FOTOGRAMMA? (voce V5)
+    /// DOES THE PART FIT INSIDE THE FRAME? (entry V5)
     ///
-    /// `PartView.Fire` gira il pezzo, chiama `ViewZoomtofit2` e salva un
-    /// PNG 1024x768. L'isometrica esce intera e centrata. **Le tre viste
-    /// standard no.**
+    /// `PartView.Fire` turns the part, calls `ViewZoomtofit2` and saves a
+    /// 1024x768 PNG. The isometric comes out whole and centred. **The three standard
+    /// views do not.**
     ///
-    /// Il rosso non l'ho trovato io: l'hanno scritto due modelli mentre
-    /// rispondevano ad altro, durante la misura della voce V2 —
-    /// «la terza dimensione non e' determinabile perche' **esce
-    /// dall'inquadratura**», «la vista risulta **tagliata sul lato destro**».
+    /// The red was not found by me: it was written by two models while
+    /// answering something else, during the measurement of entry V2 —
+    /// «the third dimension cannot be determined because it **falls
+    /// outside the frame**», «the view turns out **cut on the right side**».
     ///
-    /// **Un pezzo tagliato e' un pezzo diverso.** Un'immagine che ne nasconde
-    /// meta' e' peggio di nessuna immagine, perche' chi la guarda ci ragiona
-    /// sopra lo stesso — ed e' esattamente cio' che e' successo.
+    /// **A cut part is a different part.** An image that hides half of it
+    /// is worse than no image, because whoever looks at it reasons on it
+    /// all the same — and it is exactly what happened.
     ///
-    /// ── COSA MISURA ───────────────────────────────────────────────────────
+    /// ── WHAT IT MEASURES ───────────────────────────────────────────────────
     ///
-    /// Scatta, poi conta i PIXEL. Lo sfondo di SOLIDWORKS e' una sfumatura
-    /// chiara; il pezzo e' grigio. Si prende la scatola dei pixel che NON sono
-    /// sfondo e si guarda:
+    /// It shoots, then counts the PIXELS. The SOLIDWORKS background is a light
+    /// gradient; the part is grey. We take the box of the pixels that are NOT
+    /// background and look:
     ///
-    ///   * **tocca un bordo?**  -> il pezzo e' tagliato, ed e' il difetto
-    ///   * **quanto riempie?**  -> pixel pagati che non mostrano niente
+    ///   * **does it touch an edge?**  -> the part is cut, and it is the defect
+    ///   * **how much does it fill?**  -> paid pixels that show nothing
     ///
-    /// Il primo criterio e' quello vero. Il secondo e' il di piu': un'immagine
-    /// costa piu' di mille token, e meta' fotogramma di sfondo e' meta' di quel
-    /// costo buttata.
+    /// The first criterion is the real one. The second is a bonus: an image
+    /// costs more than a thousand tokens, and half a frame of background is half of that
+    /// cost thrown away.
     ///
     ///     Checks\FramingTest\bin\FramingTest.exe
     ///
-    /// Non tocca nessun documento gia' aperto: se ne crea uno suo e lo chiude.
+    /// It touches no document already open: it creates one of its own and closes it.
     /// </summary>
     internal static class Program
     {
@@ -50,15 +50,15 @@ namespace Checks.FramingTest
         private static Type _view;
 
         /// <summary>
-        /// Quanto vicino al bordo e' «tocca il bordo».
+        /// How close to the edge is «touches the edge».
         ///
-        /// Non zero: l'antialiasing sbava di un pixel o due, e un pezzo che
-        /// arriva a due pixel dal bordo e' comunque tagliato o sul punto di
-        /// esserlo. Tre pixel di franchigia su 1024 sono lo 0,3%.
+        /// Not zero: the antialiasing bleeds by a pixel or two, and a part that
+        /// reaches two pixels from the edge is cut anyway or on the point of
+        /// being so. Three pixels of tolerance out of 1024 are 0.3%.
         /// </summary>
         private const int Allowance = 3;
 
-        /// <summary>Quanto deve riempire, almeno, nella direzione migliore.</summary>
+        /// <summary>How much it must fill, at least, in the best direction.</summary>
         private const double MinimumFill = 0.60;
 
         private static int Main(string[] arguments)
@@ -92,27 +92,27 @@ namespace Checks.FramingTest
             Console.WriteLine("libreria " + _library.GetName().Version);
             Console.WriteLine();
 
-            // PRIMA SI PROVA IL RIGHELLO, POI SI MISURA.
+            // FIRST THE RULER IS TESTED, THEN WE MEASURE.
             TheRulerSeesWell(sw);
             Console.WriteLine();
 
-            // ── QUANT'E' LARGO IL VIEWPORT, DAVVERO ──────────────────────
+            // ── HOW WIDE THE VIEWPORT REALLY IS ──────────────────────────
             //
-            // Si taglia sempre e solo a destra, mai in verticale e mai a
-            // sinistra. L'ipotesi e' che l'area grafica a schermo sia piu'
-            // LARGA di 4:3, che `ViewZoomtofit2` inquadri dentro quella, e che
-            // `SaveBMP` renda poi in 1024x768 perdendo i lati.
+            // It is always and only cut on the right, never vertically and never on the
+            // left. The hypothesis is that the graphics area on screen is
+            // WIDER than 4:3, that `ViewZoomtofit2` frames inside that one, and that
+            // `SaveBMP` then renders at 1024x768 losing the sides.
             //
-            // Un'ipotesi in questa sezione ne ha gia' sbagliate tre di fila.
-            // Questa riga la chiede.
+            // A hypothesis in this section has already been wrong three times in a row.
+            // This line asks for it.
             AspectRatio(sw);
             Console.WriteLine();
 
-            // TRE FORME, SCELTE PER ESSERE SCOMODE IN MODI DIVERSI:
-            //   la staffa a L e' lunga e bassa -> la frontale e' larghissima;
-            //   la piastra e' larga e piatta   -> la destra e' una striscia;
-            //   l'albero e' lungo e stretto    -> la frontale e' una riga.
-            // Un pezzo cubico non direbbe niente: ci sta sempre.
+            // THREE SHAPES, CHOSEN TO BE UNCOMFORTABLE IN DIFFERENT WAYS:
+            //   the L bracket is long and low  -> the front is very wide;
+            //   the plate is wide and flat     -> the right is a strip;
+            //   the shaft is long and narrow   -> the front is a line.
+            // A cubic part would say nothing: it always fits.
             Test(sw, "staffa a L 120x60x58", doc =>
             {
                 Block(doc, 0.120, 0.060, 0.008);
@@ -164,11 +164,11 @@ namespace Checks.FramingTest
                     int beforeTheFailed = _failed;
                     Measure(which, png);
 
-                    // UNO STRUMENTO CHE DICE «TAGLIATA» DEVE FAR VEDERE COSA.
-                    // La prima versione di questa misura si sbagliava — la
-                    // soglia dello sfondo era presa a occhio — e l'unico modo
-                    // di accorgersene e' stato GUARDARE l'immagine. Adesso, se
-                    // il verdetto e' rosso, il fotogramma resta su disco.
+                    // A TOOL THAT SAYS «TAGLIATA» MUST SHOW WHAT.
+                    // The first version of this measurement was wrong — the
+                    // background threshold was taken by eye — and the only way
+                    // to notice was to LOOK at the image. Now, if
+                    // the verdict is red, the frame stays on disk.
                     if (_failed > beforeTheFailed) Deposit(itemName, which, png);
                 }
             }
@@ -190,13 +190,13 @@ namespace Checks.FramingTest
         }
 
         /// <summary>
-        /// La scatola dei pixel che non sono sfondo, e il verdetto.
+        /// The box of the pixels that are not background, and the verdict.
         ///
-        /// COS'E' SFONDO. Lo sfondo di SOLIDWORKS e' una sfumatura molto chiara
-        /// e quasi neutra; il pezzo e' grigio medio. Si chiama sfondo un pixel
-        /// **chiaro**: la somma dei tre canali sopra una soglia. Non si cerca un
-        /// colore esatto — la sfumatura cambia da pixel a pixel, ed e' proprio
-        /// per quello che un confronto con un colore fisso non funzionerebbe.
+        /// WHAT BACKGROUND IS. The SOLIDWORKS background is a very light and almost
+        /// neutral gradient; the part is medium grey. A pixel is called background if it is
+        /// **light**: the sum of the three channels above a threshold. We do not look for an exact
+        /// colour — the gradient changes from pixel to pixel, and that is precisely
+        /// why a comparison with a fixed colour would not work.
         /// </summary>
         private static void Measure(string which, byte[] png)
         {
@@ -238,16 +238,16 @@ namespace Checks.FramingTest
                 "scatola x {0}-{1} y {2}-{3}, riempie {4:0}% x {5:0}%",
                 minX, maxX, minY, maxY, fillX * 100, fillY * 100);
 
-            // ── I DUE CRITERI NON SONO DELLO STESSO GENERE ───────────────
+            // ── THE TWO CRITERIA ARE NOT OF THE SAME KIND ─────────────────
             //
-            // **Tagliare e' un difetto. Sprecare e' uno spreco.** Un pezzo
-            // tagliato e' un pezzo diverso, e chi guarda l'immagine ci ragiona
-            // sopra lo stesso; un pezzo piccolo dentro un fotogramma grande e'
-            // vero, solo costoso.
+            // **Cutting is a defect. Wasting is a waste.** A cut
+            // part is a different part, and whoever looks at the image reasons on it
+            // all the same; a small part inside a big frame is
+            // true, only expensive.
             //
-            // Quindi l'esito dipende SOLO dal taglio. Il riempimento si stampa,
-            // si vede, e non fa fallire niente — ma si stampa **sempre**, per
-            // non farlo sparire: e' quello che paga chi usa il ponte.
+            // So the outcome depends ONLY on the cutting. The fill is printed,
+            // is seen, and fails nothing — but it is printed **always**, so as
+            // not to let it vanish: it is what whoever uses the bridge pays for.
             if (touches)
             {
                 Check("    " + which, false, "TAGLIATA -- " + detail);
@@ -264,33 +264,33 @@ namespace Checks.FramingTest
         }
 
         /// <summary>
-        /// Questo pixel e' pezzo, o e' sfondo?
+        /// Is this pixel part, or is it background?
         ///
-        /// ── DUE SOGLIE SBAGLIATE PRIMA DI QUESTA ─────────────────────────
+        /// ── TWO WRONG THRESHOLDS BEFORE THIS ONE ─────────────────────────
         ///
-        /// La prima diceva «sfondo se R+G+B > 690». La seconda ricavava la
-        /// soglia dai quattro angoli. Tutte e due hanno dichiarato TAGLIATE
-        /// dodici viste su dodici, **con la stessa scatola su pezzi di forma
-        /// diversa** — e una misura che da' lo stesso numero su ingressi
-        /// diversi non sta misurando l'ingresso.
+        /// The first said «background if R+G+B > 690». The second derived the
+        /// threshold from the four corners. Both declared CUT
+        /// twelve views out of twelve, **with the same box on parts of different
+        /// shape** — and a measurement that gives the same number on different
+        /// inputs is not measuring the input.
         ///
-        /// A smascherarle e' stato guardare il fotogramma: su una barra che sta
-        /// fra y 358 e 410, il righello diceva y 5-443. Prendeva per pezzo la
-        /// zona azzurrina della sfumatura, che e' scura di suo e **non sta agli
-        /// angoli** — per questo la seconda soglia, presa dagli angoli, non l'ha
-        /// vista.
+        /// What unmasked them was looking at the frame: on a bar that sits
+        /// between y 358 and 410, the ruler said y 5-443. It took for part the
+        /// bluish zone of the gradient, which is dark by itself and **is not at the
+        /// corners** — that is why the second threshold, taken from the corners, did not
+        /// see it.
         ///
-        /// ── QUELLA CHE C'E' ADESSO ───────────────────────────────────────
+        /// ── THE ONE THAT IS THERE NOW ─────────────────────────────────────
         ///
-        /// Il grigio del pezzo sta sui 128-150 su tutti e tre i canali; la
-        /// sfumatura di SOLIDWORKS non scende sotto ~215 su nessuno. 200 e' in
-        /// mezzo, e ci sta largo da tutte e due le parti.
+        /// The grey of the part sits around 128-150 on all three channels; the
+        /// SOLIDWORKS gradient does not go below ~215 on any of them. 200 is in
+        /// the middle, and sits wide from both sides.
         ///
-        /// **Il canale piu' basso, non la somma:** un grigio medio e un azzurro
-        /// chiaro possono avere la stessa somma.
+        /// **The lowest channel, not the sum:** a medium grey and a light
+        /// blue can have the same sum.
         ///
-        /// E soprattutto: non ci si fida: `TheRulerSeesWell` lo prova su un
-        /// fotogramma in cui **si sa** che di pezzo non ce n'e' nemmeno uno.
+        /// And above all: we do not trust it: `TheRulerSeesWell` proves it on a
+        /// frame in which it is **known** that there is not a single piece of part.
         /// </summary>
         private static bool IsPart(Color c)
         {
@@ -298,15 +298,15 @@ namespace Checks.FramingTest
         }
 
         /// <summary>
-        /// IL CASO ROSSO DEL RIGHELLO.
+        /// THE RED CASE OF THE RULER.
         ///
-        /// Un documento vuoto, fotografato: il fotogramma e' tutto sfondo, e il
-        /// conto dei pixel di pezzo **deve fare zero**. Se ne trova, la soglia
-        /// sta prendendo per pezzo la sfumatura, e ogni numero che questo
-        /// programma stampa dopo e' senza valore.
+        /// An empty document, photographed: the frame is all background, and the
+        /// count of the part pixels **must be zero**. If it finds some, the threshold
+        /// is taking the gradient for part, and every number that this
+        /// program prints afterwards is worthless.
         ///
-        /// Costa uno scatto. Le due soglie sbagliate prima di questa sarebbero
-        /// morte qui invece che dopo tre giri e due letture a occhio.
+        /// It costs one shot. The two wrong thresholds before this one would have
+        /// died here instead of after three runs and two readings by eye.
         /// </summary>
         private static void TheRulerSeesWell(ISldWorks sw)
         {
@@ -344,7 +344,7 @@ namespace Checks.FramingTest
             }
         }
 
-        /// <summary>Che forma ha l'area grafica in cui SOLIDWORKS inquadra.</summary>
+        /// <summary>What shape the graphics area has in which SOLIDWORKS frames.</summary>
         private static void AspectRatio(ISldWorks sw)
         {
             IModelDoc2 doc = null;
@@ -370,7 +370,7 @@ namespace Checks.FramingTest
             finally { if (doc != null) { try { sw.CloseDoc(doc.GetTitle()); } catch { } } }
         }
 
-        /// <summary>Il fotogramma di una prova rossa, lasciato da guardare.</summary>
+        /// <summary>The frame of a red check, left to be looked at.</summary>
         private static void Deposit(string shape, string which, byte[] png)
         {
             try
@@ -392,7 +392,7 @@ namespace Checks.FramingTest
             Console.WriteLine((ok ? "  OK   " : "  NO   ") + itemName.PadRight(20) + detail);
         }
 
-        /// <summary>Un blocco, in metri: SOLIDWORKS lavora in metri.</summary>
+        /// <summary>A block, in metres: SOLIDWORKS works in metres.</summary>
         private static void Block(IModelDoc2 doc, double l, double w, double h)
         {
             doc.SketchManager.InsertSketch(true);

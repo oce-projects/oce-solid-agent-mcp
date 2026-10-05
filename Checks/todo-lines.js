@@ -1,55 +1,55 @@
 // =============================================================================
-//  todo-lines.js - i `file.cs:NNN` citati puntano ancora a qualcosa?
+//  todo-lines.js - do the cited `file.cs:NNN` still point at something?
 // =============================================================================
 //
-//  PERCHE' ESISTE
+//  WHY IT EXISTS
 //
-//  Il TODO cita punti precisi del codice — `SwOperations.cs:6186`,
-//  `McpTools.cs:1100`, `PlanExecutor.cs:512` — ed e' il modo giusto di
-//  scrivere: un'affermazione con l'indirizzo si puo' controllare.
+//  The TODO cites precise points of the code — `SwOperations.cs:6186`,
+//  `McpTools.cs:1100`, `PlanExecutor.cs:512` — and it is the right way to
+//  write: a statement with its address can be checked.
 //
-//  Ma **i numeri di riga scivolano a ogni modifica**, e nessuno se ne accorge.
-//  Il 23/9/2026 la voce Z-A7 mandava a `SwOperations.cs:6186` per una chiamata
-//  che sta alla 6198: dodici righe, cioe' abbastanza per finire in un altro
-//  metodo. Chi ci va, non trova, e non sa se la voce e' vecchia o se ha letto
-//  male.
+//  But **line numbers slip at every change**, and nobody notices.
+//  On 23/9/2026 entry Z-A7 sent to `SwOperations.cs:6186` for a call
+//  that sits at 6198: twelve lines, that is enough to end up in another
+//  method. Whoever goes there does not find it, and does not know whether the entry is old or whether they read
+//  wrong.
 //
-//  ── COSA PUO' DIRE, E COSA NO ───────────────────────────────────────────────
+//  ── WHAT IT CAN SAY, AND WHAT IT CANNOT ─────────────────────────────────────
 //
-//  Puo' dire con certezza che una riga **non esiste**: il file e' piu' corto.
-//  Quella e' una citazione morta, e va corretta.
+//  It can say with certainty that a line **does not exist**: the file is shorter.
+//  That is a dead citation, and it must be corrected.
 //
-//  NON puo' dire se la riga giusta e' un'altra: per saperlo bisognerebbe
-//  capire di cosa parla la voce. Un controllo che ci provasse indovinerebbe, e
-//  qui indovinare e' proibito.
+//  It CANNOT say whether the right line is another: to know it one would have to
+//  understand what the entry is about. A check that tried would guess, and
+//  here guessing is forbidden.
 //
-//  **Quindi questo attrezzo prende poco, e quel poco e' certo.** Meglio di un
-//  attrezzo che prende molto e ha ragione a meta'.
+//  **So this tool takes little, and that little is certain.** Better than a
+//  tool that takes a lot and is right half the time.
 //
-//  ── SECONDA PASSATA: I RIMANDI DENTRO IL TODO STESSO ───────────────────────
+//  ── SECOND PASS: THE CROSS-REFERENCES INSIDE THE TODO ITSELF ───────────────
 //
-//  Il 23/9/2026 la voce Z-C14 mandava a `TODO.md:7497-7530` e a
-//  `TODO.md:~7753` per parlare di `GetRemainingDOFs`. Tutt'e due le righe
-//  esistono -- il file ne ha sedicimila -- e tutt'e due parlano d'altro: la
-//  prima di `IFace2.Normal` e dei sottosquadri, la seconda dell'origine di
-//  un'estrusione. Gli indirizzi veri erano trecento e quattrocento righe piu'
-//  giu'. **La prima passata non poteva vederle**, e lo dichiara: guarda solo
-//  se la riga esiste.
+//  On 23/9/2026 entry Z-C14 sent to `TODO.md:7497-7530` and to
+//  `TODO.md:~7753` to talk about `GetRemainingDOFs`. Both lines
+//  exist -- the file has sixteen thousand -- and both talk about something else: the
+//  first about `IFace2.Normal` and the undercuts, the second about the origin of
+//  an extrusion. The real addresses were three and four hundred lines further
+//  down. **The first pass could not see them**, and says so: it only looks at
+//  whether the line exists.
 //
-//  Il controllo NON indovina di cosa parla la voce. Prende **il soggetto che
-//  la frase si e' scritta da sola**: gli identificatori fra backtick sulla
-//  stessa riga del rimando (`GetRemainingDOFs`, `ReplaceComponents2`). Se
-//  NESSUNO di quelli compare nelle righe citate, il rimando e' rotto. E'
-//  la stessa tecnica con cui `todo-references.js` ha sciolto `vedi C8`.
+//  The check does NOT guess what the entry is about. It takes **the subject that
+//  the sentence wrote by itself**: the identifiers between backticks on the
+//  same line as the cross-reference (`GetRemainingDOFs`, `ReplaceComponents2`). If
+//  NONE of them appears in the cited lines, the cross-reference is broken. It is
+//  the same technique with which `todo-references.js` resolved `vedi C8`.
 //
-//  Basta che UNO compaia: pretendere tutti punirebbe una frase che nomina
-//  due cose e ne cita una. Se la riga non ha nessun identificatore fra
-//  backtick, il rimando **si salta** -- senza soggetto si indovinerebbe.
+//  It is enough that ONE appears: demanding all would punish a sentence that names
+//  two things and cites one. If the line has no identifier between
+//  backticks, the cross-reference **is skipped** -- without a subject it would guess.
 //
-//  USO
+//  USAGE
 //      node Checks/todo-lines.js
-//      node Checks/todo-lines.js --tutti    anche quelle che vanno
-//      node Checks/todo-lines.js --provami  fa fallire il controllo apposta
+//      node Checks/todo-lines.js --tutti    also those that are fine
+//      node Checks/todo-lines.js --provami  makes the check fail on purpose
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
@@ -61,33 +61,33 @@ const fileTodo = findTheTodo(root, process.argv);
 if (!fileTodo) process.exit(0);
 const lines = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
-// Le stesse cartelle di `todo-paths.js`: il TODO scrive i nomi da dove
-// si lavora.
+// The same folders as `todo-paths.js`: the TODO writes the names from where
+// one works.
 const BASES = ['', 'Banco', 'Oce.Solid.Agent.Core', 'Strumenti', 'Controlli',
               'Tests', 'Mcp', 'Bridge', 'Oce.Solid.Agent.Core/Catalog'];
 
-// LA CARTELLA SCRITTA NELLA CITAZIONE COMANDA, e la prima scrittura la
-// buttava via.
+// THE FOLDER WRITTEN IN THE CITATION RULES, and the first draft
+// threw it away.
 //
-// Cercava per NOME BASE fra le cartelle note. Il 24/9/2026 la citazione
-// `Bridge/Session.cs:824` e' finita su `Bench/Session.cs` -- che esiste,
-// si chiama uguale, e ha 392 righe invece di 832. La sonda ha dichiarato
-// morta una citazione giusta, **dentro il gancio pre-push**: avrebbe
-// fermato una consegna per un errore suo.
+// It searched by BASE NAME among the known folders. On 24/9/2026 the citation
+// `Bridge/Session.cs:824` ended up on `Bench/Session.cs` -- which exists,
+// has the same name, and has 392 lines instead of 832. The probe declared
+// dead a right citation, **inside the pre-push hook**: it would have
+// stopped a delivery for a mistake of its own.
 //
-// Adesso: se la citazione dice una cartella, si guarda LI'. Il giro per
-// nome base resta per le citazioni che la cartella non ce l'hanno, e
-// quando trova piu' di un file con lo stesso nome **si astiene** invece di
-// scegliere: due file omonimi sono esattamente il caso in cui indovinare
-// produce il rosso sbagliato.
+// Now: if the citation says a folder, we look THERE. The round by
+// base name stays for the citations that do not have the folder, and
+// when it finds more than one file with the same name **it abstains** instead of
+// choosing: two files with the same name are exactly the case in which guessing
+// produces the wrong red.
 function location(cited) {
-  // 1. con la cartella: e' un indirizzo, non un suggerimento.
+  // 1. with the folder: it is an address, not a suggestion.
   if (cited.indexOf('/') >= 0) {
     const p = path.join(root, cited);
     return fs.existsSync(p) ? p : null;
   }
 
-  // 2. senza: si cerca, e si conta quanti ne trova.
+  // 2. without: it is searched for, and we count how many it finds.
   const itemName = path.basename(cited);
   const foundItems = [];
   for (const b of BASES) {
@@ -99,19 +99,19 @@ function location(cited) {
   return null;
 }
 
-// I nomi che stanno in piu' di una cartella: non si sceglie per loro, e lo
-// si dice — se no la prossima citazione senza cartella sbaglia in silenzio.
+// The names that are in more than one folder: we do not choose for them, and it
+// is said — otherwise the next citation without a folder is wrong in silence.
 const namesakes = new Set();
 
 let stateEntry = null;
-const citedOnes = new Map();   // "file:riga" -> stato della voce
+const citedOnes = new Map();   // "file:line" -> state of the entry
 
 for (const r of lines) {
   const h = r.match(/^#{2,4} \[([ x~])\]/);
   if (h) stateEntry = h[1];
   else if (/^#{1,4} /.test(r)) stateEntry = null;
 
-  // `NomeFile.cs:123` oppure `Cartella/NomeFile.cs:123`
+  // `NomeFile.cs:123` or `Cartella/NomeFile.cs:123`
   for (const m of r.matchAll(/`?([A-Za-z0-9_.\/\\-]+\.(?:cs|js|ps1|json|md)):(\d+)/g)) {
     const key = m[1].replace(/\\/g, '/') + ':' + m[2];
     if (!citedOnes.has(key)) citedOnes.set(key, stateEntry);
@@ -130,15 +130,15 @@ for (const [c, docState] of citedOnes) {
   if (!p) { notFound.add(itemName); continue; }
   const howMany = fs.readFileSync(p, 'utf8').split(/\r?\n/).length;
   if (n <= howMany) { ok++; if (all) console.log('  ok   ' + c + '  (il file ha ' + howMany + ' righe)'); continue; }
-  if (docState === 'x') { historical++; continue; }   // voce chiusa: era vero allora
+  if (docState === 'x') { historical++; continue; }   // closed entry: it was true then
   death.push(c + '  — il file ha ' + howMany + ' righe');
 }
 
 console.log('citazioni `file:riga`:     ' + citedOnes.size);
 console.log('che puntano dentro il file: ' + ok);
 console.log('in voci chiuse, non si toccano: ' + historical);
-// SI STAMPANO I NOMI, non solo quanti sono. Un «7» non si puo' controllare:
-// per sapere se e' giusto bisogna rifare a mano il lavoro della sonda.
+// THE NAMES ARE PRINTED, not only how many there are. A «7» cannot be checked:
+// to know whether it is right one has to redo the work of the probe by hand.
 if (notFound.size) {
   console.log('file non trovati (altro repo, rinominati, o cartella sbagliata): ' +
               notFound.size);
@@ -162,21 +162,21 @@ if (death.length === 0) {
 }
 
 // =============================================================================
-//  SECONDA PASSATA - i rimandi interni: la riga c'e', ma parla d'altro?
+//  SECOND PASS - the internal cross-references: the line is there, but is it about something else?
 // =============================================================================
 
-// Quante righe intorno a un rimando a riga singola si guardano. Largo apposta:
-// una finestra stretta accuserebbe chi cita l'inizio di un paragrafo. Questo
-// attrezzo preferisce lasciar passare un rimando storto che accusarne uno buono.
+// How many lines around a single-line cross-reference are looked at. Wide on purpose:
+// a narrow window would accuse whoever cites the start of a paragraph. This
+// tool prefers to let a crooked cross-reference through than to accuse a good one.
 const BEFORE = 5, AFTER = 20;
 
 function subjects(line) {
   const outside = [];
   for (const m of line.matchAll(/`([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)`/g)) {
     const s = m[1];
-    if (s.length < 6) continue;              // `uid`, `x`: non sono soggetti
-    if (!/[A-Z]/.test(s)) continue;          // prosa fra backtick, non codice
-    if (/\.(cs|js|ps1|json|md)$/i.test(s)) continue;   // e' un nome di file
+    if (s.length < 6) continue;              // `uid`, `x`: they are not subjects
+    if (!/[A-Z]/.test(s)) continue;          // prose between backticks, not code
+    if (/\.(cs|js|ps1|json|md)$/i.test(s)) continue;   // it is a file name
     outside.push(s);
   }
   return outside;
@@ -218,7 +218,7 @@ function secondPass(lines, fileName) {
 
 if (secondPass(lines, path.basename(fileTodo)) > 0) process.exitCode = 1;
 
-// ── e adesso lo si fa fallire apposta, in tutt'e due i versi ───────────────
+// ── and now it is made to fail on purpose, in both directions ──────────────
 if (process.argv.includes('--provami')) {
   console.log('');
   console.log('=== PROVA DEL CONTROLLO: lo stesso rimando, rotto e sano ===');

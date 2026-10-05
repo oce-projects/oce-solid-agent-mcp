@@ -7,41 +7,41 @@ using SolidWorks.Interop.swconst;
 namespace Checks.HoleOrFillet
 {
     /// <summary>
-    /// UNA FACCIA CILINDRICA E' UN FORO O UN RACCORDO? (misura per la voce E14)
+    /// IS A CYLINDRICAL FACE A HOLE OR A FILLET? (measurement for entry E14)
     ///
-    /// ── PERCHE' LA DOMANDA ────────────────────────────────────────────────
+    /// ── WHY THE QUESTION ──────────────────────────────────────────────────
     ///
-    /// `References` risolve il ruolo `hole_face` cercando le facce
-    /// cilindriche lasciate da un passo: se ne trova **una** la restituisce, se
-    /// ne trova **piu' d'una** rifiuta.
+    /// `References` resolves the role `hole_face` by looking for the cylindrical
+    /// faces left by a step: if it finds **one** it returns it, if
+    /// it finds **more than one** it refuses.
     ///
-    /// Tutte e due i rami hanno un problema, e il primo e' il piu' grave:
+    /// Both branches have a problem, and the first is the more serious:
     ///
-    ///   * **un raccordo lascia facce cilindriche.** Se un passo ne lascia
-    ///     esattamente una, `hole_face` la restituisce **senza dire
-    ///     niente** — e chi aveva chiesto la parete di un foro si ritrova la
-    ///     superficie di un raccordo. Un difetto che non da' errore.
-    ///   * quattro fori uguali fanno scattare il rifiuto, ed e' giusto: «la»
-    ///     parete, fra quattro identiche, non esiste.
+    ///   * **a fillet leaves cylindrical faces.** If a step leaves
+    ///     exactly one, `hole_face` returns it **without saying
+    ///     anything** — and whoever asked for the wall of a hole gets back the
+    ///     surface of a fillet. A defect that raises no error.
+    ///   * four equal holes trigger the refusal, and it is right: «the»
+    ///     wall, among four identical ones, does not exist.
     ///
-    /// La voce E14 proponeva di scegliere con un criterio invece di rifiutare.
-    /// Per il secondo caso sarebbe indovinare. Per il PRIMO c'e' un criterio
-    /// vero, ed e' geometrico: **la parete di un foro e' concava, la superficie
-    /// di un raccordo esterno e' convessa.**
+    /// Entry E14 proposed choosing with a criterion instead of refusing.
+    /// For the second case it would be guessing. For the FIRST there is a real
+    /// criterion, and it is geometric: **the wall of a hole is concave, the surface
+    /// of an external fillet is convex.**
     ///
-    /// ── COSA MISURA QUESTO ATTREZZO ───────────────────────────────────────
+    /// ── WHAT THIS TOOL MEASURES ───────────────────────────────────────────
     ///
-    /// Costruisce una piastra con un foro passante e un raccordo su uno
-    /// spigolo, e stampa per ogni faccia cilindrica cosa rispondono
-    /// `FaceInSurfaceSense()` e la normale letta in un punto.
+    /// It builds a plate with a through hole and a fillet on an
+    /// edge, and prints for every cylindrical face what
+    /// `FaceInSurfaceSense()` answers and the normal read at a point.
     ///
     ///     Checks\HoleOrFillet\bin\HoleOrFillet.exe
     ///
-    /// Se i due casi rispondono uguale, il criterio non esiste e la voce E14 va
-    /// riscritta. Se rispondono diverso, il numero che li separa e' qui sotto e
-    /// non si deve dedurre.
+    /// If the two cases answer the same, the criterion does not exist and entry E14 must be
+    /// rewritten. If they answer differently, the number that separates them is below and
+    /// must not be deduced.
     ///
-    /// Non tocca nessun documento aperto: se ne crea uno suo e lo chiude.
+    /// It touches no open document: it creates one of its own and closes it.
     /// </summary>
     internal static class Program
     {
@@ -152,7 +152,7 @@ namespace Checks.HoleOrFillet
                 0, 0, false, false, false, false, true, true, true, 0, 0, false);
         }
 
-        /// <summary>Un foro passante al centro della faccia in cima.</summary>
+        /// <summary>A through hole in the centre of the top face.</summary>
         private static void Hole(IModelDoc2 doc)
         {
             doc.ClearSelection2(true);
@@ -168,11 +168,11 @@ namespace Checks.HoleOrFillet
                 0, 0, false, false);
         }
 
-        /// <summary>Un raccordo su uno spigolo verticale: superficie CONVESSA.</summary>
+        /// <summary>A fillet on a vertical edge: CONVEX surface.</summary>
         private static void Fillet(IModelDoc2 doc)
         {
             doc.ClearSelection2(true);
-            // Lo spigolo verticale in un angolo della piastra 100x60.
+            // The vertical edge at a corner of the 100x60 plate.
             doc.Extension.SelectByRay(0.050, 0.010, 0.030, 0, 0, -1, 0.002,
                                       (int)swSelectType_e.swSelEDGES, false, 0,
                                       (int)swSelectOption_e.swSelectOptionDefault);

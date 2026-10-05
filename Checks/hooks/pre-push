@@ -1,33 +1,33 @@
 #!/bin/sh
-# Quello che non deve uscire da questa macchina, controllato NEL MOMENTO in cui
-# starebbe per uscire.
+# What must not leave this machine, checked AT THE MOMENT in which it
+# would be about to leave.
 #
-# PERCHE' UN GANCIO E NON UNA RIGA IN UNA LISTA.
+# WHY A HOOK AND NOT A LINE IN A LIST.
 #
-# Il 14 settembre 2026 `check-publishability.ps1` esisteva gia', era gia'
-# giusto, e un minuto prima del primo push diceva «Pulito» sull'albero mentre la
-# storia portava ancora un percorso di rete in 155 punti su 41 commit. Il
-# controllo non manco': manco' il fatto che qualcuno lo lanciasse.
+# On 14 September 2026 `check-publishability.ps1` already existed, was already
+# right, and one minute before the first push said «Pulito» about the tree while the
+# history still carried a network path in 155 places over 41 commits. The
+# check did not fail: what failed was that somebody ran it.
 #
-# Un controllo che si lancia quando ci si ricorda e' un controllo che non si
-# lancia il giorno che conta - che e' sempre il giorno in cui si ha fretta.
-# Qui lo lancia git, e se e' rosso il push non parte.
+# A check that is run when one remembers is a check that is not
+# run on the day that counts - which is always the day when one is in a hurry.
+# Here git runs it, and if it is red the push does not start.
 #
-# COME SI ACCENDE (una volta per clone, git non versiona .git/hooks):
+# HOW IT IS TURNED ON (once per clone, git does not version .git/hooks):
 #
 #     .\Checks\install-hooks.ps1
 #
-# COME SI SCAVALCA, quando serve davvero:
+# HOW IT IS BYPASSED, when it is really needed:
 #
 #     git push --no-verify
 #
-# Si scavalca a mano e si sa di averlo fatto. E' diverso dal non averlo mai
-# acceso.
+# It is bypassed by hand and one knows one has done it. It is different from never having
+# turned it on.
 
-# Il gancio sta in Checks/hooks/, il controllo un livello sopra in Checks/.
-# Si ricava da $0 e non dalla cartella corrente: git lancia i ganci dalla radice
-# del lavoro, ma un `sh Checks/hooks/pre-push` lanciato a mano no, e un
-# gancio che funziona solo quando lo chiama git non si puo' provare.
+# The hook sits in Checks/hooks/, the check one level up in Checks/.
+# It is derived from $0 and not from the current folder: git runs the hooks from the root
+# of the working tree, but a `sh Checks/hooks/pre-push` run by hand does not, and a
+# hook that works only when git calls it cannot be tested.
 qui=$(dirname "$0")
 
 # The refs being pushed arrive on stdin ("<local ref> <local sha> <remote ref>
@@ -46,13 +46,13 @@ if [ ! -f "$workflow" ]; then
     exit 1
 fi
 
-# -NoProfile: il profilo di chi lavora non deve poter cambiare l'esito.
-# -ExecutionPolicy Bypass: il gancio deve funzionare anche su una macchina che
-# non ha mai sbloccato gli script, altrimenti il primo che clona lo spegne.
-# IL POWERSHELL DELLA CI, PRIMA (voce F9-bis). Costa un decimo di secondo e
-# prende la cosa che la CI, per anni, non ha potuto prendere da sola: un
-# passo che non si legge. Il push e' il momento giusto perche' e' li' che la
-# CI comincia a esistere.
+# -NoProfile: the profile of whoever works must not be able to change the outcome.
+# -ExecutionPolicy Bypass: the hook must work also on a machine that
+# has never unblocked scripts, otherwise the first who clones turns it off.
+# THE CI POWERSHELL, FIRST (entry F9-bis). It costs a tenth of a second and
+# catches the thing that the CI, for years, could not catch by itself: a
+# step that cannot be read. The push is the right moment because that is where the
+# CI starts to exist.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$workflow"
 if [ $? -ne 0 ]; then
     echo "" >&2
@@ -61,19 +61,19 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# IL TODO CONTRO LA REALTA' (23/9/2026).
+# THE TODO AGAINST REALITY (23/9/2026).
 #
-# Due sonde che leggono solo file del repository: i percorsi che il TODO cita
-# esistono ancora? i rimandi interni («vedi K17») puntano a una voce vera?
+# Two probes that read only files of the repository: do the paths that the TODO cites
+# still exist? do the internal cross-references («see K17») point to a real entry?
 #
-# Sono nate perche' un file di 16.000 righe marcisce in silenzio, e il giorno
-# in cui le ho scritte hanno trovato **un rimando rotto e quattro firme di API
-# sbagliate**. Ma una sonda che si lancia quando ci si ricorda e' una sonda
-# che non si lancia: qui la lancia git, come il resto.
+# They were born because a file of 16,000 lines rots in silence, and the day
+# in which I wrote them they found **one broken cross-reference and four wrong
+# API signatures**. But a probe that is run when one remembers is a probe
+# that is not run: here git runs it, like the rest.
 #
-# NON ci sono le due sonde sulle interop (`todo-signatures.ps1`,
-# `signatures-api.ps1`): vogliono SOLIDWORKS installato, e un gancio che fallisce
-# su una macchina senza CAD e' un gancio che il primo che clona disattiva.
+# The two probes on the interops (`todo-signatures.ps1`,
+# `signatures-api.ps1`) are NOT there: they want SOLIDWORKS installed, and a hook that fails
+# on a machine without CAD is a hook that the first who clones deactivates.
 for sonda in todo-paths.js todo-references.js todo-lines.js; do
     if [ -f "$qui/../$sonda" ]; then
         node "$qui/../$sonda"
@@ -85,10 +85,10 @@ for sonda in todo-paths.js todo-references.js todo-lines.js; do
     fi
 done
 
-# ZERO O «NON LO SO» (voce Z-C8). Fino al 25/9/2026 era solo un elenco di
-# lavoro; riparati tutti i punti, diventa una guardia: un conteggio nuovo che
-# risponde zero da un catch, senza il marcatore ZERO-E-ZERO e la ragione, non
-# esce dal banco di lavoro. Si prova prima di credergli (--provami).
+# ZERO OR «I DO NOT KNOW» (entry Z-C8). Until 25/9/2026 it was only a list of
+# work; with all the points repaired, it becomes a guard: a new count that
+# answers zero from a catch, without the marker ZERO-E-ZERO and the reason, does not
+# leave the workbench. It is tested before being believed (--provami).
 zero="$qui/../zero-or-unknown.js"
 if [ -f "$zero" ]; then
     node "$zero" --provami > /dev/null

@@ -1,16 +1,16 @@
-# Accende i ganci di git di questo repository.
+# Turns on the git hooks of this repository.
 #
 #     .\Checks\install-hooks.ps1
 #
-# Va lanciato UNA VOLTA per clone. Git non versiona `.git\hooks`, quindi un
-# gancio scritto nel repository non e' acceso finche' qualcuno non lo dice a
-# git - ed e' esattamente il passo che si dimentica.
+# It must be run ONCE per clone. Git does not version `.git\hooks`, so a
+# hook written in the repository is not on until somebody tells
+# git - and it is exactly the step that gets forgotten.
 #
-# Non si copiano i file dentro `.git\hooks`: si punta `core.hooksPath` alla
-# cartella versionata. Cosi' un gancio corretto domani vale subito per tutti,
-# invece di restare una copia vecchia dentro il clone di ognuno.
+# The files are not copied inside `.git\hooks`: `core.hooksPath` is pointed at the
+# versioned folder. This way a hook corrected tomorrow holds at once for everybody,
+# instead of remaining an old copy inside everybody's clone.
 #
-# Per spegnerli:  git config --unset core.hooksPath
+# To turn them off:  git config --unset core.hooksPath
 
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -23,9 +23,9 @@ if (-not (Test-Path (Join-Path $root '.git'))) {
 }
 if (-not (Test-Path $hooks)) { throw "non trovo $hooks" }
 
-# Il percorso si scrive RELATIVO alla radice e con le barre in avanti: git lo
-# risolve rispetto alla radice del lavoro, e un percorso assoluto di questa
-# macchina finirebbe nel `.git\config` di chi lo copia.
+# The path is written RELATIVE to the root and with forward slashes: git
+# resolves it with respect to the root of the working tree, and an absolute path of this
+# machine would end up in the `.git\config` of whoever copies it.
 $relative = 'Checks/hooks'
 
 Push-Location $root

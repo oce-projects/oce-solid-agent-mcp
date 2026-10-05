@@ -1,31 +1,31 @@
-// Dove sta il TODO, e cosa fare quando non c'e'.
+// Where the TODO is, and what to do when it is not there.
 //
-// IL TODO NON E' PIU' NEL REPOSITORY PUBBLICO. E' un diario di lavoro da
-// diciassettemila righe: nomina l'autore, i colleghi, le postazioni e le
-// decisioni ancora da prendere, e a chi clona non insegna niente. Vive in
-// `note-interne/`, che il `.gitignore` esclude.
+// THE TODO IS NO LONGER IN THE PUBLIC REPOSITORY. It is a work journal of
+// seventeen thousand lines: it names the author, the colleagues, the workstations and the
+// decisions still to be taken, and to whoever clones it teaches nothing. It lives in
+// `note-interne/`, which the `.gitignore` excludes.
 //
-// CINQUE SONDE ESISTONO SOLO PER CONTROLLARLO, e tre girano nel gancio di
-// pre-push. Togliere il file senza toccarle le avrebbe fatte morire con
-// `ENOENT` su ogni macchina che non e' questa - cioe' avrebbe rotto il push a
-// chiunque clonasse, per un file che non ha e non deve avere.
+// FIVE PROBES EXIST ONLY TO CHECK IT, and three run in the pre-push
+// hook. Removing the file without touching them would have made them die with
+// `ENOENT` on every machine that is not this one - that is it would have broken the push
+// for anyone who cloned, over a file that they do not have and must not have.
 //
-// Quindi la sonda non muore: DICE CHE NON HA CONTROLLATO, ed esce 0. E' la
-// stessa forma di `check-documents-without-file.ps1` quando l'add-in non e'
-// raggiungibile: *una meta' non controllata si scrive, non si dichiara
-// passata.*
+// So the probe does not die: IT SAYS THAT IT DID NOT CHECK, and exits 0. It is the
+// same shape as `check-documents-without-file.ps1` when the add-in is not
+// reachable: *a half not checked is written down, it is not declared
+// passed.*
 //
 //     const { findTheTodo } = require('./where-is-the-todo.js');
 //     const fileTodo = findTheTodo(radice, process.argv);
-//     if (!fileTodo) process.exit(0);   // il messaggio l'ha gia' stampato
+//     if (!fileTodo) process.exit(0);   // the message has already been printed
 //
-// L'ORDINE DI RICERCA, e nessun passo e' di comodo:
-//   1. un `.md` passato sulla riga di comando - serve a far scattare la sonda
-//      su una copia ROTTA, che e' l'unico modo di crederle;
-//   2. la variabile TODO_MD, per chi lo tiene altrove;
-//   3. `note-interne/TODO.md`, dove sta su questa macchina;
-//   4. `TODO.md` in radice, dov'era prima: un clone vecchio continua a
-//      funzionare senza che nessuno se ne accorga.
+// THE ORDER OF SEARCH, and no step is for convenience:
+//   1. a `.md` passed on the command line - it serves to make the probe trigger
+//      on a BROKEN copy, which is the only way to believe it;
+//   2. the variable TODO_MD, for whoever keeps it elsewhere;
+//   3. `note-interne/TODO.md`, where it is on this machine;
+//   4. `TODO.md` in the root, where it was before: an old clone keeps
+//      working without anybody noticing.
 const fs = require('fs');
 const path = require('path');
 

@@ -1,66 +1,66 @@
 // =============================================================================
-//  zero-or-unknown.js - «zero» e «non ho potuto leggere» sono la stessa cosa?
+//  zero-or-unknown.js - are «zero» and «non ho potuto leggere» the same thing?
 // =============================================================================
 //
-//  PERCHE' ESISTE (voce Z-C8)
+//  WHY IT EXISTS (entry Z-C8)
 //
-//  E' gia' stato pagato una volta. `IComponent2.GetMates()` torna **`null`
-//  quando sono zero**, non un array vuoto, e il ponte rispose «non ho potuto
-//  leggere» su un componente che ne aveva zero.
+//  It has already been paid for once. `IComponent2.GetMates()` returns **`null`
+//  when there are zero**, not an empty array, and the bridge answered «non ho potuto
+//  leggere» on a component that had zero.
 //
-//  Lo stesso scambio gira anche nell'altro verso, ed e' il piu' pericoloso:
-//  una funzione che LEGGE dal CAD e risponde `0` dal suo `catch`. Zero non e'
-//  «non lo so»: zero e' **un'affermazione**. «Questo pezzo ha zero corpi»,
-//  «da questo foro sono stati tolti zero mm3». Chi legge non ha modo di
-//  accorgersi che in realta' la lettura e' fallita.
+//  The same exchange also runs the other way round, and it is the most dangerous:
+//  a function that READS from the CAD and answers `0` from its `catch`. Zero is not
+//  «I do not know»: zero is **a statement**. «This part has zero bodies»,
+//  «zero mm3 were removed from this hole». Whoever reads has no way
+//  to notice that in reality the reading failed.
 //
-//  Non e' teoria. `SwOperations.cs` porta le due regole opposte a duemila
-//  righe di distanza:
+//  It is not theory. `SwOperations.cs` carries the two opposite rules two thousand
+//  lines apart:
 //
-//      :2122  «Un volume che non si e' potuto leggere non diventa uno zero:
-//              uno zero vorrebbe dire "non ha tolto niente", che e'
-//              un'affermazione.»
-//      :4837  «Il volume di tutti i corpi solidi, in mm3. Zero se non si
-//              legge.»
+//      :2122  «A volume that could not be read does not become a zero:
+//              a zero would mean "it removed nothing", which is
+//              a statement.»
+//      :4837  «The volume of all the solid bodies, in mm3. Zero if it
+//              cannot be read.»
 //
-//  La prima e' il commento di chi ha trovato il difetto; la seconda e' la
-//  funzione che lo produce. Il punto di chiamata si e' difeso, la radice no.
+//  The first is the comment of whoever found the defect; the second is the
+//  function that produces it. The call site defended itself, the root did not.
 //
-//  ── COSA PRENDE, E COSA LASCIA STARE ────────────────────────────────────────
+//  ── WHAT IT TAKES, AND WHAT IT LEAVES ALONE ─────────────────────────────────
 //
-//  Prende tre forme, tutte sintattiche:
+//  It takes three forms, all syntactic:
 //
-//      catch { return 0; }          un errore che diventa un numero
-//      x == null ? 0 : x.Length     un «non c'e'» che diventa un conteggio
-//      int n = 0; try { ... }       un catch MUTO che lascia il conteggio
-//      catch { } return n;          dov'era, cioe' a zero o a meta'
+//      catch { return 0; }          an error that becomes a number
+//      x == null ? 0 : x.Length     a «not there» that becomes a count
+//      int n = 0; try { ... }       a MUTE catch that leaves the count
+//      catch { } return n;          where it was, that is at zero or halfway
 //
-//  La terza l'ha trovata un agente il 25/9/2026 classificando le prime due:
-//  `CountFaces`, `CountDimensions`, `CountViews` avevano lo stesso difetto con
-//  un'altra sintassi, e la sonda non li vedeva.
+//  The third was found by an agent on 25/9/2026 while classifying the first two:
+//  `CountFaces`, `CountDimensions`, `CountViews` had the same defect with
+//  another syntax, and the probe did not see them.
 //
-//  Lascia stare:
+//  It leaves alone:
 //
-//   1. le conversioni di INGRESSO (`Convert.ToInt32`, `Convert.ToDouble`):
-//      li' si sta leggendo un argomento JSON scritto male, non il CAD, e zero
-//      e' un ripiego dichiarato altrove;
-//   2. i punti che portano il marcatore `ZERO-E-ZERO:` con la ragione
-//      accanto. **La ragione e' obbligatoria**: un marcatore da solo sarebbe
-//      un modo di zittire la sonda, e questo repository ne ha gia' viste
-//      abbastanza.
+//   1. the INPUT conversions (`Convert.ToInt32`, `Convert.ToDouble`):
+//      there one is reading a badly written JSON argument, not the CAD, and zero
+//      is a fallback declared elsewhere;
+//   2. the points that carry the marker `ZERO-E-ZERO:` with the reason
+//      next to it. **The reason is mandatory**: a marker alone would be
+//      a way of silencing the probe, and this repository has seen
+//      enough of those.
 //
-//  ── DAL 25/9/2026 E' UN GANCIO ──────────────────────────────────────────────
+//  ── SINCE 25/9/2026 IT IS A HOOK ────────────────────────────────────────────
 //
-//  Fino alla libreria 0.116.0 usciva sempre 0: ripararli voleva dire cambiare
-//  la firma di funzioni della libreria e rilanciare il banco, ed era lavoro,
-//  non un divieto. Riparati tutti (voce Z-C8), adesso **esce 1 se ne compare
-//  uno nuovo** senza marcatore: e' nel gancio pre-push. Un elenco di lavoro
-//  finito che non diventa una guardia torna a riempirsi.
+//  Up to library 0.116.0 it always exited 0: repairing them meant changing
+//  the signature of library functions and rerunning the bench, and it was work,
+//  not a prohibition. With all of them repaired (entry Z-C8), now **it exits 1 if a new
+//  one appears** without a marker: it is in the pre-push hook. A finished work list
+//  that does not become a guard fills up again.
 //
-//  USO
+//  USAGE
 //      node Checks/zero-or-unknown.js
-//      node Checks/zero-or-unknown.js --tutti      anche i dichiarati
-//      node Checks/zero-or-unknown.js --provami    lo fa sbagliare apposta
+//      node Checks/zero-or-unknown.js --tutti      also the declared ones
+//      node Checks/zero-or-unknown.js --provami    makes it fail on purpose
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
@@ -70,21 +70,21 @@ const all = process.argv.includes('--tutti');
 
 const FOLDERS = ['Oce.Solid.Agent.Core', 'Tools', 'Bridge', 'Shared', 'Mcp'];
 
-// DOVE SI CERCA IL MARCATORE, e la prima scrittura era sbagliata.
+// WHERE THE MARKER IS SEARCHED FOR, and the first draft was wrong.
 //
-// Contava quattordici righe sopra il punto. La ragione pero' sta nel
-// commento del METODO, e il commento che ha fatto scattare questo errore ne
-// ha venti: il marcatore c'era, scritto nel posto giusto, e la sonda non lo
-// vedeva.
+// It counted fourteen lines above the point. The reason however sits in the
+// comment of the METHOD, and the comment that triggered this error has
+// twenty: the marker was there, written in the right place, and the probe did not
+// see it.
 //
-// **E' la seconda volta in due giorni.** La guardia della voce Z-A1 e' nata
-// con lo stesso difetto esatto — contava righe grezze e accusava un blocco
-// separato da venticinque righe di commento. *Contare righe punisce chi
-// spiega, in un repository in cui spiegare e' la regola.*
+// **It is the second time in two days.** The guard of entry Z-A1 was born
+// with the exact same defect — it counted raw lines and accused a block
+// separated by twenty-five lines of comment. *Counting lines punishes whoever
+// explains, in a repository in which explaining is the rule.*
 //
-// Adesso si risale fino all'inizio del commento del membro (`/// <summary>`)
-// invece di contare. Il tetto di 80 righe non e' la regola: e' solo per non
-// risalire tutto il file se un `<summary>` non c'e'.
+// Now we go back up to the start of the member's comment (`/// <summary>`)
+// instead of counting. The ceiling of 80 lines is not the rule: it is only so as not to
+// go back up the whole file if a `<summary>` is not there.
 const CAP = 80;
 
 function memberWindow(lines, i) {
@@ -109,17 +109,17 @@ function sources(dir, inside) {
   }
 }
 
-// Le due forme, e il perche' di ciascuna sta nel cappello.
+// The two forms, and the why of each is in the header.
 const SHAPES = [
   { nome: 'catch che torna un numero', re: /catch\s*\{\s*return\s+0(\.0)?\s*;/ },
   { nome: 'un «non c\'e\'» che diventa un conteggio', re: /==\s*null\s*\?\s*0\s*:/ },
 ];
 
-// Le conversioni di ingresso: si sta leggendo un argomento, non il CAD.
+// The input conversions: an argument is being read, not the CAD.
 const INPUT = /Convert\.To(Int32|Double|Single|Int64)\s*\(/;
 
-// LA TERZA FORMA: un `catch { }` vuoto, e poco dopo `return x;` di una
-// variabile nata a zero nello stesso membro.
+// THE THIRD FORM: an empty `catch { }`, and shortly after `return x;` of a
+// variable born at zero in the same member.
 const MUTE_CATCH = /catch\s*\{\s*\}/;
 function muteCounter(lines, i) {
   let variable = null;
@@ -182,7 +182,7 @@ function benchRun(list, whatItIsCalled) {
   return bareOnes.length;
 }
 
-// ── la prova, prima di tutto il resto ────────────────────────────────────────
+// ── the check, before everything else ────────────────────────────────────────
 if (process.argv.includes('--provami')) {
   console.log('=== PROVA DEL CONTROLLO: lo stesso punto, nudo e dichiarato ===');
   const bare = [
@@ -192,9 +192,9 @@ if (process.argv.includes('--provami')) {
     '    catch { return 0; }',
     '}',
   ].join('\n');
-  // IL DICHIARATO E' LONTANO APPOSTA: venti righe di commento fra il
-  // marcatore e il punto. E' il caso su cui questa sonda ha sbagliato la
-  // prima volta, ed e' quello che deve restare verde.
+  // THE DECLARED ONE IS FAR ON PURPOSE: twenty lines of comment between the
+  // marker and the point. It is the case on which this probe went wrong the
+  // first time, and it is the one that must stay green.
   const said = ['/// <summary>',
     '/// ZERO-E-ZERO: qui zero e "non lo so" coincidono davvero, perche\'',
     '/// `GetMates` torna null quando sono zero -- misurato il 17/9/2026.'];
