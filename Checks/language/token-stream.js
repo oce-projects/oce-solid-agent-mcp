@@ -61,6 +61,8 @@
 //        every tracked .cs/.js/.ps1 file, changed or not
 //    node Checks/language/token-stream.js --pair <before> <after> [--mode <m>] [--map <tsv>]
 //    node Checks/language/token-stream.js --dump <file>
+//    node Checks/language/token-stream.js --comments <file>
+//        the comments of a file as found by the parser: start, end, text
 //    node Checks/language/token-stream.js --self-test
 //        fake pairs in the temp directory, one per way of failing, in all
 //        three languages: every check is seen red and seen green
@@ -576,6 +578,202 @@ function tokenizeAll(items) {
   }
 }
 
+// ── comments: where a file keeps them, found by the same parsers ────────────
+// The token streams above drop comments; this is the other half, used by the
+// comment translation (window-4-comments.js): every comment of a file as a
+// range [start, end) of the text, found by the parser and never by looking
+// for `//` in the raw text (a `//` inside a string is not a comment, and a
+// `#` inside a here-string is not one either).
+//
+//    C#          Roslyn, trivia of every token, the text of a disabled region
+//                lexed again; documentation comments are comments here.
+//    JavaScript  acorn, the onComment hook of its tokenizer; the `#!` line of
+//                a script is not a comment.
+//    PowerShell  the Comment tokens of its parser; `#requires` is code.
+//
+// Offsets are in UTF-16 units of the text WITHOUT its byte order mark, line
+// ends as they are in the file (CRLF counts two). Every range is checked to
+// start with the delimiter of its language, so a helper that counted wrongly
+// is stopped here.
+const COMMENTS_CSHARP_HELPER = String.raw`// Comments of C# files through Roslyn (token-stream.js).
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
+
+static class CommentsEntry
+{
+    static string roslynDir;
+    static int Main(string[] args)
+    {
+        roslynDir = args[0];
+        AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
+        {
+            var p = Path.Combine(roslynDir, new AssemblyName(e.Name).Name + ".dll");
+            return File.Exists(p) ? Assembly.LoadFrom(p) : null;
+        };
+        return CommentsRoslyn.Run(args[1], args[2]);
+    }
+}
+
+static class CommentsRoslyn
+{
+    static bool IsComment(SyntaxTrivia t)
+    {
+        return t.IsKind(SyntaxKind.SingleLineCommentTrivia) || t.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
+               t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) || t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
+    }
+
+    static string Quote(string s)
+    {
+        return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ") + "\"";
+    }
+
+    public static int Run(string listFile, string outFile)
+    {
+        var options = new CSharpParseOptions(LanguageVersion.Latest, DocumentationMode.None, SourceCodeKind.Regular);
+        var sb = new StringBuilder();
+        foreach (var file in File.ReadAllLines(listFile, Encoding.UTF8))
+        {
+            if (file.Length == 0) continue;
+            var text = File.ReadAllText(file);
+            var tree = CSharpSyntaxTree.ParseText(SourceText.From(text), options);
+            var found = new List<string>();
+            foreach (var tr in tree.GetRoot().DescendantTrivia(null, true))
+            {
+                if (IsComment(tr)) found.Add("[" + tr.Span.Start + "," + tr.Span.End + "]");
+                else if (tr.IsKind(SyntaxKind.DisabledTextTrivia))
+                {
+                    int shift = tr.Span.Start;
+                    foreach (var d in SyntaxFactory.ParseTokens(tr.ToFullString()))
+                        foreach (var dt in d.GetAllTrivia())
+                            if (IsComment(dt)) found.Add("[" + (shift + dt.Span.Start) + "," + (shift + dt.Span.End) + "]");
+                }
+            }
+            var errors = tree.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => Quote(d.ToString())).Take(5).ToList();
+            sb.Append("{\"file\":").Append(Quote(file)).Append(",\"errors\":[").Append(string.Join(",", errors));
+            sb.Append("],\"comments\":[").Append(string.Join(",", found)).Append("]}\n");
+        }
+        File.WriteAllText(outFile, sb.ToString(), new UTF8Encoding(false));
+        return 0;
+    }
+}
+`;
+
+const COMMENTS_POWERSHELL_HELPER = String.raw`param([string]$ListFile, [string]$OutFile)
+# Comments of PowerShell files through the PowerShell parser (token-stream.js).
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Web
+$enc = [System.Web.HttpUtility]
+$sb = New-Object System.Text.StringBuilder
+foreach ($f in [IO.File]::ReadAllLines($ListFile, [Text.Encoding]::UTF8)) {
+    if (-not $f) { continue }
+    $tokens = $null; $errors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$tokens, [ref]$errors)
+    $found = New-Object System.Collections.Generic.List[string]
+    foreach ($t in $tokens) {
+        if ([string]$t.Kind -ne 'Comment') { continue }
+        # #requires is read by PowerShell: code, not a comment
+        if ($t.Text.StartsWith('#requires', [StringComparison]::OrdinalIgnoreCase)) { continue }
+        $found.Add('[' + $t.Extent.StartOffset + ',' + $t.Extent.EndOffset + ']')
+    }
+    $errs = @($errors | Select-Object -First 5 | ForEach-Object { $enc::JavaScriptStringEncode($_.Extent.StartLineNumber.ToString() + ': ' + $_.Message, $true) })
+    [void]$sb.Append('{"file":').Append($enc::JavaScriptStringEncode($f, $true)).Append(',"errors":[').Append(($errs -join ',')).Append('],"comments":[').Append(($found -join ',')).Append(']}').Append([char]10)
+}
+[IO.File]::WriteAllText($OutFile, $sb.ToString(), (New-Object System.Text.UTF8Encoding($false)))
+`;
+
+function jsComments(text) {
+  if (!acorn) cannot('no JavaScript parser: neither a local acorn package nor the copy inside Node (node --expose-internals)');
+  let last;
+  for (const sourceType of ['script', 'module']) {
+    try {
+      const found = [];
+      const opts = { ecmaVersion: 'latest', sourceType, allowHashBang: true, allowReturnOutsideFunction: true, onComment: found };
+      // eslint-disable-next-line no-unused-vars
+      for (const t of acorn.tokenizer(text, opts)) { /* the hook fills `found` */ }
+      return found.filter(c => !(c.start === 0 && text.startsWith('#!'))).map(c => [c.start, c.end]);
+    } catch (e) { last = e; }
+  }
+  cannot('JavaScript does not tokenize: ' + last.message);
+}
+
+function runCommentHelper(lang, files) {
+  const result = new Map();
+  if (files.length === 0) return result;
+  const dir = scratchDir();
+  try {
+    const list = path.join(dir, 'files.txt');
+    const out = path.join(dir, 'comments.jsonl');
+    fs.writeFileSync(list, files.join('\n') + '\n', 'utf8');
+    let r;
+    if (lang === 'csharp') {
+      const h = compileRoslynProgram(COMMENTS_CSHARP_HELPER, 'CommentsRoslyn');
+      r = cp.spawnSync(h.exe, [h.roslyn, list, out], { encoding: 'utf8', maxBuffer: 64 << 20 });
+    } else {
+      const script = path.join(dir, 'comments.ps1');
+      fs.writeFileSync(script, '﻿' + COMMENTS_POWERSHELL_HELPER, 'utf8');
+      r = cp.spawnSync(powershellExe(), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script,
+        '-ListFile', list, '-OutFile', out], { encoding: 'utf8', maxBuffer: 64 << 20 });
+    }
+    if (r.error) cannot('the ' + lang + ' comment finder does not start: ' + r.error.message);
+    if (r.status !== 0 || !fs.existsSync(out)) cannot('the ' + lang + ' comment finder failed (exit ' + r.status + '):\n' + (r.stdout || '') + (r.stderr || ''));
+    for (const line of fs.readFileSync(out, 'utf8').split('\n')) {
+      if (!line.trim()) continue;
+      const o = JSON.parse(line);
+      if (o.errors.length) cannot(o.file + ' does not parse as ' + lang + ':\n    ' + o.errors.join('\n    '));
+      result.set(path.resolve(o.file), o.comments);
+    }
+    for (const f of files) if (!result.has(path.resolve(f))) cannot('the ' + lang + ' comment finder gave nothing for ' + f);
+    return result;
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+const COMMENT_OPENERS = { csharp: ['//', '/*'], javascript: ['//', '/*'], powershell: ['#', '<#'] };
+
+// Finds the comments of a set of { key, lang, text }: Map(key -> [[start, end]]
+// sorted by start). The text is what the file holds once decoded and without
+// its byte order mark; its line ends are not normalized.
+function findComments(items) {
+  const out = new Map();
+  const dir = scratchDir();
+  try {
+    const perLang = { csharp: [], powershell: [] };
+    items.forEach((it, i) => {
+      const text = it.text.replace(/^﻿/, '');
+      if (it.lang === 'javascript') { out.set(it.key, jsComments(text)); return; }
+      const ext = it.lang === 'csharp' ? '.cs' : '.ps1';
+      const file = path.join(dir, 'f' + i + ext);
+      fs.writeFileSync(file, '﻿' + text, 'utf8');
+      perLang[it.lang].push({ key: it.key, file });
+    });
+    for (const lang of Object.keys(perLang)) {
+      if (perLang[lang].length === 0) continue;
+      const got = runCommentHelper(lang, perLang[lang].map(x => x.file));
+      for (const x of perLang[lang]) out.set(x.key, got.get(path.resolve(x.file)));
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  for (const it of items) {
+    const text = it.text.replace(/^﻿/, '');
+    const list = out.get(it.key).slice().sort((a, b) => a[0] - b[0]);
+    for (const [s, e] of list) {
+      if (!(s >= 0 && e > s && e <= text.length) || !COMMENT_OPENERS[it.lang].some(d => text.startsWith(d, s)))
+        cannot('the ' + it.lang + ' comment finder gave a range that is not a comment in ' + it.key + ': [' + s + ',' + e + ') "' + text.slice(s, s + 20) + '"');
+    }
+    out.set(it.key, list);
+  }
+  return out;
+}
+
 // ── the name map, and what it explains ──────────────────────────────────────
 function words(s) { return s.match(/[A-Za-z0-9_]+|[^A-Za-z0-9_]/g) || []; }
 
@@ -909,6 +1107,24 @@ function selfTest() {
     console.log((good ? '  ok  ' : '  XX  ') + c[0] + ' [' + c[4] + ']: expected ' + c[5] + ', got ' + got +
       (r.diffs.length ? ' (' + r.diffs[0].why + ')' : r.changed ? ' (' + r.changed + ' explained)' : ''));
   });
+  // comments are found by the parser: a delimiter inside a string, a regular
+  // expression or a here-string is not one, the `#!` line and #requires are not
+  // comments, and line ends stay as they are
+  const commentCases = [
+    ['C#', 'csharp', ['// one', 'class A { string s = "a // no"; /* two */ string t = @"x // no', 'y"; } // three'].join('\r\n'),
+      ['// one', '/* two */', '// three']],
+    ['JS', 'javascript', ['#!/usr/bin/env node', '// one', 'const r = /a\\/\\/b/; const s = "// no"; /* two */', '`t ${1 /* three */}`;'].join('\n'),
+      ['// one', '/* two */', '/* three */']],
+    ['PS', 'powershell', ['#requires -Version 5', '# one', '$a = "# no"  # two', '<# three', '   four #>', '$h = @"', '# no', '"@'].join('\r\n'),
+      ['# one', '# two', '<# three\r\n   four #>']],
+  ];
+  const found = findComments(commentCases.map((c, i) => ({ key: 'c' + i, lang: c[1], text: c[2] })));
+  commentCases.forEach((c, i) => {
+    const got = found.get('c' + i).map(([s, e]) => c[2].slice(s, e));
+    const good = JSON.stringify(got) === JSON.stringify(c[3]);
+    if (good) ok++; else bad.push('comments of ' + c[0]);
+    console.log((good ? '  ok  ' : '  XX  ') + c[0] + ': comments found by the parser, expected ' + JSON.stringify(c[3]) + (good ? '' : ', got ' + JSON.stringify(got)));
+  });
   // nothing compared is not a pass
   const empty = { same: 0, different: 0 };
   const emptyOk = verdict(empty, false) === 1 && verdict(empty, true) === 0;
@@ -922,13 +1138,13 @@ function selfTest() {
   }
   console.log('');
   if (missing.length) console.log('SELF-TEST INCOMPLETE: no failing case for ' + missing.join(', '));
-  console.log(ok + ' of ' + (cases.length + 1) + ' cases as expected.');
+  console.log(ok + ' of ' + (cases.length + 1 + commentCases.length) + ' cases as expected.');
   return bad.length === 0 && missing.length === 0 ? 0 : 1;
 }
 
 // ── main ────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const a = { rev: 'HEAD', mode: 'identical', map: null, paths: [], all: false, pair: null, dump: null, selfTest: false, root: ROOT_DEFAULT, show: 5, allowEmpty: false };
+  const a = { rev: 'HEAD', mode: 'identical', map: null, paths: [], all: false, pair: null, dump: null, comments: null, selfTest: false, root: ROOT_DEFAULT, show: 5, allowEmpty: false };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const next = () => { if (i + 1 >= argv.length) cannot(x + ' needs a value'); return argv[++i]; };
@@ -938,6 +1154,7 @@ function parseArgs(argv) {
     else if (x === '--all') a.all = true;
     else if (x === '--pair') { a.pair = [next(), next()]; }
     else if (x === '--dump') a.dump = next();
+    else if (x === '--comments') a.comments = next();
     else if (x === '--self-test') a.selfTest = true;
     else if (x === '--root') a.root = path.resolve(next());
     else if (x === '--show') a.show = parseInt(next(), 10);
@@ -964,6 +1181,15 @@ function main() {
       }
     };
     print(toks, '');
+    return 0;
+  }
+  if (args.comments) {
+    const lang = langOf(args.comments);
+    if (!lang) cannot('no tokenizer for ' + args.comments);
+    const text = fs.readFileSync(args.comments, 'utf8').replace(/^﻿/, '');
+    const list = findComments([{ key: 'x', lang, text }]).get('x');
+    for (const [s, e] of list) console.log(s + '	' + e + '	' + JSON.stringify(text.slice(s, e)));
+    console.log(list.length + ' comments');
     return 0;
   }
   const mapPairs = loadMap(args.map);
@@ -1006,4 +1232,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { loadMap, explained, compareStreams, tokenizeAll, words, compileRoslynProgram, GateError };
+module.exports = { loadMap, explained, compareStreams, tokenizeAll, findComments, hasAcorn: () => !!acorn, normalizeText, langOf, words, compileRoslynProgram, GateError };
