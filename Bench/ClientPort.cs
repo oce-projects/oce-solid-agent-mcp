@@ -2,47 +2,47 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SolidWorks.Interop.sldworks;
-// ALIAS E NON `using static`: il banco ha gia' un `Open` e un `Close` suoi,
-// e i membri della classe vincono su quelli importati. Con l'alias si vede a
-// colpo d'occhio quali chiamate escono da questo processo e vanno al ponte.
+// ALIAS AND NOT `using static`: the bench already has an `Open` and a `Close` of its own,
+// and the members of the class win over the imported ones. With the alias one sees at a
+// glance which calls leave this process and go to the bridge.
 using Mcp = Shared.McpClient;
 
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// UN GIRO DI PROVE CHE PASSA DALLA PORTA DEL CLIENTE (voce F14).
+    /// A RUN OF CHECKS THAT GOES THROUGH THE CLIENT'S DOOR (entry F14).
     ///
-    /// ── PERCHE' ESISTE, E NON E' UNA SIMMETRIA ESTETICA ──────────────────
+    /// ── WHY IT EXISTS, AND IT IS NOT AN AESTHETIC SYMMETRY ───────────────
     ///
-    /// Tutto il resto di questo banco chiama la LIBRERIA. Il 18/9/2026 il
-    /// ponte rifiutava ogni assieme mentre il suo catalogo ne prometteva una
-    /// famiglia intera, e il banco aveva 781 prove verdi — cinque delle quali
-    /// sugli assiemi — e **nessuna poteva vederlo**: `PlanExecutor` non
-    /// compare in nessun file di `Bench/`.
+    /// All the rest of this bench calls the LIBRARY. On 18/9/2026 the
+    /// bridge refused every assembly while its catalog promised a whole
+    /// family of them, and the bench had 781 green checks — five of which
+    /// on assemblies — and **none could see it**: `PlanExecutor` does not
+    /// appear in any file of `Bench/`.
     ///
-    /// *Due misure vere di due cose diverse, e chi legge il numero grande crede
-    /// che copra anche l'altra.*
+    /// *Two true measurements of two different things, and whoever reads the big number believes it
+    /// covers the other one too.*
     ///
-    /// ── COSA PROVA CHE NIENT'ALTRO PROVA ─────────────────────────────────
+    /// ── WHAT IT PROVES THAT NOTHING ELSE PROVES ──────────────────────────
     ///
-    /// Tutto cio' che sta FRA il cliente e la libreria, con un documento vero
-    /// davanti: i controlli preliminari, la traduzione fra JSON e argomenti, i
-    /// rifiuti su operazioni che il documento aperto non ammette, e
-    /// `inspect_part`, che non passa nemmeno dall'esecutore.
+    /// Everything that lies BETWEEN the client and the library, with a real document
+    /// in front: the preliminary checks, the translation between JSON and arguments, the
+    /// refusals on operations that the open document does not allow, and
+    /// `inspect_part`, which does not even go through the executor.
     ///
-    /// `Oce.Solid.Agent.ContractTests` parla gia' al ponte sullo stdio, ma **senza
-    /// SOLIDWORKS**: li' ogni piano muore su «non c'e' nessun documento
-    /// aperto», che e' un rifiuto vero e non prova niente sul resto. Qui il
-    /// documento c'e'. Il trasporto e' lo stesso — `Shared/McpClient.cs` —
-    /// perche' due trasporti sarebbero due posti in cui riparare il BOM.
+    /// `Oce.Solid.Agent.ContractTests` already talks to the bridge over stdio, but **without
+    /// SOLIDWORKS**: there every plan dies on «there is no document
+    /// open», which is a true refusal and proves nothing about the rest. Here the
+    /// document is there. The transport is the same — `Shared/McpClient.cs` —
+    /// because two transports would be two places in which to repair the BOM.
     ///
-    /// ── E UNO DEVE ESSERE ROSSO PER COSTRUZIONE ──────────────────────────
+    /// ── AND ONE MUST BE RED BY CONSTRUCTION ──────────────────────────────
     ///
-    /// Un piano che chiede un'operazione di `assemblies` con una PARTE aperta
-    /// dev'essere rifiutato, e la risposta deve dire **su cosa si sta
-    /// lavorando** — non una frase fissa. Un controllo mai visto scattare non
-    /// e' un controllo, e un rifiuto che non nomina il documento non si
-    /// distingue da uno che rifiuta tutto.
+    /// A plan that asks for an `assemblies` operation with a PART open
+    /// must be refused, and the answer must say **what is being worked
+    /// on** — not a fixed sentence. A check never seen to fire is not
+    /// a check, and a refusal that does not name the document cannot be told apart from one
+    /// that refuses everything.
     /// </summary>
     internal static partial class Program
     {
@@ -56,9 +56,9 @@ namespace Oce.Solid.Agent.Bench
                 return;
             }
 
-            // IL DOCUMENTO LO PREPARA IL BANCO, e il ponte lo trova davanti.
-            // E' esattamente la differenza con `Oce.Solid.Agent.ContractTests`: li' non c'e'
-            // niente aperto, e ogni piano muore sul primo controllo.
+            // THE DOCUMENT IS PREPARED BY THE BENCH, and the bridge finds it in front of it.
+            // It is exactly the difference with `Oce.Solid.Agent.ContractTests`: there nothing is
+            // open, and every plan dies on the first check.
             IModelDoc2 doc = null;
             Mcp.Bridge p = null;
             string newTitle = null, saved = null;
@@ -84,22 +84,22 @@ namespace Oce.Solid.Agent.Bench
                                        string.Join(" | ", p.Views.ToArray()));
                 if (r == null) return;
 
-                // ── 1. inspect_part VEDE IL DOCUMENTO CHE HA APERTO IL BANCO ──
+                // ── 1. inspect_part SEES THE DOCUMENT THE BENCH OPENED ──
                 //
-                // Non «risponde qualcosa»: risponde di QUESTO pezzo. E' la
-                // prova che il ponte e il banco stanno guardando la stessa
-                // sessione di SOLIDWORKS, ed e' la premessa di tutto il resto.
+                // Not «it answers something»: it answers about THIS part. It is the
+                // proof that the bridge and the bench are looking at the same
+                // SOLIDWORKS session, and it is the premise of everything else.
                 var text = ResponseText(Mcp.Ask(p, 2, Call(2, "inspect_part", "{}")));
                 Check("porta: inspect_part nomina il documento del banco",
                       text.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0,
                       docTitle + " — " + Short(text));
 
-                // ── 2. UN PIANO CHE RIESCE, E IL BANCO RILEGGE IL PEZZO ──
+                // ── 2. A PLAN THAT SUCCEEDS, AND THE BENCH RE-READS THE PART ──
                 //
-                // La risposta del ponte dice «succeeded». Il banco non si fida
-                // della parola: apre lo stesso documento con la COM e misura
-                // il volume. E' l'unica cosa che questo gruppo puo' fare e la
-                // suite di contratto no.
+                // The bridge's answer says «succeeded». The bench does not trust
+                // the word: it opens the same document with COM and measures
+                // the volume. It is the only thing this group can do and the
+                // contract suite cannot.
                 double volumeBefore = TestVolume(doc);
                 var done = ResponseText(Mcp.Ask(p, 3, Call(3, "build",
                     "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
@@ -111,22 +111,22 @@ namespace Oce.Solid.Agent.Bench
                       done.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(done));
 
-                // 120 x 80 x 10 = 96.000 mm3, e il pezzo partiva vuoto.
+                // 120 x 80 x 10 = 96.000 mm3, and the part started empty.
                 Check("porta: e il pezzo e' cambiato davvero, misurato dal banco",
                       Math.Abs(volumeAfter - volumeBefore - 96000) < 1,
                       volumeBefore.ToString("0.#") + " -> " + volumeAfter.ToString("0.#") +
                       " mm3 (atteso +96000)");
 
-                // ── 3. ROSSO PER COSTRUZIONE: un'operazione di assieme su una parte ──
+                // ── 3. RED BY CONSTRUCTION: an assembly operation on a part ──
                 var refusal = ResponseText(Mcp.Ask(p, 4, Call(4, "build",
                     "{\"steps\":[{\"operation\":\"insert_component\",\"arguments\":" +
                     "{\"path\":\"C:\\\\non\\\\esiste.SLDPRT\"}}]}")));
 
-                // SOLO `succeeded: false`, e niente `||` di scorta. La prima
-                // stesura accettava anche una risposta che contenesse la
-                // parola «assembly» da qualche parte: sarebbe passata pure
-                // con un piano RIUSCITO che la nominasse. *Un `||` messo per
-                // sicurezza e' un `||` che un giorno regge da solo.*
+                // ONLY `succeeded: false`, and no spare `||`. The first
+                // draft also accepted an answer that contained the
+                // word «assembly» somewhere: it would have passed even
+                // with a SUCCEEDED plan that named it. *A `||` put in for
+                // safety is a `||` that one day holds up on its own.*
                 bool refused = refusal.IndexOf("\"succeeded\":false",
                                      StringComparison.OrdinalIgnoreCase) >= 0 ||
                                  refusal.IndexOf("\"succeeded\": false",
@@ -134,12 +134,12 @@ namespace Oce.Solid.Agent.Bench
                 Check("porta: un'operazione di assieme su una PARTE e' rifiutata",
                       refused, Short(refusal));
 
-                // E NON DEVE ESSERE RIUSCITA. Sembra la stessa cosa detta
-                // due volte e non lo e': `succeeded` potrebbe mancare del
-                // tutto — una risposta malformata, un errore di protocollo —
-                // e allora la riga qui sopra sarebbe rossa per il motivo
-                // giusto ma per la ragione sbagliata. Questa dice che la
-                // parola «true» accanto a «succeeded» non c'e'.
+                // AND IT MUST NOT HAVE SUCCEEDED. It looks like the same thing said
+                // twice and it is not: `succeeded` might be missing
+                // altogether — a malformed answer, a protocol error —
+                // and then the line above would be red for the right
+                // reason but the wrong cause. This one says that the
+                // word «true» next to «succeeded» is not there.
                 Check("porta: e non e' riuscita per sbaglio",
                       refusal.IndexOf("\"succeeded\":true",
                           StringComparison.OrdinalIgnoreCase) < 0 &&
@@ -147,27 +147,27 @@ namespace Oce.Solid.Agent.Bench
                           StringComparison.OrdinalIgnoreCase) < 0,
                       Short(refusal));
 
-                // E IL RIFIUTO DEVE DIRE SU COSA SI STA LAVORANDO.
+                // AND THE REFUSAL MUST SAY WHAT IS BEING WORKED ON.
                 //
-                // «Questa operazione vuole un assieme» e' una frase fissa: la
-                // stessa risposta arriverebbe con qualunque documento davanti,
-                // compreso quello sbagliato. Nominare il documento e' cio' che
-                // distingue un controllo che guarda da uno che recita.
-                // IL TITOLO, NON LA PAROLA «part». «part» sta in qualunque
-                // frase fissa sui tipi di documento, e accettarla vorrebbe
-                // dire promuovere proprio la risposta che questa riga esiste
-                // per bocciare.
+                // «This operation wants an assembly» is a fixed sentence: the
+                // same answer would arrive with any document in front,
+                // including the wrong one. Naming the document is what
+                // tells a check that looks from one that recites.
+                // THE TITLE, NOT THE WORD «part». «part» is in any
+                // fixed sentence about document types, and accepting it would mean
+                // promoting the very answer that this line exists
+                // to reject.
                 Check("porta: e il rifiuto dice su cosa sta lavorando",
                       refusal.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0,
                       "cerco «" + docTitle + "» in: " + Short(refusal));
 
-                // ── LA TRAPPOLA: zero righe lette aspettando zero righe ──
+                // ── THE TRAP: zero lines read while expecting zero lines ──
                 //
-                // Una notifica non riceve risposta, e «non e' arrivato niente»
-                // e' vero anche quando il ponte e' morto. Si manda la notifica
-                // e SUBITO DOPO una domanda vera: se la prima riga che torna e'
-                // la risposta a quella, la notifica non ha risposto E il ponte
-                // e' vivo.
+                // A notification gets no answer, and «nothing arrived»
+                // is true even when the bridge is dead. One sends the notification
+                // and RIGHT AFTER a real question: if the first line that comes back is
+                // the answer to that one, the notification did not answer AND the bridge
+                // is alive.
                 Mcp.Write(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
                 var afterTheNotification = Mcp.Ask(p, 5, Call(5, "inspect_part", "{}"));
                 Check("porta: il ponte e' ancora vivo dopo una notifica",
@@ -186,9 +186,9 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (p != null) { Mcp.Close(p); p.Dispose(); }
                 Close(doc);
-                // Quello che il ciclo del documento ha aperto o creato si chiude
-                // qui, qualunque cosa sia successa: la scrivania del banco deve
-                // restare pulita (voce K12), o il giro dopo rifiuta di partire.
+                // What the document cycle opened or created is closed
+                // here, whatever happened: the bench's desk must
+                // stay clean (entry K12), or the next run refuses to start.
                 try { if (!string.IsNullOrEmpty(newTitle)) _sw.CloseDoc(newTitle); } catch { }
                 try
                 {
@@ -207,15 +207,15 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// LO STRUMENTO «document», DALLA PORTA DEL CLIENTE (voci Z-B1, Z-B2,
+        /// THE «document» TOOL, FROM THE CLIENT'S DOOR (entries Z-B1, Z-B2,
         /// Z-B5, Z-B6).
         ///
-        /// Il ponte ha smesso di aver bisogno di una persona per cominciare:
-        /// crea, apre, elenca, porta davanti. Qui si guarda che lo faccia DAVVERO
-        /// — il banco rilegge dalla COM quale documento c'e' davanti, invece di
-        /// credere alla risposta — e due rossi per costruzione: un file che non
-        /// esiste non cambia il documento davanti, e dopo un cambio di documento
-        /// «build» si rifiuta finche' non si e' guardato di nuovo.
+        /// The bridge has stopped needing a person to begin:
+        /// it creates, opens, lists, brings to the front. Here we look at whether it does so FOR REAL
+        /// — the bench re-reads from COM which document is in front, instead of
+        /// believing the answer — and two reds by construction: a file that does not
+        /// exist does not change the document in front, and after a change of document
+        /// «build» refuses until it has been looked at again.
         /// </summary>
         private static void DocumentCycle(Mcp.Bridge p, string docTitle,
                                                 ref string newTitle, ref string saved)
@@ -226,12 +226,12 @@ namespace Oce.Solid.Agent.Bench
                 catch { return "(non leggibile)"; }
             };
 
-            // ── elenca: c'e' il documento del banco, ed e' davanti ─────────
+            // ── list: the bench's document is there, and it is in front ────
             var list = ResponseText(Mcp.Ask(p, 6, Call(6, "document", "{\"action\":\"list\"}")));
             Check("documento: «list» nomina il documento del banco",
                   list.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0, Short(list));
 
-            // ── nuovo: una parte vuota, davanti, e il banco lo verifica ────
+            // ── new: an empty part, in front, and the bench verifies it ────
             var newItem = Mcp.Obj(ResponseText(Mcp.Ask(p, 7, Call(7, "document",
                 "{\"action\":\"create\",\"variant\":\"part\"}"))));
             newTitle = Convert.ToString(Mcp.Inside(newItem, "document_title"));
@@ -245,11 +245,11 @@ namespace Oce.Solid.Agent.Bench
                   active != null && TestVolume(active) < 0.001,
                   active == null ? "(niente davanti)" : TestVolume(active).ToString("0.###") + " mm3");
 
-            // ── ROSSO PER COSTRUZIONE: disegna subito dopo, senza guardare ─
+            // ── RED BY CONSTRUCTION: build right after, without looking ─
             //
-            // Il documento davanti e' cambiato per mano del ponte stesso. Quello
-            // che era stato guardato non vale piu', e «build» deve dirlo invece
-            // di scrivere in un pezzo che il modello non ha mai visto.
+            // The document in front has changed by the bridge's own hand. What
+            // had been looked at no longer holds, and «build» must say so instead
+            // of writing into a part that the model has never seen.
             var immediately = ResponseText(Mcp.Ask(p, 8, Call(8, "build",
                 "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                 "{\"length_mm\":10,\"width_mm\":10,\"thickness_mm\":10}}]}")));
@@ -258,13 +258,13 @@ namespace Oce.Solid.Agent.Bench
                   (active == null || TestVolume(active) < 0.001),
                   Short(immediately));
 
-            // ── attiva: si torna al documento del banco ───────────────────
+            // ── activate: back to the bench's document ───────────────────
             var returns = ResponseText(Mcp.Ask(p, 9, Call(9, "document",
                 "{\"action\":\"activate\",\"path\":\"" + docTitle + "\"}")));
             Check("documento: «activate» riporta davanti il documento del banco",
                   front() == docTitle, "davanti «" + front() + "» — " + Short(returns));
 
-            // ── ROSSO: un file che non esiste non cambia niente ───────────
+            // ── RED: a file that does not exist changes nothing ───────────
             var nonexistent = Path.Combine(Expectations.Work, "non-esiste-" + Guid.NewGuid().ToString("N") + ".sldprt");
             var no = ResponseText(Mcp.Ask(p, 10, Call(10, "document",
                 "{\"action\":\"open\",\"path\":\"" + nonexistent.Replace("\\", "\\\\") + "\"}")));
@@ -272,14 +272,14 @@ namespace Oce.Solid.Agent.Bench
                   no.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) >= 0 && front() == docTitle,
                   "davanti «" + front() + "» — " + Short(no));
 
-            // ── apri un file vero: si salva la parte nuova, la si chiude, la si
-            //    riapre dal ponte, e il percorso deve essere quello chiesto ─
+            // ── open a real file: the new part is saved, closed, reopened
+            //    from the bridge, and the path must be the one asked for ─
             saved = Path.Combine(Expectations.Work, "porta_documento.sldprt");
             try { if (File.Exists(saved)) { File.SetAttributes(saved, FileAttributes.Normal); File.Delete(saved); } } catch { }
-            // IL RIFERIMENTO PRESO DOPO «create», non una ricerca per nome.
-            // `GetOpenDocumentByName` con il titolo di un documento MAI SALVATO
-            // torna null — misurato: la prima stesura salvava cosi', riceveva
-            // e=0 w=0 da una chiamata mai fatta, e il file non c'era.
+            // THE REFERENCE TAKEN AFTER «create», not a search by name.
+            // `GetOpenDocumentByName` with the title of a document NEVER SAVED
+            // returns null — measured: the first draft saved that way, received
+            // e=0 w=0 from a call never made, and the file was not there.
             var toSave = active;
             int e = 0, w = 0;
             if (toSave != null) toSave.Extension.SaveAs(saved, 0, 1, null, ref e, ref w);
@@ -304,13 +304,13 @@ namespace Oce.Solid.Agent.Bench
                   Convert.ToString(Mcp.Inside(open, "read_only")).Equals("False", StringComparison.OrdinalIgnoreCase),
                   Convert.ToString(Mcp.Inside(open, "read_only")));
 
-            // ── Z-B2: lo stesso file con l'attributo di sola lettura ───────
+            // ── Z-B2: the same file with the read-only attribute ───────
             //
-            // Il caso vero e' un collega che ha il file aperto su una cartella di
-            // rete; dentro una sola sessione di SOLIDWORKS non si costruisce. Il
-            // rosso economico e' l'attributo del file: SOLIDWORKS lo apre lo
-            // stesso, in sola lettura, SENZA chiedere niente — che e' esattamente
-            // il silenzio che la voce vuole vedere detto.
+            // The real case is a colleague who has the file open on a network
+            // folder; within a single SOLIDWORKS session it cannot be built. The
+            // cheap red is the file's attribute: SOLIDWORKS opens it
+            // all the same, read-only, WITHOUT asking anything — which is exactly
+            // the silence that the entry wants to see spoken.
             _sw.CloseDoc(Path.GetFileName(saved));
             File.SetAttributes(saved, FileAttributes.ReadOnly);
             var readOnlyMode = Mcp.Obj(ResponseText(Mcp.Ask(p, 12, Call(12, "document",
@@ -321,11 +321,11 @@ namespace Oce.Solid.Agent.Bench
                   Short(Convert.ToString(Mcp.Inside(readOnlyMode, "warning")) + " | read_only=" +
                         Convert.ToString(Mcp.Inside(readOnlyMode, "read_only"))));
 
-            // ── chiudi (voce Z-B1): il ROSSO prima, su un documento sporco ──
+            // ── close (entry Z-B1): the RED first, on a dirty document ──
             //
-            // Il documento del banco ha l'estrusione del passo 2 e non e' mai
-            // stato salvato: chiuderlo butterebbe lavoro. Il ponte deve
-            // rifiutare, e il banco rilegge dalla COM che sia ancora aperto.
+            // The bench's document has the extrusion of step 2 and has never been
+            // saved: closing it would throw work away. The bridge must
+            // refuse, and the bench re-reads from COM that it is still open.
             Func<string, bool> open2 = t =>
             {
                 var d = _sw.GetFirstDocument() as IModelDoc2;
@@ -342,9 +342,9 @@ namespace Oce.Solid.Agent.Bench
                   dirty.IndexOf("modifiche non salvate", StringComparison.OrdinalIgnoreCase) >= 0 && open2(docTitle),
                   "ancora aperto " + open2(docTitle) + " — " + Short(dirty));
 
-            // ── e la GEMELLA: un documento appena aperto, senza modifiche ──
-            // Il titolo porta l'estensione o no a seconda di come Windows mostra
-            // i file: si confronta il gambo del nome.
+            // ── and the TWIN: a document just opened, without modifications ──
+            // The title carries the extension or not depending on how Windows shows
+            // files: the stem of the name is compared.
             string shank = Path.GetFileNameWithoutExtension(saved);
             var closed = Mcp.Obj(ResponseText(Mcp.Ask(p, 14, Call(14, "document",
                 "{\"action\":\"close\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
@@ -748,21 +748,21 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// LA GUARDIA CONTRO IL MODALE, VISTA SCATTARE (voce Z-C3).
+        /// THE GUARD AGAINST THE MODAL, SEEN TO FIRE (entry Z-C3).
         ///
-        /// Fino alla libreria 0.112.0 la guardia era `CommandInProgress`, e la
-        /// frase del rifiuto compariva in un solo posto del repository: la riga
-        /// che la produceva. `Checks/Modal` ha misurato che con un modale
-        /// aperto `CommandInProgress` resta FALSO: la guardia non poteva
-        /// scattare. Dalla 0.113.0 si guarda se la finestra principale e'
-        /// abilitata.
+        /// Up to library 0.112.0 the guard was `CommandInProgress`, and the
+        /// sentence of the refusal appeared in one place only of the repository: the line
+        /// that produced it. `Checks/Modal` measured that with a modal
+        /// open `CommandInProgress` stays FALSE: the guard could not
+        /// fire. From 0.113.0 on it looks at whether the main window is
+        /// enabled.
         ///
-        /// Qui un modale vero — una finestra di messaggio di SOLIDWORKS, aperta
-        /// da un altro filo perche' la chiamata non torna finche' e' aperta —
-        /// e un piano chiesto al ponte in quel momento: dev'essere rifiutato con
-        /// la frase della guardia, e il pezzo non deve cambiare. Poi il modale si
-        /// chiude e LO STESSO ponte deve tornare a lavorare: e' la gemella, senza
-        /// la quale una guardia che rifiuta sempre passerebbe questa prova.
+        /// Here a real modal — a SOLIDWORKS message window, opened
+        /// from another thread because the call does not return while it is open —
+        /// and a plan asked of the bridge at that moment: it must be refused with
+        /// the guard's sentence, and the part must not change. Then the modal
+        /// closes and THE SAME bridge must go back to working: that is the twin, without
+        /// which a guard that always refuses would pass this check.
         /// </summary>
         private static void TheModal(Mcp.Bridge p, IModelDoc2 doc)
         {
@@ -814,8 +814,8 @@ namespace Oce.Solid.Agent.Bench
             }
             finally
             {
-                // IL MODALE SI CHIUDE IN OGNI CASO: lasciato aperto, pianta il
-                // resto del giro e quello dopo.
+                // THE MODAL IS CLOSED IN ANY CASE: left open, it sticks the
+                // rest of the run and the next one.
                 PostMessage(dialog, 0x0010, IntPtr.Zero, IntPtr.Zero);
                 wire.Join(8000);
                 System.Threading.Thread.Sleep(300);
@@ -829,9 +829,9 @@ namespace Oce.Solid.Agent.Bench
                   Math.Abs(volumeAfter - volumeBefore) < 0.01,
                   volumeBefore.ToString("0.#") + " -> " + volumeAfter.ToString("0.#") + " mm3");
 
-            // LA GEMELLA: modale chiuso, finestra abilitata, e lo stesso ponte
-            // lavora. Un'operazione che legge soltanto, per non cambiare il pezzo
-            // su cui il resto del gruppo conta.
+            // THE TWIN: modal closed, window enabled, and the same bridge
+            // works. An operation that only reads, so as not to change the part
+            // the rest of the group counts on.
             bool enabled = IsWindowEnabled(frameBorder);
             var without = ResponseText(Mcp.Ask(p, 31, Call(31, "build",
                 "{\"steps\":[{\"operation\":\"mass_properties\",\"arguments\":{}}]}")));
@@ -856,7 +856,7 @@ namespace Oce.Solid.Agent.Bench
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumProc f, IntPtr l);
 
-        /// <summary>Una finestra di dialogo (#32770) visibile del processo dato.</summary>
+        /// <summary>A visible dialog window (#32770) of the given process.</summary>
         private static IntPtr DialogOf(uint pid)
         {
             IntPtr found = IntPtr.Zero;
@@ -873,7 +873,7 @@ namespace Oce.Solid.Agent.Bench
             return found;
         }
 
-        /// <summary>L'eseguibile del ponte, o `null`.</summary>
+        /// <summary>The bridge's executable, or `null`.</summary>
         private static string TheBridge()
         {
             try
@@ -886,7 +886,7 @@ namespace Oce.Solid.Agent.Bench
             catch { return null; }
         }
 
-        /// <summary>Una riga `tools/call` bell'e pronta.</summary>
+        /// <summary>A ready-made `tools/call` line.</summary>
         private static string Call(int id, string itemName, string arguments)
         {
             return "{\"jsonrpc\":\"2.0\",\"id\":" + id + ",\"method\":\"tools/call\",\"params\":" +
@@ -894,13 +894,13 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il testo di `content[0].text`, o la riga intera se non si riesce a
-        /// scendere fin li'.
+        /// The text of `content[0].text`, or the whole line if it cannot be
+        /// drilled down that far.
         ///
-        /// SI TORNA LA RIGA INTERA E NON UNA STRINGA VUOTA: se la risposta ha
-        /// una forma che non mi aspetto, voglio vederla nel dettaglio della
-        /// prova rossa. Una stringa vuota direbbe «non c'era niente», che e'
-        /// un'altra cosa.
+        /// THE WHOLE LINE IS RETURNED AND NOT AN EMPTY STRING: if the answer has
+        /// a shape I do not expect, I want to see it in the detail of the
+        /// red check. An empty string would say «there was nothing», which is
+        /// another thing.
         /// </summary>
         private static string ResponseText(string line)
         {

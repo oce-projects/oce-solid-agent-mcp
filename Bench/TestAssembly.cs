@@ -4,80 +4,80 @@ using System.Globalization;
 using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
-// Stessa ragione di `DeclaredCases.cs`: `Text`, `Items`, `Resolve` e `Short`
-// vivono in `Expectations`, che non tocca SOLIDWORKS (voce F7). `using static` li
-// lascia scrivere come se fossero qui.
+// Same reason as `DeclaredCases.cs`: `Text`, `Items`, `Resolve` and `Short`
+// live in `Expectations`, which does not touch SOLIDWORKS (entry F7). `using static` lets
+// them be written as if they were here.
 using static Oce.Solid.Agent.Bench.Expectations;
 
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// IL BANCO IMPARA A PREPARARE UN ASSIEME (voce GA0).
+    /// THE BENCH LEARNS TO PREPARE AN ASSEMBLY (entry GA0).
     ///
-    /// ── PERCHE' QUESTA VOCE VIENE PRIMA DI TUTTA LA SEZIONE G-A ──────────
+    /// ── WHY THIS ENTRY COMES BEFORE THE WHOLE G-A SECTION ────────────────
     ///
-    /// Fino al 16 settembre 2026 `NewPart()` era l'UNICO modo in cui il
-    /// banco preparava un documento, e usava `swDefaultTemplatePart`. Nessun
-    /// `NewAssembly`, e `"start": { "new_part": true }` era l'unica forma di
-    /// preparazione che i 270 casi sapessero esprimere.
+    /// Up to 16 September 2026 `NewPart()` was the ONLY way in which the
+    /// bench prepared a document, and it used `swDefaultTemplatePart`. No
+    /// `NewAssembly`, and `"start": { "new_part": true }` was the only form of
+    /// preparation that the 270 cases knew how to express.
     ///
-    /// Conseguenza: **nessuna operazione di assieme poteva avere un caso.** Si
-    /// sarebbero potute scrivere tutte e nove le voci G-A, farle funzionare a
-    /// mano, e non avere niente che se ne accorgesse quando si rompono — la
-    /// condizione che questo progetto rifiuta per le parti, accettata per gli
-    /// assiemi solo perche' era scomodo il contrario.
+    /// Consequence: **no assembly operation could have a case.** All nine
+    /// G-A entries could have been written, made to work by hand, and nothing
+    /// would have noticed when they break — the condition that this
+    /// project refuses for parts, accepted for assemblies
+    /// only because the opposite was inconvenient.
     ///
-    /// *Un'operazione senza un caso non e' un'operazione: e' una dimostrazione.*
+    /// *An operation without a case is not an operation: it is a demonstration.*
     ///
-    /// ── PERCHE' UN ASSIEME NON E' UN DOCUMENTO VUOTO ─────────────────────
+    /// ── WHY AN ASSEMBLY IS NOT AN EMPTY DOCUMENT ─────────────────────────
     ///
-    /// `AddComponent5` prende un **percorso su disco**: non si puo' inserire un
-    /// documento mai salvato. Quindi preparare un assieme e' una catena di sei
-    /// passi, e ognuno puo' fallire in modo suo:
+    /// `AddComponent5` takes a **path on disk**: a document that was never saved
+    /// cannot be inserted. So preparing an assembly is a chain of six
+    /// steps, and each one can fail in its own way:
     ///
-    ///   1. creare la parte componente (le stesse operazioni dei casi),
-    ///   2. SALVARLA in `Bench\lavoro`,
-    ///   3. chiuderla,
-    ///   4. creare il documento di assieme,
-    ///   5. riaprire i componenti e inserirli,
-    ///   6. ricostruire.
+    ///   1. create the component part (the same operations as the cases),
+    ///   2. SAVE IT in `Bench\lavoro`,
+    ///   3. close it,
+    ///   4. create the assembly document,
+    ///   5. reopen the components and insert them,
+    ///   6. rebuild.
     ///
-    /// E poi ripulire, che e' il settimo: `CloseLeftovers` chiude i documenti, non
-    /// cancella i file.
+    /// And then clean up, which is the seventh: `CloseLeftovers` closes the documents, it does not
+    /// delete the files.
     ///
-    /// ── LA REGOLA CHE NON SI ROMPE ───────────────────────────────────────
+    /// ── THE RULE THAT IS NOT BROKEN ──────────────────────────────────────
     ///
-    /// Ogni passo che non riesce chiama `BenchError`, **non** `Check(false)`.
-    /// Non e' una prova rossa: e' il banco che non e' riuscito a preparare il
-    /// pezzo, e sono due cose diverse (voce F12). Una preparazione fallita
-    /// dichiarata «prova fallita» farebbe credere che si sia misurato qualcosa.
+    /// Every step that does not succeed calls `BenchError`, **not** `Check(false)`.
+    /// It is not a red check: it is the bench that did not manage to prepare the
+    /// part, and they are two different things (entry F12). A failed preparation
+    /// declared «failed check» would make one believe that something was measured.
     /// </summary>
     internal static partial class Program
     {
         /// <summary>
-        /// LA PROVA CHE QUESTA CAPACITA' FUNZIONI DAVVERO (voce GA0).
+        /// THE CHECK THAT THIS CAPABILITY REALLY WORKS (entry GA0).
         ///
-        /// Non c'e' ancora nessun caso `.json` di assieme, e il motivo e'
-        /// onesto: **non esiste nessuna operazione di assieme da eseguire**, e
-        /// `RunSteps` vuole almeno un passo. Un caso finto, con dentro
-        /// un'operazione di parte messa li' per riempire, proverebbe altro.
+        /// There is no assembly `.json` case yet, and the reason is
+        /// honest: **there is no assembly operation to execute**, and
+        /// `RunSteps` wants at least one step. A fake case, with a
+        /// part operation put in just to fill, would prove something else.
         ///
-        /// Quindi la capacita' si prova come il banco prova se stesso (voci F1,
-        /// F12, F13): si costruisce un assieme, si conta, e **si guarda la
-        /// pulizia** — che e' la meta' che nessuno controlla mai.
+        /// So the capability is tested as the bench tests itself (entries F1,
+        /// F12, F13): an assembly is built, counted, and **the cleanup is
+        /// looked at** — which is the half that nobody ever checks.
         ///
-        /// I tre controlli, e perche' sono tre:
-        ///   1. **l'assieme nasce con due componenti.** Se ne avesse uno o tre,
-        ///      ogni caso futuro girerebbe su un assieme diverso da quello
-        ///      dichiarato, con misure credibili e sbagliate.
-        ///   2. **i file dei componenti esistono, mentre serve.** `AddComponent5`
-        ///      vuole un percorso: se il file non c'e', il componente entra
-        ///      «vuoto» o non entra, e nessuno lo direbbe piu' avanti.
-        ///   3. **i file NON esistono piu' dopo.** E' il controllo che nessuno
-        ///      scriverebbe, ed e' quello che protegge dal difetto peggiore:
-        ///      *un caso che riesce perche' un file del giro prima era rimasto
-        ///      non e' un caso, e' un ricordo.* Senza questa riga, la pulizia
-        ///      rotta si scoprirebbe mesi dopo, guardando una cartella piena.
+        /// The three checks, and why there are three:
+        ///   1. **the assembly is born with two components.** If it had one or three,
+        ///      every future case would run on an assembly different from the declared
+        ///      one, with believable and wrong measurements.
+        ///   2. **the component files exist, while they are needed.** `AddComponent5`
+        ///      wants a path: if the file is not there, the component enters
+        ///      «empty» or does not enter, and nobody would say so later on.
+        ///   3. **the files NO LONGER exist afterwards.** It is the check that nobody
+        ///      would write, and it is the one that protects from the worst defect:
+        ///      *a case that succeeds because a file from the run before was left over
+        ///      is not a case, it is a memento.* Without this line, the broken cleanup
+        ///      would be discovered months later, looking at a full folder.
         /// </summary>
         private static void TestTheTestAssembly()
         {
@@ -104,9 +104,9 @@ namespace Oce.Solid.Agent.Bench
                 p = PrepareDocument("ga0_assieme_di_due", testCase);
                 if (p == null || p.Document == null)
                 {
-                    // `PrepareDocument` ha gia' chiamato `BenchError` e
-                    // detto a quale dei sette passi si e' fermata: ripetere qui
-                    // aggiungerebbe una riga che dice la stessa cosa peggio.
+                    // `PrepareDocument` has already called `BenchError` and
+                    // said at which of the seven steps it stopped: repeating here
+                    // would add a line that says the same thing worse.
                     return;
                 }
                 file.AddRange(p.FilesToDelete);
@@ -131,7 +131,7 @@ namespace Oce.Solid.Agent.Bench
                       : remained + " file rimasti: il giro dopo li troverebbe gia' li'");
         }
 
-        /// <summary>Un componente: una piastra, con la sua posizione.</summary>
+        /// <summary>A component: a plate, with its position.</summary>
         private static Dictionary<string, object> APlate(
             string itemName, double length, double width, double thickness, object[] position)
         {
@@ -159,13 +159,13 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il documento su cui gira un caso, piu' i file da cancellare dopo.
+        /// The document on which a case runs, plus the files to delete afterwards.
         ///
-        /// E' una CLASSE e non una tupla perche' chi la riceve deve poterla
-        /// passare a `ThrowAwayPreparation` senza ricordarsi l'ordine di due
-        /// valori: dimenticarsi di cancellare i componenti lascia file che il
-        /// giro successivo trova gia' li', e un caso che riesce perche' un file
-        /// del giro prima era rimasto non e' un caso, e' un ricordo.
+        /// It is a CLASS and not a tuple because whoever receives it must be able to
+        /// pass it to `ThrowAwayPreparation` without remembering the order of two
+        /// values: forgetting to delete the components leaves files that the next
+        /// run finds already there, and a case that succeeds because a file
+        /// from the run before was left over is not a case, it is a memento.
         /// </summary>
         internal sealed class Preparation
         {
@@ -173,39 +173,39 @@ namespace Oce.Solid.Agent.Bench
             public readonly List<string> FilesToDelete = new List<string>();
 
             /// <summary>
-            /// Documenti da chiudere indicati per NOME. Va bene per i
-            /// componenti di un assieme: sono salvati su disco prima di
-            /// essere aperti, e il loro nome non cambia piu'.
+            /// Documents to close indicated by NAME. It is fine for the
+            /// components of an assembly: they are saved to disk before
+            /// being opened, and their name no longer changes.
             /// </summary>
             public readonly List<string> TitlesToClose = new List<string>();
 
             /// <summary>
-            /// Documenti da chiudere indicati per RIFERIMENTO (voce K12-bis).
+            /// Documents to close indicated by REFERENCE (entry K12-bis).
             ///
-            /// ── PERCHE' NON BASTA IL NOME ───────────────────────────────
+            /// ── WHY THE NAME IS NOT ENOUGH ──────────────────────────────
             ///
-            /// Una tavola nasce come `Disegno38 - Foglio1` e viene salvata
-            /// dopo, diventando `drawing_dimensions_itself - Foglio1`. Il banco
-            /// segnava il titolo **nel momento in cui il documento
-            /// compariva**, cioe' quello vecchio, e a fine caso
-            /// `CloseDoc("Disegno38 - Foglio1")` non chiudeva niente **e non
-            /// lo diceva**. La tavola restava aperta, e una tavola aperta
-            /// tiene aperto il suo pezzo: due documenti per caso, quattordici
-            /// a fine giro.
+            /// A drawing is born as `Disegno38 - Foglio1` and is saved
+            /// afterwards, becoming `drawing_dimensions_itself - Foglio1`. The bench
+            /// marked the title **at the moment the document
+            /// appeared**, that is the old one, and at the end of the case
+            /// `CloseDoc("Disegno38 - Foglio1")` closed nothing **and did not
+            /// say so**. The drawing stayed open, and an open drawing
+            /// keeps its part open: two documents per case, fourteen
+            /// at the end of the run.
             ///
-            /// **L'identita' di un documento non e' il suo titolo.** E' la
-            /// stessa lezione del documento attivo: si tiene il riferimento,
-            /// e il titolo si chiede nel momento in cui serve.
+            /// **The identity of a document is not its title.** It is the
+            /// same lesson as the active document: the reference is kept,
+            /// and the title is asked for at the moment it is needed.
             /// </summary>
             public readonly List<IModelDoc2> DocumentsToClose = new List<IModelDoc2>();
         }
 
         /// <summary>
-        /// Prepara il documento che un caso chiede: una parte nuova, oppure un
-        /// assieme con dentro i suoi componenti.
+        /// Prepares the document that a case asks for: a new part, or an
+        /// assembly with its components inside.
         ///
-        /// Torna `null` quando la preparazione non e' riuscita — e in quel caso
-        /// ha gia' detto perche' con `BenchError`.
+        /// Returns `null` when the preparation did not succeed — and in that case
+        /// it has already said why with `BenchError`.
         /// </summary>
         internal static Preparation PrepareDocument(
             string itemName, Dictionary<string, object> testCase)
@@ -279,19 +279,19 @@ namespace Oce.Solid.Agent.Bench
                 if (hidden) hiddenNames.Add(itsName);
             }
 
-            // ── 1-3. i componenti, uno per uno, costruiti e salvati ───────
+            // ── 1-3. the components, one by one, built and saved ──────────
             //
-            // `da_inserire: false` COSTRUISCE MA NON INSERISCE, ed e' il modo in
-            // cui un caso prova `insert_component`: il file c'e', e' aperto,
-            // e l'inserimento lo fa il PASSO, non la preparazione. Senza questa
-            // riga un caso non potrebbe mai provare l'operazione che inserisce —
-            // troverebbe il componente gia' dentro, e misurerebbe il lavoro
-            // della preparazione credendo di misurare l'operazione.
+            // `da_inserire: false` BUILDS BUT DOES NOT INSERT, and it is the way in
+            // which a case tests `insert_component`: the file is there, it is open,
+            // and the insertion is done by the STEP, not by the preparation. Without this
+            // line a case could never test the operation that inserts —
+            // it would find the component already inside, and would measure the work
+            // of the preparation believing it measured the operation.
             //
-            // Il percorso il caso lo nomina con `{LAVORO}\<caso>_<componente>.sldprt`:
-            // il segnaposto esiste gia' e vale su qualunque macchina. *Un caso
-            // che nomina un percorso di questa macchina non e' una prova, e' un
-            // ricordo.*
+            // The case names the path with `{LAVORO}\<caso>_<componente>.sldprt`:
+            // the placeholder already exists and is valid on any machine. *A case
+            // that names a path of this machine is not a check, it is a
+            // memento.*
             var paths = new List<string>();
             var positions = new List<double[]>();
             // The file of each component by its name in the case, for the
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.Bench
                 positions.Add(PositionMm(c));
             }
 
-            // ── 4. il documento di assieme ───────────────────────────────
+            // ── 4. the assembly document ─────────────────────────────────
             IModelDoc2 doc;
             try { doc = NewAssembly(); }
             catch (Exception ex)
@@ -349,18 +349,18 @@ namespace Oce.Solid.Agent.Bench
                 return null;
             }
 
-            // ── 5a. TUTTI i componenti si riaprono, anche quelli che non si
-            //        inseriscono: `insert_component` vuole il documento
-            //        aperto, e chi lo chiama dal caso lo trova cosi'.
+            // ── 5a. ALL the components are reopened, even those that are not
+            //        inserted: `insert_component` wants the document
+            //        open, and whoever calls it from the case finds it this way.
             foreach (var f in new List<string>(outside.FilesToDelete))
                 if (!Open(f, itemName)) return null;
 
-            // ── 5b. riaprire i componenti e inserirli ────────────────────
+            // ── 5b. reopen the components and insert them ────────────────
             //
-            // SI RIAPRONO, e non e' una formalita': `AddComponent5` vuole un
-            // documento GIA' APERTO, altrimenti risponde null senza dire
-            // perche'. E' la stessa precondizione delle viste di tavola, dove
-            // era gia' costata un giro.
+            // THEY ARE REOPENED, and it is not a formality: `AddComponent5` wants a
+            // document ALREADY OPEN, otherwise it answers null without saying
+            // why. It is the same precondition as the drawing views, where it
+            // had already cost a run.
             for (int i = 0; i < paths.Count; i++)
             {
                 var p = positions[i];
@@ -386,14 +386,14 @@ namespace Oce.Solid.Agent.Bench
                 }
             }
 
-            // ── 6. ricostruire, e CONTARE ────────────────────────────────
+            // ── 6. rebuild, and COUNT ────────────────────────────────────
             //
-            // Il conteggio non e' una cortesia: `AddComponent5` ha risposto un
-            // IComponent2 per ognuno, e *il valore che torna da chi ha fatto la
-            // cosa non e' la misura della cosa*. Se i componenti nell'assieme
-            // non sono quanti se ne sono inseriti, il caso girerebbe su un
-            // assieme diverso da quello dichiarato — e tutte le sue misure
-            // sarebbero credibili e sbagliate.
+            // The count is not a courtesy: `AddComponent5` answered an
+            // IComponent2 for each one, and *the value that comes back from whoever did the
+            // thing is not the measurement of the thing*. If the components in the assembly
+            // are not as many as were inserted, the case would run on an
+            // assembly different from the declared one — and all its measurements
+            // would be believable and wrong.
             try { doc.EditRebuild3(); } catch { }
             int howMany = HowManyComponents(ass);
             if (howMany != paths.Count)
@@ -922,39 +922,39 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Chiude e cancella quello che la preparazione ha lasciato in giro.
+        /// Closes and deletes what the preparation left lying around.
         ///
-        /// SI CANCELLANO ANCHE I FILE, non solo i documenti. `CloseLeftovers`
-        /// chiude finestre; questi sono `.sldprt` su disco, e restare li'
-        /// vorrebbe dire che il giro dopo trova un file gia' fatto. **Un caso
-        /// che riesce perche' un file del giro prima era rimasto non e' un
-        /// caso, e' un ricordo** — e si accorgerebbe del difetto solo chi
-        /// svuota la cartella a mano.
+        /// THE FILES ARE DELETED TOO, not only the documents. `CloseLeftovers`
+        /// closes windows; these are `.sldprt` on disk, and staying there
+        /// would mean that the next run finds a file already made. **A case
+        /// that succeeds because a file from the run before was left over is not a
+        /// case, it is a memento** — and the defect would be noticed only by whoever
+        /// empties the folder by hand.
         /// </summary>
         internal static void ThrowAwayPreparation(Preparation p)
         {
             if (p == null) return;
 
-            // ── DUE GIRI, E L'ORDINE NON SI PRETENDE DI SAPERLO (voce GT0) ──
+            // ── TWO PASSES, AND THE ORDER IS NOT PRETENDED TO BE KNOWN (entry GT0) ──
             //
-            // Prima di GT0 la lista conteneva solo i componenti di un assieme,
-            // e l'assieme era `Document`: si chiudeva l'assieme e poi i pezzi,
-            // cioe' dall'alto. Adesso la lista puo' contenere anche una TAVOLA,
-            // e li' il sopra e il sotto sono rovesciati — la tavola sta sopra il
-            // pezzo, che e' `Document`.
+            // Before GT0 the list held only the components of an assembly,
+            // and the assembly was `Document`: the assembly was closed and then the parts,
+            // that is from the top. Now the list can also hold a DRAWING,
+            // and there the above and the below are reversed — the drawing is above the
+            // part, which is `Document`.
             //
-            // **Non si sceglie un ordine buono per tutti e due**, perche' non
-            // c'e': si prova, e si riprova. `CloseDoc` su un documento che ha
-            // gia' chiuso non fa niente, quindi il secondo giro costa un
-            // tentativo a vuoto e raccoglie quello che il primo ha lasciato.
-            // *Quando non si sa in che ordine vanno smontate due cose, si
-            // smontano due volte — e' meno codice che dedurre l'ordine, e non
-            // sbaglia quando la deduzione era sbagliata.*
+            // **An order that is good for both is not chosen**, because there
+            // is none: one tries, and tries again. `CloseDoc` on a document that has
+            // already closed does nothing, so the second pass costs one
+            // empty attempt and picks up what the first left behind.
+            // *When one does not know in what order two things must be taken apart, they are
+            // taken apart twice — it is less code than deducing the order, and it
+            // does not go wrong when the deduction was wrong.*
             for (int benchRun = 0; benchRun < 2; benchRun++)
             {
                 Close(p.Document);
-                // Per riferimento PRIMA: e' la tavola, e finche' e' aperta
-                // tiene aperto il pezzo. Vedi `DocumentsToClose`.
+                // By reference FIRST: it is the drawing, and as long as it is open
+                // it keeps the part open. See `DocumentsToClose`.
                 foreach (var d in p.DocumentsToClose) Close(d);
                 foreach (var t in p.TitlesToClose)
                 {
@@ -962,15 +962,15 @@ namespace Oce.Solid.Agent.Bench
                 }
             }
 
-            // E SI GUARDA SE SONO ANDATI VIA DAVVERO (voce K12-bis).
+            // AND ONE LOOKS WHETHER THEY REALLY WENT AWAY (entry K12-bis).
             //
-            // `CloseDoc` non torna niente: il difetto di K12-bis e' vissuto
-            // sette giorni proprio perche' chiudere un documento che non
-            // esiste con quel nome **non e' un errore**. Qui non si puo'
-            // fare un rosso — lo smontaggio gira anche dentro un caso
-            // fallito, e un secondo rosso coprirebbe il primo — ma si puo'
-            // DIRE, e una riga che compare solo quando qualcosa non e'
-            // andato e' il minimo per non riscoprirlo fra una settimana.
+            // `CloseDoc` returns nothing: the defect of K12-bis lived
+            // seven days precisely because closing a document that does not
+            // exist under that name **is not an error**. Here a red cannot
+            // be made — the teardown also runs inside a failed case,
+            // and a second red would cover the first — but it can be
+            // SAID, and a line that appears only when something did not
+            // go well is the minimum so as not to rediscover it in a week.
             int remain = 0;
             try
             {
@@ -997,11 +997,11 @@ namespace Oce.Solid.Agent.Bench
         // =================================================================
 
         /// <summary>
-        /// Costruisce una parte eseguendo i passi del componente e la salva.
+        /// Builds a part by executing the component's steps and saves it.
         ///
-        /// I passi sono le STESSE operazioni dei casi, eseguite con lo stesso
-        /// `Run`: un componente non ha un linguaggio suo, altrimenti sarebbe
-        /// una seconda implementazione da tenere allineata a mano.
+        /// The steps are the SAME operations as the cases, executed with the same
+        /// `Run`: a component has no language of its own, otherwise it would be
+        /// a second implementation to keep aligned by hand.
         /// </summary>
         private static bool BuildAndSave(
             string label, Dictionary<string, object> component, string filePath)
@@ -1042,11 +1042,11 @@ namespace Oce.Solid.Agent.Bench
                     Run(doc, operation, arguments, out error, docState);
                     if (!string.IsNullOrEmpty(error))
                     {
-                        // UN COMPONENTE CHE NON SI COSTRUISCE NON E' UNA PROVA
-                        // ROSSA. Il caso voleva misurare un assieme, e l'assieme
-                        // non e' mai esistito: dirlo «fallito» farebbe cercare
-                        // il difetto nell'operazione di assieme, che non e'
-                        // nemmeno stata chiamata.
+                        // A COMPONENT THAT CANNOT BE BUILT IS NOT A RED
+                        // CHECK. The case wanted to measure an assembly, and the assembly
+                        // never existed: calling it «failed» would make one look
+                        // for the defect in the assembly operation, which was not
+                        // even called.
                         BenchError(label, "il passo " + (i + 1) + " («" + operation +
                                                  "») e' stato rifiutato: " + Expectations.Short(error));
                         return false;
@@ -1056,9 +1056,9 @@ namespace Oce.Solid.Agent.Bench
 
                 int e, w;
                 SaveTo(doc, filePath, out e, out w);
-                // SI GUARDA IL FILE, NON IL CODICE DI RITORNO. `SaveAs` scrive
-                // due interi che raccontano cosa pensa SOLIDWORKS di aver
-                // fatto; l'unica prova che il file ci sia e' che ci sia.
+                // THE FILE IS LOOKED AT, NOT THE RETURN CODE. `SaveAs` writes
+                // two integers that tell what SOLIDWORKS thinks it has
+                // done; the only proof that the file is there is that it is there.
                 if (!File.Exists(filePath))
                 {
                     BenchError(label, "salvato senza errori (e=" + e + ", w=" + w +
@@ -1250,12 +1250,12 @@ namespace Oce.Solid.Agent.Bench
 
         private static IModelDoc2 NewAssembly()
         {
-            // Voce K19: la copia in locale vale anche per l'assieme.
+            // Entry K19: the local copy applies to the assembly too.
             string tpl = Program.LocalModel(_sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplateAssembly));
-            // La sentinella (voce K17) vale anche qui: un assieme di prova
-            // comincia da componenti che sono parti nuove, e se non nascono
-            // piu' non e' il caso a essere sbagliato.
+            // The sentinel (entry K17) applies here too: a test assembly
+            // begins from components that are new parts, and if they are no longer
+            // born it is not the case that is wrong.
             if (Program.Sentinel.HasGone)
                 throw new Shared.PreparationFailed(Program.Sentinel.Report());
 
@@ -1296,13 +1296,13 @@ namespace Oce.Solid.Agent.Bench
             }
         }
 
-        /// <summary>Quanti componenti ci sono davvero nell'assieme.</summary>
+        /// <summary>How many components there really are in the assembly.</summary>
         private static int HowManyComponents(IAssemblyDoc ass)
         {
             try
             {
-                // `true` = solo il primo livello. Un sottoassieme conta uno, che
-                // e' quello che il caso ha inserito.
+                // `true` = first level only. A subassembly counts one, which
+                // is what the case inserted.
                 var v = ass.GetComponents(true) as object[];
                 return v == null ? 0 : v.Length;
             }
@@ -1310,12 +1310,12 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il componente va inserito dalla preparazione? Assente = si'.
+        /// Is the component to be inserted by the preparation? Absent = yes.
         ///
-        /// Il valore predefinito e' `true` e non `false` di proposito: il caso
-        /// normale e' «voglio questo assieme, fammelo», e chiedere `to_insert`
-        /// a ogni componente sarebbe rumore. `false` si scrive solo quando si
-        /// vuole provare l'inserimento, che e' il caso raro.
+        /// The default is `true` and not `false` on purpose: the normal case
+        /// is «I want this assembly, make it for me», and asking `to_insert`
+        /// of every component would be noise. `false` is written only when one
+        /// wants to test the insertion, which is the rare case.
         /// </summary>
         private static bool ToInsert(Dictionary<string, object> component)
         {
@@ -1327,19 +1327,19 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Dove va il componente, in mm. Assente = nell'origine.
+        /// Where the component goes, in mm. Absent = at the origin.
         ///
-        /// **E' DOVE VA IL CENTRO DELL'INGOMBRO, non dove va l'origine.**
-        /// `AddComponent5` posiziona il centro: un pezzo con l'origine su una
-        /// faccia — cioe' qualunque cosa estrusa a una direzione sola — si
-        /// ritrova l'origine spostata di meta' ingombro. Misurato il 17/9/2026,
-        /// e previsto prima di misurarlo: spesso 4 chiesto a z=30 → origine a
-        /// (0, -2, 30); spesso 10 chiesto a 0 → (0, -5, 0).
+        /// **IT IS WHERE THE CENTER OF THE BOUNDING BOX GOES, not where the origin goes.**
+        /// `AddComponent5` positions the center: a part with the origin on a
+        /// face — that is anything extruded in one direction only — finds
+        /// its origin moved by half the bounding box. Measured on 17/9/2026,
+        /// and predicted before measuring it: thickness 4 asked at z=30 → origin at
+        /// (0, -2, 30); thickness 10 asked at 0 → (0, -5, 0).
         ///
-        /// Il campo si chiama `position_mm` e non `position`: e' la stessa
-        /// convenzione del catalogo, dove l'unita' sta nel nome perche' un
-        /// numero senza unita' e' un numero che qualcuno interpretera' in
-        /// metri.
+        /// The field is called `position_mm` and not `position`: it is the same
+        /// convention as the catalog, where the unit is in the name because a
+        /// number without a unit is a number that somebody will interpret in
+        /// meters.
         /// </summary>
         private static double[] PositionMm(Dictionary<string, object> component)
         {
@@ -1361,12 +1361,12 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Un nome di caso reso adatto a stare in un nome di file.
+        /// A case name made fit to be in a file name.
         ///
-        /// Non si usa il nome cosi' com'e': i casi si chiamano con parole
-        /// separate da underscore e va bene, ma basta un carattere strano in un
-        /// caso futuro perche' `SaveAs` fallisca con un messaggio che parla di
-        /// permessi invece che del nome.
+        /// The name is not used as it is: the cases are called with words
+        /// separated by underscore and that is fine, but one strange character in a
+        /// future case is enough for `SaveAs` to fail with a message that talks about
+        /// permissions instead of the name.
         /// </summary>
         private static string FileName(string s)
         {

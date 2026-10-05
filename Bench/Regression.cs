@@ -9,47 +9,47 @@ using static Oce.Solid.Agent.Bench.Expectations;
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// LA REGRESSIONE SUI RIFERIMENTI (voce F8).
+    /// THE REGRESSION ON THE REFERENCES (entry F8).
     ///
-    /// ── IL RISULTATO E' UNA DI TRE COSE, NON DUE ──────────────────────────
+    /// ── THE RESULT IS ONE OF THREE THINGS, NOT TWO ────────────────────────
     ///
-    ///   * **REGGE** — la ricostruzione va, nessuna lavorazione in errore, e la
-    ///     geometria a valle sta dove l'intento dichiara;
-    ///   * **SI STACCA E LO DICE** — la ricostruzione fallisce, oppure una
-    ///     lavorazione porta un codice d'errore. **Il progettista lo vede**, e
-    ///     un difetto che si vede e' un problema, non una trappola;
-    ///   * **SI STACCA IN SILENZIO** — ricostruzione a posto, nessun errore,
-    ///     e la geometria a valle **e' finita da un'altra parte**.
+    ///   * **HOLDS** — the rebuild goes through, no feature in error, and the
+    ///     downstream geometry stays where the intent declares;
+    ///   * **COMES OFF AND SAYS SO** — the rebuild fails, or a
+    ///     feature carries an error code. **The designer sees it**, and
+    ///     a defect that is seen is a problem, not a trap;
+    ///   * **COMES OFF IN SILENCE** — rebuild fine, no error,
+    ///     and the downstream geometry **ended up somewhere else**.
     ///
-    /// La terza riga e' l'unico numero che conta, ed e' quello che nessuno
-    /// misura. Il progetto piu' avanzato del campo confronta due documenti
-    /// interi a fine lavoro con tolleranza **1%**: su un pezzo da 200 mm sono
-    /// 2 mm, cioe' non vede un foro che si e' spostato di uno spessore di
-    /// parete. Qui il criterio e' **per feature e per posizione**.
+    /// The third row is the only number that counts, and it is the one that nobody
+    /// measures. The most advanced project in the field compares two whole
+    /// documents at the end of the work with a tolerance of **1%**: on a part of 200 mm that is
+    /// 2 mm, that is it does not see a hole that moved by a wall
+    /// thickness. Here the criterion is **per feature and per position**.
     ///
-    /// ── L'INTENTO, perche' senza non esiste risposta giusta ───────────────
+    /// ── THE INTENT, because without it there is no right answer ───────────
     ///
-    /// Un foro a 20 mm dal bordo, su una piastra che si allarga, deve restare a
-    /// 20 mm dal bordo oppure restare dov'era? **Dipende da cosa voleva chi ha
-    /// disegnato**, e finche' non lo si dichiara non c'e' niente da misurare.
+    /// A hole 20 mm from the edge, on a plate that widens, must stay
+    /// 20 mm from the edge or stay where it was? **It depends on what whoever
+    /// drew it wanted**, and until it is declared there is nothing to measure.
     ///
-    ///   * `ancorato_a_assoluto` — «il foro resta a x = 80 nel modello»;
-    ///   * `ancorato_a_bordo` — «il foro resta a 20 mm dal bordo destro».
+    ///   * `ancorato_a_assoluto` — «the hole stays at x = 80 in the model»;
+    ///   * `ancorato_a_bordo` — «the hole stays 20 mm from the right edge».
     ///
-    /// **Fino alla libreria 0.115.0 il sistema sapeva esprimere solo il
-    /// primo:** `x_mm: 80` e' assoluto per costruzione, e i casi
-    /// `ancorato_a_bordo` fallivano tutti — la misura di partenza di E6/E7.
-    /// Dalla 0.116.0 le operazioni su faccia prendono `anchor` (voce E18:
-    /// `cylindrical_cut` e `rectangular_cut`; dalla 0.118.0 `slot`;
-    /// dalla 0.119.0 `extrude_on_face` e `hole_wizard`): i casi il cui
-    /// piano la usa possono reggere. Dichiararli attesi-verdi sarebbe barare;
-    /// dichiararli attesi-rossi sarebbe rendere permanente un limite. Si
-    /// contano e basta.
+    /// **Up to library 0.115.0 the system could express only the
+    /// first:** `x_mm: 80` is absolute by construction, and the cases
+    /// `ancorato_a_bordo` all failed — the starting measurement of E6/E7.
+    /// From 0.116.0 the face operations take `anchor` (entry E18:
+    /// `cylindrical_cut` and `rectangular_cut`; from 0.118.0 `slot`;
+    /// from 0.119.0 `extrude_on_face` and `hole_wizard`): the cases whose
+    /// plan uses it can hold. Declaring them expected-green would be cheating;
+    /// declaring them expected-red would be making a limit permanent. They are
+    /// counted and that is all.
     ///
-    /// ── E LA RIGA DEI SILENZIOSI SI SCRIVE ANCHE SE VALE ZERO ─────────────
+    /// ── AND THE LINE OF THE SILENT ONES IS WRITTEN EVEN IF IT IS ZERO ─────
     ///
-    /// Un conteggio che sparisce quando e' zero e' un conteggio che nessuno
-    /// controlla.
+    /// A count that disappears when it is zero is a count that nobody
+    /// checks.
     /// </summary>
     internal static partial class Program
     {
@@ -108,8 +108,8 @@ namespace Oce.Solid.Agent.Bench
 
             WriteRegression(outcomes, holds, noisy, silent);
 
-            // I TRE NUMERI, e sommano al numero dei casi. Si scrivono come
-            // esiti del banco perche' il resoconto li prenda da li'.
+            // THE THREE NUMBERS, and they add up to the number of cases. They are written as
+            // bench outcomes so that the report takes them from there.
             Check("regressione: reggono", true, holds + " su " + outcomes.Count);
             Check("regressione: si staccano e lo dicono", true, noisy + " su " + outcomes.Count);
             Check("regressione: SI STACCANO IN SILENZIO", true, silent + " su " + outcomes.Count);
@@ -142,7 +142,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // UN CASO: costruisci, modifica, guarda
+        // A CASE: build, modify, look
         // ==================================================================
         private static CaseOutcome ACase(string filePath)
         {
@@ -172,8 +172,8 @@ namespace Oce.Solid.Agent.Bench
             outside.Intent = Text(testCase, "intent") ?? "?";
             if (outside.Intent != "ancorato_a_assoluto" && outside.Intent != "ancorato_a_bordo")
             {
-                // SENZA L'INTENTO NON ESISTE RISPOSTA GIUSTA, e un caso che non
-                // lo dichiara non e' un caso: e' un errore di banco.
+                // WITHOUT THE INTENT THERE IS NO RIGHT ANSWER, and a case that does not
+                // declare it is not a case: it is a bench error.
                 BenchError(itemName, "«intent» dev'essere «ancorato_a_assoluto» oppure " +
                                     "«ancorato_a_bordo»: senza, non esiste risposta giusta");
                 outside.Why = "intento non dichiarato"; return outside;
@@ -190,7 +190,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 doc = NewPart();
 
-                // ── COSTRUISCI ───────────────────────────────────────────
+                // ── BUILD ────────────────────────────────────────────────
                 var docState = ReadState(doc);
                 foreach (var p in Items(testCase, "build") ?? new List<object>())
                 {
@@ -204,23 +204,23 @@ namespace Oce.Solid.Agent.Bench
                     docState = ReadState(doc);
                     if (measurements == null)
                     {
-                        // IL PEZZO DI PARTENZA DEVE VENIRE. Se non viene, non
-                        // si sta misurando la modifica: si sta misurando un
-                        // caso scritto male.
+                        // THE STARTING PART MUST COME OUT. If it does not, one is not
+                        // measuring the modification: one is measuring a badly
+                        // written case.
                         BenchError(itemName, "la costruzione e' fallita: " + Short(error));
                         outside.Why = "costruzione fallita"; return outside;
                     }
                 }
 
-                // ── QUELLO CHE NON DEVE CAMBIARE SI MISURA PRIMA ─────────
+                // ── WHAT MUST NOT CHANGE IS MEASURED BEFORE ──────────────
                 //
-                // Molti invarianti di questa suite sono «com'era»: il passo di
-                // una ripetizione, la simmetria di uno specchio, il raggio di
-                // quattro raccordi. Scriverli come numeri vorrebbe dire
-                // calcolare a mano cio' che SOLIDWORKS ha gia' deciso — e
-                // sbagliare quel conto trasformerebbe un caso in un falso
-                // silenzio. Un'attesa con `same_as_before` si confronta con la
-                // misura di PRIMA della modifica.
+                // Many invariants of this suite are «as it was»: the pitch of
+                // a pattern, the symmetry of a mirror, the radius of
+                // four fillets. Writing them as numbers would mean
+                // computing by hand what SOLIDWORKS has already decided — and
+                // getting that computation wrong would turn a case into a false
+                // silence. An expectation with `same_as_before` is compared with the
+                // measurement from BEFORE the modification.
                 var before = new Dictionary<string, object>(StringComparer.Ordinal);
                 foreach (var a in Items(testCase, "after") ?? new List<object>())
                 {
@@ -237,7 +237,7 @@ namespace Oce.Solid.Agent.Bench
                     }
                 }
 
-                // ── MODIFICA: UNA SOLA QUOTA, A MONTE ────────────────────
+                // ── MODIFY: ONE DIMENSION ONLY, UPSTREAM ─────────────────
                 var change = (testCase.ContainsKey("modify") ? testCase["modify"] : null)
                                as Dictionary<string, object>;
                 if (change == null)
@@ -248,10 +248,10 @@ namespace Oce.Solid.Agent.Bench
                 string modError;
                 var done = Run(doc, "set_dimension", itsItems, out modError, docState);
 
-                // ── LE TRE STRADE ────────────────────────────────────────
+                // ── THE THREE ROADS ──────────────────────────────────────
                 //
-                // Prima si guarda se il pezzo lo DICE: una modifica rifiutata,
-                // una ricostruzione che non va, una lavorazione in errore.
+                // First one looks whether the part SAYS so: a refused modification,
+                // a rebuild that fails, a feature in error.
                 bool rebuilt = false;
                 try { rebuilt = doc.EditRebuild3(); } catch { }
                 docState = ReadState(doc);
@@ -272,7 +272,7 @@ namespace Oce.Solid.Agent.Bench
                     return outside;
                 }
 
-                // Ricostruzione pulita: adesso la geometria dice la verita'.
+                // Clean rebuild: now the geometry tells the truth.
                 var broken = new List<string>();
                 foreach (var a in Items(testCase, "after") ?? new List<object>())
                 {
@@ -284,10 +284,10 @@ namespace Oce.Solid.Agent.Bench
                     bool ok;
                     var here = doc;
 
-                    // `same_as_before`: l'atteso e' la misura di prima, e si mette
-                    // nell'attesa adesso. Cosi' il confronto lo fa lo stesso
-                    // codice di sempre, e il messaggio esce nello stesso
-                    // formato: «centers_x_mm [...] (atteso [...])».
+                    // `same_as_before`: the expected value is the measurement from before, and it is put
+                    // in the expectation now. This way the comparison is made by the same
+                    // code as always, and the message comes out in the same
+                    // format: «centers_x_mm [...] (atteso [...])».
                     if (True(expectation, "same_as_before"))
                     {
                         object era;
@@ -317,8 +317,8 @@ namespace Oce.Solid.Agent.Bench
                 }
                 else
                 {
-                    // RICOSTRUZIONE A POSTO, NESSUN ERRORE, E LA GEOMETRIA E'
-                    // ALTROVE. E' il numero che conta.
+                    // REBUILD FINE, NO ERROR, AND THE GEOMETRY IS
+                    // ELSEWHERE. It is the number that counts.
                     outside.Come = Outcome.DetachesInSilence;
                     outside.Why = string.Join(" · ", broken.Take(2));
                 }
@@ -341,7 +341,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // IL RESOCONTO
+        // THE REPORT
         // ==================================================================
         private static void WriteRegression(
             List<CaseOutcome> outcomes, int holds, int noisy, int silent)

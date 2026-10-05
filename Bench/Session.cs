@@ -10,28 +10,28 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// LA GIUNTURA CHE NON ERA MAI STATA PROVATA.
+    /// THE JOINT THAT HAD NEVER BEEN TESTED.
     ///
-    /// Questo progetto ha due banchi, e tutti e due misurano mezza cosa:
-    ///   - `banco0300.py` prova il PIANO — cosa il modello propone, dato uno
-    ///     stato del documento scritto a mano. Non disegna niente.
-    ///   - `Oce.Solid.Agent.Bench` prova il DISEGNO — se un'operazione costruisce il
-    ///     pezzo giusto, dati gli argomenti. Non chiede niente al modello.
+    /// This project has two benches, and both measure half a thing:
+    ///   - `banco0300.py` tests the PLAN — what the model proposes, given a
+    ///     hand-written state of the document. It draws nothing.
+    ///   - `Oce.Solid.Agent.Bench` tests the DRAWING — whether an operation builds the
+    ///     right part, given the arguments. It asks nothing of the model.
     ///
-    /// In mezzo c'e' il giro vero: il modello guarda il pezzo, propone, si
-    /// esegue, il pezzo CAMBIA, e il modello guarda di nuovo. E' li' che vive
-    /// «fammi una piastra» seguito da «adesso falle quattro fori», ed e' li'
-    /// che nessuno ha mai misurato niente.
+    /// In between is the real run: the model looks at the part, proposes, it is
+    /// executed, the part CHANGES, and the model looks again. That is where
+    /// «make me a plate» followed by «now give it four holes» lives, and that is where
+    /// nobody ever measured anything.
     ///
-    /// COME FUNZIONA. Questo modo tiene UN documento aperto e aspetta i piani
-    /// su file. Chi pianifica (dall'altra parte, sul server) scrive
-    /// `passo_1.json`; qui si esegue, si rilegge lo stato e si scrive
-    /// `stato_1.json`; l'altro lato legge quello, chiede la cosa dopo al
-    /// modello, e scrive `passo_2.json`.
+    /// HOW IT WORKS. This mode keeps ONE document open and waits for the plans
+    /// in files. Whoever plans (on the other side, on the server) writes
+    /// `passo_1.json`; here it is executed, the state is re-read and
+    /// `stato_1.json` is written; the other side reads that, asks the next thing of the
+    /// model, and writes `passo_2.json`.
     ///
-    /// Il documento resta APERTO fra un passo e l'altro. E' l'unico modo per
-    /// misurare quello che conta davvero: se il modello, guardando cio' che ha
-    /// appena fatto, riesce a lavorarci sopra.
+    /// The document stays OPEN between one step and the next. It is the only way of
+    /// measuring what really counts: whether the model, looking at what it has
+    /// just done, manages to work on top of it.
     /// </summary>
     internal static partial class Program
     {
@@ -55,27 +55,27 @@ namespace Oce.Solid.Agent.Bench
                 }
                 else
                 {
-                    // Il controllo su null non c'e' piu': `NewPart()` non
-                    // torna null, alza un'eccezione che DICE cos'e' mancato, e
-                    // il `catch` qui sotto la stampa (voce F12). Un controllo
-                    // irraggiungibile e' peggio di nessun controllo: si legge
-                    // come una difesa e non difende da niente.
+                    // The null check is no longer there: `NewPart()` does not
+                    // return null, it raises an exception that SAYS what was missing, and
+                    // the `catch` below prints it (entry F12). An
+                    // unreachable check is worse than no check: it reads
+                    // like a defense and defends against nothing.
                     doc = NewPart();
                 }
 
-                // IL DOCUMENTO DELLA SESSIONE VA MESSO DAVANTI.
+                // THE SESSION'S DOCUMENT MUST BE PUT IN FRONT.
                 //
-                // «Aperto» e «active» non sono la stessa cosa, e da quando
-                // le operazioni lavorano sul documento ATTIVO la differenza
-                // si paga: un disegno rimasto aperto da una sessione
-                // precedente restava davanti, e il primo passo lavorava su
-                // quello. Lo stato iniziale, che invece guardava il
-                // documento giusto, diceva il contrario — due descrizioni
-                // dello stesso istante che non combaciavano.
+                // «Open» and «active» are not the same thing, and since
+                // the operations work on the ACTIVE document the difference
+                // is paid for: a drawing left open by a previous
+                // session stayed in front, and the first step worked on
+                // that. The initial state, which instead looked at the
+                // right document, said the opposite — two descriptions
+                // of the same instant that did not match.
                 Front(doc);
 
-                // Lo stato di partenza. Chi pianifica parte da qui,
-                // esattamente come farebbe l'add-in vero.
+                // The starting state. Whoever plans starts from here,
+                // exactly as the real add-in would.
                 WriteState(folder, 0, Active() ?? doc, new List<object>());
                 Console.WriteLine("  stato_0 scritto (documento vuoto)");
 
@@ -84,12 +84,12 @@ namespace Oce.Solid.Agent.Bench
                     string request = Path.Combine(folder, "passo_" + k + ".json");
                     string fine = Path.Combine(folder, "fine.json");
 
-                    // Si aspetta il piano. Mezz'ora: un giro del modello con il
-                    // ragionamento acceso ne ha gia' presi nove da solo, e chi
-                    // sta dall'altra parte spesso deve anche diagnosticare
-                    // prima di mandare il passo dopo. Una sessione che scade
-                    // mentre si guarda il difetto costringe a ricominciare il
-                    // pezzo da capo.
+                    // The plan is awaited. Half an hour: a model run with
+                    // reasoning on has already taken nine on its own, and whoever
+                    // is on the other side often also has to diagnose
+                    // before sending the next step. A session that expires
+                    // while one looks at the defect forces starting the
+                    // part over from scratch.
                     var expiry = DateTime.UtcNow.AddMinutes(30);
                     while (!File.Exists(request) && !File.Exists(fine))
                     {
@@ -102,34 +102,34 @@ namespace Oce.Solid.Agent.Bench
                     }
                     if (File.Exists(fine)) { Console.WriteLine("  fine richiesta"); return 0; }
 
-                    // Il file puo' essere ancora in scrittura quando lo vediamo.
+                    // The file may still be being written when we see it.
                     Thread.Sleep(300);
                     var plane = ReadPlane(request);
                     Console.WriteLine("  passo " + k + ": " + plane.Count + " operazioni");
 
-                    // LE FIRME LE ATTACCA IL BANCO, COME FA IL SERVER.
+                    // THE SIGNATURES ARE ATTACHED BY THE BENCH, AS THE SERVER DOES.
                     //
-                    // Gli uid sono POSIZIONALI: le facce si rinumerano a ogni
-                    // lettura, in ordine di area. Basta un taglio perche'
-                    // «F13» non sia piu' la faccia che era un momento prima.
-                    // Misurato il 10 settembre 2026 sulle asole di fissaggio
-                    // del contenitore: quattro tagli uguali su quattro alette
-                    // uguali, il primo giusto e il secondo sulla faccia
-                    // sbagliata.
+                    // The uids are POSITIONAL: faces are renumbered at every
+                    // reading, in order of area. One cut is enough for
+                    // «F13» no longer to be the face that it was a moment before.
+                    // Measured on 10 September 2026 on the fixing slots
+                    // of the enclosure: four equal cuts on four equal
+                    // tabs, the first right and the second on the wrong
+                    // face.
                     //
-                    // Il primo tentativo fu di congelare lo stato per tutto
-                    // il passo. Non bastava: il puntatore alla faccia scade
-                    // comunque appena il modello cambia, e la seconda asola
-                    // falliva lo stesso.
+                    // The first attempt was to freeze the state for the whole
+                    // step. It was not enough: the pointer to the face expires
+                    // anyway as soon as the model changes, and the second slot
+                    // failed all the same.
                     //
-                    // La difesa vera e' quella che gira in produzione: il
-                    // piano porta con se' la FIRMA di ogni entita' che nomina
-                    // — un punto sulla faccia e la sua normale — e chi esegue
-                    // ci ritrova la faccia anche se ha cambiato numero. Qui i
-                    // piani si scrivono a mano e la firma non c'e': la mette
-                    // il banco, adesso, leggendola dallo stato di inizio passo.
-                    // Senza, il banco proverebbe una strada che in produzione
-                    // non percorre nessuno.
+                    // The real defense is the one that runs in production: the
+                    // plan carries with it the SIGNATURE of every entity it names
+                    // — a point on the face and its normal — and whoever executes
+                    // finds the face again there even if it changed number. Here the
+                    // plans are written by hand and the signature is not there: it is put by
+                    // the bench, now, reading it from the state at the start of the step.
+                    // Without it, the bench would test a road that in production
+                    // nobody travels.
                     var stepState = ReadState(Active() ?? doc);
 
                     var outcomes = new List<object>();
@@ -142,13 +142,13 @@ namespace Oce.Solid.Agent.Bench
                         Dictionary<string, object> measurements = null;
                         try
                         {
-                            // IL DOCUMENTO ATTIVO PUO' CAMBIARE SOTTO I PIEDI.
+                            // THE ACTIVE DOCUMENT CAN CHANGE UNDER ONE'S FEET.
                             //
-                            // Finche' si facevano solo pezzi, il documento
-                            // era uno e restava quello. `create_drawing` ne
-                            // apre un secondo e lo mette davanti: da li' in
-                            // poi lavorare sul primo vorrebbe dire mettere
-                            // le viste dentro il pezzo.
+                            // As long as only parts were made, the document
+                            // was one and stayed that one. `create_drawing` opens
+                            // a second one and puts it in front: from then
+                            // on working on the first would mean putting
+                            // the views inside the part.
                             var onWhich = Active() ?? doc;
                             measurements = Run(onWhich, itemName, arguments, out error);
                         }
@@ -164,9 +164,9 @@ namespace Oce.Solid.Agent.Bench
                             ["error"] = ok ? null : error,
                             ["measurements"] = measurements,
                         });
-                        // NON si va avanti dopo un fallimento: un piano e' una
-                        // sequenza, e il passo dopo quasi sempre nomina cio' che
-                        // il passo fallito avrebbe dovuto creare.
+                        // One does NOT go on after a failure: a plan is a
+                        // sequence, and the next step almost always names what
+                        // the failed step should have created.
                         if (!ok) break;
                     }
 
@@ -182,17 +182,17 @@ namespace Oce.Solid.Agent.Bench
             }
             finally
             {
-                // Il pezzo NON si chiude: chi guarda vuole vederlo.
+                // The part is NOT closed: whoever is looking wants to see it.
                 Console.WriteLine("=== il documento resta aperto ===");
             }
         }
 
         /// <summary>
-        /// Mette in `_signatures` la descrizione delle entita' che il piano nomina.
+        /// Puts in `_signatures` the description of the entities that the plan names.
         ///
-        /// E' quello che il server fa per ogni piano vero prima di mandarlo:
-        /// senza, chi esegue non ha modo di accorgersi che una faccia si e'
-        /// spostata, ne' di ritrovarla.
+        /// It is what the server does for every real plan before sending it:
+        /// without it, whoever executes has no way of noticing that a face has
+        /// moved, nor of finding it again.
         /// </summary>
         private static void AttachSignatures(
             Dictionary<string, object> arguments, Dictionary<string, object> docState)
@@ -200,12 +200,12 @@ namespace Oce.Solid.Agent.Bench
             if (arguments == null || docState == null) return;
             var signatures = new Dictionary<string, object>();
 
-            // I CORPI COME LE FACCE (voce Z-C21.2, rilievo L6-1). Il ponte manda
-            // le firme dei corpi da tempo (`McpTools.StateSignatures`, «center_mm»
-            // e «bounding_box_mm»); il banco no, e con «uid_dal_passo» un corpo
-            // nominato prima di un taglio arrivava SENZA firma: `SignatureMatches`
-            // non aveva niente da confrontare e diceva si'. La voce E4 — il corpo
-            // rinumerato da un taglio — dal banco non si poteva vedere.
+            // THE BODIES LIKE THE FACES (entry Z-C21.2, finding L6-1). The bridge has sent
+            // the signatures of the bodies for some time (`McpTools.StateSignatures`, «center_mm»
+            // and «bounding_box_mm»); the bench did not, and with «uid_dal_passo» a body
+            // named before a cut arrived WITHOUT a signature: `SignatureMatches`
+            // had nothing to compare and said yes. Entry E4 — the body
+            // renumbered by a cut — could not be seen from the bench.
             var location = new[]
             {
                 Tuple.Create("faces", new[] { "face_uid", "faces_uid" }),
@@ -223,11 +223,11 @@ namespace Oce.Solid.Agent.Bench
                 var list = raw as System.Collections.IEnumerable;
                 if (list == null) continue;
 
-                // GLI SPIGOLI DELL'ANCORA (voce E18) stanno un livello piu' giu',
-                // in `anchor.x` e `anchor.y`: il ponte manda le firme di TUTTO lo
-                // stato, e la libreria rifiuta un'ancora il cui spigolo non ha
-                // firma in un piano che ne porta. Senza questo, il banco vedrebbe
-                // un rifiuto che in produzione non c'e'.
+                // THE EDGES OF THE ANCHOR (entry E18) are one level further down,
+                // in `anchor.x` and `anchor.y`: the bridge sends the signatures of EVERYTHING in the
+                // state, and the library refuses an anchor whose edge has no
+                // signature in a plan that carries some. Without this, the bench would see
+                // a refusal that in production is not there.
                 var sources = new List<object>();
                 foreach (var theField in pair.Item2)
                 {
@@ -266,10 +266,10 @@ namespace Oce.Solid.Agent.Bench
                                 if (entry.TryGetValue(signatureField, out x) && x != null)
                                     signature[signatureField] = x;
                             }
-                            // LA SCATOLA DEL PEZZO, come fa il ponte: senza, il
-                            // banco leggerebbe messaggi di rifiuto piu' corti
-                            // di quelli veri, ed e' esattamente la differenza
-                            // che un banco non deve avere.
+                            // THE PART'S BOX, as the bridge does: without it, the
+                            // bench would read refusal messages shorter
+                            // than the real ones, and it is exactly the difference
+                            // that a bench must not have.
                             if (signature.Count > 0)
                             {
                                 var box = PartBox(docState);
@@ -285,7 +285,7 @@ namespace Oce.Solid.Agent.Bench
             if (signatures.Count > 0) arguments["_signatures"] = signatures;
         }
 
-        /// <summary>Gli uid degli spigoli nominati da `anchor` (edge_uid e centered_between, per asse).</summary>
+        /// <summary>The uids of the edges named by `anchor` (edge_uid and centered_between, per axis).</summary>
         private static List<object> AnchorEdges(Dictionary<string, object> arguments)
         {
             var outside = new List<object>();
@@ -304,9 +304,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// {minX,minY,minZ,maxX,maxY,maxZ} in mm dai due campi dello stato:
-        /// l'angolo e i lati. Null se uno dei due manca — l'angolo non si
-        /// inventa (vedi il ponte, `McpTools.PartBox`).
+        /// {minX,minY,minZ,maxX,maxY,maxZ} in mm from the two fields of the state:
+        /// the corner and the sides. Null if one of the two is missing — the corner is not
+        /// invented (see the bridge, `McpTools.PartBox`).
         /// </summary>
         private static double[] PartBox(Dictionary<string, object> docState)
         {
@@ -339,7 +339,7 @@ namespace Oce.Solid.Agent.Bench
             return outside.Count == 3 ? outside.ToArray() : null;
         }
 
-        /// <summary>Apre un documento gia' salvato e lo mette davanti.</summary>
+        /// <summary>Opens an already saved document and puts it in front.</summary>
         private static IModelDoc2 OpenDocument(string filePath)
         {
             try
@@ -360,7 +360,7 @@ namespace Oce.Solid.Agent.Bench
             catch { return null; }
         }
 
-        /// <summary>Mette un documento davanti a tutti gli altri.</summary>
+        /// <summary>Puts a document in front of all the others.</summary>
         private static void Front(IModelDoc2 doc)
         {
             try
@@ -374,13 +374,13 @@ namespace Oce.Solid.Agent.Bench
             catch { }
         }
 
-        /// <summary>Il documento che SolidWorks ha davanti adesso.</summary>
+        /// <summary>The document that SolidWorks has in front now.</summary>
         private static IModelDoc2 Active()
         {
             try { return _sw.IActiveDoc2; } catch { return null; }
         }
 
-        /// <summary>Il piano: un elenco di {operazione, argomenti}.</summary>
+        /// <summary>The plan: a list of {operation, arguments}.</summary>
         private static List<Tuple<string, Dictionary<string, object>>> ReadPlane(string file)
         {
             var outside = new List<Tuple<string, Dictionary<string, object>>>();
@@ -421,8 +421,8 @@ namespace Oce.Solid.Agent.Bench
                 ["bodies"] = CountBodies(doc),
                 ["volume_mm3"] = Math.Round(DocumentVolume(doc), 1),
             };
-            // Si scrive su un file temporaneo e poi si rinomina: chi legge
-            // dall'altra parte non deve mai vedere mezzo JSON.
+            // It is written to a temporary file and then renamed: whoever reads
+            // on the other side must never see half a JSON.
             string final = Path.Combine(folder, "stato_" + k + ".json");
             string temporary = final + ".parziale";
             File.WriteAllText(temporary, Json(outside));

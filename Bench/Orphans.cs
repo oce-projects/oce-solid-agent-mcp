@@ -7,20 +7,20 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// LA QUOTA CHE RESTA SENZA SPIGOLO, VISTA DALLO STATO (voce Z-A2).
+    /// THE DIMENSION THAT IS LEFT WITHOUT AN EDGE, SEEN FROM THE STATE (entry Z-A2).
     ///
-    /// `IAnnotation.IsDangling` e' morto per le quote in tavola fuori processo:
-    /// misurato il 24/9/2026 con `Checks/Orphan`, resta falso su una quota il
-    /// cui spigolo e' stato soppresso. Dalla libreria 0.113.0 lo stato della
-    /// tavola conta le quote attaccate solo a spigoli che la vista non mostra
-    /// piu' (`dimensions_orphan`, `dimensions_orphan_total`).
+    /// `IAnnotation.IsDangling` is dead for the dimensions in a drawing out of process:
+    /// measured on 24/9/2026 with `Checks/Orphan`, it stays false on a dimension whose
+    /// edge was suppressed. From library 0.113.0 the state of the
+    /// drawing counts the dimensions attached only to edges that the view no longer
+    /// shows (`dimensions_orphan`, `dimensions_orphan_total`).
     ///
-    /// Qui i due versi, sullo stesso pezzo della sonda: una piastra con sopra un
-    /// blocco, la quota sullo spigolo alto del blocco messa da
-    /// `drawing_dimension`, e lo stato riletto — zero orfane. Poi il blocco si
-    /// SOPPRIME nel pezzo, la tavola si ricostruisce, e lo stato deve dirne una,
-    /// con l'avviso. Un caso dichiarato non puo' farlo: dopo `create_drawing` segue
-    /// la tavola, e non sa tornare al pezzo per sopprimere.
+    /// Here the two directions, on the same part as the probe: a plate with a
+    /// block on top, the dimension on the high edge of the block placed by
+    /// `drawing_dimension`, and the state re-read — zero orphans. Then the block is
+    /// SUPPRESSED in the part, the drawing is rebuilt, and the state must report one,
+    /// with the warning. A declared case cannot do it: after `create_drawing` it follows
+    /// the drawing, and does not know how to go back to the part to suppress.
     /// </summary>
     internal static partial class Program
     {
@@ -34,8 +34,8 @@ namespace Oce.Solid.Agent.Bench
             try
             {
                 part = NewPart();
-                // Due estrusioni dal piano SUPERIORE, preso per posizione e non
-                // per nome: il nome cambia con la lingua dell'installazione.
+                // Two extrusions from the TOP plane, taken by position and not
+                // by name: the name changes with the language of the installation.
                 if (Extrusion(part, 0, 0, 0.100, 0.060, 0.010) == null)
                 { BenchError("orfane", "la piastra non e' venuta"); return; }
                 var block = Extrusion(part, 0.040, 0.020, 0.060, 0.040, 0.020);
@@ -54,9 +54,9 @@ namespace Oce.Solid.Agent.Bench
                     { ["model"] = file, ["view"] = "front", ["x_mm"] = 150, ["y_mm"] = 150 }, out error) == null)
                 { BenchError("orfane", "model_view: " + error); return; }
 
-                // QUALE SPIGOLO: quello alto del blocco — Y 20 alle due estremita',
-                // lungo X per 20. Lo si cerca nello stesso elenco che
-                // `drawing_dimension` chiede alla vista, e se ne passa l'indice.
+                // WHICH EDGE: the high one of the block — Y 20 at both ends,
+                // along X for 20. It is looked for in the same list that
+                // `drawing_dimension` asks of the view, and its index is passed.
                 var view = ((IDrawingDoc)drawing).GetFirstView() as IView;
                 view = view?.GetNextView() as IView;
                 var edges = view?.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Bench
                       Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(manca)") == "0",
                       "dimensions_orphan_total " + Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(manca)"));
 
-                // IL ROSSO: si sopprime il blocco, e la quota resta appesa.
+                // THE RED: the block is suppressed, and the dimension is left hanging.
                 bool suppressed = block.SetSuppression2(
                     (int)swFeatureSuppressionAction_e.swSuppressFeature,
                     (int)swInConfigurationOpts_e.swThisConfiguration, null);
@@ -104,7 +104,7 @@ namespace Oce.Solid.Agent.Bench
             }
         }
 
-        /// <summary>Un rettangolo sul piano superiore, estruso di `alto` metri.</summary>
+        /// <summary>A rectangle on the top plane, extruded by `alto` meters.</summary>
         private static IFeature Extrusion(IModelDoc2 doc, double x1, double y1, double x2, double y2, double up)
         {
             doc.ClearSelection2(true);

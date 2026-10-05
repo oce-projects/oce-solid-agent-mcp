@@ -7,29 +7,29 @@ using System.Linq;
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// IL VALUTATORE DELLE ATTESE E I SELETTORI, SENZA SOLIDWORKS (voce F7).
+    /// THE EXPECTATION EVALUATOR AND THE SELECTORS, WITHOUT SOLIDWORKS (entry F7).
     ///
-    /// ── PERCHE' STA IN UNA CLASSE SUA ────────────────────────────────────
+    /// ── WHY IT IS IN A CLASS OF ITS OWN ──────────────────────────────────
     ///
-    /// Questo file lo compilano DUE progetti: il banco, che apre il CAD, e
-    /// `Oce.Solid.Agent.ContractTests`, che gira su una macchina qualunque in pochi secondi e
-    /// **non referenzia l'interop di SOLIDWORKS**. Finche' il valutatore stava
-    /// in una classe parziale che tocca `IModelDoc2`, il secondo progetto non
-    /// poteva nemmeno compilare.
+    /// This file is compiled by TWO projects: the bench, which opens the CAD, and
+    /// `Oce.Solid.Agent.ContractTests`, which runs on any machine in a few seconds and
+    /// **does not reference the SOLIDWORKS interop**. As long as the evaluator was
+    /// in a partial class that touches `IModelDoc2`, the second project could
+    /// not even compile.
     ///
-    /// E deve poter girare li': **se e' rotto il valutatore, tutta la suite col
-    /// CAD diventa verde gratis.** E' l'ultimo posto che ci si puo' permettere
-    /// di non provare.
+    /// And it must be able to run there: **if the evaluator is broken, the whole suite with the
+    /// CAD turns green for free.** It is the last place where one can afford
+    /// not to test.
     ///
-    /// Le misure che vengono dal DOCUMENTO — volume, corpi, ingombro — arrivano
-    /// da un `Func&lt;string, object&gt;`: chi ha il documento in mano lo passa, chi
-    /// non ce l'ha passa null e prova tutto il resto.
+    /// The measurements that come from the DOCUMENT — volume, bodies, bounding box — arrive
+    /// from a `Func&lt;string, object&gt;`: whoever has the document in hand passes it, whoever
+    /// does not have it passes null and tests everything else.
     /// </summary>
     internal static class Expectations
     {
         /// <summary>
-        /// Quello che una prova non ha potuto misurare: un campo assente, un
-        /// selettore che non risolve, un caso scritto male (voce F4).
+        /// What a check could not measure: a missing field, a
+        /// selector that does not resolve, a badly written case (entry F4).
         /// </summary>
         internal sealed class CouldNotMeasure : Exception
         {
@@ -37,13 +37,13 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Dove sta la libreria dei profili saldati. Si dice con
-        /// `PROFILI_SALDATURA`, come nel banco e come nella libreria.
+        /// Where the library of the welded profiles is. It is stated with
+        /// `PROFILI_SALDATURA`, as in the bench and as in the library.
         ///
-        /// QUI C'ERA IL PERCORSO DI UNA POSTAZIONE SOLA, come ripiego. Non ha
-        /// mai aiutato nessun altro - su ogni altra macchina quella cartella
-        /// non esiste - e intanto raccontava com'e' fatto quel disco. Adesso
-        /// vuoto e' vuoto, e chi chiama lo deve dire.
+        /// HERE THERE USED TO BE THE PATH OF ONE WORKSTATION ONLY, as a fallback. It never
+        /// helped anybody else - on every other machine that folder does not
+        /// exist - and meanwhile it told how that disk is laid out. Now
+        /// empty is empty, and whoever calls must say so.
         /// </summary>
         internal static string Profiles
         {
@@ -55,16 +55,16 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// DOVE UN CASO PUO' SCRIVERE. `Bench\lavoro\`, la stessa cartella in
-        /// cui `CloseLeftovers` butta i documenti di scarto: e' ignorata da git e
-        /// si puo' svuotare in qualunque momento.
+        /// WHERE A CASE CAN WRITE. `Bench\lavoro\`, the same folder
+        /// into which `CloseLeftovers` throws the discarded documents: it is ignored by git and
+        /// can be emptied at any moment.
         ///
-        /// Serve da quando ci sono operazioni che producono FILE —
-        /// `export_stl`, `export_pdf`, `save_document`. Un caso che scrive
-        /// in una cartella sua la riempirebbe di roba che nessuno pulisce; un
-        /// caso che scrive accanto al repository sporcherebbe `git status`.
-        /// La cartella si crea se non c'e': un caso non deve fallire perche'
-        /// qualcuno ha svuotato il cestino.
+        /// It has been needed since there are operations that produce FILES —
+        /// `export_stl`, `export_pdf`, `save_document`. A case that writes
+        /// in a folder of its own would fill it with stuff that nobody cleans; a
+        /// case that writes next to the repository would dirty `git status`.
+        /// The folder is created if it is not there: a case must not fail because
+        /// somebody emptied the recycle bin.
         /// </summary>
         internal static string Work
         {
@@ -84,13 +84,13 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// LA CARTELLA DI INSTALLAZIONE DI SOLIDWORKS, per i file di serie che
-        /// un caso deve poter nominare senza copiarli nel repository (voce
-        /// Z-C21.2, revisione: il modello di distinta di taglio «cut
-        /// list.sldwldtbt», che e' di Dassault e non si versiona). Si dice con
-        /// `SW_INSTALL_PATH`, la stessa di build.ps1; senza, si cerca dove la mette l'installazione
-        /// predefinita, riconoscendola da SLDWORKS.exe. Se non si trova, il caso
-        /// non si puo' misurare — non e' rosso.
+        /// THE SOLIDWORKS INSTALLATION FOLDER, for the stock files that
+        /// a case must be able to name without copying them into the repository (entry
+        /// Z-C21.2, revision: the cut list template «cut
+        /// list.sldwldtbt», which belongs to Dassault and is not versioned). It is stated with
+        /// `SW_INSTALL_PATH`, the same as in build.ps1; without it, it is looked for where the default
+        /// installation puts it, recognizing it from SLDWORKS.exe. If it is not found, the case
+        /// cannot be measured — it is not red.
         /// </summary>
         internal static string SolidWorksFolder
         {
@@ -113,9 +113,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// I FILE CHE UN CASO LEGGE E NON SCRIVE: `Bench\data\`, versionata (voce
-        /// Z-F5, 27/9/2026: l'immagine da ricalcare). `{LAVORO}` si svuota a ogni
-        /// giro e non e' nel repository, quindi un file d'ingresso non puo' starci.
+        /// THE FILES THAT A CASE READS AND DOES NOT WRITE: `Bench\data\`, versioned (entry
+        /// Z-F5, 27/9/2026: the image to trace). `{LAVORO}` is emptied at every
+        /// run and is not in the repository, so an input file cannot live there.
         /// </summary>
         internal static string Data
         {
@@ -129,7 +129,7 @@ namespace Oce.Solid.Agent.Bench
             }
         }
 
-        /// <summary>Un testo lungo, accorciato per stare su una riga di esito.</summary>
+        /// <summary>A long text, shortened to fit on one outcome line.</summary>
         internal static string Short(string s)
         {
             if (string.IsNullOrEmpty(s)) return "(nessun motivo)";
@@ -138,7 +138,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // LE ATTESE
+        // THE EXPECTATIONS
         // ==================================================================
         internal static bool Matches(
             Dictionary<string, object> expectation, Func<string, object> fromDocument,
@@ -149,16 +149,16 @@ namespace Oce.Solid.Agent.Bench
             string what = Text(expectation, "what");
             if (what == null) throw new CouldNotMeasure("un'attesa senza «what»");
 
-            // ── QUANDO LA MISURA E' UNA FRASE ─────────────────────────────
+            // ── WHEN THE MEASUREMENT IS A SENTENCE ────────────────────────
             //
-            // `state.shape` non e' un numero: e' la descrizione che il pezzo
-            // da' di se stesso — «una rivoluzione del profilo Ø30 per 40, Ø20
-            // per 30, Ø34 per 20». Pretenderla UGUALE vorrebbe dire riscrivere
-            // il caso a ogni virgola sistemata; quello che conta e' che i
-            // pezzi che contano ci siano, e che quelli che NON devono esserci
-            // non ci siano — la seconda meta' e' la piu' importante, perche'
-            // e' come si prende una frase che dichiara un profilo che il pezzo
-            // non ha piu'.
+            // `state.shape` is not a number: it is the description that the part
+            // gives of itself — «una rivoluzione del profilo Ø30 per 40, Ø20
+            // per 30, Ø34 per 20». Demanding it EQUAL would mean rewriting
+            // the case at every comma fixed; what matters is that the
+            // pieces that matter are there, and that those that must NOT be there
+            // are not — the second half is the more important one, because
+            // it is how one catches a sentence that declares a profile that the part
+            // no longer has.
             bool includes = expectation.ContainsKey("includes");
             bool doesNotContain = expectation.ContainsKey("does_not_include");
             if (includes || doesNotContain)
@@ -175,9 +175,9 @@ namespace Oce.Solid.Agent.Bench
             if (expectation.ContainsKey("tolerance") && expectation["tolerance"] != null)
             {
                 tolerance = Convert.ToDouble(expectation["tolerance"], CultureInfo.InvariantCulture);
-                // IL PERCHE' E' OBBLIGATORIO, e non e' burocrazia: una
-                // tolleranza senza motivo e' il posto in cui un giorno qualcuno
-                // allarghera' il numero invece di guardare il pezzo.
+                // THE WHY IS MANDATORY, and it is not bureaucracy: a
+                // tolerance without a reason is the place where one day somebody
+                // will widen the number instead of looking at the part.
                 if (Math.Abs(tolerance) > 1e-12 && Text(expectation, "tolerance_why") == null)
                     throw new CouldNotMeasure("«" + what + "» ha tolleranza " +
                                         tolerance.ToString(CultureInfo.InvariantCulture) +
@@ -187,20 +187,20 @@ namespace Oce.Solid.Agent.Bench
             object measured = Measure(what, fromDocument, docState, measurements);
             object expected = expectation["equal_to"];
 
-            // Un elenco di numeri: l'ingombro, un punto, una terna.
+            // A list of numbers: the bounding box, a point, a triple.
             var expectedList = expected as System.Collections.IEnumerable;
             if (expectedList != null && !(expected is string))
             {
                 var expectedValues = Numbers(expectedList);
 
-                // ── UN ELENCO CHE NUMERI NON NE HA ───────────────────────
+                // ── A LIST THAT HAS NO NUMBERS ───────────────────────────
                 //
-                // `["C2"]`, i corpi su cui una booleana ha lavorato. Fino alla
-                // 0.81.0 finiva in «non e' un elenco di numeri:
-                // System.String[]» — un messaggio vero e inutile: il caso
-                // chiedeva una cosa sensata e il valutatore non sapeva
-                // confrontarla. Un elenco di TESTO si confronta a uno a uno,
-                // con la stessa scrittura che serve alle gemelle.
+                // `["C2"]`, the bodies a boolean worked on. Up to
+                // 0.81.0 it ended in «non e' un elenco di numeri:
+                // System.String[]» — a message true and useless: the case
+                // asked for a sensible thing and the evaluator did not know how to
+                // compare it. A list of TEXT is compared one by one,
+                // with the same writing that serves the twins.
                 if (expectedValues == null)
                 {
                     var measuredList = measured as System.Collections.IEnumerable;
@@ -235,7 +235,7 @@ namespace Oce.Solid.Agent.Bench
                 return true;
             }
 
-            // Un numero.
+            // A number.
             double expectedNumber;
             if (expected != null && !(expected is string) && !(expected is bool) &&
                 double.TryParse(Convert.ToString(expected, CultureInfo.InvariantCulture),
@@ -255,7 +255,7 @@ namespace Oce.Solid.Agent.Bench
                 return Math.Abs(measuredNumber - expectedNumber) <= tolerance;
             }
 
-            // Tutto il resto si confronta come testo: «material», un booleano.
+            // Everything else is compared as text: «material», a boolean.
             string a = Convert.ToString(expected, CultureInfo.InvariantCulture);
             string m = Convert.ToString(measured, CultureInfo.InvariantCulture);
             detail = what + " «" + m + "» (atteso «" + a + "»)";
@@ -263,16 +263,16 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// UN'ATTESA SU UNA FRASE: quali pezzi ci devono essere, e quali no.
+        /// AN EXPECTATION ON A SENTENCE: which pieces must be there, and which not.
         ///
-        /// `does_not_include` non e' la comodita' simmetrica di `includes`: e' il
-        /// motivo per cui questo esiste. Una frase che dichiara «il profilo
-        /// Ø30 per 40» su un pezzo che quel profilo non ce l'ha piu' e' il
-        /// difetto che non da' errore, e si prende solo pretendendo che una
-        /// parola SPARISCA.
+        /// `does_not_include` is not the symmetric convenience of `includes`: it is the
+        /// reason this exists. A sentence that declares «the profile
+        /// Ø30 for 40» on a part that no longer has that profile is the
+        /// defect that gives no error, and it is caught only by demanding that a
+        /// word DISAPPEAR.
         ///
-        /// Il confronto e' esatto — maiuscole e accenti compresi — perche' una
-        /// frase che il modello legge cambia di senso con una lettera.
+        /// The comparison is exact — capitals and accents included — because a
+        /// sentence that the model reads changes meaning with one letter.
         /// </summary>
         private static bool Sentence(
             string what, Dictionary<string, object> expectation, Func<string, object> fromDocument,
@@ -286,23 +286,23 @@ namespace Oce.Solid.Agent.Bench
                 return false;
             }
 
-            // ── UN ELENCO NON E' «System.String[]» ───────────────────────
+            // ── A LIST IS NOT «System.String[]» ──────────────────────────
             //
-            // `measurements.profiles[0].measurements` e' un elenco di misure: «80X80X5»,
-            // «100X100X6». Chiedere che CONTENGA una voce e' la cosa piu'
-            // naturale che ci sia, e fino alla 0.91.0 falliva con
+            // `measurements.profiles[0].measurements` is a list of measurements: «80X80X5»,
+            // «100X100X6». Asking that it CONTAIN an entry is the most
+            // natural thing there is, and up to 0.91.0 it failed with
             //
             //     non dice «80X80X5»: System.String[]
             //
-            // — un messaggio vero e inutile, perche' `Convert.ToString` su un
-            // array da' il nome del tipo. Per `equal_to` gli elenchi di testo
-            // erano gia' stati insegnati (voce 0.81.0); per `includes` no, e il
-            // difetto e' rimasto finche' un caso non l'ha ripreso.
+            // — a message true and useless, because `Convert.ToString` on an
+            // array gives the name of the type. For `equal_to` text lists
+            // had already been taught (entry 0.81.0); for `includes` not, and the
+            // defect remained until a case picked it up again.
             //
-            // Su un elenco «includes» vuol dire **una delle voci lo contiene**,
-            // non «la scrittura dell'elenco lo contiene»: cosi' cercare
-            // «80X80X5» trova la voce, e cercare «80X80» trova la stessa voce
-            // per prefisso, che e' quello che chi scrive il caso si aspetta.
+            // On a list «includes» means **one of the entries contains it**,
+            // not «the writing of the list contains it»: this way looking for
+            // «80X80X5» finds the entry, and looking for «80X80» finds the same entry
+            // by prefix, which is what whoever writes the case expects.
             var entries = Items(measured);
             bool isList = entries != null;
             string sentence = isList
@@ -331,9 +331,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Le voci di un elenco, gia' scritte. Null quando cio' che si e'
-        /// misurato non e' un elenco — e una stringa NON e' un elenco, anche
-        /// se in C# e' enumerabile carattere per carattere.
+        /// The entries of a list, already written out. Null when what was
+        /// measured is not a list — and a string is NOT a list, even
+        /// if in C# it is enumerable character by character.
         /// </summary>
         private static List<string> Items(object measured)
         {
@@ -346,45 +346,45 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il pezzo cercato c'e'? Su un elenco basta che lo contenga UNA voce;
-        /// su una frase, la frase.
+        /// Is the piece searched for there? On a list it is enough that ONE entry contains it;
+        /// on a sentence, the sentence.
         /// </summary>
         /// <summary>
-        /// SENZA GUARDARE LE MAIUSCOLE, e il perche' e' costato tre volte.
+        /// WITHOUT LOOKING AT CAPITALS, and the why cost three times.
         ///
-        /// ── I TRE INCIDENTI ──────────────────────────────────────────────
+        /// ── THE THREE INCIDENTS ──────────────────────────────────────────
         ///
-        ///   21/9  un'attesa cercava «vero», il testo diceva «VERO»
-        ///   23/9  cercava «accavallano», il testo dice «si accavalla»
-        ///   23/9  cercava «che serviva», il testo dice «CHE SERVIVA»
+        ///   21/9  an expectation looked for «vero», the text said «VERO»
+        ///   23/9  it looked for «accavallano», the text says «si accavalla»
+        ///   23/9  it looked for «che serviva», the text says «CHE SERVIVA»
         ///
-        /// Il secondo era una desinenza, e si e' riparato cercando la radice.
-        /// Il primo e il terzo sono la stessa cosa, e non erano difetti dei
-        /// casi: `includes` guarda PROSA, scritta per una persona, e in questo
-        /// repository l'enfasi si fa alzando la voce — cioe' cambiando le
-        /// maiuscole. Un'attesa che si rompe quando una frase viene riscritta
-        /// con piu' enfasi non sta misurando cio' che dice: sta misurando come
-        /// e' scritta.
+        /// The second was an ending, and it was fixed by looking for the root.
+        /// The first and the third are the same thing, and they were not defects of the
+        /// cases: `includes` looks at PROSE, written for a person, and in this
+        /// repository emphasis is made by raising the voice — that is by changing
+        /// the capitals. An expectation that breaks when a sentence is rewritten
+        /// with more emphasis is not measuring what it says: it is measuring how
+        /// it is written.
         ///
-        /// *Tre incidenti dalla stessa causa non sono tre casi da riparare: e'
-        /// un operatore da riparare.*
+        /// *Three incidents from the same cause are not three cases to fix: it is
+        /// one operator to fix.*
         ///
-        /// ── E `does_not_include` DIVENTA PIU' SEVERO ─────────────────────────
+        /// ── AND `does_not_include` BECOMES MORE SEVERE ───────────────────────
         ///
-        /// Cambiano insieme, ed e' il verso scomodo: un «non dice X» che
-        /// passava solo perche' il testo scriveva «x» adesso diventa rosso. E'
-        /// giusto che lo diventi — quel verde era un caso fortunato, non una
-        /// misura — ed e' il motivo per cui questa modifica si e' fatta con un
-        /// giro di banco intero addosso invece che a occhio.
+        /// They change together, and it is the uncomfortable direction: a «does not say X» that
+        /// passed only because the text wrote «x» now turns red. It is
+        /// right that it does — that green was a lucky case, not a
+        /// measurement — and it is the reason why this change was made with a
+        /// whole bench run on top of it instead of by eye.
         ///
-        /// ── CHI VUOLE DAVVERO LE MAIUSCOLE ───────────────────────────────
+        /// ── WHO REALLY WANTS THE CAPITALS ────────────────────────────────
         ///
-        /// Non ha un operatore, e va detto invece di lasciarlo scoprire.
-        /// Nessun caso oggi ne ha bisogno: si e' guardato prima di togliere il
-        /// confronto esatto. Il giorno che servisse, si aggiunge
-        /// `contiene_esatto` — un nome diverso, non un booleano in piu' su
-        /// questo, perche' un interruttore che cambia il senso di un operatore
-        /// e' un operatore travestito.
+        /// It has no operator, and that must be said instead of leaving it to be discovered.
+        /// No case today needs one: it was looked at before removing the
+        /// exact comparison. The day it was needed, `contiene_esatto` is added
+        /// — a different name, not one more boolean on
+        /// this one, because a switch that changes the meaning of an operator
+        /// is an operator in disguise.
         /// </summary>
         private static bool Inside(List<string> entries, string sentence, string part)
         {
@@ -393,7 +393,7 @@ namespace Oce.Solid.Agent.Bench
             return sentence.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        /// <summary>I pezzi di frase di un campo: una stringa sola o un elenco.</summary>
+        /// <summary>The sentence pieces of a field: a single string or a list.</summary>
         private static List<string> Parts(Dictionary<string, object> expectation, string theField)
         {
             var outside = new List<string>();
@@ -412,24 +412,24 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Da dove si legge un `what`. Tre sorgenti, e il prefisso lo dice:
-        /// niente = quello che misura il banco per conto suo, `state.` = lo
-        /// stato dell'add-in, `measurements.` = quello che l'operazione ha riportato.
+        /// Where a `what` is read from. Three sources, and the prefix says it:
+        /// nothing = what the bench measures on its own, `state.` = the
+        /// add-in's state, `measurements.` = what the operation reported.
         /// </summary>
         internal static object Measure(
             string what, Func<string, object> fromDocument,
             Dictionary<string, object> docState, Dictionary<string, object> measurements)
         {
-            // LE TRE MISURE DEL DOCUMENTO ARRIVANO DA FUORI, e chi non ha un
-            // documento in mano passa null: e' quello che rende questo file
-            // compilabile dove SOLIDWORKS non c'e' (voce F7).
-            // NON C'E' PIU' UN ELENCO DI NOMI QUI.
+            // THE THREE MEASUREMENTS OF THE DOCUMENT COME FROM OUTSIDE, and whoever does not have a
+            // document in hand passes null: it is what makes this file
+            // compilable where SOLIDWORKS is not there (entry F7).
+            // THERE IS NO LONGER A LIST OF NAMES HERE.
             //
-            // Ce n'era uno, e si e' scollato: una misura nuova aggiunta a chi
-            // misura, e dimenticata qui, usciva «non so misurare» con l'elenco
-            // vecchio accanto — un messaggio che dice il falso su se stesso.
-            // Tutto cio' che non ha un prefisso lo si chiede a chi il documento
-            // ce l'ha, ed e' lui a dire se quel nome non lo conosce.
+            // There was one, and it came unglued: a new measurement added to whoever
+            // measures, and forgotten here, came out «non so misurare» with the old list
+            // next to it — a message that says something false about itself.
+            // Everything that has no prefix is asked of whoever has the document,
+            // and it is that one that says whether it does not know that name.
             if (!what.StartsWith("state.", StringComparison.Ordinal) &&
                 !what.StartsWith("measurements.", StringComparison.Ordinal))
             {
@@ -444,20 +444,20 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// UN VALORE COME STRINGA, ANCHE QUANDO E' UN ELENCO.
+        /// A VALUE AS A STRING, EVEN WHEN IT IS A LIST.
         ///
-        /// `Convert.ToString` su un `object[]` torna «System.Object[]»: DUE
-        /// PROFILI DIVERSI SI SCRIVONO UGUALI. Il confronto fra un caso che
-        /// deve fallire e la sua gemella si faceva cosi', e diventava cieco
-        /// proprio sull'argomento che li distingue. La cecita' va in tutte e
-        /// due le direzioni: qui ha dato un errore di banco onesto — «e'
-        /// identica al rifiuto» su una coppia che differiva SOLO nei contorni —
-        /// ma la stessa riga avrebbe detto «differisce per 1 argomento»
-        /// guardando due liste che non aveva letto.
+        /// `Convert.ToString` on an `object[]` returns «System.Object[]»: TWO
+        /// DIFFERENT PROFILES ARE WRITTEN THE SAME. The comparison between a case that
+        /// must fail and its twin was made this way, and it became blind
+        /// precisely on the argument that tells them apart. The blindness goes in both
+        /// directions: here it gave an honest bench error — «e' identica al
+        /// rifiuto» on a pair that differed ONLY in the contours —
+        /// but the same line would have said «differisce per 1 argomento»
+        /// looking at two lists it had not read.
         ///
-        /// Sta qui, e non accanto a chi la usa, perche' e' una funzione pura
-        /// su un dizionario: `Oce.Solid.Agent.ContractTests` la prova in un millesimo di
-        /// secondo, senza CAD (voce F7).
+        /// It is here, and not next to whoever uses it, because it is a pure function
+        /// on a dictionary: `Oce.Solid.Agent.ContractTests` tests it in a thousandth of a
+        /// second, without CAD (entry F7).
         /// </summary>
         internal static string HowItIsWritten(object v)
         {
@@ -485,22 +485,22 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// LA GEMELLA HA A CHE VEDERE COL RIFIUTO? (voce F5)
+        /// DOES THE TWIN HAVE TO DO WITH THE REFUSAL? (entry F5)
         ///
-        /// La regola: **argomenti non identici, e almeno un argomento in comune
-        /// con lo stesso valore.** La voce proponeva «differisce per UN solo
-        /// argomento»; misurata sulle coppie canoniche ne rifiutava tre su
-        /// quattro, e chi chiama dice quanti ne differiscono invece di
-        /// decidere al posto di chi legge.
+        /// The rule: **arguments not identical, and at least one argument in common
+        /// with the same value.** The entry proposed «differs by ONE argument
+        /// only»; measured on the canonical pairs it refused three out of
+        /// four, and whoever calls says how many differ instead of
+        /// deciding in place of whoever reads.
         ///
-        /// ── L'ECCEZIONE DELL'ARGOMENTO UNICO, CHE E' ARITMETICA ───────────
+        /// ── THE EXCEPTION OF THE SINGLE ARGUMENT, WHICH IS ARITHMETIC ─────
         ///
-        /// `create_axis` prende `face_uid` e basta. Due casi che differiscono
-        /// per quell'unico argomento NON POSSONO averne uno in comune: la
-        /// regola li rifiuterebbe sempre, e non perche' siano scollegati ma
-        /// perche' l'operazione ha un argomento solo. Rifiutarli vorrebbe dire
-        /// vietare la coppia a meta' del catalogo. Quando le chiavi in gioco
-        /// sono una sola, «niente in comune» non e' un indizio: e' l'arita'.
+        /// `create_axis` takes `face_uid` and nothing else. Two cases that differ
+        /// in that single argument CANNOT have one in common: the
+        /// rule would always refuse them, and not because they are unconnected but
+        /// because the operation has only one argument. Refusing them would mean
+        /// forbidding the pair for half of the catalog. When the keys in play
+        /// are only one, «nothing in common» is not a hint: it is the arity.
         /// </summary>
         internal static bool Resemble(
             Dictionary<string, object> mine, Dictionary<string, object> itsItems,
@@ -541,35 +541,35 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il campo di «must_fail» che dichiara una gemella con gli STESSI
-        /// argomenti su un ALTRO pezzo. Il valore e' la frase che dice cosa
-        /// cambia nel pezzo: vuota non vale.
+        /// The field of «must_fail» that declares a twin with the SAME
+        /// arguments on ANOTHER part. The value is the sentence that says what
+        /// changes in the part: empty is not valid.
         /// </summary>
         internal const string DifferenceInPartField = "difference_is_the_part";
 
         /// <summary>
-        /// LA GEMELLA CON GLI STESSI ARGOMENTI, SU UN ALTRO PEZZO (voce F5,
-        /// 28/9/2026, nervatura W1.2).
+        /// THE TWIN WITH THE SAME ARGUMENTS, ON ANOTHER PART (entry F5,
+        /// 28/9/2026, rib W1.2).
         ///
-        /// Ci sono rifiuti che non dipendono da un argomento ma dal PEZZO: la
-        /// stessa nervatura (stessa linea, stesso piano, stesso spessore) nasce
-        /// nella scatola svuotata e non nasce sulla piastra senza pareti. La
-        /// regola di `Resemble` pretende un argomento diverso, e prima di
-        /// questa funzione l'unico modo di rispettarla era scriverne uno che non
-        /// fa niente (un `distance_mm: 0` che e' il predefinito): F5 verde senza
-        /// provare niente.
+        /// There are refusals that do not depend on an argument but on the PART: the
+        /// same rib (same line, same plane, same thickness) is born
+        /// in the hollowed box and is not born on the plate without walls. The
+        /// rule of `Resemble` demands a different argument, and before this
+        /// function the only way to respect it was to write one that does
+        /// nothing (a `distance_mm: 0` which is the default): F5 green without
+        /// proving anything.
         ///
-        /// Qui la differenza si DICHIARA (<see cref="DifferenceInPartField"/>)
-        /// e si CONTROLLA, in tutti e due i versi:
-        ///   1. la frase c'e';
-        ///   2. gli argomenti sono IDENTICI — se differiscono, la regola normale
-        ///      basta e la dichiarazione e' di troppo (o nasconde una coppia
-        ///      lasca);
-        ///   3. i passi PRIMA (il pezzo) differiscono — se sono uguali, stesso
-        ///      pezzo e stessi argomenti: e' una copia, come prima.
+        /// Here the difference is DECLARED (<see cref="DifferenceInPartField"/>)
+        /// and CHECKED, in both directions:
+        ///   1. the sentence is there;
+        ///   2. the arguments are IDENTICAL — if they differ, the normal rule
+        ///      is enough and the declaration is superfluous (or hides a loose
+        ///      pair);
+        ///   3. the steps BEFORE (the part) differ — if they are equal, same
+        ///      part and same arguments: it is a copy, as before.
         ///
-        /// I passi si confrontano come si scrivono (operazione e argomenti),
-        /// senza CAD: e' aritmetica sul JSON, e la prova Oce.Solid.Agent.ContractTests.
+        /// The steps are compared as they are written (operation and arguments),
+        /// without CAD: it is arithmetic on the JSON, and the check is Oce.Solid.Agent.ContractTests.
         /// </summary>
         internal static bool ResembleInPart(
             Dictionary<string, object> mine, Dictionary<string, object> itsItems,
@@ -617,7 +617,7 @@ namespace Oce.Solid.Agent.Bench
             return true;
         }
 
-        /// <summary>Un passo di un caso come si scrive: operazione e argomenti.</summary>
+        /// <summary>A step of a case as it is written: operation and arguments.</summary>
         private static string HowAStepIsWritten(object planStep)
         {
             var p = planStep as Dictionary<string, object>;
@@ -629,9 +629,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Un percorso dentro un dizionario: `faces[0].area_mm2`.
-        /// Null quando il percorso non porta da nessuna parte — e chi chiama lo
-        /// fa diventare un rosso, perche' un campo assente non e' uno zero.
+        /// A path inside a dictionary: `faces[0].area_mm2`.
+        /// Null when the path leads nowhere — and whoever calls turns it
+        /// into a red, because a missing field is not a zero.
         /// </summary>
         internal static object Inside(object root, string filePath, string fullName)
         {
@@ -653,11 +653,11 @@ namespace Oce.Solid.Agent.Bench
                         "campo assente: " + fullName + "; «" + key +
                         "» andrebbe cercato dentro qualcosa che non e' un oggetto");
 
-                // LA CHIAVE CHE NON C'E' E UN VALORE NULL NON SONO LA STESSA
-                // COSA, ed e' tutta la voce F4. `material: null` vuol dire
-                // «quel posto esiste ed e' vuoto»; una chiave che manca vuol
-                // dire che il caso sta leggendo un campo che non esiste piu' —
-                // e un `null` confrontato con un `null` passerebbe.
+                // THE KEY THAT IS NOT THERE AND A NULL VALUE ARE NOT THE SAME
+                // THING, and it is the whole of entry F4. `material: null` means
+                // «that place exists and is empty»; a key that is missing means
+                // that the case is reading a field that no longer exists —
+                // and a `null` compared with a `null` would pass.
                 if (!map.ContainsKey(key))
                     throw new CouldNotMeasure(
                         "campo assente: " + fullName + "; ci sono: " +
@@ -681,7 +681,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // I SELETTORI
+        // THE SELECTORS
         // ==================================================================
         internal static object Resolve(object raw, Dictionary<string, object> docState)
         {
@@ -703,15 +703,15 @@ namespace Oce.Solid.Agent.Bench
             if (text != null && text.StartsWith("@", StringComparison.Ordinal))
                 return Select(text, docState);
 
-            // I SEGNAPOSTO: un caso che nomina un percorso di QUESTA macchina
-            // non e' una prova, e' un ricordo. La libreria dei profili saldati
-            // sta dove la mette ogni installazione, e il caso dice «{PROFILI}»
-            // invece di sapere dov'e'.
+            // THE PLACEHOLDERS: a case that names a path of THIS machine
+            // is not a check, it is a memento. The library of the welded profiles
+            // is where every installation puts it, and the case says «{PROFILI}»
+            // instead of knowing where it is.
             if (text != null && text.Contains("{PROFILI}"))
             {
-                // `String.Replace(a, null)` solleva `ArgumentNullException`, e
-                // da qui uscirebbe come un guasto del banco invece che come la
-                // cosa che e': una precondizione che manca. Si dice.
+                // `String.Replace(a, null)` raises `ArgumentNullException`, and
+                // from here it would come out as a bench fault instead of as the
+                // thing it is: a missing precondition. It is said.
                 if (Profiles == null)
                     throw new CouldNotMeasure(
                         "Questo caso nomina {PROFILI}, ma PROFILI_SALDATURA non e' " +
@@ -719,15 +719,15 @@ namespace Oce.Solid.Agent.Bench
                         "dei profili e' di chi lavora, non del repository: dille dov'e'.");
                 return text.Replace("{PROFILI}", Profiles);
             }
-            // `{LAVORO}`: dove un caso puo' scrivere un file senza sporcare
-            // ne' il repository ne' il disco di chi lavora.
+            // `{LAVORO}`: where a case can write a file without dirtying
+            // either the repository or the disk of whoever works.
             if (text != null && text.Contains("{LAVORO}"))
                 return text.Replace("{LAVORO}", Work);
-            // `{DATI}`: i file d'ingresso versionati (Bench\data\).
+            // `{DATI}`: the versioned input files (Bench\data\).
             if (text != null && text.Contains("{DATI}"))
                 return text.Replace("{DATI}", Data);
-            // `{SOLIDWORKS}`: i file DI SERIE dell'installazione (i modelli di
-            // tabella), che non sono ne' del repository ne' di chi lavora.
+            // `{SOLIDWORKS}`: the STOCK files of the installation (the
+            // table templates), which belong neither to the repository nor to whoever works.
             if (text != null && text.Contains("{SOLIDWORKS}"))
             {
                 var sw = SolidWorksFolder;
@@ -773,22 +773,22 @@ namespace Oce.Solid.Agent.Bench
 
             switch (typ)
             {
-                // `n=` VALE PER TUTTI, non solo per le feature: fra quattro
-                // spigoli lunghi uguali non esiste nessun criterio, e chi
-                // scrive il caso l'ordine puo' deciderlo — purche' lo DICA.
-                // Senza `n=` l'ambiguita' resta un rifiuto.
+                // `n=` APPLIES TO ALL, not only to features: among four
+                // equal long edges there is no criterion at all, and whoever
+                // writes the case can decide the order — provided they SAY so.
+                // Without `n=` the ambiguity remains a refusal.
                 case "face":  return OnlyOne(expression, "faces", docState, conditions, "uid", Nth(expression, conditions));
                 case "edge": return OnlyOne(expression, "edges", docState, conditions, "uid", Nth(expression, conditions));
                 case "feature": return AFeature(expression, docState, conditions);
                 case "dimension":   return ADimension(expression, docState, conditions);
-                // I CORPI SI CHIAMANO PER NOME, NON PER NUMERO. Misurato il
-                // 25/9/2026 su tre membri strutturali creati nello stesso
-                // ordine in due giri: una volta lo stato dice C1 = la barra
-                // corta, l'altra C1 = la lunga. «C1» scritto in un caso vuol
-                // dire un corpo diverso a seconda del giro; il nome («... (2)»)
-                // segue invece l'ordine di creazione, ed e' quello che il caso
-                // intende. Il nome ha le parentesi dentro, e il selettore le
-                // regge: si apre alla PRIMA e si chiude all'ULTIMA.
+                // BODIES ARE CALLED BY NAME, NOT BY NUMBER. Measured on
+                // 25/9/2026 on three structural members created in the same
+                // order in two runs: once the state says C1 = the short bar,
+                // the other time C1 = the long one. «C1» written in a case means
+                // a different body depending on the run; the name («... (2)»)
+                // follows instead the order of creation, and it is what the case
+                // means. The name has the parentheses inside, and the selector
+                // copes with them: it opens at the FIRST and closes at the LAST.
                 case "body":   return OnlyOne(expression, "bodies", docState, conditions, "uid", Nth(expression, conditions));
                 default:
                     throw new CouldNotMeasure("selettore sconosciuto «@" + typ + "»: ci sono " +
@@ -797,8 +797,8 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// `verso=davanti, lungo~=100`: il `~` vuol dire «circa», e serve per le
-        /// lunghezze, che non sono mai intere quando il pezzo e' stato ricostruito.
+        /// `verso=davanti, lungo~=100`: the `~` means «about», and it is for
+        /// lengths, which are never whole when the part has been rebuilt.
         /// </summary>
         internal sealed class Condition
         {
@@ -827,10 +827,10 @@ namespace Oce.Solid.Agent.Bench
             return outside;
         }
 
-        // I NOMI DEL CASO E I NOMI DELLO STATO NON SONO GLI STESSI, e la
-        // traduzione sta qui e in un punto solo. `@edge(axis=Z)` si legge
-        // bene; il campo dello stato si chiama `along`, che da solo vorrebbe
-        // dire un'altra cosa.
+        // THE NAMES OF THE CASE AND THE NAMES OF THE STATE ARE NOT THE SAME, and the
+        // translation is here and in one place only. `@edge(axis=Z)` reads
+        // well; the field of the state is called `along`, which by itself would mean
+        // something else.
         internal static string StateField(string nameInCase)
         {
             switch (nameInCase)
@@ -844,14 +844,14 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il valore che una condizione del selettore confronta.
+        /// The value that a selector condition compares.
         ///
-        /// `x`, `y`, `z` SONO LE COORDINATE DI `point_mm` (25/9/2026, voce E18).
-        /// Fra i quattro spigoli lunghi 120 di una piastra nessun campo dello
-        /// stato distingueva il fianco sinistro davanti da quello dietro, e
-        /// `n=` sceglie per ORDINE — lo stesso ordine che per i corpi si e'
-        /// visto cambiare fra un giro e l'altro (voce Z-C16). Con le
-        /// coordinate lo spigolo si nomina per DOVE sta:
+        /// `x`, `y`, `z` ARE THE COORDINATES OF `point_mm` (25/9/2026, entry E18).
+        /// Among the four long edges of 120 of a plate no field of the
+        /// state told the left side in front from the one behind, and
+        /// `n=` chooses by ORDER — the same order that for the bodies was
+        /// seen to change from one run to the next (entry Z-C16). With the
+        /// coordinates the edge is named by WHERE it is:
         /// `@edge(axis=Y,x~=-100,z~=20)`.
         /// </summary>
         internal static bool FieldValue(Dictionary<string, object> entry, string theField, out object val)
@@ -917,10 +917,10 @@ namespace Oce.Solid.Agent.Bench
                 return Convert.ToString(foundOnes[nth.Value - 1][fieldToReturn]);
             }
 
-            // ZERO O PIU' D'UNA: SI RIFIUTA, non si sceglie la prima.
-            // E' il difetto silenzioso che questa voce nomina: un caso che gira
-            // su una faccia diversa da quella che il nome del file promette, e
-            // che magari torna lo stesso volume.
+            // ZERO OR MORE THAN ONE: IT IS REFUSED, the first is not chosen.
+            // It is the silent defect that this entry names: a case that runs
+            // on a face different from the one the file name promises, and
+            // that perhaps returns the same volume.
             if (foundOnes.Count == 0)
                 throw new CouldNotMeasure(expression + ": non l'ho trovata");
             if (foundOnes.Count > 1)
@@ -937,7 +937,7 @@ namespace Oce.Solid.Agent.Bench
                            Nth(expression, conditions));
         }
 
-        /// <summary>Il `n=` di un selettore, se c'e'.</summary>
+        /// <summary>The `n=` of a selector, if it is there.</summary>
         internal static int? Nth(string expression, List<Condition> conditions)
         {
             var n = conditions.FirstOrDefault(c => c.Field == "n");
@@ -949,20 +949,20 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// `@dimension(feature=Schizzo1,name=D1)` -> il nome ESTESO della quota, come
-        /// lo scrive lo stato: `D1@Schizzo1@Parte286.Part`.
+        /// `@dimension(feature=Schizzo1,name=D1)` -> the EXTENDED name of the dimension, as
+        /// the state writes it: `D1@Schizzo1@Parte286.Part`.
         ///
-        /// E' il selettore che la voce chiamava «non un lusso»:
-        /// `piani/cambia_diametro.json` scrive il nome col titolo del documento
-        /// dentro, e quel `Parte76` cambia a ogni giro — **quel piano oggi non
-        /// si puo' rieseguire.** Risolvendolo sullo stato, il caso nomina la
-        /// quota e il titolo lo mette il banco.
+        /// It is the selector that the entry called «not a luxury»:
+        /// `piani/cambia_diametro.json` writes the name with the document title
+        /// inside, and that `Parte76` changes at every run — **that plan today cannot
+        /// be re-run.** By resolving it against the state, the case names the
+        /// dimension and the title is put in by the bench.
         ///
-        /// `angular=true` (voce Z-C21.2, rilievo M3) tiene solo le quote che lo
-        /// stato scrive in `deg`, e allora «name» si puo' omettere: i nomi che
-        /// SOLIDWORKS da' alle quote di uno smusso (D1, D2) e l'ordine in cui le
-        /// elenca non sono misurati, mentre «l'unica quota angolare del pezzo» e'
-        /// un fatto che lo stato dice.
+        /// `angular=true` (entry Z-C21.2, finding M3) keeps only the dimensions that the
+        /// state writes in `deg`, and then «name» can be omitted: the names that
+        /// SOLIDWORKS gives to the dimensions of a chamfer (D1, D2) and the order in which it
+        /// lists them are not measured, while «the only angular dimension of the part» is
+        /// a fact that the state tells.
         /// </summary>
         internal static string ADimension(
             string expression, Dictionary<string, object> docState, List<Condition> conditions)
@@ -997,7 +997,7 @@ namespace Oce.Solid.Agent.Bench
                     var dimension = q as Dictionary<string, object>;
                     if (dimension == null || !dimension.ContainsKey("name")) continue;
                     string extended = Convert.ToString(dimension["name"]);
-                    // «D1@Schizzo1@Parte286.Part» -> corto «D1», dentro «Schizzo1»
+                    // «D1@Schizzo1@Parte286.Part» -> short «D1», inside «Schizzo1»
                     var parts = extended.Split('@');
                     if (parts.Length < 2) continue;
                     if (call != null &&
@@ -1066,10 +1066,10 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Che cos'e' quel valore, per un messaggio. Si chiama cosi' e non
-        /// `Describe` perche' in `NewOperationsTests.cs` un `Describe` c'e' gia': due
-        /// metodi con lo stesso nome nella stessa classe parziale non
-        /// compilano, ed e' la fine migliore possibile per un nome ripetuto.
+        /// What that value is, for a message. It is called this and not
+        /// `Describe` because in `NewOperationsTests.cs` a `Describe` already exists: two
+        /// methods with the same name in the same partial class do not
+        /// compile, which is the best possible end for a repeated name.
         /// </summary>
         internal static string WhatWas(object x)
         {

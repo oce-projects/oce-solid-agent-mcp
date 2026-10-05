@@ -1,25 +1,25 @@
-// Raccoglie il materiale della misura V2: per ogni forma, le IMMAGINI e lo
-// STATO TESTUALE, ognuno in un file.
+// Collects the material of measurement V2: for each shape, the IMAGES and the
+// TEXTUAL STATE, each in a file.
 //
-//   node collect_views.js                 tutte le forme in cases/views
+//   node collect_views.js                 all the shapes in cases/views
 //   node collect_views.js cases/views/2_open_shell.json
 //
-// PERCHE' UN RACCOGLITORE E NON UNA PROVA. La voce V2 chiede una misura che
-// questo programma NON puo' fare: dare a un modello **solo** le immagini, poi
-// **solo** lo stato, poi tutti e due, e contare quante volte ci prende. Quello
-// lo fa chi legge. Qui si prepara il materiale, identico per tutte e tre le
-// condizioni, in modo che la differenza fra le tre sia solo cio' che si vuole
-// misurare.
+// WHY A COLLECTOR AND NOT A CHECK. Entry V2 asks for a measurement that
+// this program CANNOT do: give a model **only** the images, then
+// **only** the state, then both, and count how many times it gets it right. That
+// is done by whoever reads. Here the material is prepared, identical for all three
+// conditions, so that the difference among the three is only what one wants to
+// measure.
 //
-// COSA SCRIVE, in `Bench/viste/`:
+// WHAT IT WRITES, in `Bench/viste/`:
 //
 //   <forma>-isometrica.png
 //   <forma>-frontale.png  <forma>-superiore.png  <forma>-destra.png
-//   <forma>-stato.json          lo stato SENZA immagini, come lo riceve oggi
-//   <forma>-verita.txt          cos'e' davvero, preso da `_truth` nel piano
+//   <forma>-stato.json          the state WITHOUT images, as it is received today
+//   <forma>-verita.txt          what it really is, taken from `_truth` in the plan
 //
-// La verita' sta nel file del piano e non qui: chi giudica non deve poterla
-// leggere insieme al materiale, e chi scrive il piano e' l'unico che la sa.
+// The truth is in the plan's file and not here: whoever judges must not be able to
+// read it together with the material, and whoever writes the plan is the only one who knows it.
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -29,10 +29,10 @@ const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 const OUTPUT = path.join(__dirname, "viste");
 
-// DUE CHIAMATE, NON UNA: il ponte ne da' al massimo tre per volta, ed e' un
-// tetto voluto (una vista costa piu' di dieci volte l'intero stato scritto).
-// Quattro viste sono due chiamate, e va bene cosi': questo e' il raccoglitore,
-// non il ponte.
+// TWO CALLS, NOT ONE: the bridge gives at most three at a time, and it is a
+// deliberate ceiling (a view costs more than ten times the whole state written out).
+// Four views are two calls, and that is fine: this is the collector,
+// not the bridge.
 const FIRST_ROUND = ["isometric"];
 const SECOND_ROUND = ["front", "top", "right"];
 
@@ -97,8 +97,8 @@ function nameOf(filePath) {
   return path.basename(filePath, ".json");
 }
 
-// LO STATO SI ESTRAE DAL TESTO, e il testo non e' JSON puro quando ci sono
-// immagini: davanti c'e' la didascalia. Si prende da dove comincia l'oggetto.
+// THE STATE IS EXTRACTED FROM THE TEXT, and the text is not pure JSON when there are
+// images: the caption comes first. It is taken from where the object begins.
 function stateFromText(text) {
   const i = text.indexOf("{");
   if (i < 0) return null;
@@ -121,9 +121,9 @@ async function collect(planPath) {
   const raw = JSON.parse(fs.readFileSync(planPath, "utf8"));
   const truth = (raw.find(p => p._truth) || {})._truth || "(non dichiarata)";
 
-  // Il piano che si manda non porta i campi che cominciano per `_`: sono note
-  // per chi legge il file, e `build` rifiuterebbe argomenti che lo schema
-  // non conosce.
+  // The plan that is sent does not carry the fields that start with `_`: they are notes
+  // for whoever reads the file, and `build` would refuse arguments that the schema
+  // does not know.
   const steps = raw.map(p => ({ operation: p.operation, arguments: p.arguments }));
 
   console.log("");
@@ -142,7 +142,7 @@ async function collect(planPath) {
   const volume = (done.dati || {}).volume_after_mm3;
   console.log("  ok  costruito, volume " + volume + " mm3");
 
-  // ── lo stato, senza immagini: e' quello che il modello riceve OGGI ──
+  // ── the state, without images: it is what the model receives TODAY ──
   const stateOnly = await invoke("inspect_part");
   const docState = stateOnly.dati || stateFromText(stateOnly.testo);
   fs.writeFileSync(path.join(OUTPUT, itemName + "-stato.json"),
@@ -152,7 +152,7 @@ async function collect(planPath) {
               ((docState.faces || []).length) + " facce, " +
               ((docState.feature || []).length) + " lavorazioni");
 
-  // ── le immagini ──
+  // ── the images ──
   const one = await invoke("inspect_part", { views: FIRST_ROUND });
   const three = await invoke("inspect_part", { views: SECOND_ROUND });
   const written = saveImages(itemName, FIRST_ROUND, one.immagini)

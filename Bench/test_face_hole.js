@@ -1,26 +1,26 @@
-// E14 — `hole_face` prende un foro, e non un raccordo.
+// E14 — `hole_face` takes a hole, and not a fillet.
 //
 //   node test_face_hole.js
 //
-// PERCHE' QUI E NON NEL BANCO. `face_ref: {passo, genere}` nomina un passo
-// dello STESSO piano, e il banco esegue un'operazione per volta: li' il
-// riferimento non si puo' nemmeno formulare. La prima scrittura di questa prova
-// stava nel banco ed e' uscita rossa per il motivo sbagliato — «di quel passo
-// non ho la geometria» — senza mai arrivare al codice che doveva provare.
+// WHY HERE AND NOT IN THE BENCH. `face_ref: {passo, genere}` names a step
+// of the SAME plan, and the bench executes one operation at a time: there the
+// reference cannot even be formulated. The first writing of this check
+// was in the bench and came out red for the wrong reason — «di quel passo
+// non ho la geometria» — without ever reaching the code it was supposed to test.
 //
-// Un rosso che scatta per un'altra ragione non prova niente, e sembra identico
-// a uno che funziona.
+// A red that fires for another reason proves nothing, and looks identical
+// to one that works.
 //
-// ── IL DIFETTO ────────────────────────────────────────────────────────────
+// ── THE DEFECT ────────────────────────────────────────────────────────────
 //
-// `References` cercava le facce «cilindriche» del passo: una sola la
-// restituiva, piu' d'una faceva scattare un rifiuto. Ma **un raccordo lascia
-// facce cilindriche come un foro**. Un passo che ne lasciava esattamente una, e
-// quella era un raccordo, la restituiva senza dire niente.
+// `References` looked for the «cylindrical» faces of the step: if there was just one it
+// returned it, if more than one it triggered a refusal. But **a fillet leaves
+// cylindrical faces like a hole**. A step that left exactly one, and
+// that one was a fillet, returned it without saying anything.
 //
-// Il criterio e' geometrico e misurato (`Checks\HoleOrFillet`): la
-// parete di un foro e' CONCAVA, la superficie di un raccordo esterno e'
-// convessa.
+// The criterion is geometric and measured (`Checks\HoleOrFillet`): the
+// wall of a hole is CONCAVE, the surface of an external fillet is
+// convex.
 const { spawn, spawnSync } = require("child_process");
 const path = require("path");
 
@@ -36,15 +36,15 @@ const PLATE = {
   },
 };
 
-// IL RUOLO E' RAGGIUNGIBILE DA UNA SOLA OPERAZIONE, e va detto: `shell`.
-// Verificato sul catalogo — `hole_face` compare nello schema di `shell`
-// e in nessun altro. La prima scrittura di questa prova usava
-// `cylindrical_cut`, che quel genere non lo accetta nemmeno, e il rifiuto
-// arrivava dal validatore dello schema invece che dal codice da provare: il
-// secondo rosso che scattava per il motivo sbagliato, nella stessa ora.
+// THE ROLE IS REACHABLE FROM ONE OPERATION ONLY, and it must be said: `shell`.
+// Verified on the catalog — `hole_face` appears in the schema of `shell`
+// and in no other. The first writing of this check used
+// `cylindrical_cut`, which does not even accept that kind, and the refusal
+// came from the schema validator instead of from the code to be tested: the
+// second red that fired for the wrong reason, in the same hour.
 
-// ROSSO 1: il passo 2 e' un RACCORDO, che lascia facce cilindriche CONVESSE.
-// Il passo 3 chiede «la parete del foro» di quel passo: non esiste.
+// RED 1: step 2 is a FILLET, which leaves CONVEX cylindrical faces.
+// Step 3 asks for «the wall of the hole» of that step: it does not exist.
 const FILLET_IS_NOT_HOLE = [
   PLATE,
   {
@@ -63,7 +63,7 @@ const FILLET_IS_NOT_HOLE = [
   },
 ];
 
-// VERDE: il passo 2 e' un foro vero, uno solo. Il passo 3 lo prende.
+// GREEN: step 2 is a real hole, only one. Step 3 takes it.
 const THE_HOLE_IS_PICKED = [
   PLATE,
   {
@@ -82,26 +82,26 @@ const THE_HOLE_IS_PICKED = [
   },
 ];
 
-// ROSSO 2: un passo che lascia PIU' pareti di foro. «La» parete non esiste, e
-// sceglierne una sarebbe indovinare: il rifiuto e' il comportamento giusto, non
-// un limite da riparare.
+// RED 2: a step that leaves MORE hole walls. «The» wall does not exist, and
+// choosing one would be guessing: the refusal is the right behavior, not
+// a limit to be repaired.
 //
-// SERVE UN PASSO SOLO CHE FACCIA PIU' FORI, e trovarlo e' costato tre
-// tentativi sbagliati:
+// A SINGLE STEP THAT MAKES MORE HOLES IS NEEDED, and finding it cost three
+// wrong attempts:
 //
-//   * `cylindrical_cut` fa un foro per passo: nessuna ambiguita';
-//   * `linear_pattern` ne fa quattro, ma vuole una direzione data da un asse o
-//     da uno spigolo — cioe' da un uid che dentro questo piano non esiste
-//     ancora, perche' la piastra la crea il passo 1;
-//   * `mirror` ne fa uno nuovo, e l'originale appartiene al passo di prima:
-//     il passo dello specchio ha **una sola** parete, e prenderla e' giusto.
+//   * `cylindrical_cut` makes one hole per step: no ambiguity;
+//   * `linear_pattern` makes four, but wants a direction given by an axis or
+//     by an edge — that is by a uid that inside this plan does not exist
+//     yet, because the plate is created by step 1;
+//   * `mirror` makes one new one, and the original belongs to the step before:
+//     the mirror step has **only one** wall, and taking it is right.
 //
-// `hole_wizard` invece lo dice da solo nello schema: «piu' fori uguali stanno
-// in una chiamata sola». Quattro fori, un passo, quattro pareti.
+// `hole_wizard` instead says so itself in the schema: «several equal holes go
+// in one single call». Four holes, one step, four walls.
 //
-// La lezione che e' costata i tre tentativi: **un caso di prova non deve
-// dipendere da geometria che il caso stesso sta creando**, e «quale operazione
-// lascia N facce» si legge nel catalogo invece di dedurlo.
+// The lesson that the three attempts cost: **a test case must not
+// depend on geometry that the case itself is creating**, and «which operation
+// leaves N faces» is read in the catalog instead of being deduced.
 const MULTIPLE_WALLS = [
   PLATE,
   {
@@ -182,8 +182,8 @@ function shorter(s) {
   return one.length > 150 ? one.slice(0, 150) + "..." : one;
 }
 
-// L'ERRORE DEL PASSO, non il testo intero della risposta: dentro c'e' anche lo
-// stato del documento, e cercarci una parola dentro darebbe falsi positivi.
+// THE STEP'S ERROR, not the whole text of the answer: inside there is also the
+// state of the document, and looking for a word in it would give false positives.
 function stepsError(data) {
   if (!data || !Array.isArray(data.outcomes)) return "";
   return data.outcomes.filter(e => e && e.errore).map(e => e.errore).join(" | ");
@@ -207,7 +207,7 @@ async function plane(itemName, steps) {
   console.log("=== hole_face: un foro si', un raccordo no (E14) ===");
   console.log("");
 
-  // ── ROSSO 1 ────────────────────────────────────────────────────────────
+  // ── RED 1 ──────────────────────────────────────────────────────────────
   const a = await plane("ROSSO 1", FILLET_IS_NOT_HOLE);
   if (a) {
     const why = stepsError(a.dati);
@@ -216,7 +216,7 @@ async function plane(itemName, steps) {
           a.errore ? shorter(why) : "NON ha rifiutato: ha preso la faccia del raccordo");
   }
 
-  // ── VERDE ──────────────────────────────────────────────────────────────
+  // ── GREEN ──────────────────────────────────────────────────────────────
   const b = await plane("VERDE", THE_HOLE_IS_PICKED);
   if (b) {
     check("un foro vero, uno solo, si prende",
@@ -225,7 +225,7 @@ async function plane(itemName, steps) {
                      "volume " + (b.dati || {}).volume_after_mm3);
   }
 
-  // ── ROSSO 2 ────────────────────────────────────────────────────────────
+  // ── RED 2 ──────────────────────────────────────────────────────────────
   const c = await plane("ROSSO 2", MULTIPLE_WALLS);
   if (c) {
     const why = stepsError(c.dati);

@@ -18,22 +18,22 @@
          repository, not the absolute path of this checkout: the same source
          builds the same bytes in any folder (W3.1-bis.2, item 7). -->
     <PathMap>$(MSBuildProjectDirectory)=Banco</PathMap>
-    <!-- DOVE STA L'INTEROP, e si puo' scavalcare in tre modi.
-         `README.md` documentava `set SW_REDIST=...`, ma quella variabile la
-         leggeva solo `Program.cs` a tempo di ESECUZIONE, per l'AssemblyResolve:
-         a tempo di COMPILAZIONE questo valore era costante, e chi seguiva
-         l'istruzione documentata vedeva fallire la build per HintPath non
-         trovato. Il rimedio non risolveva il problema che nominava.
-         Adesso: variabile d'ambiente SW_REDIST, oppure /p:SwRedist=..., e in
-         mancanza di tutti e due il posto di serie.
+    <!-- WHERE THE INTEROP IS, and it can be overridden in three ways.
+         `README.md` documented `set SW_REDIST=...`, but that variable was
+         read only by `Program.cs` at RUN time, for the AssemblyResolve:
+         at BUILD time this value was constant, and whoever followed
+         the documented instruction saw the build fail for HintPath not
+         found. The remedy did not solve the problem it named.
+         Now: environment variable SW_REDIST, or /p:SwRedist=..., and in
+         the absence of both the standard place.
 
-         VOCE H10, 17/9/2026: LA VARIABILE BUONA E' SW_INSTALL_PATH, la RADICE
-         dell'installazione — la stessa che leggono gia' gli altri due .csproj.
-         Qui si leggeva solo `api\redist`, e chi impostava la radice per
-         compilare la libreria vedeva fallire il banco senza capire perche':
-         due nomi, due significati, e nessuno dei due lo diceva all'altro.
-         L'ordine: /p:SwRedist (esplicito, vince) -> SW_INSTALL_PATH ->
-         SW_REDIST (il vecchio nome, ancora letto) -> il posto di serie. -->
+         ENTRY H10, 17/9/2026: THE RIGHT VARIABLE IS SW_INSTALL_PATH, the ROOT
+         of the installation — the same one the other two .csproj already read.
+         Here only `api\redist` was read, and whoever set the root to
+         build the library saw the bench fail without understanding why:
+         two names, two meanings, and neither told the other.
+         The order: /p:SwRedist (explicit, wins) -> SW_INSTALL_PATH ->
+         SW_REDIST (the old name, still read) -> the standard place.-->
     <SwRedist Condition=" '$(SwRedist)' == '' AND '$(SwInstallPath)' != '' ">$(SwInstallPath)\api\redist</SwRedist>
     <SwRedist Condition=" '$(SwRedist)' == '' AND '$(SW_INSTALL_PATH)' != '' ">$(SW_INSTALL_PATH)\api\redist</SwRedist>
     <SwRedist Condition=" '$(SwRedist)' == '' AND '$(SW_REDIST)' != '' ">$(SW_REDIST)</SwRedist>

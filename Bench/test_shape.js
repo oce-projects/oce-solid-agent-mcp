@@ -1,23 +1,23 @@
-// V3 — la frase basta a RIDISEGNARE il pezzo?
+// V3 — is the sentence enough to REDRAW the part?
 //
 //   node test_shape.js
 //
-// PERCHE' IL CRITERIO E' IL VOLUME E NON UN GIUDIZIO. La voce V3 chiede che
-// dalla sola frase un modello sappia «ridisegnare il pezzo con le quote
-// giuste». «Somiglia» non e' una misura: o il pezzo ridisegnato ha il volume
-// dell'originale, o non ce l'ha.
+// WHY THE CRITERION IS THE VOLUME AND NOT A JUDGMENT. Entry V3 asks that
+// from the sentence alone a model know how to «redraw the part with the right
+// dimensions». «It resembles» is not a measurement: either the redrawn part has the volume
+// of the original, or it does not.
 //
-// Il volume non e' tutto — due pezzi diversi possono averlo uguale — ma
-// sbagliare una quota lo cambia quasi sempre, e la differenza dice **di
-// quanto** si e' sbagliato invece di dire «no». Insieme all'ingombro, che si
-// controlla anche quello, un falso positivo diventa improbabile.
+// The volume is not everything — two different parts can have it equal — but
+// getting a dimension wrong almost always changes it, and the difference says **by
+// how much** one is wrong instead of saying «no». Together with the bounding box, which is
+// checked too, a false positive becomes improbable.
 //
-// COME SI RIFA' TUTTA LA MISURA:
-//   1. `node collect_views.js`   costruisce i cinque pezzi veri e scrive
-//                                 lo stato, che contiene il campo `shape`
-//   2. si danno le cinque frasi a un modello ISOLATO, che scrive i piani in
-//      `cases/forma/1..5.json` senza aver visto niente altro
-//   3. `node test_shape.js`      esegue i piani e confronta
+// HOW THE WHOLE MEASUREMENT IS REDONE:
+//   1. `node collect_views.js`   builds the five real parts and writes
+//                                 the state, which contains the field `shape`
+//   2. the five sentences are given to an ISOLATED model, which writes the plans in
+//      `cases/forma/1..5.json` without having seen anything else
+//   3. `node test_shape.js`      executes the plans and compares
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -27,19 +27,19 @@ const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 const PLANS = path.join(__dirname, "cases", "forma");
 
-// I PEZZI VERI, presi da `Bench/viste/*-stato.json`, che e' il file che il
-// modello NON ha visto. Se manca, la misura non si puo' fare: non si inventa
-// un valore atteso.
+// THE REAL PARTS, taken from `Bench/viste/*-stato.json`, which is the file that the
+// model has NOT seen. If it is missing, the measurement cannot be made: an
+// expected value is not invented.
 const VIEWS = path.join(__dirname, "viste");
 const SHAPES = [
   "1_drilled_plate", "2_open_shell", "3_l_bracket",
   "4_drilled_flange", "5_stepped_shaft",
 ];
 
-// Quanto puo' sbagliare il volume e valere lo stesso: l'1%.
-// Piu' stretto rifiuterebbe un pezzo giusto disegnato con un raccordo in piu';
-// piu' largo lascerebbe passare uno spessore sbagliato di un millimetro su
-// dieci.
+// How much the volume can be off and still count: 1%.
+// Tighter would reject a right part drawn with one extra fillet;
+// wider would let through a thickness wrong by one millimeter in
+// ten.
 const TOLERANCE = 0.01;
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -107,10 +107,10 @@ function neighbors(a, b, tolerance) {
   return Math.abs(a - b) / big <= tolerance;
 }
 
-// L'ingombro non ha un ordine garantito — dipende da come il pezzo e' stato
-// costruito — quindi si confronta ORDINATO: 200x15x120 e 120x200x15 sono lo
-// stesso parallelepipedo visto da un'altra parte, e il modello non poteva
-// sapere quale orientamento avesse scelto chi ha fatto l'originale.
+// The bounding box has no guaranteed order — it depends on how the part was
+// built — so it is compared SORTED: 200x15x120 and 120x200x15 are the
+// same parallelepiped seen from another side, and the model could not
+// know which orientation whoever made the original had chosen.
 function sameBoundingBox(a, b) {
   if (!a || !b || a.length !== 3 || b.length !== 3) return false;
   const x = a.slice().sort((p, q) => p - q);
@@ -186,5 +186,5 @@ async function testOne(number, itemName) {
   console.log("Il numero va nel README accanto a quello di V2: sono due modi di " +
               "dire la stessa cosa, e costano ordini di grandezza diversi.");
   bridge.stdin.end();
-  process.exitCode = 0;   // e' una MISURA, non un controllo: non fa fallire un giro
+  process.exitCode = 0;   // it is a MEASUREMENT, not a check: it does not make a run fail
 })();

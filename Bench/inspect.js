@@ -1,16 +1,16 @@
-// Chiama `inspect_part` e stampa poche cose: serve a leggere lo stato fra
-// un passo e l'altro del banco, senza mandare un piano.
+// Calls `inspect_part` and prints a few things: it serves to read the state between
+// one step and the next of the bench, without sending a plan.
 //
-//   node inspect.js                stampa il riassunto
-//   node inspect.js tutto          stampa il JSON intero
+//   node inspect.js                prints the summary
+//   node inspect.js tutto          prints the whole JSON
 const { spawn } = require("child_process");
 const path = require("path");
 
-// IL PERCORSO SI RICAVA, NON SI SCRIVE. Qui c'era il percorso assoluto di
-// questa macchina di sviluppo: chi clonava il repository altrove e lanciava il
-// comando come lo documenta README.md otteneva un ENOENT su un file che sul
-// suo disco non esiste, senza nessun indizio che andasse impostata `PONTE`.
-// `run_plans.js`, due file piu' in la', lo faceva gia' giusto.
+// THE PATH IS DERIVED, NOT WRITTEN. Here there used to be the absolute path of
+// this development machine: whoever cloned the repository elsewhere and launched the
+// command as README.md documents it got an ENOENT on a file that on their
+// disk does not exist, with no hint that `PONTE` had to be set.
+// `run_plans.js`, two files further on, already did it right.
 const ROOT = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
 const everything = process.argv[2] === "tutto";

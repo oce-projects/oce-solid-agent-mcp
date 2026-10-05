@@ -9,104 +9,104 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// LE SETTE OPERAZIONI NON ANCORA PROVATE.
+    /// THE SEVEN OPERATIONS NOT YET TESTED.
     ///
-    /// PERCHE' ESISTE IL CAMPO «provata» IN ai_disegno.py.
-    /// Una firma verificata per riflessione non basta. HoleWizard5, chiamata
-    /// con la firma giusta e i parametri giusti, costruiva un foro da 50,8 mm
-    /// — due pollici — con il nome giusto nell'albero e senza dare nessun
-    /// errore. Il difetto si vedeva solo misurando il volume asportato.
+    /// WHY THE FIELD «provata» EXISTS IN ai_disegno.py.
+    /// A signature verified by reflection is not enough. HoleWizard5, called
+    /// with the right signature and the right parameters, built a hole of 50,8 mm
+    /// — two inches — with the right name in the tree and without giving any
+    /// error. The defect was seen only by measuring the removed volume.
     ///
-    /// Ognuna di queste sette ha almeno un dubbio che la riflessione non puo'
-    /// sciogliere, e che se sbagliato produce un pezzo diverso da quello
-    /// confermato SENZA dare errore:
+    /// Each of these seven has at least one doubt that reflection cannot
+    /// resolve, and that if wrong produces a part different from the confirmed
+    /// one WITHOUT giving an error:
     ///
-    ///   chamfer_edges  swChamferType_e: e' davvero uno smusso o un raccordo?
-    ///   rivoluzione     l'auto-selezione risolve profilo E centerline?
-    ///   guscio          «Outward» vuol dire davvero verso l'esterno?
-    ///   create_plane      il segno: valore assoluto + OptionFlip, o segnato?
-    ///   create_axis       l'asse si ritrova poi per nome con SelectByID2?
-    ///   linear_pattern  il Mark della direzione, e da che parte va
-    ///   specchia        i Mark del piano (1) e della lavorazione (4)
+    ///   chamfer_edges  swChamferType_e: is it really a chamfer or a fillet?
+    ///   revolve         does the auto-selection resolve the profile AND the centerline?
+    ///   shell           does «Outward» really mean toward the outside?
+    ///   create_plane      the sign: absolute value + OptionFlip, or signed?
+    ///   create_axis       is the axis then found again by name with SelectByID2?
+    ///   linear_pattern  the Mark of the direction, and which way it goes
+    ///   mirror          the Marks of the plane (1) and of the feature (4)
     ///
-    /// Ogni prova COSTRUISCE e MISURA: volume asportato, ingombro, posizione
-    /// dei cilindri. Le posizioni non si assumono mai dai parametri chiesti —
-    /// si rileggono dalla geometria, perche' il punto della prova e' proprio
-    /// sapere se il pezzo e' finito dove si credeva.
+    /// Every check BUILDS and MEASURES: removed volume, bounding box, position
+    /// of the cylinders. Positions are never assumed from the parameters asked —
+    /// they are re-read from the geometry, because the point of the check is precisely
+    /// to know whether the part ended up where it was believed.
     ///
-    /// Quelle che passano diventano `provata=True` in ai_disegno.py, nello
-    /// stesso commit in cui il RAG registra i numeri misurati.
+    /// Those that pass become `provata=True` in ai_disegno.py, in the same
+    /// commit in which the RAG records the measured numbers.
     /// </summary>
     internal static partial class Program
     {
-        // L'ELENCO DI QUESTE PROVE NON STA PIU' QUI.
+        // THE LIST OF THESE CHECKS IS NO LONGER HERE.
         //
-        // Fino alla 0.40.0 c'era un `NuoveOperazioni()` che le chiamava in fila.
-        // Dalla voce F13 stanno nella tabella dei gruppi, in `Program.cs`:
-        // **nello stesso ordine**, con un nome davanti a ognuna, cosi' che
-        // `--gruppo guscio` ne lanci una sola. Due elenchi — uno per lanciarle
-        // tutte e uno per lanciarne una — sarebbero due posti da tenere
-        // allineati, e il giorno in cui divergono il banco lancia meno prove di
-        // quante ne mostra.
+        // Up to 0.40.0 there was a `NuoveOperazioni()` that called them in a row.
+        // Since entry F13 they are in the table of the groups, in `Program.cs`:
+        // **in the same order**, with a name in front of each one, so that
+        // `--gruppo guscio` launches just one. Two lists — one to launch them
+        // all and one to launch one — would be two places to keep
+        // aligned, and the day they diverge the bench launches fewer checks than
+        // it shows.
 
         // ==================================================================
-        // V3/V7. la forma detta in una frase: ADESSO SONO DUE FILE
+        // V3/V7. the shape stated in a sentence: NOW THEY ARE TWO FILES
         // ==================================================================
         //
-        // `cases\sentence\clean_shaft_declares_profile.json` e
-        // `cases\sentence\drilled_shaft_no_longer_declares_profile.json` (voce
-        // F11). Sono diventati file quando le attese hanno imparato a
-        // chiedere Â«contieneÂ» e Â«non_contieneÂ» su una frase invece che
-        // Â«ugualeÂ» su un numero.
+        // `cases\sentence\clean_shaft_declares_profile.json` and
+        // `cases\sentence\drilled_shaft_no_longer_declares_profile.json` (entry
+        // F11). They became files when the expectations learned to
+        // ask Â«contieneÂ» and Â«non_contieneÂ» on a sentence instead of
+        // Â«ugualeÂ» on a number.
         //
-        // IL ROSSO STA TUTTO IN Â«non_contieneÂ». Una frase che dichiara il
-        // profilo dei tre diametri su un pezzo che quel profilo non ce l'ha
-        // piu' non fallisce niente: e' la descrizione giusta di un ALTRO
-        // pezzo, e
-        // il modello ci costruisce sopra. Si prende solo pretendendo che una
-        // parola SPARISCA.
+        // THE RED IS ALL IN Â«non_contieneÂ». A sentence that declares the
+        // profile of the three diameters on a part that no longer has that profile
+        // fails nothing: it is the right description of ANOTHER
+        // part, and
+        // the model builds on it. It is caught only by demanding that a
+        // word DISAPPEAR.
 
 
         // ==================================================================
-        // R2. suppress_feature ed delete_feature: ADESSO SONO FILE
+        // R2. suppress_feature and delete_feature: NOW THEY ARE FILES
         // ==================================================================
         //
-        // `cases\removal\*.json` (voce F11) - cinque casi, gli stessi numeri:
-        // tre fori da 14 su una piastra 200x100x20, il terzo spento e il
-        // volume che torna ESATTAMENTE a quello con due, riacceso e torna a
-        // quello con tre; il primo cancellato; e i tre rifiuti - il nome
-        // inventato, la soppressione chiesta due volte, l'estrusione di base
-        // che porterebbe via i figli.
+        // `cases\removal\*.json` (entry F11) - five cases, the same numbers:
+        // three holes of 14 on a plate 200x100x20, the third turned off and the
+        // volume that goes back EXACTLY to the one with two, turned on again and it goes back to
+        // the one with three; the first deleted; and the three refusals - the invented
+        // name, the suppression asked twice, the base extrusion
+        // that would take its children away.
         //
-        // IL FILE PINZA DI PIU'. Il C# guardava il volume e il campo
-        // Â«soppressaÂ»; i casi guardano anche QUALE foro si e' spento -
-        // `centers_x_mm` passa da [-60, 0, 60] a [-60, 0] - e quante
-        // lavorazioni restano nell'albero, che e' tutta la differenza fra
-        // sopprimere e cancellare. Si lanciano con `--gruppo casi`.
+        // THE FILE CLAMPS HARDER. The C# looked at the volume and the field
+        // Â«soppressaÂ»; the cases also look at WHICH hole was turned off -
+        // `centers_x_mm` goes from [-60, 0, 60] to [-60, 0] - and how many
+        // features remain in the tree, which is the whole difference between
+        // suppressing and deleting. They are launched with `--gruppo casi`.
 
 
 
         /// <summary>
-        /// LO SCATTO: una vista del pezzo, salvata su file.
+        /// THE SHOT: a view of the part, saved to a file.
         ///
-        /// A COSA SERVE. Il modello in uso su un server GPU interno (qwen3.6:35b) dichiara la
-        /// capacita' «vision»: sa leggere le immagini. Quindi «far vedere il
-        /// pezzo alla AI» puo' essere LETTERALE, non solo una lista di numeri.
+        /// WHAT IT IS FOR. The model in use on an internal GPU server (qwen3.6:35b) declares the
+        /// «vision» capability: it can read images. So «showing the
+        /// part to the AI» can be LITERAL, not just a list of numbers.
         ///
-        /// Prima di costruire tutta la catena — add-in che scatta, server che
-        /// allega, guardia di capacita' — va risposto a una domanda che nessuna
-        /// documentazione puo' risolvere: **quel modello capisce davvero uno
-        /// screenshot di un CAD?** Grigio su grigio, senza quote, in
-        /// prospettiva. Se la risposta e' no, si e' speso mezz'ora invece di
-        /// due giorni.
+        /// Before building the whole chain — add-in that takes the shot, server that
+        /// attaches it, capability guard — a question must be answered that no
+        /// documentation can resolve: **does that model really understand a
+        /// screenshot of a CAD?** Grey on grey, without dimensions, in
+        /// perspective. If the answer is no, half an hour has been spent instead of
+        /// two days.
         ///
-        /// Questo metodo produce il materiale della prova: un pezzo di cui
-        /// sappiamo TUTTO, e la sua vista. Il confronto lo fa poi chi manda
-        /// l'immagine al modello e legge cosa risponde.
+        /// This method produces the material for the check: a part of which
+        /// we know EVERYTHING, and its view. The comparison is made afterwards by whoever sends
+        /// the image to the model and reads what it answers.
         ///
-        /// `SaveBMP` sta su IModelDoc2 e non chiede niente all'add-in: si puo'
-        /// scattare senza aver ancora scritto una riga di operazione.
-        /// Verificata per riflessione:
+        /// `SaveBMP` is on IModelDoc2 and asks nothing of the add-in: one can
+        /// take the shot without having yet written a line of operation.
+        /// Verified by reflection:
         ///   IModelDoc2.SaveBMP(String FileNameIn, Int32 WidthIn, Int32 HeightIn)
         ///   IModelDoc2.ShowNamedView2(String VName, Int32 ViewId)
         ///   IModelDoc2.ViewZoomtofit2()
@@ -136,38 +136,38 @@ namespace Oce.Solid.Agent.Bench
                     },
                 }, out error, out holeName, state0);
 
-                // La selezione va tolta: le facce evidenziate in verde
-                // cambiano l'immagine e non fanno parte del pezzo.
+                // The selection must be removed: the faces highlighted in green
+                // change the image and are not part of the part.
                 doc.ClearSelection2(true);
                 doc.ViewDisplayShaded();
 
-                // DOVE FINISCONO GLI SCATTI: accanto all'eseguibile del banco,
-                // in `lavoro\viste`, che sta nel .gitignore.
+                // WHERE THE SHOTS END UP: next to the bench's executable,
+                // in `lavoro\viste`, which is in the .gitignore.
                 //
-                // Era un percorso assoluto dentro una cartella temporanea di
-                // sessione, nome utente compreso. Sbagliato due volte: quella
-                // cartella non esiste piu', e il nome di chi lavora non deve
-                // uscire da questa macchina (`Checks\check-publishability.ps1`).
+                // It used to be an absolute path inside a temporary folder of a
+                // session, user name included. Wrong twice: that
+                // folder no longer exists, and the name of whoever works must not
+                // leave this machine (`Checks\check-publishability.ps1`).
                 string folder = System.IO.Path.Combine(
                     System.IO.Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".",
                     "lavoro", "views");
                 if (!System.IO.Directory.Exists(folder)) System.IO.Directory.CreateDirectory(folder);
 
-                // Piu' viste, perche' UNA SOLA NON BASTA e vale la pena
-                // misurarlo: da un'isometrica non si vede se un foro e'
-                // passante o cieco, e non si vede il retro.
-                // I NOMI DELLE VISTE SONO IN INGLESE ANCHE SU UNA
-                // INSTALLAZIONE ITALIANA. Con «*Isometrica» ShowNamedView2
-                // non protesta e non fa niente: lo scatto esce con la vista
-                // che c'era prima. E' la stessa trappola dei nomi dei piani
-                // gia' documentata nel RAG — e se l'immagine sbagliata fosse
-                // arrivata al modello, la colpa sarebbe sembrata sua.
-                // NE' IL NOME ITALIANO NE' QUELLO INGLESE: NON E' IL NOME.
-                // `ShowNamedView2` con «*Isometrica» e con «*Isometric» ha
-                // prodotto la STESSA IMMAGINE, cioe' non ha fatto niente in
-                // nessuno dei due casi. Si passa allora l'identificativo
-                // numerico della vista standard, che e' il secondo parametro
-                // e non dipende da nessuna lingua:
+                // More views, because ONE ALONE IS NOT ENOUGH and it is worth
+                // measuring: from an isometric one cannot tell whether a hole is
+                // through or blind, and the back is not seen.
+                // THE NAMES OF THE VIEWS ARE IN ENGLISH EVEN ON AN
+                // ITALIAN INSTALLATION. With «*Isometrica» ShowNamedView2
+                // does not complain and does nothing: the shot comes out with the view
+                // that was there before. It is the same trap as the names of the planes
+                // already documented in the RAG — and if the wrong image had
+                // reached the model, the fault would have seemed its own.
+                // NEITHER THE ITALIAN NAME NOR THE ENGLISH ONE: IT IS NOT THE NAME.
+                // `ShowNamedView2` with «*Isometrica» and with «*Isometric» produced
+                // the SAME IMAGE, that is it did nothing in
+                // either case. So the numeric identifier of the standard view
+                // is passed, which is the second parameter
+                // and does not depend on any language:
                 //   swFrontView=1 swTopView=5 swIsometricView=7 swTrimetricView=8
                 var views = new[]
                 {
@@ -183,10 +183,10 @@ namespace Oce.Solid.Agent.Bench
                     {
                         doc.ShowNamedView2("", view.Item2);
                         doc.GraphicsRedraw2();
-                        // LO ZOOM VA DOPO IL RIDISEGNO, e va ridisegnato
-                        // ancora: al primo giro il pezzo usciva tagliato sul
-                        // bordo destro perche' l'adattamento lavorava sulla
-                        // vista vecchia.
+                        // THE ZOOM GOES AFTER THE REDRAW, and it must be redrawn
+                        // again: on the first run the part came out cut off at the
+                        // right edge because the fit worked on the
+                        // old view.
                         doc.ViewZoomtofit2();
                         doc.GraphicsRedraw2();
                         string itemName = view.Item1;
@@ -211,15 +211,15 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// QUANTO VEDE IL MODELLO, su un pezzo con delle lavorazioni sopra.
+        /// HOW MUCH THE MODEL SEES, on a part with features on it.
         ///
-        /// NON E' UNA PROVA, E' UN CENSIMENTO. Il committente ha detto che la
-        /// AI e' «parzialmente cieca» e che va fatta vedere bene. Prima di
-        /// decidere cosa aggiungere allo stato bisogna sapere cosa c'e' —
-        /// misurato su un pezzo vero, non sulla piastra nuda.
+        /// IT IS NOT A CHECK, IT IS A CENSUS. The client said that the
+        /// AI is «partially blind» and that it must be made to see well. Before
+        /// deciding what to add to the state one must know what is there —
+        /// measured on a real part, not on the bare plate.
         ///
-        /// Il pezzo: piastra 200x120x20, quattro fori M8, un raccordo. Cioe'
-        /// il minimo su cui un progettista direbbe «quel foro portalo a M10».
+        /// The part: plate 200x120x20, four M8 holes, a fillet. That is
+        /// the minimum on which a designer would say «take that hole to M10».
         /// </summary>
         private static void HowMuchTheModelSees()
         {
@@ -261,9 +261,9 @@ namespace Oce.Solid.Agent.Bench
                         itemList != null ? itemList.Count + " voci" : Convert.ToString(v)));
                 }
 
-                // LE FEATURE: e' qui che si vede la cecita'. Un progettista che
-                // dice «quel foro portalo a M10» sta indicando una feature, e
-                // il modello di quella feature deve sapere almeno CHE FORO E'.
+                // THE FEATURES: this is where the blindness shows. A designer who
+                // says «take that hole to M10» is pointing at a feature, and
+                // the model of that feature must know at least WHAT HOLE IT IS.
                 Console.WriteLine();
                 Console.WriteLine("  --- cosa dice lo stato di ogni lavorazione ---");
                 var feature = docState["feature"] as System.Collections.IList;
@@ -303,14 +303,14 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Che facce ha davvero la piastra di prova.
+        /// What faces the test plate really has.
         ///
-        /// NON E' UNA PROVA, E' UNA DOMANDA. Al primo giro dentro SolidWorks
-        /// quindici casi sono morti tutti sulla stessa riga — «nessuna faccia
-        /// davanti» — e la causa poteva stare in tre posti diversi: la piastra
-        /// costruita su un piano che non e' quello che credevo, lo stato che
-        /// non elenca quella faccia, o `Facing` che la chiama in un altro modo.
-        /// Stampare l'elenco toglie di mezzo la deduzione.
+        /// IT IS NOT A CHECK, IT IS A QUESTION. On the first run inside SolidWorks
+        /// fifteen cases all died on the same line — «nessuna faccia
+        /// davanti» — and the cause could be in three different places: the plate
+        /// built on a plane that is not the one I thought, the state that
+        /// does not list that face, or `Facing` that calls it in another way.
+        /// Printing the list removes the deduction.
         /// </summary>
         private static void PrintPlateFaces()
         {
@@ -346,63 +346,63 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // 00. move_bodies — il baricentro dice se la distanza e' quella giusta
+        // 00. move_bodies — the center of mass says whether the distance is the right one
         // ==================================================================
         //
-        // LA DOMANDA A CUI QUESTE PROVE RISPONDONO. `InsertMoveCopyBody2`
-        // tiene la direzione (TransformX/Y/Z) e il modulo (TransformValue) in
-        // due campi distinti, e da nessuna parte e' scritto quale dei due
-        // comanda. L'add-in passa una direzione UNITARIA e la distanza in
-        // TransDist. Se la lettura giusta fosse un'altra — per esempio i
-        // TransX/Y/Z come spostamento assoluto — il pezzo si sposterebbe di
-        // una distanza sbagliata SENZA NESSUN ERRORE.
+        // THE QUESTION THESE CHECKS ANSWER. `InsertMoveCopyBody2`
+        // keeps the direction (TransformX/Y/Z) and the modulus (TransformValue) in
+        // two distinct fields, and nowhere is it written which of the two
+        // commands. The add-in passes a UNIT direction and the distance in
+        // TransDist. If the right reading were another one — for example the
+        // TransX/Y/Z as absolute displacement — the part would move by
+        // a wrong distance WITH NO ERROR.
         //
-        // Il banco non si fida ne' di SolidWorks ne' del controllo interno
-        // dell'operazione: rimisura il baricentro per conto proprio.
+        // The bench trusts neither SolidWorks nor the operation's internal
+        // check: it re-measures the center of mass on its own.
         private static void TestMoveBodies()
         {
             Console.WriteLine();
             Console.WriteLine("=== move_bodies (add-in) ===");
 
-            // Due piastre uguali, staccate: 100x100x10 = 100.000 mm3 ciascuna.
-            // Spostandone UNA di 50 mm in Z, il baricentro di tutto il pezzo si
-            // sposta della meta': 25 mm. E' un'uguaglianza, non una stima.
+            // Two equal plates, apart: 100x100x10 = 100.000 mm3 each.
+            // Moving ONE of them by 50 mm in Z, the center of mass of the whole part
+            // moves by half: 25 mm. It is an equality, not an estimate.
             Move("sposta una piastra di 50 in Z", 0, 0, 50, false, 0,
                    expectedBodies: 2, volumeExpected: 200000, centerMoveZ: 25);
-            // NOTA per chi passa di qui: il 15/9/2026 questo 200000 e' stato
-            // messo a 199000 apposta, per vedere `bench.ps1` uscire 1 e
-            // nominare il caso con atteso e misurato nel resoconto. E' il
-            // criterio di chiusura della voce F2, e va rifatto cosi' se
-            // qualcuno tocca il resoconto.
+            // NOTE for whoever passes by: on 15/9/2026 this 200000 was
+            // set to 199000 on purpose, to see `bench.ps1` exit 1 and
+            // name the case with expected and measured in the report. It is the
+            // closing criterion of entry F2, and it must be redone this way if
+            // somebody touches the report.
             //
-            // E lo stesso giorno, con un errore di sintassi messo qui apposta,
-            // si e' visto `bench.ps1` fermarsi PRIMA di lanciare e uscire 2:
-            // e' il difetto che la voce F2 nominava per nome — uno script che
-            // esce 0 perche' la compilazione e' fallita e nessuno ha guardato.
+            // And the same day, with a syntax error put here on purpose,
+            // `bench.ps1` was seen to stop BEFORE launching and exit 2:
+            // it is the defect that entry F2 named by name — a script that
+            // exits 0 because the build failed and nobody looked.
             Move("sposta di 600 in Z", 0, 0, 600, false, 0,
                    expectedBodies: 2, volumeExpected: 200000, centerMoveZ: 300);
             Move("sposta all'indietro, -120 in Z", 0, 0, -120, false, 0,
                    expectedBodies: 2, volumeExpected: 200000, centerMoveZ: -60);
 
-            // Copia: gli originali restano, e ne compare una in piu'.
-            // Tre corpi da 100.000, e la copia sta a +600.
+            // Copy: the originals stay, and one more appears.
+            // Three bodies of 100.000, and the copy is at +600.
             // baricentroZ = (100000*0 + 100000*0 + 100000*600) / 300000 = 200.
             Move("copia una piastra a +600 in Z (il castello)", 0, 0, 600, true, 1,
                    expectedBodies: 3, volumeExpected: 300000, centerMoveZ: 200);
-            // Due copie: +600 e +1200.
+            // Two copies: +600 and +1200.
             // baricentroZ = (0 + 0 + 600 + 1200) / 4 = 450.
             Move("due copie, a +600 e +1200", 0, 0, 600, true, 2,
                    expectedBodies: 4, volumeExpected: 400000, centerMoveZ: 450);
 
-            // Spostamento nullo: l'add-in deve rifiutarlo da solo, senza
-            // aspettare il validatore del server.
+            // Null displacement: the add-in must refuse it by itself, without
+            // waiting for the server's validator.
             Move("spostamento nullo (deve fallire)", 0, 0, 0, false, 0,
                    expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
                    mustFail: true);
             Move("copia con spostamento nullo (deve fallire)", 0, 0, 0, true, 1,
                    expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
                    mustFail: true);
-            // Un corpo che non c'e'.
+            // A body that is not there.
             Move("corpo inesistente (deve fallire)", 0, 0, 50, false, 0,
                    expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
                    mustFail: true, fakeUid: "C99");
@@ -418,7 +418,7 @@ namespace Oce.Solid.Agent.Bench
             try
             {
                 doc = NewPart();
-                // Due corpi separati: il secondo NON si fonde col primo.
+                // Two separate bodies: the second does NOT merge with the first.
                 PlateWhere(doc, 100, 100, 10, 0, 0, bottoms: true);
                 PlateWhere(doc, 100, 100, 10, 200, 0, bottoms: false);
                 if (CountBodies(doc) != 2)
@@ -434,10 +434,10 @@ namespace Oce.Solid.Agent.Bench
                 double centerBefore = DocumentCenterZ(doc);
                 var arguments = new Dictionary<string, object>
                 {
-                    // Si muove UN corpo solo: e' cio' che rende il baricentro
-                    // una misura sensibile. Muovendoli tutti, il baricentro si
-                    // sposterebbe esattamente di d e non distinguerebbe un
-                    // corpo dimenticato indietro.
+                    // ONE body only is moved: it is what makes the center of mass
+                    // a sensitive measurement. Moving them all, the center of mass would
+                    // move by exactly d and would not tell a body
+                    // forgotten behind.
                     ["bodies_uid"] = new List<string> { fakeUid ?? uid[1] },
                     ["dx_mm"] = dx,
                     ["dy_mm"] = dy,
@@ -473,7 +473,7 @@ namespace Oce.Solid.Agent.Bench
             finally { Close(doc); }
         }
 
-        /// <summary>Gli identificativi dei corpi, come li elenca lo stato.</summary>
+        /// <summary>The identifiers of the bodies, as the state lists them.</summary>
         private static List<string> BodiesUid(Dictionary<string, object> docState)
         {
             var outside = new List<string>();
@@ -491,9 +491,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il baricentro del pezzo lungo Z, in mm. E' la misura con cui il
-        /// banco controlla lo spostamento per conto proprio, senza fidarsi di
-        /// quello che l'operazione dichiara di aver fatto.
+        /// The part's center of mass along Z, in mm. It is the measurement with which the
+        /// bench checks the displacement on its own, without trusting
+        /// what the operation declares to have done.
         /// </summary>
         private static double DocumentCenterZ(IModelDoc2 doc)
         {
@@ -515,9 +515,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Una piastra centrata in (x, y). Con `fondi` a falso resta un corpo
-        /// SEPARATO invece di fondersi con quello che c'e' gia': serve per
-        /// avere piu' corpi da spostare.
+        /// A plate centered at (x, y). With `fondi` false it stays a SEPARATE
+        /// body instead of merging with the one that is already there: it serves to
+        /// have more bodies to move.
         /// </summary>
         private static void PlateWhere(IModelDoc2 doc, double L, double W, double H,
                                         double x, double y, bool bottoms)
@@ -539,80 +539,80 @@ namespace Oce.Solid.Agent.Bench
             doc.ClearSelection2(true);
         }
 
-        // ── L'ASOLA E LO SMUSSO ADESSO SONO FILE ──────────────────────────
+        // ── THE SLOT AND THE CHAMFER ARE NOW FILES ────────────────────────
         //
-        // `cases\slot\*.json` — quindici casi: la stessa area 535,0332 mm²,
-        // le stesse cinque facce di costa, la rotazione vista su una piastra
-        // stretta, i tre rifiuti con le loro gemelle.
+        // `cases\slot\*.json` — fifteen cases: the same area 535,0332 mm²,
+        // the same five side faces, the rotation seen on a narrow
+        // plate, the three refusals with their twins.
         //
-        // `cases\chamfer\*.json` — tre casi: 5x5 a 45 gradi (1250 mm³, dove un
-        // raccordo R5 ne toglierebbe 537), il cianfrino 3x6 a due lati, e lo
-        // smusso piu' grande dello spigolo.
+        // `cases\chamfer\*.json` — three cases: 5x5 at 45 degrees (1250 mm³, where a
+        // fillet R5 would remove 537), the 3x6 bevel on two sides, and the
+        // chamfer bigger than the edge.
         //
-        // In tutti e due i gruppi i numeri sono **esatti**: le tolleranze in
-        // percentuale che stavano qui — il 2% dell'asola, il 3% dello smusso —
-        // la voce F3 le vieta. Si lanciano con `--gruppo casi`.
+        // In both groups the numbers are **exact**: the percentage
+        // tolerances that were here — 2% for the slot, 3% for the chamfer —
+        // entry F3 forbids them. They are launched with `--gruppo casi`.
 
         // ==================================================================
-        // 2. rivoluzione ADESSO E' UN GRUPPO DI FILE
+        // 2. revolve NOW IS A GROUP OF FILES
         // ==================================================================
         //
-        // `cases\revolve\*.json` (voce F11) - cinque casi: il cilindro, lo
-        // albero a gradini dell'esempio, il mezzo giro, la boccola cava e il
-        // profilo a cavallo dell'asse con la sua gemella.
+        // `cases\revolve\*.json` (entry F11) - five cases: the cylinder, the
+        // stepped shaft of the example, the half turn, the hollow bushing and the
+        // profile straddling the axis with its twin.
         //
-        // LA TOLLERANZA E' LA DIFFERENZA. Qui si accettava `atteso * 0.02`:
-        // sul cilindro da 62.831 mm3 sono 1.256 mm3 di scarto ammesso, piu'
-        // di un foro M20 passante. Nei file e' +-0,5 mm3, e il perche' della
-        // tolleranza e' scritto accanto (il conto ha pi greco dentro).
+        // THE TOLERANCE IS THE DIFFERENCE. Here `atteso * 0.02` was accepted:
+        // on the cylinder of 62.831 mm3 that is 1.256 mm3 of allowed slack, more
+        // than a through M20 hole. In the files it is +-0,5 mm3, and the why of the
+        // tolerance is written next to it (the computation has pi inside).
 
-        // 3. guscio — il verso di «Outward», misurato sull'ingombro
+        // 3. shell — the direction of «Outward», measured on the bounding box
         // ==================================================================
-        // ── QUESTA PROVA ADESSO E' UN FILE ────────────────────────────────
+        // ── THIS CHECK IS NOW A FILE ──────────────────────────────────────
         //
-        // `cases/features/internal_shell.json` e `external_shell.json` (voce
-        // F3). Gli stessi due numeri — 82.500 e 106.500 — piu' l'ingombro, le
-        // facce tolte, il verso dichiarato e il materiale asportato, e
-        // **leggibili da chi il C# non lo scrive**.
+        // `cases/features/internal_shell.json` and `external_shell.json` (entry
+        // F3). The same two numbers — 82.500 and 106.500 — plus the bounding box, the
+        // faces removed, the declared direction and the material taken away, and
+        // **readable by whoever does not write C#**.
         //
-        // Il C# qui sotto e' stato tolto, non lasciato accanto. Due prove sulla
-        // stessa cosa vogliono dire che un giorno una delle due cambiera' e
-        // l'altra no. E soprattutto: quella vecchia accettava
-        // `expectedVolume * 0.02` — sui 240.000 mm³ della piastra sono **4.800
-        // mm³, piu' di un foro M12 passante**. Una prova che accetta un foro di
-        // scarto non prova il foro, e tenerla in giro come rete di sicurezza
-        // sarebbe tenere in giro proprio il difetto che F3 chiude.
+        // The C# below was removed, not left next to it. Two checks on the
+        // same thing mean that one day one of the two will change and the
+        // other will not. And above all: the old one accepted
+        // `expectedVolume * 0.02` — on the 240.000 mm³ of the plate that is **4.800
+        // mm³, more than a through M12 hole**. A check that accepts a hole of
+        // slack does not prove the hole, and keeping it around as a safety net
+        // would be keeping around the very defect that F3 closes.
         // ==================================================================
-        // 4. create_plane ADESSO E' UN GRUPPO DI FILE
+        // 4. create_plane NOW IS A GROUP OF FILES
         // ==================================================================
         //
-        // `cases\plane\*.json` (voce F11) - tre casi. L'attesa non e' sulla
-        // distanza che il ponte ricopia dalla richiesta, ma su DOVE E' FINITO
-        // il piano: `last_plane_mm`, tre numeri letti dalla matrice del
-        // piano creato. Il segno si vede solo cosi'. `--gruppo casi`.
+        // `cases\plane\*.json` (entry F11) - three cases. The expectation is not on the
+        // distance that the bridge copies from the request, but on WHERE THE PLANE
+        // ENDED UP: `last_plane_mm`, three numbers read from the matrix of the
+        // plane created. The sign is seen only this way. `--gruppo casi`.
 
-        // 5. create_axis — e la domanda vera: si ritrova poi per nome?
+        // 5. create_axis — and the real question: is it found again by name?
         // ==================================================================
         //
-        // ── QUASI TUTTA QUESTA FAMIGLIA ADESSO E' DUE FILE ────────────────
+        // ── ALMOST ALL OF THIS FAMILY IS NOW TWO FILES ────────────────────
         //
-        // `cases\axis\axis_from_hole_wall.json` e
-        // `cases\axis\limit_axis_from_a_planar_face.json` (voce F11): l'asse che
-        // compare nello stato, il volume che NON cambia — un asse di
-        // riferimento non toglie materiale — e la faccia piana rifiutata con
-        // un motivo che dice cosa fare.
+        // `cases\axis\axis_from_hole_wall.json` and
+        // `cases\axis\limit_axis_from_a_planar_face.json` (entry F11): the axis that
+        // appears in the state, the volume that does NOT change — a reference
+        // axis removes no material — and the planar face refused with
+        // a reason that says what to do.
         //
-        // ── QUELLO CHE RESTA QUI, E PERCHE' NON PUO' DIVENTARE UN FILE ────
+        // ── WHAT STAYS HERE, AND WHY IT CANNOT BECOME A FILE ──────────────
         //
-        // La domanda vera non e' «l'asse esiste», e' «le ripetizioni lo
-        // RITROVANO». Lo ritrovano con `SelectByID2(nome, "AXIS", ...)`: se
-        // quella riga non aggancia, `create_axis` riesce, lo stato mostra
-        // l'asse, e la ripetizione fallisce subito dopo — cioe' l'operazione
-        // e' inutile e niente lo dice.
+        // The real question is not «the axis exists», it is «the patterns
+        // FIND IT AGAIN». They find it again with `SelectByID2(nome, "AXIS", ...)`: if
+        // that line does not attach, `create_axis` succeeds, the state shows
+        // the axis, and the pattern fails right afterwards — that is the operation
+        // is useless and nothing says so.
         //
-        // Un caso dichiarato non puo' provarlo: `SelectByID2` non e'
-        // un'operazione del catalogo, e' una chiamata COM. Resta in C#, e
-        // resta scritto il perche'.
+        // A declared case cannot prove it: `SelectByID2` is not
+        // a catalog operation, it is a COM call. It stays in C#, and
+        // the why stays written.
         private static void TestCreateAxis()
         {
             Console.WriteLine();
@@ -659,19 +659,19 @@ namespace Oce.Solid.Agent.Bench
                 string axis = measurements.ContainsKey("axis") ? Convert.ToString(measurements["axis"]) : "";
                 if (string.IsNullOrEmpty(axis))
                 {
-                    // NON E' IL ROSSO DI QUESTA PROVA: senza il nome non c'e'
-                    // niente da agganciare, e dirlo e' meglio che agganciare
-                    // la stringa vuota e chiamarlo fallimento del gancio.
+                    // IT IS NOT THE RED OF THIS CHECK: without the name there is
+                    // nothing to attach to, and saying so is better than attaching
+                    // the empty string and calling it a failure of the hook.
                     Check("create_axis: l'operazione dice come si chiama l'asse", false,
                           "le misure non hanno «axis»");
                     return;
                 }
 
-                // LA PROVA CHE CONTA: «linear_pattern» e «circular_pattern»
-                // ritrovano l'asse con SelectByID2(nome, "AXIS", ...). Se
-                // quella riga non aggancia, create_axis riesce, lo stato mostra
-                // l'asse, e la ripetizione fallisce subito dopo — cioe'
-                // l'operazione e' inutile e niente lo dice.
+                // THE CHECK THAT COUNTS: «linear_pattern» and «circular_pattern»
+                // find the axis again with SelectByID2(name, "AXIS", ...). If
+                // that line does not attach, create_axis succeeds, the state shows
+                // the axis, and the pattern fails right afterwards — that is
+                // the operation is useless and nothing says so.
                 bool attached = false;
                 try
                 {
@@ -686,29 +686,29 @@ namespace Oce.Solid.Agent.Bench
             finally { Close(doc); }
         }
         // ==================================================================
-        // 6. linear_pattern e 7. specchia ADESSO SONO DUE GRUPPI DI FILE
+        // 6. linear_pattern and 7. mirror NOW ARE TWO GROUPS OF FILES
         // ==================================================================
         //
-        // `cases\patterns\*.json` - tre fori a passo 40 lungo uno spigolo, la
-        // griglia 3x2 su due spigoli, e la direzione presa da uno spigolo
-        // CURVO, che va rifiutata.
+        // `cases\patterns\*.json` - three holes at pitch 40 along an edge, the
+        // 3x2 grid on two edges, and the direction taken from a CURVED
+        // edge, which must be refused.
         //
-        // `cases\mirror\*.json` - il foro a (60, 25) specchiato sul piano
-        // destro, che deve comparire a (-60, 25), e il piano inventato.
+        // `cases\mirror\*.json` - the hole at (60, 25) mirrored on the right
+        // plane, which must appear at (-60, 25), and the invented plane.
         //
-        // IL FILE PINZA DI PIU' DEL C# CHE SOSTITUISCE. Qui lo specchio si
-        // verificava cercando UNA copia lontana dal seme; il caso scrive i
-        // due centri, tutti e due, e la y che NON si ribalta. E la prova
-        // Â«nessuno spigolo curvo e' offerto al modelloÂ» che stava qui era
-        // verde a prescindere: contava gli spigoli con Â«drittoÂ»: false, e
-        // quel campo nello stato non esiste - si chiama Â«curvoÂ». Dopo un foro
-        // passante gli spigoli curvi sono DUE, il modello li puo' nominare, e
-        // il rifiuto e' un caso vero invece di una strada che si credeva
-        // chiusa. Si lanciano con `--gruppo casi`.
+        // THE FILE CLAMPS HARDER THAN THE C# IT REPLACES. Here the mirror
+        // was verified by looking for ONE copy far from the seed; the case writes the
+        // two centers, both of them, and the y that does NOT flip. And the check
+        // Â«nessuno spigolo curvo e' offerto al modelloÂ» that was here was
+        // green regardless: it counted the edges with Â«drittoÂ»: false, and
+        // that field in the state does not exist - it is called Â«curvoÂ». After a
+        // through hole the curved edges are TWO, the model can name them, and
+        // the refusal is a real case instead of a road believed
+        // closed. They are launched with `--gruppo casi`.
 
 
         // ==================================================================
-        // riflessione: come Run, ma dice anche come si chiama la feature
+        // reflection: like Run, but it also says what the feature is called
         // ==================================================================
         private static Dictionary<string, object> RunWithName(
             IModelDoc2 doc, string operation, Dictionary<string, object> arguments,
@@ -736,19 +736,19 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // misure sul pezzo — sempre dalla geometria, mai dai parametri
+        // measurements on the part — always from the geometry, never from the parameters
         // ==================================================================
 
         /// <summary>
-        /// Il volume solido in mm3. `GetMassProperties(densita)[3]` e' il
-        /// volume in m3: misurato, non ricordato.
+        /// The solid volume in mm3. `GetMassProperties(densita)[3]` is the
+        /// volume in m3: measured, not remembered.
         /// </summary>
         private static double DocumentVolume(IModelDoc2 doc)
         {
             double v = 0;
-            // Una TAVOLA non ha corpi. Da quando la sessione puo' tenere
-            // aperti due documenti, il documento attivo puo' benissimo
-            // essere il disegno, e qui si arrivava con un IPartDoc nullo.
+            // A DRAWING has no bodies. Since the session can keep
+            // two documents open, the active document may well
+            // be the drawing, and here one arrived with a null IPartDoc.
             var partDoc = doc as IPartDoc;
             if (partDoc == null) return 0;
             var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
@@ -789,9 +789,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// L'origine dell'ultimo piano di riferimento dell'albero, in mm.
-        /// IMathTransform.ArrayData: 9 numeri di rotazione, poi 3 di
-        /// traslazione. E' la risposta alla domanda «da che parte e' finito».
+        /// The origin of the last reference plane of the tree, in mm.
+        /// IMathTransform.ArrayData: 9 rotation numbers, then 3 of
+        /// translation. It is the answer to the question «which way did it end up».
         /// </summary>
         private static double[] LastPlaneTranslation(IModelDoc2 doc)
         {
@@ -816,7 +816,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // lettura dello stato
+        // reading the state
         // ==================================================================
         private static string FaceWithNormal(Dictionary<string, object> docState, string facing)
         {
@@ -848,28 +848,28 @@ namespace Oce.Solid.Agent.Bench
         {
             var edges = docState.ContainsKey("edges") ? docState["edges"] as System.Collections.IList : null;
             if (edges == null || edges.Count == 0) return null;
-            // Lo stato li ordina gia' per lunghezza decrescente.
+            // The state already sorts them by decreasing length.
             return Convert.ToString((edges[0] as Dictionary<string, object>)["uid"]);
         }
 
         // ==================================================================
-        // la piastra di prova
+        // the test plate
         // ==================================================================
         /// <summary>
-        /// Una piastra centrata su TUTTI E TRE gli assi, spessore compreso.
+        /// A plate centered on ALL THREE axes, thickness included.
         ///
-        /// La `Plate` delle prove vecchie estrude da z=0 in avanti: va bene
-        /// per un foro sulla faccia grande, ma sulle facce laterali l'origine
-        /// dello schizzo cade sullo SPIGOLO, non al centro, e un foro chiesto
-        /// a (0,0) uscirebbe meta' fuori dal materiale. Con la condizione
-        /// finale «piano medio» il pezzo sta fra -H/2 e +H/2 e l'origine cade
-        /// dove uno se l'aspetta.
+        /// The `Plate` of the old checks extrudes from z=0 onward: it is fine
+        /// for a hole on the big face, but on the side faces the origin
+        /// of the sketch falls on the EDGE, not at the center, and a hole asked
+        /// at (0,0) would come out half outside the material. With the end
+        /// condition «mid plane» the part lies between -H/2 and +H/2 and the origin falls
+        /// where one expects it.
         /// </summary>
         private static void CenteredPlate(IModelDoc2 doc, double L, double W, double H)
         {
             var planes = ReferencePlanes(doc);
             doc.ClearSelection2(true);
-            planes[0].Select2(false, 0);          // frontale: la faccia grande guarda +Z
+            planes[0].Select2(false, 0);          // front: the big face looks toward +Z
             var sm = doc.SketchManager;
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(0, 0, 0, L / 2000.0, W / 2000.0, 0);

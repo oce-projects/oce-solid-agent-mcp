@@ -1,29 +1,29 @@
-// Manda una sequenza di piani al ponte MCP, come farebbe un client.
+// Sends a sequence of plans to the MCP bridge, as a client would.
 //
 //   node run_plans.js cases/bridge/c4r_primary.json cases/bridge/c4r_keyway.json
 //   node run_plans.js --pulisci cases/bridge/*.json
 //
-// Percorsi con la barra avanti: Windows li accetta, e cosi' non c'e' nessun
-// livello di escape da sbagliare. La stessa riga scritta con i backslash e'
-// gia' stata mangiata una volta da un heredoc.
+// Paths with the forward slash: Windows accepts them, and this way there is no
+// level of escaping to get wrong. The same line written with backslashes has
+// already been eaten once by a heredoc.
 //
-// ── IL BANCO CHIUDE QUELLO CHE APRE (voce F1b) ────────────────────────────
+// ── THE BENCH CLOSES WHAT IT OPENS (entry F1b) ────────────────────────────
 //
-// Ogni piano lascia aperto il pezzo che ha creato, e **lo stato li enumera
-// tutti a ogni lettura**: 244 ms per documento solo per `GetNext()`, piu' 120
-// ms a testa per titolo, percorso e tipo. Dopo cinquanta casi il banco
-// rallenta se stesso di un minuto e mezzo a lettura.
+// Every plan leaves open the part it created, and **the state enumerates them
+// all at every reading**: 244 ms per document for `GetNext()` alone, plus 120
+// ms each for title, path and type. After fifty cases the bench
+// slows itself down by a minute and a half per reading.
 //
-// Non e' comodita': finche' il banco si sporca da solo, **i tempi che misura
-// non sono i tempi del prodotto** — sono i suoi. Chi legge un resoconto da 27
-// minuti pensa che il ponte sia lento.
+// It is not about convenience: as long as the bench dirties itself, **the times it measures
+// are not the product's times** — they are its own. Whoever reads a report of 27
+// minutes thinks the bridge is slow.
 //
-// Con `--pulisci`:
-//   1. si leggono i documenti che c'erano PRIMA, e si nominano;
-//   2. prima di ogni piano si apre una parte pulita;
-//   3. alla fine si chiude quello che ha aperto il banco, **risparmiando
-//      quelli di prima**: gli scarti sono i nostri, non di chi stava
-//      lavorando.
+// With `--pulisci`:
+//   1. the documents that were there BEFORE are read, and named;
+//   2. before every plan a clean part is opened;
+//   3. at the end what the bench opened is closed, **sparing
+//      those from before**: the discards are ours, not those of whoever was
+//      working.
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -40,41 +40,41 @@ if (!planes.length) { console.error("dammi i piani"); process.exit(2); }
 
 // ──────────────────────────────────────────────────────────────────────────
 
-// DOVE IL BANCO SCRIVE I SUOI PEZZI.
+// WHERE THE BENCH WRITES ITS PARTS.
 //
-// I casi che salvano un file portavano dentro il percorso della scratchpad di
-// sessione — nome utente compreso — e quello era sbagliato due volte: un
-// repository destinato a diventare pubblico non porta in giro il nome di chi
-// lavora, e un caso che punta a una cartella di sessione non si puo'
-// rilanciare la settimana dopo.
+// The cases that save a file carried inside the path of the session
+// scratchpad — user name included — and that was wrong twice: a
+// repository destined to become public does not carry around the name of whoever
+// works, and a case that points to a session folder cannot be
+// re-run the week after.
 //
-// Adesso scrivono `{BANCO}/pezzo/tizio.SLDPRT`, e qui `{BANCO}` diventa
-// `Bench/lavoro`, che sta nel .gitignore.
+// Now they write `{BANCO}/pezzo/tizio.SLDPRT`, and here `{BANCO}` becomes
+// `Bench/lavoro`, which is in the .gitignore.
 const WORK = path.join(__dirname, "lavoro");
 
 function resolvePlaceholder(text) {
   return text.split("{BANCO}").join(WORK.split("\\").join("/"));
 }
 
-// LA CARTELLA SI CREAVA VUOTA, E CINQUE CASI NON POTEVANO GIRARE.
+// THE FOLDER WAS CREATED EMPTY, AND FIVE CASES COULD NOT RUN.
 //
-// I casi del telaio nominano `{BANCO}/profili/QUADRO_COPIA.SLDLFP`. Prima
-// della riparazione col segnaposto (0.25.0) quel percorso puntava alla
-// scratchpad di sessione, dove il file c'era davvero perche' qualcuno ce
-// l'aveva messo a mano. Il segnaposto ha reso il percorso portabile e ha
-// lasciato il file senza nessuno che lo provveda: `prepareFolder` creava
-// `profili/` e non ci metteva dentro niente.
+// The frame cases name `{BANCO}/profili/QUADRO_COPIA.SLDLFP`. Before
+// the repair with the placeholder (0.25.0) that path pointed to the
+// session scratchpad, where the file really was because somebody had
+// put it there by hand. The placeholder made the path portable and
+// left the file without anybody to provide it: `prepareFolder` created
+// `profili/` and put nothing inside it.
 //
-// Misurato il 14/9/2026: cinque casi rispondevano «Il profilo ... non esiste su
-// questa postazione», che e' un messaggio giusto per un problema che non c'era.
+// Measured on 14/9/2026: five cases answered «Il profilo ... non esiste su
+// questa postazione», which is a right message for a problem that was not there.
 //
-// PERCHE' UNA COPIA E NON L'ORIGINALE. Inserire un profilo APRE il suo
-// `.SLDLFP` e lo lascia sporco: il banco lavorerebbe sulla libreria normata
-// vera dell'officina. Si copia, e si lavora sulla copia.
-// NESSUN RIPIEGO. Qui c'era il percorso della libreria di una postazione
-// sola: su ogni altra macchina non esisteva, quindi non aiutava nessuno, e
-// intanto raccontava com'e' fatto quel disco. Chi non ha la variabile lo
-// scopre adesso con una frase, invece che fra dieci minuti con un errore.
+// WHY A COPY AND NOT THE ORIGINAL. Inserting a profile OPENS its
+// `.SLDLFP` and leaves it dirty: the bench would work on the real
+// standard library of the shop. It is copied, and one works on the copy.
+// NO FALLBACK. Here there was the path of the library of a single
+// workstation: on every other machine it did not exist, so it helped nobody, and
+// meanwhile it told how that disk is laid out. Whoever does not have the variable
+// finds out now with a sentence, instead of in ten minutes with an error.
 const PROFILES = process.env.PROFILI_SALDATURA;
 if (!PROFILES) {
   console.error("PROFILI_SALDATURA non e' impostata: non so dove sia la libreria");
@@ -83,7 +83,7 @@ if (!PROFILES) {
   process.exit(2);
 }
 
-// nome nella libreria -> nome della copia che i casi nominano
+// name in the library -> name of the copy that the cases name
 const TO_COPY = {
   "TUBO STRUTTURALE QUADRO.SLDLFP": "QUADRO_COPIA.SLDLFP",
 };
@@ -98,10 +98,10 @@ function prepareFolder() {
     const a = path.join(WORK, "profili", copy);
     if (fs.existsSync(a)) continue;
     if (!fs.existsSync(da)) {
-      // SI DICE, e non si muore: chi clona il repository non ha quella
-      // libreria, e deve poter far girare tutti gli altri casi. Ma deve anche
-      // sapere PERCHE' quei cinque falliranno, invece di leggere un messaggio
-      // che incolpa il percorso.
+      // IT IS SAID, and one does not die: whoever clones the repository does not have that
+      // library, and must be able to run all the other cases. But they must also
+      // know WHY those five will fail, instead of reading a message
+      // that blames the path.
       console.error(
         "  [banco] manca il profilo «" + origin + "» in " + PROFILES + "\n" +
         "          i casi del telaio falliranno. Scavalca con PROFILI_SALDATURA.");
@@ -157,9 +157,9 @@ function aRun(list, onThis) {
           const t = (m.result && m.result.content || []).map(c => c.text).join("\n");
           console.log("\n-- " + itemName[m.id] + " --");
           console.log(t);
-          // Chiuso il rubinetto E annullata la sveglia: un setTimeout ancora
-          // armato tiene vivo node anche a ponte gia' uscito, e il banco
-          // sembrava appeso per due minuti a ogni piano.
+          // The tap is closed AND the alarm clock cancelled: a setTimeout still
+          // armed keeps node alive even with the bridge already gone, and the bench
+          // seemed hung for two minutes at every plan.
           if (++seen === list.length) { p.stdin.end(); clearTimeout(alarm); }
         }
       }
@@ -192,19 +192,19 @@ async function main() {
   let toSpare = [];
 
   if (cleanFlag) {
-    // Chi c'era prima. Un giro a vuoto, solo per leggere lo stato.
+    // Who was there before. An empty run, only to read the state.
     const docState = await aRun([], null);
     toSpare = openTitles(docState);
     console.log("documenti gia' aperti, che non tocchiamo: " +
                 (toSpare.length ? toSpare.join(", ") : "none"));
   }
 
-  // IL TEMPO PER PIANO, non solo il totale.
+  // THE TIME PER PLAN, not only the total.
   //
-  // E' il numero che dice se il banco sta rallentando SE STESSO: con i pezzi
-  // di scarto addosso cresce dal primo caso all'ultimo, e un totale non lo
-  // fa vedere. Misurato prima di `--pulisci`: da 236 a 271 secondi su
-  // diciannove piani.
+  // It is the number that says whether the bench is slowing ITSELF down: with the discard
+  // parts on top it grows from the first case to the last, and a total does not
+  // show it. Measured before `--pulisci`: from 236 to 271 seconds over
+  // nineteen plans.
   const times = [];
   for (const f of planes) {
     if (cleanFlag) tool(NEW, []);
@@ -214,13 +214,13 @@ async function main() {
     times.push({ piano: path.basename(f), secondi: seconds });
     console.log("  [tempo] " + path.basename(f) + ": " + seconds.toFixed(1) + " s");
 
-    // SI CHIUDE DOPO OGNI PIANO, NON ALLA FINE.
+    // IT IS CLOSED AFTER EVERY PLAN, NOT AT THE END.
     //
-    // Chiudere solo in fondo non serve a niente: i documenti si accumulano
-    // DURANTE il giro, ed e' durante che lo stato li enumera tutti. Misurato
-    // con la pulizia solo finale su diciannove piani: 20 s il primo,
-    // 124 il secondo, 210 il terzo, 244 il quarto — cioe' lo stesso guaio di
-    // prima con un nome diverso.
+    // Closing only at the end is no use at all: the documents accumulate
+    // DURING the run, and it is during it that the state enumerates them all. Measured
+    // with the cleanup only at the end over nineteen plans: 20 s the first,
+    // 124 the second, 210 the third, 244 the fourth — that is the same trouble as
+    // before under a different name.
     if (cleanFlag) cleanUp(toSpare);
   }
 
@@ -242,15 +242,15 @@ async function main() {
   if (cleanFlag) cleanUp(toSpare, true);
 }
 
-/// Chiude gli scarti del banco, risparmiando chi c'era prima.
+/// Closes the bench's discards, sparing whoever was there before.
 function cleanUp(toSpare, tellIt) {
   const output = tool(CLOSE, toSpare.length
     ? ["--chiudi", "--risparmia", toSpare.join(",")]
     : ["--chiudi"]);
   if (!output || !tellIt) return;
-  // Si stampano solo le due righe che contano: quante ne ha chiuse e quante
-  // ne restano. Il resto e' l'elenco, e in un resoconto di cinquanta casi
-  // sarebbe rumore.
+  // Only the two lines that count are printed: how many it closed and how many
+  // remain. The rest is the list, and in a report of fifty cases it
+  // would be noise.
   output.split(/\r?\n/)
     .filter(r => /^chiusi:|^documenti aperti adesso:/.test(r))
     .forEach(r => console.log("  " + r));

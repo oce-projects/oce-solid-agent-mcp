@@ -1,19 +1,19 @@
-// QUANTO COSTA UN DOCUMENTO DI SCARTO LASCIATO APERTO.
+// HOW MUCH A DISCARDED DOCUMENT LEFT OPEN COSTS.
 //
-// La voce F1b dice che il banco rallenta se stesso: ogni piano lascia aperto
-// il pezzo che ha creato, e lo stato li enumera tutti a ogni lettura. Qui si
-// misura, invece di ripeterlo.
+// Entry F1b says that the bench slows itself down: every plan leaves open
+// the part it created, and the state enumerates them all at every reading. Here it is
+// measured, instead of repeated.
 //
-// LO STESSO PIANO, N VOLTE, IN DUE MODI. E' l'unico confronto che isola la
-// variabile giusta: piani diversi hanno costi diversi — una ruota da 42 denti
-// ci mette dieci volte un tondo — e mettendo in fila piani diversi si legge
-// l'ordine in cui sono scritti, non l'accumulo. Con lo stesso piano ripetuto,
-// l'unica cosa che cambia fra la prima volta e l'ultima e' quanti documenti
-// ci sono addosso.
+// THE SAME PLAN, N TIMES, IN TWO WAYS. It is the only comparison that isolates the
+// right variable: different plans have different costs — a gear of 42 teeth
+// takes ten times what a round bar does — and by lining up different plans one reads
+// the order in which they are written, not the accumulation. With the same plan repeated,
+// the only thing that changes between the first time and the last is how many documents
+// are on top of it.
 //
-//   node measure_accumulation.js [quante] [piano]
+//   node measure_accumulation.js [count] [plan]
 //
-// Predefiniti: 12 giri su cases/bridge/c4s_round.json.
+// Defaults: 12 runs on cases/bridge/c4s_round.json.
 const { spawnSync } = require("child_process");
 const path = require("path");
 

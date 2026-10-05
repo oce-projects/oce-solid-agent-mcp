@@ -1,24 +1,24 @@
-// V4 — lo spaccato mostra la parete?
+// V4 — does the cutaway show the wall?
 //
 //   node test_section.js
 //
-// IL CRITERIO DELLA VOCE, alla lettera: «su un guscio, l'immagine in sezione
-// mostra la parete, e da quella si legge lo spessore».
+// THE CRITERION OF THE ENTRY, literally: «on a shell, the section image
+// shows the wall, and from it the thickness can be read».
 //
-// La seconda meta' — «si legge lo spessore» — la puo' dire solo qualcuno che
-// GUARDA. Questo programma prepara le due immagini dello stesso guscio, una
-// intera e una in sezione, e le lascia su disco perche' un modello isolato le
-// confronti. Quello che puo' controllare da solo lo controlla:
+// The second half — «the thickness can be read» — can be said only by someone who
+// LOOKS. This program prepares the two images of the same shell, a whole
+// one and a sectioned one, and leaves them on disk so that an isolated model
+// can compare them. What it can check by itself it checks:
 //
-//   * la sezione esce, ed e' un PNG;
-//   * **e' DIVERSA dalla vista intera** — che e' il rosso vero: una sezione
-//     che non seziona darebbe un'immagine identica, e «l'immagine esce»
-//     passerebbe lo stesso;
-//   * dopo, il pezzo sullo schermo di chi lavora e' come prima: nessuna
-//     sezione rimasta accesa, nessun corpo tagliato, nessuna feature in piu'.
+//   * the section comes out, and it is a PNG;
+//   * **it is DIFFERENT from the whole view** — which is the real red: a section
+//     that does not section would give an identical image, and «the image comes out»
+//     would pass all the same;
+//   * afterwards, the part on the screen of whoever works is as before: no
+//     section left on, no body cut, no feature more.
 //
-// L'ultimo e' quello che la voce chiama rischio: «il piano di sezione va MESSO
-// VIA dopo».
+// The last is what the entry calls the risk: «the section plane must be PUT
+// AWAY afterwards».
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -28,8 +28,8 @@ const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 const OUTPUT = path.join(__dirname, "viste");
 
-// Lo stesso guscio della misura V2/V3: scatola 120x80x50, parete 4, aperta in
-// alto. Dall'esterno e' un parallelepipedo; la parete si vede solo dentro.
+// The same shell as measurement V2/V3: box 120x80x50, wall 4, open at the
+// top. From outside it is a parallelepiped; the wall is seen only inside.
 const SHELL = [
   {
     operation: "extrude_rectangle",
@@ -132,14 +132,14 @@ function save(itemName, image) {
   check("il guscio si costruisce", true,
         "volume " + (done.dati || {}).volume_after_mm3);
 
-  // ── com'era prima, per poterlo confrontare dopo ────────────────────────
+  // ── as it was before, to be able to compare it afterwards ──────────────
   const before = await invoke("inspect_part", { views: ["isometric"] });
   if (!before.immagini.length) { check("la vista intera", false, shorter(before.testo)); bridge.stdin.end(); return; }
   const wholeFile = save("v4-guscio-intero", before.immagini[0]);
   const stateBefore = before.dati || {};
   check("la vista intera esce", true, path.basename(wholeFile));
 
-  // ── lo spaccato ────────────────────────────────────────────────────────
+  // ── the cutaway ────────────────────────────────────────────────────────
   const wasCut = await invoke("inspect_part", {
     section: { plane: "right", offset_mm: 0 },
   });
@@ -149,8 +149,8 @@ function save(itemName, image) {
     const sectionFile = save("v4-guscio-sezione", wasCut.immagini[0]);
     check("la sezione esce", true, path.basename(sectionFile));
 
-    // IL ROSSO: una sezione che non seziona da' la STESSA immagine, e
-    // «la sezione esce» passerebbe lo stesso.
+    // THE RED: a section that does not section gives the SAME image, and
+    // «the section comes out» would pass all the same.
     const a = fs.readFileSync(wholeFile);
     const b = fs.readFileSync(sectionFile);
     check("la sezione e' DIVERSA dalla vista intera",
@@ -159,7 +159,7 @@ function save(itemName, image) {
                       : a.length + " byte contro " + b.length);
   }
 
-  // ── e il pezzo di chi lavora e' come prima ─────────────────────────────
+  // ── and the part of whoever works is as before ─────────────────────────
   const after = await invoke("inspect_part");
   const s = after.dati || {};
   check("il pezzo non e' cambiato",

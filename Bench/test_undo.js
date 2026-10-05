@@ -1,28 +1,28 @@
-// Prova lo strumento `undo` (voce R1) parlando al ponte come un client MCP.
+// Tests the `undo` tool (entry R1) by talking to the bridge as an MCP client.
 //
 //   node test_undo.js
 //
-// PERCHE' QUI E NON NEL BANCO. `Oce.Solid.Agent.Bench` prova la LIBRERIA per
-// riflessione; `undo` non sta nella libreria — e' uno strumento del ponte,
-// e la parte che conta (il ricordo dell'ultimo piano, i rifiuti) vive in
-// `McpTools`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
+// WHY HERE AND NOT IN THE BENCH. `Oce.Solid.Agent.Bench` tests the LIBRARY by
+// reflection; `undo` is not in the library — it is a tool of the bridge,
+// and the part that counts (the memory of the last plan, the refusals) lives in
+// `McpTools`. Testing it from the library would mean testing something else.
 //
-// ── COSA AFFERMA, E I TRE ROSSI ──────────────────────────────────────────
+// ── WHAT IT ASSERTS, AND THE THREE REDS ──────────────────────────────────
 //
-// Il verde e' uno: un piano di due passi viene ritirato tutto intero e il pezzo
-// torna a volume zero. I rossi sono tre, e sono la ragione per cui questo file
-// esiste — «undo» che funziona non e' la parte difficile, «undo» che si
-// RIFIUTA lo e':
+// The green is one: a plan of two steps is withdrawn entirely and the part
+// goes back to volume zero. The reds are three, and they are the reason why this file
+// exists — an «undo» that works is not the hard part, an «undo» that
+// REFUSES is:
 //
-//   R1a  senza nessun piano eseguito          -> deve rifiutare
-//   R1b  chiamato due volte di fila           -> il secondo deve rifiutare,
-//        perche' toglierebbe qualcosa che questo ponte non ha fatto
-//   R1c  con un altro documento davanti       -> deve rifiutare e dirlo
+//   R1a  with no plan executed                -> it must refuse
+//   R1b  called twice in a row                -> the second must refuse,
+//        because it would remove something that this bridge did not do
+//   R1c  with another document in front       -> it must refuse and say so
 //
-// Senza questi tre, «premi sempre annulla» passerebbe la prova.
+// Without these three, «always press undo» would pass the check.
 //
-// Percorsi con la barra avanti: Windows li accetta, e cosi' non c'e' nessun
-// livello di escape da sbagliare.
+// Paths with the forward slash: Windows accepts them, and this way there is no
+// level of escaping to get wrong.
 const { spawn, spawnSync } = require("child_process");
 const path = require("path");
 
@@ -58,14 +58,14 @@ const PLAN_ONE_STEP = [
 ];
 
 // ──────────────────────────────────────────────────────────────────────────
-// il cliente MCP, una richiesta per volta
+// the MCP client, one request at a time
 
 let nextId = 1;
 const expectation = new Map();
 let leftover = "";
 
 const bridge = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
-bridge.stderr.on("data", () => {});   // i messaggi di servizio non sono risposte
+bridge.stderr.on("data", () => {});   // the service messages are not answers
 bridge.stdout.on("data", d => {
   leftover += d.toString();
   let i;
@@ -92,8 +92,8 @@ function warn(method) {
   bridge.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: method }) + "\n");
 }
 
-// Il testo di una risposta, piu' `isError`. Un'operazione che fallisce non e'
-// un errore di protocollo: sta nel contenuto, ed e' li' che va guardata.
+// The text of an answer, plus `isError`. An operation that fails is not
+// a protocol error: it is in the content, and that is where it must be looked at.
 async function invoke(tool, args) {
   const m = await send("tools/call",
     { name: tool, arguments: args || {} });
@@ -129,7 +129,7 @@ async function benchRun() {
   });
   warn("notifications/initialized");
 
-  // Lo strumento deve ESSERCI, e dichiararsi per quello che fa.
+  // The tool must BE THERE, and declare itself for what it does.
   const list = await send("tools/list", {});
   const tools = (list.result || {}).tools || [];
   const names = tools.map(function (t) { return t.name; });
@@ -144,9 +144,9 @@ async function benchRun() {
         ann.readOnlyHint === false,
         JSON.stringify(ann));
 
-  // ── ROSSO 1: niente da ritirare ────────────────────────────────────────
-  // Questa e' la PRIMA chiamata della conversazione: il ponte non ha eseguito
-  // nessun piano, quindi non sa cosa toglierebbe.
+  // ── RED 1: nothing to withdraw ─────────────────────────────────────────
+  // This is the FIRST call of the conversation: the bridge has executed
+  // no plan, so it does not know what it would remove.
   const empty = await invoke("undo");
   check("ROSSO 1: senza nessun piano, rifiuta",
         empty.errore && /nessun piano da ritirare/i.test(empty.testo),
@@ -161,7 +161,7 @@ async function benchRun() {
   check("il pezzo pulito si legge", !seen.errore && seen.dati != null,
         seen.dati ? "volume " + seen.dati.volume_mm3 : shorter(seen.testo));
 
-  // ── IL VERDE: due passi, ritirati insieme ──────────────────────────────
+  // ── THE GREEN: two steps, withdrawn together ───────────────────────────
   const done = await invoke("build", { steps: PLAN_TWO_STEPS });
   const volumeAfterPlan = done.dati ? done.dati.volume_after_mm3 : null;
   check("il piano di due passi costruisce", !done.errore && volumeAfterPlan > 0,
@@ -180,16 +180,16 @@ async function benchRun() {
         d.features_after === 0,
         d.features_before + " -> " + d.features_after);
 
-  // LO STATO NUOVO VIENE CON LA RISPOSTA, e non e' un di piu': dopo un
-  // annullamento gli identificativi sono altri, e chi legge deve poterli
-  // usare senza una lettura in piu'.
+  // THE NEW STATE COMES WITH THE ANSWER, and it is not an extra: after an
+  // undo the identifiers are different, and whoever reads must be able to use them
+  // without one more reading.
   //
-  // NON SI SONDA `volume_mm3`. La prima scrittura di questa riga lo faceva, ed
-  // e' uscita rossa su un codice che funzionava: dopo l'annullamento il pezzo
-  // e' VUOTO, e su un pezzo vuoto lo stato non scrive nessun volume — lo dice
-  // gia' due righe piu' su, «il pezzo pulito si legge: volume undefined».
-  // Un'asserzione su un campo che legittimamente non c'e' non prova
-  // l'assenza dello stato: prova che chi l'ha scritta non aveva letto lo stato.
+  // `volume_mm3` IS NOT PROBED. The first writing of this line did, and
+  // came out red on code that worked: after the undo the part
+  // is EMPTY, and on an empty part the state writes no volume — it says so
+  // two lines above, «the clean part reads: volume undefined».
+  // An assertion on a field that legitimately is not there does not prove
+  // the absence of the state: it proves that whoever wrote it had not read the state.
   check("la risposta porta lo stato di adesso",
         d.state_after != null &&
         typeof d.state_after.document_title === "string" &&
@@ -198,15 +198,15 @@ async function benchRun() {
                        d.state_after.solid_body
                      : "assente");
 
-  // ── ROSSO 2: due volte di fila ─────────────────────────────────────────
-  // Il primo annullamento ha consumato il ricordo. Il secondo toglierebbe
-  // quello che c'era PRIMA del piano, che questo ponte non ha fatto.
+  // ── RED 2: twice in a row ──────────────────────────────────────────────
+  // The first undo consumed the memory. The second would remove
+  // what was there BEFORE the plan, which this bridge did not do.
   const bis = await invoke("undo");
   check("ROSSO 2: la seconda volta rifiuta",
         bis.errore && /nessun piano da ritirare/i.test(bis.testo),
         shorter(bis.testo));
 
-  // ── ROSSO 3: un altro documento davanti ────────────────────────────────
+  // ── RED 3: another document in front ───────────────────────────────────
   const other = await invoke("build", { steps: PLAN_ONE_STEP });
   check("un secondo piano costruisce", !other.errore,
         other.errore ? shorter(other.testo)

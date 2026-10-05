@@ -8,18 +8,18 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// IL NUMERO CHE SI STAMPA E' QUELLO DEL MODELLO? (voce Z-C2)
+    /// IS THE NUMBER THAT IS PRINTED THE MODEL'S? (entry Z-C2)
     ///
-    /// «La quota viene dal modello, non puo' mentire» vale finche' nessuno
-    /// scrive sopra il numero. Lo stato della tavola conta dalla libreria
-    /// 0.118.0 le quote il cui numero stampato non e' quello del modello
-    /// (`dimensions_with_number_not_from_model`), con le due letture misurate il
-    /// 25/9/2026: `GetOverride` e `ShowDimensionValue`.
+    /// «The dimension comes from the model, it cannot lie» holds as long as nobody
+    /// writes over the number. The drawing's state counts, from library
+    /// 0.118.0, the dimensions whose printed number is not the model's
+    /// (`dimensions_with_number_not_from_model`), with the two readings measured on
+    /// 25/9/2026: `GetOverride` and `ShowDimensionValue`.
     ///
-    /// Un caso dichiarato non puo' farlo: nessuna operazione del catalogo
-    /// sovrascrive una quota, e non deve. Qui si falsificano tre quote a mano,
-    /// una per strada — numero sovrascritto, testo al posto del valore, valore
-    /// spento — e lo stato deve dirne tre. Prima, sulla tavola intatta, zero.
+    /// A declared case cannot do it: no catalog operation
+    /// overwrites a dimension, and it must not. Here three dimensions are falsified by hand,
+    /// one per road — overwritten number, text in place of the value, value
+    /// turned off — and the state must report three. Before, on the intact drawing, zero.
     /// </summary>
     internal static partial class Program
     {
@@ -56,8 +56,8 @@ namespace Oce.Solid.Agent.Bench
                       Convert.ToString(zero) == "0" && !before.ContainsKey("warning_numbers"),
                       "dimensions_with_number_not_from_model_total " + Convert.ToString(zero));
 
-                // TRE QUOTE, UNA PER STRADA. Si prendono le prime tre del foglio,
-                // vista dopo vista: quali siano non conta, conta che siano tre.
+                // THREE DIMENSIONS, ONE PER ROAD. The first three of the sheet are taken,
+                // view after view: which ones they are does not matter, what matters is that there are three.
                 var quote = new List<IDisplayDimension>();
                 var v = (((IDrawingDoc)drawing).GetFirstView() as IView)?.GetNextView() as IView;
                 while (v != null && quote.Count < 3)
@@ -68,8 +68,8 @@ namespace Oce.Solid.Agent.Bench
                 }
                 if (quote.Count < 3) { BenchError("numeri", "sulla tavola ci sono " + quote.Count + " quote, ne servono tre"); return; }
 
-                // IL NUMERO SOVRASCRITTO COMBACIA COL MODELLO, apposta: e' il caso
-                // che la voce temeva di piu' — un confronto di valori non lo vede.
+                // THE OVERWRITTEN NUMBER MATCHES THE MODEL, on purpose: it is the case
+                // that the entry feared most — a comparison of values does not see it.
                 double its = quote[0].GetDimension2(0).GetSystemValue2("");
                 quote[0].SetOverride(true, its);
                 quote[1].SetText((int)swDimensionTextParts_e.swDimensionTextAll, "99");

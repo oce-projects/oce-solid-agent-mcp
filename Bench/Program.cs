@@ -14,58 +14,58 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Bench
 {
     /// <summary>
-    /// Prova il DLL VERO dell'add-in contro SolidWorks, non una copia.
+    /// Tests the REAL DLL of the add-in against SolidWorks, not a copy.
     ///
-    /// PERCHE' COSI'
-    /// Le tornate precedenti hanno misurato le API di SolidWorks riscrivendo
-    /// qui le chiamate. Serviva a scoprire la ricetta, ma non dice niente su
-    /// cio' che verra' installato: fra il programma di prova e l'add-in ci
-    /// sono la lettura dei parametri, le conversioni di unita', i controlli e
-    /// i messaggi d'errore — cioe' la meta' del codice che puo' sbagliare.
+    /// WHY THIS WAY
+    /// The previous rounds measured the SolidWorks APIs by rewriting
+    /// the calls here. It served to discover the recipe, but says nothing about
+    /// what will be installed: between the test program and the add-in there
+    /// are the reading of the parameters, the unit conversions, the checks and
+    /// the error messages — that is half of the code that can go wrong.
     ///
-    /// Qui si carica `OpenPDM.SwAddin.dll` appena compilata e si chiamano i
-    /// suoi tipi interni per riflessione, con gli stessi argomenti che
-    /// arriverebbero dal piano del server. Quello che passa di qui e' quello
-    /// che il progettista avra' in mano.
+    /// Here the freshly built `OpenPDM.SwAddin.dll` is loaded and its internal
+    /// types are called by reflection, with the same arguments that
+    /// would arrive from the server's plan. What passes through here is what
+    /// the designer will have in hand.
     ///
-    /// Ogni prova lavora su una parte usa e getta, che viene chiusa.
+    /// Every check works on a disposable part, which is closed.
     /// </summary>
     internal static partial class Program
     {
         /// <summary>
-        /// Dove sta la libreria di disegno. Predefinito: accanto
-        /// all'eseguibile. Si cambia con `--libreria &lt;percorso&gt;`.
+        /// Where the drawing library is. Default: next to
+        /// the executable. It is changed with `--libreria &lt;percorso&gt;`.
         ///
-        /// PRIMA ERA UNA COSTANTE che puntava a una cartella temporanea di
-        /// sessione, e quel percorso oggi non esiste piu'. Un banco che si
-        /// puo' lanciare solo dalla macchina e dalla settimana in cui e' stato
-        /// scritto non e' una misura ripetibile: e' un aneddoto.
+        /// BEFORE IT WAS A CONSTANT that pointed to a temporary folder of
+        /// a session, and that path no longer exists today. A bench that can
+        /// be launched only from the machine and the week in which it was
+        /// written is not a repeatable measurement: it is an anecdote.
         /// </summary>
         /// <remarks>
-        /// E IL PREDEFINITO E' STATO CAMBIATO il 24/9/2026, perche' era una
-        /// trappola.
+        /// AND THE DEFAULT WAS CHANGED on 24/9/2026, because it was a
+        /// trap.
         ///
-        /// Puntava alla DLL **accanto all'eseguibile**. Ma il banco vero e'
-        /// `bench.ps1`, che compila e poi passa `--libreria` puntando a
-        /// `Oce.Solid.Agent.Core\bin\Release\` — quindi la copia accanto
-        /// all'eseguibile non viene aggiornata da nessuno, e resta ferma
-        /// all'ultima volta che qualcosa ce l'ha messa.
+        /// It pointed to the DLL **next to the executable**. But the real bench is
+        /// `bench.ps1`, which builds and then passes `--libreria` pointing to
+        /// `Oce.Solid.Agent.Core\bin\Release\` — so the copy next to
+        /// the executable is updated by nobody, and stays stuck
+        /// at the last time that something put it there.
         ///
-        /// Il 24/9/2026 era a **0.105.0.0**, sei versioni indietro. Lanciato
-        /// l'eseguibile a mano per iterare in fretta su due casi nuovi, ha
-        /// detto che due predefiniti appena implementati **non esistevano**:
+        /// On 24/9/2026 it was at **0.105.0.0**, six versions behind. Launching
+        /// the executable by hand to iterate fast on two new cases, it
+        /// said that two defaults just implemented **did not exist**:
         /// «Manca il nome del materiale», «campo assente: misure.nota_assunto».
-        /// Erano nel sorgente e nelle altre due copie. *Il sintomo era
-        /// perfetto e la causa non era nel codice.*
+        /// They were in the source and in the other two copies. *The symptom was
+        /// perfect and the cause was not in the code.*
         ///
-        /// Adesso il predefinito e' lo STESSO percorso che usa `bench.ps1`,
-        /// e la copia accanto all'eseguibile resta solo come ripiego — se
-        /// quella buona non c'e'. Cosi' lanciare l'eseguibile a mano misura
-        /// il codice di adesso, che e' quello che chi lo lancia crede di
-        /// star misurando.
+        /// Now the default is the SAME path that `bench.ps1` uses,
+        /// and the copy next to the executable stays only as a fallback — if
+        /// the good one is not there. This way launching the executable by hand measures
+        /// the code of now, which is what whoever launches it believes they are
+        /// measuring.
         ///
-        /// **In tutt'e due i casi la riga «libreria X.Y.Z (percorso)» esce
-        /// in testa al giro**, ed e' quella che ha permesso di capirlo.
+        /// **In both cases the line «libreria X.Y.Z (percorso)» comes out
+        /// at the head of the run**, and it is what made it possible to understand.
         /// </remarks>
         private static string _library = DefaultLibrary();
 
@@ -94,7 +94,7 @@ namespace Oce.Solid.Agent.Bench
         private static string DefaultLibrary()
         {
             var nextTo = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".";
-            // `Bench\bin\` -> due su -> la radice del repository.
+            // `Bench\bin\` -> two up -> the root of the repository.
             try
             {
                 var root = Path.GetFullPath(Path.Combine(nextTo, "..", ".."));
@@ -106,32 +106,32 @@ namespace Oce.Solid.Agent.Bench
             return Path.Combine(nextTo, "Oce.Solid.Agent.Core.dll");
         }
 
-        /// <summary>I nomi dei tipi, dopo lo spostamento in libreria.</summary>
+        /// <summary>The names of the types, after the move into the library.</summary>
         /// <remarks>
-        /// Erano `OpenPDM.SwAddin.Agente.*`. Le voci B4 e B5 hanno spostato le
-        /// operazioni in `Oce.Solid.Agent.Core`, e da allora questo banco
-        /// **non partiva piu'**: `GetType(..., true)` solleva su un tipo che
-        /// non c'e'. Non se n'era accorto nessuno perche' il banco viveva
-        /// fuori dal repository e non lo lanciava piu' niente — che e'
-        /// esattamente il motivo per cui la voce F1 esiste.
+        /// They were `OpenPDM.SwAddin.Agente.*`. Entries B4 and B5 moved the
+        /// operations into `Oce.Solid.Agent.Core`, and since then this bench
+        /// **no longer started**: `GetType(..., true)` raises on a type that
+        /// is not there. Nobody had noticed because the bench lived
+        /// outside the repository and nothing launched it any more — which is
+        /// exactly the reason entry F1 exists.
         /// </remarks>
         private const string NS = "Oce.Solid.Agent.Core.";
         /// <summary>
-        /// I PROFILI NORMATI, che sono di chi lavora e non del repository.
+        /// THE STANDARD PROFILES, which belong to whoever works and not to the repository.
         ///
-        /// Le prove sulle saldature hanno bisogno dei file di libreria veri:
-        /// un `.SLDLFP` inventato non misura niente. Si dice dov'e' con
+        /// The checks on weldments need the real library files:
+        /// an invented `.SLDLFP` measures nothing. Where it is is stated with
         /// `PROFILI_SALDATURA`.
         ///
-        /// Era una costante. Chi clona il repository non ha quel disco, e con
-        /// una costante scopriva di non averlo quando il banco falliva senza
-        /// dire perche'. Poi e' diventata una variabile CON RIPIEGO, che e' la
-        /// stessa cosa scritta meglio: il ripiego era il percorso di una
-        /// postazione sola, non aiutava nessun altro, e pubblicava com'e'
-        /// fatto quel disco.
+        /// It used to be a constant. Whoever clones the repository does not have that disk, and with
+        /// a constant found out that they did not have it when the bench failed without
+        /// saying why. Then it became a variable WITH A FALLBACK, which is the
+        /// same thing written better: the fallback was the path of a single
+        /// workstation, it helped nobody else, and it published how
+        /// that disk is laid out.
         ///
-        /// Adesso il ripiego non c'e': vuoto e' vuoto, e `Path.Combine` non lo
-        /// vede mai perche' il banco si ferma prima, dicendolo.
+        /// Now the fallback is not there: empty is empty, and `Path.Combine` never
+        /// sees it because the bench stops before, saying so.
         /// </summary>
         private static readonly string WeldmentProfiles =
             System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
@@ -148,20 +148,20 @@ namespace Oce.Solid.Agent.Bench
         private static int _failed;
 
         /// <summary>
-        /// LE LIBRERIE DI DASSAULT NON SI COPIANO NEL REPOSITORY, e nemmeno
-        /// accanto all'eseguibile del banco.
+        /// DASSAULT'S LIBRARIES ARE NOT COPIED INTO THE REPOSITORY, nor
+        /// next to the bench's executable.
         ///
-        /// Il csproj le referenzia con `Private=False`, quindi in `bin` non
-        /// ci finiscono: non si possono ridistribuire per sbaglio, e non ci si
-        /// lega a una versione. Al loro posto si prende quella INSTALLATA su
-        /// questa macchina, che e' per definizione la stessa che sta girando.
+        /// The csproj references them with `Private=False`, so they do not end up
+        /// in `bin`: they cannot be redistributed by mistake, and one is not
+        /// tied to a version. In their place the one INSTALLED on
+        /// this machine is taken, which is by definition the same one that is running.
         ///
-        /// PERCHE' MAIN E' SPEZZATO IN DUE. Il gestore va installato PRIMA che
-        /// il JIT compili un metodo che nomina un tipo interop, e il JIT
-        /// compila tutto il metodo prima di eseguirne la prima riga. Con il
-        /// giro dentro `Main` il gestore veniva installato troppo tardi e
-        /// l'eccezione usciva "in Program.Main", cioe' prima di qualunque riga
-        /// scritta qui. `Startup` sta a parte e non si fa incorporare.
+        /// WHY MAIN IS SPLIT IN TWO. The handler must be installed BEFORE
+        /// the JIT compiles a method that names an interop type, and the JIT
+        /// compiles the whole method before executing its first line. With the
+        /// run inside `Main` the handler was installed too late and
+        /// the exception came out "in Program.Main", that is before any line
+        /// written here. `Startup` is kept apart and is not allowed to be inlined.
         /// </summary>
         private static int Main(string[] lineArguments)
         {
@@ -171,11 +171,11 @@ namespace Oce.Solid.Agent.Bench
                 if (!itemName.StartsWith("SolidWorks.Interop", StringComparison.OrdinalIgnoreCase))
                     return null;
                 var places = new List<string>();
-                // VOCE H10: una variabile sola, e il suo significato e' LA
-                // RADICE. `SW_REDIST` resta letta dopo, per chi ce l'ha gia'.
-                // Il banco e il ponte devono cercare NEGLI STESSI POSTI e
-                // nello stesso ordine: due ricerche diverse dello stesso file
-                // sono due programmi che un giorno usano due interop diverse.
+                // ENTRY H10: one variable only, and its meaning is THE
+                // ROOT. `SW_REDIST` is still read afterwards, for whoever already has it.
+                // The bench and the bridge must look IN THE SAME PLACES and
+                // in the same order: two different searches for the same file
+                // are two programs that one day use two different interops.
                 var root = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
                 if (!string.IsNullOrWhiteSpace(root))
                     places.Add(Path.Combine(root.Trim(), "api", "redist"));
@@ -205,19 +205,19 @@ namespace Oce.Solid.Agent.Bench
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
-            // ── LA PRECONDIZIONE SI DICE PRIMA, NON A META' GIRO ────────────
+            // ── THE PRECONDITION IS SAID FIRST, NOT MID-RUN ─────────────────
             //
-            // Il banco vuole la libreria dei profili normati, che e' di chi
-            // lavora e non del repository. Finche' c'era un ripiego cablato -
-            // il percorso di una postazione sola - chi clonava se ne accorgeva
-            // dopo trecento controlli, con un rifiuto che nominava un disco che
-            // non aveva mai visto.
+            // The bench wants the library of the standard profiles, which belongs to whoever
+            // works and not to the repository. As long as there was a hard-wired fallback -
+            // the path of a single workstation - whoever cloned found out
+            // after three hundred checks, with a refusal that named a disk that
+            // they had never seen.
             //
-            // Adesso il ripiego non c'e', e questo controllo esiste perche'
-            // senza di lui il sintomo sarebbe PEGGIORATO: un `null` in
-            // `Path.Combine` a meta' giro, cioe' un'eccezione al posto di una
-            // frase. *Togliere un ripiego senza mettere la frase che spiega
-            // cosa manca non e' una riparazione, e' spostare il danno.*
+            // Now the fallback is not there, and this check exists because
+            // without it the symptom would have GOT WORSE: a `null` in
+            // `Path.Combine` mid-run, that is an exception in place of a
+            // sentence. *Removing a fallback without putting the sentence that explains
+            // what is missing is not a repair, it is moving the damage.*
             if (string.IsNullOrWhiteSpace(WeldmentProfiles))
             {
                 Console.WriteLine();
@@ -231,11 +231,11 @@ namespace Oce.Solid.Agent.Bench
                 Console.WriteLine("      setx PROFILI_SALDATURA \"<la cartella dei .SLDLFP>\"");
                 Console.WriteLine();
                 Console.WriteLine("  Poi riapri il terminale: `setx` non tocca quello aperto.");
-                return 2;   // errore di banco, non una prova rossa
+                return 2;   // bench error, not a red check
             }
 
-            // `--libreria <percorso>` prima di tutto il resto: se la libreria
-            // e' un'altra, e' un'altra anche la misura, e va detto in testa.
+            // `--libreria <percorso>` before everything else: if the library
+            // is another one, the measurement is another one too, and it must be said at the head.
             var arguments = new List<string>(lineArguments ?? new string[0]);
             int location = arguments.IndexOf("--libreria");
             if (location >= 0 && location + 1 < arguments.Count)
@@ -250,68 +250,68 @@ namespace Oce.Solid.Agent.Bench
                 _anotherLibrary = !SameLibraryPath(_library, DefaultLibrary());
                 arguments.RemoveRange(location, 2);
             }
-            // `--lento`: le prove che costano MINUTI, non secondi.
+            // `--lento`: the checks that cost MINUTES, not seconds.
             //
-            // Il tetto sulle lavorazioni (E12) va provato su un pezzo con piu'
-            // di ottanta lavorazioni, e ottantacinque tagli costano ~26 secondi
-            // l'uno: mezz'ora per una prova sola, contro i tredici minuti di
-            // tutte le altre insieme. Su ogni giro sarebbe un prezzo che nessuno
-            // paga volentieri, e una prova che pesa troppo e' una prova che
-            // prima o poi qualcuno salta.
+            // The ceiling on features (E12) must be tested on a part with more
+            // than eighty features, and eighty-five cuts cost ~26 seconds
+            // each: half an hour for a single check, against the thirteen minutes of
+            // all the others together. On every run it would be a price that nobody
+            // pays gladly, and a check that weighs too much is a check that
+            // sooner or later somebody skips.
             //
-            // MA UN CONTROLLO SALTATO SI DEVE VEDERE. Quando non si lancia, il
-            // banco lo DICE e lo conta fra i saltati: un controllo che sparisce
-            // in silenzio e' come un controllo che non scatta mai.
+            // BUT A SKIPPED CHECK MUST BE SEEN. When it is not launched, the
+            // bench SAYS so and counts it among the skipped: a check that disappears
+            // in silence is like a check that never fires.
             _slow = arguments.Remove("--lento");
 
-            // `--muta`: non un giro con qualcosa in piu', UN ALTRO GIRO.
-            // Perturba i casi e pretende che diventino rossi (voce F6). Costa
-            // un documento di SOLIDWORKS per mutazione, quindi si lancia prima
-            // di una consegna e non ogni sera.
+            // `--muta`: not a run with something extra, ANOTHER RUN.
+            // It perturbs the cases and expects them to turn red (entry F6). It costs
+            // one SOLIDWORKS document per mutation, so it is launched before
+            // a delivery and not every evening.
             _mutate = arguments.Remove("--muta");
 
-            // `--regressione`: la suite dei riferimenti (voce F8). Come
-            // `--muta`, e' un altro giro: produce tre numeri, non prove verdi
-            // e rosse, e mescolarli non direbbe niente a nessuno.
+            // `--regressione`: the suite of the references (entry F8). Like
+            // `--muta`, it is another run: it produces three numbers, not green
+            // and red checks, and mixing them would tell nobody anything.
             _regression = arguments.Remove("--regressione");
 
-            // `--fingi-senza-solidworks`: far MORIRE SOLIDWORKS a comando.
+            // `--fingi-senza-solidworks`: make SOLIDWORKS DIE on command.
             //
-            // La sentinella (voce K17) si accende quando tre parti nuove
-            // di fila non nascono — una condizione che, nella vita vera,
-            // capita dopo ore e non si sa riprodurre. Senza un modo di
-            // provocarla, sarebbe una guardia scritta e mai vista
-            // scattare: la si crede e basta.
+            // The sentinel (entry K17) lights up when three new parts
+            // in a row are not born — a condition that, in real life,
+            // happens after hours and cannot be reproduced. Without a way of
+            // provoking it, it would be a guard written and never seen
+            // to fire: it is simply believed.
             //
-            // Con questa bandiera `NewDocument` risponde `null` comunque,
-            // il banco deve accorgersene entro tre tentativi, saltare
-            // tutto il resto DICENDOLO, e uscire 4. Si lancia a mano,
-            // dura pochi secondi, e serve a guardare con gli occhi cio'
-            // che le prove di contratto verificano in astratto.
+            // With this flag `NewDocument` answers `null` regardless,
+            // the bench must notice within three attempts, skip
+            // everything else SAYING so, and exit 4. It is launched by hand,
+            // takes a few seconds, and serves to see with one's own eyes what
+            // the contract checks verify in the abstract.
             _pretendWithoutSolidWorks = arguments.Remove("--fingi-senza-solidworks");
 
-            // `--gruppo <nomi>`: una famiglia di prove sola, mentre si lavora.
+            // `--gruppo <nomi>`: a single family of checks, while working.
             //
-            // ── PERCHE' ESISTE (voce F13) ─────────────────────────────────
+            // ── WHY IT EXISTS (entry F13) ─────────────────────────────────
             //
-            // Un giro intero dura 13-17 minuti, e fino alla 0.40.0 non c'era
-            // nessun modo di lanciarne un pezzo. Il 15/9/2026 il banco e' stato
-            // lanciato una dozzina di volte — circa tre ore e mezza di
-            // SOLIDWORKS — quasi tutte per riprovare cento cose non toccate.
+            // A whole run takes 13-17 minutes, and up to 0.40.0 there was
+            // no way of launching a piece of it. On 15/9/2026 the bench was
+            // launched a dozen times — about three and a half hours of
+            // SOLIDWORKS — almost all to re-test a hundred things not touched.
             //
-            // ── E PERCHE' IL GIRO INTERO RESTA IL PREDEFINITO ─────────────
+            // ── AND WHY THE WHOLE RUN REMAINS THE DEFAULT ─────────────────
             //
-            // Perche' «provo solo quella che ho cambiato» NON funziona, e lo
-            // stesso giorno l'ha dimostrato due volte: `center_mm` sulle facce
-            // dei fori ha fatto sforare il tetto dei 16 KB su un telaio da
-            // quattro barre — che fori non ne ha, ma ha i raccordi d'angolo dei
-            // profili — e il ritaglio delle immagini ha cambiato un'asserzione
-            // sul peso del PNG. **Il banco misura cosa hai rotto, non cosa hai
-            // fatto**: quello lo sai gia'.
+            // Because «I only test the one I changed» does NOT work, and the
+            // same day it was shown twice: `center_mm` on the faces
+            // of the holes made the 16 KB ceiling be exceeded on a frame of
+            // four bars — which has no holes, but has the corner fillets of the
+            // profiles — and the cropping of the images changed an assertion
+            // on the weight of the PNG. **The bench measures what you broke, not what you
+            // did**: that you already know.
             //
-            // Quindi: `--gruppo` per sbagliare in fretta, il giro intero prima
-            // di committare, e un giro parziale che NON puo' passare per uno
-            // intero — il riepilogo lo scrive a chiare lettere.
+            // So: `--gruppo` to get things wrong quickly, the whole run before
+            // committing, and a partial run that CANNOT pass for a whole
+            // one — the summary says so in plain letters.
             List<string> chosen = null;
             int whereG = arguments.IndexOf("--gruppo");
             if (whereG >= 0)
@@ -333,11 +333,11 @@ namespace Oce.Solid.Agent.Bench
                 return 0;
             }
 
-            // `--famiglia <nomi>`: dentro il gruppo «casi», solo quelle
-            // cartelle (25/9/2026, voce E19). «casi» da solo sono i mille casi
-            // dichiarati, tre quarti d'ora: per vedere fallire DUE casi nuovi
-            // prima di scrivere il codice — la regola di ogni controllo nuovo —
-            // era il giro intero o niente. Implica `--gruppo casi`.
+            // `--famiglia <nomi>`: inside the «casi» group, only those
+            // folders (25/9/2026, entry E19). «casi» alone is the thousand declared
+            // cases, three quarters of an hour: to see TWO new cases fail
+            // before writing the code — the rule of every new check —
+            // it was the whole run or nothing. It implies `--gruppo casi`.
             int whereF = arguments.IndexOf("--famiglia");
             if (whereF >= 0)
             {
@@ -363,9 +363,9 @@ namespace Oce.Solid.Agent.Bench
 
             lineArguments = arguments.ToArray();
 
-            // UN NOME SBAGLIATO SI DICE SUBITO, prima di agganciare SOLIDWORKS.
-            // Un refuso che si scopre dopo trenta secondi di avvio, e che lascia
-            // credere «quel gruppo non ha prove», e' peggio di nessun gruppo.
+            // A WRONG NAME IS SAID AT ONCE, before attaching to SOLIDWORKS.
+            // A typo that is discovered after thirty seconds of startup, and that leaves
+            // one believing «that group has no checks», is worse than no group.
             if (chosen != null)
             {
                 var known = new HashSet<string>(
@@ -390,25 +390,25 @@ namespace Oce.Solid.Agent.Bench
             try { _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
             catch (Exception ex) { Console.WriteLine("non agganciabile: " + ex.Message); return 1; }
 
-            // SI LEGGONO I BYTE E SI CARICA DA QUELLI.
-            // `Assembly.LoadFrom` su un percorso di rete (S:) risponde
-            // NotSupportedException, e la libreria sta proprio li'. Leggere il
-            // file e passare i byte gira attorno al problema senza chiedere a
-            // nessuno di copiarsi le cose a mano.
+            // THE BYTES ARE READ AND LOADED FROM THOSE.
+            // `Assembly.LoadFrom` on a network path (S:) answers
+            // NotSupportedException, and the library is right there. Reading the
+            // file and passing the bytes goes around the problem without asking
+            // anybody to copy things by hand.
             _addin = Assembly.Load(File.ReadAllBytes(_library));
             Console.WriteLine("SolidWorks " + _sw.RevisionNumber());
             Console.WriteLine("libreria " + _addin.GetName().Version + "  (" + _library + ")");
-            // ── LA LIBRERIA NON SI CARICA NON E' UN GIRO ROSSO (voce F10) ─
+            // ── THE LIBRARY DOES NOT LOAD IS NOT A RED RUN (entry F10) ─
             //
-            // Puntando `--libreria` a una versione storica — quel che serve per
-            // dimostrare che una prova custodisce davvero il suo difetto — i
-            // tipi possono non esserci: prima della 0.52.0 le operazioni
-            // stavano in `OpenPDM.SwAddin`, con un altro spazio dei nomi.
+            // Pointing `--libreria` to a historical version — what is needed to
+            // show that a check really guards its defect — the
+            // types may not be there: before 0.52.0 the operations
+            // were in `OpenPDM.SwAddin`, with another namespace.
             //
-            // Senza questa rete il banco usciva con un'eccezione non gestita e
-            // il codice -532462766, che in un log e' indistinguibile da un
-            // piantamento. Un confronto storico che da' «rosso dappertutto» non
-            // significa niente, e questo ne e' il caso limite.
+            // Without this net the bench exited with an unhandled exception and
+            // the code -532462766, which in a log is indistinguishable from a
+            // stuck process. A historical comparison that gives «red everywhere» means
+            // nothing, and this is its limit case.
             try
             {
                 _tOperations = _addin.GetType(NS + "SwOperations", true);
@@ -444,19 +444,19 @@ namespace Oce.Solid.Agent.Bench
                 return 2;
             }
 
-            // QUANTE OPERAZIONI, detto qui e non altrove: il resoconto (voce F2)
-            // lo vuole in intestazione, e questo e' l'unico punto in cui la
-            // libreria da misurare e' gia' in mano.
+            // HOW MANY OPERATIONS, said here and not elsewhere: the report (entry F2)
+            // wants it in the heading, and this is the only point at which the
+            // library to measure is already in hand.
             //
-            // E SONO DUE NUMERI (voce F15). `ExecutableNames` sono tutte quelle
-            // che la libreria sa eseguire, comprese le `Provata = false` che
-            // `build.ps1` tiene fuori da `catalog.json`. Fino alla 0.112.0 si
-            // stampava «catalogo: 73» e il catalogo servito ne aveva 71: il 24/9
-            // un agente ha spiegato la differenza con «le due copie della
-            // libreria divergono» — un tema vero del progetto, applicato al
-            // posto sbagliato. Un'etichetta che dice una cosa che il numero non
-            // e' produce spiegazioni plausibili e false. Adesso escono tutti e
-            // due col loro nome, contati tutti e due dalla libreria caricata.
+            // AND THEY ARE TWO NUMBERS (entry F15). `ExecutableNames` are all those
+            // that the library knows how to execute, including the `Provata = false` ones that
+            // `build.ps1` keeps out of `catalog.json`. Up to 0.112.0 it
+            // printed «catalogo: 73» and the served catalog had 71: on 24/9
+            // an agent explained the difference with «the two copies of the
+            // library diverge» — a true theme of the project, applied in the
+            // wrong place. A label that says something the number is not
+            // produces plausible and false explanations. Now both
+            // come out with their name, both counted from the loaded library.
             try
             {
                 // Through the reflection log: these fall back to null, and the
@@ -479,44 +479,44 @@ namespace Oce.Solid.Agent.Bench
             }
             catch { }
 
-            // MODO SESSIONE: invece delle prove, il giro completo — un
-            // documento tenuto aperto mentre qualcun altro pianifica.
+            // SESSION MODE: instead of the checks, the complete run — a
+            // document kept open while somebody else plans.
             if (lineArguments != null && lineArguments.Length >= 2 &&
                 lineArguments[0] == "--sessione")
             {
-                // Terzo argomento facoltativo: un pezzo gia' fatto da
-                // riprendere, invece di una parte vuota.
+                // Optional third argument: an already made part to
+                // pick up, instead of an empty part.
                 string toOpen = lineArguments.Length >= 3 ? lineArguments[2] : null;
                 return Session(lineArguments[1], toOpen);
             }
 
-            // ── LA SOLIDWORKS DEV'ESSERE PULITA PRIMA, NON DOPO ──────────
+            // ── SOLIDWORKS MUST BE CLEAN BEFORE, NOT AFTER ───────────────
             if (!TheDeskIsClean(lineArguments)) return 3;
 
-            // Il diario si apre QUI e non prima: l'aggancio a SOLIDWORKS e il
-            // caricamento della libreria possono far uscire dal programma, e un
-            // diario aperto per un giro che non e' mai cominciato direbbe
-            // «piantato al primo passo» quando invece non e' partito affatto.
+            // The journal is opened HERE and not before: attaching to SOLIDWORKS and
+            // loading the library can make the program exit, and a
+            // journal opened for a run that never began would say
+            // «stuck at the first step» when in fact it did not start at all.
             OpenLog();
 
-            // IL GUARDIANO SI ACCENDE QUI, e non prima: prima di questa riga
-            // il banco puo' ancora uscire da solo (libreria assente, SOLIDWORKS
-            // non agganciabile, scrivania sporca) e un guardiano acceso su un
-            // giro mai cominciato non sorveglia niente.
+            // THE GUARDIAN IS LIT HERE, and not before: before this line
+            // the bench can still exit on its own (library missing, SOLIDWORKS
+            // cannot be attached to, dirty desk) and a guardian lit on a
+            // run that never began watches nothing.
             //
-            // E si accende SEMPRE, anche con `--gruppo`: la chiamata che non
-            // torna non guarda quale sottoinsieme si e' scelto.
+            // And it is lit ALWAYS, even with `--gruppo`: the call that does not
+            // return does not look at which subset was chosen.
             TurnOnGuardian();
             Log("SolidWorks " + _sw.RevisionNumber() +
                    ", libreria " + _addin.GetName().Version +
                    (_slow ? ", con --lento" : "") +
                    (chosen == null ? "" : ", SOLO i gruppi " + string.Join(", ", chosen)));
 
-            // ── `--muta` E' UN GIRO A SE' ────────────────────────────────
+            // ── `--muta` IS A RUN OF ITS OWN ─────────────────────────────
             //
-            // Non si aggiunge alle prove: le sostituisce. Mescolarlo vorrebbe
-            // dire sommare centinaia di rossi CERCATI a un conteggio che serve
-            // a leggere i rossi non cercati.
+            // It is not added to the checks: it replaces them. Mixing it would mean
+            // adding hundreds of SOUGHT reds to a count that serves
+            // to read the unsought reds.
             if (_mutate || _regression)
             {
                 if (_mutate) MutationsRun();
@@ -559,42 +559,42 @@ namespace Oce.Solid.Agent.Bench
                     Skipped(theGroup.What, theGroup.WhyItWeighs ?? "si lancia con --lento");
                     continue;
                 }
-                // DA QUI IN POI LE PROVE SONO DI QUESTO GRUPPO (voce K2).
-                // Si alza qui e non dentro `Run()` perche' i gruppi sono
-                // diciotto metodi diversi e chiedere a ognuno di ricordarsene
-                // vuol dire che prima o poi uno se ne dimentica — e un gruppo
-                // che non si dichiara finisce in «(fuori gruppo)», che e'
-                // visibile, ma dopo.
+                // FROM HERE ON THE CHECKS BELONG TO THIS GROUP (entry K2).
+                // It is raised here and not inside `Run()` because the groups are
+                // eighteen different methods and asking each of them to remember it
+                // means that sooner or later one forgets — and a group
+                // that does not declare itself ends up in «(fuori gruppo)», which is
+                // visible, but later.
                 _groupInProgress = theGroup.Name;
                 try { theGroup.Run(); }
                 catch (Shared.PreparationFailed ex)
                 {
-                    // ── IL BUCO DI K17, TROVATO IL 24/9/2026 ─────────────
+                    // ── THE HOLE IN K17, FOUND ON 24/9/2026 ─────────────
                     //
-                    // Qui c'era un `try/finally` **senza `catch`**. La
-                    // maggior parte dei gruppi cattura `PreparationFailed`
-                    // per singola prova e la segna rossa; ma un gruppo che
-                    // la alza PREPARANDOSI — `PartView`, che si fa il
-                    // pezzo prima di misurare — la lasciava passare di qui,
-                    // e moriva `Main`.
+                    // Here there was a `try/finally` **without `catch`**. Most
+                    // groups catch `PreparationFailed`
+                    // per single check and mark it red; but a group that
+                    // raises it WHILE PREPARING — `PartView`, which makes itself the
+                    // part before measuring — let it pass through here,
+                    // and `Main` died.
                     //
-                    // Il risultato era l'opposto esatto di cio' che K17
-                    // prometteva: invece di «mi fermo, ecco perche', esco 4»,
-                    // uno **stack trace** e un processo morto. Nessun
-                    // resoconto su disco, quindi nessuna prova di cos'era
-                    // successo — e il codice d'uscita era 0xE0434352, che non
-                    // vuol dire niente per nessuno.
+                    // The result was the exact opposite of what K17
+                    // promised: instead of «I stop, here is why, I exit 4»,
+                    // a **stack trace** and a dead process. No
+                    // report on disk, hence no proof of what
+                    // had happened — and the exit code was 0xE0434352, which means
+                    // nothing to anybody.
                     //
-                    // Trovato lanciando `--fingi-senza-solidworks`, cioe'
-                    // esercitando apposta la guardia. *Una guardia che non si
-                    // e' mai vista scattare FINO IN FONDO e' provata a meta',
-                    // e la meta' che manca e' sempre quella che serve.*
+                    // Found by launching `--fingi-senza-solidworks`, that is
+                    // by exercising the guard on purpose. *A guard that has never been
+                    // seen to fire ALL THE WAY is half tested,
+                    // and the half that is missing is always the one that is needed.*
                     Skipped(theGroup.What, "PreparationFailed: " + ex.Message);
                     _groupInProgress = null;
 
-                    // Il resto non si prova nemmeno: SOLIDWORKS non produce
-                    // piu' documenti, e ogni gruppo che segue chiederebbe un
-                    // pezzo nuovo. Si dicono per nome, come i non lanciati.
+                    // The rest is not even tested: SOLIDWORKS no longer produces
+                    // documents, and every group that follows would ask for a
+                    // new part. They are named by name, like the ones not launched.
                     foreach (var g in Groups())
                         if (!ReferenceEquals(g, theGroup) &&
                             !notLaunched.Contains(g.Name) &&
@@ -613,13 +613,13 @@ namespace Oce.Solid.Agent.Bench
             foreach (var r in _outcomes) Console.WriteLine(r);
             Console.WriteLine();
 
-            // I GRUPPI NON LANCIATI SI DICONO PER NOME, come le saltate.
+            // THE GROUPS NOT LAUNCHED ARE NAMED, like the skipped ones.
             //
-            // «8 prove, 0 fallite» su un giro parziale e' vero e fa credere una
-            // cosa falsa, esattamente come lo era «88 prove, 0 fallite» con una
-            // prova non lanciata. La difesa sta nella riga di riepilogo, non
-            // nella disciplina di chi lancia: alla sera tardi nessuno si ricorda
-            // di essersi limitato a un gruppo.
+            // «8 prove, 0 fallite» on a partial run is true and makes one believe a
+            // false thing, exactly as «88 prove, 0 fallite» was with a
+            // check not launched. The defense is in the summary line, not
+            // in the discipline of whoever launches: late in the evening nobody remembers
+            // having limited themselves to one group.
             if (notLaunched.Count > 0)
             {
                 Console.WriteLine("NON LANCIATI — " + notLaunched.Count + " gruppi su " +
@@ -628,17 +628,17 @@ namespace Oce.Solid.Agent.Bench
                                   "ed e' quello che vale prima di committare.");
             }
 
-            // LE SALTATE SI CONTANO A PARTE E SI DICONO. «88 prove, 0 fallite»
-            // su un giro in cui una prova non e' stata lanciata e' una frase
-            // vera che fa credere una cosa falsa.
+            // THE SKIPPED ARE COUNTED SEPARATELY AND SAID. «88 prove, 0 fallite»
+            // on a run in which a check was not launched is a true
+            // sentence that makes one believe a false thing.
             //
-            // IL CONTO PER GRUPPO SI CONTROLLA PRIMA DEL RIEPILOGO, e non
-            // dopo: quel controllo puo' alzare un rosso, e un rosso alzato
-            // dopo che il riepilogo ha gia' contato i rossi non finisce nel
-            // riepilogo ne' nel codice d'uscita. La prima stesura lo chiamava
-            // in fondo, e sarebbe stato un controllo che non poteva far
-            // fallire niente: la forma peggiore, perche' si legge come un
-            // controllo.
+            // THE COUNT PER GROUP IS CHECKED BEFORE THE SUMMARY, and not
+            // after: that check can raise a red, and a red raised
+            // after the summary has already counted the reds ends up neither in the
+            // summary nor in the exit code. The first draft called it
+            // at the end, and it would have been a check that could not make anything
+            // fail: the worst form, because it reads like a
+            // check.
             CheckCountPerGroup();
             CheckTheTestIdentities();
             CheckTheReflectionLog();
@@ -654,37 +654,37 @@ namespace Oce.Solid.Agent.Bench
                 (_benchErrors > 0 ? ", " + _benchErrors + " ERRORI DI BANCO" : "");
             Console.WriteLine(summary);
 
-            // ATTESE VERIFICATE N SU M. Si scrive SEMPRE, anche quando i due
-            // numeri combaciano: e' il numero che dice se la suite sta
-            // misurando, e un numero che compare solo quando le cose vanno male
-            // non lo guarda nessuno finche' non e' troppo tardi.
+            // EXPECTATIONS VERIFIED N OUT OF M. It is ALWAYS written, even when the two
+            // numbers match: it is the number that says whether the suite is
+            // measuring, and a number that appears only when things go wrong
+            // is looked at by nobody until it is too late.
             var count = "attese verificate " + _verifiedExpectations + " su " + _expectations;
             Console.WriteLine(count);
 
-            // ── E QUANTE PROVE NON HANNO NESSUNA ATTESA (voce K3) ────────
+            // ── AND HOW MANY CHECKS HAVE NO EXPECTATION AT ALL (entry K3) ────────
             //
-            // Finche' i due numeri stavano in colonne diverse — 831 passate,
-            // 659 attese verificate — la differenza era leggibile solo
-            // sottraendo a mano, e nessuno la sottraeva. Scritta qui, con i
-            // NOMI, diventa un elenco su cui si puo' decidere.
+            // As long as the two numbers were in different columns — 831 passed,
+            // 659 expectations verified — the difference was readable only by
+            // subtracting by hand, and nobody subtracted it. Written here, with the
+            // NAMES, it becomes a list on which one can decide.
             //
-            // NON E' UN ELENCO DI COLPEVOLI. Ci finiscono anche prove severe,
-            // che confrontano nel codice invece che in un file di caso; e ci
-            // finiscono le righe di servizio del banco, che non provano il
-            // prodotto ma se stesse. Il punto e' poterle guardare una per una
-            // invece di crederle tutte equivalenti a un'attesa misurata.
+            // IT IS NOT A LIST OF CULPRITS. Severe checks end up in it too,
+            // which compare in the code instead of in a case file; and the
+            // bench's service lines end up in it, which do not test the product
+            // but themselves. The point is to be able to look at them one by one
+            // instead of believing them all equivalent to a measured expectation.
             Console.WriteLine("prove con un'attesa dichiarata: " + _withExpectation +
                               " — senza: " + _withoutExpectation.Count);
 
-            // Voce K2-bis. Sta accanto al totale come il conto per gruppo,
-            // perche' e' la stessa domanda: di quel numero grande, quanto
-            // riguarda davvero SOLIDWORKS?
-            // LA POSTILLA DICEVA «finche' la K12-bis e' aperta», e la K12-bis
-            // e' chiusa dal 23/9/2026: era una riga che raccontava il mondo di
-            // ieri, cioe' esattamente cio' che questo banco rimprovera ai
-            // numeri scritti a mano. Il conto adesso e' una misura —
-            // `OpenDocuments()` chiede a SOLIDWORKS quanti documenti ci sono
-            // durante ogni prova — e non ha piu' bisogno di scuse.
+            // Entry K2-bis. It sits next to the total like the count per group,
+            // because it is the same question: of that big number, how much
+            // really involves SOLIDWORKS?
+            // THE POSTSCRIPT SAID «as long as K12-bis is open», and K12-bis
+            // has been closed since 23/9/2026: it was a line that told the world of
+            // yesterday, that is exactly what this bench reproaches
+            // hand-written numbers with. The count is now a measurement —
+            // `OpenDocuments()` asks SOLIDWORKS how many documents there are
+            // during each check — and no longer needs excuses.
             Console.WriteLine("prove con un documento CAD aperto: " + _withDocument +
                               " — senza: " + _withoutDocument);
             WriteWithoutWaiting();
@@ -693,13 +693,13 @@ namespace Oce.Solid.Agent.Bench
 
             CloseLog(summary + " · " + count);
 
-            // ── QUATTRO USCITE, E LA 4 VINCE SU TUTTE (voce K17) ─────
+            // ── FOUR EXITS, AND 4 WINS OVER ALL OF THEM (entry K17) ─────
             //
-            // Se SOLIDWORKS se n'e' andato a meta' giro, «quante prove
-            // sono fallite» e «quante non ho potuto misurare» sono tutt'e
-            // due la domanda sbagliata: il giro NON E' STATO FATTO. Dirlo
-            // con un codice suo evita che chi legge un 1 si metta a
-            // cercare cosa ha rotto.
+            // If SOLIDWORKS went away mid-run, «how many checks
+            // failed» and «how many I could not measure» are both
+            // the wrong question: the run WAS NOT DONE. Saying it
+            // with a code of its own prevents whoever reads a 1 from starting to
+            // look for what broke.
             if (Sentinel.HasGone)
             {
                 Console.WriteLine();
@@ -715,35 +715,35 @@ namespace Oce.Solid.Agent.Bench
                 Console.WriteLine(new string('!', 76));
                 return 4;
             }
-            // TRE USCITE, E IL 2 VINCE SULL'1. Se il banco non ha potuto
-            // misurare, quante prove siano fallite e' una domanda a cui non si
-            // e' risposto.
+            // THREE EXITS, AND 2 WINS OVER 1. If the bench could not
+            // measure, how many checks failed is a question that has not been
+            // answered.
             if (_benchErrors > 0) return 2;
             return _failed == 0 ? 0 : 1;
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // I GRUPPI (voce F13)
+        // THE GROUPS (entry F13)
         //
-        // L'ORDINE E' QUELLO DI PRIMA, e non e' un dettaglio: alcune prove
-        // lasciano il documento in uno stato che la successiva si aspetta, e
-        // riordinarle per fare pulizia sarebbe il modo piu' silenzioso di
-        // rompere il banco. Questa tabella e' l'elenco di prima, con un nome
-        // davanti a ogni riga.
+        // THE ORDER IS THE SAME AS BEFORE, and it is not a detail: some checks
+        // leave the document in a state that the next one expects, and
+        // reordering them to tidy up would be the most silent way of
+        // breaking the bench. This table is the list of before, with a name
+        // in front of every line.
         // ══════════════════════════════════════════════════════════════════
         private sealed class Group
         {
-            public string Name;      // come si scrive dopo --gruppo
-            public string What;      // come si chiama quando si dice che e' saltato
+            public string Name;      // how it is written after --gruppo
+            public string What;      // what it is called when it is said that it was skipped
             public bool SlowOnly;
-            public string WhyItWeighs;   // cosa si dice quando --lento non c'e'
+            public string WhyItWeighs;   // what is said when --lento is not there
 
             /// <summary>
-            /// LE PROVE DEL GRUPPO, UNA PER UNA e non una lambda che le
-            /// chiama. Una lambda nasconderebbe i metodi veri dietro il suo, e
-            /// `TestThatTheTableCoversEverything` — il controllo che nessuna
-            /// famiglia resti fuori — non li vedrebbe piu': cercherebbe fra i
-            /// metodi generati dal compilatore e direbbe di si' a tutto.
+            /// THE CHECKS OF THE GROUP, ONE BY ONE and not a lambda that
+            /// calls them. A lambda would hide the real methods behind its own, and
+            /// `TestThatTheTableCoversEverything` — the check that no
+            /// family is left out — would no longer see them: it would look among the
+            /// methods generated by the compiler and say yes to everything.
             /// </summary>
             public Action[] Actions;
 
@@ -766,47 +766,47 @@ namespace Oce.Solid.Agent.Bench
                              Actions = one(TestFeatureCap), SlowOnly = true,
                              WhyItWeighs = "85 lavorazioni, circa mezz'ora: si lancia con --lento" },
 
-                // Quelle che stavano dentro `NuoveOperazioni()`.
+                // Those that were inside `NuoveOperazioni()`.
                 new Group { Name = "scatto",       What = "scatta la vista",        Actions = one(CaptureView) },
                 new Group { Name = "quanto-vede",  What = "quanto vede il modello", Actions = one(HowMuchTheModelSees) },
                 new Group { Name = "facce",        What = "le facce della piastra", Actions = one(PrintPlateFaces) },
                 new Group { Name = "sposta-corpi", What = "move_bodies",           Actions = one(TestMoveBodies) },
-                // «slot» non c'e' piu': e' diventata quindici file in
-                // `cases/slot/`, e si lancia con `--gruppo casi` (voce F11).
-                // «smusso» non c'e' piu': e' diventato tre file in
-                // `cases/chamfer/`, e si lancia con `--gruppo casi` (voce F11).
-                // «revolve» non c'e' piu': e' diventata cinque file in
-                // `cases/revolve/`. La tolleranza e' la differenza: il C#
-                // accettava `atteso * 0.02`, che sul cilindro da 62.831 mm³
-                // sono 1.256 mm³ di scarto ammesso.
-                // «shell» non c'e' piu': e' diventato due file in
-                // `cases/features/`, e si lancia con `--gruppo casi`.
-                // «crea-piano» non c'e' piu': e' diventato tre file in
-                // `cases/plane/`, e l'attesa e' su DOVE E' FINITO il piano
-                // (`last_plane_mm`), non sulla distanza che il ponte
-                // ricopia.
-                // «crea-asse» e' rimasto in C# per UNA riga sola: che l'asse
-                // si riagganci con SelectByID2("AXIS"), che e' una chiamata
-                // COM e non un'operazione del catalogo. Tutto il resto della
-                // famiglia sta in `cases/axis/`.
+                // «slot» is no longer there: it became fifteen files in
+                // `cases/slot/`, and it is launched with `--gruppo casi` (entry F11).
+                // «smusso» is no longer there: it became three files in
+                // `cases/chamfer/`, and it is launched with `--gruppo casi` (entry F11).
+                // «revolve» is no longer there: it became five files in
+                // `cases/revolve/`. The tolerance is the difference: the C#
+                // accepted `atteso * 0.02`, which on the cylinder of 62.831 mm³
+                // is 1.256 mm³ of allowed slack.
+                // «shell» is no longer there: it became two files in
+                // `cases/features/`, and it is launched with `--gruppo casi`.
+                // «crea-piano» is no longer there: it became three files in
+                // `cases/plane/`, and the expectation is on WHERE THE PLANE ENDED UP
+                // (`last_plane_mm`), not on the distance that the bridge
+                // copies.
+                // «crea-asse» stayed in C# for ONE line only: that the axis
+                // re-attaches with SelectByID2("AXIS"), which is a COM
+                // call and not a catalog operation. All the rest of the
+                // family is in `cases/axis/`.
                 new Group { Name = "crea-asse",    What = "l'asse si ritrova per nome", Actions = one(TestCreateAxis) },
-                // LA QUOTA SENZA SPIGOLO (voce Z-A2): il rosso che un caso
-                // dichiarato non sa costruire, perche' dopo `create_drawing` non
-                // torna al pezzo per sopprimere.
+                // THE DIMENSION WITHOUT AN EDGE (entry Z-A2): the red that a declared
+                // case does not know how to build, because after `create_drawing` it does not
+                // go back to the part to suppress.
                 new Group { Name = "orfane",       What = "la quota che resta senza spigolo (Z-A2)", Actions = one(TestOrphanDimensions) },
-                // IL NUMERO STAMPATO (voce Z-C2): nessuna operazione del catalogo
-                // sovrascrive una quota, quindi la falsificazione si fa qui.
+                // THE PRINTED NUMBER (entry Z-C2): no catalog operation
+                // overwrites a dimension, so the falsification is done here.
                 new Group { Name = "numeri",       What = "il numero stampato e' quello del modello (Z-C2)", Actions = one(TestDimensionNumbers) },
-                // LA PORTA DEL CLIENTE (voce F14): non chiama la libreria,
-                // parla al ponte sullo stdio come farebbe un client MCP.
+                // THE CLIENT'S DOOR (entry F14): it does not call the library,
+                // it talks to the bridge over stdio as an MCP client would.
                 new Group { Name = "porta-del-cliente",
                              What = "i casi che passano dal ponte (F14)",
                              Actions = one(TheClientPort) },
-                // «ripeti», «mirror» e «togliere» non ci sono piu': sono
-                // diventati `cases/patterns/`, `cases/mirror/` e
-                // `cases/removal/`, e si lanciano con `--gruppo casi`.
-                // «shape» non c'e' piu': e' diventata `cases/sentence/`, da quando
-                // le attese sanno chiedere «includes» e «does_not_include».
+                // «ripeti», «mirror» and «togliere» are no longer there: they
+                // became `cases/patterns/`, `cases/mirror/` and
+                // `cases/removal/`, and they are launched with `--gruppo casi`.
+                // «shape» is no longer there: it became `cases/sentence/`, since
+                // the expectations know how to ask «includes» and «does_not_include».
                 new Group { Name = "dove-stava",   What = "dove stava, e il grep vuoto (E10)",
                              Actions = new Action[] { TestWhereItWas, TestThatTheFractionDoesNotDecide } },
                 new Group { Name = "casi",         What = "i casi dichiarati, che sono file (F3)",
@@ -814,14 +814,14 @@ namespace Oce.Solid.Agent.Bench
                              {
                                  TestThatSelectorRefuses,
                                  TestDeclaredCases,
-                                 // DOPO i casi: guarda anche il conto delle
-                                 // attese, che prima di eseguirli e' zero.
+                                 // AFTER the cases: it also looks at the count of the
+                                 // expectations, which before running them is zero.
                                  TestThatAnAbsentFieldIsNotAZero,
                              } },
                 new Group { Name = "il-null-ha-un-nome", What = "il banco dice dove non e' riuscito (F12)",
                              Actions = one(TestThatNullHasAName) },
-                // La capacita' che apre tutta la sezione G-A: senza, nessuna
-                // operazione di assieme potrebbe avere un caso.
+                // The capability that opens the whole G-A section: without it, no
+                // assembly operation could have a case.
                 new Group { Name = "assieme-di-prova", What = "il banco sa preparare un assieme (GA0)",
                              Actions = one(TestTheTestAssembly) },
                 new Group { Name = "tabella",      What = "la tabella dei gruppi copre tutto (F13)",
@@ -831,40 +831,40 @@ namespace Oce.Solid.Agent.Bench
 
         // ══════════════════════════════════════════════════════════════════
         /// <summary>
-        /// IL DIFETTO CHE I GRUPPI INTRODUCONO, e che non da' errore.
+        /// THE DEFECT THAT THE GROUPS INTRODUCE, and that gives no error.
         ///
-        /// Prima della voce F13 dimenticarsi di chiamare una prova nuova voleva
-        /// dire non aggiungerla a `NuoveOperazioni()`. Adesso vuol dire non
-        /// aggiungerla alla tabella dei gruppi — stessa dimenticanza, stesso
-        /// silenzio: il banco continua a dire «tutto torna» su una prova in meno,
-        /// e il conto totale non lo guarda nessuno da un giro all'altro.
+        /// Before entry F13, forgetting to call a new check meant
+        /// not adding it to `NuoveOperazioni()`. Now it means not
+        /// adding it to the table of the groups — same oversight, same
+        /// silence: the bench keeps saying «all adds up» on one check fewer,
+        /// and the total count is looked at by nobody from one run to the next.
         ///
-        /// Qui si chiede a .NET quali metodi di prova esistono davvero e si
-        /// confronta con la tabella. Il conto e' fatto sui `MethodInfo`, non sui
-        /// nomi scritti a mano: un elenco scritto a mano avrebbe lo stesso
-        /// difetto che sta controllando.
+        /// Here .NET is asked which check methods really exist and the answer is
+        /// compared with the table. The count is made on the `MethodInfo`, not on
+        /// hand-written names: a hand-written list would have the same
+        /// defect that it is checking.
         ///
-        /// ── E IL SUO ROSSO ───────────────────────────────────────────────
+        /// ── AND ITS RED ──────────────────────────────────────────────────
         ///
-        /// Un setaccio che non trova niente e uno rotto si vedono uguali. Se la
-        /// domanda alla riflessione tornasse vuota, «nessuna famiglia fuori
-        /// dalla tabella» sarebbe vera per un motivo sbagliato: si controlla
-        /// prima che le famiglie le veda.
+        /// A sieve that finds nothing and a broken one look the same. If the
+        /// question to reflection came back empty, «no family outside
+        /// the table» would be true for the wrong reason: it is checked
+        /// first that it sees the families.
         ///
-        /// ── E IL ROSSO NON E' PIU' UN NUMERO ─────────────────────────────
+        /// ── AND THE RED IS NO LONGER A NUMBER ────────────────────────────
         ///
-        /// Era `famiglie.Count >= 15`, e il 15/9/2026 e' diventato rosso senza
-        /// che niente si fosse rotto: la voce F11 ha trasformato sei famiglie
-        /// di prove in file JSON, e i metodi sono scesi a dodici. **Un
-        /// pavimento numerico su una cosa che deve calare e' un rosso a
-        /// scadenza**: chi lo incontra lo alza o lo abbassa, e in tutti e due i
-        /// casi ha guardato il numero invece del pezzo.
+        /// It was `famiglie.Count >= 15`, and on 15/9/2026 it turned red without
+        /// anything having broken: entry F11 turned six families
+        /// of checks into JSON files, and the methods went down to twelve. **A numeric
+        /// floor on something that must shrink is a red with an
+        /// expiry date**: whoever meets it raises it or lowers it, and in both
+        /// cases has looked at the number instead of the part.
         ///
-        /// Adesso il setaccio deve trovare SE STESSO. `TestThatTheTableCoversEverything`
-        /// e' un metodo `private static void` senza parametri che comincia per
-        /// «Prova»: se la riflessione non lo elenca, non funziona — e la cosa
-        /// non dipende da quante famiglie ci siano oggi. Il conto resta
-        /// scritto accanto come dato, non come soglia.
+        /// Now the sieve must find ITSELF. `TestThatTheTableCoversEverything`
+        /// is a `private static void` method without parameters that begins with
+        /// «Prova»: if reflection does not list it, it does not work — and the thing
+        /// does not depend on how many families there are today. The count stays
+        /// written next to it as data, not as a threshold.
         /// </summary>
         private static void TestThatTheTableCoversEverything()
         {
@@ -878,7 +878,7 @@ namespace Oce.Solid.Agent.Bench
                             m.GetParameters().Length == 0)
                 .ToList();
 
-            // IL SETACCIO TROVA SE STESSO, o non funziona.
+            // THE SIEVE FINDS ITSELF, or it does not work.
             bool seesMe = families.Any(m => m.Name == "TestThatTheTableCoversEverything");
             Check("F13 ROSSO: il setaccio vede le famiglie di prove", seesMe,
                   families.Count + " metodi «Test…()»" +
@@ -891,8 +891,8 @@ namespace Oce.Solid.Agent.Bench
                   outside.Count == 0,
                   outside.Count == 0 ? groups.Count + " gruppi" : string.Join(", ", outside));
 
-            // DUE GRUPPI COLLO STESSO NOME: `--gruppo x` ne lancerebbe due e
-            // il conto dei non lanciati direbbe una cosa e il giro un'altra.
+            // TWO GROUPS WITH THE SAME NAME: `--gruppo x` would launch two and
+            // the count of the not-launched would say one thing and the run another.
             var doubled = groups.GroupBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
                               .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
             Check("F13: i nomi dei gruppi sono tutti diversi",
@@ -901,9 +901,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// I nomi dei gruppi, per chi ne ha scritto uno sbagliato o non sa
-        /// quali ci sono. Si costruisce dalla stessa tabella che li lancia: un
-        /// elenco scritto a mano accanto invecchia al primo gruppo nuovo.
+        /// The names of the groups, for whoever wrote a wrong one or does not know
+        /// which ones there are. It is built from the same table that launches them: a
+        /// hand-written list next to it ages at the first new group.
         /// </summary>
         private static string WhatTheyAreCalled()
         {
@@ -914,17 +914,17 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Il nome, incolonnato, **e sempre almeno uno spazio dopo**.
+        /// The name, in columns, **and always at least one space after**.
         ///
-        /// `PadRight(52)` da solo non aggiunge niente quando il nome e' gia'
-        /// lungo 52, e il diario usciva cosi':
+        /// `PadRight(52)` alone adds nothing when the name is already
+        /// 52 long, and the journal came out like this:
         ///
         ///     OK   ...misure.copie_fattemisure.copie_fatte 3 (atteso 3)
         ///
-        /// Due parole attaccate che sembrano una parola sola. Non e' un
-        /// dettaglio estetico: il diario e' cio' che si legge quando il banco
-        /// e' rosso, e una riga che si legge male si legge sbagliata — quel
-        /// nome doppio sembra un difetto del banco, e si va a cercarlo.
+        /// Two words stuck together that look like a single word. It is not an
+        /// aesthetic detail: the journal is what one reads when the bench
+        /// is red, and a line that reads badly is read wrong — that
+        /// doubled name looks like a defect of the bench, and one goes to look for it.
         /// </summary>
         private static string InColumn(string itemName)
         {
@@ -953,78 +953,78 @@ namespace Oce.Solid.Agent.Bench
         private static void RecordOutcome(string itemName, bool ok, string detail,
                                           string callerFile, string callerMember, int callerLine)
         {
-            // ZITTO: il modo `--muta` riesegue lo stesso caso decine di volte e
-            // PRETENDE che diventi rosso (voce F6). Quei rossi non sono
-            // regressioni — sono il risultato che si cercava — e finire
-            // nell'elenco degli esiti li farebbe leggere come tali.
+            // QUIET: the `--muta` mode re-runs the same case dozens of times and
+            // EXPECTS it to turn red (entry F6). Those reds are not
+            // regressions — they are the result that was sought — and ending up
+            // in the list of outcomes would make them be read as such.
             if (_quiet) { if (!ok) _quietRed = true; return; }
 
             if (!ok) _failed++;
 
-            // ── CON O SENZA UN'ATTESA DICHIARATA (voce K3) ───────────────
+            // ── WITH OR WITHOUT A DECLARED EXPECTATION (entry K3) ────────
             //
-            // `_waitInProgress` lo alza chi ha appena MISURATO E CONFRONTATO
-            // una grandezza dichiarata in un caso: il valutatore delle attese
-            // e quello della regressione. Tutte le altre prove — quelle
-            // scritte in C# — passano di qui con il segno abbassato.
+            // `_waitInProgress` is raised by whoever has just MEASURED AND COMPARED
+            // a quantity declared in a case: the expectation evaluator
+            // and the regression one. All the other checks — those
+            // written in C# — pass through here with the flag lowered.
             //
-            // LA DIFFERENZA NON E' «BUONE E CATTIVE». Molte prove in C#
-            // confrontano eccome, e alcune sono le piu' severe della suite.
-            // Ma una parte non confronta niente: chiama, non esplode, e
-            // finisce verde. *Una prova che passa senza asserzione non
-            // dimostra un comportamento: dimostra che non e' esplosa*, e
-            // finche' le due cose si sommano in un numero solo — 831 passate
-            // contro 659 attese verificate — quel numero non dice quanto la
-            // suite stia misurando.
+            // THE DIFFERENCE IS NOT «GOOD AND BAD». Many checks in C#
+            // compare all right, and some are the most severe of the suite.
+            // But a part compares nothing: it calls, does not blow up, and
+            // ends green. *A check that passes without an assertion does not
+            // demonstrate a behavior: it demonstrates that it did not blow up*, and
+            // as long as the two things add up into a single number — 831 passed
+            // against 659 expectations verified — that number does not say how much the
+            // suite is measuring.
             //
-            // Qui si separano e si scrivono i NOMI di quelle senza. Poi si
-            // decide, voce per voce, se chiuderle o dichiararle: e' una
-            // decisione che si puo' prendere solo avendo l'elenco davanti.
+            // Here they are separated and the NAMES of those without are written. Then
+            // it is decided, entry by entry, whether to close them or declare them: it is a
+            // decision that can be taken only by having the list in front.
             if (_waitInProgress) _withExpectation++;
             else _withoutExpectation.Add(itemName);
 
-            // ── DI QUALE GRUPPO E' QUESTA PROVA (voce K2) ────────────────
+            // ── WHICH GROUP THIS CHECK BELONGS TO (entry K2) ─────────────
             //
-            // «831 prove su SOLIDWORKS vero» e' un numero che copre meno
-            // terreno di quanto sembri, e contrapporlo a qualcuno mette nello
-            // stesso conto prove che un documento CAD non lo aprono nemmeno.
-            // Non e' una bugia: e' un numero grande che rassicura in
-            // proporzione a quanto e' grande, non a quanto e' pertinente.
+            // «831 checks on real SOLIDWORKS» is a number that covers less
+            // ground than it seems, and contrasting it with somebody puts in the
+            // same count checks that do not even open a CAD document.
+            // It is not a lie: it is a big number that reassures in
+            // proportion to how big it is, not to how pertinent it is.
             //
-            // Il conto per gruppo si scrive accanto al totale. Il totale
-            // resta — serve a vedere se la suite cresce — ma smette di essere
-            // l'unico numero che si legge.
+            // The count per group is written next to the total. The total
+            // stays — it serves to see whether the suite grows — but it stops being
+            // the only number that is read.
             var key = _groupInProgress ?? "(fuori gruppo)";
             int howMany;
             _perGroup.TryGetValue(key, out howMany);
             _perGroup[key] = howMany + 1;
 
-            // ── E QUANTE HANNO UN DOCUMENTO CAD SOTTO (voce K2-bis) ──────
+            // ── AND HOW MANY HAVE A CAD DOCUMENT UNDERNEATH (entry K2-bis) ──
             //
-            // Il conto per gruppo diceva DOVE stanno le prove; questo dice
-            // quante di loro hanno SOLIDWORKS davvero in mezzo. Dentro il
-            // gruppo `casi` — che da solo ne raccoglie la grande maggioranza —
-            // stanno sia i casi dichiarati, che un documento lo aprono, sia i
-            // controlli sul valutatore delle attese, che confrontano dizionari
-            // e non aprono niente.
+            // The count per group said WHERE the checks are; this says
+            // how many of them really have SOLIDWORKS in the middle. Inside the
+            // `casi` group — which alone gathers the great majority of them —
+            // there are both the declared cases, which do open a document, and the
+            // checks on the expectation evaluator, which compare dictionaries
+            // and open nothing.
             //
-            // SI CHIEDE A SOLIDWORKS, NON AL BANCO. La prima stesura contava
-            // le aperture e le chiusure con un contatore interno, e sarebbe
-            // stata sbagliata: i documenti si aprono in almeno quattro punti
-            // (`NewPart`, `NewAssembly`, `Open`, la sessione) e si chiudono
-            // in tre, uno dei quali prova DUE VOLTE apposta. Un contatore con
-            // sette guardiani e' un contatore che un giorno dira' -1.
-            // `GetDocumentCount()` e' la stessa domanda fatta a chi la
-            // risposta ce l'ha.
+            // SOLIDWORKS IS ASKED, NOT THE BENCH. The first draft counted
+            // openings and closings with an internal counter, and would have been
+            // wrong: documents are opened in at least four places
+            // (`NewPart`, `NewAssembly`, `Open`, the session) and closed
+            // in three, one of which tries TWICE on purpose. A counter with
+            // seven guardians is a counter that one day will say -1.
+            // `GetDocumentCount()` is the same question asked of whoever has the
+            // answer.
             //
-            // COSA MISURA DAVVERO, detto qui e non scoperto dopo: «c'era un
-            // documento aperto quando questa prova e' stata registrata». Da
-            // quando il banco parte solo su una scrivania pulita (voce K12)
-            // quel documento e' per forza uno che ha aperto lui. Ma se un caso
-            // si dimentica di chiudere (voce K12-bis), le prove successive
-            // risultano «con documento» anche se il CAD non l'hanno toccato.
-            // **E' un limite, e va letto insieme alla K12-bis**: finche'
-            // quella e' aperta, questo numero e' un tetto, non una misura.
+            // WHAT IT REALLY MEASURES, said here and not discovered afterwards: «there was a
+            // document open when this check was recorded». Since
+            // the bench starts only on a clean desk (entry K12)
+            // that document is necessarily one that it opened. But if a case
+            // forgets to close (entry K12-bis), the following checks
+            // show up as «with document» even though they did not touch the CAD.
+            // **It is a limit, and it must be read together with K12-bis**: as long as
+            // that one is open, this number is a ceiling, not a measurement.
             if (OpenDocuments() > 0) _withDocument++; else _withoutDocument++;
 
             var line = (ok ? "  OK   " : "  NO   ") + InColumn(itemName) + detail;
@@ -1036,28 +1036,28 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Alzato da chi sta registrando l'esito di un'attesa DICHIARATA, per
-        /// il tempo di quella sola chiamata a `Check`. Vedi la voce K3.
+        /// Raised by whoever is recording the outcome of a DECLARED expectation, for
+        /// the time of that single call to `Check`. See entry K3.
         /// </summary>
         internal static bool _waitInProgress;
 
         internal static int _withExpectation;
         internal static readonly List<string> _withoutExpectation = new List<string>();
 
-        /// <summary>Il gruppo che sta girando adesso (voce K2).</summary>
+        /// <summary>The group that is running now (entry K2).</summary>
         internal static string _groupInProgress;
 
-        /// <summary>Prove registrate con un documento CAD aperto (voce K2-bis).</summary>
+        /// <summary>Checks recorded with a CAD document open (entry K2-bis).</summary>
         internal static int _withDocument;
         internal static int _withoutDocument;
 
         /// <summary>
-        /// Quanti documenti ha aperti SOLIDWORKS adesso, o -1 se non si sa.
+        /// How many documents SOLIDWORKS has open now, or -1 if it is not known.
         ///
-        /// Il -1 non e' zero travestito: «non ho potuto chiedere» e «non ce
-        /// n'e'» sono due cose diverse, e confonderle qui vorrebbe dire
-        /// contare come «senza documento» un giro in cui la domanda non e'
-        /// passata. Chi legge il numero tratta il -1 come «non lo so».
+        /// The -1 is not a zero in disguise: «I could not ask» and «there
+        /// are none» are two different things, and confusing them here would mean
+        /// counting as «without document» a run in which the question did not
+        /// get through. Whoever reads the number treats the -1 as «I do not know».
         /// </summary>
         internal static int OpenDocuments()
         {
@@ -1066,19 +1066,19 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Quante prove per gruppo. LA SOMMA DEVE FARE IL TOTALE, e se non lo
-        /// fa il resoconto lo dice: un conto per gruppo che non torna col
-        /// totale e' peggio di nessun conto per gruppo, perche' si legge come
-        /// una ripartizione mentre e' una ripartizione incompleta.
+        /// How many checks per group. THE SUM MUST MAKE THE TOTAL, and if it
+        /// does not the report says so: a count per group that does not match the
+        /// total is worse than no count per group, because it reads like
+        /// a partition while it is an incomplete partition.
         /// </summary>
         internal static readonly Dictionary<string, int> _perGroup =
             new Dictionary<string, int>(StringComparer.Ordinal);
 
         /// <summary>
-        /// Registra l'esito di un'attesa dichiarata: come `Check`, ma conta
-        /// nella colonna giusta. Sta qui e non nei chiamanti perche' un flag
-        /// alzato a mano e dimenticato abbassato falsa tutto il conteggio da
-        /// li' in avanti — e lo falserebbe in silenzio.
+        /// Records the outcome of a declared expectation: like `Check`, but it counts
+        /// in the right column. It is here and not in the callers because a flag
+        /// raised by hand and forgotten raised falsifies the whole count from
+        /// there on — and it would falsify it in silence.
         /// </summary>
         internal static void CheckExpectation(string itemName, bool ok, string detail = "",
                                          [CallerFilePath] string callerFile = "",
@@ -1091,32 +1091,32 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Scrive in un file l'elenco delle prove senza attesa dichiarata, e a
-        /// schermo le prime venti.
+        /// Writes to a file the list of the checks without a declared expectation, and
+        /// on screen the first twenty.
         ///
-        /// IN UN FILE E NON SOLO A SCHERMO: sono centosettanta righe in fondo
-        /// a un giro da ottocento, cioe' esattamente il posto in cui nessuno
-        /// guarda. Il file invece si apre quando si ha voglia di decidere, e
-        /// si puo' confrontare con quello del giro prima per vedere se
-        /// l'elenco si sta accorciando.
+        /// IN A FILE AND NOT ONLY ON SCREEN: they are a hundred and seventy lines at the bottom
+        /// of a run of eight hundred, that is exactly the place where nobody
+        /// looks. The file instead is opened when one feels like deciding, and
+        /// can be compared with the one of the previous run to see whether
+        /// the list is getting shorter.
         /// </summary>
         /// <summary>
-        /// Il conto per gruppo, e il controllo che la somma faccia il totale.
+        /// The count per group, and the check that the sum makes the total.
         ///
-        /// PERCHE' IL TOTALE DA SOLO DICE MENO DI QUANTO SEMBRI (voce K2).
-        /// «831 prove su SOLIDWORKS vero» mette nello stesso numero prove che
-        /// un documento CAD non lo aprono nemmeno — il protocollo MCP, il
-        /// valutatore delle attese, i controlli sul banco stesso. Non e' una
-        /// bugia: e' un numero che copre meno terreno di quanto sembri, ed e'
-        /// la forma di difetto che questo progetto insegue.
+        /// WHY THE TOTAL ALONE SAYS LESS THAN IT SEEMS (entry K2).
+        /// «831 checks on real SOLIDWORKS» puts in the same number checks that
+        /// do not even open a CAD document — the MCP protocol, the
+        /// expectation evaluator, the checks on the bench itself. It is not a
+        /// lie: it is a number that covers less ground than it seems, and it is
+        /// the form of defect this project chases.
         ///
-        /// *Un numero grande rassicura in proporzione a quanto e' grande, non
-        /// a quanto e' pertinente.*
+        /// *A big number reassures in proportion to how big it is, not
+        /// to how pertinent it is.*
         ///
-        /// E SE LA SOMMA NON TORNA, SI DICE. Una ripartizione che non fa il
-        /// totale si legge come una ripartizione e non lo e': manderebbe a
-        /// credere che il resto non esista, invece di far cercare dove e'
-        /// finito.
+        /// AND IF THE SUM DOES NOT ADD UP, IT IS SAID. A partition that does not make the
+        /// total reads like a partition and it is not: it would lead one to
+        /// believe that the rest does not exist, instead of making one look for where it
+        /// went.
         /// </summary>
         private static void CheckCountPerGroup()
         {
@@ -1133,7 +1133,7 @@ namespace Oce.Solid.Agent.Bench
                         "una ripartizione completa");
         }
 
-        /// <summary>Le righe «gruppo: quante», in ordine di quantita'.</summary>
+        /// <summary>The lines «group: how many», in order of quantity.</summary>
         private static void WriteCountPerGroup()
         {
             if (_perGroup.Count == 0) return;
@@ -1151,8 +1151,8 @@ namespace Oce.Solid.Agent.Bench
             if (_withoutExpectation.Count == 0) return;
             try
             {
-                // La cartella del banco si ricava come per il diario: il
-                // binario sta in `Bench/bin/`, quindi il padre e' `Bench/`.
+                // The bench's folder is derived as for the journal: the
+                // binary is in `Bench/bin/`, so the parent is `Bench/`.
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var location = Path.Combine(bench != null ? bench.FullName : bin,
@@ -1185,55 +1185,55 @@ namespace Oce.Solid.Agent.Bench
         private static bool _quietRed;
 
         // ══════════════════════════════════════════════════════════════════
-        // IL DIARIO: cosa sta facendo il banco, mentre lo fa
+        // THE JOURNAL: what the bench is doing, while it does it
         //
-        // ── IL PROBLEMA, E QUANTO E' COSTATO ──────────────────────────────
+        // ── THE PROBLEM, AND WHAT IT COST ─────────────────────────────────
         //
-        // Un giro dura dai tredici ai diciassette minuti, e da fuori **un giro
-        // lento e un giro piantato si vedono uguali**. Il 14/9/2026 un giro
-        // bloccato sull'ottantaquattresimo taglio di `TestFeatureCap` e'
-        // sembrato per un'ora e mezza un giro che stava lavorando: l'unico modo
-        // di distinguerli e' stato campionare il contatore di CPU di
-        // SLDWORKS.exe e guardare l'ora di modifica di un file.
+        // A run takes from thirteen to seventeen minutes, and from outside **a slow
+        // run and a stuck run look the same**. On 14/9/2026 a run
+        // blocked on the eighty-fourth cut of `TestFeatureCap` seemed
+        // for an hour and a half a run that was working: the only way
+        // to tell them apart was to sample the CPU counter of
+        // SLDWORKS.exe and look at the modification time of a file.
         //
-        // ── E `ultimo-giro.txt` NON LO SCRIVE IL BANCO ────────────────────
+        // ── AND `ultimo-giro.txt` IS NOT WRITTEN BY THE BENCH ─────────────
         //
-        // Va detto perche' cambia il rimedio: il banco stampa tutto su stdout,
-        // e `ultimo-giro.txt` e' una REDIREZIONE di chi lo lancia. Quindi
-        // quanto sia aggiornato non dipende dal banco ma dalla shell: con
-        // `Tee-Object` cresce riga per riga, con `Out-String` compare tutto
-        // insieme alla fine. Aggiungere un `Flush` da qualche parte dentro il
-        // banco non avrebbe cambiato niente — non c'e' nessun «da qualche
-        // parte»: non c'era un file.
+        // It must be said because it changes the remedy: the bench prints everything to stdout,
+        // and `ultimo-giro.txt` is a REDIRECTION by whoever launches it. So
+        // how up to date it is does not depend on the bench but on the shell: with
+        // `Tee-Object` it grows line by line, with `Out-String` it appears all
+        // together at the end. Adding a `Flush` somewhere inside the
+        // bench would have changed nothing — there is no «somewhere»:
+        // there was no file.
         //
-        // Adesso ce n'e' uno **del banco**, `Bench/in-corso.txt`, scritto e
-        // svuotato riga per riga. `ultimo-giro.txt` resta cio' che era, e il
-        // riepilogo di fine giro non cambia di una virgola: e' quello che
-        // LEGGIMI documenta e che si guarda quando il giro e' finito.
+        // Now there is one **of the bench**, `Bench/in-corso.txt`, written and
+        // flushed line by line. `ultimo-giro.txt` stays what it was, and the
+        // end-of-run summary does not change by a comma: it is what
+        // LEGGIMI documents and what is looked at when the run is over.
         //
-        // ── PERCHE' C'E' UN TEMPO SU OGNI RIGA ────────────────────────────
+        // ── WHY THERE IS A TIME ON EVERY LINE ─────────────────────────────
         //
-        // «A che punto e'» si vede dall'ultima riga. «E' piantato» no: per
-        // quello serve sapere **da quanto** quella riga e' li'. Col tempo
-        // accanto bastano due letture a distanza di un minuto, e non serve
-        // piu' andare a cercare l'ora di modifica del file — che e' il dato
-        // che l'altra volta ha ingannato.
+        // «Where it is at» is seen from the last line. «It is stuck» is not: for
+        // that one needs to know **how long** that line has been there. With the time
+        // next to it two readings a minute apart are enough, and there is no need
+        // any more to look for the modification time of the file — which is the datum
+        // that fooled us the other time.
         //
-        // ── NON PUO' FAR FALLIRE IL GIRO ──────────────────────────────────
+        // ── IT CANNOT MAKE THE RUN FAIL ───────────────────────────────────
         //
-        // E' uno strumento per guardare le prove: se si rompe lui, le prove
-        // devono andare avanti lo stesso. Ogni scrittura sta in un `try`
-        // vuoto. **Ma il fatto che non si sia potuto aprire si dice una volta
-        // su stdout**: un aiuto diagnostico che sparisce in silenzio e' esso
-        // stesso il difetto che questo progetto insegue.
+        // It is a tool for looking at the checks: if it breaks, the checks
+        // must go on all the same. Every write sits in an empty
+        // `try`. **But the fact that it could not be opened is said once
+        // on stdout**: a diagnostic aid that disappears in silence is itself
+        // the defect that this project chases.
         // ══════════════════════════════════════════════════════════════════
 
         private static StreamWriter _log;
         private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
         /// <summary>
-        /// Apre `Bench/in-corso.txt` accanto all'eseguibile, un livello sopra
-        /// `bin\`. Se non ci riesce lo dice e si va avanti senza.
+        /// Opens `Bench/in-corso.txt` next to the executable, one level above
+        /// `bin\`. If it does not succeed it says so and goes on without it.
         /// </summary>
         private static void OpenLog()
         {
@@ -1245,20 +1245,20 @@ namespace Oce.Solid.Agent.Bench
                 filePath = Path.Combine(
                     bench != null ? bench.FullName : bin, "in-corso.txt");
 
-                // SI TRONCA: dentro c'e' il giro di ADESSO. Un file che
-                // accumula i giri costringe chi legge a chiedersi quale riga
-                // sia di quale giro, ed e' la domanda che non deve doversi
-                // fare chi sta cercando di capire se e' piantato.
+                // IT IS TRUNCATED: inside is the run of NOW. A file that
+                // accumulates runs forces whoever reads to ask which line
+                // belongs to which run, and it is the question that must not have to be
+                // asked by whoever is trying to understand whether it is stuck.
                 _log = new StreamWriter(filePath, false) { AutoFlush = true };
-                // L'INTESTAZIONE NON NOMINA LA PAROLA CHE CHIUDE IL GIRO.
+                // THE HEADER DOES NOT NAME THE WORD THAT CLOSES THE RUN.
                 //
-                // La prima scrittura diceva «se l'ultima riga non e' FINE...»,
-                // e cosi' il primo `grep FINE` su questo file trovava
-                // l'INTESTAZIONE e rispondeva «giro finito» dopo tre secondi.
-                // E' successo subito, alla prima prova, a chi l'aveva appena
-                // scritto. Adesso quella parola compare in un punto solo di
-                // tutto il file, e il controllo piu' ingenuo che si possa fare
-                // e' quello giusto.
+                // The first writing said «if the last line is not FINE...»,
+                // and so the first `grep FINE` on this file found
+                // the HEADER and answered «run finished» after three seconds.
+                // It happened at once, at the first try, to whoever had just
+                // written it. Now that word appears in one place only of
+                // the whole file, and the most naive check one can make
+                // is the right one.
                 _log.WriteLine("# il giro in corso, riga per riga. " +
                                   "Il numero fra parentesi e' quanti secondi " +
                                   "sono passati dall'avvio.");
@@ -1290,10 +1290,10 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// L'ultima riga, quella che dice che il giro e' arrivato in fondo.
+        /// The last line, the one that says that the run reached the bottom.
         ///
-        /// E' la meta' che conta: senza, un file che si ferma vuol dire «sta
-        /// lavorando» oppure «e' morto», e sono di nuovo indistinguibili.
+        /// It is the half that counts: without it, a file that stops means «it is
+        /// working» or «it is dead», and they are indistinguishable again.
         /// </summary>
         private static void CloseLog(string summary)
         {
@@ -1309,25 +1309,25 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// UNA RIGA PER GIRO, in coda a `Bench/storico.txt` (voce F12).
+        /// ONE LINE PER RUN, at the tail of `Bench/storico.txt` (entry F12).
         ///
-        /// ── PERCHE' SERVE ────────────────────────────────────────────────
+        /// ── WHY IT IS NEEDED ─────────────────────────────────────────────
         ///
-        /// `in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una
-        /// redirezione di chi lancia: **dei giri passati non restava niente.**
-        /// Cosi' «quella prova e' fallita una volta sola» non si poteva
-        /// dimostrare ne' smentire — e una prova che fallisce a caso e che
-        /// nessuno contabilizza smette di essere una prova: la volta che
-        /// fallira' per un motivo vero, verra' archiviata come «quella che ogni
-        /// tanto salta».
+        /// `in-corso.txt` is rewritten by the next run, and `ultimo-giro.txt` is a
+        /// redirection by whoever launches: **of the past runs nothing was left.**
+        /// So «that check failed just once» could be neither
+        /// proved nor disproved — and a check that fails at random and that
+        /// nobody accounts for stops being a check: the time it
+        /// fails for a real reason, it will be filed away as «the one that every
+        /// now and then jumps».
         ///
-        /// Le prove fallite si scrivono PER NOME, perche' la domanda che si fa
-        /// a questo file e' sempre la stessa: «quante volte e' successo a
-        /// QUELLA?».
+        /// The failed checks are written BY NAME, because the question asked
+        /// of this file is always the same: «how many times has it happened to
+        /// THAT one?».
         ///
-        /// Non e' versionato: e' il registro di questa macchina, non una misura
-        /// da portare in giro. Il conteggio, quando serve a decidere, si copia
-        /// nel TODO con la data.
+        /// It is not versioned: it is the register of this machine, not a measurement
+        /// to carry around. The count, when it serves to decide, is copied
+        /// into the TODO with the date.
         /// </summary>
         private static void WriteToHistory(string summary)
         {
@@ -1360,12 +1360,12 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Una prova che NON e' stata lanciata, e il perche'.
+        /// A check that was NOT launched, and why.
         ///
-        /// Non conta come fallita e non conta come riuscita: conta come
-        /// saltata, e si vede. Una prova che sparisce dal resoconto quando non
-        /// si lancia e' peggio di una che non esiste — chi legge «88 prove, 0
-        /// fallite» crede di aver provato tutto.
+        /// It does not count as failed and does not count as succeeded: it counts as
+        /// skipped, and it shows. A check that disappears from the report when it is not
+        /// launched is worse than one that does not exist — whoever reads «88 prove, 0
+        /// fallite» believes everything has been tested.
         /// </summary>
         private static void Skipped(string itemName, string why,
                                     [CallerFilePath] string callerFile = "",
@@ -1381,26 +1381,26 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// UN ERRORE DI BANCO NON E' UNA PROVA ROSSA (voce F4).
+        /// A BENCH ERROR IS NOT A RED CHECK (entry F4).
         ///
-        /// Una prova rossa dice «il pezzo e' venuto diverso da come doveva»:
-        /// e' una misura, ed e' un'informazione. Un errore di banco dice «non
-        /// ho potuto misurare» — un campo che nello stato non c'e', un
-        /// selettore che non risolve, un caso scritto male. Contarli insieme
-        /// vuol dire leggere «una prova e' fallita» quando invece **non e' stata
-        /// fatta nessuna prova**, ed e' il modo in cui una suite si svuota senza
-        /// che il conto totale cambi.
+        /// A red check says «the part came out different from how it should»:
+        /// it is a measurement, and it is information. A bench error says «I
+        /// could not measure» — a field that is not in the state, a
+        /// selector that does not resolve, a badly written case. Counting them together
+        /// means reading «a check failed» when in fact **no check was
+        /// done**, and it is the way in which a suite empties itself without
+        /// the total count changing.
         ///
-        /// Per questo ha un suo simbolo, un suo conteggio, e **il suo codice di
-        /// uscita: 2**.
+        /// For this reason it has a symbol of its own, a count of its own, and **its own exit
+        /// code: 2**.
         /// </summary>
         private static void BenchError(string itemName, string what,
                                           [CallerFilePath] string callerFile = "",
                                           [CallerMemberName] string callerMember = "",
                                           [CallerLineNumber] int callerLine = 0)
         {
-            // Sotto `--muta` un caso mutato che non si puo' nemmeno eseguire
-            // conta come «e' diventato rosso»: la mutazione ha morso lo stesso.
+            // Under `--muta` a mutated case that cannot even be run
+            // counts as «it turned red»: the mutation bit all the same.
             if (_quiet) { _quietRed = true; return; }
 
             _benchErrors++;
@@ -1545,21 +1545,21 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Quello che una prova non ha potuto misurare. Vedi BenchError.
+        /// What a check could not measure. See BenchError.
         /// </summary>
-        // `CouldNotMeasure` sta in `Expectations.cs`: la alza il valutatore, e
-        // quel file lo compila anche `Oce.Solid.Agent.ContractTests`, dove SOLIDWORKS non c'e'.
+        // `CouldNotMeasure` is in `Expectations.cs`: it is raised by the evaluator, and
+        // that file is also compiled by `Oce.Solid.Agent.ContractTests`, where SOLIDWORKS is not there.
 
         private static int _skipped;
         private static int _benchErrors;
 
         /// <summary>
-        /// ATTESE TENTATE E ATTESE VERIFICATE, e se divergono qualcosa sta
-        /// misurando il nulla (voce F4). E' la forma letterale della trappola
-        /// del progetto: una prova che verificava un difetto smette di
-        /// verificarlo quando il campo che leggeva viene rinominato, un
-        /// dizionario che non trova la chiave torna `null`, e `null`
-        /// confrontato con `null` passa.
+        /// EXPECTATIONS ATTEMPTED AND EXPECTATIONS VERIFIED, and if they diverge something is
+        /// measuring nothing (entry F4). It is the literal form of the project's
+        /// trap: a check that verified a defect stops
+        /// verifying it when the field it read is renamed, a
+        /// dictionary that does not find the key returns `null`, and `null`
+        /// compared with `null` passes.
         /// </summary>
         private static int _expectations;
         private static int _verifiedExpectations;
@@ -1569,50 +1569,50 @@ namespace Oce.Solid.Agent.Bench
         private static bool _regression;
 
         /// <summary>
-        /// SOLIDWORKS NON DEVE AVERE NIENTE APERTO QUANDO IL GIRO COMINCIA.
+        /// SOLIDWORKS MUST HAVE NOTHING OPEN WHEN THE RUN BEGINS.
         ///
-        /// ── IL DIFETTO, PAGATO DUE VOLTE ─────────────────────────────────
+        /// ── THE DEFECT, PAID FOR TWICE ───────────────────────────────────
         ///
-        /// Lo stato di un documento elenca `documents_open`, quindi la prova
-        /// «state: sotto i 16 KB su un telaio da quattro barre» misura anche
-        /// cio' che c'e' aperto oltre al telaio. Il 14/9/2026 sei parti
-        /// rimaste aperte da un giro di `run_plans.js` valevano ~650
-        /// caratteri e portavano la prova da 15.628 a 16.280: **rossa senza
-        /// che il codice fosse cambiato**, e mezz'ora spesa a cercare una
-        /// regressione che non c'era.
+        /// The state of a document lists `documents_open`, so the check
+        /// «state: sotto i 16 KB su un telaio da quattro barre» also measures
+        /// what is open besides the frame. On 14/9/2026 six parts
+        /// left open by a run of `run_plans.js` were worth ~650
+        /// characters and took the check from 15.628 to 16.280: **red without
+        /// the code having changed**, and half an hour spent hunting for a
+        /// regression that was not there.
         ///
-        /// Il 23/9/2026 e' successo di nuovo, con quindici documenti aperti e
-        /// un giro intero — un'ora e un quarto — buttato.
+        /// On 23/9/2026 it happened again, with fifteen documents open and
+        /// a whole run — an hour and a quarter — thrown away.
         ///
-        /// **E il rimedio c'era, e girava.** `bench.ps1` chiama
-        /// `CloseLeftovers.exe --chiudi Bench\lavoro` al passo 3 di cinque, da
-        /// sempre, e lo dice in testa al file. A scavalcarlo e' stato un
-        /// `Oce.Solid.Agent.Bench.exe` lanciato a mano per passargli `--libreria`.
+        /// **And the remedy existed, and it ran.** `bench.ps1` calls
+        /// `CloseLeftovers.exe --chiudi Bench\lavoro` at step 3 of five, since
+        /// forever, and says so at the head of the file. What bypassed it was an
+        /// `Oce.Solid.Agent.Bench.exe` launched by hand to pass it `--libreria`.
         ///
-        /// **LA PROTEZIONE STAVA NEL GUSCIO.** Fuori da `bench.ps1` non c'era
-        /// niente, e fuori da `bench.ps1` ci si va esattamente quando si sta
-        /// facendo qualcosa di particolare — una libreria diversa, un gruppo
-        /// solo, un binario che c'e' gia'. *Una protezione che vive nel guscio
-        /// si perde nel momento in cui si esce dal guscio, che e' il momento in
-        /// cui serve di piu'.*
+        /// **THE PROTECTION WAS IN THE SHELL.** Outside `bench.ps1` there was
+        /// nothing, and outside `bench.ps1` is exactly where one goes when one is
+        /// doing something special — a different library, a single
+        /// group, a binary that is already there. *A protection that lives in the shell
+        /// is lost at the moment one leaves the shell, which is the moment at
+        /// which it is needed most.*
         ///
-        /// Adesso il passo 3 di `bench.ps1` e questo controllo dicono la stessa
-        /// cosa due volte, e va bene: il primo chiude in silenzio quel che sa
-        /// essere scarto, il secondo si rifiuta di cominciare se e' rimasto
-        /// qualcosa.
+        /// Now step 3 of `bench.ps1` and this check say the same
+        /// thing twice, and that is fine: the first closes in silence what it knows
+        /// to be discards, the second refuses to begin if anything
+        /// is left.
         ///
-        /// ── PERCHE' SI FERMA INVECE DI CHIUDERE ──────────────────────────
+        /// ── WHY IT STOPS INSTEAD OF CLOSING ──────────────────────────────
         ///
-        /// `CloseDoc` scarta le modifiche non salvate. Se su questa macchina
-        /// c'e' un progettista con un pezzo aperto, chiudergli il documento
-        /// per far girare le prove sarebbe un danno vero per far sparire un
-        /// falso rosso. Quindi il banco si ferma e dice cosa ha trovato;
-        /// `--chiudi-gli-scarti` e' la richiesta esplicita di chi sa che sono
-        /// scarti.
+        /// `CloseDoc` discards unsaved changes. If on this machine
+        /// there is a designer with a part open, closing his document
+        /// to make the checks run would be real damage done to make a
+        /// false red disappear. So the bench stops and says what it found;
+        /// `--chiudi-gli-scarti` is the explicit request of whoever knows that they are
+        /// discards.
         ///
-        /// Esce 3, non 1: un giro che non e' cominciato non e' un giro rosso,
-        /// e chiamarlo rosso vorrebbe dire scrivere un resoconto di un giro
-        /// che non c'e' stato.
+        /// It exits 3, not 1: a run that did not begin is not a red run,
+        /// and calling it red would mean writing a report of a run
+        /// that did not take place.
         /// </summary>
         private static bool TheDeskIsClean(string[] lineArguments)
         {
@@ -1631,9 +1631,9 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                // NON SI FERMA IL GIRO PER UN CONTROLLO CHE NON HA SAPUTO
-                // GUARDARE. Si dice, e si va avanti: la prova dei 16 KB
-                // resta li' a prendere il caso peggiore.
+                // THE RUN IS NOT STOPPED FOR A CHECK THAT COULD NOT
+                // LOOK. It is said, and one goes on: the 16 KB check
+                // stays there to catch the worst case.
                 Console.WriteLine("non ho potuto contare i documenti aperti: " + ex.Message);
                 return true;
             }
@@ -1666,8 +1666,8 @@ namespace Oce.Solid.Agent.Bench
                 catch { }
             }
 
-            // SI RICONTA. `CloseDoc` non torna niente, e «ho chiamato la
-            // chiusura quindici volte» non e' «sono chiusi».
+            // IT IS RECOUNTED. `CloseDoc` returns nothing, and «I called the
+            // closing fifteen times» is not «they are closed».
             int remain = 0;
             try
             {
@@ -1692,7 +1692,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // 1. il misuratore di sezione dell'add-in
+        // 1. the add-in's section measurer
         // ==================================================================
         private static void Sections()
         {
@@ -1713,7 +1713,7 @@ namespace Oce.Solid.Agent.Bench
                 var r = m.Invoke(null, new object[]
                 {
                     _sw, testCase[0], testCase[1], testCase[2], testCase[3], 0.0,
-                    1 /* quartabuono */, 0.0,
+                    1 /* miter*/, 0.0,
                     (Action<string>)(s => { }),
                 }) as double[];
                 bool ok = r != null &&
@@ -1726,7 +1726,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // 2. la risoluzione dei nomi dei materiali
+        // 2. the resolution of the material names
         // ==================================================================
         private static void Materials()
         {
@@ -1749,8 +1749,8 @@ namespace Oce.Solid.Agent.Bench
                 new[] { "1.0037 (S235JR)", "1.0037 (S235JR)" },
                 new[] { "S235JR", "1.0037 (S235JR)" },
                 new[] { "S275JR", "1.0044 (S275JR)" },
-                new[] { "S235", null },              // ambiguo: deve rifiutare
-                new[] { "6082", null },              // non esiste: deve rifiutare
+                new[] { "S235", null },              // ambiguous: it must refuse
+                new[] { "6082", null },              // does not exist: it must refuse
                 new[] { "acciaio inventato", null },
             })
             {
@@ -1770,7 +1770,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // 3. il telaio a quote esterne, passando dall'add-in
+        // 3. the frame with external dimensions, going through the add-in
         // ==================================================================
         private static void Frames()
         {
@@ -1780,7 +1780,7 @@ namespace Oce.Solid.Agent.Bench
             Frame("quadro 40x40x3, 1000x800, superiore", SQUARE_TUBE, "40x40x3", 1000, 800, "top", true);
             Frame("rettangolare 80x50x5, 1200x600, frontale", RECT, "80X50X5", 1200, 600, "front", true);
             Frame("quadro 80x80x5, 600x400, angolo sull'origine", SQUARE_TUBE, "80X80X5", 600, 400, "front", false);
-            // e uno che DEVE fallire: sezione piu' grande del telaio
+            // and one that MUST fail: section bigger than the frame
             Frame("quadro 80x80x5, 60x60 (deve fallire)", SQUARE_TUBE, "80X80X5", 60, 60, "front", true, mustFail: true);
         }
 
@@ -1826,7 +1826,7 @@ namespace Oce.Solid.Agent.Bench
                     ? Convert.ToString(measurements["bounding_box_outer_mm"]) : "(non verificato)";
                 bool verified = measurements.ContainsKey("bounding_box_checked") &&
                                   Convert.ToBoolean(measurements["bounding_box_checked"]);
-                // e si controlla anche qui, indipendentemente
+                // and it is checked here too, independently
                 var box = DocumentBox(doc);
                 double gu, gv;
                 Axes(plane, out int u, out int v);
@@ -1844,7 +1844,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // 4. i fori guidati, passando dall'add-in
+        // 4. the hole wizard holes, going through the add-in
         // ==================================================================
         private static void Holes()
         {
@@ -1903,14 +1903,14 @@ namespace Oce.Solid.Agent.Bench
 
                 double d = measurements.ContainsKey("diameter_machined_mm")
                     ? Convert.ToDouble(measurements["diameter_machined_mm"]) : 0;
-                // LA CHIAVE C'ERA SEMPRE, e questo ramo non poteva scattare.
-                // Fino alla 0.25.1 qui c'era `misure.ContainsKey(...)`, e il
-                // ponte scriveva quella chiave senza condizione: `verificate`
-                // era vero per costruzione, «POSIZIONI NON VERIFICATE» era
-                // codice morto, e queste prove misuravano solo il diametro
-                // credendo di misurare anche le posizioni.
-                // Adesso la chiave va letta E deve essere vera, e il ponte ne
-                // scrive una DIVERSA quando non ha potuto guardare.
+                // THE KEY WAS ALWAYS THERE, and this branch could not fire.
+                // Up to 0.25.1 here there was `misure.ContainsKey(...)`, and the
+                // bridge wrote that key unconditionally: `verificate`
+                // was true by construction, «POSIZIONI NON VERIFICATE» was
+                // dead code, and these checks measured only the diameter
+                // believing they measured the positions too.
+                // Now the key must be read AND be true, and the bridge writes a
+                // DIFFERENT one when it could not look.
                 bool verified = measurements.ContainsKey("positions_checked") &&
                                   Convert.ToBoolean(measurements["positions_checked"]);
                 string why = measurements.ContainsKey("positions_not_checked")
@@ -1928,7 +1928,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // 5. il materiale, passando dall'add-in
+        // 5. the material, going through the add-in
         // ==================================================================
         private static void Material()
         {
@@ -1960,11 +1960,11 @@ namespace Oce.Solid.Agent.Bench
                     }
                     if (measurements == null) { Check("materiale «" + testCase[0] + "»", false, Short(error)); continue; }
 
-                    // e si rilegge dal documento, non dall'esito
+                    // and it is re-read from the document, not from the outcome
                     string db;
                     string read = (doc as IPartDoc).GetMaterialPropertyName2("", out db);
                     bool ok = read == (string)testCase[1];
-                    // e adesso c'e' anche la massa?
+                    // and now is the mass there too?
                     var docState = ReadState(doc);
                     bool hasMass = docState.ContainsKey("mass_kg");
                     Check("materiale «" + testCase[0] + "»", ok && hasMass,
@@ -1977,7 +1977,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // 6. lo stato del documento
+        // 6. the state of the document
         // ==================================================================
         private static void State()
         {
@@ -1995,7 +1995,7 @@ namespace Oce.Solid.Agent.Bench
                 Check("documento vuoto: nessuna massa (manca il materiale)",
                       !docState.ContainsKey("mass_kg"));
 
-                // un telaio vero
+                // a real frame
                 var arguments = new Dictionary<string, object>
                 {
                     ["profile_path"] = SQUARE_TUBE,
@@ -2050,56 +2050,56 @@ namespace Oce.Solid.Agent.Bench
                 var f0 = (docState["faces"] as System.Collections.IList)[0] as Dictionary<string, object>;
                 Check("faccia: dice a quale corpo appartiene", f0.ContainsKey("body"), Line(f0));
 
-                // IL TETTO E' NOSTRO, NON DI SOLIDWORKS NE' DEL MODELLO.
+                // THE CEILING IS OURS, NOT SOLIDWORKS'S NOR THE MODEL'S.
                 //
-                // Non esiste nessun limite di dimensione nel prodotto: nel
-                // codice ci sono solo tetti sul NUMERO di elementi (60 facce,
-                // 60 spigoli, 80 lavorazioni, 24 corpi). Questa riga e' una
-                // guardia che abbiamo scritto noi, nata quando un difetto di
-                // troncamento faceva crescere il messaggio con le barre — 11 KB
-                // per quattro, oltre 50 per venti.
+                // There is no size limit in the product: in the
+                // code there are only ceilings on the NUMBER of elements (60 faces,
+                // 60 edges, 80 features, 24 bodies). This line is a
+                // guard that we wrote, born when a truncation defect
+                // made the message grow with the bars — 11 KB
+                // for four, over 50 for twenty.
                 //
-                // Il 10 settembre 2026 e' stata alzata da 12.000 a 14.000, e
-                // qui c'e' scritto cosa ha comprato quell'aumento: i parametri
-                // veri delle lavorazioni (norma, taglia, diametro lavorato,
-                // filetto, profondita', condizione di fine), il diametro delle
-                // facce cilindriche, il volume del pezzo, e le lavorazioni
-                // soppresse. Cioe' la differenza fra un modello che legge
-                // «Foro filettato M8-1» e uno che legge «M8 ISO, preforo 6,8».
+                // On 10 September 2026 it was raised from 12.000 to 14.000, and
+                // here it is written what that increase bought: the real
+                // parameters of the features (standard, size, machined diameter,
+                // thread, depth, end condition), the diameter of the
+                // cylindrical faces, the volume of the part, and the suppressed
+                // features. That is the difference between a model that reads
+                // «Foro filettato M8-1» and one that reads «M8 ISO, preforo 6,8».
                 //
-                // Prima di alzarla ancora: guardare se c'e' un campo che
-                // RIPETE un altro campo. Tre ne sono stati trovati in
-                // mezz'ora, per seimila caratteri in tutto.
+                // Before raising it again: look whether there is a field that
+                // REPEATS another field. Three were found in
+                // half an hour, for six thousand characters in all.
                 int characters = System.Text.Encoding.UTF8.GetByteCount(Json(docState));
-                // 14 -> 16 KB il 10 settembre 2026, e cosa ha comprato: il
-                // RUOLO degli spigoli. Prima venti righe con una lunghezza e
-                // basta; adesso ognuno dice lungo quale asse va e fra quali
-                // due facce sta, cioe' come si dice «i quattro angoli» o «il
-                // bordo della faccia in alto» senza contare i millimetri.
-                // Costo misurato: +1.425 caratteri su un telaio da quattro
-                // barre, +737 su una piastra.
+                // 14 -> 16 KB on 10 September 2026, and what it bought: the
+                // ROLE of the edges. Before, twenty lines with a length and
+                // nothing else; now each one says along which axis it runs and between which
+                // two faces it lies, that is how one says «the four corners» or «the
+                // edge of the top face» without counting millimeters.
+                // Measured cost: +1.425 characters on a frame of four
+                // bars, +737 on a plate.
                 //
-                // TERZA VOLTA CHE QUESTA RIGA SALE. Se serve una quarta, la
-                // domanda giusta non e' «quanto alzo» ma «servono davvero
-                // sessanta spigoli?»: su un saldato sono rumore, e il tetto
-                // sul NUMERO e' l'unico che non si puo' alzare all'infinito.
-                // QUESTA PROVA MISURA ANCHE CIO' CHE NON DOVREBBE, e va detto
-                // nel messaggio invece che scoperto ogni volta.
+                // THIRD TIME THAT THIS LINE GOES UP. If a fourth is needed, the
+                // right question is not «how much do I raise» but «are sixty edges
+                // really needed?»: on a weldment they are noise, and the ceiling
+                // on the NUMBER is the only one that cannot be raised forever.
+                // THIS CHECK ALSO MEASURES WHAT IT SHOULD NOT, and it must be said
+                // in the message instead of being discovered every time.
                 //
-                // Lo stato elenca `documents_open`, quindi la misura dipende
-                // da cosa c'e' aperto in SOLIDWORKS oltre al telaio. Misurato
-                // il 14/9/2026: sei parti salvate da un giro di `run_plans.js`
-                // rimaste aperte valgono ~650 caratteri, e portano la prova da
-                // 15.628 a 16.280 — cioe' la fanno FALLIRE senza che il codice
-                // sia cambiato. Mezz'ora spesa a cercare una regressione che
-                // non c'era.
+                // The state lists `documents_open`, so the measurement depends
+                // on what is open in SOLIDWORKS besides the frame. Measured
+                // on 14/9/2026: six parts saved by a run of `run_plans.js`
+                // left open are worth ~650 characters, and take the check from
+                // 15.628 to 16.280 — that is they make it FAIL without the code
+                // having changed. Half an hour spent hunting for a regression that
+                // was not there.
                 //
-                // `ChiudiScarti --chiudi` da solo non le chiude: risparmia
-                // apposta i documenti con un file. Ci vuole la cartella:
+                // `ChiudiScarti --chiudi` alone does not close them: it spares
+                // on purpose the documents with a file. The folder is needed:
                 //   CloseLeftovers.exe --chiudi "...\Bench\lavoro"
                 //
-                // Il numero si stampa SEMPRE, non solo quando fallisce: un
-                // messaggio che dice il criterio serve a leggere anche i verdi.
+                // The number is printed ALWAYS, not only when it fails: a
+                // message that says the criterion serves to read the greens too.
                 int open = 0;
                 try
                 {
@@ -2109,20 +2109,20 @@ namespace Oce.Solid.Agent.Bench
                 }
                 catch { }
 
-                // ── IL MARGINE SI DICE, E SI PRETENDE (voce K13) ─────────
+                // ── THE MARGIN IS SAID, AND IT IS DEMANDED (entry K13) ─────────
                 //
-                // «Passata» a settantotto caratteri dal muro non sta
-                // avvisando nessuno: la prossima aggiunta qualunque la fa
-                // rossa, e arrivera' come se fosse una regressione. Il 23/9
-                // il tetto era gia' superato nella configurazione normale di
-                // chi lavora — 16.089 con due documenti aperti — e questa
-                // prova non lo vedeva perche' il banco gira su una scrivania
-                // pulita.
+                // «Passed» at seventy-eight characters from the wall is not
+                // warning anybody: the next addition of any kind makes it
+                // red, and it will arrive as if it were a regression. On 23/9
+                // the ceiling was already exceeded in the normal configuration of
+                // whoever works — 16.089 with two documents open — and this
+                // check did not see it because the bench runs on a clean
+                // desk.
                 //
-                // Quindi il criterio non e' piu' «sotto il tetto», e' «sotto
-                // il tetto CON MARGINE», e il margine si stampa sempre: anche
-                // sui verdi, che e' l'unico momento in cui si puo' vedere
-                // arrivare il muro.
+                // So the criterion is no longer «under the ceiling», it is «under
+                // the ceiling WITH A MARGIN», and the margin is always printed: even
+                // on the greens, which is the only moment at which one can see
+                // the wall coming.
                 const int Cap = 16000;
                 const int MinimumMarginPercent = 15;
                 int threshold = Cap - Cap * MinimumMarginPercent / 100;
@@ -2141,52 +2141,52 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        //  Il tetto sulle lavorazioni tiene le ULTIME (voce E12)
+        //  The ceiling on features keeps the LAST ones (entry E12)
         // ==================================================================
         //
-        // PERCHE' QUI E NON IN UN CASO DEL PONTE. E' un'asserzione sulla FORMA
-        // dello stato, come quella dei 16 KB qui sopra, e il posto giusto e'
-        // dove lo stato si legge senza nient'altro in mezzo.
+        // WHY HERE AND NOT IN A BRIDGE CASE. It is an assertion on the SHAPE
+        // of the state, like the 16 KB one above, and the right place is
+        // where the state is read with nothing else in between.
         //
-        // Ed e' anche l'unico posto dove costa poco. Provato il 14/9/2026 a
-        // passare dal ponte: un piano con 85 `cylindrical_cut` ci ha messo
-        // 26 secondi a taglio e si e' fatto uccidere dal tetto dei trenta
-        // minuti al quarantaseiesimo passo. Spezzarlo in cinque piani non
-        // funziona — `face_ref: {step: 1}` e' relativo AL PIANO, quindi nel
-        // secondo blocco «passo 1» e' il primo taglio del blocco e non la
-        // barra, e il ponte l'ha rifiutato (giustamente e a voce alta).
+        // And it is also the only place where it costs little. Tried on 14/9/2026 to
+        // go through the bridge: a plan with 85 `cylindrical_cut` took
+        // 26 seconds per cut and got itself killed by the thirty
+        // minute ceiling at the forty-sixth step. Splitting it into five plans does not
+        // work — `face_ref: {step: 1}` is relative TO THE PLAN, so in the
+        // second block «step 1» is the first cut of the block and not the
+        // bar, and the bridge refused it (rightly and loudly).
         //
-        // Qui si chiama la libreria direttamente: niente JSON-RPC, niente
-        // macchina dei piani, e la faccia si ritrova dallo stato a ogni giro.
+        // Here the library is called directly: no JSON-RPC, no
+        // plan machinery, and the face is found again from the state at every run.
         // ==================================================================
-        // V1. la fotografia del pezzo — l'unica cosa che dice una FORMA
+        // V1. the photograph of the part — the only thing that says a SHAPE
         // ==================================================================
         /// <summary>
-        /// Prova `PartView.Fire`.
+        /// Tests `PartView.Fire`.
         ///
-        /// PERCHE' QUESTA PROVA ESISTE, E PERCHE' PROVA QUESTE QUATTRO COSE.
-        /// La capacita' di fotografare c'era gia' — il banco salvava BMP con
-        /// `SaveBMP` da mesi — e non e' mai arrivata a chi legge. Quando una
-        /// capacita' scende dal banco al ponte, le cose che si rompono non
-        /// sono quelle che il banco provava: sono quelle che il banco non
-        /// doveva rispettare perche' nessuno lo guardava mentre lavorava.
+        /// WHY THIS CHECK EXISTS, AND WHY IT TESTS THESE FOUR THINGS.
+        /// The capability of photographing was already there — the bench saved BMPs with
+        /// `SaveBMP` for months — and it never reached whoever reads. When a
+        /// capability descends from the bench to the bridge, the things that break
+        /// are not the ones the bench tested: they are the ones the bench
+        /// did not have to respect because nobody was looking at it while it worked.
         ///
-        ///   1. **esce qualcosa** — il minimo;
-        ///   2. **e' un PNG** — perche' lo stesso fotogramma in BMP e' una
-        ///      cinquantina di volte piu' pesante, e la conversione e' un
-        ///      passaggio che puo' fallire in silenzio restituendo il BMP;
-        ///   3. **l'orientamento di chi lavora torna com'era** — e' la sola
-        ///      regola di questo file che riguarda una persona invece di un
-        ///      dato: un'operazione di sola lettura che lascia il pezzo
-        ///      girato ha fatto un danno vero;
-        ///   4. **una vista inventata viene rifiutata dicendo quali ci sono**
-        ///      — il caso ROSSO. Senza, «scatta sempre qualcosa» passerebbe
-        ///      anche se il nome non venisse mai guardato.
+        ///   1. **something comes out** — the minimum;
+        ///   2. **it is a PNG** — because the same frame as BMP is about
+        ///      fifty times heavier, and the conversion is a step that can
+        ///      fail in silence by returning the BMP;
+        ///   3. **the orientation of whoever works comes back as it was** — it is the only
+        ///      rule of this file that concerns a person instead of a
+        ///      datum: a read-only operation that leaves the part
+        ///      turned has done real damage;
+        ///   4. **an invented view is refused saying which ones there are**
+        ///      — the RED case. Without it, «something is always shot» would pass
+        ///      even if the name were never looked at.
         ///
-        /// E in coda: **niente file lasciati nella temporanea.** `SaveBMP`
-        /// vuole un percorso, quindi ogni scatto scrive 2 MB su disco; se il
-        /// `Bitmap` tiene aperto il file la cancellazione fallisce e nessuno
-        /// se ne accorge finche' la cartella non e' piena.
+        /// And at the tail: **no files left in the temp folder.** `SaveBMP`
+        /// wants a path, so every shot writes 2 MB to disk; if the
+        /// `Bitmap` keeps the file open the deletion fails and nobody
+        /// notices until the folder is full.
         /// </summary>
         private static void TestSnapshot()
         {
@@ -2227,23 +2227,23 @@ namespace Oce.Solid.Agent.Bench
 
                 var view = doc.ActiveView as IModelView;
 
-                // ── LE NOVE STRADE STANNO IN `Checks\ViewTest` ──────
+                // ── THE NINE ROADS ARE IN `Checks\ViewTest` ──────
                 //
-                // Qui c'erano tre domande sul come si rimette a posto una
-                // vista, e ognuna e' costata un giro di banco da diciassette
-                // minuti per una risposta di tre secondi. Adesso stanno in un
-                // attrezzo a se':
+                // Here there were three questions on how a view is put
+                // back in place, and each one cost a bench run of seventeen
+                // minutes for an answer of three seconds. Now they are in a
+                // tool of their own:
                 //
                 //     Checks\ViewTest\bin\ViewTest.exe
                 //
-                // che prova nove strade e stampa quali tornano. E' li' che va
-                // guardato se questa prova ridiventa rossa: dice anche **di
-                // quanto** e **su quale numero** si sbaglia, ed e' quel numero
-                // che ha trovato la risposta (l'ordine delle tre scritture).
+                // which tries nine roads and prints which ones come back. It is there that one must
+                // look if this check turns red again: it also says **by
+                // how much** and **on which number** it is wrong, and it is that number
+                // that found the answer (the order of the three writes).
                 //
-                // Qui resta l'affermazione che conta per chi usa il ponte: dopo
-                // una fotografia, il pezzo sullo schermo di chi lavora sta
-                // com'era.
+                // Here remains the statement that counts for whoever uses the bridge: after
+                // a photograph, the part on the screen of whoever works
+                // stays as it was.
                 double[] before = Orientation(view);
 
                 var p = new object[] { doc, "isometric", 800, 600, null };
@@ -2253,7 +2253,7 @@ namespace Oce.Solid.Agent.Bench
                 Check("fotografia: l'isometrica esce", png != null && png.Length > 0,
                       png == null ? Short(reason) : png.Length + " byte");
 
-                // LA FIRMA DEL PNG: 89 50 4E 47. Un BMP comincia con «BM».
+                // THE PNG SIGNATURE: 89 50 4E 47. A BMP begins with «BM».
                 bool isPng = png != null && png.Length > 8 &&
                               png[0] == 0x89 && png[1] == 0x50 &&
                               png[2] == 0x4E && png[3] == 0x47;
@@ -2262,8 +2262,8 @@ namespace Oce.Solid.Agent.Bench
                           ? "niente da guardare"
                           : "primi byte " + png[0].ToString("X2") + " " + png[1].ToString("X2"));
 
-                // 800x600 non compresso sarebbe 1,4 MB: se il PNG ci si
-                // avvicina, la conversione non ha compresso niente.
+                // 800x600 uncompressed would be 1,4 MB: if the PNG gets
+                // close to that, the conversion compressed nothing.
                 if (png != null)
                     Check("fotografia: pesa molto meno del BMP", png.Length < 800 * 600,
                           png.Length + " byte contro " + (800 * 600 * 3) + " del BMP crudo");
@@ -2273,7 +2273,7 @@ namespace Oce.Solid.Agent.Bench
                       SameOrientation(before, after),
                       before == null ? "non leggibile" : "16 numeri confrontati");
 
-                // ── IL CASO ROSSO ────────────────────────────────────────
+                // ── THE RED CASE ─────────────────────────────────────────
                 var q = new object[] { doc, "assonometrica-della-nonna", 800, 600, null };
                 var nothing = fire.Invoke(null, q) as byte[];
                 string why = q[4] as string;
@@ -2284,7 +2284,7 @@ namespace Oce.Solid.Agent.Bench
                           ? "ha scattato lo stesso"
                           : Short(why));
 
-                // ── NIENTE SPAZZATURA NELLA TEMPORANEA ───────────────────
+                // ── NO GARBAGE IN THE TEMP FOLDER ────────────────────────
                 int temporaryAfter = TemporaryFiles(model);
                 Check("fotografia: nessun file lasciato nella temporanea",
                       temporaryAfter <= temporaryBefore,
@@ -2293,7 +2293,7 @@ namespace Oce.Solid.Agent.Bench
             finally { Close(doc); }
         }
 
-        /// <summary>Quanti file temporanei di questo nome ci sono adesso.</summary>
+        /// <summary>How many temporary files of this name there are now.</summary>
         private static int TemporaryFiles(string model)
         {
             try { return Directory.GetFiles(Path.GetTempPath(), model + "*").Length; }
@@ -2301,9 +2301,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// I sedici numeri che descrivono come e' girato il pezzo sullo
-        /// schermo. Null se non si e' potuto leggere — e allora il confronto
-        /// non afferma niente, invece di affermare che va tutto bene.
+        /// The sixteen numbers that describe how the part is turned on the
+        /// screen. Null if it could not be read — and then the comparison
+        /// asserts nothing, instead of asserting that all is well.
         /// </summary>
         private static double[] Orientation(IModelView view)
         {
@@ -2313,9 +2313,9 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// I sedici numeri di una trasformazione, COME ARRAY e non come
-        /// riferimento: `ArrayData` costruisce un vettore nuovo a ogni lettura,
-        /// ed e' quello che rende il confronto possibile.
+        /// The sixteen numbers of a transformation, AS AN ARRAY and not as a
+        /// reference: `ArrayData` builds a new vector at every read,
+        /// and that is what makes the comparison possible.
         /// </summary>
         private static double[] Copy(IMathTransform m)
         {
@@ -2326,10 +2326,10 @@ namespace Oce.Solid.Agent.Bench
 
         private static bool SameOrientation(double[] a, double[] b)
         {
-            // Se non si e' potuto leggere nemmeno prima, questa prova non ha
-            // un ingresso: NON e' verde, e' senza risposta. La si dichiara
-            // fallita perche' un controllo che si arrende dicendo «ok» e' il
-            // difetto che questo progetto esiste per rendere impossibile.
+            // If it could not be read even before, this check has
+            // no input: it is NOT green, it is without an answer. It is declared
+            // failed because a check that gives up saying «ok» is the
+            // defect that this project exists to make impossible.
             if (a == null || b == null) return false;
             if (a.Length != b.Length) return false;
             for (int i = 0; i < a.Length; i++)
@@ -2342,7 +2342,7 @@ namespace Oce.Solid.Agent.Bench
             Console.WriteLine();
             Console.WriteLine("=== il tetto sulle lavorazioni (E12) ===");
 
-            const int HowMany = 85;      // il tetto e' 80: cinque devono restare fuori
+            const int HowMany = 85;      // the ceiling is 80: five must stay out
             const int Cap = 80;
             var doc = NewPart();
 
@@ -2359,9 +2359,9 @@ namespace Oce.Solid.Agent.Bench
                 }, out error);
                 if (measurements == null) { Check("tetto: la barra", false, Short(error)); return; }
 
-                // I tagli, uno per giro. La faccia in alto si ritrova dallo
-                // stato ogni volta: e' cio' che farebbe chi disegna, e non
-                // serve nessun riferimento a un passo.
+                // The cuts, one per run. The top face is found again from the
+                // state every time: it is what whoever draws would do, and no
+                // reference to a step is needed.
                 double x0 = -((HowMany - 1) * 10.0) / 2;
                 int done = 0;
                 for (int i = 0; i < HowMany; i++)
@@ -2390,7 +2390,7 @@ namespace Oce.Solid.Agent.Bench
                     ? final["feature"] as System.Collections.IList : null;
                 int inList = list == null ? 0 : list.Count;
 
-                // 1. IL TETTO SI DICHIARA.
+                // 1. THE CEILING IS DECLARED.
                 int totali = final.ContainsKey("feature_total")
                     ? Convert.ToInt32(final["feature_total"]) : 0;
                 int outside = final.ContainsKey("feature_not_listed")
@@ -2402,14 +2402,14 @@ namespace Oce.Solid.Agent.Bench
                       "elencate " + inList + ", totali " + totali + ", fuori " + outside +
                       ", troncato " + truncated);
 
-                // 2. E QUELLA CHE CONTA: L'ULTIMA C'E'.
+                // 2. AND THE ONE THAT COUNTS: THE LAST ONE IS THERE.
                 //
-                // E' il difetto vero di E12, e non si vede da nessun conteggio:
-                // l'albero si scorre in ordine di CREAZIONE, quindi tenere le
-                // prime ottanta vuol dire buttare via proprio la lavorazione
-                // che il piano ha appena fatto -- l'unica che chi legge sta
-                // cercando. Il modello non la trovava e poteva concluderne che
-                // l'operazione non aveva fatto niente, e rifarla.
+                // It is the real defect of E12, and it is not seen from any count:
+                // the tree is scanned in order of CREATION, so keeping the
+                // first eighty means throwing away precisely the feature
+                // that the plan has just made -- the only one that whoever reads is
+                // looking for. The model did not find it and could conclude that
+                // the operation had done nothing, and redo it.
                 string last = null, before = null;
                 if (list != null && list.Count > 0)
                 {
@@ -2422,7 +2422,7 @@ namespace Oce.Solid.Agent.Bench
                       last != null && last.EndsWith(HowMany.ToString()),
                       "prima elencata: " + (before ?? "?") + ", ultima: " + (last ?? "?"));
 
-                // 3. E L'ESTRUSIONE, che e' la PIU' VECCHIA, non c'e' piu'.
+                // 3. AND THE EXTRUSION, which is the OLDEST, is no longer there.
                 bool cAreTheOldOnes = false;
                 if (list != null)
                     foreach (var v in list)
@@ -2440,7 +2440,7 @@ namespace Oce.Solid.Agent.Bench
             finally { Close(doc); }
         }
 
-        /// <summary>L'uid della faccia piana rivolta in alto, dallo stato.</summary>
+        /// <summary>The uid of the planar face turned upward, from the state.</summary>
         private static string FaceUp(Dictionary<string, object> docState)
         {
             var faces = docState != null && docState.ContainsKey("faces")
@@ -2469,28 +2469,28 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Come sopra, ma dice anche **se l'operazione ha aperto un documento
-        /// nuovo** (voce GT0).
+        /// As above, but it also says **whether the operation opened a new
+        /// document** (entry GT0).
         ///
-        /// ── PERCHE' SERVE, E PERCHE' NON SI GUARDA IL DOCUMENTO ATTIVO ───
+        /// ── WHY IT IS NEEDED, AND WHY THE ACTIVE DOCUMENT IS NOT LOOKED AT ───
         ///
-        /// `create_drawing` apre una tavola e da li' in poi si lavora su quella:
-        /// e' l'unico cambio di documento legittimo del catalogo. Finche' il
-        /// banco eseguiva ogni passo sempre sullo STESSO documento, un caso che
-        /// creava una tavola metteva le viste **dentro il pezzo** — o piu'
-        /// probabilmente falliva dicendo «il documento attivo non e' una
-        /// tavola», che e' il motivo per cui nessuna voce GT ha mai avuto un
-        /// caso di banco.
+        /// `create_drawing` opens a drawing and from there on one works on that one:
+        /// it is the only legitimate change of document in the catalog. As long as the
+        /// bench executed every step always on the SAME document, a case that
+        /// created a drawing put the views **inside the part** — or more
+        /// probably failed saying «il documento attivo non e' una
+        /// tavola», which is the reason why no GT entry ever had a
+        /// bench case.
         ///
-        /// **Non si chiede a SOLIDWORKS qual e' il documento attivo.** La
-        /// regola di questo progetto e' tenere il riferimento, non
-        /// `ActiveDoc`: su una macchina dove SOLIDWORKS e' condiviso, «active»
-        /// e' cio' che ha davanti *chiunque*, e basta che qualcuno apra una
-        /// finestra perche' il banco misuri il documento di un altro.
+        /// **SOLIDWORKS is not asked which is the active document.** The
+        /// rule of this project is to keep the reference, not
+        /// `ActiveDoc`: on a machine where SOLIDWORKS is shared, «active»
+        /// is what *anybody* has in front of them, and it is enough for somebody to open
+        /// a window for the bench to measure somebody else's document.
         ///
-        /// L'operazione lo **dichiara**: `Outcome.NewDocument`, che
-        /// `create_drawing` riempie apposta. Un cambio dichiarato si puo'
-        /// seguire; uno dedotto si puo' solo subire.
+        /// The operation **declares** it: `Outcome.NewDocument`, which
+        /// `create_drawing` fills on purpose. A declared change can be
+        /// followed; a deduced one can only be endured.
         /// </summary>
         private static Dictionary<string, object> Run(
             IModelDoc2 doc, string operation, Dictionary<string, object> arguments,
@@ -2500,11 +2500,11 @@ namespace Oce.Solid.Agent.Bench
             newDocument = null;
             var constructor = _tOperations.GetConstructors(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0];
-            // QUELLO CHE L'ADD-IN RACCONTA SI LEGGE.
-            // Un logger vuoto e' comodo finche' tutto va bene; il giorno in
-            // cui un'operazione fa una scelta al posto tuo — ritrovare una
-            // faccia che si e' spostata, per esempio — e' l'unica riga che
-            // spiega perche' il pezzo e' venuto cosi'.
+            // WHAT THE ADD-IN TELLS IS READ.
+            // An empty logger is convenient as long as all goes well; the day
+            // an operation makes a choice in your place — finding again a
+            // face that has moved, for example — it is the only line that
+            // explains why the part came out this way.
             var op = constructor.Invoke(new object[]
                 { _sw, (Action<string>)(s => Console.WriteLine("       | " + s)) });
 
@@ -2513,8 +2513,8 @@ namespace Oce.Solid.Agent.Bench
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             object objectState = docState is Dictionary<string, object> ? ReadObjectState(doc) : docState;
 
-            // IL GUINZAGLIO (voce K18): si annuncia cosa si sta per fare,
-            // e si dice quando e' tornata. Il guardiano guarda da fuori.
+            // THE LEASH (entry K18): it announces what it is about to do,
+            // and says when it came back. The guardian watches from outside.
             Leash.Begin(operation, DateTime.Now);
             object outcome;
             try
@@ -2531,12 +2531,12 @@ namespace Oce.Solid.Agent.Bench
                 error = _tOutcome.GetField("Error").GetValue(outcome) as string;
                 return null;
             }
-            // IL CAMPO PUO' NON ESSERCI, e non e' un guasto: il banco carica la
-            // libreria per riflessione, e una libreria piu' vecchia di questa
-            // riga non ha `NewDocument`. In quel caso si torna `null` e si
-            // continua come prima — **quello che non si fa e' esplodere**,
-            // perche' una prova che muore per un campo assente non misura
-            // niente di cio' che doveva misurare.
+            // THE FIELD MAY NOT BE THERE, and it is not a fault: the bench loads the
+            // library by reflection, and a library older than this
+            // line does not have `NewDocument`. In that case `null` is returned and one
+            // goes on as before — **what one does not do is blow up**,
+            // because a check that dies for a missing field measures
+            // nothing of what it was supposed to measure.
             try
             {
                 var theField = _tOutcome.GetField("NewDocument");
@@ -2552,13 +2552,13 @@ namespace Oce.Solid.Agent.Bench
         {
             var read = _tState.GetMethod("Read",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            // L'APPLICAZIONE VA PASSATA. Da un documento non si risale a
-            // SolidWorks — ne' IModelDoc2 ne' IModelDocExtension hanno un
-            // accesso all'applicazione — e senza quello lo stato non sa
-            // dire quali ALTRI documenti sono aperti. Con le tavole quel
-            // dato smette di essere un di piu': una vista si aggancia al
-            // percorso di un documento aperto, e se non lo si vede non lo
-            // si puo' nominare.
+            // THE APPLICATION MUST BE PASSED. From a document one cannot go up to
+            // SolidWorks — neither IModelDoc2 nor IModelDocExtension has
+            // access to the application — and without it the state cannot
+            // say which OTHER documents are open. With drawings that
+            // datum stops being an extra: a view attaches to the
+            // path of an open document, and if it is not seen it cannot
+            // be named.
             return read.Invoke(null, new object[] { doc, _sw });
         }
 
@@ -2570,7 +2570,7 @@ namespace Oce.Solid.Agent.Bench
             return data.GetValue(docState) as Dictionary<string, object>;
         }
 
-        /// <summary>La faccia piana piu' grande: su una piastra e' una delle due grandi.</summary>
+        /// <summary>The largest planar face: on a plate it is one of the two big ones.</summary>
         private static string TopFace(Dictionary<string, object> docState)
         {
             var faces = docState["faces"] as System.Collections.IList;
@@ -2585,7 +2585,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // utilita'
+        // utilities
         // ==================================================================
         private static List<object> NominalSegments(double L, double W, string plane, bool centered)
         {
@@ -2651,23 +2651,23 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Perche' una prova e' saltata per aria: messaggio, TIPO e la riga da
-        /// cui e' partita.
+        /// Why a check blew up: message, TYPE and the line it
+        /// started from.
         ///
-        /// PERCHE' NON BASTA `ex.Message`. Il 15/9/2026 una prova ha stampato
+        /// WHY `ex.Message` IS NOT ENOUGH. On 15/9/2026 a check printed
         /// «Riferimento a un oggetto non impostato su un'istanza di oggetto.»
-        /// e basta. Quella frase dice che qualcosa era null e non dice
-        /// **cosa**, ne' se il null stesse nel banco o nella libreria: per
-        /// localizzarla serviva un altro giro da diciassette minuti.
+        /// and nothing else. That sentence says that something was null and does not say
+        /// **what**, nor whether the null was in the bench or in the library: to
+        /// locate it another run of seventeen minutes was needed.
         ///
-        /// Un banco che riporta un'eccezione senza dire da dove viene fa
-        /// pagare a ogni indagine il prezzo di un giro intero.
+        /// A bench that reports an exception without saying where it comes from makes
+        /// every investigation pay the price of a whole run.
         ///
-        /// **Si scarta anche l'involucro della riflessione.** Il banco chiama
-        /// la libreria con `Invoke`, quindi qualunque cosa esploda la' dentro
-        /// arriva come `TargetInvocationException` — «Eccezione generata dalla
-        /// destinazione di una chiamata», che non dice niente di niente.
-        /// Quella che interessa e' sempre l'`InnerException`.
+        /// **The reflection wrapper is also discarded.** The bench calls
+        /// the library with `Invoke`, so whatever blows up in there
+        /// arrives as `TargetInvocationException` — «Eccezione generata dalla
+        /// destinazione di una chiamata», which says nothing at all.
+        /// The one that matters is always the `InnerException`.
         /// </summary>
         private static string Why(Exception ex)
         {
@@ -2693,75 +2693,75 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ══════════════════════════════════════════════════════════════
-        // LA SENTINELLA (voce K17)
+        // THE SENTINEL (entry K17)
         //
-        // Tre parti nuove che non nascono DI FILA non sono tre prove
-        // rosse: sono SOLIDWORKS che non c'e' piu'. Il perche', e il giro
-        // di un'ora e mezza che e' costata la sua mancanza, stanno in
+        // Three new parts that are not born IN A ROW are not three red
+        // checks: they are SOLIDWORKS that is no longer there. The why, and the hour
+        // and a half run that its absence cost, are in
         // `Shared/SolidWorksSentinel.cs`.
         // ══════════════════════════════════════════════════════════════
         internal static readonly Shared.SolidWorksSentinel Sentinel =
             new Shared.SolidWorksSentinel(3);
 
         /// <summary>
-        /// `--fingi-senza-solidworks`: NewDocument risponde null comunque.
+        /// `--fingi-senza-solidworks`: NewDocument answers null regardless.
         ///
-        /// Serve a VEDERE la sentinella scattare sul banco vero, non solo
-        /// nelle prove di contratto. Una guardia che nessuno ha mai visto
-        /// scattare e' una riga di codice, non una guardia — e questa in
-        /// particolare si accende in una condizione che non si sa
-        /// riprodurre a comando.
+        /// It serves to SEE the sentinel fire on the real bench, not only
+        /// in the contract checks. A guard that nobody has ever seen
+        /// fire is a line of code, not a guard — and this one in
+        /// particular lights up in a condition that cannot be
+        /// reproduced on command.
         /// </summary>
         private static bool _pretendWithoutSolidWorks;
 
         /// <summary>
-        /// Le famiglie di casi dichiarati da far girare, o null per tutte
-        /// (`--famiglia`). Un giro con questa bandiera e' parziale come uno con
-        /// `--gruppo`, e il riepilogo lo scrive.
+        /// The families of declared cases to run, or null for all
+        /// (`--famiglia`). A run with this flag is partial like one with
+        /// `--gruppo`, and the summary says so.
         /// </summary>
         private static List<string> _familiesOnly;
 
         // ══════════════════════════════════════════════════════════════
-        // IL MODELLO DI DOCUMENTO SI COPIA IN LOCALE (voce K19)
+        // THE DOCUMENT TEMPLATE IS COPIED LOCALLY (entry K19)
         //
-        // ── COSA E' COSTATO NON FARLO ────────────────────────────────
+        // ── WHAT IT COST NOT TO DO IT ────────────────────────────────
         //
-        // Il 23/9/2026 tre giri di fila sono morti qui. Il modello di
-        // documento predefinito di questa postazione sta su un disco
-        // MAPPATO SU UNA CONDIVISIONE DI RETE: **ogni parte nuova e' una
-        // lettura SMB**, e un giro ne fa ottocento. Non e' una stranezza
-        // di qui: e' la configurazione di chiunque tenga i modelli
-        // aziendali in un posto solo.
+        // On 23/9/2026 three runs in a row died here. The default document
+        // template of this workstation is on a disk MAPPED TO A NETWORK
+        // SHARE: **every new part is an SMB
+        // read**, and a run makes eight hundred. It is not a quirk
+        // of here: it is the configuration of anybody who keeps the company
+        // templates in one place only.
         //
-        // Quando SOLIDWORKS si pianta mentre apre quel file, tiene la
-        // presa: da quel momento il file non si legge piu' NEMMENO da
-        // fuori. Misurato mentre era appeso — la cartella dei profili
-        // sulla stessa condivisione rispondeva (13 file), il server
-        // rispondeva al ping in 0 ms, e `Get-Item` su quel `.prtdot` non
-        // tornava entro venti secondi. Ucciso SOLIDWORKS: 45.955 byte,
-        // immediati. **Sembrava la rete, ed era una presa.**
+        // When SOLIDWORKS hangs while opening that file, it keeps the
+        // lock: from that moment the file can no longer be read EVEN from
+        // outside. Measured while it was hung — the profiles folder
+        // on the same share was answering (13 files), the server
+        // answered the ping in 0 ms, and `Get-Item` on that `.prtdot` did not
+        // come back within twenty seconds. SOLIDWORKS killed: 45.955 bytes,
+        // immediate. **It looked like the network, and it was a lock.**
         //
-        // E il giro dopo ricadeva nella stessa trappola, perche' il
-        // SOLIDWORKS nuovo riapriva lo stesso file sullo stesso server.
+        // And the next run fell into the same trap again, because the
+        // new SOLIDWORKS reopened the same file on the same server.
         //
-        // ── PERCHE' UNA COPIA, E NON UNA SCADENZA ────────────────────
+        // ── WHY A COPY, AND NOT A TIMEOUT ────────────────────────────
         //
-        // Una scadenza sulla chiamata (voce K18) dice «mi sono stancato di
-        // aspettare»: e' giusta e serve lo stesso, ma qui la domanda e'
-        // un'altra — **perche' il banco legge ottocento volte dalla rete
-        // un file che non cambia mai durante il giro?** Una copia sola,
-        // all'inizio, e la domanda non si pone piu'.
+        // A timeout on the call (entry K18) says «I got tired of
+        // waiting»: it is right and serves all the same, but here the question is
+        // another — **why does the bench read eight hundred times from the network
+        // a file that never changes during the run?** One single copy,
+        // at the start, and the question no longer arises.
         //
-        // ── E SI DICE COSA SI E' FATTO ───────────────────────────────
+        // ── AND IT IS SAID WHAT WAS DONE ─────────────────────────────
         //
-        // Un banco che silenziosamente usa un modello diverso da quello
-        // della postazione e' un banco che misura un'altra cosa. La copia
-        // si annuncia, col percorso di partenza e quello d'arrivo; se non
-        // riesce, si usa l'originale e **lo si dice** — non si finge.
+        // A bench that silently uses a template different from the one
+        // of the workstation is a bench that measures something else. The copy
+        // is announced, with the starting path and the arrival one; if it does not
+        // succeed, the original is used and **it is said** — there is no pretending.
         //
-        // NON COPRE TUTTO: SOLIDWORKS legge dalla rete anche i profili di
-        // carpenteria e gli archivi dei materiali. Questa e' la lettura
-        // piu' frequente, non l'unica.
+        // IT DOES NOT COVER EVERYTHING: SOLIDWORKS reads from the network also the
+        // structural profiles and the material archives. This is the most frequent
+        // read, not the only one.
         // ══════════════════════════════════════════════════════════════
         private static readonly Dictionary<string, string> _localModels =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -2789,16 +2789,16 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                // LA COPIA DI IERI VALE PIU' DELL'ORIGINALE IRRAGGIUNGIBILE.
+                // YESTERDAY'S COPY IS WORTH MORE THAN THE UNREACHABLE ORIGINAL.
                 //
-                // Il caso in cui la copia fallisce e' proprio quello in cui
-                // l'originale non si puo' leggere: il 23/9/2026 il `.prtdot`
-                // era tenuto da una presa rimasta sul server, e ricadere sul
-                // percorso di rete voleva dire ripiantarsi allo stesso modo.
-                // Se in locale c'e' la copia di un giro precedente, si usa
-                // quella — e si dice **di quando e'**, perche' un modello
-                // vecchio che si spaccia per quello di adesso sarebbe la
-                // stessa specie di silenzio che questo banco insegue.
+                // The case in which the copy fails is precisely the one in which
+                // the original cannot be read: on 23/9/2026 the `.prtdot`
+                // was held by a lock left on the server, and falling back to the
+                // network path meant hanging again in the same way.
+                // If locally there is the copy of a previous run, that one
+                // is used — and it is said **from when it is**, because an
+                // old template passing itself off as the one of now would be the
+                // same kind of silence that this bench chases.
                 string old = null;
                 try
                 {
@@ -2818,8 +2818,8 @@ namespace Oce.Solid.Agent.Bench
                 }
                 else
                 {
-                    // NON SI TACE. Un giro che legge dalla rete e non lo dice
-                    // e' un giro che domani si piantera' senza spiegazioni.
+                    // ONE DOES NOT KEEP QUIET. A run that reads from the network and does not say so
+                    // is a run that tomorrow will hang without explanations.
                     Console.WriteLine("  NON ho potuto copiare il modello in locale (" +
                                       ex.Message + "): uso quello di rete, " + its);
                     arrival = its;
@@ -2830,9 +2830,9 @@ namespace Oce.Solid.Agent.Bench
             return arrival;
         }
 
-        /// <summary>Vero se il percorso sta su una condivisione di rete —
-        /// UNC oppure un'unita' mappata. Un'unita' mappata non si vede dal
-        /// percorso: `S:\...` sembra locale, e non lo e'.</summary>
+        /// <summary>True if the path is on a network share —
+        /// UNC or a mapped drive. A mapped drive cannot be seen from the
+        /// path: `S:\...` looks local, and it is not.</summary>
         private static bool IsRemote(string filePath)
         {
             try
@@ -2845,18 +2845,18 @@ namespace Oce.Solid.Agent.Bench
             catch { return false; }
         }
         // ══════════════════════════════════════════════════════════════
-        // IL GUINZAGLIO E IL GUARDIANO (voce K18)
+        // THE LEASH AND THE GUARDIAN (entry K18)
         //
-        // Il 23/9/2026 tre giri sono morti appesi dentro una chiamata che
-        // non tornava, e il banco non aveva modo di accorgersene: non ha
-        // nessuna scadenza sulle chiamate alla libreria, solo sul ponte.
+        // On 23/9/2026 three runs died hung inside a call that
+        // did not return, and the bench had no way of noticing: it has
+        // no timeout on the calls to the library, only on the bridge.
         //
-        // NOVANTA SECONDI, e non e' «quanto dovrebbe durare»: e' quanto
-        // oltre ogni dubbio. La prova piu' lenta di questo banco — 85
-        // lavorazioni su un pezzo, con `--lento` — impiega ~26 secondi per
-        // taglio, e nessuna SINGOLA chiamata ci arriva vicino. Un valore
-        // stretto trasformerebbe una prova lenta in un falso allarme, e un
-        // falso allarme spegne il guardiano il giorno dopo.
+        // NINETY SECONDS, and it is not «how long it should take»: it is how long
+        // beyond any doubt. The slowest check of this bench — 85
+        // features on one part, with `--lento` — takes ~26 seconds per
+        // cut, and no SINGLE call comes near that. A tight value
+        // would turn a slow check into a false alarm, and a false
+        // alarm switches the guardian off the next day.
         // ══════════════════════════════════════════════════════════════
         internal static readonly Shared.Leash Leash =
             new Shared.Leash(90000);
@@ -2864,18 +2864,18 @@ namespace Oce.Solid.Agent.Bench
         private static System.Threading.Thread _guardian;
 
         /// <summary>
-        /// Il guardiano guarda l'orologio e NON tocca il lavoro.
+        /// The guardian watches the clock and does NOT touch the work.
         ///
-        /// Non prova a interrompere la chiamata: una chiamata COM piantata
-        /// non si annulla, e il thread che la fa resta li' per sempre.
-        /// Quello che fa e' stampare QUALE era e **uccidere il processo**,
-        /// perche' con SOLIDWORKS piantato le prove che seguono non
-        /// misurerebbero niente — e un giro appeso a tempo indeterminato e'
-        /// peggio di un giro finito male: nessuno lo guarda.
+        /// It does not try to interrupt the call: a stuck COM call
+        /// cannot be cancelled, and the thread making it stays there forever.
+        /// What it does is print WHICH one it was and **kill the process**,
+        /// because with SOLIDWORKS stuck the checks that follow would
+        /// measure nothing — and a run hung indefinitely is
+        /// worse than a run that ended badly: nobody looks at it.
         ///
-        /// `Environment.Exit` e non un'eccezione: l'eccezione andrebbe
-        /// alzata sul thread del guardiano, dove non la prenderebbe nessuno,
-        /// e il thread appeso terrebbe vivo il processo comunque.
+        /// `Environment.Exit` and not an exception: the exception would have to be
+        /// raised on the guardian's thread, where nobody would catch it,
+        /// and the hung thread would keep the process alive anyway.
         /// </summary>
         private static void TurnOnGuardian()
         {
@@ -2895,9 +2895,9 @@ namespace Oce.Solid.Agent.Bench
                     Console.WriteLine(new string('!', 76));
                     Console.Out.Flush();
                     Log(report);
-                    // `System.Environment` per esteso: l'interop di SOLIDWORKS
-                    // ha una sua `Environment`, e senza il nome intero il
-                    // compilatore non sa quale delle due.
+                    // `System.Environment` in full: SOLIDWORKS's interop
+                    // has an `Environment` of its own, and without the whole name the
+                    // compiler does not know which of the two.
                     System.Environment.Exit(5);
                 }
             });
@@ -2906,19 +2906,19 @@ namespace Oce.Solid.Agent.Bench
         }
         private static IModelDoc2 NewPart()
         {
-            // GIA' MORTO: non si chiama nemmeno. Ogni chiamata a un
-            // SOLIDWORKS che non risponde puo' piantarsi per sempre — e'
-            // cosi' che il giro delle 15:36 e' rimasto appeso invece di
-            // finire male in fretta.
+            // ALREADY DEAD: it is not even called. Every call to a
+            // SOLIDWORKS that does not answer can hang forever — it is
+            // how the 15:36 run stayed hung instead of
+            // ending badly quickly.
             if (Sentinel.HasGone)
                 throw new Shared.PreparationFailed(Sentinel.Report());
 
             string tpl = LocalModel(_sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplatePart));
 
-            // E' QUI CHE SI E' PIANTATO IL 23/9/2026, non dentro una
-            // operazione: `NewDocument` che legge il modello da una
-            // condivisione di rete. Il guinzaglio serve soprattutto qui.
+            // THIS IS WHERE IT HUNG ON 23/9/2026, not inside an
+            // operation: `NewDocument` reading the template from a
+            // network share. The leash serves above all here.
             Leash.Begin("NewDocument (il modello di documento)", DateTime.Now);
             IModelDoc2 born;
             try
@@ -2934,34 +2934,34 @@ namespace Oce.Solid.Agent.Bench
             if (Sentinel.Failed())
                 throw new Shared.PreparationFailed(Sentinel.Report());
 
-            // Uno o due di fila: puo' ancora essere il pezzo, non il
-            // programma. Il messaggio resta quello della F12.
-            // NON TORNA NULL: se SOLIDWORKS non apre il documento, lo DICE.
+            // One or two in a row: it may still be the part, not the
+            // program. The message stays the one of F12.
+            // IT DOES NOT RETURN NULL: if SOLIDWORKS does not open the document, it SAYS so.
             return OrSayIt(born, "la parte nuova su cui provare");
         }
 
         /// <summary>
-        /// L'oggetto, oppure un'eccezione che DICE quale passo non l'ha
-        /// prodotto (voce F12).
+        /// The object, or an exception that SAYS which step did not
+        /// produce it (entry F12).
         ///
-        /// ── QUANTO E' COSTATO NON AVERLA ─────────────────────────────────
+        /// ── WHAT IT COST NOT TO HAVE IT ──────────────────────────────────
         ///
-        /// Il 15/9/2026 la prova «spostamento nullo (deve fallire)» e' uscita
-        /// rossa con «Riferimento a un oggetto non impostato su un'istanza di
-        /// oggetto.», e basta. Nel giro rosso mancava anche la riga che la
-        /// libreria stampa prima di rifiutare, quindi il null stava **prima**
-        /// della chiamata da provare — ma su diciotto punti del banco
-        /// `NewPart()` veniva usata senza guardare se avesse prodotto
-        /// qualcosa, e un `NullReferenceException` non dice quale dei diciotto.
+        /// On 15/9/2026 the check «spostamento nullo (deve fallire)» came out
+        /// red with «Riferimento a un oggetto non impostato su un'istanza di
+        /// oggetto.», and nothing else. In the red run the line that the
+        /// library prints before refusing was missing too, so the null was **before**
+        /// the call to be tested — but in eighteen places of the bench
+        /// `NewPart()` was used without looking at whether it had produced
+        /// anything, and a `NullReferenceException` does not say which of the eighteen.
         ///
-        /// Il difetto non e' la prova che e' fallita: e' che **fallendo non ha
-        /// detto niente**. Un banco che sa dire «ho fallito qui» ha gia'
-        /// risolto meta' del problema; uno che dice «riferimento nullo» ne
-        /// costa diciassette minuti ogni volta che ricapita.
+        /// The defect is not that the check failed: it is that **in failing it
+        /// said nothing**. A bench that can say «I failed here» has already
+        /// solved half of the problem; one that says «null reference» costs
+        /// seventeen minutes every time it happens again.
         ///
-        /// Non e' una prova rossa: e' il banco che non e' riuscito a
-        /// PREPARARE il pezzo, ed e' un'altra cosa — per questo il messaggio lo
-        /// dice a chiare lettere.
+        /// It is not a red check: it is the bench that did not manage to
+        /// PREPARE the part, and that is another thing — for this reason the message says
+        /// so in plain letters.
         /// </summary>
         private static T OrSayIt<T>(T what, string which) where T : class
         {
@@ -2974,11 +2974,11 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// I tre piani di riferimento del documento, e un'eccezione che li
-        /// nomina se l'albero non li da'. Era l'altro punto della stessa
-        /// famiglia (voce F12): `GetFeatures(false) as object[]` puo' tornare
-        /// null, e il `.Select` subito dopo dava lo stesso NullReference muto
-        /// di `NewPart()`.
+        /// The three reference planes of the document, and an exception that
+        /// names them if the tree does not give them. It was the other point of the same
+        /// family (entry F12): `GetFeatures(false) as object[]` may return
+        /// null, and the `.Select` right after gave the same mute NullReference
+        /// as `NewPart()`.
         /// </summary>
         private static List<IFeature> ReferencePlanes(IModelDoc2 doc)
         {
@@ -3005,7 +3005,7 @@ namespace Oce.Solid.Agent.Bench
         {
             var planes = ReferencePlanes(doc);
             doc.ClearSelection2(true);
-            planes[0].Select2(false, 0);          // frontale: la faccia in cima avra' normale +Z
+            planes[0].Select2(false, 0);          // front: the face on top will have normal +Z
             var sm = doc.SketchManager;
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(0, 0, 0, L / 2000.0, W / 2000.0, 0);
