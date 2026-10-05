@@ -12,11 +12,11 @@ namespace Oce.Solid.Agent.Installer
     /// <summary>Un client MCP che si puo' configurare da qui.</summary>
     internal sealed class Client
     {
-        public string Nome;
+        public string Name;
         public string File;
-        public bool Installato;
+        public bool Installed;
         /// <summary>Come si chiama il processo, per sapere se e' aperto adesso.</summary>
-        public string Processo;
+        public string ServerProcess;
         /// <summary>
         /// Claude Code: wired through `claude mcp add` when `claude` is on
         /// PATH (entry H19, B5; see ClaudeCli), through the file otherwise.
@@ -47,9 +47,9 @@ namespace Oce.Solid.Agent.Installer
     ///    riavvio non succede niente, e «non succede niente» e' il modo piu'
     ///    rapido di far concludere che l'installazione e' fallita.
     /// </summary>
-    internal static class Configurazione
+    internal static class Configuration
     {
-        public const string NomeServer = "solidworks";
+        public const string ServerName = "solidworks";
 
         private static JavaScriptSerializer Json()
         {
@@ -63,28 +63,28 @@ namespace Oce.Solid.Agent.Installer
         // Quali client ci sono su questa macchina
         // ─────────────────────────────────────────────────────────────────
 
-        public static List<Client> ClientTrovati()
+        public static List<Client> FoundClients()
         {
             var appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-            var tutti = new List<Client>
+            var all = new List<Client>
             {
                 new Client
                 {
-                    Nome = "Claude Desktop",
+                    Name = "Claude Desktop",
                     File = Path.Combine(appdata, @"Claude\claude_desktop_config.json"),
-                    Processo = "Claude",
+                    ServerProcess = "Claude",
                 },
                 new Client
                 {
-                    Nome = "Claude Code",
+                    Name = "Claude Code",
                     File = ClaudeCodeFile(),
-                    Processo = null,
+                    ServerProcess = null,
                     ClaudeCode = true,
                 },
             };
 
-            foreach (var c in tutti)
+            foreach (var c in all)
             {
                 try
                 {
@@ -98,19 +98,19 @@ namespace Oce.Solid.Agent.Installer
                     // with no client at all then created a .claude.json nobody
                     // reads and exited 0, and the "no MCP client found" exit 3
                     // could never happen. See ClaudeCodePresent.
-                    if (c.ClaudeCode) { c.Installato = ClaudeCodePresent(c.File); continue; }
-                    var cartella = Path.GetDirectoryName(c.File);
-                    c.Installato = Directory.Exists(cartella) || File.Exists(c.File);
+                    if (c.ClaudeCode) { c.Installed = ClaudeCodePresent(c.File); continue; }
+                    var folder = Path.GetDirectoryName(c.File);
+                    c.Installed = Directory.Exists(folder) || File.Exists(c.File);
                 }
-                catch { c.Installato = false; }
+                catch { c.Installed = false; }
             }
-            return tutti;
+            return all;
         }
 
-        public static bool EAperto(Client client)
+        public static bool IsOpen(Client client)
         {
-            if (client == null || string.IsNullOrWhiteSpace(client.Processo)) return false;
-            try { return Process.GetProcessesByName(client.Processo).Length > 0; }
+            if (client == null || string.IsNullOrWhiteSpace(client.ServerProcess)) return false;
+            try { return Process.GetProcessesByName(client.ServerProcess).Length > 0; }
             catch { return false; }
         }
 
@@ -167,43 +167,43 @@ namespace Oce.Solid.Agent.Installer
         /// client, lasciando intatto tutto il resto. Ritorna il percorso della
         /// copia di sicurezza, o null se il file non esisteva.
         /// </summary>
-        public static string Collega(
-            Client client, string eseguibile, string redist, string weldmentProfiles, Action<string> racconta)
+        public static string Connect(
+            Client client, string executable, string redist, string weldmentProfiles, Action<string> tell)
         {
             if (client == null) throw new Exception("Nessun client scelto.");
-            if (string.IsNullOrWhiteSpace(eseguibile) || !File.Exists(eseguibile))
-                throw new Exception("Non trovo il ponte da collegare: " + eseguibile);
+            if (string.IsNullOrWhiteSpace(executable) || !File.Exists(executable))
+                throw new Exception("Non trovo il ponte da collegare: " + executable);
 
-            var radice = Leggi(client.File);
-            var server = Sotto(radice, "mcpServers");
+            var root = Read(client.File);
+            var server = Below(root, "mcpServers");
 
-            var voce = new Dictionary<string, object>
+            var entry = new Dictionary<string, object>
             {
-                ["command"] = eseguibile,
+                ["command"] = executable,
             };
 
             // `env` solo se serve davvero: una variabile scritta «tanto per»
             // e' una cosa in piu' che puo' diventare sbagliata quando qualcuno
             // sposta SOLIDWORKS, e nessuno andra' a rileggerla.
             object previous;
-            server.TryGetValue(NomeServer, out previous);
-            var env = MergedEnv(EnvOf(previous), redist, weldmentProfiles, racconta);
+            server.TryGetValue(ServerName, out previous);
+            var env = MergedEnv(EnvOf(previous), redist, weldmentProfiles, tell);
             if (env.Count > 0)
             {
-                voce["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+                entry["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
                 if (env.ContainsKey("SW_REDIST"))
-                    racconta("aggiungo SW_REDIST: SOLIDWORKS non e' nel percorso solito");
+                    tell("aggiungo SW_REDIST: SOLIDWORKS non e' nel percorso solito");
                 if (env.ContainsKey("PROFILI_SALDATURA"))
-                    racconta("adding PROFILI_SALDATURA: " + env["PROFILI_SALDATURA"]);
+                    tell("adding PROFILI_SALDATURA: " + env["PROFILI_SALDATURA"]);
             }
 
-            bool cera = server.ContainsKey(NomeServer);
-            server[NomeServer] = voce;
+            bool existed = server.ContainsKey(ServerName);
+            server[ServerName] = entry;
 
-            var copia = Scrivi(client.File, radice, racconta);
-            racconta((cera ? "aggiornata" : "aggiunta") + " la voce «" + NomeServer +
-                     "» in " + client.Nome);
-            return copia;
+            var copy = Write(client.File, root, tell);
+            tell((existed ? "aggiornata" : "aggiunta") + " la voce «" + ServerName +
+                     "» in " + client.Name);
+            return copy;
         }
 
         /// <summary>
@@ -237,7 +237,7 @@ namespace Oce.Solid.Agent.Installer
         /// as it was when it has none.
         /// </summary>
         public static Dictionary<string, string> MergedEnv(
-            IDictionary<string, string> existing, string redist, string weldmentProfiles, Action<string> racconta)
+            IDictionary<string, string> existing, string redist, string weldmentProfiles, Action<string> tell)
         {
             var env = new Dictionary<string, string>(StringComparer.Ordinal);
             if (existing != null)
@@ -249,8 +249,8 @@ namespace Oce.Solid.Agent.Installer
 
             var kept = env.Keys.Where(k => k != "SW_REDIST" && !(k == "PROFILI_SALDATURA" && fresh.ContainsKey(k)))
                           .OrderBy(k => k, StringComparer.Ordinal).ToList();
-            if (kept.Count > 0 && racconta != null)
-                racconta("keeping from the existing entry's env: " + string.Join(", ", kept));
+            if (kept.Count > 0 && tell != null)
+                tell("keeping from the existing entry's env: " + string.Join(", ", kept));
             return env;
         }
 
@@ -293,7 +293,7 @@ namespace Oce.Solid.Agent.Installer
         public static string ReadProblem(Client client)
         {
             if (client == null || !File.Exists(client.File)) return null;
-            try { Leggi(client.File); return null; }
+            try { Read(client.File); return null; }
             catch (Exception ex) { return ex.Message; }
         }
 
@@ -307,30 +307,30 @@ namespace Oce.Solid.Agent.Installer
         /// someone else's, and is left alone with a line that says so.
         /// Returns true when an entry was removed.
         /// </summary>
-        public static bool Scollega(Client client, string folder, Action<string> racconta)
+        public static bool Disconnect(Client client, string folder, Action<string> tell)
         {
             if (client == null || !File.Exists(client.File))
             {
-                racconta("niente da scollegare");
+                tell("niente da scollegare");
                 return false;
             }
-            var radice = Leggi(client.File);
-            var server = Sotto(radice, "mcpServers");
+            var root = Read(client.File);
+            var server = Below(root, "mcpServers");
             object entry;
-            if (!server.TryGetValue(NomeServer, out entry))
+            if (!server.TryGetValue(ServerName, out entry))
             {
-                racconta("la voce non c'era");
+                tell("la voce non c'era");
                 return false;
             }
             if (!string.IsNullOrWhiteSpace(folder) && !PointsInto(entry, folder))
             {
-                racconta(client.Nome + ": the \"" + NomeServer + "\" entry points at another installation (" +
+                tell(client.Name + ": the \"" + ServerName + "\" entry points at another installation (" +
                          CommandOf(entry) + "): left alone");
                 return false;
             }
-            server.Remove(NomeServer);
-            Scrivi(client.File, radice, racconta);
-            racconta("tolta la voce da " + client.Nome);
+            server.Remove(ServerName);
+            Write(client.File, root, tell);
+            tell("tolta la voce da " + client.Name);
             return true;
         }
 
@@ -339,7 +339,7 @@ namespace Oce.Solid.Agent.Installer
         {
             var c = CommandOf(entry);
             return !string.IsNullOrWhiteSpace(c) &&
-                   Passi.PercorsiUguali(c, Path.Combine(folder, Passi.NomeEseguibile));
+                   Steps.EqualPaths(c, Path.Combine(folder, Steps.ExecutableName));
         }
 
         private static string CommandOf(object entry)
@@ -355,24 +355,24 @@ namespace Oce.Solid.Agent.Installer
             try
             {
                 if (client == null || !File.Exists(client.File)) return null;
-                var server = Sotto(Leggi(client.File), "mcpServers");
+                var server = Below(Read(client.File), "mcpServers");
                 object entry;
-                if (!server.TryGetValue(NomeServer, out entry)) return null;
+                if (!server.TryGetValue(ServerName, out entry)) return null;
                 return EnvOf(entry);
             }
             catch { return null; }
         }
 
         /// <summary>Cosa c'e' scritto adesso per questo server, se c'e'.</summary>
-        public static string ComeEConfigurato(Client client)
+        public static string HowItIsConfigured(Client client)
         {
             try
             {
                 if (client == null || !File.Exists(client.File)) return null;
-                var server = Sotto(Leggi(client.File), "mcpServers");
-                object voce;
-                if (!server.TryGetValue(NomeServer, out voce)) return null;
-                var d = voce as Dictionary<string, object>;
+                var server = Below(Read(client.File), "mcpServers");
+                object entry;
+                if (!server.TryGetValue(ServerName, out entry)) return null;
+                var d = entry as Dictionary<string, object>;
                 if (d == null) return null;
                 object c;
                 return d.TryGetValue("command", out c) ? Convert.ToString(c) : null;
@@ -384,14 +384,14 @@ namespace Oce.Solid.Agent.Installer
         // Leggere e scrivere il file
         // ─────────────────────────────────────────────────────────────────
 
-        private static Dictionary<string, object> Leggi(string file)
+        private static Dictionary<string, object> Read(string file)
         {
             try
             {
                 if (!File.Exists(file)) return new Dictionary<string, object>();
-                var testo = File.ReadAllText(file, Encoding.UTF8).Trim();
-                if (testo.Length == 0) return new Dictionary<string, object>();
-                var d = Json().DeserializeObject(testo) as Dictionary<string, object>;
+                var text = File.ReadAllText(file, Encoding.UTF8).Trim();
+                if (text.Length == 0) return new Dictionary<string, object>();
+                var d = Json().DeserializeObject(text) as Dictionary<string, object>;
                 return d ?? new Dictionary<string, object>();
             }
             catch (IOException ex)
@@ -415,25 +415,25 @@ namespace Oce.Solid.Agent.Installer
             }
         }
 
-        private static Dictionary<string, object> Sotto(
-            Dictionary<string, object> radice, string chiave)
+        private static Dictionary<string, object> Below(
+            Dictionary<string, object> root, string key)
         {
             object v;
-            if (radice.TryGetValue(chiave, out v))
+            if (root.TryGetValue(key, out v))
             {
                 var d = v as Dictionary<string, object>;
                 if (d != null) return d;
             }
-            var nuovo = new Dictionary<string, object>();
-            radice[chiave] = nuovo;
-            return nuovo;
+            var newItem = new Dictionary<string, object>();
+            root[key] = newItem;
+            return newItem;
         }
 
-        private static string Scrivi(
-            string file, Dictionary<string, object> radice, Action<string> racconta)
+        private static string Write(
+            string file, Dictionary<string, object> root, Action<string> tell)
         {
-            var cartella = Path.GetDirectoryName(file);
-            if (!string.IsNullOrEmpty(cartella)) Directory.CreateDirectory(cartella);
+            var folder = Path.GetDirectoryName(file);
+            if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
 
             // UN FILE TENUTO DA UN ALTRO PROGRAMMA SI SCOPRE PRIMA (voce H15).
             // Prima lo si scopriva a meta': copia fatta, `.parziale` scritto,
@@ -453,28 +453,28 @@ namespace Oce.Solid.Agent.Installer
                 }
             }
 
-            var copia = Backup(file, racconta);
+            var copy = Backup(file, tell);
 
-            var testo = Indenta(Json().Serialize(radice));
+            var text = Indent(Json().Serialize(root));
 
-            var temporaneo = file + ".parziale";
+            var temporary = file + ".parziale";
             try
             {
-                using (var w = new StreamWriter(temporaneo, false, new UTF8Encoding(false)))
-                    w.Write(testo);
+                using (var w = new StreamWriter(temporary, false, new UTF8Encoding(false)))
+                    w.Write(text);
                 if (File.Exists(file)) File.Delete(file);
-                File.Move(temporaneo, file);
+                File.Move(temporary, file);
             }
             catch
             {
                 // Qualunque cosa sia andata storta, il `.parziale` non resta:
                 // un file a meta' accanto a quello vero e' la cosa che fa
                 // pensare a chi apre la cartella che si puo' usare quello.
-                try { if (File.Exists(temporaneo)) File.Delete(temporaneo); } catch { }
+                try { if (File.Exists(temporary)) File.Delete(temporary); } catch { }
                 throw;
             }
 
-            return copia;
+            return copy;
         }
 
         /// <summary>
@@ -483,53 +483,53 @@ namespace Oce.Solid.Agent.Installer
         /// H19 review: `claude mcp remove` + `add` rewrite .claude.json too,
         /// and until then that route made no backup at all.
         /// </summary>
-        public static string Backup(string file, Action<string> racconta)
+        public static string Backup(string file, Action<string> tell)
         {
             if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) return null;
             // Il nome della copia porta la data: cosi' si capisce quale e'
             // quale.
-            var copia = file + PrefissoCopia +
+            var copy = file + CopyPrefix +
                         DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
-            File.Copy(file, copia, true);
-            racconta?.Invoke("copia di sicurezza: " + Path.GetFileName(copia));
-            PotaLeCopie(file, racconta ?? (s => { }));
-            return copia;
+            File.Copy(file, copy, true);
+            tell?.Invoke("copia di sicurezza: " + Path.GetFileName(copy));
+            PruneCopies(file, tell ?? (s => { }));
+            return copy;
         }
 
-        private const string PrefissoCopia = ".prima-di-oce-solid-agent-";
+        private const string CopyPrefix = ".prima-di-oce-solid-agent-";
 
         /// <summary>
         /// Quante copie di sicurezza per file si tengono. Tre bastano a tornare
         /// indietro di due installazioni sbagliate di fila; oltre e' solo roba
         /// che si accumula in %APPDATA% e che nessuno guarda.
         /// </summary>
-        public const int CopieTenute = 3;
+        public const int KeptCopies = 3;
 
         /// <summary>
         /// Toglie le copie di sicurezza piu' vecchie, tenendo le ultime
-        /// <see cref="CopieTenute"/> (voce H15: prima non si ripulivano mai, e
+        /// <see cref="KeptCopies"/> (voce H15: prima non si ripulivano mai, e
         /// dieci installazioni lasciavano dieci `.bak`).
         ///
         /// Tocca SOLO i file con il nostro prefisso accanto a quel file: una
         /// copia fatta a mano da chi usa il client non e' nostra.
         /// </summary>
-        private static void PotaLeCopie(string file, Action<string> racconta)
+        private static void PruneCopies(string file, Action<string> tell)
         {
             try
             {
-                var cartella = Path.GetDirectoryName(file);
-                var nome = Path.GetFileName(file) + PrefissoCopia;
-                var nostre = Directory.GetFiles(cartella, nome + "*.bak")
+                var folder = Path.GetDirectoryName(file);
+                var itemName = Path.GetFileName(file) + CopyPrefix;
+                var our = Directory.GetFiles(folder, itemName + "*.bak")
                     .OrderByDescending(f => Path.GetFileName(f), StringComparer.Ordinal)
-                    .Skip(CopieTenute)
+                    .Skip(KeptCopies)
                     .ToList();
-                foreach (var vecchia in nostre)
+                foreach (var old in our)
                 {
-                    try { File.Delete(vecchia); }
+                    try { File.Delete(old); }
                     catch { }
                 }
-                if (nostre.Count > 0)
-                    racconta("tolte " + nostre.Count + " copie di sicurezza vecchie (ne tengo " + CopieTenute + ")");
+                if (our.Count > 0)
+                    tell("tolte " + our.Count + " copie di sicurezza vecchie (ne tengo " + KeptCopies + ")");
             }
             catch { /* non poter pulire non e' un motivo per non installare */ }
         }
@@ -548,53 +548,53 @@ namespace Oce.Solid.Agent.Installer
         /// l'unica cosa da cui stare attenti sono le stringhe, dove parentesi e
         /// virgole non sono struttura.
         /// </summary>
-        private static string Indenta(string json)
+        private static string Indent(string json)
         {
-            var fuori = new StringBuilder(json.Length * 2);
-            int livello = 0;
-            bool inStringa = false, scappato = false;
+            var outside = new StringBuilder(json.Length * 2);
+            int level = 0;
+            bool inString = false, escaped = false;
 
             foreach (char c in json)
             {
-                if (inStringa)
+                if (inString)
                 {
-                    fuori.Append(c);
-                    if (scappato) scappato = false;
-                    else if (c == '\\') scappato = true;
-                    else if (c == '"') inStringa = false;
+                    outside.Append(c);
+                    if (escaped) escaped = false;
+                    else if (c == '\\') escaped = true;
+                    else if (c == '"') inString = false;
                     continue;
                 }
 
                 switch (c)
                 {
                     case '"':
-                        inStringa = true;
-                        fuori.Append(c);
+                        inString = true;
+                        outside.Append(c);
                         break;
                     case '{':
                     case '[':
-                        fuori.Append(c);
-                        livello++;
-                        fuori.Append('\n').Append(new string(' ', livello * 2));
+                        outside.Append(c);
+                        level++;
+                        outside.Append('\n').Append(new string(' ', level * 2));
                         break;
                     case '}':
                     case ']':
-                        livello--;
-                        fuori.Append('\n').Append(new string(' ', Math.Max(0, livello) * 2));
-                        fuori.Append(c);
+                        level--;
+                        outside.Append('\n').Append(new string(' ', Math.Max(0, level) * 2));
+                        outside.Append(c);
                         break;
                     case ',':
-                        fuori.Append(c).Append('\n').Append(new string(' ', livello * 2));
+                        outside.Append(c).Append('\n').Append(new string(' ', level * 2));
                         break;
                     case ':':
-                        fuori.Append(": ");
+                        outside.Append(": ");
                         break;
                     default:
-                        fuori.Append(c);
+                        outside.Append(c);
                         break;
                 }
             }
-            return fuori.ToString().Replace("{\n" + new string(' ', 2) + "\n}", "{}") + "\n";
+            return outside.ToString().Replace("{\n" + new string(' ', 2) + "\n}", "{}") + "\n";
         }
 
         private static bool RedistStandard(string redist)
@@ -604,23 +604,23 @@ namespace Oce.Solid.Agent.Installer
                 var standard = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                     @"SOLIDWORKS Corp\SOLIDWORKS\api\redist");
-                return Passi.PercorsiUguali(redist, standard);
+                return Steps.EqualPaths(redist, standard);
             }
             catch { return false; }
         }
 
         /// <summary>Il blocco da incollare a mano, per chi usa un altro client.</summary>
-        public static string BloccoDaIncollare(string eseguibile, string redist, string weldmentProfiles)
+        public static string BlockToPaste(string executable, string redist, string weldmentProfiles)
         {
-            var voce = new Dictionary<string, object> { ["command"] = eseguibile };
+            var entry = new Dictionary<string, object> { ["command"] = executable };
             var env = EnvFor(redist, weldmentProfiles);
-            if (env.Count > 0) voce["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+            if (env.Count > 0) entry["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
 
-            var radice = new Dictionary<string, object>
+            var root = new Dictionary<string, object>
             {
-                ["mcpServers"] = new Dictionary<string, object> { [NomeServer] = voce },
+                ["mcpServers"] = new Dictionary<string, object> { [ServerName] = entry },
             };
-            return Indenta(Json().Serialize(radice));
+            return Indent(Json().Serialize(root));
         }
     }
 }

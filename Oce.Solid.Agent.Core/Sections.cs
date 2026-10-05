@@ -19,7 +19,7 @@ namespace Oce.Solid.Agent.Core
     /// I CONTROLLI DI QUESTA FAMIGLIA SONO FISICI, non di forma, e ognuno
     /// esiste per un difetto che SOLIDWORKS non segnala.
     /// </summary>
-    public static class Sezioni
+    public static class Sections
     {
         /// <summary>
         /// Segmenti per ogni semicerchio dell'asola.
@@ -28,10 +28,10 @@ namespace Oce.Solid.Agent.Core
         /// abbassare e ottenere un'asola ottagonale senza che nessuno se ne
         /// accorga.
         /// </summary>
-        public const int SegmentiSemicerchio = 24;
+        public const int SemicircleSegments = 24;
 
         /// <summary>Le sezioni che si sanno fare, e quali quote vogliono.</summary>
-        public static readonly Dictionary<string, string[]> Volute =
+        public static readonly Dictionary<string, string[]> Wanted =
             new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
             {
                 ["tubular"] = new[] { "width_mm", "height_mm", "wall_mm" },
@@ -52,52 +52,52 @@ namespace Oce.Solid.Agent.Core
         /// finiscono nello stesso esecutore di `extrude_profile`: una sezione
         /// non e' un'altra operazione, e' un modo di scrivere dei contorni.
         /// </summary>
-        public static List<object> Contorni(
-            string tipo, Dictionary<string, double> m, out string motivo)
+        public static List<object> Contours(
+            string typ, Dictionary<string, double> m, out string reason)
         {
-            motivo = null;
-            if (string.IsNullOrWhiteSpace(tipo))
+            reason = null;
+            if (string.IsNullOrWhiteSpace(typ))
             {
-                motivo = "Non hai detto che sezione: " + Elenco() + ".";
+                reason = "Non hai detto che sezione: " + Items() + ".";
                 return null;
             }
 
-            switch (tipo.Trim().ToLowerInvariant())
+            switch (typ.Trim().ToLowerInvariant())
             {
                 case "tubular":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["wall_mm"];
-                    motivo = PareteStaDentro(t, Math.Min(b, h), "tubolare");
-                    if (motivo != null) return null;
+                    reason = WallIsInside(t, Math.Min(b, h), "tubolare");
+                    if (reason != null) return null;
                     // Origine al centro. Due rettangoli concentrici: l'ingombro
                     // esterno sta scritto nelle coordinate, e non dipende da un
                     // verso di parete.
                     return new List<object>
                     {
-                        Poligonale(Rettangolo(b, h)),
-                        Poligonale(Rettangolo(b - 2 * t, h - 2 * t)),
+                        Polygonal(Rectangle(b, h)),
+                        Polygonal(Rectangle(b - 2 * t, h - 2 * t)),
                     };
                 }
 
                 case "round":
-                    return new List<object> { Cerchio(0, 0, m["diameter_mm"]) };
+                    return new List<object> { Circle(0, 0, m["diameter_mm"]) };
 
                 case "tube":
                 {
                     double d = m["diameter_mm"], t = m["wall_mm"];
-                    motivo = PareteStaDentro(t, d, "tubo");
-                    if (motivo != null) return null;
+                    reason = WallIsInside(t, d, "tubo");
+                    if (reason != null) return null;
                     return new List<object>
                     {
-                        Cerchio(0, 0, d),
-                        Cerchio(0, 0, d - 2 * t),
+                        Circle(0, 0, d),
+                        Circle(0, 0, d - 2 * t),
                     };
                 }
 
                 case "flat":
                     return new List<object>
                     {
-                        Poligonale(Rettangolo(m["width_mm"], m["height_mm"])),
+                        Polygonal(Rectangle(m["width_mm"], m["height_mm"])),
                     };
 
                 case "hexagon":
@@ -108,26 +108,26 @@ namespace Oce.Solid.Agent.Core
                     // esagono piu' grande del 15%.
                     double c = m["across_flats_mm"];
                     double r = c / Math.Sqrt(3.0);
-                    var punti = new List<double[]>();
+                    var points = new List<double[]>();
                     for (int i = 0; i < 6; i++)
                     {
-                        double ang = Math.PI / 6 + i * Math.PI / 3;
-                        punti.Add(new[] { Q(r * Math.Cos(ang)), Q(r * Math.Sin(ang)) });
+                        double angle = Math.PI / 6 + i * Math.PI / 3;
+                        points.Add(new[] { Q(r * Math.Cos(angle)), Q(r * Math.Sin(angle)) });
                     }
-                    return new List<object> { Poligonale(punti) };
+                    return new List<object> { Polygonal(points) };
                 }
 
                 case "angle":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
-                    motivo = SpessoreStaDentro(t, Math.Min(b, h), "un'ala", "un piatto");
-                    if (motivo != null) return null;
+                    reason = ThicknessIsInside(t, Math.Min(b, h), "un'ala", "un piatto");
+                    if (reason != null) return null;
                     // Origine sullo SPIGOLO INTERNO: e' un punto che esiste sul
                     // pezzo e che in officina si misura. Le ali crescono verso
                     // +X e +Y.
                     return new List<object>
                     {
-                        Poligonale(new List<double[]>
+                        Polygonal(new List<double[]>
                         {
                             new[] { Q(0), Q(0) },
                             new[] { Q(b), Q(0) },
@@ -142,14 +142,14 @@ namespace Oce.Solid.Agent.Core
                 case "u":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
-                    motivo = SpessoreStaDentro(2 * t, b, "l'anima", "un piatto")
-                             ?? SpessoreStaDentro(t, h, "un'ala", "un piatto");
-                    if (motivo != null) return null;
+                    reason = ThicknessIsInside(2 * t, b, "l'anima", "un piatto")
+                             ?? ThicknessIsInside(t, h, "un'ala", "un piatto");
+                    if (reason != null) return null;
                     // Origine sullo spigolo esterno in basso a sinistra: le due
                     // ali salgono.
                     return new List<object>
                     {
-                        Poligonale(new List<double[]>
+                        Polygonal(new List<double[]>
                         {
                             new[] { Q(0), Q(0) },
                             new[] { Q(b), Q(0) },
@@ -166,15 +166,15 @@ namespace Oce.Solid.Agent.Core
                 case "t":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
-                    motivo = SpessoreStaDentro(t, b, "l'ala", "un piatto")
-                             ?? SpessoreStaDentro(t, h, "l'anima", "un piatto");
-                    if (motivo != null) return null;
+                    reason = ThicknessIsInside(t, b, "l'ala", "un piatto")
+                             ?? ThicknessIsInside(t, h, "l'anima", "un piatto");
+                    if (reason != null) return null;
                     // Origine al centro dell'ala superiore: l'anima scende
                     // verso -Y.
                     double mb = b / 2.0, mt = t / 2.0;
                     return new List<object>
                     {
-                        Poligonale(new List<double[]>
+                        Polygonal(new List<double[]>
                         {
                             new[] { Q(-mb), Q(0) },
                             new[] { Q(mb), Q(0) },
@@ -193,41 +193,41 @@ namespace Oce.Solid.Agent.Core
                     double b = m["width_mm"], h = m["height_mm"];
                     if (b <= h)
                     {
-                        motivo = string.Format(CultureInfo.InvariantCulture,
+                        reason = string.Format(CultureInfo.InvariantCulture,
                             "Un'asola {0:0.###}x{1:0.###}: la lunghezza deve essere " +
                             "maggiore della larghezza, altrimenti e' un cerchio.", b, h);
                         return null;
                     }
                     double r = h / 2.0;
-                    double centro = b / 2.0 - r;
+                    double center = b / 2.0 - r;
 
                     // I PUNTI STANNO SUL CERCHIO CIRCOSCRITTO, non su quello
                     // nominale. Un'asola con i semicerchi inscritti e' piu'
                     // STRETTA del nominale, e una vite che ci deve passare non
                     // passa. Dove si approssima, si approssima in eccesso.
-                    double rp = r / Math.Cos(Math.PI / (2 * SegmentiSemicerchio));
-                    var punti = new List<double[]>();
-                    for (int i = 0; i <= SegmentiSemicerchio; i++)
+                    double rp = r / Math.Cos(Math.PI / (2 * SemicircleSegments));
+                    var points = new List<double[]>();
+                    for (int i = 0; i <= SemicircleSegments; i++)
                     {
-                        double ang = -Math.PI / 2 + Math.PI * i / SegmentiSemicerchio;
-                        punti.Add(new[] { Q(centro + rp * Math.Cos(ang)), Q(rp * Math.Sin(ang)) });
+                        double angle = -Math.PI / 2 + Math.PI * i / SemicircleSegments;
+                        points.Add(new[] { Q(center + rp * Math.Cos(angle)), Q(rp * Math.Sin(angle)) });
                     }
-                    for (int i = 0; i <= SegmentiSemicerchio; i++)
+                    for (int i = 0; i <= SemicircleSegments; i++)
                     {
-                        double ang = Math.PI / 2 + Math.PI * i / SegmentiSemicerchio;
-                        punti.Add(new[] { Q(-centro + rp * Math.Cos(ang)), Q(rp * Math.Sin(ang)) });
+                        double angle = Math.PI / 2 + Math.PI * i / SemicircleSegments;
+                        points.Add(new[] { Q(-center + rp * Math.Cos(angle)), Q(rp * Math.Sin(angle)) });
                     }
-                    return new List<object> { Poligonale(punti) };
+                    return new List<object> { Polygonal(points) };
                 }
             }
 
-            motivo = "Sezione «" + tipo + "» sconosciuta. Ci sono: " + Elenco() + ".";
+            reason = "Sezione «" + typ + "» sconosciuta. Ci sono: " + Items() + ".";
             return null;
         }
 
-        private static string Elenco()
+        private static string Items()
         {
-            return string.Join(", ", Volute.Keys);
+            return string.Join(", ", Wanted.Keys);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -250,16 +250,16 @@ namespace Oce.Solid.Agent.Core
         /// che sborda» a chi ha scritto una parete. Un rifiuto che non nomina
         /// la quota sbagliata e' un rifiuto che si ripete identico.
         /// </summary>
-        private static string PareteStaDentro(double parete, double latoMinore, string cosa)
+        private static string WallIsInside(double wall, double shorterSide, string what)
         {
-            if (latoMinore - 2.0 * parete > 0.001) return null;
+            if (shorterSide - 2.0 * wall > 0.001) return null;
             return string.Format(CultureInfo.InvariantCulture,
                 "Parete {0:0.###} mm su un {1} da {2:0.###} mm: non resta cavita'. " +
                 "La parete deve stare STRETTAMENTE sotto la meta', cioe' sotto " +
                 "{3:0.###} mm. A meta' esatta il vuoto ha area zero, SOLIDWORKS non " +
                 "lo segnala ed estrude una barra piena — che pesa quattro volte " +
                 "tanto ed e' verde come quella giusta.",
-                parete, cosa, latoMinore, latoMinore / 2.0);
+                wall, what, shorterSide, shorterSide / 2.0);
         }
 
         /// <summary>
@@ -269,14 +269,14 @@ namespace Oce.Solid.Agent.Core
         /// resta un'altra sezione: non un angolare piu' tozzo, un **piatto**.
         /// Altro peso, altra inerzia, nessun errore.
         /// </summary>
-        private static string SpessoreStaDentro(
-            double spessore, double lato, string quale, string diventa)
+        private static string ThicknessIsInside(
+            double thickness, double side, string which, string becomes)
         {
-            if (spessore < lato) return null;
+            if (thickness < side) return null;
             return string.Format(CultureInfo.InvariantCulture,
                 "Spessore {0:0.###} mm su {1} da {2:0.###} mm: non e' piu' un profilo, " +
                 "viene fuori {3}. Lo spessore deve stare sotto il lato.",
-                spessore, quale, lato, diventa);
+                thickness, which, side, becomes);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -295,9 +295,9 @@ namespace Oce.Solid.Agent.Core
             return Math.Round(v, 4, MidpointRounding.AwayFromZero);
         }
 
-        private static List<double[]> Rettangolo(double larghezza, double altezza)
+        private static List<double[]> Rectangle(double width, double height)
         {
-            double mx = larghezza / 2.0, my = altezza / 2.0;
+            double mx = width / 2.0, my = height / 2.0;
             return new List<double[]>
             {
                 new[] { Q(-mx), Q(-my) },
@@ -307,10 +307,10 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
-        private static Dictionary<string, object> Poligonale(List<double[]> vertici)
+        private static Dictionary<string, object> Polygonal(List<double[]> vertices)
         {
-            var v = new List<object>(vertici.Count);
-            foreach (var p in vertici) v.Add(new object[] { p[0], p[1] });
+            var v = new List<object>(vertices.Count);
+            foreach (var p in vertices) v.Add(new object[] { p[0], p[1] });
             return new Dictionary<string, object>
             {
                 ["kind"] = "polygonal",
@@ -318,13 +318,13 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
-        private static Dictionary<string, object> Cerchio(double cx, double cy, double diametro)
+        private static Dictionary<string, object> Circle(double cx, double cy, double diameter)
         {
             return new Dictionary<string, object>
             {
                 ["kind"] = "circle",
                 ["center"] = new object[] { Q(cx), Q(cy) },
-                ["diameter_mm"] = diametro,
+                ["diameter_mm"] = diameter,
             };
         }
     }

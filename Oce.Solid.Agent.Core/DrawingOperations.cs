@@ -45,7 +45,7 @@ namespace Oce.Solid.Agent.Core
     ///    servono solo a evitare questo. Qui si contano i fogli prima e le
     ///    PAGINE del PDF dopo.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>
         /// Il numero di preferenza del template di disegno predefinito.
@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.Core
         /// suo diedro, e un percorso scritto a mano funziona sulla macchina di
         /// chi l'ha scritto e su nessun'altra.
         /// </summary>
-        private const int TemplateDisegnoPredefinito =
+        private const int DefaultDrawingTemplate =
             (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing;
 
         // ─────────────────────────────────────────────────────────────────
@@ -71,35 +71,35 @@ namespace Oce.Solid.Agent.Core
         /// l'agente lavorava su un documento solo e lo stato lo dava per
         /// sottinteso.
         /// </summary>
-        private Esito CreaDisegno(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome CreateDrawing(IModelDoc2 model, Dictionary<string, object> a)
         {
-            if (modello == null)
-                return Fallito("Non c'e' nessun documento aperto da mettere in tavola.");
+            if (model == null)
+                return Failed("Non c'e' nessun documento aperto da mettere in tavola.");
 
-            string percorsoModello = "";
-            try { percorsoModello = modello.GetPathName() ?? ""; } catch { }
-            if (string.IsNullOrWhiteSpace(percorsoModello))
-                return Fallito(
+            string modelPath = "";
+            try { modelPath = model.GetPathName() ?? ""; } catch { }
+            if (string.IsNullOrWhiteSpace(modelPath))
+                return Failed(
                     "Il pezzo non e' mai stato salvato, quindi non ha un percorso, e " +
                     "una vista di tavola si aggancia al PERCORSO del modello. " +
                     "Salvalo una prima volta e poi rifammi la tavola.");
 
-            int tipoModello = 0;
-            try { tipoModello = modello.GetType(); } catch { }
-            if (tipoModello != (int)swDocumentTypes_e.swDocPART &&
-                tipoModello != (int)swDocumentTypes_e.swDocASSEMBLY)
-                return Fallito(
+            int modelType = 0;
+            try { modelType = model.GetType(); } catch { }
+            if (modelType != (int)swDocumentTypes_e.swDocPART &&
+                modelType != (int)swDocumentTypes_e.swDocASSEMBLY)
+                return Failed(
                     "Il documento attivo non e' ne' un pezzo ne' un assieme: " +
                     "non so di cosa fare la tavola.");
 
             string template = Str(a, "template", null);
             if (string.IsNullOrWhiteSpace(template))
             {
-                try { template = _sw.GetUserPreferenceStringValue(TemplateDisegnoPredefinito); }
+                try { template = _sw.GetUserPreferenceStringValue(DefaultDrawingTemplate); }
                 catch { template = null; }
             }
             if (string.IsNullOrWhiteSpace(template) || !File.Exists(template))
-                return Fallito(
+                return Failed(
                     "Non trovo il modello di tavola di questa installazione " +
                     (string.IsNullOrWhiteSpace(template)
                         ? "(la preferenza e' vuota)."
@@ -109,20 +109,20 @@ namespace Oce.Solid.Agent.Core
 
             // Formato e scala si passano gia' qui: `NewDocument` li accetta, e
             // farlo in due tempi vorrebbe dire un foglio buttato.
-            int formato = FormatoFoglio(Str(a, "paper_size", "A3"));
-            object nuovo;
-            try { nuovo = _sw.NewDocument(template, formato, 0, 0); }
-            catch (Exception ex) { return Fallito("Non riesco a creare la tavola: " + ex.Message); }
+            int sheetFormat = SheetFormatCode(Str(a, "paper_size", "A3"));
+            object newItem;
+            try { newItem = _sw.NewDocument(template, sheetFormat, 0, 0); }
+            catch (Exception ex) { return Failed("Non riesco a creare la tavola: " + ex.Message); }
 
-            var disegno = nuovo as IModelDoc2;
-            if (disegno == null)
-                return Fallito(
+            var drawing = newItem as IModelDoc2;
+            if (drawing == null)
+                return Failed(
                     "SolidWorks non ha creato nessuna tavola e non ha detto perche'.");
 
-            int tipoNuovo = 0;
-            try { tipoNuovo = disegno.GetType(); } catch { }
-            if (tipoNuovo != (int)swDocumentTypes_e.swDocDRAWING)
-                return Fallito(
+            int newType = 0;
+            try { newType = drawing.GetType(); } catch { }
+            if (newType != (int)swDocumentTypes_e.swDocDRAWING)
+                return Failed(
                     "Il documento creato non e' una tavola: il modello «" + template +
                     "» non e' un modello di disegno.");
 
@@ -133,27 +133,27 @@ namespace Oce.Solid.Agent.Core
             // basta una preferenza («chiudi i documenti non usati») perche' il
             // pezzo sparisca sotto i piedi. Se sparisce, le viste nascerebbero
             // vuote senza dare errore.
-            if (!DocumentoAperto(percorsoModello))
-                return Fallito(
+            if (!OpenedDocument(modelPath))
+                return Failed(
                     "La tavola e' nata ma il pezzo non risulta piu' aperto: le viste " +
                     "verrebbero vuote. Riapri il pezzo e riprova.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 ["template"] = template,
                 ["paper_size"] = Str(a, "paper_size", "A3"),
-                ["model_in_drawing"] = percorsoModello,
-                ["sheets"] = NumeroOppureNull(ContaFogli(disegno)),
-                ["documents_open"] = DocumentiAperti().Count,
+                ["model_in_drawing"] = modelPath,
+                ["sheets"] = NumberOrNull(CountSheets(drawing)),
+                ["documents_open"] = OpenDocuments().Count,
             };
             _log("[agente] tavola creata da " + template);
-            var esito = SenzaFeature(misure);
+            var outcome = WithoutFeature(measurements);
             // DA QUI IN POI SI LAVORA SULLA TAVOLA, e lo si dice.
             // Chi esegue il piano sorveglia che il documento non cambi sotto i
             // piedi; questo e' l'unico cambio legittimo, quindi va dichiarato
             // invece di subito.
-            esito.DocumentoNuovo = disegno;
-            return esito;
+            outcome.NewDocument = drawing;
+            return outcome;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -163,23 +163,23 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Formato e scala del foglio attivo. Il diedro NON e' un parametro.
         /// </summary>
-        private Esito ImpostaFoglio(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome SetSheet(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito("Il documento attivo non e' una tavola.");
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed("Il documento attivo non e' una tavola.");
 
-            ISheet foglio;
-            try { foglio = disegno.GetCurrentSheet() as ISheet; }
-            catch (Exception ex) { return Fallito("Non riesco a leggere il foglio: " + ex.Message); }
-            if (foglio == null) return Fallito("La tavola non ha un foglio attivo.");
+            ISheet sheet;
+            try { sheet = drawing.GetCurrentSheet() as ISheet; }
+            catch (Exception ex) { return Failed("Non riesco a leggere il foglio: " + ex.Message); }
+            if (sheet == null) return Failed("La tavola non ha un foglio attivo.");
 
-            string nomeFormato = Str(a, "paper_size", "A3");
-            int formato = FormatoFoglio(nomeFormato);
-            double scalaNum = Num(a, "scale_numerator", 1);
-            double scalaDen = Num(a, "scale_denominator", 1);
-            if (scalaNum <= 0 || scalaDen <= 0)
-                return Fallito("La scala deve avere due numeri positivi, per esempio 1:2.");
+            string formatName = Str(a, "paper_size", "A3");
+            int sheetFormat = SheetFormatCode(formatName);
+            double scaleNum = Num(a, "scale_numerator", 1);
+            double scaleDen = Num(a, "scale_denominator", 1);
+            if (scaleNum <= 0 || scaleDen <= 0)
+                return Failed("La scala deve avere due numeri positivi, per esempio 1:2.");
 
             // FORMATO E SCALA SI SCRIVONO INSIEME, E IL DIEDRO SI RILEGGE.
             //
@@ -196,53 +196,53 @@ namespace Oce.Solid.Agent.Core
             // sinistra scambiate, non da' nessun errore, e il pezzo esce
             // specchiato). Si LEGGE quello che il modello di tavola
             // dell'officina ha gia' deciso e si riscrive uguale.
-            var prima = ProprietaDelFoglio(foglio);
-            bool primoDiedro = prima != null && prima.Length > 4 && prima[4] != 0;
+            var before = SheetProperty(sheet);
+            bool firstAngle = before != null && before.Length > 4 && before[4] != 0;
 
             try
             {
-                foglio.SetProperties2(
-                    formato,
+                sheet.SetProperties2(
+                    sheetFormat,
                     (int)swDwgTemplates_e.swDwgTemplateNone,
-                    scalaNum, scalaDen,
-                    primoDiedro,
+                    scaleNum, scaleDen,
+                    firstAngle,
                     0, 0,
                     true);
             }
-            catch (Exception ex) { return Fallito("Foglio non impostato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Foglio non impostato: " + ex.Message); }
 
             // Il puntatore al foglio e' vecchio da questa riga in poi.
-            try { foglio = disegno.GetCurrentSheet() as ISheet; }
-            catch { foglio = null; }
-            if (foglio == null) return Fallito("Ho perso il foglio dopo averlo impostato.");
+            try { sheet = drawing.GetCurrentSheet() as ISheet; }
+            catch { sheet = null; }
+            if (sheet == null) return Failed("Ho perso il foglio dopo averlo impostato.");
 
             // SI RILEGGE. Le due chiamate tornano `true` anche quando il
             // foglio e' rimasto com'era — e' successo con `SetMaterialPropertyName2`,
             // e la difesa e' sempre la stessa: chiedere al documento, non
             // fidarsi della chiamata.
-            double[] misureFoglio = MisureFoglio(foglio);
-            var scalaDopo = LeggiScala(foglio);
-            if (scalaDopo != null && scalaDen != 0 &&
-                Math.Abs(scalaDopo[0] / scalaDopo[1] - scalaNum / scalaDen) > 1e-9)
-                return Fallito(
-                    "Ho chiesto la scala " + scalaNum + ":" + scalaDen +
-                    " e il foglio dice " + scalaDopo[0] + ":" + scalaDopo[1] +
+            double[] sheetMeasurements = SheetMeasurements(sheet);
+            var scaleAfter = ReadScale(sheet);
+            if (scaleAfter != null && scaleDen != 0 &&
+                Math.Abs(scaleAfter[0] / scaleAfter[1] - scaleNum / scaleDen) > 1e-9)
+                return Failed(
+                    "Ho chiesto la scala " + scaleNum + ":" + scaleDen +
+                    " e il foglio dice " + scaleAfter[0] + ":" + scaleAfter[1] +
                     ". Non dico che e' fatto quando non lo e'.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["paper_size"] = nomeFormato,
-                ["width_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[0], 1) : null,
-                ["height_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[1], 1) : null,
-                ["scale"] = scalaDopo != null ? scalaDopo[0] + ":" + scalaDopo[1] : null,
-                ["projection_angle"] = primoDiedro ? "first" : "third",
+                ["paper_size"] = formatName,
+                ["width_mm"] = sheetMeasurements != null ? (object)Math.Round(sheetMeasurements[0], 1) : null,
+                ["height_mm"] = sheetMeasurements != null ? (object)Math.Round(sheetMeasurements[1], 1) : null,
+                ["scale"] = scaleAfter != null ? scaleAfter[0] + ":" + scaleAfter[1] : null,
+                ["projection_angle"] = firstAngle ? "first" : "third",
             };
             // IL DIEDRO SI DICE SEMPRE, anche quando e' giusto. Non e' un
             // avviso: e' l'unico modo perche' qualcuno se ne accorga prima
             // che il pezzo sia tagliato.
-            if (!primoDiedro)
+            if (!firstAngle)
                 _log("[agente] ATTENZIONE: questa tavola e' in TERZO diedro");
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -257,27 +257,27 @@ namespace Oce.Solid.Agent.Core
         /// vista con `InsertFeatureShell` — una chiamata che dice «si'» e non
         /// dice cosa.
         /// </summary>
-        private Esito VisteStandard(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome StandardViews(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+            var drawing = model as IDrawingDoc;
+            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
 
-            string percorsoModello = Str(a, "model", null);
-            if (string.IsNullOrWhiteSpace(percorsoModello))
+            string modelPath = Str(a, "model", null);
+            if (string.IsNullOrWhiteSpace(modelPath))
             {
-                string perche;
-                percorsoModello = ModelloDaMettereInVista(out perche);
-                if (percorsoModello == null) return Fallito(perche);
+                string why;
+                modelPath = ModelToPutInView(out why);
+                if (modelPath == null) return Failed(why);
             }
-            var percorsoSw = PercorsoCanonico(percorsoModello);
-            if (percorsoSw == null)
-                return Fallito(
-                    "«" + percorsoModello + "» non risulta aperto. Le viste " +
+            var swPath = CanonicalPath(modelPath);
+            if (swPath == null)
+                return Failed(
+                    "«" + modelPath + "» non risulta aperto. Le viste " +
                     "nascerebbero vuote senza dare errore.");
 
-            int prima = ContaViste(disegno);
-            if (prima < 0)
-                return Fallito("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
+            int before = CountViews(drawing);
+            if (before < 0)
+                return Failed("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
             // The views that were already on the sheet: the centre marks the bridge
             // adds below go only on the views this call makes (Z-C21.13 review).
             // Null when one name cannot be read: then no view is known to be new,
@@ -285,7 +285,7 @@ namespace Oce.Solid.Agent.Core
             var viewsBefore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                var sheetBefore = disegno.GetFirstView() as IView;   // the sheet itself
+                var sheetBefore = drawing.GetFirstView() as IView;   // the sheet itself
                 var old = sheetBefore == null ? null : sheetBefore.GetNextView() as IView;
                 while (old != null)
                 {
@@ -297,21 +297,21 @@ namespace Oce.Solid.Agent.Core
             }
             catch { viewsBefore = null; }
             bool ok;
-            try { ok = disegno.Create1stAngleViews2(percorsoSw); }
-            catch (Exception ex) { return Fallito("Viste non create: " + ex.Message); }
+            try { ok = drawing.Create1stAngleViews2(swPath); }
+            catch (Exception ex) { return Failed("Viste non create: " + ex.Message); }
 
-            int dopo = ContaViste(disegno);
-            if (dopo < 0)
-                return Fallito(
+            int after = CountViews(drawing);
+            if (after < 0)
+                return Failed(
                     "Ho chiesto le viste, ma poi non riesco a ricontarle: non so dirti se sono " +
                     "nate. Guarda la tavola prima di andare avanti.");
-            if (!ok && dopo == prima)
-                return Fallito(
+            if (!ok && after == before)
+                return Failed(
                     "SolidWorks non ha creato nessuna vista e non ha detto perche'. " +
                     "Di solito vuol dire che il modello non e' ricostruito.");
-            if (dopo <= prima)
-                return Fallito(
-                    "La chiamata e' andata a buon fine ma le viste sono sempre " + prima +
+            if (after <= before)
+                return Failed(
+                    "La chiamata e' andata a buon fine ma le viste sono sempre " + before +
                     ": la tavola e' vuota. Non lo chiamo riuscito.");
 
             // THE DRAWING IS REBUILT BEFORE ANSWERING (29/9/2026). The centre marks
@@ -322,14 +322,14 @@ namespace Oce.Solid.Agent.Core
             // to the counter. The state read right after the views were made may
             // come before the views are complete; a rebuild settles them, and the
             // answer now carries the count, so a second zero comes with its number.
-            try { ((IModelDoc2)disegno).EditRebuild3(); } catch { }
+            try { ((IModelDoc2)drawing).EditRebuild3(); } catch { }
             // Counted view by view. A view whose marks cannot be counted makes the
             // total unknown (null), not smaller: up to library 0.143.0 such a view
             // was skipped, and the total still looked like a count.
             var views = new List<IView>();
             try
             {
-                var sheet = disegno.GetFirstView() as IView;          // the sheet itself
+                var sheet = drawing.GetFirstView() as IView;          // the sheet itself
                 var next = sheet == null ? null : sheet.GetNextView() as IView;
                 while (next != null)
                 {
@@ -347,7 +347,7 @@ namespace Oce.Solid.Agent.Core
             {
                 foreach (IView view in views)
                 {
-                    int n = ContaCroci.DellaVista(view);
+                    int n = CountCenterMarks.OfView(view);
                     if (n < 0) { centreMarks = -1; continue; }
                     if (centreMarks >= 0) centreMarks += n;
                     if (n == 0) viewsWithoutMarks.Add(view);
@@ -378,8 +378,8 @@ namespace Oce.Solid.Agent.Core
             {
                 IMathUtility mu = null;
                 try { mu = _sw.GetMathUtility() as IMathUtility; } catch { }
-                var selMgr = modello.SelectionManager as ISelectionMgr;
-                double size = DocumentCentreMarkSize(modello, Unita.M(DefaultCentreMarkSizeMm));
+                var selMgr = model.SelectionManager as ISelectionMgr;
+                double size = DocumentCentreMarkSize(model, Units.M(DefaultCentreMarkSizeMm));
                 foreach (IView view in viewsWithoutMarks)
                 {
                     // ONLY THE VIEWS THIS CALL MADE (Z-C21.13 review): a view that was
@@ -388,13 +388,13 @@ namespace Oce.Solid.Agent.Core
                     string viewName = null;
                     try { viewName = view.GetName2(); } catch { }
                     if (viewName == null || viewsBefore == null || viewsBefore.Contains(viewName)) continue;
-                    var marks = MarkHolesOfView(modello, disegno, view, size, false, mu, selMgr);
+                    var marks = MarkHolesOfView(model, drawing, view, size, false, mu, selMgr);
                     if (marks.Before < 0) continue;   // not counted this time: nothing was touched
                     holesInViewsWithoutMarks += marks.Holes;
                     addedByBridge += marks.Added;
                     holesLeftWithoutMark += marks.LeftWithoutMark.Count;
                 }
-                if (addedByBridge > 0) { try { modello.EditRebuild3(); } catch { } }
+                if (addedByBridge > 0) { try { model.EditRebuild3(); } catch { } }
                 // The document option that makes SOLIDWORKS put the marks, read only
                 // when it did not (DP_Detailing.htm of the swconst guide: the toggle
                 // with swDetailingNoOptionSpecified, one for parts and one for
@@ -402,10 +402,10 @@ namespace Oce.Solid.Agent.Core
                 // no suppression does.
                 if (holesInViewsWithoutMarks > 0)
                 {
-                    bool assembly = percorsoSw.EndsWith(".sldasm", StringComparison.OrdinalIgnoreCase);
+                    bool assembly = swPath.EndsWith(".sldasm", StringComparison.OrdinalIgnoreCase);
                     try
                     {
-                        autoMarksOption = modello.Extension.GetUserPreferenceToggle(
+                        autoMarksOption = model.Extension.GetUserPreferenceToggle(
                             (int)(assembly ? swUserPreferenceToggle_e.swDetailingAutoInsertCenterMarksForHolesAsm
                                            : swUserPreferenceToggle_e.swDetailingAutoInsertCenterMarksForHoles),
                             (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
@@ -414,29 +414,29 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 ["projection_angle"] = "first",
-                ["model"] = percorsoSw,
-                ["views_before"] = prima,
-                ["views_after"] = dopo,
-                ["views_created"] = dopo - prima,
-                ["names"] = NomiDelleViste(disegno),
+                ["model"] = swPath,
+                ["views_before"] = before,
+                ["views_after"] = after,
+                ["views_created"] = after - before,
+                ["names"] = ViewNames(drawing),
                 // The marks SOLIDWORKS put, after the rebuild and before the bridge.
                 ["centre_marks_after_rebuild"] = centreMarks >= 0 ? (object)centreMarks : null,
                 ["centre_marks_added_by_bridge"] = addedByBridge,
             };
             if (holesInViewsWithoutMarks > 0)
             {
-                misure["holes_in_views_without_centre_marks"] = holesInViewsWithoutMarks;
-                misure["auto_centre_marks_option"] = autoMarksOption;
+                measurements["holes_in_views_without_centre_marks"] = holesInViewsWithoutMarks;
+                measurements["auto_centre_marks_option"] = autoMarksOption;
             }
             if (holesLeftWithoutMark > 0)
             {
-                misure["holes_left_without_centre_mark"] = holesLeftWithoutMark;
+                measurements["holes_left_without_centre_mark"] = holesLeftWithoutMark;
                 string option = "the document option that inserts centre marks on holes when a view is created " +
                                 "(Document Properties, Detailing)";
-                misure["centre_marks_note"] =
+                measurements["centre_marks_note"] =
                     "SOLIDWORKS put no centre mark on the " + holesInViewsWithoutMarks +
                     (holesInViewsWithoutMarks == 1 ? " hole" : " holes") + " seen end-on in views without marks, and the bridge " +
                     "added " + addedByBridge + ": on the other " + holesLeftWithoutMark + " AddCenterMark added nothing (measured " +
@@ -447,43 +447,43 @@ namespace Oce.Solid.Agent.Core
                               : "Turn on " + option + " and make the views again.")
                         : "Check " + option + ", which could not be read, and make the views again.");
             }
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
 
         // ─────────────────────────────────────────────────────────────────
         // model_view (isometrica e le altre viste con nome)
         // ─────────────────────────────────────────────────────────────────
 
-        private Esito VistaModello(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ModelView(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+            var drawing = model as IDrawingDoc;
+            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
 
-            string percorsoModello = Str(a, "model", null);
-            if (string.IsNullOrWhiteSpace(percorsoModello))
+            string modelPath = Str(a, "model", null);
+            if (string.IsNullOrWhiteSpace(modelPath))
             {
-                string perche;
-                percorsoModello = ModelloDaMettereInVista(out perche);
-                if (percorsoModello == null) return Fallito(perche);
+                string why;
+                modelPath = ModelToPutInView(out why);
+                if (modelPath == null) return Failed(why);
             }
-            var percorsoSw = PercorsoCanonico(percorsoModello);
-            if (percorsoSw == null)
-                return Fallito("«" + percorsoModello + "» non risulta aperto.");
+            var swPath = CanonicalPath(modelPath);
+            if (swPath == null)
+                return Failed("«" + modelPath + "» non risulta aperto.");
 
             // I NOMI DELLE VISTE SONO QUELLI DI SOLIDWORKS, NON QUELLI DEL
             // PROGETTISTA. Si accetta l'italiano e si traduce: chiedere a chi
             // scrive il piano di ricordarsi «*Isometric» con l'asterisco e'
             // un modo di far fallire il piano per una stella.
-            string chiesta = (Str(a, "view", "isometric") ?? "").Trim().ToLowerInvariant();
-            var nomiSw = NomiVistaSw(chiesta);
-            if (nomiSw == null)
-                return Fallito(
-                    "Non conosco la vista «" + chiesta + "». Ne conosco nove: " +
+            string requested = (Str(a, "view", "isometric") ?? "").Trim().ToLowerInvariant();
+            var swNames = SwViewNames(requested);
+            if (swNames == null)
+                return Failed(
+                    "Non conosco la vista «" + requested + "». Ne conosco nove: " +
                     "isometrica, dimetrica, trimetrica, fronte, dietro, sopra, " +
                     "sotto, destra, sinistra.");
 
-            double x = Unita.M(Num(a, "x_mm", 0));
-            double y = Unita.M(Num(a, "y_mm", 0));
+            double x = Units.M(Num(a, "x_mm", 0));
+            double y = Units.M(Num(a, "y_mm", 0));
 
             // IL NOME DELLA VISTA NON SI INDOVINA: SI PROVA.
             //
@@ -507,63 +507,63 @@ namespace Oce.Solid.Agent.Core
             // programma in un'altra lingua; chiedere funziona sempre, e
             // quando non trova niente puo' dire cosa c'era davvero — che e'
             // la differenza fra un errore utile e «non ha funzionato».
-            var suoi = NomiDelleVisteDelModello(percorsoSw);
-            var daProvare = new List<string>();
+            var itsItems = ModelViewNames(swPath);
+            var toTest = new List<string>();
             // Si cerca la RADICE dentro il nome vero, non il nome intero:
             // «isometri» prende «*Isometrico», «*Isometrica» e «*Isometric»
             // senza doverli conoscere tutti e tre.
-            foreach (var radice in nomiSw)
+            foreach (var root in swNames)
             {
-                foreach (var n in suoi)
+                foreach (var n in itsItems)
                 {
-                    if (n.IndexOf(radice, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                    if (!daProvare.Contains(n)) daProvare.Add(n);
+                    if (n.IndexOf(root, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    if (!toTest.Contains(n)) toTest.Add(n);
                 }
             }
             // Se il modello non dichiara niente — puo' succedere su un
             // documento appena aperto — restano le scritture note.
-            foreach (var noto in NomiNotiPerRadice(nomiSw))
-                if (!daProvare.Contains(noto)) daProvare.Add(noto);
+            foreach (var known in KnownNamesPerRoot(swNames))
+                if (!toTest.Contains(known)) toTest.Add(known);
 
-            int prima = ContaViste(disegno);
-            if (prima < 0)
-                return Fallito("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
-            IView vista = null;
-            string nomeSw = null;
-            var rifiutati = new List<string>();
-            foreach (var candidato in daProvare)
+            int before = CountViews(drawing);
+            if (before < 0)
+                return Failed("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
+            IView view = null;
+            string swName = null;
+            var refused = new List<string>();
+            foreach (var candidate in toTest)
             {
-                try { vista = disegno.CreateDrawViewFromModelView3(percorsoSw, candidato, x, y, 0); }
-                catch { vista = null; }
-                if (vista != null) { nomeSw = candidato; break; }
-                rifiutati.Add(candidato);
+                try { view = drawing.CreateDrawViewFromModelView3(swPath, candidate, x, y, 0); }
+                catch { view = null; }
+                if (view != null) { swName = candidate; break; }
+                refused.Add(candidate);
             }
 
-            int dopo = ContaViste(disegno);
+            int after = CountViews(drawing);
             // Con un conteggio illeggibile resta la vista restituita (voce Z-C8).
-            if (vista == null || (dopo >= 0 && dopo <= prima))
-                return Fallito(
-                    "SolidWorks non ha creato la vista «" + chiesta + "». Ho provato " +
-                    "a chiamarla: " + string.Join(", ", rifiutati) + ". " +
-                    (suoi.Count > 0
-                        ? "Il pezzo dice di avere queste viste: " + string.Join(", ", suoi) + "."
+            if (view == null || (after >= 0 && after <= before))
+                return Failed(
+                    "SolidWorks non ha creato la vista «" + requested + "». Ho provato " +
+                    "a chiamarla: " + string.Join(", ", refused) + ". " +
+                    (itsItems.Count > 0
+                        ? "Il pezzo dice di avere queste viste: " + string.Join(", ", itsItems) + "."
                         : "Il pezzo non dichiara nessuna vista con nome."));
 
-            string nome = "";
-            double scala = 0;
-            try { nome = vista.Name; } catch { }
-            try { scala = vista.ScaleDecimal; } catch { }
+            string itemName = "";
+            double scale = 0;
+            try { itemName = view.Name; } catch { }
+            try { scale = view.ScaleDecimal; } catch { }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["view"] = chiesta,
-                ["sw_name"] = nomeSw,
-                ["names_rejected"] = rifiutati.Count > 0 ? (object)string.Join(",", rifiutati) : null,
-                ["name"] = nome,
-                ["scale"] = scala > 0 ? (object)Math.Round(scala, 4) : null,
-                ["views_after"] = dopo,
+                ["view"] = requested,
+                ["sw_name"] = swName,
+                ["names_rejected"] = refused.Count > 0 ? (object)string.Join(",", refused) : null,
+                ["name"] = itemName,
+                ["scale"] = scale > 0 ? (object)Math.Round(scale, 4) : null,
+                ["views_after"] = after,
             };
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -606,20 +606,20 @@ namespace Oce.Solid.Agent.Core
         /// si scrive nelle misure quale strada ha funzionato. Non e' eleganza:
         /// e' l'unico modo di trasformare «non ha funzionato» in un fatto.
         /// </summary>
-        private Esito QuoteDalModello(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ModelDimensions(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+            var drawing = model as IDrawingDoc;
+            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
 
-            int viste = ContaViste(disegno);
-            if (viste < 0)
-                return Fallito("Non riesco a contare le viste della tavola. Non ho toccato niente.");
-            if (viste == 0)
-                return Fallito(
+            int views = CountViews(drawing);
+            if (views < 0)
+                return Failed("Non riesco a contare le viste della tavola. Non ho toccato niente.");
+            if (views == 0)
+                return Failed(
                     "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
                     "Metti prima le viste.");
 
-            bool tutte = Bool(a, "all_dimensions", false);
+            bool all = Bool(a, "all_dimensions", false);
             int extra = Bool(a, "hole_callouts", true)
                 ? (int)swInsertAnnotation_e.swInsertholeCallout
                 : 0;
@@ -632,50 +632,50 @@ namespace Oce.Solid.Agent.Core
             // all_dimensions false no step may carry the NOT-MARKED bit or
             // ignore the mask. Oce.Solid.Agent.ContractTests (Zc212DrawingContract) reads the
             // method from the first line of this comment to its closing brace.
-            var maschere = ModelImportMasks(tutte);
+            var masks = ModelImportMasks(all);
 
-            int prima = ContaQuote(disegno);
-            if (prima < 0)
-                return Fallito(
+            int before = CountDimensions(drawing);
+            if (before < 0)
+                return Failed(
                     "Non riesco a contare le quote della tavola prima di cominciare: senza quel " +
                     "numero non saprei dirti quali sono arrivate. Non ho toccato niente.");
-            int dopo = prima;
-            string comeFatto = null;
-            int restituite = 0;
-            var provati = new List<string>();
+            int after = before;
+            string howItIsDone = null;
+            int returnedItems = 0;
+            var tested = new List<string>();
 
-            foreach (var maschera in maschere)
+            foreach (var mask in masks)
             {
-                int tipi = maschera | extra;
+                int types = mask | extra;
 
-                foreach (var dalloSchizzo in new[] { false, true })
+                foreach (var fromSketch in new[] { false, true })
                 {
                     try
                     {
-                        var tornate = disegno.InsertModelAnnotations3(
+                        var returned = drawing.InsertModelAnnotations3(
                             (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
-                            tipi,
+                            types,
                             true,    // tutte le viste
                             ModelImportV3DuplicateDims, // TRUE eliminates duplicates (M2, see the constant)
                             false,   // HiddenFeatureDims
-                            dalloSchizzo) as object[];
+                            fromSketch) as object[];
                         // ZERO-E-ZERO: e' solo quante ne ha restituite l'API; la misura
-                        // vera e' `ContaQuote` prima e dopo, e l'eccezione ha il suo ramo.
-                        restituite = tornate == null ? 0 : tornate.Length;
+                        // vera e' `CountDimensions` prima e dopo, e l'eccezione ha il suo ramo.
+                        returnedItems = returned == null ? 0 : returned.Length;
                     }
-                    catch (Exception ex) { return Fallito("Quote non inserite: " + ex.Message); }
+                    catch (Exception ex) { return Failed("Quote non inserite: " + ex.Message); }
 
-                    provati.Add("v3/" + maschera + (dalloSchizzo ? "/schizzo" : ""));
-                    dopo = ContaQuote(disegno);
-                    if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
-                    if (dopo > prima)
+                    tested.Add("v3/" + mask + (fromSketch ? "/schizzo" : ""));
+                    after = CountDimensions(drawing);
+                    if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
+                    if (after > before)
                     {
-                        comeFatto = "InsertModelAnnotations3, bit " + maschera +
-                                    (dalloSchizzo ? ", posizione dallo schizzo" : "");
+                        howItIsDone = "InsertModelAnnotations3, bit " + mask +
+                                    (fromSketch ? ", posizione dallo schizzo" : "");
                         break;
                     }
                 }
-                if (dopo > prima) break;
+                if (after > before) break;
 
                 // La versione 2, con `AllTypes`: il parametro che la 3 non ha.
                 // AllTypes TRUE ignores the mask, so it is TRUE only when every
@@ -686,21 +686,21 @@ namespace Oce.Solid.Agent.Core
                 // «duplicateDims TRUE to insert duplicate dimensions, FALSE to
                 // eliminate duplicate dimensions»), and the probe of M2 measured
                 // the 3 only.
-                bool allTypes = ModelImportAllTypes(tutte);
+                bool allTypes = ModelImportAllTypes(all);
                 try
                 {
-                    if (disegno.InsertModelAnnotations2(
+                    if (drawing.InsertModelAnnotations2(
                             (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
-                            allTypes, tipi, true, false, false))
+                            allTypes, types, true, false, false))
                     {
-                        provati.Add("v2/" + maschera);
-                        dopo = ContaQuote(disegno);
-                        if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
-                        if (dopo > prima)
+                        tested.Add("v2/" + mask);
+                        after = CountDimensions(drawing);
+                        if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
+                        if (after > before)
                         {
-                            comeFatto = "InsertModelAnnotations2" +
+                            howItIsDone = "InsertModelAnnotations2" +
                                         (allTypes ? " with AllTypes" : " with the types mask") +
-                                        ", bit " + maschera;
+                                        ", bit " + mask;
                             break;
                         }
                     }
@@ -711,31 +711,31 @@ namespace Oce.Solid.Agent.Core
             // InsertModelDimensions has no mask at all
             // (IDrawingDoc~InsertModelDimensions.html: «0 - All dimensions in
             // the view»): it runs only when every dimension was asked for (N9).
-            if (dopo <= prima && ModelImportMayTakeEveryViewDimension(tutte))
+            if (after <= before && ModelImportMayTakeEveryViewDimension(all))
             {
                 // La piu' vecchia di tutte, un parametro solo. Torna `void`:
                 // l'unico modo di sapere se ha fatto qualcosa e' ricontare.
                 try
                 {
-                    disegno.InsertModelDimensions(
+                    drawing.InsertModelDimensions(
                         (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel);
-                    provati.Add("InsertModelDimensions");
-                    dopo = ContaQuote(disegno);
-                    if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
-                    if (dopo > prima) comeFatto = "InsertModelDimensions";
+                    tested.Add("InsertModelDimensions");
+                    after = CountDimensions(drawing);
+                    if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
+                    if (after > before) howItIsDone = "InsertModelDimensions";
                 }
                 catch { }
             }
 
-            if (dopo <= prima)
+            if (after <= before)
             {
                 // Una vista alla volta, selezionandola prima: alcune
                 // installazioni ignorano «tutte le viste».
-                int quante = 0;
+                int howMany = 0;
                 try
                 {
-                    var doc = (IModelDoc2)disegno;
-                    var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                    var doc = (IModelDoc2)drawing;
+                    var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
                     while (v != null)
                     {
                         try
@@ -748,11 +748,11 @@ namespace Oce.Solid.Agent.Core
                                 // NOT-MARKED bit here brought 7 unmarked
                                 // dimensions with nothing marked), and
                                 // DuplicateDims is the same TRUE as above (M2).
-                                disegno.InsertModelAnnotations3(
+                                drawing.InsertModelAnnotations3(
                                     (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
-                                    ModelImportViewByViewTypes(tutte, extra),
+                                    ModelImportViewByViewTypes(all, extra),
                                     false, ModelImportV3DuplicateDims, false, false);
-                                quante++;
+                                howMany++;
                             }
                         }
                         catch { }
@@ -761,13 +761,13 @@ namespace Oce.Solid.Agent.Core
                     doc.ClearSelection2(true);
                 }
                 catch { }
-                provati.Add("vista per vista");
-                dopo = ContaQuote(disegno);
-                if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
-                if (dopo > prima) comeFatto = "una vista alla volta (" + quante + ")";
+                tested.Add("vista per vista");
+                after = CountDimensions(drawing);
+                if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
+                if (after > before) howItIsDone = "una vista alla volta (" + howMany + ")";
             }
 
-            if (dopo <= prima)
+            if (after <= before)
             {
                 // QUANTE NE HA IL PEZZO, E QUALI. Senza questa risposta un
                 // «non e' arrivata nessuna quota» non distingue fra «la
@@ -780,10 +780,10 @@ namespace Oce.Solid.Agent.Core
                 // stamparle dentro una spiegazione. Un messaggio d'errore che
                 // cita il documento sbagliato manda a cercare piu' lontano di
                 // dove si era partiti.
-                string _ignora;
-                var nomiQuote = NomiDelleQuoteDelModello(
-                    PercorsoDelModelloInVista(disegno) ?? ModelloDaMettereInVista(out _ignora));
-                int marked = nomiQuote.Count(n => n.EndsWith("[marcata]"));
+                string _ignore;
+                var dimensionNames = ModelDimensionNames(
+                    ModelPathInView(drawing) ?? ModelToPutInView(out _ignore));
+                int marked = dimensionNames.Count(n => n.EndsWith("[marcata]"));
 
                 // NOTHING MARKED, AND ONLY THE MARKED ONES WERE ASKED FOR (N9).
                 // Until library 0.141.0 the fallbacks brought the unmarked
@@ -792,28 +792,28 @@ namespace Oce.Solid.Agent.Core
                 // them, view by view, and answered «done». Now every step stops
                 // at the marked masks, and the refusal says how to get the
                 // others instead of bringing them unasked.
-                if (!tutte && nomiQuote.Count > 0 && marked == 0)
-                    return Fallito(
-                        "No dimension came in (there were " + prima + ", there are " + dopo +
-                        "): the part has " + nomiQuote.Count + " dimensions and none is marked " +
-                        "for drawing (" + string.Join(", ", nomiQuote) + "). By default only the " +
+                if (!all && dimensionNames.Count > 0 && marked == 0)
+                    return Failed(
+                        "No dimension came in (there were " + before + ", there are " + after +
+                        "): the part has " + dimensionNames.Count + " dimensions and none is marked " +
+                        "for drawing (" + string.Join(", ", dimensionNames) + "). By default only the " +
                         "MARKED dimensions are imported, and no fallback brings the others " +
                         "unasked. Pass all_dimensions=true to import them all, or mark on the " +
                         "model the ones the drawing must show. I tried: " +
-                        string.Join(", ", provati) + ".");
+                        string.Join(", ", tested) + ".");
 
-                return Fallito(
-                    "Non e' arrivata nessuna quota (erano " + prima + ", sono " + dopo +
-                    "; l'ultimo tentativo ne ha restituite " + restituite + "). " +
-                    (nomiQuote.Count == 0
+                return Failed(
+                    "Non e' arrivata nessuna quota (erano " + before + ", sono " + after +
+                    "; l'ultimo tentativo ne ha restituite " + returnedItems + "). " +
+                    (dimensionNames.Count == 0
                         ? "Il pezzo non ha nessuna quota da portare in tavola: e' stato " +
                           "costruito senza quotare gli schizzi. Le quote vanno messe sul " +
                           "MODELLO, non sulla tavola."
-                        : "Il pezzo ha " + nomiQuote.Count + " quote, di cui " +
+                        : "Il pezzo ha " + dimensionNames.Count + " quote, di cui " +
                           marked +
                           " marcate per il disegno (" +
-                          string.Join(", ", nomiQuote) + "), e nessuna arriva in tavola. " +
-                          "Ho provato: " + string.Join(", ", provati) + ". " +
+                          string.Join(", ", dimensionNames) + "), e nessuna arriva in tavola. " +
+                          "Ho provato: " + string.Join(", ", tested) + ". " +
                           // Up to library 0.141.0 the tail said the import never works out
                           // of process (18/9/2026). It does since 26/9/2026 (the bench case
                           // dimensions_come_from_the_model), and with the fallbacks now held
@@ -829,16 +829,16 @@ namespace Oce.Solid.Agent.Core
                           "quota_in_tavola."));
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["how"] = comeFatto,
-                ["dimensions_before"] = prima,
-                ["dimensions_after"] = dopo,
-                ["dimensions_inserted"] = dopo - prima,
-                ["views"] = viste,
-                ["only_marked_for_drawing"] = !tutte,
+                ["how"] = howItIsDone,
+                ["dimensions_before"] = before,
+                ["dimensions_after"] = after,
+                ["dimensions_inserted"] = after - before,
+                ["views"] = views,
+                ["only_marked_for_drawing"] = !all,
             };
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
 
         // ── THE IMPORT CHAIN OF model_dimensions, AS VALUES (Z-C21.3: M2, N9) ──
@@ -848,7 +848,7 @@ namespace Oce.Solid.Agent.Core
         // situation of N9, a part with NOTHING marked for drawing, cannot be
         // built by a bench case: every extrusion depth is born marked, and the
         // bridge marks the sketch dimensions it places (SwOperations.cs,
-        // QuotaSegmenti).
+        // DimensionSegments).
         //
         // The bits (swInsertAnnotation_e): swInsertDimensions = 8,
         // swInsertDimensionsMarkedForDrawing = 32768,
@@ -945,38 +945,38 @@ namespace Oce.Solid.Agent.Core
         /// CONTANO le pagine del file scritto. Contare le pagine di un PDF e'
         /// grezzo, ed e' l'unica verifica che possa davvero fallire.
         /// </summary>
-        private Esito EsportaPdf(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ExportPdf(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+            var drawing = model as IDrawingDoc;
+            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
 
-            string dove = Str(a, "path", null);
-            if (string.IsNullOrWhiteSpace(dove))
+            string location = Str(a, "path", null);
+            if (string.IsNullOrWhiteSpace(location))
             {
-                string suo = "";
-                try { suo = modello.GetPathName() ?? ""; } catch { }
-                if (string.IsNullOrWhiteSpace(suo))
-                    return Fallito(
+                string its = "";
+                try { its = model.GetPathName() ?? ""; } catch { }
+                if (string.IsNullOrWhiteSpace(its))
+                    return Failed(
                         "La tavola non e' mai stata salvata e non mi hai detto dove " +
                         "mettere il PDF.");
-                dove = Path.ChangeExtension(suo, ".pdf");
+                location = Path.ChangeExtension(its, ".pdf");
             }
 
-            int fogli = ContaFogli(modello);
-            if (fogli < 0)
-                return Fallito(
+            int sheets = CountSheets(model);
+            if (sheets < 0)
+                return Failed(
                     "Non riesco a contare i fogli della tavola: senza quel numero non " +
                     "potrei controllare che il PDF li abbia tutti, che e' il motivo per cui " +
                     "questa operazione esiste. Non ho scritto niente.");
-            if (fogli == 0) return Fallito("La tavola non ha fogli.");
+            if (sheets == 0) return Failed("La tavola non ha fogli.");
 
-            object datiPdf;
-            try { datiPdf = _sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData); }
-            catch (Exception ex) { return Fallito("Non riesco a preparare il PDF: " + ex.Message); }
+            object dataPdf;
+            try { dataPdf = _sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData); }
+            catch (Exception ex) { return Failed("Non riesco a preparare il PDF: " + ex.Message); }
 
-            var pdf = datiPdf as IExportPdfData;
+            var pdf = dataPdf as IExportPdfData;
             if (pdf == null)
-                return Fallito("Questa installazione non espone le opzioni di esportazione PDF.");
+                return Failed("Questa installazione non espone le opzioni di esportazione PDF.");
 
             bool everySheetAsked;
             try
@@ -986,7 +986,7 @@ namespace Oce.Solid.Agent.Core
                 // operazione esiste per non fare.
                 everySheetAsked = pdf.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
             }
-            catch (Exception ex) { return Fallito("Non riesco a chiedere tutti i fogli: " + ex.Message); }
+            catch (Exception ex) { return Failed("Non riesco a chiedere tutti i fogli: " + ex.Message); }
             // THE ANSWER OF SetSheets IS READ (Z-C21.8, finding L13-6).
             // IExportPdfData~SetSheets.html, Return Value: «True if the drawings
             // sheets are set to export to PDF, false if not». Until library
@@ -1003,73 +1003,73 @@ namespace Oce.Solid.Agent.Core
             if (!everySheetAsked)
                 _log("[agent] IExportPdfData.SetSheets answered false; the page count of the written PDF decides");
 
-            if (File.Exists(dove))
+            if (File.Exists(location))
             {
-                try { File.Delete(dove); }
+                try { File.Delete(location); }
                 catch (Exception ex)
                 {
-                    return Fallito(
+                    return Failed(
                         "C'e' gia' un PDF li' e non riesco a sostituirlo (" + ex.Message +
                         "): probabilmente e' aperto.");
                 }
             }
 
-            int errori = 0, avvisi = 0;
+            int errors = 0, warnings = 0;
             bool ok;
             try
             {
-                ok = modello.Extension.SaveAs(
-                    dove, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                ok = model.Extension.SaveAs(
+                    location, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
                     (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
-                    pdf, ref errori, ref avvisi);
+                    pdf, ref errors, ref warnings);
             }
-            catch (Exception ex) { return Fallito("PDF non scritto: " + ex.Message); }
+            catch (Exception ex) { return Failed("PDF non scritto: " + ex.Message); }
 
-            if (!ok || !File.Exists(dove))
+            if (!ok || !File.Exists(location))
                 // L13-7: the codes by their swFileSaveError_e / swFileSaveWarning_e
                 // names (ErrorCodeDecoder), the raw number kept for a search.
-                return Fallito("Il PDF non e' stato scritto (codice " + errori + SaveErrorNames(errori) + ")." +
-                               SaveWarningsTail(avvisi));
+                return Failed("Il PDF non e' stato scritto (codice " + errors + SaveErrorNames(errors) + ")." +
+                               SaveWarningsTail(warnings));
 
-            int pagine = CountPdfPages(dove);
-            string pagesRefusal = PdfPageCountRefusal(pagine, fogli, dove);
-            if (pagesRefusal != null) return Fallito(pagesRefusal);
+            int pages = CountPdfPages(location);
+            string pagesRefusal = PdfPageCountRefusal(pages, sheets, location);
+            if (pagesRefusal != null) return Failed(pagesRefusal);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["path"] = dove,
-                ["sheets"] = fogli,
-                ["pages"] = pagine > 0 ? (object)pagine : null,
-                ["byte"] = new FileInfo(dove).Length,
+                ["path"] = location,
+                ["sheets"] = sheets,
+                ["pages"] = pages > 0 ? (object)pages : null,
+                ["byte"] = new FileInfo(location).Length,
                 // L13-6: what SetSheets answered; false has been measured on PDFs
                 // that came out complete, so the page count above is the check.
                 ["set_sheets_answer"] = everySheetAsked,
                 // L13-7: the Warnings of the save, decoded, also on a success.
-                ["save_warnings"] = SaveWarningsForAnswer(avvisi),
+                ["save_warnings"] = SaveWarningsForAnswer(warnings),
             };
-            string pdfWarningAdvice = SaveWarningsAdvice(avvisi);
-            if (pdfWarningAdvice != null) misure["save_warnings_note"] = pdfWarningAdvice;
+            string pdfWarningAdvice = SaveWarningsAdvice(warnings);
+            if (pdfWarningAdvice != null) measurements["save_warnings_note"] = pdfWarningAdvice;
 
             // IL PDF SI RILEGGE, SE SI CHIEDE COSA DEVE CONTENERE (voci GT3-bis,
             // Z-C9). Misurato il 24/9/2026: il testo della tavola esce come
             // testo, ma scritto come indici di glifo dietro le tabelle
-            // /ToUnicode — una ricerca nei byte non lo trova. `TestoDelPdf` lo
+            // /ToUnicode — una ricerca nei byte non lo trova. `PdfText` lo
             // decodifica. Si dice cosa c'e' e cosa no, senza rifiutare: un
             // numero di disegno mancante nel PDF e' una cosa da sapere, non un
             // PDF da buttare.
-            var cercati = Lista(a, "search");
-            if (cercati.Count > 0)
+            var searched = StringList(a, "search");
+            if (searched.Count > 0)
             {
-                string testo = "";
-                try { testo = TestoDelPdf.Leggi(dove); } catch { }
-                var trovati = new List<object>();
-                var mancanti = new List<object>();
-                foreach (var c in cercati)
-                    (testo.IndexOf(c, StringComparison.Ordinal) >= 0 ? trovati : mancanti).Add(c);
-                misure["found"] = trovati.ToArray();
-                misure["not_found"] = mancanti.ToArray();
-                if (mancanti.Count > 0)
-                    misure["warning"] = "Nel PDF scritto non trovo: «" + string.Join("», «", mancanti) +
+                string text = "";
+                try { text = PdfText.Read(location); } catch { }
+                var foundItems = new List<object>();
+                var missingItems = new List<object>();
+                foreach (var c in searched)
+                    (text.IndexOf(c, StringComparison.Ordinal) >= 0 ? foundItems : missingItems).Add(c);
+                measurements["found"] = foundItems.ToArray();
+                measurements["not_found"] = missingItems.ToArray();
+                if (missingItems.Count > 0)
+                    measurements["warning"] = "Nel PDF scritto non trovo: «" + string.Join("», «", missingItems) +
                         "». Se dovevano esserci, controlla la tavola prima di mandarla.";
             }
             // ── LE QUOTE ARRIVANO NEL PDF? (voce Z-C9, la meta' «oggetti») ──
@@ -1078,68 +1078,68 @@ namespace Oce.Solid.Agent.Core
             // si stampa, o in una vista nascosta, conta e in officina non arriva.
             // Ogni numero stampato dalle quote deve comparire nel testo del PDF
             // almeno tante volte quante lo stampano (OperazioniQuoteNelPdf).
-            int quoteInTavola, quoteSenzaTesto;
-            var numeriAttesi = NumeriDelleQuote(disegno, out quoteInTavola, out quoteSenzaTesto);
-            misure["dimensions_in_drawing"] = quoteInTavola;
-            misure["dimensions_not_checked"] = quoteSenzaTesto;   // il loro testo non si legge
-            if (quoteSenzaTesto > 0)
-                misure["warning"] = (misure.ContainsKey("warning") ? misure["warning"] + " " : "") +
-                    quoteSenzaTesto + (quoteSenzaTesto == 1 ? " quota non ha" : " quote non hanno") +
+            int drawingDimensions, dimensionsWithoutText;
+            var expectedNumbers = DimensionNumbers(drawing, out drawingDimensions, out dimensionsWithoutText);
+            measurements["dimensions_in_drawing"] = drawingDimensions;
+            measurements["dimensions_not_checked"] = dimensionsWithoutText;   // il loro testo non si legge
+            if (dimensionsWithoutText > 0)
+                measurements["warning"] = (measurements.ContainsKey("warning") ? measurements["warning"] + " " : "") +
+                    dimensionsWithoutText + (dimensionsWithoutText == 1 ? " quota non ha" : " quote non hanno") +
                     " un testo che io sappia leggere: se arrivano nel PDF non l'ho controllato.";
-            if (quoteInTavola > 0)
+            if (drawingDimensions > 0)
             {
-                string testoPdf = null;
-                try { testoPdf = TestoDelPdf.Leggi(dove); } catch { }
-                if (string.IsNullOrWhiteSpace(testoPdf))
-                    misure["dimensions_missing_in_pdf"] = null;   // il testo non si legge: non lo so
+                string pdfText = null;
+                try { pdfText = PdfText.Read(location); } catch { }
+                if (string.IsNullOrWhiteSpace(pdfText))
+                    measurements["dimensions_missing_in_pdf"] = null;   // il testo non si legge: non lo so
                 else
                 {
-                    var mancano = QuoteCheMancanoNelPdf(numeriAttesi, testoPdf);
-                    misure["dimensions_missing_in_pdf"] = mancano.ToArray();
-                    misure["how_many_dimension_numbers_missing"] = mancano.Count;
-                    if (mancano.Count > 0)
-                        misure["warning"] = (misure.ContainsKey("warning") ? misure["warning"] + " " : "") +
-                            "Nel PDF mancano numeri che le quote della tavola stampano: " + string.Join(", ", mancano) +
+                    var areMissing = DimensionsMissingInPdf(expectedNumbers, pdfText);
+                    measurements["dimensions_missing_in_pdf"] = areMissing.ToArray();
+                    measurements["how_many_dimension_numbers_missing"] = areMissing.Count;
+                    if (areMissing.Count > 0)
+                        measurements["warning"] = (measurements.ContainsKey("warning") ? measurements["warning"] + " " : "") +
+                            "Nel PDF mancano numeri che le quote della tavola stampano: " + string.Join(", ", areMissing) +
                             ". Di solito e' una quota su un livello che non si stampa o in una vista nascosta: " +
                             "guarda la tavola prima di mandarla in officina.";
                 }
             }
-            _log("[agente] PDF: " + fogli + " fogli, " + pagine + " pagine, " + dove);
-            return SenzaFeature(misure);
+            _log("[agente] PDF: " + sheets + " fogli, " + pages + " pagine, " + location);
+            return WithoutFeature(measurements);
         }
 
         // ─────────────────────────────────────────────────────────────────
         // save_document
         // ─────────────────────────────────────────────────────────────────
 
-        private Esito SalvaDocumento(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome SaveDocument(IModelDoc2 model, Dictionary<string, object> a)
         {
-            if (modello == null) return Fallito("Non c'e' nessun documento aperto.");
+            if (model == null) return Failed("Non c'e' nessun documento aperto.");
 
-            string dove = Str(a, "path", null);
-            int errori = 0, avvisi = 0;
+            string location = Str(a, "path", null);
+            int errors = 0, warnings = 0;
             bool ok;
 
-            if (string.IsNullOrWhiteSpace(dove))
+            if (string.IsNullOrWhiteSpace(location))
             {
-                string suo = "";
-                try { suo = modello.GetPathName() ?? ""; } catch { }
-                if (string.IsNullOrWhiteSpace(suo))
-                    return Fallito(
+                string its = "";
+                try { its = model.GetPathName() ?? ""; } catch { }
+                if (string.IsNullOrWhiteSpace(its))
+                    return Failed(
                         "Il documento non e' mai stato salvato: dimmi dove metterlo.");
-                dove = suo;
+                location = its;
             }
 
             try
             {
-                ok = modello.Extension.SaveAs(
-                    dove, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                ok = model.Extension.SaveAs(
+                    location, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
                     (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
-                    null, ref errori, ref avvisi);
+                    null, ref errors, ref warnings);
             }
-            catch (Exception ex) { return Fallito("Non salvato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Non salvato: " + ex.Message); }
 
-            if (!ok || !File.Exists(dove))
+            if (!ok || !File.Exists(location))
             {
                 // IL CODICE DA SOLO NON SI PUO' USARE. `SaveAs` risponde un
                 // numero, e il numero non dice cosa fare: la causa piu' comune
@@ -1149,45 +1149,45 @@ namespace Oce.Solid.Agent.Core
                 //
                 // *Un messaggio d'errore che riporta un codice e si ferma
                 // sposta il lavoro su chi lo riceve.*
-                string cartella = null;
-                try { cartella = Path.GetDirectoryName(dove); } catch { }
-                if (!string.IsNullOrWhiteSpace(cartella) && !Directory.Exists(cartella))
-                    return Fallito(
+                string folder = null;
+                try { folder = Path.GetDirectoryName(location); } catch { }
+                if (!string.IsNullOrWhiteSpace(folder) && !Directory.Exists(folder))
+                    return Failed(
                         "Il documento non e' stato salvato: **la cartella non esiste** — «" +
-                        cartella + "». SOLIDWORKS non la crea, e il suo codice di errore " +
-                        "(" + errori + SaveErrorNames(errori) + ") non lo dice. Creala, o dammi un percorso dentro " +
+                        folder + "». SOLIDWORKS non la crea, e il suo codice di errore " +
+                        "(" + errors + SaveErrorNames(errors) + ") non lo dice. Creala, o dammi un percorso dentro " +
                         "una cartella che c'e'.");
 
-                bool solaLettura = false;
+                bool isReadOnly = false;
                 try
                 {
-                    solaLettura = File.Exists(dove) &&
-                                  new FileInfo(dove).IsReadOnly;
+                    isReadOnly = File.Exists(location) &&
+                                  new FileInfo(location).IsReadOnly;
                 }
                 catch { }
-                if (solaLettura)
-                    return Fallito(
+                if (isReadOnly)
+                    return Failed(
                         "Il documento non e' stato salvato: il file esiste gia' ed e' in " +
-                        "SOLA LETTURA — «" + dove + "». Toglila, o fai il check-out se " +
+                        "SOLA LETTURA — «" + location + "». Toglila, o fai il check-out se " +
                         "sta in un PDM.");
 
                 // L13-7: the codes by their enum names (ErrorCodeDecoder).
-                return Fallito("Il documento non e' stato salvato (codice " + errori + SaveErrorNames(errori) + ")." +
-                               SaveWarningsTail(avvisi));
+                return Failed("Il documento non e' stato salvato (codice " + errors + SaveErrorNames(errors) + ")." +
+                               SaveWarningsTail(warnings));
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["path"] = dove,
-                ["byte"] = new FileInfo(dove).Length,
+                ["path"] = location,
+                ["byte"] = new FileInfo(location).Length,
                 // The raw mask stays: bench cases read it (misure.avvisi = 0).
-                ["warnings"] = avvisi,
+                ["warnings"] = warnings,
                 // L13-7: and its swFileSaveWarning_e names.
-                ["save_warnings"] = SaveWarningsForAnswer(avvisi),
+                ["save_warnings"] = SaveWarningsForAnswer(warnings),
             };
-            string saveWarningAdvice = SaveWarningsAdvice(avvisi);
-            if (saveWarningAdvice != null) misure["save_warnings_note"] = saveWarningAdvice;
-            return SenzaFeature(misure);
+            string saveWarningAdvice = SaveWarningsAdvice(warnings);
+            if (saveWarningAdvice != null) measurements["save_warnings_note"] = saveWarningAdvice;
+            return WithoutFeature(measurements);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1195,14 +1195,14 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>Un esito riuscito per un'operazione che non crea feature.</summary>
-        private Esito SenzaFeature(Dictionary<string, object> misure)
+        private Outcome WithoutFeature(Dictionary<string, object> measurements)
         {
-            return new Esito { Riuscito = true, Misure = misure };
+            return new Outcome { Succeeded = true, Measurements = measurements };
         }
 
-        private static int FormatoFoglio(string nome)
+        private static int SheetFormatCode(string itemName)
         {
-            switch ((nome ?? "").Trim().ToUpperInvariant())
+            switch ((itemName ?? "").Trim().ToUpperInvariant())
             {
                 case "A0": return (int)swDwgPaperSizes_e.swDwgPaperA0size;
                 case "A1": return (int)swDwgPaperSizes_e.swDwgPaperA1size;
@@ -1227,9 +1227,9 @@ namespace Oce.Solid.Agent.Core
         /// intere proprio perche' la desinenza cambia: questa installazione
         /// dice «*Isometrico», un'altra «*Isometrica».
         /// </summary>
-        private static string[] NomiVistaSw(string chiesta)
+        private static string[] SwViewNames(string requested)
         {
-            switch (chiesta)
+            switch (requested)
             {
                 case "isometric": return new[] { "isometri", "isometric" };
                 case "dimetric": return new[] { "dimetri", "dimetric" };
@@ -1245,18 +1245,18 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Le scritture note, per quando il documento non dichiara nulla.</summary>
-        private static List<string> NomiNotiPerRadice(string[] radici)
+        private static List<string> KnownNamesPerRoot(string[] roots)
         {
-            var fuori = new List<string>();
-            foreach (var r in radici)
+            var outside = new List<string>();
+            foreach (var r in roots)
             {
                 // Si ricostruisce «*Radice» con l'iniziale maiuscola: e' la
                 // forma che SolidWorks usa per le viste di sistema, e vale
                 // come ultimo tentativo, non come regola.
                 if (r.Length == 0) continue;
-                fuori.Add("*" + char.ToUpperInvariant(r[0]) + r.Substring(1));
+                outside.Add("*" + char.ToUpperInvariant(r[0]) + r.Substring(1));
             }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -1265,14 +1265,14 @@ namespace Oce.Solid.Agent.Core
         /// non arriva non e' uno zero, e' una lettura andata male — e con lo
         /// zero `export_pdf` rispondeva «la tavola non ha fogli».
         /// </summary>
-        private int ContaFogli(IModelDoc2 disegno)
+        private int CountSheets(IModelDoc2 drawing)
         {
             try
             {
-                var d = disegno as IDrawingDoc;
+                var d = drawing as IDrawingDoc;
                 if (d == null) return -1;
-                var nomi = d.GetSheetNames() as string[];
-                return nomi == null ? -1 : nomi.Length;
+                var names = d.GetSheetNames() as string[];
+                return names == null ? -1 : names.Length;
             }
             catch { return -1; }
         }
@@ -1283,52 +1283,52 @@ namespace Oce.Solid.Agent.Core
         /// vedeva: `int n = 0; try { ... } catch { }`, e un errore a meta'
         /// giro dava un numero piu' basso del vero, detto come vero.
         /// </summary>
-        private int ContaViste(IDrawingDoc disegno)
+        private int CountViews(IDrawingDoc drawing)
         {
             int n = 0;
             try
             {
-                var foglio = disegno.GetFirstView() as IView;   // il primo e' il FOGLIO
-                if (foglio == null) return -1;
-                var v = foglio.GetNextView() as IView;
+                var sheet = drawing.GetFirstView() as IView;   // il primo e' il FOGLIO
+                if (sheet == null) return -1;
+                var v = sheet.GetNextView() as IView;
                 while (v != null) { n++; v = v.GetNextView() as IView; }
             }
             catch { return -1; }
             return n;
         }
 
-        private List<string> NomiDelleViste(IDrawingDoc disegno)
+        private List<string> ViewNames(IDrawingDoc drawing)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             try
             {
-                var foglio = disegno.GetFirstView() as IView;
-                if (foglio == null) return fuori;
-                var v = foglio.GetNextView() as IView;
+                var sheet = drawing.GetFirstView() as IView;
+                if (sheet == null) return outside;
+                var v = sheet.GetNextView() as IView;
                 while (v != null)
                 {
-                    try { fuori.Add(v.Name); } catch { }
+                    try { outside.Add(v.Name); } catch { }
                     v = v.GetNextView() as IView;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
         /// Le quote di tutte le viste, o **-1 se non si e' potuto leggere**
         /// (voce Z-C8): una vista che non risponde non conta zero, perche' la
         /// somma delle altre sarebbe un numero piu' basso del vero. Chi
-        /// confronta prima e dopo usa `NonCresciuta`.
+        /// confronta prima e dopo usa `NotGrown`.
         /// </summary>
-        private int ContaQuote(IDrawingDoc disegno)
+        private int CountDimensions(IDrawingDoc drawing)
         {
             int n = 0;
             try
             {
-                var foglio = disegno.GetFirstView() as IView;
-                if (foglio == null) return -1;
-                var v = foglio.GetNextView() as IView;
+                var sheet = drawing.GetFirstView() as IView;
+                if (sheet == null) return -1;
+                var v = sheet.GetNextView() as IView;
                 while (v != null)
                 {
                     n += v.GetDimensionCount();
@@ -1347,30 +1347,30 @@ namespace Oce.Solid.Agent.Core
         /// valore che torna da chi ha fatto la cosa non e' la misura della
         /// cosa» — ma e' piu' vero di uno zero inventato.
         /// </summary>
-        private bool NonCresciuta(IDrawingDoc disegno, int prima, object restituita)
+        private bool NotGrown(IDrawingDoc drawing, int before, object returned)
         {
-            int ora = ContaQuote(disegno);
-            if (prima >= 0 && ora >= 0) return ora <= prima;
-            return restituita == null;
+            int now = CountDimensions(drawing);
+            if (before >= 0 && now >= 0) return now <= before;
+            return returned == null;
         }
 
-        private static double[] ProprietaDelFoglio(ISheet foglio)
+        private static double[] SheetProperty(ISheet sheet)
         {
-            try { return foglio.GetProperties2() as double[]; }
+            try { return sheet.GetProperties2() as double[]; }
             catch { return null; }
         }
 
-        private static double[] MisureFoglio(ISheet foglio)
+        private static double[] SheetMeasurements(ISheet sheet)
         {
-            var p = ProprietaDelFoglio(foglio);
+            var p = SheetProperty(sheet);
             if (p == null || p.Length < 7) return null;
             // 5 = larghezza, 6 = altezza, in metri.
-            return new[] { Unita.Mm(p[5]), Unita.Mm(p[6]) };
+            return new[] { Units.Mm(p[5]), Units.Mm(p[6]) };
         }
 
-        private static double[] LeggiScala(ISheet foglio)
+        private static double[] ReadScale(ISheet sheet)
         {
-            var p = ProprietaDelFoglio(foglio);
+            var p = SheetProperty(sheet);
             if (p == null || p.Length < 4) return null;
             // 2 = numeratore, 3 = denominatore.
             if (p[3] == 0) return null;
@@ -1383,17 +1383,17 @@ namespace Oce.Solid.Agent.Core
         /// ogni lavorazione le sue quote visualizzate — la stessa strada
         /// che lo stato del documento usa per elencarle.
         /// </summary>
-        private List<string> NomiDelleQuoteDelModello(string percorso)
+        private List<string> ModelDimensionNames(string filePath)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             try
             {
-                var d = DocumentoPerPercorso(percorso);
-                var parte = d as IPartDoc;
-                if (parte == null) return fuori;
-                var f = parte.IFirstFeature();
-                int guardia = 0;
-                while (f != null && guardia++ < 2000)
+                var d = FindOpenDocument(filePath);
+                var partDoc = d as IPartDoc;
+                if (partDoc == null) return outside;
+                var f = partDoc.IFirstFeature();
+                int guard = 0;
+                while (f != null && guard++ < 2000)
                 {
                     try
                     {
@@ -1402,8 +1402,8 @@ namespace Oce.Solid.Agent.Core
                         {
                             try
                             {
-                                var vera = q.GetDimension2(0) as IDimension;
-                                string nome = vera != null ? vera.FullName : "?";
+                                var real = q.GetDimension2(0) as IDimension;
+                                string itemName = real != null ? real.FullName : "?";
 
                                 // MARCATA O NO, ACCANTO AL NOME, ed e' la
                                 // differenza che divide la diagnosi in due.
@@ -1419,13 +1419,13 @@ namespace Oce.Solid.Agent.Core
                                 // e la risposta non lo diceva.
                                 try
                                 {
-                                    nome += q.MarkedForDrawing ? " [marcata]" : " [NON marcata]";
+                                    itemName += q.MarkedForDrawing ? " [marcata]" : " [NON marcata]";
                                 }
-                                catch { nome += " [marcatura non leggibile]"; }
+                                catch { itemName += " [marcatura non leggibile]"; }
 
-                                fuori.Add(nome);
+                                outside.Add(itemName);
                             }
-                            catch { fuori.Add("?"); }
+                            catch { outside.Add("?"); }
                             q = f.GetNextDisplayDimension(q) as IDisplayDimension;
                         }
                     }
@@ -1434,22 +1434,22 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>Il documento aperto a quel percorso, o null.</summary>
-        private IModelDoc2 DocumentoPerPercorso(string percorso)
+        private IModelDoc2 FindOpenDocument(string filePath)
         {
-            if (string.IsNullOrWhiteSpace(percorso)) return null;
+            if (string.IsNullOrWhiteSpace(filePath)) return null;
             try
             {
                 var d = _sw.GetFirstDocument() as IModelDoc2;
-                int guardia = 0;
-                while (d != null && guardia++ < 200)
+                int guard = 0;
+                while (d != null && guard++ < 200)
                 {
-                    string suo = "";
-                    try { suo = d.GetPathName() ?? ""; } catch { }
-                    if (StessoFile(suo, percorso)) return d;
+                    string its = "";
+                    try { its = d.GetPathName() ?? ""; } catch { }
+                    if (IsSameFile(its, filePath)) return d;
                     d = d.GetNext() as IModelDoc2;
                 }
             }
@@ -1458,52 +1458,52 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Come questo documento chiama le sue viste con nome.</summary>
-        private List<string> NomiDelleVisteDelModello(string percorso)
+        private List<string> ModelViewNames(string filePath)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             try
             {
-                var d = DocumentoPerPercorso(percorso);
-                if (d == null) return fuori;
-                var nomi = d.GetModelViewNames() as string[];
-                if (nomi == null) return fuori;
-                foreach (var n in nomi)
-                    if (!string.IsNullOrWhiteSpace(n)) fuori.Add(n);
+                var d = FindOpenDocument(filePath);
+                if (d == null) return outside;
+                var names = d.GetModelViewNames() as string[];
+                if (names == null) return outside;
+                foreach (var n in names)
+                    if (!string.IsNullOrWhiteSpace(n)) outside.Add(n);
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>I documenti aperti adesso, con percorso e tipo.</summary>
-        private List<Dictionary<string, object>> DocumentiAperti()
+        private List<Dictionary<string, object>> OpenDocuments()
         {
-            var fuori = new List<Dictionary<string, object>>();
+            var outside = new List<Dictionary<string, object>>();
             try
             {
                 var d = _sw.GetFirstDocument() as IModelDoc2;
                 while (d != null)
                 {
-                    string percorso = "", titolo = "";
-                    int tipo = 0;
-                    try { percorso = d.GetPathName() ?? ""; } catch { }
-                    try { titolo = d.GetTitle() ?? ""; } catch { }
-                    try { tipo = d.GetType(); } catch { }
-                    fuori.Add(new Dictionary<string, object>
+                    string filePath = "", docTitle = "";
+                    int typ = 0;
+                    try { filePath = d.GetPathName() ?? ""; } catch { }
+                    try { docTitle = d.GetTitle() ?? ""; } catch { }
+                    try { typ = d.GetType(); } catch { }
+                    outside.Add(new Dictionary<string, object>
                     {
-                        ["path"] = percorso,
-                        ["document_title"] = titolo,
-                        ["kind"] = NomeTipoDocumento(tipo),
+                        ["path"] = filePath,
+                        ["document_title"] = docTitle,
+                        ["kind"] = DocumentTypeName(typ),
                     });
                     d = d.GetNext() as IModelDoc2;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
-        internal static string NomeTipoDocumento(int tipo)
+        internal static string DocumentTypeName(int typ)
         {
-            switch (tipo)
+            switch (typ)
             {
                 case (int)swDocumentTypes_e.swDocPART: return "part";
                 case (int)swDocumentTypes_e.swDocASSEMBLY: return "assembly";
@@ -1527,7 +1527,7 @@ namespace Oce.Solid.Agent.Core
         /// percorsi relativi e puo' sollevare su una stringa storta: qui
         /// serve solo mettere d'accordo le barre e le maiuscole.
         /// </summary>
-        private static bool StessoFile(string a, string b)
+        private static bool IsSameFile(string a, string b)
         {
             if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return false;
             return string.Equals(
@@ -1546,22 +1546,22 @@ namespace Oce.Solid.Agent.Core
         /// posto di una all'indietro fa tornare `false` senza spiegazioni
         /// e senza creare niente.
         /// </summary>
-        private string PercorsoCanonico(string percorso)
+        private string CanonicalPath(string filePath)
         {
-            if (string.IsNullOrWhiteSpace(percorso)) return null;
-            foreach (var d in DocumentiAperti())
+            if (string.IsNullOrWhiteSpace(filePath)) return null;
+            foreach (var d in OpenDocuments())
             {
                 object p;
                 if (!d.TryGetValue("path", out p)) continue;
-                var suo = Convert.ToString(p);
-                if (StessoFile(suo, percorso)) return suo;
+                var its = Convert.ToString(p);
+                if (IsSameFile(its, filePath)) return its;
             }
             return null;
         }
 
-        private bool DocumentoAperto(string percorso)
+        private bool OpenedDocument(string filePath)
         {
-            return PercorsoCanonico(percorso) != null;
+            return CanonicalPath(filePath) != null;
         }
 
         /// <summary>Il primo pezzo o assieme aperto: quello che va in tavola.</summary>
@@ -1603,18 +1603,18 @@ namespace Oce.Solid.Agent.Core
         /// c'e' aperto attorno: la vista sa a quale documento e' agganciata.
         /// Torna `null` se la tavola non ha ancora viste.
         /// </summary>
-        private static string PercorsoDelModelloInVista(IDrawingDoc disegno)
+        private static string ModelPathInView(IDrawingDoc drawing)
         {
             try
             {
                 // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
-                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
                 while (v != null)
                 {
                     try
                     {
-                        var rif = v.ReferencedDocument as IModelDoc2;
-                        var p = rif?.GetPathName();
+                        var refObj = v.ReferencedDocument as IModelDoc2;
+                        var p = refObj?.GetPathName();
                         if (!string.IsNullOrWhiteSpace(p)) return p;
                     }
                     catch { }
@@ -1625,34 +1625,34 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        private string ModelloDaMettereInVista(out string perche)
+        private string ModelToPutInView(out string why)
         {
-            perche = null;
-            var candidati = new List<string>();
-            foreach (var d in DocumentiAperti())
+            why = null;
+            var candidates = new List<string>();
+            foreach (var d in OpenDocuments())
             {
-                var tipo = Convert.ToString(d["kind"]);
-                if (tipo != "part" && tipo != "assembly") continue;
+                var typ = Convert.ToString(d["kind"]);
+                if (typ != "part" && typ != "assembly") continue;
                 var p = Convert.ToString(d["path"]);
                 if (!string.IsNullOrWhiteSpace(p) &&
-                    !candidati.Contains(p, StringComparer.OrdinalIgnoreCase))
-                    candidati.Add(p);
+                    !candidates.Contains(p, StringComparer.OrdinalIgnoreCase))
+                    candidates.Add(p);
             }
 
-            if (candidati.Count == 1) return candidati[0];
+            if (candidates.Count == 1) return candidates[0];
 
-            if (candidati.Count == 0)
+            if (candidates.Count == 0)
             {
-                perche =
+                why =
                     "Non c'e' nessun pezzo aperto da mettere in vista: una vista di " +
                     "tavola si aggancia a un documento APERTO, non a un file su disco.";
                 return null;
             }
 
-            perche =
-                "Ci sono " + candidati.Count + " documenti aperti che potrei mettere in " +
+            why =
+                "Ci sono " + candidates.Count + " documenti aperti che potrei mettere in " +
                 "vista, e sceglierne uno sarebbe un sorteggio: " +
-                string.Join(", ", candidati) +
+                string.Join(", ", candidates) +
                 ". Dimmi quale con l'argomento «model», scrivendo il percorso. " +
                 "NON e' pignoleria: fino al 18/9/2026 qui si prendeva il primo " +
                 "dell'elenco, e una tavola e' uscita con le viste del pezzo sbagliato " +
@@ -1672,23 +1672,23 @@ namespace Oce.Solid.Agent.Core
         /// L13-6; until library 0.144.0 it was 0, and the caller skipped the
         /// check on it without a word).
         /// </summary>
-        private static int CountPdfPages(string percorso)
+        private static int CountPdfPages(string filePath)
         {
             try
             {
-                var testo = File.ReadAllText(percorso, System.Text.Encoding.ASCII);
+                var text = File.ReadAllText(filePath, System.Text.Encoding.ASCII);
                 int n = 0, i = 0;
                 while (true)
                 {
-                    i = testo.IndexOf("/Type", i, StringComparison.Ordinal);
+                    i = text.IndexOf("/Type", i, StringComparison.Ordinal);
                     if (i < 0) break;
                     int j = i + 5;
-                    while (j < testo.Length && (testo[j] == ' ' || testo[j] == '\r' ||
-                                                testo[j] == '\n' || testo[j] == '\t')) j++;
-                    if (j + 5 <= testo.Length && testo.Substring(j, 5) == "/Page")
+                    while (j < text.Length && (text[j] == ' ' || text[j] == '\r' ||
+                                                text[j] == '\n' || text[j] == '\t')) j++;
+                    if (j + 5 <= text.Length && text.Substring(j, 5) == "/Page")
                     {
-                        char dopo = j + 5 < testo.Length ? testo[j + 5] : ' ';
-                        if (dopo != 's') n++;   // «/Pages» e' il nodo, non una pagina
+                        char after = j + 5 < text.Length ? text[j + 5] : ' ';
+                        if (after != 's') n++;   // «/Pages» e' il nodo, non una pagina
                     }
                     i = j;
                 }

@@ -7,7 +7,7 @@ using SolidWorks.Interop.swconst;
 // probe_nervatura_ritira — why the rib sketch cannot be removed after two failed InsertRib
 //
 // Full bench on 0.141.0, limit_rib_on_a_plate_without_walls step 2: no rib is born in
-// either material direction (right: nothing to meet on a plate), and NervaturaRitira answers
+// either material direction (right: nothing to meet on a plate), and RibWithdraw answers
 // «non sono riuscito a rimettere il pezzo come l'avevo trovato (tolti «Schizzo2»)».
 // The bridge: IGetChildCount > 0 -> give up; Select2(false,0); DeleteSelection2(swDelete_Absorbed).
 // This probe rebuilds the plate 40x40x2 on the Top plane, the sketch line on the Right plane at
@@ -20,7 +20,7 @@ using SolidWorks.Interop.swconst;
 // after the two failed InsertRib the rib sketch has 0 children, selects, and is NOT deleted by
 // DeleteSelection2 (Absorbed, Children, 0), EditDelete, EditSketch+exit, or three EditUndo2.
 // A new sketch made after the failures deletes normally (the lock is on that sketch only).
-// EditSuppress2 works (IsSuppressed true). OperazioniNervatura.NervaturaRitira suppresses it
+// EditSuppress2 works (IsSuppressed true). OperazioniNervatura.RibWithdraw suppresses it
 // and says so.
 internal static class Program
 {

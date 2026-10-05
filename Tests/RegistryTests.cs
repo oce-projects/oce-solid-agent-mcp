@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -41,84 +41,84 @@ namespace Oce.Solid.Agent.ContractTests
     /// — si pretende che **ogni** punto che chiede `_catalogo.Simili(` scriva
     /// anche nel registro, cosi' il quinto nasce gia' sorvegliato.
     /// </summary>
-    internal static class ProveIlRegistro
+    internal static class RegistryTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("il registro delle domande senza risposta (Z-G7)");
+            Group("il registro delle domande senza risposta (Z-G7)");
 
-            LaFormaDellaRiga();
-            IlSilenzioEVoluto();
-            OgniPuntoCheSaLoScrive();
-            NonToccaStdout();
+            TheLineShape();
+            TheSilenceIsWanted();
+            EveryPlaceThatKnowsWritesIt();
+            DoesNotTouchStdout();
         }
 
         // ─────────────────────────────────────────────────────────────────
         //  1. LA FORMA DELLA RIGA
         // ─────────────────────────────────────────────────────────────────
 
-        private static void LaFormaDellaRiga()
+        private static void TheLineShape()
         {
-            var ponte = PonteOppureNonQui("la riga del registro");
-            if (ponte == null) return;
+            var bridge = BridgeOrNotHere("la riga del registro");
+            if (bridge == null) return;
 
-            MethodInfo riga;
-            Type tipo;
+            MethodInfo line;
+            Type typ;
             try
             {
-                var asm = Carica.Ponte(ponte);
-                tipo = Carica.Classe(asm, "RegistroDelleDomande");
-                if (tipo == null)
-                { Segna("la classe RegistroDelleDomande c'e'", false, ""); return; }
-                riga = tipo.GetMethod("Riga",
+                var asm = Load.Bridge(bridge);
+                typ = Load.Class(asm, "QuestionRegistry");
+                if (typ == null)
+                { Check("la classe RegistroDelleDomande c'e'", false, ""); return; }
+                line = typ.GetMethod("Line",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (riga == null) { Segna("Riga() c'e'", false, ""); return; }
+                if (line == null) { Check("Riga() c'e'", false, ""); return; }
             }
             catch (Exception ex)
-            { Segna("il ponte si carica", false, ex.ToString()); return; }
+            { Check("il ponte si carica", false, ex.ToString()); return; }
 
-            var quando = new DateTime(2026, 9, 23, 21, 30, 0);
-            Func<string, string, string[], string> fai = (t, n, s) =>
-                (string)riga.Invoke(null, new object[] { quando, t, n, s });
+            var timestamp = new DateTime(2026, 9, 23, 21, 30, 0);
+            Func<string, string, string[], string> doIt = (t, n, s) =>
+                (string)line.Invoke(null, new object[] { timestamp, t, n, s });
 
             // ── una riga normale ──────────────────────────────────────────
-            var normale = fai("operation", "ripiega_lamiera",
+            var normal = doIt("operation", "ripiega_lamiera",
                               new[] { "piega_lamiera" });
-            Segna("la riga porta quando, tipo e nome",
-                  normale.Contains("\"timestamp\":\"2026-09-23T21:30:00\"") &&
-                  normale.Contains("\"kind\":\"operation\"") &&
-                  normale.Contains("\"name\":\"ripiega_lamiera\""),
-                  normale);
-            Segna("e i nomi vicini, che sono la meta' utile della misura",
-                  normale.Contains("piega_lamiera") && normale.Contains("similar"),
+            Check("la riga porta quando, tipo e nome",
+                  normal.Contains("\"timestamp\":\"2026-09-23T21:30:00\"") &&
+                  normal.Contains("\"kind\":\"operation\"") &&
+                  normal.Contains("\"name\":\"ripiega_lamiera\""),
+                  normal);
+            Check("e i nomi vicini, che sono la meta' utile della misura",
+                  normal.Contains("piega_lamiera") && normal.Contains("similar"),
                   "distingue «ha sbagliato a scrivere» da «chiede una cosa che non c'e'»");
-            Segna("sta su UNA riga sola, che e' cio' che JSONL vuol dire",
-                  !normale.Contains("\n") && !normale.Contains("\r"),
-                  normale.Length + " caratteri, nessun a capo");
+            Check("sta su UNA riga sola, che e' cio' che JSONL vuol dire",
+                  !normal.Contains("\n") && !normal.Contains("\r"),
+                  normal.Length + " caratteri, nessun a capo");
 
             // ── il nome che un modello puo' davvero inventarsi ────────────
             //
             // Non e' un caso di fantasia: il nome lo scrive un modello, e
             // basta una virgoletta per rendere illeggibile il file DA LI' IN
             // POI -- non la riga, il file. Per questo si serializza con lo
-            // stesso `Protocollo.InJson` del resto del ponte invece di
+            // stesso `Protocol.InJson` del resto del ponte invece di
             // incollare virgolette a mano.
-            var cattivo = fai("operation", "taglia\"a\"meta" + "\n" + "riga2", null);
-            Segna("un nome con le virgolette non spezza la riga",
-                  !cattivo.Contains("\n") && !cattivo.Contains("\r"),
-                  cattivo);
-            Segna("e si rilegge come JSON, non come testo rotto",
-                  SiRilegge(cattivo, "taglia\"a\"meta" + "\n" + "riga2"),
+            var bad = doIt("operation", "taglia\"a\"meta" + "\n" + "riga2", null);
+            Check("un nome con le virgolette non spezza la riga",
+                  !bad.Contains("\n") && !bad.Contains("\r"),
+                  bad);
+            Check("e si rilegge come JSON, non come testo rotto",
+                  ReadsBack(bad, "taglia\"a\"meta" + "\n" + "riga2"),
                   "il nome torna indietro identico, a capo compreso");
 
             // ── `similar` c'e' solo quando c'e' qualcosa ───────────────────
-            var senza = fai("strumento", "guarda_la_tavola", null);
-            Segna("senza nomi vicini il campo «similar» non compare",
-                  !senza.Contains("similar"),
+            var without = doIt("strumento", "guarda_la_tavola", null);
+            Check("senza nomi vicini il campo «similar» non compare",
+                  !without.Contains("similar"),
                   "un campo vuoto in ogni riga e' rumore che poi qualcuno conta");
-            var vuoti = fai("strumento", "guarda_la_tavola", new string[0]);
-            Segna("e nemmeno con un elenco vuoto",
-                  !vuoti.Contains("similar"),
+            var empty = doIt("strumento", "guarda_la_tavola", new string[0]);
+            Check("e nemmeno con un elenco vuoto",
+                  !empty.Contains("similar"),
                   "zero e assente sono la stessa cosa, e si scrivono uguale");
         }
 
@@ -129,22 +129,22 @@ namespace Oce.Solid.Agent.ContractTests
         /// ponte, perche' la domanda vera e' *«il ponte si rilegge?»* e non
         /// *«assomiglia a JSON?»*.
         /// </summary>
-        private static bool SiRilegge(string riga, string nomeAtteso)
+        private static bool ReadsBack(string line, string expectedName)
         {
             try
             {
-                var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
-                var asm = Carica.Ponte(ponte);
-                var prot = Carica.Classe(asm, "Protocollo");
+                var bridge = Path.Combine(Root(), "bin", "oce-solid-agent-mcp.exe");
+                var asm = Load.Bridge(bridge);
+                var prot = Load.Class(asm, "Protocol");
                 if (prot == null) return false;
-                var daJson = prot.GetMethod("DaJson",
+                var fromJson = prot.GetMethod("FromJson",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (daJson == null) return false;
-                var d = daJson.Invoke(null, new object[] { riga })
+                if (fromJson == null) return false;
+                var d = fromJson.Invoke(null, new object[] { line })
                         as Dictionary<string, object>;
                 object n;
                 return d != null && d.TryGetValue("name", out n) &&
-                       Convert.ToString(n) == nomeAtteso;
+                       Convert.ToString(n) == expectedName;
             }
             catch { return false; }
         }
@@ -153,36 +153,36 @@ namespace Oce.Solid.Agent.ContractTests
         //  2. IL SILENZIO E' VOLUTO, E SI VEDE
         // ─────────────────────────────────────────────────────────────────
 
-        private static void IlSilenzioEVoluto()
+        private static void TheSilenceIsWanted()
         {
-            var ponte = PonteOppureNonQui("il registro che non puo' scrivere");
-            if (ponte == null) return;
+            var bridge = BridgeOrNotHere("il registro che non puo' scrivere");
+            if (bridge == null) return;
 
-            Type tipo;
+            Type typ;
             try
             {
-                var asm = Carica.Ponte(ponte);
-                tipo = Carica.Classe(asm, "RegistroDelleDomande");
-                if (tipo == null) return;   // gia' detto sopra
+                var asm = Load.Bridge(bridge);
+                typ = Load.Class(asm, "QuestionRegistry");
+                if (typ == null) return;   // gia' detto sopra
             }
             catch { return; }
 
-            var costruttore = tipo.GetConstructor(
+            var constructor = typ.GetConstructor(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
                 null, new[] { typeof(string) }, null);
-            if (costruttore == null)
-            { Segna("il registro si costruisce con un percorso", false, ""); return; }
+            if (constructor == null)
+            { Check("il registro si costruisce con un percorso", false, ""); return; }
 
-            Func<object, string, string, object> annota = (reg, metodo, nome) =>
+            Func<object, string, string, object> annotate = (reg, method, itemName) =>
             {
-                var m = ReflectionLog.Global.Method(tipo, metodo,
+                var m = ReflectionLog.Global.Method(typ, method,
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                return m.Invoke(reg, metodo == "OperazioneCheNonCe"
-                    ? new object[] { nome, null }
-                    : new object[] { nome });
+                return m.Invoke(reg, method == "OperationThatDoesNotExist"
+                    ? new object[] { itemName, null }
+                    : new object[] { itemName });
             };
-            Func<object, string, object> leggi = (reg, prop) =>
-                ReflectionLog.Global.Property(tipo, prop,
+            Func<object, string, object> read = (reg, prop) =>
+                ReflectionLog.Global.Property(typ, prop,
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(reg);
 
@@ -195,20 +195,20 @@ namespace Oce.Solid.Agent.ContractTests
                                     "registro-prova-" + Guid.NewGuid().ToString("N") + ".jsonl");
             try
             {
-                var buono = costruttore.Invoke(new object[] { file });
-                annota(buono, "OperazioneCheNonCe", "fresa_a_candela");
-                annota(buono, "StrumentoCheNonCe", "apri_la_tavola");
-                var righe = File.Exists(file) ? File.ReadAllLines(file) : new string[0];
-                Segna("scrive una riga per domanda",
-                      righe.Length == 2, righe.Length + " righe");
-                Segna("e le scrive in aggiunta, non sovrascrivendo",
-                      righe.Length == 2 &&
-                      righe[0].Contains("fresa_a_candela") &&
-                      righe[1].Contains("apri_la_tavola"),
+                var good = constructor.Invoke(new object[] { file });
+                annotate(good, "OperationThatDoesNotExist", "fresa_a_candela");
+                annotate(good, "ToolThatDoesNotExist", "apri_la_tavola");
+                var lines = File.Exists(file) ? File.ReadAllLines(file) : new string[0];
+                Check("scrive una riga per domanda",
+                      lines.Length == 2, lines.Length + " righe");
+                Check("e le scrive in aggiunta, non sovrascrivendo",
+                      lines.Length == 2 &&
+                      lines[0].Contains("fresa_a_candela") &&
+                      lines[1].Contains("apri_la_tavola"),
                       "la prima resta quando arriva la seconda");
-                Segna("e dice di averle scritte",
-                      Convert.ToInt32(leggi(buono, "Scritte")) == 2 &&
-                      leggi(buono, "PercheHaTaciuto") == null,
+                Check("e dice di averle scritte",
+                      Convert.ToInt32(read(good, "Written")) == 2 &&
+                      read(good, "WhyItWasSilent") == null,
                       "Scritte=2, nessun motivo di silenzio");
             }
             finally { try { File.Delete(file); } catch { } }
@@ -218,11 +218,11 @@ namespace Oce.Solid.Agent.ContractTests
                                      "registro-prova-" + Guid.NewGuid().ToString("N") + ".jsonl");
             try
             {
-                var reg = costruttore.Invoke(new object[] { file2 });
-                annota(reg, "OperazioneCheNonCe", "   ");
-                Segna("un nome vuoto non finisce nel registro",
+                var reg = constructor.Invoke(new object[] { file2 });
+                annotate(reg, "OperationThatDoesNotExist", "   ");
+                Check("un nome vuoto non finisce nel registro",
                       !File.Exists(file2) &&
-                      Convert.ToInt32(leggi(reg, "Scritte")) == 0,
+                      Convert.ToInt32(read(reg, "Written")) == 0,
                       "e' un piano malfatto, non una cosa che qualcuno voleva");
             }
             finally { try { File.Delete(file2); } catch { } }
@@ -232,32 +232,32 @@ namespace Oce.Solid.Agent.ContractTests
             // Il percorso impossibile e' un file VERO usato come cartella:
             // succede davvero, e non dipende dai permessi della macchina che
             // esegue la prova -- che su un runner sono diversi da qui.
-            var ostacolo = Path.GetTempFileName();
+            var obstacle = Path.GetTempFileName();
             try
             {
-                var impossibile = Path.Combine(ostacolo, "dentro-un-file.jsonl");
-                var reg = costruttore.Invoke(new object[] { impossibile });
-                bool haSollevato = false;
-                try { annota(reg, "OperazioneCheNonCe", "fresa_a_candela"); }
-                catch { haSollevato = true; }
-                Segna("se non puo' scrivere NON solleva",
-                      !haSollevato,
+                var impossible = Path.Combine(obstacle, "dentro-un-file.jsonl");
+                var reg = constructor.Invoke(new object[] { impossible });
+                bool hasRaised = false;
+                try { annotate(reg, "OperationThatDoesNotExist", "fresa_a_candela"); }
+                catch { hasRaised = true; }
+                Check("se non puo' scrivere NON solleva",
+                      !hasRaised,
                       "un registro che fa fallire la chiamata che osserva e' " +
                       "peggio di nessun registro");
-                Segna("e il motivo del silenzio resta scritto",
-                      !haSollevato && leggi(reg, "PercheHaTaciuto") != null &&
-                      Convert.ToInt32(leggi(reg, "Scritte")) == 0,
-                      Convert.ToString(leggi(reg, "PercheHaTaciuto")));
+                Check("e il motivo del silenzio resta scritto",
+                      !hasRaised && read(reg, "WhyItWasSilent") != null &&
+                      Convert.ToInt32(read(reg, "Written")) == 0,
+                      Convert.ToString(read(reg, "WhyItWasSilent")));
             }
-            finally { try { File.Delete(ostacolo); } catch { } }
+            finally { try { File.Delete(obstacle); } catch { } }
 
             // ── NESSUN FILE SU CUI SCRIVERE ───────────────────────────────
-            var senzaFile = costruttore.Invoke(new object[] { null });
-            bool sollevato2 = false;
-            try { annota(senzaFile, "StrumentoCheNonCe", "x_qualunque"); }
-            catch { sollevato2 = true; }
-            Segna("e senza nessun file su cui scrivere, idem",
-                  !sollevato2 && leggi(senzaFile, "PercheHaTaciuto") != null,
+            var withoutFile = constructor.Invoke(new object[] { null });
+            bool raised2 = false;
+            try { annotate(withoutFile, "ToolThatDoesNotExist", "x_qualunque"); }
+            catch { raised2 = true; }
+            Check("e senza nessun file su cui scrivere, idem",
+                  !raised2 && read(withoutFile, "WhyItWasSilent") != null,
                   "RISCONTRO_REGISTRO vuota vuol dire «non registrare», " +
                   "e non deve diventare «registra accanto all'eseguibile»");
         }
@@ -266,41 +266,41 @@ namespace Oce.Solid.Agent.ContractTests
         //  3. OGNI PUNTO CHE SA, SCRIVE
         // ─────────────────────────────────────────────────────────────────
 
-        private static void OgniPuntoCheSaLoScrive()
+        private static void EveryPlaceThatKnowsWritesIt()
         {
-            var sorgente = Path.Combine(Radice(), "Tools", "McpTools.cs");
-            if (!File.Exists(sorgente))
-            { Segna("McpTools.cs si legge", false, sorgente); return; }
+            var source = Path.Combine(Root(), "Tools", "McpTools.cs");
+            if (!File.Exists(source))
+            { Check("McpTools.cs si legge", false, source); return; }
 
-            var righe = File.ReadAllLines(sorgente);
-            var scoperti = new List<int>();
-            int sorvegliati = 0;
+            var lines = File.ReadAllLines(source);
+            var discovered = new List<int>();
+            int monitored = 0;
 
-            for (int i = 0; i < righe.Length; i++)
+            for (int i = 0; i < lines.Length; i++)
             {
-                if (righe[i].IndexOf("_catalogo.Simili(", StringComparison.Ordinal) < 0)
+                if (lines[i].IndexOf("_catalog.Similar(", StringComparison.Ordinal) < 0)
                     continue;
                 // La scrittura sta subito accanto: tre righe bastano, e non
                 // cosi' tante da prendere quella del punto successivo.
-                var finestra = string.Join("\n",
-                    righe.Skip(i).Take(4));
-                if (finestra.IndexOf("_registro.OperazioneCheNonCe",
-                                     StringComparison.Ordinal) >= 0) sorvegliati++;
-                else scoperti.Add(i + 1);
+                var window = string.Join("\n",
+                    lines.Skip(i).Take(4));
+                if (window.IndexOf("_registry.OperationThatDoesNotExist",
+                                     StringComparison.Ordinal) >= 0) monitored++;
+                else discovered.Add(i + 1);
             }
 
-            Segna("ogni punto che cerca un nome vicino scrive anche nel registro",
-                  scoperti.Count == 0,
-                  scoperti.Count == 0
-                      ? sorvegliati + " punti, tutti sorvegliati"
-                      : "scoperti alle righe " + string.Join(", ", scoperti));
-            Segna("e i punti sono piu' di uno, se no la regola sorveglia il vuoto",
-                  sorvegliati >= 3,
-                  sorvegliati + " punti che chiedono `_catalogo.Simili(`");
+            Check("ogni punto che cerca un nome vicino scrive anche nel registro",
+                  discovered.Count == 0,
+                  discovered.Count == 0
+                      ? monitored + " punti, tutti sorvegliati"
+                      : "scoperti alle righe " + string.Join(", ", discovered));
+            Check("e i punti sono piu' di uno, se no la regola sorveglia il vuoto",
+                  monitored >= 3,
+                  monitored + " punti che chiedono `_catalog.Similar(`");
 
-            var tutto = string.Join("\n", righe);
-            Segna("e lo strumento che non esiste finisce nel registro",
-                  tutto.IndexOf("_registro.StrumentoCheNonCe",
+            var everything = string.Join("\n", lines);
+            Check("e lo strumento che non esiste finisce nel registro",
+                  everything.IndexOf("_registry.ToolThatDoesNotExist",
                                 StringComparison.Ordinal) >= 0,
                   "e' il punto che sapeva e taceva: il `default` di Chiama");
 
@@ -308,62 +308,62 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // Su righe finte, perche' far fallire quella vera vorrebbe dire
             // togliere una chiamata dal ponte.
-            var finteRotte = new[]
+            var fakeBroken = new[]
             {
-                "                var simili = _catalogo.Simili(nome);",
-                "                guai.Add(dove + \": non esiste\");",
+                "                var similar = _catalog.Similar(itemName);",
+                "                trouble.Add(location + \": non esiste\");",
             };
-            var finteSane = new[]
+            var fakeHealthy = new[]
             {
-                "                var simili = _catalogo.Simili(nome);",
-                "                _registro.OperazioneCheNonCe(nome, simili);",
-                "                guai.Add(dove + \": non esiste\");",
+                "                var similar = _catalog.Similar(itemName);",
+                "                _registry.OperationThatDoesNotExist(itemName, similar);",
+                "                trouble.Add(location + \": non esiste\");",
             };
-            Segna("la regola prende un punto che NON scrive",
-                  Scoperti(finteRotte) == 1,
+            Check("la regola prende un punto che NON scrive",
+                  Discovered(fakeBroken) == 1,
                   "una riga che cerca i nomi vicini e non registra niente");
-            Segna("e lascia stare quello che scrive",
-                  Scoperti(finteSane) == 0,
+            Check("e lascia stare quello che scrive",
+                  Discovered(fakeHealthy) == 0,
                   "provata in tutt'e due i versi, su righe finte");
         }
 
-        private static int Scoperti(string[] righe)
+        private static int Discovered(string[] lines)
         {
-            int quanti = 0;
-            for (int i = 0; i < righe.Length; i++)
+            int howMany = 0;
+            for (int i = 0; i < lines.Length; i++)
             {
-                if (righe[i].IndexOf("_catalogo.Simili(", StringComparison.Ordinal) < 0)
+                if (lines[i].IndexOf("_catalog.Similar(", StringComparison.Ordinal) < 0)
                     continue;
-                var finestra = string.Join("\n", righe.Skip(i).Take(4));
-                if (finestra.IndexOf("_registro.OperazioneCheNonCe",
-                                     StringComparison.Ordinal) < 0) quanti++;
+                var window = string.Join("\n", lines.Skip(i).Take(4));
+                if (window.IndexOf("_registry.OperationThatDoesNotExist",
+                                     StringComparison.Ordinal) < 0) howMany++;
             }
-            return quanti;
+            return howMany;
         }
 
         // ─────────────────────────────────────────────────────────────────
         //  4. MAI SU STDOUT
         // ─────────────────────────────────────────────────────────────────
 
-        private static void NonToccaStdout()
+        private static void DoesNotTouchStdout()
         {
-            var sorgente = Path.Combine(Radice(), "Tools", "QuestionRegistry.cs");
-            if (!File.Exists(sorgente))
-            { Segna("QuestionRegistry.cs si legge", false, sorgente); return; }
+            var source = Path.Combine(Root(), "Tools", "QuestionRegistry.cs");
+            if (!File.Exists(source))
+            { Check("QuestionRegistry.cs si legge", false, source); return; }
 
             // Si guarda il CODICE, non i commenti: la spiegazione della regola
             // nomina `Console` apposta, e un controllo che punisse la propria
             // documentazione si farebbe cancellare la documentazione.
-            var codice = SenzaCommenti(File.ReadAllText(sorgente));
-            var trovati = Regex.Matches(codice, @"\bConsole\s*\.").Count;
+            var code = WithoutComments(File.ReadAllText(source));
+            var foundItems = Regex.Matches(code, @"\bConsole\s*\.").Count;
 
-            Segna("il registro non nomina Console da nessuna parte",
-                  trovati == 0,
-                  trovati == 0
+            Check("il registro non nomina Console da nessuna parte",
+                  foundItems == 0,
+                  foundItems == 0
                       ? "li' passa il JSON-RPC: una riga di troppo e' il protocollo rotto"
-                      : trovati + " occorrenze");
-            Segna("e la regola guarda il codice, non i commenti che la spiegano",
-                  File.ReadAllText(sorgente).IndexOf("Console", StringComparison.Ordinal) >= 0,
+                      : foundItems + " occorrenze");
+            Check("e la regola guarda il codice, non i commenti che la spiegano",
+                  File.ReadAllText(source).IndexOf("Console", StringComparison.Ordinal) >= 0,
                   "il cappello nomina Console per dire di non usarlo: se questa " +
                   "riga diventasse rossa vorrebbe dire che la spiegazione e' sparita");
         }
@@ -373,12 +373,12 @@ namespace Oce.Solid.Agent.ContractTests
         /// deve esserlo: qui serve solo a non leggere la prosa che spiega la
         /// regola come se fosse una violazione della regola.
         /// </summary>
-        private static string SenzaCommenti(string testo)
+        private static string WithoutComments(string text)
         {
-            testo = Regex.Replace(testo, @"/\*.*?\*/", "", RegexOptions.Singleline);
-            testo = Regex.Replace(testo, @"^\s*///.*$", "", RegexOptions.Multiline);
-            testo = Regex.Replace(testo, @"^\s*//.*$", "", RegexOptions.Multiline);
-            return testo;
+            text = Regex.Replace(text, @"/\*.*?\*/", "", RegexOptions.Singleline);
+            text = Regex.Replace(text, @"^\s*///.*$", "", RegexOptions.Multiline);
+            text = Regex.Replace(text, @"^\s*//.*$", "", RegexOptions.Multiline);
+            return text;
         }
     }
 }

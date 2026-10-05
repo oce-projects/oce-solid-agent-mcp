@@ -55,12 +55,12 @@
 # NOTA: in ASCII puro, come tutti gli .ps1 del progetto.
 
 $ErrorActionPreference = 'Stop'
-$radice = Split-Path -Parent $PSScriptRoot
-$guai = 0
+$root = Split-Path -Parent $PSScriptRoot
+$trouble = 0
 
 # Estensioni ESCLUSE: i binari, che Select-String non sa leggere e che non
 # portano testo. Tutto il resto entra, anche cio' che non ha estensione.
-$binari = @(
+$binary = @(
     '.dll', '.exe', '.pdb', '.res', '.cache', '.suo', '.zip', '.7z', '.gz',
     '.png', '.jpg', '.jpeg', '.gif', '.ico', '.bmp', '.pdf',
     '.sldprt', '.slddrw', '.sldasm', '.sldlfp', '.sldmat', '.step', '.stp', '.igs'
@@ -70,7 +70,7 @@ $binari = @(
 # LE ECCEZIONI, UNA PER PATTERN E MAI UNA PER FILE
 # ==============================================================================
 #
-# QUI STAVA `$possonoNominarli`, tre nomi di file applicati dentro `Righe()` e
+# QUI STAVA `$possonoNominarli`, tre nomi di file applicati dentro `Lines()` e
 # quindi validi per OGNI pattern: chi era in quell'elenco non veniva controllato
 # per niente. Sembrava stretto - tre nomi soli - e invece era la piu' larga
 # delle eccezioni, perche' non diceva DA COSA esentava.
@@ -98,7 +98,7 @@ $binari = @(
 # `Checks\` solo dopo. Un'eccezione legata al percorso avrebbe segnalato come
 # fuga il controllo stesso a ogni commit precedente allo spostamento. I file si
 # spostano, il loro mestiere no.
-$iDueControlli = @('check-catalog.ps1', 'check-publishability.ps1')
+$twoChecks = @('check-catalog.ps1', 'check-publishability.ps1')
 
 # L'ECCEZIONE ERA SUL FILE, E DOVEVA ESSERE SULLA FORMA. TRE INDIRIZZI VERI
 # SONO USCITI DA QUI.
@@ -106,7 +106,7 @@ $iDueControlli = @('check-catalog.ps1', 'check-publishability.ps1')
 # Qui stava `$loDiceIlTodo = @('TODO.md')`, passato al pattern `192\.168\.`
 # perche' la voce A1 elenca cosa non deve uscire e per elencarlo lo deve
 # scrivere. Il commento diceva «vale SOLO per i pattern che quella voce
-# discute»; il codice esentava il FILE INTERO, e `Guarda` confronta il nome del
+# discute»; il codice esentava il FILE INTERO, e `Look` confronta il nome del
 # file, non la riga. Fra una stesura e l'altra il TODO e' cresciuto di
 # sedicimila righe, e dentro ci sono finiti tre indirizzi VERI:
 #
@@ -142,7 +142,7 @@ $iDueControlli = @('check-catalog.ps1', 'check-publishability.ps1')
 #
 # *Un'eccezione che nomina un file si allarga da sola ogni volta che il file
 # cresce. Una che descrive la forma no.*
-$IndirizzoVero = '192\.168\.\d'
+$TrueAddress = '192\.168\.\d'
 
 # I DUE FILE IL CUI MESTIERE E' NOMINARE L'AUTORE.
 #
@@ -165,11 +165,11 @@ $IndirizzoVero = '192\.168\.\d'
 # due testi di licenza che non crescono, in cui il nome sta in tre righe fisse
 # e messe li' apposta. L'eccezione vale SOLO per il pattern del nome: percorsi,
 # indirizzi e lettere di unita' su questi due file restano vietati come altrove.
-$soloIlNome = @('LICENSE', 'NOTICE') + $iDueControlli
+$nameOnly = @('LICENSE', 'NOTICE') + $twoChecks
 
 # Chi sostituisce il percorso di scratchpad lo deve scrivere per trovarlo:
 # `cleanup-history.js` ha lo schema, questo controllo ha il pattern.
-$soloLaSessione = @('cleanup-history.js', 'check-publishability.ps1')
+$sessionOnly = @('cleanup-history.js', 'check-publishability.ps1')
 
 # LA STRUTTURA DI UN ALTRO REPOSITORY, CHE E' PRIVATO.
 #
@@ -190,7 +190,7 @@ $soloLaSessione = @('cleanup-history.js', 'check-publishability.ps1')
 # FILE PYTHON (verificato con `git ls-files '*.py'`: vuoto). Quindi un `.py`
 # con una CARTELLA davanti, o con un NUMERO DI RIGA dietro, parla per forza di
 # casa d'altri. Il nome nudo continua a passare.
-$DentroUnAltroRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
+$InsideAnotherRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
 
 # CHI PARLA DELLE LETTERE DI UNITA' PERCHE' STA SPIEGANDO QUESTO CONTROLLO.
 #
@@ -208,76 +208,76 @@ $DentroUnAltroRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
 # mano, e chi lo scrive a mano in un documento che spiega perche' non si scrive
 # lo sta facendo apposta. I file generati - il catalogo, i casi del banco -
 # restano coperti.
-$parlanoDeiDischi = @('CHANGELOG.md', 'CatalogTests.cs') + $iDueControlli
+$talkAboutDisks = @('CHANGELOG.md', 'CatalogTests.cs') + $twoChecks
 
 # NON si puo' chiamare questa funzione `Git`: PowerShell non distingue maiuscole
 # e minuscole nei nomi di comando, quindi `& git` qui dentro risolverebbe alla
 # funzione stessa invece che all'eseguibile - ricorsione infinita, e l'errore che
 # si legge e' «Overflow della profondita' delle chiamate», che non nomina la
-# causa. Il nome diverso e' la riparazione, come per `LeggiConAncora`.
-function EseguiGit($argomenti) {
-    $vecchio = $ErrorActionPreference
+# causa. Il nome diverso e' la riparazione, come per `ReadWithAnchor`.
+function RunGit($arguments) {
+    $old = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    try { & git.exe -C $radice @argomenti 2>$null } finally { $ErrorActionPreference = $vecchio }
+    try { & git.exe -C $root @arguments 2>$null } finally { $ErrorActionPreference = $old }
 }
 
 # ==============================================================================
 # 1. L'albero di lavoro: cio' che si sta per committare
 # ==============================================================================
 
-function FileCheEscono {
+function FilesThatGoOut {
     # Tracciati + non ancora tracciati ma non ignorati. Insieme sono tutto cio'
     # che un `git add -A` porterebbe dentro. I file ignorati (bin, obj) no: non
     # escono, e leggerli raddoppia il tempo per niente.
-    $tracciati = @(EseguiGit @('ls-files'))
-    $nuovi = @(EseguiGit @('ls-files', '--others', '--exclude-standard'))
-    @($tracciati + $nuovi) |
+    $tracked = @(RunGit @('ls-files'))
+    $newItems = @(RunGit @('ls-files', '--others', '--exclude-standard'))
+    @($tracked + $newItems) |
         Where-Object { $_ } |
         Sort-Object -Unique |
-        Where-Object { $binari -notcontains [IO.Path]::GetExtension($_).ToLower() } |
-        ForEach-Object { Join-Path $radice ($_ -replace '/', '\') } |
+        Where-Object { $binary -notcontains [IO.Path]::GetExtension($_).ToLower() } |
+        ForEach-Object { Join-Path $root ($_ -replace '/', '\') } |
         Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
 }
 
-$script:elenco = $null
-function Righe($pattern, $caseSensitive) {
-    if ($null -eq $script:elenco) { $script:elenco = @(FileCheEscono) }
-    if ($script:elenco.Count -eq 0) { return @() }
+$script:list = $null
+function Lines($pattern, $caseSensitive) {
+    if ($null -eq $script:list) { $script:list = @(FilesThatGoOut) }
+    if ($script:list.Count -eq 0) { return @() }
     # -LiteralPath, NON la pipeline. Un array di stringhe mandato a
     # `Select-String` per pipeline viene preso come TESTO DA CERCARE, non come
     # elenco di file: il controllo cercava il nome utente dentro i NOMI dei
     # percorsi e rispondeva «ok nessuno» senza aver aperto un solo file.
     # Si e' visto solo perche' il pattern `S:\` combacia con ogni percorso
     # assoluto di questo disco e ha fatto scoppiare la riga qui sotto.
-    if ($caseSensitive) { $trovate = Select-String -LiteralPath $script:elenco -Pattern $pattern -CaseSensitive }
-    else { $trovate = Select-String -LiteralPath $script:elenco -Pattern $pattern }
-    @($trovate)
+    if ($caseSensitive) { $foundOnes = Select-String -LiteralPath $script:list -Pattern $pattern -CaseSensitive }
+    else { $foundOnes = Select-String -LiteralPath $script:list -Pattern $pattern }
+    @($foundOnes)
 }
 
-function Guarda($nome, $pattern, $perche, $caseSensitive, $eccetto = @()) {
-    $trovati = @(Righe $pattern $caseSensitive | Where-Object {
-        -not ($eccetto -contains (Split-Path -Leaf $_.Path))
+function Look($itemName, $pattern, $why, $caseSensitive, $except = @()) {
+    $foundItems = @(Lines $pattern $caseSensitive | Where-Object {
+        -not ($except -contains (Split-Path -Leaf $_.Path))
     })
-    if ($trovati.Count -eq 0) { Write-Host "  ok  nessun $nome"; return }
-    Write-Host "  XX  $nome ($perche) in $($trovati.Count) punti:"
-    $script:guai++
-    $visti = @{}
-    foreach ($t in $trovati) {
-        $relativo = $t.Path.Substring($radice.Length + 1)
-        if ($visti.ContainsKey($relativo)) { continue }
-        $visti[$relativo] = $true
-        Write-Host "        ${relativo}:$($t.LineNumber)"
+    if ($foundItems.Count -eq 0) { Write-Host "  ok  nessun $itemName"; return }
+    Write-Host "  XX  $itemName ($why) in $($foundItems.Count) punti:"
+    $script:trouble++
+    $seen = @{}
+    foreach ($t in $foundItems) {
+        $relative = $t.Path.Substring($root.Length + 1)
+        if ($seen.ContainsKey($relative)) { continue }
+        $seen[$relative] = $true
+        Write-Host "        ${relative}:$($t.LineNumber)"
     }
-    if ($visti.Count -lt $trovati.Count) { Write-Host "        (e altre righe negli stessi file)" }
+    if ($seen.Count -lt $foundItems.Count) { Write-Host "        (e altre righe negli stessi file)" }
 }
 
 Write-Host "=== Nell'albero di lavoro"
-Guarda 'il nome utente' 'oscar' 'il nome di chi lavora' $false $soloIlNome
-Guarda 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $soloLaSessione
-Guarda 'un indirizzo interno' $IndirizzoVero 'una rete privata' $false
-Guarda 'l''interno di un altro repository' $DentroUnAltroRepo 'cartelle e righe di casa d''altri' $false $iDueControlli
-Guarda 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
-Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
+Look 'il nome utente' 'oscar' 'il nome di chi lavora' $false $nameOnly
+Look 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $sessionOnly
+Look 'un indirizzo interno' $TrueAddress 'una rete privata' $false
+Look 'l''interno di un altro repository' $InsideAnotherRepo 'cartelle e righe di casa d''altri' $false $twoChecks
+Look 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $talkAboutDisks
+Look 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $talkAboutDisks
 
 # ==============================================================================
 # 2. La storia che si sta per spingere
@@ -301,9 +301,9 @@ Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $par
 Write-Host ""
 Write-Host "=== Nella storia che si sta per spingere"
 
-$aMonte = (EseguiGit @('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'))
-if (-not $aMonte) { $aMonte = 'origin/main' }
-$esiste = (EseguiGit @('rev-parse', '--verify', '--quiet', $aMonte))
+$upstream = (RunGit @('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'))
+if (-not $upstream) { $upstream = 'origin/main' }
+$exists = (RunGit @('rev-parse', '--verify', '--quiet', $upstream))
 
 # ── IL RIFERIMENTO LOCALE PUO' ESSERE UNA BUGIA, E LO E' STATO ────────────
 #
@@ -321,80 +321,80 @@ $esiste = (EseguiGit @('rev-parse', '--verify', '--quiet', $aMonte))
 # locale non vale niente e si guarda tutta la storia. Se il remoto non
 # risponde, si guarda tutta la storia lo stesso: fra sbagliare per eccesso e
 # spingere un nome utente, la scelta non e' difficile.
-$tuttaLaStoria = $false
-$perche = ""
+$allHistory = $false
+$why = ""
 
-if (-not $esiste) {
-    $tuttaLaStoria = $true
-    $perche = "nessun ramo a monte ($aMonte)"
+if (-not $exists) {
+    $allHistory = $true
+    $why = "nessun ramo a monte ($upstream)"
 } else {
-    $remoto = ($aMonte -split '/')[0]
-    $ramo   = ($aMonte -split '/', 2)[1]
-    $la = (EseguiGit @('ls-remote', '--heads', $remoto, $ramo))
+    $remote = ($upstream -split '/')[0]
+    $branch   = ($upstream -split '/', 2)[1]
+    $la = (RunGit @('ls-remote', '--heads', $remote, $branch))
     if (-not $la) {
-        $tuttaLaStoria = $true
-        $perche = "il remoto non risponde, e un riferimento locale non basta"
+        $allHistory = $true
+        $why = "il remoto non risponde, e un riferimento locale non basta"
     } else {
-        $shaRemoto = ($la -split "\s+")[0]
-        $shaLocale = (EseguiGit @('rev-parse', $aMonte))
-        if ($shaRemoto -ne $shaLocale) {
-            $tuttaLaStoria = $true
-            $perche = "$aMonte qui dice $($shaLocale.Substring(0,7)) ma il remoto " +
-                      "dice $($shaRemoto.Substring(0,7)): la storia e' stata riscritta"
+        $remoteSha = ($la -split "\s+")[0]
+        $shaLocale = (RunGit @('rev-parse', $upstream))
+        if ($remoteSha -ne $shaLocale) {
+            $allHistory = $true
+            $why = "$upstream qui dice $($shaLocale.Substring(0,7)) ma il remoto " +
+                      "dice $($remoteSha.Substring(0,7)): la storia e' stata riscritta"
         }
     }
 }
 
-if ($tuttaLaStoria) {
-    Write-Host "  .. $perche"
+if ($allHistory) {
+    Write-Host "  .. $why"
     Write-Host "  .. si guarda TUTTA la storia"
-    $daSpingere = @(EseguiGit @('rev-list', 'HEAD'))
+    $toPush = @(RunGit @('rev-list', 'HEAD'))
 } else {
-    $daSpingere = @(EseguiGit @('rev-list', "$aMonte..HEAD"))
+    $toPush = @(RunGit @('rev-list', "$upstream..HEAD"))
 }
 
-if ($daSpingere.Count -eq 0) {
+if ($toPush.Count -eq 0) {
     Write-Host "  ok  niente da spingere"
 } else {
-    Write-Host "  .. $($daSpingere.Count) commit da guardare"
+    Write-Host "  .. $($toPush.Count) commit da guardare"
 
-    function GuardaStoria($nome, $pattern, $perche, $caseSensitive, $eccetto = @()) {
-        $trovati = @(EseguiGit (@('grep', '--text', '-n', '--no-color') +
+    function LookAtHistory($itemName, $pattern, $why, $caseSensitive, $except = @()) {
+        $foundItems = @(RunGit (@('grep', '--text', '-n', '--no-color') +
             $(if ($caseSensitive) { @() } else { @('-i') }) +
-            @('-P', '-e', $pattern) + $daSpingere))
+            @('-P', '-e', $pattern) + $toPush))
 
         # Forma di una riga: <sha>:<percorso>:<numero>:<testo>
-        $fughe = @($trovati | Where-Object {
+        $gaps = @($foundItems | Where-Object {
             if ($_ -notmatch '^([0-9a-f]{7,40}):([^:]+):(\d+):') { return $false }
-            $percorso = $Matches[2] -replace '/', '\'
+            $filePath = $Matches[2] -replace '/', '\'
             # Solo `$eccetto`, cioe' l'eccezione DEL PATTERN. Qui stava anche
             # `PuoNominarli`, la lista valida per tutti i pattern insieme: e'
             # sparita, e con lei il lasciapassare che i due controlli avevano
             # sull'indirizzo interno.
-            if ($eccetto -contains (Split-Path -Leaf $percorso)) { return $false }
-            if ($binari -contains [IO.Path]::GetExtension($percorso).ToLower()) { return $false }
+            if ($except -contains (Split-Path -Leaf $filePath)) { return $false }
+            if ($binary -contains [IO.Path]::GetExtension($filePath).ToLower()) { return $false }
             $true
         })
 
-        if ($fughe.Count -eq 0) { Write-Host "  ok  nessun $nome"; return }
-        $script:guai++
-        $file = @($fughe | ForEach-Object {
+        if ($gaps.Count -eq 0) { Write-Host "  ok  nessun $itemName"; return }
+        $script:trouble++
+        $file = @($gaps | ForEach-Object {
             $null = $_ -match '^([0-9a-f]{7,40}):([^:]+):'
             $Matches[2]
         } | Sort-Object -Unique)
-        Write-Host "  XX  $nome ($perche) in $($fughe.Count) punti, $($file.Count) file:"
+        Write-Host "  XX  $itemName ($why) in $($gaps.Count) punti, $($file.Count) file:"
         foreach ($f in $file) { Write-Host "        $f" }
         Write-Host "        La storia non si ripara con una modifica: serve"
         Write-Host "        Checks\cleanup-history.js e git filter-branch, e va"
         Write-Host "        fatto PRIMA del push - dopo diventa un force-push."
     }
 
-    GuardaStoria 'il nome utente' 'oscar' 'il nome di chi lavora' $false $soloIlNome
-    GuardaStoria 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $soloLaSessione
-    GuardaStoria 'un indirizzo interno' $IndirizzoVero 'una rete privata' $false
-    GuardaStoria 'l''interno di un altro repository' $DentroUnAltroRepo 'cartelle e righe di casa d''altri' $false $iDueControlli
-    GuardaStoria 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
-    GuardaStoria 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
+    LookAtHistory 'il nome utente' 'oscar' 'il nome di chi lavora' $false $nameOnly
+    LookAtHistory 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $sessionOnly
+    LookAtHistory 'un indirizzo interno' $TrueAddress 'una rete privata' $false
+    LookAtHistory 'l''interno di un altro repository' $InsideAnotherRepo 'cartelle e righe di casa d''altri' $false $twoChecks
+    LookAtHistory 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $talkAboutDisks
+    LookAtHistory 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $talkAboutDisks
 }
 
 # ==============================================================================
@@ -416,18 +416,18 @@ if ($daSpingere.Count -eq 0) {
 
 Write-Host ""
 Write-Host "=== Percorsi di questa installazione (non vietati, ma da sapere)"
-$suDiscoS = Righe '(?<![A-Za-z])S:\\' $true
-if ($suDiscoS.Count -eq 0) {
+$onDiskS = Lines '(?<![A-Za-z])S:\\' $true
+if ($onDiskS.Count -eq 0) {
     Write-Host "  nessuno"
 } else {
-    $file = $suDiscoS | ForEach-Object { $_.Path.Substring($radice.Length + 1) } | Sort-Object -Unique
-    Write-Host "  $($suDiscoS.Count) riferimenti a S: in $($file.Count) file:"
+    $file = $onDiskS | ForEach-Object { $_.Path.Substring($root.Length + 1) } | Sort-Object -Unique
+    Write-Host "  $($onDiskS.Count) riferimenti a S: in $($file.Count) file:"
     foreach ($f in $file) { Write-Host "     $f" }
     Write-Host "  Vanno bene solo se chi clona puo' scavalcarli con una variabile o un"
     Write-Host "  argomento. Se sono costanti, non e' un repository che si clona."
 }
 
 Write-Host ""
-if ($guai -eq 0) { Write-Host 'Pulito.'; exit 0 }
-Write-Host "$guai categorie da ripulire."
+if ($trouble -eq 0) { Write-Host 'Pulito.'; exit 0 }
+Write-Host "$trouble categorie da ripulire."
 exit 1

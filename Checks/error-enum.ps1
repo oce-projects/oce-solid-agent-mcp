@@ -25,24 +25,24 @@
 #
 #  USO
 #      .\Checks\error-enum.ps1
-#      .\Checks\error-enum.ps1 -Tutti     anche quelli che valgono 0
+#      .\Checks\error-enum.ps1 -All     anche quelli che valgono 0
 # =============================================================================
 
-param([switch]$Tutti)
+param([switch]$All)
 
 $ErrorActionPreference = "Stop"
 
-$candidati = @(
+$candidates = @(
     "C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist\SolidWorks.Interop.swconst.dll"
 )
 if ($env:SW_INSTALL_PATH) {
-    $candidati = @((Join-Path $env:SW_INSTALL_PATH "api\redist\SolidWorks.Interop.swconst.dll")) + $candidati
+    $candidates = @((Join-Path $env:SW_INSTALL_PATH "api\redist\SolidWorks.Interop.swconst.dll")) + $candidates
 }
 
-$dll = $candidati | Where-Object { Test-Path $_ } | Select-Object -First 1
+$dll = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $dll) {
     Write-Output "non trovo SolidWorks.Interop.swconst.dll. Cercato in:"
-    $candidati | ForEach-Object { Write-Output ("  " + $_) }
+    $candidates | ForEach-Object { Write-Output ("  " + $_) }
     Write-Output "Indicala con la variabile d'ambiente SW_INSTALL_PATH."
     exit 2
 }
@@ -56,15 +56,15 @@ $asm = [Reflection.Assembly]::LoadFrom($dll)
 # _None, Success. Cercarne uno solo vorrebbe dire non vedere gli altri, e un
 # elenco che non vede meta' dei casi e' peggio di nessun elenco -- perche' si
 # legge come completo.
-$buoni = 'NoError|_Ok$|_None$|Success'
+$good = 'NoError|_Ok$|_None$|Success'
 
-$righe = @()
+$lines = @()
 foreach ($t in $asm.GetTypes()) {
     if (-not $t.IsEnum) { continue }
     if ($t.Name -notmatch 'Error|State') { continue }
     foreach ($n in [Enum]::GetNames($t)) {
-        if ($n -notmatch $buoni) { continue }
-        $righe += [pscustomobject]@{
+        if ($n -notmatch $good) { continue }
+        $lines += [pscustomobject]@{
             Enum   = $t.Name
             Buono  = $n
             Valore = [int][Enum]::Parse($t, $n)
@@ -72,16 +72,16 @@ foreach ($t in $asm.GetTypes()) {
     }
 }
 
-$pericolosi = $righe | Where-Object { $_.Valore -ne 0 } | Sort-Object Enum
+$dangerous = $lines | Where-Object { $_.Valore -ne 0 } | Sort-Object Enum
 
-Write-Output ("enum di errore o stato guardati: " + ($righe | Select-Object -ExpandProperty Enum -Unique).Count)
-Write-Output ("di cui con 'niente errore' DIVERSO da zero: " + $pericolosi.Count)
+Write-Output ("enum di errore o stato guardati: " + ($lines | Select-Object -ExpandProperty Enum -Unique).Count)
+Write-Output ("di cui con 'niente errore' DIVERSO da zero: " + $dangerous.Count)
 Write-Output ""
 
-if ($Tutti) {
-    $righe | Sort-Object Valore, Enum | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
+if ($All) {
+    $lines | Sort-Object Valore, Enum | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
 } else {
-    $pericolosi | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
+    $dangerous | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
 }
 
 Write-Output "Su questi, `if (errore != 0)` e' ROVESCIATO."

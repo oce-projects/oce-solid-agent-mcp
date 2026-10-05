@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using static Oce.Solid.Agent.ContractTests.Programma;
-using static Shared.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Program;
+using static Shared.McpClient;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -36,7 +36,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void RunAll()
         {
-            Gruppo("the descriptions teach the English values of their arguments (W3.1-bis.5)");
+            Group("the descriptions teach the English values of their arguments (W3.1-bis.5)");
 
             var map = ReadEnumValues();
             if (map == null) return;
@@ -56,8 +56,8 @@ namespace Oce.Solid.Agent.ContractTests
         // English argument -> English value -> Italian value (enum_value rows).
         private static Dictionary<string, Dictionary<string, string>> ReadEnumValues()
         {
-            var file = Path.Combine(Radice(), "Checks", "language", "name-map.tsv");
-            if (!File.Exists(file)) { Segna("the name map is there", false, "missing " + file); return null; }
+            var file = Path.Combine(Root(), "Checks", "language", "name-map.tsv");
+            if (!File.Exists(file)) { Check("the name map is there", false, "missing " + file); return null; }
             var map = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
             foreach (var line in File.ReadAllLines(file, Encoding.UTF8))
             {
@@ -122,19 +122,19 @@ namespace Oce.Solid.Agent.ContractTests
             var list = ItalianValuesIn("the plane: " + front + ", " + top + " o " + right, new[] { front, top, right }, null);
             var bullets = ItalianValuesIn("the " + axis + " of a step.\n\nGeneri ammessi:\n- " + axis + ": the axis it made", null, new[] { axis });
             var prose = ItalianValuesIn("the " + axis + " made by the step, the " + top + " face stays", new[] { axis, top }, new[] { axis });
-            Segna("the detector finds Italian values planted where a description names values, and not the same words in prose",
+            Check("the detector finds Italian values planted where a description names values, and not the same words in prose",
                   planted.Count == 3 && list.Count == 3 && bullets.Count == 1 && prose.Count == 0,
                   "planted " + planted.Count + "/3, list " + list.Count + "/3, bullet " + bullets.Count + "/1, prose " + prose.Count + "/0");
         }
 
         private static void Catalogue(Dictionary<string, Dictionary<string, string>> map)
         {
-            var file = Path.Combine(Radice(), "Tools", "catalog.json");
-            if (!File.Exists(file)) { Segna("the catalogue is there", false, "missing " + file); return; }
+            var file = Path.Combine(Root(), "Tools", "catalog.json");
+            if (!File.Exists(file)) { Check("the catalogue is there", false, "missing " + file); return; }
             var ser = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
             var catalogue = ser.DeserializeObject(File.ReadAllText(file, Encoding.UTF8)) as Dictionary<string, object>;
             var ops = catalogue != null && catalogue.ContainsKey("operations") ? catalogue["operations"] as object[] : null;
-            if (ops == null) { Segna("the catalogue has its operations", false, "no «operations»"); return; }
+            if (ops == null) { Check("the catalogue has its operations", false, "no «operations»"); return; }
             Dictionary<string, string> kinds;
             var bulletItalian = map.TryGetValue("kind", out kinds) ? kinds.Values.ToList() : new List<string>();
             var bad = new List<string>();
@@ -160,7 +160,7 @@ namespace Oce.Solid.Agent.ContractTests
                         bad.Add(name + "." + (prop ?? "(schema)") + ": «" + w + "»");
                 });
             }
-            Segna("no description of the catalogue names an Italian value of its argument",
+            Check("no description of the catalogue names an Italian value of its argument",
                   bad.Count == 0,
                   bad.Count == 0 ? described + " descriptions read" : bad.Count + ": " + string.Join(", ", bad.Take(8)) + (bad.Count > 8 ? " ..." : ""));
         }
@@ -181,26 +181,26 @@ namespace Oce.Solid.Agent.ContractTests
         // objects written in the descriptions.
         private static void Tools()
         {
-            var exe = PonteOppureNonQui("the descriptions of the tools");
+            var exe = BridgeOrNotHere("the descriptions of the tools");
             if (exe == null) return;
-            var p = Apri(exe);
-            if (p == null) { Segna("the bridge starts", false, "it did not start"); return; }
+            var p = Open(exe);
+            if (p == null) { Check("the bridge starts", false, "it did not start"); return; }
             try
             {
-                Chiedi(p, 1,
+                Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
-                var list = Dentro(Ogg(Chiedi(p, 2, "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}")), "result") as Dictionary<string, object>;
-                var tools = Dentro(list, "tools") as object[];
-                if (tools == null) { Segna("the bridge lists its tools", false, "no result.tools"); return; }
+                var list = Inside(Obj(Ask(p, 2, "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}")), "result") as Dictionary<string, object>;
+                var tools = Inside(list, "tools") as object[];
+                if (tools == null) { Check("the bridge lists its tools", false, "no result.tools"); return; }
 
                 var families = FamiliesOfTheCatalogue();
                 var listOps = tools.OfType<Dictionary<string, object>>().FirstOrDefault(t => Equals(t["name"], "list_operations"));
-                var family = Dentro(Dentro(Dentro(listOps, "inputSchema"), "properties"), "family");
-                var familyText = Convert.ToString(Dentro(family, "description")) ?? "";
+                var family = Inside(Inside(Inside(listOps, "inputSchema"), "properties"), "family");
+                var familyText = Convert.ToString(Inside(family, "description")) ?? "";
                 var listed = Regex.Matches(familyText.Substring(familyText.IndexOf(':') + 1), "[a-z_]+").Cast<Match>().Select(m => m.Value).ToList();
-                Segna("list_operations names the families of the catalogue, every one and no other",
+                Check("list_operations names the families of the catalogue, every one and no other",
                       families.Count > 0 && listed.Count == families.Count && !listed.Except(families).Any(),
                       "listed: " + string.Join(", ", listed) + "; catalogue: " + string.Join(", ", families));
 
@@ -210,15 +210,15 @@ namespace Oce.Solid.Agent.ContractTests
                         foreach (Match m in Regex.Matches(text, "\\{[a-z_]+: [^{}]*\\}"))
                             foreach (Match k in Regex.Matches(m.Value, "(?<=[{,] ?)([a-z_]+):"))
                                 if (IsItalianArgument(k.Groups[1].Value)) italianKeys.Add(t["name"] + ": «" + m.Value + "»");
-                Segna("an object written in the description of a tool has the keys of the protocol",
+                Check("an object written in the description of a tool has the keys of the protocol",
                       italianKeys.Count == 0, italianKeys.Count == 0 ? "no key is an Italian argument of the map" : string.Join("; ", italianKeys.Distinct().Take(5)));
             }
-            finally { Chiudi(p); }
+            finally { Close(p); }
         }
 
         private static List<string> FamiliesOfTheCatalogue()
         {
-            var file = Path.Combine(Radice(), "Tools", "catalog.json");
+            var file = Path.Combine(Root(), "Tools", "catalog.json");
             var ser = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
             var c = ser.DeserializeObject(File.ReadAllText(file, Encoding.UTF8)) as Dictionary<string, object>;
             var f = c != null && c.ContainsKey("families") ? c["families"] as Dictionary<string, object> : null;
@@ -234,7 +234,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var it = new HashSet<string>(StringComparer.Ordinal);
                 var en = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var line in File.ReadAllLines(Path.Combine(Radice(), "Checks", "language", "name-map.tsv"), Encoding.UTF8))
+                foreach (var line in File.ReadAllLines(Path.Combine(Root(), "Checks", "language", "name-map.tsv"), Encoding.UTF8))
                 {
                     var c = line.Split('\t');
                     if (c.Length < 3 || c[0] != "argument") continue;

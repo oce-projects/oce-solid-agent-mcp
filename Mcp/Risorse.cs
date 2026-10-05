@@ -24,8 +24,8 @@ namespace Oce.Solid.Agent.Mcp
     ///
     /// Due porte sulla stessa cosa diventano due cose il giorno in cui una
     /// delle due si scrive a parte. Percio' questa classe **non sa niente del
-    /// catalogo**: prende lo stesso oggetto `Catalogo` che usano gli strumenti
-    /// e chiama gli stessi due metodi, `Elenco(null)` e `Descrizione(nome)`.
+    /// catalogo**: prende lo stesso oggetto `Catalog` che usano gli strumenti
+    /// e chiama gli stessi due metodi, `Items(null)` e `Description(nome)`.
     /// Non c'e' nessun punto in cui si possa scrivere «anche» qui.
     /// Una prova di contratto lo verifica byte per byte, perche' *una regola
     /// che sta solo in un commento e' una regola che un giorno qualcuno non
@@ -57,32 +57,32 @@ namespace Oce.Solid.Agent.Mcp
         /// posti — l'elenco, la lettura e la prova — e tre stringhe uguali
         /// scritte a mano diventano tre stringhe diverse.
         /// </summary>
-        public const string UriElenco = "catalog://operations";
+        public const string UriList = "catalog://operations";
 
         /// <summary>La parte fissa di `catalog://operation/&lt;name&gt;`.</summary>
-        public const string PrefissoOperazione = "catalog://operation/";
+        public const string OperationPrefix = "catalog://operation/";
 
-        private readonly Catalogo _catalogo;
+        private readonly Catalog _catalog;
 
-        public Risorse(Catalogo catalogo) { _catalogo = catalogo; }
+        public Risorse(Catalog catalog) { _catalog = catalog; }
 
         /// <summary>
         /// Cosa c'e' da attaccare. Una voce sola: vedi sopra.
         /// </summary>
-        public object Elenco()
+        public object Items()
         {
             return new object[]
             {
                 new Dictionary<string, object>
                 {
-                    ["uri"] = UriElenco,
+                    ["uri"] = UriList,
                     ["name"] = "Operation catalog",
                     ["title"] = "Operation catalog",
                     ["description"] =
-                        "Le " + _catalogo.Quante + " operazioni di disegno che questo " +
+                        "Le " + _catalog.HowMany + " operazioni di disegno che questo " +
                         "ponte sa eseguire, raggruppate per famiglia, con una riga " +
                         "ciascuna. Lo schema completo di una sola si legge da " +
-                        PrefissoOperazione + "<name>, oppure con lo strumento " +
+                        OperationPrefix + "<name>, oppure con lo strumento " +
                         "«describe_operation».",
                     ["mimeType"] = "application/json",
                 },
@@ -92,18 +92,18 @@ namespace Oce.Solid.Agent.Mcp
         /// <summary>
         /// I modelli di URI: le operazioni una per una, senza elencarle.
         /// </summary>
-        public object Modelli()
+        public object Models()
         {
             return new object[]
             {
                 new Dictionary<string, object>
                 {
-                    ["uriTemplate"] = PrefissoOperazione + "{name}",
+                    ["uriTemplate"] = OperationPrefix + "{name}",
                     ["name"] = "Single operation",
                     ["title"] = "Single operation",
                     ["description"] =
                         "Lo schema completo di UNA operazione: cosa serve prima, cosa " +
-                        "fa, e tutti i suoi argomenti. I nomi stanno in " + UriElenco + ".",
+                        "fa, e tutti i suoi argomenti. I nomi stanno in " + UriList + ".",
                     ["mimeType"] = "application/json",
                 },
             };
@@ -117,24 +117,24 @@ namespace Oce.Solid.Agent.Mcp
         /// `null` e basta perche' questa classe non sa come si scrive un
         /// errore JSON-RPC, e non deve saperlo.
         /// </summary>
-        public object Leggi(string uri)
+        public object Read(string uri)
         {
             if (string.IsNullOrWhiteSpace(uri)) return null;
 
-            if (string.Equals(uri, UriElenco, StringComparison.Ordinal))
-                return Contenuto(uri, _catalogo.Elenco(null));
+            if (string.Equals(uri, UriList, StringComparison.Ordinal))
+                return Content(uri, _catalog.Items(null));
 
-            if (uri.StartsWith(PrefissoOperazione, StringComparison.Ordinal))
+            if (uri.StartsWith(OperationPrefix, StringComparison.Ordinal))
             {
-                var nome = uri.Substring(PrefissoOperazione.Length);
+                var itemName = uri.Substring(OperationPrefix.Length);
                 // Un URI puo' arrivare con le lettere non ASCII codificate.
                 // I nomi delle operazioni sono tutti ASCII, ma `%20` su un
                 // nome sbagliato deve dare «non conosco quel nome», non «URI
                 // storto»: sono due messaggi diversi per chi legge.
-                try { nome = Uri.UnescapeDataString(nome); } catch { }
-                var descrizione = _catalogo.Descrizione(nome);
-                if (descrizione == null) return null;
-                return Contenuto(uri, descrizione);
+                try { itemName = Uri.UnescapeDataString(itemName); } catch { }
+                var descriptionText = _catalog.Description(itemName);
+                if (descriptionText == null) return null;
+                return Content(uri, descriptionText);
             }
 
             return null;
@@ -144,16 +144,16 @@ namespace Oce.Solid.Agent.Mcp
         /// I nomi che somigliano a quello chiesto, per l'errore. Sta qui e non
         /// in chi chiama perche' e' il catalogo a saperlo.
         /// </summary>
-        public List<string> Simili(string uri)
+        public List<string> Similar(string uri)
         {
-            if (uri == null || !uri.StartsWith(PrefissoOperazione, StringComparison.Ordinal))
+            if (uri == null || !uri.StartsWith(OperationPrefix, StringComparison.Ordinal))
                 return new List<string>();
-            var nome = uri.Substring(PrefissoOperazione.Length);
-            try { nome = Uri.UnescapeDataString(nome); } catch { }
-            return _catalogo.Simili(nome) ?? new List<string>();
+            var itemName = uri.Substring(OperationPrefix.Length);
+            try { itemName = Uri.UnescapeDataString(itemName); } catch { }
+            return _catalog.Similar(itemName) ?? new List<string>();
         }
 
-        private static object Contenuto(string uri, object dati)
+        private static object Content(string uri, object data)
         {
             return new Dictionary<string, object>
             {
@@ -167,7 +167,7 @@ namespace Oce.Solid.Agent.Mcp
                         // `text` o `blob`: mandare l'oggetto strutturato
                         // sarebbe una risposta che sembra giusta e che un
                         // client legge vuota.
-                        ["text"] = Protocollo.InJson(dati),
+                        ["text"] = Protocol.InJson(data),
                     },
                 },
             };

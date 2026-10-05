@@ -23,12 +23,12 @@ namespace Oce.Solid.Agent.Core
     /// Con quelli, il rettangolo vero di ogni testo sul foglio: si guarda se
     /// cade su un altro testo, o sugli spigoli della propria vista.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private sealed class TestoDiQuota
+        private sealed class DimensionText
         {
-            public string Vista, Nome, Testo;
-            public double[][] Angoli;    // quattro punti sul foglio, metri
+            public string View, Name, Text;
+            public double[][] Angles;    // quattro punti sul foglio, metri
         }
 
         /// <summary>
@@ -41,26 +41,26 @@ namespace Oce.Solid.Agent.Core
         /// that part as if it were the whole. A dimension whose texts cannot be
         /// read is still skipped inside the walk, as before.
         /// </summary>
-        private static List<TestoDiQuota> TestiDelleQuote(IDrawingDoc disegno)
+        private static List<DimensionText> DimensionTexts(IDrawingDoc drawing)
         {
-            var fuori = new List<TestoDiQuota>();
+            var outside = new List<DimensionText>();
             try
             {
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
-                    string nomeVista = "";
-                    try { nomeVista = v.GetName2() ?? ""; } catch { }
+                    string viewName = "";
+                    try { viewName = v.GetName2() ?? ""; } catch { }
                     var dd = v.GetFirstDisplayDimension5() as IDisplayDimension;
                     while (dd != null)
                     {
                         try
                         {
-                            var dati = dd.GetDisplayData() as IDisplayData;
+                            var data = dd.GetDisplayData() as IDisplayData;
                             // ZERO-E-ZERO: una quota senza dati di visualizzazione non ha testi da
                             // confrontare, e non si inventano; se non se ne legge nessuno,
                             // drawing_dimension dice null («non lo so»), non «nessuno si accavalla».
-                            int n = dati == null ? 0 : dati.GetTextCount();
+                            int n = data == null ? 0 : data.GetTextCount();
                             // A POINT ON THE SHEET, NOT AN OFFSET (Z-C21.3, finding C3-1,
                             // NOT REAL). Every GetTextPositionAtIndex page says «Gets the
                             // text item offset relative to the note text point»; for the
@@ -73,16 +73,16 @@ namespace Oce.Solid.Agent.Core
                             // the sheet origin. So p is used as it is, in sheet metres.
                             for (int i = 0; i < n; i++)
                             {
-                                var p = dati.GetTextPositionAtIndex(i) as double[];
-                                double w = dati.GetTextInBoxWidthAtIndex(i), h = dati.GetTextHeightAtIndex(i);
-                                double ang = dati.GetTextAngleAtIndex(i);
-                                string t = dati.GetTextAtIndex(i) ?? "";
+                                var p = data.GetTextPositionAtIndex(i) as double[];
+                                double w = data.GetTextInBoxWidthAtIndex(i), h = data.GetTextHeightAtIndex(i);
+                                double angle = data.GetTextAngleAtIndex(i);
+                                string t = data.GetTextAtIndex(i) ?? "";
                                 if (p == null || w <= 0 || h <= 0 || t.Trim().Length == 0) continue;
                                 // Il riferimento: in basso a sinistra (1), che e' l'unico visto.
                                 // Gli altri si portano all'angolo in basso a sinistra.
-                                double ux = Math.Cos(ang), uy = Math.Sin(ang), vx = -uy, vy = ux;
+                                double ux = Math.Cos(angle), uy = Math.Sin(angle), vx = -uy, vy = ux;
                                 double x0 = p[0], y0 = p[1];
-                                switch (dati.GetTextRefPositionAtIndex(i))
+                                switch (data.GetTextRefPositionAtIndex(i))
                                 {
                                     case (int)swTextPosition_e.swUPPER_LEFT: x0 -= vx * h; y0 -= vy * h; break;
                                     case (int)swTextPosition_e.swCENTER: x0 -= ux * w / 2 + vx * h / 2; y0 -= uy * w / 2 + vy * h / 2; break;
@@ -90,12 +90,12 @@ namespace Oce.Solid.Agent.Core
                                     case (int)swTextPosition_e.swLOWER_RIGHT: x0 -= ux * w; y0 -= uy * w; break;
                                     case (int)swTextPosition_e.swUPPER_CENTER: x0 -= ux * w / 2 + vx * h; y0 -= uy * w / 2 + vy * h; break;
                                 }
-                                fuori.Add(new TestoDiQuota
+                                outside.Add(new DimensionText
                                 {
-                                    Vista = nomeVista,
-                                    Nome = SafeNome(dd),
-                                    Testo = t.Trim(),
-                                    Angoli = new[]
+                                    View = viewName,
+                                    Name = SafeName(dd),
+                                    Text = t.Trim(),
+                                    Angles = new[]
                                     {
                                         new[] { x0, y0 },
                                         new[] { x0 + ux * w, y0 + uy * w },
@@ -112,10 +112,10 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { return null; }   // N47: a list cut short is not the list of the drawing
-            return fuori;
+            return outside;
         }
 
-        private static string SafeNome(IDisplayDimension dd)
+        private static string SafeName(IDisplayDimension dd)
         {
             try { return dd.GetNameForSelection() ?? ""; } catch { return ""; }
         }
@@ -125,49 +125,49 @@ namespace Oce.Solid.Agent.Core
         /// uno spigolo della propria vista. Le righe dicono i due nomi e i testi.
         /// Un margine di 0,3 mm: due testi che si sfiorano non si leggono male.
         /// </summary>
-        private List<string> TestiCheSiAccavallano(IDrawingDoc disegno, IView vista, List<TestoDiQuota> testi)
+        private List<string> TextsThatOverlap(IDrawingDoc drawing, IView view, List<DimensionText> texts)
         {
             // Texts not read (N47) give no overlaps to report, and the caller
             // says «not known» instead of a count.
-            if (testi == null) return null;
-            var fuori = new List<string>();
-            const double margine = 0.0003;
+            if (texts == null) return null;
+            var outside = new List<string>();
+            const double margin = 0.0003;
             // I PEZZI DI UNA STESSA QUOTA NON SI CONFRONTANO FRA LORO (visto al
             // primo banco, 26/9/2026): il richiamo «Ø8 ↧5» sono quattro testi
             // attaccati — <MOD-DIAM>, 8, <HOLE-DEPTH>, 5 — e il controllo ne
             // contava quattro sovrapposizioni che sul foglio sono una scritta sola.
-            for (int i = 0; i < testi.Count; i++)
-                for (int j = i + 1; j < testi.Count; j++)
-                    if (!(testi[i].Vista == testi[j].Vista && testi[i].Nome == testi[j].Nome && testi[i].Nome.Length > 0) &&
-                        SiToccano(testi[i].Angoli, testi[j].Angoli, margine))
-                        fuori.Add("«" + testi[i].Testo + "» (" + testi[i].Vista + ") sopra «" + testi[j].Testo + "» (" + testi[j].Vista + ")");
+            for (int i = 0; i < texts.Count; i++)
+                for (int j = i + 1; j < texts.Count; j++)
+                    if (!(texts[i].View == texts[j].View && texts[i].Name == texts[j].Name && texts[i].Name.Length > 0) &&
+                        TheyTouch(texts[i].Angles, texts[j].Angles, margin))
+                        outside.Add("«" + texts[i].Text + "» (" + texts[i].View + ") sopra «" + texts[j].Text + "» (" + texts[j].View + ")");
 
             // Gli spigoli della vista, portati sul foglio come segmenti (le curve a tratti).
-            string nomeVista = "";
-            try { nomeVista = vista.GetName2() ?? ""; } catch { }
-            var segmenti = SegmentiDellaVista(vista);
-            foreach (var t in testi)
+            string viewName = "";
+            try { viewName = view.GetName2() ?? ""; } catch { }
+            var segments = ViewSegments(view);
+            foreach (var t in texts)
             {
-                if (t.Vista != nomeVista) continue;
-                foreach (var s in segmenti)
-                    if (SegmentoNelRettangolo(s, t.Angoli, -margine))
+                if (t.View != viewName) continue;
+                foreach (var s in segments)
+                    if (SegmentInRectangle(s, t.Angles, -margin))
                     {
-                        fuori.Add("«" + t.Testo + "» (" + t.Vista + ") sopra una linea del pezzo");
+                        outside.Add("«" + t.Text + "» (" + t.View + ") sopra una linea del pezzo");
                         break;
                     }
             }
-            return fuori;
+            return outside;
         }
 
-        private List<double[]> SegmentiDellaVista(IView vista)
+        private List<double[]> ViewSegments(IView view)
         {
-            var fuori = new List<double[]>();
+            var outside = new List<double[]>();
             IMathUtility mu = null; MathTransform tr = null;
-            try { mu = _sw.GetMathUtility() as IMathUtility; tr = vista.ModelToViewTransform; } catch { }
-            if (mu == null || tr == null) return fuori;
-            object[] spigoli = null;
-            try { spigoli = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
-            foreach (var o in spigoli ?? new object[0])
+            try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
+            if (mu == null || tr == null) return outside;
+            object[] edges = null;
+            try { edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
+            foreach (var o in edges ?? new object[0])
             {
                 try
                 {
@@ -181,18 +181,18 @@ namespace Oce.Solid.Agent.Core
                     {
                         var q = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { tess[i], tess[i + 1], tess[i + 2] })).MultiplyTransform(tr)).ArrayData as double[];
                         if (q == null) continue;
-                        if (prec != null) fuori.Add(new[] { prec[0], prec[1], q[0], q[1] });
+                        if (prec != null) outside.Add(new[] { prec[0], prec[1], q[0], q[1] });
                         prec = q;
                     }
                 }
                 catch { }
             }
-            return fuori;
+            return outside;
         }
 
         // ── Geometria piana: rettangoli orientati come poligoni convessi ─────
 
-        private static bool SiToccano(double[][] a, double[][] b, double margine)
+        private static bool TheyTouch(double[][] a, double[][] b, double margin)
         {
             // Assi separatori (SAT) sui lati dei due rettangoli.
             foreach (var poli in new[] { a, b })
@@ -206,7 +206,7 @@ namespace Oce.Solid.Agent.Core
                     double amin = double.MaxValue, amax = double.MinValue, bmin = double.MaxValue, bmax = double.MinValue;
                     foreach (var r in a) { double d = r[0] * nx + r[1] * ny; amin = Math.Min(amin, d); amax = Math.Max(amax, d); }
                     foreach (var r in b) { double d = r[0] * nx + r[1] * ny; bmin = Math.Min(bmin, d); bmax = Math.Max(bmax, d); }
-                    if (amax + margine < bmin || bmax + margine < amin) return false;
+                    if (amax + margin < bmin || bmax + margin < amin) return false;
                 }
             return true;
         }
@@ -215,14 +215,14 @@ namespace Oce.Solid.Agent.Core
         /// Il segmento passa DENTRO il rettangolo (ristretto di `-margine` se
         /// negativo: una linea che sfiora il bordo del testo non lo copre).
         /// </summary>
-        private static bool SegmentoNelRettangolo(double[] s, double[][] r, double margine)
+        private static bool SegmentInRectangle(double[] s, double[][] r, double margin)
         {
             // Sistema del rettangolo: origine r[0], assi u (r0->r1), v (r0->r3).
             double ux = r[1][0] - r[0][0], uy = r[1][1] - r[0][1], vx = r[3][0] - r[0][0], vy = r[3][1] - r[0][1];
             double lu = Math.Sqrt(ux * ux + uy * uy), lv = Math.Sqrt(vx * vx + vy * vy);
             if (lu < 1e-12 || lv < 1e-12) return false;
             ux /= lu; uy /= lu; vx /= lv; vy /= lv;
-            double m = -margine;   // positivo: quanto si restringe
+            double m = -margin;   // positivo: quanto si restringe
             Func<double, double, double[]> loc = (x, y) => new[] { (x - r[0][0]) * ux + (y - r[0][1]) * uy, (x - r[0][0]) * vx + (y - r[0][1]) * vy };
             var a = loc(s[0], s[1]); var b = loc(s[2], s[3]);
             // Clipping di Liang-Barsky sul rettangolo [m, lu-m] x [m, lv-m].

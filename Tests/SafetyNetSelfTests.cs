@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -42,9 +42,9 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Gruppo("the script nets of W3.1-bis.2 turn red on their fakes");
+            Group("the script nets of W3.1-bis.2 turn red on their fakes");
 
-            var root = Radice();
+            var root = Root();
             var tests = new[]
             {
                 new SelfTest
@@ -99,7 +99,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             foreach (var t in tests)
             {
-                if (!File.Exists(t.Script)) { Segna(t.Title, false, "missing: " + t.Script); continue; }
+                if (!File.Exists(t.Script)) { Check(t.Title, false, "missing: " + t.Script); continue; }
 
                 string arguments = t.Exe == "node"
                     ? Q(t.Script) + (t.Arguments.Length > 0 ? " " + t.Arguments : "")
@@ -109,18 +109,18 @@ namespace Oce.Solid.Agent.ContractTests
                 int code = Run(t.Exe, arguments, root, out output);
                 if (code == -2)
                 {
-                    NonQui(t.Title, t.Exe + " is not on this machine (" + output + "). Not running it is not passing.");
+                    NotHere(t.Title, t.Exe + " is not on this machine (" + output + "). Not running it is not passing.");
                     continue;
                 }
                 if (code == 2)
                 {
-                    NonQui(t.Title, "the self-test says it cannot run here (exit 2): " + Tail(output));
+                    NotHere(t.Title, "the self-test says it cannot run here (exit 2): " + Tail(output));
                     continue;
                 }
 
                 var m = t.Summary.Match(output);
                 bool ok = code == 0 && m.Success && t.Enough(m);
-                Segna(t.Title, ok, ok ? m.Value : "exit " + code + ": " + Tail(output));
+                Check(t.Title, ok, ok ? m.Value : "exit " + code + ": " + Tail(output));
             }
 
             NameMapCheck(root);
@@ -144,32 +144,49 @@ namespace Oce.Solid.Agent.ContractTests
             string map = Path.Combine(root, "Checks", "language", "name-map.tsv");
             if (!File.Exists(script) || !File.Exists(map))
             {
-                Segna(title, false, "missing: " + (File.Exists(script) ? map : script));
+                Check(title, false, "missing: " + (File.Exists(script) ? map : script));
                 return;
             }
 
             string output;
             int code = Run("node", Q(script) + " --check --show 5", root, out output);
-            if (code == -2) { NonQui(title, "node is not on this machine (" + output + "). Not running it is not passing."); return; }
-            if (code == 2) { NonQui(title, "the check says it cannot run here (exit 2): " + Tail(output)); return; }
+            if (code == -2) { NotHere(title, "node is not on this machine (" + output + "). Not running it is not passing."); return; }
+            if (code == 2) { NotHere(title, "the check says it cannot run here (exit 2): " + Tail(output)); return; }
             var passed = Regex.Match(output, @"name map check: passed \((\d+) rows\)");
             bool ok = code == 0 && passed.Success && int.Parse(passed.Groups[1].Value) >= 6000;
-            Segna(title, ok, ok ? passed.Value : "exit " + code + ": " + Tail(output));
+            Check(title, ok, ok ? passed.Value : "exit " + code + ": " + Tail(output));
 
-            // The fakes: three rows of the real map, changed in a temporary copy.
+            // The fakes: rows of the real map, changed in a temporary copy.
             var lines = File.ReadAllLines(map, Encoding.UTF8);
             var free = Enumerable.Range(0, lines.Length)
                 .Where(i => lines[i].StartsWith("identifier\t", StringComparison.Ordinal))
                 .Select(i => new { Index = i, Cells = lines[i].Split('\t') })
                 .Where(r => r.Cells.Length == 6 && r.Cells[2].Length > 0 && !Regex.IsMatch(r.Cells[5], @"\bmerged\b")
                             && Regex.IsMatch(r.Cells[1], "^[a-z][A-Za-z0-9]*$"))
-                .Take(4).ToList();
-            if (free.Count < 4) { Segna(fakeTitle, false, "the map has fewer than 4 plain identifier rows to change"); return; }
-            // a: the first row is left out of the copy (an Italian name without a row)
-            free[1].Cells[2] = free[2].Cells[2];      // b: two Italian names on one English name
-            free[3].Cells[2] = "class";               // c: a C# keyword
+                .Take(3).ToList();
+            if (free.Count < 3) { Check(fakeTitle, false, "the map has fewer than 3 plain identifier rows to change"); return; }
+            // a: a row whose Italian name the tree STILL has is left out of the copy (an Italian
+            // name without a row). Any row did before rename window 3 (W3.1-bis.6); after it the
+            // names of the code are English, so the extractor says which names are still there.
+            string foundOutput;
+            int foundCode = Run("node", Q(script) + " --found", root, out foundOutput);
+            if (foundCode == -2) { NotHere(fakeTitle, "node is not on this machine (" + foundOutput + "). Not running it is not passing."); return; }
+            var stillThere = new System.Collections.Generic.HashSet<string>(foundOutput.Replace("\r", "").Split('\n')
+                .Where(l => l.StartsWith("found\t", StringComparison.Ordinal)).Select(l => l.Substring(6)), StringComparer.Ordinal);
+            var leftOut = Enumerable.Range(0, lines.Length)
+                .Select(i => new { Index = i, Cells = lines[i].Split('\t') })
+                .Where(r => r.Cells.Length >= 3 && r.Cells[2].Length > 0 && stillThere.Contains(r.Cells[0] + "\t" + r.Cells[1])
+                            && free.All(f => f.Index != r.Index))
+                .FirstOrDefault();
+            if (leftOut == null)
+            {
+                Check(fakeTitle, false, "the tree has no Italian name left that the map covers, so «a name without a row» cannot be tried (" + stillThere.Count + " found)");
+                return;
+            }
+            free[0].Cells[2] = free[1].Cells[2];      // b: two Italian names on one English name
+            free[2].Cells[2] = "class";               // c: a C# keyword
             foreach (var r in free) lines[r.Index] = string.Join("\t", r.Cells);
-            lines[free[0].Index] = null;
+            lines[leftOut.Index] = null;
 
             string tmp = Path.Combine(Path.GetTempPath(), "name-map-fake-" + Guid.NewGuid().ToString("N") + ".tsv");
             try
@@ -181,11 +198,11 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 try { File.Delete(tmp); } catch { }
             }
-            if (code == 2) { NonQui(fakeTitle, "the check says it cannot run here (exit 2): " + Tail(output)); return; }
+            if (code == 2) { NotHere(fakeTitle, "the check says it cannot run here (exit 2): " + Tail(output)); return; }
             var red = new[] { "a", "b", "c" }.Where(k => output.Contains("NAME MAP CHECK " + k + ". ")).ToList();
             bool seenRed = code == 1 && red.Count == 3 && output.Contains("NAME MAP CHECK: FAILED");
-            Segna(fakeTitle, seenRed, seenRed
-                ? "exit 1, red on a (" + free[0].Cells[1] + "), b (" + free[1].Cells[1] + "), c (" + free[3].Cells[1] + ")"
+            Check(fakeTitle, seenRed, seenRed
+                ? "exit 1, red on a (" + leftOut.Cells[1] + "), b (" + free[0].Cells[1] + "), c (" + free[2].Cells[1] + ")"
                 : "exit " + code + ", red on " + (red.Count == 0 ? "nothing" : string.Join(", ", red)) + ": " + Tail(output));
         }
 

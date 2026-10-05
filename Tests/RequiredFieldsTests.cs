@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -39,14 +39,14 @@ namespace Oce.Solid.Agent.ContractTests
     /// questo controllo: la decisione va presa **mentre si scrive**, non sei
     /// mesi dopo.
     /// </summary>
-    internal static class ProveICampiObbligatori
+    internal static class RequiredFieldsTests
     {
         /// <summary>
         /// Un campo il cui nome dice gia' che e' una quota o un riferimento a
         /// qualcosa di geometrico. Per questi la decisione e' automatica: si
         /// chiedono.
         /// </summary>
-        private static readonly Regex Quota = new Regex(
+        private static readonly Regex Dimension = new Regex(
             @"_mm$|_deg$|^teeth$|^module|^segments$|^point(?!s)|_uid$|^faces$",
             RegexOptions.Compiled);
 
@@ -56,7 +56,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// «CANDIDATO» la decisione e' stata presa e **non e' ancora
         /// eseguita**.
         /// </summary>
-        private static readonly Dictionary<string, string> Decise =
+        private static readonly Dictionary<string, string> Decided =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 // ── SI CHIEDONO: sono il lavoro, non un contorno ──────────
@@ -134,33 +134,33 @@ namespace Oce.Solid.Agent.ContractTests
                 // i quattro casi di banco a coppie.
             };
 
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("ogni campo obbligatorio e' una decisione presa (Z-G3)");
+            Group("ogni campo obbligatorio e' una decisione presa (Z-G3)");
 
-            var file = CatalogoServito();
+            var file = ServedCatalog();
             if (!File.Exists(file))
             {
-                Segna("il catalogo servito c'e'", false, "manca " + file);
+                Check("il catalogo servito c'e'", false, "manca " + file);
                 return;
             }
 
-            var radice = new JavaScriptSerializer()
+            var root = new JavaScriptSerializer()
                 .DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
-            object grezzo;
-            var voci = radice != null && radice.TryGetValue("operations", out grezzo)
-                ? grezzo as object[] : null;
-            if (voci == null)
+            object raw;
+            var entries = root != null && root.TryGetValue("operations", out raw)
+                ? raw as object[] : null;
+            if (entries == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
-            int obbligatori = 0, quote = 0;
-            var senzaDecisione = new List<string>();
-            var trovati = new HashSet<string>(StringComparer.Ordinal);
+            int mandatory = 0, quote = 0;
+            var withoutDecision = new List<string>();
+            var foundItems = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var v in voci)
+            foreach (var v in entries)
             {
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
@@ -170,39 +170,39 @@ namespace Oce.Solid.Agent.ContractTests
                 var schema = s as Dictionary<string, object>;
                 if (schema == null) continue;
                 object r;
-                var richiesti = schema.TryGetValue("required", out r) ? r as object[] : null;
-                if (richiesti == null) continue;
+                var requested = schema.TryGetValue("required", out r) ? r as object[] : null;
+                if (requested == null) continue;
 
-                foreach (var campo in richiesti)
+                foreach (var theField in requested)
                 {
-                    string nome = Convert.ToString(n) + "." + Convert.ToString(campo);
-                    obbligatori++;
-                    if (Quota.IsMatch(Convert.ToString(campo))) { quote++; continue; }
-                    trovati.Add(nome);
-                    if (!Decise.ContainsKey(nome)) senzaDecisione.Add(nome);
+                    string itemName = Convert.ToString(n) + "." + Convert.ToString(theField);
+                    mandatory++;
+                    if (Dimension.IsMatch(Convert.ToString(theField))) { quote++; continue; }
+                    foundItems.Add(itemName);
+                    if (!Decided.ContainsKey(itemName)) withoutDecision.Add(itemName);
                 }
             }
 
-            Segna("i campi obbligatori si contano", obbligatori > 0,
-                  obbligatori + " in tutto: " + quote + " quote o riferimenti (si chiedono), " +
-                  (obbligatori - quote) + " da decidere");
+            Check("i campi obbligatori si contano", mandatory > 0,
+                  mandatory + " in tutto: " + quote + " quote o riferimenti (si chiedono), " +
+                  (mandatory - quote) + " da decidere");
 
-            Segna("ogni campo che non e' una quota ha una decisione scritta",
-                  senzaDecisione.Count == 0,
-                  senzaDecisione.Count == 0
-                      ? Decise.Count + " decisioni, tutte in `RequiredFieldsTests.cs`"
-                      : "SENZA DECISIONE: " + string.Join(", ", senzaDecisione));
+            Check("ogni campo che non e' una quota ha una decisione scritta",
+                  withoutDecision.Count == 0,
+                  withoutDecision.Count == 0
+                      ? Decided.Count + " decisioni, tutte in `RequiredFieldsTests.cs`"
+                      : "SENZA DECISIONE: " + string.Join(", ", withoutDecision));
 
             // ── E UNA DECISIONE PER UN CAMPO CHE NON C'E' PIU' E' RUMORE ──
             //
             // Stessa ragione dell'elenco delle eccezioni in Z-C7: un permesso
             // scaduto copre il giorno in cui qualcuno riscrive quel punto.
-            var fantasmi = Decise.Keys.Where(k => !trovati.Contains(k)).ToList();
-            Segna("e nessuna decisione riguarda un campo che non esiste piu'",
-                  fantasmi.Count == 0,
-                  fantasmi.Count == 0
+            var ghosts = Decided.Keys.Where(k => !foundItems.Contains(k)).ToList();
+            Check("e nessuna decisione riguarda un campo che non esiste piu'",
+                  ghosts.Count == 0,
+                  ghosts.Count == 0
                       ? "nessuna decisione scaduta"
-                      : "non esistono piu': " + string.Join(", ", fantasmi));
+                      : "non esistono piu': " + string.Join(", ", ghosts));
 
             // ── I CANDIDATI RIMASTI, se ce ne sono ───────────────────────
             //
@@ -211,13 +211,13 @@ namespace Oce.Solid.Agent.ContractTests
             // 24/9/2026 i due candidati sono stati fatti, e un controllo che
             // pretende l'esistenza di lavoro da fare diventerebbe rosso
             // proprio quando il lavoro finisce. Adesso si limita a dirli.
-            var candidati = Decise.Where(x => x.Value.StartsWith("CANDIDATO", StringComparison.Ordinal))
+            var candidates = Decided.Where(x => x.Value.StartsWith("CANDIDATO", StringComparison.Ordinal))
                                   .Select(x => x.Key).ToList();
-            Segna("i campi che avrebbero un valore d'officina sono nominati", true,
-                  candidati.Count == 0
+            Check("i campi che avrebbero un valore d'officina sono nominati", true,
+                  candidates.Count == 0
                       ? "nessun candidato rimasto: i due di Z-G3 sono fatti"
-                      : candidati.Count + " candidati, non ancora fatti: " +
-                        string.Join(", ", candidati));
+                      : candidates.Count + " candidati, non ancora fatti: " +
+                        string.Join(", ", candidates));
 
             // ── E I DUE FATTI SI GUARDANO NEL CATALOGO SERVITO ───────────
             //
@@ -227,8 +227,8 @@ namespace Oce.Solid.Agent.ContractTests
             // modello, ed e' la meta' che si puo' controllare da qui —
             // l'altra meta' (che il valore venga applicato davvero e
             // dichiarato) la misurano i quattro casi di banco.
-            PredefinitoDichiarato(voci, "apply_material", "material", "S235JR");
-            PredefinitoDichiarato(voci, "combine_bodies", "operation", "union");
+            DeclaredDefault(entries, "apply_material", "material", "S235JR");
+            DeclaredDefault(entries, "combine_bodies", "operation", "union");
         }
 
         /// <summary>
@@ -240,16 +240,16 @@ namespace Oce.Solid.Agent.ContractTests
         /// `required` senza `default` e' peggio di prima — il modello non
         /// sa che puo' ometterlo, e se lo omette non sa cosa riceve.
         /// </summary>
-        private static void PredefinitoDichiarato(
-            object[] voci, string operazione, string campo, string atteso)
+        private static void DeclaredDefault(
+            object[] entries, string operation, string theField, string expected)
         {
-            foreach (var v in voci)
+            foreach (var v in entries)
             {
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
                 object n;
                 o.TryGetValue("name", out n);
-                if (Convert.ToString(n) != operazione) continue;
+                if (Convert.ToString(n) != operation) continue;
 
                 object s;
                 o.TryGetValue("schema", out s);
@@ -258,27 +258,27 @@ namespace Oce.Solid.Agent.ContractTests
 
                 object p;
                 schema.TryGetValue("properties", out p);
-                var proprieta = p as Dictionary<string, object>;
+                var property = p as Dictionary<string, object>;
                 object c = null;
-                if (proprieta != null) proprieta.TryGetValue(campo, out c);
-                var suo = c as Dictionary<string, object>;
+                if (property != null) property.TryGetValue(theField, out c);
+                var its = c as Dictionary<string, object>;
 
                 object d = null;
-                if (suo != null) suo.TryGetValue("default", out d);
+                if (its != null) its.TryGetValue("default", out d);
 
                 object r;
-                var richiesti = schema.TryGetValue("required", out r) ? r as object[] : null;
-                bool ancoraObbligatorio = richiesti != null &&
-                    richiesti.Any(x => Convert.ToString(x) == campo);
+                var requested = schema.TryGetValue("required", out r) ? r as object[] : null;
+                bool mandatoryAnchor = requested != null &&
+                    requested.Any(x => Convert.ToString(x) == theField);
 
-                Segna(operazione + "." + campo + " ha il suo predefinito, e non e' piu' obbligatorio",
-                      Convert.ToString(d) == atteso && !ancoraObbligatorio,
+                Check(operation + "." + theField + " ha il suo predefinito, e non e' piu' obbligatorio",
+                      Convert.ToString(d) == expected && !mandatoryAnchor,
                       "default=" + (d == null ? "(nessuno)" : "«" + Convert.ToString(d) + "»") +
-                      ", obbligatorio=" + ancoraObbligatorio);
+                      ", obbligatorio=" + mandatoryAnchor);
                 return;
             }
-            Segna(operazione + "." + campo + " ha il suo predefinito, e non e' piu' obbligatorio",
-                  false, "l'operazione «" + operazione + "» non e' in catalogo");
+            Check(operation + "." + theField + " ha il suo predefinito, e non e' piu' obbligatorio",
+                  false, "l'operazione «" + operation + "» non e' in catalogo");
         }
     }
 }

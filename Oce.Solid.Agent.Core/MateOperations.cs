@@ -69,35 +69,35 @@ namespace Oce.Solid.Agent.Core
     /// it (see ReadBlockedDirections), and a mate that blocks nothing new is
     /// removed and refused.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito Accoppia(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome Mate(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var assieme = modello as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito(
+            var assemblyDoc = model as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed(
                     "Questo non e' un assieme, e' un documento di tipo «" +
-                    NomeTipoDocumento(TipoDi(modello)) + "». Gli accoppiamenti " +
+                    DocumentTypeName(TypeOf(model)) + "». Gli accoppiamenti " +
                     "stanno fra componenti di un assieme.");
 
-            object[] grezzi = null;
-            try { grezzi = assieme.GetComponents(false) as object[]; } catch { }
-            var componenti = StatoDocumento.ComponentiInOrdine(grezzi);
-            if (componenti.Count < 2)
-                return Fallito(
+            object[] rawItems = null;
+            try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            var components = DocumentState.ComponentsInOrder(rawItems);
+            if (components.Count < 2)
+                return Failed(
                     "Per accoppiare servono due componenti, e qui ce n'" +
-                    (componenti.Count == 1 ? "e' uno solo" : "e' nessuno") +
+                    (components.Count == 1 ? "e' uno solo" : "e' nessuno") +
                     ". Inseriscili con «insert_component».");
 
             string uidA = Str(a, "component_a", null);
             string uidB = Str(a, "component_b", null);
-            var compA = PerUid(componenti, uidA);
-            var compB = PerUid(componenti, uidB);
-            if (compA == null) return Fallito(NonTrovato(uidA, "component_a", componenti));
-            if (compB == null) return Fallito(NonTrovato(uidB, "component_b", componenti));
+            var compA = PerUid(components, uidA);
+            var compB = PerUid(components, uidB);
+            if (compA == null) return Failed(NotFound(uidA, "component_a", components));
+            if (compB == null) return Failed(NotFound(uidB, "component_b", components));
             if (ReferenceEquals(compA, compB))
-                return Fallito(
+                return Failed(
                     "«" + uidA + "» e «" + uidB + "» sono lo stesso componente. Un " +
                     "pezzo non si accoppia con se stesso: non vincola niente e " +
                     "l'assieme resterebbe libero come prima.");
@@ -105,7 +105,7 @@ namespace Oce.Solid.Agent.Core
             // ── CONCENTRICO E TANGENTE NON POSSONO RIUSCIRE QUI (voce Z-C21.2,
             // rilievo M17) ────────────────────────────────────────────────────
             //
-            // Le facce si scelgono per VERSO, con IFace2.Normal (FacciaVersoDi), e
+            // Le facce si scelgono per VERSO, con IFace2.Normal (FaceNormalOf), e
             // IFace2~Normal.html dice: «Gets the unit normal vector for any planar
             // face» e, nelle Remarks, «If the face is not a planar face, then this
             // property returns 0,0,0». Quindi le facce che arrivano qui sono
@@ -113,50 +113,50 @@ namespace Oce.Solid.Agent.Core
             // esistono: a catalogo c'erano due tipi che non potevano mai riuscire,
             // e fallivano con un errore di SOLIDWORKS che mandava a cercare
             // altrove. Si dice il perche' prima di toccare niente.
-            string chiesto = (Str(a, "variant", "coincidente") ?? "").Trim().ToLowerInvariant();
-            if (chiesto == "concentrico" || chiesto == "tangente")
-                return Fallito(
-                    "«" + chiesto + "» vuole almeno una faccia curva (un cilindro, un foro), e qui " +
+            string requested = (Str(a, "variant", "coincidente") ?? "").Trim().ToLowerInvariant();
+            if (requested == "concentrico" || requested == "tangente")
+                return Failed(
+                    "«" + requested + "» vuole almeno una faccia curva (un cilindro, un foro), e qui " +
                     "le facce si scelgono per verso — alto, basso, davanti… — che vale solo per le " +
-                    "facce piane: fra due facce piane un «" + chiesto + "» non esiste. Con le facce " +
+                    "facce piane: fra due facce piane un «" + requested + "» non esiste. Con le facce " +
                     "piane ci sono coincidente, parallelo, perpendicolare e distanza. Non ho toccato " +
                     "niente.");
 
-            string versoA = Str(a, "face_a", null);
-            string versoB = Str(a, "face_b", null);
+            string facingA = Str(a, "face_a", null);
+            string facingB = Str(a, "face_b", null);
             // THE DIRECTIONS ARE THE ASSEMBLY'S (finding M1, lot Z-C21.5): the
             // faces come from the bodies in the PART's coordinates, so each
             // normal is turned by the component's Transform2 before it is
             // compared with the direction asked for. ComponentAxes is the
             // reading of Transform2 that finding N26 measured (the axes of a
             // mirrored instance, MirrorComponentOperations.cs).
-            var facciaA = FacciaVersoDi(compA, versoA, ComponentAxes(compA), out string perche1);
-            if (facciaA == null) return Fallito("Su «" + uidA + "»: " + perche1);
-            var facciaB = FacciaVersoDi(compB, versoB, ComponentAxes(compB), out string perche2);
-            if (facciaB == null) return Fallito("Su «" + uidB + "»: " + perche2);
+            var faceA = FaceNormalOf(compA, facingA, ComponentAxes(compA), out string why1);
+            if (faceA == null) return Failed("Su «" + uidA + "»: " + why1);
+            var faceB = FaceNormalOf(compB, facingB, ComponentAxes(compB), out string why2);
+            if (faceB == null) return Failed("Su «" + uidB + "»: " + why2);
 
-            string nomeTipo = Str(a, "variant", "coincidente");
-            int tipo = TipoDiAccoppiamento(nomeTipo);
-            if (tipo < 0)
-                return Fallito(
-                    "Accoppiamento «" + nomeTipo + "» sconosciuto. Ci sono: " +
-                    string.Join(", ", TipiConosciuti) + ".");
+            string typeName = Str(a, "variant", "coincidente");
+            int typ = MateType(typeName);
+            if (typ < 0)
+                return Failed(
+                    "Accoppiamento «" + typeName + "» sconosciuto. Ci sono: " +
+                    string.Join(", ", KnownTypes) + ".");
 
-            double distanza = Num(a, "distance_mm", double.NaN);
-            if (tipo == (int)swMateType_e.swMateDISTANCE && double.IsNaN(distanza))
-                return Fallito(
+            double distance = Num(a, "distance_mm", double.NaN);
+            if (typ == (int)swMateType_e.swMateDISTANCE && double.IsNaN(distance))
+                return Failed(
                     "Un accoppiamento «distanza» senza «distance_mm» non ha nessun " +
                     "valore predefinito ragionevole: sceglierne uno vorrebbe dire " +
                     "decidere al posto tuo di quanto stanno lontane due facce.");
-            if (double.IsNaN(distanza)) distanza = 0;
+            if (double.IsNaN(distance)) distance = 0;
 
-            string allineamento = Str(a, "alignment", "allineato");
-            int align = allineamento.Equals("opposto", StringComparison.OrdinalIgnoreCase)
+            string alignment = Str(a, "alignment", "allineato");
+            int align = alignment.Equals("opposto", StringComparison.OrdinalIgnoreCase)
                 ? (int)swMateAlign_e.swMateAlignANTI_ALIGNED
                 : 0;   // swAlignNONE = allineato
 
             // ── SI CONTA PRIMA ──────────────────────────────────────────
-            int primaA = AccoppiamentiDi(compA), primaB = AccoppiamentiDi(compB);
+            int priorA = MatesOf(compA), priorB = MatesOf(compB);
 
             // ── WHAT IS BLOCKED BEFORE THE MATE (Z-C14) ─────────────────
             //
@@ -164,31 +164,31 @@ namespace Oce.Solid.Agent.Core
             // face is refused before any rebuild is spent (the test costs 13
             // per component). A fixed component is not moved: it is fully
             // blocked by definition.
-            string nameA = NomeDi(compA), nameB = NomeDi(compB);
-            var topLevel = TopLevelNamesOf(assieme);
-            var beforeA = ReadBlockedDirections(modello, assieme, nameA, topLevel);
-            var beforeB = ReadBlockedDirections(modello, assieme, nameB, topLevel);
+            string nameA = NameOf(compA), nameB = NameOf(compB);
+            var topLevel = TopLevelNamesOf(assemblyDoc);
+            var beforeA = ReadBlockedDirections(model, assemblyDoc, nameA, topLevel);
+            var beforeB = ReadBlockedDirections(model, assemblyDoc, nameB, topLevel);
 
             // The test moved the components and rebuilt: the handles and the
             // faces are taken again, as after the mate below.
-            var testedA = ComponentByName(assieme, nameA) ?? compA;
-            var testedB = ComponentByName(assieme, nameB) ?? compB;
-            facciaA = FacciaVersoDi(testedA, versoA, ComponentAxes(testedA), out perche1);
-            if (facciaA == null)
-                return Fallito("On «" + uidA + "», after the test of its directions: " + perche1 +
+            var testedA = ComponentByName(assemblyDoc, nameA) ?? compA;
+            var testedB = ComponentByName(assemblyDoc, nameB) ?? compB;
+            faceA = FaceNormalOf(testedA, facingA, ComponentAxes(testedA), out why1);
+            if (faceA == null)
+                return Failed("On «" + uidA + "», after the test of its directions: " + why1 +
                                DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
                                " Nothing was mated. Read the assembly state again and ask for the mate once more.");
-            facciaB = FacciaVersoDi(testedB, versoB, ComponentAxes(testedB), out perche2);
-            if (facciaB == null)
-                return Fallito("On «" + uidB + "», after the test of its directions: " + perche2 +
+            faceB = FaceNormalOf(testedB, facingB, ComponentAxes(testedB), out why2);
+            if (faceB == null)
+                return Failed("On «" + uidB + "», after the test of its directions: " + why2 +
                                DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
                                " Nothing was mated. Read the assembly state again and ask for the mate once more.");
 
             object mate;
-            int errore = 0;
+            int error = 0;
             try
             {
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
                 // THE TWO SELECTIONS ARE READ (Z-C21.8, «Select4 in accoppia»).
                 // IEntity~Select4.html, Return Value: «True if entity is
                 // selected, false if not». Until library 0.144.0 both answers
@@ -196,11 +196,11 @@ namespace Oce.Solid.Agent.Core
                 // one face only, or a face left selected by an earlier step or
                 // by hand. The finally below clears the selection on this exit
                 // too.
-                bool selectedA = (facciaA as IEntity).Select4(true, null);
-                bool selectedB = selectedA && (facciaB as IEntity).Select4(true, null);
+                bool selectedA = (faceA as IEntity).Select4(true, null);
+                bool selectedB = selectedA && (faceB as IEntity).Select4(true, null);
                 if (!selectedA || !selectedB)
-                    return Fallito(
-                        "I could not select the «" + (selectedA ? versoB : versoA) + "» face of " +
+                    return Failed(
+                        "I could not select the «" + (selectedA ? facingB : facingA) + "» face of " +
                         (selectedA ? uidB : uidA) + " (IEntity.Select4 answered false), so AddMate5 was " +
                         "not called: it would have mated whatever else was selected. Nothing was " +
                         "changed. Read the assembly state again and ask for the mate once more.");
@@ -213,55 +213,55 @@ namespace Oce.Solid.Agent.Core
                 // ended at s = +30 mm, the requested side, IMate2.Flipped False;
                 // Flip = true sent it to s = -30 mm. So Flip stays false, and
                 // Transform2 is not reread against the side.
-                mate = assieme.AddMate5(
-                    tipo, align, false,
-                    Unita.M(distanza), Unita.M(distanza), Unita.M(distanza),
-                    0, 0, 0, 0, 0, false, false, 0, out errore);
+                mate = assemblyDoc.AddMate5(
+                    typ, align, false,
+                    Units.M(distance), Units.M(distance), Units.M(distance),
+                    0, 0, 0, 0, 0, false, false, 0, out error);
             }
             catch (Exception ex)
             {
-                return Fallito("Non sono riuscito ad accoppiare: " + ex.Message);
+                return Failed("Non sono riuscito ad accoppiare: " + ex.Message);
             }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            finally { try { model.ClearSelection2(true); } catch { } }
 
             // `NoError` VALE 1. Zero e' `ErrorUknown`.
-            if (errore != (int)swAddMateError_e.swAddMateError_NoError)
-                return Fallito(
-                    "SOLIDWORKS ha rifiutato l'accoppiamento: " + NomeErroreMate(errore) +
-                    ". Le due facce sono la «" + versoA + "» di " + uidA + " e la «" +
-                    versoB + "» di " + uidB + "; l'accoppiamento chiesto e' «" +
-                    nomeTipo + "»" +
+            if (error != (int)swAddMateError_e.swAddMateError_NoError)
+                return Failed(
+                    "SOLIDWORKS ha rifiutato l'accoppiamento: " + MateErrorName(error) +
+                    ". Le due facce sono la «" + facingA + "» di " + uidA + " e la «" +
+                    facingB + "» di " + uidB + "; l'accoppiamento chiesto e' «" +
+                    typeName + "»" +
                     (align == 0 ? " allineato" : " opposto") + ".");
 
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
 
             // ── E SI CONTA DOPO ─────────────────────────────────────────
             //
             // Le maniglie possono essere state invalidate dalla ricostruzione:
             // si rileggono per nome, come fa `insert_component`.
-            var dopoComp = StatoDocumento.ComponentiInOrdine(
-                assieme.GetComponents(false) as object[]);
+            var afterComp = DocumentState.ComponentsInOrder(
+                assemblyDoc.GetComponents(false) as object[]);
             // By the names read before the test of the directions (Z-C14):
             // thirteen rebuilds later the first handles are the least
             // trustworthy thing in this method.
-            var riA = PerNome(dopoComp, nameA) ?? testedA;
-            var riB = PerNome(dopoComp, nameB) ?? testedB;
-            int dopoA = AccoppiamentiDi(riA), dopoB = AccoppiamentiDi(riB);
+            var riA = ByName(afterComp, nameA) ?? testedA;
+            var riB = ByName(afterComp, nameB) ?? testedB;
+            int laterA = MatesOf(riA), laterB = MatesOf(riB);
 
-            if (dopoA <= primaA && dopoB <= primaB)
-                return Fallito(
+            if (laterA <= priorA && laterB <= priorB)
+                return Failed(
                     "Mi e' stato risposto di si' (" + (mate == null ? "senza oggetto" : "con l'oggetto") +
                     ") ma gli accoppiamenti non sono aumentati: " + uidA + " ne aveva " +
-                    primaA + " e ne ha " + dopoA + ", " + uidB + " ne aveva " + primaB +
-                    " e ne ha " + dopoB + ". Non l'ho considerato fatto.");
+                    priorA + " e ne ha " + laterA + ", " + uidB + " ne aveva " + priorB +
+                    " e ne ha " + laterB + ". Non l'ho considerato fatto.");
 
             // ── WHAT IS BLOCKED AFTER IT, AND WHAT THE MATE REMOVED (Z-C14) ─
             //
             // SOLIDWORKS's own answer is read first, to be quoted: on a
             // redundant mate it says nothing is wrong (probe zc14, 30/9/2026).
-            int whatsWrong = QuantiProblemi(modello);
-            var afterA = beforeA.Status == ReadingMeasured ? ReadBlockedDirections(modello, assieme, nameA, topLevel) : beforeA;
-            var afterB = beforeB.Status == ReadingMeasured ? ReadBlockedDirections(modello, assieme, nameB, topLevel) : beforeB;
+            int whatsWrong = HowManyProblems(model);
+            var afterA = beforeA.Status == ReadingMeasured ? ReadBlockedDirections(model, assemblyDoc, nameA, topLevel) : beforeA;
+            var afterB = beforeB.Status == ReadingMeasured ? ReadBlockedDirections(model, assemblyDoc, nameB, topLevel) : beforeB;
             string verdict = MateVerdict(
                 BothReadings(beforeA, afterA), beforeA.Blocked, afterA.Blocked,
                 BothReadings(beforeB, afterB), beforeB.Blocked, afterB.Blocked);
@@ -272,12 +272,12 @@ namespace Oce.Solid.Agent.Core
             // removing nothing. «redundant» is kept only when every mate of the
             // assembly is a standard one without limits; otherwise the mate stays.
             string notStandard = null;
-            if (verdict == MateRedundant && !OnlyStandardMates(modello, out notStandard))
+            if (verdict == MateRedundant && !OnlyStandardMates(model, out notStandard))
                 verdict = MateNotJudged;
             string mateSaid =
-                "«" + versoA + "» of " + uidA + " on «" + versoB + "» of " + uidB + " (" + nomeTipo +
-                (tipo == (int)swMateType_e.swMateDISTANCE
-                    ? " " + distanza.ToString("0.###", CultureInfo.InvariantCulture) + " mm" : "") + ")";
+                "«" + facingA + "» of " + uidA + " on «" + facingB + "» of " + uidB + " (" + typeName +
+                (typ == (int)swMateType_e.swMateDISTANCE
+                    ? " " + distance.ToString("0.###", CultureInfo.InvariantCulture) + " mm" : "") + ")";
             string directions =
                 DirectionSentence(uidA, beforeA, afterA) + " " + DirectionSentence(uidB, beforeB, afterB);
 
@@ -296,46 +296,46 @@ namespace Oce.Solid.Agent.Core
                           (whatsWrong < 0 ? "nothing (unreadable)" : whatsWrong.ToString(CultureInfo.InvariantCulture)) +
                           "; the directions show that this mate adds nothing. ") +
                     HowDirectionsAreMeasured +
-                    RemoveTheMateJustMade(modello, assieme, mate, nameA, nameB, uidA, uidB, primaA, primaB);
+                    RemoveTheMateJustMade(model, assemblyDoc, mate, nameA, nameB, uidA, uidB, priorA, priorB);
                 _log("[agente] " + refusal);
-                return Fallito(refusal);
+                return Failed(refusal);
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["kind"] = nomeTipo,
-                ["mates_before"] = new object[] { primaA, primaB },
-                ["mates_after"] = new object[] { dopoA, dopoB },
+                ["kind"] = typeName,
+                ["mates_before"] = new object[] { priorA, priorB },
+                ["mates_after"] = new object[] { laterA, laterB },
             };
-            if (tipo == (int)swMateType_e.swMateDISTANCE) misure["distance_mm"] = distanza;
+            if (typ == (int)swMateType_e.swMateDISTANCE) measurements["distance_mm"] = distance;
 
-            bool fissoA = EFisso(riA), fissoB = EFisso(riB);
-            misure["resting_a"] = !fissoA && dopoA == 0;
-            misure["resting_b"] = !fissoB && dopoB == 0;
+            bool fixedA = IsFixed(riA), fixedB = IsFixed(riB);
+            measurements["resting_a"] = !fixedA && laterA == 0;
+            measurements["resting_b"] = !fixedB && laterB == 0;
 
             // Z-C14: per component, in the order of mates_before/dopo.
-            misure["blocked_directions_before"] = new object[] { beforeA.Blocked, beforeB.Blocked };
-            misure["blocked_directions_after"] = new object[] { afterA.Blocked, afterB.Blocked };
-            misure["degrees_removed"] = new object[] { DegreesRemoved(beforeA, afterA), DegreesRemoved(beforeB, afterB) };
-            misure["direction_test"] = new object[] { DescribeTest(beforeA, afterA), DescribeTest(beforeB, afterB) };
-            misure["residual_drift_mm"] = new object[] { LargestDrift(beforeA, afterA, false), LargestDrift(beforeB, afterB, false) };
-            misure["residual_drift_deg"] = new object[] { LargestDrift(beforeA, afterA, true), LargestDrift(beforeB, afterB, true) };
-            misure["mate_verdict"] = verdict;
+            measurements["blocked_directions_before"] = new object[] { beforeA.Blocked, beforeB.Blocked };
+            measurements["blocked_directions_after"] = new object[] { afterA.Blocked, afterB.Blocked };
+            measurements["degrees_removed"] = new object[] { DegreesRemoved(beforeA, afterA), DegreesRemoved(beforeB, afterB) };
+            measurements["direction_test"] = new object[] { DescribeTest(beforeA, afterA), DescribeTest(beforeB, afterB) };
+            measurements["residual_drift_mm"] = new object[] { LargestDrift(beforeA, afterA, false), LargestDrift(beforeB, afterB, false) };
+            measurements["residual_drift_deg"] = new object[] { LargestDrift(beforeA, afterA, true), LargestDrift(beforeB, afterB, true) };
+            measurements["mate_verdict"] = verdict;
 
-            string giudizio =
-                "Mated " + mateSaid + ". Now " + uidA + " has " + dopoA + (dopoA == 1 ? " mate" : " mates") +
-                " and " + uidB + " has " + dopoB + ". " + directions +
+            string verdictValue =
+                "Mated " + mateSaid + ". Now " + uidA + " has " + laterA + (laterA == 1 ? " mate" : " mates") +
+                " and " + uidB + " has " + laterB + ". " + directions +
                 (notStandard != null
                     ? " This mate blocks nothing new by the test, but the assembly has " + notStandard + ": the test " +
                       "moves one way only, so a direction held at the end of a limit reads blocked, and I do not call " +
                       "the mate redundant. The mate stays."
                     : VerdictTail(verdict)) + " " +
                 HowDirectionsAreMeasured;
-            if (notStandard != null) misure["not_judged_because"] = "the assembly has " + notStandard;
-            misure["verdict"] = giudizio;
-            _log("[agente] " + giudizio);
+            if (notStandard != null) measurements["not_judged_because"] = "the assembly has " + notStandard;
+            measurements["verdict"] = verdictValue;
+            _log("[agente] " + verdictValue);
 
-            return RiuscitoSenzaCreare(misure);
+            return SucceededWithoutCreating(measurements);
         }
 
         // =================================================================
@@ -367,13 +367,13 @@ namespace Oce.Solid.Agent.Core
         /// «Gets or sets whether this distance mate is a limit distance mate»;
         /// IAngleMateFeatureData~IsAdvancedMate.html, the same for angles).
         /// </summary>
-        private static bool OnlyStandardMates(IModelDoc2 modello, out string notStandard)
+        private static bool OnlyStandardMates(IModelDoc2 model, out string notStandard)
         {
             notStandard = null;
             try
             {
                 IFeature group = null;
-                var f = modello.FirstFeature() as IFeature;
+                var f = model.FirstFeature() as IFeature;
                 while (f != null) { if (f.GetTypeName2() == "MateGroup") group = f; f = f.GetNextFeature() as IFeature; }
                 if (group == null) return true;
                 var sub = group.GetFirstSubFeature() as IFeature;
@@ -514,10 +514,10 @@ namespace Oce.Solid.Agent.Core
         /// component per reading.
         /// </summary>
         private DirectionReading ReadBlockedDirections(
-            IModelDoc2 modello, IAssemblyDoc assieme, string name, HashSet<string> topLevel)
+            IModelDoc2 model, IAssemblyDoc assemblyDoc, string name, HashSet<string> topLevel)
         {
             var reading = new DirectionReading();
-            var component = ComponentByName(assieme, name);
+            var component = ComponentByName(assemblyDoc, name);
             if (component == null)
             {
                 reading.Why = "the component does not answer to its name, so it could not be moved";
@@ -535,7 +535,7 @@ namespace Oce.Solid.Agent.Core
                               "fixed flag is not known from here, so it was not moved";
                 return reading;
             }
-            if (EFisso(component))
+            if (IsFixed(component))
             {
                 reading.Status = ReadingFixed;
                 reading.Blocked = (string[])DirectionNames.Clone();
@@ -556,7 +556,7 @@ namespace Oce.Solid.Agent.Core
             // carry along a component mated to this one (the solver moves what
             // it needs to satisfy every mate), and putting this one back does
             // not promise to bring that one back too.
-            var others = OtherPositions(assieme, name, topLevel);
+            var others = OtherPositions(assemblyDoc, name, topLevel);
 
             var blocked = new List<string>();
             var slides = new List<string>();
@@ -566,22 +566,22 @@ namespace Oce.Solid.Agent.Core
             {
                 string d = DirectionNames[k];
                 var moved = MovedForTest(reference, k);
-                if (moved == null || !SetTransform(assieme, name, math, moved))
+                if (moved == null || !SetTransform(assemblyDoc, name, math, moved))
                 { why = "Transform2 could not be set for the move " + d; break; }
-                var afterSet = ReadTransform(ComponentByName(assieme, name));
+                var afterSet = ReadTransform(ComponentByName(assemblyDoc, name));
                 if (!MoveTookEffect(reference, afterSet, k))
                 { why = "setting Transform2 did not move it by the step asked (" + d + ")"; break; }
                 reading.Rebuilds++;
-                if (!RebuildForTest(modello))
+                if (!RebuildForTest(model))
                 { why = "EditRebuild3 did not answer true after the move " + d + RebuildFalseHint; break; }
-                var afterRebuild = ReadTransform(ComponentByName(assieme, name));
+                var afterRebuild = ReadTransform(ComponentByName(assemblyDoc, name));
                 bool? isBlocked = DirectionBlocked(reference, afterRebuild, k);
                 if (isBlocked == null)
                 { why = "its Transform2 could not be read after the move " + d; break; }
                 // NEITHER BACK NOR WHERE IT WAS MOVED: the probe's third reading
                 // («ELSEWHERE», zc14/probe_mate_dof.cs). None of its rows fell
                 // there, and «free» for it would be a guess: a face up to 8
-                // degrees off the axis (FacciaVersoDi takes a dot above 0.99)
+                // degrees off the axis (FaceNormalOf takes a dot above 0.99)
                 // puts a translation back only in part, and a direction read
                 // free both before and after a mate that holds it is exactly a
                 // mate called redundant and taken out.
@@ -598,12 +598,12 @@ namespace Oce.Solid.Agent.Core
 
                 // Back to where this move started, and a slide left by the
                 // solver along a free direction is noted, not added up.
-                if (!SetTransform(assieme, name, math, reference))
+                if (!SetTransform(assemblyDoc, name, math, reference))
                 { why = "Transform2 could not be set to put it back after the move " + d; break; }
                 reading.Rebuilds++;
-                if (!RebuildForTest(modello))
+                if (!RebuildForTest(model))
                 { why = "EditRebuild3 did not answer true after putting it back from " + d + RebuildFalseHint; break; }
-                var back = ReadTransform(ComponentByName(assieme, name));
+                var back = ReadTransform(ComponentByName(assemblyDoc, name));
                 double turned = AngleBetweenDeg(back, reference);
                 if (double.IsNaN(turned))
                 { why = "its Transform2 could not be read after putting it back from " + d; break; }
@@ -626,18 +626,18 @@ namespace Oce.Solid.Agent.Core
             // component the test carried along is set back in the same
             // rebuild: they all were where they started together, a state the
             // mates already accepted.
-            var setBack = SetOthersBack(assieme, math, others);
-            if (SetTransform(assieme, name, math, original))
+            var setBack = SetOthersBack(assemblyDoc, math, others);
+            if (SetTransform(assemblyDoc, name, math, original))
             {
                 reading.Rebuilds++;
-                if (RebuildForTest(modello))
+                if (RebuildForTest(model))
                 {
-                    var final = ReadTransform(ComponentByName(assieme, name));
+                    var final = ReadTransform(ComponentByName(assemblyDoc, name));
                     reading.DriftMm = DistanceMm(final, original);
                     reading.DriftDeg = AngleBetweenDeg(final, original);
                 }
             }
-            reading.Others.AddRange(OthersLeftMoved(assieme, others, setBack));
+            reading.Others.AddRange(OthersLeftMoved(assemblyDoc, others, setBack));
 
             reading.Slides.AddRange(slides);
             if (why != null) { reading.Why = why; return reading; }
@@ -647,10 +647,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>The component of that Name2, read again from the assembly, or null.</summary>
-        private static IComponent2 ComponentByName(IAssemblyDoc assieme, string name)
+        private static IComponent2 ComponentByName(IAssemblyDoc assemblyDoc, string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
-            try { return PerNome(StatoDocumento.ComponentiInOrdine(assieme.GetComponents(false) as object[]), name); }
+            try { return ByName(DocumentState.ComponentsInOrder(assemblyDoc.GetComponents(false) as object[]), name); }
             catch { return null; }
         }
 
@@ -660,14 +660,14 @@ namespace Oce.Solid.Agent.Core
         /// test. A fixed one is not moved by a rebuild; a nested one moves with
         /// its top-level parent, which is in the list.
         /// </summary>
-        private static Dictionary<string, double[]> OtherPositions(IAssemblyDoc assieme, string name, HashSet<string> topLevel)
+        private static Dictionary<string, double[]> OtherPositions(IAssemblyDoc assemblyDoc, string name, HashSet<string> topLevel)
         {
             var positions = new Dictionary<string, double[]>(StringComparer.Ordinal);
-            var byName = TopLevelByName(assieme);
+            var byName = TopLevelByName(assemblyDoc);
             foreach (string other in byName.Keys)
             {
                 IComponent2 component = byName[other];
-                if (other == name || !topLevel.Contains(other) || EFisso(component)) continue;
+                if (other == name || !topLevel.Contains(other) || IsFixed(component)) continue;
                 var transform = ReadTransform(component);
                 if (transform != null) positions[other] = transform;
             }
@@ -675,16 +675,16 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>The top-level components by Name2, read once; empty when they cannot be read.</summary>
-        private static Dictionary<string, IComponent2> TopLevelByName(IAssemblyDoc assieme)
+        private static Dictionary<string, IComponent2> TopLevelByName(IAssemblyDoc assemblyDoc)
         {
             var byName = new Dictionary<string, IComponent2>(StringComparer.Ordinal);
             object[] all = null;
-            try { all = assieme.GetComponents(true) as object[]; } catch { }
+            try { all = assemblyDoc.GetComponents(true) as object[]; } catch { }
             if (all == null) return byName;
             foreach (object o in all)
             {
                 IComponent2 component = o as IComponent2;
-                string other = NomeDi(component);
+                string other = NameOf(component);
                 if (!string.IsNullOrEmpty(other) && !byName.ContainsKey(other)) byName[other] = component;
             }
             return byName;
@@ -702,28 +702,28 @@ namespace Oce.Solid.Agent.Core
         /// back to its transform from before the test; the names that could
         /// not be set. Called just before the final rebuild of the test.
         /// </summary>
-        private static HashSet<string> SetOthersBack(IAssemblyDoc assieme, IMathUtility math, Dictionary<string, double[]> others)
+        private static HashSet<string> SetOthersBack(IAssemblyDoc assemblyDoc, IMathUtility math, Dictionary<string, double[]> others)
         {
             var notSet = new HashSet<string>(StringComparer.Ordinal);
             if (others.Count == 0) return notSet;
-            var now = TopLevelByName(assieme);
+            var now = TopLevelByName(assemblyDoc);
             foreach (string other in others.Keys)
             {
                 double[] then = others[other];
                 IComponent2 component;
                 var transform = now.TryGetValue(other, out component) ? ReadTransform(component) : null;
                 if (transform != null && !AwayFrom(then, transform)) continue;
-                if (!SetTransform(assieme, other, math, then)) notSet.Add(other);
+                if (!SetTransform(assemblyDoc, other, math, then)) notSet.Add(other);
             }
             return notSet;
         }
 
         /// <summary>What the final rebuild left of the other components: one line for each still away from where it was, or unreadable.</summary>
-        private static List<string> OthersLeftMoved(IAssemblyDoc assieme, Dictionary<string, double[]> others, HashSet<string> notSet)
+        private static List<string> OthersLeftMoved(IAssemblyDoc assemblyDoc, Dictionary<string, double[]> others, HashSet<string> notSet)
         {
             var notes = new List<string>();
             if (others.Count == 0) return notes;
-            var now = TopLevelByName(assieme);
+            var now = TopLevelByName(assemblyDoc);
             foreach (string other in others.Keys)
             {
                 double[] then = others[other];
@@ -739,10 +739,10 @@ namespace Oce.Solid.Agent.Core
             return notes;
         }
 
-        /// <summary>The names of the top-level components (the one rule, StatoDocumento.TopLevelNames), or null.</summary>
-        private static HashSet<string> TopLevelNamesOf(IAssemblyDoc assieme)
+        /// <summary>The names of the top-level components (the one rule, DocumentState.TopLevelNames), or null.</summary>
+        private static HashSet<string> TopLevelNamesOf(IAssemblyDoc assemblyDoc)
         {
-            try { return StatoDocumento.TopLevelNames(assieme.GetComponents(true) as object[]); }
+            try { return DocumentState.TopLevelNames(assemblyDoc.GetComponents(true) as object[]); }
             catch { return null; }
         }
 
@@ -760,11 +760,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>IComponent2.Transform2 set to a transform built from <paramref name="data"/>; false when it could not be.</summary>
-        private static bool SetTransform(IAssemblyDoc assieme, string name, IMathUtility math, double[] data)
+        private static bool SetTransform(IAssemblyDoc assemblyDoc, string name, IMathUtility math, double[] data)
         {
             try
             {
-                var component = ComponentByName(assieme, name);
+                var component = ComponentByName(assemblyDoc, name);
                 var transform = math.CreateTransform(data) as MathTransform;
                 if (component == null || transform == null) return false;
                 component.Transform2 = transform;
@@ -784,9 +784,9 @@ namespace Oce.Solid.Agent.Core
         /// RebuildIfActivationAsked), so on such an assembly the test reads
         /// unknown and the mate is kept, never judged.
         /// </summary>
-        private static bool RebuildForTest(IModelDoc2 modello)
+        private static bool RebuildForTest(IModelDoc2 model)
         {
-            try { return modello.EditRebuild3(); }
+            try { return model.EditRebuild3(); }
             catch { return false; }
         }
 
@@ -888,30 +888,30 @@ namespace Oce.Solid.Agent.Core
         /// IFeature::GetSpecificFeature2 or QueryInterface» the IMate2 interface,
         /// so the same object answers IFeature (measured on the objects GetMates
         /// gives, probe zd345 of 27/9/2026). DeleteSelection2 and not EditDelete,
-        /// which can open a confirmation window (TogliLoSpecchio).
+        /// which can open a confirmation window (RemoveMirror).
         /// </summary>
         private static string RemoveTheMateJustMade(
-            IModelDoc2 modello, IAssemblyDoc assieme, object mate, string nameA, string nameB,
-            string uidA, string uidB, int primaA, int primaB)
+            IModelDoc2 model, IAssemblyDoc assemblyDoc, object mate, string nameA, string nameB,
+            string uidA, string uidB, int priorA, int priorB)
         {
             var feature = mate as IFeature;
-            string featureName = SafeNome(feature);
+            string featureName = SafeName(feature);
             bool deleted = false;
             if (feature != null)
             {
                 try
                 {
-                    modello.ClearSelection2(true);
+                    model.ClearSelection2(true);
                     if (feature.Select2(false, 0))
-                        deleted = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                    modello.ClearSelection2(true);
-                    modello.EditRebuild3();
+                        deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                    model.ClearSelection2(true);
+                    model.EditRebuild3();
                 }
                 catch { }
             }
-            int nowA = AccoppiamentiDi(ComponentByName(assieme, nameA));
-            int nowB = AccoppiamentiDi(ComponentByName(assieme, nameB));
-            return MateRemovalNote(feature != null, featureName, deleted, uidA, uidB, primaA, primaB, nowA, nowB);
+            int nowA = MatesOf(ComponentByName(assemblyDoc, nameA));
+            int nowB = MatesOf(ComponentByName(assemblyDoc, nameB));
+            return MateRemovalNote(feature != null, featureName, deleted, uidA, uidB, priorA, priorB, nowA, nowB);
         }
 
         // ── the pure rules of Z-C14: no interop type in a signature, so that
@@ -1101,13 +1101,13 @@ namespace Oce.Solid.Agent.Core
 
         // Concentrico e tangente non ci sono piu' (voce Z-C21.2, M17): con le facce
         // scelte per verso non possono riuscire, e il rifiuto sta in Accoppia.
-        private static readonly string[] TipiConosciuti =
+        private static readonly string[] KnownTypes =
             { "coincidente", "parallelo", "perpendicolare", "distanza" };
 
-        private static int TipoDiAccoppiamento(string nome)
+        private static int MateType(string itemName)
         {
-            if (string.IsNullOrWhiteSpace(nome)) return -1;
-            switch (nome.Trim().ToLowerInvariant())
+            if (string.IsNullOrWhiteSpace(itemName)) return -1;
+            switch (itemName.Trim().ToLowerInvariant())
             {
                 case "coincidente": return (int)swMateType_e.swMateCOINCIDENT;
                 case "parallelo": return (int)swMateType_e.swMatePARALLEL;
@@ -1124,7 +1124,7 @@ namespace Oce.Solid.Agent.Core
         /// quello che chiunque si aspetta: qui i nomi tolgono l'ambiguita' anche
         /// a chi legge il messaggio.
         /// </summary>
-        private static string NomeErroreMate(int e)
+        private static string MateErrorName(int e)
         {
             switch (e)
             {
@@ -1145,7 +1145,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         private static IComponent2 PerUid(
-            List<KeyValuePair<string, IComponent2>> componenti, string uid)
+            List<KeyValuePair<string, IComponent2>> components, string uid)
         {
             if (string.IsNullOrWhiteSpace(uid)) return null;
             var u = uid.Trim();
@@ -1153,38 +1153,38 @@ namespace Oce.Solid.Agent.Core
             int n;
             if (!int.TryParse(u.Substring(1), NumberStyles.Integer,
                               CultureInfo.InvariantCulture, out n)) return null;
-            if (n < 1 || n > componenti.Count) return null;
-            return componenti[n - 1].Value;
+            if (n < 1 || n > components.Count) return null;
+            return components[n - 1].Value;
         }
 
-        private static IComponent2 PerNome(
-            List<KeyValuePair<string, IComponent2>> componenti, string nome)
+        private static IComponent2 ByName(
+            List<KeyValuePair<string, IComponent2>> components, string itemName)
         {
-            if (string.IsNullOrWhiteSpace(nome)) return null;
-            foreach (var v in componenti)
-                if (string.Equals(v.Key, nome, StringComparison.Ordinal)) return v.Value;
+            if (string.IsNullOrWhiteSpace(itemName)) return null;
+            foreach (var v in components)
+                if (string.Equals(v.Key, itemName, StringComparison.Ordinal)) return v.Value;
             return null;
         }
 
-        private static string NomeDi(IComponent2 c)
+        private static string NameOf(IComponent2 c)
         {
             try { return c == null ? null : c.Name2; } catch { return null; }
         }
 
-        private static bool EFisso(IComponent2 c)
+        private static bool IsFixed(IComponent2 c)
         {
             try { return c != null && c.IsFixed(); } catch { return false; }
         }
 
-        private static string NonTrovato(
-            string uid, string campo, List<KeyValuePair<string, IComponent2>> componenti)
+        private static string NotFound(
+            string uid, string theField, List<KeyValuePair<string, IComponent2>> components)
         {
-            var esistono = string.Join(", ",
-                componenti.Select((v, i) => "C" + (i + 1) + " («" + v.Key + "»)"));
+            var exist = string.Join(", ",
+                components.Select((v, i) => "C" + (i + 1) + " («" + v.Key + "»)"));
             return string.IsNullOrWhiteSpace(uid)
-                ? "Non mi hai detto quale componente: «" + campo + "» vuole un " +
-                  "identificativo dallo stato. Ci sono: " + esistono + "."
-                : "Non trovo il componente «" + uid + "». Ci sono: " + esistono + ".";
+                ? "Non mi hai detto quale componente: «" + theField + "» vuole un " +
+                  "identificativo dallo stato. Ci sono: " + exist + "."
+                : "Non trovo il componente «" + uid + "». Ci sono: " + exist + ".";
         }
 
         /// <summary>
@@ -1212,43 +1212,43 @@ namespace Oce.Solid.Agent.Core
         /// saperlo, perche' *un caso in cui due valori diversi danno lo stesso
         /// risultato non tabella niente*.
         /// </summary>
-        private static IFace2 FacciaVersoDi(IComponent2 c, string verso, double[][] axes, out string perche)
+        private static IFace2 FaceNormalOf(IComponent2 c, string facing, double[][] axes, out string why)
         {
-            perche = null;
-            if (string.IsNullOrWhiteSpace(verso))
+            why = null;
+            if (string.IsNullOrWhiteSpace(facing))
             {
-                perche = "non mi hai detto quale faccia. I versi sono: " +
-                         string.Join(", ", VersiConosciuti) + ".";
+                why = "non mi hai detto quale faccia. I versi sono: " +
+                         string.Join(", ", KnownFacings) + ".";
                 return null;
             }
-            var voluta = Direzione(verso);
-            if (voluta == null)
+            var wanted = Direction(facing);
+            if (wanted == null)
             {
-                perche = "«" + verso + "» non e' un verso che conosco. Ci sono: " +
-                         string.Join(", ", VersiConosciuti) + ".";
+                why = "«" + facing + "» non e' un verso che conosco. Ci sono: " +
+                         string.Join(", ", KnownFacings) + ".";
                 return null;
             }
             if (axes == null)
             {
-                perche = "I cannot read how the component is turned in the assembly (IComponent2.Transform2 " +
-                         "did not answer), so I cannot tell which of its faces looks «" + verso + "» in the " +
+                why = "I cannot read how the component is turned in the assembly (IComponent2.Transform2 " +
+                         "did not answer), so I cannot tell which of its faces looks «" + facing + "» in the " +
                          "assembly. Nothing was changed.";
                 return null;
             }
 
-            object[] corpi = null;
-            try { corpi = c.GetBodies3((int)swBodyType_e.swSolidBody, out _) as object[]; }
+            object[] bodies = null;
+            try { bodies = c.GetBodies3((int)swBodyType_e.swSolidBody, out _) as object[]; }
             catch { }
-            if (corpi == null || corpi.Length == 0)
+            if (bodies == null || bodies.Length == 0)
             {
-                perche = "il componente non ha corpi solidi da cui prendere una faccia.";
+                why = "il componente non ha corpi solidi da cui prendere una faccia.";
                 return null;
             }
 
-            IFace2 vince = null;
+            IFace2 wins = null;
             double maxArea = -1;
-            int quante = 0;
-            foreach (var o in corpi)
+            int howMany = 0;
+            foreach (var o in bodies)
             {
                 var b = o as IBody2;
                 if (b == null) continue;
@@ -1259,25 +1259,25 @@ namespace Oce.Solid.Agent.Core
                     // assembly space out (M1).
                     var n = InAssemblySpace(ApiHelpers.NormalIfPlanar(f), axes);
                     if (n != null &&
-                        n[0] * voluta[0] + n[1] * voluta[1] + n[2] * voluta[2] > 0.99)
+                        n[0] * wanted[0] + n[1] * wanted[1] + n[2] * wanted[2] > 0.99)
                     {
-                        quante++;
+                        howMany++;
                         double area = 0;
                         try { area = f.GetArea(); } catch { }
-                        if (area > maxArea) { maxArea = area; vince = f; }
+                        if (area > maxArea) { maxArea = area; wins = f; }
                     }
                     f = f.GetNextFace() as IFace2;
                 }
             }
 
-            if (vince == null)
+            if (wins == null)
             {
-                perche = "no flat face looks «" + verso + "» in the assembly. The directions are " +
+                why = "no flat face looks «" + facing + "» in the assembly. The directions are " +
                          "the assembly's: on a turned component a face is judged by where it looks " +
                          "after the component's rotation, not by where it looks in the part file.";
                 return null;
             }
-            return vince;
+            return wins;
         }
 
         /// <summary>
@@ -1302,12 +1302,12 @@ namespace Oce.Solid.Agent.Core
             return turned;
         }
 
-        private static readonly string[] VersiConosciuti =
+        private static readonly string[] KnownFacings =
             { "up", "down", "right", "left", "front", "back" };
 
-        private static double[] Direzione(string verso)
+        private static double[] Direction(string facing)
         {
-            switch (verso.Trim().ToLowerInvariant())
+            switch (facing.Trim().ToLowerInvariant())
             {
                 case "right": return new double[] { 1, 0, 0 };
                 case "left": return new double[] { -1, 0, 0 };

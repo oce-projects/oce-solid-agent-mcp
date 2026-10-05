@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using static Oce.Solid.Agent.ContractTests.Programma;
-using static Shared.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Program;
+using static Shared.McpClient;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -25,93 +25,93 @@ namespace Oce.Solid.Agent.ContractTests
     /// e lo si vede senza SOLIDWORKS, perche' la conferma si chiede PRIMA di
     /// qualunque conversazione col CAD.
     /// </summary>
-    internal static class ProveLaConferma
+    internal static class ConfirmationTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("la conferma all'utente, non al modello (W2.5)");
+            Group("la conferma all'utente, non al modello (W2.5)");
 
-            var eseguibile = PonteOppureNonQui("la conferma sul ponte vero");
-            if (eseguibile == null) return;
+            var executable = BridgeOrNotHere("la conferma sul ponte vero");
+            if (executable == null) return;
 
             // ── 1. UN CLIENT CHE SA CHIEDERE, E DICE DI NO ───────────────
-            var p = Apri(eseguibile);
-            if (p == null) { Segna("il ponte parte", false, ""); return; }
+            var p = Open(executable);
+            if (p == null) { Check("il ponte parte", false, ""); return; }
             try
             {
-                Chiedi(p, 1,
+                Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"elicitation\":{}}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
 
                 // Si manda il piano SENZA aspettare la risposta: quello che
                 // deve arrivare per primo e' la DOMANDA del ponte.
-                Scrivi(p,
+                Write(p,
                     "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"steps\":[" +
                     "{\"operation\":\"delete_feature\",\"arguments\":" +
                     "{\"feature_uid\":\"Taglio-Estrusione1\"}}]}}}");
 
                 // La domanda deve arrivare prima di qualunque risposta.
-                Dictionary<string, object> domanda = null;
-                object idDomanda = null;
-                for (int i = 0; i < 8 && domanda == null; i++)
+                Dictionary<string, object> question = null;
+                object questionId = null;
+                for (int i = 0; i < 8 && question == null; i++)
                 {
-                    var riga = Riga(p, 15000);
-                    if (riga == null) break;
-                    var o = Ogg(riga);
+                    var line = Line(p, 15000);
+                    if (line == null) break;
+                    var o = Obj(line);
                     if (o == null) continue;
-                    if (Convert.ToString(Dentro(o, "method")) == "elicitation/create")
-                    { domanda = o; idDomanda = Dentro(o, "id"); }
+                    if (Convert.ToString(Inside(o, "method")) == "elicitation/create")
+                    { question = o; questionId = Inside(o, "id"); }
                 }
 
-                Segna("il ponte CHIEDE prima di eliminare", domanda != null,
-                      domanda == null ? "nessuna elicitation/create" : "elicitation/create");
+                Check("il ponte CHIEDE prima di eliminare", question != null,
+                      question == null ? "nessuna elicitation/create" : "elicitation/create");
 
-                if (domanda != null)
+                if (question != null)
                 {
-                    var parametri = Dentro(domanda, "params") as Dictionary<string, object>;
-                    var messaggio = Convert.ToString(Dentro(parametri, "message"));
+                    var parameters = Inside(question, "params") as Dictionary<string, object>;
+                    var message = Convert.ToString(Inside(parameters, "message"));
 
                     // LA DOMANDA DEVE DIRE COSA SI STA PER PERDERE. «Confermi?»
                     // da solo e' un pulsante, non una domanda.
-                    Segna("e la domanda nomina l'operazione",
-                          messaggio != null && messaggio.Contains("delete_feature"),
-                          Corto(messaggio));
-                    Segna("e dice che non si annulla",
-                          messaggio != null &&
-                          messaggio.IndexOf("non si annulla", StringComparison.OrdinalIgnoreCase) >= 0,
-                          Corto(messaggio));
+                    Check("e la domanda nomina l'operazione",
+                          message != null && message.Contains("delete_feature"),
+                          Short(message));
+                    Check("e dice che non si annulla",
+                          message != null &&
+                          message.IndexOf("non si annulla", StringComparison.OrdinalIgnoreCase) >= 0,
+                          Short(message));
 
                     // ── SI RISPONDE DI NO ────────────────────────────────
-                    Scrivi(p,
-                        "{\"jsonrpc\":\"2.0\",\"id\":" + Convert.ToString(idDomanda) +
+                    Write(p,
+                        "{\"jsonrpc\":\"2.0\",\"id\":" + Convert.ToString(questionId) +
                         ",\"result\":{\"action\":\"decline\"}}");
 
-                    string testo = null;
-                    for (int i = 0; i < 8 && testo == null; i++)
+                    string text = null;
+                    for (int i = 0; i < 8 && text == null; i++)
                     {
-                        var riga = Riga(p, 15000);
-                        if (riga == null) break;
-                        var o = Ogg(riga);
+                        var line = Line(p, 15000);
+                        if (line == null) break;
+                        var o = Obj(line);
                         if (o == null) continue;
-                        if (Convert.ToString(Dentro(o, "id")) != "30") continue;
-                        testo = TestoDi(Dentro(o, "result") as Dictionary<string, object>);
+                        if (Convert.ToString(Inside(o, "id")) != "30") continue;
+                        text = TextOf(Inside(o, "result") as Dictionary<string, object>);
                     }
 
-                    Segna("e a un «no» SI FERMA", testo != null && testo.Contains("Fermato"),
-                          Corto(testo));
+                    Check("e a un «no» SI FERMA", text != null && text.Contains("Fermato"),
+                          Short(text));
 
                     // LA RIGA PIU' IMPORTANTE: non basta fermarsi, bisogna
                     // dire che non si e' toccato niente. Chi legge «fermato»
                     // senza quella frase deve andare a controllare il pezzo.
-                    Segna("e dice di non aver toccato niente",
-                          testo != null &&
-                          testo.IndexOf("non ho toccato niente", StringComparison.OrdinalIgnoreCase) >= 0,
-                          Corto(testo));
+                    Check("e dice di non aver toccato niente",
+                          text != null &&
+                          text.IndexOf("non ho toccato niente", StringComparison.OrdinalIgnoreCase) >= 0,
+                          Short(text));
                 }
             }
-            finally { Chiudi(p); }
+            finally { Close(p); }
 
             // ── 2. UN CLIENT CHE NON SA CHIEDERE: IL RIPIEGO E' DICHIARATO ─
             //
@@ -119,16 +119,16 @@ namespace Oce.Solid.Agent.ContractTests
             // il comportamento di sempre — ma **lo dice**. Un ripiego taciuto
             // e' il modo in cui una difesa sparisce senza che nessuno se ne
             // accorga.
-            var q = Apri(eseguibile);
-            if (q == null) { Segna("il ponte riparte", false, ""); return; }
+            var q = Open(executable);
+            if (q == null) { Check("il ponte riparte", false, ""); return; }
             try
             {
-                Chiedi(q, 1,
+                Ask(q, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
 
-                var risposta = Ogg(Chiedi(q, 31,
+                var response = Obj(Ask(q, 31,
                     "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"steps\":[" +
                     "{\"operation\":\"delete_feature\",\"arguments\":" +
@@ -137,11 +137,11 @@ namespace Oce.Solid.Agent.ContractTests
                 // Senza SOLIDWORKS il piano si ferma subito dopo, e va bene: la
                 // cosa da provare e' che **non sia rimasto appeso** ad aspettare
                 // una conferma che questo client non sa dare.
-                Segna("con un client che non sa chiedere, NON resta appeso",
-                      risposta != null,
+                Check("con un client che non sa chiedere, NON resta appeso",
+                      response != null,
                       "risponde invece di aspettare una conferma impossibile");
             }
-            finally { Chiudi(q); }
+            finally { Close(q); }
         }
     }
 }

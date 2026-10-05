@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -40,24 +40,24 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("splines through CreateSpline3 with natural ends, centre marks on bare views (Z-C21.13)");
+            Group("splines through CreateSpline3 with natural ends, centre marks on bare views (Z-C21.13)");
 
             string sw, drawing, marks;
             try
             {
-                sw = File.ReadAllText(Path.Combine(Radice(), Library, "SwOperations.cs"));
-                drawing = File.ReadAllText(Path.Combine(Radice(), Library, "DrawingOperations.cs"));
-                marks = File.ReadAllText(Path.Combine(Radice(), Library, "CenterMarkOperations.cs"));
+                sw = File.ReadAllText(Path.Combine(Root(), Library, "SwOperations.cs"));
+                drawing = File.ReadAllText(Path.Combine(Root(), Library, "DrawingOperations.cs"));
+                marks = File.ReadAllText(Path.Combine(Root(), Library, "CenterMarkOperations.cs"));
             }
             catch (Exception ex)
             {
-                Segna("the three library sources can be read", false, ex.GetType().Name + ": " + ex.Message);
+                Check("the three library sources can be read", false, ex.GetType().Name + ": " + ex.Message);
                 return;
             }
 
             // ── L1-1: THE SPLINE CALL ────────────────────────────────────
             var spline = SplineProblems(sw);
-            Segna("L1-1: splines through CreateSpline3, natural ends true, AddToDB off around the call, counted on a returned segment",
+            Check("L1-1: splines through CreateSpline3, natural ends true, AddToDB off around the call, counted on a returned segment",
                   spline.Count == 0,
                   spline.Count == 0
                       ? "one CreateSpline3 call, inside CreateSplineThroughPoints; SplineSimulateNaturalEnds = true; AddToDB and " +
@@ -71,19 +71,19 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 Change(0, "natural ends false", "SplineSimulateNaturalEnds = true", "SplineSimulateNaturalEnds = false"),
                 Change(0, "AddToDB left on", "sketches.AddToDB = false;", ""),
-                Change(0, "the state not put back", "sketches.AddToDB = addToDbBefore;", ""),
+                Change(0, "the state not put back", "                    try { sketches.AddToDB = addToDbBefore;", "                    try {"),
                 Change(0, "a spline counted without its return", countAnchor, countAnchor + " || true"),
                 Change(0, "a second CreateSpline3 call outside the helper", "private static ISketchSegment CreateSplineThroughPoints(",
                        "private static object SecondSpline(ISketchManager s, double[] d) { return s.CreateSpline3(d, null, null, true, out _); }\n" +
                        "        private static ISketchSegment CreateSplineThroughPoints("),
             };
             var splineRed = SeenRed("spline", new[] { sw }, s => SplineProblems(s[0]), splineChanges);
-            Segna("the spline check turns red on each changed copy", splineRed.Count == 0,
+            Check("the spline check turns red on each changed copy", splineRed.Count == 0,
                   splineRed.Count == 0 ? splineChanges.Length + " changes, each one red" : string.Join(" | ", splineRed));
 
             // ── THE CENTRE MARKS OF THE STANDARD VIEWS ───────────────────
             var centre = CentreMarkProblems(drawing, marks);
-            Segna("the standard views mark the holes of views with zero marks through the shared walk, and say how many",
+            Check("the standard views mark the holes of views with zero marks through the shared walk, and say how many",
                   centre.Count == 0,
                   centre.Count == 0
                       ? "MarkHolesOfView called for the views with zero marks, no AddCenterMark of their own; the answer carries " +
@@ -107,7 +107,7 @@ namespace Oce.Solid.Agent.ContractTests
                        "        private static HoleCentreMarks MarkHolesOfView("),
             };
             var centreRed = SeenRed("centre marks", new[] { drawing, marks }, s => CentreMarkProblems(s[0], s[1]), centreChanges);
-            Segna("the centre-mark check turns red on each changed copy", centreRed.Count == 0,
+            Check("the centre-mark check turns red on each changed copy", centreRed.Count == 0,
                   centreRed.Count == 0 ? centreChanges.Length + " changes, each one red" : string.Join(" | ", centreRed));
         }
 

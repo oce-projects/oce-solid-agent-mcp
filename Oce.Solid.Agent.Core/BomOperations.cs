@@ -32,34 +32,34 @@ namespace Oce.Solid.Agent.Core
     /// «indented» (3). Si scelgono per nome: un intero passato da fuori e' il
     /// modo perfetto di mettere il tipo sbagliato senza errore.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito DistintaBaseInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome DrawingBom(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito("Il documento attivo non e' una tavola: la distinta base sta su una vista di un assieme.");
-            var nomi = NomiDelleViste(disegno);
-            if (nomi.Count == 0) return Fallito("La tavola non ha viste: metti prima le viste dell'assieme con «standard_views».");
-            string motivo;
-            var vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
-            if (motivo != null) return Fallito(motivo);
-            if (vista == null) return Fallito("Non riesco a prendere la vista.");
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed("Il documento attivo non e' una tavola: la distinta base sta su una vista di un assieme.");
+            var names = ViewNames(drawing);
+            if (names.Count == 0) return Failed("La tavola non ha viste: metti prima le viste dell'assieme con «standard_views».");
+            string reason;
+            var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
+            if (reason != null) return Failed(reason);
+            if (view == null) return Failed("Non riesco a prendere la vista.");
 
-            var assieme = vista.ReferencedDocument as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito("Dietro la vista «" + (vista.GetName2() ?? "") + "» non c'e' un assieme: la distinta base e' " +
+            var assemblyDoc = view.ReferencedDocument as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed("Dietro la vista «" + (view.GetName2() ?? "") + "» non c'e' un assieme: la distinta base e' " +
                                "l'elenco dei componenti di un assieme. Per un saldato usa «drawing_cut_list».");
 
-            string tipoChiesto = (Str(a, "variant", "top_level") ?? "top_level").Trim().ToLowerInvariant();
-            int tipoBom;
-            switch (tipoChiesto)
+            string requestedType = (Str(a, "variant", "top_level") ?? "top_level").Trim().ToLowerInvariant();
+            int bomType;
+            switch (requestedType)
             {
-                case "top_level": tipoBom = (int)swBomType_e.swBomType_TopLevelOnly; break;
-                case "parts_only": tipoBom = (int)swBomType_e.swBomType_PartsOnly; break;
-                case "indented": tipoBom = (int)swBomType_e.swBomType_Indented; break;
+                case "top_level": bomType = (int)swBomType_e.swBomType_TopLevelOnly; break;
+                case "parts_only": bomType = (int)swBomType_e.swBomType_PartsOnly; break;
+                case "indented": bomType = (int)swBomType_e.swBomType_Indented; break;
                 default:
-                    return Fallito("«variant» e' uno fra «top_level» (predefinito), «parts_only», «indented», non «" + tipoChiesto + "».");
+                    return Failed("«variant» e' uno fra «top_level» (predefinito), «parts_only», «indented», non «" + requestedType + "».");
             }
 
             // ── THE ASSEMBLY, READ FIRST, IN THE CONFIGURATION OF THE VIEW ───
@@ -74,28 +74,28 @@ namespace Oce.Solid.Agent.Core
             // suppress different components, a false «they match» when the
             // differences cancel out. ComponentsInViewConfiguration reads them
             // in the view's configuration and puts the active one back.
-            string configurazione = "";
-            try { configurazione = vista.ReferencedConfiguration ?? ""; } catch { }
-            if (string.IsNullOrWhiteSpace(configurazione))
-                return Fallito(
-                    "I could not read which configuration of the assembly the view «" + (vista.GetName2() ?? "") +
+            string configuration = "";
+            try { configuration = view.ReferencedConfiguration ?? ""; } catch { }
+            if (string.IsNullOrWhiteSpace(configuration))
+                return Failed(
+                    "I could not read which configuration of the assembly the view «" + (view.GetName2() ?? "") +
                     "» shows. The table is made for that configuration, and without its name the assembly could " +
                     "be read in another one. No table was inserted.");
             string activeAfterReading, readProblem;
-            var attese = ComponentsInViewConfiguration(assieme, tipoBom, configurazione,
+            var expectations = ComponentsInViewConfiguration(assemblyDoc, bomType, configuration,
                                                       out activeAfterReading, out readProblem);
-            if (readProblem != null) return Fallito(readProblem);
-            if (attese == null) return Fallito("Non riesco a leggere i componenti dell'assieme: senza, non posso confrontare la distinta.");
-            if (attese.Count == 0)
-                return Fallito(
-                    "In the configuration «" + configurazione + "» of the view the assembly has no component for the " +
+            if (readProblem != null) return Failed(readProblem);
+            if (expectations == null) return Failed("Non riesco a leggere i componenti dell'assieme: senza, non posso confrontare la distinta.");
+            if (expectations.Count == 0)
+                return Failed(
+                    "In the configuration «" + configuration + "» of the view the assembly has no component for the " +
                     "BOM (every one is suppressed or excluded from the BOM): the table would be empty.");
 
-            string modelloTabella = Str(a, "template", null);
-            if (string.IsNullOrWhiteSpace(modelloTabella))
-                modelloTabella = PrimoModelloDiTabella((int)swUserPreferenceStringValue_e.swFileLocationsBOMTemplates, ".sldbomtbt");
+            string tableModel = Str(a, "template", null);
+            if (string.IsNullOrWhiteSpace(tableModel))
+                tableModel = FirstTableModel((int)swUserPreferenceStringValue_e.swFileLocationsBOMTemplates, ".sldbomtbt");
 
-            int tabellePrima = TabelleDellaTavolaTutte(disegno);
+            int tablesBefore = AllDrawingTables(drawing);
             IBomTableAnnotation bom = null;
             try
             {
@@ -116,106 +116,106 @@ namespace Oce.Solid.Agent.Core
                 // if it is made for another configuration, the comparison below
                 // refuses it, and this branch moves to the empty name plus
                 // SetConfigurations.
-                bom = vista.InsertBomTable4(false, 0.02, 0.28, (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft,
-                                            tipoBom, configurazione, modelloTabella ?? "", false,
+                bom = view.InsertBomTable4(false, 0.02, 0.28, (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft,
+                                            bomType, configuration, tableModel ?? "", false,
                                             (int)swNumberingType_e.swNumberingType_Detailed, false) as IBomTableAnnotation;
             }
-            catch (Exception ex) { return Fallito("La distinta base non e' nata: " + ex.Message); }
-            var tabella = bom as ITableAnnotation;
-            if (bom == null || tabella == null)
-                return Fallito("SOLIDWORKS non ha creato la distinta base e non ha detto perche' (modello di tabella «" +
-                               (modelloTabella ?? "") + "»).");
+            catch (Exception ex) { return Failed("La distinta base non e' nata: " + ex.Message); }
+            var table = bom as ITableAnnotation;
+            if (bom == null || table == null)
+                return Failed("SOLIDWORKS non ha creato la distinta base e non ha detto perche' (modello di tabella «" +
+                               (tableModel ?? "") + "»).");
 
             // ── LE RIGHE, LETTE ─────────────────────────────────────────────
-            int righe = 0, colonne = 0;
-            try { righe = tabella.RowCount; colonne = tabella.ColumnCount; } catch { }
-            int colQuantita = -1, colNumero = -1;
-            var intestazioni = new List<string>();
-            for (int c = 0; c < colonne; c++)
+            int lines = 0, columns = 0;
+            try { lines = table.RowCount; columns = table.ColumnCount; } catch { }
+            int withQuantity = -1, withNumber = -1;
+            var headers = new List<string>();
+            for (int c = 0; c < columns; c++)
             {
-                intestazioni.Add(Cella(tabella, 0, c));
+                headers.Add(Cell(table, 0, c));
                 int t = -1;
-                try { t = tabella.GetColumnType2(c, false); } catch { }
-                if (t == (int)swTableColumnTypes_e.swBomTableColumnType_Quantity && colQuantita < 0) colQuantita = c;
-                if (t == (int)swTableColumnTypes_e.swBomTableColumnType_ItemNumber && colNumero < 0) colNumero = c;
+                try { t = table.GetColumnType2(c, false); } catch { }
+                if (t == (int)swTableColumnTypes_e.swBomTableColumnType_Quantity && withQuantity < 0) withQuantity = c;
+                if (t == (int)swTableColumnTypes_e.swBomTableColumnType_ItemNumber && withNumber < 0) withNumber = c;
             }
-            var righeLette = new List<object>();
-            int quantitaTot = 0; bool quantitaLetta = colQuantita >= 0;
-            for (int r = 1; r < righe; r++)
+            var readLines = new List<object>();
+            int totalQuantity = 0; bool quantityRead = withQuantity >= 0;
+            for (int r = 1; r < lines; r++)
             {
-                var celle = new List<string>();
-                for (int c = 0; c < colonne; c++) celle.Add(Cella(tabella, r, c));
-                righeLette.Add(celle.ToArray());
-                if (colQuantita >= 0)
+                var cells = new List<string>();
+                for (int c = 0; c < columns; c++) cells.Add(Cell(table, r, c));
+                readLines.Add(cells.ToArray());
+                if (withQuantity >= 0)
                 {
                     int q;
-                    if (int.TryParse(Cella(tabella, r, colQuantita).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out q)) quantitaTot += q;
-                    else quantitaLetta = false;
+                    if (int.TryParse(Cell(table, r, withQuantity).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out q)) totalQuantity += q;
+                    else quantityRead = false;
                 }
             }
-            int voci = righe - 1;
-            int istanze = attese.Values.Sum();
-            var misure = new Dictionary<string, object>
+            int entries = lines - 1;
+            int instances = expectations.Values.Sum();
+            var measurements = new Dictionary<string, object>
             {
-                ["view"] = vista.GetName2(),
-                ["kind"] = tipoChiesto,
-                ["rows"] = righe,
-                ["entries"] = voci,
-                ["headers"] = intestazioni.ToArray(),
-                ["rows_read"] = righeLette.ToArray(),
-                ["quantity_in_table"] = quantitaLetta ? (object)quantitaTot : null,
-                ["components_distinct_in_assembly"] = attese.Count,
-                ["instances_in_assembly"] = istanze,
+                ["view"] = view.GetName2(),
+                ["kind"] = requestedType,
+                ["rows"] = lines,
+                ["entries"] = entries,
+                ["headers"] = headers.ToArray(),
+                ["rows_read"] = readLines.ToArray(),
+                ["quantity_in_table"] = quantityRead ? (object)totalQuantity : null,
+                ["components_distinct_in_assembly"] = expectations.Count,
+                ["instances_in_assembly"] = instances,
                 // M23: for an indented table the items are the ROWS expected (the
                 // tree, see IndentedLevel) and the instances their quantity sum.
-                ["counted_as"] = tipoBom == (int)swBomType_e.swBomType_Indented
+                ["counted_as"] = bomType == (int)swBomType_e.swBomType_Indented
                     ? "indented: expected rows of the tree and the sum of their quantities (a child row counts one instance of its parent)"
                     : "items of the table and the sum of their quantities",
-                ["tables_before"] = NumeroOppureNull(tabellePrima),
+                ["tables_before"] = NumberOrNull(tablesBefore),
                 // L16-2: the configuration the table and the expected items were
                 // read in (the view's), and the active configuration of the
                 // assembly read again after it was put back.
-                ["configuration"] = configurazione,
+                ["configuration"] = configuration,
                 ["assembly_active_configuration"] = activeAfterReading,
             };
 
-            string storto = null;
-            if (voci != attese.Count) storto = "la distinta ha " + voci + " voci e l'assieme " + attese.Count + " componenti distinti";
-            else if (!quantitaLetta) storto = "la colonna delle quantita' non si legge";
-            else if (quantitaTot != istanze) storto = "la distinta somma " + quantitaTot + " pezzi e l'assieme ne ha " + istanze;
-            if (storto != null)
+            string crooked = null;
+            if (entries != expectations.Count) crooked = "la distinta ha " + entries + " voci e l'assieme " + expectations.Count + " componenti distinti";
+            else if (!quantityRead) crooked = "la colonna delle quantita' non si legge";
+            else if (totalQuantity != instances) crooked = "la distinta somma " + totalQuantity + " pezzi e l'assieme ne ha " + instances;
+            if (crooked != null)
             {
-                bool tolta = TogliLaTabellaDiTaglio(modello, tabella);
-                return Fallito("La distinta base non combacia con l'assieme: " + storto + ". " +
-                               (tolta ? "L'ho tolta." : "Toglila: " + Frasi.CosiSiRitira + "."));
+                bool removed = RemoveCutTable(model, table);
+                return Failed("La distinta base non combacia con l'assieme: " + crooked + ". " +
+                               (removed ? "L'ho tolta." : "Toglila: " + Sentences.HowToWithdrawIt + "."));
             }
-            misure["match"] = true;
+            measurements["match"] = true;
 
             // ── IL POSTO ────────────────────────────────────────────────────
             double w = 0, h = 0;
             try
             {
-                for (int c = 0; c < tabella.ColumnCount; c++) w += tabella.GetColumnWidth(c);
-                for (int r = 0; r < tabella.RowCount; r++) h += tabella.GetRowHeight(r);
+                for (int c = 0; c < table.ColumnCount; c++) w += table.GetColumnWidth(c);
+                for (int r = 0; r < table.RowCount; r++) h += table.GetRowHeight(r);
             }
             catch { }
-            string nomeTabella = null;
-            try { nomeTabella = (tabella.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
-            var foglio = LeggiIlFoglio(disegno, null, nomeTabella);
-            string dove = null;
-            var basso = w > 0 && h > 0 ? PostoLibero(foglio, w, h, out dove) : null;
-            if (basso == null)
+            string tableName = null;
+            try { tableName = (table.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
+            var sheet = ReadSheet(drawing, null, tableName);
+            string location = null;
+            var down = w > 0 && h > 0 ? FreePlace(sheet, w, h, out location) : null;
+            if (down == null)
             {
-                bool tolta = TogliLaTabellaDiTaglio(modello, tabella);
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                bool removed = RemoveCutTable(model, table);
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "Sul foglio non c'e' un posto libero per la distinta base ({0:0} x {1:0} mm) fuori dalle viste e dal cartiglio. " +
-                    "Usa un foglio piu' grande. {2}", w * 1000, h * 1000, tolta ? "L'ho tolta." : ""));
+                    "Usa un foglio piu' grande. {2}", w * 1000, h * 1000, removed ? "L'ho tolta." : ""));
             }
-            try { (tabella.GetAnnotation() as IAnnotation)?.SetPosition2(basso[0], basso[1] + h, 0); } catch { }
-            misure["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
-            misure["table_location"] = dove;
-            misure["inside_sheet"] = true;
-            return RiuscitoSenzaCreare(misure);
+            try { (table.GetAnnotation() as IAnnotation)?.SetPosition2(down[0], down[1] + h, 0); } catch { }
+            measurements["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
+            measurements["table_location"] = location;
+            measurements["inside_sheet"] = true;
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace Oce.Solid.Agent.Core
         /// references, which is the configuration of the sub-assembly that holds
         /// it (<see cref="ExcludedFromBomIn"/>).
         /// </summary>
-        private static Dictionary<string, int> ComponentiPerVoce(IAssemblyDoc assieme, int bomType, string topConfiguration,
+        private static Dictionary<string, int> ComponentsForEntry(IAssemblyDoc assemblyDoc, int bomType, string topConfiguration,
                                                                  out string readProblem)
         {
             readProblem = null;
@@ -276,7 +276,7 @@ namespace Oce.Solid.Agent.Core
                 // The configuration each component references, one per index,
                 // so that a child can name the configuration of its parent.
                 var referencedConfigurations = new List<string>();
-                foreach (var o in (assieme.GetComponents(true) as object[]) ?? new object[0])
+                foreach (var o in (assemblyDoc.GetComponents(true) as object[]) ?? new object[0])
                 {
                     var top = o as IComponent2;
                     if (top == null) continue;
@@ -286,7 +286,7 @@ namespace Oce.Solid.Agent.Core
                 for (int i = 0; i < comps.Count && i < 100000; i++)
                 {
                     IComponent2 c = comps[i];
-                    bool soppresso = false, escluso = false;
+                    bool suppressed = false, excluded = false;
                     // SUPPRESSED BY GetSuppression2, NOT BY IsSuppressed (Z-C21.11,
                     // probe zc2111/probe_alleggeriti, 30/9/2026): IsSuppressed answers
                     // TRUE on a LIGHTWEIGHT component, as the programming guide says
@@ -299,15 +299,15 @@ namespace Oce.Solid.Agent.Core
                                       "resolved (GetSuppression2): the expected BOM cannot be counted.";
                         return null;
                     }
-                    soppresso = item.Load == ComponentLoad.Suppressed;
+                    suppressed = item.Load == ComponentLoad.Suppressed;
                     string configuration = c.ReferencedConfiguration ?? "";
                     referencedConfigurations.Add(configuration);
                     // A suppressed component is out of the BOM whatever its flag
                     // says; the flag is read only on the others. An exclusion
                     // that cannot be read is not taken as «included»: it throws,
                     // and the whole reading answers null (the caller refuses).
-                    if (!soppresso)
-                        escluso = ExcludedFromBomIn(c, parents[i] < 0 ? topConfiguration : referencedConfigurations[parents[i]]);
+                    if (!suppressed)
+                        excluded = ExcludedFromBomIn(c, parents[i] < 0 ? topConfiguration : referencedConfigurations[parents[i]]);
                     // A SUB-ASSEMBLY BY ITS FILE EXTENSION (finding M23): GetModelDoc2 is
                     // null on a lightweight component (measured), which counted a
                     // lightweight sub-assembly as a part. Its BOM option lives in its
@@ -318,7 +318,7 @@ namespace Oce.Solid.Agent.Core
                     IModelDoc2 doc = item.Document;
                     bool assembly = item.IsSubAssembly;
                     int display = -1;
-                    if (assembly && !soppresso)
+                    if (assembly && !suppressed)
                     {
                         if (doc == null)
                         {
@@ -337,8 +337,8 @@ namespace Oce.Solid.Agent.Core
                     keys.Add((c.GetPathName() ?? "") + "|" + configuration);
                     isAssembly.Add(assembly);
                     childDisplay.Add(display);
-                    skipped.Add(soppresso || escluso);
-                    if (topLevelOnly && (soppresso || escluso || !assembly ||
+                    skipped.Add(suppressed || excluded);
+                    if (topLevelOnly && (suppressed || excluded || !assembly ||
                                          display != (int)swChildComponentInBOMOption_e.swChildComponent_Promote)) continue;
                     object[] children = null;
                     try { children = c.GetChildren() as object[]; } catch { }
@@ -386,10 +386,10 @@ namespace Oce.Solid.Agent.Core
         /// <paramref name="activeAfter"/> says where it stayed); null otherwise.
         /// </summary>
         private static Dictionary<string, int> ComponentsInViewConfiguration(
-            IAssemblyDoc assieme, int bomType, string viewConfiguration, out string activeAfter, out string problem)
+            IAssemblyDoc assemblyDoc, int bomType, string viewConfiguration, out string activeAfter, out string problem)
         {
             problem = null;
-            var doc = assieme as IModelDoc2;
+            var doc = assemblyDoc as IModelDoc2;
             string activeBefore = ActiveConfigurationName(doc);
             activeAfter = activeBefore;
             if (string.IsNullOrEmpty(activeBefore))
@@ -402,7 +402,7 @@ namespace Oce.Solid.Agent.Core
             string readProblem;
             if (string.Equals(activeBefore, viewConfiguration, StringComparison.Ordinal))
             {
-                var asIs = ComponentiPerVoce(assieme, bomType, viewConfiguration, out readProblem);
+                var asIs = ComponentsForEntry(assemblyDoc, bomType, viewConfiguration, out readProblem);
                 if (asIs == null && readProblem != null) problem = readProblem + " No table was inserted.";
                 return asIs;
             }
@@ -419,7 +419,7 @@ namespace Oce.Solid.Agent.Core
                 activated = ActiveConfigurationName(doc);
                 if (string.Equals(activated, viewConfiguration, StringComparison.Ordinal))
                 {
-                    items = ComponentiPerVoce(assieme, bomType, viewConfiguration, out readProblem);
+                    items = ComponentsForEntry(assemblyDoc, bomType, viewConfiguration, out readProblem);
                     if (items == null && readProblem != null) problem = readProblem + " No table was inserted.";
                 }
             }
@@ -672,12 +672,12 @@ namespace Oce.Solid.Agent.Core
             items[k] = items.TryGetValue(k, out int n) ? n + 1 : 1;
         }
 
-        private static int TabelleDellaTavolaTutte(IDrawingDoc disegno)
+        private static int AllDrawingTables(IDrawingDoc drawing)
         {
             try
             {
                 int n = 0;
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null) { n += ((v.GetTableAnnotations() as object[]) ?? new object[0]).Length; v = v.GetNextView() as IView; }
                 return n;
             }
@@ -687,39 +687,39 @@ namespace Oce.Solid.Agent.Core
         // ──────────────────────────────────────────────────────────────────
         // bollatura (i palloncini coi numeri di voce)
         // ──────────────────────────────────────────────────────────────────
-        private Esito Bollatura(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome Balloons(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null) return Fallito("Il documento attivo non e' una tavola: la bollatura sta su una vista di un assieme.");
-            var nomi = NomiDelleViste(disegno);
-            if (nomi.Count == 0) return Fallito("La tavola non ha viste: metti prima le viste dell'assieme.");
-            string motivo;
-            var vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
-            if (motivo != null) return Fallito(motivo);
-            if (vista == null) return Fallito("Non riesco a prendere la vista.");
-            var assieme = vista.ReferencedDocument as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito("Dietro la vista non c'e' un assieme: la bollatura numera i componenti di un assieme.");
-            if (TabelleDellaTavolaTutte(disegno) <= 0 || !HaDistintaBase(disegno))
-                return Fallito("In tavola non c'e' una distinta base: la bollatura porta il numero di voce della distinta. " +
+            var drawing = model as IDrawingDoc;
+            if (drawing == null) return Failed("Il documento attivo non e' una tavola: la bollatura sta su una vista di un assieme.");
+            var names = ViewNames(drawing);
+            if (names.Count == 0) return Failed("La tavola non ha viste: metti prima le viste dell'assieme.");
+            string reason;
+            var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
+            if (reason != null) return Failed(reason);
+            if (view == null) return Failed("Non riesco a prendere la vista.");
+            var assemblyDoc = view.ReferencedDocument as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed("Dietro la vista non c'e' un assieme: la bollatura numera i componenti di un assieme.");
+            if (AllDrawingTables(drawing) <= 0 || !HasBom(drawing))
+                return Failed("In tavola non c'e' una distinta base: la bollatura porta il numero di voce della distinta. " +
                                "Metti prima «drawing_bom».");
 
-            string disposizione = (Str(a, "layout", "square") ?? "square").Trim().ToLowerInvariant();
+            string arrangement = (Str(a, "layout", "square") ?? "square").Trim().ToLowerInvariant();
             int layout;
-            switch (disposizione)
+            switch (arrangement)
             {
                 case "square": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Square; break;
                 case "circle": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Circle; break;
                 case "above": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Top; break;
                 case "below": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Bottom; break;
-                default: return Fallito("«layout» e' una fra «square», «circle», «above», «below», non «" + disposizione + "».");
+                default: return Failed("«layout» e' una fra «square», «circle», «above», «below», non «" + arrangement + "».");
             }
 
-            int prima = PalloncinidellaVista(vista);
-            object nati = null;
+            int before = ViewBalloons(view);
+            object born = null;
             try
             {
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
                 // THE VIEW MUST BE SELECTED, AND THE ANSWER SAYS SO (finding
                 // M39). IDrawingDoc~AutoBalloon5.html, Remarks: «automatically
                 // inserts BOM balloons for bill of materials items in selected
@@ -729,63 +729,63 @@ namespace Oce.Solid.Agent.Core
                 // SelectByID2 was dropped: with the view not selected,
                 // AutoBalloon5 worked on nothing, or on whatever else was
                 // selected, and only the count below noticed.
-                bool viewSelected = modello.Extension.SelectByID2(
-                    vista.GetName2(), "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0);
+                bool viewSelected = model.Extension.SelectByID2(
+                    view.GetName2(), "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0);
                 if (!viewSelected)
                 {
-                    modello.ClearSelection2(true);
-                    return Fallito(
-                        "I could not select the view «" + vista.GetName2() + "» (SelectByID2 answered " +
+                    model.ClearSelection2(true);
+                    return Failed(
+                        "I could not select the view «" + view.GetName2() + "» (SelectByID2 answered " +
                         "false), and AutoBalloon5 balloons the SELECTED views only: nothing was changed. " +
                         "Name the view in «view» as the drawing state lists it, and ask again.");
                 }
-                var opt = disegno.CreateAutoBalloonOptions() as AutoBalloonOptions;
+                var opt = drawing.CreateAutoBalloonOptions() as AutoBalloonOptions;
                 opt.Layout = layout;
                 opt.IgnoreMultiple = true;
                 opt.Style = (int)swBalloonStyle_e.swBS_Circular;
                 opt.Size = (int)swBalloonFit_e.swBF_2Chars;
                 opt.UpperTextContent = (int)swBalloonTextContent_e.swBalloonTextItemNumber;
-                nati = disegno.AutoBalloon5(opt);
+                born = drawing.AutoBalloon5(opt);
             }
-            catch (Exception ex) { modello.ClearSelection2(true); return Fallito("La bollatura non e' nata: " + ex.Message); }
-            modello.ClearSelection2(true);
-            int dopo = PalloncinidellaVista(vista);
-            var visibili = ComponentiVisibili(vista);
+            catch (Exception ex) { model.ClearSelection2(true); return Failed("La bollatura non e' nata: " + ex.Message); }
+            model.ClearSelection2(true);
+            int after = ViewBalloons(view);
+            var visible = VisibleComponents(view);
             // WHAT AutoBalloon5 RETURNED, COUNTED (M39). IDrawingDoc~AutoBalloon5.html,
             // Return Value: «Array of INotes». Until library 0.144.0 the array
             // was kept and never looked at. -1 when no array came back: that is
             // not «zero balloons», it is an answer that says nothing.
-            int returnedNotes = BalloonNotesReturned(nati);
-            var misure = new Dictionary<string, object>
+            int returnedNotes = BalloonNotesReturned(born);
+            var measurements = new Dictionary<string, object>
             {
-                ["view"] = vista.GetName2(),
-                ["balloons_before"] = NumeroOppureNull(prima),
-                ["balloons_after"] = NumeroOppureNull(dopo),
-                ["balloons_placed"] = prima >= 0 && dopo >= 0 ? (object)(dopo - prima) : null,
-                ["balloons_returned"] = NumeroOppureNull(returnedNotes),
-                ["components_visible"] = NumeroOppureNull(visibili),
-                ["numbers"] = NumeriDeiPalloncini(vista).ToArray(),
+                ["view"] = view.GetName2(),
+                ["balloons_before"] = NumberOrNull(before),
+                ["balloons_after"] = NumberOrNull(after),
+                ["balloons_placed"] = before >= 0 && after >= 0 ? (object)(after - before) : null,
+                ["balloons_returned"] = NumberOrNull(returnedNotes),
+                ["components_visible"] = NumberOrNull(visible),
+                ["numbers"] = BalloonNumbers(view).ToArray(),
             };
-            string countNote = BalloonCountNote(returnedNotes, prima, dopo);
-            if (countNote != null) misure["balloons_count_note"] = countNote;
-            if (prima < 0 || dopo < 0)
-                return Fallito("Non riesco a contare i palloncini della vista: non so se la bollatura e' nata. Guarda la tavola.");
-            if (dopo <= prima)
+            string countNote = BalloonCountNote(returnedNotes, before, after);
+            if (countNote != null) measurements["balloons_count_note"] = countNote;
+            if (before < 0 || after < 0)
+                return Failed("Non riesco a contare i palloncini della vista: non so se la bollatura e' nata. Guarda la tavola.");
+            if (after <= before)
             {
                 // NIENTE DI NUOVO NON E' SEMPRE UN ERRORE: se ogni voce della
                 // distinta ha gia' il suo palloncino in un'altra vista, SOLIDWORKS
                 // giustamente non ne mette (visto sullo Starlink, 26/9/2026).
-                var gia = NumeriDiVoceDellaDistinta(disegno);
-                var giaBollati = NumeriBollatiInTavola(disegno);
-                if (gia != null && gia.Count > 0 && gia.All(giaBollati.Contains))
+                var already = BomItemNumbers(drawing);
+                var alreadyBallooned = BalloonedNumbersInDrawing(drawing);
+                if (already != null && already.Count > 0 && already.All(alreadyBallooned.Contains))
                 {
-                    misure["bom_entries"] = gia.Count;
-                    misure["entries_without_balloon"] = new string[0];
-                    misure["how_many_entries_without_balloon"] = 0;
-                    misure["verdict"] = "Ogni voce della distinta ha gia' il suo palloncino in tavola: niente da aggiungere in questa vista.";
-                    return RiuscitoSenzaCreare(misure);
+                    measurements["bom_entries"] = already.Count;
+                    measurements["entries_without_balloon"] = new string[0];
+                    measurements["how_many_entries_without_balloon"] = 0;
+                    measurements["verdict"] = "Ogni voce della distinta ha gia' il suo palloncino in tavola: niente da aggiungere in questa vista.";
+                    return SucceededWithoutCreating(measurements);
                 }
-                return Fallito("SOLIDWORKS non ha messo nessun palloncino (erano " + prima + ", sono " + dopo + ").");
+                return Failed("SOLIDWORKS non ha messo nessun palloncino (erano " + before + ", sono " + after + ").");
             }
 
             // OGNI VOCE DELLA DISTINTA HA IL SUO PALLONCINO? (visto sull'assieme
@@ -793,44 +793,44 @@ namespace Oce.Solid.Agent.Core
             // e la risposta diceva «fatto»). Si confrontano i numeri di voce della
             // distinta con i palloncini di TUTTA la tavola, e si dice quali mancano:
             // si bolla un'altra vista, dove quel componente si vede.
-            var voci = NumeriDiVoceDellaDistinta(disegno);
-            if (voci != null)
+            var entries = BomItemNumbers(drawing);
+            if (entries != null)
             {
-                var bollati = NumeriBollatiInTavola(disegno);
-                var senza = voci.Where(v => !bollati.Contains(v)).ToList();
-                misure["bom_entries"] = voci.Count;
-                misure["entries_without_balloon"] = senza.ToArray();
-                misure["how_many_entries_without_balloon"] = senza.Count;
-                if (senza.Count > 0)
-                    misure["warning"] = (senza.Count == 1
-                        ? "La voce " + senza[0] + " della distinta non ha palloncino in tavola: in questa vista quel componente " +
+                var ballooned = BalloonedNumbersInDrawing(drawing);
+                var without = entries.Where(v => !ballooned.Contains(v)).ToList();
+                measurements["bom_entries"] = entries.Count;
+                measurements["entries_without_balloon"] = without.ToArray();
+                measurements["how_many_entries_without_balloon"] = without.Count;
+                if (without.Count > 0)
+                    measurements["warning"] = (without.Count == 1
+                        ? "La voce " + without[0] + " della distinta non ha palloncino in tavola: in questa vista quel componente " +
                           "non si vede. Fai la bollatura anche su un'altra vista, dove si vede."
-                        : "Le voci " + string.Join(", ", senza) + " della distinta non hanno palloncino in tavola: in questa " +
+                        : "Le voci " + string.Join(", ", without) + " della distinta non hanno palloncino in tavola: in questa " +
                           "vista quei componenti non si vedono. Fai la bollatura anche su un'altra vista, dove si vedono.");
             }
-            else misure["how_many_entries_without_balloon"] = null;   // la colonna dei numeri di voce non si legge
-            return RiuscitoSenzaCreare(misure);
+            else measurements["how_many_entries_without_balloon"] = null;   // la colonna dei numeri di voce non si legge
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>I numeri di voce che hanno un palloncino in una qualunque vista della tavola.</summary>
-        private static HashSet<string> NumeriBollatiInTavola(IDrawingDoc disegno)
+        private static HashSet<string> BalloonedNumbersInDrawing(IDrawingDoc drawing)
         {
-            var bollati = new HashSet<string>(StringComparer.Ordinal);
+            var ballooned = new HashSet<string>(StringComparer.Ordinal);
             try
             {
-                var w = disegno.GetFirstView() as IView;
-                while (w != null) { foreach (var n in NumeriDeiPalloncini(w)) bollati.Add(n.Trim()); w = w.GetNextView() as IView; }
+                var w = drawing.GetFirstView() as IView;
+                while (w != null) { foreach (var n in BalloonNumbers(w)) ballooned.Add(n.Trim()); w = w.GetNextView() as IView; }
             }
             catch { }
-            return bollati;
+            return ballooned;
         }
 
         /// <summary>I numeri di voce della prima distinta base della tavola; null se non si leggono.</summary>
-        private static List<string> NumeriDiVoceDellaDistinta(IDrawingDoc disegno)
+        private static List<string> BomItemNumbers(IDrawingDoc drawing)
         {
             try
             {
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
                     foreach (var o in (v.GetTableAnnotations() as object[]) ?? new object[0])
@@ -841,13 +841,13 @@ namespace Oce.Solid.Agent.Core
                         for (int c = 0; c < t.ColumnCount && col < 0; c++)
                             try { if (t.GetColumnType2(c, false) == (int)swTableColumnTypes_e.swBomTableColumnType_ItemNumber) col = c; } catch { }
                         if (col < 0) return null;
-                        var fuori = new List<string>();
+                        var outside = new List<string>();
                         for (int r = 1; r < t.RowCount; r++)
                         {
-                            string n = Cella(t, r, col).Trim();
-                            if (n.Length > 0) fuori.Add(n);
+                            string n = Cell(t, r, col).Trim();
+                            if (n.Length > 0) outside.Add(n);
                         }
-                        return fuori;
+                        return outside;
                     }
                     v = v.GetNextView() as IView;
                 }
@@ -856,11 +856,11 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        private static bool HaDistintaBase(IDrawingDoc disegno)
+        private static bool HasBom(IDrawingDoc drawing)
         {
             try
             {
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
                     foreach (var o in (v.GetTableAnnotations() as object[]) ?? new object[0])
@@ -873,16 +873,16 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>I palloncini della vista: le note che sono palloncini di distinta; -1 se non si legge.</summary>
-        private static int PalloncinidellaVista(IView vista)
+        private static int ViewBalloons(IView view)
         {
             try
             {
                 int n = 0;
-                var nota = vista.GetFirstNote() as INote;
-                while (nota != null)
+                var note = view.GetFirstNote() as INote;
+                while (note != null)
                 {
-                    if (nota.IsBomBalloon()) n++;
-                    nota = nota.GetNext() as INote;
+                    if (note.IsBomBalloon()) n++;
+                    note = note.GetNext() as INote;
                 }
                 return n;
             }
@@ -922,25 +922,25 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        private static List<string> NumeriDeiPalloncini(IView vista)
+        private static List<string> BalloonNumbers(IView view)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             try
             {
-                var nota = vista.GetFirstNote() as INote;
-                while (nota != null)
+                var note = view.GetFirstNote() as INote;
+                while (note != null)
                 {
-                    if (nota.IsBomBalloon()) fuori.Add(nota.GetText() ?? "");
-                    nota = nota.GetNext() as INote;
+                    if (note.IsBomBalloon()) outside.Add(note.GetText() ?? "");
+                    note = note.GetNext() as INote;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
-        private static int ComponentiVisibili(IView vista)
+        private static int VisibleComponents(IView view)
         {
-            try { return ((vista.GetVisibleComponents() as object[]) ?? new object[0]).Length; }
+            try { return ((view.GetVisibleComponents() as object[]) ?? new object[0]).Length; }
             catch { return -1; }
         }
     }

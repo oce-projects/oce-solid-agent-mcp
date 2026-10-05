@@ -65,27 +65,27 @@ namespace Oce.Solid.Agent.Core
     /// scritto `Check3()` non da' errore di compilazione, da' un fallimento a
     /// runtime dentro un `catch` che lo ingoia.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>
         /// Il valore che `Check()` da' su un corpo sano. **Uno, non zero**, e
         /// il nome esiste perche' la costante nuda in mezzo a un `if` sarebbe
         /// indistinguibile da un refuso.
         /// </summary>
-        private const int CheckDiceSano = 1;
+        private const int CheckSaysHealthy = 1;
 
         /// <summary>
         /// Il valore che `Check2()` da' su un corpo sano. **Zero, non uno.**
         /// Sullo stesso corpo, con l'altra convenzione.
         /// </summary>
-        private const int Check2DiceSano = 0;
+        private const int Check2SaysHealthy = 0;
 
-        private Esito VerificaGeometriaCorpo(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CheckBodyGeometry(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null)
-                return Fallito("Questo documento non e' un pezzo: non ha corpi da verificare.");
+            var partDoc = model as IPartDoc;
+            if (partDoc == null)
+                return Failed("Questo documento non e' un pezzo: non ha corpi da verificare.");
 
             // TUTTI I TIPI, non solo i solidi. Un pezzo che ha per errore un
             // corpo di foglio e' proprio il caso che questa operazione esiste
@@ -104,13 +104,13 @@ namespace Oce.Solid.Agent.Core
             // rebuild before reading, and the probe measured the order only after
             // ForceRebuild3: on a part not rebuilt since its bodies were made, the
             // order is not measured.
-            var grezzi = parte.GetBodies2((int)swBodyType_e.swAllBodies, false) as object[];
-            if (grezzi == null || grezzi.Length == 0)
-                return Fallito(
+            var rawItems = partDoc.GetBodies2((int)swBodyType_e.swAllBodies, false) as object[];
+            if (rawItems == null || rawItems.Length == 0)
+                return Failed(
                     "Il pezzo non ha nessun corpo: non c'e' niente da verificare. " +
                     "Fai prima un'estrusione.");
 
-            string soloQuesto = Str(a, "body_uid", null);
+            string thisOnly = Str(a, "body_uid", null);
 
             // THE BODIES OF THE PART, counted before the «body_uid» filter
             // (Z-C21.10, finding N61). IPartDoc~GetBodies2.html: «false gets
@@ -118,34 +118,34 @@ namespace Oce.Solid.Agent.Core
             // «bodies_total» is 1 on a part of two, and the verdict read «Un solo
             // corpo solido ... si puo' esportare»: a sentence about the PART,
             // which has two bodies and would give an STL of two shells.
-            int bodiesInPart = grezzi.Count(o => o is IBody2);
+            int bodiesInPart = rawItems.Count(o => o is IBody2);
 
-            var elenco = new List<object>();
-            int solidi = 0, fogli = 0, altri = 0;
-            int conDifetti = 0, conFessure = 0;
-            var motivi = new List<string>();
+            var list = new List<object>();
+            int solids = 0, sheets = 0, others = 0;
+            int withDefects = 0, withGaps = 0;
+            var reasons = new List<string>();
 
             // WHICH BODIES (Z-C21.5, scheme S5). Every body of the part, each
             // labelled by its place in the list (the L12-3 note above is about
             // those labels); or the ONE body «body_uid» names, resolved through
-            // the document state and its signature (BodyAskedFor: CorpiDaUid and
-            // FirmaCombacia), never as the body in that place of a GetBodies2
+            // the document state and its signature (BodyAskedFor: BodiesFromUid and
+            // SignatureMatches), never as the body in that place of a GetBodies2
             // made now. A uid is an identity, and a cut that renumbers the
             // bodies must not move the check onto another body.
             var labels = new List<string>();
             var bodies = new List<IBody2>();
-            if (!string.IsNullOrWhiteSpace(soloQuesto))
+            if (!string.IsNullOrWhiteSpace(thisOnly))
             {
-                IBody2 asked = BodyAskedFor(stato, a, soloQuesto.Trim(), out string refusal);
-                if (asked == null) return Fallito(refusal);
-                labels.Add(soloQuesto.Trim().ToUpperInvariant());
+                IBody2 asked = BodyAskedFor(docState, a, thisOnly.Trim(), out string refusal);
+                if (asked == null) return Failed(refusal);
+                labels.Add(thisOnly.Trim().ToUpperInvariant());
                 bodies.Add(asked);
             }
             else
             {
-                for (int i = 0; i < grezzi.Length; i++)
+                for (int i = 0; i < rawItems.Length; i++)
                 {
-                    IBody2 inList = grezzi[i] as IBody2;
+                    IBody2 inList = rawItems[i] as IBody2;
                     if (inList == null) continue;
                     labels.Add("C" + (i + 1));
                     bodies.Add(inList);
@@ -154,32 +154,32 @@ namespace Oce.Solid.Agent.Core
 
             for (int k = 0; k < bodies.Count; k++)
             {
-                IBody2 corpo = bodies[k];
+                IBody2 body = bodies[k];
                 string uid = labels[k];
 
-                int tipo = Intero(() => corpo.GetType(), -1);
-                string comeSiChiama = NomeDelTipoDiCorpo(tipo);
-                if (tipo == (int)swBodyType_e.swSolidBody) solidi++;
-                else if (tipo == (int)swBodyType_e.swSheetBody) fogli++;
-                else altri++;
+                int typ = Integer(() => body.GetType(), -1);
+                string whatItIsCalled = BodyTypeName(typ);
+                if (typ == (int)swBodyType_e.swSolidBody) solids++;
+                else if (typ == (int)swBodyType_e.swSheetBody) sheets++;
+                else others++;
 
-                int check = Intero(() => corpo.Check(), int.MinValue);
-                int check2 = Intero(() => corpo.Check2(), int.MinValue);
+                int check = Integer(() => body.Check(), int.MinValue);
+                int check2 = Integer(() => body.Check2(), int.MinValue);
                 // null: Check3 could not be read (Z-C21.8, finding N16).
-                var difetti = BodyFaultNames(corpo);
-                int fessure = Intero(() => Fessure(corpo), -1);
+                var defects = BodyFaultNames(body);
+                int gaps = Integer(() => Gaps(body), -1);
 
-                if (difetti != null && difetti.Count > 0) conDifetti++;
-                if (fessure > 0) conFessure++;
+                if (defects != null && defects.Count > 0) withDefects++;
+                if (gaps > 0) withGaps++;
 
-                var voce = new Dictionary<string, object>
+                var entry = new Dictionary<string, object>
                 {
                     ["body"] = uid,
-                    ["kind"] = comeSiChiama,
-                    ["faces"] = Intero(() => corpo.GetFaceCount(), -1),
-                    ["closed"] = fessure == 0,
-                    ["gaps"] = fessure,
-                    ["defects"] = difetti == null ? null : (object)difetti.Count,
+                    ["kind"] = whatItIsCalled,
+                    ["faces"] = Integer(() => body.GetFaceCount(), -1),
+                    ["closed"] = gaps == 0,
+                    ["gaps"] = gaps,
+                    ["defects"] = defects == null ? null : (object)defects.Count,
                     // I NUMERI GREZZI RESTANO, e non e' ridondanza: quando un
                     // giorno una versione di SOLIDWORKS cambiera' una delle due
                     // convenzioni, e' da qui che lo si vedra' invece che da un
@@ -187,51 +187,51 @@ namespace Oce.Solid.Agent.Core
                     ["check_raw"] = check,
                     ["check2_raw"] = check2,
                 };
-                if (difetti != null && difetti.Count > 0) voce["defects_list"] = difetti.ToArray();
-                if (difetti == null) voce["defects_not_read"] = DefectsNotRead;
-                elenco.Add(voce);
+                if (defects != null && defects.Count > 0) entry["defects_list"] = defects.ToArray();
+                if (defects == null) entry["defects_not_read"] = DefectsNotRead;
+                list.Add(entry);
 
-                if (tipo != (int)swBodyType_e.swSolidBody)
-                    motivi.Add("il corpo " + uid + " e' " + UnCorpoDi(comeSiChiama) +
+                if (typ != (int)swBodyType_e.swSolidBody)
+                    reasons.Add("il corpo " + uid + " e' " + ABodyOf(whatItIsCalled) +
                                ", non un solido: non racchiude un volume");
-                if (fessure > 0)
-                    motivi.Add("il corpo " + uid + " ha " + fessure +
-                               (fessure == 1 ? " fessura" : " fessure") + ": non e' chiuso");
-                // NOT COUNTED IS NOT CLOSED (Z-C21.8, with N16): `Fessure` answers
+                if (gaps > 0)
+                    reasons.Add("il corpo " + uid + " ha " + gaps +
+                               (gaps == 1 ? " fessura" : " fessure") + ": non e' chiuso");
+                // NOT COUNTED IS NOT CLOSED (Z-C21.8, with N16): `Gaps` answers
                 // -1 when Diagnose gives nothing, and the closed field was already
                 // false, but no reason was added and the verdict could stay «can
                 // be printed».
-                if (fessure < 0)
-                    motivi.Add("the gaps of body " + uid + " could not be counted (Diagnose gave no answer): " +
+                if (gaps < 0)
+                    reasons.Add("the gaps of body " + uid + " could not be counted (Diagnose gave no answer): " +
                                "not counted is not closed");
-                if (difetti == null)
-                    motivi.Add("the defects of body " + uid + " could not be read: " + DefectsNotRead);
-                else if (difetti.Count > 0)
-                    motivi.Add("il corpo " + uid + " ha " + difetti.Count +
-                               (difetti.Count == 1 ? " difetto: " : " difetti: ") +
-                               string.Join(", ", difetti));
-                if (check != CheckDiceSano)
-                    motivi.Add("il corpo " + uid + " ha Check() = " + check +
-                               " invece di " + CheckDiceSano);
-                if (check2 != Check2DiceSano)
-                    motivi.Add("il corpo " + uid + " ha Check2() = " + check2 +
-                               " invece di " + Check2DiceSano);
+                if (defects == null)
+                    reasons.Add("the defects of body " + uid + " could not be read: " + DefectsNotRead);
+                else if (defects.Count > 0)
+                    reasons.Add("il corpo " + uid + " ha " + defects.Count +
+                               (defects.Count == 1 ? " difetto: " : " difetti: ") +
+                               string.Join(", ", defects));
+                if (check != CheckSaysHealthy)
+                    reasons.Add("il corpo " + uid + " ha Check() = " + check +
+                               " invece di " + CheckSaysHealthy);
+                if (check2 != Check2SaysHealthy)
+                    reasons.Add("il corpo " + uid + " ha Check2() = " + check2 +
+                               " invece di " + Check2SaysHealthy);
             }
 
-            if (elenco.Count == 0)
-                return Fallito(
-                    "Non trovo il corpo «" + soloQuesto + "». Gli identificativi dei " +
+            if (list.Count == 0)
+                return Failed(
+                    "Non trovo il corpo «" + thisOnly + "». Gli identificativi dei " +
                     "corpi stanno nello stato del documento, dentro «bodies».");
 
             // PIU' DI UN CORPO NON E' UN DIFETTO, ed e' un'altra cosa da
             // «rotto»: un saldato ne ha dieci per costruzione. Ma per una
             // stampa lo e', perche' uno STL di due corpi e' due gusci
             // separati, e la stampante non sa quale dei due e' il pezzo.
-            bool unoSolo = elenco.Count == 1;
-            if (!unoSolo && string.IsNullOrEmpty(soloQuesto))
-                motivi.Add("il pezzo ha " + elenco.Count + " corpi: per una stampa dev'essere uno solo");
+            bool justOne = list.Count == 1;
+            if (!justOne && string.IsNullOrEmpty(thisOnly))
+                reasons.Add("il pezzo ha " + list.Count + " corpi: per una stampa dev'essere uno solo");
 
-            bool stampabile = motivi.Count == 0;
+            bool printable = reasons.Count == 0;
 
             // ONE BODY OF SEVERAL: THE VERDICT SPEAKS FOR THAT BODY (N61).
             // «printable» stays the verdict on the body asked for — the
@@ -241,39 +241,39 @@ namespace Oce.Solid.Agent.Core
             // the refusal already names the body in each of its reasons and
             // stays as it was. On a part of one body the verdict on the body
             // is the verdict on the part, and nothing changes.
-            string giudizio = stampabile
+            string verdictValue = printable
                 ? "Un solo corpo solido, chiuso e senza difetti: come geometria si puo' esportare."
-                : "Non lo esporterei cosi': " + string.Join("; ", motivi) + ".";
+                : "Non lo esporterei cosi': " + string.Join("; ", reasons) + ".";
             string verdictAbout = "part";
-            if (!string.IsNullOrEmpty(soloQuesto) && bodiesInPart > 1)
+            if (!string.IsNullOrEmpty(thisOnly) && bodiesInPart > 1)
             {
-                string which = Convert.ToString(((Dictionary<string, object>)elenco[0])["body"]);
+                string which = Convert.ToString(((Dictionary<string, object>)list[0])["body"]);
                 verdictAbout = "body " + which;
-                if (stampabile)
-                    giudizio =
+                if (printable)
+                    verdictValue =
                         "Body " + which + " is a closed solid with no defects. This verdict is about " +
                         "body " + which + " only: the part has " + bodiesInPart + " bodies, and an STL " +
                         "of the part would be " + bodiesInPart + " separate shells. Ask again without " +
                         "«body_uid» for the verdict on the whole part.";
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["bodies"] = elenco.ToArray(),
-                ["bodies_total"] = elenco.Count,
+                ["bodies"] = list.ToArray(),
+                ["bodies_total"] = list.Count,
                 // Every body of the part, whatever «body_uid» asked, and what
                 // «printable» and «verdict» speak for: «part» or «body C2» (N61).
                 ["bodies_in_part"] = bodiesInPart,
                 ["verdict_about"] = verdictAbout,
-                ["solids"] = solidi,
-                ["sheets"] = fogli,
-                ["other_bodies"] = altri,
-                ["bodies_with_defects"] = conDifetti,
-                ["bodies_not_closed"] = conFessure,
-                ["printable"] = stampabile,
+                ["solids"] = solids,
+                ["sheets"] = sheets,
+                ["other_bodies"] = others,
+                ["bodies_with_defects"] = withDefects,
+                ["bodies_not_closed"] = withGaps,
+                ["printable"] = printable,
                 // UNA FRASE, NON UN NUMERO. Chi legge deve sapere COSA fare, e
                 // «printable: false» da solo non lo dice.
-                ["verdict"] = giudizio,
+                ["verdict"] = verdictValue,
                 // IL LIMITE DICHIARATO, e va detto ogni volta: questa
                 // operazione guarda la TOPOLOGIA, non lo spessore delle pareti
                 // ne' le sovrasporgenze. Un guscio da 0,3 mm passa di qui
@@ -283,7 +283,7 @@ namespace Oce.Solid.Agent.Core
                     "ancora: qui si vede se il corpo e' chiuso e sano, non se e' stampabile " +
                     "dalla macchina che hai.",
             };
-            return RiuscitoSenzaCreare(misure);
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -302,59 +302,59 @@ namespace Oce.Solid.Agent.Core
         /// not null, so null is «not read» and becomes a reason of the refusal.
         /// A fault list that breaks off half way is not read either.
         /// </summary>
-        private static List<string> BodyFaultNames(IBody2 corpo)
+        private static List<string> BodyFaultNames(IBody2 body)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             try
             {
-                var f = corpo.Check3 as IFaultEntity;
+                var f = body.Check3 as IFaultEntity;
                 if (f == null) return null;
                 int n = f.Count;
                 for (int k = 0; k < n; k++)
                 {
-                    int codice = f.get_ErrorCode(k);
-                    fuori.Add(NomeDelDifetto(codice));
+                    int code = f.get_ErrorCode(k);
+                    outside.Add(DefectName(code));
                 }
             }
             catch { return null; }
-            return fuori;
+            return outside;
         }
 
         /// <summary>The reason given when Check3 cannot be read (finding N16).</summary>
         private const string DefectsNotRead =
             "Check3 gave no fault list for this body, and a check that could not be read is not a sound body";
 
-        private static string NomeDelDifetto(int codice)
+        private static string DefectName(int code)
         {
             try
             {
-                if (Enum.IsDefined(typeof(swFaultEntityErrorCode_e), codice))
-                    return ((swFaultEntityErrorCode_e)codice).ToString() + " (" + codice + ")";
+                if (Enum.IsDefined(typeof(swFaultEntityErrorCode_e), code))
+                    return ((swFaultEntityErrorCode_e)code).ToString() + " (" + code + ")";
             }
             catch { }
-            return "codice " + codice + ", che swFaultEntityErrorCode_e non conosce";
+            return "codice " + code + ", che swFaultEntityErrorCode_e non conosce";
         }
 
-        private static int Fessure(IBody2 corpo)
+        private static int Gaps(IBody2 body)
         {
-            var d = corpo.Diagnose() as IDiagnoseResult;
+            var d = body.Diagnose() as IDiagnoseResult;
             return d == null ? -1 : d.GetGapsCount();
         }
 
-        private static string NomeDelTipoDiCorpo(int tipo)
+        private static string BodyTypeName(int typ)
         {
-            if (tipo == (int)swBodyType_e.swSolidBody) return "solid";
-            if (tipo == (int)swBodyType_e.swSheetBody) return "foglio";
-            if (tipo == (int)swBodyType_e.swWireBody) return "filo";
-            if (tipo == (int)swBodyType_e.swEmptyBody) return "vuoto";
-            return "tipo " + tipo;
+            if (typ == (int)swBodyType_e.swSolidBody) return "solid";
+            if (typ == (int)swBodyType_e.swSheetBody) return "foglio";
+            if (typ == (int)swBodyType_e.swWireBody) return "filo";
+            if (typ == (int)swBodyType_e.swEmptyBody) return "vuoto";
+            return "tipo " + typ;
         }
 
-        private static string UnCorpoDi(string nome)
+        private static string ABodyOf(string itemName)
         {
-            return nome == "foglio" ? "una superficie" :
-                   nome == "filo" ? "un filo" :
-                   nome == "vuoto" ? "un corpo vuoto" : "un corpo «" + nome + "»";
+            return itemName == "foglio" ? "una superficie" :
+                   itemName == "filo" ? "un filo" :
+                   itemName == "vuoto" ? "un corpo vuoto" : "un corpo «" + itemName + "»";
         }
 
         /// <summary>
@@ -363,10 +363,10 @@ namespace Oce.Solid.Agent.Core
         /// scambiato per «sano», ed e' per questo che e' `int.MinValue` e non
         /// zero.
         /// </summary>
-        private static int Intero(Func<int> f, int seNonSiPuo)
+        private static int Integer(Func<int> f, int ifItCannot)
         {
             try { return f(); }
-            catch { return seNonSiPuo; }
+            catch { return ifItCannot; }
         }
     }
 }

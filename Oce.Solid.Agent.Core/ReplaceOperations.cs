@@ -55,80 +55,80 @@ namespace Oce.Solid.Agent.Core
     /// accoppiamenti, e quanti problemi. **Un vincolo rotto e' peggio di un
     /// vincolo assente**: assente si vede, rotto sembra che tenga.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito SostituisciComponente(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome ReplaceComponent(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var assieme = modello as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito(
+            var assemblyDoc = model as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed(
                     "Questo non e' un assieme, e' un documento di tipo «" +
-                    NomeTipoDocumento(TipoDi(modello)) + "». I componenti si " +
+                    DocumentTypeName(TypeOf(model)) + "». I componenti si " +
                     "sostituiscono dentro un assieme.");
 
-            object[] grezzi = null;
-            try { grezzi = assieme.GetComponents(false) as object[]; } catch { }
-            var componenti = StatoDocumento.ComponentiInOrdine(grezzi);
-            if (componenti.Count == 0)
-                return Fallito("L'assieme non ha componenti da sostituire.");
+            object[] rawItems = null;
+            try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            var components = DocumentState.ComponentsInOrder(rawItems);
+            if (components.Count == 0)
+                return Failed("L'assieme non ha componenti da sostituire.");
 
             string uid = Str(a, "component", null);
-            var comp = PerUid(componenti, uid);
-            if (comp == null) return Fallito(NonTrovato(uid, "component", componenti));
+            var comp = PerUid(components, uid);
+            if (comp == null) return Failed(NotFound(uid, "component", components));
             // TOP LEVEL ONLY (finding L11-5, lot Z-C21.5), with the check that
             // fix_component uses. Up to library 0.145.0 a nested component
             // went to ReplaceComponents2 as it was.
-            string notTopLevel = NotTopLevel(assieme, comp, uid, componenti,
+            string notTopLevel = NotTopLevel(assemblyDoc, comp, uid, components,
                 "ReplaceComponents2 wants a top-level component: «The component must be a top-level " +
                 "component. It cannot be a component of a sub-assembly» (IAssemblyDoc~ReplaceComponents2.html)");
-            if (notTopLevel != null) return Fallito(notTopLevel);
+            if (notTopLevel != null) return Failed(notTopLevel);
 
-            string nuovo = Str(a, "path", null);
-            if (string.IsNullOrWhiteSpace(nuovo))
-                return Fallito(
+            string newItem = Str(a, "path", null);
+            if (string.IsNullOrWhiteSpace(newItem))
+                return Failed(
                     "Non mi hai detto con cosa sostituirlo: «path» e' il percorso " +
                     "completo del file nuovo, e dev'essere gia' aperto. Li trovi in " +
                     "«documents_open» dello stato.");
-            if (!File.Exists(nuovo))
-                return Fallito("Il file «" + nuovo + "» non esiste. " + CosaEAperto());
-            if (!EAperto(nuovo))
-                return Fallito(
-                    "«" + Path.GetFileName(nuovo) + "» non e' aperto in SOLIDWORKS, e la " +
-                    "sostituzione vuole un documento gia' aperto. " + CosaEAperto());
+            if (!File.Exists(newItem))
+                return Failed("Il file «" + newItem + "» non esiste. " + WhatIsOpen());
+            if (!IsOpen(newItem))
+                return Failed(
+                    "«" + Path.GetFileName(newItem) + "» non e' aperto in SOLIDWORKS, e la " +
+                    "sostituzione vuole un documento gia' aperto. " + WhatIsOpen());
 
             // SOSTITUIRE UN PEZZO CON SE STESSO NON E' UN'OPERAZIONE.
             // Riuscirebbe, non cambierebbe niente, e chi l'ha chiesta credeva di
             // aver cambiato il pezzo.
-            string vecchio = null;
-            try { vecchio = comp.GetPathName(); } catch { }
-            if (!string.IsNullOrWhiteSpace(vecchio) &&
-                string.Equals(Path.GetFullPath(vecchio), Path.GetFullPath(nuovo),
+            string old = null;
+            try { old = comp.GetPathName(); } catch { }
+            if (!string.IsNullOrWhiteSpace(old) &&
+                string.Equals(Path.GetFullPath(old), Path.GetFullPath(newItem),
                               StringComparison.OrdinalIgnoreCase))
-                return Fallito(
+                return Failed(
                     "«" + uid + "» usa gia' quel file. Sostituirlo con se stesso " +
                     "riuscirebbe e non cambierebbe niente: se volevi un altro pezzo, " +
                     "e' il percorso a essere sbagliato.");
 
-            bool tutte = Bool(a, "all_instances", true);
-            string configurazione = Str(a, "configuration", "");
+            bool all = Bool(a, "all_instances", true);
+            string configuration = Str(a, "configuration", "");
 
             // A CONFIGURATION THE NEW FILE DOES NOT HAVE IS REFUSED BEFORE THE
             // SWAP (Z-C21.4, finding M18). Up to library 0.145.0 any name went to
             // ReplaceComponents2 and nothing checked it. The names are read from
             // the new file's open document, the one the swap uses, and compared
             // whole (the part in angle brackets belongs to the name).
-            if (!string.IsNullOrWhiteSpace(configurazione))
+            if (!string.IsNullOrWhiteSpace(configuration))
             {
-                var newDocument = OpenDocumentAtPath(nuovo);
-                var newConfigurations = newDocument == null ? new List<string>() : NomiDelleConfigurazioni(newDocument);
+                var newDocument = OpenDocumentAtPath(newItem);
+                var newConfigurations = newDocument == null ? new List<string>() : ConfigurationNames(newDocument);
                 if (newConfigurations.Count == 0)
-                    return Fallito(
-                        "I could not read the configurations of «" + Path.GetFileName(nuovo) + "», so I cannot " +
-                        "check «" + configurazione + "» before the swap. Nothing was replaced.");
-                if (!newConfigurations.Contains(configurazione))
-                    return Fallito(
-                        "«" + Path.GetFileName(nuovo) + "» has no configuration «" + configurazione + "». It has: " +
+                    return Failed(
+                        "I could not read the configurations of «" + Path.GetFileName(newItem) + "», so I cannot " +
+                        "check «" + configuration + "» before the swap. Nothing was replaced.");
+                if (!newConfigurations.Contains(configuration))
+                    return Failed(
+                        "«" + Path.GetFileName(newItem) + "» has no configuration «" + configuration + "». It has: " +
                         string.Join(", ", newConfigurations.ConvertAll(n => "«" + n + "»")) + ". The name is compared " +
                         "whole, the part in angle brackets included. Nothing was replaced.");
             }
@@ -161,23 +161,23 @@ namespace Oce.Solid.Agent.Core
             // Non solo sul componente toccato: un accoppiamento lega DUE pezzi,
             // e perderlo si vede da tutti e due. Il totale e' la misura che non
             // dipende da quale maniglia sopravvive alla sostituzione.
-            int accPrima = AccoppiamentiInTutto(componenti);
-            int quantiPrima = componenti.Count;
-            int problemiPrima = QuantiProblemi(modello);
+            int accBefore = TotalMates(components);
+            int howManyBefore = components.Count;
+            int problemsBefore = HowManyProblems(model);
 
             // THE TARGET, WRITTEN DOWN BEFORE THE CALL (finding L11-5): its
             // name, and the components that ALREADY use the new file. After
             // the call these tell the component that took the target's place
             // from one that was on the new file all along.
-            string targetName = NomeDi(comp);
-            var onNewFileBefore = NamesOnFile(grezzi, nuovo);
+            string targetName = NameOf(comp);
+            var onNewFileBefore = NamesOnFile(rawItems, newItem);
 
-            bool risposta;
+            bool response;
             try
             {
-                modello.ClearSelection2(true);
-                if (!SelezionaIlComponente(comp))
-                    return Fallito(
+                model.ClearSelection2(true);
+                if (!SelectComponent(comp))
+                    return Failed(
                         "Non sono riuscito a selezionare «" + uid + "»: senza selezione " +
                         "la sostituzione lavorerebbe su quello che capita, o su niente.");
                 // MatchName, NOT ManuallySelect, UNTIL A PROBE (Z-C21.4, findings
@@ -205,24 +205,24 @@ namespace Oce.Solid.Agent.Core
                 // the new part's unsaved volume, and both parts kept their edits
                 // in memory, still dirty (the files on disk untouched). So
                 // nothing is saved first.
-                risposta = assieme.ReplaceComponents2(
-                    nuovo, configurazione ?? "", tutte,
+                response = assemblyDoc.ReplaceComponents2(
+                    newItem, configuration ?? "", all,
                     (int)swReplaceComponentsConfiguration_e.swReplaceComponentsConfiguration_MatchName,
                     riaggancia);
             }
             catch (Exception ex)
             {
-                return Fallito("Non sono riuscito a sostituire il componente: " + ex.Message);
+                return Failed("Non sono riuscito a sostituire il componente: " + ex.Message);
             }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            finally { try { model.ClearSelection2(true); } catch { } }
 
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
 
             // ── E SI CONTA DOPO ─────────────────────────────────────────
             object[] rawAfter = null;
-            try { rawAfter = assieme.GetComponents(false) as object[]; } catch { }
-            var dopoComp = StatoDocumento.ComponentiInOrdine(rawAfter);
-            int accDopo = AccoppiamentiInTutto(dopoComp);
+            try { rawAfter = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            var afterComp = DocumentState.ComponentsInOrder(rawAfter);
+            int accAfter = TotalMates(afterComp);
 
             // THE MEASURE IS NOT THE BOOLEAN, AND NOT «SOME COMPONENT USES THE
             // NEW FILE» EITHER (finding L11-5, lot Z-C21.5). Up to library
@@ -236,40 +236,40 @@ namespace Oce.Solid.Agent.Core
             // keeps its name (it now uses the new file, and it is the one in
             // (a)); which of the two it does is a user option, and the check
             // does not depend on it.
-            var onNewFileAfter = NamesOnFile(rawAfter, nuovo);
+            var onNewFileAfter = NamesOnFile(rawAfter, newItem);
             var tookThePlace = new List<string>();
             foreach (var n in onNewFileAfter)
                 if (!onNewFileBefore.Contains(n)) tookThePlace.Add(n);
             tookThePlace.Sort(StringComparer.Ordinal);
             bool targetGone;
             string targetNow = PathOfNamed(rawAfter, targetName, out targetGone);
-            bool targetOnNewFile = targetGone || SameFile(targetNow, nuovo);
-            bool ceLaFatta = targetName != null && tookThePlace.Count > 0 && targetOnNewFile;
+            bool targetOnNewFile = targetGone || SameFile(targetNow, newItem);
+            bool madeIt = targetName != null && tookThePlace.Count > 0 && targetOnNewFile;
 
-            if (!ceLaFatta)
-                return Fallito(
-                    "ReplaceComponents2 answered " + (risposta ? "true" : "false") + ", but " +
+            if (!madeIt)
+                return Failed(
+                    "ReplaceComponents2 answered " + (response ? "true" : "false") + ", but " +
                     (targetName == null
                         ? "the name of «" + uid + "» did not answer before the call, so I cannot tell what became of it"
                         : !targetOnNewFile
                             ? "«" + uid + "» («" + targetName + "») still uses «" +
                               (string.IsNullOrWhiteSpace(targetNow) ? "(no path)" : Path.GetFileName(targetNow)) + "»"
-                            : "no component took up «" + Path.GetFileName(nuovo) + "» that was not on it before" +
+                            : "no component took up «" + Path.GetFileName(newItem) + "» that was not on it before" +
                               (onNewFileBefore.Count == 0 ? "" : " (" + onNewFileBefore.Count + " already used it, " +
                                                                  "and they do not count)")) +
                     ". I did not count it as done. Read the assembly state again: if something did change, " +
                     "undo the step with «undo»; if nothing did, ask again with the new file open.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 ["component"] = uid,
-                ["source"] = string.IsNullOrWhiteSpace(vecchio) ? "(senza percorso)" : Path.GetFileName(vecchio),
-                ["target"] = Path.GetFileName(nuovo),
-                ["components_before"] = quantiPrima,
-                ["components_after"] = dopoComp.Count,
-                ["mates_before"] = accPrima,
-                ["mates_after"] = accDopo,
-                ["mates_lost"] = Math.Max(0, accPrima - accDopo),
+                ["source"] = string.IsNullOrWhiteSpace(old) ? "(senza percorso)" : Path.GetFileName(old),
+                ["target"] = Path.GetFileName(newItem),
+                ["components_before"] = howManyBefore,
+                ["components_after"] = afterComp.Count,
+                ["mates_before"] = accBefore,
+                ["mates_after"] = accAfter,
+                ["mates_lost"] = Math.Max(0, accBefore - accAfter),
                 // L11-5: the components that took up the new file with this
                 // swap, by name (the replaced one, and its other instances when
                 // all instances were asked for). The C1..Cn numbers follow the
@@ -285,7 +285,7 @@ namespace Oce.Solid.Agent.Core
             // not undone: the swap has happened, and the way back is «undo».
             var referencedNow = new List<string>();
             bool referencedUnread = false;
-            foreach (var v in dopoComp)
+            foreach (var v in afterComp)
             {
                 if (!tookThePlace.Contains(v.Key)) continue;
                 string itsConfiguration = null;
@@ -293,15 +293,15 @@ namespace Oce.Solid.Agent.Core
                 if (string.IsNullOrWhiteSpace(itsConfiguration)) { referencedUnread = true; continue; }
                 if (!referencedNow.Contains(itsConfiguration)) referencedNow.Add(itsConfiguration);
             }
-            if (referencedNow.Count == 1 && !referencedUnread) misure["configuration"] = referencedNow[0];
-            else if (referencedNow.Count > 0) misure["configuration"] = referencedNow.ToArray();
+            if (referencedNow.Count == 1 && !referencedUnread) measurements["configuration"] = referencedNow[0];
+            else if (referencedNow.Count > 0) measurements["configuration"] = referencedNow.ToArray();
             bool? configurationAsAsked = null;
-            if (!string.IsNullOrWhiteSpace(configurazione))
+            if (!string.IsNullOrWhiteSpace(configuration))
             {
                 configurationAsAsked = !referencedUnread && referencedNow.Count == 1 &&
-                                       string.Equals(referencedNow[0], configurazione, StringComparison.Ordinal);
-                misure["configuration_asked"] = configurazione;
-                misure["configuration_as_asked"] = (bool)configurationAsAsked;
+                                       string.Equals(referencedNow[0], configuration, StringComparison.Ordinal);
+                measurements["configuration_asked"] = configuration;
+                measurements["configuration_as_asked"] = (bool)configurationAsAsked;
             }
 
             // ── I VINCOLI CI SONO ANCORA. FUNZIONANO? ───────────────────
@@ -310,42 +310,42 @@ namespace Oce.Solid.Agent.Core
             // prima. Un vincolo che puntava a una faccia del pezzo vecchio
             // resta nell'albero e va in ERRORE: il conteggio lo vede ancora e
             // direbbe «due prima, due adesso».
-            int problemiDopo = QuantiProblemi(modello);
-            if (problemiPrima >= 0 && problemiDopo >= 0)
+            int problemsAfter = HowManyProblems(model);
+            if (problemsBefore >= 0 && problemsAfter >= 0)
             {
-                misure["problems_before"] = problemiPrima;
-                misure["problems_after"] = problemiDopo;
+                measurements["problems_before"] = problemsBefore;
+                measurements["problems_after"] = problemsAfter;
             }
-            bool rotti = problemiPrima >= 0 && problemiDopo > problemiPrima;
+            bool brokenOnes = problemsBefore >= 0 && problemsAfter > problemsBefore;
 
             // ── IL GIUDIZIO, che e' il punto della voce ─────────────────
-            string giudizio;
-            string fatto = "Sostituito «" + misure["source"] + "» con «" + misure["target"] +
+            string verdictValue;
+            string done = "Sostituito «" + measurements["source"] + "» con «" + measurements["target"] +
                            "» su " + uid + ". ";
-            if (rotti)
+            if (brokenOnes)
                 // IL CASO PEGGIORE, E NON E' «PERSI»: i vincoli ci sono ancora e
                 // sono ROTTI. Zero vincoli si vede; due vincoli in errore
                 // sembrano vincolare.
-                giudizio = fatto + "ATTENZIONE: gli accoppiamenti ci sono ancora (" +
-                           accDopo + ") ma il documento ha " + problemiDopo +
-                           " problemi contro i " + problemiPrima + " di prima: **qualcuno " +
+                verdictValue = done + "ATTENZIONE: gli accoppiamenti ci sono ancora (" +
+                           accAfter + ") ma il documento ha " + problemsAfter +
+                           " problemi contro i " + problemsBefore + " di prima: **qualcuno " +
                            "di quei vincoli e' in ERRORE**, perche' puntava a una faccia " +
                            "del pezzo vecchio. Un vincolo rotto e' peggio di un vincolo " +
                            "assente: sembra che tenga. Toglilo e rimettilo con «mate», " +
                            "oppure «undo».";
-            else if (accPrima == 0)
-                giudizio = fatto + "Non c'erano accoppiamenti da conservare.";
-            else if (accDopo >= accPrima)
-                giudizio = fatto + "Gli accoppiamenti sono rimasti e sono sani: " +
-                           accDopo + (accDopo == 1 ? " vincolo" : " vincoli") +
+            else if (accBefore == 0)
+                verdictValue = done + "Non c'erano accoppiamenti da conservare.";
+            else if (accAfter >= accBefore)
+                verdictValue = done + "Gli accoppiamenti sono rimasti e sono sani: " +
+                           accAfter + (accAfter == 1 ? " vincolo" : " vincoli") +
                            ", e il documento non ha problemi nuovi.";
             else
-                giudizio = fatto + "**GLI ACCOPPIAMENTI SI SONO PERSI**: ne aveva " +
-                           accPrima + ", adesso ne ha " + accDopo + ". Il pezzo nuovo e' " +
+                verdictValue = done + "**GLI ACCOPPIAMENTI SI SONO PERSI**: ne aveva " +
+                           accBefore + ", adesso ne ha " + accAfter + ". Il pezzo nuovo e' " +
                            "dentro e **non e' vincolato**: l'assieme sembra montato e non " +
                            "lo e'. Rimettili con «mate», oppure «undo».";
             if (configurationAsAsked == false)
-                giudizio = "WARNING: you asked for the configuration «" + configurazione + "», and the new " +
+                verdictValue = "WARNING: you asked for the configuration «" + configuration + "», and the new " +
                            "component references " +
                            (referencedNow.Count == 0
                                ? "a configuration I could not read"
@@ -353,12 +353,12 @@ namespace Oce.Solid.Agent.Core
                            (referencedUnread && referencedNow.Count > 0 ? " (and one I could not read)" : "") +
                            ". SOLIDWORKS matched the configuration of the old component by name; the choice " +
                            "that takes the named one is not used yet (see «configuration_as_asked»). Do not " +
-                           "build on it as if it were «" + configurazione + "»: «undo» takes the swap back. " +
-                           giudizio;
-            misure["verdict"] = giudizio;
-            _log("[agente] " + giudizio);
+                           "build on it as if it were «" + configuration + "»: «undo» takes the swap back. " +
+                           verdictValue;
+            measurements["verdict"] = verdictValue;
+            _log("[agente] " + verdictValue);
 
-            return RiuscitoSenzaCreare(misure);
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -387,7 +387,7 @@ namespace Oce.Solid.Agent.Core
         /// diverse: il compilatore non aiuta, perche' il cast sbagliato compila
         /// benissimo e fallisce a runtime.*
         /// </summary>
-        private static bool SelezionaIlComponente(IComponent2 c)
+        private static bool SelectComponent(IComponent2 c)
         {
             if (c == null) return false;
             try { return c.Select4(false, null, false); }
@@ -405,14 +405,14 @@ namespace Oce.Solid.Agent.Core
         /// quanto uno singolo — purche' si sappia che e' doppio, ed e' per
         /// questo che c'e' scritto.
         /// </summary>
-        private static int AccoppiamentiInTutto(
-            List<KeyValuePair<string, IComponent2>> componenti)
+        private static int TotalMates(
+            List<KeyValuePair<string, IComponent2>> components)
         {
             int n = 0;
-            foreach (var v in componenti)
+            foreach (var v in components)
             {
-                int suoi = AccoppiamentiDi(v.Value);
-                if (suoi > 0) n += suoi;
+                int itsItems = MatesOf(v.Value);
+                if (itsItems > 0) n += itsItems;
             }
             return n;
         }

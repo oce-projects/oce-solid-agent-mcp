@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -32,42 +32,42 @@ namespace Oce.Solid.Agent.ContractTests
     /// c'era gia' e non bastava: non diceva che quelle dell'immagine sono
     /// *sbagliate*.
     /// </summary>
-    internal static class ProveLeImmagini
+    internal static class ImagesTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("cosa accompagna una fotografia (Z-C10)");
+            Group("cosa accompagna una fotografia (Z-C10)");
 
-            var file = Path.Combine(Radice(), "Tools", "McpTools.cs");
+            var file = Path.Combine(Root(), "Tools", "McpTools.cs");
             if (!File.Exists(file))
             {
-                Segna("il sorgente del ponte c'e'", false, "manca " + file);
+                Check("il sorgente del ponte c'e'", false, "manca " + file);
                 return;
             }
-            var testo = File.ReadAllText(file);
+            var text = File.ReadAllText(file);
 
-            Segna("la didascalia dice che i numeri dell'immagine non sono autorevoli",
-                  testo.Contains("non sono autorevoli"),
+            Check("la didascalia dice che i numeri dell'immagine non sono autorevoli",
+                  text.Contains("non sono autorevoli"),
                   "Tools/McpTools.cs, accanto alle viste");
 
             // I NUMERI, NON L'AGGETTIVO. «Puo' essere impreciso» non fa cambiare
             // comportamento a nessuno; «90 letto 79» si'.
-            Segna("e porta gli errori misurati, non un aggettivo",
-                  testo.Contains("90") && testo.Contains("79") &&
-                  testo.Contains("12,5") && testo.Contains("letta 6"),
+            Check("e porta gli errori misurati, non un aggettivo",
+                  text.Contains("90") && text.Contains("79") &&
+                  text.Contains("12,5") && text.Contains("letta 6"),
                   "Ø90 letto 79; parete 12,5 letta 6");
 
             // E LA STRADA PER LA MISURA VERA. Un avvertimento senza alternativa
             // lascia il modello con lo stesso problema e in piu' il dubbio.
-            Segna("e nomina come si prende la misura vera",
-                  testo.Contains("measure_between") &&
-                  testo.Contains("minimum_distance") &&
-                  testo.Contains("body_bounding_box"),
+            Check("e nomina come si prende la misura vera",
+                  text.Contains("measure_between") &&
+                  text.Contains("minimum_distance") &&
+                  text.Contains("body_bounding_box"),
                   "tre operazioni nominate, piu' lo stato");
 
             // ── E IL MOTIVO, che e' cio' che rende l'avviso ricordabile ──
-            Segna("e dice PERCHE' l'isometrica sbaglia",
-                  testo.Contains("scorciati"),
+            Check("e dice PERCHE' l'isometrica sbaglia",
+                  text.Contains("scorciati"),
                   "in isometrica gli spessori sono scorciati e sembrano piu' grossi");
         }
     }

@@ -39,10 +39,10 @@ namespace Oce.Solid.Agent.Bridge
     /// fare: un rifiuto che non si sa aggirare in modo legittimo e' un difetto
     /// quanto un permesso di troppo.
     /// </summary>
-    internal static class Percorsi
+    internal static class Paths
     {
         /// <summary>I nomi di argomento che contengono un percorso su cui si scrive.</summary>
-        private static readonly string[] CampiDiScrittura =
+        private static readonly string[] WritingFields =
         {
             "path", "file", "percorso_pdf", "percorso_file", "destinazione",
         };
@@ -51,70 +51,70 @@ namespace Oce.Solid.Agent.Bridge
         /// Controlla tutti i percorsi dentro gli argomenti di una operazione.
         /// Ritorna null se va bene, altrimenti il motivo del rifiuto.
         /// </summary>
-        public static string Controlla(Dictionary<string, object> argomenti)
+        public static string Check(Dictionary<string, object> arguments)
         {
-            if (argomenti == null) return null;
-            foreach (var campo in CampiDiScrittura)
+            if (arguments == null) return null;
+            foreach (var theField in WritingFields)
             {
                 object v;
-                if (!argomenti.TryGetValue(campo, out v) || v == null) continue;
-                var percorso = Convert.ToString(v);
-                if (string.IsNullOrWhiteSpace(percorso)) continue;
+                if (!arguments.TryGetValue(theField, out v) || v == null) continue;
+                var filePath = Convert.ToString(v);
+                if (string.IsNullOrWhiteSpace(filePath)) continue;
 
-                var motivo = ControllaUno(percorso, campo);
-                if (motivo != null) return motivo;
+                var reason = CheckOne(filePath, theField);
+                if (reason != null) return reason;
             }
             return null;
         }
 
-        public static string ControllaUno(string percorso, string campo = "path")
+        public static string CheckOne(string filePath, string theField = "path")
         {
-            string pieno;
+            string full;
             try
             {
                 // Path.GetFullPath risolve «..» e i separatori misti: e' il
                 // passo che trasforma un percorso in cio' che toccherebbe
                 // davvero. Va fatto PRIMA di qualunque confronto, se no si
                 // confronta una stringa e si scrive altrove.
-                pieno = Path.GetFullPath(percorso);
+                full = Path.GetFullPath(filePath);
             }
             catch (Exception ex)
             {
-                return "Il percorso «" + percorso + "» non e' un percorso valido (" +
+                return "Il percorso «" + filePath + "» non e' un percorso valido (" +
                        ex.Message + ").";
             }
 
             // Niente flussi, niente dispositivi, niente percorsi di rete non
             // dichiarati: sono tutte cose che un percorso di salvataggio non
             // ha mai bisogno di essere.
-            if (pieno.IndexOf(':') != pieno.LastIndexOf(':'))
-                return "Il percorso «" + percorso + "» contiene due volte i due punti: " +
+            if (full.IndexOf(':') != full.LastIndexOf(':'))
+                return "Il percorso «" + filePath + "» contiene due volte i due punti: " +
                        "non lo tocco.";
 
-            var radice = Variabile("RISCONTRO_RADICE");
-            if (!string.IsNullOrWhiteSpace(radice))
+            var root = Variable("RISCONTRO_RADICE");
+            if (!string.IsNullOrWhiteSpace(root))
             {
-                if (!Sotto(pieno, radice))
-                    return "Posso scrivere solo dentro «" + radice + "» (lo dice la " +
+                if (!Below(full, root))
+                    return "Posso scrivere solo dentro «" + root + "» (lo dice la " +
                            "variabile RISCONTRO_RADICE di questa installazione), e «" +
-                           pieno + "» e' fuori. Scegli un percorso li' dentro.";
+                           full + "» e' fuori. Scegli un percorso li' dentro.";
             }
 
-            foreach (var vietata in Vietate())
+            foreach (var forbidden in Forbidden())
             {
-                if (Sotto(pieno, vietata))
-                    return "Non scrivo dentro «" + vietata + "»: e' una cartella di " +
-                           "sistema o di programma. «" + pieno + "» finisce li'. " +
+                if (Below(full, forbidden))
+                    return "Non scrivo dentro «" + forbidden + "»: e' una cartella di " +
+                           "sistema o di programma. «" + full + "» finisce li'. " +
                            "Scegli una cartella di lavoro, per esempio dentro Documenti.";
             }
 
-            foreach (var sola in SolaLettura())
+            foreach (var single in ReadOnly())
             {
-                if (Sotto(pieno, sola))
-                    return "«" + sola + "» e' dichiarata di sola lettura su questa " +
+                if (Below(full, single))
+                    return "«" + single + "» e' dichiarata di sola lettura su questa " +
                            "installazione (variabile RISCONTRO_SOLA_LETTURA): di " +
                            "solito sono le librerie condivise, e riscriverle tocca il " +
-                           "lavoro di tutti. «" + pieno + "» finisce li'.";
+                           "lavoro di tutti. «" + full + "» finisce li'.";
             }
 
             return null;
@@ -122,16 +122,16 @@ namespace Oce.Solid.Agent.Bridge
 
         // ─────────────────────────────────────────────────────────────────
 
-        private static string Variabile(string nome)
+        private static string Variable(string itemName)
         {
-            try { return Environment.GetEnvironmentVariable(nome); }
+            try { return Environment.GetEnvironmentVariable(itemName); }
             catch { return null; }
         }
 
-        private static IEnumerable<string> Vietate()
+        private static IEnumerable<string> Forbidden()
         {
-            var fuori = new List<string>();
-            foreach (var cartella in new[]
+            var outside = new List<string>();
+            foreach (var folder in new[]
             {
                 Environment.SpecialFolder.Windows,
                 Environment.SpecialFolder.System,
@@ -142,21 +142,21 @@ namespace Oce.Solid.Agent.Bridge
             {
                 try
                 {
-                    var p = Environment.GetFolderPath(cartella);
-                    if (!string.IsNullOrWhiteSpace(p)) fuori.Add(p);
+                    var p = Environment.GetFolderPath(folder);
+                    if (!string.IsNullOrWhiteSpace(p)) outside.Add(p);
                 }
                 catch { }
             }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
         /// Cartelle dichiarate di sola lettura, separate da punto e virgola.
         /// Esempio: `RISCONTRO_SOLA_LETTURA=S:\CAD;S:\_LIBRERIE`
         /// </summary>
-        private static IEnumerable<string> SolaLettura()
+        private static IEnumerable<string> ReadOnly()
         {
-            var v = Variabile("RISCONTRO_SOLA_LETTURA");
+            var v = Variable("RISCONTRO_SOLA_LETTURA");
             if (string.IsNullOrWhiteSpace(v)) return Enumerable.Empty<string>();
             return v.Split(';')
                 .Select(x => x.Trim())
@@ -170,17 +170,17 @@ namespace Oce.Solid.Agent.Bridge
         /// dentro «C:\Dati», e un controllo che dice di si' quando e' no e' un
         /// controllo che non c'e'.
         /// </summary>
-        private static bool Sotto(string pieno, string cartella)
+        private static bool Below(string full, string folder)
         {
             try
             {
-                var radice = Path.GetFullPath(cartella)
+                var root = Path.GetFullPath(folder)
                     .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-                var p = Path.GetFullPath(pieno);
-                return p.StartsWith(radice, StringComparison.OrdinalIgnoreCase) ||
+                var p = Path.GetFullPath(full);
+                return p.StartsWith(root, StringComparison.OrdinalIgnoreCase) ||
                        string.Equals(
                            p.TrimEnd(Path.DirectorySeparatorChar),
-                           radice.TrimEnd(Path.DirectorySeparatorChar),
+                           root.TrimEnd(Path.DirectorySeparatorChar),
                            StringComparison.OrdinalIgnoreCase);
             }
             catch { return false; }

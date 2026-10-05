@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── COS'ERA PRIMA, E PERCHE' NON BASTAVA ─────────────────────────────
     ///
-    /// Fino alla 0.91.0 `StatoDocumento.Leggi` aveva un `if (parte == null)` che
+    /// Fino alla 0.91.0 `DocumentState.Read` aveva un `if (parte == null)` che
     /// rispondeva, per QUALUNQUE assieme:
     ///
     ///     solid_body: false
@@ -49,10 +49,10 @@ namespace Oce.Solid.Agent.Core
     /// resto arriva.
     ///
     /// E soprattutto: se questa funzione lanciasse, romperebbe
-    /// `StatoDocumento.Leggi` **anche per le parti normali**, che passano dalla
+    /// `DocumentState.Read` **anche per le parti normali**, che passano dalla
     /// stessa chiamata.
     /// </summary>
-    public partial class StatoDocumento
+    public partial class DocumentState
     {
         /// <summary>Quanti componenti si descrivono per esteso, al massimo.</summary>
         ///
@@ -60,12 +60,12 @@ namespace Oce.Solid.Agent.Core
         /// carpenteria vero ne ha centinaia, e scriverli tutti scaccerebbe dal
         /// contesto le cose che servono. Chi ne ha di piu' lo SA, perche' il
         /// conteggio totale si scrive comunque.
-        private const int MaxComponenti = 40;
+        private const int MaxComponents = 40;
 
         /// <summary>
         /// I componenti nell'ordine che decide gli uid `C1..Cn`.
         ///
-        /// ── PERCHE' STA IN UN METODO E NON DENTRO `DescriviAssieme` ──────
+        /// ── PERCHE' STA IN UN METODO E NON DENTRO `DescribeAssembly` ──────
         ///
         /// Questo ordine **e' il significato di `C1`**. Lo stato lo usa per
         /// numerare, e `mate` (voce GA4) lo usa per ritrovare il componente
@@ -79,20 +79,20 @@ namespace Oce.Solid.Agent.Core
         /// `C1..Cn` resta lo stesso fra due letture, al contrario degli uid
         /// delle facce, che sono posizionali e si rinumerano.
         /// </summary>
-        internal static List<KeyValuePair<string, IComponent2>> ComponentiInOrdine(object[] tutti)
+        internal static List<KeyValuePair<string, IComponent2>> ComponentsInOrder(object[] all)
         {
-            var voci = new List<KeyValuePair<string, IComponent2>>();
-            if (tutti == null) return voci;
-            foreach (var o in tutti)
+            var entries = new List<KeyValuePair<string, IComponent2>>();
+            if (all == null) return entries;
+            foreach (var o in all)
             {
                 var c = o as IComponent2;
                 if (c == null) continue;
-                string nome = null;
-                try { nome = c.Name2; } catch { }
-                voci.Add(new KeyValuePair<string, IComponent2>(nome ?? "", c));
+                string itemName = null;
+                try { itemName = c.Name2; } catch { }
+                entries.Add(new KeyValuePair<string, IComponent2>(itemName ?? "", c));
             }
-            voci.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
-            return voci;
+            entries.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            return entries;
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Oce.Solid.Agent.Core
         /// list cannot be read, which is «I do not know», not «none».
         ///
         /// It is the one rule for «top level» in the library, for the same
-        /// reason as <see cref="ComponentiInOrdine"/>: the state publishes
+        /// reason as <see cref="ComponentsInOrder"/>: the state publishes
         /// «top_level» from it, and fix_component and replace_component
         /// refuse a nested component with it. Two copies of the rule could
         /// disagree, and a component the state calls top-level would be
@@ -128,11 +128,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Componenti, conteggi e configurazione di un assieme.</summary>
-        private static void DescriviAssieme(IAssemblyDoc assieme, Dictionary<string, object> dati)
+        private static void DescribeAssembly(IAssemblyDoc assemblyDoc, Dictionary<string, object> data)
         {
-            if (assieme == null)
+            if (assemblyDoc == null)
             {
-                dati["note"] = "unreadable assembly";
+                data["note"] = "unreadable assembly";
                 return;
             }
 
@@ -144,11 +144,11 @@ namespace Oce.Solid.Agent.Core
             // assieme che ne ha trenta, e ogni suo ragionamento sarebbe
             // plausibile e sbagliato. Il conteggio del primo livello si scrive
             // lo stesso, a parte, perche' e' l'altra domanda vera.
-            object[] tutti = null;
-            try { tutti = assieme.GetComponents(false) as object[]; } catch { }
-            if (tutti == null)
+            object[] all = null;
+            try { all = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            if (all == null)
             {
-                dati["note"] = "l'assieme non ha risposto all'elenco dei componenti";
+                data["note"] = "l'assieme non ha risposto all'elenco dei componenti";
                 return;
             }
 
@@ -157,13 +157,13 @@ namespace Oce.Solid.Agent.Core
             HashSet<string> topLevelNames = null;
             try
             {
-                var primi = assieme.GetComponents(true) as object[];
-                if (primi != null) dati["components_top_level"] = primi.Length;
-                topLevelNames = TopLevelNames(primi);
+                var first = assemblyDoc.GetComponents(true) as object[];
+                if (first != null) data["components_top_level"] = first.Length;
+                topLevelNames = TopLevelNames(first);
             }
             catch { }
 
-            dati["how_many_components"] = tutti.Length;
+            data["how_many_components"] = all.Length;
 
             // ── L'ORDINE STABILE ─────────────────────────────────────────
             //
@@ -172,21 +172,21 @@ namespace Oce.Solid.Agent.Core
             // parte: fidarsene vorrebbe dire uid che cambiano quando SOLIDWORKS
             // decide di cambiarlo, cioe' la trappola delle facce, ripetuta dove
             // si poteva evitare.
-            var voci = ComponentiInOrdine(tutti);
+            var entries = ComponentsInOrder(all);
 
-            var elenco = new List<Dictionary<string, object>>();
-            int soppressi = 0, leggeri = 0, fissi = 0;
-            int contati = 0, appoggiati = 0;
+            var list = new List<Dictionary<string, object>>();
+            int suppressedOnes = 0, light = 0, grounded = 0;
+            int counted = 0, resting = 0;
             int nested = 0;
-            bool letturaGradiFallita = false;
-            var liberi = new List<string>();
-            for (int i = 0; i < voci.Count; i++)
+            bool degreesReadFailed = false;
+            var free = new List<string>();
+            for (int i = 0; i < entries.Count; i++)
             {
-                var c = voci[i].Value;
-                var voce = new Dictionary<string, object>
+                var c = entries[i].Value;
+                var entry = new Dictionary<string, object>
                 {
                     ["uid"] = "C" + (i + 1),
-                    ["name"] = voci[i].Key,
+                    ["name"] = entries[i].Key,
                 };
 
                 // TOP LEVEL OR INSIDE A SUB-ASSEMBLY (L11-3, Z-C21.5). The list
@@ -195,8 +195,8 @@ namespace Oce.Solid.Agent.Core
                 // (IComponent2~IsFixed.html), and ReplaceComponents2 wants «a
                 // top-level component». Null when GetComponents(true) did not
                 // answer: «I do not know», not «no».
-                bool? topLevel = topLevelNames == null ? (bool?)null : topLevelNames.Contains(voci[i].Key);
-                voce["top_level"] = topLevel;
+                bool? topLevel = topLevelNames == null ? (bool?)null : topLevelNames.Contains(entries[i].Key);
+                entry["top_level"] = topLevel;
                 if (topLevel == false) nested++;
 
                 try
@@ -204,11 +204,11 @@ namespace Oce.Solid.Agent.Core
                     var p = c.GetPathName();
                     if (!string.IsNullOrWhiteSpace(p))
                     {
-                        voce["path"] = p;
+                        entry["path"] = p;
                         // IL FILE C'E'? (voce Z-B3) Un componente il cui file manca
                         // sul disco l'assieme lo mostra soppresso, e nient'altro lo
                         // dice. Si scrive solo quando manca: e' il caso raro.
-                        if (!System.IO.File.Exists(p)) voce["file_missing"] = true;
+                        if (!System.IO.File.Exists(p)) entry["file_missing"] = true;
                     }
                 }
                 catch { }
@@ -216,7 +216,7 @@ namespace Oce.Solid.Agent.Core
                 try
                 {
                     var cfg = c.ReferencedConfiguration;
-                    if (!string.IsNullOrWhiteSpace(cfg)) voce["configuration"] = cfg;
+                    if (!string.IsNullOrWhiteSpace(cfg)) entry["configuration"] = cfg;
                 }
                 catch { }
 
@@ -226,12 +226,12 @@ namespace Oce.Solid.Agent.Core
                 // regola dei difetti di `Check3`, gia' pagata altrove.
                 try
                 {
-                    int stato = c.GetSuppression2();
-                    voce["state"] = NomeDelloStato(stato);
-                    if (stato == (int)swComponentSuppressionState_e.swComponentSuppressed) soppressi++;
-                    if (stato == (int)swComponentSuppressionState_e.swComponentLightweight ||
-                        stato == (int)swComponentSuppressionState_e.swComponentFullyLightweight)
-                        leggeri++;
+                    int docState = c.GetSuppression2();
+                    entry["state"] = StateName(docState);
+                    if (docState == (int)swComponentSuppressionState_e.swComponentSuppressed) suppressedOnes++;
+                    if (docState == (int)swComponentSuppressionState_e.swComponentLightweight ||
+                        docState == (int)swComponentSuppressionState_e.swComponentFullyLightweight)
+                        light++;
                 }
                 catch { }
 
@@ -246,14 +246,14 @@ namespace Oce.Solid.Agent.Core
                 // you must get the IModelDoc2 object of the subassembly»), so
                 // its answer from the root is not published: the fixed flag is
                 // null, «not known from here», and the component is not counted.
-                if (topLevel == false) voce["grounded"] = null;
+                if (topLevel == false) entry["grounded"] = null;
                 else
                 {
                     try
                     {
                         bool f = c.IsFixed();
-                        voce["grounded"] = f;
-                        if (f) fissi++;
+                        entry["grounded"] = f;
+                        if (f) grounded++;
                     }
                     catch { }
                 }
@@ -292,8 +292,8 @@ namespace Oce.Solid.Agent.Core
                 // **z = 30 mm** e pretende di rileggere `[0, 0, 30]`: se gli
                 // indici fossero altri, diventa rosso qui invece che in
                 // officina.
-                var dove = PosizioneDelComponenteMm(c);
-                if (dove != null) voce["origin_mm"] = dove;
+                var location = ComponentPositionMm(c);
+                if (location != null) entry["origin_mm"] = location;
 
                 // Gli accoppiamenti: per ora il CONTEGGIO. Il formato di quello
                 // che `GetMates()` restituisce e' `Object` e va accertato prima
@@ -301,11 +301,11 @@ namespace Oce.Solid.Agent.Core
                 // subito, ed e' gia' qualcosa: zero accoppiamenti su un
                 // componente non fisso vuol dire appoggiato.
                 // `GetMates()` risponde **null quando sono zero**, non un array
-                // vuoto: il conteggio passa da `OperazioniSw.AccoppiamentiDi`,
+                // vuoto: il conteggio passa da `SwOperations.MatesOf`,
                 // che separa «zero» da «non ho potuto leggere» guardando se il
                 // componente risponde ancora al proprio nome.
-                int suoiAcc = OperazioniSw.AccoppiamentiDi(c);
-                if (suoiAcc >= 0) voce["mates"] = suoiAcc;
+                int itsAcc = SwOperations.MatesOf(c);
+                if (itsAcc >= 0) entry["mates"] = itsAcc;
 
                 // ── CHE ACCOPPIAMENTI (voce Z-D3) ───────────────────────
                 // Misurato il 27/9/2026 (`prova0089 zd345`): `GetMates` da' oggetti
@@ -314,11 +314,11 @@ namespace Oce.Solid.Agent.Core
                 // questo pezzo, incernierato o appoggiato?» si legge qui.
                 // Zero accoppiamenti (contati sopra) e' un elenco vuoto; un GetMates
                 // null con accoppiamenti contati, o illeggibili, e' «non lo so».
-                if (suoiAcc == 0) voce["mates_kinds"] = new string[0];
-                else if (suoiAcc > 0)
+                if (itsAcc == 0) entry["mates_kinds"] = new string[0];
+                else if (itsAcc > 0)
                 {
-                    var tipi = TipiDegliAccoppiamenti(c);
-                    voce["mates_kinds"] = tipi;   // null se non si leggono
+                    var types = MateTypes(c);
+                    entry["mates_kinds"] = types;   // null se non si leggono
                 }
 
                 // ── SOTTOASSIEME, VISIBILE, TRASPARENTE (voce Z-D4) ─────
@@ -326,17 +326,17 @@ namespace Oce.Solid.Agent.Core
                 // `GetModelDoc2` di un soppresso e' null: «non lo so», non «no».
                 try
                 {
-                    var suo = c.GetModelDoc2();
-                    voce["is_sub_assembly"] = suo == null ? null : (object)(suo is IAssemblyDoc);
+                    var its = c.GetModelDoc2();
+                    entry["is_sub_assembly"] = its == null ? null : (object)(its is IAssemblyDoc);
                 }
-                catch { voce["is_sub_assembly"] = null; }
+                catch { entry["is_sub_assembly"] = null; }
                 // `Visible` e' swComponentVisibilityState_e: 1 visibile, 0 nascosto.
                 try
                 {
                     int vis = c.Visible;
-                    voce["visible"] = vis == 1 ? (object)true : vis == 0 ? (object)false : null;
+                    entry["visible"] = vis == 1 ? (object)true : vis == 0 ? (object)false : null;
                 }
-                catch { voce["visible"] = null; }
+                catch { entry["visible"] = null; }
                 // LA TRASPARENZA NON E' UN CAMPO DEL COMPONENTE (accertato il
                 // 23/9): sta in `MaterialPropertyValues`, posizione 7, e c'e' solo
                 // se il componente ha un aspetto suo (misurato: 0,75 dopo
@@ -344,14 +344,14 @@ namespace Oce.Solid.Agent.Core
                 // diversi, non alternativi.
                 try
                 {
-                    if (!c.HasMaterialPropertyValues()) voce["transparent"] = false;
+                    if (!c.HasMaterialPropertyValues()) entry["transparent"] = false;
                     else
                     {
                         var mpv = c.MaterialPropertyValues as double[];
-                        voce["transparent"] = mpv != null && mpv.Length > 7 ? (object)(mpv[7] > 0) : null;
+                        entry["transparent"] = mpv != null && mpv.Length > 7 ? (object)(mpv[7] > 0) : null;
                     }
                 }
-                catch { voce["transparent"] = null; }
+                catch { entry["transparent"] = null; }
 
                 // ── I GRADI DI LIBERTA' RESIDUI (voce GA5) ───────────────
                 //
@@ -365,58 +365,58 @@ namespace Oce.Solid.Agent.Core
                 // solo perche' il primo pezzo non si muove. Il primo componente
                 // inserito e' normalmente fisso, quindi l'errore scatterebbe
                 // sempre, su ogni assieme.
-                var gradi = OperazioniSw.GradiDiLiberta(c);
-                voce["degrees_of_freedom_state"] = gradi.Stato;
-                if (gradi.Disponibile) voce["degrees_of_freedom_remaining"] = gradi.Quanti;
-                else letturaGradiFallita = true;
+                var deg = SwOperations.DegreesOfFreedom(c);
+                entry["degrees_of_freedom_state"] = deg.State;
+                if (deg.Available) entry["degrees_of_freedom_remaining"] = deg.HowMany;
+                else degreesReadFailed = true;
 
                 // «E' APPOGGIATO?» SI RISPONDE CON DUE COSE CHE FUNZIONANO.
                 //
                 // I gradi di liberta' non si possono avere (vedi
-                // `OperazioniSw.GradiDiLiberta`). Quello che si sa per certo e':
+                // `SwOperations.DegreesOfFreedom`). Quello che si sa per certo e':
                 // un componente **non fisso** con **zero accoppiamenti** e'
                 // appoggiato li'. Non si sa di quanto sia libero, e non lo si
                 // dice: *un numero inventato e' peggio di un numero assente*.
-                bool eFisso = voce.ContainsKey("grounded") &&
-                              Convert.ToString(voce["grounded"]).Equals(
+                bool isFixed = entry.ContainsKey("grounded") &&
+                              Convert.ToString(entry["grounded"]).Equals(
                                   "True", StringComparison.OrdinalIgnoreCase);
-                int suoiAccoppiamenti = suoiAcc;
+                int itsMates = itsAcc;
                 // A NESTED COMPONENT IS NOT JUDGED HERE (L11-3): whether it is
                 // fixed is not known from the root (null above), and it moves
                 // with its sub-assembly, which is judged as one top-level
                 // component. Counting it as «not fixed» would call the second
                 // part of every rigid sub-assembly loose.
-                if (!eFisso && topLevel != false)
+                if (!isFixed && topLevel != false)
                 {
-                    contati++;
-                    if (suoiAccoppiamenti == 0)
+                    counted++;
+                    if (itsMates == 0)
                     {
-                        voce["resting"] = true;
-                        appoggiati++;
-                        if (liberi.Count < 8) liberi.Add(voci[i].Key);
+                        entry["resting"] = true;
+                        resting++;
+                        if (free.Count < 8) free.Add(entries[i].Key);
                     }
-                    else if (suoiAccoppiamenti > 0) voce["resting"] = false;
+                    else if (itsMates > 0) entry["resting"] = false;
                 }
 
-                if (elenco.Count < MaxComponenti) elenco.Add(voce);
+                if (list.Count < MaxComponents) list.Add(entry);
             }
 
-            dati["components"] = elenco;
-            if (voci.Count > MaxComponenti)
-                dati["components_not_listed"] = voci.Count - MaxComponenti;
+            data["components"] = list;
+            if (entries.Count > MaxComponents)
+                data["components_not_listed"] = entries.Count - MaxComponents;
 
             // I CONTEGGI SI SCRIVONO ANCHE QUANDO VALGONO ZERO.
             // «soppressi: 0» e' un'informazione; l'assenza del campo si legge
             // come «non l'ho guardato», e sono due cose diverse. E' la stessa
             // riga che il README difende per la regressione: *un conteggio che
             // sparisce quando e' zero e' un conteggio che nessuno controlla.*
-            dati["components_suppressed"] = soppressi;
-            dati["components_lightweight"] = leggeri;
-            dati["components_grounded"] = fissi;
+            data["components_suppressed"] = suppressedOnes;
+            data["components_lightweight"] = light;
+            data["components_grounded"] = grounded;
             // How many components sit inside a sub-assembly (L11-3): they are
             // left out of the fixed count above and of the count below.
             // Written only when the top-level list was read, zero included.
-            if (topLevelNames != null) dati["nested_components"] = nested;
+            if (topLevelNames != null) data["nested_components"] = nested;
 
             // ── «QUESTO ASSIEME E' VINCOLATO?» IN UNA RIGA (voce GA5) ────
             //
@@ -428,25 +428,25 @@ namespace Oce.Solid.Agent.Core
             // lettura e' fallita su qualcuno. Un totale che copre in silenzio
             // solo una parte e' peggio di nessun totale: *un numero che non dice
             // su cosa e' calcolato e' un numero di cui fidarsi per sbaglio.*
-            if (contati > 0)
+            if (counted > 0)
             {
-                dati["components_not_grounded"] = contati;
-                dati["components_resting"] = appoggiati;
-                dati["assembly_constrained"] = appoggiati == 0;
-                if (liberi.Count > 0) dati["components_still_free"] = liberi;
+                data["components_not_grounded"] = counted;
+                data["components_resting"] = resting;
+                data["assembly_constrained"] = resting == 0;
+                if (free.Count > 0) data["components_still_free"] = free;
 
-                dati["verdict_constraints"] = appoggiati == 0
-                    ? "Tutti i " + contati + (contati == 1 ? " componente non fisso ha" : " componenti non fissi hanno") +
+                data["verdict_constraints"] = resting == 0
+                    ? "Tutti i " + counted + (counted == 1 ? " componente non fisso ha" : " componenti non fissi hanno") +
                       " almeno un accoppiamento. Di QUANTO siano ancora liberi non " +
                       "lo so: SOLIDWORKS non fornisce i gradi di liberta' residui da qui."
-                    : "NON e' montato: " + appoggiati + " su " + contati +
-                      (contati == 1 ? " componente non fisso" : " componenti non fissi") +
+                    : "NON e' montato: " + resting + " su " + counted +
+                      (counted == 1 ? " componente non fisso" : " componenti non fissi") +
                       " non ha nessun accoppiamento" +
-                      (liberi.Count == 0 ? "" : " (" + string.Join(", ", liberi) + ")") +
+                      (free.Count == 0 ? "" : " (" + string.Join(", ", free) + ")") +
                       ". Sono appoggiati li': si spostano se qualcuno li trascina, e " +
                       "l'assieme sembra montato senza esserlo.";
                 if (nested > 0)
-                    dati["verdict_constraints"] += " The " + nested + " component(s) inside sub-assemblies are " +
+                    data["verdict_constraints"] += " The " + nested + " component(s) inside sub-assemblies are " +
                                                 "not in this count: each moves with its sub-assembly, counted " +
                                                 "as one top-level component.";
             }
@@ -457,8 +457,8 @@ namespace Oce.Solid.Agent.Core
             // One coincident mate leaves three of the six directions free (probe
             // zc14, 30/9/2026: TX, TZ and RY stay free), and this state does not
             // see them; «mate» measures them when it makes a mate (Z-C14).
-            if (letturaGradiFallita)
-                dati["what_is_not_known_about_constraints"] =
+            if (degreesReadFailed)
+                data["what_is_not_known_about_constraints"] =
                     "SOLIDWORKS does not give the remaining degrees of freedom (it answers " +
                     "«unavailable» on every component, fixed or free). So «vincolato» here " +
                     "means «has at least one mate», not «does not move any more»: one " +
@@ -475,19 +475,19 @@ namespace Oce.Solid.Agent.Core
             //
             // Si scrive SEMPRE, anche quando e' falso: *un campo che compare
             // solo quando la cosa e' andata storta insegna a non cercarlo.*
-            DescriviLEsploso(assieme, dati);
+            DescribeExplodedView(assemblyDoc, data);
 
             // ── LA CONFIGURAZIONE ATTIVA ─────────────────────────────────
             // Un assieme ne ha come una parte, e sbagliarla vuol dire misurare
             // una variante diversa da quella confermata.
             try
             {
-                var doc = assieme as IModelDoc2;
+                var doc = assemblyDoc as IModelDoc2;
                 var cfg = doc == null ? null : doc.GetActiveConfiguration() as IConfiguration;
                 if (cfg != null)
                 {
-                    dati["configuration"] = cfg.Name;
-                    DescriviLaDistinta(cfg, dati);
+                    data["configuration"] = cfg.Name;
+                    DescribeBom(cfg, data);
                 }
             }
             catch { }
@@ -500,8 +500,8 @@ namespace Oce.Solid.Agent.Core
             // Un modello che legge «vedo quattro componenti ma non so
             // accoppiarli» sa cosa puo' chiedere; uno che legge «non lo modifico»
             // puo' solo smettere.
-            dati["solid_body"] = false;
-            dati["what_cannot_be_done_yet"] =
+            data["solid_body"] = false;
+            data["what_cannot_be_done_yet"] =
                 "Di questo assieme so dire com'e' fatto, non cambiarlo: inserire " +
                 "componenti, accoppiarli e leggerne i gradi di liberta' residui " +
                 "non sono ancora operazioni. Le posizioni dei componenti non " +
@@ -516,7 +516,7 @@ namespace Oce.Solid.Agent.Core
         /// `get_Transform`, `get_Transform2`, `get_PresentationTransform` e
         /// `GetSpecificTransform`). Era un nome ricordato, non letto.
         /// </summary>
-        private static object[] PosizioneDelComponenteMm(IComponent2 c)
+        private static object[] ComponentPositionMm(IComponent2 c)
         {
             try
             {
@@ -530,9 +530,9 @@ namespace Oce.Solid.Agent.Core
                 if (d == null || d.Length < 12) return null;
                 return new object[]
                 {
-                    Math.Round(Unita.Mm(d[9]), 3),
-                    Math.Round(Unita.Mm(d[10]), 3),
-                    Math.Round(Unita.Mm(d[11]), 3),
+                    Math.Round(Units.Mm(d[9]), 3),
+                    Math.Round(Units.Mm(d[10]), 3),
+                    Math.Round(Units.Mm(d[11]), 3),
                 };
             }
             catch { return null; }
@@ -563,13 +563,13 @@ namespace Oce.Solid.Agent.Core
         /// conferma: qui si dice com'e' messa la configurazione, cosi' chi
         /// guarda puo' accorgersi prima di stampare.
         /// </summary>
-        private static void DescriviLaDistinta(IConfiguration cfg, Dictionary<string, object> dati)
+        private static void DescribeBom(IConfiguration cfg, Dictionary<string, object> data)
         {
             var d = new Dictionary<string, object>();
 
             // Ogni campo il suo try: su una configurazione vera basta che uno
             // non risponda perche' un try unico li faccia sparire tutti.
-            try { d["part_number_source"] = NomeDellaFonteDelCodice(cfg.BOMPartNoSource); } catch { }
+            try { d["part_number_source"] = SourceCodeName(cfg.BOMPartNoSource); } catch { }
             try { d["use_alternative_name"] = cfg.UseAlternateNameInBOM; } catch { }
             try
             {
@@ -581,7 +581,7 @@ namespace Oce.Solid.Agent.Core
             try { d["shows_children"] = cfg.ShowChildComponentsInBOM; } catch { }
             try { d["child_display_mode"] = cfg.ChildComponentDisplayInBOM; } catch { }
 
-            if (d.Count > 0) dati["bom"] = d;
+            if (d.Count > 0) data["bom"] = d;
         }
 
         /// <summary>
@@ -592,9 +592,9 @@ namespace Oce.Solid.Agent.Core
         /// essere tradotti a caso — **un nome inventato e' peggio di un numero
         /// onesto**, perche' chi legge il nome ci crede.
         /// </summary>
-        private static string NomeDellaFonteDelCodice(int fonte)
+        private static string SourceCodeName(int source)
         {
-            switch (fonte)
+            switch (source)
             {
                 case (int)swBOMPartNumberSource_e.swBOMPartNumber_DocumentName:
                     return "nome del documento";
@@ -606,7 +606,7 @@ namespace Oce.Solid.Agent.Core
                     return "scritto a mano";
                 default:
                     return "sconosciuta (" +
-                           fonte.ToString(CultureInfo.InvariantCulture) + ")";
+                           source.ToString(CultureInfo.InvariantCulture) + ")";
             }
         }
 
@@ -619,25 +619,25 @@ namespace Oce.Solid.Agent.Core
         /// perche' chi legge il nome ci crede.
         /// </summary>
         /// <summary>I tipi degli accoppiamenti di un componente, per nome; null se non si leggono.</summary>
-        private static string[] TipiDegliAccoppiamenti(IComponent2 c)
+        private static string[] MateTypes(IComponent2 c)
         {
             try
             {
-                var grezzi = c.GetMates() as object[];
-                if (grezzi == null) return null;   // chi chiama sa gia' che ce ne sono: null e' «non lo so»
-                var fuori = new List<string>();
-                foreach (var o in grezzi)
+                var rawItems = c.GetMates() as object[];
+                if (rawItems == null) return null;   // chi chiama sa gia' che ce ne sono: null e' «non lo so»
+                var outside = new List<string>();
+                foreach (var o in rawItems)
                 {
                     var m = o as IMate2;
-                    if (m == null) { fuori.Add("?"); continue; }
-                    fuori.Add(NomeDelTipo(m.Type));
+                    if (m == null) { outside.Add("?"); continue; }
+                    outside.Add(TypeName(m.Type));
                 }
-                return fuori.ToArray();
+                return outside.ToArray();
             }
             catch { return null; }
         }
 
-        private static string NomeDelTipo(int t)
+        private static string TypeName(int t)
         {
             switch (t)
             {
@@ -661,9 +661,9 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        private static string NomeDelloStato(int stato)
+        private static string StateName(int docState)
         {
-            switch (stato)
+            switch (docState)
             {
                 case (int)swComponentSuppressionState_e.swComponentSuppressed:
                     return "soppresso";
@@ -679,7 +679,7 @@ namespace Oce.Solid.Agent.Core
                     return "identificativo non corrispondente";
                 default:
                     return "sconosciuto (" +
-                           stato.ToString(CultureInfo.InvariantCulture) + ")";
+                           docState.ToString(CultureInfo.InvariantCulture) + ")";
             }
         }
 
@@ -708,60 +708,60 @@ namespace Oce.Solid.Agent.Core
         /// essere vero mentre la cosa non e' successa non e' una misura: e' una
         /// promessa.*
         /// </summary>
-        private static void DescriviLEsploso(
-            IAssemblyDoc assieme, Dictionary<string, object> dati)
+        private static void DescribeExplodedView(
+            IAssemblyDoc assemblyDoc, Dictionary<string, object> data)
         {
-            var doc = assieme as IModelDoc2;
+            var doc = assemblyDoc as IModelDoc2;
             if (doc == null) return;
 
-            bool esploso = false;
-            string quale = null;
-            try { esploso = doc.Extension.IsExploded(out quale); }
+            bool exploded = false;
+            string which = null;
+            try { exploded = doc.Extension.IsExploded(out which); }
             catch { return; }   // se non si puo' leggere non si inventa un falso
 
-            dati["exploded_view"] = esploso;
-            if (esploso && !string.IsNullOrWhiteSpace(quale)) dati["view_exploded"] = quale;
+            data["exploded_view"] = exploded;
+            if (exploded && !string.IsNullOrWhiteSpace(which)) data["view_exploded"] = which;
 
             try
             {
                 var cfg = doc.ConfigurationManager.ActiveConfiguration as IConfiguration;
                 if (cfg != null)
                 {
-                    int viste = assieme.GetExplodedViewCount2(cfg.Name);
-                    if (viste > 0) dati["views_exploded"] = viste;
-                    int passi = cfg.GetNumberOfExplodeSteps();
-                    if (passi > 0) dati["exploded_view_steps"] = passi;
+                    int views = assemblyDoc.GetExplodedViewCount2(cfg.Name);
+                    if (views > 0) data["views_exploded"] = views;
+                    int steps = cfg.GetNumberOfExplodeSteps();
+                    if (steps > 0) data["exploded_view_steps"] = steps;
                 }
             }
             catch { }
 
-            if (!esploso) return;
+            if (!exploded) return;
 
             // QUANTO MUOVE DAVVERO. Si guarda il massimo su tutti i componenti:
             // basta che UNO si sia spostato perche' una posizione letta con
             // `true` sia diversa da quella vera.
-            double massimo = 0;
-            bool letto = false;
+            double maxValue = 0;
+            bool read = false;
             try
             {
-                var tutti = assieme.GetComponents(true) as object[];
-                if (tutti != null)
-                    foreach (var o in tutti)
+                var all = assemblyDoc.GetComponents(true) as object[];
+                if (all != null)
+                    foreach (var o in all)
                     {
                         var c = o as IComponent2;
                         if (c == null) continue;
                         double d;
-                        if (!ScostamentoDiEsplosoMm(c, out d)) continue;
-                        letto = true;
-                        if (d > massimo) massimo = d;
+                        if (!ExplodedOffsetMm(c, out d)) continue;
+                        read = true;
+                        if (d > maxValue) maxValue = d;
                     }
             }
             catch { }
 
-            if (!letto) return;
-            dati["exploded_view_max_move_mm"] = Math.Round(massimo, 3);
-            if (massimo < 0.001)
-                dati["what_is_not_known_about_exploded_view"] =
+            if (!read) return;
+            data["exploded_view_max_move_mm"] = Math.Round(maxValue, 3);
+            if (maxValue < 0.001)
+                data["what_is_not_known_about_exploded_view"] =
                     "La vista esplosa c'e' ed e' mostrata, ma NESSUN componente si " +
                     "sposta: lo scostamento massimo e' zero. Un esploso che non " +
                     "separa niente non serve a una tavola di montaggio. Su questa " +
@@ -773,19 +773,19 @@ namespace Oce.Solid.Agent.Core
         /// Di quanto l'esploso sposta questo componente, in mm. `false` se non
         /// si e' potuto leggere — che **non** e' la stessa cosa di zero.
         /// </summary>
-        private static bool ScostamentoDiEsplosoMm(IComponent2 c, out double mm)
+        private static bool ExplodedOffsetMm(IComponent2 c, out double mm)
         {
             mm = 0;
             try
             {
                 var conE = c.GetTotalTransform(true) as IMathTransform;
-                var senza = c.GetTotalTransform(false) as IMathTransform;
-                if (conE == null || senza == null) return false;
+                var without = c.GetTotalTransform(false) as IMathTransform;
+                if (conE == null || without == null) return false;
                 var a = conE.ArrayData as double[];
-                var b = senza.ArrayData as double[];
+                var b = without.ArrayData as double[];
                 if (a == null || b == null || a.Length < 12 || b.Length < 12) return false;
                 double dx = a[9] - b[9], dy = a[10] - b[10], dz = a[11] - b[11];
-                mm = Unita.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
+                mm = Units.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
                 return true;
             }
             catch { return false; }

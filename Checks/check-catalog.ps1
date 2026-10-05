@@ -6,7 +6,7 @@
 #  consegna e da una build automatica.
 #
 #  PERCHE' ESISTE. Il catalogo (`catalog.json`) e' l'elenco di cio' che il
-#  modello puo' chiedere; lo switch di `OperazioniSw.Esegui` e' l'elenco di cio'
+#  modello puo' chiedere; lo switch di `SwOperations.Run` e' l'elenco di cio'
 #  che si puo' davvero fare. Sono due posti, e due posti divergono sempre. Oggi
 #  divergono di tre nomi, e quei tre nomi il modello puo' chiederli: si prende
 #  «operazione sconosciuta» dopo aver scritto un piano intero.
@@ -18,7 +18,7 @@
 #    1. se il catalogo ha meno di 20 operazioni si esce 1 dicendo che non e'
 #       stato letto, invece di confrontare due insiemi vuoti;
 #    2. se dal sorgente si leggono meno di 20 `case`, idem;
-#    3. l'elenco dichiarato dalla libreria (`OperazioniSw.NomiEseguibili`) e
+#    3. l'elenco dichiarato dalla libreria (`SwOperations.ExecutableNames`) e
 #       quello letto dal sorgente devono COMBACIARE fra loro: sono due strade
 #       indipendenti verso lo stesso fatto, e se divergono e' uno dei due a
 #       essere marcio.
@@ -36,35 +36,35 @@
 
 [CmdletBinding()]
 param(
-    [string]$Catalogo,
-    [string]$Libreria,
-    [string]$Sorgente,
+    [string]$Catalog,
+    [string]$Library,
+    [string]$Source,
     [string]$SwInstallPath
 )
 
 $ErrorActionPreference = "Stop"
-$radice = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
+$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 
-if (-not $Catalogo) { $Catalogo = Join-Path $radice "bin\catalog.json" }
-if (-not $Libreria) { $Libreria = Join-Path $radice "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll" }
-if (-not $Sorgente) { $Sorgente = Join-Path $radice "Oce.Solid.Agent.Core\SwOperations.cs" }
+if (-not $Catalog) { $Catalog = Join-Path $root "bin\catalog.json" }
+if (-not $Library) { $Library = Join-Path $root "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll" }
+if (-not $Source) { $Source = Join-Path $root "Oce.Solid.Agent.Core\SwOperations.cs" }
 
-$problemi = New-Object System.Collections.Generic.List[string]
-function Male($m) { $problemi.Add($m) | Out-Null; Write-Host "  [X] $m" -ForegroundColor Red }
-function Bene($m) { Write-Host "  [ok] $m" -ForegroundColor Green }
-function Nota($m) { Write-Host "       $m" -ForegroundColor DarkGray }
+$problems = New-Object System.Collections.Generic.List[string]
+function Male($m) { $problems.Add($m) | Out-Null; Write-Host "  [X] $m" -ForegroundColor Red }
+function Fine($m) { Write-Host "  [ok] $m" -ForegroundColor Green }
+function Note($m) { Write-Host "       $m" -ForegroundColor DarkGray }
 
 Write-Host ""
 Write-Host "=== Il catalogo contro l'esecutore" -ForegroundColor Cyan
 
 # --- 1. il catalogo ----------------------------------------------------------
-if (-not (Test-Path -LiteralPath $Catalogo)) {
-    Write-Host "  [X] non trovo il catalogo: $Catalogo" -ForegroundColor Red
+if (-not (Test-Path -LiteralPath $Catalog)) {
+    Write-Host "  [X] non trovo il catalogo: $Catalog" -ForegroundColor Red
     Write-Host ""
     Write-Host "1 problema: il catalogo non c'e'. Compila con build.ps1." -ForegroundColor Red
     exit 1
 }
-$cat = Get-Content -LiteralPath $Catalogo -Raw -Encoding UTF8 | ConvertFrom-Json
+$cat = Get-Content -LiteralPath $Catalog -Raw -Encoding UTF8 | ConvertFrom-Json
 
 # The expected keys, before anything reads them (see the header).
 function Test-JsonKey($object, [string] $key) {
@@ -96,13 +96,13 @@ if (Test-JsonKey $cat $keyOperations) {
 # names, or of objects with `name`) is read too. The old reading, in step 6,
 # took the object for one element without `name`, found 0 declared families,
 # and the comparison passed on nothing.
-$famiglieDichiarate = @()
+$familiesDeclared = @()
 if (Test-JsonKey $cat $keyFamilies) {
     $declaredFamilies = $cat.$keyFamilies
     if ($declaredFamilies -is [System.Management.Automation.PSCustomObject]) {
-        $famiglieDichiarate = @($declaredFamilies.PSObject.Properties | ForEach-Object { $_.Name } | Sort-Object -Unique)
+        $familiesDeclared = @($declaredFamilies.PSObject.Properties | ForEach-Object { $_.Name } | Sort-Object -Unique)
     } elseif ($declaredFamilies -is [array]) {
-        $famiglieDichiarate = @(@(foreach ($f in $declaredFamilies) {
+        $familiesDeclared = @(@(foreach ($f in $declaredFamilies) {
             if ($f -is [string]) { $f }
             elseif (Test-JsonKey $f $keyName) { $f.$keyName }
             else { $missingKeys.Add("an entry of '$keyFamilies' is neither a name nor an object with '$keyName'") }
@@ -110,39 +110,39 @@ if (Test-JsonKey $cat $keyFamilies) {
     } else {
         $missingKeys.Add("'$keyFamilies' is neither an object nor a list")
     }
-    if ($famiglieDichiarate.Count -eq 0) { $missingKeys.Add("'$keyFamilies' declares no family") }
+    if ($familiesDeclared.Count -eq 0) { $missingKeys.Add("'$keyFamilies' declares no family") }
 }
 if ($missingKeys.Count) {
-    Write-Host ("  [X] expected keys missing in " + $Catalogo + ": " + $missingKeys.Count) -ForegroundColor Red
+    Write-Host ("  [X] expected keys missing in " + $Catalog + ": " + $missingKeys.Count) -ForegroundColor Red
     $missingKeys | Select-Object -First 20 | ForEach-Object { Write-Host "       $_" -ForegroundColor DarkGray }
     Write-Host ""
     Write-Host ("A missing key would read as `$null and every check below would compare empty sets. " +
                 "If a key was renamed, this reader is renamed in the same commit.") -ForegroundColor Red
     exit 1
 }
-Bene ("the catalogue has the expected keys ($keyOperations, $keyFamilies; $keyName and $keyFamily in every operation), " +
-      $famiglieDichiarate.Count + " declared families")
+Fine ("the catalogue has the expected keys ($keyOperations, $keyFamilies; $keyName and $keyFamily in every operation), " +
+      $familiesDeclared.Count + " declared families")
 
-$operazioni = @($cat.operations)
-$nomiCatalogo = @($operazioni | ForEach-Object { $_.name } | Sort-Object -Unique)
+$operations = @($cat.operations)
+$catalogNames = @($operations | ForEach-Object { $_.name } | Sort-Object -Unique)
 
-if ($nomiCatalogo.Count -lt 20) {
-    Write-Host ("  [X] il catalogo ha solo " + $nomiCatalogo.Count + " operazioni: " +
+if ($catalogNames.Count -lt 20) {
+    Write-Host ("  [X] il catalogo ha solo " + $catalogNames.Count + " operazioni: " +
                 "non l'ho letto bene, e confrontare due insiemi vuoti direbbe " +
                 "che va tutto bene.") -ForegroundColor Red
     exit 1
 }
-Bene ("catalogo: " + $nomiCatalogo.Count + " operazioni")
+Fine ("catalogo: " + $catalogNames.Count + " operazioni")
 
 # --- 2. cio' che l'esecutore DICHIARA di saper fare --------------------------
-if (-not (Test-Path -LiteralPath $Libreria)) {
-    Write-Host "  [X] non trovo la libreria: $Libreria" -ForegroundColor Red
+if (-not (Test-Path -LiteralPath $Library)) {
+    Write-Host "  [X] non trovo la libreria: $Library" -ForegroundColor Red
     exit 1
 }
 # THE INTEROP OF SOLIDWORKS, found where it is installed (30/9/2026). The
-# static initializer of OperazioniSw touches SolidWorks.Interop.swconst, and
+# static initializer of SwOperations touches SolidWorks.Interop.swconst, and
 # a library loaded from its bytes has no folder to look for it in: without
-# this resolver the read of NomiEseguibili below died with a
+# this resolver the read of ExecutableNames below died with a
 # TypeInitializationException on a machine where the interop is not in the
 # GAC, and the check never got past this step. Same default and same
 # variable as the .csproj files; -SwInstallPath wins.
@@ -171,27 +171,27 @@ public static class CatalogueCheckInterop
 [CatalogueCheckInterop]::Resolve((Join-Path $SwInstallPath 'api\redist'))
 # Load sui byte e non LoadFrom: la libreria puo' stare su un'unita' di rete,
 # dove LoadFrom fallisce con 0x80131515 nominando una dipendenza che non esiste.
-$asm = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($Libreria))
-$tipo = $asm.GetType("Oce.Solid.Agent.Core.OperazioniSw")
-if (-not $tipo) {
-    Write-Host "  [X] nella libreria non c'e' Oce.Solid.Agent.Core.OperazioniSw" -ForegroundColor Red
+$asm = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($Library))
+$typ = $asm.GetType("Oce.Solid.Agent.Core.SwOperations")
+if (-not $typ) {
+    Write-Host "  [X] nella libreria non c'e' Oce.Solid.Agent.Core.SwOperations" -ForegroundColor Red
     exit 1
 }
-$campo = $tipo.GetField("NomiEseguibili")
-if (-not $campo) {
-    Write-Host ("  [X] OperazioniSw non espone NomiEseguibili: senza, questo " +
+$theField = $typ.GetField("ExecutableNames")
+if (-not $theField) {
+    Write-Host ("  [X] SwOperations non espone ExecutableNames: senza, questo " +
                 "controllo dovrebbe indovinare.") -ForegroundColor Red
     exit 1
 }
-$dichiarati = @($campo.GetValue($null) | Sort-Object -Unique)
-Bene ("l'esecutore dichiara: " + $dichiarati.Count + " operazioni")
+$declared = @($theField.GetValue($null) | Sort-Object -Unique)
+Fine ("l'esecutore dichiara: " + $declared.Count + " operazioni")
 
 # --- 3. cio' che c'e' DAVVERO nello switch, letto dal sorgente ---------------
 # Seconda strada verso lo stesso fatto: se le due divergono, e' una delle due a
 # essere marcia, e va detto invece di scegliere quella comoda.
-$dalSorgente = @()
-if (Test-Path -LiteralPath $Sorgente) {
-    $testo = Get-Content -LiteralPath $Sorgente -Raw -Encoding UTF8
+$fromSource = @()
+if (Test-Path -LiteralPath $Source) {
+    $text = Get-Content -LiteralPath $Source -Raw -Encoding UTF8
 
     # SI LEGGONO I «case», NON I «case ... return».
     #
@@ -199,103 +199,103 @@ if (Test-Path -LiteralPath $Sorgente) {
     # coppia che ricade sull'altro:
     #
     #     case "structural_member":
-    #     case "rectangular_frame": return MembroStrutturale(...);
+    #     case "rectangular_frame": return StructuralMember(...);
     #
     # Il controllo denunciava `structural_member` come «dichiarato ma non
     # nello switch», che era falso. Un controllo che accusa il codice giusto
     # si smette di guardare dopo due volte.
     #
-    # Si guarda solo dentro il corpo di `Esegui`, se lo si trova: altrove nel
+    # Si guarda solo dentro il corpo di `Run`, se lo si trova: altrove nel
     # file ci sono altri switch (nomi di piano, di vista) che non c'entrano.
     #
-    # Since W3.1-bis.5 the switch sits in `ExecuteWithCurrentNames`: `Esegui`
+    # Since W3.1-bis.5 the switch sits in `ExecuteWithCurrentNames`: `Run`
     # translates the names of before the rename (Alias.cs) and hands over. The
-    # method that holds the switch is read; `Esegui` when it holds it again
+    # method that holds the switch is read; `Run` when it holds it again
     # (W3.1-bis.11 removes the aliases).
-    $corpo = $testo
-    $inizio = $testo.LastIndexOf(" ExecuteWithCurrentNames(")   # the declaration, after the call
-    if ($inizio -lt 0) { $inizio = $testo.IndexOf("public Esito Esegui(") }
-    if ($inizio -ge 0) {
-        $fine = $testo.IndexOf("`n        }", $inizio)
-        if ($fine -gt $inizio) { $corpo = $testo.Substring($inizio, $fine - $inizio) }
+    $body = $text
+    $start = $text.LastIndexOf(" ExecuteWithCurrentNames(")   # the declaration, after the call
+    if ($start -lt 0) { $start = $text.IndexOf("public Esito Esegui(") }
+    if ($start -ge 0) {
+        $fine = $text.IndexOf("`n        }", $start)
+        if ($fine -gt $start) { $body = $text.Substring($start, $fine - $start) }
     }
-    $dalSorgente = @([regex]::Matches($corpo, 'case\s+"([a-z_0-9]+)"\s*:') |
+    $fromSource = @([regex]::Matches($body, 'case\s+"([a-z_0-9]+)"\s*:') |
                      ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
 }
-if ($dalSorgente.Count -lt 20) {
-    Male ("dal sorgente ho letto solo " + $dalSorgente.Count + " 'case': la " +
+if ($fromSource.Count -lt 20) {
+    Male ("dal sorgente ho letto solo " + $fromSource.Count + " 'case': la " +
           "lettura non ha funzionato, e un controllo che non ha guardato non " +
           "puo' dire che va tutto bene.")
 } else {
-    $soloDichiarati = @($dichiarati | Where-Object { $_ -notin $dalSorgente })
-    $soloSorgente = @($dalSorgente | Where-Object { $_ -notin $dichiarati })
-    if ($soloDichiarati.Count -or $soloSorgente.Count) {
-        Male "NomiEseguibili e i 'case' del sorgente non combaciano"
-        $soloDichiarati | ForEach-Object { Nota "dichiarato ma non nello switch: $_" }
-        $soloSorgente   | ForEach-Object { Nota "nello switch ma non dichiarato: $_" }
+    $declaredOnly = @($declared | Where-Object { $_ -notin $fromSource })
+    $sourceOnly = @($fromSource | Where-Object { $_ -notin $declared })
+    if ($declaredOnly.Count -or $sourceOnly.Count) {
+        Male "ExecutableNames e i 'case' del sorgente non combaciano"
+        $declaredOnly | ForEach-Object { Note "dichiarato ma non nello switch: $_" }
+        $sourceOnly   | ForEach-Object { Note "nello switch ma non dichiarato: $_" }
     } else {
-        Bene ("l'elenco dichiarato combacia con i " + $dalSorgente.Count + " 'case' del sorgente")
+        Fine ("l'elenco dichiarato combacia con i " + $fromSource.Count + " 'case' del sorgente")
     }
 }
 
 # --- 4. il confronto che conta ----------------------------------------------
-$dichiaratiNonEseguibili = @($nomiCatalogo | Where-Object { $_ -notin $dichiarati })
-$eseguibiliNonDichiarati = @($dichiarati | Where-Object { $_ -notin $nomiCatalogo })
+$declaredNotRunnable = @($catalogNames | Where-Object { $_ -notin $declared })
+$undeclaredExecutables = @($declared | Where-Object { $_ -notin $catalogNames })
 
-if ($dichiaratiNonEseguibili.Count) {
-    Male ("il catalogo dichiara " + $dichiaratiNonEseguibili.Count +
+if ($declaredNotRunnable.Count) {
+    Male ("il catalogo dichiara " + $declaredNotRunnable.Count +
           " operazioni che l'esecutore NON sa eseguire")
-    foreach ($n in $dichiaratiNonEseguibili) {
-        $op = $operazioni | Where-Object { $_.name -eq $n } | Select-Object -First 1
-        Nota ("$n   (famiglia: " + $op.family + ")")
+    foreach ($n in $declaredNotRunnable) {
+        $op = $operations | Where-Object { $_.name -eq $n } | Select-Object -First 1
+        Note ("$n   (famiglia: " + $op.family + ")")
     }
-    Nota "Il modello puo' chiederle, e si prende 'operazione sconosciuta'."
+    Note "Il modello puo' chiederle, e si prende 'operazione sconosciuta'."
 } else {
-    Bene "ogni operazione del catalogo e' eseguibile"
+    Fine "ogni operazione del catalogo e' eseguibile"
 }
 
-if ($eseguibiliNonDichiarati.Count) {
+if ($undeclaredExecutables.Count) {
     # NON e' un errore: un'operazione che c'e' ma non e' dichiarata e'
     # semplicemente invisibile al modello, che e' il comportamento voluto per
     # cio' che non e' ancora stato provato.
-    Bene ("eseguibili ma non dichiarate: " + $eseguibiliNonDichiarati.Count +
+    Fine ("eseguibili ma non dichiarate: " + $undeclaredExecutables.Count +
           " (invisibili al modello, ed e' voluto)")
-    $eseguibiliNonDichiarati | ForEach-Object { Nota $_ }
+    $undeclaredExecutables | ForEach-Object { Note $_ }
 }
 
 # --- 5. la forma di ogni voce ------------------------------------------------
 Write-Host ""
 Write-Host "=== La forma del catalogo" -ForegroundColor Cyan
 
-$campiObbligatori = @("name", "family", "summary", "details", "schema")
-$senzaCampo = 0
-foreach ($op in $operazioni) {
-    foreach ($c in $campiObbligatori) {
+$mandatoryFields = @("name", "family", "summary", "details", "schema")
+$withoutField = 0
+foreach ($op in $operations) {
+    foreach ($c in $mandatoryFields) {
         $v = $op.$c
         if ($null -eq $v -or ($v -is [string] -and [string]::IsNullOrWhiteSpace($v))) {
             Male ("'" + $op.name + "' non ha '" + $c + "'")
-            $senzaCampo++
+            $withoutField++
         }
     }
 }
-if ($senzaCampo -eq 0) { Bene "ogni operazione ha nome, famiglia, sommario, descrizione, schema" }
+if ($withoutField -eq 0) { Fine "ogni operazione ha nome, famiglia, sommario, descrizione, schema" }
 
 # --- 6. le famiglie ----------------------------------------------------------
 # E' il difetto gia' riparato una volta in esporta_catalogo.py: una famiglia
 # dichiarata e vuota arriva al modello come una porta che non apre su niente.
-$famiglieUsate = @($operazioni | ForEach-Object { $_.family } | Sort-Object -Unique)
+$usedFamilies = @($operations | ForEach-Object { $_.family } | Sort-Object -Unique)
 # (the declared families were read, and required not empty, in step 1)
-$vuote = @($famiglieDichiarate | Where-Object { $_ -notin $famiglieUsate })
-$nonDichiarate = @($famiglieUsate | Where-Object { $_ -notin $famiglieDichiarate })
-if ($vuote.Count) {
-    Male ("famiglie dichiarate e VUOTE: " + ($vuote -join ", "))
-    Nota "Al modello arrivano come una porta che non apre su niente."
+$empty = @($familiesDeclared | Where-Object { $_ -notin $usedFamilies })
+$notDeclared = @($usedFamilies | Where-Object { $_ -notin $familiesDeclared })
+if ($empty.Count) {
+    Male ("famiglie dichiarate e VUOTE: " + ($empty -join ", "))
+    Note "Al modello arrivano come una porta che non apre su niente."
 }
-if ($nonDichiarate.Count) {
-    Male ("famiglie usate ma non dichiarate: " + ($nonDichiarate -join ", "))
+if ($notDeclared.Count) {
+    Male ("famiglie usate ma non dichiarate: " + ($notDeclared -join ", "))
 }
-if (-not $vuote.Count -and -not $nonDichiarate.Count) {
-    Bene ("le " + $famiglieUsate.Count + " famiglie tornano")
+if (-not $empty.Count -and -not $notDeclared.Count) {
+    Fine ("le " + $usedFamilies.Count + " famiglie tornano")
 }
 
 # --- 7. cosa NON deve comparire nei testi ------------------------------------
@@ -309,45 +309,45 @@ Write-Host "=== Cosa non deve uscire dal catalogo" -ForegroundColor Cyan
 # `\n` e' l'escape JSON di un a capo: la ricerca trovava `o:` + `\` e
 # denunciava un percorso interno che non esiste. Decodificando, quell'escape
 # diventa un a capo vero e il falso positivo sparisce.
-$vietati = @("S:\", "O:\", "W:\", "OpenPDM", "192.168.", "oscar")
-$decodificato = New-Object System.Text.StringBuilder
-function Raccogli($o) {
+$forbidden = @("S:\", "O:\", "W:\", "OpenPDM", "192.168.", "oscar")
+$decoded = New-Object System.Text.StringBuilder
+function Collect($o) {
     if ($null -eq $o) { return }
-    if ($o -is [string]) { [void]$decodificato.AppendLine($o); return }
+    if ($o -is [string]) { [void]$decoded.AppendLine($o); return }
     if ($o -is [System.Collections.IEnumerable]) {
-        foreach ($x in $o) { Raccogli $x }
+        foreach ($x in $o) { Collect $x }
         return
     }
     if ($o -is [psobject] -and $o.PSObject.Properties) {
         foreach ($p in $o.PSObject.Properties) {
-            [void]$decodificato.AppendLine($p.Name)
-            Raccogli $p.Value
+            [void]$decoded.AppendLine($p.Name)
+            Collect $p.Value
         }
     }
 }
-Raccogli $cat
-$testo = $decodificato.ToString()
-$trovati = @()
-foreach ($v in $vietati) {
+Collect $cat
+$text = $decoded.ToString()
+$foundItems = @()
+foreach ($v in $forbidden) {
     # I percorsi si cercano rispettando le maiuscole: «O:\» e' un'unita', «o:\»
     # in mezzo a una frase italiana non lo e' quasi mai. I nomi propri no,
     # quelli si cercano comunque.
-    $modo = if ($v.EndsWith("\")) { [StringComparison]::Ordinal }
+    $mode = if ($v.EndsWith("\")) { [StringComparison]::Ordinal }
             else { [StringComparison]::OrdinalIgnoreCase }
-    if ($testo.IndexOf($v, $modo) -ge 0) { $trovati += $v }
+    if ($text.IndexOf($v, $mode) -ge 0) { $foundItems += $v }
 }
-if ($trovati.Count) {
-    Male ("nel catalogo compaiono: " + ($trovati -join ", "))
-    Nota "Il catalogo lo legge chi usa il ponte: qui dentro non ci va casa nostra."
+if ($foundItems.Count) {
+    Male ("nel catalogo compaiono: " + ($foundItems -join ", "))
+    Note "Il catalogo lo legge chi usa il ponte: qui dentro non ci va casa nostra."
 } else {
-    Bene "nessun percorso interno, nome di prodotto o indirizzo"
+    Fine "nessun percorso interno, nome di prodotto o indirizzo"
 }
 
 # --- esito -------------------------------------------------------------------
 Write-Host ""
-if ($problemi.Count -eq 0) {
+if ($problems.Count -eq 0) {
     Write-Host "Tutto torna." -ForegroundColor Green
     exit 0
 }
-Write-Host ($problemi.Count.ToString() + " problemi.") -ForegroundColor Red
+Write-Host ($problems.Count.ToString() + " problemi.") -ForegroundColor Red
 exit 1

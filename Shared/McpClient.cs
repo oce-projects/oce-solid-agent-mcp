@@ -24,7 +24,7 @@ namespace Shared
     ///
     /// Qui non c'e' nessuna asserzione: chi chiama decide cosa pretendere.
     /// </summary>
-    internal static class ClienteMcp
+    internal static class McpClient
     {
         /// <summary>
         /// Quanto si aspetta una risposta. NON E' UNA COMODITA': senza, una
@@ -32,53 +32,53 @@ namespace Shared
         /// Novanta secondi perche' il primo `tools/call` aggancia SOLIDWORKS,
         /// e se SOLIDWORKS c'e' ed e' occupato quella riga puo' tardare.
         /// </summary>
-        internal const int AttesaMs = 90000;
+        internal const int TimeoutMs = 90000;
         // ==================================================================
         // IL SOTTOPROCESSO
         // ==================================================================
-        internal sealed class Ponte : IDisposable
+        internal sealed class Bridge : IDisposable
         {
-            public Process Processo;
-            public readonly System.Collections.Concurrent.BlockingCollection<string> Righe =
+            public Process ServerProcess;
+            public readonly System.Collections.Concurrent.BlockingCollection<string> Lines =
                 new System.Collections.Concurrent.BlockingCollection<string>();
-            public readonly List<string> RigheNonJson = new List<string>();
+            public readonly List<string> LinesNotJson = new List<string>();
             /// <summary>Tutto quello che e' arrivato, per poterlo DIRE quando
             /// una prova va rossa: «non e' arrivato niente» senza dire cos'e'
             /// arrivato invece costa un'ora a chi legge.</summary>
-            public readonly List<string> Viste = new List<string>();
-            public int RigheLette;
+            public readonly List<string> Views = new List<string>();
+            public int LinesRead;
 
             public void Dispose()
             {
-                try { if (Processo != null && !Processo.HasExited) Processo.Kill(); } catch { }
-                try { Processo?.Dispose(); } catch { }
+                try { if (ServerProcess != null && !ServerProcess.HasExited) ServerProcess.Kill(); } catch { }
+                try { ServerProcess?.Dispose(); } catch { }
             }
         }
 
         /// <summary>
         /// Il ponte, ma con il catalogo rotto di proposito.
         ///
-        /// METODO A PARTE E NON UN PARAMETRO IN PIU' SU `Apri`. Aggiungere un
+        /// METODO A PARTE E NON UN PARAMETRO IN PIU' SU `Open`. Aggiungere un
         /// argomento con valore predefinito e' gia' costato un banco intero
         /// (nota `80zf`: «Mancata corrispondenza nel numero dei parametri», da
         /// 88/0 a 70/58), e la riparazione che ha funzionato fu **un nome
-        /// diverso**. Qui `Apri` non e' chiamato per riflessione, ma la regola
+        /// diverso**. Qui `Open` non e' chiamato per riflessione, ma la regola
         /// si tiene lo stesso: costa una riga e toglie una categoria di
         /// sorprese.
         /// </summary>
-        internal static Ponte ApriConCatalogoRotto(string eseguibile)
+        internal static Bridge OpenWithBrokenCatalog(string executable)
         {
-            var finto = Path.Combine(
+            var fake = Path.Combine(
                 Path.GetTempPath(), "catalogo_che_non_esiste_" + Guid.NewGuid().ToString("N") + ".json");
-            return Apri(eseguibile, finto);
+            return Open(executable, fake);
         }
 
-        internal static Ponte Apri(string eseguibile)
+        internal static Bridge Open(string executable)
         {
-            return Apri(eseguibile, null);
+            return Open(executable, null);
         }
 
-        internal static Ponte Apri(string eseguibile, string catalogoFinto)
+        internal static Bridge Open(string executable, string fakeCatalog)
         {
             // ── IL BOM CHE HA ROTTO LA PRIMA RIGA ────────────────────────
             //
@@ -102,11 +102,11 @@ namespace Shared
 
             try
             {
-                var p = new Ponte
+                var p = new Bridge
                 {
-                    Processo = new Process
+                    ServerProcess = new Process
                     {
-                        StartInfo = new ProcessStartInfo(eseguibile)
+                        StartInfo = new ProcessStartInfo(executable)
                         {
                             RedirectStandardInput = true,
                             RedirectStandardOutput = true,
@@ -114,7 +114,7 @@ namespace Shared
                             UseShellExecute = false,
                             CreateNoWindow = true,
                             StandardOutputEncoding = new UTF8Encoding(false),
-                            WorkingDirectory = Path.GetDirectoryName(eseguibile),
+                            WorkingDirectory = Path.GetDirectoryName(executable),
                         },
                     },
                 };
@@ -122,36 +122,36 @@ namespace Shared
                 // installa il pacchetto altrove: puntarla a un file che non
                 // c'e' e' il modo onesto di provare cosa fa il ponte quando il
                 // catalogo non si carica.
-                if (catalogoFinto != null)
-                    p.Processo.StartInfo.EnvironmentVariables["OPENPDM_CATALOGO"] = catalogoFinto;
-                p.Processo.OutputDataReceived += (s, e) =>
+                if (fakeCatalog != null)
+                    p.ServerProcess.StartInfo.EnvironmentVariables["OPENPDM_CATALOGO"] = fakeCatalog;
+                p.ServerProcess.OutputDataReceived += (s, e) =>
                 {
                     if (e.Data == null) return;
-                    p.RigheLette++;
-                    p.Viste.Add(e.Data);
+                    p.LinesRead++;
+                    p.Views.Add(e.Data);
                     var t = e.Data.Trim();
                     // QUELLO CHE NON E' JSON SI TIENE DA PARTE, non si butta:
                     // e' il controllo, non un incidente.
                     if (t.Length > 0 && !(t.StartsWith("{") || t.StartsWith("[")))
-                        p.RigheNonJson.Add(t);
-                    p.Righe.Add(e.Data);
+                        p.LinesNotJson.Add(t);
+                    p.Lines.Add(e.Data);
                 };
                 // stderr NON si guarda: e' li' che il ponte racconta, ed e'
                 // giusto che ci racconti.
-                p.Processo.ErrorDataReceived += (s, e) => { };
-                p.Processo.Start();
-                p.Processo.BeginOutputReadLine();
-                p.Processo.BeginErrorReadLine();
+                p.ServerProcess.ErrorDataReceived += (s, e) => { };
+                p.ServerProcess.Start();
+                p.ServerProcess.BeginOutputReadLine();
+                p.ServerProcess.BeginErrorReadLine();
                 return p;
             }
             catch { return null; }
         }
 
-        /// <summary>Una riga sullo stdin del ponte. Vedi `Apri` per il BOM.</summary>
-        internal static void Scrivi(Ponte p, string riga)
+        /// <summary>Una riga sullo stdin del ponte. Vedi `Open` per il BOM.</summary>
+        internal static void Write(Bridge p, string line)
         {
-            p.Processo.StandardInput.Write(riga + "\n");
-            p.Processo.StandardInput.Flush();
+            p.ServerProcess.StandardInput.Write(line + "\n");
+            p.ServerProcess.StandardInput.Flush();
         }
 
         /// <summary>
@@ -159,53 +159,53 @@ namespace Shared
         /// senza, una prova che fallisce appende il comando invece di diventare
         /// rossa.
         /// </summary>
-        internal static string Riga(Ponte p, int ms)
+        internal static string Line(Bridge p, int ms)
         {
-            string riga;
-            return p.Righe.TryTake(out riga, ms) ? riga : null;
+            string line;
+            return p.Lines.TryTake(out line, ms) ? line : null;
         }
 
-        internal static string Chiedi(Ponte p, int id, string richiesta)
+        internal static string Ask(Bridge p, int id, string request)
         {
-            Scrivi(p, richiesta);
+            Write(p, request);
             // Si scarta quello che non e' la risposta attesa: il ponte puo'
             // scrivere altro, e cercare l'id e' l'unico modo che non dipende
             // dall'ordine.
-            var scadenza = Environment.TickCount + AttesaMs;
-            while (Environment.TickCount < scadenza)
+            var expiry = Environment.TickCount + TimeoutMs;
+            while (Environment.TickCount < expiry)
             {
-                var riga = Riga(p, Math.Max(200, scadenza - Environment.TickCount));
-                if (riga == null) return null;
-                var o = Ogg(riga);
+                var line = Line(p, Math.Max(200, expiry - Environment.TickCount));
+                if (line == null) return null;
+                var o = Obj(line);
                 if (o != null && o.ContainsKey("id") && Convert.ToString(o["id"]) == id.ToString())
-                    return riga;
+                    return line;
             }
             return null;
         }
 
-        internal static void Chiudi(Ponte p)
+        internal static void Close(Bridge p)
         {
-            try { p.Processo.StandardInput.Close(); } catch { }
-            try { p.Processo.WaitForExit(3000); } catch { }
+            try { p.ServerProcess.StandardInput.Close(); } catch { }
+            try { p.ServerProcess.WaitForExit(3000); } catch { }
         }
 
-        internal static Dictionary<string, object> Ogg(string riga)
+        internal static Dictionary<string, object> Obj(string line)
         {
-            if (string.IsNullOrWhiteSpace(riga)) return null;
+            if (string.IsNullOrWhiteSpace(line)) return null;
             try
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                 s.MaxJsonLength = 40 * 1024 * 1024;
-                return s.DeserializeObject(riga) as Dictionary<string, object>;
+                return s.DeserializeObject(line) as Dictionary<string, object>;
             }
             catch { return null; }
         }
 
-        internal static object Dentro(object o, string chiave)
+        internal static object Inside(object o, string key)
         {
             var d = o as Dictionary<string, object>;
-            if (d == null || !d.ContainsKey(chiave)) return null;
-            return d[chiave];
+            if (d == null || !d.ContainsKey(key)) return null;
+            return d[key];
         }
 
         /// <summary>
@@ -216,14 +216,14 @@ namespace Shared
         /// leggerebbe come un difetto del ponte invece che come «il contenuto
         /// era vuoto».
         /// </summary>
-        internal static string TestoDi(Dictionary<string, object> risultato)
+        internal static string TextOf(Dictionary<string, object> result)
         {
-            var contenuto = Dentro(risultato, "content") as object[];
-            if (contenuto == null || contenuto.Length == 0) return "";
-            return Convert.ToString(Dentro(contenuto[0], "text")) ?? "";
+            var content = Inside(result, "content") as object[];
+            if (content == null || content.Length == 0) return "";
+            return Convert.ToString(Inside(content[0], "text")) ?? "";
         }
 
-        internal static string Corto(string s)
+        internal static string Short(string s)
         {
             if (string.IsNullOrEmpty(s)) return "(niente)";
             s = s.Replace("\r", " ").Replace("\n", " ");

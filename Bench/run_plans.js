@@ -28,15 +28,15 @@ const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const RADICE = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const CHIUDI = path.join(RADICE, "Checks", "CloseLeftovers", "bin", "CloseLeftovers.exe");
-const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
+const ROOT = path.resolve(__dirname, "..");
+const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const CLOSE = path.join(ROOT, "Checks", "CloseLeftovers", "bin", "CloseLeftovers.exe");
+const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 
-const argomenti = process.argv.slice(2);
-const pulisci = argomenti.includes("--pulisci");
-const piani = argomenti.filter(a => a !== "--pulisci");
-if (!piani.length) { console.error("dammi i piani"); process.exit(2); }
+const cliArgs = process.argv.slice(2);
+const cleanFlag = cliArgs.includes("--pulisci");
+const planes = cliArgs.filter(a => a !== "--pulisci");
+if (!planes.length) { console.error("dammi i piani"); process.exit(2); }
 
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -50,10 +50,10 @@ if (!piani.length) { console.error("dammi i piani"); process.exit(2); }
 //
 // Adesso scrivono `{BANCO}/pezzo/tizio.SLDPRT`, e qui `{BANCO}` diventa
 // `Bench/lavoro`, che sta nel .gitignore.
-const LAVORO = path.join(__dirname, "lavoro");
+const WORK = path.join(__dirname, "lavoro");
 
-function risolviSegnaposto(testo) {
-  return testo.split("{BANCO}").join(LAVORO.split("\\").join("/"));
+function resolvePlaceholder(text) {
+  return text.split("{BANCO}").join(WORK.split("\\").join("/"));
 }
 
 // LA CARTELLA SI CREAVA VUOTA, E CINQUE CASI NON POTEVANO GIRARE.
@@ -62,7 +62,7 @@ function risolviSegnaposto(testo) {
 // della riparazione col segnaposto (0.25.0) quel percorso puntava alla
 // scratchpad di sessione, dove il file c'era davvero perche' qualcuno ce
 // l'aveva messo a mano. Il segnaposto ha reso il percorso portabile e ha
-// lasciato il file senza nessuno che lo provveda: `preparaLaCartella` creava
+// lasciato il file senza nessuno che lo provveda: `prepareFolder` creava
 // `profili/` e non ci metteva dentro niente.
 //
 // Misurato il 14/9/2026: cinque casi rispondevano «Il profilo ... non esiste su
@@ -75,8 +75,8 @@ function risolviSegnaposto(testo) {
 // sola: su ogni altra macchina non esisteva, quindi non aiutava nessuno, e
 // intanto raccontava com'e' fatto quel disco. Chi non ha la variabile lo
 // scopre adesso con una frase, invece che fra dieci minuti con un errore.
-const PROFILI = process.env.PROFILI_SALDATURA;
-if (!PROFILI) {
+const PROFILES = process.env.PROFILI_SALDATURA;
+if (!PROFILES) {
   console.error("PROFILI_SALDATURA non e' impostata: non so dove sia la libreria");
   console.error("dei profili normati, e non c'e' un percorso predefinito.");
   console.error('    setx PROFILI_SALDATURA "<la cartella dei .SLDLFP>"');
@@ -84,18 +84,18 @@ if (!PROFILI) {
 }
 
 // nome nella libreria -> nome della copia che i casi nominano
-const DA_COPIARE = {
+const TO_COPY = {
   "TUBO STRUTTURALE QUADRO.SLDLFP": "QUADRO_COPIA.SLDLFP",
 };
 
-function preparaLaCartella() {
-  for (const c of [LAVORO, path.join(LAVORO, "pezzo"), path.join(LAVORO, "profili")]) {
+function prepareFolder() {
+  for (const c of [WORK, path.join(WORK, "pezzo"), path.join(WORK, "profili")]) {
     if (!fs.existsSync(c)) fs.mkdirSync(c, { recursive: true });
   }
 
-  for (const [origine, copia] of Object.entries(DA_COPIARE)) {
-    const da = path.join(PROFILI, origine);
-    const a = path.join(LAVORO, "profili", copia);
+  for (const [origin, copy] of Object.entries(TO_COPY)) {
+    const da = path.join(PROFILES, origin);
+    const a = path.join(WORK, "profili", copy);
     if (fs.existsSync(a)) continue;
     if (!fs.existsSync(da)) {
       // SI DICE, e non si muore: chi clona il repository non ha quella
@@ -103,7 +103,7 @@ function preparaLaCartella() {
       // sapere PERCHE' quei cinque falliranno, invece di leggere un messaggio
       // che incolpa il percorso.
       console.error(
-        "  [banco] manca il profilo «" + origine + "» in " + PROFILI + "\n" +
+        "  [banco] manca il profilo «" + origin + "» in " + PROFILES + "\n" +
         "          i casi del telaio falliranno. Scavalca con PROFILI_SALDATURA.");
       continue;
     }
@@ -111,9 +111,9 @@ function preparaLaCartella() {
   }
 }
 
-function unGiro(elenco, suQuesto) {
-  return new Promise(risolvi => {
-    const richieste = [
+function aRun(list, onThis) {
+  return new Promise(resolve => {
+    const requests = [
       { jsonrpc: "2.0", id: 1, method: "initialize",
         params: { protocolVersion: "2024-11-05", capabilities: {},
                   clientInfo: { name: "banco", version: "1" } } },
@@ -121,82 +121,82 @@ function unGiro(elenco, suQuesto) {
       { jsonrpc: "2.0", id: 2, method: "tools/call",
         params: { name: "inspect_part", arguments: {} } },
     ];
-    const nome = {};
-    elenco.forEach((f, i) => {
-      richieste.push({
+    const itemName = {};
+    list.forEach((f, i) => {
+      requests.push({
         jsonrpc: "2.0", id: 10 + i, method: "tools/call",
         params: { name: "build",
                   arguments: {
-                    steps: JSON.parse(risolviSegnaposto(fs.readFileSync(f, "utf8"))),
+                    steps: JSON.parse(resolvePlaceholder(fs.readFileSync(f, "utf8"))),
                   } },
       });
-      nome[10 + i] = f;
+      itemName[10 + i] = f;
     });
 
     const p = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
-    let avanzo = "";
-    let visti = 0;
-    let statoIniziale = null;
+    let leftover = "";
+    let seen = 0;
+    let initialState = null;
     p.stderr.on("data", d => process.stderr.write("  [sw] " + d));
     p.stdout.on("data", d => {
-      avanzo += d.toString();
+      leftover += d.toString();
       let i;
-      while ((i = avanzo.indexOf("\n")) >= 0) {
-        const riga = avanzo.slice(0, i).trim();
-        avanzo = avanzo.slice(i + 1);
-        if (!riga) continue;
-        let m; try { m = JSON.parse(riga); } catch (e) { continue; }
+      while ((i = leftover.indexOf("\n")) >= 0) {
+        const line = leftover.slice(0, i).trim();
+        leftover = leftover.slice(i + 1);
+        if (!line) continue;
+        let m; try { m = JSON.parse(line); } catch (e) { continue; }
         if (m.id === 2) {
           const t = (m.result && m.result.content || []).map(c => c.text).join("\n");
-          try { statoIniziale = JSON.parse(t); } catch (e) { }
+          try { initialState = JSON.parse(t); } catch (e) { }
           console.log("inspect_part: ok");
-          if (elenco.length === 0) { p.stdin.end(); clearTimeout(sveglia); }
+          if (list.length === 0) { p.stdin.end(); clearTimeout(alarm); }
           continue;
         }
-        if (nome[m.id]) {
+        if (itemName[m.id]) {
           const t = (m.result && m.result.content || []).map(c => c.text).join("\n");
-          console.log("\n-- " + nome[m.id] + " --");
+          console.log("\n-- " + itemName[m.id] + " --");
           console.log(t);
           // Chiuso il rubinetto E annullata la sveglia: un setTimeout ancora
           // armato tiene vivo node anche a ponte gia' uscito, e il banco
           // sembrava appeso per due minuti a ogni piano.
-          if (++visti === elenco.length) { p.stdin.end(); clearTimeout(sveglia); }
+          if (++seen === list.length) { p.stdin.end(); clearTimeout(alarm); }
         }
       }
     });
-    const sveglia = setTimeout(() => { try { p.kill(); } catch (e) { } }, 30 * 60 * 1000);
+    const alarm = setTimeout(() => { try { p.kill(); } catch (e) { } }, 30 * 60 * 1000);
     p.on("exit", c => {
       console.log("\nponte chiuso: " + c);
-      risolvi(statoIniziale);
+      resolve(initialState);
     });
-    richieste.forEach(r => p.stdin.write(JSON.stringify(r) + "\n"));
+    requests.forEach(r => p.stdin.write(JSON.stringify(r) + "\n"));
   });
 }
 
-function titoliAperti(stato) {
-  if (!stato || !Array.isArray(stato.documents_open)) return [];
-  return stato.documents_open.map(d => d && d.document_title).filter(Boolean);
+function openTitles(docState) {
+  if (!docState || !Array.isArray(docState.documents_open)) return [];
+  return docState.documents_open.map(d => d && d.document_title).filter(Boolean);
 }
 
-function attrezzo(percorso, args) {
-  if (!fs.existsSync(percorso)) {
-    console.error("manca " + percorso + ": lancia Checks\\build-checks.ps1");
+function tool(filePath, args) {
+  if (!fs.existsSync(filePath)) {
+    console.error("manca " + filePath + ": lancia Checks\\build-checks.ps1");
     return null;
   }
-  const r = spawnSync(percorso, args, { encoding: "utf8" });
+  const r = spawnSync(filePath, args, { encoding: "utf8" });
   return r.stdout || "";
 }
 
-async function principale() {
-  preparaLaCartella();
-  let daRisparmiare = [];
+async function main() {
+  prepareFolder();
+  let toSpare = [];
 
-  if (pulisci) {
+  if (cleanFlag) {
     // Chi c'era prima. Un giro a vuoto, solo per leggere lo stato.
-    const stato = await unGiro([], null);
-    daRisparmiare = titoliAperti(stato);
+    const docState = await aRun([], null);
+    toSpare = openTitles(docState);
     console.log("documenti gia' aperti, che non tocchiamo: " +
-                (daRisparmiare.length ? daRisparmiare.join(", ") : "none"));
+                (toSpare.length ? toSpare.join(", ") : "none"));
   }
 
   // IL TEMPO PER PIANO, non solo il totale.
@@ -205,14 +205,14 @@ async function principale() {
   // di scarto addosso cresce dal primo caso all'ultimo, e un totale non lo
   // fa vedere. Misurato prima di `--pulisci`: da 236 a 271 secondi su
   // diciannove piani.
-  const tempi = [];
-  for (const f of piani) {
-    if (pulisci) attrezzo(NUOVA, []);
-    const partito = process.hrtime.bigint();
-    await unGiro([f], null);
-    const secondi = Number(process.hrtime.bigint() - partito) / 1e9;
-    tempi.push({ piano: path.basename(f), secondi });
-    console.log("  [tempo] " + path.basename(f) + ": " + secondi.toFixed(1) + " s");
+  const times = [];
+  for (const f of planes) {
+    if (cleanFlag) tool(NEW, []);
+    const startedAt = process.hrtime.bigint();
+    await aRun([f], null);
+    const seconds = Number(process.hrtime.bigint() - startedAt) / 1e9;
+    times.push({ piano: path.basename(f), secondi: seconds });
+    console.log("  [tempo] " + path.basename(f) + ": " + seconds.toFixed(1) + " s");
 
     // SI CHIUDE DOPO OGNI PIANO, NON ALLA FINE.
     //
@@ -221,39 +221,39 @@ async function principale() {
     // con la pulizia solo finale su diciannove piani: 20 s il primo,
     // 124 il secondo, 210 il terzo, 244 il quarto — cioe' lo stesso guaio di
     // prima con un nome diverso.
-    if (pulisci) ripulisci(daRisparmiare);
+    if (cleanFlag) cleanUp(toSpare);
   }
 
-  if (tempi.length > 1) {
+  if (times.length > 1) {
     console.log("");
     console.log("=== I tempi, in ordine di esecuzione");
-    tempi.forEach((t, i) =>
+    times.forEach((t, i) =>
       console.log("  " + String(i + 1).padStart(3) + ". " +
                   t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));
-    const primi = tempi.slice(0, 3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, tempi.length);
-    const ultimi = tempi.slice(-3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, tempi.length);
-    console.log("  primi tre: " + primi.toFixed(1) + " s di media" +
-                "   ultimi tre: " + ultimi.toFixed(1) + " s");
-    console.log(ultimi > primi * 1.3
+    const first = times.slice(0, 3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, times.length);
+    const last = times.slice(-3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, times.length);
+    console.log("  primi tre: " + first.toFixed(1) + " s di media" +
+                "   ultimi tre: " + last.toFixed(1) + " s");
+    console.log(last > first * 1.3
       ? "  -> IL BANCO RALLENTA SE STESSO: i tempi crescono."
       : "  -> i tempi non crescono.");
   }
 
-  if (pulisci) ripulisci(daRisparmiare, true);
+  if (cleanFlag) cleanUp(toSpare, true);
 }
 
 /// Chiude gli scarti del banco, risparmiando chi c'era prima.
-function ripulisci(daRisparmiare, raccontalo) {
-  const uscita = attrezzo(CHIUDI, daRisparmiare.length
-    ? ["--chiudi", "--risparmia", daRisparmiare.join(",")]
+function cleanUp(toSpare, tellIt) {
+  const output = tool(CLOSE, toSpare.length
+    ? ["--chiudi", "--risparmia", toSpare.join(",")]
     : ["--chiudi"]);
-  if (!uscita || !raccontalo) return;
+  if (!output || !tellIt) return;
   // Si stampano solo le due righe che contano: quante ne ha chiuse e quante
   // ne restano. Il resto e' l'elenco, e in un resoconto di cinquanta casi
   // sarebbe rumore.
-  uscita.split(/\r?\n/)
+  output.split(/\r?\n/)
     .filter(r => /^chiusi:|^documenti aperti adesso:/.test(r))
     .forEach(r => console.log("  " + r));
 }
 
-principale().catch(e => { console.error(e); process.exit(1); });
+main().catch(e => { console.error(e); process.exit(1); });

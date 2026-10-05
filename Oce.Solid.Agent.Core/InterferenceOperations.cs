@@ -58,49 +58,49 @@ namespace Oce.Solid.Agent.Core
     /// usata. *Un'impostazione che cambia il verdetto e non compare nel verdetto
     /// e' un verdetto che non si puo' rileggere.*
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito VerificaInterferenze(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome InterferenceCheck(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var assieme = modello as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito(
+            var assemblyDoc = model as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed(
                     "Questo non e' un assieme, e' un documento di tipo «" +
-                    NomeTipoDocumento(TipoDi(modello)) + "». Le interferenze si " +
+                    DocumentTypeName(TypeOf(model)) + "». Le interferenze si " +
                     "cercano fra i componenti di un assieme: su una parte sola non " +
                     "c'e' niente che possa compenetrare qualcos'altro.");
 
-            object[] grezzi = null;
-            try { grezzi = assieme.GetComponents(false) as object[]; } catch { }
-            var componenti = StatoDocumento.ComponentiInOrdine(grezzi);
-            if (componenti.Count < 2)
-                return Fallito(
-                    "L'assieme ha " + componenti.Count +
-                    (componenti.Count == 1 ? " componente" : " componenti") +
+            object[] rawItems = null;
+            try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            var components = DocumentState.ComponentsInOrder(rawItems);
+            if (components.Count < 2)
+                return Failed(
+                    "L'assieme ha " + components.Count +
+                    (components.Count == 1 ? " componente" : " componenti") +
                     ": ce ne vogliono almeno due perche' uno possa toccare l'altro.");
 
-            bool toccarsiConta = Bool(a, "touching_counts", false);
-            bool dentroLeParti = Bool(a, "inside_parts", false);
+            bool touchCount = Bool(a, "touching_counts", false);
+            bool insideTheParts = Bool(a, "inside_parts", false);
 
-            IInterferenceDetectionMgr gestore;
-            try { gestore = assieme.InterferenceDetectionManager as IInterferenceDetectionMgr; }
+            IInterferenceDetectionMgr handler;
+            try { handler = assemblyDoc.InterferenceDetectionManager as IInterferenceDetectionMgr; }
             catch (Exception ex)
             {
-                return Fallito("Non riesco ad aprire il rilevamento interferenze: " + ex.Message);
+                return Failed("Non riesco ad aprire il rilevamento interferenze: " + ex.Message);
             }
-            if (gestore == null)
-                return Fallito(
+            if (handler == null)
+                return Failed(
                     "SOLIDWORKS non mi da' il rilevamento interferenze su questo " +
                     "documento, e non dice perche'.");
 
-            var trovate = new List<object>();
-            int quante = 0;
+            var foundOnes = new List<object>();
+            int howMany = 0;
             int interferencesRead = 0;
             string listProblem = null;
-            double volumeTotale = 0;
-            bool volumiLetti = true;
-            var coinvolti = new List<string>();
+            double totalVolume = 0;
+            bool readVolumes = true;
+            var involved = new List<string>();
             // N38: how many of the interferences read are only POSSIBLE, and
             // their volume; null when the flag of one of them could not be read.
             int? possibleCount = 0;
@@ -122,22 +122,22 @@ namespace Oce.Solid.Agent.Core
                 // with the question asked. Now the answer gives what SOLIDWORKS
                 // reads back, and a value that reads back different stops the
                 // count (InterferenceSettingsProblem).
-                try { gestore.TreatCoincidenceAsInterference = toccarsiConta; } catch { }
-                try { gestore.IncludeMultibodyPartInterferences = dentroLeParti; } catch { }
-                try { gestore.ShowIgnoredInterferences = false; } catch { }
-                try { coincidenceRead = gestore.TreatCoincidenceAsInterference; } catch { }
-                try { multibodyRead = gestore.IncludeMultibodyPartInterferences; } catch { }
-                try { ignoredShownRead = gestore.ShowIgnoredInterferences; } catch { }
+                try { handler.TreatCoincidenceAsInterference = touchCount; } catch { }
+                try { handler.IncludeMultibodyPartInterferences = insideTheParts; } catch { }
+                try { handler.ShowIgnoredInterferences = false; } catch { }
+                try { coincidenceRead = handler.TreatCoincidenceAsInterference; } catch { }
+                try { multibodyRead = handler.IncludeMultibodyPartInterferences; } catch { }
+                try { ignoredShownRead = handler.ShowIgnoredInterferences; } catch { }
                 string settingsProblem = InterferenceSettingsProblem(
-                    toccarsiConta, coincidenceRead, dentroLeParti, multibodyRead, ignoredShownRead);
+                    touchCount, coincidenceRead, insideTheParts, multibodyRead, ignoredShownRead);
                 if (settingsProblem != null)
-                    return Fallito(
+                    return Failed(
                         "SOLIDWORKS did not take the settings of the interference check: " + settingsProblem +
                         ". The count would answer another question than the one asked, so I did not count. " +
                         "Ask again; if it repeats, check with Interference Detection in SOLIDWORKS.");
 
-                try { quante = gestore.GetInterferenceCount(); }
-                catch (Exception ex) { return Fallito("Non riesco a contare le interferenze: " + ex.Message); }
+                try { howMany = handler.GetInterferenceCount(); }
+                catch (Exception ex) { return Failed("Non riesco a contare le interferenze: " + ex.Message); }
 
                 // THE LIST MUST BE AS LONG AS THE COUNT (Z-C21.10, finding N34).
                 //
@@ -148,61 +148,61 @@ namespace Oce.Solid.Agent.Core
                 // ~GetInterferences.html, Return Value: «Array of the
                 // interferences». The count IS the size of the array. With a null
                 // list, a shorter one, or an item that is not an IInterference,
-                // `volumiLetti` stayed true: the partial sum went into
+                // `readVolumes` stayed true: the partial sum went into
                 // volume_total_mm3 and into the verdict («2 INTERFERENZE, per 0
                 // mm3 in tutto», riuscita:true when GetInterferences threw). Now
                 // any of the three makes the volume unknown
                 // (`InterferenceListProblem`), and `interferences_read` says how
                 // many were actually read.
-                object[] elenco = null;
+                object[] list = null;
                 string whyNoList = null;
-                try { elenco = gestore.GetInterferences() as object[]; }
+                try { list = handler.GetInterferences() as object[]; }
                 catch (Exception ex) { whyNoList = "GetInterferences threw: " + ex.Message; }
 
                 int notInterferences = 0;
-                if (elenco != null)
+                if (list != null)
                 {
-                    for (int i = 0; i < elenco.Length; i++)
+                    for (int i = 0; i < list.Length; i++)
                     {
-                        var interferenza = elenco[i] as IInterference;
-                        if (interferenza == null) { notInterferences++; continue; }
+                        var interference = list[i] as IInterference;
+                        if (interference == null) { notInterferences++; continue; }
                         interferencesRead++;
 
                         double volume;
-                        bool letto = VolumeDellInterferenzaMm3(interferenza, out volume);
-                        if (!letto) volumiLetti = false; else volumeTotale += volume;
+                        bool read = InterferenceVolumeMm3(interference, out volume);
+                        if (!read) readVolumes = false; else totalVolume += volume;
 
-                        bool? forse = null;
-                        try { forse = interferenza.IsPossibleInterference; } catch { }
+                        bool? maybe = null;
+                        try { maybe = interference.IsPossibleInterference; } catch { }
                         // N38: counted apart, not rounded up to a certain one.
                         // IInterference~IsPossibleInterference.html: «True if
                         // this is a possible interference, false if not».
-                        if (forse == null) possibleCount = null;
-                        else if (forse == true)
+                        if (maybe == null) possibleCount = null;
+                        else if (maybe == true)
                         {
                             if (possibleCount.HasValue) possibleCount++;
-                            if (letto) possibleVolume += volume;
+                            if (read) possibleVolume += volume;
                         }
 
-                        var voce = new Dictionary<string, object>
+                        var entry = new Dictionary<string, object>
                         {
                             ["n"] = i + 1,
-                            ["volume_mm3"] = letto ? (object)Math.Round(volume, 3) : null,
+                            ["volume_mm3"] = read ? (object)Math.Round(volume, 3) : null,
                         };
                         // «Possibile» vuol dire che SOLIDWORKS non e' sicuro:
                         // si riporta com'e' invece di arrotondarlo a un si'.
-                        if (forse == true) voce["only_possible"] = true;
-                        else if (forse == null) voce["possible_not_read"] = true;
-                        trovate.Add(voce);
+                        if (maybe == true) entry["only_possible"] = true;
+                        else if (maybe == null) entry["possible_not_read"] = true;
+                        foundOnes.Add(entry);
                     }
                 }
                 listProblem = InterferenceListProblem(
-                    quante, elenco == null ? (int?)null : elenco.Length, notInterferences, whyNoList);
-                if (listProblem != null) volumiLetti = false;
+                    howMany, list == null ? (int?)null : list.Length, notInterferences, whyNoList);
+                if (listProblem != null) readVolumes = false;
 
                 try
                 {
-                    var comp = gestore.GetInterferenceComponents() as object[];
+                    var comp = handler.GetInterferenceComponents() as object[];
                     if (comp != null)
                         foreach (var o in comp)
                         {
@@ -210,7 +210,7 @@ namespace Oce.Solid.Agent.Core
                             if (c == null) continue;
                             string n = null;
                             try { n = c.Name2; } catch { }
-                            if (!string.IsNullOrWhiteSpace(n) && !coinvolti.Contains(n)) coinvolti.Add(n);
+                            if (!string.IsNullOrWhiteSpace(n) && !involved.Contains(n)) involved.Add(n);
                         }
                 }
                 catch { }
@@ -225,7 +225,7 @@ namespace Oce.Solid.Agent.Core
                 // `finally` non e' pignoleria: l'eccezione arriva proprio quando
                 // l'analisi va male (stessa lezione gia' scritta per
                 // `IThicknessAnalysis.Close()`, voce W2.14).
-                try { gestore.Done(); } catch { }
+                try { handler.Done(); } catch { }
             }
 
             // N18: the components the check looks at are the ones that are not
@@ -235,7 +235,7 @@ namespace Oce.Solid.Agent.Core
             // The components are read from the array GetComponents gave, the
             // same ones the list above was built from.
             var states = new List<int?>();
-            foreach (var o in grezzi ?? new object[0])
+            foreach (var o in rawItems ?? new object[0])
             {
                 var component = o as IComponent2;
                 if (component == null) continue;
@@ -248,50 +248,50 @@ namespace Oce.Solid.Agent.Core
 
             // N38: certain and possible apart, only when every counted
             // interference was read and each said which it is.
-            int? possible = interferencesRead == quante ? possibleCount : null;
+            int? possible = interferencesRead == howMany ? possibleCount : null;
             object certainOut = null, possibleOut = null;
             if (possible is int possibleKnown)
             {
-                certainOut = quante - possibleKnown;
+                certainOut = howMany - possibleKnown;
                 possibleOut = possibleKnown;
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["how_many"] = quante,
+                ["how_many"] = howMany,
                 // How many of the counted interferences the array actually gave:
                 // equal to «how_many» when the list and the count agree (N34).
                 ["interferences_read"] = interferencesRead,
                 ["certain_interferences"] = certainOut,
                 ["possible_interferences"] = possibleOut,
-                ["components_checked"] = NumeroOppureNull(lookedAt),
-                ["suppressed_components"] = NumeroOppureNull(suppressedComponents),
+                ["components_checked"] = NumberOrNull(lookedAt),
+                ["suppressed_components"] = NumberOrNull(suppressedComponents),
                 // N18: as SOLIDWORKS reads them back after setting them (the
                 // check above stops when they differ from the request).
                 ["touching_counts"] = coincidenceRead,
                 ["inside_parts"] = multibodyRead,
             };
             if (suppressedComponents > 0)
-                misure["suppressed_note"] =
+                measurements["suppressed_note"] =
                     suppressedComponents + (suppressedComponents == 1 ? " component is" : " components are") +
                     " suppressed and not in the check: SOLIDWORKS does not look at them. Unsuppress them to " +
                     "have them checked.";
             if (coincidenceRead == null || multibodyRead == null || ignoredShownRead == null)
-                misure["settings_not_read_back"] =
+                measurements["settings_not_read_back"] =
                     "I could not read back every setting of the check (TreatCoincidenceAsInterference, " +
                     "IncludeMultibodyPartInterferences, ShowIgnoredInterferences): those were set as asked " +
                     "but not confirmed, and the answer gives null for them.";
-            if (trovate.Count > 0) misure["interferences"] = trovate.ToArray();
-            if (coinvolti.Count > 0) misure["components_involved"] = coinvolti.ToArray();
-            if (quante > 0 && volumiLetti) misure["volume_total_mm3"] = Math.Round(volumeTotale, 3);
+            if (foundOnes.Count > 0) measurements["interferences"] = foundOnes.ToArray();
+            if (involved.Count > 0) measurements["components_involved"] = involved.ToArray();
+            if (howMany > 0 && readVolumes) measurements["volume_total_mm3"] = Math.Round(totalVolume, 3);
             if (listProblem != null)
-                misure["what_is_not_known"] =
+                measurements["what_is_not_known"] =
                     "SOLIDWORKS did not give me the whole list of interferences (" + listProblem +
-                    "): I read " + interferencesRead + " of " + quante + ". The count comes from " +
+                    "): I read " + interferencesRead + " of " + howMany + ". The count comes from " +
                     "GetInterferenceCount; the total volume would be the sum of a part of the list, " +
                     "so I left it out instead of writing one smaller than the truth.";
-            else if (quante > 0 && !volumiLetti)
-                misure["what_is_not_known"] =
+            else if (howMany > 0 && !readVolumes)
+                measurements["what_is_not_known"] =
                     "Di almeno una interferenza non sono riuscito a leggere il volume: " +
                     "il conteggio e' giusto, la somma no. Non l'ho scritta, invece di " +
                     "scriverne una piu' piccola del vero.";
@@ -300,31 +300,31 @@ namespace Oce.Solid.Agent.Core
             // the two calls disagree, and «Nessuna interferenza» with
             // riuscita:true is the one answer that sends a part that does not
             // fit to the shop.
-            if (quante == 0 && interferencesRead > 0)
-                return Fallito(
+            if (howMany == 0 && interferencesRead > 0)
+                return Failed(
                     "SOLIDWORKS counted 0 interferences and then listed " + interferencesRead +
                     " (" + listProblem + "): I cannot tell you that the parts do not interfere. " +
                     "Ask me again; if it repeats, check with Interference Detection in SOLIDWORKS.");
 
             // ── IL GIUDIZIO ─────────────────────────────────────────────
-            if (quante == 0)
+            if (howMany == 0)
             {
-                misure["verdict"] =
-                    "Nessuna interferenza fra i " + (lookedAt >= 0 ? lookedAt : componenti.Count) + " componenti" +
-                    (toccarsiConta
+                measurements["verdict"] =
+                    "Nessuna interferenza fra i " + (lookedAt >= 0 ? lookedAt : components.Count) + " componenti" +
+                    (touchCount
                         ? ", e le facce che si toccano erano contate come interferenza."
                         : ". ATTENZIONE a cosa vuol dire: le facce che si TOCCANO non " +
                           "sono state contate. Un albero in un foro dello stesso " +
                           "diametro risulta a posto qui, e in officina non entra: se e' " +
                           "quello che ti interessa, richiedimelo con «touching_counts».");
-                _log("[agente] " + misure["verdict"]);
-                return RiuscitoSenzaCreare(misure);
+                _log("[agente] " + measurements["verdict"]);
+                return SucceededWithoutCreating(measurements);
             }
 
-            misure["verdict"] = InterferenceVerdict(
-                quante, possible, volumiLetti, volumeTotale, possibleVolume, coinvolti);
-            _log("[agente] " + misure["verdict"]);
-            return RiuscitoSenzaCreare(misure);
+            measurements["verdict"] = InterferenceVerdict(
+                howMany, possible, readVolumes, totalVolume, possibleVolume, involved);
+            _log("[agente] " + measurements["verdict"]);
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -467,14 +467,14 @@ namespace Oce.Solid.Agent.Core
         /// potuto leggere — che **non** e' zero: zero vorrebbe dire «si toccano
         /// e basta», e sarebbe una risposta, non una mancanza.
         /// </summary>
-        private static bool VolumeDellInterferenzaMm3(IInterference interferenza, out double mm3)
+        private static bool InterferenceVolumeMm3(IInterference interference, out double mm3)
         {
             mm3 = 0;
             try
             {
-                var corpo = interferenza.GetInterferenceBody() as IBody2;
-                if (corpo == null) return false;
-                var mp = corpo.GetMassProperties(1000.0) as double[];
+                var body = interference.GetInterferenceBody() as IBody2;
+                if (body == null) return false;
+                var mp = body.GetMassProperties(1000.0) as double[];
                 if (mp == null || mp.Length < 4) return false;
                 // `GetMassProperties` da' il volume in metri cubi in posizione 3.
                 mm3 = mp[3] * 1e9;

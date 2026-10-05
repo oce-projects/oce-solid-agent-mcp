@@ -33,17 +33,17 @@
 const fs = require('fs');
 const path = require('path');
 
-const radice = path.join(__dirname, '..');
-const tutti = process.argv.includes('--tutti');
+const root = path.join(__dirname, '..');
+const all = process.argv.includes('--tutti');
 // IL FILE SI PUO' PASSARE, come in `count-todo.js`: serve a far scattare
 // questa sonda su una copia rotta, che e' l'unico modo di crederle.
-const { trovaIlTodo } = require('./where-is-the-todo.js');
-const fileTodo = trovaIlTodo(radice, process.argv);
+const { findTheTodo } = require('./where-is-the-todo.js');
+const fileTodo = findTheTodo(root, process.argv);
 if (!fileTodo) process.exit(0);
-const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
+const lines = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // Le cartelle da cui il TODO scrive i percorsi.
-const BASI = ['', 'Banco', 'Bench/cases', 'Oce.Solid.Agent.Core', 'Strumenti',
+const BASES = ['', 'Banco', 'Bench/cases', 'Oce.Solid.Agent.Core', 'Strumenti',
               'Checks', 'Tests', 'Mcp', 'Bridge'];
 
 // ── CARTELLE DI UN ALTRO REPOSITORY ─────────────────────────────────────────
@@ -66,7 +66,7 @@ const BASI = ['', 'Banco', 'Bench/cases', 'Oce.Solid.Agent.Core', 'Strumenti',
 // l'inventario dei moduli della licenza SOLIDWORKS): in questo repository una
 // cartella `docs/` non c'e'. Aggiunta il 24/9/2026, quando il TODO ha
 // cominciato a citare quell'inventario.
-const ALTROVE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\//, /^docs\//];
+const ELSEWHERE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\//, /^docs\//];
 // ── FILE TRANSITORI, e sono una terza categoria ────────────────────────────
 //
 // I piani a mano di una sessione passata (`piani/...`) non sono mai stati
@@ -81,14 +81,14 @@ const ALTROVE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\/
 // quoted it first.
 // The pattern is the shape of the placeholder: eight capitals for the date,
 // four small letters for the time.
-const TRANSITORI = [/^piani\//, /\/[A-Z]{8}_[a-z]{4}\.[a-z]+$/];
+const TRANSIENTS = [/^piani\//, /\/[A-Z]{8}_[a-z]{4}\.[a-z]+$/];
 
-const ESTENSIONI = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.yml', '.txt'];
+const EXTENSIONS = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.yml', '.txt'];
 
-function dove(p) {
-  for (const b of BASI) {
-    const pieno = path.join(radice, b, p);
-    if (fs.existsSync(pieno)) return b === '' ? '(radice)' : b;
+function location(p) {
+  for (const b of BASES) {
+    const full = path.join(root, b, p);
+    if (fs.existsSync(full)) return b === '' ? '(radice)' : b;
   }
   return null;
 }
@@ -104,58 +104,58 @@ function dove(p) {
 // «(da creare)» subito dopo il percorso, almeno una volta. Un file annunciato
 // e mai scritto resta visibile: quando la voce si chiude, il percorso finisce
 // fra quelli delle voci chiuse, e il `--tutti` lo elenca.
-const DA_CREARE = /^\s*\(da creare\)/;
-const annunciati = new Set();
+const TO_CREATE = /^\s*\(da creare\)/;
+const announced = new Set();
 
-let statoVoce = null;          // ' ', 'x' o '~' della voce in cui siamo
-const citazioni = new Map();   // percorso -> stato della voce
+let stateEntry = null;          // ' ', 'x' o '~' della voce in cui siamo
+const citations = new Map();   // percorso -> stato della voce
 
-for (const riga of righe) {
-  const h = riga.match(/^#{2,4} \[([ x~])\]/);
-  if (h) statoVoce = h[1];
+for (const line of lines) {
+  const h = line.match(/^#{2,4} \[([ x~])\]/);
+  if (h) stateEntry = h[1];
   // A `(com'era)` heading is the original wording of an entry, kept for
   // reference: history, like a closed entry (the rule at the top of the TODO).
-  else if (/^#{2,4} \(com'era\)/.test(riga)) statoVoce = 'x';
-  else if (/^#{1,4} /.test(riga)) statoVoce = null;   // un titolo senza casella
+  else if (/^#{2,4} \(com'era\)/.test(line)) stateEntry = 'x';
+  else if (/^#{1,4} /.test(line)) stateEntry = null;   // un titolo senza casella
 
-  for (const m of riga.matchAll(/`([^`\n]+)`/g)) {
+  for (const m of line.matchAll(/`([^`\n]+)`/g)) {
     let p = m[1].trim();
     if (p.startsWith('\\\\') || /^[A-Za-z]:[\\/]/.test(p)) continue;  // assoluti
     if (/^HK(LM|CU)/.test(p) || p.startsWith('http')) continue;
     p = p.replace(/\\/g, '/').replace(/^\.\//, '');
     if (!p.includes('/')) continue;
     if (/[ ()*]/.test(p)) continue;
-    if (!ESTENSIONI.some(e => p.toLowerCase().endsWith(e))) continue;
-    if (DA_CREARE.test(riga.slice(m.index + m[0].length))) annunciati.add(p);
-    if (!citazioni.has(p)) citazioni.set(p, statoVoce);
+    if (!EXTENSIONS.some(e => p.toLowerCase().endsWith(e))) continue;
+    if (TO_CREATE.test(line.slice(m.index + m[0].length))) announced.add(p);
+    if (!citations.has(p)) citations.set(p, stateEntry);
   }
 }
 
-const mancanti = [];
-const altroRepo = [];
-const storici = [];
-const daFare = [];
+const missingItems = [];
+const otherRepo = [];
+const historical = [];
+const toDo = [];
 let ok = 0;
-for (const [p, stato] of citazioni) {
-  if (ALTROVE.some(r => r.test(p)) || TRANSITORI.some(r => r.test(p))) { altroRepo.push(p); continue; }
-  const b = dove(p);
-  if (b) { ok++; if (tutti) console.log('  ok   ' + p + (b === '(radice)' ? '' : '   [sotto ' + b + ']')); continue; }
-  if (stato === 'x') storici.push(p);      // voce chiusa: e' un nome di allora
-  else if (annunciati.has(p)) daFare.push(p);   // voce aperta che dice «(da creare)»
-  else mancanti.push(p + (stato === null ? '   (fuori da una voce)' : ''));
+for (const [p, docState] of citations) {
+  if (ELSEWHERE.some(r => r.test(p)) || TRANSIENTS.some(r => r.test(p))) { otherRepo.push(p); continue; }
+  const b = location(p);
+  if (b) { ok++; if (all) console.log('  ok   ' + p + (b === '(radice)' ? '' : '   [sotto ' + b + ']')); continue; }
+  if (docState === 'x') historical.push(p);      // voce chiusa: e' un nome di allora
+  else if (announced.has(p)) toDo.push(p);   // voce aperta che dice «(da creare)»
+  else missingItems.push(p + (docState === null ? '   (fuori da una voce)' : ''));
 }
 
-console.log('percorsi citati:  ' + citazioni.size);
+console.log('percorsi citati:  ' + citations.size);
 console.log('che esistono:     ' + ok);
-console.log('in voci CHIUSE, e non si toccano: ' + storici.length);
-console.log('altrove o transitori:             ' + altroRepo.length);
-console.log('annunciati «(da creare)»:         ' + daFare.length);
+console.log('in voci CHIUSE, e non si toccano: ' + historical.length);
+console.log('altrove o transitori:             ' + otherRepo.length);
+console.log('annunciati «(da creare)»:         ' + toDo.length);
 console.log('');
-if (mancanti.length === 0) {
+if (missingItems.length === 0) {
   console.log('Nessuna voce aperta manda a un file che non c\'e\'.');
 } else {
-  console.log('VOCI APERTE che mandano a un file inesistente: ' + mancanti.length);
-  for (const p of mancanti) console.log('  !  ' + p);
+  console.log('VOCI APERTE che mandano a un file inesistente: ' + missingItems.length);
+  for (const p of missingItems) console.log('  !  ' + p);
   console.log('');
   console.log('Puo\' essere un file rinominato, uno mai scritto, o una cartella');
   console.log('non ancora nell\'elenco BASI. E\' una cosa da guardare, non una colpa.');
@@ -163,13 +163,13 @@ if (mancanti.length === 0) {
   // poi esce 0 e' una sonda che nessun gancio puo' usare.
   process.exitCode = 1;
 }
-if (tutti && daFare.length) {
+if (all && toDo.length) {
   console.log('');
   console.log('file annunciati dalle voci aperte, da creare:');
-  for (const p of daFare) console.log('  +  ' + p);
+  for (const p of toDo) console.log('  +  ' + p);
 }
-if (tutti && storici.length) {
+if (all && historical.length) {
   console.log('');
   console.log('nomi di allora, dentro voci chiuse:');
-  for (const p of storici) console.log('  ~  ' + p);
+  for (const p of historical) console.log('  ~  ' + p);
 }

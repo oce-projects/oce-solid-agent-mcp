@@ -39,42 +39,42 @@ namespace Oce.Solid.Agent.Mcp
     /// non si e' potuta chiedere. Un ripiego taciuto e' il modo in cui una
     /// difesa sparisce senza che nessuno se ne accorga.
     /// </summary>
-    public static class Elicitazione
+    public static class Elicitation
     {
         /// <summary>
         /// Le righe arrivate mentre si aspettava una risposta, che il giro
         /// principale deve ancora servire. Vedi il commento in testa.
         /// </summary>
-        private static readonly ConcurrentQueue<string> _arretrati =
+        private static readonly ConcurrentQueue<string> _backlog =
             new ConcurrentQueue<string>();
 
         /// <summary>Il client ha dichiarato di saper chiedere all'utente?</summary>
-        public static bool IlClientSaChiedere { get; private set; }
+        public static bool ClientCanAsk { get; private set; }
 
         /// <summary>
         /// Si legge da `initialize`: `capabilities.elicitation`. Una capacita'
         /// non dichiarata **non si presume**: chiedere a un client che non sa
         /// rispondere vorrebbe dire appendere la chiamata fino alla scadenza.
         /// </summary>
-        public static void LeggiLeCapacita(Dictionary<string, object> parametri)
+        public static void ReadCapabilities(Dictionary<string, object> parameters)
         {
-            IlClientSaChiedere = false;
-            if (parametri == null) return;
+            ClientCanAsk = false;
+            if (parameters == null) return;
             object c;
-            if (!parametri.TryGetValue("capabilities", out c)) return;
-            var capacita = c as Dictionary<string, object>;
-            if (capacita == null) return;
-            IlClientSaChiedere = capacita.ContainsKey("elicitation");
+            if (!parameters.TryGetValue("capabilities", out c)) return;
+            var capacity = c as Dictionary<string, object>;
+            if (capacity == null) return;
+            ClientCanAsk = capacity.ContainsKey("elicitation");
         }
 
         /// <summary>La prossima riga messa da parte, o null.</summary>
-        public static string Arretrato()
+        public static string Backlog()
         {
-            string riga;
-            return _arretrati.TryDequeue(out riga) ? riga : null;
+            string line;
+            return _backlog.TryDequeue(out line) ? line : null;
         }
 
-        private static int _prossimoId = 9000;
+        private static int _nextId = 9000;
 
         /// <summary>
         /// Chiede conferma all'utente e torna **vero solo se ha detto di si'**.
@@ -84,20 +84,20 @@ namespace Oce.Solid.Agent.Mcp
         /// non si annulla, interpretare un silenzio come un si' sarebbe il
         /// difetto peggiore di tutti.
         /// </summary>
-        public static bool Conferma(TextWriter uscita, TextReader ingresso,
-                                    string messaggio, int scadenzaMs = 300000)
+        public static bool Confirm(TextWriter output, TextReader input,
+                                    string message, int expiryMs = 300000)
         {
-            if (uscita == null || ingresso == null) return false;
+            if (output == null || input == null) return false;
 
-            int id = System.Threading.Interlocked.Increment(ref _prossimoId);
-            Protocollo.Manda(uscita, new Dictionary<string, object>
+            int id = System.Threading.Interlocked.Increment(ref _nextId);
+            Protocol.Send(output, new Dictionary<string, object>
             {
                 ["jsonrpc"] = "2.0",
                 ["id"] = id,
                 ["method"] = "elicitation/create",
                 ["params"] = new Dictionary<string, object>
                 {
-                    ["message"] = messaggio,
+                    ["message"] = message,
                     // UNO SCHEMA VUOTO, e non e' pigrizia: qui non si chiede un
                     // dato, si chiede un permesso. La risposta che conta e'
                     // `action`, e chiedere un campo in piu' vorrebbe dire far
@@ -110,36 +110,36 @@ namespace Oce.Solid.Agent.Mcp
                 },
             });
 
-            var fine = Environment.TickCount + scadenzaMs;
+            var fine = Environment.TickCount + expiryMs;
             while (Environment.TickCount < fine)
             {
-                string riga;
-                try { riga = ingresso.ReadLine(); }
+                string line;
+                try { line = input.ReadLine(); }
                 catch { return false; }
-                if (riga == null) return false;          // il client se n'e' andato
-                if (string.IsNullOrWhiteSpace(riga)) continue;
+                if (line == null) return false;          // il client se n'e' andato
+                if (string.IsNullOrWhiteSpace(line)) continue;
 
                 Dictionary<string, object> m;
-                try { m = Protocollo.DaJson(riga); }
-                catch { _arretrati.Enqueue(riga); continue; }
+                try { m = Protocol.FromJson(line); }
+                catch { _backlog.Enqueue(line); continue; }
                 if (m == null) continue;
 
-                object suo;
-                if (!m.TryGetValue("id", out suo) ||
-                    Convert.ToString(suo) != id.ToString())
+                object its;
+                if (!m.TryGetValue("id", out its) ||
+                    Convert.ToString(its) != id.ToString())
                 {
                     // NON E' LA MIA RISPOSTA: si mette da parte. Buttarla
                     // lascerebbe il client ad aspettare per sempre.
-                    _arretrati.Enqueue(riga);
+                    _backlog.Enqueue(line);
                     continue;
                 }
 
-                var risultato = (m.TryGetValue("result", out var r)
+                var result = (m.TryGetValue("result", out var r)
                     ? r as Dictionary<string, object> : null);
-                if (risultato == null) return false;      // un `error` e' un no
-                object azione;
-                if (!risultato.TryGetValue("action", out azione)) return false;
-                return string.Equals(Convert.ToString(azione), "accept",
+                if (result == null) return false;      // un `error` e' un no
+                object action;
+                if (!result.TryGetValue("action", out action)) return false;
+                return string.Equals(Convert.ToString(action), "accept",
                                      StringComparison.OrdinalIgnoreCase);
             }
             return false;

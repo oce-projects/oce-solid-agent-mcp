@@ -25,14 +25,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const radice = path.join(__dirname, '..');
-const tutti = process.argv.includes('--tutti');
+const root = path.join(__dirname, '..');
+const all = process.argv.includes('--tutti');
 // IL FILE SI PUO' PASSARE, come in `count-todo.js`: serve a far scattare
 // questa sonda su una copia rotta, che e' l'unico modo di crederle.
-const { trovaIlTodo } = require('./where-is-the-todo.js');
-const fileTodo = trovaIlTodo(radice, process.argv);
+const { findTheTodo } = require('./where-is-the-todo.js');
+const fileTodo = findTheTodo(root, process.argv);
 if (!fileTodo) process.exit(0);
-const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
+const lines = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // ── I NOMI CHE ESISTONO ────────────────────────────────────────────────
 //
@@ -42,13 +42,13 @@ const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 // `##### [ ] Z-C21.3 — ...`. Le voci grandi delle Sezioni T e U, di W3.1-bis e
 // di Z-C21 si dividono cosi', e un rimando a una sotto-voce che esiste veniva
 // dato per rotto.
-const esistono = new Set();
-for (const r of righe) {
+const exist = new Set();
+for (const r of lines) {
   const m = r.match(/^#{2,5} \[[ x~]\] ([A-Z][A-Za-z0-9.\-]*)\b/);
-  if (m) esistono.add(m[1]);
+  if (m) exist.add(m[1]);
   // anche le sezioni senza casella: `## W2 — ...`, `### Z-C — ...`
   const s = r.match(/^#{2,4} ([A-Z][A-Za-z0-9.\-]*)\s+—/);
-  if (s) esistono.add(s[1]);
+  if (s) exist.add(s[1]);
 }
 
 // ── I RIMANDI ──────────────────────────────────────────────────────────
@@ -56,37 +56,37 @@ for (const r of righe) {
 // Solo le forme esplicite: «voce X», «voci X e Y», «vedi X». Cercare ogni
 // sigla che assomigli a un nome raccoglierebbe meta' della prosa -- e un
 // elenco che pesca i falsi non si legge.
-const NOME = '([A-Z][A-Za-z0-9]*(?:[.\\-][A-Za-z0-9]+)*)';
-const FORME = [
-  new RegExp('\\bvoc[ei]\\s+' + NOME, 'g'),
-  new RegExp('\\bvedi\\s+(?:anche\\s+)?(?:la\\s+voce\\s+)?' + NOME, 'g'),
+const NAME = '([A-Z][A-Za-z0-9]*(?:[.\\-][A-Za-z0-9]+)*)';
+const SHAPES = [
+  new RegExp('\\bvoc[ei]\\s+' + NAME, 'g'),
+  new RegExp('\\bvedi\\s+(?:anche\\s+)?(?:la\\s+voce\\s+)?' + NAME, 'g'),
 ];
 
-const rotti = new Map();
+const brokenOnes = new Map();
 let ok = 0;
-for (let i = 0; i < righe.length; i++) {
-  for (const f of FORME) {
+for (let i = 0; i < lines.length; i++) {
+  for (const f of SHAPES) {
     f.lastIndex = 0;
     let m;
-    while ((m = f.exec(righe[i])) !== null) {
-      const nome = m[1];
+    while ((m = f.exec(lines[i])) !== null) {
+      const itemName = m[1];
       // Parole italiane che cominciano per maiuscola e finiscono nella rete.
-      if (/^(Il|La|Le|Lo|Un|Una|Questa|Questo|Quella|Quello|Non|Che|Come|Perche|E|Ma|Si|No|Sono|Ha|Era|Anche|Tutte|Tutti|Due|Tre|Adesso|Oggi|Nel|Nella|Dal|Della|Con|Per|Senza|Dove|Quando|Cosa|Chi|Piu|Meno|Prima|Dopo|Sopra|Sotto)$/i.test(nome)) continue;
-      if (!/[0-9]/.test(nome)) continue;   // un nome di voce ha sempre un numero
-      if (esistono.has(nome)) { ok++; if (tutti) console.log('  ok   ' + nome); continue; }
-      if (!rotti.has(nome)) rotti.set(nome, i + 1);
+      if (/^(Il|La|Le|Lo|Un|Una|Questa|Questo|Quella|Quello|Non|Che|Come|Perche|E|Ma|Si|No|Sono|Ha|Era|Anche|Tutte|Tutti|Due|Tre|Adesso|Oggi|Nel|Nella|Dal|Della|Con|Per|Senza|Dove|Quando|Cosa|Chi|Piu|Meno|Prima|Dopo|Sopra|Sotto)$/i.test(itemName)) continue;
+      if (!/[0-9]/.test(itemName)) continue;   // un nome di voce ha sempre un numero
+      if (exist.has(itemName)) { ok++; if (all) console.log('  ok   ' + itemName); continue; }
+      if (!brokenOnes.has(itemName)) brokenOnes.set(itemName, i + 1);
     }
   }
 }
 
-console.log('nomi di voce definiti:  ' + esistono.size);
+console.log('nomi di voce definiti:  ' + exist.size);
 console.log('rimandi verificati:     ' + ok);
 console.log('');
-if (rotti.size === 0) {
+if (brokenOnes.size === 0) {
   console.log('Tutti i rimandi del TODO puntano a una voce che esiste.');
 } else {
-  console.log('RIMANDI A VOCI CHE NON ESISTONO: ' + rotti.size);
-  for (const [nome, riga] of rotti) console.log('  !  ' + nome + '   (riga ' + riga + ')');
+  console.log('RIMANDI A VOCI CHE NON ESISTONO: ' + brokenOnes.size);
+  for (const [itemName, line] of brokenOnes) console.log('  !  ' + itemName + '   (riga ' + line + ')');
   console.log('');
   console.log('Puo\' essere una voce rinominata, una mai scritta, o una sigla che');
   console.log('assomiglia a un nome. E\' una cosa da guardare, non una colpa.');

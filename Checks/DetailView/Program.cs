@@ -40,14 +40,14 @@ namespace Checks.DetailView
     ///
     ///     DetailView.exe        lavora sulla tavola attiva
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
         private static int Main()
         {
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
@@ -56,128 +56,128 @@ namespace Checks.DetailView
                 Console.Error.WriteLine("Il documento attivo non e' una tavola.");
                 return 2;
             }
-            var tavola = (IDrawingDoc)doc;
+            var drawing = (IDrawingDoc)doc;
             Console.WriteLine("tavola: " + doc.GetTitle());
 
             // 1. LA VISTA DA DETTAGLIARE. La prima «view» e' il foglio: si salta.
-            IView bersaglio = null;
-            int viste = 0;
-            var v = tavola.GetFirstView() as IView;
-            while (v != null && viste < 50)
+            IView target = null;
+            int views = 0;
+            var v = drawing.GetFirstView() as IView;
+            while (v != null && views < 50)
             {
-                viste++;
-                if (bersaglio == null && v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
-                    bersaglio = v;
+                views++;
+                if (target == null && v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
+                    target = v;
                 v = v.GetNextView() as IView;
             }
-            Console.WriteLine("viste sul foglio, prima: " + viste + " (il foglio compreso)");
-            if (bersaglio == null)
+            Console.WriteLine("viste sul foglio, prima: " + views + " (il foglio compreso)");
+            if (target == null)
             {
                 Console.Error.WriteLine("Sul foglio non c'e' nessuna vista da dettagliare.");
                 return 1;
             }
 
-            var sagoma = bersaglio.GetOutline() as double[];
-            if (sagoma == null || sagoma.Length < 4)
+            var outline = target.GetOutline() as double[];
+            if (outline == null || outline.Length < 4)
             {
                 Console.Error.WriteLine("Non riesco a leggere l'ingombro della vista.");
                 return 1;
             }
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "vista «{0}» (tipo {1}), ingombro x {2:0.####}..{3:0.####} y {4:0.####}..{5:0.####} m",
-                bersaglio.GetName2(), bersaglio.Type, sagoma[0], sagoma[2], sagoma[1], sagoma[3]));
+                target.GetName2(), target.Type, outline[0], outline[2], outline[1], outline[3]));
 
             // DUE USCITE, E NESSUNA E' OVVIA. Vedi il commento in testa al
             // file: si stampano tutte e due invece di sceglierne una.
-            int cerchiPrima = -1, resoPrima = -1;
-            try { resoPrima = bersaglio.GetDetailCircleCount2(out cerchiPrima); }
+            int circlesBefore = -1, returnedBefore = -1;
+            try { returnedBefore = target.GetDetailCircleCount2(out circlesBefore); }
             catch (Exception e) { Console.WriteLine("  GetDetailCircleCount2: " + e.Message); }
-            Console.WriteLine("circonferenze PRIMA: ritorno=" + resoPrima + "  out=" + cerchiPrima);
+            Console.WriteLine("circonferenze PRIMA: ritorno=" + returnedBefore + "  out=" + circlesBefore);
 
             // 2. IL CERCHIO, DENTRO LA VISTA.
             //
             // Un quarto del lato minore come raggio: abbastanza grande da
             // contenere geometria, abbastanza piccolo da stare dentro. Un
             // cerchio che sborda e' il caso limite gratuito di questa API.
-            double cx = (sagoma[0] + sagoma[2]) / 2.0;
-            double cy = (sagoma[1] + sagoma[3]) / 2.0;
-            double minore = Math.Min(sagoma[2] - sagoma[0], sagoma[3] - sagoma[1]);
-            double raggio = minore / 4.0;
+            double cx = (outline[0] + outline[2]) / 2.0;
+            double cy = (outline[1] + outline[3]) / 2.0;
+            double smaller = Math.Min(outline[2] - outline[0], outline[3] - outline[1]);
+            double radius = smaller / 4.0;
 
             Console.WriteLine("EditSheet()...");
-            try { tavola.EditSheet(); } catch (Exception e) { Console.WriteLine("  EditSheet: " + e.Message); }
+            try { drawing.EditSheet(); } catch (Exception e) { Console.WriteLine("  EditSheet: " + e.Message); }
 
             doc.ClearSelection2(true);
-            ISketchSegment cerchio = null;
+            ISketchSegment circle = null;
             try
             {
-                cerchio = doc.SketchManager.CreateCircleByRadius(cx, cy, 0.0, raggio) as ISketchSegment;
+                circle = doc.SketchManager.CreateCircleByRadius(cx, cy, 0.0, radius) as ISketchSegment;
             }
             catch (Exception e) { Console.WriteLine("  CreateCircleByRadius: " + e.Message); }
-            if (cerchio == null)
+            if (circle == null)
             {
                 Console.Error.WriteLine("Niente cerchio, niente dettaglio.");
                 return 1;
             }
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "cerchio tracciato in ({0:0.####}, {1:0.####}) raggio {2:0.####} m", cx, cy, raggio));
+                "cerchio tracciato in ({0:0.####}, {1:0.####}) raggio {2:0.####} m", cx, cy, radius));
 
             // Lo schizzo si CHIUDE prima, come per la sezione.
             try { doc.SketchManager.InsertSketch(true); } catch { }
 
             // 3. LA SELEZIONE.
             doc.ClearSelection2(true);
-            bool presa = false;
-            try { presa = cerchio.Select4(false, null); }
+            bool taken = false;
+            try { taken = circle.Select4(false, null); }
             catch (Exception e) { Console.WriteLine("  Select4: " + e.Message); }
-            var selezione = (ISelectionMgr)doc.SelectionManager;
-            Console.WriteLine("cerchio selezionato: " + presa +
-                ", oggetti selezionati: " + selezione.GetSelectedObjectCount2(-1) +
-                ", tipo: " + (selezione.GetSelectedObjectCount2(-1) > 0
-                    ? selezione.GetSelectedObjectType3(1, -1).ToString() : "-"));
+            var selection = (ISelectionMgr)doc.SelectionManager;
+            Console.WriteLine("cerchio selezionato: " + taken +
+                ", oggetti selezionati: " + selection.GetSelectedObjectCount2(-1) +
+                ", tipo: " + (selection.GetSelectedObjectCount2(-1) > 0
+                    ? selection.GetSelectedObjectType3(1, -1).ToString() : "-"));
 
             // 4. IL DETTAGLIO, a fianco della vista.
-            double xDettaglio = sagoma[2] + (sagoma[2] - sagoma[0]) * 0.8;
-            double yDettaglio = (sagoma[1] + sagoma[3]) / 2.0;
-            object nata = null;
+            double xDetail = outline[2] + (outline[2] - outline[0]) * 0.8;
+            double yDetail = (outline[1] + outline[3]) / 2.0;
+            object born = null;
             try
             {
                 // Style 0, scala 2:1, etichetta B, Showtype 0, senza contorni
                 // speciali. Sono i valori piu' neutri che la firma ammette: qui
                 // si misura SE nasce, non come e' vestita.
-                nata = tavola.CreateDetailViewAt4(
-                    xDettaglio, yDettaglio, 0.0,
+                born = drawing.CreateDetailViewAt4(
+                    xDetail, yDetail, 0.0,
                     (int)swDetViewStyle_e.swDetViewSTANDARD, 2.0, 1.0, "B",
                     (int)swDetCircleShowType_e.swDetCircleCIRCLE, false, false, false, 0);
             }
             catch (Exception e)
             { Console.WriteLine("  CreateDetailViewAt4 ha sollevato: " + e.Message); }
             Console.WriteLine("CreateDetailViewAt4 ha risposto: " +
-                (nata == null ? "null" : "un oggetto"));
+                (born == null ? "null" : "un oggetto"));
 
             // IL RISCONTRO: quante viste ci sono adesso, e di che tipo e' l'ultima.
-            int dopo = 0;
-            IView ultima = null;
-            var w = tavola.GetFirstView() as IView;
-            while (w != null && dopo < 50)
+            int after = 0;
+            IView last = null;
+            var w = drawing.GetFirstView() as IView;
+            while (w != null && after < 50)
             {
-                dopo++;
-                ultima = w;
+                after++;
+                last = w;
                 w = w.GetNextView() as IView;
             }
-            Console.WriteLine("viste sul foglio, dopo:  " + dopo);
+            Console.WriteLine("viste sul foglio, dopo:  " + after);
 
-            int cerchiDopo = -1, resoDopo = -1;
-            try { resoDopo = bersaglio.GetDetailCircleCount2(out cerchiDopo); } catch { }
-            Console.WriteLine("circonferenze DOPO : ritorno=" + resoDopo + "  out=" + cerchiDopo);
+            int circlesAfter = -1, returnedAfter = -1;
+            try { returnedAfter = target.GetDetailCircleCount2(out circlesAfter); } catch { }
+            Console.WriteLine("circonferenze DOPO : ritorno=" + returnedAfter + "  out=" + circlesAfter);
 
             // E LA VERSIONE SENZA IL «2», che e' l'altra strada che non si
             // e' provata. Se rispondesse un conto pulito, il «2» sarebbe una
             // complicazione gratuita e va scritto.
             try
             {
-                int vecchio = bersaglio.GetDetailCircleCount();
-                Console.WriteLine("GetDetailCircleCount (senza il 2): " + vecchio);
+                int old = target.GetDetailCircleCount();
+                Console.WriteLine("GetDetailCircleCount (senza il 2): " + old);
             }
             catch (Exception e)
             { Console.WriteLine("GetDetailCircleCount (senza il 2): " + e.Message); }
@@ -186,21 +186,21 @@ namespace Checks.DetailView
             // geometria ingrandita, quindi se la vista di partenza non e'
             // una sezione non ci si aspetta campitura. Si guarda lo stesso,
             // perche' «non me lo aspetto» non e' una misura.
-            if (ultima != null)
+            if (last != null)
             {
-                int facce = -1;
-                try { facce = ultima.GetFaceHatchCount(); } catch { }
-                Console.WriteLine("tratteggio di faccia sul dettaglio: " + facce);
+                int faces = -1;
+                try { faces = last.GetFaceHatchCount(); } catch { }
+                Console.WriteLine("tratteggio di faccia sul dettaglio: " + faces);
             }
 
-            if (dopo > viste)
+            if (after > views)
             {
-                string nome = "";
-                int tipo = -1;
-                try { nome = ultima.GetName2(); } catch { }
-                try { tipo = ultima.Type; } catch { }
-                Console.WriteLine("  -> IL DETTAGLIO C'E'. Ultima vista: «" + nome + "», tipo " + tipo +
-                    (tipo == (int)swDrawingViewTypes_e.swDrawingDetailView
+                string itemName = "";
+                int typ = -1;
+                try { itemName = last.GetName2(); } catch { }
+                try { typ = last.Type; } catch { }
+                Console.WriteLine("  -> IL DETTAGLIO C'E'. Ultima vista: «" + itemName + "», tipo " + typ +
+                    (typ == (int)swDrawingViewTypes_e.swDrawingDetailView
                         ? " (swDrawingDetailView)" : " (NON e' un dettaglio!)"));
             }
             else
@@ -209,7 +209,7 @@ namespace Checks.DetailView
             }
 
             try { doc.EditRebuild3(); } catch { }
-            return dopo > viste ? 0 : 1;
+            return after > views ? 0 : 1;
         }
     }
 }

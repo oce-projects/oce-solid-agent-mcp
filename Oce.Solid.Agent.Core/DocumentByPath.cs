@@ -562,7 +562,7 @@ namespace Oce.Solid.Agent.Core
         /// keeps one wrapper per COM object (the N11 probe compared documents by
         /// reference, and it agreed with the paths every time); otherwise the
         /// IUnknown pointers, which are the COM identity (as
-        /// EsecutorePiano.StessoOggetto).
+        /// PlanExecutor.SameObject).
         /// </summary>
         private static bool SameObject(object a, object b)
         {

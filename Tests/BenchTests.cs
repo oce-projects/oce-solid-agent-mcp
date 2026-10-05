@@ -5,7 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -32,69 +32,69 @@ namespace Oce.Solid.Agent.ContractTests
     /// nessuna sia fallita, e che il giro non sia **piu' vecchio dell'ultima
     /// modifica alle operazioni**.
     /// </summary>
-    internal static class ProveIlBanco
+    internal static class BenchTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("il banco e' stato lanciato su questa versione");
+            Group("il banco e' stato lanciato su questa versione");
 
-            var file = Path.Combine(Radice(), "Bench", "report", "last.json");
+            var file = Path.Combine(Root(), "Bench", "report", "last.json");
             if (!File.Exists(file))
             {
-                Segna("il banco e' stato eseguito", false,
+                Check("il banco e' stato eseguito", false,
                       "il banco non e' stato eseguito su questa versione: manca " + file +
                       ". Si lancia con .\\Bench\\bench.ps1");
                 return;
             }
-            Segna("il banco e' stato eseguito", true, file);
+            Check("il banco e' stato eseguito", true, file);
 
-            Dictionary<string, object> giro;
+            Dictionary<string, object> benchRun;
             try
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
-                giro = s.DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
+                benchRun = s.DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
             }
-            catch (Exception ex) { Segna("il resoconto si legge", false, ex.Message); return; }
-            if (giro == null) { Segna("il resoconto e' un oggetto", false, ""); return; }
+            catch (Exception ex) { Check("il resoconto si legge", false, ex.Message); return; }
+            if (benchRun == null) { Check("il resoconto e' un oggetto", false, ""); return; }
 
             // ── PIU' DI ZERO PROVE ───────────────────────────────────────
             //
             // «0 prove, 0 fallite» e' verde e non vuol dire niente. E' la
             // forma che prende una suite che si e' svuotata.
-            int passate = Intero(giro, "passed");
-            Segna("il giro ha misurato qualcosa", passate > 0, passate + " prove passate");
-            Segna("nessuna prova fallita", Intero(giro, "failed") == 0,
-                  Intero(giro, "failed") + " fallite");
-            Segna("nessun errore di banco", Intero(giro, "errors") == 0,
-                  Intero(giro, "errors") + " errori di banco");
-            Segna("il giro e' uscito 0", Intero(giro, "exit_code") == 0,
-                  "uscita " + Intero(giro, "exit_code"));
+            int passed = Integer(benchRun, "passed");
+            Check("il giro ha misurato qualcosa", passed > 0, passed + " prove passate");
+            Check("nessuna prova fallita", Integer(benchRun, "failed") == 0,
+                  Integer(benchRun, "failed") + " fallite");
+            Check("nessun errore di banco", Integer(benchRun, "errors") == 0,
+                  Integer(benchRun, "errors") + " errori di banco");
+            Check("il giro e' uscito 0", Integer(benchRun, "exit_code") == 0,
+                  "uscita " + Integer(benchRun, "exit_code"));
 
             // ── NON UN GIRO PARZIALE ─────────────────────────────────────
             //
             // `--gruppo` e' comodo mentre si lavora e non vale come consegna:
             // il riepilogo lo dice, e qui si legge.
-            string riepilogo = Convert.ToString(giro.ContainsKey("summary") ? giro["summary"] : "");
-            Segna("non e' un giro parziale",
-                  riepilogo.IndexOf("GIRO PARZIALE", StringComparison.Ordinal) < 0,
-                  riepilogo);
+            string summary = Convert.ToString(benchRun.ContainsKey("summary") ? benchRun["summary"] : "");
+            Check("non e' un giro parziale",
+                  summary.IndexOf("GIRO PARZIALE", StringComparison.Ordinal) < 0,
+                  summary);
 
             // ── LA VERSIONE DELLA LIBRERIA E' QUELLA DI ADESSO ───────────
-            string dichiarata = VersioneDellAssembly();
-            string girata = Convert.ToString(giro.ContainsKey("library") ? giro["library"] : "");
-            Segna("il banco ha girato sulla libreria di adesso",
-                  dichiarata != null && girata.StartsWith(dichiarata, StringComparison.Ordinal),
-                  "AssemblyInfo dice " + (dichiarata ?? "?") + ", il giro dice " + girata);
+            string declared = AssemblyVersion();
+            string didRun = Convert.ToString(benchRun.ContainsKey("library") ? benchRun["library"] : "");
+            Check("il banco ha girato sulla libreria di adesso",
+                  declared != null && didRun.StartsWith(declared, StringComparison.Ordinal),
+                  "AssemblyInfo dice " + (declared ?? "?") + ", il giro dice " + didRun);
 
             // ── E NON PRIMA DELL'ULTIMA MODIFICA ALLE OPERAZIONI ────────
             //
             // Il controllo che conta: una libreria toccata dopo l'ultimo giro
             // e' una libreria non provata, anche se il numero di versione
             // combacia perche' qualcuno si e' dimenticato di alzarlo.
-            DateTime? quando = Data(Convert.ToString(giro.ContainsKey("timestamp") ? giro["timestamp"] : ""));
-            if (quando == null)
+            DateTime? timestamp = Data(Convert.ToString(benchRun.ContainsKey("timestamp") ? benchRun["timestamp"] : ""));
+            if (timestamp == null)
             {
-                Segna("il giro dice quando", false, "«timestamp» illeggibile");
+                Check("il giro dice quando", false, "«timestamp» illeggibile");
             }
             else
             {
@@ -115,20 +115,20 @@ namespace Oce.Solid.Agent.ContractTests
                 // rispondeva a una domanda diversa da quella che sembrava:
                 // non «questo banco e' verde» ma «un banco di qualche ora fa
                 // lo era».
-                GuardaIlTocco("le operazioni", "Oce.Solid.Agent.Core", quando.Value);
-                GuardaIlTocco("il banco", "Bench", quando.Value);
+                LookAtTouch("le operazioni", "Oce.Solid.Agent.Core", timestamp.Value);
+                LookAtTouch("il banco", "Bench", timestamp.Value);
             }
 
             // Fuori dall'`if`: la regola si prova anche quando il resoconto
             // non c'e'. Una guardia che si controlla solo quando c'e' gia'
             // qualcosa da guardare tace proprio nel caso peggiore.
-            ProvaLaRegolaDelTocco();
+            TestTouchRule();
         }
 
-        private static int Intero(Dictionary<string, object> d, string chiave)
+        private static int Integer(Dictionary<string, object> d, string key)
         {
             object v;
-            if (d == null || !d.TryGetValue(chiave, out v) || v == null) return -1;
+            if (d == null || !d.TryGetValue(key, out v) || v == null) return -1;
             try { return Convert.ToInt32(v); } catch { return -1; }
         }
 
@@ -144,11 +144,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// si vuole sapere cosa dichiara il repository, non cosa c'e' in `bin`
         /// — che potrebbe essere di ieri.
         /// </summary>
-        private static string VersioneDellAssembly()
+        private static string AssemblyVersion()
         {
             try
             {
-                var f = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "Properties", "AssemblyInfo.cs");
+                var f = Path.Combine(Root(), "Oce.Solid.Agent.Core", "Properties", "AssemblyInfo.cs");
                 if (!File.Exists(f)) return null;
                 var m = Regex.Match(File.ReadAllText(f),
                                     @"AssemblyVersion\(""([0-9]+\.[0-9]+\.[0-9]+)");
@@ -204,33 +204,33 @@ namespace Oce.Solid.Agent.ContractTests
         /// esiste, e un controllo che non esiste non va scambiato per uno che
         /// non ha trovato niente.
         /// </summary>
-        private sealed class Tocco
+        private sealed class Touch
         {
-            public bool GitHaRisposto;
-            public DateTime? Quando;
+            public bool GitHasAnswered;
+            public DateTime? When;
             /// <summary>Da dove viene la data: serve a chi legge il rosso.</summary>
-            public string Perche;
+            public string Why;
         }
 
-        private static Tocco UltimaModificaSenzaResoconto(string percorso)
+        private static Touch LastChangeWithoutReport(string filePath)
         {
-            var fuori = new Tocco();
+            var outside = new Touch();
             try
             {
-                var righe = Git("log -30 --format=%H|%cI -- " + percorso);
-                fuori.GitHaRisposto = true;
-                foreach (var riga in righe)
+                var lines = Git("log -30 --format=%H|%cI -- " + filePath);
+                outside.GitHasAnswered = true;
+                foreach (var line in lines)
                 {
-                    var pezzi = riga.Split('|');
-                    if (pezzi.Length < 2) continue;
-                    if (CommitPortaIlResoconto(pezzi[0])) continue;
-                    fuori.Quando = Data(pezzi[1]);
-                    fuori.Perche = "commit";
-                    return fuori;
+                    var parts = line.Split('|');
+                    if (parts.Length < 2) continue;
+                    if (CommitCarriesReport(parts[0])) continue;
+                    outside.When = Data(parts[1]);
+                    outside.Why = "commit";
+                    return outside;
                 }
-                return fuori;
+                return outside;
             }
-            catch { return new Tocco(); }
+            catch { return new Touch(); }
         }
 
         /// <summary>
@@ -243,28 +243,28 @@ namespace Oce.Solid.Agent.ContractTests
         /// copre il caso in cui l'orologio del commit e quello del giro
         /// differiscano di poco.
         /// </summary>
-        private static void GuardaIlTocco(string cosa, string percorso, DateTime quando)
+        private static void LookAtTouch(string what, string filePath, DateTime timestamp)
         {
-            var t = PiuRecente(UltimaModificaSenzaResoconto(percorso),
-                               UltimaModificaNellAlberoDiLavoro(percorso));
-            if (!t.GitHaRisposto)
+            var t = MoreRecent(LastChangeWithoutReport(filePath),
+                               LastChangeInTheWorkTree(filePath));
+            if (!t.GitHasAnswered)
             {
-                Segna("so quando " + cosa + " e' stato toccato", false,
+                Check("so quando " + what + " e' stato toccato", false,
                       "git non risponde: senza, questo controllo non esiste");
                 return;
             }
-            if (t.Quando == null)
+            if (t.When == null)
             {
-                Segna("il giro e' posteriore all'ultima modifica a " + cosa, true,
-                      "nessun commit su " + percorso + " senza il resoconto accanto: " +
+                Check("il giro e' posteriore all'ultima modifica a " + what, true,
+                      "nessun commit su " + filePath + " senza il resoconto accanto: " +
                       "non c'e' niente di non provato");
                 return;
             }
-            Segna("il giro e' posteriore all'ultima modifica a " + cosa,
-                  quando >= t.Quando.Value.AddMinutes(-1),
-                  "giro " + quando.ToString("s") +
-                  ", ultima modifica " + t.Quando.Value.ToString("s") +
-                  (string.IsNullOrEmpty(t.Perche) ? "" : " (" + t.Perche + ")"));
+            Check("il giro e' posteriore all'ultima modifica a " + what,
+                  timestamp >= t.When.Value.AddMinutes(-1),
+                  "giro " + timestamp.ToString("s") +
+                  ", ultima modifica " + t.When.Value.ToString("s") +
+                  (string.IsNullOrEmpty(t.Why) ? "" : " (" + t.Why + ")"));
         }
 
         /// <summary>
@@ -277,7 +277,7 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// ── IL BUCO CHE QUESTA FUNZIONE CHIUDE ──────────────────────────
         ///
-        /// `UltimaModificaSenzaResoconto` chiede a **`git log`**: la storia
+        /// `LastChangeWithoutReport` chiede a **`git log`**: la storia
         /// committata, e nient'altro. Ma il codice **non vive li'** mentre lo
         /// si scrive: vive nell'albero di lavoro, ed e' da li' che `build.ps1`
         /// costruisce la DLL che poi gira. Fra la modifica e il commit c'e'
@@ -299,27 +299,27 @@ namespace Oce.Solid.Agent.ContractTests
         /// Sta da solo per poterlo provare: la regola e' una riga, e una
         /// riga dentro un `foreach` non si puo' interrogare.
         /// </summary>
-        internal static List<string> SoloIlCodice(IEnumerable<string> nomi)
+        internal static List<string> CodeOnly(IEnumerable<string> names)
         {
-            var fuori = new List<string>();
-            foreach (var n in nomi)
+            var outside = new List<string>();
+            foreach (var n in names)
             {
                 if (string.IsNullOrWhiteSpace(n)) continue;
                 if (n.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
-                fuori.Add(n);
+                outside.Add(n);
             }
-            return fuori;
+            return outside;
         }
 
-        private static Tocco PiuRecente(Tocco daGit, DateTime? daLavoro)
+        private static Touch MoreRecent(Touch fromGit, DateTime? fromWork)
         {
-            if (daLavoro == null) return daGit;
-            if (daGit.Quando != null && daGit.Quando.Value >= daLavoro.Value) return daGit;
-            return new Tocco
+            if (fromWork == null) return fromGit;
+            if (fromGit.When != null && fromGit.When.Value >= fromWork.Value) return fromGit;
+            return new Touch
             {
-                GitHaRisposto = daGit.GitHaRisposto,
-                Quando = daLavoro,
-                Perche = "modificato e NON committato",
+                GitHasAnswered = fromGit.GitHasAnswered,
+                When = fromWork,
+                Why = "modificato e NON committato",
             };
         }
 
@@ -341,21 +341,21 @@ namespace Oce.Solid.Agent.ContractTests
         /// nessun codice nuovo da provare. Una cancellazione va provata anche
         /// lei, ma non con una data di modifica che non esiste piu'.
         /// </summary>
-        private static DateTime? UltimaModificaNellAlberoDiLavoro(string percorso)
+        private static DateTime? LastChangeInTheWorkTree(string filePath)
         {
-            var nomi = new List<string>();
+            var names = new List<string>();
             try
             {
-                nomi.AddRange(Git("diff --name-only -- " + percorso));
-                nomi.AddRange(Git("diff --name-only --cached -- " + percorso));
-                nomi.AddRange(Git("ls-files --others --exclude-standard -- " + percorso));
+                names.AddRange(Git("diff --name-only -- " + filePath));
+                names.AddRange(Git("diff --name-only --cached -- " + filePath));
+                names.AddRange(Git("ls-files --others --exclude-standard -- " + filePath));
             }
             catch { return null; }
 
-            DateTime? piu = null;
-            foreach (var nome in nomi)
+            DateTime? more = null;
+            foreach (var itemName in names)
             {
-                if (string.IsNullOrWhiteSpace(nome)) continue;
+                if (string.IsNullOrWhiteSpace(itemName)) continue;
 
                 // UN `.md` NON E' CODICE, e chiederne conto costa settanta
                 // minuti di CAD.
@@ -374,15 +374,15 @@ namespace Oce.Solid.Agent.ContractTests
                 // ATTENZIONE A COSA **NON** SI SALTA: i `.json` di
                 // `Bench/cases/` sono DATI che cambiano cosa il banco misura,
                 // e restano contati. Si salta solo `.md`.
-                if (nome.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
+                if (itemName.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
 
-                var pieno = Path.Combine(Radice(),
-                                         nome.Replace('/', Path.DirectorySeparatorChar));
-                if (!File.Exists(pieno)) continue;
-                var q = File.GetLastWriteTime(pieno);
-                if (piu == null || q > piu.Value) piu = q;
+                var full = Path.Combine(Root(),
+                                         itemName.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(full)) continue;
+                var q = File.GetLastWriteTime(full);
+                if (more == null || q > more.Value) more = q;
             }
-            return piu;
+            return more;
         }
 
         /// <summary>
@@ -393,36 +393,36 @@ namespace Oce.Solid.Agent.ContractTests
         /// rispondeva «non c'e' niente di non provato» — e quella frase era
         /// falsa esattamente quando l'albero era pieno.
         /// </summary>
-        private static void ProvaLaRegolaDelTocco()
+        private static void TestTouchRule()
         {
-            var git = new Tocco
+            var git = new Touch
             {
-                GitHaRisposto = true,
-                Quando = new DateTime(2026, 9, 15, 8, 27, 48),
-                Perche = "commit",
+                GitHasAnswered = true,
+                When = new DateTime(2026, 9, 15, 8, 27, 48),
+                Why = "commit",
             };
-            var sporco = new DateTime(2026, 9, 23, 19, 18, 20);
+            var dirty = new DateTime(2026, 9, 23, 19, 18, 20);
 
-            var conSporco = PiuRecente(git, sporco);
-            Segna("un file toccato e non committato VINCE sull'ultimo commit",
-                  conSporco.Quando == sporco &&
-                  conSporco.Perche == "modificato e NON committato",
+            var withDirt = MoreRecent(git, dirty);
+            Check("un file toccato e non committato VINCE sull'ultimo commit",
+                  withDirt.When == dirty &&
+                  withDirt.Why == "modificato e NON committato",
                   "commit 15/9 08:27, file 23/9 19:18: vale il file");
 
-            var pulito = PiuRecente(git, null);
-            Segna("e con l'albero pulito resta la data del commit",
-                  pulito.Quando == git.Quando && pulito.Perche == "commit",
+            var clean = MoreRecent(git, null);
+            Check("e con l'albero pulito resta la data del commit",
+                  clean.When == git.When && clean.Why == "commit",
                   "niente di sporco: vale il commit, come prima");
 
-            var sporcoVecchio = PiuRecente(git, new DateTime(2026, 9, 10, 0, 0, 0));
-            Segna("un file sporco PIU' VECCHIO del commit non sposta niente",
-                  sporcoVecchio.Quando == git.Quando,
+            var dirtyOld = MoreRecent(git, new DateTime(2026, 9, 10, 0, 0, 0));
+            Check("un file sporco PIU' VECCHIO del commit non sposta niente",
+                  dirtyOld.When == git.When,
                   "vale il piu' recente dei due, non l'ultimo guardato");
 
-            var senzaCommit = PiuRecente(
-                new Tocco { GitHaRisposto = true, Quando = null }, sporco);
-            Segna("«nessun commit non provato» NON copre un file sporco",
-                  senzaCommit.Quando == sporco,
+            var withoutCommit = MoreRecent(
+                new Touch { GitHasAnswered = true, When = null }, dirty);
+            Check("«nessun commit non provato» NON copre un file sporco",
+                  withoutCommit.When == dirty,
                   "era il verde falso: git taceva e l'albero era pieno");
 
             // ── E UN `.md` NON CONTA, MA UN `.json` SI' ──────────────────
@@ -431,14 +431,14 @@ namespace Oce.Solid.Agent.ContractTests
             // impedisce all'eccezione di allargarsi: i casi dichiarati sono
             // `.json`, cambiano cosa il banco misura, e devono continuare a
             // pretendere un giro nuovo.
-            Segna("un LEGGIMI toccato dopo il giro non lo invalida",
-                  SoloIlCodice(new[] { "Bench/README.md" }).Count == 0,
+            Check("un LEGGIMI toccato dopo il giro non lo invalida",
+                  CodeOnly(new[] { "Bench/README.md" }).Count == 0,
                   "una riga di documentazione non cambia cosa fa il banco");
-            Segna("ma un caso dichiarato si'",
-                  SoloIlCodice(new[] { "Bench/cases/bodies/x.json" }).Count == 1,
+            Check("ma un caso dichiarato si'",
+                  CodeOnly(new[] { "Bench/cases/bodies/x.json" }).Count == 1,
                   "un `.json` di `cases/` e' un DATO: cambia cosa si misura");
-            Segna("e un sorgente pure",
-                  SoloIlCodice(new[] { "Bench/Program.cs" }).Count == 1,
+            Check("e un sorgente pure",
+                  CodeOnly(new[] { "Bench/Program.cs" }).Count == 1,
                   "l'eccezione e' stretta a `.md` e non si allarga da sola");
 
             // ── A COMMIT CARRIES A RUN ONLY IF THE RUN'S TIMESTAMP CHANGES ──
@@ -449,22 +449,22 @@ namespace Oce.Solid.Agent.ContractTests
             const string oldRun = "{\"timestamp\": \"2026-10-01T11:43:51\", \"passate\": 2160}";
             const string sameRunNewKeys = "{\"timestamp\": \"2026-10-01T11:43:51\", \"passed\": 2160}";
             const string newRun = "{\"timestamp\": \"2026-10-02T09:00:00\", \"passed\": 2160}";
-            Segna("moving the report is not a run",
+            Check("moving the report is not a run",
                   !CarriesANewRun(oldRun, oldRun),
                   "same `timestamp` before and after the move");
-            Segna("rewriting the report's keys is not a run",
+            Check("rewriting the report's keys is not a run",
                   !CarriesANewRun(oldRun, sameRunNewKeys),
                   "`timestamp` became `timestamp` with the same value");
-            Segna("a new timestamp is a run",
+            Check("a new timestamp is a run",
                   CarriesANewRun(sameRunNewKeys, newRun),
                   "2026-10-01T11:43:51 then 2026-10-02T09:00:00");
-            Segna("an old-path run is still a run",
+            Check("an old-path run is still a run",
                   CarriesANewRun("{\"timestamp\": \"2026-09-30T08:00:00\"}", oldRun),
                   "the historical deliveries wrote the report at its Italian path");
-            Segna("the first report ever is a run",
+            Check("the first report ever is a run",
                   CarriesANewRun(null, newRun),
                   "nothing before it");
-            Segna("an unreadable report is not a run",
+            Check("an unreadable report is not a run",
                   !CarriesANewRun(oldRun, "{not json"),
                   "no timestamp, no run");
 
@@ -473,8 +473,8 @@ namespace Oce.Solid.Agent.ContractTests
             string rename = ReportRenameCommit();
             // Always one check, so the count in Tests/README.md holds on a
             // squashed history too (where there is no rename to look at).
-            Segna("the commit that moved the report is not a delivery",
-                  rename == null || !CommitPortaIlResoconto(rename),
+            Check("the commit that moved the report is not a delivery",
+                  rename == null || !CommitCarriesReport(rename),
                   rename == null
                       ? "no rename of the report in this history: nothing to look at"
                       : rename.Substring(0, Math.Min(7, rename.Length)) +
@@ -497,7 +497,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// whichever of the two paths exists, differs between `sha~1` and
         /// `sha`.
         /// </summary>
-        private static bool CommitPortaIlResoconto(string sha)
+        private static bool CommitCarriesReport(string sha)
         {
             string after = ReportAt(sha);
             if (after == null) return false;
@@ -562,14 +562,14 @@ namespace Oce.Solid.Agent.ContractTests
             return null;
         }
 
-        private static List<string> Git(string argomenti)
+        private static List<string> Git(string arguments)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             var p = new Process
             {
-                StartInfo = new ProcessStartInfo("git", argomenti)
+                StartInfo = new ProcessStartInfo("git", arguments)
                 {
-                    WorkingDirectory = Radice(),
+                    WorkingDirectory = Root(),
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -577,10 +577,10 @@ namespace Oce.Solid.Agent.ContractTests
                 },
             };
             p.Start();
-            string riga;
-            while ((riga = p.StandardOutput.ReadLine()) != null) fuori.Add(riga.Trim());
+            string line;
+            while ((line = p.StandardOutput.ReadLine()) != null) outside.Add(line.Trim());
             p.WaitForExit(10000);
-            return fuori;
+            return outside;
         }
     }
 }

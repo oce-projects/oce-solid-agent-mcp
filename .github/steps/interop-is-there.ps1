@@ -19,31 +19,31 @@
 
 $ErrorActionPreference = 'Stop'
 
-$posti = @()
-if ($env:SW_INSTALL_PATH) { $posti += (Join-Path $env:SW_INSTALL_PATH 'api\redist') }
-if ($env:SW_REDIST)       { $posti += $env:SW_REDIST }
-$posti += 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist'
+$places = @()
+if ($env:SW_INSTALL_PATH) { $places += (Join-Path $env:SW_INSTALL_PATH 'api\redist') }
+if ($env:SW_REDIST)       { $places += $env:SW_REDIST }
+$places += 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist'
 
-$trovata = $null
-foreach ($p in $posti) {
-    if (Test-Path (Join-Path $p 'SolidWorks.Interop.sldworks.dll')) { $trovata = $p; break }
+$found = $null
+foreach ($p in $places) {
+    if (Test-Path (Join-Path $p 'SolidWorks.Interop.sldworks.dll')) { $found = $p; break }
 }
 
 # Fuori da GitHub (cioe' quando si lancia a mano per provarlo) non c'e'
 # $env:GITHUB_OUTPUT: si stampa e basta, invece di esplodere. Uno script che
 # si puo' provare solo dentro la CI e' uno script che non si prova.
-function Dillo($riga) {
-    Write-Output $riga
-    if ($env:GITHUB_OUTPUT) { $riga | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8 }
+function SayIt($line) {
+    Write-Output $line
+    if ($env:GITHUB_OUTPUT) { $line | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8 }
 }
 
-if ($trovata) {
-    Write-Output "interop trovata: $trovata"
-    Dillo "ce=si"
-    Dillo "dove=$trovata"
+if ($found) {
+    Write-Output "interop trovata: $found"
+    SayIt "ce=si"
+    SayIt "dove=$found"
 } else {
     Write-Output "interop NON trovata: il ponte qui non si compila, ed e' atteso."
     Write-Output "cercata in:"
-    $posti | ForEach-Object { Write-Output "  $_" }
-    Dillo "ce=no"
+    $places | ForEach-Object { Write-Output "  $_" }
+    SayIt "ce=no"
 }

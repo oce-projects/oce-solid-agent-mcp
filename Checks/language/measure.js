@@ -204,10 +204,10 @@ function measure(labelsFile, quiet) {
   const recall = tp / (tp + fn);
   const falseAlarmRate = fp / (fp + tn);
   const precision = recall / (recall + falseAlarmRate);
-  const faUpper = upper95(fp, fp + tn);
-  const precisionLower = recall / (recall + faUpper);
+  const doesUpper = upper95(fp, fp + tn);
+  const precisionLower = recall / (recall + doesUpper);
   const r = { file: path.basename(labelsFile), doc, prefix, total: candidates.length, tp, fp, tn, fn, skipped, prose, proseFp,
-    recall, falseAlarmRate, precision, faUpper, precisionLower, counted, namesOnly, how, misses, falseAlarms };
+    recall, falseAlarmRate, precision, faUpper: doesUpper, precisionLower, counted, namesOnly, how, misses, falseAlarms };
   if (doc.filter === 'english-cue') {
     r.enough = (tn + fp) >= 100;
     r.ok = r.enough && falseAlarmRate <= 0.02;

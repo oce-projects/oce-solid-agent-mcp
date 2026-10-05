@@ -48,9 +48,9 @@ namespace Oce.Solid.Agent.Core
     /// pixel, the scale check stays on the pixel map SOLIDWORKS holds, and the
     /// result says when the two differ.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private static readonly string[] Immagini = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff" };
+        private static readonly string[] Images = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff" };
 
         /// <summary>
         /// The longest side SOLIDWORKS keeps in a part: a file over it comes back
@@ -124,35 +124,35 @@ namespace Oce.Solid.Agent.Core
             return width > 0 && height > 0;
         }
 
-        private Esito ImmagineNelloSchizzo(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome SketchPicture(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            if (!(modello is IPartDoc))
-                return Fallito("Metto l'immagine in uno schizzo di un pezzo. Aprimi un pezzo (anche vuoto).");
-            string percorso = (Str(a, "path", "") ?? "").Trim();
-            if (percorso.Length == 0)
-                return Fallito("Dimmi «path»: il file dell'immagine da ricalcare (PNG, JPG, BMP, TIF).");
-            string est = (Path.GetExtension(percorso) ?? "").ToLowerInvariant();
+            if (!(model is IPartDoc))
+                return Failed("Metto l'immagine in uno schizzo di un pezzo. Aprimi un pezzo (anche vuoto).");
+            string filePath = (Str(a, "path", "") ?? "").Trim();
+            if (filePath.Length == 0)
+                return Failed("Dimmi «path»: il file dell'immagine da ricalcare (PNG, JPG, BMP, TIF).");
+            string est = (Path.GetExtension(filePath) ?? "").ToLowerInvariant();
             if (est == ".pdf")
-                return Fallito("Un PDF in uno schizzo non entra (misurato: InsertSketchPicture risponde null). " +
+                return Failed("Un PDF in uno schizzo non entra (misurato: InsertSketchPicture risponde null). " +
                                "Converti la pagina in un'immagine (PNG) e dammi quella.");
-            if (Array.IndexOf(Immagini, est) < 0)
-                return Fallito("«" + percorso + "» non e' un'immagine che so mettere: PNG, JPG, BMP, GIF o TIF.");
-            if (!File.Exists(percorso))
-                return Fallito("Il file «" + percorso + "» non c'e'.");
-            string piano = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
-            if (piano != "front" && piano != "top" && piano != "right")
-                return Fallito("«plane» e' «front», «top» o «right», non «" + piano + "».");
-            double larghezza; string errore;
-            if (!NumObbligatorio(a, "width_mm", out larghezza, out errore)) return Fallito(errore);
-            if (larghezza <= 0)
-                return Fallito("«width_mm» e' la larghezza VERA dell'immagine in millimetri (una misura nota " +
+            if (Array.IndexOf(Images, est) < 0)
+                return Failed("«" + filePath + "» non e' un'immagine che so mettere: PNG, JPG, BMP, GIF o TIF.");
+            if (!File.Exists(filePath))
+                return Failed("Il file «" + filePath + "» non c'e'.");
+            string plane = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
+            if (plane != "front" && plane != "top" && plane != "right")
+                return Failed("«plane» e' «front», «top» o «right», non «" + plane + "».");
+            double width; string error;
+            if (!RequiredNum(a, "width_mm", out width, out error)) return Failed(error);
+            if (width <= 0)
+                return Failed("«width_mm» e' la larghezza VERA dell'immagine in millimetri (una misura nota " +
                                "divisa per i suoi pixel, per tutta la larghezza): deve essere positiva.");
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0);
             int fileWidth, fileHeight;
-            bool fileSizeKnown = FilePixelSize(percorso, out fileWidth, out fileHeight);
+            bool fileSizeKnown = FilePixelSize(filePath, out fileWidth, out fileHeight);
 
-            if (!SelezionaPiano(modello, piano))
-                return Fallito("Non riesco a selezionare il piano " + piano + ".");
+            if (!SelectPlane(model, plane))
+                return Failed("Non riesco a selezionare il piano " + plane + ".");
             // Z-C21.7 (L8-4): InsertSketchPicture2(file, false), not the obsolete
             // InsertSketchPicture (ISketchManager~InsertSketchPicture.html:
             // «Obsolete. Superseded by ISketchManager::InsertSketchPicture2»).
@@ -162,27 +162,27 @@ namespace Oce.Solid.Agent.Core
             // 120 x 60 mm at (10, 20), first row 119.7 mm); on the 4096 x 2048 PNG
             // the same pixel map of 2048 x 1024 as the obsolete call, which is
             // why the file-pixel readback of M11 below stays as it is.
-            ISketchPicture foto = null;
+            ISketchPicture photo = null;
             try
             {
-                modello.SketchManager.InsertSketch(true);
-                foto = modello.SketchManager.InsertSketchPicture2(percorso, false) as ISketchPicture;
+                model.SketchManager.InsertSketch(true);
+                photo = model.SketchManager.InsertSketchPicture2(filePath, false) as ISketchPicture;
             }
             catch (Exception ex)
             {
-                try { modello.SketchManager.InsertSketch(true); } catch { }
-                return Fallito("L'immagine non e' entrata: " + ex.Message);
+                try { model.SketchManager.InsertSketch(true); } catch { }
+                return Failed("L'immagine non e' entrata: " + ex.Message);
             }
-            if (foto == null)
+            if (photo == null)
             {
-                try { modello.SketchManager.InsertSketch(true); } catch { }
-                return Fallito("SOLIDWORKS non ha messo l'immagine (InsertSketchPicture2 ha risposto null): il file " +
+                try { model.SketchManager.InsertSketch(true); } catch { }
+                return Failed("SOLIDWORKS non ha messo l'immagine (InsertSketchPicture2 ha risposto null): il file " +
                                "c'e' ma forse non e' un'immagine vera. Prova a risalvarla in PNG.");
             }
             int w = 0, h = 0;
             double lw = 0, lh = 0, ox = 0, oy = 0;
-            bool misura = false;
-            double distanza = double.NaN;
+            bool measure = false;
+            double distance = double.NaN;
             // THE TWO ANSWERS ARE KEPT, AND THE PLACEMENT IS READ BACK (Z-C21.8,
             // finding M36). ISketchPicture~SetSize.html: «True if the size of the
             // picture is set, false if not»; ~SetOrigin.html: «True if the origin
@@ -192,39 +192,39 @@ namespace Oce.Solid.Agent.Core
             bool sizeSet = false, originSet = false, placementRead = false;
             try
             {
-                foto.GetPixelmapSize(ref w, ref h);
+                photo.GetPixelmapSize(ref w, ref h);
                 if (w > 0 && h > 0)
                 {
-                    sizeSet = foto.SetSize(Unita.M(larghezza), Unita.M(larghezza * h / w), true);
-                    originSet = foto.SetOrigin(Unita.M(x), Unita.M(y));
-                    foto.GetSize(ref lw, ref lh);
-                    foto.GetOrigin(ref ox, ref oy);
+                    sizeSet = photo.SetSize(Units.M(width), Units.M(width * h / w), true);
+                    originSet = photo.SetOrigin(Units.M(x), Units.M(y));
+                    photo.GetSize(ref lw, ref lh);
+                    photo.GetOrigin(ref ox, ref oy);
                     placementRead = true;
                     // LA SCALA VERIFICATA: prima e ultima colonna della prima riga.
                     // GetPointOnSketchFromPixel vuole (colonna, riga), al contrario
                     // del nome dei suoi argomenti (misurato).
-                    var p0 = (foto.GetPointOnSketchFromPixel(0, 0) as IMathPoint)?.ArrayData as double[];
-                    var p1 = (foto.GetPointOnSketchFromPixel(w - 1, 0) as IMathPoint)?.ArrayData as double[];
+                    var p0 = (photo.GetPointOnSketchFromPixel(0, 0) as IMathPoint)?.ArrayData as double[];
+                    var p1 = (photo.GetPointOnSketchFromPixel(w - 1, 0) as IMathPoint)?.ArrayData as double[];
                     if (p0 != null && p1 != null)
                     {
-                        distanza = Math.Sqrt(Math.Pow(p1[0] - p0[0], 2) + Math.Pow(p1[1] - p0[1], 2) + Math.Pow(p1[2] - p0[2], 2)) * 1000;
-                        misura = true;
+                        distance = Math.Sqrt(Math.Pow(p1[0] - p0[0], 2) + Math.Pow(p1[1] - p0[1], 2) + Math.Pow(p1[2] - p0[2], 2)) * 1000;
+                        measure = true;
                     }
                 }
             }
             catch { }
-            string nomeFeature = null;
-            try { nomeFeature = (foto.GetFeature() as IFeature)?.Name; } catch { }
-            try { modello.SketchManager.InsertSketch(true); } catch { }
+            string featureName = null;
+            try { featureName = (photo.GetFeature() as IFeature)?.Name; } catch { }
+            try { model.SketchManager.InsertSketch(true); } catch { }
             if (w <= 0 || h <= 0)
-                return Fallito("L'immagine e' nello schizzo ma non ne leggo i pixel: non so darle la scala. Toglila (" +
-                               (nomeFeature ?? "l'immagine nello schizzo") + ") e riprova con un PNG.");
+                return Failed("L'immagine e' nello schizzo ma non ne leggo i pixel: non so darle la scala. Toglila (" +
+                               (featureName ?? "l'immagine nello schizzo") + ") e riprova con un PNG.");
 
             // THE PIXELS THE CALLER COUNTS ARE THE FILE'S (finding M11, see the
             // class comment). SOLIDWORKS may hold fewer, never more, and with the
             // same shape: anything else means the two are not the same picture
             // (a JPEG turned by its EXIF orientation, say), and no scale is given.
-            string pictureName = nomeFeature ?? "the picture in the sketch";
+            string pictureName = featureName ?? "the picture in the sketch";
             int pixelWidth = w, pixelHeight = h;
             bool compressed = false;
             if (fileSizeKnown)
@@ -234,7 +234,7 @@ namespace Oce.Solid.Agent.Core
                     bool fewer = w <= fileWidth && h <= fileHeight;
                     bool sameShape = Math.Abs((long)w * fileHeight - (long)h * fileWidth) <= Math.Max(fileWidth, fileHeight);
                     if (!fewer || !sameShape)
-                        return Fallito("SOLIDWORKS holds the picture as " + w + " x " + h + " pixels and the file is " +
+                        return Failed("SOLIDWORKS holds the picture as " + w + " x " + h + " pixels and the file is " +
                                        fileWidth + " x " + fileHeight + ": not the same picture shape, so I cannot give " +
                                        "its scale. Remove it (" + pictureName + ") and save the image again as a PNG.");
                     compressed = true;
@@ -243,37 +243,37 @@ namespace Oce.Solid.Agent.Core
                 pixelHeight = fileHeight;
             }
             else if (Math.Max(w, h) >= PictureSideKeptInPart)
-                return Fallito("I cannot read the pixel size of the file «" + percorso + "», and SOLIDWORKS holds the picture " +
+                return Failed("I cannot read the pixel size of the file «" + filePath + "», and SOLIDWORKS holds the picture " +
                                "at " + w + " x " + h + " pixels: at " + PictureSideKeptInPart + " px it may have compressed " +
                                "it, and a scale per pixel would be wrong by the factor I cannot see. Remove it (" +
                                pictureName + ") and save the image again as a PNG.");
 
-            double mmPerPixel = larghezza / pixelWidth;
-            double larghezzaLetta = lw * 1000, altezzaLetta = lh * 1000;
+            double mmPerPixel = width / pixelWidth;
+            double readWidth = lw * 1000, heightRead = lh * 1000;
             string placementFault = PicturePlacementFault(
                 sizeSet, originSet, placementRead,
-                larghezza, larghezza * h / w, x, y,
-                larghezzaLetta, altezzaLetta, ox * 1000, oy * 1000);
+                width, width * h / w, x, y,
+                readWidth, heightRead, ox * 1000, oy * 1000);
             if (placementFault != null)
-                return Fallito(placementFault + " Remove it (" + pictureName + ") and try again.");
+                return Failed(placementFault + " Remove it (" + pictureName + ") and try again.");
             // The scale check is on the pixel map SOLIDWORKS holds: those are the
             // pixels GetPointOnSketchFromPixel takes.
-            double attesa = (w - 1) * (larghezza / w);
-            if (!misura || Math.Abs(distanza - attesa) > attesa * 0.01)
-                return Fallito("L'immagine e' larga " + larghezzaLetta.ToString("0.###") + " mm, ma il primo e l'ultimo pixel " +
-                               "della prima riga, nello schizzo, distano " + (misura ? distanza.ToString("0.###") : "?") +
-                               " mm invece di " + attesa.ToString("0.###") + ": la scala non e' quella che dice.");
-            var misure = new Dictionary<string, object>
+            double expectation = (w - 1) * (width / w);
+            if (!measure || Math.Abs(distance - expectation) > expectation * 0.01)
+                return Failed("L'immagine e' larga " + readWidth.ToString("0.###") + " mm, ma il primo e l'ultimo pixel " +
+                               "della prima riga, nello schizzo, distano " + (measure ? distance.ToString("0.###") : "?") +
+                               " mm invece di " + expectation.ToString("0.###") + ": la scala non e' quella che dice.");
+            var measurements = new Dictionary<string, object>
             {
-                ["picture"] = nomeFeature,
-                ["plane"] = piano,
+                ["picture"] = featureName,
+                ["plane"] = plane,
                 ["pixel"] = new[] { pixelWidth, pixelHeight },
                 ["solidworks_pixels"] = new[] { w, h },
-                ["width_mm"] = Math.Round(larghezzaLetta, 4),
-                ["height_mm"] = Math.Round(altezzaLetta, 4),
+                ["width_mm"] = Math.Round(readWidth, 4),
+                ["height_mm"] = Math.Round(heightRead, 4),
                 ["mm_per_pixel"] = Math.Round(mmPerPixel, 6),
                 ["origin_mm"] = new[] { Math.Round(ox * 1000, 4), Math.Round(oy * 1000, 4) },
-                ["check_scale_mm"] = Math.Round(distanza, 4),
+                ["check_scale_mm"] = Math.Round(distance, 4),
                 ["how_to_read_it"] =
                     "In the plane of the sketch the lower left corner of the picture is at «origin_mm». The pixel " +
                     "of the FILE in column c and row r (counted from 0, rows from the top) is at x = origin_mm[0] + " +
@@ -281,14 +281,14 @@ namespace Oce.Solid.Agent.Core
                     "with the sketch operations on the same plane.",
             };
             if (compressed)
-                misure["compression"] =
+                measurements["compression"] =
                     "SOLIDWORKS keeps this picture at " + w + " x " + h + " pixels: it compresses a picture over " +
                     PictureSideKeptInPart + " px when it inserts it in a part (ISketchManager~InsertSketchPicture2.html). " +
                     "The file is " + fileWidth + " x " + fileHeight + ": «pixel» and «mm_per_pixel» are the FILE's, " +
                     "which is what you count in the image; the picture in the sketch has less detail than the file.";
             _log("[agente] picture " + pixelWidth + "x" + pixelHeight + " px (SOLIDWORKS " + w + "x" + h + ") at " +
-                 mmPerPixel.ToString("0.####") + " mm/px on the plane " + piano);
-            return RiuscitoSenzaCreare(misure);
+                 mmPerPixel.ToString("0.####") + " mm/px on the plane " + plane);
+            return SucceededWithoutCreating(measurements);
         }
     }
 }

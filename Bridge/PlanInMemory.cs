@@ -5,13 +5,13 @@ using Oce.Solid.Agent.Core;
 namespace Oce.Solid.Agent.Bridge
 {
     /// <summary>
-    /// IL PIANO CHE ARRIVA DA MCP, servito a <see cref="EsecutorePiano"/> un
+    /// IL PIANO CHE ARRIVA DA MCP, servito a <see cref="PlanExecutor"/> un
     /// passo alla volta.
     ///
     /// PERCHE' ESISTE, VISTO CHE IL PIANO E' GIA' TUTTO QUI.
     /// Perche' l'esecutore non deve sapere da dove vengono i passi: nell'add-in
     /// glieli da' il server di OpenPDM, qui glieli da' questa lista. Il confine
-    /// e' <see cref="IFontePiano"/>, e senza di lui il ponte avrebbe dovuto
+    /// e' <see cref="IPlanSource"/>, e senza di lui il ponte avrebbe dovuto
     /// riscriversi il giro di esecuzione — che e' esattamente quello che
     /// faceva, e che gli costava tre cose:
     ///
@@ -27,22 +27,22 @@ namespace Oce.Solid.Agent.Bridge
     ///
     /// QUI NON SI VALIDA NIENTE, ed e' voluto. Nome dell'operazione, percorsi e
     /// forma degli argomenti si controllano **tutti insieme prima**, in
-    /// `Attrezzi.Disegna`, e se qualcosa non va il documento non viene toccato
+    /// `McpTools.Build`, e se qualcosa non va il documento non viene toccato
     /// affatto. Validare a mano a mano vorrebbe dire fermarsi al passo 3 con i
     /// primi due gia' costruiti, cioe' lasciare in giro mezzo pezzo per un
     /// errore che si poteva vedere senza aprire niente.
     /// </summary>
-    internal sealed class PianoInMemoria : IFontePiano
+    internal sealed class PlanInMemory : IPlanSource
     {
-        private readonly List<PassoDelPiano> _passi;
-        private int _prossimo;
+        private readonly List<PlanStep> _steps;
+        private int _next;
 
         /// <summary>
         /// Il filo dell'avanzamento (voce W2.2), e da che numero riprendere.
         ///
         /// QUESTO E' IL PUNTO CHE CONTA, e non il controllo del piano: il
         /// controllo dura millisecondi, l'esecuzione puo' durare minuti. La
-        /// notifica parte da `ProssimoAsync`, cioe' **prima** che il passo
+        /// notifica parte da `NextAsync`, cioe' **prima** che il passo
         /// cominci — dire «sto per fare il passo 3 di 5» serve; dirlo dopo che
         /// e' finito serve molto meno.
         ///
@@ -50,62 +50,62 @@ namespace Oce.Solid.Agent.Bridge
         /// successivo a questa classe, che sta nel ponte. L'aggancio c'era
         /// gia', mancava solo chi lo usasse.
         /// </summary>
-        private readonly Mcp.Avanzamento.Filo _filo;
-        private readonly double _partenza;
+        private readonly Mcp.Progress.Wire _wire;
+        private readonly double _startedAt;
 
         /// <summary>
         /// Com'e' andato ogni passo, nell'ordine in cui sono stati eseguiti.
         /// E' la risposta che il ponte manda indietro.
         /// </summary>
-        public readonly List<Dictionary<string, object>> Esiti =
+        public readonly List<Dictionary<string, object>> Outcomes =
             new List<Dictionary<string, object>>();
 
-        public PianoInMemoria(List<PassoDelPiano> passi)
-            : this(passi, null) { }
+        public PlanInMemory(List<PlanStep> steps)
+            : this(steps, null) { }
 
-        public PianoInMemoria(List<PassoDelPiano> passi, Mcp.Avanzamento.Filo filo)
+        public PlanInMemory(List<PlanStep> steps, Mcp.Progress.Wire wire)
         {
-            _passi = passi;
-            _filo = filo ?? new Mcp.Avanzamento.Filo(null);
+            _steps = steps;
+            _wire = wire ?? new Mcp.Progress.Wire(null);
             // Da dove riprendere: se il controllo del piano ha gia' raccontato
             // cinque passi, l'esecuzione comincia a sei. Chiederlo al filo
             // invece di calcolarlo vuol dire che i due punti non possono
             // dire numeri che si sovrappongono.
-            _partenza = _filo.Ultimo;
+            _startedAt = _wire.Last;
         }
 
-        public Task<ProssimoPasso> ProssimoAsync(Dictionary<string, object> stato)
+        public Task<NextStep> NextAsync(Dictionary<string, object> docState)
         {
             // Lo stato non serve: chi doveva guardarlo — il controllo
             // d'identita' del documento — lo fa l'esecutore, sul documento
             // vero e non su una fotografia.
-            if (_prossimo >= _passi.Count) return Task.FromResult(ProssimoPasso.Fine());
-            var questo = _passi[_prossimo++];
-            _filo.Passo(_partenza + _prossimo,
-                        "eseguo il passo " + _prossimo + " di " + _passi.Count +
-                        ": " + questo.Operazione);
-            return Task.FromResult(ProssimoPasso.Questo(questo));
+            if (_next >= _steps.Count) return Task.FromResult(NextStep.Fine());
+            var thisOne = _steps[_next++];
+            _wire.Step(_startedAt + _next,
+                        "eseguo il passo " + _next + " di " + _steps.Count +
+                        ": " + thisOne.Operation);
+            return Task.FromResult(NextStep.This(thisOne));
         }
 
-        public Task EsitoAsync(
-            int ordine, bool riuscito, Dictionary<string, object> misure, string errore)
+        public Task OutcomeAsync(
+            int order, bool succeeded, Dictionary<string, object> measurements, string error)
         {
-            object numeri = null;
-            if (misure != null) misure.TryGetValue("measurements", out numeri);
+            object numbers = null;
+            if (measurements != null) measurements.TryGetValue("measurements", out numbers);
 
-            Esiti.Add(new Dictionary<string, object>
+            Outcomes.Add(new Dictionary<string, object>
             {
-                ["operation"] = Nome(ordine),
-                ["succeeded"] = riuscito,
-                ["error"] = riuscito ? null : errore,
-                ["measurements"] = numeri,
+                ["operation"] = Name(order),
+                ["succeeded"] = succeeded,
+                ["error"] = succeeded ? null : error,
+                ["measurements"] = numbers,
             });
             return Task.FromResult(0);
         }
 
-        private string Nome(int ordine)
+        private string Name(int order)
         {
-            foreach (var p in _passi) if (p.Ordine == ordine) return p.Operazione;
+            foreach (var p in _steps) if (p.Order == order) return p.Operation;
             return "";
         }
     }

@@ -87,30 +87,30 @@ namespace Oce.Solid.Agent.Core
     /// si vede solo contando. E' lo stesso controllo che `extrude_on_face`
     /// fa gia' sul suo `Merge`.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>
         /// La booleana che si fa salvo avviso contrario (voce Z-G3).
-        /// Stesso ragionamento di `MaterialePredefinito`: lo schema lo
+        /// Stesso ragionamento di `DefaultMaterial`: lo schema lo
         /// annuncia, questo lo applica, e il valore sta in un posto solo.
         /// </summary>
-        private const string OperazionePredefinita = "union";
+        private const string DefaultOperation = "union";
 
         /// <summary>
         /// Coda del messaggio quando il principale e' il predefinito (il primo
         /// corpo, per posizione) e coincide con un utensile nominato: senza,
         /// «e' anche il corpo principale» suonerebbe come una scelta di chi chiede.
         /// </summary>
-        private const string PrincipalePredefinito =
+        private const string DefaultMain =
             ", il predefinito: il primo corpo, preso per posizione perche' non l'hai " +
             "nominato. Nominalo con «main_body_uid» o «main_body_ref»";
 
-        private Esito CombinaCorpi(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CombineBodies(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null)
-                return Fallito("Questo documento non e' un pezzo: le booleane si fanno fra corpi.");
+            var partDoc = model as IPartDoc;
+            if (partDoc == null)
+                return Failed("Questo documento non e' un pezzo: le booleane si fanno fra corpi.");
 
             // ── IL PREDEFINITO (voce Z-G3) ───────────────────────────────
             //
@@ -122,26 +122,26 @@ namespace Oce.Solid.Agent.Core
             // questo il caso di banco misura il VOLUME invece di guardare
             // che sia riuscito: fra le tre booleane i tre volumi sono
             // inconfondibili, e «succeeded: true» li darebbe tutti e tre.
-            string comeChiesta = (Str(a, "operation", "") ?? "").Trim().ToLowerInvariant();
-            bool assunta = comeChiesta.Length == 0;
-            if (assunta) comeChiesta = OperazionePredefinita;
-            int tipo;
+            string asRequested = (Str(a, "operation", "") ?? "").Trim().ToLowerInvariant();
+            bool assumed = asRequested.Length == 0;
+            if (assumed) asRequested = DefaultOperation;
+            int typ;
             // `swBodyOperationType_e`, NON `swCombineBodiesOperationType_e`:
             // vedi il commento in testa al file.
-            if (comeChiesta == "union") tipo = (int)swBodyOperationType_e.SWBODYADD;
-            else if (comeChiesta == "subtract") tipo = (int)swBodyOperationType_e.SWBODYCUT;
-            else if (comeChiesta == "intersect") tipo = (int)swBodyOperationType_e.SWBODYINTERSECT;
-            else return Fallito(
-                "Non hai detto che booleana fare, o non la conosco: «" + comeChiesta +
+            if (asRequested == "union") typ = (int)swBodyOperationType_e.SWBODYADD;
+            else if (asRequested == "subtract") typ = (int)swBodyOperationType_e.SWBODYCUT;
+            else if (asRequested == "intersect") typ = (int)swBodyOperationType_e.SWBODYINTERSECT;
+            else return Failed(
+                "Non hai detto che booleana fare, o non la conosco: «" + asRequested +
                 "». Ci sono «union», «subtract» e «intersect».");
 
-            var grezzi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             // ZERO-E-ZERO: `GetBodies2` qui sopra non e' in un try — una maniglia
             // morta solleva e non arriva fin qui — quindi null e' «nessun corpo».
-            if (grezzi == null || grezzi.Length < 2)
-                return Fallito(
+            if (rawItems == null || rawItems.Length < 2)
+                return Failed(
                     "Per una booleana ci vogliono almeno due corpi, e questo pezzo ne ha " +
-                    (grezzi == null ? 0 : grezzi.Length) + ". I corpi separati nascono con " +
+                    (rawItems == null ? 0 : rawItems.Length) + ". I corpi separati nascono con " +
                     "«move_bodies» e la copia, o con un'estrusione che non si fonde.");
 
             // ── CHI E' IL PRINCIPALE, E CHI GLI VA ADDOSSO ───────────────
@@ -159,12 +159,12 @@ namespace Oce.Solid.Agent.Core
             // bodies are returned». Un taglio fra la lettura dello stato e la
             // booleana rinumera i corpi, e si combinava il corpo sbagliato con
             // `succeeded: true`: e' la voce E4, misurata il 14/9/2026 sulla
-            // gemella `move_bodies` e corretta li' con `CorpiDaUid`, che
+            // gemella `move_bodies` e corretta li' con `BodiesFromUid`, che
             // confronta la firma (centro e scatola) letta dal piano con quella di
             // adesso. Qui adesso passa dallo stesso punto.
             //
             // E I CORPI TROVATI SI PASSANO COSI' COME SONO, come fa move_bodies
-            // con `firma.Entita`. La prima stesura li ricercava dentro il
+            // con `firma.Entity`. La prima stesura li ricercava dentro il
             // GetBodies2 qui sopra con ReferenceEquals/Equals: regge solo se
             // SOLIDWORKS da' lo stesso oggetto COM per lo stesso corpo in due
             // chiamate, e non e' misurato (revisione di Z-C21.2). Dove serve
@@ -178,9 +178,9 @@ namespace Oce.Solid.Agent.Core
             // non ha nessun modo valido di nominare i corpi — gli uid letti
             // prima del taglio ora si rifiutano per firma, e quelli nuovi il
             // piano non li conosce. Stessa strada di move_bodies:
-            // CorpiDalRiferimento.
-            string motivoCorpo;
-            Func<object, object, bool> stesso = (x, y) =>
+            // BodiesFromReference.
+            string bodyReason;
+            Func<object, object, bool> same = (x, y) =>
             {
                 if (x == null || y == null) return false;
                 if (ReferenceEquals(x, y)) return true;
@@ -190,126 +190,126 @@ namespace Oce.Solid.Agent.Core
             // Il nome da riportare: l'uid dello STATO se il corpo c'e', altrimenti
             // la posizione, detta come tale — i numeri del GetBodies2 di adesso
             // non sono quelli dello stato (GetBodies2.html, stessa frase).
-            Func<object, int, string> nomeDi = (corpo, posizione) =>
+            Func<object, int, string> nameOf = (body, position) =>
             {
-                if (stato != null && stato.Firme != null)
-                    foreach (var kv in stato.Firme)
-                        if (kv.Value != null && kv.Value.Tipo == "BODY" && stesso(kv.Value.Entita, corpo))
+                if (docState != null && docState.Signatures != null)
+                    foreach (var kv in docState.Signatures)
+                        if (kv.Value != null && kv.Value.Type == "BODY" && same(kv.Value.Entity, body))
                             return kv.Key;
-                return posizione < 0 ? "(corpo senza nome nello stato)"
-                                     : "C" + (posizione + 1) + " (per posizione)";
+                return position < 0 ? "(corpo senza nome nello stato)"
+                                     : "C" + (position + 1) + " (per posizione)";
             };
 
-            bool haPrincipaleRif = HaRiferimento(a, "main_body_ref");
-            bool haUtensiliRif = HaRiferimento(a, "tool_bodies_ref");
-            string uidPrincipale = Str(a, "main_body_uid", null);
-            var chiesti = Lista(a, "tool_bodies_uid");
-            if (haPrincipaleRif && !string.IsNullOrWhiteSpace(uidPrincipale))
-                return Fallito("Hai dato sia «main_body_uid» sia «main_body_ref»: uno nomina " +
+            bool hasMainRef = HasReference(a, "main_body_ref");
+            bool hasToolsRef = HasReference(a, "tool_bodies_ref");
+            string mainUid = Str(a, "main_body_uid", null);
+            var requested = StringList(a, "tool_bodies_uid");
+            if (hasMainRef && !string.IsNullOrWhiteSpace(mainUid))
+                return Failed("Hai dato sia «main_body_uid» sia «main_body_ref»: uno nomina " +
                                "un corpo dello stato, l'altro il corpo di un passo. Togli uno dei due.");
-            if (haUtensiliRif && chiesti != null && chiesti.Count > 0)
-                return Fallito("Hai dato sia «tool_bodies_uid» sia «tool_bodies_ref»: uno nomina " +
+            if (hasToolsRef && requested != null && requested.Count > 0)
+                return Failed("Hai dato sia «tool_bodies_uid» sia «tool_bodies_ref»: uno nomina " +
                                "corpi dello stato, l'altro quelli di un passo. Togli uno dei due.");
 
-            object principale;
-            string nomePrincipale;
-            bool principalePerPosizione = false;
-            if (haPrincipaleRif)
+            object main;
+            string mainName;
+            bool mainByPosition = false;
+            if (hasMainRef)
             {
-                int quanti;
-                var daPasso = CorpiDalRiferimento(a, "main_body_ref", stato, out quanti, out motivoCorpo);
-                if (daPasso == null) return Fallito(motivoCorpo);
-                if (daPasso.Length != 1)
-                    return Fallito("Il passo di «main_body_ref» ha lasciato " + daPasso.Length +
+                int howMany;
+                var fromStep = BodiesFromReference(a, "main_body_ref", docState, out howMany, out bodyReason);
+                if (fromStep == null) return Failed(bodyReason);
+                if (fromStep.Length != 1)
+                    return Failed("Il passo di «main_body_ref» ha lasciato " + fromStep.Length +
                                    " corpi, e il principale e' uno solo: nominalo con «main_body_uid» " +
                                    "dopo aver riletto il pezzo.");
-                principale = daPasso[0];
-                nomePrincipale = nomeDi(principale, Array.FindIndex(grezzi, g => stesso(g, principale)));
+                main = fromStep[0];
+                mainName = nameOf(main, Array.FindIndex(rawItems, g => same(g, main)));
             }
-            else if (!string.IsNullOrWhiteSpace(uidPrincipale))
+            else if (!string.IsNullOrWhiteSpace(mainUid))
             {
-                uidPrincipale = uidPrincipale.Trim();
-                var trovati = CorpiDaUid(stato, new List<string> { uidPrincipale }, a, out motivoCorpo);
-                if (trovati == null) return Fallito(motivoCorpo);
-                principale = trovati[0];
-                nomePrincipale = uidPrincipale;
+                mainUid = mainUid.Trim();
+                var foundItems = BodiesFromUid(docState, new List<string> { mainUid }, a, out bodyReason);
+                if (foundItems == null) return Failed(bodyReason);
+                main = foundItems[0];
+                mainName = mainUid;
             }
             else
             {
                 // Il PREDEFINITO resta «il primo», ed e' per posizione: si dice.
-                principale = grezzi[0];
-                nomePrincipale = nomeDi(grezzi[0], 0);
-                principalePerPosizione = true;
+                main = rawItems[0];
+                mainName = nameOf(rawItems[0], 0);
+                mainByPosition = true;
             }
 
-            var utensili = new List<object>();
-            var nomiUtensili = new List<string>();
-            if (haUtensiliRif)
+            var toolBodies = new List<object>();
+            var toolNames = new List<string>();
+            if (hasToolsRef)
             {
-                int quanti;
-                var daPasso = CorpiDalRiferimento(a, "tool_bodies_ref", stato, out quanti, out motivoCorpo);
-                if (daPasso == null) return Fallito(motivoCorpo);
-                foreach (var c in daPasso)
+                int howMany;
+                var fromStep = BodiesFromReference(a, "tool_bodies_ref", docState, out howMany, out bodyReason);
+                if (fromStep == null) return Failed(bodyReason);
+                foreach (var c in fromStep)
                 {
-                    if (stesso(c, principale))
-                        return Fallito("Fra i corpi di «tool_bodies_ref» c'e' anche il corpo principale (" +
-                                       nomePrincipale + (principalePerPosizione ? PrincipalePredefinito : "") +
+                    if (same(c, main))
+                        return Failed("Fra i corpi di «tool_bodies_ref» c'e' anche il corpo principale (" +
+                                       mainName + (mainByPosition ? DefaultMain : "") +
                                        "): un corpo non si combina con se stesso.");
-                    utensili.Add(c);
-                    nomiUtensili.Add(nomeDi(c, Array.FindIndex(grezzi, g => stesso(g, c))));
+                    toolBodies.Add(c);
+                    toolNames.Add(nameOf(c, Array.FindIndex(rawItems, g => same(g, c))));
                 }
             }
-            else if (chiesti != null && chiesti.Count > 0)
+            else if (requested != null && requested.Count > 0)
             {
-                foreach (var grezzo in chiesti)
+                foreach (var raw in requested)
                 {
-                    string u = Convert.ToString(grezzo).Trim();
-                    var trovati = CorpiDaUid(stato, new List<string> { u }, a, out motivoCorpo);
-                    if (trovati == null) return Fallito(motivoCorpo);
-                    if (stesso(trovati[0], principale))
-                        return Fallito(
-                            "«" + u + "» e' anche il corpo principale (" + nomePrincipale +
-                            (principalePerPosizione ? PrincipalePredefinito : "") +
+                    string u = Convert.ToString(raw).Trim();
+                    var foundItems = BodiesFromUid(docState, new List<string> { u }, a, out bodyReason);
+                    if (foundItems == null) return Failed(bodyReason);
+                    if (same(foundItems[0], main))
+                        return Failed(
+                            "«" + u + "» e' anche il corpo principale (" + mainName +
+                            (mainByPosition ? DefaultMain : "") +
                             "): un corpo non si combina con se stesso.");
-                    utensili.Add(trovati[0]);
-                    nomiUtensili.Add(u);
+                    toolBodies.Add(foundItems[0]);
+                    toolNames.Add(u);
                 }
             }
             else
             {
-                for (int i = 0; i < grezzi.Length; i++)
+                for (int i = 0; i < rawItems.Length; i++)
                 {
-                    if (stesso(grezzi[i], principale)) continue;
-                    utensili.Add(grezzi[i]);
-                    nomiUtensili.Add(nomeDi(grezzi[i], i));
+                    if (same(rawItems[i], main)) continue;
+                    toolBodies.Add(rawItems[i]);
+                    toolNames.Add(nameOf(rawItems[i], i));
                 }
             }
-            if (utensili.Count == 0)
-                return Fallito("Non e' rimasto nessun corpo da combinare col principale.");
+            if (toolBodies.Count == 0)
+                return Failed("Non e' rimasto nessun corpo da combinare col principale.");
 
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            if (volumePrima == null || corpiPrima < 0)
-                return Fallito(VolumeNonLettoPrima("combinare i corpi"));
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
+            if (volumeBefore == null || bodiesBefore < 0)
+                return Failed(VolumeNotReadBefore("combinare i corpi"));
 
             IFeature feature;
             try
             {
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
                 // AVVOLTI, E COL PRINCIPALE DENTRO: vedi il commento in testa.
                 // Un `object[]` di oggetti COM non diventa un SAFEARRAY di
                 // IDispatch*, e senza il principale nell'elenco «union» e
                 // «intersect» non fanno niente — senza dirlo.
-                var daPassare = new List<DispatchWrapper>();
-                daPassare.Add(new DispatchWrapper(principale));
-                foreach (var u in utensili) daPassare.Add(new DispatchWrapper(u));
+                var toPass = new List<DispatchWrapper>();
+                toPass.Add(new DispatchWrapper(main));
+                foreach (var u in toolBodies) toPass.Add(new DispatchWrapper(u));
 
-                feature = modello.FeatureManager.InsertCombineFeature(
-                    tipo, principale as Body2, daPassare.ToArray()) as IFeature;
+                feature = model.FeatureManager.InsertCombineFeature(
+                    typ, main as Body2, toPass.ToArray()) as IFeature;
             }
             catch (Exception ex)
             {
-                return Fallito("La booleana non e' riuscita: " + ex.Message);
+                return Failed("La booleana non e' riuscita: " + ex.Message);
             }
 
             // NULL SENZA UN'ECCEZIONE E SENZA UN CODICE: e' tutto quello che
@@ -318,18 +318,18 @@ namespace Oce.Solid.Agent.Core
             // non e' l'unico, e la frase lo dice invece di far credere che sia
             // certa.
             if (feature == null)
-                return Fallito(
-                    "La booleana «" + comeChiesta + "» non ha creato niente, e SOLIDWORKS " +
+                return Failed(
+                    "La booleana «" + asRequested + "» non ha creato niente, e SOLIDWORKS " +
                     "non dice perche': questa chiamata risponde «niente» e basta. Di solito " +
                     "i corpi non si toccano davvero: «union» vuole corpi che si " +
                     "compenetrano o si toccano, «subtract» e «intersect» vogliono che si " +
                     "sovrappongano. Guarda gli ingombri con «body_bounding_box».");
 
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
 
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
-            bool riletto = volumeDopo.HasValue && corpiDopo >= 0;
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
+            bool reread = volumeAfter.HasValue && bodiesAfter >= 0;
 
             // UN'UNIONE CHE LASCIA DUE CORPI E' FALLITA IN SILENZIO. La
             // feature c'e', l'albero e' cresciuto, e il pezzo e' un altro.
@@ -342,45 +342,45 @@ namespace Oce.Solid.Agent.Core
             // la feature affatto (il rifiuto qui sopra), quindi dal banco questa
             // guardia non si fa scattare; resta per la feature che nasce e non
             // fonde, e adesso guarda la cosa giusta.
-            if (riletto && tipo == (int)swBodyOperationType_e.SWBODYADD &&
-                corpiDopo >= corpiPrima)
-                return Fallito(
-                    "L'unione ha creato la feature ma i corpi sono passati da " + corpiPrima +
-                    " a " + corpiDopo + ": non si sono fusi. Di solito e' che non si toccano " +
+            if (reread && typ == (int)swBodyOperationType_e.SWBODYADD &&
+                bodiesAfter >= bodiesBefore)
+                return Failed(
+                    "L'unione ha creato la feature ma i corpi sono passati da " + bodiesBefore +
+                    " a " + bodiesAfter + ": non si sono fusi. Di solito e' che non si toccano " +
                     "davvero. Non ti confermo un pezzo diverso da quello che ti ho mostrato: " +
-                    "ritiralo — " + Frasi.CosiSiRitira + ".");
+                    "ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
-            if (riletto && volumeDopo <= 0)
-                return Fallito(
-                    "Dopo la booleana il pezzo non ha piu' volume: «" + comeChiesta +
+            if (reread && volumeAfter <= 0)
+                return Failed(
+                    "Dopo la booleana il pezzo non ha piu' volume: «" + asRequested +
                     "» ha consumato tutto. Di solito e' l'ordine — nella sottrazione il " +
                     "corpo principale e' quello che RESTA.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["operation"] = comeChiesta,
-                ["note_assumption"] = assunta
-                    ? "operazione: «" + OperazionePredefinita + "» — PREDEFINITO, " +
+                ["operation"] = asRequested,
+                ["note_assumption"] = assumed
+                    ? "operazione: «" + DefaultOperation + "» — PREDEFINITO, " +
                       "non l'hai chiesto tu. «subtract» e «intersect» si chiedono " +
                       "per nome."
-                    : "operazione: «" + comeChiesta + "» — l'hai chiesto tu.",
-                ["main_body"] = nomePrincipale,
-                ["tool_bodies"] = nomiUtensili.ToArray(),
-                ["bodies_before"] = corpiPrima,
-                ["bodies"] = NumeroOppureNull(corpiDopo),
-                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["volume_changed_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2),
+                    : "operazione: «" + asRequested + "» — l'hai chiesto tu.",
+                ["main_body"] = mainName,
+                ["tool_bodies"] = toolNames.ToArray(),
+                ["bodies_before"] = bodiesBefore,
+                ["bodies"] = NumberOrNull(bodiesAfter),
+                ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
+                ["volume_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["volume_changed_mm3"] = NumberOrNull(volumeAfter - volumeBefore, 2),
                 // GLI IDENTIFICATIVI NON VALGONO PIU', e si dice sempre: una
                 // booleana rifa' le facce da capo.
                 ["note_identifiers"] =
                     "I corpi e le facce sono cambiati: gli identificativi (C2, F1, E4) di " +
                     "prima non valgono piu'. Rileggi il pezzo prima del passo seguente.",
             };
-            if (!riletto) misure["volume_not_reread"] = NotaVolumeNonRiletto;
-            _log("[agente] " + comeChiesta + ": corpi " + corpiPrima + " -> " + corpiDopo +
-                 ", volume " + Letto(volumePrima) + " -> " + Letto(volumeDopo));
-            return Riuscito(feature, misure);
+            if (!reread) measurements["volume_not_reread"] = NoteVolumeNotReread;
+            _log("[agente] " + asRequested + ": corpi " + bodiesBefore + " -> " + bodiesAfter +
+                 ", volume " + ReadValue(volumeBefore) + " -> " + ReadValue(volumeAfter));
+            return Succeeded(feature, measurements);
         }
 
         // =================================================================
@@ -419,67 +419,67 @@ namespace Oce.Solid.Agent.Core
         // vede se ha fatto il variabile o se ha preso solo il primo raggio.
         // =================================================================
 
-        private Esito RaccordoVariabile(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome VariableFillet(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             string uid = Str(a, "edge_uid", null);
             if (string.IsNullOrWhiteSpace(uid))
-                return Fallito(
+                return Failed(
                     "Non hai detto su quale spigolo. Gli identificativi degli spigoli " +
                     "stanno nello stato del documento, e somigliano a «E7».");
 
             double r1 = Num(a, "start_radius_mm");
             double r2 = Num(a, "end_radius_mm");
             if (r1 <= 0 || r2 <= 0)
-                return Fallito(
+                return Failed(
                     "I due raggi devono essere tutti e due maggiori di zero: hai chiesto " +
                     r1.ToString("0.##") + " e " + r2.ToString("0.##") + ". Per un raccordo " +
                     "uguale da capo a fondo c'e' «fillet_edges».");
 
-            string scostamento;
-            var firma = FirmaDelloSpigolo(
-                a, stato, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
-                out scostamento);
-            if (firma == null) return Fallito(scostamento);
+            string offset;
+            var signature = EdgeSignature(
+                a, docState, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                out offset);
+            if (signature == null) return Failed(offset);
 
-            var spigolo = firma.Entita as IEdge;
-            if (spigolo == null)
-                return Fallito("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
+            var edge = signature.Entity as IEdge;
+            if (edge == null)
+                return Failed("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
 
             // IL RAGGIO PIU' GRANDE DEVE STARCI, e si misura adesso: fra la
             // proposta e l'esecuzione il pezzo puo' essere cambiato. E' lo
             // stesso controllo del raccordo costante, sul piu' grande dei due.
-            double massimo = Math.Max(r1, r2);
-            if (firma.Misura > 0 && massimo > firma.Misura / 2)
-                return Fallito(string.Format(
+            double maxValue = Math.Max(r1, r2);
+            if (signature.Measure > 0 && maxValue > signature.Measure / 2)
+                return Failed(string.Format(
                     "{0:0.##} mm e' troppo per lo spigolo «{1}», lungo {2:0.##} mm: non ci " +
-                    "sta neanche meta'.", massimo, uid, firma.Misura));
+                    "sta neanche meta'.", maxValue, uid, signature.Measure));
 
-            var v1 = spigolo.GetStartVertex() as IEntity;
-            var v2 = spigolo.GetEndVertex() as IEntity;
+            var v1 = edge.GetStartVertex() as IEntity;
+            var v2 = edge.GetEndVertex() as IEntity;
             if (v1 == null || v2 == null)
-                return Fallito(
+                return Failed(
                     "Lo spigolo «" + uid + "» non ha due vertici: e' chiuso su se stesso " +
                     "(un cerchio), e un raccordo variabile ha bisogno di due estremi fra " +
                     "cui variare.");
 
-            double? volumePrima = VolumeMm3(modello);
-            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("fare il raccordo"));
+            double? volumeBefore = VolumeMm3(model);
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("fare il raccordo"));
 
             IFeature feature;
             try
             {
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
                 // LO SPIGOLO PRIMA, POI I DUE VERTICI. Senza lo spigolo la
                 // chiamata torna null: misurato.
-                if (!(spigolo as IEntity).Select4(true, null))
-                    return Fallito("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
+                if (!(edge as IEntity).Select4(true, null))
+                    return Failed("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
                 if (!v1.Select4(true, null) || !v2.Select4(true, null))
-                    return Fallito(
+                    return Failed(
                         "Non sono riuscito a selezionare i due vertici dello spigolo «" +
                         uid + "»: senza di loro il raggio non ha dove variare.");
 
-                feature = modello.FeatureManager.FeatureFillet3(
+                feature = model.FeatureManager.FeatureFillet3(
                     Options: (int)(swFeatureFilletOptions_e.swFeatureFilletVarRadiusType |
                                    swFeatureFilletOptions_e.swFeatureFilletPropagate),
                     // R1 IS NOT READ FOR A VARIABLE RADIUS (Z-C21.8, finding M37):
@@ -498,7 +498,7 @@ namespace Oce.Solid.Agent.Core
                     ConicRhoType: (int)swFeatureFilletProfileType_e.swFeatureFilletCircular,
                     // UNO PER VERTICE, nell'ordine in cui sono stati
                     // selezionati: inizio e fine.
-                    Radii: new double[] { Unita.M(r1), Unita.M(r2) },
+                    Radii: new double[] { Units.M(r1), Units.M(r2) },
                     Dist2Arr: null,
                     RhoArr: null,
                     SetBackDistances: null,
@@ -510,42 +510,42 @@ namespace Oce.Solid.Agent.Core
                     PointDist2Array: null,
                     PointRhoArray: null) as IFeature;
             }
-            catch (Exception ex) { return Fallito("Il raccordo variabile non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("Il raccordo variabile non e' riuscito: " + ex.Message); }
 
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "Il raccordo variabile non e' stato creato, e SOLIDWORKS non dice " +
                     "perche'. Di solito e' il raggio: anche se ci sta sullo spigolo, puo' " +
                     "non starci sulle facce che gli stanno intorno.");
 
-            try { modello.EditRebuild3(); } catch { }
-            double? volumeDopo = VolumeMm3(modello);
-            double? tolto = volumePrima - volumeDopo;
+            try { model.EditRebuild3(); } catch { }
+            double? volumeAfter = VolumeMm3(model);
+            double? removed = volumeBefore - volumeAfter;
 
             // UN RACCORDO CHE NON TOGLIE NIENTE NON E' UN RACCORDO. La feature
             // c'e', l'albero e' cresciuto, e lo spigolo e' ancora vivo. Si dice
             // solo di un volume riletto (voce Z-C8).
-            if (tolto <= 0)
-                return Fallito(
+            if (removed <= 0)
+                return Failed(
                     "Il raccordo e' stato creato ma non ha tolto niente (volume " +
-                    volumePrima.Value.ToString("0.##") + " mm3 prima e dopo). Lo spigolo e' " +
+                    volumeBefore.Value.ToString("0.##") + " mm3 prima e dopo). Lo spigolo e' " +
                     "ancora vivo: non ti confermo un pezzo diverso da quello che ti ho " +
-                    "mostrato — " + Frasi.CosiSiRitira + ".");
+                    "mostrato — " + Sentences.HowToWithdrawIt + ".");
 
-            return Riuscito(feature, new Dictionary<string, object>
+            return Succeeded(feature, new Dictionary<string, object>
             {
                 ["edge"] = uid,
                 ["radius_start_mm"] = r1,
                 ["radius_end_mm"] = r2,
-                ["material_removed_mm3"] = NumeroOppureNull(tolto, 2),
-                ["volume_not_reread"] = tolto.HasValue ? null : NotaVolumeNonRiletto,
+                ["material_removed_mm3"] = NumberOrNull(removed, 2),
+                ["volume_not_reread"] = removed.HasValue ? null : NoteVolumeNotReread,
                 // IL CONTO A MANO ACCANTO, e non e' ridondanza: distingue «ha
                 // fatto il variabile» da «ha preso solo il primo raggio».
                 // Il blend non e' esattamente una spazzata lineare, quindi e'
                 // un ORDINE DI GRANDEZZA, ed e' scritto che lo e'.
-                ["expected_removed_mm3"] = firma.Misura > 0
+                ["expected_removed_mm3"] = signature.Measure > 0
                     ? (object)Math.Round(
-                        firma.Misura * ((r1 * r1 + r1 * r2 + r2 * r2) / 3.0) * (1 - Math.PI / 4), 2)
+                        signature.Measure * ((r1 * r1 + r1 * r2 + r2 * r2) / 3.0) * (1 - Math.PI / 4), 2)
                     : null,
                 ["how_it_is_counted"] =
                     "lunghezza per la media di r^2 fra i due raggi, per (1 - pi/4). E' un " +
@@ -592,51 +592,51 @@ namespace Oce.Solid.Agent.Core
         // tavola ha diritto di sapere quale delle due sta guardando.
         // =================================================================
 
-        private Esito FilettaturaCosmetica(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CosmeticThread(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             string uid = Str(a, "edge_uid", null);
             if (string.IsNullOrWhiteSpace(uid))
-                return Fallito(
+                return Failed(
                     "Non hai detto su quale spigolo. Il filetto cosmetico si attacca allo " +
                     "spigolo CIRCOLARE di un cilindro o di un foro — non alla faccia — e " +
                     "gli identificativi degli spigoli stanno nello stato del documento.");
 
-            string denominazione = Str(a, "designation", null);
-            if (string.IsNullOrWhiteSpace(denominazione))
-                return Fallito(
+            string designation = Str(a, "designation", null);
+            if (string.IsNullOrWhiteSpace(designation))
+                return Failed(
                     "Manca la «designation», per esempio «M6x1». Un filetto cosmetico " +
                     "senza denominazione e' un'annotazione che non dice niente: sulla " +
                     "tavola comparirebbe un filetto senza misura, e chi lo legge dovrebbe " +
                     "indovinarla. Il testo lo scrivo come me lo dai: SOLIDWORKS non lo " +
                     "ricava da una tabella.");
 
-            string scostamento;
-            var firma = FirmaDelloSpigolo(
-                a, stato, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
-                out scostamento);
-            if (firma == null) return Fallito(scostamento);
+            string offset;
+            var signature = EdgeSignature(
+                a, docState, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                out offset);
+            if (signature == null) return Failed(offset);
 
-            var spigolo = firma.Entita as IEdge;
-            if (spigolo == null)
-                return Fallito("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
+            var edge = signature.Entity as IEdge;
+            if (edge == null)
+                return Failed("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
 
-            double diametro = 0;
-            bool tondo = false;
+            double diameter = 0;
+            bool round = false;
             try
             {
-                var curva = spigolo.IGetCurve();
-                tondo = curva != null && curva.IsCircle();
-                if (tondo)
+                var curva = edge.IGetCurve();
+                round = curva != null && curva.IsCircle();
+                if (round)
                 {
                     var p = curva.CircleParams as double[];
-                    if (p != null && p.Length >= 7) diametro = p[6] * 2000.0;
+                    if (p != null && p.Length >= 7) diameter = p[6] * 2000.0;
                 }
             }
             catch { }
 
-            if (!tondo)
-                return Fallito(
+            if (!round)
+                return Failed(
                     "Lo spigolo «" + uid + "» non e' un cerchio: un filetto cosmetico si " +
                     "attacca al bordo tondo di un cilindro o di un foro. Su uno spigolo " +
                     "dritto non c'e' niente da filettare.");
@@ -644,98 +644,98 @@ namespace Oce.Solid.Agent.Core
             // IL DIAMETRO LO DICE LO SPIGOLO, non chi chiama: e' il bordo su
             // cui il filetto si attacca, e un diametro diverso da quello
             // disegnerebbe un filetto che non sta sul pezzo.
-            double diametroChiesto = Num(a, "diameter_mm", 0);
-            if (diametroChiesto > 0 && diametro > 0 &&
-                Math.Abs(diametroChiesto - diametro) > 0.01)
-                return Fallito(string.Format(
+            double requestedDiameter = Num(a, "diameter_mm", 0);
+            if (requestedDiameter > 0 && diameter > 0 &&
+                Math.Abs(requestedDiameter - diameter) > 0.01)
+                return Failed(string.Format(
                     "Hai chiesto un filetto da {0:0.##} mm, ma lo spigolo «{1}» e' un " +
                     "cerchio da {2:0.##}. Il filetto si attacca a quel bordo: o e' quello " +
-                    "giusto, o e' l'altro spigolo.", diametroChiesto, uid, diametro));
-            if (diametro <= 0) diametro = diametroChiesto;
-            if (diametro <= 0)
-                return Fallito("Non riesco a misurare il diametro dello spigolo «" + uid + "».");
+                    "giusto, o e' l'altro spigolo.", requestedDiameter, uid, diameter));
+            if (diameter <= 0) diameter = requestedDiameter;
+            if (diameter <= 0)
+                return Failed("Non riesco a misurare il diametro dello spigolo «" + uid + "».");
 
-            double profondita = Num(a, "depth_mm", 0);
-            bool passante = Bool(a, "through_all", false);
-            if (!passante && profondita <= 0)
-                return Fallito(
+            double depth = Num(a, "depth_mm", 0);
+            bool throughAll = Bool(a, "through_all", false);
+            if (!throughAll && depth <= 0)
+                return Failed(
                     "Dimmi quanto e' profondo il filetto («depth_mm») oppure che e' " +
                     "«through_all».");
 
-            double? volumePrima = VolumeMm3(modello);
-            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("mettere il filetto"));
+            double? volumeBefore = VolumeMm3(model);
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("mettere il filetto"));
 
             IFeature feature;
             try
             {
-                modello.ClearSelection2(true);
-                if (!(spigolo as IEntity).Select4(false, null))
-                    return Fallito("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
+                model.ClearSelection2(true);
+                if (!(edge as IEntity).Select4(false, null))
+                    return Failed("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
 
-                feature = modello.FeatureManager.InsertCosmeticThread3(
+                feature = model.FeatureManager.InsertCosmeticThread3(
                     // Standard e taglia SONO IGNORATI da questa chiamata
                     // (misurato): si passa «nessuno standard» invece di
                     // fingere che un numero serva a qualcosa.
                     Standard: -2,
                     StandardType: "",
                     Size: "",
-                    Diameter: Unita.M(diametro),
-                    EndType: passante
+                    Diameter: Units.M(diameter),
+                    EndType: throughAll
                         ? (int)swCosmeticThreadType_e.swApplyCosmeticThread_ThroughFeature
                         : (int)swCosmeticThreadType_e.swApplyCosmeticThread_Blind,
-                    Depth: passante ? 0 : Unita.M(profondita),
-                    Note: denominazione) as IFeature;
+                    Depth: throughAll ? 0 : Units.M(depth),
+                    Note: designation) as IFeature;
             }
-            catch (Exception ex) { return Fallito("Il filetto cosmetico non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("Il filetto cosmetico non e' riuscito: " + ex.Message); }
 
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "Il filetto cosmetico non e' stato creato, e SOLIDWORKS non dice " +
                     "perche'. Controlla che lo spigolo «" + uid + "» sia il bordo di una " +
                     "faccia cilindrica.");
 
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
 
             // E' COSMETICA: se il volume e' cambiato, si e' tagliato davvero.
-            double? volumeDopo = VolumeMm3(modello);
-            if (volumeDopo.HasValue && Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01)
-                return Fallito(string.Format(
+            double? volumeAfter = VolumeMm3(model);
+            if (volumeAfter.HasValue && Math.Abs(volumeAfter.Value - volumeBefore.Value) > 0.01)
+                return Failed(string.Format(
                     "Il filetto doveva essere COSMETICO e il volume e' cambiato: {0:0.##} " +
                     "mm3 prima, {1:0.##} dopo. Qualcosa ha tagliato davvero, e non e' " +
-                    "quello che hai chiesto — ritiralo: " + Frasi.CosiSiRitira + ".",
-                    volumePrima, volumeDopo));
+                    "quello che hai chiesto — ritiralo: " + Sentences.HowToWithdrawIt + ".",
+                    volumeBefore, volumeAfter));
 
-            string tipoFeature = "";
-            try { tipoFeature = feature.GetTypeName2(); } catch { }
+            string featureType = "";
+            try { featureType = feature.GetTypeName2(); } catch { }
             string callout = "";
             try
             {
-                var dati = feature.GetDefinition() as ICosmeticThreadFeatureData;
-                if (dati != null) callout = dati.ThreadCallout ?? "";
+                var data = feature.GetDefinition() as ICosmeticThreadFeatureData;
+                if (data != null) callout = data.ThreadCallout ?? "";
             }
             catch { }
 
             // UN'ANNOTAZIONE CHE NON DICE NIENTE non e' un'annotazione: la
             // feature ci sarebbe, la tavola mostrerebbe un filetto muto.
             if (string.IsNullOrEmpty(callout))
-                return Fallito(
+                return Failed(
                     "Il filetto e' stato creato ma la sua denominazione e' rimasta vuota: " +
                     "sulla tavola comparirebbe un filetto senza misura. Ritiralo — " +
-                    Frasi.CosiSiRitira + ".");
+                    Sentences.HowToWithdrawIt + ".");
 
-            return Riuscito(feature, new Dictionary<string, object>
+            return Succeeded(feature, new Dictionary<string, object>
             {
                 ["edge"] = uid,
                 ["designation"] = callout,
-                ["diameter_mm"] = Math.Round(diametro, 3),
-                ["depth_mm"] = passante ? (object)null : profondita,
-                ["through_all"] = passante,
-                ["feature_kind"] = tipoFeature,
-                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["cuts_nothing"] = volumeDopo.HasValue
+                ["diameter_mm"] = Math.Round(diameter, 3),
+                ["depth_mm"] = throughAll ? (object)null : depth,
+                ["through_all"] = throughAll,
+                ["feature_kind"] = featureType,
+                ["volume_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["cuts_nothing"] = volumeAfter.HasValue
                     ? "E' un'annotazione: il volume del pezzo e' lo stesso di prima. Se ti " +
                       "serve il filetto VERO, tagliato, questa non e' l'operazione."
-                    : NotaVolumeNonRiletto,
+                    : NoteVolumeNotReread,
                 // SI DICHIARA DA DOVE VIENE IL TESTO. Vedi il commento in testa.
                 ["designation_is_yours"] =
                     "«" + callout + "» e' il testo che mi hai dato, non uno ricavato da una " +
@@ -747,6 +747,6 @@ namespace Oce.Solid.Agent.Core
         // `IndiceDelCorpo` («C2» -> indice 1 di un GetBodies2 nuovo) e' stato
         // tolto con la voce Z-C21.2: era la risoluzione per posizione che il
         // rilievo L6-1 ha trovato sbagliata. Gli uid dei corpi passano da
-        // `CorpiDaUid` (WeldmentOperations.cs), che guarda la firma.
+        // `BodiesFromUid` (WeldmentOperations.cs), che guarda la firma.
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -40,25 +40,25 @@ namespace Oce.Solid.Agent.ContractTests
     /// non si distingue da uno rotto: prima di dire «nessuno la chiama», si
     /// prova la regola su righe scritte apposta.
     /// </summary>
-    internal static class ProveLeFirmeVietate
+    internal static class ForbiddenSignaturesTests
     {
         /// <summary>
         /// Le chiamate che il codice non deve fare, e perche'. Il perche' e'
         /// obbligatorio: un divieto senza motivo e' il primo che qualcuno
         /// scavalca «perche' tanto».
         /// </summary>
-        private static readonly Dictionary<string, string> Vietate =
+        private static readonly Dictionary<string, string> Forbidden =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 {
-                    @"\bmodello\s*\.\s*AddDimension\s*\(",
+                    @"\bmodel\s*\.\s*AddDimension\s*\(",
                     "IModelDoc2.AddDimension (3 param) ritorna Boolean: la quota, " +
                     "se nasce, NON E' RAGGIUNGIBILE. Si usa " +
-                    "`modello.Extension.AddDimension(x, y, z, direzione)`, che " +
+                    "`model.Extension.AddDimension(x, y, z, direction)`, whichOne " +
                     "torna l'oggetto (voce GP6)"
                 },
                 {
-                    @"\bmodello\s*\.\s*AddDimension2\s*\(",
+                    @"\bmodel\s*\.\s*AddDimension2\s*\(",
                     "IModelDoc2.AddDimension2 non ha controllo di direzione: la " +
                     "quota nasce orientata a caso, ed e' un difetto che sullo " +
                     "schermo non si vede (voce GP6)"
@@ -67,91 +67,91 @@ namespace Oce.Solid.Agent.ContractTests
                     @"\.\s*EditDelete\s*\(",
                     "IModelDoc2.EditDelete chiede conferma con una finestra: dentro " +
                     "SOLIDWORKS la chiamata COM non torna e il CAD resta piantato. Si " +
-                    "usa `modello.Extension.DeleteSelection2(swDelete_Absorbed)`. " +
+                    "usa `model.Extension.DeleteSelection2(swDelete_Absorbed)`. " +
                     "Era vietata solo nei commenti, e OperazioniTabellaFori la chiamava " +
                     "davvero (trovata dal workflow W-S il 27/9/2026)"
                 },
             };
 
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("le chiamate vietate per contratto (GP6, EditDelete)");
+            Group("le chiamate vietate per contratto (GP6, EditDelete)");
 
             // ── PRIMA: LA REGOLA HA I DENTI? ─────────────────────────────
-            var devonoScattare = new[]
+            var mustFire = new[]
             {
-                "var q = modello.AddDimension(x, y, z);",
-                "if (!modello.AddDimension2(x, y, z)) return;",
-                "modello . AddDimension ( 0, 0, 0 );",
-                "if (ann.Select3(false, null)) modello.EditDelete();",
+                "var q = model.AddDimension(x, y, z);",
+                "if (!model.AddDimension2(x, y, z)) return;",
+                "model . AddDimension ( 0, 0, 0 );",
+                "if (ann.Select3(false, null)) model.EditDelete();",
             };
-            int prese = 0;
-            foreach (var r in devonoScattare)
-                if (Vietate.Keys.Any(k => Regex.IsMatch(r, k))) prese++;
-            Segna("la regola riconosce le chiamate vietate", prese == devonoScattare.Length,
-                  prese + " su " + devonoScattare.Length);
+            int taken = 0;
+            foreach (var r in mustFire)
+                if (Forbidden.Keys.Any(k => Regex.IsMatch(r, k))) taken++;
+            Check("la regola riconosce le chiamate vietate", taken == mustFire.Length,
+                  taken + " su " + mustFire.Length);
 
             // ── E NON PRENDE QUELLA GIUSTA ───────────────────────────────
             //
             // La meta' che conta: `Extension.AddDimension` e' la strada
             // corretta e il codice la usa. Un controllo che la segnalasse
             // verrebbe spento il giorno stesso.
-            var devonoPassare = new[]
+            var mustPass = new[]
             {
-                "var natura = modello.Extension.AddDimension(x, y, z, 0);",
-                "modello.Extension.AddDimension(voce.X, voce.Y, voce.Z, 0);",
+                "var nature = model.Extension.AddDimension(x, y, z, 0);",
+                "model.Extension.AddDimension(entry.X, entry.Y, entry.Z, 0);",
                 "// AddDimension apre un modale: spegnere swInputDimValOnCreate",
-                "modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);",
+                "model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);",
             };
-            var urlate = devonoPassare
-                .Where(r => Vietate.Keys.Any(k => Regex.IsMatch(r, k))).ToList();
-            Segna("e NON prende `Extension.AddDimension`, che e' quella giusta",
-                  urlate.Count == 0,
-                  urlate.Count == 0 ? "quattro righe legittime, zero falsi allarmi"
-                                    : string.Join(" | ", urlate));
+            var shouted = mustPass
+                .Where(r => Forbidden.Keys.Any(k => Regex.IsMatch(r, k))).ToList();
+            Check("e NON prende `Extension.AddDimension`, che e' quella giusta",
+                  shouted.Count == 0,
+                  shouted.Count == 0 ? "quattro righe legittime, zero falsi allarmi"
+                                    : string.Join(" | ", shouted));
 
             // ── POI: IL SORGENTE VERO ────────────────────────────────────
-            var cartelle = new[] { "Oce.Solid.Agent.Core", "Tools", "Bridge", "Mcp", "Bench" };
-            var trovate = new List<string>();
-            int righeGuardate = 0;
+            var folders = new[] { "Oce.Solid.Agent.Core", "Tools", "Bridge", "Mcp", "Bench" };
+            var foundOnes = new List<string>();
+            int checkedLines = 0;
 
-            foreach (var c in cartelle)
+            foreach (var c in folders)
             {
-                var dir = Path.Combine(Radice(), c);
+                var dir = Path.Combine(Root(), c);
                 if (!Directory.Exists(dir)) continue;
                 foreach (var f in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
                 {
-                    var righe = File.ReadAllLines(f);
-                    for (int i = 0; i < righe.Length; i++)
+                    var lines = File.ReadAllLines(f);
+                    for (int i = 0; i < lines.Length; i++)
                     {
-                        var nudo = righe[i].TrimStart();
+                        var bare = lines[i].TrimStart();
                         // I COMMENTI DI QUESTO REPOSITORY PARLANO DELLA TRAPPOLA.
                         // Contarli vorrebbe dire che spiegarla la fa diventare
                         // una violazione.
-                        if (nudo.StartsWith("//", StringComparison.Ordinal)) continue;
-                        righeGuardate++;
-                        foreach (var v in Vietate)
-                            if (Regex.IsMatch(righe[i], v.Key))
-                                trovate.Add(Path.GetFileName(f) + ":" + (i + 1) + " — " + v.Value);
+                        if (bare.StartsWith("//", StringComparison.Ordinal)) continue;
+                        checkedLines++;
+                        foreach (var v in Forbidden)
+                            if (Regex.IsMatch(lines[i], v.Key))
+                                foundOnes.Add(Path.GetFileName(f) + ":" + (i + 1) + " — " + v.Value);
                     }
                 }
             }
 
-            Segna("nessuno chiama le firme vietate", trovate.Count == 0,
-                  trovate.Count == 0
-                      ? righeGuardate + " righe di codice guardate in " + cartelle.Length + " cartelle"
-                      : string.Join(" | ", trovate));
+            Check("nessuno chiama le firme vietate", foundOnes.Count == 0,
+                  foundOnes.Count == 0
+                      ? checkedLines + " righe di codice guardate in " + folders.Length + " cartelle"
+                      : string.Join(" | ", foundOnes));
 
             // ── E QUELLA GIUSTA SI USA DAVVERO ───────────────────────────
             //
             // Senza questa riga il controllo sopra sarebbe verde anche in un
             // repository che non quota affatto — cioe' direbbe «rispettiamo il
             // divieto» di una regola che non tocca niente.
-            bool usata = false;
-            var quote = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "DrawingDimensionOperations.cs");
+            bool used = false;
+            var quote = Path.Combine(Root(), "Oce.Solid.Agent.Core", "DrawingDimensionOperations.cs");
             if (File.Exists(quote))
-                usata = File.ReadAllText(quote).Contains("Extension.AddDimension(");
-            Segna("e quella giusta e' davvero in uso", usata,
+                used = File.ReadAllText(quote).Contains("Extension.AddDimension(");
+            Check("e quella giusta e' davvero in uso", used,
                   "DrawingDimensionOperations.cs: senza questa riga il divieto sorveglierebbe il vuoto");
         }
     }

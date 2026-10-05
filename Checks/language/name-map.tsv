@@ -2546,7 +2546,7 @@ identifier	DocumentoAttivo	ActiveDocument	14	Ponte/Sessione.cs:411	C#: method
 identifier	DocumentoConPercorso	DocumentWithPath	3	Riscontro.Disegno/OperazioniSaldatura.cs:96	C#: method
 identifier	DocumentoFinto	FakeDocument	5	Prove/ProveSessione.cs:461	C#: type
 identifier	DocumentoNuovo	NewDocument	6	Riscontro.Disegno/OperazioniSw.cs:218	C#: field
-identifier	DocumentoPerPercorso	DocumentByPath	3	Riscontro.Disegno/OperazioniTavola.cs:1452	C#: method
+identifier	DocumentoPerPercorso	FindOpenDocument	3	Riscontro.Disegno/OperazioniTavola.cs:1452	C#: method; window 3: not DocumentByPath, the class of that name (DocumentByPath.cs) is used in the same partial class SwOperations and the method would hide it; not OpenDocumentAtPath, a method of that name and signature is in AssemblyOperations.cs
 identifier	DocumentoRichiesto	RequestedDocument	101	Riscontro.Disegno/Catalogo/OperazioneDisegno.cs:49	C#: field; exact name given in the TODO glossary
 identifier	DocumentoSenzaFile	DocumentWithoutFile	3	Riscontro.Disegno/EsecutorePiano.cs:88	C#: property
 identifier	DovEFinita	WhereItEnded	11	Riscontro.Disegno/OperazioniNotaTavola.cs:219 Riscontro.Disegno/OperazioniQuoteTavola.cs:1770	C#: method
@@ -3545,7 +3545,7 @@ identifier	Spigoli	Edges	2	Riscontro.Disegno/Riferimenti.cs:407	C#: method
 identifier	SpigoliCurvi	CurvedEdges	2	Banco/CasiDichiarati.cs:1140	C#: method
 identifier	SpigoliDelBordoEsterno	OuterBorderEdges	2	Riscontro.Disegno/Riferimenti.cs:1012	C#: method
 identifier	SpigoliDellAncora	AnchorEdges	2	Banco/Sessione.cs:289	C#: method
-identifier	Spigolo	Edge	54	Riscontro.Disegno/OperazioniAncora.cs:80 Riscontro.Disegno/OperazioniAncora.cs:88 Riscontro.Disegno/OperazioniAnnotazioniTavola.cs:40	C#: field, type
+identifier	Spigolo	Edge	54	Riscontro.Disegno/OperazioniAncora.cs:80 Riscontro.Disegno/OperazioniAncora.cs:88 Riscontro.Disegno/OperazioniAnnotazioniTavola.cs:40	C#: field, type; window 3: the nested type of DrawingDimensionOperations.cs is ProjectedEdge (window-3-renamer.js, SYMBOL_OVERRIDES): Edge would hide SolidWorks.Interop.sldworks.Edge in the partial class SwOperations
 identifier	SpigoloDelLato	SideEdge	5	Riscontro.Disegno/OperazioniAnnotazioniTavola.cs:51	C#: method
 identifier	SpigoloDiAncora	AnchorEdge	6	Riscontro.Disegno/OperazioniAncora.cs:77	C#: type
 identifier	SpigoloDiBordo	BorderEdge	3	Riscontro.Disegno/OperazioniLamiera.cs:462	C#: method

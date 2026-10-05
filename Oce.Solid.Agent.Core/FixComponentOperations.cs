@@ -19,76 +19,76 @@ namespace Oce.Solid.Agent.Core
     /// SOLIDWORKS fissa da solo all'inserimento (lezione GA5: si comporta come
     /// uno fissato a mano).
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito FissaComponente(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome FixComponent(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var assieme = modello as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito("Questo non e' un assieme: fissare o liberare vale per un componente di un " +
+            var assemblyDoc = model as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed("Questo non e' un assieme: fissare o liberare vale per un componente di un " +
                                "assieme. Aprimi l'assieme.");
-            object grezzoFisso;
-            if (a == null || !a.TryGetValue("grounded", out grezzoFisso) || !(grezzoFisso is bool))
-                return Fallito("Dimmi «grounded»: true per fissarlo (non si muove piu'), false per liberarlo. " +
+            object rawFixed;
+            if (a == null || !a.TryGetValue("grounded", out rawFixed) || !(rawFixed is bool))
+                return Failed("Dimmi «grounded»: true per fissarlo (non si muove piu'), false per liberarlo. " +
                                "Non c'e' un verso d'ufficio: sono due cose opposte.");
-            bool voglio = (bool)grezzoFisso;
-            object[] grezzi = null;
-            try { grezzi = assieme.GetComponents(false) as object[]; } catch { }
-            var componenti = StatoDocumento.ComponentiInOrdine(grezzi);
+            bool want = (bool)rawFixed;
+            object[] rawItems = null;
+            try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            var components = DocumentState.ComponentsInOrder(rawItems);
             string uid = Str(a, "component", null);
-            var c = PerUid(componenti, uid);
-            if (c == null) return Fallito(NonTrovato(uid, "component", componenti));
+            var c = PerUid(components, uid);
+            if (c == null) return Failed(NotFound(uid, "component", components));
             // TOP LEVEL ONLY (finding L11-3, lot Z-C21.5). Up to library 0.145.0
             // a nested component was read with IsFixed from the root, which the
             // guide says does not apply to it, and could come back «it was
             // already free: nothing to change».
-            string notTopLevel = NotTopLevel(assieme, c, uid, componenti,
+            string notTopLevel = NotTopLevel(assemblyDoc, c, uid, components,
                 "fixing or freeing works on top-level components only: IsFixed «only applies to the top " +
                 "level of components» (IComponent2~IsFixed.html), and from the root «all of the " +
                 "components in the subassembly are allowed to move»");
-            if (notTopLevel != null) return Fallito(notTopLevel);
-            bool prima = EFisso(c);
-            if (prima == voglio)
-                return RiuscitoSenzaCreare(new Dictionary<string, object>
+            if (notTopLevel != null) return Failed(notTopLevel);
+            bool before = IsFixed(c);
+            if (before == want)
+                return SucceededWithoutCreating(new Dictionary<string, object>
                 {
                     ["component"] = uid,
-                    ["name"] = NomeDi(c),
-                    ["grounded_before"] = prima,
-                    ["grounded_after"] = prima,
-                    ["verdict"] = "«" + NomeDi(c) + "» era gia' " + (voglio ? "fisso" : "libero") + ": niente da cambiare.",
+                    ["name"] = NameOf(c),
+                    ["grounded_before"] = before,
+                    ["grounded_after"] = before,
+                    ["verdict"] = "«" + NameOf(c) + "» era gia' " + (want ? "fisso" : "libero") + ": niente da cambiare.",
                 });
-            bool presa = false;
+            bool taken = false;
             try
             {
-                modello.ClearSelection2(true);
-                presa = c.Select4(false, null, false);
-                if (presa)
+                model.ClearSelection2(true);
+                taken = c.Select4(false, null, false);
+                if (taken)
                 {
-                    if (voglio) assieme.FixComponent(); else assieme.UnfixComponent();
+                    if (want) assemblyDoc.FixComponent(); else assemblyDoc.UnfixComponent();
                 }
             }
-            catch (Exception ex) { try { modello.ClearSelection2(true); } catch { } return Fallito("Non ci sono riuscito: " + ex.Message); }
-            try { modello.ClearSelection2(true); } catch { }
-            if (!presa) return Fallito("«" + NomeDi(c) + "» non si lascia selezionare: non l'ho toccato.");
-            try { modello.EditRebuild3(); } catch { }
+            catch (Exception ex) { try { model.ClearSelection2(true); } catch { } return Failed("Non ci sono riuscito: " + ex.Message); }
+            try { model.ClearSelection2(true); } catch { }
+            if (!taken) return Failed("«" + NameOf(c) + "» non si lascia selezionare: non l'ho toccato.");
+            try { model.EditRebuild3(); } catch { }
             // SI RILEGGE: FixComponent e UnfixComponent non rispondono niente.
-            bool dopo = EFisso(c);
-            if (dopo != voglio)
-                return Fallito("Ho chiesto di " + (voglio ? "fissare" : "liberare") + " «" + NomeDi(c) + "», e " +
-                               "rileggendolo e' ancora " + (dopo ? "fisso" : "libero") + ". Non e' successo niente.");
-            int acc = AccoppiamentiDi(c);
-            var misure = new Dictionary<string, object>
+            bool after = IsFixed(c);
+            if (after != want)
+                return Failed("Ho chiesto di " + (want ? "fissare" : "liberare") + " «" + NameOf(c) + "», e " +
+                               "rileggendolo e' ancora " + (after ? "fisso" : "libero") + ". Non e' successo niente.");
+            int acc = MatesOf(c);
+            var measurements = new Dictionary<string, object>
             {
                 ["component"] = uid,
-                ["name"] = NomeDi(c),
-                ["grounded_before"] = prima,
-                ["grounded_after"] = dopo,
+                ["name"] = NameOf(c),
+                ["grounded_before"] = before,
+                ["grounded_after"] = after,
                 ["mates"] = acc >= 0 ? (object)acc : null,
-                ["verdict"] = "«" + NomeDi(c) + "» adesso e' " + (dopo ? "FISSO: non si muove piu', qualunque accoppiamento abbia." :
+                ["verdict"] = "«" + NameOf(c) + "» adesso e' " + (after ? "FISSO: non si muove piu', qualunque accoppiamento abbia." :
                     "LIBERO: lo tengono solo i suoi accoppiamenti" + (acc == 0 ? " — e non ne ha: e' appoggiato, si muove." : ".")),
             };
-            _log("[agente] " + NomeDi(c) + (dopo ? " fissato" : " liberato"));
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] " + NameOf(c) + (after ? " fissato" : " liberato"));
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Oce.Solid.Agent.Core
         /// The C1..Cn list is built from GetComponents(false), every level
         /// (the state lists them all on purpose), while both SOLIDWORKS calls
         /// behind these operations work on the top level only. «Top level» is
-        /// decided by StatoDocumento.TopLevelNames, the same rule the state
+        /// decided by DocumentState.TopLevelNames, the same rule the state
         /// uses for «top_level». A top-level list that cannot be read refuses
         /// too: acting on a component that may be nested is the defect itself.
         /// </summary>
@@ -111,8 +111,8 @@ namespace Oce.Solid.Agent.Core
         {
             object[] topLevel = null;
             try { topLevel = assembly.GetComponents(true) as object[]; } catch { }
-            var names = StatoDocumento.TopLevelNames(topLevel);
-            string name = NomeDi(component);
+            var names = DocumentState.TopLevelNames(topLevel);
+            string name = NameOf(component);
             if (names == null || string.IsNullOrEmpty(name))
                 return "I could not tell whether «" + uid + "» is a top-level component (" +
                        (names == null ? "IAssemblyDoc.GetComponents(true) did not answer" : "its name did not answer") +

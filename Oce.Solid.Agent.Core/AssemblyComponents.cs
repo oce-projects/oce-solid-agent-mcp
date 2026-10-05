@@ -149,7 +149,7 @@ namespace Oce.Solid.Agent.Core
         /// Hidden itself (IsHidden(false), so that a lightweight component is not
         /// taken for hidden) or under a hidden sub-assembly (IComponent2.GetParent,
         /// walked up). A child of a hidden sub-assembly was not measured; it is on
-        /// the side that only weakens a check (see SolidiAttesiNellAssieme).
+        /// the side that only weakens a check (see ExpectedSolidsInAssembly).
         /// </summary>
         private static bool HiddenHereOrAbove(IComponent2 c)
         {

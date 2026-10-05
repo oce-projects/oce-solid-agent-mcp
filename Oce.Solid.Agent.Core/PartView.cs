@@ -43,7 +43,7 @@ namespace Oce.Solid.Agent.Core
     /// KB, e i pixel sono identici — un BMP mandato cosi' com'e' sarebbe
     /// cinquanta volte il peso per la stessa immagine.
     /// </summary>
-    public static class VistaDelPezzo
+    public static class PartView
     {
         /// <summary>
         /// Le viste che si possono chiedere, col nome che usa chi disegna.
@@ -52,7 +52,7 @@ namespace Oce.Solid.Agent.Core
         /// forma: le tre standard dicono tre sagome e lasciano indovinare il
         /// resto.
         /// </summary>
-        private static readonly Dictionary<string, int> Viste =
+        private static readonly Dictionary<string, int> Views =
             new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
                 ["isometric"] = (int)swStandardViews_e.swIsometricView,
@@ -66,33 +66,33 @@ namespace Oce.Solid.Agent.Core
                 ["bottom"] = (int)swStandardViews_e.swBottomView,
             };
 
-        public static IEnumerable<string> NomiDelleViste { get { return Viste.Keys; } }
+        public static IEnumerable<string> ViewNames { get { return Views.Keys; } }
 
         /// <summary>Una vista esiste con questo nome?</summary>
-        public static bool Conosciuta(string nome)
+        public static bool Conosciuta(string itemName)
         {
-            return !string.IsNullOrWhiteSpace(nome) && Viste.ContainsKey(nome);
+            return !string.IsNullOrWhiteSpace(itemName) && Views.ContainsKey(itemName);
         }
 
         /// <summary>
         /// Fotografa il documento e restituisce i byte di un PNG.
         /// Null col motivo se non si e' potuto.
         ///
-        /// <param name="quale">
+        /// <param name="which">
         /// Il nome di una vista, oppure null per fotografare l'orientamento
         /// che c'e' adesso — che e' l'unico modo di NON toccare niente.
         /// </param>
         /// </summary>
-        public static byte[] Scatta(
-            IModelDoc2 modello, string quale, int larghezza, int altezza, out string motivo)
+        public static byte[] Fire(
+            IModelDoc2 model, string which, int width, int height, out string reason)
         {
-            motivo = null;
-            if (modello == null) { motivo = "Nessun documento aperto."; return null; }
+            reason = null;
+            if (model == null) { reason = "Nessun documento aperto."; return null; }
 
-            if (quale != null && !Conosciuta(quale))
+            if (which != null && !Conosciuta(which))
             {
-                motivo = "Non conosco la vista «" + quale + "». Ci sono: " +
-                         string.Join(", ", NomiDelleViste) + ".";
+                reason = "Non conosco la vista «" + which + "». Ci sono: " +
+                         string.Join(", ", ViewNames) + ".";
                 return null;
             }
 
@@ -128,14 +128,14 @@ namespace Oce.Solid.Agent.Core
             // > Il verso di una riparazione non si ricava ragionando
             // > sull'officina: si chiede al pezzo. Qui il pezzo ha detto no
             // > due volte.
-            MathTransform orientamentoPrima = null;
-            MathVector traslazionePrima = null;
-            double scalaPrima = 0;
-            IModelView vista = null;
+            MathTransform orientationBefore = null;
+            MathVector translationBefore = null;
+            double scaleBefore = 0;
+            IModelView view = null;
             try
             {
-                vista = modello.ActiveView as IModelView;
-                if (vista != null)
+                view = model.ActiveView as IModelView;
+                if (view != null)
                 {
                     // COPIE, NON I RIFERIMENTI CHE LA VISTA DA'.
                     //
@@ -150,24 +150,24 @@ namespace Oce.Solid.Agent.Core
                     // `IScale(1.0)` da' un `MathVector` nuovo con le stesse
                     // componenti. Costano due chiamate COM e tolgono di mezzo
                     // una domanda.
-                    var o = vista.Orientation3 as IMathTransform;
-                    var rovescio = o == null ? null : o.IInverse() as IMathTransform;
-                    orientamentoPrima = rovescio == null ? null : rovescio.IInverse();
+                    var o = view.Orientation3 as IMathTransform;
+                    var reverse = o == null ? null : o.IInverse() as IMathTransform;
+                    orientationBefore = reverse == null ? null : reverse.IInverse();
 
-                    var t = vista.Translation3 as IMathVector;
-                    traslazionePrima = t == null ? null : t.IScale(1.0);
+                    var t = view.Translation3 as IMathVector;
+                    translationBefore = t == null ? null : t.IScale(1.0);
 
-                    scalaPrima = vista.Scale2;
+                    scaleBefore = view.Scale2;
                 }
             }
             catch { }
 
-            string temporaneo = null;
+            string temporary = null;
             try
             {
-                if (quale != null)
+                if (which != null)
                 {
-                    int codice = Viste[quale];
+                    int code = Views[which];
 
                     // `ShowNamedView2` NON RISPONDE: torna `void`. Non c'e'
                     // nessun modo di chiederle se ha girato il pezzo, e la
@@ -178,17 +178,17 @@ namespace Oce.Solid.Agent.Core
                     // L'unica prova che resta e' il fotogramma: se
                     // l'orientamento non e' cambiato, la fotografia esce
                     // lo stesso, solo da un'altra parte. Il nome della vista
-                    // e' gia' validato qui sopra contro `Viste`, quindi il
+                    // e' gia' validato qui sopra contro `Views`, quindi il
                     // caso «nome sbagliato» e' escluso prima di arrivarci.
-                    modello.ShowNamedView2("", codice);
+                    model.ShowNamedView2("", code);
 
                     // LO ZOOM VA DOPO IL RIDISEGNO, E SI RIDISEGNA ANCORA.
                     // Misurato nel banco: al primo giro il pezzo usciva tagliato
                     // sul bordo destro, perche' l'adattamento lavorava sulla
                     // vista vecchia.
-                    modello.GraphicsRedraw2();
-                    modello.ViewZoomtofit2();
-                    modello.GraphicsRedraw2();
+                    model.GraphicsRedraw2();
+                    model.ViewZoomtofit2();
+                    model.GraphicsRedraw2();
 
                     // ── E POI SI STRINGE ────────────────────────────────
                     //
@@ -202,11 +202,11 @@ namespace Oce.Solid.Agent.Core
                     // spreco**, e fra i due non c'e' partita. Un numero che
                     // riempie di piu' ma ogni tanto taglia sarebbe peggio di
                     // adesso.
-                    try { StringiSePuoi(vista); modello.GraphicsRedraw2(); } catch { }
+                    try { NarrowIfYouCan(view); model.GraphicsRedraw2(); } catch { }
                 }
 
                 // `SaveBMP` vuole un percorso: non sa restituire byte.
-                temporaneo = Path.Combine(
+                temporary = Path.Combine(
                     Path.GetTempPath(), "oce-vista-" + Guid.NewGuid().ToString("N") + ".bmp");
 
                 // ── IL FOTOGRAMMA PRENDE LA FORMA DELL'AREA GRAFICA ─────
@@ -236,20 +236,20 @@ namespace Oce.Solid.Agent.Core
                 // Con 1024x768 chiesti e un'area 2:1 escono 1024x513 — piu'
                 // piccolo, e **intero**. La larghezza e l'altezza passate
                 // restano un TETTO, non una pretesa.
-                int lw = larghezza, lh = altezza;
-                Inquadra(vista, larghezza, altezza, out lw, out lh);
+                int lw = width, lh = height;
+                FrameView(view, width, height, out lw, out lh);
 
-                if (!modello.SaveBMP(temporaneo, lw, lh) || !File.Exists(temporaneo))
+                if (!model.SaveBMP(temporary, lw, lh) || !File.Exists(temporary))
                 {
-                    motivo = "SOLIDWORKS non ha scritto l'immagine.";
+                    reason = "SOLIDWORKS non ha scritto l'immagine.";
                     return null;
                 }
 
-                return InPng(temporaneo, out motivo);
+                return InPng(temporary, out reason);
             }
             catch (Exception ex)
             {
-                motivo = "Non sono riuscito a fotografare il pezzo: " + ex.Message;
+                reason = "Non sono riuscito a fotografare il pezzo: " + ex.Message;
                 return null;
             }
             finally
@@ -276,19 +276,19 @@ namespace Oce.Solid.Agent.Core
                 //
                 // Ognuno nel suo `try`: se uno dei tre non si lascia rimettere,
                 // gli altri vanno rimessi lo stesso.
-                if (vista != null)
+                if (view != null)
                 {
-                    try { if (orientamentoPrima != null) vista.Orientation3 = orientamentoPrima; }
+                    try { if (orientationBefore != null) view.Orientation3 = orientationBefore; }
                     catch { }
-                    try { if (scalaPrima > 0) vista.Scale2 = scalaPrima; }
+                    try { if (scaleBefore > 0) view.Scale2 = scaleBefore; }
                     catch { }
-                    try { if (traslazionePrima != null) vista.Translation3 = traslazionePrima; }
+                    try { if (translationBefore != null) view.Translation3 = translationBefore; }
                     catch { }
-                    try { modello.GraphicsRedraw2(); } catch { }
+                    try { model.GraphicsRedraw2(); } catch { }
                 }
-                if (temporaneo != null)
+                if (temporary != null)
                 {
-                    try { if (File.Exists(temporaneo)) File.Delete(temporaneo); } catch { }
+                    try { if (File.Exists(temporary)) File.Delete(temporary); } catch { }
                 }
             }
         }
@@ -322,79 +322,79 @@ namespace Oce.Solid.Agent.Core
         /// `IModelViewManager.CreateSectionView` risponde un bool e non chiede
         /// niente a nessuno.
         /// </summary>
-        public static byte[] ScattaInSezione(
-            IModelDoc2 modello, string quale, string piano, double offsetMm,
-            int larghezza, int altezza, out string motivo)
+        public static byte[] CaptureInSection(
+            IModelDoc2 model, string which, string plane, double offsetMm,
+            int width, int height, out string reason)
         {
-            motivo = null;
-            if (modello == null) { motivo = "Nessun documento aperto."; return null; }
+            reason = null;
+            if (model == null) { reason = "Nessun documento aperto."; return null; }
 
-            var gestore = modello.ModelViewManager;
-            if (gestore == null)
+            var handler = model.ModelViewManager;
+            if (handler == null)
             {
-                motivo = "Questo documento non sa fare le sezioni.";
+                reason = "Questo documento non sa fare le sezioni.";
                 return null;
             }
 
             // AN ASSEMBLY OR A DRAWING IS SAID AS SUCH (Z-C21.8, finding N21).
-            // PianoDiRiferimento walks the features of a PART (IPartDoc), and on
+            // ReferencePlane walks the features of a PART (IPartDoc), and on
             // any other document it found no plane: the refusal then said «I
             // cannot find the front plane; there are: front, top, right», and
             // contradicted itself. The document is named instead.
-            if (!(modello is IPartDoc))
+            if (!(model is IPartDoc))
             {
                 int kind = -1;
-                try { kind = modello.GetType(); } catch { kind = -1; }
-                motivo = "The section is taken on a part, and the document in front is " +
+                try { kind = model.GetType(); } catch { kind = -1; }
+                reason = "The section is taken on a part, and the document in front is " +
                          (kind == (int)swDocumentTypes_e.swDocASSEMBLY ? "an assembly"
                           : kind == (int)swDocumentTypes_e.swDocDRAWING ? "a drawing" : "not a part") +
                          ": open the part and ask again.";
                 return null;
             }
 
-            var suQuale = PianoDiRiferimento(modello, piano, out string planeProblem);
-            if (suQuale == null)
+            var onWhich = ReferencePlane(model, plane, out string planeProblem);
+            if (onWhich == null)
             {
                 // A name that is one of the three, and still no plane: no
                 // reference plane of the part has that plane's normal through
                 // the origin (Z-C21.5, scheme S19), and the reason says what was
                 // read (N21: never the self-contradiction of a list).
-                motivo = Array.IndexOf(Riferimenti.BasePlaneNames, piano) >= 0
-                    ? "I cannot find the «" + piano + "» plane: " + planeProblem
-                    : "Non trovo il piano «" + piano + "». Ci sono: " +
+                reason = Array.IndexOf(References.BasePlaneNames, plane) >= 0
+                    ? "I cannot find the «" + plane + "» plane: " + planeProblem
+                    : "Non trovo il piano «" + plane + "». Ci sono: " +
                       "frontale, superiore, destro.";
                 return null;
             }
 
-            bool sezioneAccesa = false;
+            bool sectionOn = false;
             try
             {
-                var dati = gestore.CreateSectionViewData();
-                if (dati == null)
+                var data = handler.CreateSectionViewData();
+                if (data == null)
                 {
-                    motivo = "SOLIDWORKS non ha preparato la sezione.";
+                    reason = "SOLIDWORKS non ha preparato la sezione.";
                     return null;
                 }
-                dati.FirstPlane = suQuale;
-                dati.FirstOffset = Unita.M(offsetMm);
+                data.FirstPlane = onWhich;
+                data.FirstOffset = Units.M(offsetMm);
                 // SOLO GRAFICA: e' la riga che rende questa operazione di sola
                 // lettura. Senza, SOLIDWORKS taglia il modello per davvero.
-                dati.GraphicsOnlySection = true;
-                dati.Redraw = true;
+                data.GraphicsOnlySection = true;
+                data.Redraw = true;
 
-                sezioneAccesa = gestore.CreateSectionView(dati);
-                if (!sezioneAccesa)
+                sectionOn = handler.CreateSectionView(data);
+                if (!sectionOn)
                 {
-                    motivo = "SOLIDWORKS non ha aperto la sezione sul piano «" +
-                             piano + "».";
+                    reason = "SOLIDWORKS non ha aperto la sezione sul piano «" +
+                             plane + "».";
                     return null;
                 }
 
-                return Scatta(modello, quale, larghezza, altezza, out motivo);
+                return Fire(model, which, width, height, out reason);
             }
             catch (Exception ex)
             {
-                motivo = "Non sono riuscito a sezionare il pezzo: " + ex.Message;
+                reason = "Non sono riuscito a sezionare il pezzo: " + ex.Message;
                 return null;
             }
             finally
@@ -404,10 +404,10 @@ namespace Oce.Solid.Agent.Core
                 // stesso danno dell'orientamento lasciato girato, e per la
                 // stessa ragione: l'ha fatto un'operazione che doveva solo
                 // guardare.
-                if (sezioneAccesa)
+                if (sectionOn)
                 {
-                    try { gestore.RemoveSectionView(); } catch { }
-                    try { modello.GraphicsRedraw2(); } catch { }
+                    try { handler.RemoveSectionView(); } catch { }
+                    try { model.GraphicsRedraw2(); } catch { }
                 }
             }
         }
@@ -416,7 +416,7 @@ namespace Oce.Solid.Agent.Core
         /// One of the three base planes, by name. **An unknown name is null**,
         /// not the front plane: a silent fallback here would section on a plane
         /// other than the one asked and still call it «the section». It is the
-        /// lesson of `TrovaPianoBase`, where a final `: 1` sent any name to the
+        /// lesson of `FindBasePlane`, where a final `: 1` sent any name to the
         /// front plane.
         ///
         /// BY GEOMETRY SINCE Z-C21.5 (scheme S19, finding C3-6). Until then the
@@ -433,15 +433,15 @@ namespace Oce.Solid.Agent.Core
         /// origin (Riferimenti.BasePlane); <paramref name="reason"/> says why
         /// when there is none.
         /// </summary>
-        private static IFeature PianoDiRiferimento(IModelDoc2 modello, string quale, out string reason)
+        private static IFeature ReferencePlane(IModelDoc2 model, string which, out string reason)
         {
             reason = "this document is not a part.";
-            if (!(modello is IPartDoc)) return null;
-            return Riferimenti.BasePlane(modello, quale, out reason);
+            if (!(model is IPartDoc)) return null;
+            return References.BasePlane(model, which, out reason);
         }
 
         /// <summary>I nomi dei piani su cui si puo' sezionare.</summary>
-        public static IEnumerable<string> NomiDeiPiani
+        public static IEnumerable<string> PlaneNames
         {
             get { return new[] { "front", "top", "right" }; }
         }
@@ -468,12 +468,12 @@ namespace Oce.Solid.Agent.Core
         /// Si cambia solo rimisurando con `Checks\FramingTest`, che
         /// costa secondi.
         /// </summary>
-        private const double QuantoSiStringe = 1.15;
+        private const double HowMuchItNarrows = 1.15;
 
-        private static void StringiSePuoi(IModelView vista)
+        private static void NarrowIfYouCan(IModelView view)
         {
-            if (vista == null) return;
-            vista.ZoomByFactor(QuantoSiStringe);
+            if (view == null) return;
+            view.ZoomByFactor(HowMuchItNarrows);
         }
 
         /// <summary>
@@ -484,34 +484,34 @@ namespace Oce.Solid.Agent.Core
         /// chieste: e' il comportamento di prima, che taglia — ma **tagliare e'
         /// meglio che non scattare**, e il caso non si e' mai visto.
         /// </summary>
-        private static void Inquadra(
-            IModelView vista, int larghezza, int altezza, out int lw, out int lh)
+        private static void FrameView(
+            IModelView view, int width, int height, out int lw, out int lh)
         {
-            lw = larghezza;
-            lh = altezza;
+            lw = width;
+            lh = height;
             try
             {
-                if (vista == null) return;
-                double w = vista.FrameWidth, h = vista.FrameHeight;
+                if (view == null) return;
+                double w = view.FrameWidth, h = view.FrameHeight;
                 if (w <= 0 || h <= 0) return;
 
-                double forma = w / h;
+                double shape = w / h;
                 // Si parte dalla larghezza piena e si ricava l'altezza; se
                 // l'altezza sfora, si fa il contrario. Cosi' il risultato tocca
                 // sempre uno dei due tetti e non e' mai piu' piccolo del
                 // necessario.
-                int provaAltezza = (int)Math.Round(larghezza / forma);
-                if (provaAltezza <= altezza && provaAltezza > 0)
+                int testHeight = (int)Math.Round(width / shape);
+                if (testHeight <= height && testHeight > 0)
                 {
-                    lw = larghezza;
-                    lh = provaAltezza;
+                    lw = width;
+                    lh = testHeight;
                     return;
                 }
-                int provaLarghezza = (int)Math.Round(altezza * forma);
-                if (provaLarghezza > 0)
+                int testWidth = (int)Math.Round(height * shape);
+                if (testWidth > 0)
                 {
-                    lw = provaLarghezza;
-                    lh = altezza;
+                    lw = testWidth;
+                    lh = height;
                 }
             }
             catch { }
@@ -535,8 +535,8 @@ namespace Oce.Solid.Agent.Core
         /// della sua franchigia farebbe fallire la prova su un'immagine
         /// perfetta.
         /// </summary>
-        private const double MargineDelRitaglio = 0.04;
-        private const int MargineMinimo = 12;
+        private const double CutoutMargin = 0.04;
+        private const int MinimumMargin = 12;
 
         /// <summary>
         /// Il fotogramma **ritagliato attorno al pezzo** (voce V6). Null quando
@@ -565,11 +565,11 @@ namespace Oce.Solid.Agent.Core
         ///
         /// Costa anche MENO: meno pixel, quindi meno token, per piu' pezzo.
         /// </summary>
-        private static Bitmap AttornoAlPezzo(Bitmap intera)
+        private static Bitmap AroundPart(Bitmap whole)
         {
             try
             {
-                int larghezza = intera.Width, altezza = intera.Height;
+                int width = whole.Width, height = whole.Height;
                 int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
 
                 // LockBits E UNA RIGA PER VOLTA, non GetPixel: su 1024x513 sono
@@ -581,17 +581,17 @@ namespace Oce.Solid.Agent.Core
                 // la libreria**, ed e' un impegno piu' grosso di quanto valga
                 // un ritaglio. La copia per riga costa una allocazione sola e
                 // la stessa velocita'.
-                var dati = intera.LockBits(
-                    new Rectangle(0, 0, larghezza, altezza),
+                var data = whole.LockBits(
+                    new Rectangle(0, 0, width, height),
                     ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
                 try
                 {
-                    var riga = new byte[Math.Abs(dati.Stride)];
-                    for (int y = 0; y < altezza; y++)
+                    var line = new byte[Math.Abs(data.Stride)];
+                    for (int y = 0; y < height; y++)
                     {
                         System.Runtime.InteropServices.Marshal.Copy(
-                            dati.Scan0 + y * dati.Stride, riga, 0, riga.Length);
-                        for (int x = 0; x < larghezza; x++)
+                            data.Scan0 + y * data.Stride, line, 0, line.Length);
+                        for (int x = 0; x < width; x++)
                         {
                             // SFONDO = CHIARO SU TUTTI E TRE I CANALI.
                             // Il grigio del pezzo sta sui 128-150, la sfumatura
@@ -599,7 +599,7 @@ namespace Oce.Solid.Agent.Core
                             // canali e non la somma: un grigio medio e un
                             // azzurro chiaro possono avere la stessa somma.
                             int i = x * 3;
-                            if (riga[i] >= 200 && riga[i + 1] >= 200 && riga[i + 2] >= 200)
+                            if (line[i] >= 200 && line[i + 1] >= 200 && line[i + 2] >= 200)
                                 continue;
                             if (x < minX) minX = x;
                             if (x > maxX) maxX = x;
@@ -608,49 +608,49 @@ namespace Oce.Solid.Agent.Core
                         }
                     }
                 }
-                finally { intera.UnlockBits(dati); }
+                finally { whole.UnlockBits(data); }
 
                 if (maxX < 0) return null;   // fotogramma vuoto: si tiene intero
 
-                int margine = Math.Max(
-                    MargineMinimo,
-                    (int)Math.Round(Math.Max(maxX - minX, maxY - minY) * MargineDelRitaglio));
+                int margin = Math.Max(
+                    MinimumMargin,
+                    (int)Math.Round(Math.Max(maxX - minX, maxY - minY) * CutoutMargin));
 
-                int x0 = Math.Max(0, minX - margine);
-                int y0 = Math.Max(0, minY - margine);
-                int x1 = Math.Min(larghezza - 1, maxX + margine);
-                int y1 = Math.Min(altezza - 1, maxY + margine);
+                int x0 = Math.Max(0, minX - margin);
+                int y0 = Math.Max(0, minY - margin);
+                int x1 = Math.Min(width - 1, maxX + margin);
+                int y1 = Math.Min(height - 1, maxY + margin);
                 int w = x1 - x0 + 1, h = y1 - y0 + 1;
                 if (w <= 0 || h <= 0) return null;
 
                 // SE NON GUADAGNA, NON SI FA. Ritagliare il 2% costa una copia
                 // del fotogramma per non cambiare niente, e in cambio toglie
                 // margine a chi guarda.
-                if (w > larghezza * 0.95 && h > altezza * 0.95) return null;
+                if (w > width * 0.95 && h > height * 0.95) return null;
 
-                return intera.Clone(new Rectangle(x0, y0, w, h), intera.PixelFormat);
+                return whole.Clone(new Rectangle(x0, y0, w, h), whole.PixelFormat);
             }
             catch { return null; }
         }
 
-        private static byte[] InPng(string bmp, out string motivo)
+        private static byte[] InPng(string bmp, out string reason)
         {
-            motivo = null;
+            reason = null;
             try
             {
-                byte[] grezzi = File.ReadAllBytes(bmp);
-                using (var dentro = new MemoryStream(grezzi))
-                using (var intera = new Bitmap(dentro))
-                using (var fuori = new MemoryStream())
+                byte[] rawItems = File.ReadAllBytes(bmp);
+                using (var inside = new MemoryStream(rawItems))
+                using (var whole = new Bitmap(inside))
+                using (var outside = new MemoryStream())
                 {
-                    using (var stretta = AttornoAlPezzo(intera))
-                        (stretta ?? intera).Save(fuori, ImageFormat.Png);
-                    return fuori.ToArray();
+                    using (var narrow = AroundPart(whole))
+                        (narrow ?? whole).Save(outside, ImageFormat.Png);
+                    return outside.ToArray();
                 }
             }
             catch (Exception ex)
             {
-                motivo = "L'immagine non si e' lasciata convertire: " + ex.Message;
+                reason = "L'immagine non si e' lasciata convertire: " + ex.Message;
                 return null;
             }
         }

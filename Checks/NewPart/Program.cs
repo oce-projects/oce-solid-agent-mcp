@@ -24,28 +24,28 @@ namespace Checks.NewPart
     /// loro, e una prova che misura in millimetri su un modello in millesimi
     /// legge numeri giusti e sbagliati insieme.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
         private static int Main()
         {
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException)
             {
                 Console.Error.WriteLine("SOLIDWORKS non e' aperto.");
                 return 2;
             }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
-            string modello = Preferito(sw) ?? CercatoSulDisco();
-            if (modello == null)
+            string model = Preferred(sw) ?? SearchedOnDisk();
+            if (model == null)
             {
                 Console.Error.WriteLine("Nessun modello di parte (.prtdot) trovato.");
                 return 1;
             }
-            Console.WriteLine("modello: " + modello);
+            Console.WriteLine("modello: " + model);
 
-            var doc = (IModelDoc2)sw.NewDocument(modello, 0, 0, 0);
+            var doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
             if (doc == null)
             {
                 Console.Error.WriteLine("NewDocument ha dato null.");
@@ -55,7 +55,7 @@ namespace Checks.NewPart
             return 0;
         }
 
-        private static string Preferito(ISldWorks sw)
+        private static string Preferred(ISldWorks sw)
         {
             try
             {
@@ -66,28 +66,28 @@ namespace Checks.NewPart
             catch { return null; }
         }
 
-        private static string CercatoSulDisco()
+        private static string SearchedOnDisk()
         {
             // `C:\ProgramData\SolidWorks` e' dove SOLIDWORKS mette i suoi
             // modelli su qualunque installazione. Accanto c'era il percorso di
             // un disco di rete di UNA postazione: non serviva a nessun altro e
             // diceva com'e' fatto quel disco. Adesso e' una variabile, e chi
             // tiene i modelli altrove lo dice.
-            var cartelle = new System.Collections.Generic.List<string>
+            var folders = new System.Collections.Generic.List<string>
             {
                 @"C:\ProgramData\SolidWorks",
             };
             // `System.` per esteso: l'interop di SOLIDWORKS ha un suo
             // `Environment`, e con i due `using` il nome nudo non compila.
-            var sua = System.Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
-            if (!string.IsNullOrWhiteSpace(sua)) cartelle.Add(sua);
-            foreach (var c in cartelle)
+            var its = System.Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
+            if (!string.IsNullOrWhiteSpace(its)) folders.Add(its);
+            foreach (var c in folders)
             {
                 if (!Directory.Exists(c)) continue;
-                string[] trovati;
-                try { trovati = Directory.GetFiles(c, "*.prtdot", SearchOption.AllDirectories); }
+                string[] foundItems;
+                try { foundItems = Directory.GetFiles(c, "*.prtdot", SearchOption.AllDirectories); }
                 catch { continue; }
-                foreach (var f in trovati)
+                foreach (var f in foundItems)
                 {
                     string b = f.ToLowerInvariant();
                     if (b.Contains(@"\mbd\")) continue;
@@ -95,7 +95,7 @@ namespace Checks.NewPart
                     if (b.Contains("ansi-inch") || b.Contains("inch")) continue;
                     return f;
                 }
-                if (trovati.Length > 0) return trovati[0];
+                if (foundItems.Length > 0) return foundItems[0];
             }
             return null;
         }

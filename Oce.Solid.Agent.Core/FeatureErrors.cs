@@ -20,9 +20,9 @@ namespace Oce.Solid.Agent.Core
     /// sta» dice cosa guardare; «errore nel raccordo» no. E' la stessa regola
     /// dei messaggi di rifiuto: si spiega il criterio.
     /// </summary>
-    public static class ErroriFeature
+    public static class FeatureErrors
     {
-        private static readonly Dictionary<int, string> Frasi = new Dictionary<int, string>
+        private static readonly Dictionary<int, string> Sentences = new Dictionary<int, string>
         {
             // I raccordi, che sono la famiglia piu' numerosa perche' sono la
             // lavorazione che si rompe piu' spesso quando una quota cambia.
@@ -64,18 +64,18 @@ namespace Oce.Solid.Agent.Core
         /// La frase per un codice, oppure null se il codice e' zero — cioe' se
         /// non c'e' nessun errore.
         /// </summary>
-        public static string Frase(int codice)
+        public static string Sentence(int code)
         {
-            if (codice == 0) return null;
-            string frase;
-            if (Frasi.TryGetValue(codice, out frase)) return frase;
+            if (code == 0) return null;
+            string sentence;
+            if (Sentences.TryGetValue(code, out sentence)) return sentence;
 
             // Il nome dell'enum quando c'e': dice almeno di che famiglia si
             // tratta, e si puo' cercare nella documentazione.
-            if (Enum.IsDefined(typeof(swFeatureError_e), codice))
-                return "SOLIDWORKS segnala «" + (swFeatureError_e)codice +
-                       "» (codice " + codice + ")";
-            return "SOLIDWORKS segnala il codice di errore " + codice;
+            if (Enum.IsDefined(typeof(swFeatureError_e), code))
+                return "SOLIDWORKS segnala «" + (swFeatureError_e)code +
+                       "» (codice " + code + ")";
+            return "SOLIDWORKS segnala il codice di errore " + code;
         }
     }
 }

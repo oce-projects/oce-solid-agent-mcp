@@ -53,7 +53,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// Percio' qui si contano le FACCE della ripetizione prima e dopo, e se
     /// non sono calate ci si rifiuta rimettendo l'array com'era. E' lo stesso
-    /// conto di `CopieMancanti`: le facce che la ripetizione possiede divise
+    /// conto di `MissingCopies`: le facce che la ripetizione possiede divise
     /// per quelle della lavorazione ripetuta sono le copie che esistono
     /// davvero.
     ///
@@ -62,34 +62,34 @@ namespace Oce.Solid.Agent.Core
     /// Non e' un sospetto: su tre modi di svuotare la lista, **due rispondono
     /// `true` senza cambiare niente** — e uno dei due alza perfino
     /// un'eccezione COM prima di rispondere di si'. Il dettaglio sta su
-    /// `DaScrivere`, ed e' il motivo per cui qui il valore di ritorno non e'
+    /// `ToWrite`, ed e' il motivo per cui qui il valore di ritorno non e'
     /// mai il criterio.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito SopprimiIstanza(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome SuppressInstance(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string motivo;
-            var ripetizione = LavorazioneDaToccare(modello, a, out motivo);
-            if (ripetizione == null) return Fallito(motivo);
+            string reason;
+            var repetition = FeatureToTouch(model, a, out reason);
+            if (repetition == null) return Failed(reason);
             string uid = Str(a, "feature_uid", "");
 
-            string tipo = "";
-            try { tipo = ripetizione.GetTypeName2(); } catch { }
+            string typ = "";
+            try { typ = repetition.GetTypeName2(); } catch { }
 
-            var copie = Interi(a, "copies");
-            if (copie.Count == 0)
-                return Fallito(
+            var copies = Integers(a, "copies");
+            if (copies.Count == 0)
+                return Failed(
                     "Manca «copies»: quali copie togliere, per numero. La prima copia " +
                     "dopo l'originale e' la 1.");
-            if (copie.Any(c => c < 1))
+            if (copies.Any(c => c < 1))
                 // LO ZERO NON E' UNA COPIA, ED E' PEGGIO DI UN NUMERO FUORI
                 // INTERVALLO: per SOLIDWORKS `{0}` vuol dire «nessuna copia
                 // tolta», quindi passato di la' cosi' com'e' CANCELLEREBBE
                 // tutte le copie tolte prima, in silenzio e rispondendo che e'
-                // andata bene. Vedi `DaScrivere`.
-                return Fallito(
+                // andata bene. Vedi `ToWrite`.
+                return Failed(
                     "Le copie si contano da 1, e lo ZERO non e' una copia: e' " +
                     "l'originale, quello da cui la ripetizione e' nata. E dall'altra " +
                     "parte lo zero vuol dire «rimettile tutte», per cui passarlo qui " +
@@ -97,13 +97,13 @@ namespace Oce.Solid.Agent.Core
                     "L'originale non si toglie da qui — si sopprime la lavorazione, " +
                     "oppure si cancella la ripetizione.");
 
-            bool riattiva = Bool(a, "reactivate", false);
+            bool reactivate = Bool(a, "reactivate", false);
 
-            var dati = LeggiDefinizione(ripetizione, out ISaltaIstanze porta, out string perche);
-            if (dati == null)
-                return Fallito(
+            var data = ReadDefinition(repetition, out ISkipInstances port, out string why);
+            if (data == null)
+                return Failed(
                     "I do not remove copies from «" + uid + "»" +
-                    (string.IsNullOrEmpty(tipo) ? "" : " (type " + tipo + ")") + ": " + perche);
+                    (string.IsNullOrEmpty(typ) ? "" : " (type " + typ + ")") + ": " + why);
 
             // ── UNA GRIGLIA NON SI CONTA COME UNA FILA (voce Z-C21.2, M6) ──
             //
@@ -116,11 +116,11 @@ namespace Oce.Solid.Agent.Core
             // griglia: si rifiuta invece di indovinare.
             // (IsDirection2Specified.html: «True if direction 2 is specified».)
             // Vale anche per la circolare e la guidata da curva, che possono
-            // avere una seconda direzione: vedi i loro `Griglia` qui sotto.
-            string griglia = porta.Griglia(dati);
-            if (griglia != null)
-                return Fallito(
-                    "«" + uid + "» e' una griglia a due direzioni (" + griglia + "): un numero di copia " +
+            // avere una seconda direzione: vedi i loro `Grid` qui sotto.
+            string grid = port.Grid(data);
+            if (grid != null)
+                return Failed(
+                    "«" + uid + "» e' una griglia a due direzioni (" + grid + "): un numero di copia " +
                     "solo non dice quale posizione togliere, perche' SOLIDWORKS le numera riga per " +
                     "riga. Non indovino. Se ti serve togliere una posizione, fai la ripetizione con " +
                     "una direzione sola e togli la copia da quella fila. Non ho toccato niente.");
@@ -128,42 +128,42 @@ namespace Oce.Solid.Agent.Core
             // I SEMI, per sapere quante facce vale una copia (rilievo L6-5).
             // Letti prima di AccessSelections; se non si leggono, il controllo
             // qui sotto non si fa invece di inventarsi un numero.
-            int facceDelSeme = 0;
+            int seedFaces = 0;
             try
             {
-                var semi = porta.Semi(dati) as object[];
+                var semi = port.Semi(data) as object[];
                 if (semi != null)
                     foreach (var s in semi)
                     {
-                        int n = FacceDellaFeature(s as IFeature);
-                        if (n < 0) { facceDelSeme = 0; break; }
-                        facceDelSeme += n;
+                        int n = FeatureFaces(s as IFeature);
+                        if (n < 0) { seedFaces = 0; break; }
+                        seedFaces += n;
                     }
             }
-            catch { facceDelSeme = 0; }
+            catch { seedFaces = 0; }
 
-            int[] giaSaltate;
-            try { giaSaltate = porta.Leggi(dati) ?? new int[0]; }
-            catch (Exception ex) { return Fallito("Non riesco a leggere le copie gia' tolte: " + ex.Message); }
+            int[] alreadySkipped;
+            try { alreadySkipped = port.Read(data) ?? new int[0]; }
+            catch (Exception ex) { return Failed("Non riesco a leggere le copie gia' tolte: " + ex.Message); }
 
-            var nuove = riattiva
-                ? giaSaltate.Where(x => !copie.Contains(x)).ToArray()
-                : giaSaltate.Union(copie).OrderBy(x => x).ToArray();
+            var newOnes = reactivate
+                ? alreadySkipped.Where(x => !copies.Contains(x)).ToArray()
+                : alreadySkipped.Union(copies).OrderBy(x => x).ToArray();
 
-            if (nuove.Length == giaSaltate.Length)
+            if (newOnes.Length == alreadySkipped.Length)
                 // GIA' COM'E' CHIESTA. Non e' un errore ma non e' «fatto»:
                 // stessa regola di `suppress_feature`.
-                return Fallito(
-                    "Le copie " + Elenco(copie) + " di «" + uid + "» sono gia' " +
-                    (riattiva ? "attive" : "tolte") + ": non ho cambiato niente. " +
+                return Failed(
+                    "Le copie " + Items(copies) + " di «" + uid + "» sono gia' " +
+                    (reactivate ? "attive" : "tolte") + ": non ho cambiato niente. " +
                     "Quelle tolte adesso sono " +
-                    (giaSaltate.Length == 0 ? "nessuna" : Elenco(giaSaltate)) + ".");
+                    (alreadySkipped.Length == 0 ? "nessuna" : Items(alreadySkipped)) + ".");
 
-            int faccePrima = FacceDellaFeature(ripetizione);
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
+            int facesBefore = FeatureFaces(repetition);
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
 
-            bool fatto;
+            bool done;
             try
             {
                 // `AccessSelections` prima di toccare il dato, e in caso di
@@ -175,26 +175,26 @@ namespace Oce.Solid.Agent.Core
                 // AccessSelections.html, «True if the selections are
                 // successfully accessed, false if not». A refused access stops
                 // before anything is written, with nothing to release.
-                if (!porta.Apri(dati, modello))
-                    return Fallito("SOLIDWORKS did not give access to the definition of «" + uid +
+                if (!port.Open(data, model))
+                    return Failed("SOLIDWORKS did not give access to the definition of «" + uid +
                                    "» (AccessSelections answered false): nothing was written, the pattern is as it was.");
-                porta.Scrivi(dati, DaScrivere(nuove));
-                fatto = ApiHelpers.ModifyAndVerify(ripetizione, dati, modello).Applied;
-                if (!fatto) porta.Chiudi(dati);
+                port.Write(data, ToWrite(newOnes));
+                done = ApiHelpers.ModifyAndVerify(repetition, data, model).Applied;
+                if (!done) port.Close(data);
             }
             catch (Exception ex)
             {
-                try { porta.Chiudi(dati); } catch { }
-                return Fallito("SOLIDWORKS non ha accettato la modifica: " + ex.Message);
+                try { port.Close(data); } catch { }
+                return Failed("SOLIDWORKS non ha accettato la modifica: " + ex.Message);
             }
-            if (!fatto)
-                return Fallito(
-                    "SOLIDWORKS ha rifiutato di togliere le copie " + Elenco(copie) +
+            if (!done)
+                return Failed(
+                    "SOLIDWORKS ha rifiutato di togliere le copie " + Items(copies) +
                     " da «" + uid + "», e non dice perche'.");
 
-            int facceDopo = FacceDellaFeature(ripetizione);
-            double? volumeDopo = VolumeMm3(modello);
-            int quante = Math.Abs(nuove.Length - giaSaltate.Length);
+            int facesAfter = FeatureFaces(repetition);
+            double? volumeAfter = VolumeMm3(model);
+            int howMany = Math.Abs(newOnes.Length - alreadySkipped.Length);
 
             // ── IN ERRORE DOPO LA MODIFICA? (voce Z-C21.2, rilievo L6-5) ────
             //
@@ -205,12 +205,12 @@ namespace Oce.Solid.Agent.Core
             // lo dice gia' il commento in testa — non e' mai il criterio.
             // Read again here, after faces and volume, where it was read before
             // the helper existed (ApiHelpers.RebuildError, same rule).
-            string ripetizioneInErrore = ApiHelpers.RebuildError(ripetizione);
-            if (ripetizioneInErrore != null)
+            string repetitionInError = ApiHelpers.RebuildError(repetition);
+            if (repetitionInError != null)
             {
-                string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
-                return Fallito("Dopo aver tolto le copie " + Elenco(copie) + " «" + uid + "» e' in errore (" +
-                               ripetizioneInErrore + "). " + rimesso);
+                string restored = PutBack(model, repetition, port, alreadySkipped);
+                return Failed("Dopo aver tolto le copie " + Items(copies) + " «" + uid + "» e' in errore (" +
+                               repetitionInError + "). " + restored);
             }
 
             // ── UNA RIPETIZIONE RIMASTA SENZA FACCE NON HA «TOLTO UNA COPIA» ──
@@ -219,26 +219,26 @@ namespace Oce.Solid.Agent.Core
             // calassero: una ripetizione andata in errore che le perde TUTTE
             // (GetFaces a null da' 0) lo passava. E la perdita deve valere le
             // facce di una copia per le copie tolte: la stessa aritmetica di
-            // CopieMancanti (SwOperations.cs), che misura le copie che esistono
+            // MissingCopies (SwOperations.cs), che misura le copie che esistono
             // davvero dividendo le facce della ripetizione per quelle del seme.
-            if (!riattiva && faccePrima > 0 && facceDopo == 0)
+            if (!reactivate && facesBefore > 0 && facesAfter == 0)
             {
-                string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
-                return Fallito("Dopo aver tolto le copie " + Elenco(copie) + " «" + uid + "» non ha piu' " +
-                               "nessuna faccia: e' sparita tutta la ripetizione, non una copia. " + rimesso);
+                string restored = PutBack(model, repetition, port, alreadySkipped);
+                return Failed("Dopo aver tolto le copie " + Items(copies) + " «" + uid + "» non ha piu' " +
+                               "nessuna faccia: e' sparita tutta la ripetizione, non una copia. " + restored);
             }
-            if (facceDelSeme > 0 && faccePrima >= 0 && facceDopo >= 0 &&
-                Math.Abs(facceDopo - faccePrima) != 0 &&
-                Math.Abs(facceDopo - faccePrima) != facceDelSeme * quante)
+            if (seedFaces > 0 && facesBefore >= 0 && facesAfter >= 0 &&
+                Math.Abs(facesAfter - facesBefore) != 0 &&
+                Math.Abs(facesAfter - facesBefore) != seedFaces * howMany)
             {
-                string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                string restored = PutBack(model, repetition, port, alreadySkipped);
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "Le facce della ripetizione sono passate da {0} a {1}, ma {2} {3} di «{4}» ne " +
                     "valgono {5} ({6} per copia): {7} Guarda «copies_done» su questa ripetizione. {8}",
-                    faccePrima, facceDopo, quante, quante == 1 ? "copia" : "copie", uid,
-                    facceDelSeme * quante, facceDelSeme,
-                    riattiva ? "qualche copia rimessa non e' tornata." : "qualche copia tolta non c'era.",
-                    rimesso));
+                    facesBefore, facesAfter, howMany, howMany == 1 ? "copia" : "copie", uid,
+                    seedFaces * howMany, seedFaces,
+                    reactivate ? "qualche copia rimessa non e' tornata." : "qualche copia tolta non c'era.",
+                    restored));
             }
 
             // ── E QUI SI GUARDA SE E' SUCCESSO QUALCOSA ──────────────────
@@ -248,13 +248,13 @@ namespace Oce.Solid.Agent.Core
             // fuori dal materiale, e SOLIDWORKS quelle le costruisce e basta
             // senza dirlo (nota 80y). L'array si scrive, il pezzo non cambia,
             // e chi legge crede di aver tolto un foro.
-            bool andataNellaDirezioneGiusta = riattiva
-                ? facceDopo > faccePrima
-                : facceDopo < faccePrima;
-            if (faccePrima > 0 && facceDopo >= 0 && !andataNellaDirezioneGiusta)
+            bool wentInTheRightDirection = reactivate
+                ? facesAfter > facesBefore
+                : facesAfter < facesBefore;
+            if (facesBefore > 0 && facesAfter >= 0 && !wentInTheRightDirection)
             {
-                string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
-                return Fallito(string.Format(
+                string restored = PutBack(model, repetition, port, alreadySkipped);
+                return Failed(string.Format(
                     CultureInfo.InvariantCulture,
                     "Ho scritto la modifica e SOLIDWORKS ha detto di si', ma il pezzo non " +
                     "e' cambiato: le facce della ripetizione erano {0} e sono {1}. Quasi " +
@@ -262,43 +262,43 @@ namespace Oce.Solid.Agent.Core
                     "che stanno nel materiale e risponde «riuscito» lo stesso, quindi la " +
                     "copia {4} puo' non esserci mai stata. Guarda «copies_done» su questa " +
                     "ripetizione prima di togliere. {5}",
-                    faccePrima, facceDopo,
-                    copie.Count == 1 ? "quella copia" : "quelle copie",
-                    riattiva ? "mancava" : "c'era",
-                    Elenco(copie),
-                    rimesso));
+                    facesBefore, facesAfter,
+                    copies.Count == 1 ? "quella copia" : "quelle copie",
+                    reactivate ? "mancava" : "c'era",
+                    Items(copies),
+                    restored));
             }
 
-            int corpiDopo = ContaCorpiSolidi(modello);
-            var misure = new Dictionary<string, object>
+            int bodiesAfter = CountSolidBodies(model);
+            var measurements = new Dictionary<string, object>
             {
-                ["copies_removed_now"] = riattiva ? new int[0] : copie.ToArray(),
-                ["copies_restored_now"] = riattiva ? copie.ToArray() : new int[0],
-                ["copies_removed_total"] = nuove,
-                ["pattern_faces"] = NumeroOppureNull(facceDopo),
-                ["faces_before"] = NumeroOppureNull(faccePrima),
+                ["copies_removed_now"] = reactivate ? new int[0] : copies.ToArray(),
+                ["copies_restored_now"] = reactivate ? copies.ToArray() : new int[0],
+                ["copies_removed_total"] = newOnes,
+                ["pattern_faces"] = NumberOrNull(facesAfter),
+                ["faces_before"] = NumberOrNull(facesBefore),
                 // QUANTE FACCE VALE UNA COPIA, o null se i semi non si sono letti
                 // (revisione di Z-C21.2): con null il controllo «perdita = facce
                 // del seme x copie tolte» qui sopra NON si e' fatto, e chi legge
                 // lo deve poter vedere. Nome nuovo, in inglese.
-                ["faces_per_copy"] = facceDelSeme > 0 ? (object)facceDelSeme : null,
-                ["bodies"] = NumeroOppureNull(corpiDopo),
-                [riattiva ? "material_removed_mm3" : "material_returned_mm3"] =
-                    NumeroOppureNull(volumeDopo.HasValue && volumePrima.HasValue
-                        ? Math.Abs(volumeDopo.Value - volumePrima.Value) : (double?)null, 2),
+                ["faces_per_copy"] = seedFaces > 0 ? (object)seedFaces : null,
+                ["bodies"] = NumberOrNull(bodiesAfter),
+                [reactivate ? "material_removed_mm3" : "material_returned_mm3"] =
+                    NumberOrNull(volumeAfter.HasValue && volumeBefore.HasValue
+                        ? Math.Abs(volumeAfter.Value - volumeBefore.Value) : (double?)null, 2),
             };
             // «Spezzato» si dice di due conteggi LETTI (voce Z-C8): prima il
             // confronto era fra un int e un oggetto, e con una lettura fallita
             // lo zero diceva che il pezzo si era rotto.
-            if (corpiPrima >= 0 && corpiDopo >= 0 && corpiPrima != corpiDopo)
-                misure["warning_bodies"] =
-                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
+            if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesBefore != bodiesAfter)
+                measurements["warning_bodies"] =
+                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
                     ": togliere una copia ha spezzato il pezzo.";
 
-            _log("[agente] «" + uid + "»: copie " + (riattiva ? "rimesse " : "tolte ") +
-                 Elenco(copie) + ", facce " + faccePrima + " -> " + facceDopo);
+            _log("[agente] «" + uid + "»: copie " + (reactivate ? "rimesse " : "tolte ") +
+                 Items(copies) + ", facce " + facesBefore + " -> " + facesAfter);
 
-            return Riuscito(ripetizione, misure);
+            return Succeeded(repetition, measurements);
         }
 
         // =================================================================
@@ -307,24 +307,24 @@ namespace Oce.Solid.Agent.Core
         /// Rimette l'array com'era. Torna la frase da appendere al rifiuto:
         /// chi legge deve sapere se il pezzo e' stato lasciato a posto o no.
         /// </summary>
-        private static string Rimetti(
-            IModelDoc2 modello, IFeature ripetizione, ISaltaIstanze porta, int[] comEra)
+        private static string PutBack(
+            IModelDoc2 model, IFeature repetition, ISkipInstances port, int[] comEra)
         {
             try
             {
-                var d = ripetizione.GetDefinition();
+                var d = repetition.GetDefinition();
                 if (d == null) return "Non sono riuscito a rimettere le cose com'erano.";
                 // The access is read (Z-C21.8, rule of L5-5): refused, nothing
                 // can be written back.
-                if (!porta.Apri(d, modello))
+                if (!port.Open(d, model))
                     return "I could not put the skipped copies back: AccessSelections answered false. Check the " +
-                           "pattern, and undo the step (" + Frasi.CosiSiRitira + ").";
-                porta.Scrivi(d, DaScrivere(comEra));
+                           "pattern, and undo the step (" + Sentences.HowToWithdrawIt + ").";
+                port.Write(d, ToWrite(comEra));
                 // S11: Applied alone is not the verdict (IFeature~ModifyDefinition.html,
                 // Remarks: it can return true and leave a new rebuild error). The
                 // sentence "put back as it was" is said only when the feature is
                 // known to be sound.
-                var change = ApiHelpers.ModifyAndVerify(ripetizione, d, modello);
+                var change = ApiHelpers.ModifyAndVerify(repetition, d, model);
                 if (change.Applied && change.InError)
                     return "I put the pattern definition back, but the pattern is now in a rebuild error (" +
                            change.ErrorPhrase + "): check the pattern.";
@@ -337,14 +337,14 @@ namespace Oce.Solid.Agent.Core
                     // skipped copies read from a fresh definition must be the ones
                     // read before the change.
                     int[] now = null;
-                    try { now = porta.Leggi(ripetizione.GetDefinition()); } catch { now = null; }
+                    try { now = port.Read(repetition.GetDefinition()); } catch { now = null; }
                     if (now != null && now.OrderBy(x => x).SequenceEqual((comEra ?? new int[0]).OrderBy(x => x)))
                         return "Ho rimesso la ripetizione com'era.";
                     return "I put the pattern definition back, but reading it back the skipped copies are " +
-                           (now == null ? "not readable" : "[" + Elenco(now) + "]") + " instead of [" +
-                           Elenco(comEra ?? new int[0]) + "]: check the pattern.";
+                           (now == null ? "not readable" : "[" + Items(now) + "]") + " instead of [" +
+                           Items(comEra ?? new int[0]) + "]: check the pattern.";
                 }
-                porta.Chiudi(d);
+                port.Close(d);
             }
             catch { }
             return "Non sono riuscito a rimettere le cose com'erano: guarda la ripetizione.";
@@ -364,27 +364,27 @@ namespace Oce.Solid.Agent.Core
         /// Quindi il dato gira come `object` e ogni famiglia sa fare le sue
         /// quattro cose. Si prova una per volta, e quella che risponde vince.
         /// </summary>
-        private interface ISaltaIstanze
+        private interface ISkipInstances
         {
-            int[] Leggi(object dati);
-            void Scrivi(object dati, int[] copie);
+            int[] Read(object data);
+            void Write(object data, int[] copies);
             // The answer of AccessSelections (Z-C21.8, rule of L5-5).
-            bool Apri(object dati, IModelDoc2 modello);
-            void Chiudi(object dati);
+            bool Open(object data, IModelDoc2 model);
+            void Close(object data);
             // Voce Z-C21.2: le lavorazioni ripetute (PatternFeatureArray), e
             // se la ripetizione e' una griglia a due direzioni (null se no).
-            object Semi(object dati);
-            string Griglia(object dati);
+            object Semi(object data);
+            string Grid(object data);
         }
 
-        private sealed class SaltaLineare : ISaltaIstanze
+        private sealed class SkipLinear : ISkipInstances
         {
-            public int[] Leggi(object d) { return Numeri(((ILinearPatternFeatureData)d).SkippedItemArray); }
-            public void Scrivi(object d, int[] c) { ((ILinearPatternFeatureData)d).SkippedItemArray = c; }
-            public bool Apri(object d, IModelDoc2 m) { return ((ILinearPatternFeatureData)d).AccessSelections(m, null); }
-            public void Chiudi(object d) { ((ILinearPatternFeatureData)d).ReleaseSelectionAccess(); }
+            public int[] Read(object d) { return Numbers(((ILinearPatternFeatureData)d).SkippedItemArray); }
+            public void Write(object d, int[] c) { ((ILinearPatternFeatureData)d).SkippedItemArray = c; }
+            public bool Open(object d, IModelDoc2 m) { return ((ILinearPatternFeatureData)d).AccessSelections(m, null); }
+            public void Close(object d) { ((ILinearPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ILinearPatternFeatureData)d).PatternFeatureArray; }
-            public string Griglia(object d)
+            public string Grid(object d)
             {
                 var l = (ILinearPatternFeatureData)d;
                 bool due = false; int n1 = 0, n2 = 0;
@@ -394,12 +394,12 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        private sealed class SaltaCircolare : ISaltaIstanze
+        private sealed class SkipCircular : ISkipInstances
         {
-            public int[] Leggi(object d) { return Numeri(((ICircularPatternFeatureData)d).SkippedItemArray); }
-            public void Scrivi(object d, int[] c) { ((ICircularPatternFeatureData)d).SkippedItemArray = c; }
-            public bool Apri(object d, IModelDoc2 m) { return ((ICircularPatternFeatureData)d).AccessSelections(m, null); }
-            public void Chiudi(object d) { ((ICircularPatternFeatureData)d).ReleaseSelectionAccess(); }
+            public int[] Read(object d) { return Numbers(((ICircularPatternFeatureData)d).SkippedItemArray); }
+            public void Write(object d, int[] c) { ((ICircularPatternFeatureData)d).SkippedItemArray = c; }
+            public bool Open(object d, IModelDoc2 m) { return ((ICircularPatternFeatureData)d).AccessSelections(m, null); }
+            public void Close(object d) { ((ICircularPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICircularPatternFeatureData)d).PatternFeatureArray; }
             // ANCHE LA CIRCOLARE PUO' AVERE DUE DIREZIONI (revisione di Z-C21.2,
             // M6 corretto a meta'). ICircularPatternFeatureData~SkippedItemArray.html
@@ -410,20 +410,20 @@ namespace Oce.Solid.Agent.Core
             // con Symmetric la seconda direzione ripete il numero della prima
             // (Symmetric.html: «symmetric or asymmetric circular pattern feature
             // in Direction 2»).
-            public string Griglia(object d)
+            public string Grid(object d)
             {
                 var c = (ICircularPatternFeatureData)d;
-                bool due = false, simmetrica = false; int n1 = 0, n2 = 0;
+                bool due = false, symmetric = false; int n1 = 0, n2 = 0;
                 try
                 {
                     due = c.Direction2;
                     if (!due) return null;
                     n1 = c.TotalInstances;
-                    simmetrica = c.Symmetric;
-                    n2 = simmetrica ? n1 : c.TotalInstances2;
+                    symmetric = c.Symmetric;
+                    n2 = symmetric ? n1 : c.TotalInstances2;
                 }
                 catch { return null; }
-                return n2 > 1 ? n1 + " x " + n2 + (simmetrica ? ", simmetrica" : "") : null;
+                return n2 > 1 ? n1 + " x " + n2 + (symmetric ? ", simmetrica" : "") : null;
             }
         }
 
@@ -447,18 +447,18 @@ namespace Oce.Solid.Agent.Core
         // di scoprirlo: una riflessione dimenticata sarebbe diventata un
         // «SkippedItemArray non esiste» a runtime, su un pezzo di qualcuno.
 
-        private sealed class SaltaCurva : ISaltaIstanze
+        private sealed class SkipCurve : ISkipInstances
         {
-            public int[] Leggi(object d) { return Numeri(((ICurveDrivenPatternFeatureData)d).SkippedItemArray); }
-            public void Scrivi(object d, int[] c) { ((ICurveDrivenPatternFeatureData)d).SkippedItemArray = c; }
-            public bool Apri(object d, IModelDoc2 m) { return ((ICurveDrivenPatternFeatureData)d).AccessSelections(m, null); }
-            public void Chiudi(object d) { ((ICurveDrivenPatternFeatureData)d).ReleaseSelectionAccess(); }
+            public int[] Read(object d) { return Numbers(((ICurveDrivenPatternFeatureData)d).SkippedItemArray); }
+            public void Write(object d, int[] c) { ((ICurveDrivenPatternFeatureData)d).SkippedItemArray = c; }
+            public bool Open(object d, IModelDoc2 m) { return ((ICurveDrivenPatternFeatureData)d).AccessSelections(m, null); }
+            public void Close(object d) { ((ICurveDrivenPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICurveDrivenPatternFeatureData)d).PatternFeatureArray; }
             // E LA GUIDATA DA CURVA (revisione di Z-C21.2): Dir2Specified.html,
             // «whether Direction 2 is specified for this curve-driven pattern
             // feature»; D2InstanceCount.html, «the number of instances in
             // Direction 2 of this bidirectional curve-driven pattern feature».
-            public string Griglia(object d)
+            public string Grid(object d)
             {
                 var c = (ICurveDrivenPatternFeatureData)d;
                 bool due = false; int n1 = 0, n2 = 0;
@@ -468,26 +468,26 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        private static object LeggiDefinizione(
-            IFeature ripetizione, out ISaltaIstanze porta, out string perche)
+        private static object ReadDefinition(
+            IFeature repetition, out ISkipInstances port, out string why)
         {
-            porta = null;
-            perche = null;
-            object grezzo;
-            try { grezzo = ripetizione.GetDefinition(); }
-            catch (Exception ex) { perche = "I cannot read its definition: " + ex.Message; return null; }
-            if (grezzo == null)
+            port = null;
+            why = null;
+            object raw;
+            try { raw = repetition.GetDefinition(); }
+            catch (Exception ex) { why = "I cannot read its definition: " + ex.Message; return null; }
+            if (raw == null)
             {
-                perche = "SOLIDWORKS gives no definition for it.";
+                why = "SOLIDWORKS gives no definition for it.";
                 return null;
             }
 
-            if (grezzo is ILinearPatternFeatureData) porta = new SaltaLineare();
-            else if (grezzo is ICircularPatternFeatureData) porta = new SaltaCircolare();
-            else if (grezzo is ICurveDrivenPatternFeatureData) porta = new SaltaCurva();
+            if (raw is ILinearPatternFeatureData) port = new SkipLinear();
+            else if (raw is ICircularPatternFeatureData) port = new SkipCircular();
+            else if (raw is ICurveDrivenPatternFeatureData) port = new SkipCurve();
 
-            if (porta == null) perche = NotANumberedPattern(grezzo is IFillPatternFeatureData, grezzo is ITablePatternFeatureData);
-            return porta == null ? null : grezzo;
+            if (port == null) why = NotANumberedPattern(raw is IFillPatternFeatureData, raw is ITablePatternFeatureData);
+            return port == null ? null : raw;
         }
 
         /// <summary>
@@ -501,7 +501,7 @@ namespace Oce.Solid.Agent.Core
         /// for this table-driven pattern feature». They are not numbered as one
         /// row of copies, and a copy number is not translated into their
         /// positions here. The derived pattern also has the array, but it is an
-        /// assembly pattern and suppress_instance runs on parts (DocumentoRichiesto
+        /// assembly pattern and suppress_instance runs on parts (RequestedDocument
         /// «part»), so it is not named. Kept apart from the document so that
         /// Oce.Solid.Agent.ContractTests can call it without SOLIDWORKS.
         /// </summary>
@@ -553,58 +553,58 @@ namespace Oce.Solid.Agent.Core
         /// successa: il valore di ritorno qui non vale niente, e l'unica prova
         /// e' il conto delle facce.
         /// </summary>
-        private static int[] DaScrivere(int[] copie)
+        private static int[] ToWrite(int[] copies)
         {
-            return copie == null || copie.Length == 0 ? new[] { 0 } : copie;
+            return copies == null || copies.Length == 0 ? new[] { 0 } : copies;
         }
 
-        private static int[] Numeri(object grezzo)
+        private static int[] Numbers(object raw)
         {
-            if (grezzo == null) return new int[0];
-            var i = grezzo as int[];
+            if (raw == null) return new int[0];
+            var i = raw as int[];
             if (i != null) return i;
-            var o = grezzo as System.Collections.IEnumerable;
+            var o = raw as System.Collections.IEnumerable;
             if (o == null) return new int[0];
-            var fuori = new List<int>();
+            var outside = new List<int>();
             foreach (var v in o)
             {
-                try { fuori.Add(Convert.ToInt32(v, CultureInfo.InvariantCulture)); }
+                try { outside.Add(Convert.ToInt32(v, CultureInfo.InvariantCulture)); }
                 catch { }
             }
-            return fuori.ToArray();
+            return outside.ToArray();
         }
 
         /// <summary>Un elenco di interi da un argomento, che puo' anche essere un numero solo.</summary>
-        private static List<int> Interi(Dictionary<string, object> a, string chiave)
+        private static List<int> Integers(Dictionary<string, object> a, string key)
         {
-            var fuori = new List<int>();
+            var outside = new List<int>();
             object v;
-            if (a == null || !a.TryGetValue(chiave, out v) || v == null) return fuori;
+            if (a == null || !a.TryGetValue(key, out v) || v == null) return outside;
             if (v is string)
             {
-                int uno;
-                if (int.TryParse((string)v, NumberStyles.Any, CultureInfo.InvariantCulture, out uno))
-                    fuori.Add(uno);
-                return fuori;
+                int one;
+                if (int.TryParse((string)v, NumberStyles.Any, CultureInfo.InvariantCulture, out one))
+                    outside.Add(one);
+                return outside;
             }
-            var elenco = v as System.Collections.IEnumerable;
-            if (elenco == null)
+            var list = v as System.Collections.IEnumerable;
+            if (list == null)
             {
-                try { fuori.Add(Convert.ToInt32(v, CultureInfo.InvariantCulture)); }
+                try { outside.Add(Convert.ToInt32(v, CultureInfo.InvariantCulture)); }
                 catch { }
-                return fuori;
+                return outside;
             }
-            foreach (var x in elenco)
+            foreach (var x in list)
             {
-                try { fuori.Add(Convert.ToInt32(x, CultureInfo.InvariantCulture)); }
+                try { outside.Add(Convert.ToInt32(x, CultureInfo.InvariantCulture)); }
                 catch { }
             }
-            return fuori;
+            return outside;
         }
 
-        private static string Elenco(IEnumerable<int> numeri)
+        private static string Items(IEnumerable<int> numbers)
         {
-            var v = numeri.ToArray();
+            var v = numbers.ToArray();
             if (v.Length == 0) return "none";
             if (v.Length == 1) return v[0].ToString(CultureInfo.InvariantCulture);
             return string.Join(", ", v.Take(v.Length - 1).Select(x => x.ToString(CultureInfo.InvariantCulture))) +

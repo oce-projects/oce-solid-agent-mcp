@@ -9,18 +9,18 @@ namespace Oce.Solid.Agent.Core
     /// Il bordo e' una risposta a se': un punto che ci sta sopra non e' ne'
     /// dentro ne' fuori, e costringerlo a essere uno dei due fa dipendere il
     /// verdetto dal lato del poligono su cui capita. Vedi
-    /// <see cref="FormaChiusa.DoveSta"/>.
+    /// <see cref="ClosedShape.WhereItIs"/>.
     /// </summary>
-    public enum DoveSiTrova
+    public enum WhereItIsFound
     {
         /// <summary>Dentro il materiale, bordo escluso.</summary>
-        Dentro,
+        Inside,
 
         /// <summary>Fuori dal materiale, bordo escluso.</summary>
-        Fuori,
+        Outside,
 
-        /// <summary>Sul bordo, entro <see cref="FormaChiusa.SulBordoMm"/>.</summary>
-        SulBordo
+        /// <summary>Sul bordo, entro <see cref="ClosedShape.OnBorderMm"/>.</summary>
+        OnBorder
     }
 
     /// <summary>
@@ -45,15 +45,15 @@ namespace Oce.Solid.Agent.Core
     /// punto in coda**: l'ultimo lato e' sempre da `punti[n-1]` a `punti[0]`.
     /// Ripeterlo aggiungerebbe un lato di lunghezza zero, che manda in
     /// confusione sia il conto dell'area sia quello degli incroci. Da qui
-    /// <see cref="Anello"/>, che lo toglie se c'e'.
+    /// <see cref="Ring"/>, che lo toglie se c'e'.
     /// </summary>
-    public static class FormaChiusa
+    public static class ClosedShape
     {
         /// <summary>Due punti coincidono, entro la tolleranza data in mm.</summary>
-        public static bool Vicini(double[] a, double[] b, double tolleranza = 1e-6)
+        public static bool Neighbors(double[] a, double[] b, double tolerance = 1e-6)
         {
-            return Math.Abs(a[0] - b[0]) < tolleranza
-                && Math.Abs(a[1] - b[1]) < tolleranza;
+            return Math.Abs(a[0] - b[0]) < tolerance
+                && Math.Abs(a[1] - b[1]) < tolerance;
         }
 
         /// <summary>
@@ -66,33 +66,33 @@ namespace Oce.Solid.Agent.Core
         /// scrive una spezzata a mano ripete spesso il primo vertice in fondo
         /// per «chiuderla».
         /// </summary>
-        public static List<double[]> Anello(IEnumerable<double[]> punti, double tolleranza = 1e-6)
+        public static List<double[]> Ring(IEnumerable<double[]> points, double tolerance = 1e-6)
         {
-            var fuori = new List<double[]>();
-            foreach (var p in punti)
+            var outside = new List<double[]>();
+            foreach (var p in points)
             {
-                if (fuori.Count > 0 && Vicini(fuori[fuori.Count - 1], p, tolleranza)) continue;
-                fuori.Add(p);
+                if (outside.Count > 0 && Neighbors(outside[outside.Count - 1], p, tolerance)) continue;
+                outside.Add(p);
             }
-            while (fuori.Count > 1 && Vicini(fuori[0], fuori[fuori.Count - 1], tolleranza))
-                fuori.RemoveAt(fuori.Count - 1);
-            return fuori;
+            while (outside.Count > 1 && Neighbors(outside[0], outside[outside.Count - 1], tolerance))
+                outside.RemoveAt(outside.Count - 1);
+            return outside;
         }
 
         /// <summary>
         /// L'area con segno secondo Gauss, in valore assoluto. In mm quadri.
         /// </summary>
-        public static double Area(IList<double[]> anello)
+        public static double Area(IList<double[]> ring)
         {
-            double somma = 0;
-            int n = anello.Count;
+            double sum = 0;
+            int n = ring.Count;
             for (int i = 0; i < n; i++)
             {
-                var a = anello[i];
-                var b = anello[(i + 1) % n];
-                somma += a[0] * b[1] - b[0] * a[1];
+                var a = ring[i];
+                var b = ring[(i + 1) % n];
+                sum += a[0] * b[1] - b[0] * a[1];
             }
-            return Math.Abs(somma) / 2.0;
+            return Math.Abs(sum) / 2.0;
         }
 
         /// <summary>
@@ -142,13 +142,13 @@ namespace Oce.Solid.Agent.Core
         /// > sull'officina: si chiede al pezzo. «E' lavoro legittimo» diceva
         /// > come DEVE andare, non come VA.
         /// </summary>
-        public static DoveSiTrova DoveSta(double[] punto, IList<double[]> poligono)
+        public static WhereItIsFound WhereItIs(double[] point, IList<double[]> polygon)
         {
-            if (punto == null || poligono == null || poligono.Count < 3)
-                return DoveSiTrova.Fuori;
-            if (DistanzaDalBordo(punto, poligono) <= SulBordoMm)
-                return DoveSiTrova.SulBordo;
-            return Dentro(punto, poligono) ? DoveSiTrova.Dentro : DoveSiTrova.Fuori;
+            if (point == null || polygon == null || polygon.Count < 3)
+                return WhereItIsFound.Outside;
+            if (DistanceFromBorder(point, polygon) <= OnBorderMm)
+                return WhereItIsFound.OnBorder;
+            return Inside(point, polygon) ? WhereItIsFound.Inside : WhereItIsFound.Outside;
         }
 
         /// <summary>
@@ -161,32 +161,32 @@ namespace Oce.Solid.Agent.Core
         /// su un pezzo e' un centesimo di millimetro, diecimila volte sopra.
         /// Nessuno dei due puo' essere confuso con l'altro.
         /// </summary>
-        public const double SulBordoMm = 1e-6;
+        public const double OnBorderMm = 1e-6;
 
         /// <summary>
         /// La distanza minima fra un punto e il bordo del poligono, in mm.
         /// </summary>
-        public static double DistanzaDalBordo(double[] punto, IList<double[]> poligono)
+        public static double DistanceFromBorder(double[] point, IList<double[]> polygon)
         {
-            double minima = double.MaxValue;
-            int n = poligono.Count;
+            double minValue = double.MaxValue;
+            int n = polygon.Count;
             for (int i = 0; i < n; i++)
             {
-                double d = DistanzaDalSegmento(punto, poligono[i], poligono[(i + 1) % n]);
-                if (d < minima) minima = d;
+                double d = DistanceFromSegment(point, polygon[i], polygon[(i + 1) % n]);
+                if (d < minValue) minValue = d;
             }
-            return minima;
+            return minValue;
         }
 
         /// <summary>Distanza fra un punto e un segmento, estremi compresi.</summary>
-        private static double DistanzaDalSegmento(double[] p, double[] a, double[] b)
+        private static double DistanceFromSegment(double[] p, double[] a, double[] b)
         {
             double vx = b[0] - a[0], vy = b[1] - a[1];
             double wx = p[0] - a[0], wy = p[1] - a[1];
-            double lunghezza2 = vx * vx + vy * vy;
+            double length2 = vx * vx + vy * vy;
             // Segmento degenere: e' un punto, e la distanza e' da quel punto.
-            if (lunghezza2 < 1e-24) return Math.Sqrt(wx * wx + wy * wy);
-            double t = (wx * vx + wy * vy) / lunghezza2;
+            if (length2 < 1e-24) return Math.Sqrt(wx * wx + wy * wy);
+            double t = (wx * vx + wy * vy) / length2;
             if (t < 0) t = 0; else if (t > 1) t = 1;
             double dx = wx - t * vx, dy = wy - t * vy;
             return Math.Sqrt(dx * dx + dy * dy);
@@ -196,25 +196,25 @@ namespace Oce.Solid.Agent.Core
         /// Il punto sta dentro il poligono? Parita' degli attraversamenti.
         ///
         /// NON RISPONDE SUL BORDO, e la risposta che da' li' dipende dal lato:
-        /// usare <see cref="DoveSta"/> ogni volta che un punto puo' trovarcisi.
+        /// usare <see cref="WhereItIs"/> ogni volta che un punto puo' trovarcisi.
         /// Questa resta per i casi in cui il bordo e' escluso per costruzione.
         /// </summary>
-        public static bool Dentro(double[] punto, IList<double[]> poligono)
+        public static bool Inside(double[] point, IList<double[]> polygon)
         {
-            double x = punto[0], y = punto[1];
-            bool dentro = false;
-            int n = poligono.Count;
+            double x = point[0], y = point[1];
+            bool inside = false;
+            int n = polygon.Count;
             for (int i = 0; i < n; i++)
             {
-                var a = poligono[i];
-                var b = poligono[(i + 1) % n];
+                var a = polygon[i];
+                var b = polygon[(i + 1) % n];
                 if ((a[1] > y) != (b[1] > y))
                 {
-                    double taglio = a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
-                    if (x < taglio) dentro = !dentro;
+                    double cut = a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+                    if (x < cut) inside = !inside;
                 }
             }
-            return dentro;
+            return inside;
         }
 
         /// <summary>
@@ -222,14 +222,14 @@ namespace Oce.Solid.Agent.Core
         /// a un estremo non conta: e' quello che fanno due lati consecutivi, ed
         /// e' normale.
         /// </summary>
-        public static bool Incrociano(double[] p1, double[] p2, double[] p3, double[] p4)
+        public static bool Intersect(double[] p1, double[] p2, double[] p3, double[] p4)
         {
-            double d1 = Lato(p3, p4, p1), d2 = Lato(p3, p4, p2);
-            double d3 = Lato(p1, p2, p3), d4 = Lato(p1, p2, p4);
+            double d1 = Side(p3, p4, p1), d2 = Side(p3, p4, p2);
+            double d3 = Side(p1, p2, p3), d4 = Side(p1, p2, p4);
             return ((d1 > 0) != (d2 > 0)) && ((d3 > 0) != (d4 > 0));
         }
 
-        private static double Lato(double[] a, double[] b, double[] c)
+        private static double Side(double[] a, double[] b, double[] c)
         {
             return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
         }
@@ -244,22 +244,22 @@ namespace Oce.Solid.Agent.Core
         ///
         /// COSTO. E' un confronto di tutti i lati con tutti: n²/2. Su una ruota
         /// da 127 denti sono circa 3.300 punti e 5,4 milioni di confronti, che
-        /// in C# sono meno di un secondo. Sopra <see cref="TroppiPerIlControllo"/>
+        /// in C# sono meno di un secondo. Sopra <see cref="TooManyToCheck"/>
         /// punti si rinuncia e lo si dice, invece di far aspettare in silenzio.
         /// </summary>
-        public static int DoveSiIncrocia(IList<double[]> anello)
+        public static int WhereItCrosses(IList<double[]> ring)
         {
-            int n = anello.Count;
-            if (n < 4 || n > TroppiPerIlControllo) return -1;
+            int n = ring.Count;
+            if (n < 4 || n > TooManyToCheck) return -1;
             for (int i = 0; i < n; i++)
             {
-                var a1 = anello[i];
-                var a2 = anello[(i + 1) % n];
+                var a1 = ring[i];
+                var a2 = ring[(i + 1) % n];
                 for (int j = i + 2; j < n; j++)
                 {
                     // Il primo e l'ultimo lato condividono un vertice.
                     if (i == 0 && j == n - 1) continue;
-                    if (Incrociano(a1, a2, anello[j], anello[(j + 1) % n])) return i;
+                    if (Intersect(a1, a2, ring[j], ring[(j + 1) % n])) return i;
                 }
             }
             return -1;
@@ -273,6 +273,6 @@ namespace Oce.Solid.Agent.Core
         /// (4.000 punti per i contorni generati dalle ricette), quindi in
         /// pratica non si salta mai: e' una rete, non una scorciatoia.
         /// </summary>
-        public const int TroppiPerIlControllo = 6000;
+        public const int TooManyToCheck = 6000;
     }
 }

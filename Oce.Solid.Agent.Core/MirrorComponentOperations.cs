@@ -51,28 +51,28 @@ namespace Oce.Solid.Agent.Core
     /// the new instance are CHECKED against it: X' = ±(X mirrored in the plane),
     /// Y' = ±(Y mirrored in the plane), Z' = X' x Y' (see MirrorAxesProblem).
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>Il centro della scatola vera di un componente, nell'assieme, in MILLIMETRI; null se non si legge.</summary>
-        private static double[] CentroDelComponente(IComponent2 c)
+        private static double[] ComponentCenter(IComponent2 c)
         {
             try
             {
                 object info;
-                var corpi = c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[];
+                var bodies = c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[];
                 var tr = c.Transform2 as MathTransform;
-                if (corpi == null || corpi.Length == 0 || tr == null) return null;
-                double[] tutto = null;
-                foreach (var ob in corpi)
+                if (bodies == null || bodies.Length == 0 || tr == null) return null;
+                double[] everything = null;
+                foreach (var ob in bodies)
                 {
-                    var copia = (ob as IBody2)?.Copy() as IBody2;
-                    if (copia == null || !copia.ApplyTransform(tr)) return null;
-                    var sc = ScatolaDelCorpo(copia);
+                    var copy = (ob as IBody2)?.Copy() as IBody2;
+                    if (copy == null || !copy.ApplyTransform(tr)) return null;
+                    var sc = BodyBox(copy);
                     if (sc == null) return null;
-                    if (tutto == null) tutto = (double[])sc.Clone();
-                    else { for (int k = 0; k < 3; k++) tutto[k] = Math.Min(tutto[k], sc[k]); for (int k = 3; k < 6; k++) tutto[k] = Math.Max(tutto[k], sc[k]); }
+                    if (everything == null) everything = (double[])sc.Clone();
+                    else { for (int k = 0; k < 3; k++) everything[k] = Math.Min(everything[k], sc[k]); for (int k = 3; k < 6; k++) everything[k] = Math.Max(everything[k], sc[k]); }
                 }
-                return new[] { (tutto[0] + tutto[3]) / 2, (tutto[1] + tutto[4]) / 2, (tutto[2] + tutto[5]) / 2 };
+                return new[] { (everything[0] + everything[3]) / 2, (everything[1] + everything[4]) / 2, (everything[2] + everything[5]) / 2 };
             }
             catch { return null; }
         }
@@ -200,31 +200,31 @@ namespace Oce.Solid.Agent.Core
             return r;
         }
 
-        private Esito SpecchiaComponente(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome MirrorComponent(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var assieme = modello as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito("Specchio un componente di un assieme: questo non lo e'. Per specchiare una lavorazione " +
+            var assemblyDoc = model as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed("Specchio un componente di un assieme: questo non lo e'. Per specchiare una lavorazione " +
                                "in un pezzo c'e' «mirror».");
-            string modo = (Str(a, "mode", "") ?? "").Trim().ToLowerInvariant();
-            if (modo != "instance" && modo != "opposite_linked" && modo != "opposite_unlinked")
-                return Fallito("Dimmi «mode», e' la scelta che conta: «instance» (lo stesso file, specchiato: per un " +
+            string mode = (Str(a, "mode", "") ?? "").Trim().ToLowerInvariant();
+            if (mode != "instance" && mode != "opposite_linked" && mode != "opposite_unlinked")
+                return Failed("Dimmi «mode», e' la scelta che conta: «instance» (lo stesso file, specchiato: per un " +
                                "pezzo simmetrico), «opposite_linked» (un file nuovo che segue l'originale: cambi la " +
                                "destra e cambia la sinistra) o «opposite_unlinked» (un file nuovo indipendente: " +
                                "correggi la destra e la sinistra resta com'era).");
-            string piano = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
-            int quale = piano == "front" ? 1 : piano == "top" ? 2 : piano == "right" ? 3 : 0;
-            if (quale == 0)
-                return Fallito("«plane» e' un piano dell'assieme: «front», «top» o «right», non «" + piano + "».");
-            object[] grezzi = null;
-            try { grezzi = assieme.GetComponents(false) as object[]; } catch { }
-            var componenti = StatoDocumento.ComponentiInOrdine(grezzi);
+            string plane = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
+            int which = plane == "front" ? 1 : plane == "top" ? 2 : plane == "right" ? 3 : 0;
+            if (which == 0)
+                return Failed("«plane» e' un piano dell'assieme: «front», «top» o «right», non «" + plane + "».");
+            object[] rawItems = null;
+            try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            var components = DocumentState.ComponentsInOrder(rawItems);
             string uid = Str(a, "component", null);
-            var c = PerUid(componenti, uid);
-            if (c == null) return Fallito(NonTrovato(uid, "component", componenti));
-            string suffisso = (Str(a, "suffix", "_spec") ?? "_spec").Trim();
-            if (suffisso.Length == 0 || suffisso.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-                return Fallito("«suffix» va nel nome del file nuovo: lettere e cifre, per esempio «_sx».");
+            var c = PerUid(components, uid);
+            if (c == null) return Failed(NotFound(uid, "component", components));
+            string suffix = (Str(a, "suffix", "_spec") ?? "_spec").Trim();
+            if (suffix.Length == 0 || suffix.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                return Failed("«suffix» va nel nome del file nuovo: lettere e cifre, per esempio «_sx».");
             // N26: the orientation of a mirrored instance, always set and then checked.
             // An opposite-hand file is a new, mirrored part: SOLIDWORKS has no
             // orientation to choose for it (the orientations go with
@@ -232,12 +232,12 @@ namespace Oce.Solid.Agent.Core
             // there is refused rather than ignored.
             string orientationAsked = (Str(a, "orientation", "") ?? "").Trim().ToLowerInvariant();
             int orientation = orientationAsked.Length == 0 ? 0 : Array.IndexOf(MirrorOrientationNames, orientationAsked);
-            if (orientationAsked.Length > 0 && modo != "instance")
-                return Fallito("«orientation» applies only to a mirrored instance of the same file: an opposite-hand " +
+            if (orientationAsked.Length > 0 && mode != "instance")
+                return Failed("«orientation» applies only to a mirrored instance of the same file: an opposite-hand " +
                                "file is a new mirrored part and has no orientation to choose. Leave «orientation» out. " +
                                "Nothing was changed.");
             if (orientation < 0)
-                return Fallito("«orientation» is one of «" + string.Join("», «", MirrorOrientationNames) + "» (the first is " +
+                return Failed("«orientation» is one of «" + string.Join("», «", MirrorOrientationNames) + "» (the first is " +
                                "the default), not «" + orientationAsked + "». Nothing was changed.");
 
             // THE ASSEMBLY PLANE BY ITS GEOMETRY, NOT AS THE N-TH RefPlane OF THE
@@ -246,67 +246,67 @@ namespace Oce.Solid.Agent.Core
             // the RefPlanes («the third in order») mirrored on another plane as
             // soon as a plane sat before the default ones. Not N26, the
             // orientation of the instance, fixed in Z-C21.2-ter.
-            IFeature pianoF = Riferimenti.BasePlane(modello, piano, out string planeProblem);
-            if (pianoF == null)
-                return Fallito("I cannot find the assembly's «" + piano + "» plane: " + planeProblem +
+            IFeature planeF = References.BasePlane(model, plane, out string planeProblem);
+            if (planeF == null)
+                return Failed("I cannot find the assembly's «" + plane + "» plane: " + planeProblem +
                                " Nothing was changed.");
-            var centroPrima = CentroDelComponente(c);
-            if (centroPrima == null)
-                return Fallito("Non leggo dove sta «" + NomeDi(c) + "» nell'assieme: senza, non saprei verificare lo " +
+            var centerBefore = ComponentCenter(c);
+            if (centerBefore == null)
+                return Failed("Non leggo dove sta «" + NameOf(c) + "» nell'assieme: senza, non saprei verificare lo " +
                                "specchio. Non ho toccato niente.");
-            double[][] axesBefore = modo == "instance" ? ComponentAxes(c) : null;
-            if (modo == "instance" && axesBefore == null)
-                return Fallito("I cannot read the axes of «" + NomeDi(c) + "» in the assembly (Transform2): without them I " +
+            double[][] axesBefore = mode == "instance" ? ComponentAxes(c) : null;
+            if (mode == "instance" && axesBefore == null)
+                return Failed("I cannot read the axes of «" + NameOf(c) + "» in the assembly (Transform2): without them I " +
                                "could not check the orientation of the mirrored instance. Nothing was changed.");
-            string fileOriginale = "";
-            try { fileOriginale = c.GetPathName() ?? ""; } catch { }
-            var primaNomi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var v in componenti) primaNomi.Add(v.Key);
+            string originalFile = "";
+            try { originalFile = c.GetPathName() ?? ""; } catch { }
+            var namesBefore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var v in components) namesBefore.Add(v.Key);
 
-            IFeature nuova = null;
+            IFeature newOne = null;
             ApiHelpers.FeatureCreation creation = null;
             try
             {
                 // S10: CreateDefinition -> fill -> CreateFeature, and the error code
                 // of what was born, through ApiHelpers.CreateFeatureFromDefinition.
                 creation = ApiHelpers.CreateFeatureFromDefinition<IMirrorComponentFeatureData>(
-                    modello.FeatureManager, (int)swFeatureNameID_e.swFmMirrorComponent, dati =>
+                    model.FeatureManager, (int)swFeatureNameID_e.swFmMirrorComponent, data =>
                 {
-                    dati.MirrorPlane = pianoF;
-                    var quali = new Component2[] { (Component2)c };   // array TIPIZZATO (object[] fa feature fantasma)
-                    if (modo == "instance")
+                    data.MirrorPlane = planeF;
+                    var whichOnes = new Component2[] { (Component2)c };   // array TIPIZZATO (object[] fa feature fantasma)
+                    if (mode == "instance")
                     {
-                        dati.ComponentsToInstanceAlignToComponentOrigin = quali;
+                        data.ComponentsToInstanceAlignToComponentOrigin = whichOnes;
                         // N26: one orientation per component, typed as in
                         // Mirror_Components_II_Example_CSharp.htm; the page of
                         // ComponentsToInstanceAlignToComponentOrigin says «Use
                         // IMirrorComponentFeatureData::ComponentOrientationsAlignToComponentOrigin
                         // to specify the orientation of each component in this array».
-                        dati.ComponentOrientationsAlignToComponentOrigin =
+                        data.ComponentOrientationsAlignToComponentOrigin =
                             new swMirrorComponentOrientation2_e[] { MirrorOrientationValues[orientation] };
                     }
                     else
                     {
-                        dati.OppositeHandComponents = quali;
-                        dati.NameModifierType = (int)swMirrorComponentNameModifier_e.swMirrorComponentName_Suffix;
-                        dati.NameModifier = suffisso;
-                        dati.PlaceFilesInOneFolder = true;
-                        dati.MirrorComponentsFolderLocation = Path.GetDirectoryName(fileOriginale) ?? "";
-                        dati.BreakLinksToOriginalPart = modo == "opposite_unlinked";
-                        dati.CreateDerivedConfigurations = false;
+                        data.OppositeHandComponents = whichOnes;
+                        data.NameModifierType = (int)swMirrorComponentNameModifier_e.swMirrorComponentName_Suffix;
+                        data.NameModifier = suffix;
+                        data.PlaceFilesInOneFolder = true;
+                        data.MirrorComponentsFolderLocation = Path.GetDirectoryName(originalFile) ?? "";
+                        data.BreakLinksToOriginalPart = mode == "opposite_unlinked";
+                        data.CreateDerivedConfigurations = false;
                     }
-                    dati.MirrorType = (int)swMirrorComponentMirrorType_e.swMirrorType_CenterOfBoundingBox;
+                    data.MirrorType = (int)swMirrorComponentMirrorType_e.swMirrorType_CenterOfBoundingBox;
                     return true;
                 });
                 if (creation.Stage == ApiHelpers.CreationStage.Definition)
-                    return Fallito("SOLIDWORKS non ha dato la definizione dello specchio di componenti.");
-                nuova = creation.Feature;
+                    return Failed("SOLIDWORKS non ha dato la definizione dello specchio di componenti.");
+                newOne = creation.Feature;
             }
-            catch (Exception ex) { return Fallito("Lo specchio non e' riuscito: " + ex.Message); }
-            try { modello.EditRebuild3(); } catch { }
-            if (nuova == null)
-                return Fallito("SOLIDWORKS non ha creato lo specchio (CreateFeature ha risposto null). Se il file «" +
-                               Path.GetFileNameWithoutExtension(fileOriginale) + suffisso + "» c'e' gia', cambia «suffix».");
+            catch (Exception ex) { return Failed("Lo specchio non e' riuscito: " + ex.Message); }
+            try { model.EditRebuild3(); } catch { }
+            if (newOne == null)
+                return Failed("SOLIDWORKS non ha creato lo specchio (CreateFeature ha risposto null). Se il file «" +
+                               Path.GetFileNameWithoutExtension(originalFile) + suffix + "» c'e' gia', cambia «suffix».");
 
             // THE ERROR CODE OF THE MIRROR THAT WAS BORN (finding L11-7).
             // IFeatureManager~CreateFeature.html: «Use IFeature::GetErrorCode2
@@ -320,103 +320,103 @@ namespace Oce.Solid.Agent.Core
             // answers null there is no feature to ask, and the message above
             // says what else to check.
             // If the second reading cannot be made, the first one decides.
-            string mirrorError = ApiHelpers.RebuildError(nuova, out bool mirrorErrorKnown);
+            string mirrorError = ApiHelpers.RebuildError(newOne, out bool mirrorErrorKnown);
             if (mirrorError == null && !mirrorErrorKnown && creation != null) mirrorError = creation.ErrorPhrase;
             if (mirrorError != null)
-                return Fallito("The component mirror «" + SafeNome(nuova) + "» was born in error: " + mirrorError +
-                               "." + TogliLoSpecchio(modello, nuova, null));
+                return Failed("The component mirror «" + SafeName(newOne) + "» was born in error: " + mirrorError +
+                               "." + RemoveMirror(model, newOne, null));
 
             // IL COMPONENTE NUOVO: quello che prima non c'era.
-            object[] dopo = null;
-            try { dopo = assieme.GetComponents(false) as object[]; } catch { }
-            IComponent2 nuovo = null;
-            foreach (var v in StatoDocumento.ComponentiInOrdine(dopo))
-                if (!primaNomi.Contains(v.Key)) { nuovo = v.Value; break; }
-            if (nuovo == null)
-                return Fallito("Lo specchio «" + SafeNome(nuova) + "» c'e' ma non vedo un componente nuovo nell'assieme." +
-                               TogliLoSpecchio(modello, nuova, null));
-            string fileNuovo = "";
-            try { fileNuovo = nuovo.GetPathName() ?? ""; } catch { }
-            bool stessoFile = string.Equals(fileNuovo, fileOriginale, StringComparison.OrdinalIgnoreCase);
-            if (modo == "instance" && !stessoFile)
-                return Fallito("Ho chiesto un'istanza dello stesso file e SOLIDWORKS ha messo «" + Path.GetFileName(fileNuovo) + "»." +
-                               TogliLoSpecchio(modello, nuova, fileNuovo));
-            if (modo != "instance" && stessoFile)
-                return Fallito("Ho chiesto un file opposto e il componente nuovo usa ancora «" + Path.GetFileName(fileOriginale) + "»." +
-                               TogliLoSpecchio(modello, nuova, null));
+            object[] after = null;
+            try { after = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            IComponent2 newItem = null;
+            foreach (var v in DocumentState.ComponentsInOrder(after))
+                if (!namesBefore.Contains(v.Key)) { newItem = v.Value; break; }
+            if (newItem == null)
+                return Failed("Lo specchio «" + SafeName(newOne) + "» c'e' ma non vedo un componente nuovo nell'assieme." +
+                               RemoveMirror(model, newOne, null));
+            string newFile = "";
+            try { newFile = newItem.GetPathName() ?? ""; } catch { }
+            bool sameFile = string.Equals(newFile, originalFile, StringComparison.OrdinalIgnoreCase);
+            if (mode == "instance" && !sameFile)
+                return Failed("Ho chiesto un'istanza dello stesso file e SOLIDWORKS ha messo «" + Path.GetFileName(newFile) + "»." +
+                               RemoveMirror(model, newOne, newFile));
+            if (mode != "instance" && sameFile)
+                return Failed("Ho chiesto un file opposto e il componente nuovo usa ancora «" + Path.GetFileName(originalFile) + "»." +
+                               RemoveMirror(model, newOne, null));
             // IL LEGAME, LETTO DALL'ALBERO DEL FILE NUOVO: MirrorStock = legato.
-            bool? legato = null;
-            if (modo != "instance")
+            bool? linked = null;
+            if (mode != "instance")
             {
                 try
                 {
-                    var dn = nuovo.GetModelDoc2() as IModelDoc2;
+                    var dn = newItem.GetModelDoc2() as IModelDoc2;
                     var ff = dn?.FirstFeature() as IFeature;
-                    bool trovato = false;
-                    while (ff != null) { if (ff.GetTypeName2() == "MirrorStock") { trovato = true; break; } ff = ff.GetNextFeature() as IFeature; }
-                    if (dn != null) legato = trovato;
+                    bool found = false;
+                    while (ff != null) { if (ff.GetTypeName2() == "MirrorStock") { found = true; break; } ff = ff.GetNextFeature() as IFeature; }
+                    if (dn != null) linked = found;
                 }
                 catch { }
-                if (legato == null)
-                    return Fallito("Il file nuovo «" + Path.GetFileName(fileNuovo) + "» c'e', ma non leggo il suo albero: non " +
+                if (linked == null)
+                    return Failed("Il file nuovo «" + Path.GetFileName(newFile) + "» c'e', ma non leggo il suo albero: non " +
                                    "so dirti se segue l'originale. Aprilo e guarda se la prima lavorazione e' «Specchiato»." +
-                                   TogliLoSpecchio(modello, nuova, fileNuovo));
-                if (legato.Value != (modo == "opposite_linked"))
-                    return Fallito("Ho chiesto un file " + (modo == "opposite_linked" ? "legato" : "slegato") + " all'originale e «" +
-                                   Path.GetFileName(fileNuovo) + "» e' " + (legato.Value ? "legato" : "slegato") + "." +
-                                   TogliLoSpecchio(modello, nuova, fileNuovo));
+                                   RemoveMirror(model, newOne, newFile));
+                if (linked.Value != (mode == "opposite_linked"))
+                    return Failed("Ho chiesto un file " + (mode == "opposite_linked" ? "legato" : "slegato") + " all'originale e «" +
+                                   Path.GetFileName(newFile) + "» e' " + (linked.Value ? "legato" : "slegato") + "." +
+                                   RemoveMirror(model, newOne, newFile));
             }
             // IL POSTO: il centro del nuovo e lo specchio del centro dell'originale.
-            var centroNuovo = CentroDelComponente(nuovo);
-            var atteso = (double[])centroPrima.Clone();
-            atteso[quale == 1 ? 2 : quale == 2 ? 1 : 0] *= -1;   // frontale XY -> z, superiore XZ -> y, destro YZ -> x
-            double scarto = centroNuovo == null ? double.NaN :
-                Math.Sqrt(Math.Pow(centroNuovo[0] - atteso[0], 2) + Math.Pow(centroNuovo[1] - atteso[1], 2) + Math.Pow(centroNuovo[2] - atteso[2], 2));   // ScatolaDelCorpo da' gia' mm
-            if (double.IsNaN(scarto) || scarto > 0.01)
-                return Fallito("«" + NomeDi(nuovo) + "» e' nato, ma il suo centro " + (centroNuovo == null ? "non si legge" :
-                               "sta a " + scarto.ToString("0.###") + " mm dallo specchio dell'originale") + ": non e' lo specchio che volevi." +
-                               TogliLoSpecchio(modello, nuova, modo == "instance" ? null : fileNuovo));
+            var newCenter = ComponentCenter(newItem);
+            var expected = (double[])centerBefore.Clone();
+            expected[which == 1 ? 2 : which == 2 ? 1 : 0] *= -1;   // frontale XY -> z, superiore XZ -> y, destro YZ -> x
+            double deviation = newCenter == null ? double.NaN :
+                Math.Sqrt(Math.Pow(newCenter[0] - expected[0], 2) + Math.Pow(newCenter[1] - expected[1], 2) + Math.Pow(newCenter[2] - expected[2], 2));   // BodyBox da' gia' mm
+            if (double.IsNaN(deviation) || deviation > 0.01)
+                return Failed("«" + NameOf(newItem) + "» e' nato, ma il suo centro " + (newCenter == null ? "non si legge" :
+                               "sta a " + deviation.ToString("0.###") + " mm dallo specchio dell'originale") + ": non e' lo specchio che volevi." +
+                               RemoveMirror(model, newOne, mode == "instance" ? null : newFile));
             // N26: THE AXES, which the centre cannot see (all four orientations
             // measured with the centre 0 mm off). Read from Transform2 of the new
             // instance and compared with the orientation that was set.
             double[][] axesAfter = null;
-            if (modo == "instance")
+            if (mode == "instance")
             {
-                axesAfter = ComponentAxes(nuovo);
-                string axesProblem = MirrorAxesProblem(axesBefore, axesAfter, quale == 1 ? 2 : quale == 2 ? 1 : 0, orientation);
+                axesAfter = ComponentAxes(newItem);
+                string axesProblem = MirrorAxesProblem(axesBefore, axesAfter, which == 1 ? 2 : which == 2 ? 1 : 0, orientation);
                 if (axesProblem != null)
-                    return Fallito("«" + NomeDi(nuovo) + "» was born in the right place but not with the orientation " +
+                    return Failed("«" + NameOf(newItem) + "» was born in the right place but not with the orientation " +
                                    "«" + MirrorOrientationNames[orientation] + "»: " + axesProblem + "." +
-                                   TogliLoSpecchio(modello, nuova, null));
+                                   RemoveMirror(model, newOne, null));
             }
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["mirror"] = SafeNome(nuova),
-                ["mode"] = modo,
-                ["plane"] = piano,
-                ["new_component"] = NomeDi(nuovo),
-                ["file"] = fileNuovo,
-                ["new_file"] = !stessoFile,
-                ["linked_to_original"] = legato,
-                ["original_center_mm"] = new[] { Tondo(centroPrima[0]), Tondo(centroPrima[1]), Tondo(centroPrima[2]) },
-                ["new_center_mm"] = new[] { Tondo(centroNuovo[0]), Tondo(centroNuovo[1]), Tondo(centroNuovo[2]) },
+                ["mirror"] = SafeName(newOne),
+                ["mode"] = mode,
+                ["plane"] = plane,
+                ["new_component"] = NameOf(newItem),
+                ["file"] = newFile,
+                ["new_file"] = !sameFile,
+                ["linked_to_original"] = linked,
+                ["original_center_mm"] = new[] { Round(centerBefore[0]), Round(centerBefore[1]), Round(centerBefore[2]) },
+                ["new_center_mm"] = new[] { Round(newCenter[0]), Round(newCenter[1]), Round(newCenter[2]) },
                 // N26: the orientation set, and the axes read back that match it
                 // (null for an opposite-hand file, which has no orientation to set).
-                ["orientation"] = modo == "instance" ? MirrorOrientationNames[orientation] : null,
+                ["orientation"] = mode == "instance" ? MirrorOrientationNames[orientation] : null,
                 ["new_axes"] = axesAfter == null ? null : new Dictionary<string, object>
                 {
                     ["x"] = RoundedAxis(axesAfter[0]),
                     ["y"] = RoundedAxis(axesAfter[1]),
                     ["z"] = RoundedAxis(axesAfter[2]),
                 },
-                ["verdict"] = modo == "instance"
+                ["verdict"] = mode == "instance"
                     ? "Un'istanza dello stesso file, specchiata: vale per un pezzo simmetrico."
-                    : modo == "opposite_linked"
+                    : mode == "opposite_linked"
                         ? "Un file nuovo che SEGUE l'originale: cambi la destra e cambia anche la sinistra."
                         : "Un file nuovo INDIPENDENTE: correggi la destra e la sinistra resta com'era.",
             };
-            _log("[agente] specchiato " + NomeDi(c) + " (" + modo + ") -> " + NomeDi(nuovo));
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] specchiato " + NameOf(c) + " (" + mode + ") -> " + NameOf(newItem));
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -433,34 +433,34 @@ namespace Oce.Solid.Agent.Core
         /// this lot it said «the assembly is as it was» on the answer of
         /// DeleteSelection2 alone, and L11-7 added a caller).
         /// </summary>
-        private static string TogliLoSpecchio(IModelDoc2 modello, IFeature f, string fileNuovo)
+        private static string RemoveMirror(IModelDoc2 model, IFeature f, string newFile)
         {
-            string name = SafeNome(f);
+            string name = SafeName(f);
             bool deleted = false;
             try
             {
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
                 if (f != null && f.Select2(false, 0))
-                    deleted = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                modello.ClearSelection2(true);
-                modello.EditRebuild3();
+                    deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+                model.EditRebuild3();
             }
             catch { }
-            bool? stillInTree = deleted ? FeatureStillInTree(modello, name) : (bool?)null;
+            bool? stillInTree = deleted ? FeatureStillInTree(model, name) : (bool?)null;
             return MirrorRemovalNote(name, deleted, stillInTree,
-                                     string.IsNullOrEmpty(fileNuovo) ? null : Path.GetFileName(fileNuovo));
+                                     string.IsNullOrEmpty(newFile) ? null : Path.GetFileName(newFile));
         }
 
         /// <summary>
         /// Whether a feature of that name is still in the tree: null when the
         /// name is unknown or the tree cannot be walked to the end.
         /// </summary>
-        private static bool? FeatureStillInTree(IModelDoc2 modello, string name)
+        private static bool? FeatureStillInTree(IModelDoc2 model, string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
             try
             {
-                var f = modello.FirstFeature() as IFeature;
+                var f = model.FirstFeature() as IFeature;
                 while (f != null)
                 {
                     if (string.Equals(f.Name, name, StringComparison.Ordinal)) return true;
@@ -472,7 +472,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// The words of <see cref="TogliLoSpecchio"/>: «removed» only when the
+        /// The words of <see cref="RemoveMirror"/>: «removed» only when the
         /// deletion answered true AND the tree read again no longer holds the
         /// mirror. <paramref name="stillInTree"/> null is «not read».
         /// <paramref name="leftFile"/> is the file of the new component left on
@@ -494,7 +494,7 @@ namespace Oce.Solid.Agent.Core
                    " is gone: look at the assembly before going on." + file;
         }
 
-        private static string SafeNome(IFeature f)
+        private static string SafeName(IFeature f)
         {
             try { return f?.Name; } catch { return null; }
         }

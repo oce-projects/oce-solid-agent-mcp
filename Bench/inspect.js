@@ -11,11 +11,11 @@ const path = require("path");
 // comando come lo documenta README.md otteneva un ENOENT su un file che sul
 // suo disco non esiste, senza nessun indizio che andasse impostata `PONTE`.
 // `run_plans.js`, due file piu' in la', lo faceva gia' giusto.
-const RADICE = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const tutto = process.argv[2] === "tutto";
+const ROOT = path.resolve(__dirname, "..");
+const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const everything = process.argv[2] === "tutto";
 
-const richieste = [
+const requests = [
   { jsonrpc: "2.0", id: 1, method: "initialize",
     params: { protocolVersion: "2024-11-05", capabilities: {},
               clientInfo: { name: "banco", version: "1" } } },
@@ -25,19 +25,19 @@ const richieste = [
 ];
 
 const p = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
-let avanzo = "";
+let leftover = "";
 p.stderr.on("data", () => {});
 p.stdout.on("data", d => {
-  avanzo += d.toString();
+  leftover += d.toString();
   let i;
-  while ((i = avanzo.indexOf("\n")) >= 0) {
-    const riga = avanzo.slice(0, i).trim();
-    avanzo = avanzo.slice(i + 1);
-    if (!riga) continue;
-    let m; try { m = JSON.parse(riga); } catch (e) { continue; }
+  while ((i = leftover.indexOf("\n")) >= 0) {
+    const line = leftover.slice(0, i).trim();
+    leftover = leftover.slice(i + 1);
+    if (!line) continue;
+    let m; try { m = JSON.parse(line); } catch (e) { continue; }
     if (m.id !== 2) continue;
     const t = (m.result && m.result.content || []).map(c => c.text).join("\n");
-    if (tutto) { console.log(t); p.stdin.end(); return; }
+    if (everything) { console.log(t); p.stdin.end(); return; }
     let s; try { s = JSON.parse(t); } catch (e) { console.log(t); p.stdin.end(); return; }
     console.log(
       "documento: " + s.document_title +
@@ -50,4 +50,4 @@ p.stdout.on("data", d => {
     p.stdin.end();
   }
 });
-richieste.forEach(r => p.stdin.write(JSON.stringify(r) + "\n"));
+requests.forEach(r => p.stdin.write(JSON.stringify(r) + "\n"));

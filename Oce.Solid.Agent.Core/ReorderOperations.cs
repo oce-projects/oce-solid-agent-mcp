@@ -20,40 +20,40 @@ namespace Oce.Solid.Agent.Core
     ///
     /// LE LAVORAZIONI SI INDICANO PER NOME, come in tutto il ponte, e il nome si
     /// controlla col `feature_id` che lo stato ha dato (un nome si rinomina,
-    /// l'ID no): `LavorazioneEQuella`, la stessa difesa di `suppress_feature`.
+    /// l'ID no): `FeatureIsThatOne`, la stessa difesa di `suppress_feature`.
     /// Dopo lo spostamento si ricostruisce e si contano le lavorazioni in errore:
     /// se sono aumentate, la lavorazione torna dov'era e ci si rifiuta.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>I nomi delle lavorazioni in ordine d'albero (dopo l'origine).</summary>
-        private static List<string> OrdineDelleLavorazioni(IModelDoc2 modello)
+        private static List<string> FeatureOrder(IModelDoc2 model)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             try
             {
-                var f = modello.FirstFeature() as IFeature;
-                bool dopoOrigine = false;
+                var f = model.FirstFeature() as IFeature;
+                bool afterOrigin = false;
                 while (f != null)
                 {
                     string t = "";
                     try { t = f.GetTypeName2(); } catch { }
-                    if (t == "OriginProfileFeature") dopoOrigine = true;
-                    else if (dopoOrigine) { try { fuori.Add(f.Name); } catch { } }
+                    if (t == "OriginProfileFeature") afterOrigin = true;
+                    else if (afterOrigin) { try { outside.Add(f.Name); } catch { } }
                     f = f.GetNextFeature() as IFeature;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>Quante lavorazioni sono in errore (non solo avviso); -1 se non si legge.</summary>
-        private static int LavorazioniInErrore(IModelDoc2 modello)
+        private static int FeaturesInError(IModelDoc2 model)
         {
             try
             {
                 int n = 0;
-                var f = modello.FirstFeature() as IFeature;
+                var f = model.FirstFeature() as IFeature;
                 while (f != null)
                 {
                     // S11: ApiHelpers.RebuildError; a code that cannot be read
@@ -94,76 +94,76 @@ namespace Oce.Solid.Agent.Core
             return off.Count == 0 ? null : string.Join("; ", off);
         }
 
-        private Esito RiordinaLavorazione(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome ReorderFeature(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            if (!(modello is IPartDoc))
-                return Fallito("Riordino l'albero di un pezzo. Aprimi il pezzo.");
+            if (!(model is IPartDoc))
+                return Failed("Riordino l'albero di un pezzo. Aprimi il pezzo.");
             string uid = (Str(a, "feature_uid", "") ?? "").Trim();
-            string rispetto = (Str(a, "relative_to_uid", "") ?? "").Trim();
-            string dove = (Str(a, "placement", "") ?? "").Trim().ToLowerInvariant();
-            if (uid.Length == 0 || rispetto.Length == 0)
-                return Fallito("Dimmi «feature_uid» (la lavorazione da spostare) e «relative_to_uid» (quella accanto a " +
+            string comparedTo = (Str(a, "relative_to_uid", "") ?? "").Trim();
+            string location = (Str(a, "placement", "") ?? "").Trim().ToLowerInvariant();
+            if (uid.Length == 0 || comparedTo.Length == 0)
+                return Failed("Dimmi «feature_uid» (la lavorazione da spostare) e «relative_to_uid» (quella accanto a " +
                                "cui metterla): i nomi stanno nello stato, dentro «feature».");
-            if (dove != "before" && dove != "after")
-                return Fallito("«placement» e' «before» o «after» di «" + rispetto + "», non «" + dove + "».");
-            if (string.Equals(uid, rispetto, StringComparison.OrdinalIgnoreCase))
-                return Fallito("«" + uid + "» non si sposta rispetto a se stessa: indica un'altra lavorazione.");
-            string motivo;
-            if (!LavorazioneEQuella(modello, uid, a, out motivo)) return Fallito(motivo);
-            if (!LavorazioneEQuella(modello, rispetto, a, out motivo)) return Fallito(motivo);
-            var f = TrovaLavorazione(modello, uid);
-            var g = TrovaLavorazione(modello, rispetto);
+            if (location != "before" && location != "after")
+                return Failed("«placement» e' «before» o «after» di «" + comparedTo + "», non «" + location + "».");
+            if (string.Equals(uid, comparedTo, StringComparison.OrdinalIgnoreCase))
+                return Failed("«" + uid + "» non si sposta rispetto a se stessa: indica un'altra lavorazione.");
+            string reason;
+            if (!FeatureIsThatOne(model, uid, a, out reason)) return Failed(reason);
+            if (!FeatureIsThatOne(model, comparedTo, a, out reason)) return Failed(reason);
+            var f = FindFeature(model, uid);
+            var g = FindFeature(model, comparedTo);
             if (f == null || g == null)
             {
-                string ci = LavorazioniCheCiSono(modello);
-                return Fallito("Non trovo «" + (f == null ? uid : rispetto) + "» in questo documento." +
+                string ci = FeaturesThatExist(model);
+                return Failed("Non trovo «" + (f == null ? uid : comparedTo) + "» in questo documento." +
                                (ci.Length > 0 ? " Ci sono: " + ci + "." : ""));
             }
-            string nomeF = f.Name, nomeG = g.Name;
-            var ordinePrima = OrdineDelleLavorazioni(modello);
-            int posPrima = ordinePrima.IndexOf(nomeF);
+            string nameF = f.Name, nameG = g.Name;
+            var orderBefore = FeatureOrder(model);
+            int posBefore = orderBefore.IndexOf(nameF);
             // Dove rimetterla se lo spostamento rompe qualcosa: prima di quella che
             // la seguiva, o dopo quella che la precedeva se era l'ultima.
-            string seguente = posPrima >= 0 && posPrima + 1 < ordinePrima.Count ? ordinePrima[posPrima + 1] : null;
-            string precedente = posPrima > 0 ? ordinePrima[posPrima - 1] : null;
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            int erroriPrima = LavorazioniInErrore(modello);
+            string following = posBefore >= 0 && posBefore + 1 < orderBefore.Count ? orderBefore[posBefore + 1] : null;
+            string previous = posBefore > 0 ? orderBefore[posBefore - 1] : null;
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
+            int errorsBefore = FeaturesInError(model);
 
-            bool fatto;
+            bool done;
             try
             {
-                fatto = modello.Extension.ReorderFeature(nomeF, nomeG,
-                    dove == "before" ? (int)swMoveLocation_e.swMoveBefore : (int)swMoveLocation_e.swMoveAfter);
+                done = model.Extension.ReorderFeature(nameF, nameG,
+                    location == "before" ? (int)swMoveLocation_e.swMoveBefore : (int)swMoveLocation_e.swMoveAfter);
             }
-            catch (Exception ex) { return Fallito("Lo spostamento non e' riuscito: " + ex.Message); }
-            if (!fatto)
+            catch (Exception ex) { return Failed("Lo spostamento non e' riuscito: " + ex.Message); }
+            if (!done)
             {
                 // «NOTHING TOUCHED» IS READ BACK FIRST (Z-C21.8, finding M42): the
                 // order of the tree and the volume, against the ones read before
                 // the call. Measured on 27/9/2026 that a refused move touches
                 // nothing, and the sentence stays for that case only.
-                string changed = TreeReadBackFault(ordinePrima, OrdineDelleLavorazioni(modello), volumePrima, VolumeMm3(modello));
+                string changed = TreeReadBackFault(orderBefore, FeatureOrder(model), volumeBefore, VolumeMm3(model));
                 if (changed != null)
-                    return Fallito("SOLIDWORKS did not move «" + nomeF + "» " + (dove == "before" ? "before" : "after") + " «" + nomeG +
+                    return Failed("SOLIDWORKS did not move «" + nameF + "» " + (location == "before" ? "before" : "after") + " «" + nameG +
                                    "» (ReorderFeature answered false), and reading the part back it is not as it was: " + changed +
-                                   ". Look at the tree, and undo the step (" + Frasi.CosiSiRitira + ").");
-                return Fallito("SOLIDWORKS non sposta «" + nomeF + "» " + dove + " di «" + nomeG + "» (misurato: succede " +
+                                   ". Look at the tree, and undo the step (" + Sentences.HowToWithdrawIt + ").");
+                return Failed("SOLIDWORKS non sposta «" + nameF + "» " + location + " di «" + nameG + "» (misurato: succede " +
                                "quando la lavorazione dipende da una che verrebbe dopo, per esempio un foro sulla " +
                                "faccia di un'estrusione messo prima dell'estrusione). Non ho toccato niente: spostala " +
                                "rispetto a una lavorazione che viene dopo quelle da cui dipende.");
             }
-            try { modello.ForceRebuild3(false); } catch { }
-            int erroriDopo = LavorazioniInErrore(modello);
-            if (erroriPrima >= 0 && erroriDopo > erroriPrima)
+            try { model.ForceRebuild3(false); } catch { }
+            int errorsAfter = FeaturesInError(model);
+            if (errorsBefore >= 0 && errorsAfter > errorsBefore)
             {
                 // SI RIMETTE COM'ERA: un albero rotto non si consegna.
-                bool rimessa = false;
+                bool restored = false;
                 try
                 {
-                    if (seguente != null) rimessa = modello.Extension.ReorderFeature(nomeF, seguente, (int)swMoveLocation_e.swMoveBefore);
-                    else if (precedente != null) rimessa = modello.Extension.ReorderFeature(nomeF, precedente, (int)swMoveLocation_e.swMoveAfter);
-                    modello.ForceRebuild3(false);
+                    if (following != null) restored = model.Extension.ReorderFeature(nameF, following, (int)swMoveLocation_e.swMoveBefore);
+                    else if (previous != null) restored = model.Extension.ReorderFeature(nameF, previous, (int)swMoveLocation_e.swMoveAfter);
+                    model.ForceRebuild3(false);
                 }
                 catch { }
                 // «PUT BACK» IS SAID AFTER READING IT BACK (Z-C21.8, finding
@@ -171,52 +171,52 @@ namespace Oce.Solid.Agent.Core
                 // the tree as it was. The order, the volume and the features in
                 // error are read again.
                 string backFault = null;
-                if (rimessa)
+                if (restored)
                 {
-                    backFault = TreeReadBackFault(ordinePrima, OrdineDelleLavorazioni(modello), volumePrima, VolumeMm3(modello));
-                    int errorsNow = LavorazioniInErrore(modello);
-                    if (backFault == null && errorsNow != erroriPrima)
+                    backFault = TreeReadBackFault(orderBefore, FeatureOrder(model), volumeBefore, VolumeMm3(model));
+                    int errorsNow = FeaturesInError(model);
+                    if (backFault == null && errorsNow != errorsBefore)
                         backFault = "features in error: " + (errorsNow < 0 ? "not counted" : errorsNow.ToString()) +
-                                    " instead of " + erroriPrima;
+                                    " instead of " + errorsBefore;
                 }
-                string tail = !rimessa
-                    ? "Non sono riuscito a rimetterla: " + Frasi.CosiSiRitira + "."
+                string tail = !restored
+                    ? "Non sono riuscito a rimetterla: " + Sentences.HowToWithdrawIt + "."
                     : backFault == null
                         ? "L'ho rimessa dov'era."
                         : "I moved it back, but reading the part back it is not as it was: " + backFault +
-                          ". Undo the step (" + Frasi.CosiSiRitira + ").";
-                return Fallito("Spostata " + dove + " di «" + nomeG + "», «" + nomeF + "» ha rotto " + (erroriDopo - erroriPrima) +
-                               " lavorazioni (" + erroriDopo + " in errore invece di " + erroriPrima + "). " + tail +
+                          ". Undo the step (" + Sentences.HowToWithdrawIt + ").";
+                return Failed("Spostata " + location + " di «" + nameG + "», «" + nameF + "» ha rotto " + (errorsAfter - errorsBefore) +
+                               " lavorazioni (" + errorsAfter + " in errore invece di " + errorsBefore + "). " + tail +
                                " Di solito una lavorazione a valle si appoggiava a una faccia che adesso non c'e' ancora.");
             }
-            var ordineDopo = OrdineDelleLavorazioni(modello);
-            int iF = ordineDopo.IndexOf(nomeF), iG = ordineDopo.IndexOf(nomeG);
-            bool alPosto = iF >= 0 && iG >= 0 && (dove == "before" ? iF < iG : iF > iG);
-            if (!alPosto)
-                return Fallito("SOLIDWORKS dice di aver spostato «" + nomeF + "», ma nell'albero sta ancora " +
-                               (iF < iG ? "prima" : "dopo") + " di «" + nomeG + "». Non e' successo quello che volevi.");
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
-            var misure = new Dictionary<string, object>
+            var orderAfter = FeatureOrder(model);
+            int iF = orderAfter.IndexOf(nameF), iG = orderAfter.IndexOf(nameG);
+            bool inPlace = iF >= 0 && iG >= 0 && (location == "before" ? iF < iG : iF > iG);
+            if (!inPlace)
+                return Failed("SOLIDWORKS dice di aver spostato «" + nameF + "», ma nell'albero sta ancora " +
+                               (iF < iG ? "prima" : "dopo") + " di «" + nameG + "». Non e' successo quello che volevi.");
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
+            var measurements = new Dictionary<string, object>
             {
-                ["moved"] = nomeF,
-                ["location"] = dove,
-                ["relative_to"] = nomeG,
-                ["order_before"] = ordinePrima.ToArray(),
-                ["order_after"] = ordineDopo.ToArray(),
-                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["bodies_before"] = corpiPrima >= 0 ? (object)corpiPrima : null,
-                ["bodies_after"] = corpiDopo >= 0 ? (object)corpiDopo : null,
-                ["features_in_error"] = erroriDopo >= 0 ? (object)erroriDopo : null,
+                ["moved"] = nameF,
+                ["location"] = location,
+                ["relative_to"] = nameG,
+                ["order_before"] = orderBefore.ToArray(),
+                ["order_after"] = orderAfter.ToArray(),
+                ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
+                ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["bodies_before"] = bodiesBefore >= 0 ? (object)bodiesBefore : null,
+                ["bodies_after"] = bodiesAfter >= 0 ? (object)bodiesAfter : null,
+                ["features_in_error"] = errorsAfter >= 0 ? (object)errorsAfter : null,
             };
             // L'ORDINE CAMBIATO SENZA CHE IL PEZZO CAMBI si dice: di solito vuol dire
             // che le due lavorazioni non si toccano, e spostarle non serviva.
-            if (volumePrima != null && volumeDopo != null && Math.Abs(volumePrima.Value - volumeDopo.Value) < 0.01 && corpiPrima == corpiDopo)
-                misure["warning"] = "L'ordine e' cambiato ma il pezzo no (stesso volume, stessi corpi): quelle due " +
+            if (volumeBefore != null && volumeAfter != null && Math.Abs(volumeBefore.Value - volumeAfter.Value) < 0.01 && bodiesBefore == bodiesAfter)
+                measurements["warning"] = "L'ordine e' cambiato ma il pezzo no (stesso volume, stessi corpi): quelle due " +
                                        "lavorazioni non si toccano, e l'ordine fra loro non conta.";
-            _log("[agente] " + nomeF + " spostata " + dove + " di " + nomeG);
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] " + nameF + " spostata " + location + " di " + nameG);
+            return SucceededWithoutCreating(measurements);
         }
     }
 }

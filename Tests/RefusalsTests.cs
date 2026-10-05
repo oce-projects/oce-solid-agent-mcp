@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -49,7 +49,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// qui vorrebbe dire scrivere un messaggio peggiore apposta, e a quel
     /// punto il problema non e' il controllo.
     /// </summary>
-    internal static class ProveIRifiuti
+    internal static class RefusalsTests
     {
         /// <summary>
         /// Quanti rifiuti, sui **537 che hanno un messaggio proprio**, offrono
@@ -163,7 +163,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// quello dei messaggi nuovi e non una corrispondenza uno a uno.
         /// **146, stessa voce, dopo la revisione:** meno due — i rifiuti intermedi di
         /// `hole_wizard` (prima del posizionamento) non ci sono piu', e contavano
-        /// solo perche' «TogliIlTaglio» contiene «togli» — e piu' tre: in
+        /// solo perche' «RemoveCut» contiene «togli» — e piu' tre: in
         /// `combine_bodies` uid e `_ref` dati insieme («togli uno dei due»), e il
         /// passo di `main_body_ref` che lascia piu' corpi («nominalo con
         /// «main_body_uid»»).
@@ -233,8 +233,13 @@ namespace Oce.Solid.Agent.ContractTests
         /// directions) that named no remedy: the share net of W3.1-bis.2 caught
         /// them on the merge (236 of 937 under 236 of 935), and both now end with
         /// «ask for the mate once more».
+        /// **216, rename window 3 (W3.1-bis.6, 3/10/2026): the same messages.** A
+        /// refusal is judged on its string literals only, not on the names of
+        /// the code around them: the same count, 216 of 937, on the tree before
+        /// the window (4c9e465) and after it. The 22 more of the old 238 were
+        /// variables and methods whose Italian names held a remedy word.
         /// </summary>
-        private const int Pavimento = 238;
+        private const int Floor = 216;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -248,13 +253,13 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 238;   // 1/10/2026, merge with Z-C14: 238 of 937
+        private const int ShareFloorWithRemedy = 216;   // 3/10/2026, W3.1-bis.6: judged on the literals, 216 of 937 before and after the window
         private const int ShareFloorWithText = 937;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.
         /// </summary>
-        private static readonly string[] Aperture = { "Fallito(", "Rifiuta(", "NonPosso(" };
+        private static readonly string[] Aperture = { "Failed(", "Rifiuta(", "NonPosso(" };
 
         /// <summary>
         /// One remedy word in Italian, the English forms that translate it, and
@@ -389,46 +394,46 @@ namespace Oce.Solid.Agent.ContractTests
             }
         }
 
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("i rifiuti che dicono anche cosa fare (Z-G4)");
+            Group("i rifiuti che dicono anche cosa fare (Z-G4)");
 
-            var cartella = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
-            if (!Directory.Exists(cartella))
+            var folder = Path.Combine(Root(), "Oce.Solid.Agent.Core");
+            if (!Directory.Exists(folder))
             {
-                Segna("la cartella della libreria c'e'", false, "manca " + cartella);
+                Check("la cartella della libreria c'e'", false, "manca " + folder);
                 return;
             }
 
-            var sorgenti = Directory.GetFiles(cartella, "*.cs", SearchOption.AllDirectories)
+            var sources = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
                 .Select(f => new KeyValuePair<string, string[]>(Path.GetFileName(f), File.ReadAllLines(f)));
-            var tally = Count(sorgenti, ItalianForms, EnglishForms);
-            int totale = tally.Points, conTesto = tally.WithText, inoltrano = tally.Forwarded, conStrada = tally.WithRemedy;
+            var tally = Count(sources, ItalianForms, EnglishForms);
+            int total = tally.Points, withText = tally.WithText, forward = tally.Forwarded, withRoad = tally.WithRemedy;
 
-            Segna("i punti di rifiuto si contano", totale > 0,
-                  totale + " punti: " + conTesto + " con un messaggio proprio, " +
-                  inoltrano + " che ne inoltrano uno scritto altrove");
+            Check("i punti di rifiuto si contano", total > 0,
+                  total + " punti: " + withText + " con un messaggio proprio, " +
+                  forward + " che ne inoltrano uno scritto altrove");
 
             // IL PAVIMENTO SALE E NON SCENDE.
-            Segna("i rifiuti con una strada non sono diminuiti",
-                  conStrada >= Pavimento,
-                  conStrada + " su " + conTesto + " (" + (conTesto == 0 ? 0 : conStrada * 100 / conTesto) +
-                  "%), pavimento " + Pavimento);
+            Check("i rifiuti con una strada non sono diminuiti",
+                  withRoad >= Floor,
+                  withRoad + " su " + withText + " (" + (withText == 0 ? 0 : withRoad * 100 / withText) +
+                  "%), pavimento " + Floor);
 
-            Segna("e il pavimento e' quello vero", conStrada == Pavimento,
-                  conStrada == Pavimento
-                      ? conStrada + ", as measured"
-                      : "sono " + conStrada + ": alza il pavimento a questo numero");
+            Check("e il pavimento e' quello vero", withRoad == Floor,
+                  withRoad == Floor
+                      ? withRoad + ", as measured"
+                      : "sono " + withRoad + ": alza il pavimento a questo numero");
 
             // DOVE STANNO I MUTI, perche' un numero senza un indirizzo non fa
             // cominciare nessuno.
             var perFile = tally.Refusals.Where(r => !r.Italian && !r.English)
                 .GroupBy(r => r.File).ToDictionary(g => g.Key, g => g.Count());
-            var peggiori = perFile.OrderByDescending(x => x.Value).Take(5)
+            var worse = perFile.OrderByDescending(x => x.Value).Take(5)
                 .Select(x => x.Key + " (" + x.Value + ")");
-            Segna("si sa da dove cominciare", perFile.Count > 0 || conStrada == totale,
+            Check("si sa da dove cominciare", perFile.Count > 0 || withRoad == total,
                   perFile.Count == 0 ? "nessun rifiuto muto"
-                                     : "i piu' muti: " + string.Join(", ", peggiori));
+                                     : "i piu' muti: " + string.Join(", ", worse));
 
             Bilingual(tally);
         }
@@ -440,7 +445,7 @@ namespace Oce.Solid.Agent.ContractTests
         private static void Bilingual(Tally tally)
         {
             // THE SHARE, which a new mute refusal lowers.
-            Segna("the share of refusals that say what to do has not gone down",
+            Check("the share of refusals that say what to do has not gone down",
                   tally.AtLeast(ShareFloorWithRemedy, ShareFloorWithText),
                   Share(tally.PerMille) + " (" + tally.WithRemedy + " of " + tally.WithText + "), floor " +
                   ShareFloorWithRemedy + " of " + ShareFloorWithText +
@@ -456,7 +461,7 @@ namespace Oce.Solid.Agent.ContractTests
                     holes.Add("the sample of «" + r.Italian.Trim() + "» («" + r.Sample + "») is caught by none of " +
                               string.Join(", ", r.English.Select(e => "«" + e + "»")));
             }
-            Segna("every Italian remedy word has English partners, and they catch an English refusal that says the same",
+            Check("every Italian remedy word has English partners, and they catch an English refusal that says the same",
                   holes.Count == 0, holes.Count == 0 ? Remedies.Length + " words, " + EnglishForms.Length + " English forms"
                                                      : string.Join("; ", holes));
 
@@ -467,13 +472,13 @@ namespace Oce.Solid.Agent.ContractTests
             var words = ItalianFunctionWords();
             if (words == null)
             {
-                Segna("on the Italian refusals the English forms add nothing", false,
+                Check("on the Italian refusals the English forms add nothing", false,
                       "Checks/language/lexicon.json has no function_words to tell Italian from English");
                 return;
             }
             var italian = tally.Refusals.Where(r => LooksItalian(r.Prose, words)).ToList();
             var borrowed = italian.Where(r => r.English && !r.Italian).ToList();
-            Segna("on the Italian refusals the English forms add nothing (the same count as the Italian words alone)",
+            Check("on the Italian refusals the English forms add nothing (the same count as the Italian words alone)",
                   borrowed.Count == 0,
                   borrowed.Count == 0
                       ? italian.Count(r => r.Italian) + " of " + italian.Count + " Italian refusals, with or without the English forms"
@@ -492,14 +497,14 @@ namespace Oce.Solid.Agent.ContractTests
             // a new mute refusal lowers the share under the floor
             var two = new[]
             {
-                "return Fallito(" + Q + "The face is not planar. Use the top face instead." + Q + ");",
-                "return Fallito(" + Q + "The face is not planar." + Q + ");",
-                "return Fallito(errore);",
+                "return Failed(" + Q + "The face is not planar. Use the top face instead." + Q + ");",
+                "return Failed(" + Q + "The face is not planar." + Q + ");",
+                "return Failed(error);",
             };
             var t2 = Count(new[] { new KeyValuePair<string, string[]>("Fake.cs", two) }, ItalianForms, EnglishForms);
             if (!(t2.Points == 3 && t2.Forwarded == 1 && t2.WithText == 2 && t2.WithRemedy == 1 && t2.PerMille == 500))
                 wrong.Add("the fake source was counted " + t2.WithRemedy + "/" + t2.WithText + ", " + t2.Forwarded + " forwarded");
-            var three = two.Concat(new[] { "return Fallito(" + Q + "The edge is not straight." + Q + ");" }).ToArray();
+            var three = two.Concat(new[] { "return Failed(" + Q + "The edge is not straight." + Q + ");" }).ToArray();
             var t3 = Count(new[] { new KeyValuePair<string, string[]>("Fake.cs", three) }, ItalianForms, EnglishForms);
             if (!(t3.WithRemedy == t2.WithRemedy && t2.AtLeast(t2.WithRemedy, t2.WithText) &&
                   !t3.AtLeast(t2.WithRemedy, t2.WithText)))
@@ -514,7 +519,7 @@ namespace Oce.Solid.Agent.ContractTests
             else
             {
                 var piece = sentence.Split(' ').First(w => w.Length >= 5 && w.All(char.IsLetter)) + " ";
-                var fake = new[] { "return Fallito(" + Q + sentence + Q + ");" };
+                var fake = new[] { "return Failed(" + Q + sentence + Q + ");" };
                 var tf = Count(new[] { new KeyValuePair<string, string[]>("Fake.cs", fake) }, new string[0], new[] { piece });
                 bool caught = tf.Refusals.Count == 1 && LooksItalian(tf.Refusals[0].Prose, words) &&
                               tf.Refusals[0].English && !tf.Refusals[0].Italian;
@@ -525,7 +530,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (StartsAWord("the parts that i could not close because ", new[] { "use " }))
                 wrong.Add("«use » was taken inside «because »");
 
-            Segna("the counter, the share floor and the language guard turn red on fake sources",
+            Check("the counter, the share floor and the language guard turn red on fake sources",
                   wrong.Count == 0, wrong.Count == 0 ? "5 fakes ended as expected" : string.Join("; ", wrong));
         }
 
@@ -538,12 +543,12 @@ namespace Oce.Solid.Agent.ContractTests
             var tally = new Tally();
             foreach (var file in files)
             {
-                var righe = file.Value;
-                for (int i = 0; i < righe.Length; i++)
+                var lines = file.Value;
+                for (int i = 0; i < lines.Length; i++)
                 {
-                    var r = righe[i];
-                    var nudo = r.TrimStart();
-                    if (nudo.StartsWith("//", StringComparison.Ordinal)) continue;
+                    var r = lines[i];
+                    var bare = r.TrimStart();
+                    if (bare.StartsWith("//", StringComparison.Ordinal)) continue;
                     if (!Aperture.Any(a => r.Contains(a))) continue;
 
                     // IL MESSAGGIO CONTINUA SULLE RIGHE DOPO. Fermarsi alla
@@ -557,13 +562,13 @@ namespace Oce.Solid.Agent.ContractTests
                     // prendeva il «metti» del rifiuto successivo, e il
                     // pavimento e' salito di uno senza che nessuno scrivesse un
                     // messaggio migliore.
-                    var testo = r;
+                    var text = r;
                     if (!r.Contains(");"))
-                    for (int j = i + 1; j < righe.Length && j < i + 12; j++)
+                    for (int j = i + 1; j < lines.Length && j < i + 12; j++)
                     {
-                        if (righe[j].TrimStart().StartsWith("//", StringComparison.Ordinal)) continue;
-                        testo += " " + righe[j];
-                        if (righe[j].Contains(");")) break;
+                        if (lines[j].TrimStart().StartsWith("//", StringComparison.Ordinal)) continue;
+                        text += " " + lines[j];
+                        if (lines[j].Contains(");")) break;
                     }
 
                     tally.Points++;
@@ -576,19 +581,25 @@ namespace Oce.Solid.Agent.ContractTests
                     // dove il testo c'e' e una dove passa — e gonfiare il
                     // problema. Un punto senza nemmeno una virgoletta non ha
                     // un messaggio da giudicare.
-                    if (testo.IndexOf('"') < 0) { tally.Forwarded++; continue; }
+                    if (text.IndexOf('"') < 0) { tally.Forwarded++; continue; }
 
                     tally.WithText++;
-                    var basso = testo.ToLowerInvariant();
+                    // W3.1-bis.6: only what the message says, its string literals.
+                    // The statement around them names variables and methods: until
+                    // rename window 3 a variable or a method whose Italian name held
+                    // a remedy word (reactivate, remove) counted as a remedy, and the count moved
+                    // with the names of the code instead of with the messages.
+                    var down = string.Join(" ", Regex.Matches(text, @"""((?:[^""\\]|\\.)*)""").Cast<Match>()
+                                                  .Select(m => m.Groups[1].Value)).ToLowerInvariant();
                     tally.Refusals.Add(new Refusal
                     {
                         File = file.Key,
                         Line = i + 1,
-                        Text = basso,
-                        Prose = string.Join(" ", Regex.Matches(testo, @"""((?:[^""\\]|\\.)*)""").Cast<Match>()
+                        Text = down,
+                        Prose = string.Join(" ", Regex.Matches(text, @"""((?:[^""\\]|\\.)*)""").Cast<Match>()
                                                       .Select(m => m.Groups[1].Value).Where(s => s.IndexOf(' ') >= 0)),
-                        Italian = italian.Any(x => basso.Contains(x)),
-                        English = StartsAWord(basso, english),
+                        Italian = italian.Any(x => down.Contains(x)),
+                        English = StartsAWord(down, english),
                     });
                 }
             }
@@ -658,7 +669,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             try
             {
-                var file = Path.Combine(Radice(), "Checks", "language", "lexicon.json");
+                var file = Path.Combine(Root(), "Checks", "language", "lexicon.json");
                 var json = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue }
                     .DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
                 object value;

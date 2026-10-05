@@ -31,9 +31,9 @@ namespace Oce.Solid.Agent.Bridge
     /// c'e' piu'**: i nomi sono nomi, non stringhe, e un errore di battitura
     /// lo prende il compilatore invece del cliente.
     ///
-    /// Resta il late binding verso SOLIDWORKS (`DocumentoAttivo`,
-    /// `Identita`, `Chiama`), e non e' una svista: e' la strada misurata,
-    /// e il commento sopra `DocumentoAttivo` racconta perche'.
+    /// Resta il late binding verso SOLIDWORKS (`ActiveDocument`,
+    /// `Identity`, `Invoke`), e non e' una svista: e' la strada misurata,
+    /// e il commento sopra `ActiveDocument` racconta perche'.
     ///
     /// NON SI AVVIA SOLIDWORKS. Ci si aggancia a una sessione che c'e' gia'.
     /// Un ponte che avvia il programma decide per conto di chi lo usa quale
@@ -42,7 +42,7 @@ namespace Oce.Solid.Agent.Bridge
     /// </summary>
     // `partial`: il ciclo di vita del documento (nuovo, apri, elenca, attiva)
     // sta in Bridge/Documents.cs, voci Z-B1, Z-B2, Z-B5, Z-B6.
-    internal sealed partial class Sessione
+    internal sealed partial class Session
     {
         private object _sw;                 // ISldWorks, tenuto come object
 
@@ -50,8 +50,8 @@ namespace Oce.Solid.Agent.Bridge
         /// L'assembly della libreria, tenuto SOLO per dirne la versione.
         /// I tipi non si cercano piu' qui dentro: si nominano.
         /// </summary>
-        private Assembly _libreria;
-        private bool _caricata;
+        private Assembly _library;
+        private bool _loaded;
 
         /// <summary>
         /// Dove sta la libreria di disegno. Si puo' cambiare con
@@ -69,9 +69,9 @@ namespace Oce.Solid.Agent.Bridge
         /// invece di lasciargli credere che quella variabile conti ancora.
         /// La vecchia `OPENPDM_ADDIN` resta letta per lo stesso motivo.
         /// </summary>
-        public string PercorsoLibreria { get; private set; }
+        public string LibraryPath { get; private set; }
 
-        public bool Agganciata => _sw != null && _caricata;
+        public bool Attached => _sw != null && _loaded;
 
         /// <summary>
         /// WHY THE ATTACH FAILED, as a value and not as a sentence (entry H19,
@@ -85,9 +85,9 @@ namespace Oce.Solid.Agent.Bridge
 
         /// <summary>
         /// Dove SolidWorks tiene le sue librerie di interoperabilita'.
-        /// Si puo' cambiare con SW_INSTALL_PATH (vedi <see cref="RedistChiesto"/>).
+        /// Si puo' cambiare con SW_INSTALL_PATH (vedi <see cref="RedistRequested"/>).
         /// </summary>
-        private static readonly string[] PostiDelRedist =
+        private static readonly string[] RedistPlaces =
         {
             @"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist",
             @"C:\Program Files\SolidWorks Corp\SolidWorks\api\redist",
@@ -117,13 +117,13 @@ namespace Oce.Solid.Agent.Bridge
         /// smette di funzionare senza dirlo e' peggio di una che non c'e' mai
         /// stata.*
         /// </summary>
-        internal static string RedistChiesto()
+        internal static string RedistRequested()
         {
-            var radice = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
-            if (!string.IsNullOrWhiteSpace(radice))
-                return Path.Combine(radice.Trim(), "api", "redist");
-            var suo = System.Environment.GetEnvironmentVariable("SW_REDIST");
-            return string.IsNullOrWhiteSpace(suo) ? null : suo.Trim();
+            var root = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+            if (!string.IsNullOrWhiteSpace(root))
+                return Path.Combine(root.Trim(), "api", "redist");
+            var its = System.Environment.GetEnvironmentVariable("SW_REDIST");
+            return string.IsNullOrWhiteSpace(its) ? null : its.Trim();
         }
 
         /// <summary>
@@ -140,31 +140,31 @@ namespace Oce.Solid.Agent.Bridge
         /// versione e' sempre quella giusta per definizione: e' la stessa
         /// che sta girando.
         /// </summary>
-        private static void TrovaLeLibrerieDiSolidWorks()
+        private static void FindTheSolidWorksLibraries()
         {
-            AppDomain.CurrentDomain.AssemblyResolve += (mittente, argomento) =>
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, argument) =>
             {
-                var nome = new AssemblyName(argomento.Name).Name;
-                if (!nome.StartsWith("SolidWorks.Interop", StringComparison.OrdinalIgnoreCase))
+                var itemName = new AssemblyName(argument.Name).Name;
+                if (!itemName.StartsWith("SolidWorks.Interop", StringComparison.OrdinalIgnoreCase))
                     return null;
 
-                var posti = new List<string>();
-                var suo = RedistChiesto();
-                if (!string.IsNullOrWhiteSpace(suo)) posti.Add(suo);
-                posti.AddRange(PostiDelRedist);
+                var places = new List<string>();
+                var its = RedistRequested();
+                if (!string.IsNullOrWhiteSpace(its)) places.Add(its);
+                places.AddRange(RedistPlaces);
 
-                foreach (var cartella in posti)
+                foreach (var folder in places)
                 {
-                    var file = Path.Combine(cartella, nome + ".dll");
+                    var file = Path.Combine(folder, itemName + ".dll");
                     if (!File.Exists(file)) continue;
                     try { return Assembly.LoadFrom(file); }
                     catch (Exception ex)
                     {
-                        Mcp.Protocollo.Nota("[ponte] " + file + ": " + ex.Message);
+                        Mcp.Protocol.Note("[ponte] " + file + ": " + ex.Message);
                     }
                 }
-                Mcp.Protocollo.Nota(
-                    "[ponte] non trovo " + nome + ": indica dove e' installato " +
+                Mcp.Protocol.Note(
+                    "[ponte] non trovo " + itemName + ": indica dove e' installato " +
                     "SolidWorks nella variabile SW_INSTALL_PATH (la radice, " +
                     "quella che finisce con «\\SOLIDWORKS»).");
                 return null;
@@ -175,14 +175,14 @@ namespace Oce.Solid.Agent.Bridge
         /// Si aggancia, oppure spiega perche' no. Non solleva: un ponte che
         /// muore all'avvio non fa in tempo a dire niente a chi lo chiama.
         /// </summary>
-        public string Aggancia()
+        public string Attach()
         {
-            TrovaLeLibrerieDiSolidWorks();
-            PercorsoLibreria = System.Environment.GetEnvironmentVariable("RISCONTRO_DISEGNO");
-            if (string.IsNullOrWhiteSpace(PercorsoLibreria))
-                PercorsoLibreria = System.Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
-            if (string.IsNullOrWhiteSpace(PercorsoLibreria))
-                PercorsoLibreria = Path.Combine(
+            FindTheSolidWorksLibraries();
+            LibraryPath = System.Environment.GetEnvironmentVariable("RISCONTRO_DISEGNO");
+            if (string.IsNullOrWhiteSpace(LibraryPath))
+                LibraryPath = System.Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
+            if (string.IsNullOrWhiteSpace(LibraryPath))
+                LibraryPath = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
                     "Oce.Solid.Agent.Core.dll");
 
@@ -192,37 +192,37 @@ namespace Oce.Solid.Agent.Bridge
             // vorrebbe dire fermarsi per un percorso sbagliato mentre la
             // libreria giusta e' gia' in mano — un rifiuto di cio' che
             // funziona, che e' il difetto peggiore.
-            if (!File.Exists(PercorsoLibreria))
-                Mcp.Protocollo.Nota(
-                    "[ponte] «" + PercorsoLibreria + "» non esiste; uso quella " +
+            if (!File.Exists(LibraryPath))
+                Mcp.Protocol.Note(
+                    "[ponte] «" + LibraryPath + "» non esiste; uso quella " +
                     "caricata insieme all'eseguibile.");
 
             try
             {
                 // SI DICE QUALE FILE, ANCHE SE ADESSO IL TIPO E' COMPILATO.
                 //
-                // `OperazioniSw` arriva dal riferimento di progetto, quindi
+                // `SwOperations` arriva dal riferimento di progetto, quindi
                 // .NET la carica da solo dalla cartella dell'eseguibile. Ma
                 // chi ha impostato RISCONTRO_DISEGNO o OPENPDM_ADDIN si
                 // aspetta che serva a qualcosa, e una variabile che non fa
                 // niente e' peggio di una che non esiste: si tocca il tipo e
                 // si guarda DA DOVE e' venuto davvero, poi lo si confronta
                 // con quello che era stato chiesto.
-                _libreria = typeof(OperazioniSw).Assembly;
-                _caricata = true;
+                _library = typeof(SwOperations).Assembly;
+                _loaded = true;
 
-                var davvero = "";
-                try { davvero = _libreria.Location ?? ""; } catch { }
-                if (!string.IsNullOrEmpty(davvero) &&
+                var really = "";
+                try { really = _library.Location ?? ""; } catch { }
+                if (!string.IsNullOrEmpty(really) &&
                     !string.Equals(
-                        Path.GetFullPath(davvero), Path.GetFullPath(PercorsoLibreria),
+                        Path.GetFullPath(really), Path.GetFullPath(LibraryPath),
                         StringComparison.OrdinalIgnoreCase))
                 {
-                    Mcp.Protocollo.Nota(
-                        "[ponte] avviso: avevi indicato «" + PercorsoLibreria +
-                        "» ma sto usando «" + davvero + "». Le operazioni sono " +
+                    Mcp.Protocol.Note(
+                        "[ponte] avviso: avevi indicato «" + LibraryPath +
+                        "» ma sto usando «" + really + "». Le operazioni sono " +
                         "quelle del secondo.");
-                    PercorsoLibreria = davvero;
+                    LibraryPath = really;
                 }
             }
             catch (Exception ex)
@@ -257,7 +257,7 @@ namespace Oce.Solid.Agent.Bridge
             catch (COMException ex)
             {
                 Failure = FailureOf(ex.ErrorCode);
-                return MessaggioDiAggancio(ex.ErrorCode);
+                return AttachMessage(ex.ErrorCode);
             }
             catch (Exception ex)
             {
@@ -266,13 +266,13 @@ namespace Oce.Solid.Agent.Bridge
             }
 
             Failure = AttachFailure.None;
-            RicordaIlProcesso();
+            RememberProcess();
             return null;
         }
 
         /// <summary>
         /// The HRESULT of a failed `GetActiveObject` as a kind of failure:
-        /// the same three codes MessaggioDiAggancio tells apart in words.
+        /// the same three codes AttachMessage tells apart in words.
         /// </summary>
         internal static AttachFailure FailureOf(int hresult)
         {
@@ -311,7 +311,7 @@ namespace Oce.Solid.Agent.Bridge
         /// reads the exit code of `--prova`, which comes from FailureOf. They are
         /// for a person, and can be translated like any other message.
         /// </summary>
-        internal static string MessaggioDiAggancio(int hresult)
+        internal static string AttachMessage(int hresult)
         {
             switch (unchecked((uint)hresult))
             {
@@ -352,16 +352,16 @@ namespace Oce.Solid.Agent.Bridge
         /// non rifiutare. Un controllo nuovo che diventa una nuova causa di
         /// rifiuto e' un peggioramento, non una difesa.
         /// </summary>
-        private void RicordaIlProcesso()
+        private void RememberProcess()
         {
             _pid = 0;
             // Un nuovo aggancio cancella il ricordo del vecchio: e' proprio la
             // cosa che si fa dopo aver riavviato SOLIDWORKS.
-            _motivoDellaPerdita = null;
+            _lossReason = null;
             if (_sw == null) return;
             try
             {
-                var v = Chiama(_sw, "GetProcessID");
+                var v = Invoke(_sw, "GetProcessID");
                 if (v != null) _pid = Convert.ToInt32(v);
             }
             catch
@@ -371,7 +371,7 @@ namespace Oce.Solid.Agent.Bridge
                 // insegnerebbe a ignorarlo.
             }
             if (_pid <= 0)
-                Mcp.Protocollo.Nota(
+                Mcp.Protocol.Note(
                     "[ponte] non sono riuscito a sapere il processo di SolidWorks: " +
                     "se si chiude a meta' di un piano, me ne accorgero' dall'errore " +
                     "della chiamata e non prima.");
@@ -390,25 +390,25 @@ namespace Oce.Solid.Agent.Bridge
         /// non c'e' non deve diventare un rifiuto. Che non ci sia e' gia' stato
         /// detto all'aggancio.
         /// </summary>
-        public string SolidWorksECheSeNeEAndato()
+        public string SolidWorksHasGone()
         {
             // UNA VOLTA CHE SE N'E' ANDATO, RESTA ANDATO.
             // Il motivo si tiene e si ripete: dalla seconda chiamata in poi non
             // si va a ricontrollare un processo che non c'e', e soprattutto non
             // si degrada il messaggio.
-            if (_motivoDellaPerdita != null) return _motivoDellaPerdita;
+            if (_lossReason != null) return _lossReason;
             if (_pid <= 0) return null;
             try
             {
                 var p = System.Diagnostics.Process.GetProcessById(_pid);
-                if (p == null || p.HasExited) return Sparito();
+                if (p == null || p.HasExited) return Disappeared();
                 return null;
             }
             catch (ArgumentException)
             {
                 // Process.GetProcessById alza ArgumentException quando il
                 // processo non esiste piu'. E' il caso che stiamo cercando.
-                return Sparito();
+                return Disappeared();
             }
             catch
             {
@@ -418,28 +418,28 @@ namespace Oce.Solid.Agent.Bridge
             }
         }
 
-        private string _motivoDellaPerdita;
+        private string _lossReason;
 
         /// <summary>
         /// NON si azzera `_sw` qui, ed e' una scelta.
         ///
         /// Azzerarlo sembrava igiene — l'oggetto COM e' morto comunque — ma
-        /// rende `Agganciata` falsa, e allora `build` risponde «Il ponte non
+        /// rende `Attached` falsa, e allora `build` risponde «Il ponte non
         /// e' agganciato a SolidWorks»: vero, generico, e **peggiore** del
         /// messaggio che questa funzione ha appena costruito. Si sarebbe
         /// sostituita la causa con un sintomo, un giro dopo averla trovata.
         /// </summary>
-        private string Sparito()
+        private string Disappeared()
         {
-            _motivoDellaPerdita =
+            _lossReason =
                 "SolidWorks si e' chiuso: il processo a cui ero agganciato " +
                 "(PID " + _pid + ") non c'e' piu'. Quello che era gia' stato " +
                 "costruito e' rimasto nel documento e NON e' stato salvato. " +
                 "Riapri SolidWorks, riapri il pezzo, e rilancia il ponte.";
-            return _motivoDellaPerdita;
+            return _lossReason;
         }
 
-        public string VersioneSolidWorks()
+        public string SolidWorksVersion()
         {
             try
             {
@@ -450,9 +450,9 @@ namespace Oce.Solid.Agent.Bridge
             catch { return "?"; }
         }
 
-        public string VersioneLibreria()
+        public string LibraryVersion()
         {
-            try { return _libreria.GetName().Version.ToString(); }
+            try { return _library.GetName().Version.ToString(); }
             catch { return "?"; }
         }
 
@@ -468,14 +468,14 @@ namespace Oce.Solid.Agent.Bridge
         /// documento aperto» mentre ce ne sono venti — misurato l'11
         /// settembre 2026 alla prima prova del ponte.
         /// </summary>
-        public object DocumentoAttivo()
+        public object ActiveDocument()
         {
-            foreach (var nome in new[] { "ActiveDoc", "IActiveDoc2" })
+            foreach (var itemName in new[] { "ActiveDoc", "IActiveDoc2" })
             {
                 try
                 {
                     var d = _sw.GetType().InvokeMember(
-                        nome, BindingFlags.GetProperty, null, _sw, null);
+                        itemName, BindingFlags.GetProperty, null, _sw, null);
                     if (d != null) return d;
                 }
                 catch { }
@@ -497,23 +497,23 @@ namespace Oce.Solid.Agent.Bridge
         /// E' il difetto che questo progetto esiste per rendere impossibile,
         /// nella sua forma piu' pura, e stava nel ponte.
         /// </summary>
-        public Dictionary<string, object> Identita(object doc)
+        public Dictionary<string, object> Identity(object doc)
         {
             if (doc == null) return null;
-            string titolo = "", percorso = "";
-            try { titolo = Convert.ToString(Chiama(doc, "GetTitle")); } catch { }
-            try { percorso = Convert.ToString(Chiama(doc, "GetPathName")); } catch { }
+            string docTitle = "", filePath = "";
+            try { docTitle = Convert.ToString(Invoke(doc, "GetTitle")); } catch { }
+            try { filePath = Convert.ToString(Invoke(doc, "GetPathName")); } catch { }
             return new Dictionary<string, object>
             {
-                ["document_title"] = titolo ?? "",
-                ["path"] = percorso ?? "",
+                ["document_title"] = docTitle ?? "",
+                ["path"] = filePath ?? "",
             };
         }
 
-        private static object Chiama(object oggetto, string metodo)
+        private static object Invoke(object obj, string method)
         {
-            return oggetto.GetType().InvokeMember(
-                metodo, BindingFlags.InvokeMethod, null, oggetto, null);
+            return obj.GetType().InvokeMember(
+                method, BindingFlags.InvokeMethod, null, obj, null);
         }
 
         /// <summary>
@@ -523,7 +523,7 @@ namespace Oce.Solid.Agent.Bridge
         /// titolo e' il ripiego per i documenti mai salvati, che percorso non
         /// ne hanno — e sono proprio quelli su cui si lavora in prova.
         /// </summary>
-        public static bool StessoDocumento(
+        public static bool SameDocument(
             Dictionary<string, object> a, Dictionary<string, object> b)
         {
             if (a == null || b == null) return false;
@@ -549,9 +549,9 @@ namespace Oce.Solid.Agent.Bridge
         /// Lo stato del documento, ancora compresa: e' la lettura da cui si
         /// costruiscono le FIRME dei passi.
         /// </summary>
-        public Dictionary<string, object> Stato(out string errore)
+        public Dictionary<string, object> State(out string error)
         {
-            return Stato(true, out errore);
+            return State(true, out error);
         }
 
         /// <summary>
@@ -570,13 +570,13 @@ namespace Oce.Solid.Agent.Bridge
         /// non torna nemmeno a chi legge.
         ///
         /// Il nome e' diverso invece di essere un parametro in piu' sullo
-        /// stesso metodo: e' la lezione di `LeggiConAncora` — cambiare
+        /// stesso metodo: e' la lezione di `ReadWithAnchor` — cambiare
         /// l'insieme delle firme di un metodo rompe chi lo chiama per
         /// riflessione, anche quando il compilatore non dice niente.
         /// </summary>
-        public Dictionary<string, object> StatoSenzaAncora(out string errore)
+        public Dictionary<string, object> StateWithoutAnchor(out string error)
         {
-            return Stato(false, out errore);
+            return State(false, out error);
         }
 
         /// <summary>
@@ -592,23 +592,23 @@ namespace Oce.Solid.Agent.Bridge
         /// anchor: the caller wants the volume, the feature count and the
         /// identity, not signatures.
         /// </summary>
-        public Dictionary<string, object> StateOfDocument(object document, out string errore)
+        public Dictionary<string, object> StateOfDocument(object document, out string error)
         {
-            errore = null;
+            error = null;
             var model = document as IModelDoc2;
             if (model == null)
             {
-                errore = "The document of the plan is not held any more.";
+                error = "The document of the plan is not held any more.";
                 return null;
             }
             try
             {
-                var stato = LeggiStato(model, false);
-                return stato?.Dati;
+                var docState = ReadState(model, false);
+                return docState?.Data;
             }
             catch (Exception ex)
             {
-                errore = "I cannot read the document of the plan: " + ex.Message;
+                error = "I cannot read the document of the plan: " + ex.Message;
                 return null;
             }
         }
@@ -620,12 +620,12 @@ namespace Oce.Solid.Agent.Bridge
         /// </summary>
         public bool IsInFront(object document)
         {
-            return SameComObject(document, DocumentoAttivo());
+            return SameComObject(document, ActiveDocument());
         }
 
         /// <summary>
         /// Are <paramref name="a"/> and <paramref name="b"/> the same COM
-        /// object? By IUnknown, like the executor's StessoOggetto: the name of
+        /// object? By IUnknown, like the executor's SameObject: the name of
         /// a document changes when it is saved, the object does not, and a
         /// document closed and opened again is another object with an empty
         /// undo stack (Z-C21.14). False when either is null.
@@ -653,14 +653,14 @@ namespace Oce.Solid.Agent.Bridge
         /// What the executor reported about the last plan (Z-C21.14): its
         /// document, the document it ended on and what FinishRecordingUndoObject
         /// answered for the plan's undo entry. Null when the last call to
-        /// <see cref="EseguiPiano(List{PassoDelPiano}, out string, Mcp.Avanzamento.Filo, string)"/>
+        /// <see cref="ExecutePlan(List{PlanStep}, out string, Mcp.Progress.Wire, string)"/>
         /// stopped before an executor was made (SOLIDWORKS gone, no document,
         /// another bridge's turn): then nothing was written and no undo entry
         /// was recorded. When the executor threw, a result with nothing filled
         /// and <see cref="LastPlanExecutorThrew"/> true: what it wrote and
         /// recorded is not known.
         /// </summary>
-        public EsecutorePiano.Risultato LastPlanResult { get; private set; }
+        public PlanExecutor.Result LastPlanResult { get; private set; }
 
         /// <summary>
         /// True when the executor of the last plan threw instead of returning
@@ -677,23 +677,23 @@ namespace Oce.Solid.Agent.Bridge
         /// </summary>
         public object LastTurnRefusedDocument { get; private set; }
 
-        private Dictionary<string, object> Stato(bool conAncora, out string errore)
+        private Dictionary<string, object> State(bool withAnchor, out string error)
         {
-            errore = null;
-            var doc = DocumentoAttivo();
+            error = null;
+            var doc = ActiveDocument();
             if (doc == null)
             {
-                errore = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "Non c'e' nessun documento aperto in SolidWorks.";
                 return null;
             }
             try
             {
-                var stato = LeggiStato(doc, conAncora);
-                return stato?.Dati;
+                var docState = ReadState(doc, withAnchor);
+                return docState?.Data;
             }
             catch (Exception ex)
             {
-                errore = "Non riesco a leggere il documento: " + ex.Message;
+                error = "Non riesco a leggere il documento: " + ex.Message;
                 return null;
             }
         }
@@ -703,83 +703,83 @@ namespace Oce.Solid.Agent.Bridge
         /// senza, lo stato non sa dire quali ALTRI documenti sono aperti, e
         /// per le tavole quello non e' un di piu' ma una precondizione.
         /// </summary>
-        private StatoDocumento LeggiStato(object doc, bool conAncora)
+        private DocumentState ReadState(object doc, bool withAnchor)
         {
-            return StatoDocumento.LeggiConAncora(doc as IModelDoc2, _sw as ISldWorks, conAncora);
+            return DocumentState.ReadWithAnchor(doc as IModelDoc2, _sw as ISldWorks, withAnchor);
         }
 
         /// <summary>
         /// UNA FOTOGRAFIA del documento attivo, in PNG. Null col motivo.
         ///
-        /// Sta qui e non in `Attrezzi` per la stessa ragione di `Stato`: e'
-        /// `Sessione` che sa qual e' il documento davanti, e trovarlo e' la
-        /// meta' difficile — il commento sopra `DocumentoAttivo` racconta
+        /// Sta qui e non in `McpTools` per la stessa ragione di `State`: e'
+        /// `Session` che sa qual e' il documento davanti, e trovarlo e' la
+        /// meta' difficile — il commento sopra `ActiveDocument` racconta
         /// quanto e' costata.
         ///
         /// Il nome e' nuovo e non un parametro in piu' su qualcosa che c'era:
-        /// vedi `StatoSenzaAncora`, stessa regola, stessa pagina.
+        /// vedi `StateWithoutAnchor`, stessa regola, stessa pagina.
         /// </summary>
-        public byte[] Fotografia(string quale, int larghezza, int altezza, out string errore)
+        public byte[] Snapshot(string which, int width, int height, out string error)
         {
-            errore = null;
-            var doc = DocumentoAttivo();
+            error = null;
+            var doc = ActiveDocument();
             if (doc == null)
             {
-                errore = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "Non c'e' nessun documento aperto in SolidWorks.";
                 return null;
             }
 
-            var modello = doc as IModelDoc2;
-            if (modello == null)
+            var model = doc as IModelDoc2;
+            if (model == null)
             {
-                errore = "Il documento davanti non si lascia fotografare.";
+                error = "Il documento davanti non si lascia fotografare.";
                 return null;
             }
 
-            return VistaDelPezzo.Scatta(modello, quale, larghezza, altezza, out errore);
+            return PartView.Fire(model, which, width, height, out error);
         }
 
         /// <summary>I nomi delle viste che si possono chiedere.</summary>
-        public static IEnumerable<string> NomiDelleViste
+        public static IEnumerable<string> ViewNames
         {
-            get { return VistaDelPezzo.NomiDelleViste; }
+            get { return PartView.ViewNames; }
         }
 
         /// <summary>I piani su cui si puo' sezionare.</summary>
-        public static IEnumerable<string> NomiDeiPiani
+        public static IEnumerable<string> PlaneNames
         {
-            get { return VistaDelPezzo.NomiDeiPiani; }
+            get { return PartView.PlaneNames; }
         }
 
         /// <summary>
         /// UNO SPACCATO del documento attivo, in PNG (voce V4). Null col
         /// motivo.
         ///
-        /// Nome nuovo accanto a `Fotografia`, non parametri in piu' su quella:
-        /// stessa regola di `StatoSenzaAncora`, e qui vale doppio perche'
-        /// `Fotografia` e' gia' chiamata da `Attrezzi`.
+        /// Nome nuovo accanto a `Snapshot`, non parametri in piu' su quella:
+        /// stessa regola di `StateWithoutAnchor`, e qui vale doppio perche'
+        /// `Snapshot` e' gia' chiamata da `McpTools`.
         /// </summary>
-        public byte[] Spaccato(
-            string quale, string piano, double offsetMm,
-            int larghezza, int altezza, out string errore)
+        public byte[] Cutaway(
+            string which, string plane, double offsetMm,
+            int width, int height, out string error)
         {
-            errore = null;
-            var doc = DocumentoAttivo();
+            error = null;
+            var doc = ActiveDocument();
             if (doc == null)
             {
-                errore = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "Non c'e' nessun documento aperto in SolidWorks.";
                 return null;
             }
 
-            var modello = doc as IModelDoc2;
-            if (modello == null)
+            var model = doc as IModelDoc2;
+            if (model == null)
             {
-                errore = "Il documento davanti non si lascia fotografare.";
+                error = "Il documento davanti non si lascia fotografare.";
                 return null;
             }
 
-            return VistaDelPezzo.ScattaInSezione(
-                modello, quale, piano, offsetMm, larghezza, altezza, out errore);
+            return PartView.CaptureInSection(
+                model, which, plane, offsetMm, width, height, out error);
         }
 
         /// <summary>
@@ -791,7 +791,7 @@ namespace Oce.Solid.Agent.Bridge
         /// e' l'API, e fa la stessa cosa che fa `Ctrl+Z` su
         /// `Checks\Undo`, dove e' gia' provata.
         ///
-        /// UN PASSO SOLO, E NON E' UN DETTAGLIO. `EsecutorePiano` apre e chiude
+        /// UN PASSO SOLO, E NON E' UN DETTAGLIO. `PlanExecutor` apre e chiude
         /// UNA voce di annullamento intorno all'intero piano
         /// (`StartRecordingUndoObject` / `FinishRecordingUndoObject`): un passo
         /// indietro disfa il piano intero. E' il criterio di chiusura della
@@ -800,17 +800,17 @@ namespace Oce.Solid.Agent.Bridge
         ///
         /// `EditUndo2` torna `void`: non dice se ha annullato. Chi chiama deve
         /// GUARDARE il documento dopo — che e' esattamente cio' che fa
-        /// `Attrezzi.Annulla`, e l'unica ragione per cui questa operazione e'
+        /// `McpTools.Undo`, e l'unica ragione per cui questa operazione e'
         /// difendibile.
         ///
         /// AND A WRONG PRESS CANNOT BE TAKEN BACK when what it removed was an
-        /// undo entry recorded through the API (see `UnPassoAvanti`, probe
-        /// `redo` of 1/10/2026). That is why `Attrezzi.Annulla` refuses before
+        /// undo entry recorded through the API (see `StepForward`, probe
+        /// `redo` of 1/10/2026). That is why `McpTools.Undo` refuses before
         /// pressing whenever it knows a foreign entry is on top (Z-C21.14).
         /// </summary>
-        public string UnPassoIndietro()
+        public string StepBack()
         {
-            var doc = DocumentoAttivo() as IModelDoc2;
+            var doc = ActiveDocument() as IModelDoc2;
             if (doc == null) return "Non c'e' nessun documento aperto in SolidWorks.";
             try { doc.EditUndo2(1); return null; }
             catch (Exception ex) { return "SOLIDWORKS non ha annullato: " + ex.Message; }
@@ -831,13 +831,13 @@ namespace Oce.Solid.Agent.Bridge
         /// ForceRebuild3, with the obsolete Finish and with Finish2, first item
         /// or not, the plan executor's own entry included. Every plan of this
         /// bridge is such an entry. So this is not a way to take back a wrong
-        /// undo: `Attrezzi.Annulla` calls it only after a press that took away
+        /// undo: `McpTools.Undo` calls it only after a press that took away
         /// something visible, and re-reads the part to say whether it came
         /// back, never assuming it.
         /// </summary>
-        public string UnPassoAvanti()
+        public string StepForward()
         {
-            var doc = DocumentoAttivo() as IModelDoc2;
+            var doc = ActiveDocument() as IModelDoc2;
             if (doc == null) return "Non c'e' nessun documento aperto in SolidWorks.";
             try { doc.EditRedo2(1); return null; }
             catch (Exception ex) { return "SOLIDWORKS non ha rifatto: " + ex.Message; }
@@ -847,7 +847,7 @@ namespace Oce.Solid.Agent.Bridge
         /// IL PIANO INTERO, ESEGUITO DALLA LIBRERIA E NON DAL PONTE.
         ///
         /// Fino alla 0.14.0 il ponte aveva un giro suo: un
-        /// <see cref="OperazioniSw"/> nuovo a ogni passo e `passiFatti` a
+        /// <see cref="SwOperations"/> nuovo a ogni passo e `stepsDone` a
         /// `null`. Funzionava, e costava tre cose misurabili:
         ///
         ///   * **niente riferimenti fra passi.** Un piano di due passi in cui il
@@ -861,27 +861,27 @@ namespace Oce.Solid.Agent.Bridge
         ///     sono due comportamenti che divergono, e le prove si fanno su una
         ///     sola delle due.
         ///
-        /// Adesso il ciclo e' <see cref="EsecutorePiano"/>, lo stesso
+        /// Adesso il ciclo e' <see cref="PlanExecutor"/>, lo stesso
         /// dell'add-in, e il ponte gli passa i passi attraverso
-        /// <see cref="PianoInMemoria"/>.
+        /// <see cref="PlanInMemory"/>.
         ///
         /// SUL FILO E SULL'ASINCRONO. Il ponte e' sincrono: legge una riga da
         /// standard input, risponde, ricomincia. Non c'e' nessun filo di
-        /// SOLIDWORKS separato su cui accodare, quindi `sulThreadSw` esegue
+        /// SOLIDWORKS separato su cui accodare, quindi `onThreadSw` esegue
         /// sul posto e `GetAwaiter().GetResult()` non puo' incastrarsi — tutte
         /// le attese si completano prima di essere attese.
         /// </summary>
-        public List<Dictionary<string, object>> EseguiPiano(
-            List<PassoDelPiano> passi, out string errore)
+        public List<Dictionary<string, object>> ExecutePlan(
+            List<PlanStep> steps, out string error)
         {
-            return EseguiPiano(passi, out errore, null, null);
+            return ExecutePlan(steps, out error, null, null);
         }
 
-        public List<Dictionary<string, object>> EseguiPiano(
-            List<PassoDelPiano> passi, out string errore,
-            Mcp.Avanzamento.Filo filo)
+        public List<Dictionary<string, object>> ExecutePlan(
+            List<PlanStep> steps, out string error,
+            Mcp.Progress.Wire wire)
         {
-            return EseguiPiano(passi, out errore, filo, null);
+            return ExecutePlan(steps, out error, wire, null);
         }
 
         /// <summary>
@@ -894,11 +894,11 @@ namespace Oce.Solid.Agent.Bridge
         /// the caller's reading and now. Null: the executor takes the active
         /// document, as before.
         /// </summary>
-        public List<Dictionary<string, object>> EseguiPiano(
-            List<PassoDelPiano> passi, out string errore,
-            Mcp.Avanzamento.Filo filo, string expectedDocument)
+        public List<Dictionary<string, object>> ExecutePlan(
+            List<PlanStep> steps, out string error,
+            Mcp.Progress.Wire wire, string expectedDocument)
         {
-            errore = null;
+            error = null;
             // Z-C21.14: what a plan before this one reported must not be read
             // as this plan's.
             LastPlanResult = null;
@@ -908,17 +908,17 @@ namespace Oce.Solid.Agent.Bridge
             // PRIMA DI TUTTO: c'e' ancora qualcuno dall'altra parte?
             //
             // Senza questa riga, un SOLIDWORKS chiuso dopo l'aggancio si
-            // manifesta come `DocumentoAttivo()` che torna null, e il ponte
+            // manifesta come `ActiveDocument()` che torna null, e il ponte
             // risponde «non c'e' nessun documento aperto» — che e' vero e manda
             // a cercare la cosa sbagliata: si va ad aprire un pezzo dentro un
             // SOLIDWORKS che non esiste piu'.
-            errore = SolidWorksECheSeNeEAndato();
-            if (errore != null) return null;
+            error = SolidWorksHasGone();
+            if (error != null) return null;
 
-            var doc = DocumentoAttivo();
+            var doc = ActiveDocument();
             if (doc == null)
             {
-                errore = "Non c'e' nessun documento aperto in SolidWorks.";
+                error = "Non c'e' nessun documento aperto in SolidWorks.";
                 return null;
             }
 
@@ -933,13 +933,13 @@ namespace Oce.Solid.Agent.Bridge
             // niente: sono due oggetti COM diversi che guardano lo stesso file.
             //
             // Qui il turno se lo prendono a vicenda con un mutex di sistema.
-            using (var turno = TurnoSulDocumento.Prendi(doc, out string diChiE))
+            using (var turn = DocumentTurn.Take(doc, out string whose))
             {
-                if (turno == null)
+                if (turn == null)
                 {
-                    errore =
+                    error =
                         "Un altro ponte sta gia' lavorando su questo documento (" +
-                        diChiE + "). Non eseguo: due piani sullo stesso pezzo, " +
+                        whose + "). Non eseguo: due piani sullo stesso pezzo, " +
                         "uno sopra l'altro, danno un pezzo che non e' nessuno dei " +
                         "due e nessuno dei due se ne accorge. Aspetta che finisca, " +
                         "oppure lavora su un altro documento.";
@@ -947,7 +947,7 @@ namespace Oce.Solid.Agent.Bridge
                     LastTurnRefusedDocument = doc;
                     return null;
                 }
-                return EseguiIlPiano(passi, out errore, filo, expectedDocument);
+                return RunPlan(steps, out error, wire, expectedDocument);
             }
         }
 
@@ -955,7 +955,7 @@ namespace Oce.Solid.Agent.Bridge
         /// Il piano vero e proprio, una volta che il turno sul documento e'
         /// nostro.
         ///
-        /// NON prende `doc`: `EsecutorePiano` lavora attraverso `_sw` e trova il
+        /// NON prende `doc`: `PlanExecutor` lavora attraverso `_sw` e trova il
         /// documento da se'. Passarglielo sarebbe un parametro che dice il falso
         /// su cosa serve a questo metodo — e il primo che lo legge penserebbe
         /// che il documento arrivi di qui.
@@ -965,32 +965,32 @@ namespace Oce.Solid.Agent.Bridge
         /// against (Z-C21.14, review F7): the executor still finds the document
         /// itself, and refuses before writing when it is another one.
         /// </summary>
-        private List<Dictionary<string, object>> EseguiIlPiano(
-            List<PassoDelPiano> passi, out string errore,
-            Mcp.Avanzamento.Filo filo, string expectedDocument)
+        private List<Dictionary<string, object>> RunPlan(
+            List<PlanStep> steps, out string error,
+            Mcp.Progress.Wire wire, string expectedDocument)
         {
-            errore = null;
-            var fonte = new PianoInMemoria(passi, filo);
-            var esecutore = new EsecutorePiano(
+            error = null;
+            var source = new PlanInMemory(steps, wire);
+            var executor = new PlanExecutor(
                 _sw as ISldWorks,
-                fonte,
-                riga => Mcp.Protocollo.Nota("  " + riga),
+                source,
+                line => Mcp.Protocol.Note("  " + line),
                 f => System.Threading.Tasks.Task.FromResult(f()))
             {
                 // Il nome che l'utente legge nel menu «Annulla» di SOLIDWORKS.
-                NomeAnnullamento = "Ponte MCP",
+                UndoName = "Ponte MCP",
 
                 // QUI SI', E SOLO QUI. Il ponte lavora apposta su parti appena
                 // aperte e mai salvate: senza questo, il suo caso normale
                 // sarebbe rifiutato con «salvalo su disco prima». Nell'add-in
                 // resta falso, e c'e' un controllo che lo sorveglia.
-                DocumentoSenzaFile = true,
+                DocumentWithoutFile = true,
 
                 // E anche qui, e solo qui. Il catalogo del ponte porta cinque
                 // operazioni di tavola: rifiutare le tavole renderebbe inutili
                 // proprio quelle. L'assistente dell'add-in disegna pezzi, e li'
                 // resta falso.
-                AncheSuTavole = true,
+                AlsoOnDrawings = true,
 
                 // E il terzo, per la stessa ragione esatta. Il catalogo del
                 // ponte porta `insert_component`, `mate`,
@@ -1000,8 +1000,8 @@ namespace Oce.Solid.Agent.Bridge
                 // Il banco non poteva accorgersene: chiama la libreria, non il
                 // ponte. Adesso c'e' un controllo che confronta le famiglie del
                 // catalogo coi tipi ammessi — `Tests\Program.cs` →
-                // `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`.
-                AncheSuAssiemi = true,
+                // `EveryCatalogFamilyHasAnAllowedDocument`.
+                AlsoOnAssemblies = true,
             };
 
             try
@@ -1009,32 +1009,32 @@ namespace Oce.Solid.Agent.Bridge
                 // Until the executor returns, what it recorded is unknown
                 // (Z-C21.14): a throw below leaves this result, not null, and
                 // LastPlanExecutorThrew says so.
-                LastPlanResult = new EsecutorePiano.Risultato();
+                LastPlanResult = new PlanExecutor.Result();
                 LastPlanExecutorThrew = true;
-                var esito = esecutore
-                    .EseguiAsync(string.IsNullOrEmpty(expectedDocument) ? null : expectedDocument)
+                var outcome = executor
+                    .RunAsync(string.IsNullOrEmpty(expectedDocument) ? null : expectedDocument)
                     .GetAwaiter()
                     .GetResult();
-                LastPlanResult = esito;
+                LastPlanResult = outcome;
                 LastPlanExecutorThrew = false;
 
                 // L'ERRORE SI RIPORTA ANCHE QUANDO GLI ESITI LO DICONO GIA'.
                 // Un piano fermato PRIMA del primo passo — documento sbagliato,
                 // controlli preliminari — non lascia nessun esito, e senza
                 // questo il ponte risponderebbe «nessun passo, tutto bene».
-                if (!esito.Completato && !string.IsNullOrEmpty(esito.Errore))
-                    errore = NominaLaCausaVera(esito.Errore, fonte.Esiti);
-                return fonte.Esiti;
+                if (!outcome.Completed && !string.IsNullOrEmpty(outcome.Error))
+                    error = NameTheTrueCause(outcome.Error, source.Outcomes);
+                return source.Outcomes;
             }
             catch (TargetInvocationException ex)
             {
-                errore = NominaLaCausaVera((ex.InnerException ?? ex).Message, fonte.Esiti);
-                return fonte.Esiti;
+                error = NameTheTrueCause((ex.InnerException ?? ex).Message, source.Outcomes);
+                return source.Outcomes;
             }
             catch (Exception ex)
             {
-                errore = NominaLaCausaVera(ex.Message, fonte.Esiti);
-                return fonte.Esiti;
+                error = NameTheTrueCause(ex.Message, source.Outcomes);
+                return source.Outcomes;
             }
         }
 
@@ -1056,19 +1056,19 @@ namespace Oce.Solid.Agent.Bridge
         /// riparare. E si dice **quanti passi erano gia' andati**, che e' cio'
         /// che serve per sapere com'e' rimasto il documento.
         /// </summary>
-        private string NominaLaCausaVera(
-            string originale, List<Dictionary<string, object>> esiti)
+        private string NameTheTrueCause(
+            string original, List<Dictionary<string, object>> outcomes)
         {
-            var sparito = SolidWorksECheSeNeEAndato();
-            if (sparito == null) return originale;
+            var disappeared = SolidWorksHasGone();
+            if (disappeared == null) return original;
 
             // ZERO-E-ZERO: `outcomes` e' la nostra lista, non una lettura dal CAD.
-            int fatti = esiti == null ? 0 : esiti.Count;
-            return sparito +
-                   " Si e' fermato dopo " + fatti +
-                   (fatti == 1 ? " passo" : " passi") +
+            int done = outcomes == null ? 0 : outcomes.Count;
+            return disappeared +
+                   " Si e' fermato dopo " + done +
+                   (done == 1 ? " passo" : " passi") +
                    ". Quello che SolidWorks aveva risposto per ultimo: «" +
-                   originale + "».";
+                   original + "».";
         }
     }
 

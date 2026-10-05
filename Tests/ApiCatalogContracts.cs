@@ -5,8 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using static Oce.Solid.Agent.ContractTests.Programma;
-using static Shared.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Program;
+using static Shared.McpClient;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -54,21 +54,21 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void Run()
         {
-            Gruppo("api_search and api_signature: the whole API by reflection (U1.1)");
+            Group("api_search and api_signature: the whole API by reflection (U1.1)");
 
-            var redist = DoveStaLInterop();
+            var redist = WhereTheInteropIs();
             if (redist == null)
             {
-                NonQui("the API catalog matches the interop",
+                NotHere("the API catalog matches the interop",
                        "SOLIDWORKS is not installed here: without api\\redist\\SolidWorks.Interop.* " +
                        "there is no API to reflect on.");
                 return;
             }
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                Segna("the library is built", false,
+                Check("the library is built", false,
                       library + " is missing, and SOLIDWORKS is installed (" + redist + "): build it");
                 return;
             }
@@ -76,12 +76,12 @@ namespace Oce.Solid.Agent.ContractTests
             try { _catalog = LoadCatalog(library, redist); }
             catch (Exception ex)
             {
-                Segna("ApiCatalog loads", false, ex.GetType().Name + ": " + ex.Message);
+                Check("ApiCatalog loads", false, ex.GetType().Name + ": " + ex.Message);
                 return;
             }
             if (_catalog == null)
             {
-                Segna("ApiCatalog exists in the library", false,
+                Check("ApiCatalog exists in the library", false,
                       "no type Oce.Solid.Agent.Core.Api.ApiCatalog in " + library);
                 return;
             }
@@ -136,7 +136,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static string KnowledgeJson()
         {
-            var file = Path.Combine(Radice(), "Tools", "api_knowledge.json");
+            var file = Path.Combine(Root(), "Tools", "api_knowledge.json");
             return File.Exists(file) ? File.ReadAllText(file, Encoding.UTF8) : null;
         }
 
@@ -166,7 +166,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void InventoryMatches(string redist)
         {
-            var script = Path.Combine(Radice(), "Checks", "api-inventory.ps1");
+            var script = Path.Combine(Root(), "Checks", "api-inventory.ps1");
             var dir = Path.Combine(Path.GetTempPath(), "api_inventory_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(dir);
             var members = Path.Combine(dir, "members.txt");
@@ -178,8 +178,8 @@ namespace Oce.Solid.Agent.ContractTests
                                                  "\" -Redist \"" + redist + "\"", out output);
                 if (code != 0 || !File.Exists(members) || !File.Exists(enums))
                 {
-                    Segna("ApiSignatureMatchesInventory", false,
-                          "api-inventory.ps1 exited " + code + ": " + Breve(output));
+                    Check("ApiSignatureMatchesInventory", false,
+                          "api-inventory.ps1 exited " + code + ": " + Truncated(output));
                     return;
                 }
 
@@ -190,7 +190,7 @@ namespace Oce.Solid.Agent.ContractTests
 
                 int exposed = (int)Call("ExposedMemberCount");
                 int hidden = (int)Call("HiddenMemberCount");
-                Segna("exposed + hidden = the whole inventory, " + ExpectedExposed + " + " + ExpectedHidden,
+                Check("exposed + hidden = the whole inventory, " + ExpectedExposed + " + " + ExpectedHidden,
                       exposed == ExpectedExposed && hidden == ExpectedHidden && exposed + hidden == ps.Length,
                       exposed + " exposed + " + hidden + " hidden = " + (exposed + hidden) +
                       ", PowerShell inventory " + ps.Length + " lines");
@@ -205,7 +205,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var broken = (string[])cs.Clone();
                 int i = Array.FindIndex(broken, l => l.StartsWith("IEdge.IGetTwoAdjacentFaces2(", StringComparison.Ordinal));
                 if (i >= 0) broken[i] = broken[i].Replace("Face2& Face1", "Face2 Face1");
-                Segna("...and it fails when one `&` is lost (seen biting)",
+                Check("...and it fails when one `&` is lost (seen biting)",
                       i >= 0 && Differences(broken, ps).Count == 2,
                       i < 0 ? "IEdge.IGetTwoAdjacentFaces2 not in the C# output" :
                               Differences(broken, ps).Count + " differences on the tampered copy");
@@ -219,7 +219,7 @@ namespace Oce.Solid.Agent.ContractTests
         private static void Compare(string name, string[] cs, string[] ps)
         {
             var diff = Differences(cs, ps);
-            Segna(name, diff.Count == 0,
+            Check(name, diff.Count == 0,
                   diff.Count == 0 ? cs.Length + " lines, zero differences"
                                   : diff.Count + " differences, first: " + string.Join(" | ", diff.Take(4)));
         }
@@ -265,17 +265,17 @@ namespace Oce.Solid.Agent.ContractTests
             bool err;
 
             var fid = Sig("swFeatureNameID_e", out err);
-            Segna("swFeatureNameID_e goes from swFmChamfer=0 to swFmSMGusset=118",
+            Check("swFeatureNameID_e goes from swFmChamfer=0 to swFmSMGusset=118",
                   !err && fid.Contains("from swFmChamfer=0 to swFmSMGusset=118"), FirstLine(fid));
 
             var check3 = Sig("IBody2.Check3", out err);
-            Segna("api_signature(IBody2.Check3) says property and -> FaultEntity",
+            Check("api_signature(IBody2.Check3) says property and -> FaultEntity",
                   !err && FirstLine(check3).Contains("property") &&
-                  check3.Contains("IBody2.get_Check3() -> FaultEntity"), Breve(check3));
+                  check3.Contains("IBody2.get_Check3() -> FaultEntity"), Truncated(check3));
 
             var offset = Sig("IModelDoc2.InsertOffsetSurface", out err);
-            Segna("api_signature(IModelDoc2.InsertOffsetSurface) carries the Void flag",
-                  !err && offset.Contains(Const("VoidFlag")), Breve(offset));
+            Check("api_signature(IModelDoc2.InsertOffsetSurface) carries the Void flag",
+                  !err && offset.Contains(Const("VoidFlag")), Truncated(offset));
 
             // Exactly the two real signatures, and the old interface named, not printed.
             var sew = Search("SewRefSurface", 0, out err);
@@ -286,56 +286,56 @@ namespace Oce.Solid.Agent.ContractTests
                 "Boolean MergeEntities, Double KnitTolerance, Double MaxValueForGapRange) -> Feature",
                 "IModelDoc2.InsertSewRefSurface() -> Void",
             };
-            Segna("api_search(SewRefSurface) gives the two real signatures, and only those",
+            Check("api_search(SewRefSurface) gives the two real signatures, and only those",
                   !err && sigs.Count == 2 && expected.All(x => sigs.Any(s => s.StartsWith(x, StringComparison.Ordinal))),
                   sigs.Count + " signatures: " + string.Join(" | ", sigs));
-            Segna("...and names IModelDoc as an old interface without printing its signature",
+            Check("...and names IModelDoc as an old interface without printing its signature",
                   sew.Contains("IModelDoc.InsertSewRefSurface — " + Const("OldInterface") + "IModelDoc2.InsertSewRefSurface") &&
                   !sew.Contains("IModelDoc.InsertSewRefSurface() ->"),
-                  Breve(sew.Substring(Math.Max(0, sew.IndexOf("old interfaces", StringComparison.Ordinal)))));
+                  Truncated(sew.Substring(Math.Max(0, sew.IndexOf("old interfaces", StringComparison.Ordinal)))));
 
             var mate = Sig("IAssemblyDoc.AddMate5", out err);
             var align = Block(mate, "    AlignFromEnum  ");
             var one = align.Split('\n').FirstOrDefault(l => l.TrimStart().StartsWith("1 = ", StringComparison.Ordinal)) ?? "";
-            Segna("api_signature(IAssemblyDoc.AddMate5) binds AlignFromEnum to swMateAlign_e",
-                  !err && align.Contains("enum swMateAlign_e"), Breve(align));
-            Segna("...and value 1 shows swAlignSAME and swMateAlignANTI_ALIGNED, marked ambiguous",
+            Check("api_signature(IAssemblyDoc.AddMate5) binds AlignFromEnum to swMateAlign_e",
+                  !err && align.Contains("enum swMateAlign_e"), Truncated(align));
+            Check("...and value 1 shows swAlignSAME and swMateAlignANTI_ALIGNED, marked ambiguous",
                   one.Contains("swAlignSAME") && one.Contains("swMateAlignANTI_ALIGNED") && one.Contains("AMBIGUOUS"),
                   one.Trim());
 
             var mateData = Sig("IAssemblyDoc.CreateMateData", out err);
             var type = Block(mateData, "    Type  ");
-            Segna("api_signature(IAssemblyDoc.CreateMateData) says enum not tabulated for Type",
-                  !err && type.Contains(Const("EnumNotTabulated")), Breve(type));
+            Check("api_signature(IAssemblyDoc.CreateMateData) says enum not tabulated for Type",
+                  !err && type.Contains(Const("EnumNotTabulated")), Truncated(type));
 
             var old = Sig("IModelDoc.EditDelete", out err);
-            Segna("api_signature(IModelDoc.EditDelete) answers old interface: use IModelDoc2, not the signature",
+            Check("api_signature(IModelDoc.EditDelete) answers old interface: use IModelDoc2, not the signature",
                   old.Contains(Const("OldInterface") + "IModelDoc2") && !old.Contains("IModelDoc.EditDelete() ->"),
-                  Breve(old));
+                  Truncated(old));
 
             // From the "what" of the entry: the typed variant, the out
             // parameters by name, the numbered family, the indices.
             var edge = Sig("IEdge.GetTwoAdjacentFaces2", out err);
-            Segna("the typed I-variant stands next to the untyped one",
+            Check("the typed I-variant stands next to the untyped one",
                   !err && edge.Contains("typed variant: IEdge.IGetTwoAdjacentFaces2(Face2& Face1, Face2& Face2) -> Void"),
-                  Breve(edge));
+                  Truncated(edge));
             var iedge = Sig("IEdge.IGetTwoAdjacentFaces2", out err);
-            Segna("the out (&) parameters are named",
-                  !err && iedge.Contains("out parameters (&), by name: Face1, Face2"), Breve(iedge));
+            Check("the out (&) parameters are named",
+                  !err && iedge.Contains("out parameters (&), by name: Face1, Face2"), Truncated(iedge));
 
             var fam = Sig("IFeatureManager.FeatureExtruRefSurface", out err);
-            Segna("a numbered family marks the last one «latest by number, not verified»",
+            Check("a numbered family marks the last one «latest by number, not verified»",
                   !err && fam.Contains("family: FeatureExtruRefSurface, FeatureExtruRefSurface2, FeatureExtruRefSurface3") &&
-                  fam.Contains("FeatureExtruRefSurface3: " + Const("LatestByNumber")), Breve(fam));
+                  fam.Contains("FeatureExtruRefSurface3: " + Const("LatestByNumber")), Truncated(fam));
 
             var tr = Sig("IMathTransform.ArrayData", out err);
             var poly = Sig("IView.GetPolylines7", out err);
-            Segna("measured indices are shown (ArrayData 9-11), unmeasured ones say index not tabulated",
+            Check("measured indices are shown (ArrayData 9-11), unmeasured ones say index not tabulated",
                   tr.Contains("9-11 = translation") && poly.Contains(Const("IndexNotTabulated")),
-                  Breve(Block(tr, "  return ")) + " / " + Breve(Block(poly, "    Polylines  ")));
+                  Truncated(Block(tr, "  return ")) + " / " + Truncated(Block(poly, "    Polylines  ")));
 
             var unknown = Sig("IBody2.NoSuchMemberAnywhere", out err);
-            Segna("a member that does not exist is an error, not an empty card", err, Breve(unknown));
+            Check("a member that does not exist is an error, not an empty card", err, Truncated(unknown));
         }
 
         private static string FirstLine(string s)
@@ -388,11 +388,11 @@ namespace Oce.Solid.Agent.ContractTests
             var json = KnowledgeJson();
             if (json == null)
             {
-                Segna("Tools\\api_knowledge.json exists", false, "missing");
+                Check("Tools\\api_knowledge.json exists", false, "missing");
                 return;
             }
             var problems = (string[])Call("KnowledgeProblems", json);
-            Segna("api_knowledge.json names only members, parameters and enums that exist",
+            Check("api_knowledge.json names only members, parameters and enums that exist",
                   problems.Length == 0,
                   problems.Length == 0 ? "clean" : problems.Length + ": " + string.Join(" | ", problems.Take(5)));
 
@@ -403,7 +403,7 @@ namespace Oce.Solid.Agent.ContractTests
             var tampered = i < 0 ? null : json.Insert(i + "\"members\": {".Length,
                 "\n    \"" + invented + "\": { \"state\": \"probed_read\", \"source\": \"nobody\" },");
             var bite = tampered == null ? new string[0] : (string[])Call("KnowledgeProblems", tampered);
-            Segna("...and it refuses a member that does not exist (seen biting on an invented name)",
+            Check("...and it refuses a member that does not exist (seen biting on an invented name)",
                   bite.Any(p => p.StartsWith(invented + ":", StringComparison.Ordinal)),
                   tampered == null ? "could not find \"members\": { in the file" :
                                      string.Join(" | ", bite.Where(p => p.Contains(invented))));
@@ -417,7 +417,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             var gaps = (string[])Call("HiddenInterfaceGaps");
             var hidden = (Dictionary<string, string[]>)Call("HiddenInterfaces");
-            Segna("every hidden interface has all its member names on its sisters",
+            Check("every hidden interface has all its member names on its sisters",
                   gaps.Length == 0 && hidden.Count == 4,
                   gaps.Length == 0
                       ? string.Join(", ", hidden.Select(h => h.Key + " -> " + string.Join("+", h.Value)))
@@ -426,7 +426,7 @@ namespace Oce.Solid.Agent.ContractTests
             // THE CHECK CAN SAY NO: IMassProperty has names IMassProperty2
             // lacks, which is why it stays exposed.
             var mass = (string[])Call("InterfaceGaps", "IMassProperty", new[] { "IMassProperty2" });
-            Segna("...and it says no for IMassProperty -> IMassProperty2 (seen biting)",
+            Check("...and it says no for IMassProperty -> IMassProperty2 (seen biting)",
                   mass.Length > 0 && !mass[0].StartsWith("(", StringComparison.Ordinal),
                   mass.Length + " names only on IMassProperty, e.g. " + string.Join(", ", mass.Take(4)));
         }
@@ -437,37 +437,37 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void ThroughTheBridge()
         {
-            var exe = PonteOppureNonQui("api_signature and api_search through the bridge");
+            var exe = BridgeOrNotHere("api_signature and api_search through the bridge");
             if (exe == null) return;
-            var p = Apri(exe);
-            if (p == null) { Segna("the bridge starts", false, "it did not start"); return; }
+            var p = Open(exe);
+            if (p == null) { Check("the bridge starts", false, "it did not start"); return; }
             try
             {
-                Chiedi(p, 1,
+                Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
-                var sig = Dentro(Ogg(Chiedi(p, 40,
+                var sig = Inside(Obj(Ask(p, 40,
                     "{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"api_signature\",\"arguments\":{\"name\":\"IModelDocExtension.IsSamePersistentID\"}}}")),
                     "result") as Dictionary<string, object>;
-                var text = TestoDi(sig);
-                Segna("api_signature answers through the bridge, with the embedded knowledge",
+                var text = TextOf(sig);
+                Check("api_signature answers through the bridge, with the embedded knowledge",
                       text.Contains("IModelDocExtension.IsSamePersistentID(Object PersistentID1, Object PersistentID2) -> Int32") &&
                       text.Contains("swObjectEquality"),
-                      Corto(text));
+                      Short(text));
 
-                var search = Dentro(Ogg(Chiedi(p, 41,
+                var search = Inside(Obj(Ask(p, 41,
                     "{\"jsonrpc\":\"2.0\",\"id\":41,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"api_search\",\"arguments\":{\"query\":\"GetTwoAdjacentFaces2\"}}}")),
                     "result") as Dictionary<string, object>;
-                var st = TestoDi(search);
-                Segna("api_search answers through the bridge",
+                var st = TextOf(search);
+                Check("api_search answers through the bridge",
                       st.Contains("IEdge.IGetTwoAdjacentFaces2(Face2& Face1, Face2& Face2) -> Void") &&
-                      !string.Equals(Convert.ToString(Dentro(search, "isError")), "True", StringComparison.OrdinalIgnoreCase),
-                      Corto(st));
+                      !string.Equals(Convert.ToString(Inside(search, "isError")), "True", StringComparison.OrdinalIgnoreCase),
+                      Short(st));
             }
-            finally { Chiudi(p); }
+            finally { Close(p); }
         }
     }
 }

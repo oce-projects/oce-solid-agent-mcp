@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -40,7 +40,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void RunAll()
         {
-            Gruppo("`undo` tells the truth: the plan's document, the last plan, no blind press or redo (Z-C21.14)");
+            Group("`undo` tells the truth: the plan's document, the last plan, no blind press or redo (Z-C21.14)");
             Decisions();
             Sources();
         }
@@ -49,16 +49,16 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void Decisions()
         {
-            var bridge = PonteOppureNonQui("the pure decisions of `undo` (Z-C21.14)");
+            var bridge = BridgeOrNotHere("the pure decisions of `undo` (Z-C21.14)");
             if (bridge == null) return;
 
             MethodInfo memory, differs, answer, refusal, changedText, note, identity;
             Type type;
             try
             {
-                var asm = Carica.Ponte(bridge);
-                type = Carica.Classe(asm, "Attrezzi");
-                if (type == null) { Segna("the tools class is in the bridge", false, ""); return; }
+                var asm = Load.Bridge(bridge);
+                type = Load.Class(asm, "McpTools");
+                if (type == null) { Check("the tools class is in the bridge", false, ""); return; }
                 const BindingFlags any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
                 memory = type.GetMethod("MemoryAfterPlan", any);
                 differs = type.GetMethod("WhatDiffers", any);
@@ -77,11 +77,11 @@ namespace Oce.Solid.Agent.ContractTests
                 if (identity == null) missingMethods.Add("IdentityForTheExecutor");
                 if (missingMethods.Count > 0)
                 {
-                    Segna("the pure methods of `undo` are in the bridge", false, "missing: " + string.Join(", ", missingMethods));
+                    Check("the pure methods of `undo` are in the bridge", false, "missing: " + string.Join(", ", missingMethods));
                     return;
                 }
             }
-            catch (Exception ex) { Segna("the bridge loads", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
             Memory(memory);
             Differences(differs);
@@ -154,7 +154,7 @@ namespace Oce.Solid.Agent.ContractTests
                 if (s.ReasonMustSay != null && (reason ?? "").IndexOf(s.ReasonMustSay, StringComparison.Ordinal) < 0)
                     wrong.Add(s.Label + ": the reason does not say «" + s.ReasonMustSay + "»");
             }
-            Segna("what a plan does to the memory: the last plan, kept when nothing was written, covered or dropped with a reason",
+            Check("what a plan does to the memory: the last plan, kept when nothing was written, covered or dropped with a reason",
                   wrong.Count == 0, wrong.Count == 0 ? situations.Count + " situations, each as the rules say" : string.Join(" | ", wrong));
         }
 
@@ -182,7 +182,7 @@ namespace Oce.Solid.Agent.ContractTests
             var order = diff(reading(1000.0, ab), reading(1000.0, ba));
             if (order.Count == 0 || order.TrueForAll(s => s.IndexOf("order", StringComparison.Ordinal) < 0)) missing.Add("a reorder is not seen as one");
             if (diff(reading(1000.0, ab), reading(1000.0, renamed)).Count == 0) missing.Add("a rename is not seen");
-            Segna("WhatDiffers sees volume, count, names and order, and an unreadable volume as a difference",
+            Check("WhatDiffers sees volume, count, names and order, and an unreadable volume as a difference",
                   missing.Count == 0, missing.Count == 0 ? "6 pairs of readings" : string.Join(" | ", missing));
         }
 
@@ -222,7 +222,7 @@ namespace Oce.Solid.Agent.ContractTests
                 lies.Add("beyond the feature list the answer still claims names and order were compared (F16)");
             if (back.Item1.IndexOf("the order of the features changed", StringComparison.Ordinal) < 0)
                 lies.Add("the answer does not say how the part differs from before the plan");
-            Segna("after a wrong press the answer says restored only from the comparison, NOT otherwise, and what it compared",
+            Check("after a wrong press the answer says restored only from the comparison, NOT otherwise, and what it compared",
                   lies.Count == 0, lies.Count == 0 ? "7 outcomes, each told as it is" : string.Join(" | ", lies));
         }
 
@@ -249,8 +249,8 @@ namespace Oce.Solid.Agent.ContractTests
                 changed.IndexOf("delete_feature", StringComparison.Ordinal) < 0 ||
                 changed.IndexOf("only by count", StringComparison.Ordinal) < 0)
                 problems.Add("the refusal on a part changed since the plan does not say what changed, what it compared, or what to do");
-            Segna("the refusals before pressing say why, what a press would do, and what to do instead",
-                  problems.Count == 0, problems.Count == 0 ? Breve(recorded) : string.Join(" | ", problems));
+            Check("the refusals before pressing say why, what a press would do, and what to do instead",
+                  problems.Count == 0, problems.Count == 0 ? Truncated(recorded) : string.Join(" | ", problems));
         }
 
         private static void NoteAndIdentity(MethodInfo note, MethodInfo identity)
@@ -271,7 +271,7 @@ namespace Oce.Solid.Agent.ContractTests
                 problems.Add("a document never saved is not its title with the executor's prefix");
             if (id(new Dictionary<string, object> { ["document_title"] = "", ["path"] = "" }) != null)
                 problems.Add("an empty identity is not null");
-            Segna("the note on the document in front and the identity handed to the executor (F5, F7)",
+            Check("the note on the document in front and the identity handed to the executor (F5, F7)",
                   problems.Count == 0, problems.Count == 0 ? "2 notes, 3 identities" : string.Join(" | ", problems));
         }
 
@@ -282,18 +282,18 @@ namespace Oce.Solid.Agent.ContractTests
             string tools, executor, session;
             try
             {
-                tools = File.ReadAllText(Path.Combine(Radice(), "Tools", "McpTools.cs")).Replace("\r\n", "\n");
-                executor = File.ReadAllText(Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs")).Replace("\r\n", "\n");
-                session = File.ReadAllText(Path.Combine(Radice(), "Bridge", "Session.cs")).Replace("\r\n", "\n");
+                tools = File.ReadAllText(Path.Combine(Root(), "Tools", "McpTools.cs")).Replace("\r\n", "\n");
+                executor = File.ReadAllText(Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs")).Replace("\r\n", "\n");
+                session = File.ReadAllText(Path.Combine(Root(), "Bridge", "Session.cs")).Replace("\r\n", "\n");
             }
             catch (Exception ex)
             {
-                Segna("the tools, executor and session sources can be read", false, ex.GetType().Name + ": " + ex.Message);
+                Check("the tools, executor and session sources can be read", false, ex.GetType().Name + ": " + ex.Message);
                 return;
             }
 
             var afterPlan = AfterPlanProblems(tools);
-            Segna("after a plan: the plan's document read, the window in front adopted only when the plan ended on it, one document for the resent-plan guard",
+            Check("after a plan: the plan's document read, the window in front adopted only when the plan ended on it, one document for the resent-plan guard",
                   afterPlan.Count == 0,
                   afterPlan.Count == 0
                       ? "PlanDocument kept; StateOfDocument when it is not in front; memory and volume_after_mm3 on planStateAfter; " +
@@ -303,27 +303,27 @@ namespace Oce.Solid.Agent.ContractTests
                       : string.Join(" | ", afterPlan));
             var afterPlanRed = SeenRed("after plan", tools, AfterPlanProblems, new[]
             {
-                Change("the memory's volume read elsewhere", "NumeroDi(planStateAfter, \"volume_mm3\")", "NumeroDi(frontState, \"volume_mm3\")"),
-                Change("the memory's count read elsewhere", "= QuanteFeature(planStateAfter);", "= QuanteFeature(frontState);"),
+                Change("the memory's volume read elsewhere", "NumberOf(planStateAfter, \"volume_mm3\")", "NumberOf(frontState, \"volume_mm3\")"),
+                Change("the memory's count read elsewhere", "= HowManyFeatures(planStateAfter);", "= HowManyFeatures(frontState);"),
                 Change("the plan's document never read", "StateOfDocument(planDocumentHeld", "StateOfDocument(frontDocument"),
                 Change("volume_after_mm3 of the window in front", "[\"volume_after_mm3\"] = Volume(planStateAfter)", "[\"volume_after_mm3\"] = Volume(frontState)"),
                 Change("the document in front not said", "[\"document_in_front\"] = ", "[\"elsewhere\"] = "),
                 Change("state_after turned into the plan's document", "[\"state_after\"] = ", "[\"state_after\"] = planStateAfter ?? "),
-                Change("the executor left to pick the document (F7)", "IdentityForTheExecutor(adesso));", "null);"),
+                Change("the executor left to pick the document (F7)", "IdentityForTheExecutor(now));", "null);"),
                 Change("a foreign window adopted (F5)", " != null && frontIsThePlans)", " != null)"),
-                Change("the end document not asked (F5)", "frontIsThePlans = _sessione.IsInFront(finalDocument)", "frontIsThePlans = true"),
-                Change("the resent-plan summary of the window in front (F6)", "_riepilogoDopoIlPiano = RiepilogoDelloStato(planStateAfter);",
-                       "_riepilogoDopoIlPiano = RiepilogoDelloStato(frontState);"),
-                Change("the resent-plan document read before the plan (F6)", "_documentoDelPiano = planIdentity;", "_documentoDelPiano = frontIdentity;"),
+                Change("the end document not asked (F5)", "frontIsThePlans = _session.IsInFront(finalDocument)", "frontIsThePlans = true"),
+                Change("the resent-plan summary of the window in front (F6)", "_summaryAfterPlan = StateSummary(planStateAfter);",
+                       "_summaryAfterPlan = StateSummary(frontState);"),
+                Change("the resent-plan document read before the plan (F6)", "_planDocument = planIdentity;", "_planDocument = frontIdentity;"),
                 Change("the memory without its reference (F11)", "DocumentRef = planDocumentHeld,", "DocumentRef = null,"),
                 Change("the memory decided by hand", "= MemoryAfterPlan(", "= MemoryAfterPlanByHand("),
                 Change("the window of a refused plan taken for its document", " && !planRun.StoppedBeforeWriting;", ";"),
             });
-            Segna("the after-plan check turns red on each changed copy", afterPlanRed.Count == 0,
+            Check("the after-plan check turns red on each changed copy", afterPlanRed.Count == 0,
                   afterPlanRed.Count == 0 ? "14 changes, each one red" : string.Join(" | ", afterPlanRed));
 
             var undo = UndoProblems(tools);
-            Segna("`undo` refuses before pressing when covered or changed since the plan, judges the press by the part before the plan, redoes only after a visible change",
+            Check("`undo` refuses before pressing when covered or changed since the plan, judges the press by the part before the plan, redoes only after a visible change",
                   undo.Count == 0,
                   undo.Count == 0
                       ? "the document by reference; RefusalCovered and RefusalChangedSinceThePlan before the press; " +
@@ -334,19 +334,19 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 Change("the covered memory pressed", ".CoveredBecause != null)", ".CoveredBecause == \"never\")"),
                 Change("a blind redo", "if (takenAway.Count > 0)", "if (takenAway != null)"),
-                Change("no new reading after the redo", "= _sessione.Stato(out _);\n                }", ";\n                }"),
+                Change("no new reading after the redo", "= _session.State(out _);\n                }", ";\n                }"),
                 Change("the answer not from the comparison", "= answerText,", "= \"put back\","),
                 Change("names and order not compared before pressing (F1, F14)", "var changedSince = SnapshotDiffers(after, now);",
                        "var changedSince = new List<string>();"),
                 Change("withdrawn judged by two numbers only", "var notAsBeforeThePlan = SnapshotDiffers(before, back);",
                        "var notAsBeforeThePlan = new List<string>();"),
-                Change("the document compared by name (F11)", "? _sessione.IsInFront(memoria.DocumentRef)", "? true"),
+                Change("the document compared by name (F11)", "? _session.IsInFront(memory.DocumentRef)", "? true"),
             });
-            Segna("the `undo` check turns red on each changed copy", undoRed.Count == 0,
+            Check("the `undo` check turns red on each changed copy", undoRed.Count == 0,
                   undoRed.Count == 0 ? "7 changes, each one red" : string.Join(" | ", undoRed));
 
             var finish = ExecutorProblems(executor);
-            Segna("the executor hands on what FinishRecordingUndoObject answered for the plan's document",
+            Check("the executor hands on what FinishRecordingUndoObject answered for the plan's document",
                   finish.Count == 0,
                   finish.Count == 0
                       ? "FinishUndoRecording returns bool?; both closings go through NoteUndoAnswer; PlanDocument set at the start"
@@ -358,13 +358,13 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("a closing not noted", "FinishUndoRecording(undoRecordedOn));\n                    if (planDocumentReopened)",
                        "FinishUndoRecording(undoRecordedOn));\n                    FinishUndoRecording(undoRecordedOn);\n                    if (planDocumentReopened)"),
             });
-            Segna("the executor check turns red on each changed copy", finishRed.Count == 0,
+            Check("the executor check turns red on each changed copy", finishRed.Count == 0,
                   finishRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", finishRed));
 
             var sess = SessionProblems(session);
-            Segna("the session hands the checked identity to the executor, says when it threw and when another bridge held the turn",
+            Check("the session hands the checked identity to the executor, says when it threw and when another bridge held the turn",
                   sess.Count == 0,
-                  sess.Count == 0 ? "EseguiAsync(expectedDocument); LastPlanExecutorThrew set around it; LastTurnRefusedDocument on a refused turn"
+                  sess.Count == 0 ? "RunAsync(expectedDocument); LastPlanExecutorThrew set around it; LastTurnRefusedDocument on a refused turn"
                                   : string.Join(" | ", sess));
             var sessRed = SeenRed("session", session, SessionProblems, new[]
             {
@@ -372,7 +372,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("a throw not said (F9)", "LastPlanExecutorThrew = true;\n", "\n"),
                 Change("another bridge's turn not said (F4)", "LastTurnRefusedDocument = doc;", "LastTurnRefusedDocument = null;"),
             });
-            Segna("the session check turns red on each changed copy", sessRed.Count == 0,
+            Check("the session check turns red on each changed copy", sessRed.Count == 0,
                   sessRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", sessRed));
         }
 
@@ -381,7 +381,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             var problems = new List<string>();
             var code = CodeOnly(source);
-            string plan = MemberBody(code, "private Dictionary<string, object> EseguiIlPiano(");
+            string plan = MemberBody(code, "private Dictionary<string, object> RunPlan(");
             if (plan == null) { problems.Add("the body of the plan is not in the source"); return problems; }
             if (plan.IndexOf("LastPlanResult;", StringComparison.Ordinal) < 0)
                 problems.Add("the result of the executor is not read after the plan");
@@ -391,9 +391,9 @@ namespace Oce.Solid.Agent.ContractTests
                 problems.Add("a plan stopped before writing can make the window in front the plan's document (F5, F7)");
             if (plan.IndexOf("StateOfDocument(planDocumentHeld", StringComparison.Ordinal) < 0)
                 problems.Add("the plan's document is not read when another one is in front");
-            if (plan.IndexOf("NumeroDi(planStateAfter, \"volume_mm3\")", StringComparison.Ordinal) < 0)
+            if (plan.IndexOf("NumberOf(planStateAfter, \"volume_mm3\")", StringComparison.Ordinal) < 0)
                 problems.Add("the memory's volume after the plan is not read on the plan's document");
-            if (plan.IndexOf("= QuanteFeature(planStateAfter);", StringComparison.Ordinal) < 0)
+            if (plan.IndexOf("= HowManyFeatures(planStateAfter);", StringComparison.Ordinal) < 0)
                 problems.Add("the memory's feature count after the plan is not read on the plan's document");
             if (plan.IndexOf("[\"volume_after_mm3\"] = Volume(planStateAfter)", StringComparison.Ordinal) < 0)
                 problems.Add("volume_after_mm3 is not the plan document's");
@@ -401,14 +401,14 @@ namespace Oce.Solid.Agent.ContractTests
                 problems.Add("the answer does not say which document is in front");
             if (plan.IndexOf("[\"state_after\"] = planStateAfter", StringComparison.Ordinal) >= 0)
                 problems.Add("state_after describes the plan's document, not the one the next plan works on");
-            if (plan.IndexOf("IdentityForTheExecutor(adesso));", StringComparison.Ordinal) < 0)
+            if (plan.IndexOf("IdentityForTheExecutor(now));", StringComparison.Ordinal) < 0)
                 problems.Add("the executor is not given the identity checked above (F7)");
             if (plan.IndexOf(" != null && frontIsThePlans)", StringComparison.Ordinal) < 0)
                 problems.Add("the window in front is adopted whether or not the plan ended on it (F5)");
-            if (plan.IndexOf("frontIsThePlans = _sessione.IsInFront(finalDocument)", StringComparison.Ordinal) < 0)
+            if (plan.IndexOf("frontIsThePlans = _session.IsInFront(finalDocument)", StringComparison.Ordinal) < 0)
                 problems.Add("whether the plan ended on the window in front is not asked of its end document (F5)");
-            if (plan.IndexOf("_riepilogoDopoIlPiano = RiepilogoDelloStato(planStateAfter);", StringComparison.Ordinal) < 0 ||
-                plan.IndexOf("_documentoDelPiano = planIdentity;", StringComparison.Ordinal) < 0)
+            if (plan.IndexOf("_summaryAfterPlan = StateSummary(planStateAfter);", StringComparison.Ordinal) < 0 ||
+                plan.IndexOf("_planDocument = planIdentity;", StringComparison.Ordinal) < 0)
                 problems.Add("the resent-plan guard does not read one document, the plan's (F6)");
             if (plan.IndexOf("DocumentRef = planDocumentHeld,", StringComparison.Ordinal) < 0)
                 problems.Add("the memory does not hold the plan's document by reference (F11)");
@@ -427,11 +427,11 @@ namespace Oce.Solid.Agent.ContractTests
 
             int covered = undo.IndexOf(".CoveredBecause != null)", StringComparison.Ordinal);
             int refusal = undo.IndexOf("return RefusalCovered(", StringComparison.Ordinal);
-            int press = undo.IndexOf("= _sessione.UnPassoIndietro();", StringComparison.Ordinal);
+            int press = undo.IndexOf("= _session.StepBack();", StringComparison.Ordinal);
             if (covered < 0 || refusal < covered || press < 0 || refusal > press)
                 problems.Add("a covered memory is not refused before the press");
 
-            if (undo.IndexOf("? _sessione.IsInFront(memoria.DocumentRef)", StringComparison.Ordinal) < 0)
+            if (undo.IndexOf("? _session.IsInFront(memory.DocumentRef)", StringComparison.Ordinal) < 0)
                 problems.Add("the document is not compared by its reference (F11)");
 
             int changedSince = undo.IndexOf("var changedSince = SnapshotDiffers(after, now);", StringComparison.Ordinal);
@@ -444,13 +444,13 @@ namespace Oce.Solid.Agent.ContractTests
             if (judged < press || branch < judged)
                 problems.Add("«withdrawn» is not judged by the whole snapshot before the plan, after the press");
 
-            int redos = Count(undo, "= _sessione.UnPassoAvanti();");
+            int redos = Count(undo, "= _session.StepForward();");
             if (redos != 1) problems.Add(redos + " redo calls, expected 1");
             int guard = undo.IndexOf("if (takenAway.Count > 0)", StringComparison.Ordinal);
             int close = guard < 0 ? -1 : undo.IndexOf("\n                }", guard, StringComparison.Ordinal);
             string block = close < 0 ? "" : undo.Substring(guard, close - guard + 1);
-            int redo = block.IndexOf("= _sessione.UnPassoAvanti();", StringComparison.Ordinal);
-            int reread = block.IndexOf("= _sessione.Stato(out _);", StringComparison.Ordinal);
+            int redo = block.IndexOf("= _session.StepForward();", StringComparison.Ordinal);
+            int reread = block.IndexOf("= _session.State(out _);", StringComparison.Ordinal);
             if (redo < 0 || reread < redo)
                 problems.Add("the redo is not inside if (takenAway.Count > 0) with a new reading right after it");
             int firstCompare = undo.IndexOf("var takenAway = WhatDiffers(", StringComparison.Ordinal);
@@ -485,7 +485,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             var problems = new List<string>();
             var code = CodeOnly(source);
-            const string handedOn = ".EseguiAsync(string.IsNullOrEmpty(expectedDocument) ? null : expectedDocument)";
+            const string handedOn = ".RunAsync(string.IsNullOrEmpty(expectedDocument) ? null : expectedDocument)";
             if (code.IndexOf(handedOn, StringComparison.Ordinal) < 0 || code.IndexOf("Async(null)", StringComparison.Ordinal) >= 0)
                 problems.Add("the executor is not handed the identity the caller checked (F7)");
             int threwTrue = code.IndexOf("LastPlanExecutorThrew = true;", StringComparison.Ordinal);
@@ -493,7 +493,7 @@ namespace Oce.Solid.Agent.ContractTests
             int threwFalse = call < 0 ? -1 : code.IndexOf("LastPlanExecutorThrew = false;", call, StringComparison.Ordinal);
             if (threwTrue < 0 || call < threwTrue || threwFalse < 0)
                 problems.Add("a throw of the executor is not told apart from a result (F9)");
-            int turn = code.IndexOf("TurnoSulDocumento.Prendi(", StringComparison.Ordinal);
+            int turn = code.IndexOf("DocumentTurn.Take(", StringComparison.Ordinal);
             int said = code.IndexOf("LastTurnRefusedDocument = doc;", StringComparison.Ordinal);
             if (turn < 0 || said < turn)
                 problems.Add("a turn refused because another bridge holds the document is not said (F4)");

@@ -41,10 +41,10 @@ namespace Shared
     /// e **dice** quando ha finito. Un guardiano, da fuori, guarda l'orologio.
     /// Non tocca il lavoro: lo guarda.
     /// </summary>
-    internal sealed class Guinzaglio
+    internal sealed class Leash
     {
-        private readonly object _chiave = new object();
-        private string _cosa;
+        private readonly object _key = new object();
+        private string _what;
         private DateTime _da;
 
         /// <summary>
@@ -53,30 +53,30 @@ namespace Shared
         /// Un valore stretto trasforma una prova lenta in un falso allarme, e
         /// un falso allarme spegne il guardiano il giorno dopo.
         /// </summary>
-        internal int ScadenzaMs { get; private set; }
+        internal int ExpiryMs { get; private set; }
 
-        internal Guinzaglio(int scadenzaMs)
+        internal Leash(int expiryMs)
         {
-            if (scadenzaMs < 1000)
+            if (expiryMs < 1000)
                 throw new ArgumentOutOfRangeException(
                     "scadenzaMs",
                     "sotto il secondo non e' un guinzaglio, e' un cronometro: "
                     + "qualunque prova vera lo farebbe scattare.");
-            ScadenzaMs = scadenzaMs;
+            ExpiryMs = expiryMs;
         }
 
         /// <summary>Sta per cominciare una chiamata, e si dice quale.</summary>
-        internal void Comincia(string cosa, DateTime adesso)
+        internal void Begin(string what, DateTime now)
         {
-            lock (_chiave) { _cosa = cosa; _da = adesso; }
+            lock (_key) { _what = what; _da = now; }
         }
 
         /// <summary>E' tornata. Da qui in poi non c'e' niente da sorvegliare —
         /// il guardiano deve tacere, altrimenti la prima pausa fra due prove
         /// diventerebbe un allarme.</summary>
-        internal void Finita()
+        internal void Finished()
         {
-            lock (_chiave) { _cosa = null; }
+            lock (_key) { _what = null; }
         }
 
         /// <summary>
@@ -85,16 +85,16 @@ namespace Shared
         /// in una prova, e **una guardia che non si puo' far scattare non si
         /// puo' credere**.
         /// </summary>
-        internal string Appesa(DateTime adesso)
+        internal string Hanging(DateTime now)
         {
-            lock (_chiave)
+            lock (_key)
             {
-                if (_cosa == null) return null;
-                var quanto = adesso - _da;
-                if (quanto.TotalMilliseconds < ScadenzaMs) return null;
-                return "LA CHIAMATA NON TORNA: «" + _cosa + "» e' partita "
-                     + ((int)quanto.TotalSeconds) + " secondi fa e non ha "
-                     + "ancora risposto (la soglia e' " + (ScadenzaMs / 1000)
+                if (_what == null) return null;
+                var howMuch = now - _da;
+                if (howMuch.TotalMilliseconds < ExpiryMs) return null;
+                return "LA CHIAMATA NON TORNA: «" + _what + "» e' partita "
+                     + ((int)howMuch.TotalSeconds) + " secondi fa e non ha "
+                     + "ancora risposto (la soglia e' " + (ExpiryMs / 1000)
                      + "). Non si puo' annullare una chiamata COM piantata: "
                      + "quello che si puo' fare e' dire QUALE era, e fermarsi.";
             }
@@ -102,12 +102,12 @@ namespace Shared
 
         /// <summary>Per il resoconto: da quanto dura quella in corso, in
         /// secondi, o -1 se non ce n'e' nessuna.</summary>
-        internal int DaQuantiSecondi(DateTime adesso)
+        internal int ForHowManySeconds(DateTime now)
         {
-            lock (_chiave)
+            lock (_key)
             {
-                if (_cosa == null) return -1;
-                return (int)(adesso - _da).TotalSeconds;
+                if (_what == null) return -1;
+                return (int)(now - _da).TotalSeconds;
             }
         }
     }

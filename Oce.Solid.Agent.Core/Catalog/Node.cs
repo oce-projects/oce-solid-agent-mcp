@@ -16,68 +16,68 @@ namespace Oce.Solid.Agent.Core.Catalog
     /// commit mostra un file intero cambiato e nessuno vede piu' la riga che e'
     /// cambiata davvero.
     /// </summary>
-    public sealed class Nodo
+    public sealed class Node
     {
-        private enum Che { Valore, Oggetto, Elenco }
+        private enum NodeKind { Value, Object, Items }
 
-        private readonly Che _che;
-        private readonly object _valore;
-        private readonly List<KeyValuePair<string, Nodo>> _campi;
-        private readonly List<Nodo> _elementi;
+        private readonly NodeKind _kind;
+        private readonly object _value;
+        private readonly List<KeyValuePair<string, Node>> _fields;
+        private readonly List<Node> _elements;
 
-        private Nodo(object valore)
+        private Node(object val)
         {
-            _che = Che.Valore;
-            _valore = valore;
+            _kind = NodeKind.Value;
+            _value = val;
         }
 
-        private Nodo(List<KeyValuePair<string, Nodo>> campi)
+        private Node(List<KeyValuePair<string, Node>> fields)
         {
-            _che = Che.Oggetto;
-            _campi = campi;
+            _kind = NodeKind.Object;
+            _fields = fields;
         }
 
-        private Nodo(List<Nodo> elementi)
+        private Node(List<Node> elements)
         {
-            _che = Che.Elenco;
-            _elementi = elementi;
+            _kind = NodeKind.Items;
+            _elements = elements;
         }
 
         /// <summary>Un valore: testo, numero, vero/falso, o niente.</summary>
-        public static Nodo V(object valore)
+        public static Node V(object val)
         {
-            return valore is Nodo ? (Nodo)valore : new Nodo(valore);
+            return val is Node ? (Node)val : new Node(val);
         }
 
         /// <summary>
         /// Un oggetto, scritto chiave-valore-chiave-valore. Le chiavi restano
         /// nell'ordine in cui sono scritte.
         /// </summary>
-        public static Nodo O(params object[] coppie)
+        public static Node O(params object[] pairs)
         {
-            if (coppie.Length % 2 != 0)
+            if (pairs.Length % 2 != 0)
                 throw new ArgumentException(
                     "Un oggetto si scrive chiave, valore, chiave, valore: ne ho " +
-                    coppie.Length + ", che e' dispari. Manca un valore.");
+                    pairs.Length + ", che e' dispari. Manca un valore.");
 
-            var campi = new List<KeyValuePair<string, Nodo>>(coppie.Length / 2);
-            for (int i = 0; i < coppie.Length; i += 2)
+            var fields = new List<KeyValuePair<string, Node>>(pairs.Length / 2);
+            for (int i = 0; i < pairs.Length; i += 2)
             {
-                var chiave = coppie[i] as string;
-                if (chiave == null)
+                var key = pairs[i] as string;
+                if (key == null)
                     throw new ArgumentException(
                         "La chiave in posizione " + i + " non e' un testo.");
-                campi.Add(new KeyValuePair<string, Nodo>(chiave, V(coppie[i + 1])));
+                fields.Add(new KeyValuePair<string, Node>(key, V(pairs[i + 1])));
             }
-            return new Nodo(campi);
+            return new Node(fields);
         }
 
         /// <summary>Un elenco.</summary>
-        public static Nodo A(params object[] elementi)
+        public static Node A(params object[] elements)
         {
-            var dentro = new List<Nodo>(elementi.Length);
-            foreach (var e in elementi) dentro.Add(V(e));
-            return new Nodo(dentro);
+            var inside = new List<Node>(elements.Length);
+            foreach (var e in elements) inside.Add(V(e));
+            return new Node(inside);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -100,54 +100,54 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// Da qui in avanti la stessa forma serve a un'altra cosa: tenere il
         /// `diff` di `catalog.json` leggibile quando cambia una riga sola.
         /// </summary>
-        public static string Json(Nodo radice)
+        public static string Json(Node root)
         {
             var b = new StringBuilder();
-            Scrivi(b, radice, 0);
+            Write(b, root, 0);
             return b.ToString();
         }
 
-        private static void Scrivi(StringBuilder b, Nodo n, int livello)
+        private static void Write(StringBuilder b, Node n, int level)
         {
-            switch (n._che)
+            switch (n._kind)
             {
-                case Che.Valore:
-                    ScriviValore(b, n._valore);
+                case NodeKind.Value:
+                    WriteValue(b, n._value);
                     break;
 
-                case Che.Oggetto:
-                    if (n._campi.Count == 0) { b.Append("{}"); break; }
+                case NodeKind.Object:
+                    if (n._fields.Count == 0) { b.Append("{}"); break; }
                     b.Append('{');
-                    for (int i = 0; i < n._campi.Count; i++)
+                    for (int i = 0; i < n._fields.Count; i++)
                     {
                         if (i > 0) b.Append(',');
-                        b.Append('\n').Append(' ', livello + 1);
-                        ScriviTesto(b, n._campi[i].Key);
+                        b.Append('\n').Append(' ', level + 1);
+                        WriteText(b, n._fields[i].Key);
                         b.Append(": ");
-                        Scrivi(b, n._campi[i].Value, livello + 1);
+                        Write(b, n._fields[i].Value, level + 1);
                     }
-                    b.Append('\n').Append(' ', livello).Append('}');
+                    b.Append('\n').Append(' ', level).Append('}');
                     break;
 
-                case Che.Elenco:
-                    if (n._elementi.Count == 0) { b.Append("[]"); break; }
+                case NodeKind.Items:
+                    if (n._elements.Count == 0) { b.Append("[]"); break; }
                     b.Append('[');
-                    for (int i = 0; i < n._elementi.Count; i++)
+                    for (int i = 0; i < n._elements.Count; i++)
                     {
                         if (i > 0) b.Append(',');
-                        b.Append('\n').Append(' ', livello + 1);
-                        Scrivi(b, n._elementi[i], livello + 1);
+                        b.Append('\n').Append(' ', level + 1);
+                        Write(b, n._elements[i], level + 1);
                     }
-                    b.Append('\n').Append(' ', livello).Append(']');
+                    b.Append('\n').Append(' ', level).Append(']');
                     break;
             }
         }
 
-        private static void ScriviValore(StringBuilder b, object v)
+        private static void WriteValue(StringBuilder b, object v)
         {
             if (v == null) { b.Append("null"); return; }
             if (v is bool) { b.Append((bool)v ? "true" : "false"); return; }
-            if (v is string) { ScriviTesto(b, (string)v); return; }
+            if (v is string) { WriteText(b, (string)v); return; }
 
             if (v is double || v is float || v is decimal)
             {
@@ -160,7 +160,7 @@ namespace Oce.Solid.Agent.Core.Catalog
             b.Append(Convert.ToString(v, CultureInfo.InvariantCulture));
         }
 
-        private static void ScriviTesto(StringBuilder b, string s)
+        private static void WriteText(StringBuilder b, string s)
         {
             b.Append('"');
             foreach (var c in s)

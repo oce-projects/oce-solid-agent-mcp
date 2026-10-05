@@ -15,8 +15,8 @@
 // raggiungibile: *una meta' non controllata si scrive, non si dichiara
 // passata.*
 //
-//     const { trovaIlTodo } = require('./where-is-the-todo.js');
-//     const fileTodo = trovaIlTodo(radice, process.argv);
+//     const { findTheTodo } = require('./where-is-the-todo.js');
+//     const fileTodo = findTheTodo(radice, process.argv);
 //     if (!fileTodo) process.exit(0);   // il messaggio l'ha gia' stampato
 //
 // L'ORDINE DI RICERCA, e nessun passo e' di comodo:
@@ -29,18 +29,18 @@
 const fs = require('fs');
 const path = require('path');
 
-function trovaIlTodo(radice, argv) {
-    const passato = (argv || []).find(a => typeof a === 'string' && a.endsWith('.md'));
-    if (passato) return passato;
+function findTheTodo(root, argv) {
+    const passed = (argv || []).find(a => typeof a === 'string' && a.endsWith('.md'));
+    if (passed) return passed;
 
-    const suo = process.env.TODO_MD;
-    if (suo && fs.existsSync(suo)) return suo;
+    const its = process.env.TODO_MD;
+    if (its && fs.existsSync(its)) return its;
 
-    const candidati = [
-        path.join(radice, 'note-interne', 'TODO.md'),
-        path.join(radice, 'TODO.md'),
+    const candidates = [
+        path.join(root, 'note-interne', 'TODO.md'),
+        path.join(root, 'TODO.md'),
     ];
-    for (const c of candidati) if (fs.existsSync(c)) return c;
+    for (const c of candidates) if (fs.existsSync(c)) return c;
 
     console.log('Il TODO non c\'e\' in questo clone: e\' un documento interno e');
     console.log('non viene pubblicato. QUESTA SONDA NON HA CONTROLLATO NIENTE.');
@@ -48,4 +48,4 @@ function trovaIlTodo(radice, argv) {
     return null;
 }
 
-module.exports = { trovaIlTodo };
+module.exports = { findTheTodo };

@@ -3,16 +3,16 @@ using System.Collections.Generic;
 namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>Una voce del catalogo: cosa si puo' chiedere, e come si scrive.</summary>
-    public sealed class OperazioneDisegno
+    public sealed class OperationSpec
     {
         /// <summary>Il nome esatto, quello che va in `build`.</summary>
-        public string Nome;
+        public string Name;
 
         /// <summary>A quale famiglia appartiene.</summary>
-        public string Famiglia;
+        public string Family;
 
         /// <summary>Una riga sola: e' quello che il modello vede per primo.</summary>
-        public string Sommario;
+        public string Summary;
 
         /// <summary>
         /// Il testo lungo. **E' l'interfaccia vera verso il modello**, molto
@@ -20,13 +20,13 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// un'operazione, in che unita' sono i numeri, e cosa deve esserci gia'
         /// nel documento. Si tocca con la stessa cura del codice.
         /// </summary>
-        public string Descrizione;
+        public string Description;
 
         /// <summary>Lo schema degli argomenti.</summary>
-        public Nodo Schema;
+        public Node Schema;
 
         /// <summary>Cosa deve esserci nel documento perche' abbia senso. Puo' mancare.</summary>
-        public string Precondizione;
+        public string Precondition;
 
         /// <summary>
         /// SU CHE DOCUMENTO GIRA: «part», «assembly», «drawing» — o piu'
@@ -46,7 +46,7 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// un'operazione che il modello non prova sul documento sbagliato**,
         /// e provarlo costa un turno.
         /// </summary>
-        public string DocumentoRichiesto;
+        public string RequestedDocument;
 
         /// <summary>
         /// UNA CHIAMATA VERA, in JSON, presa da un caso di banco VERDE
@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// quel pezzo comparira' ovunque. I numeri di un esempio sono
         /// ARBITRARI: contano i campi e la loro forma, non i valori.
         /// </summary>
-        public string Esempio;
+        public string Example;
 
         /// <summary>
         /// E' stata costruita e MISURATA dentro SOLIDWORKS?
@@ -87,6 +87,6 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// Sta accanto al codice che esegue, e non in un file lontano, perche'
         /// una promessa scritta altrove si scorda di essere mantenuta.
         /// </summary>
-        public bool Provata;
+        public bool Tested;
     }
 }

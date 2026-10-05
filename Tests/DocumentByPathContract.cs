@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -43,14 +43,14 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("documents closed and activated by path or reference, never by title (Z-C21.13 N11, M4, S18)");
+            Group("documents closed and activated by path or reference, never by title (Z-C21.13 N11, M4, S18)");
 
             DirectCallsInTheSource();
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of DocumentByPath",
+                NotHere("the pure rules of DocumentByPath",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -58,7 +58,7 @@ namespace Oce.Solid.Agent.ContractTests
             Type rules;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -74,10 +74,10 @@ namespace Oce.Solid.Agent.ContractTests
                 var asm = Assembly.Load(File.ReadAllBytes(library));
                 rules = asm.GetType("Oce.Solid.Agent.Core.DocumentByPath", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
             if (rules == null)
             {
-                Segna("DocumentByPath is in the library", false, "type Oce.Solid.Agent.Core.DocumentByPath not found");
+                Check("DocumentByPath is in the library", false, "type Oce.Solid.Agent.Core.DocumentByPath not found");
                 return;
             }
 
@@ -97,16 +97,16 @@ namespace Oce.Solid.Agent.ContractTests
             var files = new List<string>();
             foreach (var folder in new[] { "Oce.Solid.Agent.Core", "Bridge", "Tools", "Mcp", "Shared" })
             {
-                var dir = Path.Combine(Radice(), folder);
+                var dir = Path.Combine(Root(), folder);
                 if (!Directory.Exists(dir)) continue;
                 foreach (var f in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
                 {
-                    var rel = f.Substring(Radice().Length).TrimStart('\\', '/').Replace('\\', '/');
+                    var rel = f.Substring(Root().Length).TrimStart('\\', '/').Replace('\\', '/');
                     if (rel.Contains("/bin/") || rel.Contains("/obj/")) continue;
                     files.Add(f);
                 }
             }
-            var main = Path.Combine(Radice(), "Program.cs");
+            var main = Path.Combine(Root(), "Program.cs");
             if (File.Exists(main)) files.Add(main);
 
             var outside = new List<string>();
@@ -148,7 +148,7 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
 
-            Segna("no CloseDoc, QuitDoc or ActivateDoc call outside DocumentByPath (library, bridge, tools)",
+            Check("no CloseDoc, QuitDoc or ActivateDoc call outside DocumentByPath (library, bridge, tools)",
                   files.Count > 10 && outside.Count == 0,
                   files.Count <= 10 ? "only " + files.Count + " source files found: the check would pass on nothing"
                   : outside.Count == 0 ? files.Count + " files, none"
@@ -156,7 +156,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             bool closeThere = helperCalls.Any(c => c.EndsWith("CloseDoc", StringComparison.Ordinal));
             bool activateThere = helperCalls.Any(c => c.EndsWith("ActivateDoc3", StringComparison.Ordinal));
-            Segna("inside DocumentByPath, CloseDoc and ActivateDoc3 take only the name the rule computed",
+            Check("inside DocumentByPath, CloseDoc and ActivateDoc3 take only the name the rule computed",
                   helperSeen && closeThere && activateThere && helperBad.Count == 0,
                   !helperSeen ? "Oce.Solid.Agent.Core/" + HelperFile + " is missing"
                   : !closeThere || !activateThere ? "a CloseDoc or an ActivateDoc3 call is missing: " + string.Join(", ", helperCalls)
@@ -209,19 +209,19 @@ namespace Oce.Solid.Agent.ContractTests
                 // A-G1, A-G3: CloseDoc(GetPathName()) and CloseDoc(file name with
                 // extension) closed exactly the target.
                 var names = CloseNames(t, asm, "N11AB.SLDASM", false, new[] { prt }, new[] { "N11AB.SLDPRT" }, out refusal);
-                Segna("a saved document is closed by its full path, then its file name (probe A-G1, A-G3)",
+                Check("a saved document is closed by its full path, then its file name (probe A-G1, A-G3)",
                       Same(names, asm, "N11AB.SLDASM"), Show(names));
             }
-            catch (Exception ex) { Segna("a saved document is closed by its full path, then its file name (probe A-G1, A-G3)", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("a saved document is closed by its full path, then its file name (probe A-G1, A-G3)", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
                 // Extensions hidden: Base.SLDASM and Base.SLDPRT both show «Base».
                 var close = CloseNames(t, @"C:\w\Base.SLDASM", "Base", false, new[] { @"C:\w\Base.SLDPRT" }, new[] { "Base" }, out refusal);
-                Segna("with the extensions hidden the shared title «Base» is never the name given to CloseDoc",
+                Check("with the extensions hidden the shared title «Base» is never the name given to CloseDoc",
                       Same(close, @"C:\w\Base.SLDASM", "Base.SLDASM"), Show(close));
             }
-            catch (Exception ex) { Segna("with the extensions hidden the shared title «Base» is never the name given to CloseDoc", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("with the extensions hidden the shared title «Base» is never the name given to CloseDoc", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
@@ -233,19 +233,19 @@ namespace Oce.Solid.Agent.ContractTests
                 string refusedWhy;
                 var names = CloseNames(t, "", "Part7", true, new[] { @"C:\w\Part7.SLDPRT" }, new[] { "Part7" }, out refusedWhy);
                 var alone = CloseNames(t, "", "Part7", true, new[] { @"C:\w\Base.SLDPRT" }, new[] { "Base.SLDPRT" }, out refusal);
-                Segna("a document never saved and in front is closed by its title, never with CloseDoc(\"\")",
+                Check("a document never saved and in front is closed by its title, never with CloseDoc(\"\")",
                       names == null && !string.IsNullOrEmpty(refusedWhy) && Same(alone, "Part7"),
                       "title taken by another document " + Show(names) + ", title free " + Show(alone));
             }
-            catch (Exception ex) { Segna("a document never saved and in front is closed by its title, never with CloseDoc(\"\")", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("a document never saved and in front is closed by its title, never with CloseDoc(\"\")", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
                 var names = CloseNames(t, "", "Part7", false, new[] { "", @"C:\w\Base.SLDPRT" }, new[] { "Part8", "Base.SLDPRT" }, out refusal);
-                Segna("a document never saved, not in front, with a title nobody else answers to: that title",
+                Check("a document never saved, not in front, with a title nobody else answers to: that title",
                       Same(names, "Part7"), Show(names) + (refusal == null ? "" : " refusal: " + refusal));
             }
-            catch (Exception ex) { Segna("a document never saved, not in front, with a title nobody else answers to: that title", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("a document never saved, not in front, with a title nobody else answers to: that title", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
@@ -254,12 +254,12 @@ namespace Oce.Solid.Agent.ContractTests
                 // A-S: CloseDoc(stem) closed the document whose title carried the
                 // extension, so the stem collides with the extensions shown too.
                 var shown = CloseNames(t, "", "Part7", false, new[] { @"C:\w\Part7.SLDPRT" }, new[] { "Part7.SLDPRT" }, out refusal);
-                Segna("never saved, not in front, and a saved file answers to its title: refused, naming it (probe A-S)",
+                Check("never saved, not in front, and a saved file answers to its title: refused, naming it (probe A-S)",
                       hidden == null && shown == null && hiddenRefusal != null && hiddenRefusal.Contains(@"C:\w\Part7.SLDPRT") &&
                       refusal != null,
                       "extensions hidden " + Show(hidden) + ", shown " + Show(shown) + "; refusal: " + (hiddenRefusal ?? "none"));
             }
-            catch (Exception ex) { Segna("never saved, not in front, and a saved file answers to its title: refused, naming it (probe A-S)", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("never saved, not in front, and a saved file answers to its title: refused, naming it (probe A-S)", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
@@ -271,19 +271,19 @@ namespace Oce.Solid.Agent.ContractTests
                 // In front or not, refused: CloseDoc("") is never used (it closed the
                 // original part on the first full bench of 0.144.0), and the title
                 // is shared. The reopened document stays open and the answer says so.
-                Segna("M4: the reopened STEP titled like its part is never closed by that title",
+                Check("M4: the reopened STEP titled like its part is never closed by that title",
                       notFront == null && front == null,
                       "not in front " + Show(notFront) + ", in front " + Show(front));
             }
-            catch (Exception ex) { Segna("M4: the reopened STEP titled like its part is never closed by that title", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("M4: the reopened STEP titled like its part is never closed by that title", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
                 var names = CloseNames(t, "", "Draw3 - Sheet1", false, new[] { @"C:\w\Draw3.SLDDRW" }, new[] { "Draw3 - Sheet1" }, out refusal);
-                Segna("a drawing never saved is refused when a saved drawing shows the same title",
+                Check("a drawing never saved is refused when a saved drawing shows the same title",
                       names == null, Show(names));
             }
-            catch (Exception ex) { Segna("a drawing never saved is refused when a saved drawing shows the same title", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("a drawing never saved is refused when a saved drawing shows the same title", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
@@ -291,21 +291,21 @@ namespace Oce.Solid.Agent.ContractTests
                 if (m == null) throw new MissingMethodException(t.Name + ".TitleCollision");
                 var upper = m.Invoke(null, new object[] { "PART7", new[] { @"C:\w\part7.sldprt" }, new[] { "part7.sldprt" } }) as string;
                 var prefix = m.Invoke(null, new object[] { "Part7", new[] { @"C:\w\Part70.SLDPRT" }, new[] { "Part70.SLDPRT" } }) as string;
-                Segna("the collision ignores case, as Windows file names do, and a longer name is no collision",
+                Check("the collision ignores case, as Windows file names do, and a longer name is no collision",
                       upper != null && prefix == null, "PART7 vs part7.sldprt: " + (upper ?? "null") + "; Part7 vs Part70.SLDPRT: " + (prefix ?? "null"));
             }
-            catch (Exception ex) { Segna("the collision ignores case, as Windows file names do, and a longer name is no collision", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("the collision ignores case, as Windows file names do, and a longer name is no collision", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
                 string closeRefusal, activateRefusal;
                 var close = CloseNames(t, "", "", false, new string[0], new string[0], out closeRefusal);
                 var activate = ActivateNames(t, "", "", new string[0], new string[0], out activateRefusal);
-                Segna("no path and no title: nothing to name, refused with a reason",
+                Check("no path and no title: nothing to name, refused with a reason",
                       close == null && activate == null && closeRefusal != null && activateRefusal != null,
                       "close " + Show(close) + ", activate " + Show(activate));
             }
-            catch (Exception ex) { Segna("no path and no title: nothing to name, refused with a reason", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("no path and no title: nothing to name, refused with a reason", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static void ActivateRules(Type t)
@@ -316,20 +316,20 @@ namespace Oce.Solid.Agent.ContractTests
                 // ActivateDoc3.html: «specify the file extension in Name». The
                 // title «N11AB» (extensions hidden) must not appear.
                 var names = ActivateNames(t, @"C:\w\N11AB.SLDASM", "N11AB", new[] { @"C:\w\N11AB.SLDPRT" }, new[] { "N11AB" }, out refusal);
-                Segna("a saved document is activated by its file name with extension, then its path, never its title",
+                Check("a saved document is activated by its file name with extension, then its path, never its title",
                       Same(names, "N11AB.SLDASM", @"C:\w\N11AB.SLDASM"), Show(names));
             }
-            catch (Exception ex) { Segna("a saved document is activated by its file name with extension, then its path, never its title", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("a saved document is activated by its file name with extension, then its path, never its title", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
                 var unique = ActivateNames(t, "", "Part7", new[] { @"C:\w\Base.SLDPRT" }, new[] { "Base.SLDPRT" }, out refusal);
                 var clash = ActivateNames(t, "", "Part7", new[] { @"C:\w\Part7.SLDPRT" }, new[] { "Part7.SLDPRT" }, out refusal);
-                Segna("a document never saved is activated by its title only when nobody else answers to it",
+                Check("a document never saved is activated by its title only when nobody else answers to it",
                       Same(unique, "Part7") && clash == null && refusal != null,
                       "unique " + Show(unique) + ", clash " + Show(clash));
             }
-            catch (Exception ex) { Segna("a document never saved is activated by its title only when nobody else answers to it", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("a document never saved is activated by its title only when nobody else answers to it", false, ex.GetType().Name + ": " + ex.Message); }
         }
     }
 }

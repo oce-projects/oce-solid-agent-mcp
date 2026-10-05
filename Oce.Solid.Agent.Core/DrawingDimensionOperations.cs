@@ -63,77 +63,77 @@ namespace Oce.Solid.Agent.Core
     /// coordinate su cui cliccare: si prende l'elenco che la vista stessa
     /// espone e si seleziona con `IEntity.Select4`.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito QuotaInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome DrawingDimension(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito(
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed(
                     "Il documento attivo non e' una tavola: le quote stanno su una " +
                     "vista di disegno. Crea prima la tavola con «create_drawing».");
 
-            var nomi = NomiDelleViste(disegno);
-            if (nomi.Count == 0)
-                return Fallito(
+            var names = ViewNames(drawing);
+            if (names.Count == 0)
+                return Failed(
                     "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
                     "Metti prima le viste con «standard_views» o «model_view».");
 
-            string voluta = Str(a, "view", null);
-            string motivoVista;
-            IView vista = RisolviVista(disegno, nomi, voluta, out motivoVista);
-            if (motivoVista != null) return Fallito(motivoVista);
-            if (vista == null)
-                return Fallito("Non riesco a prendere la vista su cui quotare.");
+            string wanted = Str(a, "view", null);
+            string viewReason;
+            IView view = ResolveView(drawing, names, wanted, out viewReason);
+            if (viewReason != null) return Failed(viewReason);
+            if (view == null)
+                return Failed("Non riesco a prendere la vista su cui quotare.");
 
-            string nomeVista = "";
-            try { nomeVista = vista.GetName2() ?? ""; } catch { }
+            string viewName = "";
+            try { viewName = view.GetName2() ?? ""; } catch { }
 
             // ── GLI SPIGOLI CHE LA VISTA MOSTRA ─────────────────────────
-            object[] spigoli = null;
+            object[] edges = null;
             try
             {
-                spigoli = vista.GetVisibleEntities2(
+                edges = view.GetVisibleEntities2(
                     null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
             }
             catch (Exception ex)
             {
-                return Fallito("Non riesco a chiedere gli spigoli alla vista: " + ex.Message);
+                return Failed("Non riesco a chiedere gli spigoli alla vista: " + ex.Message);
             }
 
             // ZERO-E-ZERO: l'eccezione ha gia' il suo rifiuto qui sopra; null e'
             // una vista senza spigoli visibili, e lo zero e' vero.
-            int disponibili = spigoli == null ? 0 : spigoli.Length;
-            if (disponibili == 0)
-                return Fallito(
-                    "La vista «" + nomeVista + "» non mostra nessuno spigolo quotabile. " +
+            int available = edges == null ? 0 : edges.Length;
+            if (available == 0)
+                return Failed(
+                    "La vista «" + viewName + "» non mostra nessuno spigolo quotabile. " +
                     "Su una vista vuota, o su una vista in cui il modello non e' " +
                     "risolto, non c'e' niente da quotare — e mettere zero quote " +
                     "rispondendo «fatto» sarebbe peggio.");
 
             // QUALI SPIGOLI. Senza dirlo si quotano i primi, e quanti si dice.
-            var scelti = new List<int>();
-            var elencoChiesto = Lista(a, "edges");
-            if (elencoChiesto.Count > 0)
+            var chosen = new List<int>();
+            var requestedList = StringList(a, "edges");
+            if (requestedList.Count > 0)
             {
-                foreach (var o in elencoChiesto)
+                foreach (var o in requestedList)
                 {
                     int i;
                     if (!int.TryParse((o ?? "").Trim(), out i))
-                        return Fallito("«edges» vuole numeri, e «" + o + "» non lo e'.");
-                    if (i < 0 || i >= disponibili)
-                        return Fallito(
-                            "Lo spigolo " + i + " non c'e': la vista «" + nomeVista +
-                            "» ne mostra " + disponibili + " (da 0 a " + (disponibili - 1) + ").");
-                    if (!scelti.Contains(i)) scelti.Add(i);
+                        return Failed("«edges» vuole numeri, e «" + o + "» non lo e'.");
+                    if (i < 0 || i >= available)
+                        return Failed(
+                            "Lo spigolo " + i + " non c'e': la vista «" + viewName +
+                            "» ne mostra " + available + " (da 0 a " + (available - 1) + ").");
+                    if (!chosen.Contains(i)) chosen.Add(i);
                 }
             }
             else
             {
-                int quante = (int)Num(a, "count", 4);
-                if (quante <= 0)
-                    return Fallito("«count» dev'essere almeno 1: zero quote non sono una quota.");
-                for (int i = 0; i < Math.Min(quante, disponibili); i++) scelti.Add(i);
+                int howMany = (int)Num(a, "count", 4);
+                if (howMany <= 0)
+                    return Failed("«count» dev'essere almeno 1: zero quote non sono una quota.");
+                for (int i = 0; i < Math.Min(howMany, available); i++) chosen.Add(i);
             }
 
             // ── DOVE METTERLE, in coordinate FOGLIO ─────────────────────
@@ -144,16 +144,16 @@ namespace Oce.Solid.Agent.Core
             // quote sempre piu' lontano. Non e' verificato che cresca: per
             // questo la risposta riporta il contorno di prima E quello di
             // dopo, cosi' chi legge puo' vederlo invece di fidarsi.
-            double[] contorno = null;
-            try { contorno = vista.GetOutline() as double[]; } catch { }
-            if (contorno == null || contorno.Length < 4)
-                return Fallito(
+            double[] contour = null;
+            try { contour = view.GetOutline() as double[]; } catch { }
+            if (contour == null || contour.Length < 4)
+                return Failed(
                     "Non riesco a leggere l'ingombro della vista sul foglio, e senza " +
                     "quello le quote finirebbero in un punto qualunque — fuori dal " +
                     "foglio, se va male, e senza nessun errore.");
 
-            double distacco = Num(a, "offset_mm", 12) / 1000.0;
-            double passo = Num(a, "pitch_mm", 10) / 1000.0;
+            double dimensionOffset = Num(a, "offset_mm", 12) / 1000.0;
+            double planStep = Num(a, "pitch_mm", 10) / 1000.0;
 
             // ── COME STA OGNI SPIGOLO SUL FOGLIO ────────────────────────
             //
@@ -165,28 +165,28 @@ namespace Oce.Solid.Agent.Core
             // mezzo al disegno**. E' il difetto che si vedeva a occhio.
             IMathUtility mu = null;
             MathTransform tr = null;
-            try { mu = _sw.GetMathUtility() as IMathUtility; tr = vista.ModelToViewTransform; } catch { }
+            try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
             if (mu == null || tr == null)
-                return Fallito(
+                return Failed(
                     "Non riesco a leggere come la vista porta il modello sul foglio: senza, le " +
                     "quote finirebbero nel punto sbagliato, e senza nessun errore.");
-            double scala = 1;
-            try { scala = vista.ScaleDecimal; } catch { }
-            if (scala <= 0) scala = 1;
+            double scale = 1;
+            try { scale = view.ScaleDecimal; } catch { }
+            if (scale <= 0) scale = 1;
 
             // TUTTI GLI SPIGOLI DELLA VISTA, UNA VOLTA SOLA (voce GT11). I fori e
             // gli smussi si cercano su tutti, non sui primi «count»: una
             // piastra con quattro fori non smette di averli perche' si sono
             // chiesti quattro spigoli.
-            var tutti = new List<Spigolo>();
-            var cerchi = new List<Cerchio>();
-            int foriNellaTabella = 0;   // ZERO-E-ZERO: nessuna tabella fori nella vista, finche' non si guarda
-            for (int i = 0; i < disponibili; i++)
+            var all = new List<ProjectedEdge>();
+            var circles = new List<Circle>();
+            int holesInTable = 0;   // ZERO-E-ZERO: nessuna tabella fori nella vista, finche' non si guarda
+            for (int i = 0; i < available; i++)
             {
-                var c = CerchioSulFoglio(spigoli[i] as IEdge, i, mu, tr);
-                if (c != null) { cerchi.Add(c); continue; }
-                var s = LeggiSpigolo(vista, spigoli[i], i, mu, tr);
-                if (s != null) tutti.Add(s);
+                var c = CircleOnSheet(edges[i] as IEdge, i, mu, tr);
+                if (c != null) { circles.Add(c); continue; }
+                var s = ReadEdge(view, edges[i], i, mu, tr);
+                if (s != null) all.Add(s);
             }
 
             // LE QUOTE CHE LA TAVOLA HA GIA', IN TUTTE LE VISTE (voce GT11). «Ciascun
@@ -196,38 +196,38 @@ namespace Oce.Solid.Agent.Core
             // il 120 nella frontale e in quella dall'alto.
             // EVERY SHEET since Z-C21.2 (finding N43), only the views of this model
             // and configuration, and without the dimensions hidden by hand (C8-2):
-            // what was read is in the answer, see ChiaviGiaQuotate.
-            var gia = ChiaviGiaQuotate(disegno, vista, out var existingRead);
+            // what was read is in the answer, see KeysAlreadyDimensioned.
+            var already = KeysAlreadyDimensioned(drawing, view, out var existingRead);
 
-            var falliti = new List<string>();
-            var diametriEsterni = new List<Dictionary<string, object>>();
-            var bordiNonQuotati = new List<string>();
-            var diTaglio = new List<string>();
-            EsitoTondo tondo = null;
-            var misurati = new List<Spigolo>();
-            var doppioni = new List<string>();
-            var altrove = new List<string>();
-            var diSmusso = new List<string>();
-            var visti = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (var i in scelti)
+            var failed = new List<string>();
+            var externalDiameters = new List<Dictionary<string, object>>();
+            var undimensionedBorders = new List<string>();
+            var cutting = new List<string>();
+            RoundOutcome round = null;
+            var measuredValues = new List<ProjectedEdge>();
+            var duplicates = new List<string>();
+            var elsewhere = new List<string>();
+            var onChamfer = new List<string>();
+            var seen = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var i in chosen)
             {
-                if (cerchi.Exists(c => c.Indice == i)) continue;   // i fori hanno la loro strada, qui sotto
-                var s = tutti.Find(t => t.Indice == i);
-                if (s == null) { falliti.Add(i + " (non riesco a misurarlo sul foglio)"); continue; }
+                if (circles.Exists(c => c.Index == i)) continue;   // i fori hanno la loro strada, qui sotto
+                var s = all.Find(t => t.Index == i);
+                if (s == null) { failed.Add(i + " (non riesco a misurarlo sul foglio)"); continue; }
 
                 // LO SMUSSO NON SI QUOTA COI SUOI SPIGOLI. La prima tavola
                 // guardata aveva lo smusso quotato 7,071 in obliquo (l'ipotenusa)
                 // e la catena 5 + 75 accanto all'80: si scrive 5 x 45°, con la
                 // quota da smusso, e le «gambe» — i tratti accorciati dallo
                 // smusso — le dicono la quota da smusso e l'ingombro insieme.
-                if (s.DiSmusso != null)
+                if (s.ChamferFeature != null)
                 {
-                    diSmusso.Add(i + " (spigolo dello smusso «" + s.DiSmusso + "»: va con la quota da smusso)");
+                    onChamfer.Add(i + " (spigolo dello smusso «" + s.ChamferFeature + "»: va con la quota da smusso)");
                     continue;
                 }
-                if (EGambaDiSmusso(s, tutti))
+                if (IsChamferLeg(s, all))
                 {
-                    diSmusso.Add(i + " (accorciato dallo smusso: lo dicono la quota da smusso e l'ingombro)");
+                    onChamfer.Add(i + " (accorciato dallo smusso: lo dicono la quota da smusso e l'ingombro)");
                     continue;
                 }
 
@@ -245,62 +245,62 @@ namespace Oce.Solid.Agent.Core
                 // DOVE sta la sua proiezione — cosi' i due lati opposti di un
                 // rettangolo si riconoscono come la stessa misura, e due
                 // gradini uguali in posti diversi no.
-                if (visti.ContainsKey(s.Chiave))
+                if (seen.ContainsKey(s.Key))
                 {
-                    doppioni.Add(i + " (stessa misura dello spigolo " + visti[s.Chiave] + ")");
+                    duplicates.Add(i + " (stessa misura dello spigolo " + seen[s.Key] + ")");
                     continue;
                 }
-                if (s.NelModello != null && gia.Contains(s.NelModello))
+                if (s.InModel != null && already.Contains(s.InModel))
                 {
-                    altrove.Add(i + " (" + Math.Round(s.Lunghezza * 1000.0 / scala, 2).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                    elsewhere.Add(i + " (" + Math.Round(s.Length * 1000.0 / scale, 2).ToString(System.Globalization.CultureInfo.InvariantCulture) +
                                 " mm: la stessa estensione e' gia' quotata in un'altra vista)");
                     continue;
                 }
-                visti[s.Chiave] = i;
-                if (s.NelModello != null) gia.Add(s.NelModello);
-                misurati.Add(s);
+                seen[s.Key] = i;
+                if (s.InModel != null) already.Add(s.InModel);
+                measuredValues.Add(s);
             }
 
             // DALLE PICCOLE ALLE GRANDI, allontanandosi dal pezzo: «le linee di
             // misura andranno disegnate in ordine progressivo, dalle minori
             // alle maggiori, allontanandosi dal contorno delle figure».
-            misurati.Sort((x, y) => x.Lunghezza.CompareTo(y.Lunghezza));
+            measuredValues.Sort((x, y) => x.Length.CompareTo(y.Length));
 
-            int prima = ContaQuote(disegno);
-            if (prima < 0)
-                return Fallito(
+            int before = CountDimensions(drawing);
+            if (before < 0)
+                return Failed(
                     "Non riesco a contare le quote della tavola prima di cominciare: senza " +
                     "quel numero non saprei dirti quali ho messo io. Non ho toccato niente.");
 
             // ── LA TRAPPOLA DEL MODALE, spenta e rimessa ────────────────
-            bool chiedevaIlValore = true;
-            bool spenta = false;
-            var nate = new List<Dictionary<string, object>>();
-            var fori = new List<Dictionary<string, object>>();
-            var smussi = new List<Dictionary<string, object>>();
+            bool askedForTheValue = true;
+            bool off = false;
+            var born = new List<Dictionary<string, object>>();
+            var holes = new List<Dictionary<string, object>>();
+            var chamfers = new List<Dictionary<string, object>>();
             try
             {
                 try
                 {
-                    chiedevaIlValore = _sw.GetUserPreferenceToggle(
+                    askedForTheValue = _sw.GetUserPreferenceToggle(
                         (int)swUserPreferenceToggle_e.swInputDimValOnCreate);
                     _sw.SetUserPreferenceToggle(
                         (int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
-                    spenta = true;
+                    off = true;
                 }
                 catch { /* se non si puo' spegnere lo dira' il primo che si appende */ }
 
                 // UN CONTATORE PER FASCIA, non uno solo per tutte. La stesura
                 // precedente ne aveva uno globale, e cosi' la seconda quota
                 // scendeva di un passo anche se andava a destra.
-                int sotto = 0, diLato = 0, aSinistra = 0;
+                int below = 0, sideways = 0, onLeft = 0;
 
                 // ── I FORI, PRIMA DI TUTTO (voce GT11) ──────────────────
                 //
                 // La prima tavola guardata non quotava i fori: ne' il diametro
                 // ne' la posizione, cioe' proprio cio' che in officina serve di
                 // piu'. Il diametro con il RICHIAMO DEL FORO (`AddHoleCallout2`,
-                // «Ø8 PASSANTE»), one per diameter AND depth (QuotaIFori), col numero dei fori uguali
+                // «Ø8 PASSANTE»), one per diameter AND depth (DimensionTheHoles), col numero dei fori uguali
                 // davanti («4× »: il prefisso si aggiunge a quello che c'e', che
                 // e' il simbolo del diametro — sostituirlo lo cancellava,
                 // misurato). La posizione con quote dai due spigoli di
@@ -309,36 +309,36 @@ namespace Oce.Solid.Agent.Core
                 // 25/9/2026: cerchio + spigolo con `AddHorizontalDimension2`
                 // misura dal CENTRO (15 sulla piastra), con `AddDimension` non
                 // nasce niente.
-                var dimensioniFoglio = DimensioniDelFoglio(disegno);
+                var sheetDimensions = SheetDimensions(drawing);
                 // UNA TABELLA FORI NELLA VISTA QUOTA GIA' I FORI (voce GT5, 26/9/2026).
                 // La prima tavola con la tabella, GUARDATA, aveva i fori due volte:
                 // posizioni e misure nella tabella, e di nuovo richiami e quote di
                 // posizione sulla vista. «Ciascun elemento si quota una volta sola»:
                 // se la tabella c'e', i fori sono suoi.
-                foriNellaTabella = ForiNellaTabellaFori(disegno);
-                var foriVeri = cerchi.FindAll(c => c.Tipo == "foro");
-                if (foriVeri.Count > 0 && foriNellaTabella <= 0)
-                    QuotaIFori(modello, disegno, foriVeri, tutti, gia, contorno, distacco, passo, scala,
-                               ref sotto, ref diLato, ref aSinistra, dimensioniFoglio, nate, fori, altrove, falliti);
-                QuotaIContorni(modello, disegno, cerchi.FindAll(c => c.Tipo == "contorno"), gia, contorno, distacco, passo,
-                               nate, diametriEsterni, bordiNonQuotati, altrove, falliti);
-                foreach (var c in cerchi)
-                    if (c.Tipo == "di_taglio") diTaglio.Add("Ø" + c.DiametroMm.ToString("0.##", Ci));
+                holesInTable = HolesInHoleTable(drawing);
+                var trueHoles = circles.FindAll(c => c.Type == "foro");
+                if (trueHoles.Count > 0 && holesInTable <= 0)
+                    DimensionTheHoles(model, drawing, trueHoles, all, already, contour, dimensionOffset, planStep, scale,
+                               ref below, ref sideways, ref onLeft, sheetDimensions, born, holes, elsewhere, failed);
+                DimensionTheContours(model, drawing, circles.FindAll(c => c.Type == "contorno"), already, contour, dimensionOffset, planStep,
+                               born, externalDiameters, undimensionedBorders, elsewhere, failed);
+                foreach (var c in circles)
+                    if (c.Type == "di_taglio") cutting.Add("Ø" + c.DiameterMm.ToString("0.##", Ci));
                 // IL TONDO VISTO DI FIANCO (voce GT14): cerchi di taglio coassiali
                 // vogliono dire un pezzo tornito nella vista longitudinale —
                 // lunghezze fra le facce e diametri dalle generatrici.
-                tondo = QuotaIlTondoDiFianco(modello, disegno, vista, mu, tr, cerchi.FindAll(c => c.Tipo == "di_taglio"),
-                                             gia, contorno, distacco, passo, ref sotto, ref diLato, nate, altrove, falliti);
+                round = DimensionTheRoundFromTheSide(model, drawing, view, mu, tr, circles.FindAll(c => c.Type == "di_taglio"),
+                                             already, contour, dimensionOffset, planStep, ref below, ref sideways, born, elsewhere, failed);
 
-                foreach (var s in misurati)
+                foreach (var s in measuredValues)
                 {
-                    int quotePrima = ContaQuote(disegno);
+                    int dimensionsBefore = CountDimensions(drawing);
                     try
                     {
-                        modello.ClearSelection2(true);
-                        var ent = spigoli[s.Indice] as IEntity;
-                        if (ent == null) { falliti.Add(s.Indice + " (non e' un'entita')"); continue; }
-                        if (!ent.Select4(false, null)) { falliti.Add(s.Indice + " (non si seleziona)"); continue; }
+                        model.ClearSelection2(true);
+                        var ent = edges[s.Index] as IEntity;
+                        if (ent == null) { failed.Add(s.Index + " (non e' un'entita')"); continue; }
+                        if (!ent.Select4(false, null)) { failed.Add(s.Index + " (non si seleziona)"); continue; }
 
                         // ── DOVE VA QUESTA QUOTA ────────────────────────
                         //
@@ -348,25 +348,25 @@ namespace Oce.Solid.Agent.Core
                         // Zanichelli, DISPOSIZIONE DELLE LINEE DI MISURA).
                         // Quindi: orizzontali SOTTO, verticali DI LATO.
                         double x, y;
-                        if (s.Verso == "horizontal")
+                        if (s.Facing == "horizontal")
                         {
-                            x = s.Mezzo;
-                            y = contorno[1] - distacco - sotto * passo;
-                            sotto++;
+                            x = s.Half;
+                            y = contour[1] - dimensionOffset - below * planStep;
+                            below++;
                         }
-                        else if (s.Verso == "vertical")
+                        else if (s.Facing == "vertical")
                         {
-                            x = contorno[2] + distacco + diLato * passo;
-                            y = s.Mezzo;
-                            diLato++;
+                            x = contour[2] + dimensionOffset + sideways * planStep;
+                            y = s.Half;
+                            sideways++;
                             // DENTRO LA CORNICE: una vista sul bordo destro del
                             // foglio manda la fascia fuori dal disegno. Allora a
                             // sinistra — stessa regola dei fori.
-                            if (dimensioniFoglio != null && x > dimensioniFoglio[0] - 0.015)
+                            if (sheetDimensions != null && x > sheetDimensions[0] - 0.015)
                             {
-                                diLato--;
-                                x = contorno[0] - distacco - aSinistra * passo;
-                                aSinistra++;
+                                sideways--;
+                                x = contour[0] - dimensionOffset - onLeft * planStep;
+                                onLeft++;
                             }
                         }
                         else
@@ -374,109 +374,109 @@ namespace Oce.Solid.Agent.Core
                             // OBLIQUO: non c'e' una fascia giusta, e metterlo
                             // con le orizzontali lo farebbe sembrare tale. Va
                             // a sinistra, e la risposta lo dice.
-                            x = contorno[0] - distacco - aSinistra * passo;
-                            y = (contorno[1] + contorno[3]) / 2;
-                            aSinistra++;
+                            x = contour[0] - dimensionOffset - onLeft * planStep;
+                            y = (contour[1] + contour[3]) / 2;
+                            onLeft++;
                         }
 
-                        var natura = modello.Extension.AddDimension(x, y, 0, 0)
+                        var nature = model.Extension.AddDimension(x, y, 0, 0)
                                      as IDisplayDimension;
-                        try { modello.EditRebuild3(); } catch { }
+                        try { model.EditRebuild3(); } catch { }
 
-                        if (NonCresciuta(disegno, quotePrima, natura))
+                        if (NotGrown(drawing, dimensionsBefore, nature))
                         {
                             // NON SI GUARDA SE `AddDimension` HA RISPOSTA: si
                             // guarda se la quota c'e'. E' la regola di casa —
                             // il valore che torna da chi ha fatto la cosa non
                             // e' la misura della cosa.
-                            falliti.Add(s.Indice + " (chiamata andata, quota non nata)");
+                            failed.Add(s.Index + " (chiamata andata, quota non nata)");
                             continue;
                         }
 
-                        var descritta = DescriviQuota(natura, s.Indice);
-                        descritta["orientation"] = s.Verso;
-                        descritta["position_mm"] = DovEFinita(natura);
-                        nate.Add(descritta);
+                        var described = DescribeDimension(nature, s.Index);
+                        described["orientation"] = s.Facing;
+                        described["position_mm"] = WhereItEnded(nature);
+                        born.Add(described);
                     }
                     catch (Exception ex)
                     {
                         var m = ex.Message ?? "";
-                        falliti.Add(s.Indice + " (" + (m.Length > 90 ? m.Substring(0, 90) + "..." : m) + ")");
+                        failed.Add(s.Index + " (" + (m.Length > 90 ? m.Substring(0, 90) + "..." : m) + ")");
                     }
                 }
 
                 // ── GLI SMUSSI, CON LA QUOTA DA SMUSSO (voce GT11) ─────
-                QuotaGliSmussi(modello, disegno, spigoli, tutti, gia, contorno, distacco, nate, smussi, altrove, falliti);
+                DimensionTheChamfers(model, drawing, edges, all, already, contour, dimensionOffset, born, chamfers, elsewhere, failed);
             }
             finally
             {
-                if (spenta)
+                if (off)
                     try
                     {
                         _sw.SetUserPreferenceToggle(
-                            (int)swUserPreferenceToggle_e.swInputDimValOnCreate, chiedevaIlValore);
+                            (int)swUserPreferenceToggle_e.swInputDimValOnCreate, askedForTheValue);
                     }
                     catch { }
-                try { modello.ClearSelection2(true); } catch { }
+                try { model.ClearSelection2(true); } catch { }
             }
 
-            int dopo = ContaQuote(disegno);
-            if (dopo < 0)
-                return Fallito(
-                    "Ho messo le quote nella vista «" + nomeVista + "», ma poi non riesco a " +
+            int after = CountDimensions(drawing);
+            if (after < 0)
+                return Failed(
+                    "Ho messo le quote nella vista «" + viewName + "», ma poi non riesco a " +
                     "ricontarle: non so dirti quante ne sono nate. Guarda la tavola prima di " +
                     "andare avanti.");
-            int messe = dopo - prima;
+            int put = after - before;
 
-            if (messe <= 0)
+            if (put <= 0)
             {
                 // NIENTE DA QUOTARE NON E' LA STESSA COSA DI «NON SONO RIUSCITO».
                 // Se tutto cio' che la vista mostra e' gia' quotato altrove, o e'
                 // un doppione, o sta nello smusso, si dice cosi' — e resta un
                 // rifiuto, perche' zero quote non sono una risposta «fatto».
-                if (falliti.Count == 0 && diTaglio.Count > 0 && misurati.Count == 0 && tondo == null &&
-                    doppioni.Count + altrove.Count + diSmusso.Count == 0 && foriNellaTabella <= 0)
-                    return Fallito(
-                        "Nella vista «" + nomeVista + "» gli unici spigoli sono cerchi visti di taglio (" +
-                        string.Join(", ", diTaglio) + ") e non stanno su uno stesso asse: non e' un pezzo tondo " +
+                if (failed.Count == 0 && cutting.Count > 0 && measuredValues.Count == 0 && round == null &&
+                    duplicates.Count + elsewhere.Count + onChamfer.Count == 0 && holesInTable <= 0)
+                    return Failed(
+                        "Nella vista «" + viewName + "» gli unici spigoli sono cerchi visti di taglio (" +
+                        string.Join(", ", cutting) + ") e non stanno su uno stesso asse: non e' un pezzo tondo " +
                         "visto di fianco che io sappia quotare. Il diametro di un cerchio lo quoto dalla vista in " +
                         "cui e' un cerchio (di taglio, AddDiameterDimension2 dice 60 per un Ø30).");
-                if (falliti.Count == 0 && ((doppioni.Count + altrove.Count + diSmusso.Count) > 0 || foriNellaTabella > 0))
-                    return Fallito(
-                        "Nella vista «" + nomeVista + "» non c'e' niente da quotare che non lo sia " +
-                        "gia': " + doppioni.Count + " doppioni nella vista, " + altrove.Count +
-                        " gia' quotati in un'altra vista, " + diSmusso.Count + " dello smusso" +
-                        (foriNellaTabella > 0 ? ", " + foriNellaTabella + " fori nella tabella fori" : "") + ". " +
+                if (failed.Count == 0 && ((duplicates.Count + elsewhere.Count + onChamfer.Count) > 0 || holesInTable > 0))
+                    return Failed(
+                        "Nella vista «" + viewName + "» non c'e' niente da quotare che non lo sia " +
+                        "gia': " + duplicates.Count + " doppioni nella vista, " + elsewhere.Count +
+                        " gia' quotati in un'altra vista, " + onChamfer.Count + " dello smusso" +
+                        (holesInTable > 0 ? ", " + holesInTable + " fori nella tabella fori" : "") + ". " +
                         "Ciascun elemento si quota una volta sola in tutta la tavola (UNI ISO 129-1).");
-                return Fallito(
-                    "Nessuna quota e' nata (erano " + prima + ", sono " + dopo + "). " +
-                    "La vista «" + nomeVista + "» mostra " + disponibili + " spigoli e ne " +
-                    "ho provati " + scelti.Count +
-                    (falliti.Count == 0 ? "" : ": " + string.Join(", ", falliti)) + ". " +
+                return Failed(
+                    "Nessuna quota e' nata (erano " + before + ", sono " + after + "). " +
+                    "La vista «" + viewName + "» mostra " + available + " spigoli e ne " +
+                    "ho provati " + chosen.Count +
+                    (failed.Count == 0 ? "" : ": " + string.Join(", ", failed)) + ". " +
                     "Se la finestra «Modifica» e' rimasta accesa, la chiamata si appende " +
                     "invece di fallire: qui non e' successo, quindi e' altro.");
             }
 
-            double[] dopoContorno = ContornoDi(vista);
+            double[] afterContour = ContourOf(view);
 
             // ── I TESTI CHE SI ACCAVALLANO (voce GT12, punto 3) ─────────────
             // Il rettangolo vero di ogni testo, letto da IDisplayData
             // (OperazioniTestiQuote): testo su testo in tutta la tavola, testo
             // su una linea del pezzo in questa vista.
-            var testiDelleQuote = TestiDelleQuote(disegno);
-            var accavallati = TestiCheSiAccavallano(disegno, vista, testiDelleQuote);
+            var dimensionsTexts = DimensionTexts(drawing);
+            var overlapping = TextsThatOverlap(drawing, view, dimensionsTexts);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["view"] = nomeVista,
-                ["edges_available"] = disponibili,
-                ["edges_tried"] = scelti.Count,
-                ["dimensions_before"] = prima,
-                ["dimensions_after"] = dopo,
-                ["dimensions_placed"] = messe,
+                ["view"] = viewName,
+                ["edges_available"] = available,
+                ["edges_tried"] = chosen.Count,
+                ["dimensions_before"] = before,
+                ["dimensions_after"] = after,
+                ["dimensions_placed"] = put,
                 // OGNI QUOTA COL SUO VALORE RILETTO, in millimetri. E' il pezzo
                 // che distingue questa operazione da una che disegna numeri.
-                ["dimensions"] = nate.ToArray(),
+                ["dimensions"] = born.ToArray(),
                 // E LE STESSE MISURE IN FILA, SENZA L'ORDINE.
                 //
                 // `dimensions[0].mm` costringe chi prova a sapere **in che ordine**
@@ -491,8 +491,8 @@ namespace Oce.Solid.Agent.Core
                 // SOLIDWORKS cambia l'ordine.
                 // *Un'attesa che dipende da un ordine non dichiarato misura
                 // l'ordine, non la cosa.*
-                ["dimensions_mm"] = MillimetriInFila(nate),
-                ["edges_not_dimensioned"] = falliti.ToArray(),
+                ["dimensions_mm"] = MillimetersInARow(born),
+                ["edges_not_dimensioned"] = failed.ToArray(),
 
                 // ── FORI, SMUSSI, E CIO' CHE ERA GIA' QUOTATO (voce GT11) ──
                 //
@@ -501,25 +501,25 @@ namespace Oce.Solid.Agent.Core
                 // comparivano in due viste. Le attese del banco erano tutte
                 // verdi, perche' chiedevano i millimetri delle quote messe —
                 // non se la tavola basta a fare il pezzo.
-                ["holes"] = fori.ToArray(),
-                ["holes_in_hole_table"] = foriNellaTabella > 0 ? (object)foriNellaTabella : null,
+                ["holes"] = holes.ToArray(),
+                ["holes_in_hole_table"] = holesInTable > 0 ? (object)holesInTable : null,
                 // I CERCHI CHE NON SONO FORI (26/9/2026): il contorno di un pezzo
                 // tondo ha una quota di diametro, non un richiamo; un cerchio visto
                 // di taglio non si quota da qui.
-                ["outer_diameters"] = diametriEsterni.ToArray(),
-                ["borders_not_dimensioned"] = bordiNonQuotati.ToArray(),
-                ["cut_circles"] = diTaglio.ToArray(),
+                ["outer_diameters"] = externalDiameters.ToArray(),
+                ["borders_not_dimensioned"] = undimensionedBorders.ToArray(),
+                ["cut_circles"] = cutting.ToArray(),
                 // IL TONDO VISTO DI FIANCO (voce GT14): lunghezze in parallelo dalla
                 // prima faccia, diametri dalle generatrici; e i diametri che la
                 // vista non espone, detti.
-                ["round_axis"] = tondo?.Asse,
-                ["round_lengths_mm"] = tondo == null ? null : tondo.Lunghezze.ToArray(),
-                ["round_diameters_mm"] = tondo == null ? null : tondo.Diametri.ToArray(),
-                ["round_diameters_not_reached"] = tondo == null ? null : tondo.NonRaggiunti.ToArray(),
-                ["round_notes"] = tondo == null ? null : tondo.Note.ToArray(),
-                ["round_generatrices_without_face"] = tondo == null ? null : (object)tondo.GeneratriciSenzaFaccia,
-                ["chamfers"] = smussi.ToArray(),
-                ["already_dimensioned_elsewhere"] = altrove.ToArray(),
+                ["round_axis"] = round?.Axis,
+                ["round_lengths_mm"] = round == null ? null : round.Lengths.ToArray(),
+                ["round_diameters_mm"] = round == null ? null : round.Diameters.ToArray(),
+                ["round_diameters_not_reached"] = round == null ? null : round.NotReached.ToArray(),
+                ["round_notes"] = round == null ? null : round.Note.ToArray(),
+                ["round_generatrices_without_face"] = round == null ? null : (object)round.FacelessGeneratrices,
+                ["chamfers"] = chamfers.ToArray(),
+                ["already_dimensioned_elsewhere"] = elsewhere.ToArray(),
                 // WHAT «ALREADY DIMENSIONED» WAS READ FROM (Z-C21.2, findings N43 and
                 // C8-2). «every sheet» when IDrawingDoc.GetViews handed over the views
                 // of all the sheets, «current sheet only» when it did not and the walk
@@ -533,7 +533,7 @@ namespace Oce.Solid.Agent.Core
                     (existingRead.Complete ? "" : ", interrupted: some views were not read"),
                 ["hidden_dimensions_not_counted"] = existingRead.Complete ? (object)existingRead.HiddenByHand : null,
                 ["views_of_other_models_not_counted"] = existingRead.Complete ? (object)existingRead.ViewsOfAnotherModel : null,
-                ["chamfer_edges"] = diSmusso.ToArray(),
+                ["chamfer_edges"] = onChamfer.ToArray(),
 
                 // ── I DOPPIONI SI DICONO, NON SI NASCONDONO ─────────────
                 //
@@ -543,31 +543,31 @@ namespace Oce.Solid.Agent.Core
                 // elemento dell'oggetto deve essere quotato non piu' di una
                 // volta» (UNI ISO 129-1, scheda Sammarone/Zanichelli), e
                 // 120/10/120/10 e' quotatura ripetuta — «quindi errata».
-                ["edges_discarded_duplicates"] = doppioni.ToArray(),
+                ["edges_discarded_duplicates"] = duplicates.ToArray(),
 
                 // IL CONTORNO PRIMA E DOPO. Non e' accertato che `GetOutline()`
                 // cresca con le annotazioni attaccate alla vista: se i due
                 // numeri differiscono, cresce, e chi mettera' altre quote dopo
                 // di noi deve saperlo invece di scoprirlo.
-                ["contour_view_mm"] = InMillimetri(contorno),
-                ["contour_view_after_mm"] = InMillimetri(dopoContorno),
+                ["contour_view_mm"] = InMillimeters(contour),
+                ["contour_view_after_mm"] = InMillimeters(afterContour),
                 // IL CONFRONTO LO FA IL CODICE, non chi scrive l'attesa. Un
                 // caso di banco puo' pretendere un valore, non paragonare due
                 // campi fra loro: mettere qui il paragone gia' fatto e' l'unico
                 // modo perche' diventi una riga verificabile.
-                ["contour_grown"] = ContornoCresciuto(contorno, dopoContorno),
+                ["contour_grown"] = GrownContour(contour, afterContour),
                 // A WALK THAT BROKE OFF IS «NOT KNOWN» (Z-C21.8, finding N47):
-                // TestiDelleQuote gives null then, and the three fields are null,
+                // DimensionTexts gives null then, and the three fields are null,
                 // not the count of the texts read before the break.
-                ["texts_read"] = testiDelleQuote == null ? null : (object)testiDelleQuote.Count,
-                ["overlapping_texts"] = accavallati == null ? null : accavallati.ToArray(),
+                ["texts_read"] = dimensionsTexts == null ? null : (object)dimensionsTexts.Count,
+                ["overlapping_texts"] = overlapping == null ? null : overlapping.ToArray(),
                 // Nessun testo letto su una tavola con quote e' «non lo so», non
                 // «nessuno si accavalla» (revisione del 26/9/2026).
-                ["how_many_texts_overlap"] = testiDelleQuote == null || accavallati == null ||
-                                                  (testiDelleQuote.Count == 0 && dopo > 0)
-                    ? null : (object)accavallati.Count,
-                ["offset_used_mm"] = Math.Round(distacco * 1000, 2),
-                ["pitch_used_mm"] = Math.Round(passo * 1000, 2),
+                ["how_many_texts_overlap"] = dimensionsTexts == null || overlapping == null ||
+                                                  (dimensionsTexts.Count == 0 && after > 0)
+                    ? null : (object)overlapping.Count,
+                ["offset_used_mm"] = Math.Round(dimensionOffset * 1000, 2),
+                ["pitch_used_mm"] = Math.Round(planStep * 1000, 2),
 
                 ["where_placed"] =
                     "FUORI dalla sagoma della vista, in coordinate foglio: le " +
@@ -602,9 +602,9 @@ namespace Oce.Solid.Agent.Core
                     "e portano le quote fuori dal pezzo, non fanno una tavola d'autore.",
             };
 
-            _log("[agente] " + messe + " quote sulla vista «" + nomeVista + "»: " +
-                 ValoriInRiga(nate));
-            return SenzaFeature(misure);
+            _log("[agente] " + put + " quote sulla vista «" + viewName + "»: " +
+                 ValuesInLine(born));
+            return WithoutFeature(measurements);
         }
 
         /// <summary>
@@ -614,29 +614,29 @@ namespace Oce.Solid.Agent.Core
         /// quindi dove va la sua quota — e dove sta, per riconoscere che due
         /// spigoli diversi misurano lo stesso elemento.
         /// </summary>
-        private sealed class Spigolo
+        private sealed class ProjectedEdge
         {
-            public int Indice;
+            public int Index;
             /// <summary>«horizontal», «vertical» oppure «obliquo».</summary>
-            public string Verso;
+            public string Facing;
             /// <summary>Il centro della proiezione, in coordinate foglio.</summary>
-            public double Mezzo;
-            public double Lunghezza;
+            public double Half;
+            public double Length;
             /// <summary>
             /// Verso piu' intervallo proiettato, arrotondato al centesimo di
             /// millimetro. Due spigoli con la stessa chiave misurano lo stesso
             /// elemento: i lati opposti di un rettangolo. Due gradini uguali
             /// in posti diversi hanno chiavi diverse, e si quotano tutti e due.
             /// </summary>
-            public string Chiave;
+            public string Key;
             /// <summary>Gli estremi sul foglio e nel modello, in metri.</summary>
-            public double[] DaFoglio, AFoglio, DaModello, AModello;
+            public double[] FromSheet, ToSheet, FromModel, ToModel;
             /// <summary>Asse e intervallo nel MODELLO: la chiave fra viste. Null se obliquo.</summary>
-            public string NelModello;
+            public string InModel;
             /// <summary>La lavorazione di smusso a cui appartiene, o null.</summary>
-            public string DiSmusso;
+            public string ChamferFeature;
             /// <summary>L'entita' come la espone la vista, per selezionarla.</summary>
-            public object Entita;
+            public object Entity;
         }
 
         /// <summary>
@@ -660,13 +660,13 @@ namespace Oce.Solid.Agent.Core
         /// foglio, e da qui esce solo il centro RELATIVO lungo l'asse di
         /// misura, riportato dentro l'ingombro.
         /// </summary>
-        private static Spigolo LeggiSpigolo(IView vista, object entita, int indice, IMathUtility mu, MathTransform tr)
+        private static ProjectedEdge ReadEdge(IView view, object entity, int index, IMathUtility mu, MathTransform tr)
         {
             try
             {
-                var spigolo = entita as IEdge;
-                if (spigolo == null) return null;
-                var p = ApiHelpers.EdgeParameters(spigolo);
+                var edge = entity as IEdge;
+                if (edge == null) return null;
+                var p = ApiHelpers.EdgeParameters(edge);
                 if (p == null) return null;
                 var da = p.StartPoint as double[];
                 var a = p.EndPoint as double[];
@@ -692,67 +692,67 @@ namespace Oce.Solid.Agent.Core
                 // Le orizzontali si salvavano perche' la piastra era centrata in
                 // X. `MultiplyTransform` fa il conto come lo fa SOLIDWORKS, e il
                 // punto esce gia' in coordinate foglio.
-                double[] daV = SulFoglio(da, mu, tr), aV = SulFoglio(a, mu, tr);
-                if (daV == null || aV == null) return null;
-                double dx = aV[0] - daV[0], dy = aV[1] - daV[1];
-                double lung = Math.Sqrt(dx * dx + dy * dy);
-                if (lung < 1e-9) return null;
+                double[] fromV = OnSheet(da, mu, tr), aV = OnSheet(a, mu, tr);
+                if (fromV == null || aV == null) return null;
+                double dx = aV[0] - fromV[0], dy = aV[1] - fromV[1];
+                double len = Math.Sqrt(dx * dx + dy * dy);
+                if (len < 1e-9) return null;
 
                 // LA SOGLIA E' UNA SCELTA DI CODICE, NON UNA PRESCRIZIONE.
                 // Le fonti parlano di parallelismo come criterio geometrico
                 // esatto; un numero ci vuole lo stesso, e si dichiara. Un
                 // millesimo sulla componente normalizzata: sotto, lo spigolo
                 // e' parallelo a un asse entro un decimo di grado.
-                const double SOGLIA = 1e-3;
-                var s = new Spigolo { Indice = indice, Lunghezza = lung };
+                const double THRESHOLD = 1e-3;
+                var s = new ProjectedEdge { Index = index, Length = len };
                 double a0, a1;
-                if (Math.Abs(dy) / lung < SOGLIA)
+                if (Math.Abs(dy) / len < THRESHOLD)
                 {
-                    s.Verso = "horizontal";
-                    a0 = Math.Min(daV[0], aV[0]); a1 = Math.Max(daV[0], aV[0]);
+                    s.Facing = "horizontal";
+                    a0 = Math.Min(fromV[0], aV[0]); a1 = Math.Max(fromV[0], aV[0]);
                 }
-                else if (Math.Abs(dx) / lung < SOGLIA)
+                else if (Math.Abs(dx) / len < THRESHOLD)
                 {
-                    s.Verso = "vertical";
-                    a0 = Math.Min(daV[1], aV[1]); a1 = Math.Max(daV[1], aV[1]);
+                    s.Facing = "vertical";
+                    a0 = Math.Min(fromV[1], aV[1]); a1 = Math.Max(fromV[1], aV[1]);
                 }
                 else
                 {
-                    s.Verso = "obliquo";
-                    a0 = Math.Min(daV[0], aV[0]); a1 = Math.Max(daV[0], aV[0]);
+                    s.Facing = "obliquo";
+                    a0 = Math.Min(fromV[0], aV[0]); a1 = Math.Max(fromV[0], aV[0]);
                 }
-                s.Mezzo = (a0 + a1) / 2;
-                s.Chiave = s.Verso + "|" + Math.Round(a0 * 100000) + "|" + Math.Round(a1 * 100000);
-                s.DaFoglio = daV;
-                s.AFoglio = aV;
-                s.DaModello = da;
-                s.AModello = a;
-                s.NelModello = ChiaveNelModello(da, a);
-                s.DiSmusso = TocCaUnoSmusso(spigolo);
-                s.Entita = entita;
+                s.Half = (a0 + a1) / 2;
+                s.Key = s.Facing + "|" + Math.Round(a0 * 100000) + "|" + Math.Round(a1 * 100000);
+                s.FromSheet = fromV;
+                s.ToSheet = aV;
+                s.FromModel = da;
+                s.ToModel = a;
+                s.InModel = KeyInModel(da, a);
+                s.ChamferFeature = TouchesAChamfer(edge);
+                s.Entity = entity;
                 return s;
             }
             catch { return null; }
         }
 
         /// <summary>Un cerchio intero nella vista: un foro, il contorno di un pezzo tondo, o un cerchio visto di taglio.</summary>
-        private sealed class Cerchio
+        private sealed class Circle
         {
-            public int Indice;
-            public IEdge Spigolo;
-            public double[] CentroFoglio;   // metri
-            public double DiametroMm;
-            public string Tipo;             // "foro", "contorno", "di_taglio"
-            public bool? Passante;          // dalla geometria; null se non si capisce
-            public double ProfonditaMm = double.NaN;
-            public double[] CentroModello;  // metri, nel modello
-            public double[] AsseModello;    // versore, nel modello
+            public int Index;
+            public IEdge Edge;
+            public double[] SheetCenter;   // metri
+            public double DiameterMm;
+            public string Type;             // "foro", "contorno", "di_taglio"
+            public bool? ThroughAll;          // dalla geometria; null se non si capisce
+            public double DepthMm = double.NaN;
+            public double[] ModelCenter;  // metri, nel modello
+            public double[] ModelAxis;    // versore, nel modello
         }
 
         private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
 
         /// <summary>Il cerchio sul foglio, se lo spigolo e' un cerchio intero; null altrimenti.</summary>
-        private static Cerchio CerchioSulFoglio(IEdge e, int indice, IMathUtility mu, MathTransform tr)
+        private static Circle CircleOnSheet(IEdge e, int index, IMathUtility mu, MathTransform tr)
         {
             try
             {
@@ -766,8 +766,8 @@ namespace Oce.Solid.Agent.Core
                     Math.Abs(da[0] - a[0]) + Math.Abs(da[1] - a[1]) + Math.Abs(da[2] - a[2]) > 1e-8) return null;
                 var cp = curva.CircleParams as double[];
                 if (cp == null || cp.Length < 7) return null;
-                var centro = SulFoglio(new[] { cp[0], cp[1], cp[2] }, mu, tr);
-                if (centro == null) return null;
+                var center = OnSheet(new[] { cp[0], cp[1], cp[2] }, mu, tr);
+                if (center == null) return null;
                 // CHE CERCHIO E' (26/9/2026, una boccola tornita): il contorno Ø30
                 // di un pezzo tondo prendeva il richiamo «Ø30 ↧30» come fosse un
                 // foro, e i due cerchi della boccola visti di taglio finivano fra
@@ -775,25 +775,25 @@ namespace Oce.Solid.Agent.Core
                 // (l'asse, portato sul foglio, e' perpendicolare al foglio) ED e'
                 // un anello interno di una faccia piana — il criterio delle croci
                 // di centro (EUnForoCheSiVede).
-                string tipo;
-                var asse = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
+                string typ;
+                var axis = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
                 // ZERO-E-ZERO: un asse che non si porta sul foglio vale lunghezza zero
                 // apposta — il cerchio finisce fra quelli di taglio, cioe' NON quotato
                 // e detto nella risposta, invece di prendere un richiamo di foro.
-                double l = asse == null ? 0 : Math.Sqrt(asse[0] * asse[0] + asse[1] * asse[1] + asse[2] * asse[2]);
-                if (l < 1e-12 || Math.Abs(asse[2]) / l < 0.99) tipo = "di_taglio";
+                double l = axis == null ? 0 : Math.Sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
+                if (l < 1e-12 || Math.Abs(axis[2]) / l < 0.99) typ = "di_taglio";
                 // UN ANELLO INTERNO NON BASTA (revisione avversariale del 27/9/2026): lo
                 // e' anche il piede di una borchia, e un cerchio di tangenza Ø24 al
                 // piede di una borchia Ø20 raccordata diventava «un foro» con le sue
                 // quote di posizione. Una borchia ha una quota di diametro.
-                else tipo = EUnForoCheSiVede(e, curva, mu, tr) && !EIlPiedeDiUnaBorchia(e) ? "foro" : "contorno";
-                var c = new Cerchio { Indice = indice, Spigolo = e, CentroFoglio = centro, DiametroMm = Math.Round(cp[6] * 2000.0, 3), Tipo = tipo,
-                                      CentroModello = new[] { cp[0], cp[1], cp[2] }, AsseModello = new[] { cp[3], cp[4], cp[5] } };
-                if (tipo == "foro")
+                else typ = IsAVisibleHole(e, curva, mu, tr) && !IsTheFootOfAStud(e) ? "foro" : "contorno";
+                var c = new Circle { Index = index, Edge = e, SheetCenter = center, DiameterMm = Math.Round(cp[6] * 2000.0, 3), Type = typ,
+                                      ModelCenter = new[] { cp[0], cp[1], cp[2] }, ModelAxis = new[] { cp[3], cp[4], cp[5] } };
+                if (typ == "foro")
                 {
                     double prof;
-                    c.Passante = PassanteDallaGeometria(e, out prof);
-                    c.ProfonditaMm = prof;
+                    c.ThroughAll = ThroughAllFromGeometry(e, out prof);
+                    c.DepthMm = prof;
                 }
                 return c;
             }
@@ -806,13 +806,13 @@ namespace Oce.Solid.Agent.Core
         /// il 5 accanto al 10 — e la sua misura la dicono la quota da smusso e
         /// l'ingombro insieme: quotarlo e' una quota in piu'.
         /// </summary>
-        private static bool EGambaDiSmusso(Spigolo s, List<Spigolo> tutti)
+        private static bool IsChamferLeg(ProjectedEdge s, List<ProjectedEdge> all)
         {
-            foreach (var t in tutti)
+            foreach (var t in all)
             {
-                if (t.DiSmusso == null || ReferenceEquals(t, s)) continue;
-                foreach (var p in new[] { s.DaModello, s.AModello })
-                    foreach (var q in new[] { t.DaModello, t.AModello })
+                if (t.ChamferFeature == null || ReferenceEquals(t, s)) continue;
+                foreach (var p in new[] { s.FromModel, s.ToModel })
+                    foreach (var q in new[] { t.FromModel, t.ToModel })
                         if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) return true;
             }
             return false;
@@ -850,26 +850,26 @@ namespace Oce.Solid.Agent.Core
         /// owner feature are not seen by IAnnotation.Visible (its Remarks) and
         /// still count.
         /// </summary>
-        private static HashSet<string> ChiaviGiaQuotate(IDrawingDoc disegno, IView vista, out ExistingDimensionsReading reading)
+        private static HashSet<string> KeysAlreadyDimensioned(IDrawingDoc drawing, IView view, out ExistingDimensionsReading reading)
         {
-            var fuori = new HashSet<string>(StringComparer.Ordinal);
+            var outside = new HashSet<string>(StringComparer.Ordinal);
             reading = new ExistingDimensionsReading();
             // Le generatrici dicono la loro faccia solo a tavola ridisegnata (82zp).
-            try { (disegno as IModelDoc2)?.GraphicsRedraw2(); } catch { }
+            try { (drawing as IModelDoc2)?.GraphicsRedraw2(); } catch { }
             try
             {
                 List<IView> views = null;
-                try { views = ApiHelpers.ViewsOfEverySheet(disegno); } catch { }
+                try { views = ApiHelpers.ViewsOfEverySheet(drawing); } catch { }
                 reading.EverySheet = views != null;
                 if (views == null)
                 {
                     var currentSheet = new List<IView>();
-                    var w = (disegno.GetFirstView() as IView)?.GetNextView() as IView;   // [0] is the sheet
+                    var w = (drawing.GetFirstView() as IView)?.GetNextView() as IView;   // [0] is the sheet
                     while (w != null) { currentSheet.Add(w); w = w.GetNextView() as IView; }
                     views = currentSheet;
                 }
                 string thisModel = null;
-                try { thisModel = ApiHelpers.ReferencedModelKey(vista); } catch { }
+                try { thisModel = ApiHelpers.ReferencedModelKey(view); } catch { }
                 foreach (var v in views)
                 {
                     string itsModel = null;
@@ -886,28 +886,28 @@ namespace Oce.Solid.Agent.Core
                         {
                             var ann = d.GetAnnotation() as IAnnotation;
                             var ents = ann?.GetAttachedEntities3() as object[];
-                            var dritti = new List<IEdge>();
+                            var straight = new List<IEdge>();
                             // DUE CERCHI COASSIALI SONO UNA LUNGHEZZA DEL TONDO (voce GT14),
                             // non due diametri gia' quotati; UNA GENERATRICE porta il
                             // diametro della sua faccia.
-                            var cerchiAttaccati = new List<double[]>();
-                            bool suGeneratrice = false, conUnaRetta = false;
-                            string chiaveGeneratrice = null;
+                            var attachedCircles = new List<double[]>();
+                            bool onGeneratrix = false, withStraightLine = false;
+                            string generatrixKey = null;
                             if (ents != null)
                                 foreach (var o in ents)
                                 {
-                                    var ce = o as IEdge;
-                                    var cc = ce == null ? null : ce.GetCurve() as ICurve;
-                                    if (cc != null && cc.IsCircle()) cerchiAttaccati.Add(cc.CircleParams as double[]);
-                                    if (cc != null && cc.IsLine()) conUnaRetta = true;
+                                    var there = o as IEdge;
+                                    var cc = there == null ? null : there.GetCurve() as ICurve;
+                                    if (cc != null && cc.IsCircle()) attachedCircles.Add(cc.CircleParams as double[]);
+                                    if (cc != null && cc.IsLine()) withStraightLine = true;
                                     var gen = o as ISilhouetteEdge;
                                     if (gen != null)
                                     {
-                                        suGeneratrice = true;
+                                        onGeneratrix = true;
                                         IFace2 fg = null;
                                         try { fg = gen.GetFace() as IFace2; } catch { }
-                                        var kg = ChiaveDelCilindro(fg);
-                                        if (kg != null) chiaveGeneratrice = kg;
+                                        var kg = CylinderKey(fg);
+                                        if (kg != null) generatrixKey = kg;
                                     }
                                 }
                             // UNA QUOTA SU GENERATRICI (revisione avversariale del 27/9/2026):
@@ -916,12 +916,12 @@ namespace Oce.Solid.Agent.Core
                             // lo stesso criterio con cui la strada «generatrici senza faccia»
                             // l'ha tenuta. Prima non la si vedeva affatto, e la chiamata dopo
                             // rimetteva lo stesso diametro.
-                            if (suGeneratrice)
+                            if (onGeneratrix)
                             {
-                                if (chiaveGeneratrice != null)
+                                if (generatrixKey != null)
                                 {
-                                    fuori.Add(chiaveGeneratrice);
-                                    fuori.Add("foro|" + chiaveGeneratrice.Split('|')[1]);
+                                    outside.Add(generatrixKey);
+                                    outside.Add("foro|" + generatrixKey.Split('|')[1]);
                                 }
                                 else
                                 {
@@ -931,16 +931,16 @@ namespace Oce.Solid.Agent.Core
                                     if (pre.Contains("<MOD-DIAM>") && !double.IsNaN(mm))
                                     {
                                         string dd = Math.Round(mm, 2).ToString("0.00", Ci);
-                                        fuori.Add("foro|" + dd);
-                                        fuori.Add("cil?|" + dd);   // un Ø30, ma non si sa di quale cilindro
+                                        outside.Add("foro|" + dd);
+                                        outside.Add("cil?|" + dd);   // un Ø30, ma non si sa di quale cilindro
                                     }
                                 }
                             }
-                            bool lunghezzaDelTondo = cerchiAttaccati.Count == 2 && Coassiali(cerchiAttaccati[0], cerchiAttaccati[1]);
-                            if (lunghezzaDelTondo)
-                                fuori.Add(ChiaveTondo(new[] { cerchiAttaccati[0][0], cerchiAttaccati[0][1], cerchiAttaccati[0][2] },
-                                                      new[] { cerchiAttaccati[1][0], cerchiAttaccati[1][1], cerchiAttaccati[1][2] }));
-                            if (ents != null && !lunghezzaDelTondo)
+                            bool roundLength = attachedCircles.Count == 2 && Coaxial(attachedCircles[0], attachedCircles[1]);
+                            if (roundLength)
+                                outside.Add(RoundKey(new[] { attachedCircles[0][0], attachedCircles[0][1], attachedCircles[0][2] },
+                                                      new[] { attachedCircles[1][0], attachedCircles[1][1], attachedCircles[1][2] }));
+                            if (ents != null && !roundLength)
                                 foreach (var o in ents)
                                 {
                                     var e = o as IEdge;
@@ -951,30 +951,30 @@ namespace Oce.Solid.Agent.Core
                                         // UN DIAMETRO, NON UNA POSIZIONE: la quota di posizione di un
                                         // foro e' attaccata al cerchio E a uno spigolo, e non quota il
                                         // foro (il richiamo nasce prima e porta la sua chiave).
-                                        if (conUnaRetta) continue;
+                                        if (withStraightLine) continue;
                                         var cp = c.CircleParams as double[];
                                         if (cp == null || cp.Length < 7) continue;
                                         string dd = Math.Round(cp[6] * 2000.0, 2).ToString("0.00", Ci);
-                                        fuori.Add("foro|" + dd);
+                                        outside.Add("foro|" + dd);
                                         // E IL SUO CILINDRO, se si trova: un gradino di un tondo e un
                                         // foro dello stesso Ø sono due elementi (revisione del 27/9).
-                                        fuori.Add(ChiaveDelCilindroDelCerchio(e) ?? "cil?|" + dd);
+                                        outside.Add(CylinderCircleKey(e) ?? "cil?|" + dd);
                                         continue;
                                     }
-                                    var sm = TocCaUnoSmusso(e);
-                                    if (sm != null) fuori.Add("smusso|" + sm);
-                                    if (c != null && c.IsLine()) dritti.Add(e);
+                                    var sm = TouchesAChamfer(e);
+                                    if (sm != null) outside.Add("smusso|" + sm);
+                                    if (c != null && c.IsLine()) straight.Add(e);
                                 }
                             // L'ESTENSIONE DI UNO SPIGOLO E' QUOTATA solo da una quota attaccata
                             // a LUI SOLO (revisione avversariale del 27/9/2026): la quota di
                             // posizione di un foro prende il bordo della piastra come
                             // riferimento, e segnarne l'estensione faceva scartare l'altezza
                             // vera nella vista dopo («gia' quotata in un'altra vista»).
-                            if (dritti.Count == 1 && ents.Length == 1 && cerchiAttaccati.Count == 0 && !suGeneratrice)
+                            if (straight.Count == 1 && ents.Length == 1 && attachedCircles.Count == 0 && !onGeneratrix)
                             {
-                                var p = ApiHelpers.EdgeParameters(dritti[0]);
-                                var k = ChiaveNelModello(p.StartPoint as double[], p.EndPoint as double[]);
-                                if (k != null) fuori.Add(k);
+                                var p = ApiHelpers.EdgeParameters(straight[0]);
+                                var k = KeyInModel(p.StartPoint as double[], p.EndPoint as double[]);
+                                if (k != null) outside.Add(k);
                             }
                         }
                         catch { }
@@ -983,7 +983,7 @@ namespace Oce.Solid.Agent.Core
                 reading.Complete = true;
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -1015,44 +1015,44 @@ namespace Oce.Solid.Agent.Core
         /// cerchi e sugli estremi degli altri spigoli di quella faccia, contro la
         /// normale della faccia piana. False se non si capisce: resta foro, come prima.
         /// </summary>
-        private static bool EIlPiedeDiUnaBorchia(IEdge e)
+        private static bool IsTheFootOfAStud(IEdge e)
         {
             try
             {
                 var cb = (e.GetCurve() as ICurve)?.CircleParams as double[];
                 if (cb == null || cb.Length < 3) return false;
-                IFace2 piana = null, altra = null;
+                IFace2 planar = null, other = null;
                 foreach (var oc in (e.GetCoEdges() as object[]) ?? new object[0])
                 {
                     var f = ((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2;
                     var su = f?.GetSurface() as ISurface;
                     if (su == null) continue;
-                    if (su.IsPlane() && piana == null) piana = f; else altra = f;
+                    if (su.IsPlane() && planar == null) planar = f; else other = f;
                 }
-                if (piana == null || altra == null) return false;
-                var n = ApiHelpers.NormalIfPlanar(piana);
+                if (planar == null || other == null) return false;
+                var n = ApiHelpers.NormalIfPlanar(planar);
                 if (n == null || n.Length < 3) return false;
-                double piuLontano = 0;
-                foreach (var o in (altra.GetEdges() as object[]) ?? new object[0])
+                double farther = 0;
+                foreach (var o in (other.GetEdges() as object[]) ?? new object[0])
                 {
                     var ed = o as IEdge;
                     var cv = ed?.GetCurve() as ICurve;
                     if (cv == null) continue;
-                    var punti = new List<double[]>();
-                    if (cv.IsCircle()) { var cc = cv.CircleParams as double[]; if (cc != null) punti.Add(cc); }
+                    var points = new List<double[]>();
+                    if (cv.IsCircle()) { var cc = cv.CircleParams as double[]; if (cc != null) points.Add(cc); }
                     else
                     {
                         var pr = ApiHelpers.EdgeParameters(ed);
-                        if (pr?.StartPoint is double[] a) punti.Add(a);
-                        if (pr?.EndPoint is double[] b) punti.Add(b);
+                        if (pr?.StartPoint is double[] a) points.Add(a);
+                        if (pr?.EndPoint is double[] b) points.Add(b);
                     }
-                    foreach (var p in punti)
+                    foreach (var p in points)
                     {
                         double h = (p[0] - cb[0]) * n[0] + (p[1] - cb[1]) * n[1] + (p[2] - cb[2]) * n[2];
-                        if (Math.Abs(h) > Math.Abs(piuLontano)) piuLontano = h;
+                        if (Math.Abs(h) > Math.Abs(farther)) farther = h;
                     }
                 }
-                return piuLontano > 1e-7;
+                return farther > 1e-7;
             }
             catch { return false; }
         }
@@ -1066,37 +1066,37 @@ namespace Oce.Solid.Agent.Core
         /// dopo ↧, punta esclusa. null se non si capisce (il cilindro finisce su
         /// un altro cilindro, per esempio).
         /// </summary>
-        private static bool? PassanteDallaGeometria(IEdge bordo, out double profonditaMm)
+        private static bool? ThroughAllFromGeometry(IEdge border, out double depthMm)
         {
-            profonditaMm = double.NaN;
+            depthMm = double.NaN;
             try
             {
-                var cb = (bordo.GetCurve() as ICurve)?.CircleParams as double[];
+                var cb = (border.GetCurve() as ICurve)?.CircleParams as double[];
                 if (cb == null || cb.Length < 7) return null;
-                foreach (var oc in (bordo.GetCoEdges() as object[]) ?? new object[0])
+                foreach (var oc in (border.GetCoEdges() as object[]) ?? new object[0])
                 {
                     var cil = ((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2;
                     var sc = cil?.GetSurface() as ISurface;
                     if (sc == null || !sc.IsCylinder()) continue;
                     foreach (var o in (cil.GetEdges() as object[]) ?? new object[0])
                     {
-                        var altro = o as IEdge;
-                        var ca = altro?.GetCurve() as ICurve;
+                        var other = o as IEdge;
+                        var ca = other?.GetCurve() as ICurve;
                         if (ca == null || !ca.IsCircle()) continue;
                         var cp = ca.CircleParams as double[];
                         if (cp == null || cp.Length < 7) continue;
-                        double lungoAsse = Math.Abs((cp[0] - cb[0]) * cb[3] + (cp[1] - cb[1]) * cb[4] + (cp[2] - cb[2]) * cb[5]);
-                        if (lungoAsse < 1e-7) continue;   // e' il cerchio da cui si parte
-                        foreach (var oc2 in (altro.GetCoEdges() as object[]) ?? new object[0])
+                        double axisLength = Math.Abs((cp[0] - cb[0]) * cb[3] + (cp[1] - cb[1]) * cb[4] + (cp[2] - cb[2]) * cb[5]);
+                        if (axisLength < 1e-7) continue;   // e' il cerchio da cui si parte
+                        foreach (var oc2 in (other.GetCoEdges() as object[]) ?? new object[0])
                         {
                             var an = (oc2 as ICoEdge)?.GetLoop() as ILoop2;
                             var s = (an?.GetFace() as IFace2)?.GetSurface() as ISurface;
                             if (s == null || s.IsCylinder()) continue;   // il cilindro del foro
-                            if (s.IsCone()) { profonditaMm = Math.Round(lungoAsse * 1000, 3); return false; }
+                            if (s.IsCone()) { depthMm = Math.Round(axisLength * 1000, 3); return false; }
                             if (s.IsPlane())
                             {
                                 if (!an.IsOuter()) return true;
-                                profonditaMm = Math.Round(lungoAsse * 1000, 3);
+                                depthMm = Math.Round(axisLength * 1000, 3);
                                 return false;
                             }
                         }
@@ -1115,93 +1115,93 @@ namespace Oce.Solid.Agent.Core
         /// dice 60 per un Ø30 (misurato il 26/9/2026), e un numero sbagliato e
         /// plausibile non resta in tavola.
         /// </summary>
-        private void QuotaIContorni(
-            IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> contorni, HashSet<string> gia,
-            double[] contorno, double distacco, double passo, List<Dictionary<string, object>> nate,
-            List<Dictionary<string, object>> diametri, List<string> bordi, List<string> altrove, List<string> falliti)
+        private void DimensionTheContours(
+            IModelDoc2 model, IDrawingDoc drawing, List<Circle> contours, HashSet<string> already,
+            double[] contour, double dimensionOffset, double planStep, List<Dictionary<string, object>> born,
+            List<Dictionary<string, object>> diameters, List<string> borders, List<string> elsewhere, List<string> failed)
         {
-            var fatti = new HashSet<string>(StringComparer.Ordinal);
+            var done = new HashSet<string>(StringComparer.Ordinal);
             // UN PASSO PIU' IN ALTO PER OGNI DIAMETRO: i contorni di un tondo sono
             // concentrici, e alla stessa altezza i testi nascevano uno sull'altro
             // (l'albero a gradini visto di testa, 27/9/2026: quattro testi accavallati).
             int n = 0;
-            foreach (var c in contorni)
+            foreach (var c in contours)
             {
-                string dm = c.DiametroMm.ToString("0.##", Ci);
-                string chiave = "foro|" + Math.Round(c.DiametroMm, 2).ToString("0.00", Ci);
-                if (!fatti.Add(chiave)) continue;
+                string dm = c.DiameterMm.ToString("0.##", Ci);
+                string key = "foro|" + Math.Round(c.DiameterMm, 2).ToString("0.00", Ci);
+                if (!done.Add(key)) continue;
                 // IL SUO CILINDRO, se si trova (revisione del 27/9/2026): il contorno
                 // di un tondo e' gia' quotato se lo e' QUEL cilindro, non un Ø uguale
                 // qualunque — un foro trasversale Ø30 richiamato in un'altra vista non
                 // quota il gradino Ø30.
-                string suo = ChiaveDelCilindroDelCerchio(c.Spigolo);
+                string its = CylinderCircleKey(c.Edge);
                 // UN CERCHIO SENZA IL SUO CILINDRO non e' un diametro esterno: e' il
                 // bordo di uno smusso (cono-piano, il Ø28 di un Ø30 smussato visto di
                 // testa) o la linea di tangenza di un raccordo (il Ø24 al piede di una
                 // borchia Ø20 raccordata). Quotarlo e' una quota che non si fabbrica.
-                if (suo == null)
+                if (its == null)
                 {
-                    bool diSmusso = false;
-                    foreach (var oc in (c.Spigolo.GetCoEdges() as object[]) ?? new object[0])
+                    bool onChamfer = false;
+                    foreach (var oc in (c.Edge.GetCoEdges() as object[]) ?? new object[0])
                     {
                         var su = (((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2)?.GetSurface() as ISurface;
-                        if (su != null && (su.IsCone() || su.IsTorus())) diSmusso = true;
+                        if (su != null && (su.IsCone() || su.IsTorus())) onChamfer = true;
                     }
-                    if (diSmusso)
+                    if (onChamfer)
                     {
-                        bordi.Add("Ø" + dm + " (bordo di uno smusso o di un raccordo: va con la sua quota, non con un diametro)");
+                        borders.Add("Ø" + dm + " (bordo di uno smusso o di un raccordo: va con la sua quota, non con un diametro)");
                         continue;
                     }
                 }
-                bool quotato = suo != null
-                    ? gia.Contains(suo) || gia.Contains("cil?|" + chiave.Substring(5))
-                    : gia.Contains(chiave);
-                if (quotato) { altrove.Add("diametro esterno Ø" + dm + " (gia' quotato in questa tavola)"); continue; }
-                int quotePrima = ContaQuote(disegno);
+                bool dimensioned = its != null
+                    ? already.Contains(its) || already.Contains("cil?|" + key.Substring(5))
+                    : already.Contains(key);
+                if (dimensioned) { elsewhere.Add("diametro esterno Ø" + dm + " (gia' quotato in questa tavola)"); continue; }
+                int dimensionsBefore = CountDimensions(drawing);
                 IDisplayDimension q = null;
                 try
                 {
-                    modello.ClearSelection2(true);
-                    if ((c.Spigolo as IEntity).Select4(false, null))
-                        q = modello.AddDiameterDimension2(c.CentroFoglio[0] + 0.015 + n * 0.012, contorno[3] + distacco * 0.8 + n * passo, 0) as IDisplayDimension;
+                    model.ClearSelection2(true);
+                    if ((c.Edge as IEntity).Select4(false, null))
+                        q = model.AddDiameterDimension2(c.SheetCenter[0] + 0.015 + n * 0.012, contour[3] + dimensionOffset * 0.8 + n * planStep, 0) as IDisplayDimension;
                 }
                 catch { }
-                modello.ClearSelection2(true);
-                if (NonCresciuta(disegno, quotePrima, q))
+                model.ClearSelection2(true);
+                if (NotGrown(drawing, dimensionsBefore, q))
                 {
-                    falliti.Add("diametro esterno Ø" + dm + " (la quota non e' nata)");
+                    failed.Add("diametro esterno Ø" + dm + " (la quota non e' nata)");
                     continue;
                 }
                 // BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80): the count went up and
                 // q is null. The dimension is on the sheet, so it goes on as the
                 // others with its value unknown, not refused as a wrong value it
                 // cannot be shown to be (see RecordBornWithoutObject).
-                var descritta = DescriviQuota(q, c.Indice);
-                object letto = descritta.ContainsKey("mm") ? descritta["mm"] : null;
-                if (q != null && (!(letto is double) || Math.Abs((double)letto - c.DiametroMm) > 0.01))
+                var described = DescribeDimension(q, c.Index);
+                object read = described.ContainsKey("mm") ? described["mm"] : null;
+                if (q != null && (!(read is double) || Math.Abs((double)read - c.DiameterMm) > 0.01))
                 {
-                    bool tolta = false;
+                    bool removed = false;
                     try
                     {
                         var an = q.GetAnnotation() as IAnnotation;
                         if (an != null && an.Select3(false, null))
-                            tolta = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                        modello.ClearSelection2(true);
+                            removed = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                        model.ClearSelection2(true);
                     }
                     catch { }
-                    falliti.Add("diametro esterno Ø" + dm + " (SOLIDWORKS ha scritto " + (letto ?? "?") +
-                                (tolta ? ": l'ho tolta)" : ": toglila)"));
+                    failed.Add("diametro esterno Ø" + dm + " (SOLIDWORKS ha scritto " + (read ?? "?") +
+                                (removed ? ": l'ho tolta)" : ": toglila)"));
                     continue;
                 }
-                descritta["orientation"] = "outer diameter";
-                descritta["position_mm"] = DovEFinita(q);
-                if (q != null) nate.Add(descritta);
-                else RecordBornWithoutObject(nate, descritta, falliti,
+                described["orientation"] = "outer diameter";
+                described["position_mm"] = WhereItEnded(q);
+                if (q != null) born.Add(described);
+                else RecordBornWithoutObject(born, described, failed,
                     "external diameter Ø" + dm + " (the dimension was born but SOLIDWORKS did not hand it back: " +
                     "its value was not read back, check it on the sheet)");
-                diametri.Add(new Dictionary<string, object> { ["diameter_mm"] = Math.Round(c.DiametroMm, 2), ["diameter_reread_mm"] = letto });
-                gia.Add(chiave);
-                if (suo != null) gia.Add(suo);
+                diameters.Add(new Dictionary<string, object> { ["diameter_mm"] = Math.Round(c.DiameterMm, 2), ["diameter_reread_mm"] = read });
+                already.Add(key);
+                if (its != null) already.Add(its);
                 n++;
             }
         }
@@ -1212,27 +1212,27 @@ namespace Oce.Solid.Agent.Core
         /// position dimensions from the two reference edges, in parallel
         /// (finding N81: the catalogue said one per diameter).
         /// </summary>
-        private void QuotaIFori(
-            IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> cerchi, List<Spigolo> tutti,
-            HashSet<string> gia, double[] contorno, double distacco, double passo, double scala,
-            ref int sotto, ref int diLato, ref int aSinistra, double[] foglio,
-            List<Dictionary<string, object>> nate, List<Dictionary<string, object>> fori,
-            List<string> altrove, List<string> falliti)
+        private void DimensionTheHoles(
+            IModelDoc2 model, IDrawingDoc drawing, List<Circle> circles, List<ProjectedEdge> all,
+            HashSet<string> already, double[] contour, double dimensionOffset, double planStep, double scale,
+            ref int below, ref int sideways, ref int onLeft, double[] sheet,
+            List<Dictionary<string, object>> born, List<Dictionary<string, object>> holes,
+            List<string> elsewhere, List<string> failed)
         {
             // UN RICHIAMO PER DIAMETRO *E PROFONDITA'*: «4× Ø8 ↧5» su quattro Ø8
             // di cui due passanti manderebbe l'officina a forarli tutti ciechi.
             // Il secondo termine viene dalla geometria: -1 passante, -2 non si
             // capisce, altrimenti la profondita'.
-            var gruppi = new SortedDictionary<Tuple<double, double>, List<Cerchio>>();
-            foreach (var c in cerchi)
+            var groups = new SortedDictionary<Tuple<double, double>, List<Circle>>();
+            foreach (var c in circles)
             {
-                var k = Tuple.Create(Math.Round(c.DiametroMm, 2),
-                    c.Passante == true ? -1.0 : c.Passante == false && !double.IsNaN(c.ProfonditaMm) ? Math.Round(c.ProfonditaMm, 2) : -2.0);
-                if (!gruppi.ContainsKey(k)) gruppi[k] = new List<Cerchio>();
-                gruppi[k].Add(c);
+                var k = Tuple.Create(Math.Round(c.DiameterMm, 2),
+                    c.ThroughAll == true ? -1.0 : c.ThroughAll == false && !double.IsNaN(c.DepthMm) ? Math.Round(c.DepthMm, 2) : -2.0);
+                if (!groups.ContainsKey(k)) groups[k] = new List<Circle>();
+                groups[k].Add(c);
             }
 
-            var daPosizionare = new List<Cerchio>();
+            var toPosition = new List<Circle>();
             // GIA' QUOTATO VUOL DIRE PRIMA DI QUESTA CHIAMATA (revisione avversariale
             // del 27/9/2026). I gruppi sono per diametro E profondita', e con la
             // chiave del solo diametro aggiunta dentro questo ciclo il secondo gruppo
@@ -1240,42 +1240,42 @@ namespace Oce.Solid.Agent.Core
             // senza richiamo, senza profondita', senza posizione. In officina si
             // foravano tutti e quattro passanti, cioe' proprio il caso che il
             // raggruppamento doveva evitare.
-            var giaPrima = new HashSet<string>(gia, StringComparer.Ordinal);
-            foreach (var g in gruppi)
+            var alreadyBefore = new HashSet<string>(already, StringComparer.Ordinal);
+            foreach (var g in groups)
             {
-                string chiave = "foro|" + g.Key.Item1.ToString("0.00", Ci);
+                string key = "foro|" + g.Key.Item1.ToString("0.00", Ci);
                 // E PER CILINDRO, quando si trova: un gradino di un tondo dello
                 // stesso Ø, quotato in un'altra vista, non e' questo foro.
-                var suoi = new List<string>();
-                bool tuttiTrovati = true;
+                var itsItems = new List<string>();
+                bool allFound = true;
                 foreach (var c in g.Value)
                 {
-                    string k = ChiaveDelCilindroDelCerchio(c.Spigolo);
-                    if (k == null) tuttiTrovati = false; else suoi.Add(k);
+                    string k = CylinderCircleKey(c.Edge);
+                    if (k == null) allFound = false; else itsItems.Add(k);
                 }
-                bool quotato = giaPrima.Contains("cil?|" + chiave.Substring(5));
-                if (tuttiTrovati) { foreach (var k in suoi) if (giaPrima.Contains(k)) quotato = true; }
-                else if (giaPrima.Contains(chiave)) quotato = true;
-                if (quotato)
+                bool dimensioned = alreadyBefore.Contains("cil?|" + key.Substring(5));
+                if (allFound) { foreach (var k in itsItems) if (alreadyBefore.Contains(k)) dimensioned = true; }
+                else if (alreadyBefore.Contains(key)) dimensioned = true;
+                if (dimensioned)
                 {
-                    altrove.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
+                    elsewhere.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
                     continue;
                 }
                 // Il richiamo va sul foro in alto a sinistra: e' il primo che si
                 // legge, e la linea di richiamo esce verso l'alto, fuori dal pezzo.
-                Cerchio capo = g.Value[0];
+                Circle head = g.Value[0];
                 foreach (var c in g.Value)
-                    if (c.CentroFoglio[1] > capo.CentroFoglio[1] + 1e-6 ||
-                        (Math.Abs(c.CentroFoglio[1] - capo.CentroFoglio[1]) < 1e-6 && c.CentroFoglio[0] < capo.CentroFoglio[0]))
-                        capo = c;
+                    if (c.SheetCenter[1] > head.SheetCenter[1] + 1e-6 ||
+                        (Math.Abs(c.SheetCenter[1] - head.SheetCenter[1]) < 1e-6 && c.SheetCenter[0] < head.SheetCenter[0]))
+                        head = c;
 
-                int quotePrima = ContaQuote(disegno);
-                IDisplayDimension richiamo = null;
+                int dimensionsBefore = CountDimensions(drawing);
+                IDisplayDimension callout = null;
                 // THE DIALOG OF THE GUIDE DOES NOT OPEN HERE (Z-C21.9, finding L15-2,
                 // NOT REAL). IDrawingDoc~AddHoleCallout2.html, Remarks: «When you call
                 // this method, the user must click OK in the dialog that shows the
                 // system-generated hole callout». The call runs inside the try of
-                // QuotaInTavola that switched swInputDimValOnCreate off, and it has
+                // DrawingDimension that switched swInputDimValOnCreate off, and it has
                 // come back in every bench case with holes run so far: the four
                 // drawing cases that dimension holes (two equal holes, one through
                 // and one blind; the blind hole that states its depth; the turned
@@ -1284,10 +1284,10 @@ namespace Oce.Solid.Agent.Core
                 // failing it.
                 try
                 {
-                    modello.ClearSelection2(true);
-                    if ((capo.Spigolo as IEntity).Select4(false, null))
-                        richiamo = disegno.AddHoleCallout2(
-                            capo.CentroFoglio[0] - 0.015, contorno[3] + distacco * 0.8, 0) as IDisplayDimension;
+                    model.ClearSelection2(true);
+                    if ((head.Edge as IEntity).Select4(false, null))
+                        callout = drawing.AddHoleCallout2(
+                            head.SheetCenter[0] - 0.015, contour[3] + dimensionOffset * 0.8, 0) as IDisplayDimension;
                 }
                 catch { }
                 string come = "richiamo del foro";
@@ -1295,28 +1295,28 @@ namespace Oce.Solid.Agent.Core
                 // library 0.144.0 a null object sent the hole to the fallback even
                 // when the count of dimensions had gone up: the callout was on the
                 // sheet, and the fallback put a diameter dimension on the same hole.
-                bool calloutNotBorn = NonCresciuta(disegno, quotePrima, richiamo);
+                bool calloutNotBorn = NotGrown(drawing, dimensionsBefore, callout);
                 bool fellBack = false;
                 if (calloutNotBorn)
                 {
                     // Senza richiamo (un foro che non viene da un taglio
                     // riconoscibile), il diametro semplice.
                     fellBack = true;
-                    richiamo = null;   // an object from a call that made nothing is not the dimension
+                    callout = null;   // an object from a call that made nothing is not the dimension
                     try
                     {
-                        modello.ClearSelection2(true);
-                        if ((capo.Spigolo as IEntity).Select4(false, null))
-                            richiamo = modello.AddDiameterDimension2(
-                                capo.CentroFoglio[0] - 0.015, contorno[3] + distacco * 0.8, 0) as IDisplayDimension;
+                        model.ClearSelection2(true);
+                        if ((head.Edge as IEntity).Select4(false, null))
+                            callout = model.AddDiameterDimension2(
+                                head.SheetCenter[0] - 0.015, contour[3] + dimensionOffset * 0.8, 0) as IDisplayDimension;
                         come = "quota di diametro";
                     }
                     catch { }
-                    calloutNotBorn = NonCresciuta(disegno, quotePrima, richiamo);
+                    calloutNotBorn = NotGrown(drawing, dimensionsBefore, callout);
                 }
                 if (calloutNotBorn)
                 {
-                    falliti.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (il richiamo non e' nato)");
+                    failed.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (il richiamo non e' nato)");
                     continue;
                 }
                 // BORN WITHOUT ITS OBJECT (N80): with richiamo null from here on, the
@@ -1332,9 +1332,9 @@ namespace Oce.Solid.Agent.Core
                     // cancellava — misurato, usciva «4× 8».
                     try
                     {
-                        string prefisso = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? "";
-                        richiamo.SetText((int)swDimensionTextParts_e.swDimensionTextPrefix,
-                                         countPrefix + " " + prefisso);
+                        string prefix = callout.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? "";
+                        callout.SetText((int)swDimensionTextParts_e.swDimensionTextPrefix,
+                                         countPrefix + " " + prefix);
                     }
                     catch { }
                 }
@@ -1352,10 +1352,10 @@ namespace Oce.Solid.Agent.Core
                 // quanti = 4 whatever the callout carried, and the shop would have
                 // read one Ø8.
                 string prefixRead = null;
-                try { prefixRead = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix); } catch { }
+                try { prefixRead = callout.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix); } catch { }
                 if (countPrefix != null &&
                     (prefixRead == null || !prefixRead.TrimStart().StartsWith(countPrefix, StringComparison.Ordinal)))
-                    falliti.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the «" + countPrefix + "» in front did not stick: " +
+                    failed.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the «" + countPrefix + "» in front did not stick: " +
                                 (prefixRead == null ? "the prefix could not be read back" : "the prefix reads «" + prefixRead + "»") +
                                 ", so the sheet does not say how many holes there are; add the count by hand)");
                 // IL RIPIEGO NON PORTA LA PROFONDITA' (revisione avversariale del
@@ -1363,22 +1363,22 @@ namespace Oce.Solid.Agent.Core
                 // «Ø8» e basta, e un cieco in officina si fora passante. La
                 // profondita' allora la scrive il ponte, dalla geometria, nel
                 // suffisso — lo stesso «<HOLE-DEPTH>» che usa il richiamo.
-                string profonditaDa = come == "richiamo del foro" ? "richiamo" : null;
-                if (come == "quota di diametro" && capo.Passante == false && !double.IsNaN(capo.ProfonditaMm))
+                string depthFrom = come == "richiamo del foro" ? "richiamo" : null;
+                if (come == "quota di diametro" && head.ThroughAll == false && !double.IsNaN(head.DepthMm))
                 {
                     try
                     {
-                        richiamo.SetText((int)swDimensionTextParts_e.swDimensionTextSuffix,
-                                         " <HOLE-DEPTH>" + capo.ProfonditaMm.ToString("0.##", Ci));
-                        profonditaDa = "geometria";
+                        callout.SetText((int)swDimensionTextParts_e.swDimensionTextSuffix,
+                                         " <HOLE-DEPTH>" + head.DepthMm.ToString("0.##", Ci));
+                        depthFrom = "geometria";
                     }
                     catch { }
                 }
-                var descritto = DescriviQuota(richiamo, capo.Indice);
-                descritto["orientation"] = come;
-                descritto["position_mm"] = DovEFinita(richiamo);
-                if (richiamo != null) nate.Add(descritto);
-                else RecordBornWithoutObject(nate, descritto, falliti,
+                var described = DescribeDimension(callout, head.Index);
+                described["orientation"] = come;
+                described["position_mm"] = WhereItEnded(callout);
+                if (callout != null) born.Add(described);
+                else RecordBornWithoutObject(born, described, failed,
                     "holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the " + (fellBack ? "diameter dimension" : "hole callout") +
                     " was born but SOLIDWORKS did not hand it back: nothing could be written on it or read from it, " +
                     "check it on the sheet)");
@@ -1387,23 +1387,23 @@ namespace Oce.Solid.Agent.Core
                 // «<MOD-DIAM>8» + «<HOLE-DEPTH>5» per un Ø8 profondo 5, «PASSANTE»
                 // per il passante. Si rilegge e si dice: un foro cieco senza
                 // profondita' in tavola si fora passante.
-                string suffisso = "";
-                try { suffisso = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextSuffix) ?? ""; } catch { }
-                object profondita = null;
-                var mp = Regex.Match(suffisso, @"<HOLE-DEPTH>\s*([0-9]+(?:[.,][0-9]+)?)");
+                string suffix = "";
+                try { suffix = callout.GetText((int)swDimensionTextParts_e.swDimensionTextSuffix) ?? ""; } catch { }
+                object depth = null;
+                var mp = Regex.Match(suffix, @"<HOLE-DEPTH>\s*([0-9]+(?:[.,][0-9]+)?)");
                 double pv;
                 if (mp.Success && double.TryParse(mp.Groups[1].Value.Replace(',', '.'), NumberStyles.Float, Ci, out pv))
-                    profondita = pv;
-                bool passante = suffisso.IndexOf("PASSANTE", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                suffisso.IndexOf("THRU", StringComparison.OrdinalIgnoreCase) >= 0;
-                if (profondita == null) profonditaDa = null;
-                if (capo.Passante == false && profondita == null)
+                    depth = pv;
+                bool throughAll = suffix.IndexOf("PASSANTE", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                suffix.IndexOf("THRU", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (depth == null) depthFrom = null;
+                if (head.ThroughAll == false && depth == null)
                     // Un cieco, per la geometria, che esce dalla tavola senza
                     // profondita': non e' «fatto», e lo si dice.
-                    falliti.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (cieco" +
-                                (double.IsNaN(capo.ProfonditaMm) ? "" : ", profondo " + capo.ProfonditaMm.ToString("0.##", Ci)) +
+                    failed.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (cieco" +
+                                (double.IsNaN(head.DepthMm) ? "" : ", profondo " + head.DepthMm.ToString("0.##", Ci)) +
                                 ", ma la quota non porta la profondita': in officina si forerebbe passante)");
-                fori.Add(new Dictionary<string, object>
+                holes.Add(new Dictionary<string, object>
                 {
                     ["diameter_mm"] = g.Key.Item1,
                     ["how_many"] = g.Value.Count,
@@ -1411,43 +1411,43 @@ namespace Oce.Solid.Agent.Core
                     // the sheet, next to the count of the geometry above.
                     ["prefix_read"] = prefixRead,
                     ["how"] = come,
-                    ["diameter_reread_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
+                    ["diameter_reread_mm"] = described.ContainsKey("mm") ? described["mm"] : null,
                     // Null, not false, for a callout born without its object (N80):
                     // its suffix was never read.
-                    ["through_all"] = richiamo == null ? null : come == "richiamo del foro" ? (object)passante : capo.Passante,
-                    ["depth_mm"] = profondita,
-                    ["depth_from"] = profonditaDa,
-                    ["callout_suffix"] = richiamo == null ? null : suffisso,
+                    ["through_all"] = callout == null ? null : come == "richiamo del foro" ? (object)throughAll : head.ThroughAll,
+                    ["depth_mm"] = depth,
+                    ["depth_from"] = depthFrom,
+                    ["callout_suffix"] = callout == null ? null : suffix,
                     // LA STESSA COSA LETTA DALLA GEOMETRIA, sempre: il cilindro del
                     // foro e il suo altro cerchio. Accanto a quella del richiamo, per
                     // chi vuole confrontarle.
-                    ["through_all_from_geometry"] = capo.Passante,
-                    ["depth_from_geometry_mm"] = double.IsNaN(capo.ProfonditaMm) ? null : (object)capo.ProfonditaMm,
+                    ["through_all_from_geometry"] = head.ThroughAll,
+                    ["depth_from_geometry_mm"] = double.IsNaN(head.DepthMm) ? null : (object)head.DepthMm,
                 });
-                gia.Add(chiave);
-                foreach (var k in suoi) gia.Add(k);
-                daPosizionare.AddRange(g.Value);
+                already.Add(key);
+                foreach (var k in itsItems) already.Add(k);
+                toPosition.AddRange(g.Value);
             }
-            if (daPosizionare.Count == 0) return;
+            if (toPosition.Count == 0) return;
 
             // ── LE POSIZIONI, DAI DUE SPIGOLI DI RIFERIMENTO ─────────────
             //
             // Quello piu' a sinistra fra i verticali e quello piu' in basso fra
             // gli orizzontali (a parita', il piu' lungo): sono i bordi del pezzo
             // in questa vista. Uno smusso non fa da riferimento.
-            Spigolo sx = null, giu = null;
-            foreach (var s in tutti)
+            ProjectedEdge sx = null, down = null;
+            foreach (var s in all)
             {
-                if (s.DiSmusso != null) continue;
-                if (s.Verso == "vertical")
+                if (s.ChamferFeature != null) continue;
+                if (s.Facing == "vertical")
                 {
-                    double x = s.DaFoglio[0];
-                    if (sx == null || x < sx.DaFoglio[0] - 1e-6 || (Math.Abs(x - sx.DaFoglio[0]) < 1e-6 && s.Lunghezza > sx.Lunghezza)) sx = s;
+                    double x = s.FromSheet[0];
+                    if (sx == null || x < sx.FromSheet[0] - 1e-6 || (Math.Abs(x - sx.FromSheet[0]) < 1e-6 && s.Length > sx.Length)) sx = s;
                 }
-                else if (s.Verso == "horizontal")
+                else if (s.Facing == "horizontal")
                 {
-                    double y = s.DaFoglio[1];
-                    if (giu == null || y < giu.DaFoglio[1] - 1e-6 || (Math.Abs(y - giu.DaFoglio[1]) < 1e-6 && s.Lunghezza > giu.Lunghezza)) giu = s;
+                    double y = s.FromSheet[1];
+                    if (down == null || y < down.FromSheet[1] - 1e-6 || (Math.Abs(y - down.FromSheet[1]) < 1e-6 && s.Length > down.Length)) down = s;
                 }
             }
 
@@ -1461,50 +1461,50 @@ namespace Oce.Solid.Agent.Core
             // DESTRA e attraversava tutta la piastra fino alla quota a sinistra.
             if (sx != null)
             {
-                var colonne = new SortedDictionary<double, Cerchio>();
-                foreach (var c in daPosizionare)
+                var columns = new SortedDictionary<double, Circle>();
+                foreach (var c in toPosition)
                 {
-                    double d = Math.Round((c.CentroFoglio[0] - sx.DaFoglio[0]) * 1000.0, 2);
+                    double d = Math.Round((c.SheetCenter[0] - sx.FromSheet[0]) * 1000.0, 2);
                     if (d <= 0.01) continue;
-                    Cerchio suo;
+                    Circle its;
                     // le orizzontali stanno SOTTO: il foro piu' in basso della colonna
-                    if (!colonne.TryGetValue(d, out suo) || c.CentroFoglio[1] < suo.CentroFoglio[1]) colonne[d] = c;
+                    if (!columns.TryGetValue(d, out its) || c.SheetCenter[1] < its.SheetCenter[1]) columns[d] = c;
                 }
-                foreach (var col in colonne)
-                    PosizioneDelForo(modello, disegno, col.Value, sx, true, col.Key / scala,
-                                     (col.Value.CentroFoglio[0] + sx.DaFoglio[0]) / 2,
-                                     contorno[1] - distacco - sotto++ * passo, nate, falliti);
+                foreach (var col in columns)
+                    HolePosition(model, drawing, col.Value, sx, true, col.Key / scale,
+                                     (col.Value.SheetCenter[0] + sx.FromSheet[0]) / 2,
+                                     contour[1] - dimensionOffset - below++ * planStep, born, failed);
             }
-            if (giu != null)
+            if (down != null)
             {
                 // DA CHE PARTE: dove c'e' posto DENTRO la cornice. La prima
                 // stesura le metteva sempre a sinistra, e con la vista vicina al
                 // bordo del foglio il 65 e' uscito dalla cornice.
-                var righe = new SortedDictionary<double, List<Cerchio>>();
-                foreach (var c in daPosizionare)
+                var lines = new SortedDictionary<double, List<Circle>>();
+                foreach (var c in toPosition)
                 {
-                    double d = Math.Round((c.CentroFoglio[1] - giu.DaFoglio[1]) * 1000.0, 2);
+                    double d = Math.Round((c.SheetCenter[1] - down.FromSheet[1]) * 1000.0, 2);
                     if (d <= 0.01) continue;
-                    if (!righe.ContainsKey(d)) righe[d] = new List<Cerchio>();
-                    righe[d].Add(c);
+                    if (!lines.ContainsKey(d)) lines[d] = new List<Circle>();
+                    lines[d].Add(c);
                 }
-                double margine = 0.015;
-                double ultimaDestra = contorno[2] + distacco + (diLato + righe.Count - 1) * passo;
-                double ultimaSinistra = contorno[0] - distacco - (aSinistra + righe.Count - 1) * passo;
-                bool aDestra = foglio == null || foglio.Length < 2 || foglio[0] <= 0
+                double margin = 0.015;
+                double lastRight = contour[2] + dimensionOffset + (sideways + lines.Count - 1) * planStep;
+                double lastLeft = contour[0] - dimensionOffset - (onLeft + lines.Count - 1) * planStep;
+                bool onRight = sheet == null || sheet.Length < 2 || sheet[0] <= 0
                     ? false
-                    : ultimaDestra <= foglio[0] - margine || ultimaSinistra < margine;
-                foreach (var riga in righe)
+                    : lastRight <= sheet[0] - margin || lastLeft < margin;
+                foreach (var line in lines)
                 {
                     // il foro della riga piu' vicino al lato della quota
-                    Cerchio scelto = riga.Value[0];
-                    foreach (var c in riga.Value)
-                        if (aDestra ? c.CentroFoglio[0] > scelto.CentroFoglio[0] : c.CentroFoglio[0] < scelto.CentroFoglio[0]) scelto = c;
-                    double x = aDestra
-                        ? contorno[2] + distacco + diLato++ * passo
-                        : contorno[0] - distacco - aSinistra++ * passo;
-                    PosizioneDelForo(modello, disegno, scelto, giu, false, riga.Key / scala,
-                                     x, (scelto.CentroFoglio[1] + giu.DaFoglio[1]) / 2, nate, falliti);
+                    Circle chosen = line.Value[0];
+                    foreach (var c in line.Value)
+                        if (onRight ? c.SheetCenter[0] > chosen.SheetCenter[0] : c.SheetCenter[0] < chosen.SheetCenter[0]) chosen = c;
+                    double x = onRight
+                        ? contour[2] + dimensionOffset + sideways++ * planStep
+                        : contour[0] - dimensionOffset - onLeft++ * planStep;
+                    HolePosition(model, drawing, chosen, down, false, line.Key / scale,
+                                     x, (chosen.SheetCenter[1] + down.FromSheet[1]) / 2, born, failed);
                 }
             }
         }
@@ -1513,12 +1513,12 @@ namespace Oce.Solid.Agent.Core
         /// Larghezza e altezza del foglio corrente, in metri, o null. Servono a
         /// non mettere una quota fuori dalla cornice.
         /// </summary>
-        private static double[] DimensioniDelFoglio(IDrawingDoc disegno)
+        private static double[] SheetDimensions(IDrawingDoc drawing)
         {
             try
             {
-                var foglio = disegno.GetCurrentSheet() as ISheet;
-                var p = foglio?.GetProperties2() as double[];
+                var sheet = drawing.GetCurrentSheet() as ISheet;
+                var p = sheet?.GetProperties2() as double[];
                 if (p != null && p.Length >= 7 && p[5] > 0 && p[6] > 0) return new[] { p[5], p[6] };
             }
             catch { }
@@ -1531,45 +1531,45 @@ namespace Oce.Solid.Agent.Core
         /// distanza vista sul foglio divisa per la scala — se misurasse al bordo
         /// del foro invece che al centro, sarebbe un raggio di troppo.
         /// </summary>
-        private void PosizioneDelForo(
-            IModelDoc2 modello, IDrawingDoc disegno, Cerchio foro, Spigolo riferimento, bool orizzontale,
-            double attesoMm, double x, double y,
-            List<Dictionary<string, object>> nate, List<string> falliti)
+        private void HolePosition(
+            IModelDoc2 model, IDrawingDoc drawing, Circle hole, ProjectedEdge reference, bool horizontal,
+            double expectedMm, double x, double y,
+            List<Dictionary<string, object>> born, List<string> failed)
         {
-            int quotePrima = ContaQuote(disegno);
-            IDisplayDimension quota = null;
+            int dimensionsBefore = CountDimensions(drawing);
+            IDisplayDimension dimension = null;
             try
             {
-                modello.ClearSelection2(true);
-                if ((foro.Spigolo as IEntity).Select4(false, null) && riferimento != null)
+                model.ClearSelection2(true);
+                if ((hole.Edge as IEntity).Select4(false, null) && reference != null)
                 {
                     // Lo spigolo di riferimento si prende dalla vista, come gli altri.
-                    var ent = riferimento.Entita as IEntity;
+                    var ent = reference.Entity as IEntity;
                     if (ent != null && ent.Select4(true, null))
-                        quota = (orizzontale
-                            ? modello.AddHorizontalDimension2(x, y, 0)
-                            : modello.AddVerticalDimension2(x, y, 0)) as IDisplayDimension;
+                        dimension = (horizontal
+                            ? model.AddHorizontalDimension2(x, y, 0)
+                            : model.AddVerticalDimension2(x, y, 0)) as IDisplayDimension;
                 }
             }
             catch { }
-            if (NonCresciuta(disegno, quotePrima, quota))
+            if (NotGrown(drawing, dimensionsBefore, dimension))
             {
-                falliti.Add("posizione del foro a " + attesoMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
+                failed.Add("posizione del foro a " + expectedMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
                 return;
             }
             // A quota null here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80):
             // described with its value unknown, see RecordBornWithoutObject.
-            var descritta = DescriviQuota(quota, foro.Indice);
-            descritta["orientation"] = orizzontale ? "posizione orizzontale del foro" : "posizione verticale del foro";
-            descritta["position_mm"] = DovEFinita(quota);
+            var described = DescribeDimension(dimension, hole.Index);
+            described["orientation"] = horizontal ? "posizione orizzontale del foro" : "posizione verticale del foro";
+            described["position_mm"] = WhereItEnded(dimension);
             object mm;
-            if (descritta.TryGetValue("mm", out mm) && mm != null &&
-                Math.Abs(Convert.ToDouble(mm, Ci) - attesoMm) > 0.05)
-                descritta["warning"] = "vale " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " invece di " +
-                                          attesoMm.ToString("0.##", Ci) + ": forse misura al bordo del foro e non al centro";
-            if (quota != null) nate.Add(descritta);
-            else RecordBornWithoutObject(nate, descritta, falliti,
-                "hole position at " + attesoMm.ToString("0.##", Ci) + " mm (the dimension was born but SOLIDWORKS " +
+            if (described.TryGetValue("mm", out mm) && mm != null &&
+                Math.Abs(Convert.ToDouble(mm, Ci) - expectedMm) > 0.05)
+                described["warning"] = "vale " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " invece di " +
+                                          expectedMm.ToString("0.##", Ci) + ": forse misura al bordo del foro e non al centro";
+            if (dimension != null) born.Add(described);
+            else RecordBornWithoutObject(born, described, failed,
+                "hole position at " + expectedMm.ToString("0.##", Ci) + " mm (the dimension was born but SOLIDWORKS " +
                 "did not hand it back: its value was not read back, check it on the sheet)");
         }
 
@@ -1579,58 +1579,58 @@ namespace Oce.Solid.Agent.Core
         /// profilo — uno spigolo di smusso obliquo sulla vista. Si seleziona lo
         /// spigolo dello smusso e una delle sue «gambe», come a mano.
         /// </summary>
-        private void QuotaGliSmussi(
-            IModelDoc2 modello, IDrawingDoc disegno, object[] spigoli, List<Spigolo> tutti,
-            HashSet<string> gia, double[] contorno, double distacco,
-            List<Dictionary<string, object>> nate, List<Dictionary<string, object>> smussi,
-            List<string> altrove, List<string> falliti)
+        private void DimensionTheChamfers(
+            IModelDoc2 model, IDrawingDoc drawing, object[] edges, List<ProjectedEdge> all,
+            HashSet<string> already, double[] contour, double dimensionOffset,
+            List<Dictionary<string, object>> born, List<Dictionary<string, object>> chamfers,
+            List<string> elsewhere, List<string> failed)
         {
-            var fatti = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var s in tutti)
+            var done = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var s in all)
             {
-                if (s.DiSmusso == null || s.Verso != "obliquo" || fatti.Contains(s.DiSmusso)) continue;
-                fatti.Add(s.DiSmusso);
-                string chiave = "smusso|" + s.DiSmusso;
-                if (gia.Contains(chiave))
+                if (s.ChamferFeature == null || s.Facing != "obliquo" || done.Contains(s.ChamferFeature)) continue;
+                done.Add(s.ChamferFeature);
+                string key = "smusso|" + s.ChamferFeature;
+                if (already.Contains(key))
                 {
-                    altrove.Add("smusso «" + s.DiSmusso + "» (gia' quotato in questa tavola)");
+                    elsewhere.Add("smusso «" + s.ChamferFeature + "» (gia' quotato in questa tavola)");
                     continue;
                 }
-                Spigolo gamba = null;
-                foreach (var t in tutti)
+                ProjectedEdge leg = null;
+                foreach (var t in all)
                 {
-                    if (t.DiSmusso != null || t.Verso == "obliquo") continue;
-                    foreach (var p in new[] { t.DaModello, t.AModello })
-                        foreach (var q in new[] { s.DaModello, s.AModello })
-                            if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) gamba = t;
-                    if (gamba != null) break;
+                    if (t.ChamferFeature != null || t.Facing == "obliquo") continue;
+                    foreach (var p in new[] { t.FromModel, t.ToModel })
+                        foreach (var q in new[] { s.FromModel, s.ToModel })
+                            if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) leg = t;
+                    if (leg != null) break;
                 }
-                if (gamba == null)
+                if (leg == null)
                 {
-                    falliti.Add("smusso «" + s.DiSmusso + "» (nessuno spigolo a cui appoggiare la quota da smusso)");
+                    failed.Add("smusso «" + s.ChamferFeature + "» (nessuno spigolo a cui appoggiare la quota da smusso)");
                     continue;
                 }
                 // Il testo FUORI dal pezzo, dalla parte dello smusso: dal centro
                 // della vista verso lo smusso, oltre il contorno.
-                double mx = (s.DaFoglio[0] + s.AFoglio[0]) / 2, my = (s.DaFoglio[1] + s.AFoglio[1]) / 2;
-                double cx = (contorno[0] + contorno[2]) / 2, cy = (contorno[1] + contorno[3]) / 2;
+                double mx = (s.FromSheet[0] + s.ToSheet[0]) / 2, my = (s.FromSheet[1] + s.ToSheet[1]) / 2;
+                double cx = (contour[0] + contour[2]) / 2, cy = (contour[1] + contour[3]) / 2;
                 double vx = mx - cx, vy = my - cy, l = Math.Sqrt(vx * vx + vy * vy);
                 if (l < 1e-9) { vx = -1; vy = 1; l = Math.Sqrt(2); }
-                double x = mx + vx / l * (distacco + 0.006), y = my + vy / l * (distacco + 0.006);
+                double x = mx + vx / l * (dimensionOffset + 0.006), y = my + vy / l * (dimensionOffset + 0.006);
 
-                int quotePrima = ContaQuote(disegno);
-                IDisplayDimension quota = null;
+                int dimensionsBefore = CountDimensions(drawing);
+                IDisplayDimension dimension = null;
                 try
                 {
-                    modello.ClearSelection2(true);
-                    if ((spigoli[s.Indice] as IEntity).Select4(false, null) &&
-                        (spigoli[gamba.Indice] as IEntity).Select4(true, null))
-                        quota = disegno.AddChamferDim(x, y, 0) as IDisplayDimension;
+                    model.ClearSelection2(true);
+                    if ((edges[s.Index] as IEntity).Select4(false, null) &&
+                        (edges[leg.Index] as IEntity).Select4(true, null))
+                        dimension = drawing.AddChamferDim(x, y, 0) as IDisplayDimension;
                 }
                 catch { }
-                if (NonCresciuta(disegno, quotePrima, quota))
+                if (NotGrown(drawing, dimensionsBefore, dimension))
                 {
-                    falliti.Add("smusso «" + s.DiSmusso + "» (la quota da smusso non e' nata)");
+                    failed.Add("smusso «" + s.ChamferFeature + "» (la quota da smusso non e' nata)");
                     continue;
                 }
                 // A quota null here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80).
@@ -1638,9 +1638,9 @@ namespace Oce.Solid.Agent.Core
                 // chamfer dimension»; when it is null and the count went up, the
                 // dimension is there and its two values cannot be read: the reads
                 // below fail inside their try, and angle, side and width stay null.
-                var descritta = DescriviQuota(quota, s.Indice);
-                descritta["orientation"] = "chamfer dimension";
-                descritta["position_mm"] = DovEFinita(quota);
+                var described = DescribeDimension(dimension, s.Index);
+                described["orientation"] = "chamfer dimension";
+                described["position_mm"] = WhereItEnded(dimension);
 
                 // LA QUOTA DA SMUSSO E' FATTA DI DUE QUOTE, e la prima e'
                 // L'ANGOLO. Misurato il 25/9/2026: GetDimension2(0) = 0,785 rad
@@ -1650,47 +1650,47 @@ namespace Oce.Solid.Agent.Core
                 // riportava 785,398 «mm», cioe' l'angolo in radianti per mille:
                 // si distinguono per TIPO (`swDimensionParamType_e`: lineare 0,
                 // angolare 1), non per posizione.
-                double? angolo = null, larghezza = null;
+                double? angle = null, width = null;
                 for (int k = 0; k < 2; k++)
                 {
                     try
                     {
-                        var dk = quota.GetDimension2(k) as IDimension;
+                        var dk = dimension.GetDimension2(k) as IDimension;
                         if (dk == null) continue;
-                        int tipo = dk.GetType();
-                        if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angolo = ApiHelpers.ReadDimensionInConfiguration(dk, "");
-                        else if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) larghezza = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                        int typ = dk.GetType();
+                        if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angle = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                        else if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) width = ApiHelpers.ReadDimensionInConfiguration(dk, "");
                     }
                     catch { }
                 }
-                object lato = null;
-                if (angolo.HasValue && larghezza.HasValue)
-                    lato = Math.Round(larghezza.Value * Math.Cos(angolo.Value) * 1000.0, 3);
-                descritta["mm"] = lato;
-                var riga = new Dictionary<string, object>
+                object side = null;
+                if (angle.HasValue && width.HasValue)
+                    side = Math.Round(width.Value * Math.Cos(angle.Value) * 1000.0, 3);
+                described["mm"] = side;
+                var line = new Dictionary<string, object>
                 {
-                    ["feature"] = s.DiSmusso,
-                    ["leg_mm"] = lato,
-                    ["angle_deg"] = angolo.HasValue ? (object)Math.Round(angolo.Value * 180.0 / Math.PI, 2) : null,
-                    ["face_width_mm"] = larghezza.HasValue ? (object)Math.Round(larghezza.Value * 1000.0, 3) : null,
+                    ["feature"] = s.ChamferFeature,
+                    ["leg_mm"] = side,
+                    ["angle_deg"] = angle.HasValue ? (object)Math.Round(angle.Value * 180.0 / Math.PI, 2) : null,
+                    ["face_width_mm"] = width.HasValue ? (object)Math.Round(width.Value * 1000.0, 3) : null,
                 };
-                smussi.Add(riga);
-                if (quota != null) nate.Add(descritta);
-                else RecordBornWithoutObject(nate, descritta, falliti,
-                    "chamfer «" + s.DiSmusso + "» (the chamfer dimension was born but SOLIDWORKS did not hand it " +
+                chamfers.Add(line);
+                if (dimension != null) born.Add(described);
+                else RecordBornWithoutObject(born, described, failed,
+                    "chamfer «" + s.ChamferFeature + "» (the chamfer dimension was born but SOLIDWORKS did not hand it " +
                     "back: its values were not read back, check it on the sheet)");
-                gia.Add(chiave);
+                already.Add(key);
             }
         }
 
         /// <summary>Un punto del modello sul foglio (metri), o null.</summary>
-        private static double[] SulFoglio(double[] p, IMathUtility mu, MathTransform tr)
+        private static double[] OnSheet(double[] p, IMathUtility mu, MathTransform tr)
         {
             try
             {
                 var q = ((IMathPoint)mu.CreatePoint(p)).MultiplyTransform(tr) as IMathPoint;
-                var fuori = q?.ArrayData as double[];
-                return fuori != null && fuori.Length >= 2 ? fuori : null;
+                var outside = q?.ArrayData as double[];
+                return outside != null && outside.Length >= 2 ? outside : null;
             }
             catch { return null; }
         }
@@ -1703,15 +1703,15 @@ namespace Oce.Solid.Agent.Core
         /// ripetuta FRA viste: il 10 della vista frontale e il 10 di quella
         /// laterale sono lo stesso spessore. Null per uno spigolo obliquo.
         /// </summary>
-        private static string ChiaveNelModello(double[] da, double[] a)
+        private static string KeyInModel(double[] da, double[] a)
         {
             double dx = a[0] - da[0], dy = a[1] - da[1], dz = a[2] - da[2];
             double l = Math.Sqrt(dx * dx + dy * dy + dz * dz);
             if (l < 1e-9) return null;
-            int asse = Math.Abs(dx) / l > 0.999 ? 0 : Math.Abs(dy) / l > 0.999 ? 1 : Math.Abs(dz) / l > 0.999 ? 2 : -1;
-            if (asse < 0) return null;
-            double v0 = Math.Min(da[asse], a[asse]) * 1000.0, v1 = Math.Max(da[asse], a[asse]) * 1000.0;
-            return "XYZ"[asse] + "|" + Math.Round(v0, 2).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) +
+            int axis = Math.Abs(dx) / l > 0.999 ? 0 : Math.Abs(dy) / l > 0.999 ? 1 : Math.Abs(dz) / l > 0.999 ? 2 : -1;
+            if (axis < 0) return null;
+            double v0 = Math.Min(da[axis], a[axis]) * 1000.0, v1 = Math.Max(da[axis], a[axis]) * 1000.0;
+            return "XYZ"[axis] + "|" + Math.Round(v0, 2).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) +
                    "|" + Math.Round(v1, 2).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
         }
 
@@ -1719,13 +1719,13 @@ namespace Oce.Solid.Agent.Core
         /// Il nome della lavorazione di smusso a cui lo spigolo appartiene
         /// (una delle sue due facce viene da uno smusso), o null.
         /// </summary>
-        private static string TocCaUnoSmusso(IEdge spigolo)
+        private static string TouchesAChamfer(IEdge edge)
         {
             try
             {
-                var facce = spigolo.GetTwoAdjacentFaces2() as object[];
-                if (facce == null) return null;
-                foreach (var o in facce)
+                var faces = edge.GetTwoAdjacentFaces2() as object[];
+                if (faces == null) return null;
+                foreach (var o in faces)
                 {
                     var f = (o as IFace2)?.GetFeature() as IFeature;
                     if (f != null && f.GetTypeName2() == "Chamfer") return f.Name;
@@ -1736,9 +1736,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>L'ingombro della vista adesso, o `null` se non si legge.</summary>
-        private static double[] ContornoDi(IView vista)
+        private static double[] ContourOf(IView view)
         {
-            try { return vista.GetOutline() as double[]; }
+            try { return view.GetOutline() as double[]; }
             catch { return null; }
         }
 
@@ -1748,26 +1748,26 @@ namespace Oce.Solid.Agent.Core
         /// «sconosciuto» quando una delle due letture non c'e': non «no». Un
         /// confronto che non si e' potuto fare non e' un confronto andato bene.
         /// </summary>
-        private static string ContornoCresciuto(double[] prima, double[] dopo)
+        private static string GrownContour(double[] before, double[] after)
         {
-            if (prima == null || dopo == null || prima.Length < 4 || dopo.Length < 4)
+            if (before == null || after == null || before.Length < 4 || after.Length < 4)
                 return "sconosciuto";
             for (int i = 0; i < 4; i++)
-                if (Math.Abs(prima[i] - dopo[i]) > 1e-9) return "si";
+                if (Math.Abs(before[i] - after[i]) > 1e-9) return "si";
             return "no";
         }
 
         /// <summary>Da metri di foglio a millimetri, per la risposta.</summary>
-        private static object InMillimetri(double[] v)
+        private static object InMillimeters(double[] v)
         {
             if (v == null) return null;
-            var fuori = new object[v.Length];
-            for (int i = 0; i < v.Length; i++) fuori[i] = Math.Round(v[i] * 1000, 2);
-            return fuori;
+            var outside = new object[v.Length];
+            for (int i = 0; i < v.Length; i++) outside[i] = Math.Round(v[i] * 1000, 2);
+            return outside;
         }
 
         /// <summary>Dove la quota e' finita davvero, in millimetri di foglio.</summary>
-        private static object DovEFinita(IDisplayDimension d)
+        private static object WhereItEnded(IDisplayDimension d)
         {
             // SI RILEGGE, non si riporta il punto che si e' chiesto: il valore
             // che torna da chi ha fatto la cosa non e' la misura della cosa, e
@@ -1786,11 +1786,11 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// A dimension BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80): the count
-        /// of dimensions went up and the call returned null. <see cref="NonCresciuta"/>
+        /// of dimensions went up and the call returned null. <see cref="NotGrown"/>
         /// is asked first, and only a dimension that did not grow is «not born»;
         /// one that grew goes on as the others, described through
-        /// <see cref="DescriviQuota"/> with null (as the edge dimensions of
-        /// QuotaInTavola always were), and here it gets its row and a line of
+        /// <see cref="DescribeDimension"/> with null (as the edge dimensions of
+        /// DrawingDimension always were), and here it gets its row and a line of
         /// «edges_not_dimensioned» saying that its values were not read back.
         /// Until library 0.144.0 the other call sites asked «null or not grown»
         /// and took such a dimension for missing: the hole callout then fell
@@ -1816,9 +1816,9 @@ namespace Oce.Solid.Agent.Core
         /// impostata la tavola. `IDimension.Value` invece segue le unita' del
         /// documento, quindi si riporta accanto ma non si usa per confrontare.
         /// </summary>
-        private static Dictionary<string, object> DescriviQuota(IDisplayDimension d, int spigolo)
+        private static Dictionary<string, object> DescribeDimension(IDisplayDimension d, int edge)
         {
-            var fuori = new Dictionary<string, object> { ["edge"] = spigolo };
+            var outside = new Dictionary<string, object> { ["edge"] = edge };
             if (d == null)
             {
                 // La quota c'e' — il conteggio e' salito — ma l'oggetto non e'
@@ -1826,23 +1826,23 @@ namespace Oce.Solid.Agent.Core
                 // piu' corto del conteggio farebbe cercare un difetto che non
                 // c'e'. Every call that places a dimension can end here (N80), not
                 // only AddDimension, so the text names none.
-                fuori["name"] = "(born, but the call that placed it did not hand the object back)";
-                fuori["mm"] = null;   // not read, not zero
-                return fuori;
+                outside["name"] = "(born, but the call that placed it did not hand the object back)";
+                outside["mm"] = null;   // not read, not zero
+                return outside;
             }
             try
             {
                 var dim = d.GetDimension2(0) as IDimension;
                 if (dim != null)
                 {
-                    try { fuori["name"] = dim.FullName; } catch { }
-                    try { fuori["mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000, 3); } catch { }
+                    try { outside["name"] = dim.FullName; } catch { }
+                    try { outside["mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000, 3); } catch { }
                 }
             }
             catch { }
-            if (!fuori.ContainsKey("mm"))
-                fuori["mm"] = null;   // «non l'ho potuto leggere», non «zero»
-            return fuori;
+            if (!outside.ContainsKey("mm"))
+                outside["mm"] = null;   // «non l'ho potuto leggere», non «zero»
+            return outside;
         }
 
         /// <summary>
@@ -1851,26 +1851,26 @@ namespace Oce.Solid.Agent.Core
         /// un `null` in mezzo a dei numeri si confronterebbe come stringa
         /// vuota e passerebbe qualunque «non contiene».
         /// </summary>
-        private static object[] MillimetriInFila(List<Dictionary<string, object>> quote)
+        private static object[] MillimetersInARow(List<Dictionary<string, object>> quote)
         {
-            var fuori = new List<object>();
+            var outside = new List<object>();
             foreach (var q in quote)
             {
                 object v;
-                if (q.TryGetValue("mm", out v) && v != null) fuori.Add(v);
+                if (q.TryGetValue("mm", out v) && v != null) outside.Add(v);
             }
-            return fuori.ToArray();
+            return outside.ToArray();
         }
 
-        private static string ValoriInRiga(List<Dictionary<string, object>> quote)
+        private static string ValuesInLine(List<Dictionary<string, object>> quote)
         {
-            var pezzi = new List<string>();
+            var parts = new List<string>();
             foreach (var q in quote)
             {
                 object v;
-                pezzi.Add(q.TryGetValue("mm", out v) && v != null ? v + " mm" : "?");
+                parts.Add(q.TryGetValue("mm", out v) && v != null ? v + " mm" : "?");
             }
-            return string.Join(", ", pezzi);
+            return string.Join(", ", parts);
         }
 
         /// <summary>
@@ -1887,46 +1887,46 @@ namespace Oce.Solid.Agent.Core
         /// quella. Estratto da `drawing_dimension` il 26/9/2026: lo usa anche
         /// `hole_table`, e due copie divergono.
         /// </summary>
-        private static IView RisolviVista(IDrawingDoc disegno, List<string> nomi, string voluta, out string motivo)
+        private static IView ResolveView(IDrawingDoc drawing, List<string> names, string wanted, out string reason)
         {
-            motivo = null;
-            if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
+            reason = null;
+            if (!string.IsNullOrWhiteSpace(wanted) && !KnownViewName(names, wanted))
             {
-                var uid = System.Text.RegularExpressions.Regex.Match(voluta.Trim(), @"^[Vv](\d+)$");
+                var uid = System.Text.RegularExpressions.Regex.Match(wanted.Trim(), @"^[Vv](\d+)$");
                 if (uid.Success)
                 {
                     int k = int.Parse(uid.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
-                    if (k < 1 || k > nomi.Count)
+                    if (k < 1 || k > names.Count)
                     {
-                        motivo = "Non c'e' la vista «" + voluta + "»: la tavola ne ha " + nomi.Count +
-                                 " (da V1 a V" + nomi.Count + ").";
+                        reason = "Non c'e' la vista «" + wanted + "»: la tavola ne ha " + names.Count +
+                                 " (da V1 a V" + names.Count + ").";
                         return null;
                     }
-                    voluta = nomi[k - 1];
+                    wanted = names[k - 1];
                 }
             }
-            if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
+            if (!string.IsNullOrWhiteSpace(wanted) && !KnownViewName(names, wanted))
             {
-                motivo = "Non c'e' nessuna vista che si chiami «" + voluta + "». Ci sono: " +
-                         string.Join(", ", nomi) + ".";
+                reason = "Non c'e' nessuna vista che si chiami «" + wanted + "». Ci sono: " +
+                         string.Join(", ", names) + ".";
                 return null;
             }
-            return VistaPerNome(disegno, voluta);
+            return ViewByName(drawing, wanted);
         }
 
         /// <summary>La vista chiesta per nome, o la prima vera se non si dice.</summary>
-        private static IView VistaPerNome(IDrawingDoc disegno, string voluta)
+        private static IView ViewByName(IDrawingDoc drawing, string wanted)
         {
             try
             {
                 // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
-                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
-                if (string.IsNullOrWhiteSpace(voluta)) return v;
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
+                if (string.IsNullOrWhiteSpace(wanted)) return v;
                 while (v != null)
                 {
-                    string suo = "";
-                    try { suo = v.GetName2() ?? ""; } catch { }
-                    if (StessoNome(suo, voluta)) return v;
+                    string its = "";
+                    try { its = v.GetName2() ?? ""; } catch { }
+                    if (SameName(its, wanted)) return v;
                     v = v.GetNextView() as IView;
                 }
             }

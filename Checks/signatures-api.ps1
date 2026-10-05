@@ -23,11 +23,11 @@
 #      .\Checks\signatures-api.ps1
 # =============================================================================
 
-# `-Provami` AGGIUNGE UNA PRETESA CHE NON PUO' REGGERE, e serve a vedere
+# `-TestMe` AGGIUNGE UNA PRETESA CHE NON PUO' REGGERE, e serve a vedere
 # questa sonda diventare rossa. Una guardia che non si e' mai vista dire di
 # no non si distingue da una rotta -- e la condizione vera (un aggiornamento
 # di SOLIDWORKS che cambia una firma) non si puo' provocare a comando.
-param([switch]$Provami)
+param([switch]$TestMe)
 
 $ErrorActionPreference = "Continue"
 
@@ -52,44 +52,44 @@ $cosworks = Join-Path $redist "SolidWorks.Interop.cosworks.dll"
 $sim = $null
 if (Test-Path $cosworks) { $sim = [Reflection.Assembly]::LoadFrom($cosworks) }
 
-function Tipo($nome) { return $asm.GetTypes() | Where-Object { $_.Name -eq $nome } | Select-Object -First 1 }
+function TypeName($itemName) { return $asm.GetTypes() | Where-Object { $_.Name -eq $itemName } | Select-Object -First 1 }
 
-function TipoSim($nome) {
+function TypeSim($itemName) {
     if (-not $sim) { return $null }
-    return $sim.GetTypes() | Where-Object { $_.Name -eq $nome } | Select-Object -First 1
+    return $sim.GetTypes() | Where-Object { $_.Name -eq $itemName } | Select-Object -First 1
 }
 
-function MetodoSim($tipoNome, $metodoNome) {
-    $t = TipoSim $tipoNome
+function MethodSim($typeName, $methodName) {
+    $t = TypeSim $typeName
     if (-not $t) { return $null }
-    return $t.GetMethods() | Where-Object { $_.Name -eq $metodoNome } | Select-Object -First 1
+    return $t.GetMethods() | Where-Object { $_.Name -eq $methodName } | Select-Object -First 1
 }
 
-function ValoreEnum($enumNome, $voce) {
-    $t = TipoSim $enumNome
+function EnumValue($enumName, $entry) {
+    $t = TypeSim $enumName
     if (-not $t) { return "(l'enum non c'e')" }
     $n = [Enum]::GetNames($t); $v = [Enum]::GetValues($t)
-    for ($i = 0; $i -lt $n.Count; $i++) { if ($n[$i] -ceq $voce) { return [string][int]$v[$i] } }
+    for ($i = 0; $i -lt $n.Count; $i++) { if ($n[$i] -ceq $entry) { return [string][int]$v[$i] } }
     return "(la voce non c'e')"
 }
 
-function Metodo($tipoNome, $metodoNome) {
-    $t = Tipo $tipoNome
+function Method($typeName, $methodName) {
+    $t = TypeName $typeName
     if (-not $t) { return $null }
-    return $t.GetMethods() | Where-Object { $_.Name -eq $metodoNome } | Select-Object -First 1
+    return $t.GetMethods() | Where-Object { $_.Name -eq $methodName } | Select-Object -First 1
 }
 
-function Riga($e, $v) { Write-Output ("  {0,-38} {1}" -f $e, $v) }
+function Line($e, $v) { Write-Output ("  {0,-38} {1}" -f $e, $v) }
 
-function ValoreCosto($enumNome, $voce) {
-    $t = $cst.GetTypes() | Where-Object { $_.Name -eq $enumNome } | Select-Object -First 1
+function CostValue($enumName, $entry) {
+    $t = $cst.GetTypes() | Where-Object { $_.Name -eq $enumName } | Select-Object -First 1
     if (-not $t) { return "(l'enum non c'e')" }
     $n = [Enum]::GetNames($t); $v = [Enum]::GetValues($t)
-    for ($i = 0; $i -lt $n.Count; $i++) { if ($n[$i] -ceq $voce) { return [string][int]$v[$i] } }
+    for ($i = 0; $i -lt $n.Count; $i++) { if ($n[$i] -ceq $entry) { return [string][int]$v[$i] } }
     return "(la voce non c'e')"
 }
 
-function Obsoleto($m) {
+function Obsolete($m) {
     if (-not $m) { return "(il metodo non c'e')" }
     $a = $m.GetCustomAttributes([System.ObsoleteAttribute], $false)
     if ($a.Count -eq 0) { return "NO -- l'interop non lo marca" }
@@ -106,11 +106,11 @@ function Obsoleto($m) {
 # Adesso cio' che ci si aspetta e' scritto QUI, e se una firma cambia la
 # sonda esce 1 e dice quale. *Un attrezzo che non puo' dire di no non
 # sorveglia niente.*
-$guai = @()
-function Pretendi($cosa, $atteso, $trovato) {
-    if ("$trovato" -eq "$atteso") { Riga $cosa ("ok  " + $trovato); return }
-    Riga $cosa ("CAMBIATO: atteso <" + $atteso + ">, trovato <" + $trovato + ">")
-    $script:guai += $cosa
+$trouble = @()
+function Expect($what, $expected, $found) {
+    if ("$found" -eq "$expected") { Line $what ("ok  " + $found); return }
+    Line $what ("CAMBIATO: atteso <" + $expected + ">, trovato <" + $found + ">")
+    $script:trouble += $what
 }
 
 Write-Output ""
@@ -119,24 +119,24 @@ Write-Output ""
 
 # -- W1.1: FeatureFillPattern e la strada nuova ---------------------------------
 Write-Output "=== W1.1  FeatureFillPattern e' davvero Obsolete? ==="
-$ffp = Metodo "IFeatureManager" "FeatureFillPattern"
-Riga "IFeatureManager.FeatureFillPattern" $(if ($ffp) { "c'e'" } else { "NON c'e'" })
-Riga "  marcato [Obsolete] nell'interop?" (Obsoleto $ffp)
-if ($ffp) { Riga "  ritorna" $ffp.ReturnType.Name }
+$ffp = Method "IFeatureManager" "FeatureFillPattern"
+Line "IFeatureManager.FeatureFillPattern" $(if ($ffp) { "c'e'" } else { "NON c'e'" })
+Line "  marcato [Obsolete] nell'interop?" (Obsolete $ffp)
+if ($ffp) { Line "  ritorna" $ffp.ReturnType.Name }
 
-$cd = Metodo "IFeatureManager" "CreateDefinition"
-Riga "IFeatureManager.CreateDefinition" $(if ($cd) { "c'e', ritorna " + $cd.ReturnType.Name } else { "NON c'e'" })
-$cf = Metodo "IFeatureManager" "CreateFeature"
-Riga "IFeatureManager.CreateFeature" $(if ($cf) { "c'e', ritorna " + $cf.ReturnType.Name } else { "NON c'e'" })
+$cd = Method "IFeatureManager" "CreateDefinition"
+Line "IFeatureManager.CreateDefinition" $(if ($cd) { "c'e', ritorna " + $cd.ReturnType.Name } else { "NON c'e'" })
+$cf = Method "IFeatureManager" "CreateFeature"
+Line "IFeatureManager.CreateFeature" $(if ($cf) { "c'e', ritorna " + $cf.ReturnType.Name } else { "NON c'e'" })
 
 foreach ($n in @("IFillPatternFeatureData", "ITablePatternFeatureData")) {
-    $t = Tipo $n
-    Riga $n $(if ($t) { "c'e'" } else { "NON c'e'" })
+    $t = TypeName $n
+    Line $n $(if ($t) { "c'e'" } else { "NON c'e'" })
 }
-$pa = (Tipo "ITablePatternFeatureData")
+$pa = (TypeName "ITablePatternFeatureData")
 if ($pa) {
     $p = $pa.GetProperties() | Where-Object { $_.Name -eq "PointArray" } | Select-Object -First 1
-    Riga "  ITablePatternFeatureData.PointArray" $(if ($p) { "c'e', " + $p.PropertyType.Name } else { "NON c'e'" })
+    Line "  ITablePatternFeatureData.PointArray" $(if ($p) { "c'e', " + $p.PropertyType.Name } else { "NON c'e'" })
 }
 
 # le marche che la voce cita, lette dall'enum invece che dalla pagina
@@ -147,26 +147,26 @@ if ($pa) {
 $e = $cst.GetTypes() | Where-Object { $_.Name -eq "swFeatureNameID_e" } | Select-Object -First 1
 if ($e) {
     foreach ($n in [Enum]::GetNames($e)) {
-        if ($n -match "FillPattern|TablePattern") { Riga ("  " + $n) ([int][Enum]::Parse($e, $n)) }
+        if ($n -match "FillPattern|TablePattern") { Line ("  " + $n) ([int][Enum]::Parse($e, $n)) }
     }
-} else { Riga "  swFeatureNameID_e" "non trovato" }
+} else { Line "  swFeatureNameID_e" "non trovato" }
 Write-Output ""
 
 # -- W1.2: InsertRib e come si rilegge ------------------------------------------
 Write-Output "=== W1.2  InsertRib torna davvero void? ==="
-$rib = Metodo "IFeatureManager" "InsertRib"
-Riga "IFeatureManager.InsertRib" $(if ($rib) { "c'e'" } else { "NON c'e'" })
+$rib = Method "IFeatureManager" "InsertRib"
+Line "IFeatureManager.InsertRib" $(if ($rib) { "c'e'" } else { "NON c'e'" })
 if ($rib) {
-    Riga "  ritorna" $rib.ReturnType.Name
-    Riga "  argomenti" $rib.GetParameters().Count
+    Line "  ritorna" $rib.ReturnType.Name
+    Line "  argomenti" $rib.GetParameters().Count
 }
-$g6 = Metodo "ISelectionMgr" "GetSelectedObject6"
-Riga "ISelectionMgr.GetSelectedObject6" $(if ($g6) { "c'e', ritorna " + $g6.ReturnType.Name } else { "NON c'e'" })
+$g6 = Method "ISelectionMgr" "GetSelectedObject6"
+Line "ISelectionMgr.GetSelectedObject6" $(if ($g6) { "c'e', ritorna " + $g6.ReturnType.Name } else { "NON c'e'" })
 
-$rfd = Tipo "IRibFeatureData2"
-Riga "IRibFeatureData2" $(if ($rfd) { "c'e'" } else { "NON c'e'" })
-$gd = Metodo "IFeature" "GetDefinition"
-Riga "IFeature.GetDefinition" $(if ($gd) { "c'e', ritorna " + $gd.ReturnType.Name } else { "NON c'e'" })
+$rfd = TypeName "IRibFeatureData2"
+Line "IRibFeatureData2" $(if ($rfd) { "c'e'" } else { "NON c'e'" })
+$gd = Method "IFeature" "GetDefinition"
+Line "IFeature.GetDefinition" $(if ($gd) { "c'e', ritorna " + $gd.ReturnType.Name } else { "NON c'e'" })
 
 # e la via "moderna" esiste per la nervatura?
 #
@@ -176,7 +176,7 @@ Riga "IFeature.GetDefinition" $(if ($gd) { "c'e', ritorna " + $gd.ReturnType.Nam
 # si' per una sillaba.
 if ($e) {
     $rib2 = [Enum]::GetNames($e) | Where-Object { $_ -cmatch '^swFmRib' }
-    Riga "CreateDefinition ha una marca per la nervatura?" $(if ($rib2) { $rib2 -join ", " } else { "NO -- nessun swFmRib*" })
+    Line "CreateDefinition ha una marca per la nervatura?" $(if ($rib2) { $rib2 -join ", " } else { "NO -- nessun swFmRib*" })
 }
 Write-Output ""
 
@@ -186,15 +186,15 @@ Write-Output ""
 # tutto: un elenco che pretende tutto diventa rosso a ogni aggiornamento di
 # SOLIDWORKS per ragioni che non interessano nessuno, e allora si spegne.
 Write-Output "=== QUELLO CHE LE VOCI DANNO PER BUONO ==="
-Pretendi "W1.1 FeatureFillPattern esiste" "True" ([bool](Metodo "IFeatureManager" "FeatureFillPattern"))
-Pretendi "W1.1 ...e NON e' marcato Obsolete" "NO -- l'interop non lo marca" (Obsoleto (Metodo "IFeatureManager" "FeatureFillPattern"))
-Pretendi "W1.1 CreateDefinition esiste" "True" ([bool](Metodo "IFeatureManager" "CreateDefinition"))
-Pretendi "W1.2 InsertRib ritorna Void" "Void" ((Metodo "IFeatureManager" "InsertRib").ReturnType.Name)
-Pretendi "W1.2 InsertRib ha 10 argomenti" "10" ((Metodo "IFeatureManager" "InsertRib").GetParameters().Count)
-Pretendi "W1.2 GetSelectedObject6 esiste" "True" ([bool](Metodo "ISelectionMgr" "GetSelectedObject6"))
-Pretendi "GA11 MirrorComponents3 ha 14 argomenti" "14" ((Metodo "IAssemblyDoc" "MirrorComponents3").GetParameters().Count)
-Pretendi "Z-B5 ActivateDoc3 ha 4 argomenti" "4" ((Metodo "ISldWorks" "ActivateDoc3").GetParameters().Count)
-Pretendi "GP18 GetFlatPatternFolder esiste" "True" ([bool](Metodo "IFeatureManager" "GetFlatPatternFolder"))
+Expect "W1.1 FeatureFillPattern esiste" "True" ([bool](Method "IFeatureManager" "FeatureFillPattern"))
+Expect "W1.1 ...e NON e' marcato Obsolete" "NO -- l'interop non lo marca" (Obsolete (Method "IFeatureManager" "FeatureFillPattern"))
+Expect "W1.1 CreateDefinition esiste" "True" ([bool](Method "IFeatureManager" "CreateDefinition"))
+Expect "W1.2 InsertRib ritorna Void" "Void" ((Method "IFeatureManager" "InsertRib").ReturnType.Name)
+Expect "W1.2 InsertRib ha 10 argomenti" "10" ((Method "IFeatureManager" "InsertRib").GetParameters().Count)
+Expect "W1.2 GetSelectedObject6 esiste" "True" ([bool](Method "ISelectionMgr" "GetSelectedObject6"))
+Expect "GA11 MirrorComponents3 ha 14 argomenti" "14" ((Method "IAssemblyDoc" "MirrorComponents3").GetParameters().Count)
+Expect "Z-B5 ActivateDoc3 ha 4 argomenti" "4" ((Method "ISldWorks" "ActivateDoc3").GetParameters().Count)
+Expect "GP18 GetFlatPatternFolder esiste" "True" ([bool](Method "IFeatureManager" "GetFlatPatternFolder"))
 
 # -- I QUATTRO «DA ACCERTARE» ACCERTATI IL 24/9/2026 ---------------------------
 #
@@ -206,26 +206,26 @@ Write-Output ""
 Write-Output "=== i quattro accertati il 24/9/2026 ==="
 
 # GT5: il 33 era giusto, e la nota di 80r era vera.
-Pretendi "GT5 il 33 e' HoleTableTemplates" "33" (ValoreCosto "swUserPreferenceStringValue_e" "swFileLocationsHoleTableTemplates")
-Pretendi "GT5 GetUserPreferenceStringValue torna String" "String" ((Metodo "ISldWorks" "GetUserPreferenceStringValue").ReturnType.Name)
-Pretendi "GT5 ...e vuole 1 argomento" "1" ((Metodo "ISldWorks" "GetUserPreferenceStringValue").GetParameters().Count)
+Expect "GT5 il 33 e' HoleTableTemplates" "33" (CostValue "swUserPreferenceStringValue_e" "swFileLocationsHoleTableTemplates")
+Expect "GT5 GetUserPreferenceStringValue torna String" "String" ((Method "ISldWorks" "GetUserPreferenceStringValue").ReturnType.Name)
+Expect "GT5 ...e vuole 1 argomento" "1" ((Method "ISldWorks" "GetUserPreferenceStringValue").GetParameters().Count)
 
 # GT2: l'inserimento della distinta sta su IView, non sull'annotazione.
-Pretendi "GT2 InsertWeldmentTable sta su IView" "True" ([bool](Metodo "IView" "InsertWeldmentTable"))
+Expect "GT2 InsertWeldmentTable sta su IView" "True" ([bool](Method "IView" "InsertWeldmentTable"))
 
 # GA6: perche' GetTotalTransform e non GetXform -- una ragione, non un gusto.
-Pretendi "GA6 GetTotalTransform torna MathTransform" "MathTransform" ((Metodo "IComponent2" "GetTotalTransform").ReturnType.Name)
-Pretendi "GA6 GetXform torna un Object nudo" "Object" ((Metodo "IComponent2" "GetXform").ReturnType.Name)
-Pretendi "GA6 GetMates torna un Object nudo" "Object" ((Metodo "IComponent2" "GetMates").ReturnType.Name)
+Expect "GA6 GetTotalTransform torna MathTransform" "MathTransform" ((Method "IComponent2" "GetTotalTransform").ReturnType.Name)
+Expect "GA6 GetXform torna un Object nudo" "Object" ((Method "IComponent2" "GetXform").ReturnType.Name)
+Expect "GA6 GetMates torna un Object nudo" "Object" ((Method "IComponent2" "GetMates").ReturnType.Name)
 
 # X2: la riga della filettatura diceva tre cose e due erano sbagliate.
-Pretendi "X2 InsertHelix NON sta su IFeatureManager" "False" ([bool](Metodo "IFeatureManager" "InsertHelix"))
-Pretendi "X2 ...sta su IModelDoc2" "True" ([bool](Metodo "IModelDoc2" "InsertHelix"))
-Pretendi "X2 ...torna Void" "Void" ((Metodo "IModelDoc2" "InsertHelix").ReturnType.Name)
-Pretendi "X2 ...con 10 argomenti" "10" ((Metodo "IModelDoc2" "InsertHelix").GetParameters().Count)
-Pretendi "X2 InsertCutSwept5 torna Feature, non void" "Feature" ((Metodo "IFeatureManager" "InsertCutSwept5").ReturnType.Name)
-Pretendi "X2 ...e ha 22 argomenti, non 21" "22" ((Metodo "IFeatureManager" "InsertCutSwept5").GetParameters().Count)
-Pretendi "X2 EndVariablePitchHelix torna Feature" "Feature" ((Metodo "IFeatureManager" "EndVariablePitchHelix").ReturnType.Name)
+Expect "X2 InsertHelix NON sta su IFeatureManager" "False" ([bool](Method "IFeatureManager" "InsertHelix"))
+Expect "X2 ...sta su IModelDoc2" "True" ([bool](Method "IModelDoc2" "InsertHelix"))
+Expect "X2 ...torna Void" "Void" ((Method "IModelDoc2" "InsertHelix").ReturnType.Name)
+Expect "X2 ...con 10 argomenti" "10" ((Method "IModelDoc2" "InsertHelix").GetParameters().Count)
+Expect "X2 InsertCutSwept5 torna Feature, non void" "Feature" ((Method "IFeatureManager" "InsertCutSwept5").ReturnType.Name)
+Expect "X2 ...e ha 22 argomenti, non 21" "22" ((Method "IFeatureManager" "InsertCutSwept5").GetParameters().Count)
+Expect "X2 EndVariablePitchHelix torna Feature" "Feature" ((Method "IFeatureManager" "EndVariablePitchHelix").ReturnType.Name)
 
 # -- S3: la catena della mensola in Simulation ---------------------------------
 #
@@ -242,45 +242,45 @@ if (-not $sim) {
 } else {
     Write-Output "=== S3  la catena della mensola: sette passi, accertati ==="
 
-    Pretendi "S3 cosworks ha 589 tipi" "589" ($sim.GetTypes().Count)
-    Pretendi "S3 ...di cui 160 interfacce" "160" (($sim.GetTypes() | Where-Object { $_.IsInterface }).Count)
+    Expect "S3 cosworks ha 589 tipi" "589" ($sim.GetTypes().Count)
+    Expect "S3 ...di cui 160 interfacce" "160" (($sim.GetTypes() | Where-Object { $_.IsInterface }).Count)
 
     # 1-3. arrivare allo studio
-    Pretendi "S3 CreateNewStudy3 ha 4 argomenti" "4" ((MetodoSim "ICWStudyManager" "CreateNewStudy3").GetParameters().Count)
-    Pretendi "S3 studio statico = 0" "0" (ValoreEnum "swsAnalysisStudyType_e" "swsAnalysisStudyTypeStatic")
+    Expect "S3 CreateNewStudy3 ha 4 argomenti" "4" ((MethodSim "ICWStudyManager" "CreateNewStudy3").GetParameters().Count)
+    Expect "S3 studio statico = 0" "0" (EnumValue "swsAnalysisStudyType_e" "swsAnalysisStudyTypeStatic")
 
     # 4. il materiale, che NON sta sullo studio
-    Pretendi "S3 SetLibraryMaterial sta su ICWSolidBody" "True" ([bool](MetodoSim "ICWSolidBody" "SetLibraryMaterial"))
-    Pretendi "S3 ...e vuole 2 argomenti" "2" ((MetodoSim "ICWSolidBody" "SetLibraryMaterial").GetParameters().Count)
+    Expect "S3 SetLibraryMaterial sta su ICWSolidBody" "True" ([bool](MethodSim "ICWSolidBody" "SetLibraryMaterial"))
+    Expect "S3 ...e vuole 2 argomenti" "2" ((MethodSim "ICWSolidBody" "SetLibraryMaterial").GetParameters().Count)
     # E NON c'e' modo di RILEGGERLO: nessun GetMaterial. E' la stessa
     # forma trovata per la trasparenza (voce Z-D4): un setter senza
     # lettore. Chi vuole sapere che materiale c'e' deve chiederlo altrove.
-    Pretendi "S3 ...e non esiste nessun GetMaterial" "False" ([bool](MetodoSim "ICWSolidBody" "GetMaterial"))
+    Expect "S3 ...e non esiste nessun GetMaterial" "False" ([bool](MethodSim "ICWSolidBody" "GetMaterial"))
 
     # 5. vincolo e carico
-    Pretendi "S3 AddRestraint ha 4 argomenti" "4" ((MetodoSim "ICWLoadsAndRestraintsManager" "AddRestraint").GetParameters().Count)
-    Pretendi "S3 incastro = 0" "0" (ValoreEnum "swsRestraintType_e" "swsRestraintTypeFixed")
-    Pretendi "S3 AddForce ha 4 argomenti" "4" ((MetodoSim "ICWLoadsAndRestraintsManager" "AddForce").GetParameters().Count)
-    Pretendi "S3 AddForce3 ne ha 21" "21" ((MetodoSim "ICWLoadsAndRestraintsManager" "AddForce3").GetParameters().Count)
+    Expect "S3 AddRestraint ha 4 argomenti" "4" ((MethodSim "ICWLoadsAndRestraintsManager" "AddRestraint").GetParameters().Count)
+    Expect "S3 incastro = 0" "0" (EnumValue "swsRestraintType_e" "swsRestraintTypeFixed")
+    Expect "S3 AddForce ha 4 argomenti" "4" ((MethodSim "ICWLoadsAndRestraintsManager" "AddForce").GetParameters().Count)
+    Expect "S3 AddForce3 ne ha 21" "21" ((MethodSim "ICWLoadsAndRestraintsManager" "AddForce3").GetParameters().Count)
 
     # 6. mesh ed esecuzione -- ED E' QUI IL RITROVAMENTO
-    Pretendi "S3 CreateMesh ha 3 argomenti" "3" ((MetodoSim "ICWStudy" "CreateMesh").GetParameters().Count)
-    Pretendi "S3 MeshAndRun torna Void" "Void" ((MetodoSim "ICWStudy" "MeshAndRun").ReturnType.Name)
-    Pretendi "S3 RunAnalysis torna Int32" "Int32" ((MetodoSim "ICWStudy" "RunAnalysis").ReturnType.Name)
+    Expect "S3 CreateMesh ha 3 argomenti" "3" ((MethodSim "ICWStudy" "CreateMesh").GetParameters().Count)
+    Expect "S3 MeshAndRun torna Void" "Void" ((MethodSim "ICWStudy" "MeshAndRun").ReturnType.Name)
+    Expect "S3 RunAnalysis torna Int32" "Int32" ((MethodSim "ICWStudy" "RunAnalysis").ReturnType.Name)
 
     # 7. la tensione
-    Pretendi "S3 GetMinMaxStress ha 6 argomenti" "6" ((MetodoSim "ICWResults" "GetMinMaxStress").GetParameters().Count)
-    Pretendi "S3 von Mises = 9" "9" (ValoreEnum "swsStressComponent_e" "swsStressComponentVON")
-    Pretendi "S3 N/mm2 = 3" "3" (ValoreEnum "swsStrengthUnit_e" "swsStrengthUnitNewtonPerSquareMillimeter")
+    Expect "S3 GetMinMaxStress ha 6 argomenti" "6" ((MethodSim "ICWResults" "GetMinMaxStress").GetParameters().Count)
+    Expect "S3 von Mises = 9" "9" (EnumValue "swsStressComponent_e" "swsStressComponentVON")
+    Expect "S3 N/mm2 = 3" "3" (EnumValue "swsStrengthUnit_e" "swsStrengthUnitNewtonPerSquareMillimeter")
 }
-if ($Provami) {
-    Pretendi "PROVA: InsertRib ha 99 argomenti" "99" ((Metodo "IFeatureManager" "InsertRib").GetParameters().Count)
+if ($TestMe) {
+    Expect "PROVA: InsertRib ha 99 argomenti" "99" ((Method "IFeatureManager" "InsertRib").GetParameters().Count)
 }
 Write-Output ""
 
-if ($guai.Count -gt 0) {
-    Write-Output ("FERMO: " + $guai.Count + " firme non sono piu' quelle che le voci danno per buone.")
-    foreach ($g in $guai) { Write-Output ("  !  " + $g) }
+if ($trouble.Count -gt 0) {
+    Write-Output ("FERMO: " + $trouble.Count + " firme non sono piu' quelle che le voci danno per buone.")
+    foreach ($g in $trouble) { Write-Output ("  !  " + $g) }
     Write-Output "Guardare la voce del TODO che ci poggia sopra PRIMA di aggiornare il numero."
     exit 1
 }

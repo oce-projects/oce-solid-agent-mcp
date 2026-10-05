@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Web.Script.Serialization;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// scopo, lo dice con lo scopo («l'unica che importa le quote del pezzo»),
     /// non con la famiglia intera.
     /// </summary>
-    internal static class ProveLeDescrizioni
+    internal static class DescriptionsTests
     {
         /// <summary>
         /// Le frasi con cui una descrizione si proclama sola. Scritte in
@@ -34,38 +34,38 @@ namespace Oce.Solid.Agent.ContractTests
         /// l'unico modo era cancellare e rifare», che e' storia, non una
         /// pretesa. Visto al primo giro di questo controllo, che lo dava rosso.
         /// </summary>
-        private static readonly string[] Esclusive =
+        private static readonly string[] Exclusive =
         {
             "unico modo di", "e' l'unico modo", "unica operazione", "l'unica che",
         };
 
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("le descrizioni del catalogo non si smentiscono (Z-C15)");
+            Group("le descrizioni del catalogo non si smentiscono (Z-C15)");
 
-            var catalogo = Path.Combine(Radice(), "bin", "catalog.json");
-            if (!File.Exists(catalogo))
-                catalogo = Path.Combine(Radice(), "Tools", "catalog.json");
-            if (!File.Exists(catalogo))
+            var catalog = Path.Combine(Root(), "bin", "catalog.json");
+            if (!File.Exists(catalog))
+                catalog = Path.Combine(Root(), "Tools", "catalog.json");
+            if (!File.Exists(catalog))
             {
-                Segna("il catalogo servito c'e'", false, "manca " + catalogo);
+                Check("il catalogo servito c'e'", false, "manca " + catalog);
                 return;
             }
 
-            var radice = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(catalogo))
+            var root = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(catalog))
                          as Dictionary<string, object>;
-            object grezze;
-            var voci = radice != null && radice.TryGetValue("operations", out grezze)
-                ? grezze as object[] : null;
-            if (voci == null)
+            object raw;
+            var entries = root != null && root.TryGetValue("operations", out raw)
+                ? raw as object[] : null;
+            if (entries == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
-            var perFamiglia = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-            var testi = new List<Tuple<string, string, string>>();
-            foreach (var v in voci)
+            var perFamily = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var texts = new List<Tuple<string, string, string>>();
+            foreach (var v in entries)
             {
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
@@ -74,33 +74,33 @@ namespace Oce.Solid.Agent.ContractTests
                 o.TryGetValue("family", out f);
                 o.TryGetValue("details", out d);
                 o.TryGetValue("summary", out s);
-                string nome = Convert.ToString(n), famiglia = Convert.ToString(f) ?? "";
-                if (string.IsNullOrEmpty(nome)) continue;
+                string itemName = Convert.ToString(n), family = Convert.ToString(f) ?? "";
+                if (string.IsNullOrEmpty(itemName)) continue;
                 List<string> l;
-                if (!perFamiglia.TryGetValue(famiglia, out l)) perFamiglia[famiglia] = l = new List<string>();
-                l.Add(nome);
-                testi.Add(Tuple.Create(nome, famiglia,
+                if (!perFamily.TryGetValue(family, out l)) perFamily[family] = l = new List<string>();
+                l.Add(itemName);
+                texts.Add(Tuple.Create(itemName, family,
                     (Convert.ToString(d) + " " + Convert.ToString(s)).ToLowerInvariant()));
             }
 
-            var smentite = new List<string>();
-            int esclusive = 0;
-            foreach (var t in testi)
+            var contradictions = new List<string>();
+            int exclusive = 0;
+            foreach (var t in texts)
             {
-                string frase = Esclusive.FirstOrDefault(e => t.Item3.Contains(e));
-                if (frase == null) continue;
-                esclusive++;
-                var sorelle = perFamiglia[t.Item2].Where(x => x != t.Item1).ToList();
-                if (sorelle.Count > 0)
-                    smentite.Add(t.Item1 + " dice «" + frase + "», e in «" + t.Item2 + "» ci sono anche " +
-                                 string.Join(", ", sorelle.Take(4)) + (sorelle.Count > 4 ? "..." : ""));
+                string sentence = Exclusive.FirstOrDefault(e => t.Item3.Contains(e));
+                if (sentence == null) continue;
+                exclusive++;
+                var siblings = perFamily[t.Item2].Where(x => x != t.Item1).ToList();
+                if (siblings.Count > 0)
+                    contradictions.Add(t.Item1 + " dice «" + sentence + "», e in «" + t.Item2 + "» ci sono anche " +
+                                 string.Join(", ", siblings.Take(4)) + (siblings.Count > 4 ? "..." : ""));
             }
 
-            Segna("nessuna descrizione si dichiara l'unica in una famiglia che non lo e'",
-                  smentite.Count == 0,
-                  smentite.Count == 0
-                      ? testi.Count + " descrizioni lette, " + esclusive + " si dicono uniche e sono sole davvero"
-                      : string.Join(" | ", smentite));
+            Check("nessuna descrizione si dichiara l'unica in una famiglia che non lo e'",
+                  contradictions.Count == 0,
+                  contradictions.Count == 0
+                      ? texts.Count + " descrizioni lette, " + exclusive + " si dicono uniche e sono sole davvero"
+                      : string.Join(" | ", contradictions));
         }
     }
 }

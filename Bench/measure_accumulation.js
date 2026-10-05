@@ -17,52 +17,52 @@
 const { spawnSync } = require("child_process");
 const path = require("path");
 
-const RADICE = path.resolve(__dirname, "..");
+const ROOT = path.resolve(__dirname, "..");
 const NODE = process.execPath;
-const CORRI = path.join(__dirname, "run_plans.js");
-const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
-const CHIUDI = path.join(RADICE, "Checks", "CloseLeftovers", "bin", "CloseLeftovers.exe");
+const RUN = path.join(__dirname, "run_plans.js");
+const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
+const CLOSE = path.join(ROOT, "Checks", "CloseLeftovers", "bin", "CloseLeftovers.exe");
 
-const quante = parseInt(process.argv[2] || "12", 10);
-const piano = process.argv[3] || path.join(__dirname, "cases", "bridge", "c4s_round.json");
+const howMany = parseInt(process.argv[2] || "12", 10);
+const plane = process.argv[3] || path.join(__dirname, "cases", "bridge", "c4s_round.json");
 
-function secondi(cosa) {
+function seconds(what) {
   const t0 = process.hrtime.bigint();
-  cosa();
+  what();
   return Number(process.hrtime.bigint() - t0) / 1e9;
 }
 
-function giro(chiudiOgniVolta) {
-  spawnSync(CHIUDI, ["--chiudi"], { encoding: "utf8" });
-  const tempi = [];
-  for (let i = 0; i < quante; i++) {
-    spawnSync(NUOVA, [], { encoding: "utf8" });
-    tempi.push(secondi(() =>
-      spawnSync(NODE, [CORRI, piano], { encoding: "utf8" })));
-    if (chiudiOgniVolta) spawnSync(CHIUDI, ["--chiudi"], { encoding: "utf8" });
+function benchRun(closeEachTime) {
+  spawnSync(CLOSE, ["--chiudi"], { encoding: "utf8" });
+  const times = [];
+  for (let i = 0; i < howMany; i++) {
+    spawnSync(NEW, [], { encoding: "utf8" });
+    times.push(seconds(() =>
+      spawnSync(NODE, [RUN, plane], { encoding: "utf8" })));
+    if (closeEachTime) spawnSync(CLOSE, ["--chiudi"], { encoding: "utf8" });
   }
-  const restano = spawnSync(CHIUDI, [], { encoding: "utf8" }).stdout || "";
-  return { tempi, restano: (restano.split(/\r?\n/)[0] || "").trim() };
+  const remain = spawnSync(CLOSE, [], { encoding: "utf8" }).stdout || "";
+  return { tempi: times, restano: (remain.split(/\r?\n/)[0] || "").trim() };
 }
 
-function racconta(titolo, r) {
+function tell(docTitle, r) {
   console.log("");
-  console.log("=== " + titolo);
+  console.log("=== " + docTitle);
   console.log("  " + r.tempi.map(t => t.toFixed(1)).join("  "));
-  const primo = r.tempi[0];
-  const ultimo = r.tempi[r.tempi.length - 1];
-  console.log("  primo " + primo.toFixed(1) + " s, ultimo " + ultimo.toFixed(1) +
-              " s  (x" + (ultimo / primo).toFixed(1) + ")");
+  const first = r.tempi[0];
+  const last = r.tempi[r.tempi.length - 1];
+  console.log("  primo " + first.toFixed(1) + " s, ultimo " + last.toFixed(1) +
+              " s  (x" + (last / first).toFixed(1) + ")");
   console.log("  alla fine: " + r.restano);
-  return { primo, ultimo };
+  return { primo: first, ultimo: last };
 }
 
-console.log("Lo stesso piano " + quante + " volte: " + path.basename(piano));
+console.log("Lo stesso piano " + howMany + " volte: " + path.basename(plane));
 
-const senza = racconta("parte nuova ogni volta, MAI chiusa", giro(false));
-const con = racconta("parte nuova ogni volta, CHIUSA dopo ogni piano", giro(true));
+const without = tell("parte nuova ogni volta, MAI chiusa", benchRun(false));
+const con = tell("parte nuova ogni volta, CHIUSA dopo ogni piano", benchRun(true));
 
 console.log("");
-console.log(senza.ultimo > senza.first * 1.5 && con.ultimo < con.first * 1.5
+console.log(without.ultimo > without.first * 1.5 && con.ultimo < con.first * 1.5
   ? "Il banco rallentava se stesso, e chiudendo non lo fa piu'."
   : "Nessuna differenza leggibile fra i due modi su questa macchina.");

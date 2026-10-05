@@ -24,83 +24,83 @@ namespace Oce.Solid.Agent.Core
     /// PRIMA di mettere la vista (la lavorazione «FlatPattern» tolta di
     /// soppressione, il corpo misurato, rimessa).
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito VistaSviluppo(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome FlatPatternView(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito("Il documento attivo non e' una tavola: la vista dello sviluppo si mette in una " +
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed("Il documento attivo non e' una tavola: la vista dello sviluppo si mette in una " +
                                "tavola. Creala con «create_drawing».");
 
-            string percorsoModello = Str(a, "model", null);
-            if (string.IsNullOrWhiteSpace(percorsoModello))
+            string modelPath = Str(a, "model", null);
+            if (string.IsNullOrWhiteSpace(modelPath))
             {
-                string perche;
-                percorsoModello = ModelloDaMettereInVista(out perche);
-                if (percorsoModello == null) return Fallito(perche);
+                string why;
+                modelPath = ModelToPutInView(out why);
+                if (modelPath == null) return Failed(why);
             }
-            var percorsoSw = PercorsoCanonico(percorsoModello);
-            if (percorsoSw == null)
-                return Fallito("«" + percorsoModello + "» non risulta aperto: la vista nascerebbe vuota.");
+            var swPath = CanonicalPath(modelPath);
+            if (swPath == null)
+                return Failed("«" + modelPath + "» non risulta aperto: la vista nascerebbe vuota.");
             // A part loaded hidden (no window of its own) answers here as well:
             // the C4-4 probe of 28/9/2026 read, on the object GetOpenDocumentByName
             // gave for a hidden part, the same IPartDoc, configuration, features,
             // volume and bodies as on the visible one (the guide's «opened in its
             // own window» did not matter).
-            var pezzo = _sw.GetOpenDocumentByName(percorsoSw) as IModelDoc2;
-            if (!(pezzo is IPartDoc))
-                return Fallito("«" + percorsoSw + "» non e' una parte: lo sviluppo e' di una parte di lamiera.");
-            if (DatiDellaLamiera(pezzo) == null)
-                return Fallito("«" + System.IO.Path.GetFileName(percorsoSw) + "» non e' di lamiera (non ha la " +
+            var part = _sw.GetOpenDocumentByName(swPath) as IModelDoc2;
+            if (!(part is IPartDoc))
+                return Failed("«" + swPath + "» non e' una parte: lo sviluppo e' di una parte di lamiera.");
+            if (SheetMetalData(part) == null)
+                return Failed("«" + System.IO.Path.GetFileName(swPath) + "» non e' di lamiera (non ha la " +
                                "lavorazione «SheetMetal»): non c'e' uno sviluppo da mettere in tavola.");
 
-            string configurazione = Str(a, "configuration", null);
-            if (string.IsNullOrWhiteSpace(configurazione))
-                try { configurazione = (pezzo.GetActiveConfiguration() as IConfiguration)?.Name ?? ""; } catch { configurazione = ""; }
-            double x = Unita.M(Num(a, "x_mm", 300));
-            double y = Unita.M(Num(a, "y_mm", 90));
-            bool nascondiPieghe = Bool(a, "hide_bends", false);
+            string configuration = Str(a, "configuration", null);
+            if (string.IsNullOrWhiteSpace(configuration))
+                try { configuration = (part.GetActiveConfiguration() as IConfiguration)?.Name ?? ""; } catch { configuration = ""; }
+            double x = Units.M(Num(a, "x_mm", 300));
+            double y = Units.M(Num(a, "y_mm", 90));
+            bool hideBends = Bool(a, "hide_bends", false);
 
             // ── LO SVILUPPO DEL PEZZO, MISURATO PRIMA ────────────────────────
             // Z-C21.8, finding M24: a flat pattern that did not unsuppress, or
             // did not suppress again, stops the step here, before the drawing is
             // touched; the part may be left flattened, and the refusal says so.
-            double lungoPezzo = LunghezzaSviluppata(pezzo, out double _, out string flatPatternProblem);
+            double alongPart = FlattenedLength(part, out double _, out string flatPatternProblem);
             if (flatPatternProblem != null)
-                return Fallito("Before placing the view, I measured the flat length of the part and " +
+                return Failed("Before placing the view, I measured the flat length of the part and " +
                                flatPatternProblem + ". I did not place the view.");
 
-            int prima = ContaViste(disegno);
-            object grezza = null;
+            int before = CountViews(drawing);
+            object raw = null;
             try
             {
-                grezza = disegno.CreateFlatPatternViewFromModelView3(
-                    percorsoSw, configurazione ?? "", x, y, 0, nascondiPieghe, false);
+                raw = drawing.CreateFlatPatternViewFromModelView3(
+                    swPath, configuration ?? "", x, y, 0, hideBends, false);
             }
-            catch (Exception ex) { return Fallito("La vista dello sviluppo non e' nata: " + ex.Message); }
-            var vista = grezza as IView;
-            if (vista == null)
-                return Fallito("SOLIDWORKS non ha creato la vista dello sviluppo e non ha detto perche' " +
-                               "(configurazione «" + configurazione + "»).");
-            string nome = "";
-            try { nome = vista.GetName2() ?? ""; } catch { }
+            catch (Exception ex) { return Failed("La vista dello sviluppo non e' nata: " + ex.Message); }
+            var view = raw as IView;
+            if (view == null)
+                return Failed("SOLIDWORKS non ha creato la vista dello sviluppo e non ha detto perche' " +
+                               "(configurazione «" + configuration + "»).");
+            string itemName = "";
+            try { itemName = view.GetName2() ?? ""; } catch { }
 
-            bool piatta = false;
-            try { piatta = vista.IsFlatPatternView(); } catch { }
+            bool flat = false;
+            try { flat = view.IsFlatPatternView(); } catch { }
             // THE ANSWER OF RemoveNewView IS READ at every refusal below (Z-C21.8,
             // finding M40): «I removed it» only when the view is no longer in the
             // drawing, which RemoveNewView checks by reading the views again. Until
             // library 0.144.0 four of these five refusals said removed whatever
             // the removal did.
-            if (!piatta)
+            if (!flat)
             {
-                bool removedNotFlat = RemoveNewView(modello, nome);
-                return Fallito("The view «" + nome + "» was born but is not a flat pattern (IsFlatPatternView false)" +
+                bool removedNotFlat = RemoveNewView(model, itemName);
+                return Failed("The view «" + itemName + "» was born but is not a flat pattern (IsFlatPatternView false)" +
                                ViewRemovedOrNot(removedNotFlat));
             }
-            int pieghe = -1;
-            try { pieghe = vista.GetBendLineCount(); } catch { }
+            int bends = -1;
+            try { bends = view.GetBendLineCount(); } catch { }
 
             // ── UN POSTO LIBERO (visto nel PNG, 26/9/2026) ───────────────────
             //
@@ -108,63 +108,63 @@ namespace Oce.Solid.Agent.Core
             // cartiglio, col banco verde. Si misura il contorno della vista (con
             // la nota di piega: e' quello che occupa il foglio) e la si sposta in
             // un posto libero, se «x_mm»/«y_mm» non l'hanno fissata.
-            string dove, motivoPosto;
-            if (!SviluppoAlSuoPosto(disegno, vista, a.ContainsKey("x_mm") || a.ContainsKey("y_mm"), out dove, out motivoPosto))
+            string location, placeReason;
+            if (!FlatPatternInItsPlace(drawing, view, a.ContainsKey("x_mm") || a.ContainsKey("y_mm"), out location, out placeReason))
             {
-                bool removedNoPlace = RemoveNewView(modello, nome);
-                return Fallito(motivoPosto + (removedNoPlace
+                bool removedNoPlace = RemoveNewView(model, itemName);
+                return Failed(placeReason + (removedNoPlace
                     ? " I removed the view."
-                    : " Remove the view — " + Frasi.CosiSiRitira + "."));
+                    : " Remove the view — " + Sentences.HowToWithdrawIt + "."));
             }
 
             // ── L'INGOMBRO DAGLI SPIGOLI VISIBILI ────────────────────────────
-            double[] ingombro = IngombroDagliSpigoli(vista);
-            var misure = new Dictionary<string, object>
+            double[] boundingBox = BoundingBoxFromEdges(view);
+            var measurements = new Dictionary<string, object>
             {
-                ["view"] = nome,
-                ["model"] = percorsoSw,
-                ["configuration"] = configurazione,
-                ["views_before"] = prima,
-                ["views_after"] = ContaViste(disegno),
+                ["view"] = itemName,
+                ["model"] = swPath,
+                ["configuration"] = configuration,
+                ["views_before"] = before,
+                ["views_after"] = CountViews(drawing),
                 ["flat"] = true,
-                ["bend_lines"] = NumeroOppureNull(pieghe),
-                ["bounding_box_mm"] = ingombro == null ? null : new object[] { ingombro[0], ingombro[1] },
-                ["flat_pattern_length_mm"] = double.IsNaN(lungoPezzo) ? null : (object)Math.Round(lungoPezzo, 3),
+                ["bend_lines"] = NumberOrNull(bends),
+                ["bounding_box_mm"] = boundingBox == null ? null : new object[] { boundingBox[0], boundingBox[1] },
+                ["flat_pattern_length_mm"] = double.IsNaN(alongPart) ? null : (object)Math.Round(alongPart, 3),
             };
-            try { misure["scale"] = vista.ScaleDecimal; } catch { }
-            misure["view_location"] = dove;
+            try { measurements["scale"] = view.ScaleDecimal; } catch { }
+            measurements["view_location"] = location;
             try
             {
-                var o = vista.GetOutline() as double[];
-                if (o != null) misure["contour_view_mm"] = new object[] { Math.Round(o[0] * 1000, 1), Math.Round(o[1] * 1000, 1), Math.Round(o[2] * 1000, 1), Math.Round(o[3] * 1000, 1) };
+                var o = view.GetOutline() as double[];
+                if (o != null) measurements["contour_view_mm"] = new object[] { Math.Round(o[0] * 1000, 1), Math.Round(o[1] * 1000, 1), Math.Round(o[2] * 1000, 1), Math.Round(o[3] * 1000, 1) };
             }
             catch { }
-            misure["inside_sheet"] = true;
-            if (ingombro == null)
+            measurements["inside_sheet"] = true;
+            if (boundingBox == null)
             {
-                bool removedUnmeasured = RemoveNewView(modello, nome);
-                return Fallito("The flat-pattern view was born but I cannot measure its edges: without a measure " +
+                bool removedUnmeasured = RemoveNewView(model, itemName);
+                return Failed("The flat-pattern view was born but I cannot measure its edges: without a measure " +
                                "I cannot tell whether it is the right flat pattern" + ViewRemovedOrNot(removedUnmeasured));
             }
-            if (!double.IsNaN(lungoPezzo) && Math.Abs(ingombro[0] - lungoPezzo) > 0.1)
+            if (!double.IsNaN(alongPart) && Math.Abs(boundingBox[0] - alongPart) > 0.1)
             {
-                bool removedOther = RemoveNewView(modello, nome);
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                bool removedOther = RemoveNewView(model, itemName);
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "The flat-pattern view measures {0:0.###} mm on its long side and the flat pattern of the part " +
                     "{1:0.###} mm: it is not the flat pattern of this part (or the part is not flattened)",
-                    ingombro[0], lungoPezzo) + ViewRemovedOrNot(removedOther));
+                    boundingBox[0], alongPart) + ViewRemovedOrNot(removedOther));
             }
-            if (double.IsNaN(lungoPezzo))
+            if (double.IsNaN(alongPart))
             {
                 // SENZA LO SVILUPPO DEL PEZZO NON C'E' RISCONTRO (revisione del
                 // 26/9/2026): la vista potrebbe essere di un'altra cosa.
-                bool tolta = RemoveNewView(modello, nome);
-                return Fallito("Non riesco a misurare lo sviluppo del pezzo (la lavorazione «FlatPattern» non si lascia " +
+                bool removed = RemoveNewView(model, itemName);
+                return Failed("Non riesco a misurare lo sviluppo del pezzo (la lavorazione «FlatPattern» non si lascia " +
                                "misurare), e senza non so dire se la vista mostra lo sviluppo giusto. " +
-                               (tolta ? "Ho tolto la vista." : "Togli la vista: " + Frasi.CosiSiRitira + "."));
+                               (removed ? "Ho tolto la vista." : "Togli la vista: " + Sentences.HowToWithdrawIt + "."));
             }
-            misure["matches_with_part"] = true;
-            return SenzaFeature(misure);
+            measurements["matches_with_part"] = true;
+            return WithoutFeature(measurements);
         }
 
         /// <summary>
@@ -172,25 +172,25 @@ namespace Oce.Solid.Agent.Core
         /// visibili, campionati, portati sul foglio e divisi per la scala.
         /// [lato lungo, lato corto], o null se non si legge niente.
         /// </summary>
-        private double[] IngombroDagliSpigoli(IView vista)
+        private double[] BoundingBoxFromEdges(IView view)
         {
             IMathUtility mu = null;
             MathTransform tr = null;
-            try { mu = _sw.GetMathUtility() as IMathUtility; tr = vista.ModelToViewTransform; } catch { }
+            try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
             if (mu == null || tr == null) return null;
-            double scala = 1;
-            try { scala = vista.ScaleDecimal; } catch { }
-            if (scala <= 0) scala = 1;
-            object[] spigoli = null;
-            try { spigoli = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
-            if (spigoli == null || spigoli.Length == 0) return null;
+            double scale = 1;
+            try { scale = view.ScaleDecimal; } catch { }
+            if (scale <= 0) scale = 1;
+            object[] edges = null;
+            try { edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
+            if (edges == null || edges.Length == 0) return null;
             double x0 = double.MaxValue, y0 = double.MaxValue, x1 = double.MinValue, y1 = double.MinValue;
-            int punti = 0;
-            foreach (var o in spigoli)
+            int points = 0;
+            foreach (var o in edges)
             {
                 var e = o as IEdge;
                 if (e == null) continue;
-                var campioni = new List<double[]>();
+                var samples = new List<double[]>();
                 try
                 {
                     var cp = ApiHelpers.EdgeParameters(e, out ICurve c);
@@ -199,15 +199,15 @@ namespace Oce.Solid.Agent.Core
                         var tess = c.GetTessPts(1e-5, 1e-3, cp.StartPoint, cp.EndPoint) as double[];
                         if (tess != null)
                             for (int i = 0; i + 2 < tess.Length; i += 3)
-                                campioni.Add(new[] { tess[i], tess[i + 1], tess[i + 2] });
+                                samples.Add(new[] { tess[i], tess[i + 1], tess[i + 2] });
                         var s = cp.StartPoint as double[];
                         var f = cp.EndPoint as double[];
-                        if (s != null) campioni.Add(s);
-                        if (f != null) campioni.Add(f);
+                        if (s != null) samples.Add(s);
+                        if (f != null) samples.Add(f);
                     }
                 }
                 catch { }
-                foreach (var p in campioni)
+                foreach (var p in samples)
                 {
                     double[] q;
                     try { q = ((IMathPoint)((IMathPoint)mu.CreatePoint(p)).MultiplyTransform(tr)).ArrayData as double[]; }
@@ -215,11 +215,11 @@ namespace Oce.Solid.Agent.Core
                     if (q == null) continue;
                     x0 = Math.Min(x0, q[0]); x1 = Math.Max(x1, q[0]);
                     y0 = Math.Min(y0, q[1]); y1 = Math.Max(y1, q[1]);
-                    punti++;
+                    points++;
                 }
             }
-            if (punti < 2) return null;
-            double w = (x1 - x0) / scala * 1000.0, h = (y1 - y0) / scala * 1000.0;
+            if (points < 2) return null;
+            double w = (x1 - x0) / scale * 1000.0, h = (y1 - y0) / scale * 1000.0;
             return new[] { Math.Round(Math.Max(w, h), 3), Math.Round(Math.Min(w, h), 3) };
         }
 
@@ -227,42 +227,42 @@ namespace Oce.Solid.Agent.Core
         /// Porta la vista in un posto libero del foglio (OperazioniPostoSulFoglio),
         /// o controlla che quello chiesto lo sia. False col motivo.
         /// </summary>
-        private static bool SviluppoAlSuoPosto(IDrawingDoc disegno, IView vista, bool chiesto, out string dove, out string motivo)
+        private static bool FlatPatternInItsPlace(IDrawingDoc drawing, IView view, bool requested, out string location, out string reason)
         {
-            dove = null; motivo = null;
-            var o = vista.GetOutline() as double[];
-            var p = vista.Position as double[];
+            location = null; reason = null;
+            var o = view.GetOutline() as double[];
+            var p = view.Position as double[];
             if (o == null || o.Length < 4 || p == null || p.Length < 2)
             {
-                motivo = "La vista dello sviluppo e' nata ma non riesco a leggere dove sta sul foglio.";
+                reason = "La vista dello sviluppo e' nata ma non riesco a leggere dove sta sul foglio.";
                 return false;
             }
             double w = o[2] - o[0], h = o[3] - o[1];
-            var foglio = LeggiIlFoglio(disegno, vista);
-            if (chiesto)
+            var sheet = ReadSheet(drawing, view);
+            if (requested)
             {
-                string perche = foglio.Tocca(o[0], o[1], o[2], o[3]);
-                if (perche != null)
+                string why = sheet.Touches(o[0], o[1], o[2], o[3]);
+                if (why != null)
                 {
-                    motivo = string.Format(CultureInfo.InvariantCulture,
+                    reason = string.Format(CultureInfo.InvariantCulture,
                         "La vista dello sviluppo ({0:0} x {1:0} mm sul foglio) dove l'hai chiesta {2}. Togli «x_mm» e " +
-                        "«y_mm» e la metto io in un posto libero.", w * 1000, h * 1000, perche);
+                        "«y_mm» e la metto io in un posto libero.", w * 1000, h * 1000, why);
                     return false;
                 }
-                dove = "dove chiesto";
+                location = "dove chiesto";
                 return true;
             }
-            var basso = PostoLibero(foglio, w, h, out dove);
-            if (basso == null)
+            var down = FreePlace(sheet, w, h, out location);
+            if (down == null)
             {
-                motivo = string.Format(CultureInfo.InvariantCulture,
+                reason = string.Format(CultureInfo.InvariantCulture,
                     "Sul foglio non c'e' un posto libero per la vista dello sviluppo ({0:0} x {1:0} mm) fuori dalle altre " +
                     "viste e dal cartiglio: usa un foglio piu' grande o un'altra scala.", w * 1000, h * 1000);
                 return false;
             }
             // La posizione della vista non e' per forza il centro del contorno:
             // si sposta del tanto che serve all'angolo in basso a sinistra.
-            try { vista.Position = new[] { p[0] + basso[0] - o[0], p[1] + basso[1] - o[1] }; } catch { }
+            try { view.Position = new[] { p[0] + down[0] - o[0], p[1] + down[1] - o[1] }; } catch { }
             // GetOutline IS READ RIGHT AFTER Position, with no rebuild, and that is
             // measured (Z-C21.3, finding L14-1, NOT REAL). IView~Position.html
             // asks for IModelDoc2::EditRebuild3 «to see these changes», which is
@@ -274,11 +274,11 @@ namespace Oce.Solid.Agent.Core
             // not: asked (20, 20), it moved (0, 20) (same probe). The check below
             // judges the outline where the view actually is, so even then it
             // would judge the place it landed in, not the one asked.
-            var o2 = vista.GetOutline() as double[];
-            string ancora = o2 == null ? "non si legge" : foglio.Tocca(o2[0], o2[1], o2[2], o2[3]);
-            if (ancora != null)
+            var o2 = view.GetOutline() as double[];
+            string anchor = o2 == null ? "non si legge" : sheet.Touches(o2[0], o2[1], o2[2], o2[3]);
+            if (anchor != null)
             {
-                motivo = "Ho spostato la vista dello sviluppo " + dove + " ma " + ancora + ".";
+                reason = "Ho spostato la vista dello sviluppo " + location + " ma " + anchor + ".";
                 return false;
             }
             return true;
@@ -290,29 +290,29 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string ViewRemovedOrNot(bool removed)
         {
-            return removed ? ": I removed it." : ": I could not remove it, remove it — " + Frasi.CosiSiRitira + ".";
+            return removed ? ": I removed it." : ": I could not remove it, remove it — " + Sentences.HowToWithdrawIt + ".";
         }
 
         /// <summary>
         /// Toglie una vista appena messa, per nome. `DeleteSelection2` e non
         /// `EditDelete`: la seconda puo' chiedere conferma con una finestra, e
         /// una chiamata COM che aspetta una finestra non torna (vedi
-        /// OperazioniSw, «DeleteSelection2 E NON EditDelete»).
+        /// SwOperations, «DeleteSelection2 E NON EditDelete»).
         /// </summary>
-        private static bool RemoveNewView(IModelDoc2 disegno, string nome)
+        private static bool RemoveNewView(IModelDoc2 drawing, string itemName)
         {
-            if (string.IsNullOrEmpty(nome)) return false;
+            if (string.IsNullOrEmpty(itemName)) return false;
             try
             {
-                disegno.ClearSelection2(true);
-                if (disegno.Extension.SelectByID2(nome, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0))
-                    disegno.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                disegno.ClearSelection2(true);
+                drawing.ClearSelection2(true);
+                if (drawing.Extension.SelectByID2(itemName, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0))
+                    drawing.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                drawing.ClearSelection2(true);
                 // TOLTA SI RILEGGE: la vista con quel nome non deve esserci piu'.
-                var v = (disegno as IDrawingDoc)?.GetFirstView() as IView;
+                var v = (drawing as IDrawingDoc)?.GetFirstView() as IView;
                 while (v != null)
                 {
-                    if (string.Equals(v.GetName2(), nome, StringComparison.Ordinal)) return false;
+                    if (string.Equals(v.GetName2(), itemName, StringComparison.Ordinal)) return false;
                     v = v.GetNextView() as IView;
                 }
                 return true;

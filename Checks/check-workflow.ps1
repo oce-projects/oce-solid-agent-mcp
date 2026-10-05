@@ -21,21 +21,21 @@
 # =============================================================================
 
 $ErrorActionPreference = 'Stop'
-$radice = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
-$guai = 0
+$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
+$trouble = 0
 
-$cartella = Join-Path $radice '.github\steps'
-$workflow = Join-Path $radice '.github\workflows\tests.yml'
+$folder = Join-Path $root '.github\steps'
+$workflow = Join-Path $root '.github\workflows\tests.yml'
 
 Write-Host "=== I passi in PowerShell della CI"
 
-if (-not (Test-Path $cartella)) {
+if (-not (Test-Path $folder)) {
     Write-Host "  XX  non c'e' .github\steps" -ForegroundColor Red
     exit 1
 }
 
-$passi = @(Get-ChildItem $cartella -Filter *.ps1 | Sort-Object Name)
-if ($passi.Count -eq 0) {
+$steps = @(Get-ChildItem $folder -Filter *.ps1 | Sort-Object Name)
+if ($steps.Count -eq 0) {
     # UN CONTROLLO CHE NON TROVA NIENTE NON E' UN CONTROLLO VERDE. Se un giorno
     # la cartella si svuota, questo script direbbe "tutto a posto" su zero file.
     Write-Host "  XX  nessun .ps1 in .github\steps: o sono spariti, o sono" -ForegroundColor Red
@@ -44,15 +44,15 @@ if ($passi.Count -eq 0) {
     exit 1
 }
 
-foreach ($p in $passi) {
-    $errori = $null
+foreach ($p in $steps) {
+    $errors = $null
     $token = $null
     $null = [System.Management.Automation.Language.Parser]::ParseFile(
-        $p.FullName, [ref] $token, [ref] $errori)
-    if ($errori -and $errori.Count -gt 0) {
-        $guai++
+        $p.FullName, [ref] $token, [ref] $errors)
+    if ($errors -and $errors.Count -gt 0) {
+        $trouble++
         Write-Host ("  XX  " + $p.Name) -ForegroundColor Red
-        foreach ($e in $errori) {
+        foreach ($e in $errors) {
             Write-Host ("        riga " + $e.Extent.StartLineNumber + ": " + $e.Message)
         }
     } else {
@@ -67,19 +67,19 @@ if (-not (Test-Path $workflow)) {
     Write-Host "  XX  non c'e' .github\workflows\tests.yml" -ForegroundColor Red
     exit 1
 }
-$testo = Get-Content $workflow -Raw
+$text = Get-Content $workflow -Raw
 
-foreach ($p in $passi) {
-    if ($testo -like ('*' + $p.Name + '*')) {
+foreach ($p in $steps) {
+    if ($text -like ('*' + $p.Name + '*')) {
         Write-Host ("  ok  " + $p.Name + " e' invocato")
     } else {
-        $guai++
+        $trouble++
         Write-Host ("  XX  " + $p.Name + " non compare in tests.yml: e' uno") -ForegroundColor Red
         Write-Host  "      script che nessuno esegue, cioe' niente." -ForegroundColor Red
     }
 }
 
 Write-Host ""
-if ($guai -eq 0) { Write-Host "A posto." -ForegroundColor Green; exit 0 }
-Write-Host ("$guai da sistemare.") -ForegroundColor Red
+if ($trouble -eq 0) { Write-Host "A posto." -ForegroundColor Green; exit 0 }
+Write-Host ("$trouble da sistemare.") -ForegroundColor Red
 exit 1

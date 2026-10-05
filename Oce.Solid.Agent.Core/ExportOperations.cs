@@ -67,14 +67,14 @@ namespace Oce.Solid.Agent.Core
     /// il pezzo e non un'intestazione vuota: `SaveAs3` che torna `true` dice
     /// solo che SOLIDWORKS non ha protestato.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito EsportaStl(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome ExportStl(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null)
-                return Fallito(
+            var partDoc = model as IPartDoc;
+            if (partDoc == null)
+                return Failed(
                     "Questo documento non e' un pezzo: lo STL si esporta da una parte. Per mandare un " +
                     "assieme usa «export_step», che lo porta intero.");
 
@@ -84,70 +84,70 @@ namespace Oce.Solid.Agent.Core
             // misura del file — esiste, pesa qualcosa — NON cattura il corpo
             // con la fessura: serve il controllo di integrita' PRIMA, non la
             // verifica del file DOPO.
-            var verifica = VerificaGeometriaCorpo(modello, new Dictionary<string, object>(), stato);
-            if (!verifica.Riuscito) return verifica;
+            var check = CheckBodyGeometry(model, new Dictionary<string, object>(), docState);
+            if (!check.Succeeded) return check;
 
-            bool stampabile = verifica.Misure != null &&
-                              verifica.Misure.ContainsKey("printable") &&
-                              Convert.ToBoolean(verifica.Misure["printable"]);
-            string giudizio = verifica.Misure != null && verifica.Misure.ContainsKey("verdict")
-                ? Convert.ToString(verifica.Misure["verdict"]) : "";
+            bool printable = check.Measurements != null &&
+                              check.Measurements.ContainsKey("printable") &&
+                              Convert.ToBoolean(check.Measurements["printable"]);
+            string verdictValue = check.Measurements != null && check.Measurements.ContainsKey("verdict")
+                ? Convert.ToString(check.Measurements["verdict"]) : "";
 
-            bool forza = Bool(a, "export_anyway", false);
-            if (!stampabile && !forza)
-                return Fallito(
-                    "Non esporto: " + giudizio + "\n\n" +
+            bool force = Bool(a, "export_anyway", false);
+            if (!printable && !force)
+                return Failed(
+                    "Non esporto: " + verdictValue + "\n\n" +
                     "Un STL non porta con se' niente che dica che il pezzo era cosi': " +
                     "si apre, si affetta e si stampa lo stesso. Sistema il pezzo, " +
                     "oppure passa «export_anyway»: true se sai quello che fai.");
 
             // ── 2. DOVE ──────────────────────────────────────────────────
-            string dove = Str(a, "path", null);
-            if (string.IsNullOrWhiteSpace(dove))
+            string location = Str(a, "path", null);
+            if (string.IsNullOrWhiteSpace(location))
             {
-                string suo = "";
-                try { suo = modello.GetPathName() ?? ""; } catch { }
-                if (string.IsNullOrWhiteSpace(suo))
-                    return Fallito(
+                string its = "";
+                try { its = model.GetPathName() ?? ""; } catch { }
+                if (string.IsNullOrWhiteSpace(its))
+                    return Failed(
                         "Il pezzo non e' mai stato salvato e non mi hai detto dove mettere " +
                         "lo STL. Dimmi «path», oppure salva prima il pezzo.");
-                dove = Path.ChangeExtension(suo, ".stl");
+                location = Path.ChangeExtension(its, ".stl");
             }
-            if (!".stl".Equals(Path.GetExtension(dove), StringComparison.OrdinalIgnoreCase))
-                return Fallito(
-                    "Il percorso «" + dove + "» non finisce in .stl. L'estensione NON e' " +
+            if (!".stl".Equals(Path.GetExtension(location), StringComparison.OrdinalIgnoreCase))
+                return Failed(
+                    "Il percorso «" + location + "» non finisce in .stl. L'estensione NON e' " +
                     "un dettaglio: e' l'unica cosa che dice a SaveAs3 che formato scrivere.");
 
-            string cartella;
-            try { cartella = Path.GetDirectoryName(Path.GetFullPath(dove)); }
-            catch (Exception ex) { return Fallito("Percorso che non so leggere: " + ex.Message); }
-            if (!Directory.Exists(cartella))
-                return Fallito("La cartella «" + cartella + "» non esiste: non la creo io.");
+            string folder;
+            try { folder = Path.GetDirectoryName(Path.GetFullPath(location)); }
+            catch (Exception ex) { return Failed("Percorso che non so leggere: " + ex.Message); }
+            if (!Directory.Exists(folder))
+                return Failed("La cartella «" + folder + "» non esiste: non la creo io.");
 
-            bool binario = Bool(a, "binary", true);
-            string qualitaChiesta = (Str(a, "quality", "fine") ?? "fine").Trim().ToLowerInvariant();
-            int qualita;
-            if (qualitaChiesta == "fine") qualita = (int)swSTLQuality_e.swSTLQuality_Fine;
-            else if (qualitaChiesta == "coarse") qualita = (int)swSTLQuality_e.swSTLQuality_Coarse;
-            else return Fallito(
-                "Qualita' «" + qualitaChiesta + "» sconosciuta: ci sono «fine» e «coarse».");
+            bool binary = Bool(a, "binary", true);
+            string requestedQuality = (Str(a, "quality", "fine") ?? "fine").Trim().ToLowerInvariant();
+            int quality;
+            if (requestedQuality == "fine") quality = (int)swSTLQuality_e.swSTLQuality_Fine;
+            else if (requestedQuality == "coarse") quality = (int)swSTLQuality_e.swSTLQuality_Coarse;
+            else return Failed(
+                "Qualita' «" + requestedQuality + "» sconosciuta: ci sono «fine» e «coarse».");
 
             // ── 3. LE PREFERENZE: lette, imposte, rimesse ────────────────
-            var prima = LeggiPreferenzeStl();
+            var before = ReadStlPreferences();
             List<string> preferencesNotRestored = null;
-            string posato = null;
-            int errori = 0, avvisi = 0;
+            string placed = null;
+            int errors = 0, warnings = 0;
             bool ok;
             try
             {
-                ImpostaPreferenzeStl(qualita, binario);
+                SetStlPreferences(quality, binary);
 
-                if (File.Exists(dove))
+                if (File.Exists(location))
                 {
-                    try { File.Delete(dove); }
+                    try { File.Delete(location); }
                     catch (Exception ex)
                     {
-                        return Fallito(
+                        return Failed(
                             "C'e' gia' un file li' e non riesco a sostituirlo (" + ex.Message +
                             "): probabilmente e' aperto in un altro programma.");
                     }
@@ -171,17 +171,17 @@ namespace Oce.Solid.Agent.Core
                 // soglia sull'ordine di grandezza non si fissa senza averla
                 // misurata su pezzi curvi. Il caso
                 // `stl_does_not_export_the_selected_face` prende il difetto.
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
                 try
                 {
-                    ok = modello.Extension.SaveAs3(
-                        dove,
+                    ok = model.Extension.SaveAs3(
+                        location,
                         (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
                         (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
-                        null, null, ref errori, ref avvisi);
+                        null, null, ref errors, ref warnings);
                 }
-                catch (Exception ex) { return Fallito("STL non scritto: " + ex.Message); }
-                posato = dove;
+                catch (Exception ex) { return Failed("STL non scritto: " + ex.Message); }
+                placed = location;
             }
             finally
             {
@@ -189,68 +189,68 @@ namespace Oce.Solid.Agent.Core
                 // preferenze sono della macchina di chi disegna, e lasciarle
                 // cambiate vuol dire cambiargli il CAD senza dirglielo. Only
                 // the ones that were read go back (N17).
-                preferencesNotRestored = RestorePreferences(prima);
+                preferencesNotRestored = RestorePreferences(before);
             }
 
-            if (!ok || !File.Exists(posato))
-                return Fallito(
-                    "Lo STL non e' stato scritto (codice " + errori + SaveErrorNames(errori) + "). " +
-                    "Il file non c'e': " + posato + SaveWarningsTail(avvisi));
+            if (!ok || !File.Exists(placed))
+                return Failed(
+                    "Lo STL non e' stato scritto (codice " + errors + SaveErrorNames(errors) + "). " +
+                    "Il file non c'e': " + placed + SaveWarningsTail(warnings));
 
-            long quantoPesa = new FileInfo(posato).Length;
+            long howMuchItWeighs = new FileInfo(placed).Length;
 
             // ── 4. SI GUARDA IL FILE, NON LA RISPOSTA ────────────────────
-            int triangoliNelFile = TriangoliDelloStl(posato, binario, quantoPesa, out string comeLoSo);
-            int triangoliDelPezzo = TriangoliDellaGeometria(parte);
+            int trianglesInFile = StlTriangles(placed, binary, howMuchItWeighs, out string howIKnow);
+            int partTriangles = GeometryTriangles(partDoc);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["path"] = posato,
-                ["byte"] = quantoPesa,
-                ["file_format"] = binario ? "binary" : "ASCII",
-                ["quality"] = qualitaChiesta,
+                ["path"] = placed,
+                ["byte"] = howMuchItWeighs,
+                ["file_format"] = binary ? "binary" : "ASCII",
+                ["quality"] = requestedQuality,
                 // LE UNITA' SI DICONO SEMPRE. Il file non le porta, e chi apre
                 // lo STL non ha nessun modo di saperle: se questa riga non
                 // c'e', l'unica risposta possibile e' «boh, prova».
                 ["units"] = "mm",
-                ["triangles"] = triangoliNelFile >= 0 ? (object)triangoliNelFile : null,
-                ["how_triangles_are_known"] = comeLoSo,
-                ["triangles_from_geometry"] = triangoliDelPezzo >= 0
-                    ? (object)triangoliDelPezzo : null,
-                ["check"] = giudizio,
+                ["triangles"] = trianglesInFile >= 0 ? (object)trianglesInFile : null,
+                ["how_triangles_are_known"] = howIKnow,
+                ["triangles_from_geometry"] = partTriangles >= 0
+                    ? (object)partTriangles : null,
+                ["check"] = verdictValue,
                 // L13-7: the Warnings of SaveAs3, decoded, also on a success.
-                ["save_warnings"] = SaveWarningsForAnswer(avvisi),
+                ["save_warnings"] = SaveWarningsForAnswer(warnings),
             };
-            string stlWarningAdvice = SaveWarningsAdvice(avvisi);
-            if (stlWarningAdvice != null) misure["save_warnings_note"] = stlWarningAdvice;
+            string stlWarningAdvice = SaveWarningsAdvice(warnings);
+            if (stlWarningAdvice != null) measurements["save_warnings_note"] = stlWarningAdvice;
             string stlPreferencesNote = PreferencesNotRestoredNote(preferencesNotRestored);
-            if (stlPreferencesNote != null) misure["preferences_not_restored"] = stlPreferencesNote;
-            if (!stampabile)
-                misure["exported_anyway"] =
+            if (stlPreferencesNote != null) measurements["preferences_not_restored"] = stlPreferencesNote;
+            if (!printable)
+                measurements["exported_anyway"] =
                     "L'hai chiesto tu con «export_anyway»: il file c'e' e il pezzo " +
-                    "non era a posto. " + giudizio;
+                    "non era a posto. " + verdictValue;
 
             // UN FILE CHE NON TORNA NON E' UN FILE. Su un STL binario la
             // dimensione e' esattamente 84 + 50 per triangolo: se non torna, il
             // file c'e' e non e' quello che serve, ed e' meglio saperlo adesso
             // che dallo slicer.
-            if (binario && triangoliNelFile > 0)
+            if (binary && trianglesInFile > 0)
             {
-                long attesa = 84L + 50L * triangoliNelFile;
-                if (attesa != quantoPesa)
-                    return Fallito(
-                        "Lo STL dice " + triangoliNelFile + " triangoli, che fanno " + attesa +
-                        " byte, e il file ne pesa " + quantoPesa + ". Il file c'e' e non " +
-                        "torna: guardalo prima di mandarlo alla stampante. (" + posato + ")");
+                long expectation = 84L + 50L * trianglesInFile;
+                if (expectation != howMuchItWeighs)
+                    return Failed(
+                        "Lo STL dice " + trianglesInFile + " triangoli, che fanno " + expectation +
+                        " byte, e il file ne pesa " + howMuchItWeighs + ". Il file c'e' e non " +
+                        "torna: guardalo prima di mandarlo alla stampante. (" + placed + ")");
             }
-            if (triangoliNelFile == 0)
-                return Fallito(
+            if (trianglesInFile == 0)
+                return Failed(
                     "Lo STL e' stato scritto ma non ha nessun triangolo: e' un file vuoto " +
-                    "con l'intestazione. (" + posato + ")");
+                    "con l'intestazione. (" + placed + ")");
 
-            _log("[agente] STL: " + triangoliNelFile + " triangoli, " + quantoPesa +
-                 " byte, mm, " + posato);
-            return SenzaFeature(misure);
+            _log("[agente] STL: " + trianglesInFile + " triangoli, " + howMuchItWeighs +
+                 " byte, mm, " + placed);
+            return WithoutFeature(measurements);
         }
 
         // =================================================================
@@ -339,8 +339,8 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        /// <summary>The five STL preferences that ImpostaPreferenzeStl writes, read first (N17).</summary>
-        private UserPreferenceSnapshot LeggiPreferenzeStl()
+        /// <summary>The five STL preferences that SetStlPreferences writes, read first (N17).</summary>
+        private UserPreferenceSnapshot ReadStlPreferences()
         {
             var p = new UserPreferenceSnapshot();
             foreach (var i in new[] { swUserPreferenceIntegerValue_e.swSTLQuality, swUserPreferenceIntegerValue_e.swExportStlUnits })
@@ -377,13 +377,13 @@ namespace Oce.Solid.Agent.Core
                    "check them in System Options > Export, they are the user's settings.";
         }
 
-        private void ImpostaPreferenzeStl(int qualita, bool binario)
+        private void SetStlPreferences(int quality, bool binary)
         {
-            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSTLQuality, qualita); } catch { }
+            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSTLQuality, quality); } catch { }
             // I MILLIMETRI, ESPLICITI. E' la riga che vale l'operazione: senza,
             // il risultato dipende da chi ha usato SOLIDWORKS prima.
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swExportStlUnits, (int)swLengthUnit_e.swMM); } catch { }
-            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLBinaryFormat, binario); } catch { }
+            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLBinaryFormat, binary); } catch { }
             // UNA FINESTRA BLOCCHEREBBE LA CHIAMATA COM, e non tornerebbe mai.
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLShowInfoOnSave, false); } catch { }
             // LE COORDINATE RESTANO DOVE SONO. Traslare il pezzo nel positivo
@@ -461,34 +461,34 @@ namespace Oce.Solid.Agent.Core
         /// Quanti triangoli dice il FILE. Su un binario sta nei quattro byte
         /// dopo l'intestazione da 80; su un ASCII si contano le righe «facet».
         /// </summary>
-        private static int TriangoliDelloStl(string percorso, bool binario, long quantoPesa,
-                                             out string comeLoSo)
+        private static int StlTriangles(string filePath, bool binary, long howMuchItWeighs,
+                                             out string howIKnow)
         {
-            comeLoSo = "";
+            howIKnow = "";
             try
             {
-                if (binario)
+                if (binary)
                 {
-                    if (quantoPesa < 84) { comeLoSo = "il file e' piu' corto dell'intestazione"; return -1; }
-                    using (var f = File.OpenRead(percorso))
+                    if (howMuchItWeighs < 84) { howIKnow = "il file e' piu' corto dell'intestazione"; return -1; }
+                    using (var f = File.OpenRead(filePath))
                     {
-                        var testa = new byte[84];
-                        if (f.Read(testa, 0, 84) != 84)
-                        { comeLoSo = "non sono riuscito a leggere l'intestazione"; return -1; }
-                        comeLoSo = "dai quattro byte dopo l'intestazione del file binario";
-                        return BitConverter.ToInt32(testa, 80);
+                        var head = new byte[84];
+                        if (f.Read(head, 0, 84) != 84)
+                        { howIKnow = "non sono riuscito a leggere l'intestazione"; return -1; }
+                        howIKnow = "dai quattro byte dopo l'intestazione del file binario";
+                        return BitConverter.ToInt32(head, 80);
                     }
                 }
-                int quanti = 0;
-                foreach (var riga in File.ReadLines(percorso))
-                    if (riga.TrimStart().StartsWith("facet ", StringComparison.OrdinalIgnoreCase))
-                        quanti++;
-                comeLoSo = "contando le righe «facet» del file ASCII";
-                return quanti;
+                int howMany = 0;
+                foreach (var line in File.ReadLines(filePath))
+                    if (line.TrimStart().StartsWith("facet ", StringComparison.OrdinalIgnoreCase))
+                        howMany++;
+                howIKnow = "contando le righe «facet» del file ASCII";
+                return howMany;
             }
             catch (Exception ex)
             {
-                comeLoSo = "non ho potuto leggere il file: " + ex.Message;
+                howIKnow = "non ho potuto leggere il file: " + ex.Message;
                 return -1;
             }
         }
@@ -502,25 +502,25 @@ namespace Oce.Solid.Agent.Core
         /// triangoli su un pezzo che ne ha mille e' un file sbagliato — e per
         /// questo si riporta accanto, non si confronta.
         /// </summary>
-        private static int TriangoliDellaGeometria(IPartDoc parte)
+        private static int GeometryTriangles(IPartDoc partDoc)
         {
             try
             {
-                int quanti = 0;
-                var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-                if (corpi == null) return -1;
-                foreach (var c in corpi)
+                int howMany = 0;
+                var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                if (bodies == null) return -1;
+                foreach (var c in bodies)
                 {
-                    var facce = (c as IBody2).GetFaces() as object[];
-                    if (facce == null) continue;
-                    foreach (var f in facce)
+                    var faces = (c as IBody2).GetFaces() as object[];
+                    if (faces == null) continue;
+                    foreach (var f in faces)
                     {
                         // Una faccia che non dice i suoi triangoli fa «non lo so»
                         // tutto il conto, non un conto piu' basso (voce Z-C8).
-                        try { quanti += (f as IFace2).GetTessTriangleCount(); } catch { return -1; }
+                        try { howMany += (f as IFace2).GetTessTriangleCount(); } catch { return -1; }
                     }
                 }
-                return quanti;
+                return howMany;
             }
             catch { return -1; }
         }
@@ -604,151 +604,151 @@ namespace Oce.Solid.Agent.Core
         // the file goes through the same FILE_SCHEMA check as the other two;
         // that branch is not measured here, for want of the licence.
 
-        private Esito EsportaScambio(
-            IModelDoc2 modello, Dictionary<string, object> a, string operazione,
-            StatoDocumento stato)
+        private Outcome ExportExchange(
+            IModelDoc2 model, Dictionary<string, object> a, string operation,
+            DocumentState docState)
         {
-            var parte = modello as IPartDoc;
-            var assieme = modello as IAssemblyDoc;   // voce Z-D6: anche l'assieme si manda
+            var partDoc = model as IPartDoc;
+            var assemblyDoc = model as IAssemblyDoc;   // voce Z-D6: anche l'assieme si manda
             // Z-C21.11: how many components were lightweight before the export,
             // read right before the export (the probe saw SaveAs3 resolve them).
             int lightweightBeforeExport = -1;
-            if (parte == null && assieme == null)
-                return Fallito(
+            if (partDoc == null && assemblyDoc == null)
+                return Failed(
                     "Questo documento non e' un pezzo ne' un assieme: STEP e IGES si esportano da una " +
                     "parte o da un assieme. Aprimi quello da mandare.");
-            if (assieme != null && Bool(a, "reopen_and_compare", false))
-                return Fallito(
+            if (assemblyDoc != null && Bool(a, "reopen_and_compare", false))
+                return Failed(
                     "Su un assieme «reopen_and_compare» non lo faccio: rileggere lo STEP di un assieme apre " +
                     "la finestra «Nuovo documento» e la chiamata non torna (misurato). Il controllo che faccio " +
                     "e' il conto dei solidi nel file contro quelli dei pezzi: toglilo e richiedimelo.");
 
-            bool iges = operazione == "export_iges";
+            bool iges = operation == "export_iges";
             // L'IGES DELL'ASSIEME NO (revisione avversariale del 27/9/2026): non ha la
             // verifica dei solidi che ha lo STEP, e dipende da una preferenza globale
             // (swIGESComponentsIntoOneFile) che non si imposta — con quella spenta
             // SOLIDWORKS scrive un file per componente, e quello in «path» puo'
             // non contenere l'assieme intero. Finche' non e' misurato, si rifiuta.
-            if (iges && assieme != null)
-                return Fallito(
+            if (iges && assemblyDoc != null)
+                return Failed(
                     "L'IGES di un assieme non lo scrivo: non so verificare che dentro ci sia l'assieme intero (con " +
                     "certe impostazioni SOLIDWORKS scrive un file per componente). Per mandare l'assieme usa " +
                     "«export_step», che lo porta intero e lo controllo; per un pezzo solo, aprilo e chiedimi l'IGES li'.");
 
             // THE PROTOCOL BEFORE THE PATH (Z-C21.13, C5-7): AP242 decides which
             // extension the path may have.
-            int protocollo = 0;
-            string protocolloChiesto = null;
+            int protocol = 0;
+            string requestedProtocol = null;
             bool ap242 = false;
-            int rappresentazione = 0;
-            string rappresentazioneChiesta = null;
+            int representation = 0;
+            string requestedRepresentation = null;
             if (iges)
             {
-                rappresentazioneChiesta = (Str(a, "representation", "solids") ?? "solids")
+                requestedRepresentation = (Str(a, "representation", "solids") ?? "solids")
                     .Trim().ToLowerInvariant();
-                if (rappresentazioneChiesta == "solids")
-                    rappresentazione = (int)swIGESRepresentation_e.swIGES_BREP;
-                else if (rappresentazioneChiesta == "surfaces")
-                    rappresentazione = (int)swIGESRepresentation_e.swIGES_TRMSRF;
-                else return Fallito(
-                    "Rappresentazione «" + rappresentazioneChiesta + "» sconosciuta: ci sono " +
+                if (requestedRepresentation == "solids")
+                    representation = (int)swIGESRepresentation_e.swIGES_BREP;
+                else if (requestedRepresentation == "surfaces")
+                    representation = (int)swIGESRepresentation_e.swIGES_TRMSRF;
+                else return Failed(
+                    "Rappresentazione «" + requestedRepresentation + "» sconosciuta: ci sono " +
                     "«solids» (BREP, quella che serve a chi deve lavorare il pezzo) e " +
                     "«surfaces».");
             }
             else
             {
-                protocolloChiesto = (Str(a, "protocol", "AP214") ?? "AP214")
+                requestedProtocol = (Str(a, "protocol", "AP214") ?? "AP214")
                     .Trim().ToUpperInvariant();
-                if (protocolloChiesto == "AP203") protocollo = 203;
-                else if (protocolloChiesto == "AP214") protocollo = 214;
+                if (requestedProtocol == "AP203") protocol = 203;
+                else if (requestedProtocol == "AP214") protocol = 214;
                 // AP242 HAS NO swStepAP VALUE: written there, it gives an AP203
                 // file (the comment above this method). PublishSTEP242File
                 // writes it, further down.
-                else if (protocolloChiesto == "AP242") ap242 = true;
-                else return Fallito(
-                    "Protocollo «" + protocolloChiesto + "» sconosciuto: ci sono AP203, " +
+                else if (requestedProtocol == "AP242") ap242 = true;
+                else return Failed(
+                    "Protocollo «" + requestedProtocol + "» sconosciuto: ci sono AP203, " +
                     "AP214 (predefinito) e AP242.");
             }
 
-            string[] estensioniBuone = iges
+            string[] goodExtensions = iges
                 ? new[] { ".iges", ".igs" }
                 : ap242 ? new[] { ".stp" } : new[] { ".step", ".stp" };
 
             // LA VERIFICA GIRA LO STESSO, E NON FERMA NIENTE. Il giudizio
             // viaggia con la risposta: chi manda un pezzo a un fornitore ha
             // diritto di sapere che aveva due corpi, non di essere fermato.
-            string giudizio = "";
-            if (parte != null)
+            string verdictValue = "";
+            if (partDoc != null)
             {
-                var verifica = VerificaGeometriaCorpo(modello, new Dictionary<string, object>(), stato);
-                if (verifica.Riuscito && verifica.Misure != null && verifica.Misure.ContainsKey("verdict"))
-                    giudizio = Convert.ToString(verifica.Misure["verdict"]);
+                var check = CheckBodyGeometry(model, new Dictionary<string, object>(), docState);
+                if (check.Succeeded && check.Measurements != null && check.Measurements.ContainsKey("verdict"))
+                    verdictValue = Convert.ToString(check.Measurements["verdict"]);
             }
-            else giudizio = "assieme: la verifica dei corpi si fa sui pezzi, uno per uno";
+            else verdictValue = "assieme: la verifica dei corpi si fa sui pezzi, uno per uno";
 
-            string dove = Str(a, "path", null);
-            if (string.IsNullOrWhiteSpace(dove))
+            string location = Str(a, "path", null);
+            if (string.IsNullOrWhiteSpace(location))
             {
-                string suo = "";
-                try { suo = modello.GetPathName() ?? ""; } catch { }
-                if (string.IsNullOrWhiteSpace(suo))
-                    return Fallito(
+                string its = "";
+                try { its = model.GetPathName() ?? ""; } catch { }
+                if (string.IsNullOrWhiteSpace(its))
+                    return Failed(
                         "Il pezzo non e' mai stato salvato e non mi hai detto dove mettere " +
                         "il file. Dimmi «path», oppure salva prima il pezzo.");
-                dove = Path.ChangeExtension(suo, estensioniBuone[0]);
+                location = Path.ChangeExtension(its, goodExtensions[0]);
             }
 
             // AP242 WANTS .stp, and is refused before the call otherwise (C5-7).
             if (ap242)
             {
-                string pathProblem = Step242PathProblem(dove);
-                if (pathProblem != null) return Fallito(pathProblem);
+                string pathProblem = Step242PathProblem(location);
+                if (pathProblem != null) return Failed(pathProblem);
             }
 
-            string estensione = (Path.GetExtension(dove) ?? "").ToLowerInvariant();
-            if (Array.IndexOf(estensioniBuone, estensione) < 0)
-                return Fallito(
-                    "Il percorso «" + dove + "» finisce in «" + estensione + "», e per «" +
-                    operazione + "» ci vuole " + string.Join(" oppure ", estensioniBuone) +
+            string ext = (Path.GetExtension(location) ?? "").ToLowerInvariant();
+            if (Array.IndexOf(goodExtensions, ext) < 0)
+                return Failed(
+                    "Il percorso «" + location + "» finisce in «" + ext + "», e per «" +
+                    operation + "» ci vuole " + string.Join(" oppure ", goodExtensions) +
                     ". L'estensione NON e' un dettaglio: e' l'unica cosa che dice a " +
                     "SaveAs3 che formato scrivere.");
 
-            string cartella;
-            try { cartella = Path.GetDirectoryName(Path.GetFullPath(dove)); }
-            catch (Exception ex) { return Fallito("Percorso che non so leggere: " + ex.Message); }
-            if (!Directory.Exists(cartella))
-                return Fallito("La cartella «" + cartella + "» non esiste: non la creo io.");
+            string folder;
+            try { folder = Path.GetDirectoryName(Path.GetFullPath(location)); }
+            catch (Exception ex) { return Failed("Percorso che non so leggere: " + ex.Message); }
+            if (!Directory.Exists(folder))
+                return Failed("La cartella «" + folder + "» non esiste: non la creo io.");
 
-            var prima = LeggiPreferenzeScambio();
+            var before = ReadExchangePreferences();
             List<string> preferencesNotRestored = null;
-            int errori = 0, avvisi = 0;
+            int errors = 0, warnings = 0;
             bool ok;
             List<string> igesTogglesNotOff = null;
             try
             {
-                if (iges) igesTogglesNotOff = ImpostaPreferenzeIges(rappresentazione);
-                else if (!ap242) ImpostaPreferenzeStep(protocollo);
+                if (iges) igesTogglesNotOff = SetIgesPreferences(representation);
+                else if (!ap242) SetStepPreferences(protocol);
 
                 // Before either door (review of Z-C21.11): PublishSTEP242File
                 // writes an assembly too, and whatever it resolves is said the same way.
-                if (assieme != null) lightweightBeforeExport = LightweightCount(assieme);
+                if (assemblyDoc != null) lightweightBeforeExport = LightweightCount(assemblyDoc);
 
                 if (ap242)
                 {
                     // C5-7: its own method, its own handling of a file already at
                     // the path (see PublishStep242), and swStepAP left alone.
-                    string refusal = PublishStep242(modello, dove);
-                    if (refusal != null) return Fallito(refusal);
+                    string refusal = PublishStep242(model, location);
+                    if (refusal != null) return Failed(refusal);
                     ok = true;
                 }
                 else
                 {
-                    if (File.Exists(dove))
+                    if (File.Exists(location))
                     {
-                        try { File.Delete(dove); }
+                        try { File.Delete(location); }
                         catch (Exception ex)
                         {
-                            return Fallito(
+                            return Failed(
                                 "C'e' gia' un file li' e non riesco a sostituirlo (" + ex.Message +
                                 "): probabilmente e' aperto in un altro programma.");
                         }
@@ -759,141 +759,141 @@ namespace Oce.Solid.Agent.Core
                     // selected, in which case, it exports only those». Per lo STEP di
                     // una parte non c'e' nessun conto dei corpi che se ne accorgerebbe,
                     // e quello dell'assieme prenderebbe un file con meno solidi.
-                    modello.ClearSelection2(true);
+                    model.ClearSelection2(true);
                     try
                     {
-                        ok = modello.Extension.SaveAs3(
-                            dove,
+                        ok = model.Extension.SaveAs3(
+                            location,
                             (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
                             (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
-                            null, null, ref errori, ref avvisi);
+                            null, null, ref errors, ref warnings);
                     }
-                    catch (Exception ex) { return Fallito("File non scritto: " + ex.Message); }
+                    catch (Exception ex) { return Failed("File non scritto: " + ex.Message); }
                 }
             }
-            finally { preferencesNotRestored = RestorePreferences(prima); }   // only what was read (N17)
+            finally { preferencesNotRestored = RestorePreferences(before); }   // only what was read (N17)
 
-            if (!ok || !File.Exists(dove))
-                return Fallito("Il file non e' stato scritto (codice " + errori + SaveErrorNames(errori) + "): " + dove +
-                               SaveWarningsTail(avvisi));
+            if (!ok || !File.Exists(location))
+                return Failed("Il file non e' stato scritto (codice " + errors + SaveErrorNames(errors) + "): " + location +
+                               SaveWarningsTail(warnings));
 
-            long quantoPesa = new FileInfo(dove).Length;
-            var misure = new Dictionary<string, object>
+            long howMuchItWeighs = new FileInfo(location).Length;
+            var measurements = new Dictionary<string, object>
             {
-                ["path"] = dove,
-                ["byte"] = quantoPesa,
-                ["check"] = giudizio,
+                ["path"] = location,
+                ["byte"] = howMuchItWeighs,
+                ["check"] = verdictValue,
             };
             // L13-7: the Warnings of SaveAs3, decoded, also on a success. The
             // AP242 door (PublishSTEP242File) has no Warnings mask to read, so
             // the field is null there, not «none».
             if (ap242)
-                misure["save_warnings"] = null;
+                measurements["save_warnings"] = null;
             else
             {
-                misure["save_warnings"] = SaveWarningsForAnswer(avvisi);
-                string exchangeWarningAdvice = SaveWarningsAdvice(avvisi);
-                if (exchangeWarningAdvice != null) misure["save_warnings_note"] = exchangeWarningAdvice;
+                measurements["save_warnings"] = SaveWarningsForAnswer(warnings);
+                string exchangeWarningAdvice = SaveWarningsAdvice(warnings);
+                if (exchangeWarningAdvice != null) measurements["save_warnings_note"] = exchangeWarningAdvice;
             }
             string exchangePreferencesNote = PreferencesNotRestoredNote(preferencesNotRestored);
-            if (exchangePreferencesNote != null) misure["preferences_not_restored"] = exchangePreferencesNote;
+            if (exchangePreferencesNote != null) measurements["preferences_not_restored"] = exchangePreferencesNote;
 
             if (iges)
             {
-                misure["file_format"] = "IGES";
-                misure["representation"] = rappresentazioneChiesta;
-                string perche;
-                int record = RecordIges(dove, out perche);
-                misure["parameter_record"] = record >= 0 ? (object)record : null;
-                misure["how_known"] = perche;
+                measurements["file_format"] = "IGES";
+                measurements["representation"] = requestedRepresentation;
+                string why;
+                int record = RecordIges(location, out why);
+                measurements["parameter_record"] = record >= 0 ? (object)record : null;
+                measurements["how_known"] = why;
                 if (record == 0)
-                    return Fallito(
+                    return Failed(
                         "L'IGES e' stato scritto ma non ha nessun record di parametri: e' " +
-                        "un file con le intestazioni e niente dentro. (" + dove + ")");
+                        "un file con le intestazioni e niente dentro. (" + location + ")");
 
                 // WHAT IS IN THE FILE, NOT ONLY HOW MUCH (N59). The record count
                 // does not tell a solid from its wireframe: both have records.
                 // The directory section does, one type number per entity.
                 int entities, solids, surfaces;
                 string census;
-                bool counted = IgesEntityCensus(dove, out entities, out solids, out surfaces, out census);
-                misure["entities"] = counted ? (object)entities : null;
-                misure["solid_entities"] = counted ? (object)solids : null;
-                misure["surface_entities"] = counted ? (object)surfaces : null;
-                misure["entity_census"] = census;
+                bool counted = IgesEntityCensus(location, out entities, out solids, out surfaces, out census);
+                measurements["entities"] = counted ? (object)entities : null;
+                measurements["solid_entities"] = counted ? (object)solids : null;
+                measurements["surface_entities"] = counted ? (object)surfaces : null;
+                measurements["entity_census"] = census;
                 // THE THREE TOGGLES, AS READ BACK after turning them off (N59,
                 // review): an empty list is the proof they were off while the
                 // file was written; a name in it is an option that may have put
                 // curves in the file next to the solid, which the census above
                 // cannot tell from the solid's own edges.
-                misure["iges_options_not_off"] = igesTogglesNotOff != null
+                measurements["iges_options_not_off"] = igesTogglesNotOff != null
                     ? (object)igesTogglesNotOff.ToArray() : null;
                 if (igesTogglesNotOff != null && igesTogglesNotOff.Count > 0)
-                    misure["iges_options_warning"] =
+                    measurements["iges_options_warning"] =
                         "I could not turn off " + string.Join(", ", igesTogglesNotOff) + " for this export " +
                         "(read back on, or unreadable): the file may carry sketch entities or 3D curves next " +
                         "to the solid, and whoever opens it may take them for geometry. Turn them off in " +
                         "System Options > Export > IGES 5.3 and export again.";
                 if (counted && entities > 0 && solids == 0 && surfaces == 0)
-                    return Fallito(
+                    return Failed(
                         "The IGES was written, but none of its " + entities + " entities is a solid " +
                         "(type 186) or a surface: it is a wireframe of the part, curves only, and " +
-                        "whoever opens it gets edges instead of a part. (" + dove + ")");
+                        "whoever opens it gets edges instead of a part. (" + location + ")");
             }
             else
             {
-                misure["file_format"] = "STEP";
-                misure["protocol_requested"] = protocolloChiesto;
+                measurements["file_format"] = "STEP";
+                measurements["protocol_requested"] = requestedProtocol;
                 // WHICH DOOR WROTE IT (C5-7): the two do not share their settings.
-                misure["written_with"] = ap242
+                measurements["written_with"] = ap242
                     ? "IModelDocExtension.PublishSTEP242File (SOLIDWORKS MBD)"
-                    : "SaveAs3 with swStepAP = " + protocollo;
-                int entita;
-                string perche;
-                string schema = SchemaDelloStep(dove, out entita, out perche);
-                string uscito = DalloSchema(schema);
-                misure["file_schema"] = schema;
-                misure["protocol_returned"] = uscito;
-                misure["entity"] = entita >= 0 ? (object)entita : null;
-                misure["how_known"] = perche;
+                    : "SaveAs3 with swStepAP = " + protocol;
+                int entity;
+                string why;
+                string schema = StepSchema(location, out entity, out why);
+                string exited = FromSchema(schema);
+                measurements["file_schema"] = schema;
+                measurements["protocol_returned"] = exited;
+                measurements["entity"] = entity >= 0 ? (object)entity : null;
+                measurements["how_known"] = why;
 
                 if (schema == null)
-                    return Fallito(
+                    return Failed(
                         "Il file non comincia per «ISO-10303-21» o non ha un FILE_SCHEMA: " +
-                        "non e' uno STEP, qualunque cosa dica l'estensione. (" + dove + ")");
-                if (entita == 0)
-                    return Fallito(
+                        "non e' uno STEP, qualunque cosa dica l'estensione. (" + location + ")");
+                if (entity == 0)
+                    return Failed(
                         "Lo STEP e' stato scritto ma la sua sezione DATA e' vuota: e' un " +
-                        "file con le intestazioni e niente dentro. (" + dove + ")");
-                if (uscito != null && uscito != protocolloChiesto)
-                    return Fallito(
-                        "Hai chiesto " + protocolloChiesto + " ed e' uscito " + uscito +
+                        "file con le intestazioni e niente dentro. (" + location + ")");
+                if (exited != null && exited != requestedProtocol)
+                    return Failed(
+                        "Hai chiesto " + requestedProtocol + " ed e' uscito " + exited +
                         " (FILE_SCHEMA «" + schema + "»). Il file c'e' e non e' il " +
                         "protocollo che serve: certi fornitori accettano solo il 203. (" +
-                        dove + ")");
+                        location + ")");
                 // L'ASSIEME INTERO NEL FILE (voce Z-D6): un MANIFOLD_SOLID_BREP per
                 // corpo, contro i corpi dei pezzi non soppressi. Rileggerlo non si
                 // puo' (apre un modale): si contano i solidi nel testo.
-                if (assieme != null)
+                if (assemblyDoc != null)
                 {
                     var hiddenLeftOut = new List<string>();
-                    int attesi = SolidiAttesiNellAssieme(assieme, hiddenLeftOut);
-                    int nelFile = SolidiNelloStep(dove);
-                    misure["solids_expected"] = attesi >= 0 ? (object)attesi : null;
-                    misure["solids_in_file"] = nelFile >= 0 ? (object)nelFile : null;
+                    int expectedValues = ExpectedSolidsInAssembly(assemblyDoc, hiddenLeftOut);
+                    int inFile = SolidsInStep(location);
+                    measurements["solids_expected"] = expectedValues >= 0 ? (object)expectedValues : null;
+                    measurements["solids_in_file"] = inFile >= 0 ? (object)inFile : null;
                     // Z-C21.11: hidden components are not written (measured), and the
                     // export resolved lightweight components (measured): both are said.
                     if (hiddenLeftOut.Count > 0)
-                        misure["hidden_components_not_exported"] = hiddenLeftOut.ToArray();
-                    int lightweightAfterExport = LightweightCount(assieme);
+                        measurements["hidden_components_not_exported"] = hiddenLeftOut.ToArray();
+                    int lightweightAfterExport = LightweightCount(assemblyDoc);
                     if (lightweightBeforeExport > 0 && lightweightAfterExport >= 0 && lightweightAfterExport < lightweightBeforeExport)
-                        misure["lightweight_resolved_by_the_export"] =
+                        measurements["lightweight_resolved_by_the_export"] =
                             (lightweightBeforeExport - lightweightAfterExport) + " component(s) were lightweight before the " +
                             "export and SOLIDWORKS resolved them to write the file; they stay resolved.";
-                    if (attesi >= 0 && nelFile >= 0 && nelFile < attesi)
-                        return Fallito(
-                            "Lo STEP dell'assieme ha " + nelFile + " solidi e i pezzi non soppressi ne hanno " +
-                            attesi + ": qualcosa non e' arrivato nel file. (" + dove + ")");
+                    if (expectedValues >= 0 && inFile >= 0 && inFile < expectedValues)
+                        return Failed(
+                            "Lo STEP dell'assieme ha " + inFile + " solidi e i pezzi non soppressi ne hanno " +
+                            expectedValues + ": qualcosa non e' arrivato nel file. (" + location + ")");
                 }
             }
 
@@ -909,37 +909,37 @@ namespace Oce.Solid.Agent.Core
                 // IL CONFRONTO VUOLE DUE VOLUMI LETTI (voce Z-C8): con lo zero
                 // di una lettura fallita da questa parte, «il pezzo ne ha 0: la
                 // traduzione ha perso qualcosa» era una frase falsa.
-                double? mioLetto = VolumeMm3(modello);
+                double? myRead = VolumeMm3(model);
                 string comE;
-                double suo = VolumeRiaprendo(dove, out comE);
-                misure["volume_mm3"] = NumeroOppureNull(mioLetto, 2);
-                misure["volume_reread_mm3"] = suo >= 0 ? (object)Math.Round(suo, 2) : null;
-                misure["how_the_reread_went"] = comE;
-                if (suo < 0)
-                    return Fallito(
+                double its = VolumeOnReopen(location, out comE);
+                measurements["volume_mm3"] = NumberOrNull(myRead, 2);
+                measurements["volume_reread_mm3"] = its >= 0 ? (object)Math.Round(its, 2) : null;
+                measurements["how_the_reread_went"] = comE;
+                if (its < 0)
+                    return Failed(
                         "Il file e' scritto ma non sono riuscito a rileggerlo per " +
-                        "confrontarlo: " + comE + " (" + dove + ")");
-                if (mioLetto == null)
-                    return Fallito(
+                        "confrontarlo: " + comE + " (" + location + ")");
+                if (myRead == null)
+                    return Failed(
                         "Il file e' scritto e riletto, ma non riesco a misurare il volume del " +
-                        "pezzo di partenza: senza, il confronto non si fa. (" + dove + ")");
-                double mio = mioLetto.Value;
+                        "pezzo di partenza: senza, il confronto non si fa. (" + location + ")");
+                double myOwn = myRead.Value;
 
                 // UN MILLESIMO, non «circa». Una traduzione che perde un
                 // millesimo di volume ha perso una faccia, e su un pezzo che
                 // va in officina non e' un arrotondamento.
-                double scarto = mio > 0 ? Math.Abs(suo - mio) / mio : Math.Abs(suo - mio);
-                misure["deviation_relative"] = Math.Round(scarto, 6);
-                if (scarto > 0.001)
-                    return Fallito(
-                        "Il file riaperto ha volume " + suo.ToString("0.##") + " mm3 e il " +
-                        "pezzo ne ha " + mio.ToString("0.##") + ": uno scarto del " +
-                        (scarto * 100).ToString("0.###") + "%. La traduzione ha perso " +
-                        "qualcosa. (" + dove + ")");
+                double deviation = myOwn > 0 ? Math.Abs(its - myOwn) / myOwn : Math.Abs(its - myOwn);
+                measurements["deviation_relative"] = Math.Round(deviation, 6);
+                if (deviation > 0.001)
+                    return Failed(
+                        "Il file riaperto ha volume " + its.ToString("0.##") + " mm3 e il " +
+                        "pezzo ne ha " + myOwn.ToString("0.##") + ": uno scarto del " +
+                        (deviation * 100).ToString("0.###") + "%. La traduzione ha perso " +
+                        "qualcosa. (" + location + ")");
             }
 
-            _log("[agente] " + (iges ? "IGES" : "STEP") + ": " + quantoPesa + " byte, " + dove);
-            return SenzaFeature(misure);
+            _log("[agente] " + (iges ? "IGES" : "STEP") + ": " + howMuchItWeighs + " byte, " + location);
+            return WithoutFeature(measurements);
         }
 
         /// <summary>
@@ -960,7 +960,7 @@ namespace Oce.Solid.Agent.Core
         /// protocol, the representation and the solid-and-surface toggle were
         /// written back as 0 or false after a failed read until library 0.144.0.
         /// </summary>
-        private UserPreferenceSnapshot LeggiPreferenzeScambio()
+        private UserPreferenceSnapshot ReadExchangePreferences()
         {
             var p = new UserPreferenceSnapshot();
             foreach (var i in new[] { swUserPreferenceIntegerValue_e.swStepAP, swUserPreferenceIntegerValue_e.swIGESRepresentation })
@@ -972,9 +972,9 @@ namespace Oce.Solid.Agent.Core
             return p;
         }
 
-        private void ImpostaPreferenzeStep(int protocollo)
+        private void SetStepPreferences(int protocol)
         {
-            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, protocollo); } catch { }
+            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, protocol); } catch { }
         }
 
         // =================================================================
@@ -1113,7 +1113,7 @@ namespace Oce.Solid.Agent.Core
         /// front, when it was another one, so that the caller can bring it back.
         ///
         /// The same call as BringToFront (SheetMetalOperations.cs) and the bridge's
-        /// PortaDavanti: DocumentByPath.ActivateAndReadBack (Z-C21.13, pattern
+        /// BringToFront: DocumentByPath.ActivateAndReadBack (Z-C21.13, pattern
         /// S18), which gives ActivateDoc3 the file name with extension and then
         /// the full path of a saved part, and the title of a part never saved only when
         /// no other open document answers to it (ISldWorks~ActivateDoc3.html
@@ -1143,7 +1143,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The same COM object? ReferenceEquals first, since .NET almost always
         /// reuses one wrapper for one COM object; when it does not, the IUnknown
-        /// pointers, which are the real identity (as EsecutorePiano.StessoOggetto).
+        /// pointers, which are the real identity (as PlanExecutor.SameObject).
         /// Both Release calls are needed: GetIUnknownForObject adds a reference,
         /// and a count that does not go back is a document SOLIDWORKS cannot close.
         /// </summary>
@@ -1239,9 +1239,9 @@ namespace Oce.Solid.Agent.Core
         /// written NEXT TO the solid: for those, this read-back is the only
         /// witness, and the answer carries it.
         /// </returns>
-        private List<string> ImpostaPreferenzeIges(int rappresentazione)
+        private List<string> SetIgesPreferences(int representation)
         {
-            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, rappresentazione); } catch { }
+            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, representation); } catch { }
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface, true); } catch { }
             // N59: the solid (or the trimmed surfaces), and nothing next to it.
             foreach (var t in IgesTogglesTurnedOff)
@@ -1261,50 +1261,50 @@ namespace Oce.Solid.Agent.Core
         /// Il `FILE_SCHEMA` dello STEP, e quante entita' ha la sezione DATA.
         /// Null se il file non comincia per «ISO-10303-21».
         /// </summary>
-        private static string SchemaDelloStep(string percorso, out int entita, out string perche)
+        private static string StepSchema(string filePath, out int entity, out string why)
         {
-            entita = -1;
-            perche = "";
+            entity = -1;
+            why = "";
             try
             {
                 string schema = null;
-                int quante = 0;
-                bool inizioBuono = false, primaRiga = true, dentroIDati = false;
-                foreach (var riga in File.ReadLines(percorso))
+                int howMany = 0;
+                bool goodStart = false, firstLine = true, insideTheData = false;
+                foreach (var line in File.ReadLines(filePath))
                 {
-                    if (primaRiga)
+                    if (firstLine)
                     {
-                        primaRiga = false;
-                        inizioBuono = riga.TrimStart().StartsWith("ISO-10303-21", StringComparison.Ordinal);
-                        if (!inizioBuono) break;
+                        firstLine = false;
+                        goodStart = line.TrimStart().StartsWith("ISO-10303-21", StringComparison.Ordinal);
+                        if (!goodStart) break;
                     }
                     if (schema == null)
                     {
-                        int i = riga.IndexOf("FILE_SCHEMA", StringComparison.Ordinal);
+                        int i = line.IndexOf("FILE_SCHEMA", StringComparison.Ordinal);
                         if (i >= 0)
                         {
-                            int apre = riga.IndexOf('\'', i);
-                            int chiude = apre < 0 ? -1 : riga.IndexOf('\'', apre + 1);
-                            if (apre >= 0 && chiude > apre)
-                                schema = riga.Substring(apre + 1, chiude - apre - 1);
+                            int opens = line.IndexOf('\'', i);
+                            int closes = opens < 0 ? -1 : line.IndexOf('\'', opens + 1);
+                            if (opens >= 0 && closes > opens)
+                                schema = line.Substring(opens + 1, closes - opens - 1);
                         }
                     }
-                    if (riga.StartsWith("DATA;", StringComparison.Ordinal)) { dentroIDati = true; continue; }
-                    if (riga.StartsWith("ENDSEC;", StringComparison.Ordinal)) { dentroIDati = false; continue; }
-                    if (dentroIDati && riga.TrimStart().StartsWith("#", StringComparison.Ordinal)) quante++;
+                    if (line.StartsWith("DATA;", StringComparison.Ordinal)) { insideTheData = true; continue; }
+                    if (line.StartsWith("ENDSEC;", StringComparison.Ordinal)) { insideTheData = false; continue; }
+                    if (insideTheData && line.TrimStart().StartsWith("#", StringComparison.Ordinal)) howMany++;
                 }
-                if (!inizioBuono)
+                if (!goodStart)
                 {
-                    perche = "il file non comincia per «ISO-10303-21»";
+                    why = "il file non comincia per «ISO-10303-21»";
                     return null;
                 }
-                entita = quante;
-                perche = "letto dal file: il FILE_SCHEMA e le righe «#» della sezione DATA";
+                entity = howMany;
+                why = "letto dal file: il FILE_SCHEMA e le righe «#» della sezione DATA";
                 return schema;
             }
             catch (Exception ex)
             {
-                perche = "non ho potuto leggere il file: " + ex.Message;
+                why = "non ho potuto leggere il file: " + ex.Message;
                 return null;
             }
         }
@@ -1315,7 +1315,7 @@ namespace Oce.Solid.Agent.Core
         /// «CONFIG_CONTROL_DESIGN», AP214 «AUTOMOTIVE_DESIGN», AP242 col suo
         /// nome lungo.
         /// </summary>
-        private static string DalloSchema(string schema)
+        private static string FromSchema(string schema)
         {
             if (string.IsNullOrEmpty(schema)) return null;
             string s = schema.ToUpperInvariant();
@@ -1331,20 +1331,20 @@ namespace Oce.Solid.Agent.Core
         /// S intestazione, G globale, D directory, P parametri, T coda. Un file
         /// senza nemmeno un record «P» ha le intestazioni e niente dentro.
         /// </summary>
-        private static int RecordIges(string percorso, out string perche)
+        private static int RecordIges(string filePath, out string why)
         {
-            perche = "";
+            why = "";
             try
             {
-                int quanti = 0;
-                foreach (var riga in File.ReadLines(percorso))
-                    if (riga.Length >= 73 && (riga[72] == 'P' || riga[72] == 'p')) quanti++;
-                perche = "contando i record con «P» nella colonna 73 del file IGES";
-                return quanti;
+                int howMany = 0;
+                foreach (var line in File.ReadLines(filePath))
+                    if (line.Length >= 73 && (line[72] == 'P' || line[72] == 'p')) howMany++;
+                why = "contando i record con «P» nella colonna 73 del file IGES";
+                return howMany;
             }
             catch (Exception ex)
             {
-                perche = "non ho potuto leggere il file: " + ex.Message;
+                why = "non ho potuto leggere il file: " + ex.Message;
                 return -1;
             }
         }
@@ -1437,10 +1437,10 @@ namespace Oce.Solid.Agent.Core
         /// sbagliata: chi lo legge va a guardare il file, e il file e' a
         /// posto. Per i formati neutri la porta e' `LoadFile4`.
         /// </summary>
-        private double VolumeRiaprendo(string percorso, out string comE)
+        private double VolumeOnReopen(string filePath, out string comE)
         {
             comE = "";
-            IModelDoc2 riaperto = null;
+            IModelDoc2 reopened = null;
             // The document to go back to, by REFERENCE (Z-C21.13, pattern S18).
             IModelDoc2 previousFront = null;
             try { previousFront = _sw.IActiveDoc2; }
@@ -1448,14 +1448,14 @@ namespace Oce.Solid.Agent.Core
             bool volumeRead = false;
             try
             {
-                int errori = 0;
-                riaperto = _sw.LoadFile4(percorso, "", null, ref errori) as IModelDoc2;
-                if (riaperto == null)
+                int errors = 0;
+                reopened = _sw.LoadFile4(filePath, "", null, ref errors) as IModelDoc2;
+                if (reopened == null)
                 {
-                    comE = "LoadFile4 non ha aperto niente (codice " + errori + ")";
+                    comE = "LoadFile4 non ha aperto niente (codice " + errors + ")";
                     return -1;
                 }
-                double? v = VolumeMm3(riaperto);
+                double? v = VolumeMm3(reopened);
                 if (v == null)
                 {
                     comE = "riaperto, ma il volume della geometria tradotta non si e' lasciato leggere";
@@ -1481,9 +1481,9 @@ namespace Oce.Solid.Agent.Core
                 // active document; when it does not, its title is used only if
                 // no other open document answers to it. The answer says
                 // «closed» only if the read back finds it gone.
-                if (riaperto != null)
+                if (reopened != null)
                 {
-                    var closing = DocumentByPath.CloseAndReadBack(_sw, riaperto);
+                    var closing = DocumentByPath.CloseAndReadBack(_sw, reopened);
                     if (!closing.IsClosed)
                     {
                         string notClosed = "the reopened document is NOT closed: " + closing.Message +

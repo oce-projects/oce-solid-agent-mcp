@@ -30,12 +30,12 @@
 var fs = require('fs');
 var path = require('path');
 
-var RADICE = path.resolve(__dirname, '..');
-var SCRIVI = process.argv.indexOf('--scrivi') >= 0;
+var ROOT = path.resolve(__dirname, '..');
+var WRITE = process.argv.indexOf('--scrivi') >= 0;
 
 // In quest'ordine: le forme piu' lunghe per prime, o una sostituzione corta
 // mangia il pezzo di una lunga e il risultato non e' piu' riparabile.
-var CAMBI = [
+var CHANGES = [
     // namespace e using
     ['SolidWorksMcp.Installer', 'Oce.Solid.Agent.Installer'],
     ['SolidWorksMcp.Strumenti', 'Oce.Solid.Agent.Tools'],
@@ -51,7 +51,7 @@ var CAMBI = [
     // LE GRAFIE SEPARATE, che la prima passata non aveva preso ed erano le piu'
     // visibili di tutte:
     //
-    //   Installer\Steps.cs   NomeProdotto, cioe' quello che legge chi installa
+    //   Installer\Steps.cs   ProductName, cioe' quello che legge chi installa
     //   NOTICE riga 1        la prima riga delle note legali
     //   Program.cs         il nome che il server dichiara SUL PROTOCOLLO MCP,
     //                        cioe' quello che vede il client
@@ -73,37 +73,37 @@ var CAMBI = [
 // prima riga del NOTICE portava il nome del prodotto col marchio dentro. Una
 // lista di estensioni che dimentica i file che non ne hanno e' lo stesso buco
 // gia' trovato nella guardia di pubblicabilita'.
-var TESTO = ['.cs', '.csproj', '.js', '.ps1', '.md', '.json', '.manifest', '.config', '.txt', ''];
+var TEXT = ['.cs', '.csproj', '.js', '.ps1', '.md', '.json', '.manifest', '.config', '.txt', ''];
 
 // File che NON si toccano, uno per uno e con la ragione accanto.
-var INTOCCABILI = {
+var UNTOUCHABLE = {
     'CHANGELOG.md': 'le voci storiche dicono cosa si chiamava allora',
     'ultimo-giro.txt': 'uscita del banco, si rigenera',
     'ultimo-ponte.txt': 'uscita del banco, si rigenera',
     'rename-product.js': 'e\' questo script, e nomina i vietati di mestiere',
 };
 
-var SALTA_CARTELLE = ['.git', 'bin', 'obj', 'dist', 'node_modules', 'lavoro', 'Payload'];
+var SKIP_FOLDERS = ['.git', 'bin', 'obj', 'dist', 'node_modules', 'lavoro', 'Payload'];
 
-var toccati = [];
+var touched = [];
 
-function giro(cartella) {
-    var voci;
-    try { voci = fs.readdirSync(cartella, { withFileTypes: true }); } catch (e) { return; }
-    for (var i = 0; i < voci.length; i++) {
-        var v = voci[i];
-        var pieno = path.join(cartella, v.name);
+function benchRun(folder) {
+    var entries;
+    try { entries = fs.readdirSync(folder, { withFileTypes: true }); } catch (e) { return; }
+    for (var i = 0; i < entries.length; i++) {
+        var v = entries[i];
+        var full = path.join(folder, v.name);
         if (v.isDirectory()) {
-            if (SALTA_CARTELLE.indexOf(v.name) >= 0) continue;
-            giro(pieno);
+            if (SKIP_FOLDERS.indexOf(v.name) >= 0) continue;
+            benchRun(full);
             continue;
         }
         if (!v.isFile()) continue;
-        if (TESTO.indexOf(path.extname(v.name).toLowerCase()) < 0) continue;
-        if (INTOCCABILI[v.name]) continue;
+        if (TEXT.indexOf(path.extname(v.name).toLowerCase()) < 0) continue;
+        if (UNTOUCHABLE[v.name]) continue;
 
-        var testo;
-        try { testo = fs.readFileSync(pieno, 'utf8'); } catch (e) { continue; }
+        var text;
+        try { text = fs.readFileSync(full, 'utf8'); } catch (e) { continue; }
 
         // SI CERCA OGNI FORMA, NON LA PRIMA.
         //
@@ -113,42 +113,42 @@ function giro(cartella) {
         // nell'installatore. Un filtro d'ingresso piu' stretto dell'elenco
         // delle sostituzioni e' un modo di non fare meta' del lavoro senza
         // dirlo: il conteggio finale usciva zero e sembrava «niente da fare».
-        var haQualcosa = false;
-        for (var k = 0; k < CAMBI.length; k++)
-            if (testo.indexOf(CAMBI[k][0]) >= 0) { haQualcosa = true; break; }
-        if (!haQualcosa) continue;
+        var hasSomething = false;
+        for (var k = 0; k < CHANGES.length; k++)
+            if (text.indexOf(CHANGES[k][0]) >= 0) { hasSomething = true; break; }
+        if (!hasSomething) continue;
 
-        var nuovo = testo;
-        var quante = 0;
-        for (var c = 0; c < CAMBI.length; c++) {
-            var pezzi = nuovo.split(CAMBI[c][0]);
-            if (pezzi.length > 1) {
-                quante += pezzi.length - 1;
-                nuovo = pezzi.join(CAMBI[c][1]);
+        var newItem = text;
+        var howMany = 0;
+        for (var c = 0; c < CHANGES.length; c++) {
+            var parts = newItem.split(CHANGES[c][0]);
+            if (parts.length > 1) {
+                howMany += parts.length - 1;
+                newItem = parts.join(CHANGES[c][1]);
             }
         }
-        if (nuovo === testo) continue;
+        if (newItem === text) continue;
 
-        toccati.push({ file: path.relative(RADICE, pieno), quante: quante });
-        if (SCRIVI) fs.writeFileSync(pieno, nuovo, 'utf8');
+        touched.push({ file: path.relative(ROOT, full), quante: howMany });
+        if (WRITE) fs.writeFileSync(full, newItem, 'utf8');
     }
 }
 
-giro(RADICE);
+benchRun(ROOT);
 
-var totale = 0;
-for (var i = 0; i < toccati.length; i++) {
-    console.log('  ' + String(toccati[i].quante).padStart(3) + '  ' + toccati[i].file);
-    totale += toccati[i].quante;
+var total = 0;
+for (var i = 0; i < touched.length; i++) {
+    console.log('  ' + String(touched[i].quante).padStart(3) + '  ' + touched[i].file);
+    total += touched[i].quante;
 }
 console.log('');
-console.log(toccati.length + ' file, ' + totale + ' sostituzioni' +
-    (SCRIVI ? ' SCRITTE' : ' (prova a vuoto: aggiungi --scrivi)'));
+console.log(touched.length + ' file, ' + total + ' sostituzioni' +
+    (WRITE ? ' SCRITTE' : ' (prova a vuoto: aggiungi --scrivi)'));
 
 console.log('');
 console.log('Non toccati apposta:');
-Object.keys(INTOCCABILI).forEach(function (f) {
-    console.log('  ' + f.padEnd(24) + INTOCCABILI[f]);
+Object.keys(UNTOUCHABLE).forEach(function (f) {
+    console.log('  ' + f.padEnd(24) + UNTOUCHABLE[f]);
 });
 console.log('');
 console.log('Il file SolidWorksMcp.csproj va rinominato a parte, con git mv.');

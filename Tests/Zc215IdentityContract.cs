@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -11,8 +11,8 @@ namespace Oce.Solid.Agent.ContractTests
     /// THE TWO IDENTITY RULES OF Z-C21.5 THAT THE BENCH CANNOT REACH (S19, S7).
     ///
     /// S19, the base planes. Until Z-C21.5 `front`, `top` and `right` were
-    /// the first / second / third RefPlane of the tree (TrovaPianoBase,
-    /// SelezionaPiano, the section of VistaDelPezzo, mirror_component). The
+    /// the first / second / third RefPlane of the tree (FindBasePlane,
+    /// SelectPlane, the section of PartView, mirror_component). The
     /// Z-C21.3 probe of C3-6 found every ReorderFeature that tried to put a plane
     /// before the three default ones refused, so on the bench template the old
     /// rule and the new one pick the same plane: only a part TEMPLATE made by hand
@@ -21,9 +21,9 @@ namespace Oce.Solid.Agent.ContractTests
     /// in its signature, and checked here on the plane lists such a template
     /// would give, with the normals and origins the probe read on the real one.
     ///
-    /// S7, the feature just created. The decision of OperazioniSw.FeatureBorn
+    /// S7, the feature just created. The decision of SwOperations.FeatureBorn
     /// (the one feature of a type whose name was not there before the call) is
-    /// OperazioniSw.BornFeatureIndex, checked here on the tree of a sheet-metal
+    /// SwOperations.BornFeatureIndex, checked here on the tree of a sheet-metal
     /// part, where the last feature is the flat pattern (the bench covers the
     /// same rule end to end with the_axis_and_the_planes_of_a_sheet).
     ///
@@ -43,12 +43,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the identity rules of Z-C21.5 the bench cannot reach (S19 base planes, S7 feature born)");
+            Group("the identity rules of Z-C21.5 the bench cannot reach (S19 base planes, S7 feature born)");
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the identity rules of Z-C21.5",
+                NotHere("the identity rules of Z-C21.5",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -56,7 +56,7 @@ namespace Oce.Solid.Agent.ContractTests
             Assembly asm;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -71,13 +71,13 @@ namespace Oce.Solid.Agent.ContractTests
                 // on a network drive, where LoadFrom is refused.
                 asm = Assembly.Load(File.ReadAllBytes(library));
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
-            Type references = asm.GetType("Oce.Solid.Agent.Core.Riferimenti", false);
-            Type sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+            Type references = asm.GetType("Oce.Solid.Agent.Core.References", false);
+            Type sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             if (references == null || sw == null)
             {
-                Segna("the two library types are there", false,
+                Check("the two library types are there", false,
                       "Riferimenti " + (references != null) + ", OperazioniSw " + (sw != null));
                 return;
             }
@@ -115,7 +115,7 @@ namespace Oce.Solid.Agent.ContractTests
                 int f = PlaneIndex(references, n, o, "front");
                 int t = PlaneIndex(references, n, o, "top");
                 int r = PlaneIndex(references, n, o, "right");
-                Segna("S19: on the template as it comes, front, top and right are the 1st, 2nd and 3rd plane",
+                Check("S19: on the template as it comes, front, top and right are the 1st, 2nd and 3rd plane",
                       f == 0 && t == 1 && r == 2, f + ", " + t + ", " + r + " (expected 0, 1, 2)");
 
                 // One plane more BEFORE the three: the front plane offset by 20 mm,
@@ -126,7 +126,7 @@ namespace Oce.Solid.Agent.ContractTests
                 f = PlaneIndex(references, n, o, "front");
                 t = PlaneIndex(references, n, o, "top");
                 r = PlaneIndex(references, n, o, "right");
-                Segna("S19: an offset plane before the three does not move them (the old rule said 0, 1, 2)",
+                Check("S19: an offset plane before the three does not move them (the old rule said 0, 1, 2)",
                       f == 1 && t == 2 && r == 3, f + ", " + t + ", " + r + " (expected 1, 2, 3)");
 
                 // A plane through the origin facing -Y before the top plane, as the
@@ -136,7 +136,7 @@ namespace Oce.Solid.Agent.ContractTests
                 n = new List<double[]> { Front, new[] { 0.0, -1.0, 0.0 }, Top, Right };
                 o = new List<double[]> { Origin, Origin, Origin, Origin };
                 t = PlaneIndex(references, n, o, "top");
-                Segna("S19: a plane through the origin facing -Y is not the top plane", t == 2,
+                Check("S19: a plane through the origin facing -Y is not the top plane", t == 2,
                       t + " (expected 2)");
 
                 // A plane through the origin turned by one degree about Y, before the
@@ -145,20 +145,20 @@ namespace Oce.Solid.Agent.ContractTests
                 n = new List<double[]> { Front, Top, new[] { c, 0, s }, Right };
                 o = new List<double[]> { Origin, Origin, Origin, Origin };
                 r = PlaneIndex(references, n, o, "right");
-                Segna("S19: a plane turned by one degree is not a base plane", r == 3, r + " (expected 3)");
+                Check("S19: a plane turned by one degree is not a base plane", r == 3, r + " (expected 3)");
 
                 // An unreadable plane first (a null frame) is skipped, not guessed.
                 n = new List<double[]> { null, Front, Top, Right };
                 o = new List<double[]> { null, Origin, Origin, Origin };
                 f = PlaneIndex(references, n, o, "front");
-                Segna("S19: a plane whose transform was not read is skipped", f == 1, f + " (expected 1)");
+                Check("S19: a plane whose transform was not read is skipped", f == 1, f + " (expected 1)");
 
                 // Two planes identical in normal, sign and origin: the first, which
                 // is the template's own (the probe found no way to put one before).
                 n = new List<double[]> { Front, Front, Top, Right };
                 o = new List<double[]> { Origin, Origin, Origin, Origin };
                 f = PlaneIndex(references, n, o, "front");
-                Segna("S19: between two planes the geometry cannot tell apart, the first", f == 0,
+                Check("S19: between two planes the geometry cannot tell apart, the first", f == 0,
                       f + " (expected 0)");
 
                 // No plane with the right normal: -1, never another plane.
@@ -169,11 +169,11 @@ namespace Oce.Solid.Agent.ContractTests
                                            new List<double[]> { Origin, Origin, Origin }, "Superiore");
                 int unknown = PlaneIndex(references, new List<double[]> { Front, Top, Right },
                                          new List<double[]> { Origin, Origin, Origin }, "middle");
-                Segna("S19: no plane with the normal, a name in another case, an unknown name: -1",
+                Check("S19: no plane with the normal, a name in another case, an unknown name: -1",
                       r == -1 && wrongCase == -1 && unknown == -1,
                       r + ", " + wrongCase + ", " + unknown + " (expected -1, -1, -1)");
             }
-            catch (Exception ex) { Segna("S19: Riferimenti.BasePlaneIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("S19: Riferimenti.BasePlaneIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── S7: the feature born, not the last feature of the tree ────────────
@@ -188,20 +188,20 @@ namespace Oce.Solid.Agent.ContractTests
                 var types = new List<string> { "OriginProfileFeature", "SheetMetal", "SMBaseFlange", "RefAxis", "FlatPattern" };
                 var args = new object[] { names, types, before, "RefAxis", 0 };
                 int index = (int)Invoke(sw, "BornFeatureIndex", args);
-                Segna("S7: on a sheet-metal part the axis born is the 4th feature, not the flat pattern at the bottom",
+                Check("S7: on a sheet-metal part the axis born is the 4th feature, not the flat pattern at the bottom",
                       index == 3 && (int)args[4] == 1, index + ", born " + args[4] + " (expected 3, born 1)");
 
-                // The same list is what SenzaLoSchizzo takes the newest born from:
+                // The same list is what WithoutSketch takes the newest born from:
                 // on a sheet it is the feature before the flat pattern.
                 var indices = Invoke(sw, "BornFeatureIndices", new object[] { names, before }) as List<int>;
-                Segna("S7: what was born is the axis alone, and its newest is not the flat pattern",
+                Check("S7: what was born is the axis alone, and its newest is not the flat pattern",
                       indices != null && indices.Count == 1 && indices[0] == 3,
                       indices == null ? "null" : "[" + string.Join(", ", indices) + "] (expected [3])");
 
                 // Nothing born: -1, born 0.
                 args = new object[] { new List<string>(before), new List<string>(types.Take(4)), before, "RefAxis", 0 };
                 index = (int)Invoke(sw, "BornFeatureIndex", args);
-                Segna("S7: nothing born is -1, not the last feature", index == -1 && (int)args[4] == 0,
+                Check("S7: nothing born is -1, not the last feature", index == -1 && (int)args[4] == 0,
                       index + ", born " + args[4] + " (expected -1, born 0)");
 
                 // Two planes born: -1, the choice is not made.
@@ -209,7 +209,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var twoTypes = new List<string> { "OriginProfileFeature", "RefPlane", "RefPlane", "FlatPattern" };
                 args = new object[] { twoNames, twoTypes, new HashSet<string> { "Origin", "FlatPattern1" }, "RefPlane", 0 };
                 index = (int)Invoke(sw, "BornFeatureIndex", args);
-                Segna("S7: two planes born are two candidates, not «the later one»", index == -1 && (int)args[4] == 2,
+                Check("S7: two planes born are two candidates, not «the later one»", index == -1 && (int)args[4] == 2,
                       index + ", born " + args[4] + " (expected -1, born 2)");
 
                 // Any type: one born is taken, a sketch and an extrusion are two.
@@ -221,11 +221,11 @@ namespace Oce.Solid.Agent.ContractTests
                 var bothTypes = new List<string> { "OriginProfileFeature", "ProfileFeature", "Extrusion" };
                 var args2 = new object[] { bothNames, bothTypes, new HashSet<string> { "Origin" }, null, 0 };
                 int both = (int)Invoke(sw, "BornFeatureIndex", args2);
-                Segna("S7: with no type, the one feature born is taken and two born are refused",
+                Check("S7: with no type, the one feature born is taken and two born are refused",
                       shell == 2 && both == -1 && (int)args2[4] == 2,
                       shell + ", " + both + " born " + args2[4] + " (expected 2, -1 born 2)");
             }
-            catch (Exception ex) { Segna("S7: OperazioniSw.BornFeatureIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("S7: OperazioniSw.BornFeatureIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
     }
 }

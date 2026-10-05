@@ -5,16 +5,16 @@ using System.Globalization;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>I tre esiti possibili di un controllo sulle posizioni.</summary>
-    public enum EsitoPosizioni
+    public enum PositionsOutcome
     {
         /// <summary>Guardate e giuste.</summary>
-        Verificate,
+        Verified,
 
         /// <summary>Non e' stato possibile guardarle. NON vuol dire che vanno bene.</summary>
-        NonVerificabile,
+        NotVerifiable,
 
         /// <summary>Guardate, e almeno una e' fuori tolleranza.</summary>
-        Sbagliate
+        Wrong
     }
 
     /// <summary>
@@ -27,7 +27,7 @@ namespace Oce.Solid.Agent.Core
     /// anche quando non aveva potuto guardare niente, e uno dei suoi `return
     /// null` aveva perfino il commento
     ///
-    ///     if (diametroMm &lt;= 0) return null;   // niente da confrontare:
+    ///     if (diameterMm &lt;= 0) return null;   // niente da confrontare:
     ///                                          // non si inventa un verdetto
     ///
     /// Le strade in cui si asteneva erano quattro: diametro ignoto, `GetFaces()`
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Core
     /// come «verificate» da qualunque chiamante che guarda se la chiave c'e' —
     /// che e' precisamente l'errore che si sta riparando.
     /// </summary>
-    public static class GiudizioPosizioni
+    public static class PositionsVerdict
     {
         /// <summary>
         /// Quanto puo' distare un foro da dove e' stato chiesto, in millimetri.
@@ -76,21 +76,21 @@ namespace Oce.Solid.Agent.Core
         /// Uno scostamento piu' grande di cosi' non e' imprecisione, e' un'altra
         /// posizione.
         /// </summary>
-        public const double TolleranzaMm = 0.1;
+        public const double ToleranceMm = 0.1;
 
         /// <summary>
         /// Giudica le posizioni dei fori confrontando gli assi dei cilindri
         /// trovati sulla lavorazione con i punti che erano stati chiesti.
         ///
-        /// <param name="assiTrovati">
+        /// <param name="foundAxes">
         /// I `CylinderParams` delle facce cilindriche del diametro giusto: sette
         /// double ciascuno, i primi tre il punto sull'asse, i tre dopo la
         /// direzione, il settimo il raggio. Puo' essere null o vuoto.
         /// </param>
-        /// <param name="nonPosso">
+        /// <param name="cannot">
         /// Il motivo per cui il chiamante non ha potuto raccogliere gli assi, se
         /// non ha potuto. Se e' valorizzato, vince su tutto il resto: si esce
-        /// con NonVerificabile e questo motivo.
+        /// con NotVerifiable e questo motivo.
         /// </param>
         /// <param name="axes">
         /// Quale coordinata del modello corrisponde alla prima e alla seconda
@@ -99,91 +99,91 @@ namespace Oce.Solid.Agent.Core
         /// <param name="offsetM">La quota lungo la normale, in metri.</param>
         /// <param name="positions">I punti chiesti, in millimetri, nel piano.</param>
         /// <param name="reason">
-        /// Con Sbagliate, la frase da dare a chi legge. Con NonVerificabile,
+        /// Con Sbagliate, la frase da dare a chi legge. Con NotVerifiable,
         /// perche' non si e' potuto guardare. Con Verificate, null.
         /// </param>
         /// </summary>
-        public static EsitoPosizioni Giudica(
-            List<double[]> assiTrovati,
-            string nonPosso,
-            double[] assi,
+        public static PositionsOutcome Judge(
+            List<double[]> foundAxes,
+            string cannot,
+            double[] axes,
             double offsetM,
-            List<double[]> posizioni,
-            out string motivo)
+            List<double[]> positions,
+            out string reason)
         {
-            if (!string.IsNullOrEmpty(nonPosso))
+            if (!string.IsNullOrEmpty(cannot))
             {
-                motivo = nonPosso;
-                return EsitoPosizioni.NonVerificabile;
+                reason = cannot;
+                return PositionsOutcome.NotVerifiable;
             }
 
-            if (posizioni == null || posizioni.Count == 0)
+            if (positions == null || positions.Count == 0)
             {
-                motivo = "non e' stata chiesta nessuna posizione, non c'e' niente da confrontare";
-                return EsitoPosizioni.NonVerificabile;
+                reason = "non e' stata chiesta nessuna posizione, non c'e' niente da confrontare";
+                return PositionsOutcome.NotVerifiable;
             }
 
             // IL CASO CHE PRIMA PASSAVA PER BUONO.
             // Nessuna faccia cilindrica del diametro atteso sulla lavorazione:
             // non vuol dire che i fori sono al posto giusto, vuol dire che non
             // si sa nemmeno se ci sono.
-            if (assiTrovati == null || assiTrovati.Count == 0)
+            if (foundAxes == null || foundAxes.Count == 0)
             {
-                motivo = "sulla lavorazione non c'e' nessuna faccia cilindrica " +
+                reason = "sulla lavorazione non c'e' nessuna faccia cilindrica " +
                          "del diametro atteso: non so dire dove siano finiti i fori";
-                return EsitoPosizioni.NonVerificabile;
+                return PositionsOutcome.NotVerifiable;
             }
 
-            if (assi == null || assi.Length < 3)
+            if (axes == null || axes.Length < 3)
             {
-                motivo = "non so su quale piano guardare";
-                return EsitoPosizioni.NonVerificabile;
+                reason = "non so su quale piano guardare";
+                return PositionsOutcome.NotVerifiable;
             }
 
-            double peggiore = 0;
-            int lontano = -1;
-            for (int i = 0; i < posizioni.Count; i++)
+            double worse = 0;
+            int far = -1;
+            for (int i = 0; i < positions.Count; i++)
             {
-                var atteso = new double[3];
-                atteso[(int)assi[0]] = Unita.M(posizioni[i][0]);
-                atteso[(int)assi[1]] = Unita.M(posizioni[i][1]);
-                atteso[(int)assi[2]] = offsetM;
+                var expected = new double[3];
+                expected[(int)axes[0]] = Units.M(positions[i][0]);
+                expected[(int)axes[1]] = Units.M(positions[i][1]);
+                expected[(int)axes[2]] = offsetM;
 
-                double vicino = double.MaxValue;
-                foreach (var par in assiTrovati)
-                    vicino = Math.Min(vicino, DistanzaDallAsse(atteso, par));
-                if (vicino > peggiore) { peggiore = vicino; lontano = i; }
+                double near = double.MaxValue;
+                foreach (var par in foundAxes)
+                    near = Math.Min(near, DistanceFromAxis(expected, par));
+                if (near > worse) { worse = near; far = i; }
             }
 
-            if (peggiore * 1000.0 > TolleranzaMm)
+            if (worse * 1000.0 > ToleranceMm)
             {
-                motivo = string.Format(
+                reason = string.Format(
                     CultureInfo.InvariantCulture,
                     "Il foro {0}, chiesto a ({1:0.##}, {2:0.##}), e' finito a {3:0.##} mm " +
                     "da li'. Non te lo lascio passare per buono: ritiralo — " +
-                    Frasi.CosiSiRitira + ".",
-                    lontano + 1, posizioni[lontano][0], posizioni[lontano][1], peggiore * 1000.0);
-                return EsitoPosizioni.Sbagliate;
+                    Sentences.HowToWithdrawIt + ".",
+                    far + 1, positions[far][0], positions[far][1], worse * 1000.0);
+                return PositionsOutcome.Wrong;
             }
 
-            motivo = null;
-            return EsitoPosizioni.Verificate;
+            reason = null;
+            return PositionsOutcome.Verified;
         }
 
         /// <summary>Distanza fra un punto e la retta di un cilindro, in metri.</summary>
-        public static double DistanzaDallAsse(double[] punto, double[] cilindro)
+        public static double DistanceFromAxis(double[] point, double[] cylinder)
         {
-            if (punto == null || cilindro == null || punto.Length < 3 || cilindro.Length < 6)
+            if (point == null || cylinder == null || point.Length < 3 || cylinder.Length < 6)
                 return double.MaxValue;
-            double vx = punto[0] - cilindro[0];
-            double vy = punto[1] - cilindro[1];
-            double vz = punto[2] - cilindro[2];
-            double ax = cilindro[3], ay = cilindro[4], az = cilindro[5];
-            double norma = Math.Sqrt(ax * ax + ay * ay + az * az);
-            if (norma < 1e-12) return double.MaxValue;
-            ax /= norma; ay /= norma; az /= norma;
-            double lungo = vx * ax + vy * ay + vz * az;
-            double dx = vx - lungo * ax, dy = vy - lungo * ay, dz = vz - lungo * az;
+            double vx = point[0] - cylinder[0];
+            double vy = point[1] - cylinder[1];
+            double vz = point[2] - cylinder[2];
+            double ax = cylinder[3], ay = cylinder[4], az = cylinder[5];
+            double standard = Math.Sqrt(ax * ax + ay * ay + az * az);
+            if (standard < 1e-12) return double.MaxValue;
+            ax /= standard; ay /= standard; az /= standard;
+            double along = vx * ax + vy * ay + vz * az;
+            double dx = vx - along * ax, dy = vy - along * ay, dz = vz - along * az;
             return Math.Sqrt(dx * dx + dy * dy + dz * dz);
         }
     }

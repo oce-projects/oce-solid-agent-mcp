@@ -31,14 +31,14 @@ namespace Checks.SketchOnSheet
     /// tavola vuol dire scegliere un modello di foglio, e quella scelta e' di
     /// chi lavora.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
         private static int Main()
         {
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
@@ -48,34 +48,34 @@ namespace Checks.SketchOnSheet
                     "Il documento attivo e' «" + doc.GetTitle() + "», che non e' una tavola.");
                 return 2;
             }
-            var tavola = (IDrawingDoc)doc;
+            var drawing = (IDrawingDoc)doc;
             Console.WriteLine("tavola: " + doc.GetTitle());
 
-            var foglio = (ISheet)tavola.GetCurrentSheet();
-            Console.WriteLine("foglio: " + foglio.GetName());
-            var proprieta = foglio.GetProperties2() as double[];
-            if (proprieta != null && proprieta.Length >= 7)
+            var sheet = (ISheet)drawing.GetCurrentSheet();
+            Console.WriteLine("foglio: " + sheet.GetName());
+            var property = sheet.GetProperties2() as double[];
+            if (property != null && property.Length >= 7)
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "misura foglio: {0:0.###} x {1:0.###} m", proprieta[5], proprieta[6]));
+                    "misura foglio: {0:0.###} x {1:0.###} m", property[5], property[6]));
 
             // 1. QUANTE ENTITA' HA GIA' LO SCHIZZO DEL FOGLIO.
             // Il numero di partenza serve: «ne ho una» non vuol dire niente se
             // non si sa quante ce n'erano prima.
-            int prima = SegmentiDelFoglio(foglio);
-            Console.WriteLine("segmenti nello schizzo del foglio, prima: " + Mostra(prima));
+            int before = SheetSegments(sheet);
+            Console.WriteLine("segmenti nello schizzo del foglio, prima: " + Show(before));
 
             // 2. SI ENTRA NEL CONTESTO DEL FOGLIO.
             Console.WriteLine("EditSheet()...");
-            try { tavola.EditSheet(); }
+            try { drawing.EditSheet(); }
             catch (Exception e) { Console.WriteLine("  EditSheet ha sollevato: " + e.Message); }
 
             // 3. SI TRACCIA. Le coordinate sono in METRI e nel sistema del
             //    foglio: 0,05 m sono 50 mm dal bordo in basso a sinistra.
-            var schizzi = doc.SketchManager;
-            ISketchSegment segmento = null;
+            var sketches = doc.SketchManager;
+            ISketchSegment segment = null;
             try
             {
-                segmento = schizzi.CreateLine(0.05, 0.05, 0.0, 0.15, 0.05, 0.0) as ISketchSegment;
+                segment = sketches.CreateLine(0.05, 0.05, 0.0, 0.15, 0.05, 0.0) as ISketchSegment;
             }
             catch (Exception e) { Console.WriteLine("  CreateLine ha sollevato: " + e.Message); }
             // ATTENZIONE: `ISketchSegment.GetType()` NON e' quello di Object.
@@ -84,17 +84,17 @@ namespace Checks.SketchOnSheet
             // `.Name` dietro non compila, ed e' un bene: se compilasse si
             // leggerebbe un nome di classe al posto di una linea.
             Console.WriteLine("CreateLine ha risposto: " +
-                (segmento == null ? "null" : "segmento di tipo " + segmento.GetType() +
-                 (segmento.GetType() == 0 ? " (linea)" : "")));
+                (segment == null ? "null" : "segmento di tipo " + segment.GetType() +
+                 (segment.GetType() == 0 ? " (linea)" : "")));
 
-            int dopo = SegmentiDelFoglio(foglio);
-            Console.WriteLine("segmenti nello schizzo del foglio, dopo:  " + Mostra(dopo));
-            if (prima >= 0 && dopo >= 0)
-                Console.WriteLine(dopo > prima
+            int after = SheetSegments(sheet);
+            Console.WriteLine("segmenti nello schizzo del foglio, dopo:  " + Show(after));
+            if (before >= 0 && after >= 0)
+                Console.WriteLine(after > before
                     ? "  -> il segmento E' FINITO nello schizzo del foglio"
                     : "  -> NON e' finito nello schizzo del foglio: sta da un'altra parte");
 
-            if (segmento == null)
+            if (segment == null)
             {
                 Console.WriteLine();
                 Console.WriteLine("Senza segmento non si puo' provare la selezione.");
@@ -104,30 +104,30 @@ namespace Checks.SketchOnSheet
             // 3b. E ALLORA DOV'E' FINITA?
             // La domanda non e' accademica: per riprendere una linea che non
             // si e' appena disegnata bisogna sapere in quale schizzo cercarla.
-            var attivo = schizzi.ActiveSketch as ISketch;
-            Console.WriteLine("schizzo attivo: " + (attivo == null ? "nessuno" : Nome(attivo)));
-            if (attivo != null)
+            var active = sketches.ActiveSketch as ISketch;
+            Console.WriteLine("schizzo attivo: " + (active == null ? "nessuno" : Name(active)));
+            if (active != null)
             {
-                var dentro = attivo.GetSketchSegments() as object[];
+                var inside = active.GetSketchSegments() as object[];
                 Console.WriteLine("  segmenti dello schizzo attivo: " +
-                    (dentro == null ? "-" : dentro.Length.ToString()));
+                    (inside == null ? "-" : inside.Length.ToString()));
             }
 
             // La prima vista di una tavola E' IL FOGLIO: le entita' disegnate
             // sul foglio stanno nel suo schizzo, non in quello del formato.
             try
             {
-                var vista = tavola.GetFirstView() as IView;
+                var view = drawing.GetFirstView() as IView;
                 int n = 0;
-                while (vista != null)
+                while (view != null)
                 {
-                    var suo = vista.GetSketch() as ISketch;
-                    var segm = suo == null ? null : suo.GetSketchSegments() as object[];
-                    Console.WriteLine("  vista " + n + ": «" + vista.GetName2() + "»" +
-                        ", tipo " + vista.Type +
+                    var its = view.GetSketch() as ISketch;
+                    var segm = its == null ? null : its.GetSketchSegments() as object[];
+                    Console.WriteLine("  vista " + n + ": «" + view.GetName2() + "»" +
+                        ", tipo " + view.Type +
                         ", segmenti nel suo schizzo: " +
                         (segm == null ? "-" : segm.Length.ToString()));
-                    vista = vista.GetNextView() as IView;
+                    view = view.GetNextView() as IView;
                     n++;
                     if (n > 20) break;
                 }
@@ -137,44 +137,44 @@ namespace Checks.SketchOnSheet
             // 4. LA DOMANDA VERA: SI RIPRENDE SENZA PASSARE DA UN NOME?
             // `CreateSectionViewAt5` vuole la linea selezionata, e una stringa
             // di nome sarebbe fragile (localizzata, e diversa a ogni schizzo).
-            var selezione = (ISelectionMgr)doc.SelectionManager;
+            var selection = (ISelectionMgr)doc.SelectionManager;
             doc.ClearSelection2(true);
-            bool preso = false;
-            try { preso = segmento.Select4(false, null); }
+            bool taken = false;
+            try { taken = segment.Select4(false, null); }
             catch (Exception e) { Console.WriteLine("  Select4 ha sollevato: " + e.Message); }
-            Console.WriteLine("Select4(false, null): " + preso);
+            Console.WriteLine("Select4(false, null): " + taken);
             Console.WriteLine("oggetti selezionati: " +
-                selezione.GetSelectedObjectCount2(-1));
-            if (selezione.GetSelectedObjectCount2(-1) > 0)
+                selection.GetSelectedObjectCount2(-1));
+            if (selection.GetSelectedObjectCount2(-1) > 0)
             {
-                int tipo = selezione.GetSelectedObjectType3(1, -1);
-                Console.WriteLine("tipo selezionato: " + tipo + "  (" + NomeTipo(tipo) + ")");
-                Console.WriteLine("marca: " + selezione.GetSelectedObjectMark(1));
+                int typ = selection.GetSelectedObjectType3(1, -1);
+                Console.WriteLine("tipo selezionato: " + typ + "  (" + TypeNameOf(typ) + ")");
+                Console.WriteLine("marca: " + selection.GetSelectedObjectMark(1));
             }
 
             // 5. E CON UNA MARCA? Le API che vogliono un'entita' «di un certo
             //    ruolo» la cercano per marca, non per posizione nell'elenco.
             doc.ClearSelection2(true);
-            bool conMarca = false;
+            bool withMark = false;
             try
             {
-                var dati = (SelectData)selezione.CreateSelectData();
-                dati.Mark = 1;
-                conMarca = segmento.Select4(false, dati);
+                var data = (SelectData)selection.CreateSelectData();
+                data.Mark = 1;
+                withMark = segment.Select4(false, data);
             }
             catch (Exception e) { Console.WriteLine("  Select4 con marca ha sollevato: " + e.Message); }
-            Console.WriteLine("Select4 con Mark=1: " + conMarca +
+            Console.WriteLine("Select4 con Mark=1: " + withMark +
                 ", marca riletta: " +
-                (selezione.GetSelectedObjectCount2(-1) > 0
-                    ? selezione.GetSelectedObjectMark(1).ToString()
+                (selection.GetSelectedObjectCount2(-1) > 0
+                    ? selection.GetSelectedObjectMark(1).ToString()
                     : "-"));
 
             // 6. IL NOME, se ce n'e' uno. Non per usarlo — per sapere se
             //    esiste e com'e' fatto.
             try
             {
-                var entita = segmento as IEntity;
-                Console.WriteLine("il segmento e' anche IEntity: " + (entita != null));
+                var entity = segment as IEntity;
+                Console.WriteLine("il segmento e' anche IEntity: " + (entity != null));
             }
             catch { }
 
@@ -188,37 +188,37 @@ namespace Checks.SketchOnSheet
         /// contare: uno zero finto sarebbe peggio, perche' farebbe leggere
         /// «e' cresciuto da 0 a 1» a un controllo che non ha guardato niente.
         /// </summary>
-        private static int SegmentiDelFoglio(ISheet foglio)
+        private static int SheetSegments(ISheet sheet)
         {
             try
             {
-                var schizzo = foglio.GetTemplateSketch() as ISketch;
-                if (schizzo == null) return -1;
-                var segmenti = schizzo.GetSketchSegments() as object[];
-                return segmenti == null ? 0 : segmenti.Length;
+                var sketch = sheet.GetTemplateSketch() as ISketch;
+                if (sketch == null) return -1;
+                var segments = sketch.GetSketchSegments() as object[];
+                return segments == null ? 0 : segments.Length;
             }
             catch { return -1; }
         }
 
         /// <summary>Il nome di uno schizzo, se si riesce a leggerlo.</summary>
-        private static string Nome(ISketch schizzo)
+        private static string Name(ISketch sketch)
         {
             try
             {
-                var f = schizzo as IFeature;
+                var f = sketch as IFeature;
                 return f == null ? "(senza nome)" : f.Name;
             }
             catch { return "(nome illeggibile)"; }
         }
 
-        private static string Mostra(int n)
+        private static string Show(int n)
         {
             return n < 0 ? "- (non contati)" : n.ToString();
         }
 
-        private static string NomeTipo(int tipo)
+        private static string TypeNameOf(int typ)
         {
-            switch (tipo)
+            switch (typ)
             {
                 case (int)swSelectType_e.swSelSKETCHSEGS: return "swSelSKETCHSEGS";
                 case (int)swSelectType_e.swSelEDGES: return "swSelEDGES";

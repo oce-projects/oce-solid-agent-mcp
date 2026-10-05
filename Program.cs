@@ -20,7 +20,7 @@ namespace Oce.Solid.Agent
     /// processo finito. Qui si parte comunque e il motivo si legge chiamando
     /// uno strumento — che e' il posto dove chi usa il ponte sta guardando.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
         /// <summary>
         /// LA VERSIONE SI LEGGE DA `VERSION.txt`, CHE VIAGGIA DENTRO
@@ -42,56 +42,56 @@ namespace Oce.Solid.Agent
         /// numero mancante*, perche' chi lo legge non ha modo di sapere
         /// che e' sbagliato.
         /// </summary>
-        private static readonly string Versione = VersioneDallaRisorsa();
+        private static readonly string Version = VersionFromResource();
 
-        private static string VersioneDallaRisorsa()
+        private static string VersionFromResource()
         {
             try
             {
                 var asm = System.Reflection.Assembly.GetExecutingAssembly();
-                foreach (var nome in asm.GetManifestResourceNames())
+                foreach (var itemName in asm.GetManifestResourceNames())
                 {
-                    if (!nome.EndsWith("VERSION.txt",
+                    if (!itemName.EndsWith("VERSION.txt",
                                        StringComparison.OrdinalIgnoreCase)) continue;
-                    using (var flusso = asm.GetManifestResourceStream(nome))
-                    using (var lettore = new StreamReader(flusso))
-                        return lettore.ReadToEnd().Trim();
+                    using (var flow = asm.GetManifestResourceStream(itemName))
+                    using (var reader = new StreamReader(flow))
+                        return reader.ReadToEnd().Trim();
                 }
             }
             catch { }
             return "sconosciuta";
         }
 
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
             Console.OutputEncoding = new UTF8Encoding(false);
             Console.InputEncoding = new UTF8Encoding(false);
 
-            var sessione = new Sessione();
-            var motivo = sessione.Aggancia();
-            if (motivo != null) Protocollo.Nota("[ponte] " + motivo);
+            var session = new Session();
+            var reason = session.Attach();
+            if (reason != null) Protocol.Note("[ponte] " + reason);
             else
-                Protocollo.Nota(
-                    "[ponte] SolidWorks " + sessione.VersioneSolidWorks() +
-                    ", libreria di disegno " + sessione.VersioneLibreria());
+                Protocol.Note(
+                    "[ponte] SolidWorks " + session.SolidWorksVersion() +
+                    ", libreria di disegno " + session.LibraryVersion());
 
-            var catalogo = new Catalogo();
-            if (catalogo.ErroreDiCaricamento != null)
-                Protocollo.Nota("[ponte] " + catalogo.ErroreDiCaricamento);
+            var catalog = new Catalog();
+            if (catalog.LoadingError != null)
+                Protocol.Note("[ponte] " + catalog.LoadingError);
             else
-                Protocollo.Nota("[ponte] catalogo: " + catalogo.Quante + " operazioni provate");
+                Protocol.Note("[ponte] catalogo: " + catalog.HowMany + " operazioni provate");
 
-            if (argomenti != null && argomenti.Length > 0 && argomenti[0] == "--prova")
-                return Prova(sessione, catalogo);
+            if (arguments != null && arguments.Length > 0 && arguments[0] == "--prova")
+                return Test(session, catalog);
 
-            var attrezzi = new Attrezzi(sessione, catalogo);
-            var uscita = Console.Out;
+            var tools = new McpTools(session, catalog);
+            var output = Console.Out;
 
             // DA QUI IN POI IL PONTE RACCONTA ANCHE AL CLIENT (voce W2.8).
             // Non prima: il ciclo dei messaggi non e' ancora partito, e una riga
             // su stdout senza nessuno che legga righe JSON e' solo rumore che
             // rompe chi arrivera' dopo.
-            Protocollo.AccendiIlCanale(uscita);
+            Protocol.TurnOnChannel(output);
 
             // GLI ARRETRATI PRIMA DI STDIN (voce W2.5).
             //
@@ -100,59 +100,59 @@ namespace Oce.Solid.Agent
             // invece che buttate — buttarle lascerebbe il client ad
             // aspettare per sempre una risposta che nessuno gli dara' — e
             // il giro le serve qui, appena puo'.
-            string riga;
-            while ((riga = Elicitazione.Arretrato() ?? Console.In.ReadLine()) != null)
+            string line;
+            while ((line = Elicitation.Backlog() ?? Console.In.ReadLine()) != null)
             {
-                if (string.IsNullOrWhiteSpace(riga)) continue;
+                if (string.IsNullOrWhiteSpace(line)) continue;
 
-                Dictionary<string, object> messaggio;
-                try { messaggio = Protocollo.DaJson(riga); }
+                Dictionary<string, object> message;
+                try { message = Protocol.FromJson(line); }
                 catch (Exception ex)
                 {
-                    Protocollo.Manda(uscita, Protocollo.Errore(
-                        null, Protocollo.ErroreParsing, "JSON non valido: " + ex.Message));
+                    Protocol.Send(output, Protocol.Error(
+                        null, Protocol.ParsingError, "JSON non valido: " + ex.Message));
                     continue;
                 }
-                if (messaggio == null) continue;
+                if (message == null) continue;
 
-                object id = messaggio.TryGetValue("id", out var i) ? i : null;
-                var metodo = messaggio.TryGetValue("method", out var m)
+                object id = message.TryGetValue("id", out var i) ? i : null;
+                var method = message.TryGetValue("method", out var m)
                     ? Convert.ToString(m) : null;
-                var parametri = messaggio.TryGetValue("params", out var p)
+                var parameters = message.TryGetValue("params", out var p)
                     ? p as Dictionary<string, object> : null;
 
                 // Le NOTIFICHE non hanno id e non vogliono risposta. Rispondere
                 // a una notifica e' il modo piu' rapido di confondere chi
                 // ascolta: si ritroverebbe una risposta che non aspettava.
-                bool eNotifica = !messaggio.ContainsKey("id");
+                bool isNotification = !message.ContainsKey("id");
 
                 try
                 {
-                    var risposta = Serve(metodo, parametri, attrezzi, sessione, catalogo, id);
-                    if (risposta != null && !eNotifica) Protocollo.Manda(uscita, risposta);
+                    var response = Serve(method, parameters, tools, session, catalog, id);
+                    if (response != null && !isNotification) Protocol.Send(output, response);
                 }
                 catch (Exception ex)
                 {
-                    Protocollo.Nota("[ponte] " + ex);
-                    if (!eNotifica)
-                        Protocollo.Manda(uscita, Protocollo.Errore(
-                            id, Protocollo.ErroreInterno, ex.Message));
+                    Protocol.Note("[ponte] " + ex);
+                    if (!isNotification)
+                        Protocol.Send(output, Protocol.Error(
+                            id, Protocol.InternalError, ex.Message));
                 }
             }
 
-            Protocollo.Nota("[ponte] chiuso");
+            Protocol.Note("[ponte] chiuso");
             return 0;
         }
 
         private static Dictionary<string, object> Serve(
-            string metodo,
-            Dictionary<string, object> parametri,
-            Attrezzi attrezzi,
-            Sessione sessione,
-            Catalogo catalogo,
+            string method,
+            Dictionary<string, object> parameters,
+            McpTools tools,
+            Session session,
+            Catalog catalog,
             object id)
         {
-            switch (metodo)
+            switch (method)
             {
                 case "initialize":
                     // COSA SA FARE IL CLIENT si legge QUI e una volta sola
@@ -160,13 +160,13 @@ namespace Oce.Solid.Agent
                     // chiedere una conferma all'utente. Presumerlo vorrebbe
                     // dire appendere una chiamata aspettando una risposta
                     // che non arrivera' mai.
-                    Elicitazione.LeggiLeCapacita(parametri);
-                    return Protocollo.Risposta(id, new Dictionary<string, object>
+                    Elicitation.ReadCapabilities(parameters);
+                    return Protocol.Response(id, new Dictionary<string, object>
                     {
                         // La versione del protocollo si rimanda com'e' arrivata
                         // quando la si riconosce: dichiararne una sola vuol
                         // dire rompersi al primo aggiornamento del client.
-                        ["protocolVersion"] = VersioneProtocollo(parametri),
+                        ["protocolVersion"] = ProtocolVersion(parameters),
                         ["capabilities"] = new Dictionary<string, object>
                         {
                             ["tools"] = new Dictionary<string, object>(),
@@ -188,7 +188,7 @@ namespace Oce.Solid.Agent
                         ["serverInfo"] = new Dictionary<string, object>
                         {
                             ["name"] = "oce-solid-agent",
-                            ["version"] = Versione,
+                            ["version"] = Version,
                         },
                         ["instructions"] =
                             "Un ponte verso SOLIDWORKS. Prima di proporre " +
@@ -209,7 +209,7 @@ namespace Oce.Solid.Agent
                     return null;
 
                 case "ping":
-                    return Protocollo.Risposta(id, new Dictionary<string, object>());
+                    return Protocol.Response(id, new Dictionary<string, object>());
 
                 // Il client decide quanto vuole sentire (voce W2.8).
                 //
@@ -220,93 +220,93 @@ namespace Oce.Solid.Agent
                 // niente.
                 case "logging/setLevel":
                 {
-                    var voluto = parametri != null && parametri.TryGetValue("level", out var lv)
+                    var wanted = parameters != null && parameters.TryGetValue("level", out var lv)
                         ? Convert.ToString(lv) : null;
-                    if (!Protocollo.ImpostaIlLivello(voluto))
-                        return Protocollo.Errore(
-                            id, Protocollo.ParametriNonValidi,
-                            "Livello «" + (voluto ?? "") + "» sconosciuto. Ci sono: " +
+                    if (!Protocol.SetLevel(wanted))
+                        return Protocol.Error(
+                            id, Protocol.InvalidParameters,
+                            "Livello «" + (wanted ?? "") + "» sconosciuto. Ci sono: " +
                             "debug, info, notice, warning, error, critical, alert, emergency.");
-                    return Protocollo.Risposta(id, new Dictionary<string, object>());
+                    return Protocol.Response(id, new Dictionary<string, object>());
                 }
 
                 case "tools/list":
-                    return Protocollo.Risposta(id, new Dictionary<string, object>
+                    return Protocol.Response(id, new Dictionary<string, object>
                     {
-                        ["tools"] = attrezzi.Elenco(),
+                        ["tools"] = tools.Items(),
                     });
 
                 // ── LE RISORSE (voce W2.12) ─────────────────────────────
                 //
                 // Stesso catalogo degli strumenti, presa da un'altra porta:
-                // `Risorse` riceve l'oggetto `Catalogo` che e' gia' in mano e
+                // `Risorse` riceve l'oggetto `Catalog` che e' gia' in mano e
                 // non ne costruisce un altro. Costruirne un altro vorrebbe dire
                 // rileggere il file, e due letture dello stesso file in momenti
                 // diversi sono due cataloghi che possono differire.
                 case "resources/list":
-                    return Protocollo.Risposta(id, new Dictionary<string, object>
+                    return Protocol.Response(id, new Dictionary<string, object>
                     {
-                        ["resources"] = new Risorse(catalogo).Elenco(),
+                        ["resources"] = new Risorse(catalog).Items(),
                     });
 
                 case "resources/templates/list":
-                    return Protocollo.Risposta(id, new Dictionary<string, object>
+                    return Protocol.Response(id, new Dictionary<string, object>
                     {
-                        ["resourceTemplates"] = new Risorse(catalogo).Modelli(),
+                        ["resourceTemplates"] = new Risorse(catalog).Models(),
                     });
 
                 case "resources/read":
                 {
-                    var uri = parametri != null && parametri.TryGetValue("uri", out var u)
+                    var uri = parameters != null && parameters.TryGetValue("uri", out var u)
                         ? Convert.ToString(u) : null;
                     if (string.IsNullOrWhiteSpace(uri))
-                        return Protocollo.Errore(
-                            id, Protocollo.ParametriNonValidi, "manca «uri»");
+                        return Protocol.Error(
+                            id, Protocol.InvalidParameters, "manca «uri»");
 
                     // THE URIs OF BEFORE W3.1-bis.5 (Oce.Solid.Agent.Core/Alias.cs, decision
                     // D4): read as the English ones until the first release, and the
                     // answer says so in `deprecated`. Removed in W3.1-bis.11.
                     var deprecated = new List<string>();
                     uri = Oce.Solid.Agent.Core.Alias.ResourceUri(uri, deprecated);
-                    var risorse = new Risorse(catalogo);
-                    var contenuto = risorse.Leggi(uri);
-                    if (contenuto != null)
+                    var risorse = new Risorse(catalog);
+                    var content = risorse.Read(uri);
+                    if (content != null)
                     {
-                        var answerWithNotes = contenuto as Dictionary<string, object>;
+                        var answerWithNotes = content as Dictionary<string, object>;
                         if (deprecated.Count > 0 && answerWithNotes != null) answerWithNotes["deprecated"] = deprecated.ToArray();
-                        return Protocollo.Risposta(id, contenuto);
+                        return Protocol.Response(id, content);
                     }
 
                     // UN URI CHE NON ESISTE DICE COSA ESISTE. Un «non trovato»
                     // nudo lascia a chi chiede l'unico rimedio che non
                     // funziona: riprovare uguale.
-                    var simili = risorse.Simili(uri);
-                    return Protocollo.Errore(
-                        id, Protocollo.ParametriNonValidi,
+                    var similar = risorse.Similar(uri);
+                    return Protocol.Error(
+                        id, Protocol.InvalidParameters,
                         "Non conosco la risorsa «" + uri + "». C'e' «" +
-                        Risorse.UriElenco + "» (tutte le operazioni in breve) e " +
-                        "«" + Risorse.PrefissoOperazione + "<name>» per una sola." +
-                        (simili.Count == 0
+                        Risorse.UriList + "» (tutte le operazioni in breve) e " +
+                        "«" + Risorse.OperationPrefix + "<name>» per una sola." +
+                        (similar.Count == 0
                             ? ""
-                            : " Forse cercavi: " + string.Join(", ", simili) + "."));
+                            : " Forse cercavi: " + string.Join(", ", similar) + "."));
                 }
 
                 case "tools/call":
                 {
-                    var nome = parametri != null && parametri.TryGetValue("name", out var n)
+                    var itemName = parameters != null && parameters.TryGetValue("name", out var n)
                         ? Convert.ToString(n) : null;
-                    var suoi = parametri != null && parametri.TryGetValue("arguments", out var a)
+                    var itsItems = parameters != null && parameters.TryGetValue("arguments", out var a)
                         ? a as Dictionary<string, object> : null;
-                    if (string.IsNullOrWhiteSpace(nome))
-                        return Protocollo.Errore(
-                            id, Protocollo.ParametriNonValidi, "manca «name»");
+                    if (string.IsNullOrWhiteSpace(itemName))
+                        return Protocol.Error(
+                            id, Protocol.InvalidParameters, "manca «name»");
                     // IL GETTONE DELL'AVANZAMENTO (voce W2.2). Sta su
                     // `params._meta`, cioe' accanto a `name` e non dentro
                     // `arguments`: e' del PROTOCOLLO, non dello strumento,
                     // e un client generico lo mette li' senza sapere niente
                     // di cosa fa questo ponte.
-                    return Protocollo.Risposta(
-                        id, attrezzi.Chiama(nome, suoi, Avanzamento.Gettone(parametri)));
+                    return Protocol.Response(
+                        id, tools.Invoke(itemName, itsItems, Progress.Token(parameters)));
                 }
 
                 // ── L'ANNULLAMENTO, E UN NO DETTO (voce W2.2) ─────────────
@@ -327,13 +327,13 @@ namespace Oce.Solid.Agent
                 // non si ignora: si DICE. *Un no dichiarato si puo' leggere;
                 // un silenzio no.*
                 case "notifications/cancelled":
-                    Protocollo.Nota(AnnullamentoNonPossibile(parametri));
+                    Protocol.Note(UndoNotPossible(parameters));
                     return null;
 
                 default:
-                    return Protocollo.Errore(
-                        id, Protocollo.MetodoSconosciuto,
-                        "Metodo non gestito: " + metodo);
+                    return Protocol.Error(
+                        id, Protocol.UnknownMethod,
+                        "Metodo non gestito: " + method);
             }
         }
 
@@ -344,21 +344,21 @@ namespace Oce.Solid.Agent
         /// ponte: la cosa che conta di questa risposta e' **che dica il
         /// numero della richiesta e il perche'**, e quello si guarda qui.
         /// </summary>
-        internal static string AnnullamentoNonPossibile(
-            Dictionary<string, object> parametri)
+        internal static string UndoNotPossible(
+            Dictionary<string, object> parameters)
         {
-            object quale = null;
-            string motivo = null;
-            if (parametri != null)
+            object which = null;
+            string reason = null;
+            if (parameters != null)
             {
-                parametri.TryGetValue("requestId", out quale);
+                parameters.TryGetValue("requestId", out which);
                 object m;
-                if (parametri.TryGetValue("reason", out m)) motivo = Convert.ToString(m);
+                if (parameters.TryGetValue("reason", out m)) reason = Convert.ToString(m);
             }
 
             return "[ponte] annullamento chiesto per la richiesta " +
-                   (quale == null ? "(senza requestId)" : "«" + Convert.ToString(quale) + "»") +
-                   (string.IsNullOrWhiteSpace(motivo) ? "" : ", motivo: " + motivo) +
+                   (which == null ? "(senza requestId)" : "«" + Convert.ToString(which) + "»") +
+                   (string.IsNullOrWhiteSpace(reason) ? "" : ", motivo: " + reason) +
                    ". NON l'ho interrotta: questo ponte serve una richiesta " +
                    "alla volta sullo stesso thread, perche' SOLIDWORKS lo " +
                    "pretende, e mentre lavora non legge stdin. Quando questa " +
@@ -368,16 +368,16 @@ namespace Oce.Solid.Agent
                    "te lo dice.";
         }
 
-        private static string VersioneProtocollo(Dictionary<string, object> parametri)
+        private static string ProtocolVersion(Dictionary<string, object> parameters)
         {
             try
             {
-                if (parametri != null &&
-                    parametri.TryGetValue("protocolVersion", out var v) &&
+                if (parameters != null &&
+                    parameters.TryGetValue("protocolVersion", out var v) &&
                     v != null)
                 {
-                    var chiesta = Convert.ToString(v);
-                    if (!string.IsNullOrWhiteSpace(chiesta)) return chiesta;
+                    var requested = Convert.ToString(v);
+                    if (!string.IsNullOrWhiteSpace(requested)) return requested;
                 }
             }
             catch { }
@@ -484,28 +484,28 @@ namespace Oce.Solid.Agent
         /// `--prova`: un giro secco senza client, per sapere se il ponte sta in
         /// piedi su questa macchina. Stampa su stderr e non tocca il pezzo.
         /// </summary>
-        private static int Prova(Sessione sessione, Catalogo catalogo)
+        private static int Test(Session session, Catalog catalog)
         {
-            Protocollo.Nota("[prova] agganciata: " + sessione.Agganciata);
-            Protocollo.Nota("[prova] libreria di disegno: " + sessione.PercorsoLibreria);
-            Protocollo.Nota("[prova] catalogo: " + catalogo.Percorso);
+            Protocol.Note("[prova] agganciata: " + session.Attached);
+            Protocol.Note("[prova] libreria di disegno: " + session.LibraryPath);
+            Protocol.Note("[prova] catalogo: " + catalog.FilePath);
 
-            if (catalogo.Quante > 0)
+            if (catalog.HowMany > 0)
             {
-                var qualcuna = string.Join(", ",
-                    new List<string>(catalogo.Nomi).GetRange(0, Math.Min(5, catalogo.Quante)));
-                Protocollo.Nota("[prova] prime operazioni: " + qualcuna);
+                var someone = string.Join(", ",
+                    new List<string>(catalog.Names).GetRange(0, Math.Min(5, catalog.HowMany)));
+                Protocol.Note("[prova] prime operazioni: " + someone);
             }
 
-            if (!sessione.Agganciata)
+            if (!session.Attached)
             {
                 // SOLIDWORKS "not running" while a SLDWORKS process exists in
                 // this session is the elevated case: started as administrator,
                 // its session is not in the running object table this process
                 // can see. It gets its own code (6), not a line beside a 3.
-                bool processHere = sessione.Failure == AttachFailure.NotRunning && SolidWorksProcessInThisSession();
-                int code = SelfTestCodeSeen(sessione.Failure, processHere);
-                Protocollo.Nota("[self-test] exit code " + code + ": " + SelfTestMeaning(code));
+                bool processHere = session.Failure == AttachFailure.NotRunning && SolidWorksProcessInThisSession();
+                int code = SelfTestCodeSeen(session.Failure, processHere);
+                Protocol.Note("[self-test] exit code " + code + ": " + SelfTestMeaning(code));
                 return code;
             }
 
@@ -523,21 +523,21 @@ namespace Oce.Solid.Agent
             // agganciato senza documenti (lo dice, ed e' in piedi), non agganciato
             // (esce 1, sopra). Che abbia parlato con SOLIDWORKS lo dice gia' la
             // riga col numero di versione, stampata all'aggancio.
-            if (sessione.DocumentoAttivo() == null)
+            if (session.ActiveDocument() == null)
             {
-                Protocollo.Nota("[prova] nessun documento aperto: agganciato, niente da misurare.");
-                Protocollo.Nota("[prova] il ponte sta in piedi.");
+                Protocol.Note("[prova] nessun documento aperto: agganciato, niente da misurare.");
+                Protocol.Note("[prova] il ponte sta in piedi.");
                 return 0;
             }
 
-            var stato = sessione.Stato(out var errore);
-            if (stato == null) { Protocollo.Nota("[prova] " + errore); return SelfTestOther; }
+            var docState = session.State(out var error);
+            if (docState == null) { Protocol.Note("[prova] " + error); return SelfTestOther; }
 
-            foreach (var chiave in new[] { "document_title", "kind", "volume_mm3", "bodies_total" })
-                if (stato.TryGetValue(chiave, out var v))
-                    Protocollo.Nota("[prova] " + chiave + " = " + v);
+            foreach (var key in new[] { "document_title", "kind", "volume_mm3", "bodies_total" })
+                if (docState.TryGetValue(key, out var v))
+                    Protocol.Note("[prova] " + key + " = " + v);
 
-            Protocollo.Nota("[prova] il ponte sta in piedi.");
+            Protocol.Note("[prova] il ponte sta in piedi.");
             return 0;
         }
     }

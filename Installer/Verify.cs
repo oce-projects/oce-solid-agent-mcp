@@ -47,23 +47,23 @@ namespace Oce.Solid.Agent.Installer
             public string Name, Status, Detail;
         }
 
-        public static int Run(string cartella, string redist, string configScelto, bool json)
+        public static int Run(string folder, string redist, string chosenConfig, bool json)
         {
             var checks = new List<Check>();
             var report = new Dictionary<string, object>();
             Action<string, string, string> add = (n, s, d) => checks.Add(new Check { Name = n, Status = s, Detail = d });
 
-            var exe = Path.Combine(cartella, Passi.NomeEseguibile);
+            var exe = Path.Combine(folder, Steps.ExecutableName);
             var installer = InstallerVersion();
             report["installer"] = installer;
-            report["folder"] = cartella;
+            report["folder"] = folder;
 
             // ── files ────────────────────────────────────────────────────
             var files = new List<object>();
             var missing = new List<string>();
-            foreach (var name in Passi.FileInstallati)
+            foreach (var name in Steps.InstalledFiles)
             {
-                var f = Path.Combine(cartella, name);
+                var f = Path.Combine(folder, name);
                 bool present = File.Exists(f);
                 string version = null;
                 if (present && (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
@@ -75,30 +75,30 @@ namespace Oce.Solid.Agent.Installer
                 if (!present) missing.Add(name);
             }
             report["files"] = files;
-            string bridgeVersion = File.Exists(exe) ? Passi.VersioneDi(exe) : null;
+            string bridgeVersion = File.Exists(exe) ? Steps.VersionOf(exe) : null;
             string libraryVersion = null;
             try
             {
-                var lib = Path.Combine(cartella, Passi.NomeLibreria);
+                var lib = Path.Combine(folder, Steps.LibraryName);
                 if (File.Exists(lib)) libraryVersion = FileVersionInfo.GetVersionInfo(lib).FileVersion;
             }
             catch { }
             report["bridgeVersion"] = bridgeVersion;
             report["libraryVersion"] = libraryVersion;
             if (missing.Count > 0)
-                add("files", Fail, "missing in " + cartella + ": " + string.Join(", ", missing));
+                add("files", Fail, "missing in " + folder + ": " + string.Join(", ", missing));
             else if (bridgeVersion != null && installer != null && bridgeVersion != installer)
                 add("files", Warn, "all present; the bridge installed is " + bridgeVersion +
                                    ", this installer carries " + installer + " (run it to update)");
             else
-                add("files", Ok, "all " + Passi.FileInstallati.Length + " present in " + cartella +
+                add("files", Ok, "all " + Steps.InstalledFiles.Length + " present in " + folder +
                                  "; bridge " + (bridgeVersion ?? "?") + ", library " + (libraryVersion ?? "?"));
 
             // ── SOLIDWORKS ───────────────────────────────────────────────
-            if (string.IsNullOrWhiteSpace(redist)) redist = Passi.TrovaRedist();
+            if (string.IsNullOrWhiteSpace(redist)) redist = Steps.FindRedist();
             string interop = null;
             int major = 0;
-            if (Passi.CartellaHaInterop(redist))
+            if (Steps.FolderHasInterop(redist))
             {
                 try
                 {
@@ -106,17 +106,17 @@ namespace Oce.Solid.Agent.Installer
                         Path.Combine(redist, "SolidWorks.Interop.sldworks.dll")).FileVersion;
                 }
                 catch { }
-                major = Passi.VersionePrincipale(interop);
+                major = Steps.MainVersion(interop);
             }
             report["solidworks"] = new Dictionary<string, object>
             {
-                ["redist"] = Passi.CartellaHaInterop(redist) ? redist : null,
+                ["redist"] = Steps.FolderHasInterop(redist) ? redist : null,
                 ["interop"] = interop,
                 ["year"] = major > 0 ? (object)(major + 1992) : null,
             };
-            if (!Passi.CartellaHaInterop(redist))
+            if (!Steps.FolderHasInterop(redist))
                 add("solidworks", Fail, "api\\redist not found: pass --redist <folder> or set SW_INSTALL_PATH to the SOLIDWORKS root");
-            else if (major > 0 && major != Passi.VersioneProvata)
+            else if (major > 0 && major != Steps.TestedVersion)
                 add("solidworks", Warn, redist + " (SOLIDWORKS " + (major + 1992) +
                                         "): the bridge is measured only on SOLIDWORKS 2021 SP5.1");
             else
@@ -124,9 +124,9 @@ namespace Oce.Solid.Agent.Installer
                                        (major > 0 ? ", SOLIDWORKS " + (major + 1992) : "") + ")"));
 
             // ── clients ──────────────────────────────────────────────────
-            var clients = string.IsNullOrWhiteSpace(configScelto)
-                ? Configurazione.ClientTrovati().Where(c => c.Installato).ToList()
-                : new List<Client> { new Client { Nome = "file indicato", File = configScelto, Installato = true } };
+            var clients = string.IsNullOrWhiteSpace(chosenConfig)
+                ? Configuration.FoundClients().Where(c => c.Installed).ToList()
+                : new List<Client> { new Client { Name = "file indicato", File = chosenConfig, Installed = true } };
             var clientRows = new List<object>();
             var wired = new List<string>();
             var elsewhere = new List<string>();
@@ -135,24 +135,24 @@ namespace Oce.Solid.Agent.Installer
             var profiles = new List<string>();
             foreach (var c in clients)
             {
-                var command = Configurazione.ComeEConfigurato(c);
-                bool points = command != null && Passi.PercorsiUguali(command, exe);
-                var env = Configurazione.ConfiguredEnv(c);
+                var command = Configuration.HowItIsConfigured(c);
+                bool points = command != null && Steps.EqualPaths(command, exe);
+                var env = Configuration.ConfiguredEnv(c);
                 // A file that cannot be read is not a file without an entry
                 // (H19 review): the install that met it exited 3, and this
                 // must not say all green behind it.
-                var problem = Configurazione.ReadProblem(c);
+                var problem = Configuration.ReadProblem(c);
                 string prof = null;
                 if (env != null) env.TryGetValue("PROFILI_SALDATURA", out prof);
                 clientRows.Add(new Dictionary<string, object>
                 {
-                    ["name"] = c.Nome, ["file"] = c.File, ["command"] = command,
+                    ["name"] = c.Name, ["file"] = c.File, ["command"] = command,
                     ["pointsToInstalled"] = points, ["weldmentProfiles"] = prof, ["readError"] = problem,
                 });
-                if (points) { wired.Add(c.Nome); if (!string.IsNullOrWhiteSpace(prof)) profiles.Add(prof); }
-                else if (problem != null) unreadable.Add(c.Nome + " (" + c.File + ")");
-                else if (command != null) elsewhere.Add(c.Nome + " -> " + command);
-                else noEntry.Add(c.Nome);
+                if (points) { wired.Add(c.Name); if (!string.IsNullOrWhiteSpace(prof)) profiles.Add(prof); }
+                else if (problem != null) unreadable.Add(c.Name + " (" + c.File + ")");
+                else if (command != null) elsewhere.Add(c.Name + " -> " + command);
+                else noEntry.Add(c.Name);
             }
             report["clients"] = clientRows;
             var notWiredNote = noEntry.Count > 0 ? "; no entry in: " + string.Join(", ", noEntry) : "";
@@ -184,23 +184,23 @@ namespace Oce.Solid.Agent.Installer
             }
 
             // ── self-test ────────────────────────────────────────────────
-            int code = Passi.SelfTestNoAnswer;
+            int code = Steps.SelfTestNoAnswer;
             if (File.Exists(exe))
             {
-                Passi.Prova(exe, redist, out code);
-                report["selfTest"] = new Dictionary<string, object> { ["code"] = code, ["meaning"] = Passi.SelfTestMeaning(code) };
-                if (code == Passi.SelfTestAttached)
-                    add("self-test", Ok, "exit 0: " + Passi.SelfTestMeaning(code));
-                else if (code == Passi.SelfTestNotRunning || code == Passi.SelfTestSkipped)
-                    add("self-test", Warn, "exit " + code + ": " + Passi.SelfTestMeaning(code) +
-                                           (code == Passi.SelfTestNotRunning ? ": open SOLIDWORKS and verify again" : ""));
+                Steps.Test(exe, redist, out code);
+                report["selfTest"] = new Dictionary<string, object> { ["code"] = code, ["meaning"] = Steps.SelfTestMeaning(code) };
+                if (code == Steps.SelfTestAttached)
+                    add("self-test", Ok, "exit 0: " + Steps.SelfTestMeaning(code));
+                else if (code == Steps.SelfTestNotRunning || code == Steps.SelfTestSkipped)
+                    add("self-test", Warn, "exit " + code + ": " + Steps.SelfTestMeaning(code) +
+                                           (code == Steps.SelfTestNotRunning ? ": open SOLIDWORKS and verify again" : ""));
                 else
-                    add("self-test", Fail, "exit " + code + ": " + Passi.SelfTestMeaning(code));
+                    add("self-test", Fail, "exit " + code + ": " + Steps.SelfTestMeaning(code));
             }
             else
             {
                 report["selfTest"] = null;
-                add("self-test", Fail, Passi.NomeEseguibile + " is not installed in " + cartella);
+                add("self-test", Fail, Steps.ExecutableName + " is not installed in " + folder);
             }
 
             // ── MCP handshake ────────────────────────────────────────────
@@ -234,7 +234,7 @@ namespace Oce.Solid.Agent.Installer
             }
             else
             {
-                Console.WriteLine(Passi.NomeProdotto + " - verify (installer " + installer + ")");
+                Console.WriteLine(Steps.ProductName + " - verify (installer " + installer + ")");
                 foreach (var c in checks)
                     Console.WriteLine((c.Status == Ok ? "[ok] " : c.Status == Warn ? "[~]  " : "[NO] ") + c.Name + ": " + c.Detail);
                 Console.WriteLine(exit == AllGreen ? "verify: all green (exit 0)"

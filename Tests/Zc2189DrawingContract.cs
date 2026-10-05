@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -29,7 +29,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///   N80    drawing_dimension. «Not born» is the count of dimensions, asked
     ///          first; a dimension born without its object is described, not
     ///          answered with a second annotation. The site the lot left out,
-    ///          QuotaFraDue of the turned view (DrawingRoundOperations.cs), was
+    ///          DimensionBetweenTwo of the turned view (DrawingRoundOperations.cs), was
     ///          done after library 0.145.0 and has its own check, red on 0.145.0.
     ///
     /// None of these paths can be driven from a bench case: SOLIDWORKS would
@@ -48,14 +48,14 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("drawing returns and messages the bench cannot reach (Z-C21.8: L13-6, L16-1, M38, M40, M41, N47, N80)");
+            Group("drawing returns and messages the bench cannot reach (Z-C21.8: L13-6, L16-1, M38, M40, M41, N47, N80)");
 
             CallSites();
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of the Z-C21.8 drawing fixes",
+                NotHere("the pure rules of the Z-C21.8 drawing fixes",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -63,7 +63,7 @@ namespace Oce.Solid.Agent.ContractTests
             Type sw;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -77,10 +77,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
 
             PdfPages(sw);
             WeldSymbolTexts(sw);
@@ -104,12 +104,12 @@ namespace Oce.Solid.Agent.ContractTests
                 var unknown = (string)Call(sw, "PdfPageCountRefusal", -1, 3, "x.pdf");
                 var differs = (string)Call(sw, "PdfPageCountRefusal", 1, 3, "x.pdf");
                 var match = (string)Call(sw, "PdfPageCountRefusal", 3, 3, "x.pdf");
-                Segna(rule, unknown != null && differs != null && match == null,
+                Check(rule, unknown != null && differs != null && match == null,
                       "(-1, 3) " + (unknown == null ? "passes" : "refused") +
                       ", (1, 3) " + (differs == null ? "passes" : "refused") +
                       ", (3, 3) " + (match == null ? "passes" : "refused: " + match));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
 
             const string counter = "L13-6: CountPdfPages counts 3 pages, and answers -1 (not 0) for no page objects and for no file";
             string folder = Path.Combine(Path.GetTempPath(), "zc2189_pdf_" + Guid.NewGuid().ToString("N"));
@@ -129,10 +129,10 @@ namespace Oce.Solid.Agent.ContractTests
                 int n3 = (int)Call(sw, "CountPdfPages", three);
                 int n0 = (int)Call(sw, "CountPdfPages", none);
                 int nMissing = (int)Call(sw, "CountPdfPages", Path.Combine(folder, "missing.pdf"));
-                Segna(counter, n3 == 3 && n0 == -1 && nMissing == -1,
+                Check(counter, n3 == 3 && n0 == -1 && nMissing == -1,
                       "three pages " + n3 + ", no page objects " + n0 + ", no file " + nMissing);
             }
-            catch (Exception ex) { Segna(counter, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(counter, false, ex.GetType().Name + ": " + ex.Message); }
             finally { try { Directory.Delete(folder, true); } catch { } }
         }
 
@@ -146,11 +146,11 @@ namespace Oce.Solid.Agent.ContractTests
                 var unreadable = (string)Call(sw, "WeldSymbolTextsWrong", -1);
                 var two = (string)Call(sw, "WeldSymbolTextsWrong", 2);
                 var three = (string)Call(sw, "WeldSymbolTextsWrong", 3);
-                Segna(rule, one != null && unreadable != null && two == null && three == null,
+                Check(rule, one != null && unreadable != null && two == null && three == null,
                       "1 " + (one == null ? "passes" : "wrong") + ", -1 " + (unreadable == null ? "passes" : "wrong") +
                       ", 2 " + (two == null ? "passes" : "wrong: " + two) + ", 3 " + (three == null ? "passes" : "wrong: " + three));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── M38: the Ø of a tolerance frame ──────────────────────────────────
@@ -168,9 +168,9 @@ namespace Oce.Solid.Agent.ContractTests
                 var bad = cases.Where(c => ((string)Call(sw, "GtolDiameterWrong", c.Item1, c.Item2) != null) != c.Item3)
                                .Select(c => "asked " + c.Item1 + ", read " + c.Item2 + (c.Item3 ? " should be wrong" : " should pass"))
                                .ToList();
-                Segna(rule, bad.Count == 0, bad.Count == 0 ? "six cases as expected" : string.Join("; ", bad));
+                Check(rule, bad.Count == 0, bad.Count == 0 ? "six cases as expected" : string.Join("; ", bad));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── the call sites, in the source ────────────────────────────────────
@@ -179,7 +179,7 @@ namespace Oce.Solid.Agent.ContractTests
         // one file only, and the counts include the definition.
         private static void CallSites()
         {
-            string dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
+            string dir = Path.Combine(Root(), "Oce.Solid.Agent.Core");
 
             string pdf = Read(dir, "DrawingOperations.cs");
             if (pdf != null)
@@ -187,7 +187,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool kept = Regex.IsMatch(pdf, @"\w+\s*=\s*pdf\.SetSheets\(");
                 bool bare = Regex.IsMatch(pdf, @"(?m)^\s*pdf\.SetSheets\(");
                 int refusals = Count(pdf, "PdfPageCountRefusal(");
-                Segna("L13-6: EsportaPdf keeps the answer of SetSheets and asks PdfPageCountRefusal",
+                Check("L13-6: EsportaPdf keeps the answer of SetSheets and asks PdfPageCountRefusal",
                       kept && !bare && refusals >= 2,
                       "answer kept " + kept + ", bare call " + bare + ", PdfPageCountRefusal " + refusals + " (with the definition)");
             }
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (weld != null)
             {
                 bool called = Regex.IsMatch(weld, @"= WeldSymbolTextsWrong\(\w+\);");
-                Segna("L16-1: SaldaturaInTavola checks the text count with WeldSymbolTextsWrong",
+                Check("L16-1: SaldaturaInTavola checks the text count with WeldSymbolTextsWrong",
                       called, called ? "called" : "not called");
             }
 
@@ -206,7 +206,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool reread = gtol.Contains(".GetFrameDiameterSymbols(");
                 bool judged = Regex.IsMatch(gtol, @"= GtolDiameterWrong\(");
                 int removals = Count(gtol, "RemoveNewAnnotation(");
-                Segna("M38: the frame's Ø is read back and judged, and a wrong or unfilled frame is removed",
+                Check("M38: the frame's Ø is read back and judged, and a wrong or unfilled frame is removed",
                       reread && judged && removals >= 3,
                       "GetFrameDiameterSymbols " + reread + ", GtolDiameterWrong " + judged +
                       ", RemoveNewAnnotation " + removals + " (definition and two calls expected)");
@@ -217,7 +217,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 int bare = Regex.Matches(flat, @"(?m)^\s*RemoveNewView\(").Count;
                 int all = Count(flat, "RemoveNewView(");
-                Segna("M40: no refusal of flat_pattern_view drops the answer of RemoveNewView",
+                Check("M40: no refusal of flat_pattern_view drops the answer of RemoveNewView",
                       bare == 0 && all >= 6, bare + " bare calls, " + all + " with the definition (six expected)");
             }
 
@@ -227,7 +227,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool returned = Regex.IsMatch(section, @"IView sectionView = \w+ as IView;");
                 bool used = section.Contains("sectionView.GetFaceHatchCount(") && section.Contains("(sectionView)");
                 int cleanups = Count(section, "RemoveSheetSketchSegment(");
-                Segna("M41: the section is the returned view, and the cutting line of a refusal is removed",
+                Check("M41: the section is the returned view, and the cutting line of a refusal is removed",
                       returned && used && cleanups >= 3,
                       "returned view " + returned + ", read from it " + used + ", RemoveSheetSketchSegment " + cleanups +
                       " (definition and two calls expected)");
@@ -240,7 +240,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool used = detail.Contains("detailView.GetName2(") && detail.Contains("(detailView)");
                 int cleanups = Count(detail, "RemoveSheetSketchSegment(");
                 bool viewRemoved = detail.Contains("RemoveNewView(");
-                Segna("M41: the detail is the returned view, and the circle (and unlinked view) of a refusal are removed",
+                Check("M41: the detail is the returned view, and the circle (and unlinked view) of a refusal are removed",
                       returned && used && cleanups >= 3 && viewRemoved,
                       "returned view " + returned + ", read from it " + used + ", circle removals " + cleanups +
                       ", view removal " + viewRemoved);
@@ -252,10 +252,10 @@ namespace Oce.Solid.Agent.ContractTests
             // deletes it.
             if (section != null && detail != null)
             {
-                bool sectionGuarded = section.Contains("!nomiViste.Contains(nomeSezione) && RemoveNewView(");
-                bool detailGuarded = detail.Contains("bool viewIsNew = !nomiViste.Contains(nomeDettaglio);") &&
+                bool sectionGuarded = section.Contains("!viewNames.Contains(sectionName) && RemoveNewView(");
+                bool detailGuarded = detail.Contains("bool viewIsNew = !viewNames.Contains(detailName);") &&
                                      detail.Contains("viewIsNew && RemoveNewView(");
-                Segna("M41: a refusal never deletes a view that was on the sheet before the call",
+                Check("M41: a refusal never deletes a view that was on the sheet before the call",
                       sectionGuarded && detailGuarded,
                       "section guarded " + sectionGuarded + ", detail guarded " + detailGuarded);
             }
@@ -270,44 +270,44 @@ namespace Oce.Solid.Agent.ContractTests
                 int outer = step < 0 ? -1 : texts.IndexOf("catch", step, StringComparison.Ordinal);
                 bool nullOnBreak = outer >= 0 &&
                                    texts.Substring(outer).StartsWith("catch { return null; }", StringComparison.Ordinal);
-                bool mapped = dims.Contains("testiDelleQuote == null ? null");
-                Segna("N47: a broken walk over the dimension texts gives null, and drawing_dimension says «not known»",
+                bool mapped = dims.Contains("dimensionsTexts == null ? null");
+                Check("N47: a broken walk over the dimension texts gives null, and drawing_dimension says «not known»",
                       nullOnBreak && mapped,
                       (step < 0 ? "the step to the next dimension is not found" : "null on break " + nullOnBreak) +
                       ", mapped to null " + mapped);
             }
             if (dims != null)
             {
-                int objectFirst = Count(dims, "== null || NonCresciuta(");
+                int objectFirst = Count(dims, "== null || NotGrown(");
                 int described = Count(dims, "RecordBornWithoutObject(");
-                Segna("N80: «not born» asks the count first, and a dimension born without its object is described",
+                Check("N80: «not born» asks the count first, and a dimension born without its object is described",
                       objectFirst == 0 && described >= 5,
                       objectFirst + " sites asking the object first, RecordBornWithoutObject " + described +
                       " (definition and four calls expected)");
             }
 
-            // N80 AT THE SITE THE LOT LEFT OUT: QuotaFraDue of the turned view
+            // N80 AT THE SITE THE LOT LEFT OUT: DimensionBetweenTwo of the turned view
             // (DrawingRoundOperations.cs), whose three callers (lengths, diameters,
             // pairs of silhouette edges without a face) took a dimension born
             // without its object for «not born». Red on library 0.145.0: the
-            // guard was still «q == null || NonCresciuta(» and the callers had no
+            // guard was still «q == null || NotGrown(» and the callers had no
             // second outcome to tell.
             string turned = Read(dir, "DrawingRoundOperations.cs");
             if (turned != null)
             {
-                int objectFirst = Count(turned, "== null || NonCresciuta(");
+                int objectFirst = Count(turned, "== null || NotGrown(");
                 // The line right before the outcome is told is the count's own
                 // «not born».
                 int told = turned.IndexOf("bornWithoutObject = q == null;", StringComparison.Ordinal);
                 int lineStart = told < 0 ? -1 : turned.LastIndexOf('\n', told);
                 int previousStart = lineStart <= 0 ? -1 : turned.LastIndexOf('\n', lineStart - 1);
                 string previous = previousStart < 0 ? "" : turned.Substring(previousStart + 1, lineStart - previousStart - 1).Trim();
-                bool countFirst = told >= 0 && previous.StartsWith("if (NonCresciuta(", StringComparison.Ordinal) &&
+                bool countFirst = told >= 0 && previous.StartsWith("if (NotGrown(", StringComparison.Ordinal) &&
                                   previous.EndsWith(")) return null;", StringComparison.Ordinal);
                 int asked = Count(turned, "out bornWithoutObject);");
                 int notBornOnly = Count(turned, "if (q == null && !bornWithoutObject)");
                 int described = Count(turned, "RecordBornWithoutObject(");
-                Segna("N80 in the turned view: QuotaFraDue asks the count first, and its three callers describe a dimension born without its object",
+                Check("N80 in the turned view: QuotaFraDue asks the count first, and its three callers describe a dimension born without its object",
                       objectFirst == 0 && countFirst && asked == 3 && notBornOnly == 2 && described == 3,
                       objectFirst + " sites asking the object first, count first and outcome told " + countFirst +
                       ", callers reading the outcome " + asked + " (3 expected), «not born» only when not grown " +
@@ -318,7 +318,7 @@ namespace Oce.Solid.Agent.ContractTests
         private static string Read(string dir, string file)
         {
             try { return File.ReadAllText(Path.Combine(dir, file)); }
-            catch (Exception ex) { Segna(file + " can be read", false, ex.Message); return null; }
+            catch (Exception ex) { Check(file + " can be read", false, ex.Message); return null; }
         }
 
         private static int Count(string text, string what)

@@ -23,7 +23,7 @@ namespace Oce.Solid.Agent.Core
     /// nessun errore: la lavorazione riesce, il rebuild e' pulito, e il foro
     /// e' dall'altra parte.
     /// </summary>
-    public static class Riferimenti
+    public static class References
     {
         /// <summary>Coseno oltre il quale due direzioni si dicono la stessa.</summary>
         /// <remarks>
@@ -32,10 +32,10 @@ namespace Oce.Solid.Agent.Core
         /// perpendicolari all'asse, e questo margine serve solo a coprire
         /// l'errore di rappresentazione dei double.
         /// </remarks>
-        private const double Coseno = 0.999;
+        private const double Cosine = 0.999;
 
         /// <summary>Che cosa ha lasciato dietro di se' un passo gia' eseguito.</summary>
-        public class Passo
+        public class Step
         {
             /// <summary>La feature creata da quel passo.</summary>
             public IFeature Feature;
@@ -51,10 +51,10 @@ namespace Oce.Solid.Agent.Core
             /// esegue l'operazione la direzione la SA — e' la normale del piano
             /// di schizzo, o la normale della faccia forata — e la scrive qui.
             /// </summary>
-            public double[] Direzione;
+            public double[] Direction;
 
             /// <summary>Nome dell'operazione, per i messaggi di errore.</summary>
-            public string Operazione = "";
+            public string Operation = "";
         }
 
         /// <summary>La normale di un piano di riferimento, in coordinate del modello.</summary>
@@ -67,9 +67,9 @@ namespace Oce.Solid.Agent.Core
         /// template by the Z-C21.3 probe of C3-6: front (0, 0, 1), top
         /// (0, 1, 0), right (1, 0, 0).
         /// </remarks>
-        public static double[] NormaleDelPiano(string piano)
+        public static double[] PlaneNormal(string plane)
         {
-            switch (piano)
+            switch (plane)
             {
                 case "top": return new double[] { 0, 1, 0 };
                 case "right": return new double[] { 1, 0, 0 };
@@ -102,7 +102,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// Until Z-C21.5 the bridge took «frontale / superiore / destro» as the
         /// first / second / third RefPlane of the tree, in four places
-        /// (TrovaPianoBase, SelezionaPiano, the section of VistaDelPezzo and
+        /// (FindBasePlane, SelectPlane, the section of PartView and
         /// mirror_component). IPartDoc~IFirstFeature.html: «This method
         /// returns features in the current order for the part, and this order
         /// changes when the part is edited»; the same page rules out the names
@@ -112,7 +112,7 @@ namespace Oce.Solid.Agent.Core
         /// the catalogue onto the wrong plane, with no error.
         ///
         /// THE RULE is in <see cref="BasePlaneIndex"/>: the plane whose normal
-        /// is the canonical one of that name (<see cref="NormaleDelPiano"/>),
+        /// is the canonical one of that name (<see cref="PlaneNormal"/>),
         /// with the same sign, and which passes through the world origin. The
         /// normal and the origin come from IRefPlane.Transform
         /// (<see cref="PlaneFrame"/>).
@@ -169,7 +169,7 @@ namespace Oce.Solid.Agent.Core
 
             int index = BasePlaneIndex(normals, origins, name);
             if (index >= 0) return features[index];
-            var wanted = NormaleDelPiano(name);
+            var wanted = PlaneNormal(name);
             reason = "no reference plane of this document has the normal (" + string.Join(", ", wanted) +
                      ") and passes through the origin, which is what the «" + name + "» plane is (" +
                      features.Count + " reference planes read" +
@@ -210,14 +210,14 @@ namespace Oce.Solid.Agent.Core
         public static int BasePlaneIndex(IList<double[]> normals, IList<double[]> origins, string name)
         {
             if (normals == null || origins == null || Array.IndexOf(BasePlaneNames, name) < 0) return -1;
-            var wanted = NormaleDelPiano(name);
+            var wanted = PlaneNormal(name);
             for (int i = 0; i < normals.Count && i < origins.Count; i++)
             {
                 var normal = normals[i];
                 var origin = origins[i];
                 if (normal == null || origin == null || normal.Length < 3 || origin.Length < 3) continue;
-                if (Prodotto(normal, wanted) < BasePlaneCosine) continue;
-                if (Math.Abs(Prodotto(normal, origin)) > BasePlaneOffsetM) continue;
+                if (Product(normal, wanted) < BasePlaneCosine) continue;
+                if (Math.Abs(Product(normal, origin)) > BasePlaneOffsetM) continue;
                 return i;
             }
             return -1;
@@ -267,20 +267,20 @@ namespace Oce.Solid.Agent.Core
         /// La faccia indicata da un genere della famiglia «faccia».
         /// Ritorna false con un motivo leggibile se non ce n'e' esattamente una.
         /// </summary>
-        public static bool Faccia(
-            Passo passo, string genere, out IFace2 faccia, out string motivo)
+        public static bool Face(
+            Step planStep, string kind, out IFace2 face, out string reason)
         {
-            faccia = null;
-            motivo = null;
-            var facce = FacceDi(passo, out motivo);
-            if (facce == null) return false;
+            face = null;
+            reason = null;
+            var faces = FacesOf(planStep, out reason);
+            if (faces == null) return false;
 
-            switch (genere)
+            switch (kind)
             {
                 case "top_face":
-                    return Estremo(passo, facce, +1, out faccia, out motivo);
+                    return End(planStep, faces, +1, out face, out reason);
                 case "bottom_face":
-                    return Estremo(passo, facce, -1, out faccia, out motivo);
+                    return End(planStep, faces, -1, out face, out reason);
 
                 case "hole_face":
                 {
@@ -303,24 +303,24 @@ namespace Oce.Solid.Agent.Core
                     // La parete di un foro ha il materiale FUORI dal cilindro,
                     // e la sua normale guarda verso l'asse: e' concava.
                     var concave = new List<IFace2>();
-                    int convesse = 0;
-                    foreach (var f in facce)
+                    int convex = 0;
+                    foreach (var f in faces)
                     {
-                        if (!Cilindrica(f)) continue;
-                        if (Concava(f)) concave.Add(f); else convesse++;
+                        if (!Cylindrical(f)) continue;
+                        if (Concave(f)) concave.Add(f); else convex++;
                     }
 
                     if (concave.Count == 0)
                     {
-                        motivo = convesse > 0
-                            ? "Il passo «" + passo.Operazione + "» ha lasciato " +
-                              convesse + " fac" + (convesse == 1 ? "cia" : "ce") +
-                              " cilindric" + (convesse == 1 ? "a" : "he") +
-                              ", ma convess" + (convesse == 1 ? "a" : "e") + ": " +
+                        reason = convex > 0
+                            ? "Il passo «" + planStep.Operation + "» ha lasciato " +
+                              convex + " fac" + (convex == 1 ? "cia" : "ce") +
+                              " cilindric" + (convex == 1 ? "a" : "he") +
+                              ", ma convess" + (convex == 1 ? "a" : "e") + ": " +
                               "sono superfici di raccordo o di un cilindro pieno, " +
                               "non pareti di foro. La parete di un foro e' " +
                               "concava — il materiale sta fuori."
-                            : "Il passo «" + passo.Operazione + "» non ha lasciato " +
+                            : "Il passo «" + planStep.Operation + "» non ha lasciato " +
                               "nessuna faccia cilindrica: non c'e' nessuna parete " +
                               "di foro da prendere.";
                         return false;
@@ -342,14 +342,14 @@ namespace Oce.Solid.Agent.Core
                     // nominarne uno.
                     if (concave.Count > 1)
                     {
-                        motivo =
-                            "Il passo «" + passo.Operazione + "» ha lasciato " +
-                            concave.Count + " pareti di foro (" + Diametri(concave) +
+                        reason =
+                            "Il passo «" + planStep.Operation + "» ha lasciato " +
+                            concave.Count + " pareti di foro (" + Diameters(concave) +
                             "): «la» parete del foro non esiste. Rileggi il pezzo e " +
                             "indica quale, per identificativo.";
                         return false;
                     }
-                    faccia = concave[0];
+                    face = concave[0];
                     return true;
                 }
 
@@ -360,36 +360,36 @@ namespace Oce.Solid.Agent.Core
                     // esiste, e dirlo e' l'unica risposta corretta: la faccia
                     // «piu' simile» sarebbe una parete laterale, e la
                     // lavorazione successiva finirebbe di traverso.
-                    if (passo.Direzione == null)
+                    if (planStep.Direction == null)
                     {
-                        motivo =
-                            "Del passo «" + passo.Operazione + "» non conosco la " +
+                        reason =
+                            "Del passo «" + planStep.Operation + "» non conosco la " +
                             "direzione del taglio, quindi non so dire qual e' il fondo.";
                         return false;
                     }
-                    var piane = new List<IFace2>();
-                    foreach (var f in facce)
+                    var planar = new List<IFace2>();
+                    foreach (var f in faces)
                     {
-                        var n = Normale(f);
-                        if (n != null && Math.Abs(Prodotto(n, passo.Direzione)) > Coseno)
-                            piane.Add(f);
+                        var n = Normal(f);
+                        if (n != null && Math.Abs(Product(n, planStep.Direction)) > Cosine)
+                            planar.Add(f);
                     }
-                    if (piane.Count != 1)
+                    if (planar.Count != 1)
                     {
-                        motivo = piane.Count == 0
-                            ? "La tasca del passo «" + passo.Operazione + "» non ha " +
+                        reason = planar.Count == 0
+                            ? "La tasca del passo «" + planStep.Operation + "» non ha " +
                               "un fondo: e' passante."
-                            : "La tasca del passo «" + passo.Operazione + "» ha " +
-                              piane.Count + " facce che potrebbero essere il fondo: " +
+                            : "La tasca del passo «" + planStep.Operation + "» ha " +
+                              planar.Count + " facce che potrebbero essere il fondo: " +
                               "indica la faccia per identificativo.";
                         return false;
                     }
-                    faccia = piane[0];
+                    face = planar[0];
                     return true;
                 }
 
                 default:
-                    motivo = "Genere di faccia sconosciuto: «" + genere + "».";
+                    reason = "Genere di faccia sconosciuto: «" + kind + "».";
                     return false;
             }
         }
@@ -404,19 +404,19 @@ namespace Oce.Solid.Agent.Core
         /// fragile del problema che risolve. Il numero VERO di spigoli si
         /// chiede dopo a SolidWorks, con GetSelectedObjectCount2.
         /// </summary>
-        public static bool Spigoli(
-            Passo passo, string genere, out List<IEntity> spigoli, out string motivo)
+        public static bool Edges(
+            Step planStep, string kind, out List<IEntity> edges, out string reason)
         {
-            spigoli = new List<IEntity>();
-            motivo = null;
-            var facce = FacceDi(passo, out motivo);
-            if (facce == null) return false;
+            edges = new List<IEntity>();
+            reason = null;
+            var faces = FacesOf(planStep, out reason);
+            if (faces == null) return false;
 
-            if (genere == "top_edges" || genere == "bottom_edges")
+            if (kind == "top_edges" || kind == "bottom_edges")
             {
-                IFace2 cima;
-                if (!Estremo(passo, facce, genere == "top_edges" ? +1 : -1,
-                             out cima, out motivo))
+                IFace2 top;
+                if (!End(planStep, faces, kind == "top_edges" ? +1 : -1,
+                             out top, out reason))
                     return false;
 
                 // SOLO IL LOOP ESTERNO. IFace2.GetEdges() restituisce gli
@@ -433,14 +433,14 @@ namespace Oce.Solid.Agent.Core
                 // testa della vite non appoggiava piu'. Nessun errore, rebuild
                 // pulito, passo «riuscito». E lo stesso identico testo con i
                 // passi in ordine inverso dava il pezzo giusto.
-                if (!SpigoliDelBordoEsterno(cima, spigoli, out motivo)) return false;
+                if (!OuterBorderEdges(top, edges, out reason)) return false;
             }
-            else if (genere == "side_edges")
+            else if (kind == "side_edges")
             {
-                if (passo.Direzione == null)
+                if (planStep.Direction == null)
                 {
-                    motivo =
-                        "Del passo «" + passo.Operazione + "» non conosco la " +
+                    reason =
+                        "Del passo «" + planStep.Operation + "» non conosco la " +
                         "direzione di estrusione, quindi non so dire quali " +
                         "spigoli siano i laterali.";
                     return false;
@@ -448,33 +448,33 @@ namespace Oce.Solid.Agent.Core
                 // Uno spigolo e' «laterale» se corre lungo la direzione di
                 // estrusione. Si guarda la sua direzione, non a quale faccia
                 // appartiene: cosi' non serve confrontare identita' di facce.
-                foreach (var f in facce)
+                foreach (var f in faces)
                 {
-                    var elenco = new List<IEntity>();
-                    AggiungiSpigoli(f, elenco);
-                    foreach (var e in elenco)
+                    var list = new List<IEntity>();
+                    AddEdges(f, list);
+                    foreach (var e in list)
                     {
-                        var d = DirezioneSpigolo(e as IEdge);
-                        if (d != null && Math.Abs(Prodotto(d, passo.Direzione)) > Coseno)
-                            spigoli.Add(e);
+                        var d = EdgeDirection(e as IEdge);
+                        if (d != null && Math.Abs(Product(d, planStep.Direction)) > Cosine)
+                            edges.Add(e);
                     }
                 }
             }
-            else if (genere == "all_edges")
+            else if (kind == "all_edges")
             {
-                foreach (var f in facce) AggiungiSpigoli(f, spigoli);
+                foreach (var f in faces) AddEdges(f, edges);
             }
             else
             {
-                motivo = "Genere di spigoli sconosciuto: «" + genere + "».";
+                reason = "Genere di spigoli sconosciuto: «" + kind + "».";
                 return false;
             }
 
-            if (spigoli.Count == 0)
+            if (edges.Count == 0)
             {
-                motivo =
-                    "Il passo «" + passo.Operazione + "» non ha lasciato nessuno " +
-                    "spigolo del genere «" + genere + "».";
+                reason =
+                    "Il passo «" + planStep.Operation + "» non ha lasciato nessuno " +
+                    "spigolo del genere «" + kind + "».";
                 return false;
             }
             return true;
@@ -497,35 +497,35 @@ namespace Oce.Solid.Agent.Core
         /// stesso corpo restituiscono lo stesso oggetto, e un corpo contato due
         /// volte diventerebbe una barra contata due volte nella distinta.
         /// </summary>
-        public static List<IBody2> CorpiDi(Passo passo, out string motivo)
+        public static List<IBody2> BodiesOf(Step planStep, out string reason)
         {
-            motivo = null;
-            var facce = FacceDi(passo, out motivo);
-            if (facce == null) return null;
+            reason = null;
+            var faces = FacesOf(planStep, out reason);
+            if (faces == null) return null;
 
-            var corpi = new List<IBody2>();
-            foreach (var f in facce)
+            var bodies = new List<IBody2>();
+            foreach (var f in faces)
             {
-                IBody2 corpo;
-                try { corpo = f.GetBody() as IBody2; }
+                IBody2 body;
+                try { body = f.GetBody() as IBody2; }
                 catch { continue; }
-                if (corpo == null) continue;
-                bool gia = false;
-                foreach (var c in corpi)
+                if (body == null) continue;
+                bool already = false;
+                foreach (var c in bodies)
                 {
-                    if (ReferenceEquals(c, corpo) || Equals(c, corpo)) { gia = true; break; }
+                    if (ReferenceEquals(c, body) || Equals(c, body)) { already = true; break; }
                 }
-                if (!gia) corpi.Add(corpo);
+                if (!already) bodies.Add(body);
             }
 
-            if (corpi.Count == 0)
+            if (bodies.Count == 0)
             {
-                motivo =
-                    "Il passo «" + passo.Operazione + "» non ha lasciato nessun " +
+                reason =
+                    "Il passo «" + planStep.Operation + "» non ha lasciato nessun " +
                     "corpo: non ci sono barre su cui lavorare.";
                 return null;
             }
-            return corpi;
+            return bodies;
         }
 
         /// <summary>
@@ -561,20 +561,20 @@ namespace Oce.Solid.Agent.Core
         /// and its inner face). Null is returned, with the reason, when a face
         /// could not be told apart: see <see cref="OpenEndsOnly"/>.
         /// </summary>
-        public static List<IFace2> EstremitaLibere(Passo passo, out int machinedFaces, out string motivo)
+        public static List<IFace2> FreeEnds(Step planStep, out int machinedFaces, out string reason)
         {
             machinedFaces = 0;
-            motivo = null;
-            var facce = FacceDi(passo, out motivo);
-            if (facce == null) return null;
-            return OpenEndsOnly(facce, out machinedFaces, out motivo);
+            reason = null;
+            var faces = FacesOf(planStep, out reason);
+            if (faces == null) return null;
+            return OpenEndsOnly(faces, out machinedFaces, out reason);
         }
 
         /// <summary>
         /// Le estremita' aperte di CORPI gia' nel documento, non di un passo.
         ///
         /// PERCHE' SERVE UNA SECONDA STRADA
-        /// `EstremitaLibere(Passo)` funziona solo dentro lo stesso piano: cita
+        /// `FreeEnds(Step)` funziona solo dentro lo stesso piano: cita
         /// il passo che ha creato le barre. In un messaggio NUOVO — «tappa le
         /// estremita' del telaio che hai fatto prima» — quel passo non c'e'
         /// piu', e fino alla 0.29.1 la richiesta non aveva nessuna forma
@@ -584,40 +584,40 @@ namespace Oce.Solid.Agent.Core
         /// Adesso lo stato del documento porta i corpi con il loro
         /// identificativo, e questa e' la strada che li usa.
         ///
-        /// The same rule as <see cref="EstremitaLibere"/>, and the same
+        /// The same rule as <see cref="FreeEnds"/>, and the same
         /// <paramref name="machinedFaces"/>. A body whose faces cannot be read
         /// stops the step (Z-C21.5, with N7): skipping it left that bar
         /// uncapped while the answer counted the caps of the others.
         /// </summary>
-        public static List<IFace2> EstremitaLibereDi(
-            IEnumerable<IBody2> corpi, out int machinedFaces, out string motivo)
+        public static List<IFace2> FreeEndsOf(
+            IEnumerable<IBody2> bodies, out int machinedFaces, out string reason)
         {
             machinedFaces = 0;
-            motivo = null;
-            var facce = new List<IFace2>();
-            foreach (var corpo in corpi)
+            reason = null;
+            var faces = new List<IFace2>();
+            foreach (var body in bodies)
             {
-                object[] elenco;
-                try { elenco = corpo.GetFaces() as object[]; }
-                catch { elenco = null; }
-                if (elenco == null)
+                object[] list;
+                try { list = body.GetFaces() as object[]; }
+                catch { list = null; }
+                if (list == null)
                 {
-                    motivo = "I could not read the faces of one of the bodies, so I cannot say " +
+                    reason = "I could not read the faces of one of the bodies, so I cannot say " +
                              "which of its ends are open: nothing was capped.";
                     return null;
                 }
-                foreach (var o in elenco)
+                foreach (var o in list)
                 {
                     var f = o as IFace2;
-                    if (f != null) facce.Add(f);
+                    if (f != null) faces.Add(f);
                 }
             }
-            if (facce.Count == 0)
+            if (faces.Count == 0)
             {
-                motivo = "I corpi indicati non hanno facce leggibili.";
+                reason = "I corpi indicati non hanno facce leggibili.";
                 return null;
             }
-            return OpenEndsOnly(facce, out machinedFaces, out motivo);
+            return OpenEndsOnly(faces, out machinedFaces, out reason);
         }
 
         /// <summary>
@@ -644,7 +644,7 @@ namespace Oce.Solid.Agent.Core
             var ends = new List<IFace2>();
             foreach (IFace2 face in faces)
             {
-                if (Normale(face) == null) continue;  // not planar: a side of the bar
+                if (Normal(face) == null) continue;  // not planar: a side of the bar
                 int loops;
                 try { loops = face.GetLoopCount(); }   // IFace2~GetLoopCount.html: «Number of loops in this face»
                 catch (Exception ex)
@@ -699,7 +699,7 @@ namespace Oce.Solid.Agent.Core
         /// design tree». The wall of the hole was born in the cut, so its
         /// oldest owner is the cut; the walls of the tube keep the member as
         /// oldest owner even after a cut or a trim changed them. The state
-        /// reads the same thing (StatoDocumento, LavorazioneId: a fillet
+        /// reads the same thing (DocumentState, FeatureId: a fillet
         /// shrinks three faces and all three still answer the extrusion,
         /// measured 14/9/2026; and the faces of a bar all answered the member,
         /// measured 10/9/2026, see «from_feature» there). Features are
@@ -874,96 +874,96 @@ namespace Oce.Solid.Agent.Core
         // Geometria di supporto
         // ─────────────────────────────────────────────────────────────────
 
-        private static IFace2[] FacceDi(Passo passo, out string motivo)
+        private static IFace2[] FacesOf(Step planStep, out string reason)
         {
-            motivo = null;
-            if (passo == null || passo.Feature == null)
+            reason = null;
+            if (planStep == null || planStep.Feature == null)
             {
-                motivo =
+                reason =
                     "Il passo a cui ti riferisci non ha lasciato nessuna " +
                     "geometria da nominare.";
                 return null;
             }
-            object[] grezze;
-            try { grezze = passo.Feature.GetFaces() as object[]; }
+            object[] raw;
+            try { raw = planStep.Feature.GetFaces() as object[]; }
             catch (Exception ex)
             {
-                motivo = "Non riesco a leggere le facce del passo precedente: " + ex.Message;
+                reason = "Non riesco a leggere le facce del passo precedente: " + ex.Message;
                 return null;
             }
-            if (grezze == null || grezze.Length == 0)
+            if (raw == null || raw.Length == 0)
             {
-                motivo =
-                    "Il passo «" + passo.Operazione + "» non ha lasciato facce " +
+                reason =
+                    "Il passo «" + planStep.Operation + "» non ha lasciato facce " +
                     "proprie: non c'e' niente da nominare.";
                 return null;
             }
-            var facce = new List<IFace2>();
-            foreach (var g in grezze)
+            var faces = new List<IFace2>();
+            foreach (var g in raw)
             {
                 var f = g as IFace2;
-                if (f != null) facce.Add(f);
+                if (f != null) faces.Add(f);
             }
-            if (facce.Count == 0)
+            if (faces.Count == 0)
             {
-                motivo = "Le facce del passo precedente non sono leggibili.";
+                reason = "Le facce del passo precedente non sono leggibili.";
                 return null;
             }
-            return facce.ToArray();
+            return faces.ToArray();
         }
 
         /// <summary>
         /// La faccia piana perpendicolare alla direzione, all'estremo indicato
         /// (+1 = quella piu' avanti lungo la direzione, -1 = quella piu' indietro).
         /// </summary>
-        private static bool Estremo(
-            Passo passo, IFace2[] facce, int verso, out IFace2 scelta, out string motivo)
+        private static bool End(
+            Step planStep, IFace2[] faces, int facing, out IFace2 choice, out string reason)
         {
-            scelta = null;
-            motivo = null;
-            if (passo.Direzione == null)
+            choice = null;
+            reason = null;
+            if (planStep.Direction == null)
             {
-                motivo =
-                    "Del passo «" + passo.Operazione + "» non conosco la direzione " +
+                reason =
+                    "Del passo «" + planStep.Operation + "» non conosco la direzione " +
                     "di estrusione, quindi non so dire quale faccia sia in cima. " +
                     "Indica la faccia per identificativo.";
                 return false;
             }
 
-            double miglioreProiezione = 0;
+            double bestProjection = 0;
             int unmeasured = 0;
-            foreach (var f in facce)
+            foreach (var f in faces)
             {
-                var n = Normale(f);
+                var n = Normal(f);
                 if (n == null) continue;
-                if (Math.Abs(Prodotto(n, passo.Direzione)) <= Coseno) continue;
+                if (Math.Abs(Product(n, planStep.Direction)) <= Cosine) continue;
 
-                var centro = PointToProject(f);
-                if (centro == null) { unmeasured++; continue; }
-                double proiezione = Prodotto(centro, passo.Direzione) * verso;
-                if (scelta == null || proiezione > miglioreProiezione)
+                var center = PointToProject(f);
+                if (center == null) { unmeasured++; continue; }
+                double projection = Product(center, planStep.Direction) * facing;
+                if (choice == null || projection > bestProjection)
                 {
-                    scelta = f;
-                    miglioreProiezione = proiezione;
+                    choice = f;
+                    bestProjection = projection;
                 }
             }
 
-            if (scelta == null && unmeasured > 0)
+            if (choice == null && unmeasured > 0)
             {
                 // Not "there is no such face": there are, and none could be measured.
-                motivo =
-                    "The step «" + passo.Operazione + "» left " + unmeasured + " planar face(s) " +
+                reason =
+                    "The step «" + planStep.Operation + "» left " + unmeasured + " planar face(s) " +
                     "perpendicular to the extrusion direction, but I could not measure where any " +
                     "of them is (neither the true bounding box nor a point on the face answered). " +
                     "Name the face by its identifier.";
                 return false;
             }
-            if (scelta == null)
+            if (choice == null)
             {
-                motivo =
-                    "Il passo «" + passo.Operazione + "» non ha lasciato nessuna " +
+                reason =
+                    "Il passo «" + planStep.Operation + "» non ha lasciato nessuna " +
                     "faccia piana perpendicolare alla direzione di estrusione: " +
-                    (verso > 0 ? "non c'e' una faccia in cima." : "non c'e' un fondo.");
+                    (facing > 0 ? "non c'e' una faccia in cima." : "non c'e' un fondo.");
                 return false;
             }
             return true;
@@ -1009,50 +1009,50 @@ namespace Oce.Solid.Agent.Core
         /// raccordare la bocca di un foro accorcia la parte cilindrica utile,
         /// e chi ha confermato «spigoli superiori» non ha confermato quello.
         /// </summary>
-        private static bool SpigoliDelBordoEsterno(
-            IFace2 faccia, List<IEntity> dentro, out string motivo)
+        private static bool OuterBorderEdges(
+            IFace2 face, List<IEntity> inside, out string reason)
         {
-            motivo = null;
+            reason = null;
             object[] loop;
-            try { loop = faccia.GetLoops() as object[]; }
+            try { loop = face.GetLoops() as object[]; }
             catch (Exception ex)
             {
-                motivo = "Non riesco a leggere i bordi della faccia: " + ex.Message;
+                reason = "Non riesco a leggere i bordi della faccia: " + ex.Message;
                 return false;
             }
             if (loop == null || loop.Length == 0)
             {
-                motivo = "La faccia non ha bordi leggibili.";
+                reason = "La faccia non ha bordi leggibili.";
                 return false;
             }
 
-            int esterni = 0;
+            int outer = 0;
             foreach (var g in loop)
             {
                 var l = g as ILoop2;
                 if (l == null) continue;
-                bool fuori;
-                try { fuori = l.IsOuter(); }
+                bool outside;
+                try { outside = l.IsOuter(); }
                 catch { continue; }
-                if (!fuori) continue;
-                esterni++;
+                if (!outside) continue;
+                outer++;
 
-                object[] grezzi;
-                try { grezzi = l.GetEdges() as object[]; }
+                object[] rawItems;
+                try { rawItems = l.GetEdges() as object[]; }
                 catch { continue; }
-                if (grezzi == null) continue;
-                foreach (var e in grezzi)
+                if (rawItems == null) continue;
+                foreach (var e in rawItems)
                 {
                     var ent = e as IEntity;
-                    if (ent != null) dentro.Add(ent);
+                    if (ent != null) inside.Add(ent);
                 }
             }
 
-            if (esterni == 0)
+            if (outer == 0)
             {
                 // Qui non si ripiega su «prendi tutti gli spigoli»: sarebbe
                 // esattamente il difetto che questo metodo esiste per chiudere.
-                motivo =
+                reason =
                     "Non ho trovato il bordo esterno della faccia, quindi non " +
                     "so distinguerlo dai bordi dei fori. Indica gli spigoli " +
                     "per identificativo.";
@@ -1061,38 +1061,38 @@ namespace Oce.Solid.Agent.Core
             return true;
         }
 
-        private static void AggiungiSpigoli(IFace2 faccia, List<IEntity> dentro)
+        private static void AddEdges(IFace2 face, List<IEntity> inside)
         {
-            object[] grezzi;
-            try { grezzi = faccia.GetEdges() as object[]; }
+            object[] rawItems;
+            try { rawItems = face.GetEdges() as object[]; }
             catch { return; }
-            if (grezzi == null) return;
-            foreach (var g in grezzi)
+            if (rawItems == null) return;
+            foreach (var g in rawItems)
             {
                 var e = g as IEntity;
-                if (e != null) dentro.Add(e);
+                if (e != null) inside.Add(e);
             }
         }
 
         /// <summary>La normale uscente di una faccia PIANA, o null se non e' piana.</summary>
-        private static double[] Normale(IFace2 faccia)
+        private static double[] Normal(IFace2 face)
         {
             try
             {
                 // S17: the rule (and why Face2.Normal and not PlaneParams)
                 // now lives in ApiHelpers.NormalIfPlanar.
-                var normal = ApiHelpers.NormalIfPlanar(faccia);
-                return normal == null ? null : Normalizza(normal);
+                var normal = ApiHelpers.NormalIfPlanar(face);
+                return normal == null ? null : Normalize(normal);
             }
             catch { return null; }
         }
 
-        private static bool Cilindrica(IFace2 faccia)
+        private static bool Cylindrical(IFace2 face)
         {
             try
             {
-                var superficie = faccia.GetSurface() as ISurface;
-                return superficie != null && superficie.IsCylinder();
+                var surface = face.GetSurface() as ISurface;
+                return surface != null && surface.IsCylinder();
             }
             catch { return false; }
         }
@@ -1124,47 +1124,47 @@ namespace Oce.Solid.Agent.Core
         /// che niente fallisca; scambiare un foro per un raccordo fa uscire un
         /// rifiuto, che si legge.
         /// </summary>
-        private static bool Concava(IFace2 faccia)
+        private static bool Concave(IFace2 face)
         {
-            try { return faccia.FaceInSurfaceSense(); }
+            try { return face.FaceInSurfaceSense(); }
             catch { return false; }
         }
 
         /// <summary>I diametri di queste facce cilindriche, per il rifiuto.</summary>
-        private static string Diametri(List<IFace2> facce)
+        private static string Diameters(List<IFace2> faces)
         {
-            var visti = new List<string>();
-            foreach (var f in facce)
+            var seen = new List<string>();
+            foreach (var f in faces)
             {
                 try
                 {
                     var par = (f.GetSurface() as ISurface)?.CylinderParams as double[];
                     if (par == null || par.Length < 7) continue;
-                    string d = "Ø" + Unita.Mm(par[6] * 2).ToString(
+                    string d = "Ø" + Units.Mm(par[6] * 2).ToString(
                         "0.##", System.Globalization.CultureInfo.InvariantCulture);
-                    if (!visti.Contains(d)) visti.Add(d);
+                    if (!seen.Contains(d)) seen.Add(d);
                 }
                 catch { }
             }
-            return visti.Count == 0 ? "diametri non leggibili" : string.Join(", ", visti);
+            return seen.Count == 0 ? "diametri non leggibili" : string.Join(", ", seen);
         }
 
         /// <summary>La direzione di uno spigolo RETTILINEO, o null se non lo e'.</summary>
-        private static double[] DirezioneSpigolo(IEdge spigolo)
+        private static double[] EdgeDirection(IEdge edge)
         {
-            if (spigolo == null) return null;
+            if (edge == null) return null;
             try
             {
-                var a = (spigolo.GetStartVertex() as IVertex)?.GetPoint() as double[];
-                var b = (spigolo.GetEndVertex() as IVertex)?.GetPoint() as double[];
+                var a = (edge.GetStartVertex() as IVertex)?.GetPoint() as double[];
+                var b = (edge.GetEndVertex() as IVertex)?.GetPoint() as double[];
                 if (a == null || b == null || a.Length < 3 || b.Length < 3) return null;
                 var d = new double[] { b[0] - a[0], b[1] - a[1], b[2] - a[2] };
-                return Normalizza(d);
+                return Normalize(d);
             }
             catch { return null; }
         }
 
-        private static double[] Normalizza(double[] v)
+        private static double[] Normalize(double[] v)
         {
             if (v == null || v.Length < 3) return null;
             double n = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -1172,7 +1172,7 @@ namespace Oce.Solid.Agent.Core
             return new double[] { v[0] / n, v[1] / n, v[2] / n };
         }
 
-        private static double Prodotto(double[] a, double[] b)
+        private static double Product(double[] a, double[] b)
         {
             return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
         }

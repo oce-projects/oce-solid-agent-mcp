@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Web.Script.Serialization;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -16,7 +16,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// Bridge/Shape.cs accepts an enum value ignoring case: the case of a word
     /// is form, not merit. Until library 0.140.0 it then passed the value on
     /// untouched, and the library compares Ordinal, so the accepted
-    /// «Top» became an unknown name there: SelezionaPiano fell back to
+    /// «Top» became an unknown name there: SelectPlane fell back to
     /// the front plane (finding N33, the plate on the wrong plane with
     /// riuscita:true) and rectangular_frame read «Overall» as the
     /// centreline frame (finding N32, 1080x880 for 1000x800). The fix is one
@@ -29,34 +29,34 @@ namespace Oce.Solid.Agent.ContractTests
     /// the CAD and is the bench case
     /// `estrusioni/unknown_plane_does_not_fall_back_to_front`.
     /// </summary>
-    internal static class FormaSpellingContract
+    internal static class ShapeSpellingContract
     {
         internal static void RunAll()
         {
-            Gruppo("the Forma rewrites enum values in the catalogue's spelling (Z-C21.10, S20)");
+            Group("the Forma rewrites enum values in the catalogue's spelling (Z-C21.10, S20)");
 
-            var bridge = PonteOppureNonQui("the Forma rewrites enum values in the catalogue's spelling, in full");
+            var bridge = BridgeOrNotHere("the Forma rewrites enum values in the catalogue's spelling, in full");
             if (bridge == null) return;
 
             MethodInfo check;
             try
             {
-                var type = Carica.Classe(Carica.Ponte(bridge), "Forma");
-                if (type == null) { Segna("the Forma class is there", false, ""); return; }
-                check = type.GetMethod("Controlla",
+                var type = Load.Class(Load.Bridge(bridge), "Shape");
+                if (type == null) { Check("the Forma class is there", false, ""); return; }
+                check = type.GetMethod("Check",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (check == null) { Segna("Forma.Controlla is there", false, ""); return; }
+                if (check == null) { Check("Forma.Controlla is there", false, ""); return; }
             }
-            catch (Exception ex) { Segna("the bridge loads", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
             var operations = ServedOperations(out string unreadable);
-            if (operations == null) { Segna("the served catalogue reads", false, unreadable); return; }
+            if (operations == null) { Check("the served catalogue reads", false, unreadable); return; }
 
             // The refusal, or null; the arguments are rewritten in place, as
             // «build» sees them. An exception comes back as a refusal that
             // says so: a Forma that throws (say, writing into the dictionary it
             // is walking) must turn these checks red, not stop the whole run.
-            Func<string, Dictionary<string, object>, Dictionary<string, object>, string> forma =
+            Func<string, Dictionary<string, object>, Dictionary<string, object>, string> shape =
                 (operation, schema, args) =>
                 {
                     try { return (string)check.Invoke(null, new object[] { operation, schema, args }); }
@@ -67,24 +67,24 @@ namespace Oce.Solid.Agent.ContractTests
                     }
                 };
             Func<string, Dictionary<string, object>, string> onCatalogue =
-                (operation, args) => forma(operation, SchemaOf(operations, operation), args);
+                (operation, args) => shape(operation, SchemaOf(operations, operation), args);
 
             // ── THE CASE OF THE FINDING: «Top» ────────────────────────
             var plate = Plate("Top");
             var refusal = onCatalogue("extrude_rectangle", plate);
-            Segna("extrude_rectangle: «Top» passes the Forma, as it always did",
+            Check("extrude_rectangle: «Top» passes the Forma, as it always did",
                   refusal == null, refusal ?? "accepted");
-            Segna("and reaches the library as «top», not «Top» (N33)",
+            Check("and reaches the library as «top», not «Top» (N33)",
                   Same(plate["plane"], "top"), "piano = " + Show(plate["plane"]));
 
             var allCaps = Plate("RIGHT");
             onCatalogue("extrude_rectangle", allCaps);
-            Segna("«RIGHT» reaches the library as «right»",
+            Check("«RIGHT» reaches the library as «right»",
                   Same(allCaps["plane"], "right"), "piano = " + Show(allCaps["plane"]));
 
             var right = Plate("top");
             refusal = onCatalogue("extrude_rectangle", right);
-            Segna("the catalogue's own spelling is accepted and left as it is",
+            Check("the catalogue's own spelling is accepted and left as it is",
                   refusal == null && Same(right["plane"], "top"),
                   (refusal ?? "accepted") + ", piano = " + Show(right["plane"]));
 
@@ -93,7 +93,7 @@ namespace Oce.Solid.Agent.ContractTests
             onCatalogue("create_drawing", sheet);
             var step = new Dictionary<string, object> { ["protocol"] = "ap214" };
             onCatalogue("export_step", step);
-            Segna("«a4v» becomes «A4V» and «ap214» «AP214»: the catalogue's spelling, not lower case",
+            Check("«a4v» becomes «A4V» and «ap214» «AP214»: the catalogue's spelling, not lower case",
                   Same(sheet["paper_size"], "A4V") && Same(step["protocol"], "AP214"),
                   "formato = " + Show(sheet["paper_size"]) + ", protocollo = " + Show(step["protocol"]));
 
@@ -107,10 +107,10 @@ namespace Oce.Solid.Agent.ContractTests
                 ["measured_as"] = "Overall",
             };
             refusal = onCatalogue("rectangular_frame", frame);
-            Segna("rectangular_frame: «Overall» reaches the library as «overall» (N32)",
+            Check("rectangular_frame: «Overall» reaches the library as «overall» (N32)",
                   refusal == null && Same(frame["measured_as"], "overall"),
                   (refusal ?? "accepted") + ", misure = " + Show(frame["measured_as"]));
-            Segna("a string that is not an enum is never rewritten («80X80X5» stays)",
+            Check("a string that is not an enum is never rewritten («80X80X5» stays)",
                   Same(frame["configuration"], "80X80X5"),
                   "configurazione = " + Show(frame["configuration"]));
 
@@ -121,16 +121,16 @@ namespace Oce.Solid.Agent.ContractTests
                 ["x_mm"] = 0, ["y_mm"] = 0, ["diameter_mm"] = 10, ["face_ref"] = face,
             };
             refusal = onCatalogue("cylindrical_cut", hole);
-            Segna("cylindrical_cut: «faccia_rif.genere» «Top_Face» becomes «top_face»",
+            Check("cylindrical_cut: «faccia_rif.genere» «Top_Face» becomes «top_face»",
                   refusal == null && Same(face["kind"], "top_face"),
                   (refusal ?? "accepted") + ", genere = " + Show(face["kind"]));
 
             // ── WHAT IS NOT IN THE LIST IS STILL REFUSED, AND NOT TOUCHED ───
             var unknown = Plate("obliquo");
             refusal = onCatalogue("extrude_rectangle", unknown);
-            Segna("«obliquo» is still refused, and the refusal names it",
+            Check("«obliquo» is still refused, and the refusal names it",
                   refusal != null && refusal.Contains("«obliquo»"), refusal ?? "accepted");
-            Segna("and a refused value is not rewritten",
+            Check("and a refused value is not rewritten",
                   Same(unknown["plane"], "obliquo"), "piano = " + Show(unknown["plane"]));
 
             // ── TWO SPELLINGS OF ONE WORD LEAVE NOTHING TO CHOOSE ───────────
@@ -149,8 +149,8 @@ namespace Oce.Solid.Agent.ContractTests
                 },
             };
             var ambiguous = new Dictionary<string, object> { ["mode"] = "Abc" };
-            refusal = forma("finta", twoWays, ambiguous);
-            Segna("«Abc» against «abc» and «ABC» is refused, not guessed",
+            refusal = shape("finta", twoWays, ambiguous);
+            Check("«Abc» against «abc» and «ABC» is refused, not guessed",
                   refusal != null && Same(ambiguous["mode"], "Abc"),
                   (refusal ?? "accepted") + ", modo = " + Show(ambiguous["mode"]));
 
@@ -185,7 +185,7 @@ namespace Oce.Solid.Agent.ContractTests
                             ["properties"] = new Dictionary<string, object> { [p.Key] = rule },
                         };
                         var args = new Dictionary<string, object> { [p.Key] = flipped };
-                        var r = forma(name, only, args);
+                        var r = shape(name, only, args);
                         if (r != null || !Same(args[p.Key], spelled))
                             wrong.Add(name + "." + p.Key + " «" + flipped + "» -> " +
                                       (r != null ? "refused: " + r : Show(args[p.Key])));
@@ -194,7 +194,7 @@ namespace Oce.Solid.Agent.ContractTests
             }
             // Twelve are enough to see the pattern; on library 0.140.0 all 180
             // of them fail, and a red line of 180 entries is read by nobody.
-            Segna("every top-level enum value, case flipped, comes back in the catalogue's spelling",
+            Check("every top-level enum value, case flipped, comes back in the catalogue's spelling",
                   values > 0 && wrong.Count == 0,
                   wrong.Count == 0
                       ? values + " values"
@@ -215,7 +215,7 @@ namespace Oce.Solid.Agent.ContractTests
         private static List<Dictionary<string, object>> ServedOperations(out string why)
         {
             why = null;
-            var file = CatalogoServito();
+            var file = ServedCatalog();
             if (!File.Exists(file)) { why = "missing " + file; return null; }
             try
             {

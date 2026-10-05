@@ -23,26 +23,26 @@ namespace Checks.Option
     /// I numeri sono quelli di `swUserPreferenceToggle_e`; `DimensionApis.exe` li
     /// elenca cercando per parola.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
-            if (argomenti.Length < 1)
+            if (arguments.Length < 1)
             {
                 Console.Error.WriteLine("Serve il numero dell'opzione.");
                 return 2;
             }
-            int numero;
-            if (!int.TryParse(argomenti[0], out numero))
+            int number;
+            if (!int.TryParse(arguments[0], out number))
             {
                 Console.Error.WriteLine("Il primo argomento e' un numero.");
                 return 2;
             }
 
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             // DUE LIVELLI, E NON SONO INTERCAMBIABILI.
             //
@@ -59,39 +59,39 @@ namespace Checks.Option
             var doc = sw.ActiveDoc as IModelDoc2;
 
             bool app = false, appOk = false;
-            try { app = sw.GetUserPreferenceToggle(numero); appOk = true; } catch { }
-            bool documento = false, docOk = false;
+            try { app = sw.GetUserPreferenceToggle(number); appOk = true; } catch { }
+            bool document = false, docOk = false;
             try
             {
                 if (doc != null)
                 {
-                    documento = doc.Extension.GetUserPreferenceToggle(numero, 0);
+                    document = doc.Extension.GetUserPreferenceToggle(number, 0);
                     docOk = true;
                 }
             }
             catch { }
 
-            Console.WriteLine("opzione " + numero + " prima:");
+            Console.WriteLine("opzione " + number + " prima:");
             Console.WriteLine("  applicazione: " + (appOk ? app.ToString() : "non leggibile"));
             Console.WriteLine("  documento   : " +
-                (doc == null ? "nessun documento attivo" : docOk ? documento.ToString() : "non leggibile"));
+                (doc == null ? "nessun documento attivo" : docOk ? document.ToString() : "non leggibile"));
 
-            if (argomenti.Length < 2) return 0;
-            bool voluto = argomenti[1] == "on";
-            string dove = argomenti.Length > 2 ? argomenti[2] : "app";
+            if (arguments.Length < 2) return 0;
+            bool wanted = arguments[1] == "on";
+            string location = arguments.Length > 2 ? arguments[2] : "app";
 
-            if (dove == "doc")
+            if (location == "doc")
             {
                 if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 1; }
-                try { doc.Extension.SetUserPreferenceToggle(numero, 0, voluto); }
+                try { doc.Extension.SetUserPreferenceToggle(number, 0, wanted); }
                 catch (Exception e) { Console.Error.WriteLine("Non riesco: " + e.Message); return 1; }
-                Console.WriteLine("documento adesso: " + doc.Extension.GetUserPreferenceToggle(numero, 0));
+                Console.WriteLine("documento adesso: " + doc.Extension.GetUserPreferenceToggle(number, 0));
             }
             else
             {
-                try { sw.SetUserPreferenceToggle(numero, voluto); }
+                try { sw.SetUserPreferenceToggle(number, wanted); }
                 catch (Exception e) { Console.Error.WriteLine("Non riesco: " + e.Message); return 1; }
-                Console.WriteLine("applicazione adesso: " + sw.GetUserPreferenceToggle(numero));
+                Console.WriteLine("applicazione adesso: " + sw.GetUserPreferenceToggle(number));
             }
             return 0;
         }

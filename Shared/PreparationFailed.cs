@@ -30,8 +30,8 @@ namespace Shared
     /// Resta un <see cref="InvalidOperationException"/> perche' chi lo cattura
     /// cosi' — e c'e' chi lo fa — continui a catturarlo.
     /// </summary>
-    internal class PreparazioneFallita : InvalidOperationException
+    internal class PreparationFailed : InvalidOperationException
     {
-        internal PreparazioneFallita(string messaggio) : base(messaggio) { }
+        internal PreparationFailed(string message) : base(message) { }
     }
 }

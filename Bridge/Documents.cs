@@ -44,115 +44,115 @@ namespace Oce.Solid.Agent.Bridge
     ///    called here, or a first read-only step right after would measure
     ///    stale geometry (C4-3).
     /// </summary>
-    internal sealed partial class Sessione
+    internal sealed partial class Session
     {
         /// <summary>Crea una parte o un assieme vuoti dal modello predefinito.</summary>
-        public Dictionary<string, object> NuovoDocumento(string tipo, out string errore)
+        public Dictionary<string, object> CreateDocument(string typ, out string error)
         {
-            errore = null;
+            error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
 
-            int preferenza, atteso;
-            string nomeTipo;
-            switch ((tipo ?? "").Trim().ToLowerInvariant())
+            int preference, expected;
+            string typeName;
+            switch ((typ ?? "").Trim().ToLowerInvariant())
             {
                 case "part":
-                    preferenza = (int)swUserPreferenceStringValue_e.swDefaultTemplatePart;
-                    atteso = (int)swDocumentTypes_e.swDocPART;
-                    nomeTipo = "part";
+                    preference = (int)swUserPreferenceStringValue_e.swDefaultTemplatePart;
+                    expected = (int)swDocumentTypes_e.swDocPART;
+                    typeName = "part";
                     break;
                 case "assembly":
-                    preferenza = (int)swUserPreferenceStringValue_e.swDefaultTemplateAssembly;
-                    atteso = (int)swDocumentTypes_e.swDocASSEMBLY;
-                    nomeTipo = "assembly";
+                    preference = (int)swUserPreferenceStringValue_e.swDefaultTemplateAssembly;
+                    expected = (int)swDocumentTypes_e.swDocASSEMBLY;
+                    typeName = "assembly";
                     break;
                 default:
-                    errore = "«variant» vale «part» o «assembly». Una tavola nasce da un " +
+                    error = "«variant» vale «part» o «assembly». Una tavola nasce da un " +
                              "pezzo, con «create_drawing» dentro un piano.";
                     return null;
             }
 
-            string modello = "";
-            try { modello = sw.GetUserPreferenceStringValue(preferenza) ?? ""; } catch { }
-            if (string.IsNullOrWhiteSpace(modello))
+            string model = "";
+            try { model = sw.GetUserPreferenceStringValue(preference) ?? ""; } catch { }
+            if (string.IsNullOrWhiteSpace(model))
             {
-                errore = "SOLIDWORKS non ha un modello predefinito per un " + nomeTipo +
+                error = "SOLIDWORKS non ha un modello predefinito per un " + typeName +
                          " (Opzioni > Posizioni dei file > Modelli di documento). Senza, " +
                          "NewDocument aprirebbe una finestra di scelta che nessuno chiude.";
                 return null;
             }
-            if (!File.Exists(modello))
+            if (!File.Exists(model))
             {
-                errore = "Il modello predefinito per un " + nomeTipo + " non c'e': «" +
-                         modello + "». Se sta su un disco di rete, potrebbe non " +
+                error = "Il modello predefinito per un " + typeName + " non c'e': «" +
+                         model + "». Se sta su un disco di rete, potrebbe non " +
                          "rispondere in questo momento.";
                 return null;
             }
 
-            var doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
+            var doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
             if (doc == null)
             {
-                errore = "NewDocument non ha creato niente, col modello «" + modello + "».";
+                error = "NewDocument non ha creato niente, col modello «" + model + "».";
                 return null;
             }
 
             // IL TIPO SI RILEGGE: un modello sbagliato da' un documento del tipo
             // sbagliato senza nessun errore.
-            int vero = doc.GetType();
-            if (vero != atteso)
+            int real = doc.GetType();
+            if (real != expected)
             {
                 // Just born and empty: closing it throws away nobody's work. By
                 // reference, not by title (Z-C21.13 N11): it is the active
                 // document, and a new document's title can be the stem of an
                 // open file. Read back before saying it is closed.
                 var closing = DocumentByPath.CloseAndReadBack(sw, doc);
-                errore = "The default template for a new " + TypeNameInEnglish(atteso) + " («" + modello +
-                         "») made a document of type " + TypeNameInEnglish(vero) + ". " +
+                error = "The default template for a new " + TypeNameInEnglish(expected) + " («" + model +
+                         "») made a document of type " + TypeNameInEnglish(real) + ". " +
                          (closing.IsClosed
                              ? "I closed it at once: it was empty."
                              : "It was empty, and it is NOT closed: " + closing.Message + ".");
                 return null;
             }
 
-            var fuori = Scheda(doc, DocumentoAttivo());
-            fuori["model"] = modello;
-            return fuori;
+            var outside = Card(doc, ActiveDocument());
+            outside["model"] = model;
+            return outside;
         }
 
         /// <summary>Apre un file SOLIDWORKS dal disco e lo porta davanti.</summary>
-        public Dictionary<string, object> ApriDocumento(string percorso, out string errore)
+        public Dictionary<string, object> OpenDocument(string filePath, out string error)
         {
-            errore = null;
+            error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
-            if (string.IsNullOrWhiteSpace(percorso))
+            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (string.IsNullOrWhiteSpace(filePath))
             {
-                errore = "«path» e' obbligatorio: il file da aprire, col percorso intero.";
+                error = "«path» e' obbligatorio: il file da aprire, col percorso intero.";
                 return null;
             }
-            percorso = percorso.Trim().Trim('"');
+            filePath = filePath.Trim().Trim('"');
 
-            int tipo;
-            switch (Path.GetExtension(percorso).ToLowerInvariant())
+            int typ;
+            switch (Path.GetExtension(filePath).ToLowerInvariant())
             {
-                case ".sldprt": tipo = (int)swDocumentTypes_e.swDocPART; break;
-                case ".sldasm": tipo = (int)swDocumentTypes_e.swDocASSEMBLY; break;
-                case ".slddrw": tipo = (int)swDocumentTypes_e.swDocDRAWING; break;
+                case ".sldprt": typ = (int)swDocumentTypes_e.swDocPART; break;
+                case ".sldasm": typ = (int)swDocumentTypes_e.swDocASSEMBLY; break;
+                case ".slddrw": typ = (int)swDocumentTypes_e.swDocDRAWING; break;
                 default:
-                    errore = "Apro solo file SOLIDWORKS: .sldprt, .sldasm, .slddrw. Uno " +
+                    error = "Apro solo file SOLIDWORKS: .sldprt, .sldasm, .slddrw. Uno " +
                              "STEP o un IGES si importano, non si aprono: e' un'altra strada.";
                     return null;
             }
-            if (!Path.IsPathRooted(percorso))
+            if (!Path.IsPathRooted(filePath))
             {
-                errore = "Voglio il percorso intero, non «" + percorso + "»: un percorso " +
+                error = "Voglio il percorso intero, non «" + filePath + "»: un percorso " +
                          "relativo dipende da dove SOLIDWORKS crede di essere.";
                 return null;
             }
-            if (!File.Exists(percorso))
+            if (!File.Exists(filePath))
             {
-                errore = "Il file non esiste: «" + percorso + "». Il documento davanti " +
+                error = "Il file non esiste: «" + filePath + "». Il documento davanti " +
                          "non e' cambiato.";
                 return null;
             }
@@ -168,96 +168,96 @@ namespace Oce.Solid.Agent.Bridge
             // part the assembly holds without a window. The Z-C21.3 probe of
             // C4-4 (28/9/2026) closed the part's window with the assembly
             // holding it: GetOpenDocumentByName gave the same object (Visible
-            // False), and ActivateDoc3 in PortaDavanti brought it to the front,
+            // False), and ActivateDoc3 in BringToFront brought it to the front,
             // errors 0, Visible True afterwards. The
             // guide's way (a Visible filter, then OpenDoc6) ended the same, with
             // swFileLoadWarning_AlreadyOpen. So no filter here.
-            var gia = sw.GetOpenDocumentByName(percorso) as IModelDoc2;
-            if (gia != null)
+            var already = sw.GetOpenDocumentByName(filePath) as IModelDoc2;
+            if (already != null)
             {
-                var portato = PortaDavanti(sw, gia, out errore);
-                if (portato == null) return null;
-                portato["was_already_open"] = true;
-                return portato;
+                var brought = BringToFront(sw, already, out error);
+                if (brought == null) return null;
+                brought["was_already_open"] = true;
+                return brought;
             }
 
-            int errori = 0, avvisi = 0;
-            var doc = sw.OpenDoc6(percorso, tipo,
-                (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref errori, ref avvisi) as IModelDoc2;
-            if (doc == null || errori != 0)
+            int errors = 0, warnings = 0;
+            var doc = sw.OpenDoc6(filePath, typ,
+                (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref errors, ref warnings) as IModelDoc2;
+            if (doc == null || errors != 0)
             {
-                errore = "SOLIDWORKS non ha aperto «" + percorso + "»: " + ErroriDiApertura(errori) +
-                         (avvisi != 0 ? " Avvisi: " + AvvisiDiApertura(avvisi) + "." : "");
+                error = "SOLIDWORKS non ha aperto «" + filePath + "»: " + OpeningErrors(errors) +
+                         (warnings != 0 ? " Avvisi: " + OpeningWarnings(warnings) + "." : "");
                 return null;
             }
 
             // IL FILE APERTO E' QUELLO CHIESTO? Si rilegge, non si crede.
-            string aperto = doc.GetPathName() ?? "";
-            if (!string.Equals(Normale(aperto), Normale(percorso), StringComparison.OrdinalIgnoreCase))
+            string open = doc.GetPathName() ?? "";
+            if (!string.Equals(Normal(open), Normal(filePath), StringComparison.OrdinalIgnoreCase))
             {
-                errore = "Ho chiesto «" + percorso + "» e SOLIDWORKS dice di aver aperto «" +
-                         aperto + "». Non lo uso: potrebbe essere un altro file con lo " +
+                error = "Ho chiesto «" + filePath + "» e SOLIDWORKS dice di aver aperto «" +
+                         open + "». Non lo uso: potrebbe essere un altro file con lo " +
                          "stesso nome.";
                 return null;
             }
 
             // E DAVANTI C'E' LUI? OpenDoc6 di solito lo attiva; si controlla.
-            var fuori = PortaDavanti(sw, doc, out errore);
-            if (fuori == null) return null;
-            fuori["was_already_open"] = false;
-            if (avvisi != 0) fuori["opening_warnings"] = AvvisiDiApertura(avvisi);
-            return fuori;
+            var outside = BringToFront(sw, doc, out error);
+            if (outside == null) return null;
+            outside["was_already_open"] = false;
+            if (warnings != 0) outside["opening_warnings"] = OpeningWarnings(warnings);
+            return outside;
         }
 
         /// <summary>I documenti aperti e visibili, con quale e' davanti.</summary>
-        public List<Dictionary<string, object>> Documenti(out int nascosti, out string errore)
+        public List<Dictionary<string, object>> Documents(out int hidden, out string error)
         {
-            errore = null;
-            nascosti = 0;
+            error = null;
+            hidden = 0;
             var sw = _sw as ISldWorks;
-            if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
 
-            var attivo = DocumentoAttivo();
-            var fuori = new List<Dictionary<string, object>>();
+            var active = ActiveDocument();
+            var outside = new List<Dictionary<string, object>>();
             var doc = sw.GetFirstDocument() as IModelDoc2;
-            int giro = 0;
-            while (doc != null && giro++ < 500)
+            int benchRun = 0;
+            while (doc != null && benchRun++ < 500)
             {
-                bool visibile = true;
-                try { visibile = doc.Visible; } catch { }
+                bool visible = true;
+                try { visible = doc.Visible; } catch { }
                 // I NASCOSTI SONO I PEZZI CARICATI DENTRO UN ASSIEME: sono
                 // documenti per SOLIDWORKS e non per chi lavora. Si contano e
                 // si dicono, non si elencano.
-                if (visibile) fuori.Add(Scheda(doc, attivo));
-                else nascosti++;
+                if (visible) outside.Add(Card(doc, active));
+                else hidden++;
                 doc = doc.GetNext() as IModelDoc2;
             }
-            return fuori;
+            return outside;
         }
 
         /// <summary>Porta davanti un documento gia' aperto, per percorso o titolo.</summary>
-        public Dictionary<string, object> AttivaDocumento(string quale, out string errore)
+        public Dictionary<string, object> ActivateDocument(string which, out string error)
         {
-            errore = null;
+            error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
-            if (string.IsNullOrWhiteSpace(quale))
+            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (string.IsNullOrWhiteSpace(which))
             {
-                errore = "«path» e' obbligatorio: il percorso o il titolo di un documento aperto.";
+                error = "«path» e' obbligatorio: il percorso o il titolo di un documento aperto.";
                 return null;
             }
-            quale = quale.Trim().Trim('"');
+            which = which.Trim().Trim('"');
 
-            List<string> titoli;
-            var trovato = TrovaAperto(sw, quale, out titoli);
-            if (trovato == null)
+            List<string> titles;
+            var found = FindOpen(sw, which, out titles);
+            if (found == null)
             {
-                errore = "«" + quale + "» non e' fra i documenti aperti. Aperti adesso: " +
-                         (titoli.Count == 0 ? "nessuno" : "«" + string.Join("», «", titoli) + "»") +
+                error = "«" + which + "» non e' fra i documenti aperti. Aperti adesso: " +
+                         (titles.Count == 0 ? "nessuno" : "«" + string.Join("», «", titles) + "»") +
                          ". Il documento davanti non e' cambiato.";
                 return null;
             }
-            return PortaDavanti(sw, trovato, out errore);
+            return BringToFront(sw, found, out error);
         }
 
         /// <summary>
@@ -271,33 +271,33 @@ namespace Oce.Solid.Agent.Bridge
         ///
         /// SI RILEGGE che sia chiuso davvero: `CloseDoc` torna `void`.
         /// </summary>
-        public Dictionary<string, object> ChiudiDocumento(string quale, out string errore)
+        public Dictionary<string, object> CloseDocument(string which, out string error)
         {
-            errore = null;
+            error = null;
             var sw = _sw as ISldWorks;
-            if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
-            if (string.IsNullOrWhiteSpace(quale))
+            if (sw == null) { error = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (string.IsNullOrWhiteSpace(which))
             {
-                errore = "«path» e' obbligatorio: il percorso o il titolo del documento da chiudere.";
+                error = "«path» e' obbligatorio: il percorso o il titolo del documento da chiudere.";
                 return null;
             }
-            quale = quale.Trim().Trim('"');
+            which = which.Trim().Trim('"');
 
-            List<string> titoli;
-            var doc = TrovaAperto(sw, quale, out titoli);
+            List<string> titles;
+            var doc = FindOpen(sw, which, out titles);
             if (doc == null)
             {
-                errore = "«" + quale + "» non e' fra i documenti aperti. Aperti adesso: " +
-                         (titoli.Count == 0 ? "nessuno" : "«" + string.Join("», «", titoli) + "»") + ".";
+                error = "«" + which + "» non e' fra i documenti aperti. Aperti adesso: " +
+                         (titles.Count == 0 ? "nessuno" : "«" + string.Join("», «", titles) + "»") + ".";
                 return null;
             }
 
-            bool sporco = false;
-            try { sporco = doc.GetSaveFlag(); } catch { }
-            string titolo = doc.GetTitle() ?? "";
-            if (sporco)
+            bool dirty = false;
+            try { dirty = doc.GetSaveFlag(); } catch { }
+            string docTitle = doc.GetTitle() ?? "";
+            if (dirty)
             {
-                errore = "«" + titolo + "» ha modifiche non salvate: non lo chiudo, le butterei. " +
+                error = "«" + docTitle + "» ha modifiche non salvate: non lo chiudo, le butterei. " +
                          "Salvalo prima («save_document», dentro un piano), oppure chiudilo a " +
                          "mano se quelle modifiche sono da buttare.";
                 return null;
@@ -313,7 +313,7 @@ namespace Oce.Solid.Agent.Bridge
             var atRisk = DocumentByPath.UnsavedHiddenDocumentsAtRisk(sw, doc);
             if (atRisk.Count > 0)
             {
-                errore = "Not closing «" + titolo + "»: CloseDoc also closes the hidden documents that no " +
+                error = "Not closing «" + docTitle + "»: CloseDoc also closes the hidden documents that no " +
                          "other open document uses, without saving them, and these have unsaved changes: «" +
                          string.Join("», «", atRisk) + "». Save them first (a component is saved with the " +
                          "assembly that uses it), or close by hand if those changes are to be thrown away.";
@@ -324,30 +324,30 @@ namespace Oce.Solid.Agent.Bridge
             // (Z-C21.13 N11): with the extensions hidden Base.SLDPRT and
             // Base.SLDASM have the same title, and nothing documents which one
             // CloseDoc closes. DocumentByPath reads back whether it is gone.
-            var id = Identita(doc);
-            string percorso = Convert.ToString(id["path"] ?? "");
+            var id = Identity(doc);
+            string filePath = Convert.ToString(id["path"] ?? "");
             var closing = DocumentByPath.CloseAndReadBack(sw, doc);
             if (closing.Result != DocumentByPath.CloseResult.Closed &&
                 closing.Result != DocumentByPath.CloseResult.StillLoadedHidden)
             {
-                errore = "«" + titolo + "» is not closed: " + closing.Message + ".";
+                error = "«" + docTitle + "» is not closed: " + closing.Message + ".";
                 return null;
             }
 
             // READ BACK from the bridge's side too: not among the visible documents.
-            List<string> dopo;
-            if (TrovaAperto(sw, string.IsNullOrEmpty(percorso) ? titolo : percorso, out dopo) != null)
+            List<string> after;
+            if (FindOpen(sw, string.IsNullOrEmpty(filePath) ? docTitle : filePath, out after) != null)
             {
-                errore = "I asked to close «" + titolo + "» and it is still open (" + closing.Message + ").";
+                error = "I asked to close «" + docTitle + "» and it is still open (" + closing.Message + ").";
                 return null;
             }
-            var davanti = DocumentoAttivo();
+            var front = ActiveDocument();
             var answer = new Dictionary<string, object>
             {
-                ["closed"] = titolo,
-                ["path"] = string.IsNullOrEmpty(percorso) ? null : percorso,
-                ["open_now"] = dopo.Count,
-                ["in_front_now"] = davanti == null ? null : Identita(davanti)["document_title"],
+                ["closed"] = docTitle,
+                ["path"] = string.IsNullOrEmpty(filePath) ? null : filePath,
+                ["open_now"] = after.Count,
+                ["in_front_now"] = front == null ? null : Identity(front)["document_title"],
                 ["closed_by"] = closing.NamePassed == ""
                     ? "the active document (CloseDoc with an empty name)"
                     : closing.NamePassed,
@@ -370,28 +370,28 @@ namespace Oce.Solid.Agent.Bridge
         /// salvato — per titolo. `titoli` riporta cosa c'era, per dirlo in un
         /// rifiuto.
         /// </summary>
-        private IModelDoc2 TrovaAperto(ISldWorks sw, string quale, out List<string> titoli)
+        private IModelDoc2 FindOpen(ISldWorks sw, string which, out List<string> titles)
         {
-            IModelDoc2 trovato = null;
-            titoli = new List<string>();
+            IModelDoc2 found = null;
+            titles = new List<string>();
             var doc = sw.GetFirstDocument() as IModelDoc2;
-            int giro = 0;
-            while (doc != null && giro++ < 500)
+            int benchRun = 0;
+            while (doc != null && benchRun++ < 500)
             {
-                bool visibile = true;
-                try { visibile = doc.Visible; } catch { }
-                if (visibile)
+                bool visible = true;
+                try { visible = doc.Visible; } catch { }
+                if (visible)
                 {
                     string p = doc.GetPathName() ?? "", t = doc.GetTitle() ?? "";
-                    titoli.Add(string.IsNullOrEmpty(p) ? t : p);
-                    bool combacia = !string.IsNullOrEmpty(p)
-                        ? string.Equals(Normale(p), Normale(quale), StringComparison.OrdinalIgnoreCase)
-                        : string.Equals(t, quale, StringComparison.Ordinal);
-                    if (combacia && trovato == null) trovato = doc;
+                    titles.Add(string.IsNullOrEmpty(p) ? t : p);
+                    bool matches = !string.IsNullOrEmpty(p)
+                        ? string.Equals(Normal(p), Normal(which), StringComparison.OrdinalIgnoreCase)
+                        : string.Equals(t, which, StringComparison.Ordinal);
+                    if (matches && found == null) found = doc;
                 }
                 doc = doc.GetNext() as IModelDoc2;
             }
-            return trovato;
+            return found;
         }
 
         // ── attrezzi ────────────────────────────────────────────────────────
@@ -417,22 +417,22 @@ namespace Oce.Solid.Agent.Bridge
         /// rebuild only runs after a successful step (PlanExecutor.cs), too
         /// late for the very first one.
         /// </summary>
-        private Dictionary<string, object> PortaDavanti(ISldWorks sw, IModelDoc2 doc, out string errore)
+        private Dictionary<string, object> BringToFront(ISldWorks sw, IModelDoc2 doc, out string error)
         {
-            errore = null;
+            error = null;
             int activationErrors;
             string problem;
             if (!DocumentByPath.ActivateAndReadBack(sw, doc, out activationErrors, out problem))
             {
-                errore = problem + ".";
+                error = problem + ".";
                 return null;
             }
             // READ BACK from the bridge's side too: the identity it compares.
-            var davanti = DocumentoAttivo();
-            if (!StessoDocumento(Identita(davanti), Identita(doc)))
+            var front = ActiveDocument();
+            if (!SameDocument(Identity(front), Identity(doc)))
             {
-                errore = "I asked to bring «" + doc.GetTitle() + "» to the front, and the active document " +
-                         "is «" + Convert.ToString(Identita(davanti)?["document_title"] ?? "nothing") + "».";
+                error = "I asked to bring «" + doc.GetTitle() + "» to the front, and the active document " +
+                         "is «" + Convert.ToString(Identity(front)?["document_title"] ?? "nothing") + "».";
                 return null;
             }
 
@@ -452,11 +452,11 @@ namespace Oce.Solid.Agent.Bridge
                 catch (Exception ex) { rebuildFault = "EditRebuild3 threw: " + ex.Message; }
             }
 
-            var scheda = Scheda(doc, davanti);
+            var card = Card(doc, front);
             if (needsRebuild)
             {
-                scheda["rebuilt_on_activation"] = rebuiltOnActivation;
-                scheda["rebuilt_on_activation_reason"] =
+                card["rebuilt_on_activation"] = rebuiltOnActivation;
+                card["rebuilt_on_activation_reason"] =
                     "ActivateDoc3 reported swDocNeedsRebuildWarning: with swDontRebuildActiveDoc it does not " +
                     "rebuild on activation by itself, " +
                     (rebuiltOnActivation
@@ -464,7 +464,7 @@ namespace Oce.Solid.Agent.Bridge
                         : "and the rebuild asked here failed (" + rebuildFault + "): what is read from it now " +
                           "may be stale geometry.");
             }
-            return scheda;
+            return card;
         }
 
         /// <summary>
@@ -481,37 +481,37 @@ namespace Oce.Solid.Agent.Bridge
                    (activationErrors & (int)swActivateDocError_e.swDocNeedsRebuildWarning) != 0;
         }
 
-        private Dictionary<string, object> Scheda(IModelDoc2 doc, object attivo)
+        private Dictionary<string, object> Card(IModelDoc2 doc, object active)
         {
-            bool solaLettura = false, modificato = false;
-            try { solaLettura = doc.IsOpenedReadOnly(); } catch { }
-            try { modificato = doc.GetSaveFlag(); } catch { }
-            var id = Identita(doc);
-            var scheda = new Dictionary<string, object>
+            bool isReadOnly = false, modified = false;
+            try { isReadOnly = doc.IsOpenedReadOnly(); } catch { }
+            try { modified = doc.GetSaveFlag(); } catch { }
+            var id = Identity(doc);
+            var card = new Dictionary<string, object>
             {
                 ["document_title"] = id["document_title"],
                 ["path"] = id["path"],
-                ["kind"] = NomeDelTipo(doc.GetType()),
-                ["read_only"] = solaLettura,
-                ["unsaved_changes"] = modificato,
-                ["in_front"] = attivo != null && StessoDocumento(Identita(attivo), id),
+                ["kind"] = TypeName(doc.GetType()),
+                ["read_only"] = isReadOnly,
+                ["unsaved_changes"] = modified,
+                ["in_front"] = active != null && SameDocument(Identity(active), id),
             };
-            if (solaLettura)
-                scheda["warning"] =
+            if (isReadOnly)
+                card["warning"] =
                     "SOLA LETTURA: di solito vuol dire che un collega ha il file aperto. " +
                     "«build» non ci scrive: le modifiche resterebbero in memoria e il " +
                     "salvataggio fallirebbe, o finirebbe in una copia.";
-            return scheda;
+            return card;
         }
 
-        private static string NomeDelTipo(int tipo)
+        private static string TypeName(int typ)
         {
-            switch (tipo)
+            switch (typ)
             {
                 case (int)swDocumentTypes_e.swDocPART: return "part";
                 case (int)swDocumentTypes_e.swDocASSEMBLY: return "assembly";
                 case (int)swDocumentTypes_e.swDocDRAWING: return "drawing";
-                default: return "altro (" + tipo + ")";
+                default: return "altro (" + typ + ")";
             }
         }
 
@@ -527,30 +527,30 @@ namespace Oce.Solid.Agent.Bridge
             }
         }
 
-        private static string Normale(string p)
+        private static string Normal(string p)
         {
             return (p ?? "").Trim().Trim('"').Replace('/', '\\');
         }
 
-        private static string ErroriDiApertura(int e)
+        private static string OpeningErrors(int e)
         {
-            var nomi = new List<string>();
-            if ((e & (int)swFileLoadError_e.swFileNotFoundError) != 0) nomi.Add("file non trovato");
-            if ((e & (int)swFileLoadError_e.swInvalidFileTypeError) != 0) nomi.Add("tipo di file non valido");
-            if ((e & (int)swFileLoadError_e.swFutureVersion) != 0) nomi.Add("salvato da una versione piu' nuova di SOLIDWORKS");
-            if ((e & (int)swFileLoadError_e.swGenericError) != 0) nomi.Add("errore generico");
-            return nomi.Count == 0 ? "codice " + e : string.Join(", ", nomi) + " (codice " + e + ")";
+            var names = new List<string>();
+            if ((e & (int)swFileLoadError_e.swFileNotFoundError) != 0) names.Add("file non trovato");
+            if ((e & (int)swFileLoadError_e.swInvalidFileTypeError) != 0) names.Add("tipo di file non valido");
+            if ((e & (int)swFileLoadError_e.swFutureVersion) != 0) names.Add("salvato da una versione piu' nuova di SOLIDWORKS");
+            if ((e & (int)swFileLoadError_e.swGenericError) != 0) names.Add("errore generico");
+            return names.Count == 0 ? "codice " + e : string.Join(", ", names) + " (codice " + e + ")";
         }
 
-        private static string AvvisiDiApertura(int a)
+        private static string OpeningWarnings(int a)
         {
-            var nomi = new List<string>();
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ReadOnly) != 0) nomi.Add("aperto in sola lettura");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_SharingViolation) != 0) nomi.Add("il file e' in uso da un altro");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_AlreadyOpen) != 0) nomi.Add("era gia' aperto");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_NeedsRegen) != 0) nomi.Add("va ricostruito");
-            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ModelOutOfDate) != 0) nomi.Add("modello non aggiornato");
-            return nomi.Count == 0 ? "codice " + a : string.Join(", ", nomi) + " (codice " + a + ")";
+            var names = new List<string>();
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ReadOnly) != 0) names.Add("aperto in sola lettura");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_SharingViolation) != 0) names.Add("il file e' in uso da un altro");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_AlreadyOpen) != 0) names.Add("era gia' aperto");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_NeedsRegen) != 0) names.Add("va ricostruito");
+            if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ModelOutOfDate) != 0) names.Add("modello non aggiornato");
+            return names.Count == 0 ? "codice " + a : string.Join(", ", names) + " (codice " + a + ")";
         }
     }
 }

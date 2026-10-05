@@ -27,104 +27,104 @@
 # =============================================================================
 
 $ErrorActionPreference = "Stop"
-$radice = Split-Path -Parent $PSScriptRoot
-Set-Location $radice
+$root = Split-Path -Parent $PSScriptRoot
+Set-Location $root
 
-function Ferma($perche) {
+function Stop($why) {
     Write-Output ""
-    Write-Output "FERMO: $perche"
+    Write-Output "FERMO: $why"
     exit 1
 }
-function Ok($cosa) { Write-Output "  ok  $cosa" }
+function Ok($what) { Write-Output "  ok  $what" }
 
-function EseguiGit($argomenti) {
-    $vecchio = $ErrorActionPreference
+function RunGit($arguments) {
+    $old = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    try { & git.exe -C $radice @argomenti 2>$null } finally { $ErrorActionPreference = $vecchio }
+    try { & git.exe -C $root @arguments 2>$null } finally { $ErrorActionPreference = $old }
 }
 
 Write-Output "=== la versione"
-$versione = (Get-Content (Join-Path $radice "VERSION.txt") -Raw).Trim()
-if ($versione -notmatch '^\d+\.\d+\.\d+$') { Ferma "VERSION.txt non e' una versione X.Y.Z: '$versione'" }
-Ok "VERSION.txt dice $versione"
-$tag = "v$versione"
+$version = (Get-Content (Join-Path $root "VERSION.txt") -Raw).Trim()
+if ($version -notmatch '^\d+\.\d+\.\d+$') { Stop "VERSION.txt non e' una versione X.Y.Z: '$version'" }
+Ok "VERSION.txt dice $version"
+$tag = "v$version"
 
 # UNA VOCE NEL CHANGELOG, e non una qualunque: quella di QUESTA versione. Le
 # note della Release si prendono da li', e una Release senza note e' un file
 # che nessuno sa cosa cambia.
-$cl = Get-Content (Join-Path $radice "CHANGELOG.md") -Encoding UTF8
-$inizio = -1
+$cl = Get-Content (Join-Path $root "CHANGELOG.md") -Encoding UTF8
+$start = -1
 for ($i = 0; $i -lt $cl.Count; $i++) {
-    if ($cl[$i] -match ('^## ' + [regex]::Escape($versione) + '\b')) { $inizio = $i; break }
+    if ($cl[$i] -match ('^## ' + [regex]::Escape($version) + '\b')) { $start = $i; break }
 }
-if ($inizio -lt 0) { Ferma "CHANGELOG.md non ha una voce '## $versione'" }
+if ($start -lt 0) { Stop "CHANGELOG.md non ha una voce '## $version'" }
 $fine = $cl.Count
-for ($i = $inizio + 1; $i -lt $cl.Count; $i++) { if ($cl[$i] -match '^## \d') { $fine = $i; break } }
-Ok ("CHANGELOG.md ha la voce, " + ($fine - $inizio) + " righe")
+for ($i = $start + 1; $i -lt $cl.Count; $i++) { if ($cl[$i] -match '^## \d') { $fine = $i; break } }
+Ok ("CHANGELOG.md ha la voce, " + ($fine - $start) + " righe")
 
 Write-Output ""
 Write-Output "=== il repository"
 # NIENTE DI NON COMMITTATO: il binario deve essere quello di un commit, o
 # nessuno potra' mai dire da che codice viene.
-$sporco = @(EseguiGit @('status', '--porcelain') | Where-Object { $_ })
-if ($sporco.Count -gt 0) {
-    $sporco | Select-Object -First 5 | ForEach-Object { Write-Output "     $_" }
-    Ferma "l'albero di lavoro ha modifiche non committate"
+$dirty = @(RunGit @('status', '--porcelain') | Where-Object { $_ })
+if ($dirty.Count -gt 0) {
+    $dirty | Select-Object -First 5 | ForEach-Object { Write-Output "     $_" }
+    Stop "l'albero di lavoro ha modifiche non committate"
 }
 Ok "albero di lavoro pulito"
 
 # E SPINTO: una Release che punta a un commit che il remoto non ha e' un tag
 # che nessun altro puo' risolvere.
-$null = EseguiGit @('fetch', '--quiet', 'origin')
-$locale = (EseguiGit @('rev-parse', 'HEAD')) | Select-Object -First 1
-$remoto = (EseguiGit @('rev-parse', 'origin/main')) | Select-Object -First 1
-if ($locale -ne $remoto) { Ferma "HEAD ($locale) non e' origin/main ($remoto): prima si spinge" }
+$null = RunGit @('fetch', '--quiet', 'origin')
+$locale = (RunGit @('rev-parse', 'HEAD')) | Select-Object -First 1
+$remote = (RunGit @('rev-parse', 'origin/main')) | Select-Object -First 1
+if ($locale -ne $remote) { Stop "HEAD ($locale) non e' origin/main ($remote): prima si spinge" }
 Ok "HEAD e' origin/main ($($locale.Substring(0,7)))"
 
-$esiste = @(EseguiGit @('tag', '-l', $tag) | Where-Object { $_ })
-if ($esiste.Count -gt 0) { Ferma "il tag $tag esiste gia': una versione si rilascia una volta" }
+$exists = @(RunGit @('tag', '-l', $tag) | Where-Object { $_ })
+if ($exists.Count -gt 0) { Stop "il tag $tag esiste gia': una versione si rilascia una volta" }
 Ok "il tag $tag non esiste ancora"
 
 Write-Output ""
 Write-Output "=== la compilazione"
-& (Join-Path $radice "build.ps1") | Out-Null
-if ($LASTEXITCODE -ne 0) { Ferma "build.ps1 e' uscito $LASTEXITCODE" }
-$exe = Join-Path $radice "dist\Installer.exe"
-$sha = Join-Path $radice "dist\Installer.exe.sha256"
-if (-not (Test-Path $exe)) { Ferma "manca dist\Installer.exe" }
-if (-not (Test-Path $sha)) { Ferma "manca dist\Installer.exe.sha256" }
+& (Join-Path $root "build.ps1") | Out-Null
+if ($LASTEXITCODE -ne 0) { Stop "build.ps1 e' uscito $LASTEXITCODE" }
+$exe = Join-Path $root "dist\Installer.exe"
+$sha = Join-Path $root "dist\Installer.exe.sha256"
+if (-not (Test-Path $exe)) { Stop "manca dist\Installer.exe" }
+if (-not (Test-Path $sha)) { Stop "manca dist\Installer.exe.sha256" }
 Ok ("dist\Installer.exe, " + [int]((Get-Item $exe).Length / 1KB) + " kB")
 
 # LO SHA256 SI RICALCOLA, NON SI CREDE AL FILE ACCANTO. E' il valore che chi
 # scarica confrontera': se il file .sha256 e' rimasto di una compilazione
 # precedente, la verifica che QUICKSTART insegna direbbe "manomesso" a tutti.
-$vero = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
-$dichiarato = ((Get-Content $sha -Raw).Trim() -split '\s+')[0].ToLower()
-if ($vero -ne $dichiarato) { Ferma "lo sha256 accanto all'eseguibile non e' il suo ($dichiarato contro $vero)" }
-Ok "sha256 ricalcolato e uguale: $($vero.Substring(0,16))..."
+$real = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+$declared = ((Get-Content $sha -Raw).Trim() -split '\s+')[0].ToLower()
+if ($real -ne $declared) { Stop "lo sha256 accanto all'eseguibile non e' il suo ($declared contro $real)" }
+Ok "sha256 ricalcolato e uguale: $($real.Substring(0,16))..."
 
 # LA SUITE DI CONTRATTO, VERDE. Dentro ci sono i due controlli che una Release
 # deve avere: la versione che il ponte annuncia e' quella di VERSION.txt, e
 # l'ultimo giro di banco e' posteriore all'ultima modifica della libreria e del
 # banco. Una Release su un banco vecchio e' un binario che nessuno ha misurato.
-$prove = Join-Path $radice "Tests\bin\Oce.Solid.Agent.ContractTests.exe"
-if (-not (Test-Path $prove)) { Ferma "manca Tests\bin\Oce.Solid.Agent.ContractTests.exe: si compila Tests\Oce.Solid.Agent.ContractTests.csproj" }
-$vecchio = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-$esito = & $prove 2>&1 | Out-String
-$codice = $LASTEXITCODE
-$ErrorActionPreference = $vecchio
-$riga = ($esito -split "`n" | Where-Object { $_ -match 'controlli, \d+ falliti' } | Select-Object -Last 1)
-if ($codice -ne 0) {
-    ($esito -split "`n" | Where-Object { $_ -match '^\s+NO ' }) | Select-Object -First 5 | ForEach-Object { Write-Output "     $_" }
-    Ferma ("la suite di contratto non e' verde: " + $riga)
+$tests = Join-Path $root "Tests\bin\Oce.Solid.Agent.ContractTests.exe"
+if (-not (Test-Path $tests)) { Stop "manca Tests\bin\Oce.Solid.Agent.ContractTests.exe: si compila Tests\Oce.Solid.Agent.ContractTests.csproj" }
+$old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+$outcome = & $tests 2>&1 | Out-String
+$code = $LASTEXITCODE
+$ErrorActionPreference = $old
+$line = ($outcome -split "`n" | Where-Object { $_ -match 'controlli, \d+ falliti' } | Select-Object -Last 1)
+if ($code -ne 0) {
+    ($outcome -split "`n" | Where-Object { $_ -match '^\s+NO ' }) | Select-Object -First 5 | ForEach-Object { Write-Output "     $_" }
+    Stop ("la suite di contratto non e' verde: " + $line)
 }
-Ok ("suite di contratto: " + $riga.Trim())
+Ok ("suite di contratto: " + $line.Trim())
 
 Write-Output ""
 Write-Output "=== le note della Release"
-$note = Join-Path $radice ("dist\note-di-rilascio-" + $versione + ".md")
-$cl[$inizio..($fine - 1)] | Out-File $note -Encoding utf8
-Ok ("dist\note-di-rilascio-" + $versione + ".md, dalla voce del CHANGELOG")
+$note = Join-Path $root ("dist\note-di-rilascio-" + $version + ".md")
+$cl[$start..($fine - 1)] | Out-File $note -Encoding utf8
+Ok ("dist\note-di-rilascio-" + $version + ".md, dalla voce del CHANGELOG")
 
 Write-Output ""
 Write-Output "PRONTA. Non e' stato pubblicato niente. I tre passi, da fare a mano:"

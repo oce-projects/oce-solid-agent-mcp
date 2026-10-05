@@ -1,7 +1,7 @@
 {
   "name": "hole_wizard_follows_the_table",
   "family": "features",
-  "why": "VOCE Z-C6, la seconda meta'. `hole_wizard` era a catalogo con casi solo nella REGRESSIONE (r01, r02, r07, r14), che gira soltanto con `-Regressione`, e nel C# del banco: nessun caso dichiarato di un giro normale la toccava. L'ha trovato il controllo di contratto nuovo, il 25/9/2026.",
+  "why": "VOCE Z-C6, la seconda meta'. `hole_wizard` era a catalogo con casi solo nella REGRESSIONE (r01, r02, r07, r14), che gira soltanto con `-Regression`, e nel C# del banco: nessun caso dichiarato di un giro normale la toccava. L'ha trovato il controllo di contratto nuovo, il 25/9/2026.",
   "defect_caught": "Il foro che esce della misura sbagliata per il TIPO: un M8 filettato vuole il preforo da 6,8 (il filetto e' cosmetico), un M8 di passaggio il foro da 9. Scambiarli fa un pezzo in cui la vite o non entra o non tiene, e la ricostruzione e' pulita lo stesso. `diameter_machined_mm` lo dice l'operazione; il volume lo conferma il pezzo.",
   "start": { "new_part": true },
   "steps": [

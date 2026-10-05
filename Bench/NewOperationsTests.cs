@@ -111,19 +111,19 @@ namespace Oce.Solid.Agent.Bench
         ///   IModelDoc2.ShowNamedView2(String VName, Int32 ViewId)
         ///   IModelDoc2.ViewZoomtofit2()
         /// </summary>
-        private static void ScattaLaVista()
+        private static void CaptureView()
         {
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                PiastraCentrata(doc, 200, 120, 20);
-                var stato0 = LeggiStato(doc);
-                string davanti = FacciaConVerso(stato0, "front");
-                string errore, nomeForo;
-                EseguiConNome(doc, "hole_wizard", new Dictionary<string, object>
+                doc = NewPart();
+                CenteredPlate(doc, 200, 120, 20);
+                var state0 = ReadState(doc);
+                string front = FaceWithNormal(state0, "front");
+                string error, holeName;
+                RunWithName(doc, "hole_wizard", new Dictionary<string, object>
                 {
-                    ["face_uid"] = davanti,
+                    ["face_uid"] = front,
                     ["variant"] = "threaded",
                     ["size"] = "M8",
                     ["through_all"] = true,
@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.Bench
                         new Dictionary<string, object> { ["x_mm"] = -70.0, ["y_mm"] = 40.0 },
                         new Dictionary<string, object> { ["x_mm"] = 70.0, ["y_mm"] = 40.0 },
                     },
-                }, out errore, out nomeForo, stato0);
+                }, out error, out holeName, state0);
 
                 // La selezione va tolta: le facce evidenziate in verde
                 // cambiano l'immagine e non fanno parte del pezzo.
@@ -148,10 +148,10 @@ namespace Oce.Solid.Agent.Bench
                 // sessione, nome utente compreso. Sbagliato due volte: quella
                 // cartella non esiste piu', e il nome di chi lavora non deve
                 // uscire da questa macchina (`Checks\check-publishability.ps1`).
-                string cartella = System.IO.Path.Combine(
+                string folder = System.IO.Path.Combine(
                     System.IO.Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".",
                     "lavoro", "views");
-                if (!System.IO.Directory.Exists(cartella)) System.IO.Directory.CreateDirectory(cartella);
+                if (!System.IO.Directory.Exists(folder)) System.IO.Directory.CreateDirectory(folder);
 
                 // Piu' viste, perche' UNA SOLA NON BASTA e vale la pena
                 // misurarlo: da un'isometrica non si vede se un foro e'
@@ -169,19 +169,19 @@ namespace Oce.Solid.Agent.Bench
                 // numerico della vista standard, che e' il secondo parametro
                 // e non dipende da nessuna lingua:
                 //   swFrontView=1 swTopView=5 swIsometricView=7 swTrimetricView=8
-                var viste = new[]
+                var views = new[]
                 {
                     Tuple.Create("isometric", (int)swStandardViews_e.swIsometricView),
                     Tuple.Create("trimetric", (int)swStandardViews_e.swTrimetricView),
                     Tuple.Create("front", (int)swStandardViews_e.swFrontView),
                     Tuple.Create("top", (int)swStandardViews_e.swTopView),
                 };
-                int fatte = 0;
-                foreach (var vista in viste)
+                int done = 0;
+                foreach (var view in views)
                 {
                     try
                     {
-                        doc.ShowNamedView2("", vista.Item2);
+                        doc.ShowNamedView2("", view.Item2);
                         doc.GraphicsRedraw2();
                         // LO ZOOM VA DOPO IL RIDISEGNO, e va ridisegnato
                         // ancora: al primo giro il pezzo usciva tagliato sul
@@ -189,25 +189,25 @@ namespace Oce.Solid.Agent.Bench
                         // vista vecchia.
                         doc.ViewZoomtofit2();
                         doc.GraphicsRedraw2();
-                        string nome = vista.Item1;
-                        string file = System.IO.Path.Combine(cartella, "piastra_" + nome + ".bmp");
+                        string itemName = view.Item1;
+                        string file = System.IO.Path.Combine(folder, "piastra_" + itemName + ".bmp");
                         if (doc.SaveBMP(file, 1024, 768) && System.IO.File.Exists(file))
                         {
-                            fatte++;
-                            Console.WriteLine("    " + nome + ": " +
+                            done++;
+                            Console.WriteLine("    " + itemName + ": " +
                                 new System.IO.FileInfo(file).Length / 1024 + " KB");
                         }
                     }
-                    catch (Exception ex) { Console.WriteLine("    " + vista.Item1 + " non riuscita: " + ex.Message); }
+                    catch (Exception ex) { Console.WriteLine("    " + view.Item1 + " non riuscita: " + ex.Message); }
                 }
                 Console.WriteLine();
                 Console.WriteLine("=== scatto della vista ===");
-                Console.WriteLine("    cartella: " + cartella);
-                Segna("scatta la vista del pezzo", fatte > 0,
-                      fatte + " viste su " + viste.Length + " salvate in " + cartella);
+                Console.WriteLine("    cartella: " + folder);
+                Check("scatta la vista del pezzo", done > 0,
+                      done + " viste su " + views.Length + " salvate in " + folder);
             }
-            catch (Exception ex) { Segna("scatta la vista del pezzo", false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check("scatta la vista del pezzo", false, Why(ex)); }
+            finally { Close(doc); }
         }
 
         /// <summary>
@@ -221,19 +221,19 @@ namespace Oce.Solid.Agent.Bench
         /// Il pezzo: piastra 200x120x20, quattro fori M8, un raccordo. Cioe'
         /// il minimo su cui un progettista direbbe «quel foro portalo a M10».
         /// </summary>
-        private static void QuantoVedeIlModello()
+        private static void HowMuchTheModelSees()
         {
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                PiastraCentrata(doc, 200, 120, 20);
-                var stato0 = LeggiStato(doc);
-                string davanti = FacciaConVerso(stato0, "front");
-                string errore, nomeForo;
-                EseguiConNome(doc, "hole_wizard", new Dictionary<string, object>
+                doc = NewPart();
+                CenteredPlate(doc, 200, 120, 20);
+                var state0 = ReadState(doc);
+                string front = FaceWithNormal(state0, "front");
+                string error, holeName;
+                RunWithName(doc, "hole_wizard", new Dictionary<string, object>
                 {
-                    ["face_uid"] = davanti,
+                    ["face_uid"] = front,
                     ["variant"] = "threaded",
                     ["size"] = "M8",
                     ["through_all"] = true,
@@ -244,21 +244,21 @@ namespace Oce.Solid.Agent.Bench
                         new Dictionary<string, object> { ["x_mm"] = -70.0, ["y_mm"] = 40.0 },
                         new Dictionary<string, object> { ["x_mm"] = 70.0, ["y_mm"] = 40.0 },
                     },
-                }, out errore, out nomeForo, stato0);
+                }, out error, out holeName, state0);
 
-                var stato = LeggiStato(doc);
-                string json = Json(stato);
+                var docState = ReadState(doc);
+                string json = Json(docState);
 
                 Console.WriteLine();
                 Console.WriteLine("=== quanto vede il modello (piastra + 4 fori M8) ===");
                 Console.WriteLine("  lo stato pesa " + json.Length + " caratteri");
-                foreach (var chiave in stato.Keys.OrderBy(k => k))
+                foreach (var key in docState.Keys.OrderBy(k => k))
                 {
-                    var v = stato[chiave];
-                    var lista = v as System.Collections.IList;
+                    var v = docState[key];
+                    var itemList = v as System.Collections.IList;
                     Console.WriteLine(string.Format("  {0,-22} {1}",
-                        chiave,
-                        lista != null ? lista.Count + " voci" : Convert.ToString(v)));
+                        key,
+                        itemList != null ? itemList.Count + " voci" : Convert.ToString(v)));
                 }
 
                 // LE FEATURE: e' qui che si vede la cecita'. Un progettista che
@@ -266,7 +266,7 @@ namespace Oce.Solid.Agent.Bench
                 // il modello di quella feature deve sapere almeno CHE FORO E'.
                 Console.WriteLine();
                 Console.WriteLine("  --- cosa dice lo stato di ogni lavorazione ---");
-                var feature = stato["feature"] as System.Collections.IList;
+                var feature = docState["feature"] as System.Collections.IList;
                 if (feature != null)
                     foreach (var f in feature)
                     {
@@ -278,27 +278,27 @@ namespace Oce.Solid.Agent.Bench
 
                 Console.WriteLine();
                 Console.WriteLine("  --- una faccia, per esteso ---");
-                var facce = stato["faces"] as System.Collections.IList;
-                if (facce != null && facce.Count > 0)
+                var faces = docState["faces"] as System.Collections.IList;
+                if (faces != null && faces.Count > 0)
                 {
-                    var d = facce[0] as Dictionary<string, object>;
+                    var d = faces[0] as Dictionary<string, object>;
                     if (d != null)
                         foreach (var k in d.Keys)
-                            Console.WriteLine("    " + k + " = " + Descrivi(d[k]));
+                            Console.WriteLine("    " + k + " = " + Describe(d[k]));
                 }
-                Segna("censimento di cosa vede il modello", true,
+                Check("censimento di cosa vede il modello", true,
                       json.Length + " caratteri, " + (feature == null ? 0 : feature.Count) +
-                      " lavorazioni, " + (facce == null ? 0 : facce.Count) + " facce");
+                      " lavorazioni, " + (faces == null ? 0 : faces.Count) + " facce");
             }
-            catch (Exception ex) { Segna("censimento di cosa vede il modello", false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check("censimento di cosa vede il modello", false, Why(ex)); }
+            finally { Close(doc); }
         }
 
-        private static string Descrivi(object v)
+        private static string Describe(object v)
         {
-            var lista = v as System.Collections.IEnumerable;
-            if (lista != null && !(v is string))
-                return "[" + string.Join(",", lista.Cast<object>().Select(o => Convert.ToString(o))) + "]";
+            var itemList = v as System.Collections.IEnumerable;
+            if (itemList != null && !(v is string))
+                return "[" + string.Join(",", itemList.Cast<object>().Select(o => Convert.ToString(o))) + "]";
             return Convert.ToString(v);
         }
 
@@ -309,24 +309,24 @@ namespace Oce.Solid.Agent.Bench
         /// quindici casi sono morti tutti sulla stessa riga — «nessuna faccia
         /// davanti» — e la causa poteva stare in tre posti diversi: la piastra
         /// costruita su un piano che non e' quello che credevo, lo stato che
-        /// non elenca quella faccia, o `Verso` che la chiama in un altro modo.
+        /// non elenca quella faccia, o `Facing` che la chiama in un altro modo.
         /// Stampare l'elenco toglie di mezzo la deduzione.
         /// </summary>
-        private static void StampaFaccePiastra()
+        private static void PrintPlateFaces()
         {
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                PiastraCentrata(doc, 200, 120, 20);
-                var stato = LeggiStato(doc);
+                doc = NewPart();
+                CenteredPlate(doc, 200, 120, 20);
+                var docState = ReadState(doc);
                 Console.WriteLine();
                 Console.WriteLine("=== che facce ha la piastra di prova 200x120x20 ===");
-                var facce = stato["faces"] as System.Collections.IList;
-                Console.WriteLine("  corpi solidi: " + ContaCorpi(doc) +
-                                  ", facce nello stato: " + (facce == null ? 0 : facce.Count));
-                if (facce != null)
-                    foreach (Dictionary<string, object> f in facce)
+                var faces = docState["faces"] as System.Collections.IList;
+                Console.WriteLine("  corpi solidi: " + CountBodies(doc) +
+                                  ", facce nello stato: " + (faces == null ? 0 : faces.Count));
+                if (faces != null)
+                    foreach (Dictionary<string, object> f in faces)
                     {
                         object v, n, area;
                         f.TryGetValue("facing", out v);
@@ -342,7 +342,7 @@ namespace Oce.Solid.Agent.Bench
                     }
             }
             catch (Exception ex) { Console.WriteLine("  diagnostica fallita: " + ex.Message); }
-            finally { Chiudi(doc); }
+            finally { Close(doc); }
         }
 
         // ==================================================================
@@ -359,7 +359,7 @@ namespace Oce.Solid.Agent.Bench
         //
         // Il banco non si fida ne' di SolidWorks ne' del controllo interno
         // dell'operazione: rimisura il baricentro per conto proprio.
-        private static void ProvaSpostaCorpi()
+        private static void TestMoveBodies()
         {
             Console.WriteLine();
             Console.WriteLine("=== move_bodies (add-in) ===");
@@ -367,8 +367,8 @@ namespace Oce.Solid.Agent.Bench
             // Due piastre uguali, staccate: 100x100x10 = 100.000 mm3 ciascuna.
             // Spostandone UNA di 50 mm in Z, il baricentro di tutto il pezzo si
             // sposta della meta': 25 mm. E' un'uguaglianza, non una stima.
-            Sposta("sposta una piastra di 50 in Z", 0, 0, 50, false, 0,
-                   corpiAttesi: 2, volumeAttesa: 200000, spostamentoCentroZ: 25);
+            Move("sposta una piastra di 50 in Z", 0, 0, 50, false, 0,
+                   expectedBodies: 2, volumeExpected: 200000, centerMoveZ: 25);
             // NOTA per chi passa di qui: il 15/9/2026 questo 200000 e' stato
             // messo a 199000 apposta, per vedere `bench.ps1` uscire 1 e
             // nominare il caso con atteso e misurato nel resoconto. E' il
@@ -379,115 +379,115 @@ namespace Oce.Solid.Agent.Bench
             // si e' visto `bench.ps1` fermarsi PRIMA di lanciare e uscire 2:
             // e' il difetto che la voce F2 nominava per nome — uno script che
             // esce 0 perche' la compilazione e' fallita e nessuno ha guardato.
-            Sposta("sposta di 600 in Z", 0, 0, 600, false, 0,
-                   corpiAttesi: 2, volumeAttesa: 200000, spostamentoCentroZ: 300);
-            Sposta("sposta all'indietro, -120 in Z", 0, 0, -120, false, 0,
-                   corpiAttesi: 2, volumeAttesa: 200000, spostamentoCentroZ: -60);
+            Move("sposta di 600 in Z", 0, 0, 600, false, 0,
+                   expectedBodies: 2, volumeExpected: 200000, centerMoveZ: 300);
+            Move("sposta all'indietro, -120 in Z", 0, 0, -120, false, 0,
+                   expectedBodies: 2, volumeExpected: 200000, centerMoveZ: -60);
 
             // Copia: gli originali restano, e ne compare una in piu'.
             // Tre corpi da 100.000, e la copia sta a +600.
             // baricentroZ = (100000*0 + 100000*0 + 100000*600) / 300000 = 200.
-            Sposta("copia una piastra a +600 in Z (il castello)", 0, 0, 600, true, 1,
-                   corpiAttesi: 3, volumeAttesa: 300000, spostamentoCentroZ: 200);
+            Move("copia una piastra a +600 in Z (il castello)", 0, 0, 600, true, 1,
+                   expectedBodies: 3, volumeExpected: 300000, centerMoveZ: 200);
             // Due copie: +600 e +1200.
             // baricentroZ = (0 + 0 + 600 + 1200) / 4 = 450.
-            Sposta("due copie, a +600 e +1200", 0, 0, 600, true, 2,
-                   corpiAttesi: 4, volumeAttesa: 400000, spostamentoCentroZ: 450);
+            Move("due copie, a +600 e +1200", 0, 0, 600, true, 2,
+                   expectedBodies: 4, volumeExpected: 400000, centerMoveZ: 450);
 
             // Spostamento nullo: l'add-in deve rifiutarlo da solo, senza
             // aspettare il validatore del server.
-            Sposta("spostamento nullo (deve fallire)", 0, 0, 0, false, 0,
-                   corpiAttesi: 0, volumeAttesa: 0, spostamentoCentroZ: 0,
-                   deveFallire: true);
-            Sposta("copia con spostamento nullo (deve fallire)", 0, 0, 0, true, 1,
-                   corpiAttesi: 0, volumeAttesa: 0, spostamentoCentroZ: 0,
-                   deveFallire: true);
+            Move("spostamento nullo (deve fallire)", 0, 0, 0, false, 0,
+                   expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
+                   mustFail: true);
+            Move("copia con spostamento nullo (deve fallire)", 0, 0, 0, true, 1,
+                   expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
+                   mustFail: true);
             // Un corpo che non c'e'.
-            Sposta("corpo inesistente (deve fallire)", 0, 0, 50, false, 0,
-                   corpiAttesi: 0, volumeAttesa: 0, spostamentoCentroZ: 0,
-                   deveFallire: true, uidFinto: "C99");
+            Move("corpo inesistente (deve fallire)", 0, 0, 50, false, 0,
+                   expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
+                   mustFail: true, fakeUid: "C99");
         }
 
-        private static void Sposta(string nome, double dx, double dy, double dz,
-                                   bool copia, int copie,
-                                   int corpiAttesi, double volumeAttesa,
-                                   double spostamentoCentroZ,
-                                   bool deveFallire = false, string uidFinto = null)
+        private static void Move(string itemName, double dx, double dy, double dz,
+                                   bool copy, int copies,
+                                   int expectedBodies, double volumeExpected,
+                                   double centerMoveZ,
+                                   bool mustFail = false, string fakeUid = null)
         {
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
+                doc = NewPart();
                 // Due corpi separati: il secondo NON si fonde col primo.
-                PiastraDove(doc, 100, 100, 10, 0, 0, fondi: true);
-                PiastraDove(doc, 100, 100, 10, 200, 0, fondi: false);
-                if (ContaCorpi(doc) != 2)
+                PlateWhere(doc, 100, 100, 10, 0, 0, bottoms: true);
+                PlateWhere(doc, 100, 100, 10, 200, 0, bottoms: false);
+                if (CountBodies(doc) != 2)
                 {
-                    Segna(nome, false, "il pezzo di partenza ha " + ContaCorpi(doc) + " corpi invece di 2");
+                    Check(itemName, false, "il pezzo di partenza ha " + CountBodies(doc) + " corpi invece di 2");
                     return;
                 }
 
-                var stato = LeggiStato(doc);
-                var uid = CorpiUid(stato);
-                if (uid.Count < 2) { Segna(nome, false, "lo stato elenca " + uid.Count + " corpi"); return; }
+                var docState = ReadState(doc);
+                var uid = BodiesUid(docState);
+                if (uid.Count < 2) { Check(itemName, false, "lo stato elenca " + uid.Count + " corpi"); return; }
 
-                double centroPrima = CentroZDelDocumento(doc);
-                var argomenti = new Dictionary<string, object>
+                double centerBefore = DocumentCenterZ(doc);
+                var arguments = new Dictionary<string, object>
                 {
                     // Si muove UN corpo solo: e' cio' che rende il baricentro
                     // una misura sensibile. Muovendoli tutti, il baricentro si
                     // sposterebbe esattamente di d e non distinguerebbe un
                     // corpo dimenticato indietro.
-                    ["bodies_uid"] = new List<string> { uidFinto ?? uid[1] },
+                    ["bodies_uid"] = new List<string> { fakeUid ?? uid[1] },
                     ["dx_mm"] = dx,
                     ["dy_mm"] = dy,
                     ["dz_mm"] = dz,
-                    ["copy"] = copia,
+                    ["copy"] = copy,
                 };
-                if (copia) argomenti["copy_count"] = copie;
+                if (copy) arguments["copy_count"] = copies;
 
-                string errore;
-                var misure = Esegui(doc, "move_bodies", argomenti, out errore, stato);
-                if (deveFallire)
+                string error;
+                var measurements = Run(doc, "move_bodies", arguments, out error, docState);
+                if (mustFail)
                 {
-                    Segna(nome, misure == null && !string.IsNullOrEmpty(errore),
-                          misure == null ? "rifiutato: " + Corto(errore) : "NON ha rifiutato");
+                    Check(itemName, measurements == null && !string.IsNullOrEmpty(error),
+                          measurements == null ? "rifiutato: " + Short(error) : "NON ha rifiutato");
                     return;
                 }
-                if (misure == null) { Segna(nome, false, "fallita: " + Corto(errore)); return; }
+                if (measurements == null) { Check(itemName, false, "fallita: " + Short(error)); return; }
 
-                int corpi = ContaCorpi(doc);
-                double volume = VolumeDelDocumento(doc);
-                double centroDopo = CentroZDelDocumento(doc);
-                double spostato = centroDopo - centroPrima;
+                int bodies = CountBodies(doc);
+                double volume = DocumentVolume(doc);
+                double centerAfter = DocumentCenterZ(doc);
+                double moved = centerAfter - centerBefore;
 
-                bool ok = corpi == corpiAttesi
-                          && Math.Abs(volume - volumeAttesa) < Math.Max(2, volumeAttesa * 0.005)
-                          && Math.Abs(spostato - spostamentoCentroZ) < 0.05;
-                Segna(nome, ok, string.Format(
+                bool ok = bodies == expectedBodies
+                          && Math.Abs(volume - volumeExpected) < Math.Max(2, volumeExpected * 0.005)
+                          && Math.Abs(moved - centerMoveZ) < 0.05;
+                Check(itemName, ok, string.Format(
                     "{0} corpi (attesi {1}), volume {2:0.#} (atteso {3:0.#}), " +
                     "baricentro Z spostato di {4:0.###} mm (atteso {5:0.###})",
-                    corpi, corpiAttesi, volume, volumeAttesa, spostato, spostamentoCentroZ));
+                    bodies, expectedBodies, volume, volumeExpected, moved, centerMoveZ));
             }
-            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check(itemName, false, Why(ex)); }
+            finally { Close(doc); }
         }
 
         /// <summary>Gli identificativi dei corpi, come li elenca lo stato.</summary>
-        private static List<string> CorpiUid(Dictionary<string, object> stato)
+        private static List<string> BodiesUid(Dictionary<string, object> docState)
         {
-            var fuori = new List<string>();
-            object grezzi;
-            if (stato == null || !stato.TryGetValue("bodies", out grezzi)) return fuori;
-            var lista = grezzi as System.Collections.IEnumerable;
-            if (lista == null) return fuori;
-            foreach (var c in lista)
+            var outside = new List<string>();
+            object rawItems;
+            if (docState == null || !docState.TryGetValue("bodies", out rawItems)) return outside;
+            var itemList = rawItems as System.Collections.IEnumerable;
+            if (itemList == null) return outside;
+            foreach (var c in itemList)
             {
                 var d = c as Dictionary<string, object>;
                 object u;
-                if (d != null && d.TryGetValue("uid", out u) && u != null) fuori.Add(u.ToString());
+                if (d != null && d.TryGetValue("uid", out u) && u != null) outside.Add(u.ToString());
             }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -495,23 +495,23 @@ namespace Oce.Solid.Agent.Bench
         /// banco controlla lo spostamento per conto proprio, senza fidarsi di
         /// quello che l'operazione dichiara di aver fatto.
         /// </summary>
-        private static double CentroZDelDocumento(IModelDoc2 doc)
+        private static double DocumentCenterZ(IModelDoc2 doc)
         {
-            var parte = doc as IPartDoc;
-            if (parte == null) return 0;
-            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            if (corpi == null || corpi.Length == 0) return 0;
-            double somma = 0, volume = 0;
-            foreach (var c in corpi)
+            var partDoc = doc as IPartDoc;
+            if (partDoc == null) return 0;
+            var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            if (bodies == null || bodies.Length == 0) return 0;
+            double sum = 0, volume = 0;
+            foreach (var c in bodies)
             {
                 var mp = (c as IBody2)?.GetMassProperties(1000.0) as double[];
                 if (mp == null || mp.Length < 4) continue;
                 double v = mp[3] * 1e9;
                 if (v <= 0) continue;
                 volume += v;
-                somma += mp[2] * 1000.0 * v;
+                sum += mp[2] * 1000.0 * v;
             }
-            return volume > 0 ? somma / volume : 0;
+            return volume > 0 ? sum / volume : 0;
         }
 
         /// <summary>
@@ -519,12 +519,12 @@ namespace Oce.Solid.Agent.Bench
         /// SEPARATO invece di fondersi con quello che c'e' gia': serve per
         /// avere piu' corpi da spostare.
         /// </summary>
-        private static void PiastraDove(IModelDoc2 doc, double L, double W, double H,
-                                        double x, double y, bool fondi)
+        private static void PlateWhere(IModelDoc2 doc, double L, double W, double H,
+                                        double x, double y, bool bottoms)
         {
-            var piani = PianiDiRiferimento(doc);
+            var planes = ReferencePlanes(doc);
             doc.ClearSelection2(true);
-            piani[0].Select2(false, 0);
+            planes[0].Select2(false, 0);
             var sm = doc.SketchManager;
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(x / 1000.0, y / 1000.0, 0,
@@ -535,7 +535,7 @@ namespace Oce.Solid.Agent.Bench
                 (int)swEndConditions_e.swEndCondMidPlane, 0,
                 H / 1000.0, 0,
                 false, false, false, false, 0, 0, false, false, false, false,
-                fondi, true, true, 0, 0, false);
+                bottoms, true, true, 0, 0, false);
             doc.ClearSelection2(true);
         }
 
@@ -578,7 +578,7 @@ namespace Oce.Solid.Agent.Bench
         // Il C# qui sotto e' stato tolto, non lasciato accanto. Due prove sulla
         // stessa cosa vogliono dire che un giorno una delle due cambiera' e
         // l'altra no. E soprattutto: quella vecchia accettava
-        // `volumeAtteso * 0.02` — sui 240.000 mm³ della piastra sono **4.800
+        // `expectedVolume * 0.02` — sui 240.000 mm³ della piastra sono **4.800
         // mm³, piu' di un foro M12 passante**. Una prova che accetta un foro di
         // scarto non prova il foro, e tenerla in giro come rete di sicurezza
         // sarebbe tenere in giro proprio il difetto che F3 chiude.
@@ -613,23 +613,23 @@ namespace Oce.Solid.Agent.Bench
         // Un caso dichiarato non puo' provarlo: `SelectByID2` non e'
         // un'operazione del catalogo, e' una chiamata COM. Resta in C#, e
         // resta scritto il perche'.
-        private static void ProvaCreaAsse()
+        private static void TestCreateAxis()
         {
             Console.WriteLine();
             Console.WriteLine("=== create_axis: l'asse si ritrova per nome? (add-in) ===");
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                PiastraCentrata(doc, 120, 120, 15);
-                var stato = LeggiStato(doc);
-                string facciaPiana = FacciaConVerso(stato, "front");
-                if (facciaPiana == null) { Segna("create_axis: faccia di partenza", false, "assente"); return; }
+                doc = NewPart();
+                CenteredPlate(doc, 120, 120, 15);
+                var docState = ReadState(doc);
+                string planarFace = FaceWithNormal(docState, "front");
+                if (planarFace == null) { Check("create_axis: faccia di partenza", false, "assente"); return; }
 
-                string errore, nomeForo;
-                var foro = EseguiConNome(doc, "hole_wizard", new Dictionary<string, object>
+                string error, holeName;
+                var hole = RunWithName(doc, "hole_wizard", new Dictionary<string, object>
                 {
-                    ["face_uid"] = facciaPiana,
+                    ["face_uid"] = planarFace,
                     ["variant"] = "clearance",
                     ["size"] = "M10",
                     ["through_all"] = true,
@@ -637,32 +637,32 @@ namespace Oce.Solid.Agent.Bench
                     {
                         new Dictionary<string, object> { ["x_mm"] = 0.0, ["y_mm"] = 0.0 },
                     },
-                }, out errore, out nomeForo, stato);
-                if (foro == null) { Segna("create_axis: foro di prova", false, Corto(errore)); return; }
+                }, out error, out holeName, docState);
+                if (hole == null) { Check("create_axis: foro di prova", false, Short(error)); return; }
 
-                stato = LeggiStato(doc);
-                string cilindrica = FacciaNonPiana(stato);
-                if (cilindrica == null)
+                docState = ReadState(doc);
+                string cylindrical = FaceNotPlanar(docState);
+                if (cylindrical == null)
                 {
-                    Segna("create_axis: la parete del foro compare nello stato", false,
+                    Check("create_axis: la parete del foro compare nello stato", false,
                           "nessuna faccia con «planar: false»: il modello non avrebbe " +
                           "niente da passare a create_axis");
                     return;
                 }
 
-                string nomeAsse;
-                var misure = EseguiConNome(doc, "create_axis", new Dictionary<string, object>
+                string axisName;
+                var measurements = RunWithName(doc, "create_axis", new Dictionary<string, object>
                 {
-                    ["face_uid"] = cilindrica,
-                }, out errore, out nomeAsse, stato);
-                if (misure == null) { Segna("create_axis: l'asse per il gancio", false, Corto(errore)); return; }
-                string asse = misure.ContainsKey("axis") ? Convert.ToString(misure["axis"]) : "";
-                if (string.IsNullOrEmpty(asse))
+                    ["face_uid"] = cylindrical,
+                }, out error, out axisName, docState);
+                if (measurements == null) { Check("create_axis: l'asse per il gancio", false, Short(error)); return; }
+                string axis = measurements.ContainsKey("axis") ? Convert.ToString(measurements["axis"]) : "";
+                if (string.IsNullOrEmpty(axis))
                 {
                     // NON E' IL ROSSO DI QUESTA PROVA: senza il nome non c'e'
                     // niente da agganciare, e dirlo e' meglio che agganciare
                     // la stringa vuota e chiamarlo fallimento del gancio.
-                    Segna("create_axis: l'operazione dice come si chiama l'asse", false,
+                    Check("create_axis: l'operazione dice come si chiama l'asse", false,
                           "le misure non hanno «axis»");
                     return;
                 }
@@ -672,18 +672,18 @@ namespace Oce.Solid.Agent.Bench
                 // quella riga non aggancia, create_axis riesce, lo stato mostra
                 // l'asse, e la ripetizione fallisce subito dopo — cioe'
                 // l'operazione e' inutile e niente lo dice.
-                bool agganciato = false;
+                bool attached = false;
                 try
                 {
                     doc.ClearSelection2(true);
-                    agganciato = doc.Extension.SelectByID2(asse, "AXIS", 0, 0, 0, false, 1, null, 0);
+                    attached = doc.Extension.SelectByID2(axis, "AXIS", 0, 0, 0, false, 1, null, 0);
                 }
                 catch { }
-                Segna("create_axis: l'asse si aggancia con SelectByID2(\"AXIS\")", agganciato,
-                      agganciato ? "asse «" + asse + "»" : "la ripetizione non lo trovera' mai");
+                Check("create_axis: l'asse si aggancia con SelectByID2(\"AXIS\")", attached,
+                      attached ? "asse «" + axis + "»" : "la ripetizione non lo trovera' mai");
             }
-            catch (Exception ex) { Segna("create_axis", false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check("create_axis", false, Why(ex)); }
+            finally { Close(doc); }
         }
         // ==================================================================
         // 6. linear_pattern e 7. specchia ADESSO SONO DUE GRUPPI DI FILE
@@ -710,29 +710,29 @@ namespace Oce.Solid.Agent.Bench
         // ==================================================================
         // riflessione: come Esegui, ma dice anche come si chiama la feature
         // ==================================================================
-        private static Dictionary<string, object> EseguiConNome(
-            IModelDoc2 doc, string operazione, Dictionary<string, object> argomenti,
-            out string errore, out string featureCreata, object stato = null)
+        private static Dictionary<string, object> RunWithName(
+            IModelDoc2 doc, string operation, Dictionary<string, object> arguments,
+            out string error, out string createdFeature, object docState = null)
         {
-            errore = null;
-            featureCreata = null;
-            var costruttore = _tOperazioni.GetConstructors(
+            error = null;
+            createdFeature = null;
+            var constructor = _tOperations.GetConstructors(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0];
-            var op = costruttore.Invoke(new object[] { _sw, (Action<string>)(s => { }) });
-            object statoOggetto = (stato == null || stato is Dictionary<string, object>)
-                ? LeggiStatoOggetto(doc) : stato;
+            var op = constructor.Invoke(new object[] { _sw, (Action<string>)(s => { }) });
+            object objectState = (docState == null || docState is Dictionary<string, object>)
+                ? ReadObjectState(doc) : docState;
 
-            var esegui = _tOperazioni.GetMethod("Esegui",
+            var run = _tOperations.GetMethod("Run",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            var esito = esegui.Invoke(op, new object[] { doc, operazione, argomenti, statoOggetto, null });
-            if (!(bool)_tEsito.GetField("Riuscito").GetValue(esito))
+            var outcome = run.Invoke(op, new object[] { doc, operation, arguments, objectState, null });
+            if (!(bool)_tOutcome.GetField("Succeeded").GetValue(outcome))
             {
-                errore = _tEsito.GetField("Errore").GetValue(esito) as string;
+                error = _tOutcome.GetField("Error").GetValue(outcome) as string;
                 return null;
             }
-            featureCreata = _tEsito.GetField("FeatureCreata").GetValue(esito) as string;
+            createdFeature = _tOutcome.GetField("CreatedFeature").GetValue(outcome) as string;
             try { doc.EditRebuild3(); } catch { }
-            return _tEsito.GetField("Misure").GetValue(esito) as Dictionary<string, object>;
+            return _tOutcome.GetField("Measurements").GetValue(outcome) as Dictionary<string, object>;
         }
 
         // ==================================================================
@@ -743,17 +743,17 @@ namespace Oce.Solid.Agent.Bench
         /// Il volume solido in mm3. `GetMassProperties(densita)[3]` e' il
         /// volume in m3: misurato, non ricordato.
         /// </summary>
-        private static double VolumeDelDocumento(IModelDoc2 doc)
+        private static double DocumentVolume(IModelDoc2 doc)
         {
             double v = 0;
             // Una TAVOLA non ha corpi. Da quando la sessione puo' tenere
             // aperti due documenti, il documento attivo puo' benissimo
             // essere il disegno, e qui si arrivava con un IPartDoc nullo.
-            var parte = doc as IPartDoc;
-            if (parte == null) return 0;
-            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            if (corpi == null) return 0;
-            foreach (var c in corpi)
+            var partDoc = doc as IPartDoc;
+            if (partDoc == null) return 0;
+            var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            if (bodies == null) return 0;
+            foreach (var c in bodies)
             {
                 var mp = (c as IBody2).GetMassProperties(1000.0) as double[];
                 if (mp != null && mp.Length > 4) v += mp[3] * 1e9;
@@ -761,22 +761,22 @@ namespace Oce.Solid.Agent.Bench
             return v;
         }
 
-        private static int ContaCorpi(IModelDoc2 doc)
+        private static int CountBodies(IModelDoc2 doc)
         {
-            var parte = doc as IPartDoc;
-            if (parte == null) return 0;
-            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            return corpi == null ? 0 : corpi.Length;
+            var partDoc = doc as IPartDoc;
+            if (partDoc == null) return 0;
+            var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            return bodies == null ? 0 : bodies.Length;
         }
 
-        private static double[] IngombroDelDocumento(IModelDoc2 doc)
+        private static double[] DocumentBoundingBox(IModelDoc2 doc)
         {
-            var b = ScatolaDelDocumento(doc);
+            var b = DocumentBox(doc);
             if (b == null) return null;
             return new[] { b[3] - b[0], b[4] - b[1], b[5] - b[2] };
         }
 
-        private static int ContaPiani(IModelDoc2 doc)
+        private static int CountPlanes(IModelDoc2 doc)
         {
             int n = 0;
             var f = (doc as IPartDoc).IFirstFeature();
@@ -793,22 +793,22 @@ namespace Oce.Solid.Agent.Bench
         /// IMathTransform.ArrayData: 9 numeri di rotazione, poi 3 di
         /// traslazione. E' la risposta alla domanda «da che parte e' finito».
         /// </summary>
-        private static double[] TraslazioneUltimoPiano(IModelDoc2 doc)
+        private static double[] LastPlaneTranslation(IModelDoc2 doc)
         {
-            IFeature ultimo = null;
+            IFeature last = null;
             var f = (doc as IPartDoc).IFirstFeature();
             while (f != null)
             {
-                try { if (f.GetTypeName2() == "RefPlane") ultimo = f; } catch { }
+                try { if (f.GetTypeName2() == "RefPlane") last = f; } catch { }
                 try { f = f.IGetNextFeature(); } catch { break; }
             }
-            if (ultimo == null) return null;
+            if (last == null) return null;
             try
             {
-                var piano = ultimo.GetSpecificFeature2() as IRefPlane;
-                if (piano == null) return null;
-                var trasformata = piano.Transform as IMathTransform;
-                var v = trasformata == null ? null : trasformata.ArrayData as double[];
+                var plane = last.GetSpecificFeature2() as IRefPlane;
+                if (plane == null) return null;
+                var transformed = plane.Transform as IMathTransform;
+                var v = transformed == null ? null : transformed.ArrayData as double[];
                 if (v == null || v.Length < 12) return null;
                 return new[] { v[9] * 1000, v[10] * 1000, v[11] * 1000 };
             }
@@ -818,24 +818,24 @@ namespace Oce.Solid.Agent.Bench
         // ==================================================================
         // lettura dello stato
         // ==================================================================
-        private static string FacciaConVerso(Dictionary<string, object> stato, string verso)
+        private static string FaceWithNormal(Dictionary<string, object> docState, string facing)
         {
-            var facce = stato["faces"] as System.Collections.IList;
-            if (facce == null) return null;
-            foreach (Dictionary<string, object> f in facce)
+            var faces = docState["faces"] as System.Collections.IList;
+            if (faces == null) return null;
+            foreach (Dictionary<string, object> f in faces)
             {
                 object v;
-                if (f.TryGetValue("facing", out v) && Convert.ToString(v) == verso)
+                if (f.TryGetValue("facing", out v) && Convert.ToString(v) == facing)
                     return Convert.ToString(f["uid"]);
             }
             return null;
         }
 
-        private static string FacciaNonPiana(Dictionary<string, object> stato)
+        private static string FaceNotPlanar(Dictionary<string, object> docState)
         {
-            var facce = stato["faces"] as System.Collections.IList;
-            if (facce == null) return null;
-            foreach (Dictionary<string, object> f in facce)
+            var faces = docState["faces"] as System.Collections.IList;
+            if (faces == null) return null;
+            foreach (Dictionary<string, object> f in faces)
             {
                 object v;
                 if (f.TryGetValue("planar", out v) && !Convert.ToBoolean(v))
@@ -844,12 +844,12 @@ namespace Oce.Solid.Agent.Bench
             return null;
         }
 
-        private static string SpigoloPiuLungo(Dictionary<string, object> stato)
+        private static string LongestEdge(Dictionary<string, object> docState)
         {
-            var spigoli = stato.ContainsKey("edges") ? stato["edges"] as System.Collections.IList : null;
-            if (spigoli == null || spigoli.Count == 0) return null;
+            var edges = docState.ContainsKey("edges") ? docState["edges"] as System.Collections.IList : null;
+            if (edges == null || edges.Count == 0) return null;
             // Lo stato li ordina gia' per lunghezza decrescente.
-            return Convert.ToString((spigoli[0] as Dictionary<string, object>)["uid"]);
+            return Convert.ToString((edges[0] as Dictionary<string, object>)["uid"]);
         }
 
         // ==================================================================
@@ -858,18 +858,18 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>
         /// Una piastra centrata su TUTTI E TRE gli assi, spessore compreso.
         ///
-        /// La `Piastra` delle prove vecchie estrude da z=0 in avanti: va bene
+        /// La `Plate` delle prove vecchie estrude da z=0 in avanti: va bene
         /// per un foro sulla faccia grande, ma sulle facce laterali l'origine
         /// dello schizzo cade sullo SPIGOLO, non al centro, e un foro chiesto
         /// a (0,0) uscirebbe meta' fuori dal materiale. Con la condizione
         /// finale «piano medio» il pezzo sta fra -H/2 e +H/2 e l'origine cade
         /// dove uno se l'aspetta.
         /// </summary>
-        private static void PiastraCentrata(IModelDoc2 doc, double L, double W, double H)
+        private static void CenteredPlate(IModelDoc2 doc, double L, double W, double H)
         {
-            var piani = PianiDiRiferimento(doc);
+            var planes = ReferencePlanes(doc);
             doc.ClearSelection2(true);
-            piani[0].Select2(false, 0);          // frontale: la faccia grande guarda +Z
+            planes[0].Select2(false, 0);          // frontale: la faccia grande guarda +Z
             var sm = doc.SketchManager;
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(0, 0, 0, L / 2000.0, W / 2000.0, 0);

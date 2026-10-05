@@ -11,7 +11,7 @@ namespace Checks.HoleOrFillet
     ///
     /// ── PERCHE' LA DOMANDA ────────────────────────────────────────────────
     ///
-    /// `Riferimenti` risolve il ruolo `hole_face` cercando le facce
+    /// `References` risolve il ruolo `hole_face` cercando le facce
     /// cilindriche lasciate da un passo: se ne trova **una** la restituisce, se
     /// ne trova **piu' d'una** rifiuta.
     ///
@@ -43,7 +43,7 @@ namespace Checks.HoleOrFillet
     ///
     /// Non tocca nessun documento aperto: se ne crea uno suo e lo chiude.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
         private static int Main()
         {
@@ -58,14 +58,14 @@ namespace Checks.HoleOrFillet
             IModelDoc2 doc = null;
             try
             {
-                string modello = sw.GetUserPreferenceStringValue(
+                string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-                doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
+                doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
                 if (doc == null) { Console.Error.WriteLine("parte non creata"); return 2; }
 
-                Piastra(doc, 0.100, 0.060, 0.020);
-                Foro(doc);
-                Raccordo(doc);
+                Plate(doc, 0.100, 0.060, 0.020);
+                Hole(doc);
+                Fillet(doc);
 
                 Console.WriteLine();
                 Console.WriteLine("=== una faccia cilindrica e' un foro o un raccordo? ===");
@@ -73,17 +73,17 @@ namespace Checks.HoleOrFillet
                 Console.WriteLine("  {0,-6} {1,-10} {2,-12} {3,-10} {4}",
                                   "uid", "diameter", "FaceInSurf", "area", "da");
 
-                var parte = doc as IPartDoc;
-                var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-                if (corpi == null || corpi.Length == 0) { Console.Error.WriteLine("nessun corpo"); return 2; }
+                var partDoc = doc as IPartDoc;
+                var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+                if (bodies == null || bodies.Length == 0) { Console.Error.WriteLine("nessun corpo"); return 2; }
 
-                int n = 0, concave = 0, convesse = 0;
-                var corpo = corpi[0] as IBody2;
-                var f = corpo.IGetFirstFace();
+                int n = 0, concave = 0, convex = 0;
+                var body = bodies[0] as IBody2;
+                var f = body.IGetFirstFace();
                 while (f != null)
                 {
-                    double raggio;
-                    if (Cilindrica(f, out raggio))
+                    double radius;
+                    if (Cylindrical(f, out radius))
                     {
                         n++;
                         bool sense = false;
@@ -93,11 +93,11 @@ namespace Checks.HoleOrFillet
                         string da = "";
                         try { da = (f.GetFeature() as IFeature)?.Name ?? ""; } catch { }
 
-                        if (sense) concave++; else convesse++;
+                        if (sense) concave++; else convex++;
 
                         Console.WriteLine("  {0,-6} {1,-10} {2,-12} {3,-10} {4}",
                                           "C" + n,
-                                          (raggio * 2000).ToString("0.##"),
+                                          (radius * 2000).ToString("0.##"),
                                           sense ? "true" : "false",
                                           area.ToString("0.#"),
                                           da);
@@ -108,9 +108,9 @@ namespace Checks.HoleOrFillet
                 Console.WriteLine();
                 Console.WriteLine("  facce cilindriche: " + n +
                                   "   con FaceInSurfaceSense=true: " + concave +
-                                  "   =false: " + convesse);
+                                  "   =false: " + convex);
                 Console.WriteLine();
-                Console.WriteLine(n >= 2 && concave >= 1 && convesse >= 1
+                Console.WriteLine(n >= 2 && concave >= 1 && convex >= 1
                     ? "I DUE CASI RISPONDONO DIVERSO: il criterio esiste."
                     : "ATTENZIONE: i due casi NON si separano con questo valore.");
                 return 0;
@@ -127,22 +127,22 @@ namespace Checks.HoleOrFillet
             }
         }
 
-        private static bool Cilindrica(IFace2 faccia, out double raggio)
+        private static bool Cylindrical(IFace2 face, out double radius)
         {
-            raggio = 0;
+            radius = 0;
             try
             {
-                var s = faccia.IGetSurface();
+                var s = face.IGetSurface();
                 if (s == null || !s.IsCylinder()) return false;
                 var par = s.CylinderParams as double[];
                 if (par == null || par.Length < 7) return false;
-                raggio = par[6];
-                return raggio > 0;
+                radius = par[6];
+                return radius > 0;
             }
             catch { return false; }
         }
 
-        private static void Piastra(IModelDoc2 doc, double l, double w, double h)
+        private static void Plate(IModelDoc2 doc, double l, double w, double h)
         {
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateCornerRectangle(-l / 2, -w / 2, 0, l / 2, w / 2, 0);
@@ -153,7 +153,7 @@ namespace Checks.HoleOrFillet
         }
 
         /// <summary>Un foro passante al centro della faccia in cima.</summary>
-        private static void Foro(IModelDoc2 doc)
+        private static void Hole(IModelDoc2 doc)
         {
             doc.ClearSelection2(true);
             doc.Extension.SelectByRay(0, 0.020, 0, 0, -1, 0, 0.001,
@@ -169,7 +169,7 @@ namespace Checks.HoleOrFillet
         }
 
         /// <summary>Un raccordo su uno spigolo verticale: superficie CONVESSA.</summary>
-        private static void Raccordo(IModelDoc2 doc)
+        private static void Fillet(IModelDoc2 doc)
         {
             doc.ClearSelection2(true);
             // Lo spigolo verticale in un angolo della piastra 100x60.

@@ -44,67 +44,67 @@
 #       a cercare cosa ha rotto, e non ha rotto niente.
 #
 #      .\Bench\bench.ps1
-#      .\Bench\bench.ps1 -Gruppo viste          una famiglia sola (voce F13)
-#      .\Bench\bench.ps1 -Famiglia reanchor    solo quella cartella di casi (E19)
-#      .\Bench\bench.ps1 -Lento                 anche le prove che costano minuti
-#      .\Bench\bench.ps1 -Muta                  perturba i casi (voce F6)
-#      .\Bench\bench.ps1 -Regressione           i riferimenti sotto modifica (F8)
-#      .\Bench\bench.ps1 -SaltaCompilazione     il binario che c'e' gia'
+#      .\Bench\bench.ps1 -Group viste          una famiglia sola (voce F13)
+#      .\Bench\bench.ps1 -Family reanchor    solo quella cartella di casi (E19)
+#      .\Bench\bench.ps1 -Slow                 anche le prove che costano minuti
+#      .\Bench\bench.ps1 -Mutate                  perturba i casi (voce F6)
+#      .\Bench\bench.ps1 -Regression           i riferimenti sotto modifica (F8)
+#      .\Bench\bench.ps1 -SkipCompilation     il binario che c'e' gia'
 # =============================================================================
 
 param(
-    [string] $Gruppo = "",
-    [string] $Famiglia = "",
-    [switch] $Lento,
-    [switch] $Muta,
-    [switch] $Regressione,
-    [switch] $SaltaCompilazione,
+    [string] $Group = "",
+    [string] $Family = "",
+    [switch] $Slow,
+    [switch] $Mutate,
+    [switch] $Regression,
+    [switch] $SkipCompilation,
     [switch] $NoRestart,
-    [string] $Libreria = ""
+    [string] $Library = ""
 )
 
 $ErrorActionPreference = "Stop"
 
-$Banco  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Radice = Split-Path -Parent $Banco
+$Bench  = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Root = Split-Path -Parent $Bench
 
-if ([string]::IsNullOrWhiteSpace($Libreria)) {
-    $Libreria = Join-Path $Radice "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll"
+if ([string]::IsNullOrWhiteSpace($Library)) {
+    $Library = Join-Path $Root "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll"
 }
 
-function Muori($codice, $messaggio) {
+function Die($code, $message) {
     Write-Output ""
-    Write-Output ("BANCO NON LANCIATO: " + $messaggio)
-    exit $codice
+    Write-Output ("BANCO NON LANCIATO: " + $message)
+    exit $code
 }
 
 # --- 1. compilazione -------------------------------------------------------
 
-if (-not $SaltaCompilazione) {
+if (-not $SkipCompilation) {
     $msbuild = $null
-    $posti = @(
+    $places = @(
         "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
         "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
         "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
     )
-    foreach ($p in $posti) { if (Test-Path $p) { $msbuild = $p; break } }
+    foreach ($p in $places) { if (Test-Path $p) { $msbuild = $p; break } }
     if ($msbuild -eq $null) {
-        Muori 2 "non trovo MSBuild. Lancia con -SaltaCompilazione se hai gia' i binari."
+        Die 2 "non trovo MSBuild. Lancia con -SkipCompilation se hai gia' i binari."
     }
 
-    foreach ($progetto in @("Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj",
+    foreach ($project in @("Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj",
                             "Bench\Oce.Solid.Agent.Bench.csproj")) {
-        $pieno = Join-Path $Radice $progetto
-        Write-Output ("compilo " + $progetto)
-        & $msbuild $pieno /p:Configuration=Release /v:m /nologo | Out-Null
+        $full = Join-Path $Root $project
+        Write-Output ("compilo " + $project)
+        & $msbuild $full /p:Configuration=Release /v:m /nologo | Out-Null
         # IL CODICE DI USCITA, NON IL TESTO. E' il controllo che la voce F2
         # chiedeva per nome.
-        if ($LASTEXITCODE -ne 0) { Muori 2 ("compilazione fallita: " + $progetto) }
+        if ($LASTEXITCODE -ne 0) { Die 2 ("compilazione fallita: " + $project) }
     }
 }
 
-if (-not (Test-Path $Libreria)) {
-    Muori 2 ("non trovo la libreria: " + $Libreria)
+if (-not (Test-Path $Library)) {
+    Die 2 ("non trovo la libreria: " + $Library)
 }
 
 # --- 2. SOLIDWORKS agganciabile? -------------------------------------------
@@ -113,21 +113,21 @@ try {
     $sw = [Runtime.InteropServices.Marshal]::GetActiveObject("SldWorks.Application")
     if ($sw -eq $null) { throw "nessuna istanza" }
 } catch {
-    Muori 2 "SOLIDWORKS non e' agganciabile. Aprilo (una sessione sola) e rilancia."
+    Die 2 "SOLIDWORKS non e' agganciabile. Aprilo (una sessione sola) e rilancia."
 }
 
 # --- 3. via i documenti rimasti aperti --------------------------------------
 
-$chiudi = Join-Path $Radice "Checks\CloseLeftovers\bin\CloseLeftovers.exe"
+$close = Join-Path $Root "Checks\CloseLeftovers\bin\CloseLeftovers.exe"
 $openAfterCleanup = -1
-if (Test-Path $chiudi) {
+if (Test-Path $close) {
     # Its last line says how many documents are still open: the count decides
     # the restart below (late-bound ISldWorks calls fail from PowerShell with
     # TYPE_E_ELEMENTNOTFOUND, measured 2/10/2026).
     # The bench's work folder is local (see Bench/Expectations.cs); the old one
     # next to the repository is still closed too, for documents of older runs.
     $benchWork = if ($env:OCE_BENCH_WORK) { $env:OCE_BENCH_WORK } else { Join-Path $env:TEMP "oce-bench-work" }
-    $cleanup = & $chiudi --chiudi $benchWork (Join-Path $Banco "lavoro") 2>&1
+    $cleanup = & $close --chiudi $benchWork (Join-Path $Bench "lavoro") 2>&1
     $countLine = @($cleanup | Where-Object { "$_" -match ':\s*(\d+)\s*$' }) | Select-Object -Last 1
     if ($countLine -and ("$countLine" -match ':\s*(\d+)\s*$')) { $openAfterCleanup = [int]$Matches[1] }
 } else {
@@ -142,7 +142,7 @@ if (Test-Path $chiudi) {
 # families on a restarted SOLIDWORKS: 314/314, 492/492, 90/90. So a full run
 # starts on a fresh session, unless documents the bench did not open are still
 # there (those are someone's work: never killed) or -NoRestart is given.
-$fullRun = [string]::IsNullOrWhiteSpace($Gruppo) -and [string]::IsNullOrWhiteSpace($Famiglia)
+$fullRun = [string]::IsNullOrWhiteSpace($Group) -and [string]::IsNullOrWhiteSpace($Family)
 if ($fullRun -and -not $NoRestart) {
     $openDocuments = $openAfterCleanup
     $process = Get-Process SLDWORKS -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -161,38 +161,38 @@ if ($fullRun -and -not $NoRestart) {
             Start-Sleep -Seconds 5
             try { $sw = [Runtime.InteropServices.Marshal]::GetActiveObject("SldWorks.Application"); $ready = ($sw -ne $null) } catch { }
         }
-        if (-not $ready) { Muori 2 "SOLIDWORKS did not come back within 4 minutes after the restart." }
+        if (-not $ready) { Die 2 "SOLIDWORKS did not come back within 4 minutes after the restart." }
         Start-Sleep -Seconds 20   # the add-ins finish loading after the COM object appears
     }
 }
 
 # --- 4. il giro -------------------------------------------------------------
 
-$argomenti = @("--libreria", $Libreria)
-if ($Lento) { $argomenti += "--lento" }
-# -Muta non e' un giro con qualcosa in piu': e' un altro giro. Perturba i casi
+$arguments = @("--libreria", $Library)
+if ($Slow) { $arguments += "--lento" }
+# -Mutate non e' un giro con qualcosa in piu': e' un altro giro. Perturba i casi
 # un argomento alla volta e PRETENDE che diventino rossi (voce F6). Costa un
 # documento di SOLIDWORKS per mutazione: si lancia prima di una consegna.
-if ($Muta) { $argomenti += "--muta" }
-# -Regressione: i diciannove casi dei riferimenti (voce F8). Produce TRE NUMERI
+if ($Mutate) { $arguments += "--muta" }
+# -Regression: i diciannove casi dei riferimenti (voce F8). Produce TRE NUMERI
 # che sommano ai casi -- reggono, si staccano e lo dicono, si staccano in
 # silenzio -- e il terzo e' l'unico che conta.
-if ($Regressione) { $argomenti += "--regressione" }
-if (-not [string]::IsNullOrWhiteSpace($Gruppo)) { $argomenti += @("--gruppo", $Gruppo) }
-# -Famiglia: dentro i casi dichiarati, solo quelle cartelle; implica il gruppo
-# «casi». Parziale come -Gruppo, e scritto nel riepilogo.
-if (-not [string]::IsNullOrWhiteSpace($Famiglia)) { $argomenti += @("--famiglia", $Famiglia) }
+if ($Regression) { $arguments += "--regressione" }
+if (-not [string]::IsNullOrWhiteSpace($Group)) { $arguments += @("--gruppo", $Group) }
+# -Family: dentro i casi dichiarati, solo quelle cartelle; implica il gruppo
+# «casi». Parziale come -Group, e scritto nel riepilogo.
+if (-not [string]::IsNullOrWhiteSpace($Family)) { $arguments += @("--famiglia", $Family) }
 
-$eseguibile = Join-Path $Banco "bin\Oce.Solid.Agent.Bench.exe"
-if (-not (Test-Path $eseguibile)) { Muori 2 ("non trovo " + $eseguibile) }
+$executable = Join-Path $Bench "bin\Oce.Solid.Agent.Bench.exe"
+if (-not (Test-Path $executable)) { Die 2 ("non trovo " + $executable) }
 
-$inizio = Get-Date
+$start = Get-Date
 # The live output goes to a LOCAL file and is copied next to the bench at the
 # end. Written straight onto a network drive, one SMB hiccup («semaphore
 # timeout») made Tee-Object throw and killed the whole run: on 24/9/2026 at 535
 # checks and on 2/10/2026 after four hours.
-$outputNextToBench = Join-Path $Banco "ultimo-giro.txt"
-$uscita = Join-Path $env:TEMP "oce-bench-last-run.txt"
+$outputNextToBench = Join-Path $Bench "ultimo-giro.txt"
+$output = Join-Path $env:TEMP "oce-bench-last-run.txt"
 if (Test-Path $outputNextToBench) { Remove-Item $outputNextToBench -Force -ErrorAction SilentlyContinue }
 # "Continue" SOLO QUI, E CON UN MOTIVO MISURATO. Con $ErrorActionPreference a
 # "Stop", la PRIMA riga che il banco scrive su stderr diventa un errore
@@ -214,40 +214,40 @@ if (Test-Path $outputNextToBench) { Remove-Item $outputNextToBench -Force -Error
 # che passa: se il banco muore prima di scriverne una, il file NON viene
 # toccato e resta li' con dentro il giro precedente, ora compresa. Toglierlo
 # adesso e' quello che rende vero il controllo qui sotto.
-if (Test-Path $uscita) { Remove-Item $uscita -Force }
+if (Test-Path $output) { Remove-Item $output -Force }
 
-$primaEra = $ErrorActionPreference
+$wasBefore = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
-& $eseguibile $argomenti 2>&1 | Tee-Object -FilePath $uscita
-$codice = $LASTEXITCODE
-$ErrorActionPreference = $primaEra
-$durata = (Get-Date) - $inizio
+& $executable $arguments 2>&1 | Tee-Object -FilePath $output
+$code = $LASTEXITCODE
+$ErrorActionPreference = $wasBefore
+$duration = (Get-Date) - $start
 
 # The copy next to the bench, retried: the network drive may be busy for a few
 # seconds; the local file stays the one this script reads.
-for ($tentativo = 1; $tentativo -le 5; $tentativo++) {
-    try { Copy-Item $uscita $outputNextToBench -Force -ErrorAction Stop; break }
-    catch { if ($tentativo -eq 5) { Write-Warning ("could not copy the run output to " + $outputNextToBench + ": " + $_.Exception.Message + " (it stays in " + $uscita + ")") } else { Start-Sleep -Seconds 10 } }
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    try { Copy-Item $output $outputNextToBench -Force -ErrorAction Stop; break }
+    catch { if ($attempt -eq 5) { Write-Warning ("could not copy the run output to " + $outputNextToBench + ": " + $_.Exception.Message + " (it stays in " + $output + ")") } else { Start-Sleep -Seconds 10 } }
 }
 
 # UN GIRO CHE NON HA SCRITTO NIENTE NON E' UN GIRO. Se il banco muore prima
 # della prima riga -- una libreria che non si carica, un interop che non c'e'
 # -- il file resta quello di ieri e ogni conto che segue e' una bugia.
-$scritto = 0
-if (Test-Path $uscita) { $scritto = (Get-Item $uscita).Length }
-if ($scritto -lt 100) {
-    Muori 2 ("il banco non ha scritto niente (uscita " + $codice + "). " +
-             "Lancia l'eseguibile a mano per vedere l'eccezione: " + $eseguibile)
+$written = 0
+if (Test-Path $output) { $written = (Get-Item $output).Length }
+if ($written -lt 100) {
+    Die 2 ("il banco non ha scritto niente (uscita " + $code + "). " +
+             "Lancia l'eseguibile a mano per vedere l'eccezione: " + $executable)
 }
 
 # --- 5. il resoconto --------------------------------------------------------
 
-$righe = Get-Content $uscita
+$lines = Get-Content $output
 
 # IL RIEPILOGO SI PRENDE DALLA RIGA CHE IL BANCO SCRIVE, non si ricalcola:
 # due conti dello stesso numero, fatti in due posti, prima o poi divergono e
 # allora non si sa piu' quale sia quello vero.
-$fine = ($righe | Where-Object { $_ -match "^(GIRO PARZIALE|[0-9]+ prove,)" } | Select-Object -Last 1)
+$fine = ($lines | Where-Object { $_ -match "^(GIRO PARZIALE|[0-9]+ prove,)" } | Select-Object -Last 1)
 if ($fine -eq $null) { $fine = "(il banco non ha scritto il riepilogo)" }
 # [string] E NON BASTA CHE SIA UNA STRINGA. Get-Content torna righe con
 # addosso le note di PowerShell (PSPath, PSDrive, il provider...), e
@@ -258,102 +258,102 @@ $fine = [string]$fine
 # LE RIGHE DI ESITO ESCONO DUE VOLTE: una mentre il giro va, una nell'elenco
 # finale dopo la riga di ====. Si contano quelle dopo, altrimenti tutto
 # raddoppia.
-$taglio = 0
-for ($i = 0; $i -lt $righe.Count; $i++) { if ($righe[$i] -match "^={40,}") { $taglio = $i + 1 } }
-$elenco = if ($taglio -gt 0) { $righe[$taglio..($righe.Count - 1)] } else { $righe }
+$cut = 0
+for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match "^={40,}") { $cut = $i + 1 } }
+$list = if ($cut -gt 0) { $lines[$cut..($lines.Count - 1)] } else { $lines }
 
-$passate = @($elenco | Where-Object { $_ -match "^  OK   " })
-$fallite = @($elenco | Where-Object { $_ -match "^  NO   " })
-$saltate = @($elenco | Where-Object { $_ -match "^  --   " })
+$passed = @($list | Where-Object { $_ -match "^  OK   " })
+$failed = @($list | Where-Object { $_ -match "^  NO   " })
+$skipped = @($list | Where-Object { $_ -match "^  --   " })
 # GLI ERRORI DI BANCO SI CONTANO A PARTE (voce F4): "non ho potuto misurare"
 # non e' "ho misurato e non torna", e sommarli farebbe leggere una suite che
 # si e' svuotata come una suite che ha trovato qualcosa.
-$errori  = @($elenco | Where-Object { $_ -match "^  !!   " })
+$errors  = @($list | Where-Object { $_ -match "^  !!   " })
 
-function Prendi($regex) {
-    $r = ($righe | Where-Object { $_ -match $regex } | Select-Object -First 1)
+function Take($regex) {
+    $r = ($lines | Where-Object { $_ -match $regex } | Select-Object -First 1)
     if ($r -eq $null) { return "(non dichiarato)" }
     return ([regex]::Match($r, $regex)).Groups[1].Value
 }
 
-$sw_ver  = Prendi "^SolidWorks (.+)$"
-$lib_ver = Prendi "^libreria ([0-9.]+)"
+$sw_ver  = Take "^SolidWorks (.+)$"
+$lib_ver = Take "^libreria ([0-9.]+)"
 # DUE NUMERI, col loro nome (voce F15): le eseguibili dalla libreria e quelle
 # servite a catalogo. Il campo «catalog» del JSON resta, con lo stesso valore
 # di prima (le eseguibili), per chi lo leggeva.
-$eseguibili = Prendi "^eseguibili: ([0-9]+) operazioni"
-$aCatalogo  = Prendi "^eseguibili: [0-9]+ operazioni \(a catalogo: ([0-9]+)\)"
+$executables = Take "^eseguibili: ([0-9]+) operazioni"
+$inCatalog  = Take "^eseguibili: [0-9]+ operazioni \(a catalogo: ([0-9]+)\)"
 # ATTESE VERIFICATE N SU M: se i due numeri divergono, qualcosa sta misurando
 # il nulla. Lo scrive il banco, non si ricalcola qui.
-$attese = ($righe | Where-Object { $_ -match "^attese verificate " } | Select-Object -Last 1)
-$attese = [string]$attese
-if ([string]::IsNullOrWhiteSpace($attese)) { $attese = "attese verificate: (non dichiarate)" }
+$expectations = ($lines | Where-Object { $_ -match "^attese verificate " } | Select-Object -Last 1)
+$expectations = [string]$expectations
+if ([string]::IsNullOrWhiteSpace($expectations)) { $expectations = "attese verificate: (non dichiarate)" }
 
 # I CASI VERDI, PER NOME (voce Z-C6). Il banco li scrive su una riga sola; qui
 # diventano un elenco (`green_cases`) in `last.json`, che la suite di contratto incrocia col
 # catalogo: ogni operazione servita deve avere un caso verde nell'ultimo giro.
 # [string] per la stessa ragione di $fine: niente note di PowerShell nel JSON.
-$rigaVerdi = [string]($righe | Where-Object { $_ -match "^casi verdi: " } | Select-Object -Last 1)
-$casiVerdi = @()
-if (-not [string]::IsNullOrWhiteSpace($rigaVerdi)) {
-    $casiVerdi = @($rigaVerdi.Substring("casi verdi: ".Length).Split(
+$greenLine = [string]($lines | Where-Object { $_ -match "^casi verdi: " } | Select-Object -Last 1)
+$greenCases = @()
+if (-not [string]::IsNullOrWhiteSpace($greenLine)) {
+    $greenCases = @($greenLine.Substring("casi verdi: ".Length).Split(
         [char[]]@(' '), [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { [string]$_ })
 }
 
 # THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5, decision D4): the bench writes
 # them on a line of their own; outside Bench/cases/aliases they must be 0.
-$aliasLine = [string]($righe | Where-Object { $_ -match "^alias uses: " } | Select-Object -Last 1)
+$aliasLine = [string]($lines | Where-Object { $_ -match "^alias uses: " } | Select-Object -Last 1)
 $aliasUses = $(if ([string]::IsNullOrWhiteSpace($aliasLine)) { $null } else { $aliasLine.Substring("alias uses: ".Length) })
 
 $commit = "(non in un repository)"
 try {
-    Push-Location $Radice
+    Push-Location $Root
     $c = & git rev-parse --short HEAD 2>$null
     if ($LASTEXITCODE -eq 0) { $commit = $c }
     Pop-Location
 } catch { }
 
-$quando = Get-Date
-$nome = $quando.ToString("yyyyMMdd_HHmm")
-$cartella = Join-Path $Banco "report"
-if (-not (Test-Path $cartella)) { New-Item -ItemType Directory -Path $cartella | Out-Null }
+$timestamp = Get-Date
+$itemName = $timestamp.ToString("yyyyMMdd_HHmm")
+$folder = Join-Path $Bench "report"
+if (-not (Test-Path $folder)) { New-Item -ItemType Directory -Path $folder | Out-Null }
 
 # DUE GIRI NELLO STESSO MINUTO NON SI SOVRASCRIVONO.
-# Un giro con `-Gruppo` dura secondi, quindi succede subito: il 15/9/2026 un
+# Un giro con `-Group` dura secondi, quindi succede subito: il 15/9/2026 un
 # resoconto verde e' stato cancellato da un giro rosso partito venti secondi
 # dopo, e l'unico segno era il conteggio che cambiava. Un resoconto che sparisce
 # e' peggio di un resoconto che non c'e': fa credere che quel giro sia andato
 # come dice quello che l'ha rimpiazzato.
-$ennesimo = 2
-while (Test-Path (Join-Path $cartella ($nome + ".md"))) {
-    $nome = $quando.ToString("yyyyMMdd_HHmm") + "_" + $ennesimo
-    $ennesimo++
+$nth = 2
+while (Test-Path (Join-Path $folder ($itemName + ".md"))) {
+    $itemName = $timestamp.ToString("yyyyMMdd_HHmm") + "_" + $nth
+    $nth++
 }
 
 $md = New-Object System.Collections.Generic.List[string]
-$md.Add("# Giro di banco - " + $quando.ToString("yyyy-MM-dd HH:mm"))
+$md.Add("# Giro di banco - " + $timestamp.ToString("yyyy-MM-dd HH:mm"))
 $md.Add("")
 $md.Add("| | |")
 $md.Add("|---|---|")
 $md.Add("| SOLIDWORKS | " + $sw_ver + " |")
 $md.Add("| libreria | " + $lib_ver + " |")
-$md.Add("| operazioni | " + $eseguibili + " eseguibili, " + $aCatalogo + " a catalogo |")
+$md.Add("| operazioni | " + $executables + " eseguibili, " + $inCatalog + " a catalogo |")
 $md.Add("| commit | " + $commit + " |")
-$md.Add("| durata | " + [int]$durata.TotalSeconds + " s |")
-if (-not [string]::IsNullOrWhiteSpace($Gruppo)) { $md.Add("| gruppo | " + $Gruppo + " |") }
-if (-not [string]::IsNullOrWhiteSpace($Famiglia)) { $md.Add("| famiglia | " + $Famiglia + " |") }
+$md.Add("| durata | " + [int]$duration.TotalSeconds + " s |")
+if (-not [string]::IsNullOrWhiteSpace($Group)) { $md.Add("| gruppo | " + $Group + " |") }
+if (-not [string]::IsNullOrWhiteSpace($Family)) { $md.Add("| famiglia | " + $Family + " |") }
 $md.Add("")
 $md.Add("**" + $fine + "**")
 $md.Add("")
 $md.Add("| | |")
 $md.Add("|---|---|")
-$md.Add("| passate | " + $passate.Count + " |")
-$md.Add("| fallite | " + $fallite.Count + " |")
-$md.Add("| saltate | " + $saltate.Count + " |")
-$md.Add("| errori di banco | " + $errori.Count + " |")
-$md.Add("| uscita | " + $codice + " |")
+$md.Add("| passate | " + $passed.Count + " |")
+$md.Add("| fallite | " + $failed.Count + " |")
+$md.Add("| saltate | " + $skipped.Count + " |")
+$md.Add("| errori di banco | " + $errors.Count + " |")
+$md.Add("| uscita | " + $code + " |")
 $md.Add("")
-$md.Add("**" + $attese + "**")
+$md.Add("**" + $expectations + "**")
 $md.Add("")
 $md.Add("> Se i due numeri divergono, qualcosa sta misurando il nulla: un caso")
 $md.Add("> che legge un campo che non esiste piu'. Un errore di banco non e'")
@@ -361,7 +361,7 @@ $md.Add("> una prova rossa - vuol dire che la prova NON E' STATA FATTA - e")
 $md.Add("> porta il giro a uscita 2.")
 $md.Add("")
 
-if ($fallite.Count -gt 0) {
+if ($failed.Count -gt 0) {
     $md.Add("## Le rosse")
     $md.Add("")
     $md.Add("Il dettaglio a destra e' quello che la prova ha scritto: dove c'e'")
@@ -370,27 +370,27 @@ if ($fallite.Count -gt 0) {
     # APICI SINGOLI: il backtick e' il carattere di escape di PowerShell, e
     # tre backtick dentro una stringa a doppi apici sono un errore di sintassi.
     $md.Add('```')
-    foreach ($r in $fallite) { $md.Add($r.TrimEnd()) }
+    foreach ($r in $failed) { $md.Add($r.TrimEnd()) }
     $md.Add('```')
     $md.Add("")
 }
 
-if ($errori.Count -gt 0) {
+if ($errors.Count -gt 0) {
     $md.Add("## Gli errori di banco")
     $md.Add("")
     $md.Add("Non sono prove rosse: sono prove che NON SONO STATE FATTE.")
     $md.Add("")
     $md.Add('```')
-    foreach ($r in $errori) { $md.Add($r.TrimEnd()) }
+    foreach ($r in $errors) { $md.Add($r.TrimEnd()) }
     $md.Add('```')
     $md.Add("")
 }
 
-if ($saltate.Count -gt 0) {
+if ($skipped.Count -gt 0) {
     $md.Add("## Le saltate")
     $md.Add("")
     $md.Add('```')
-    foreach ($r in $saltate) { $md.Add($r.TrimEnd()) }
+    foreach ($r in $skipped) { $md.Add($r.TrimEnd()) }
     $md.Add('```')
     $md.Add("")
 }
@@ -398,42 +398,42 @@ if ($saltate.Count -gt 0) {
 # UTF-8 SENZA BOM. `Out-File -Encoding utf8` su PowerShell 5.1 mette il BOM,
 # e i tre byte davanti al `#` fanno sembrare il titolo del markdown un
 # paragrafo qualunque a chi lo rende.
-$senzaBom = New-Object System.Text.UTF8Encoding($false)
+$withoutBom = New-Object System.Text.UTF8Encoding($false)
 
-$fileMd = Join-Path $cartella ($nome + ".md")
-[System.IO.File]::WriteAllText($fileMd, ($md -join "`r`n") + "`r`n", $senzaBom)
+$fileMd = Join-Path $folder ($itemName + ".md")
+[System.IO.File]::WriteAllText($fileMd, ($md -join "`r`n") + "`r`n", $withoutBom)
 
-$oggetto = [ordered]@{
-    timestamp    = $quando.ToString("s")
+$obj = [ordered]@{
+    timestamp    = $timestamp.ToString("s")
     solidworks   = $sw_ver
     library      = $lib_ver
-    catalog      = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
-    runnable     = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
-    in_catalog   = $(if ($aCatalogo -match "^[0-9]+$") { [int]$aCatalogo } else { $aCatalogo })
+    catalog      = $(if ($executables -match "^[0-9]+$") { [int]$executables } else { $executables })
+    runnable     = $(if ($executables -match "^[0-9]+$") { [int]$executables } else { $executables })
+    in_catalog   = $(if ($inCatalog -match "^[0-9]+$") { [int]$inCatalog } else { $inCatalog })
     commit       = $commit
-    batch        = $Gruppo
-    family       = $Famiglia
-    slow         = [bool]$Lento
-    duration_s   = [int]$durata.TotalSeconds
+    batch        = $Group
+    family       = $Family
+    slow         = [bool]$Slow
+    duration_s   = [int]$duration.TotalSeconds
     summary      = $fine
-    expectations = $attese
-    passed       = $passate.Count
-    failed       = $fallite.Count
-    skipped      = $saltate.Count
-    errors       = $errori.Count
-    exit_code    = $codice
-    red          = @($fallite | ForEach-Object { $_.TrimEnd() })
-    bench_errors = @($errori | ForEach-Object { $_.TrimEnd() })
-    green_cases  = $casiVerdi
+    expectations = $expectations
+    passed       = $passed.Count
+    failed       = $failed.Count
+    skipped      = $skipped.Count
+    errors       = $errors.Count
+    exit_code    = $code
+    red          = @($failed | ForEach-Object { $_.TrimEnd() })
+    bench_errors = @($errors | ForEach-Object { $_.TrimEnd() })
+    green_cases  = $greenCases
     alias_uses   = $aliasUses
 }
-$json = $oggetto | ConvertTo-Json -Depth 4
-$fileJson = Join-Path $cartella ($nome + ".json")
-[System.IO.File]::WriteAllText($fileJson, $json, $senzaBom)
-[System.IO.File]::WriteAllText((Join-Path $cartella "last.json"), $json, $senzaBom)
+$json = $obj | ConvertTo-Json -Depth 4
+$fileJson = Join-Path $folder ($itemName + ".json")
+[System.IO.File]::WriteAllText($fileJson, $json, $withoutBom)
+[System.IO.File]::WriteAllText((Join-Path $folder "last.json"), $json, $withoutBom)
 
 Write-Output ""
 Write-Output ("resoconto: " + $fileMd)
 Write-Output ("           " + $fileJson)
-Write-Output ("uscita: " + $codice)
-exit $codice
+Write-Output ("uscita: " + $code)
+exit $code

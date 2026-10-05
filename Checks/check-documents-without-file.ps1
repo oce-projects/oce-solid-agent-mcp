@@ -1,22 +1,22 @@
-# Sorveglia le proprieta' di EsecutorePiano che il PONTE accende e l'ADD-IN no.
+# Sorveglia le proprieta' di PlanExecutor che il PONTE accende e l'ADD-IN no.
 #
 # Sono tre, e hanno la stessa forma: aprono una strada che nell'add-in deve
 # restare chiusa.
 #
-#   DocumentoSenzaFile  lascia lavorare su un documento mai salvato su disco.
+#   DocumentWithoutFile  lascia lavorare su un documento mai salvato su disco.
 #                       Per il ponte e' il caso normale: si disegna su `Parte1`
 #                       appena aperta. Per l'add-in no, perche' dentro un PDM un
 #                       file non salvato non e' in check-out, e scriverci
 #                       produce modifiche che al salvataggio falliscono o
 #                       finiscono in una copia.
 #
-#   AncheSuTavole       lascia lavorare su una tavola. Il ponte ha cinque
+#   AlsoOnDrawings       lascia lavorare su una tavola. Il ponte ha cinque
 #                       operazioni di tavola in catalogo; l'assistente
 #                       dell'add-in disegna pezzi, e un piano che gli arriva su
 #                       una tavola e' quasi sempre un errore di chi ha cambiato
 #                       finestra.
 #
-#   AncheSuAssiemi      lascia lavorare su un assieme. Aggiunta il 18/9/2026:
+#   AlsoOnAssemblies      lascia lavorare su un assieme. Aggiunta il 18/9/2026:
 #                       fino a quel giorno l'esecutore rifiutava ogni assieme
 #                       mentre il catalogo servito ne prometteva quattro
 #                       operazioni. Il banco non poteva vederlo, perche' chiama
@@ -46,42 +46,42 @@
 # dentro una stringa gli fa sbagliare il parsing.
 
 $ErrorActionPreference = 'Stop'
-$radice = Split-Path -Parent $PSScriptRoot
-$nomi = @('DocumentoSenzaFile', 'AncheSuTavole', 'AncheSuAssiemi')
-$guai = 0
+$root = Split-Path -Parent $PSScriptRoot
+$names = @('DocumentWithoutFile', 'AlsoOnDrawings', 'AlsoOnAssemblies')
+$trouble = 0
 
-function Male($riga) { Write-Host "  XX $riga"; $script:guai++ }
-function Bene($riga) { Write-Host "  ok $riga" }
+function Male($line) { Write-Host "  XX $line"; $script:trouble++ }
+function Fine($line) { Write-Host "  ok $line" }
 
 Write-Host "=== Dentro questo repository"
 
-foreach ($nome in $nomi) {
+foreach ($itemName in $names) {
     # Dove si DEFINISCE: una volta sola, nella libreria.
-    $definizioni = @(Get-ChildItem -Path (Join-Path $radice 'Oce.Solid.Agent.Core') -Filter *.cs -Recurse |
+    $defs = @(Get-ChildItem -Path (Join-Path $root 'Oce.Solid.Agent.Core') -Filter *.cs -Recurse |
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
-        Select-String -SimpleMatch "public bool $nome")
-    if ($definizioni.Count -eq 1) {
-        Bene "$nome definita una volta sola: $($definizioni[0].Filename)"
+        Select-String -SimpleMatch "public bool $itemName")
+    if ($defs.Count -eq 1) {
+        Fine "$itemName definita una volta sola: $($defs[0].Filename)"
     } else {
-        Male "$($definizioni.Count) definizioni di $nome, attesa una"
+        Male "$($defs.Count) definizioni di $itemName, attesa una"
     }
 
     # Dove si ACCENDE: solo il ponte. Si cerca l'ASSEGNAMENTO e non il nome
     # nudo, cosi' i commenti che ne parlano (compreso questo file) non contano.
-    $accensioni = @(Get-ChildItem -Path $radice -Filter *.cs -Recurse |
+    $activations = @(Get-ChildItem -Path $root -Filter *.cs -Recurse |
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
-        Select-String -Pattern "$nome\s*=\s*true")
-    if ($accensioni.Count -eq 0) {
-        Male "nessuno accende ${nome}: o la riga e' sparita, o questo controllo non guarda piu' dove serve"
-    } elseif ($accensioni.Count -gt 1) {
-        Male "$nome acceso in $($accensioni.Count) posti:"
-        foreach ($a in $accensioni) { Write-Host "       $($a.Path):$($a.LineNumber)" }
+        Select-String -Pattern "$itemName\s*=\s*true")
+    if ($activations.Count -eq 0) {
+        Male "nessuno accende ${itemName}: o la riga e' sparita, o questo controllo non guarda piu' dove serve"
+    } elseif ($activations.Count -gt 1) {
+        Male "$itemName acceso in $($activations.Count) posti:"
+        foreach ($a in $activations) { Write-Host "       $($a.Path):$($a.LineNumber)" }
     } else {
-        $dove = $accensioni[0].Path
-        if ($dove -like '*\Bridge\Session.cs') {
-            Bene "$nome acceso solo in Bridge\Session.cs"
+        $location = $activations[0].Path
+        if ($location -like '*\Bridge\Session.cs') {
+            Fine "$itemName acceso solo in Bridge\Session.cs"
         } else {
-            Male "$nome acceso in $dove, che non e' Bridge\Session.cs"
+            Male "$itemName acceso in $location, che non e' Bridge\Session.cs"
         }
     }
 }
@@ -109,20 +109,20 @@ if (-not $addin -or -not (Test-Path $addin)) {
     Write-Host "     QUESTA META' NON E' STATA CONTROLLATA."
     Write-Host "     Indica dove sono con RISCONTRO_ADDIN per controllarla."
 } else {
-    foreach ($nome in $nomi) {
-        $trovate = @(Get-ChildItem -Path $addin -Filter *.cs -Recurse -ErrorAction SilentlyContinue |
+    foreach ($itemName in $names) {
+        $foundOnes = @(Get-ChildItem -Path $addin -Filter *.cs -Recurse -ErrorAction SilentlyContinue |
             Where-Object { $_.FullName -notmatch '\\(bin|obj|esterni)\\' } |
-            Select-String -SimpleMatch $nome)
-        if ($trovate.Count -eq 0) {
-            Bene "l'add-in non nomina $nome"
+            Select-String -SimpleMatch $itemName)
+        if ($foundOnes.Count -eq 0) {
+            Fine "l'add-in non nomina $itemName"
         } else {
-            Male "l'add-in nomina $nome in $($trovate.Count) punti:"
-            foreach ($t in $trovate) { Write-Host "       $($t.Path):$($t.LineNumber)" }
+            Male "l'add-in nomina $itemName in $($foundOnes.Count) punti:"
+            foreach ($t in $foundOnes) { Write-Host "       $($t.Path):$($t.LineNumber)" }
         }
     }
 }
 
 Write-Host ""
-if ($guai -eq 0) { Write-Host 'Tutto torna.'; exit 0 }
-Write-Host "$guai problemi."
+if ($trouble -eq 0) { Write-Host 'Tutto torna.'; exit 0 }
+Write-Host "$trouble problemi."
 exit 1

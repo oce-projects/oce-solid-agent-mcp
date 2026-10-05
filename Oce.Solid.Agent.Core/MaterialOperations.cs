@@ -28,7 +28,7 @@ namespace Oce.Solid.Agent.Core
     /// prima. Misurato. Percio' qui si rilegge SEMPRE e si confronta: se il
     /// nome tornato indietro non e' quello chiesto, il passo fallisce.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>
         /// Il materiale che questa officina usa salvo avviso contrario
@@ -36,13 +36,13 @@ namespace Oce.Solid.Agent.Core
         /// ANNUNCIA e questo lo APPLICA: due posti per lo stesso valore
         /// divergerebbero, e il catalogo si rigenera da `Operations.cs`.
         /// </summary>
-        private const string MaterialePredefinito = "S235JR";
+        private const string DefaultMaterial = "S235JR";
 
-        private Esito ApplicaMateriale(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ApplyMaterial(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null)
-                return Fallito("Il materiale si applica a una parte, e questo non e' un documento di parte.");
+            var partDoc = model as IPartDoc;
+            if (partDoc == null)
+                return Failed("Il materiale si applica a una parte, e questo non e' un documento di parte.");
 
             // ── IL PREDEFINITO DI QUESTA OFFICINA (voce Z-G3) ────────────
             //
@@ -58,18 +58,18 @@ namespace Oce.Solid.Agent.Core
             // stata presa la decisione. *«Nessuno ci ha pensato» e «qualcuno
             // ci ha pensato e ha deciso» si leggono uguali, e solo una delle
             // due si puo' migliorare.*
-            string chiesto = Str(a, "material", "");
-            bool assunto = string.IsNullOrWhiteSpace(chiesto);
-            if (assunto) chiesto = MaterialePredefinito;
-            string archivioChiesto = Str(a, "library", "");
+            string requested = Str(a, "material", "");
+            bool assumed = string.IsNullOrWhiteSpace(requested);
+            if (assumed) requested = DefaultMaterial;
+            string requestedArchive = Str(a, "library", "");
 
             // La grafia esatta la trova la postazione che esegue, non il
             // modello: «S235JR» negli archivi si chiama «1.0037 (S235JR)», e
             // nella stessa libreria ci sono cinque S235 diversi.
-            string perche;
-            var materiale = MaterialiSolidWorks.Risolvi(
-                _sw, chiesto, archivioChiesto, _log, out perche);
-            if (materiale == null) return Fallito(perche);
+            string why;
+            var material = SolidWorksMaterials.Resolve(
+                _sw, requested, requestedArchive, _log, out why);
+            if (material == null) return Failed(why);
 
             // ── EVERY CONFIGURATION, EACH BY ITS NAME (Z-C21.3, finding M10) ──
             //
@@ -99,7 +99,7 @@ namespace Oce.Solid.Agent.Core
             // name. "" stays only when the names cannot be read at all.
             // Arrays and counters, not List.Add: the obsolete-call scanner cannot
             // type the receiver of an Add and freezes it as undecided.
-            string[] targets = NomiDelleConfigurazioni(modello).ToArray();
+            string[] targets = ConfigurationNames(model).ToArray();
             bool namesRead = targets.Length > 0;
             if (!namesRead) targets = new[] { "" };
 
@@ -110,9 +110,9 @@ namespace Oce.Solid.Agent.Core
             foreach (var configuration in targets)
             {
                 string previous = "";
-                try { string db; previous = parte.GetMaterialPropertyName2(configuration, out db) ?? ""; }
+                try { string db; previous = partDoc.GetMaterialPropertyName2(configuration, out db) ?? ""; }
                 catch { }
-                if (!string.IsNullOrEmpty(previous) && previous != materiale.Nome &&
+                if (!string.IsNullOrEmpty(previous) && previous != material.Name &&
                     Array.IndexOf(before, previous, 0, beforeCount) < 0)
                     before[beforeCount++] = previous;
             }
@@ -121,11 +121,11 @@ namespace Oce.Solid.Agent.Core
             {
                 try
                 {
-                    parte.SetMaterialPropertyName2(configuration, materiale.Archivio, materiale.Nome);
+                    partDoc.SetMaterialPropertyName2(configuration, material.Archive, material.Name);
                 }
                 catch (Exception ex)
                 {
-                    return Fallito(
+                    return Failed(
                         "Applying the material to the configuration «" + configuration +
                         "» failed: " + ex.Message);
                 }
@@ -134,22 +134,22 @@ namespace Oce.Solid.Agent.Core
             // The re-read, by name: SetMaterialPropertyName2 returns void and,
             // with a database or a name that does not exist, changes nothing
             // without raising (measured, see the summary of this file).
-            string archivioDopo = "";
+            string archiveAfter = "";
             string[] missing = new string[targets.Length];
             int missingCount = 0;
             foreach (var configuration in targets)
             {
                 string after = "", database = "";
-                try { after = parte.GetMaterialPropertyName2(configuration, out database) ?? ""; }
+                try { after = partDoc.GetMaterialPropertyName2(configuration, out database) ?? ""; }
                 catch (Exception ex)
                 {
-                    return Fallito(
+                    return Failed(
                         "I applied the material but cannot read it back from the " +
                         "configuration «" + configuration + "» to check it: " + ex.Message);
                 }
-                if (string.Equals(after, materiale.Nome, StringComparison.Ordinal))
+                if (string.Equals(after, material.Name, StringComparison.Ordinal))
                 {
-                    if (string.IsNullOrEmpty(archivioDopo)) archivioDopo = database ?? "";
+                    if (string.IsNullOrEmpty(archiveAfter)) archiveAfter = database ?? "";
                 }
                 else
                     missing[missingCount++] = "«" + configuration + "» (" +
@@ -157,36 +157,36 @@ namespace Oce.Solid.Agent.Core
             }
 
             if (missingCount > 0)
-                return Fallito(
-                    "I asked SOLIDWORKS for the material «" + materiale.Nome +
-                    "» from the database «" + materiale.Archivio + "» on every configuration " +
+                return Failed(
+                    "I asked SOLIDWORKS for the material «" + material.Name +
+                    "» from the database «" + material.Archive + "» on every configuration " +
                     "of the part, and reading it back " + missingCount + " of " + targets.Length +
                     " do not have it: " + string.Join(", ", missing, 0, missingCount) +
                     ". It was not applied " +
                     "to the whole part; a part with a configuration without material has a " +
                     "false mass in that configuration.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["material"] = materiale.Nome,
-                ["library"] = archivioDopo,
+                ["material"] = material.Name,
+                ["library"] = archiveAfter,
                 // Z-C21.3 M10: the configurations that now carry the material,
                 // each set and read back by its own name.
                 ["configurations"] = namesRead ? targets : new string[0],
-                ["class_name"] = materiale.Classe,
+                ["class_name"] = material.Class,
                 // SI SCRIVE SEMPRE, anche quando il materiale e' stato
                 // chiesto: un campo che compare solo nel caso strano e' un
                 // campo che chi legge non impara a guardare.
-                ["note_assumption"] = assunto
-                    ? "materiale: «" + MaterialePredefinito + "» — PREDEFINITO di " +
+                ["note_assumption"] = assumed
+                    ? "materiale: «" + DefaultMaterial + "» — PREDEFINITO di " +
                       "questa officina, non l'hai chiesto tu. Se ti serve altro, " +
                       "scrivi «material» nel passo."
-                    : "materiale: «" + chiesto + "» — l'hai chiesto tu.",
+                    : "materiale: «" + requested + "» — l'hai chiesto tu.",
             };
             if (beforeCount > 0)
-                misure["replaces"] = string.Join(", ", before, 0, beforeCount);
+                measurements["replaces"] = string.Join(", ", before, 0, beforeCount);
             if (!namesRead)
-                misure["configurations_note"] =
+                measurements["configurations_note"] =
                     "The configuration names could not be read: the material was set with " +
                     "the empty name, which reaches the ACTIVE configuration (and the ones " +
                     "derived from it), not the others. Other configurations, if any, may " +
@@ -195,7 +195,7 @@ namespace Oce.Solid.Agent.Core
             // Non c'e' nessuna feature: il materiale e' una proprieta' del
             // documento. Riuscito() regge un riferimento nullo, e i passi
             // successivi non hanno niente da citare qui.
-            return Riuscito(null, misure);
+            return Succeeded(null, measurements);
         }
     }
 }

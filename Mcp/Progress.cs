@@ -29,12 +29,12 @@ namespace Oce.Solid.Agent.Mcp
     /// ── «progress» DEVE CRESCERE, E QUI NON PUO' NON CRESCERE ───────────
     ///
     /// La specifica lo pretende. Lasciarlo a chi chiama vorrebbe dire
-    /// scoprirlo rotto in un client, cioe' mai. Il <see cref="Filo"/> tiene
+    /// scoprirlo rotto in un client, cioe' mai. Il <see cref="Wire"/> tiene
     /// l'ultimo valore mandato e **scarta** un passo che non cresce: una
     /// regola sola, in un posto solo, che non si puo' dimenticare in nessuno
     /// dei quattro punti che la usano.
     /// </summary>
-    internal static class Avanzamento
+    internal static class Progress
     {
         /// <summary>
         /// Il gettone dentro `params._meta.progressToken`, o null se il
@@ -44,19 +44,19 @@ namespace Oce.Solid.Agent.Mcp
         /// riempito male, e rimandarla indietro non aiuterebbe nessuno a
         /// riconoscere la propria richiesta.
         /// </summary>
-        public static object Gettone(Dictionary<string, object> parametri)
+        public static object Token(Dictionary<string, object> parameters)
         {
-            if (parametri == null) return null;
+            if (parameters == null) return null;
             object meta;
-            if (!parametri.TryGetValue("_meta", out meta)) return null;
-            var dentro = meta as Dictionary<string, object>;
-            if (dentro == null) return null;
-            object gettone;
-            if (!dentro.TryGetValue("progressToken", out gettone)) return null;
-            if (gettone == null) return null;
-            var testo = gettone as string;
-            if (testo != null && testo.Length == 0) return null;
-            return gettone;
+            if (!parameters.TryGetValue("_meta", out meta)) return null;
+            var inside = meta as Dictionary<string, object>;
+            if (inside == null) return null;
+            object token;
+            if (!inside.TryGetValue("progressToken", out token)) return null;
+            if (token == null) return null;
+            var text = token as string;
+            if (text != null && text.Length == 0) return null;
+            return token;
         }
 
         /// <summary>
@@ -67,22 +67,22 @@ namespace Oce.Solid.Agent.Mcp
         /// specifica lo permette, e scrivere un totale inventato darebbe a
         /// chi legge una barra di avanzamento che mente.
         /// </summary>
-        public static Dictionary<string, object> Notifica(
-            object gettone, double fatti, double totale, string messaggio)
+        public static Dictionary<string, object> Notify(
+            object token, double done, double total, string message)
         {
-            var parametri = new Dictionary<string, object>
+            var parameters = new Dictionary<string, object>
             {
-                ["progressToken"] = gettone,
-                ["progress"] = fatti,
+                ["progressToken"] = token,
+                ["progress"] = done,
             };
-            if (totale > 0) parametri["total"] = totale;
-            if (!string.IsNullOrWhiteSpace(messaggio)) parametri["message"] = messaggio;
+            if (total > 0) parameters["total"] = total;
+            if (!string.IsNullOrWhiteSpace(message)) parameters["message"] = message;
 
             return new Dictionary<string, object>
             {
                 ["jsonrpc"] = "2.0",
                 ["method"] = "notifications/progress",
-                ["params"] = parametri,
+                ["params"] = parameters,
             };
         }
 
@@ -92,20 +92,20 @@ namespace Oce.Solid.Agent.Mcp
         /// Si costruisce sempre, anche senza gettone: cosi' i punti che lo
         /// usano non hanno un `if` ciascuno. Un `if (filo != null)` sparso in
         /// quattro posti e' il modo in cui il quinto se lo dimentica —
-        /// e' la stessa ragione per cui `Attrezzi._registro` non e' mai null.
+        /// e' la stessa ragione per cui `McpTools._registro` non e' mai null.
         /// </summary>
-        internal sealed class Filo
+        internal sealed class Wire
         {
-            private readonly object _gettone;
-            private readonly Func<DateTime> _orologio;
-            private readonly DateTime _inizio;
-            private double _ultimo;
+            private readonly object _token;
+            private readonly Func<DateTime> _clock;
+            private readonly DateTime _start;
+            private double _last;
 
             /// <summary>Quante notifiche sono davvero partite.</summary>
             public int Mandate { get; private set; }
 
             /// <summary>Quanti passi sono stati scartati perche' non crescevano.</summary>
-            public int Scartati { get; private set; }
+            public int Discarded { get; private set; }
 
             /// <summary>
             /// Quanti passi in tutto, se si sa. Zero vuol dire «non lo so»,
@@ -118,34 +118,34 @@ namespace Oce.Solid.Agent.Mcp
             /// suo, prima o poi direbbero numeri diversi e la barra di chi
             /// legge tornerebbe indietro.
             /// </summary>
-            public double Totale { get; set; }
+            public double Total { get; set; }
 
             /// <summary>
             /// L'ultimo valore mandato. Serve a chi riprende il conto dove
             /// un altro l'ha lasciato — l'esecuzione dopo il controllo —
             /// senza doversi ricordare quanti passi aveva l'altro.
             /// </summary>
-            public double Ultimo { get { return _ultimo; } }
+            public double Last { get { return _last; } }
 
         /// <summary>
         /// L'OROLOGIO SI PASSA, NON SI LEGGE, e per la solita ragione: una
         /// prova che non puo' fissare l'ora non puo' guardare cosa viene
-        /// scritto. E' la stessa scelta di `Guinzaglio` e `SentinellaSolidWorks`.
+        /// scritto. E' la stessa scelta di `Leash` e `SolidWorksSentinel`.
         /// </summary>
-            public Filo(object gettone) : this(gettone, () => DateTime.Now) { }
+            public Wire(object token) : this(token, () => DateTime.Now) { }
 
-            public Filo(object gettone, Func<DateTime> orologio)
+            public Wire(object token, Func<DateTime> clock)
             {
-                _gettone = gettone;
-                _orologio = orologio ?? (() => DateTime.Now);
-                _inizio = _orologio();
+                _token = token;
+                _clock = clock ?? (() => DateTime.Now);
+                _start = _clock();
             }
 
             /// <summary>Da quanto sta lavorando.</summary>
-            public TimeSpan Trascorso { get { return _orologio() - _inizio; } }
+            public TimeSpan Elapsed { get { return _clock() - _start; } }
 
             /// <summary>Il client ha chiesto di essere aggiornato?</summary>
-            public bool Acceso { get { return _gettone != null; } }
+            public bool On { get { return _token != null; } }
 
             /// <summary>
             /// IL TEMPO ACCANTO AL PASSO (voce S0).
@@ -160,26 +160,26 @@ namespace Oce.Solid.Agent.Mcp
             /// `message` e' l'unico campo della notifica che un umano legge,
             /// e metterci dei secondi crudi vorrebbe dire farglieli dividere.
             /// </summary>
-            private string ColTempo(string messaggio)
+            private string ColTempo(string message)
             {
-                var t = Trascorso;
+                var t = Elapsed;
                 if (t < TimeSpan.Zero) t = TimeSpan.Zero;
-                var quanto = t.TotalMinutes >= 1
+                var howMuch = t.TotalMinutes >= 1
                     ? ((int)t.TotalMinutes) + "m" + t.Seconds.ToString("00") + "s"
                     : ((int)t.TotalSeconds) + "s";
-                return string.IsNullOrWhiteSpace(messaggio)
-                    ? quanto
-                    : messaggio + " \u2014 " + quanto;
+                return string.IsNullOrWhiteSpace(message)
+                    ? howMuch
+                    : message + " \u2014 " + howMuch;
             }
 
-            public void Passo(double fatti, string messaggio)
+            public void Step(double done, string message)
             {
-                if (_gettone == null) return;
-                if (fatti <= _ultimo) { Scartati++; return; }
-                _ultimo = fatti;
+                if (_token == null) return;
+                if (done <= _last) { Discarded++; return; }
+                _last = done;
                 Mandate++;
-                Protocollo.NotificaSulCanale(
-                    Notifica(_gettone, fatti, Totale, ColTempo(messaggio)));
+                Protocol.NotifyOnChannel(
+                    Notify(_token, done, Total, ColTempo(message)));
             }
         }
     }

@@ -96,7 +96,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <!-- UNA SOLA FONTE PER LA VERSIONE. `Programma.Versione` la legge da
+    <!-- UNA SOLA FONTE PER LA VERSIONE. `Program.Version` la legge da
          qui invece di tenerne una copia a mano, che e' rimasta ferma a
          0.2.0 per settantotto versioni minori senza che nessuno la
          confrontasse con niente. -->

@@ -22,17 +22,17 @@ namespace Checks.DrawingDimensions
     ///
     ///     DrawingDimensions.exe        lavora sulla tavola attiva
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static IDrawingDoc _tavola;
+        private static IDrawingDoc _drawing;
         private static IModelDoc2 _doc;
 
         private static int Main()
         {
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             _doc = (IModelDoc2)sw.ActiveDoc;
             if (_doc == null || _doc.GetType() != (int)swDocumentTypes_e.swDocDRAWING)
@@ -40,25 +40,25 @@ namespace Checks.DrawingDimensions
                 Console.Error.WriteLine("Serve una tavola attiva.");
                 return 2;
             }
-            _tavola = (IDrawingDoc)_doc;
+            _drawing = (IDrawingDoc)_doc;
             Console.WriteLine("tavola: " + _doc.GetTitle());
 
             // 1. LE VISTE, E COSA HANNO GIA'.
-            var nomiViste = new List<string>();
-            var v = _tavola.GetFirstView() as IView;
+            var viewNames = new List<string>();
+            var v = _drawing.GetFirstView() as IView;
             while (v != null)
             {
                 var ann = v.GetAnnotations() as object[];
                 var dim = v.GetDisplayDimensions() as object[];
-                object riferito = null;
-                try { riferito = v.ReferencedDocument; } catch { }
+                object referred = null;
+                try { referred = v.ReferencedDocument; } catch { }
                 Console.WriteLine("  vista «" + v.GetName2() + "» tipo " + v.Type +
                     ", modello: «" + (v.GetReferencedModelName() ?? "") + "»" +
-                    ", RISOLTA: " + (riferito != null) +
+                    ", RISOLTA: " + (referred != null) +
                     ", annotazioni " + (ann == null ? 0 : ann.Length) +
                     ", quote " + (dim == null ? 0 : dim.Length));
                 if (v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
-                    nomiViste.Add(v.GetName2());
+                    viewNames.Add(v.GetName2());
                 v = v.GetNextView() as IView;
             }
             Console.WriteLine("quote in tavola, prima: " + Quote());
@@ -66,60 +66,60 @@ namespace Checks.DrawingDimensions
             // 2. LE QUOTE DEL PEZZO SONO MARCATE PER IL DISEGNO?
             // E' la domanda che decide se il problema sta nella tavola o nel
             // pezzo. Si apre il modello referenziato e si guarda.
-            string percorsoModello = null;
-            var prima = _tavola.GetFirstView() as IView;
-            while (prima != null && percorsoModello == null)
+            string modelPath = null;
+            var before = _drawing.GetFirstView() as IView;
+            while (before != null && modelPath == null)
             {
-                var n = prima.GetReferencedModelName();
-                if (!string.IsNullOrEmpty(n)) percorsoModello = n;
-                prima = prima.GetNextView() as IView;
+                var n = before.GetReferencedModelName();
+                if (!string.IsNullOrEmpty(n)) modelPath = n;
+                before = before.GetNextView() as IView;
             }
-            Console.WriteLine("modello referenziato: " + (percorsoModello ?? "-"));
-            if (percorsoModello != null) GuardaLeQuoteDelPezzo(sw, percorsoModello);
+            Console.WriteLine("modello referenziato: " + (modelPath ?? "-"));
+            if (modelPath != null) LookAtPartDimensions(sw, modelPath);
 
             // 3. I TENTATIVI.
             Console.WriteLine();
             Console.WriteLine("=== Tentativi");
 
-            int daModello = (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel;
-            int marcate = (int)swInsertAnnotation_e.swInsertDimensionsMarkedForDrawing;
-            int nonMarcate = (int)swInsertAnnotation_e.swInsertDimensionsNotMarkedForDrawing;
-            int generico = (int)swInsertAnnotation_e.swInsertDimensions;
+            int fromModel = (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel;
+            int marked = (int)swInsertAnnotation_e.swInsertDimensionsMarkedForDrawing;
+            int notMarked = (int)swInsertAnnotation_e.swInsertDimensionsNotMarkedForDrawing;
+            int generic = (int)swInsertAnnotation_e.swInsertDimensions;
 
-            Prova("v3 marcate, tutte le viste", () => V3(daModello, marcate, true, false));
-            Prova("v3 non marcate, tutte le viste", () => V3(daModello, nonMarcate, true, false));
-            Prova("v3 generico, tutte le viste", () => V3(daModello, generico, true, false));
-            Prova("v3 marcate|non marcate|generico", () => V3(daModello, marcate | nonMarcate | generico, true, false));
-            Prova("v3 generico, posizione dallo schizzo", () => V3(daModello, generico, true, true));
+            Test("v3 marcate, tutte le viste", () => V3(fromModel, marked, true, false));
+            Test("v3 non marcate, tutte le viste", () => V3(fromModel, notMarked, true, false));
+            Test("v3 generico, tutte le viste", () => V3(fromModel, generic, true, false));
+            Test("v3 marcate|non marcate|generico", () => V3(fromModel, marked | notMarked | generic, true, false));
+            Test("v3 generico, posizione dallo schizzo", () => V3(fromModel, generic, true, true));
 
             // Le stesse, ma con una vista ATTIVATA prima. E' l'ipotesi
             // principale: l'API dice «tutte le viste» ma potrebbe volere
             // comunque un contesto di vista.
-            foreach (var nome in nomiViste)
+            foreach (var itemName in viewNames)
             {
-                Prova("v3 generico dopo ActivateView(«" + nome + "»)", () =>
+                Test("v3 generico dopo ActivateView(«" + itemName + "»)", () =>
                 {
-                    _tavola.ActivateView(nome);
-                    return V3(daModello, generico, true, false);
+                    _drawing.ActivateView(itemName);
+                    return V3(fromModel, generic, true, false);
                 });
-                Prova("v3 generico su QUELLA vista sola", () =>
+                Test("v3 generico su QUELLA vista sola", () =>
                 {
-                    _tavola.ActivateView(nome);
-                    return V3(daModello, generico, false, false);
+                    _drawing.ActivateView(itemName);
+                    return V3(fromModel, generic, false, false);
                 });
             }
 
             // La vista SELEZIONATA per identificativo, che non e' la stessa
             // cosa di ActivateView: una e' il contesto di modifica, l'altra
             // e' cio' che l'API vede come selezione.
-            foreach (var nome in nomiViste)
+            foreach (var itemName in viewNames)
             {
-                Prova("v3 generico con la vista «" + nome + "» SELEZIONATA", () =>
+                Test("v3 generico con la vista «" + itemName + "» SELEZIONATA", () =>
                 {
                     _doc.ClearSelection2(true);
                     _doc.Extension.SelectByID2(
-                        nome, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0);
-                    return V3(daModello, generico, false, false);
+                        itemName, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0);
+                    return V3(fromModel, generic, false, false);
                 });
             }
 
@@ -129,39 +129,39 @@ namespace Checks.DrawingDimensions
             // costante non esiste: se l'API volesse 1 per «tutto il modello»,
             // passandole 0 risponderebbe un elenco vuoto senza lamentarsi.
             // Non si deduce: si provano.
-            for (int fonte = 0; fonte <= 4; fonte++)
+            for (int source = 0; source <= 4; source++)
             {
-                int f = fonte;
-                Prova("v3 fonte=" + f + " marcate", () => V3(f, marcate, true, false));
-                Prova("v3 fonte=" + f + " generico", () => V3(f, generico, true, false));
+                int f = source;
+                Test("v3 fonte=" + f + " marcate", () => V3(f, marked, true, false));
+                Test("v3 fonte=" + f + " generico", () => V3(f, generic, true, false));
             }
 
             // I valori veri delle costanti, perche' un enum sbagliato da' zero
             // senza dire niente.
-            Console.WriteLine("  (fonte=" + daModello + " marcate=" + marcate +
-                " nonMarcate=" + nonMarcate + " generico=" + generico + ")");
+            Console.WriteLine("  (fonte=" + fromModel + " marcate=" + marked +
+                " nonMarcate=" + notMarked + " generico=" + generic + ")");
 
             // LE VERSIONI VECCHIE, che hanno il parametro `AllTypes`: quello
             // che la 3 ha tolto. Con AllTypes a vero la maschera dei tipi non
             // conta piu', quindi se il guaio fosse li' si vedrebbe qui.
-            Prova("v1 AllTypes", () =>
+            Test("v1 AllTypes", () =>
             {
-                _tavola.InsertModelAnnotations(daModello, true, 0, true);
+                _drawing.InsertModelAnnotations(fromModel, true, 0, true);
                 return -1;
             });
-            Prova("v2 AllTypes", () =>
+            Test("v2 AllTypes", () =>
             {
-                _tavola.InsertModelAnnotations2(daModello, true, 0, true, false, false);
+                _drawing.InsertModelAnnotations2(fromModel, true, 0, true, false, false);
                 return -1;
             });
-            Prova("v2 AllTypes generico", () =>
+            Test("v2 AllTypes generico", () =>
             {
-                _tavola.InsertModelAnnotations2(daModello, true, generico, true, false, false);
+                _drawing.InsertModelAnnotations2(fromModel, true, generic, true, false, false);
                 return -1;
             });
-            Prova("v1 fonte=1 AllTypes", () =>
+            Test("v1 fonte=1 AllTypes", () =>
             {
-                _tavola.InsertModelAnnotations(1, true, 0, true);
+                _drawing.InsertModelAnnotations(1, true, 0, true);
                 return -1;
             });
 
@@ -171,7 +171,7 @@ namespace Checks.DrawingDimensions
             // sbagliato invece che da un inserimento mancato, il numero delle
             // ANNOTAZIONI lo direbbe: sono due strade diverse per la stessa
             // domanda, e due zeri d'accordo valgono piu' di uno.
-            var u = _tavola.GetFirstView() as IView;
+            var u = _drawing.GetFirstView() as IView;
             while (u != null)
             {
                 Console.WriteLine("  vista «" + u.GetName2() + "»: annotazioni " +
@@ -183,28 +183,28 @@ namespace Checks.DrawingDimensions
             return 0;
         }
 
-        private static int V3(int fonte, int tipi, bool tutteLeViste, bool dalloSchizzo)
+        private static int V3(int source, int types, bool allViews, bool fromSketch)
         {
-            var tornate = _tavola.InsertModelAnnotations3(
-                fonte, tipi, tutteLeViste, false, false, dalloSchizzo) as object[];
-            return tornate == null ? 0 : tornate.Length;
+            var returned = _drawing.InsertModelAnnotations3(
+                source, types, allViews, false, false, fromSketch) as object[];
+            return returned == null ? 0 : returned.Length;
         }
 
-        private static void Prova(string cosa, Func<int> quello)
+        private static void Test(string what, Func<int> that)
         {
-            int prima = Quote();
-            int restituite;
-            try { restituite = quello(); }
+            int before = Quote();
+            int returnedItems;
+            try { returnedItems = that(); }
             catch (Exception e)
             {
-                Console.WriteLine("  XX " + cosa + " -> ha sollevato: " + e.Message);
+                Console.WriteLine("  XX " + what + " -> ha sollevato: " + e.Message);
                 return;
             }
-            int dopo = Quote();
-            string esito = dopo > prima ? "  ok " : "  -- ";
-            Console.WriteLine(esito + cosa + " -> restituite " +
-                (restituite < 0 ? "?" : restituite.ToString()) +
-                ", quote in tavola " + prima + " -> " + dopo);
+            int after = Quote();
+            string outcome = after > before ? "  ok " : "  -- ";
+            Console.WriteLine(outcome + what + " -> restituite " +
+                (returnedItems < 0 ? "?" : returnedItems.ToString()) +
+                ", quote in tavola " + before + " -> " + after);
         }
 
         /// <summary>Quante quote hanno in tutto le viste della tavola.</summary>
@@ -213,7 +213,7 @@ namespace Checks.DrawingDimensions
             int n = 0;
             try
             {
-                var v = _tavola.GetFirstView() as IView;
+                var v = _drawing.GetFirstView() as IView;
                 while (v != null)
                 {
                     var d = v.GetDisplayDimensions() as object[];
@@ -232,48 +232,48 @@ namespace Checks.DrawingDimensions
         /// le offre», e senza risposta si continua a modificare il lato
         /// sbagliato.
         /// </summary>
-        private static void GuardaLeQuoteDelPezzo(ISldWorks sw, string percorso)
+        private static void LookAtPartDimensions(ISldWorks sw, string filePath)
         {
-            IModelDoc2 pezzo = null;
-            try { pezzo = sw.GetOpenDocumentByName(percorso) as IModelDoc2; }
+            IModelDoc2 part = null;
+            try { part = sw.GetOpenDocumentByName(filePath) as IModelDoc2; }
             catch { }
-            if (pezzo == null)
+            if (part == null)
             {
                 Console.WriteLine("  (il pezzo non risulta aperto: non posso guardarne le quote)");
                 return;
             }
 
-            int totali = 0, marcate = 0;
+            int totali = 0, marked = 0;
             try
             {
-                var f = pezzo.FirstFeature() as IFeature;
+                var f = part.FirstFeature() as IFeature;
                 while (f != null)
                 {
                     var d = f.GetFirstDisplayDimension() as IDisplayDimension;
                     while (d != null)
                     {
                         totali++;
-                        try { if (d.MarkedForDrawing) marcate++; } catch { }
+                        try { if (d.MarkedForDrawing) marked++; } catch { }
                         d = f.GetNextDisplayDimension(d) as IDisplayDimension;
                     }
                     // anche gli schizzi sotto la feature
-                    var sotto = f.GetFirstSubFeature() as IFeature;
-                    while (sotto != null)
+                    var below = f.GetFirstSubFeature() as IFeature;
+                    while (below != null)
                     {
-                        var ds = sotto.GetFirstDisplayDimension() as IDisplayDimension;
+                        var ds = below.GetFirstDisplayDimension() as IDisplayDimension;
                         while (ds != null)
                         {
                             totali++;
-                            try { if (ds.MarkedForDrawing) marcate++; } catch { }
-                            ds = sotto.GetNextDisplayDimension(ds) as IDisplayDimension;
+                            try { if (ds.MarkedForDrawing) marked++; } catch { }
+                            ds = below.GetNextDisplayDimension(ds) as IDisplayDimension;
                         }
-                        sotto = sotto.GetNextSubFeature() as IFeature;
+                        below = below.GetNextSubFeature() as IFeature;
                     }
                     f = f.GetNextFeature() as IFeature;
                 }
             }
             catch (Exception e) { Console.WriteLine("  giro delle quote: " + e.Message); }
-            Console.WriteLine("  quote del pezzo: " + totali + ", di cui marcate per il disegno: " + marcate);
+            Console.WriteLine("  quote del pezzo: " + totali + ", di cui marcate per il disegno: " + marked);
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -13,8 +13,8 @@ namespace Oce.Solid.Agent.ContractTests
     /// Every lookup by name that goes through a reflection helper of this suite,
     /// and the ones that came back null (entry W3.1-bis.2, item 3).
     ///
-    /// The helpers (`Carica.Classe`, the `Call` and `Invoke` of the contracts,
-    /// `Metti`, the lambdas of `ProveIlRegistro` and `ProveLAvanzamento`) take
+    /// The helpers (`Load.Class`, the `Call` and `Invoke` of the contracts,
+    /// `Put`, the lambdas of `RegistryTests` and `ProgressTests`) take
     /// the name from a parameter, so no text search over the sources can tell
     /// whether the name still exists: only running them can. Most of them
     /// already turn red on a null, a few fall back to null in silence (a field
@@ -88,7 +88,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// The translation renames classes, methods and fields of the library and
     /// of the bridge (W3.1-bis.6). Roslyn renames the code that calls them,
-    /// and no string: a `GetMethod("Leggi")` keeps asking for the old name,
+    /// and no string: a `GetMethod("Read")` keeps asking for the old name,
     /// gets null, and depending on the helper turns red, throws, or skips a
     /// check in silence. The compiler cannot see it, and the IL comparison
     /// sees a literal that did not change.
@@ -98,7 +98,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///   * STATIC: every literal name handed to reflection in `Tests/`,
     ///     `Bench/` and the probes of `Checks/` is extracted from the
     ///     sources (comments taken out, a constant prefix such as
-    ///     `NS + "OperazioniSw"` resolved) and must resolve on the assemblies
+    ///     `NS + "SwOperations"` resolved) and must resolve on the assemblies
     ///     in `bin\`. The literal arguments of the helpers of `Tests/` count
     ///     too.
     ///   * AT RUN TIME: the helpers write every lookup by name in
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         internal static void All()
         {
-            Gruppo("the names looked up by reflection still exist (W3.1-bis.2)");
+            Group("the names looked up by reflection still exist (W3.1-bis.2)");
 
             ExtractorSelfTest();
             ResolverSelfTest();
@@ -188,15 +188,15 @@ namespace Oce.Solid.Agent.ContractTests
         private static void BenchChecksItsLogOnAFullRun()
         {
             const string Label = "on a full bench (bench.ps1 passes --libreria with the default path) the bench's lookup log is checked, not skipped";
-            var file = Path.Combine(Radice(), "Bench", "Program.cs");
-            if (!File.Exists(file)) { Segna(Label, false, "Bench/Program.cs not found"); return; }
+            var file = Path.Combine(Root(), "Bench", "Program.cs");
+            if (!File.Exists(file)) { Check(Label, false, "Bench/Program.cs not found"); return; }
             var code = WithoutComments(File.ReadAllText(file));
             Func<string, bool> ok = c =>
                 Regex.IsMatch(c, @"_anotherLibrary\s*=\s*!\s*SameLibraryPath\s*\(\s*\w+\s*,\s*\w+\s*\(\s*\)\s*\)\s*;") &&
                 !Regex.IsMatch(c, @"_anotherLibrary\s*=\s*true\s*;");
             var mutant = Regex.Replace(code, @"_anotherLibrary\s*=\s*!\s*SameLibraryPath\s*\([^;]*;", "_anotherLibrary = true;");
             bool good = ok(code), seenRed = !ok(mutant);
-            Segna(Label, good && seenRed,
+            Check(Label, good && seenRed,
                   !good ? "Bench/Program.cs does not compare the --libreria path with the default one before skipping"
                         : !seenRed ? "the check did not turn red on the copy where every --libreria is another library"
                                    : "only a different library file skips the check (seen red on the old line)");
@@ -205,14 +205,14 @@ namespace Oce.Solid.Agent.ContractTests
         private static void BenchReadsNoLookupInSilence()
         {
             const char Q = '"';
-            var fake = "var n = o.GetType().GetField(" + Q + "Nome" + Q + ")?.GetValue(o);\n" +
+            var fake = "var n = o.GetType().GetField(" + Q + "Name" + Q + ")?.GetValue(o);\n" +
                        "var m = t.GetMethod(" + Q + "Json" + Q + ", BindingFlags.Public | BindingFlags.Static)\n    ?.Invoke(null, a);";
-            var logged = "var n = ReflectionLog.Global.Field(o.GetType(), " + Q + "Nome" + Q + ")?.GetValue(o);";
+            var logged = "var n = ReflectionLog.Global.Field(o.GetType(), " + Q + "Name" + Q + ")?.GetValue(o);";
             bool seen = SilentLookup.Matches(WithoutComments(fake)).Count == 2 &&
                         SilentLookup.Matches(WithoutComments(logged)).Count == 0;
 
             var found = new List<string>();
-            var folder = Path.Combine(Radice(), "Bench");
+            var folder = Path.Combine(Root(), "Bench");
             if (Directory.Exists(folder))
                 foreach (var f in Directory.GetFiles(folder, "*.cs").OrderBy(x => x, StringComparer.Ordinal))
                 {
@@ -221,7 +221,7 @@ namespace Oce.Solid.Agent.ContractTests
                     foreach (Match m in SilentLookup.Matches(code))
                         found.Add(Path.GetFileName(f) + ":" + LineOf(code, m.Index));
                 }
-            Segna("the bench reads no reflection lookup with ?. outside its log (a fake silent read is seen)",
+            Check("the bench reads no reflection lookup with ?. outside its log (a fake silent read is seen)",
                   seen && found.Count == 0,
                   !seen ? "the pattern did not see the two silent reads of the fake source"
                         : found.Count == 0 ? "none in Bench/*.cs"
@@ -273,7 +273,7 @@ namespace Oce.Solid.Agent.ContractTests
                 "class:FakeClass", "member:FakeHelperArgument", "member:FakeLambdaArgument", "member:FakeLiteralMethod",
                 "member:FakeLoggedField", "nested:FakeNested", "type:Some.Space.FakeLoggedType", "type:Some.Space.FakeType",
             };
-            Segna("the extractor finds literal names, helpers and their arguments, and skips comments (fake source)",
+            Check("the extractor finds literal names, helpers and their arguments, and skips comments (fake source)",
                   got.SequenceEqual(want, StringComparer.Ordinal),
                   string.Join(", ", got));
         }
@@ -296,7 +296,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (resolves("class", "NoSuchClassInThisSuite")) wrong.Add("a fake class resolved");
             if (!resolves("nested", "LiteralName")) wrong.Add("the real nested type did not resolve");
             if (resolves("nested", "ReflectionLog")) wrong.Add("a top-level type resolved as nested");
-            Segna("a literal name that does not exist is red, one that exists is green (fake names on this assembly)",
+            Check("a literal name that does not exist is red, one that exists is green (fake names on this assembly)",
                   wrong.Count == 0, wrong.Count == 0 ? "8 of 8 as expected" : string.Join("; ", wrong));
         }
 
@@ -308,7 +308,7 @@ namespace Oce.Solid.Agent.ContractTests
             var real = log.Method(typeof(ReflectionTests), "All", BindingFlags.NonPublic | BindingFlags.Static);
             bool ok = none == null && real != null && log.Lookups == 2 && log.Misses.Count == 1 &&
                       log.Misses[0].IndexOf(passed, StringComparison.Ordinal) >= 0 && !Verdict(log, true).Item1;
-            Segna("a lookup by a name passed as a parameter that comes back null is logged, and the log is red (fake)",
+            Check("a lookup by a name passed as a parameter that comes back null is logged, and the log is red (fake)",
                   ok, log.Lookups + " lookups, misses: " + string.Join("; ", log.Misses));
         }
 
@@ -333,7 +333,7 @@ namespace Oce.Solid.Agent.ContractTests
             bool ok = found != null && foundType != null && clean.Verdict() == null && clean.Lookups == 2 &&
                       noField == null && noType == null && real != null && log.Lookups == 3 && log.Misses.Count == 2 &&
                       verdict != null && verdict.IndexOf(passed, StringComparison.Ordinal) >= 0;
-            Segna("the bench's own lookup log records a field and a type that came back null, and is red (fake)",
+            Check("the bench's own lookup log records a field and a type that came back null, and is red (fake)",
                   ok, log.Lookups + " lookups; " + (verdict ?? "no verdict") + "; clean log: " + (clean.Verdict() ?? "no verdict"));
         }
 
@@ -396,7 +396,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static List<LiteralName> ExtractFromTree()
         {
-            var root = Radice();
+            var root = Root();
             var files = new List<string>();
             foreach (var folder in new[] { "Tests", "Bench" })
             {
@@ -421,7 +421,7 @@ namespace Oce.Solid.Agent.ContractTests
             List<string> helperNames;
             var all = ExtractAll(sources, file => file.StartsWith("Tests/", StringComparison.Ordinal), out helperNames);
             int inFiles = all.Select(n => n.File).Distinct().Count();
-            Segna("the literal names handed to reflection are extracted from the sources",
+            Check("the literal names handed to reflection are extracted from the sources",
                   errors.Count == 0 && all.Count >= LiteralFloor,
                   errors.Count > 0 ? "unreadable: " + string.Join("; ", errors)
                   : all.Count + " names in " + inFiles + " files: " + all.Count(n => !n.ByHelper) +
@@ -784,19 +784,19 @@ namespace Oce.Solid.Agent.ContractTests
         private static bool ResolveOnBuiltAssemblies(List<LiteralName> names)
         {
             const string Rule = "every literal name resolves on the built bridge, library and catalogue exporter";
-            var bin = Path.Combine(Radice(), "bin");
+            var bin = Path.Combine(Root(), "bin");
             var files = new[] { "oce-solid-agent-mcp.exe", "Oce.Solid.Agent.Core.dll", "Oce.Solid.Agent.Catalog.exe" }
                 .Select(f => Path.Combine(bin, f)).ToList();
-            var absent = files.Where(f => !ProdottoDaBuild(f)).ToList();
+            var absent = files.Where(f => !ProductFromBuild(f)).ToList();
             if (absent.Count > 0)
             {
-                if (!IlPonteSiPotevaCompilare())
+                if (!TheBridgeCouldBeBuilt())
                 {
-                    NonQui(Rule, "SOLIDWORKS is not on this machine, so bin\\ cannot be built: the names are " +
+                    NotHere(Rule, "SOLIDWORKS is not on this machine, so bin\\ cannot be built: the names are " +
                                  "extracted and counted above, and resolved where the assemblies exist.");
                     return false;
                 }
-                Segna(Rule, false, "missing " + string.Join(", ", absent.Select(Path.GetFileName)) +
+                Check(Rule, false, "missing " + string.Join(", ", absent.Select(Path.GetFileName)) +
                                    ": SOLIDWORKS is on this machine, so only .\\build.ps1 is missing");
                 return false;
             }
@@ -805,7 +805,7 @@ namespace Oce.Solid.Agent.ContractTests
             int unreadable;
             try
             {
-                var assemblies = new List<Assembly> { Carica.Ponte(files[0]) };
+                var assemblies = new List<Assembly> { Load.Bridge(files[0]) };
                 assemblies.Add(Assembly.Load(File.ReadAllBytes(files[1])));
                 assemblies.Add(Assembly.Load(File.ReadAllBytes(files[2])));
                 // THE INSTALLER TOO, WHEN IT IS BUILT (H19 review): the
@@ -813,15 +813,15 @@ namespace Oce.Solid.Agent.ContractTests
                 // build.ps1 writes it beside the bridge; without it those names
                 // stay unresolved here, as they should.
                 var installer = Path.Combine(bin, "Installer.exe");
-                if (ProdottoDaBuild(installer)) assemblies.Add(Assembly.Load(File.ReadAllBytes(installer)));
+                if (ProductFromBuild(installer)) assemblies.Add(Assembly.Load(File.ReadAllBytes(installer)));
                 missing = Unresolved(names, assemblies, out unreadable);
             }
             catch (Exception ex)
             {
-                Segna(Rule, false, ex.GetType().Name + ": " + ex.Message);
+                Check(Rule, false, ex.GetType().Name + ": " + ex.Message);
                 return true;
             }
-            Segna(Rule, missing.Count == 0,
+            Check(Rule, missing.Count == 0,
                   missing.Count == 0
                       ? names.Count + " names resolved" + (unreadable > 0 ? " (" + unreadable + " types whose members could not be read)" : "")
                       : missing.Count + " do not resolve: " + string.Join("; ", missing.Take(12)) +
@@ -839,12 +839,12 @@ namespace Oce.Solid.Agent.ContractTests
             var log = ReflectionLog.Global;
             if (log.Lookups == 0 && !built)
             {
-                NonQui(Rule, "no lookup ran here: the groups that look up names need bin\\, which cannot be " +
+                NotHere(Rule, "no lookup ran here: the groups that look up names need bin\\, which cannot be " +
                              "built without SOLIDWORKS. The log is checked where they run.");
                 return;
             }
             var verdict = Verdict(log, built);
-            Segna(Rule, verdict.Item1, verdict.Item2);
+            Check(Rule, verdict.Item1, verdict.Item2);
         }
 
         private static Tuple<bool, string> Verdict(ReflectionLog log, bool built)

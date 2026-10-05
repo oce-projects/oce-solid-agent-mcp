@@ -55,10 +55,10 @@ namespace Oce.Solid.Agent.Core
     /// risultato si tiene in memoria e su disco, per macchina: la seconda volta
     /// che si chiede lo stesso telaio non si misura piu' niente.
     /// </summary>
-    public static class SezioneProfilo
+    public static class SectionProfile
     {
-        private static readonly object _serratura = new object();
-        private static Dictionary<string, double[]> _memoria;
+        private static readonly object _lock = new object();
+        private static Dictionary<string, double[]> _memory;
 
         /// <summary>
         /// Di quanto sporge un TELAIO oltre il proprio percorso, sui due assi
@@ -92,18 +92,18 @@ namespace Oce.Solid.Agent.Core
         /// <remarks>
         /// THIS SIGNATURE DOES NOT CHANGE: the bench calls this method by
         /// reflection (Bench/Program.cs, Sezioni), and an overload would make
-        /// `GetMethod("SporgenzeDelTelaio")` ambiguous. The work is in
+        /// `GetMethod("FrameOverhangs")` ambiguous. The work is in
         /// <see cref="FrameOverhang"/>, which also says where the overhang
         /// came from.
         /// </remarks>
-        public static double[] SporgenzeDelTelaio(
-            ISldWorks sw, string profilo, string configurazione,
-            int asseU, int asseV, double rotazioneGradi,
-            int trattamentoAngolo, double giocoMm, Action<string> log)
+        public static double[] FrameOverhangs(
+            ISldWorks sw, string profile, string configuration,
+            int axisU, int axisV, double rotationDeg,
+            int cornerTreatment, double gapMm, Action<string> log)
         {
             string source;
-            return FrameOverhang(sw, profilo, configurazione, asseU, asseV,
-                                 rotazioneGradi, trattamentoAngolo, giocoMm, log, out source);
+            return FrameOverhang(sw, profile, configuration, axisU, axisV,
+                                 rotationDeg, cornerTreatment, gapMm, log, out source);
         }
 
         /// <summary>The overhang was measured now, on a trial frame.</summary>
@@ -113,7 +113,7 @@ namespace Oce.Solid.Agent.Core
         public const string OverhangFromArchive = "archive";
 
         /// <summary>
-        /// <see cref="SporgenzeDelTelaio"/>, saying where the answer came from
+        /// <see cref="FrameOverhangs"/>, saying where the answer came from
         /// (<see cref="OverhangMeasured"/> or <see cref="OverhangFromArchive"/>;
         /// null when there is no answer).
         ///
@@ -146,7 +146,7 @@ namespace Oce.Solid.Agent.Core
             string key = FrameKeyOnDisk(profile, configuration, axisU, axisV,
                                         rotationDegrees, cornerTreatment, gapMm);
             return RememberOrMeasure(key,
-                () => TelaioDiProva(sw, profile, configuration, axisU, axisV,
+                () => TestFrame(sw, profile, configuration, axisU, axisV,
                                     rotationDegrees, cornerTreatment, gapMm, log),
                 log, out source);
         }
@@ -167,16 +167,16 @@ namespace Oce.Solid.Agent.Core
             log = log ?? (m => { });
             if (key != null)
             {
-                lock (_serratura)
+                lock (_lock)
                 {
-                    Carica();
+                    Load();
                     double[] known;
-                    if (_memoria.TryGetValue(key, out known) && known != null)
+                    if (_memory.TryGetValue(key, out known) && known != null)
                     {
                         source = OverhangFromArchive;
                         log(string.Format(CultureInfo.InvariantCulture,
                             "[sezione] overhang {0:0.##}/{1:0.##} remembered, not measured now " +
-                            "(archive: {2})", known[0], known[1], PercorsoArchivio()));
+                            "(archive: {2})", known[0], known[1], ReadArchivePath()));
                         return new[] { known[0], known[1] };
                     }
                 }
@@ -192,11 +192,11 @@ namespace Oce.Solid.Agent.Core
 
             if (key != null)
             {
-                lock (_serratura)
+                lock (_lock)
                 {
-                    Carica();
-                    _memoria[key] = new[] { measured[0], measured[1], 0.0 };
-                    Salva(log);
+                    Load();
+                    _memory[key] = new[] { measured[0], measured[1], 0.0 };
+                    Save(log);
                 }
             }
             return new[] { measured[0], measured[1] };
@@ -226,11 +226,11 @@ namespace Oce.Solid.Agent.Core
         {
             log = log ?? (m => { });
             if (key == null) return false;
-            lock (_serratura)
+            lock (_lock)
             {
-                Carica();
-                if (!_memoria.Remove(key)) return false;
-                Salva(log);
+                Load();
+                if (!_memory.Remove(key)) return false;
+                Save(log);
             }
             log("[sezione] overhang dropped from the archive, it will be measured again: " + key);
             return true;
@@ -243,7 +243,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         public static string ArchivePath
         {
-            get { return PercorsoArchivio(); }
+            get { return ReadArchivePath(); }
         }
 
         /// <summary>
@@ -302,21 +302,21 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Il lato del telaio di prova, in mm.</summary>
-        private const double LATO_PROVA_U = 1000;
-        private const double LATO_PROVA_V = 700;
+        private const double TEST_SIDE_U = 1000;
+        private const double TEST_SIDE_V = 700;
 
         /// <summary>
         /// Costruisce un telaio di prova e restituisce di quanto sporge oltre
         /// il percorso, sui due assi: {sporgenzaU, sporgenzaV} in mm.
         /// </summary>
-        private static double[] TelaioDiProva(
-            ISldWorks sw, string profilo, string configurazione,
-            int asseU, int asseV, double rotazioneGradi,
-            int trattamentoAngolo, double giocoMm, Action<string> log)
+        private static double[] TestFrame(
+            ISldWorks sw, string profile, string configuration,
+            int axisU, int axisV, double rotationDeg,
+            int cornerTreatment, double gapMm, Action<string> log)
         {
-            if (!File.Exists(profilo))
+            if (!File.Exists(profile))
             {
-                log("[sezione] il profilo non esiste: " + profilo);
+                log("[sezione] il profilo non esiste: " + profile);
                 return null;
             }
 
@@ -336,62 +336,62 @@ namespace Oce.Solid.Agent.Core
             // documents» (ISldWorks~CloseDoc.html), and whether a library
             // opened this way is one of them is not measured. So the state
             // is read before, and the same rule as the real insertion is
-            // applied after (OperazioniSw.RichiudiLaLibreria): what we opened
+            // applied after (SwOperations.CloseLibraryAgain): what we opened
             // or dirtied is closed without saving, then read back. It matters
             // beyond this probe: a library left modified here looks, to the
             // next frame, like one somebody was working on, and that frame
             // then leaves it alone.
-            var libraryBefore = OperazioniSw.StatoDellaLibreria(sw, profilo);
+            var libraryBefore = SwOperations.LibraryState(sw, profile);
 
             IModelDoc2 doc = null;
             try
             {
-                string modello = sw.GetUserPreferenceStringValue(
+                string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-                if (string.IsNullOrWhiteSpace(modello) || !File.Exists(modello))
+                if (string.IsNullOrWhiteSpace(model) || !File.Exists(model))
                 {
                     log("[sezione] non c'e' un modello di parte predefinito.");
                     return null;
                 }
-                doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
+                doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
                 if (doc == null) { log("[sezione] documento di prova non creato."); return null; }
 
-                double u = LATO_PROVA_U / 2000.0, v = LATO_PROVA_V / 2000.0;
-                var angoli = new[]
+                double u = TEST_SIDE_U / 2000.0, v = TEST_SIDE_V / 2000.0;
+                var angles = new[]
                 {
-                    Punto(asseU, -u, asseV, -v),
-                    Punto(asseU,  u, asseV, -v),
-                    Punto(asseU,  u, asseV,  v),
-                    Punto(asseU, -u, asseV,  v),
+                    Point(axisU, -u, axisV, -v),
+                    Point(axisU,  u, axisV, -v),
+                    Point(axisU,  u, axisV,  v),
+                    Point(axisU, -u, axisV,  v),
                 };
 
-                var schizzi = doc.SketchManager;
+                var sketches = doc.SketchManager;
                 doc.ClearSelection2(true);
-                schizzi.Insert3DSketch(true);
-                var creati = new List<ISketchSegment>();
+                sketches.Insert3DSketch(true);
+                var created = new List<ISketchSegment>();
                 for (int i = 0; i < 4; i++)
                 {
-                    var a = angoli[i];
-                    var b = angoli[(i + 1) % 4];
-                    var seg = schizzi.CreateLine(a[0], a[1], a[2], b[0], b[1], b[2])
+                    var a = angles[i];
+                    var b = angles[(i + 1) % 4];
+                    var seg = sketches.CreateLine(a[0], a[1], a[2], b[0], b[1], b[2])
                         as ISketchSegment;
                     if (seg == null) { log("[sezione] segmento di prova non creato."); return null; }
-                    creati.Add(seg);
+                    created.Add(seg);
                 }
-                schizzi.Insert3DSketch(true);
+                sketches.Insert3DSketch(true);
 
-                var gruppo = doc.FeatureManager.CreateStructuralMemberGroup()
+                var theGroup = doc.FeatureManager.CreateStructuralMemberGroup()
                     as IStructuralMemberGroup;
-                if (gruppo == null) { log("[sezione] gruppo di prova non creato."); return null; }
-                gruppo.Segments = creati.Cast<SketchSegment>().ToArray();
-                if (Math.Abs(rotazioneGradi) > 1e-9)
-                    gruppo.Angle = rotazioneGradi * Math.PI / 180.0;
-                gruppo.ApplyCornerTreatment = trattamentoAngolo != 0;
-                if (trattamentoAngolo != 0) gruppo.CornerTreatmentType = trattamentoAngolo;
-                if (giocoMm > 0)
+                if (theGroup == null) { log("[sezione] gruppo di prova non creato."); return null; }
+                theGroup.Segments = created.Cast<SketchSegment>().ToArray();
+                if (Math.Abs(rotationDeg) > 1e-9)
+                    theGroup.Angle = rotationDeg * Math.PI / 180.0;
+                theGroup.ApplyCornerTreatment = cornerTreatment != 0;
+                if (cornerTreatment != 0) theGroup.CornerTreatmentType = cornerTreatment;
+                if (gapMm > 0)
                 {
-                    gruppo.GapWithinGroup = giocoMm / 1000.0;
-                    gruppo.GapForOtherGroups = giocoMm / 1000.0;
+                    theGroup.GapWithinGroup = gapMm / 1000.0;
+                    theGroup.GapForOtherGroups = gapMm / 1000.0;
                 }
 
                 // Option 1, as the real member (OperazioniSaldatura, where the
@@ -399,47 +399,47 @@ namespace Oce.Solid.Agent.Core
                 // same bodies on the round tube and on the square one in every
                 // scene of the L9-6 probe (28/9/2026).
                 var feature = doc.FeatureManager.InsertStructuralWeldment5(
-                    Path: profilo,
+                    Path: profile,
                     ConnectedSegmentsOption: 1,
                     AllowProtrusion: false,
-                    Groups: new[] { (StructuralMemberGroup)gruppo },
-                    ConfigurationName: configurazione) as IFeature;
+                    Groups: new[] { (StructuralMemberGroup)theGroup },
+                    ConfigurationName: configuration) as IFeature;
                 if (feature == null)
                 {
-                    log("[sezione] il telaio di prova non e' nato: profilo «" + profilo +
-                        "» misura «" + configurazione + "».");
+                    log("[sezione] il telaio di prova non e' nato: profilo «" + profile +
+                        "» misura «" + configuration + "».");
                     return null;
                 }
                 try { doc.EditRebuild3(); } catch { }
 
-                var corpi = (doc as IPartDoc).GetBodies2(
+                var bodies = (doc as IPartDoc).GetBodies2(
                     (int)swBodyType_e.swSolidBody, false) as object[];
-                if (corpi == null || corpi.Length == 0) return null;
+                if (bodies == null || bodies.Length == 0) return null;
                 // Approximate ON PURPOSE: paired with the same approximation in
-                // OperazioniSaldatura.IngombroDeiCorpi, so that the two cancel out.
-                var totale = ApiHelpers.UnionOfBoxes(corpi, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
-                if (totale == null) return null;
+                // OperazioniSaldatura.BodiesBoundingBox, so that the two cancel out.
+                var total = ApiHelpers.UnionOfBoxes(bodies, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
+                if (total == null) return null;
 
-                double ingombroU = (totale[3 + asseU] - totale[asseU]) * 1000.0;
-                double ingombroV = (totale[3 + asseV] - totale[asseV]) * 1000.0;
-                double sporgeU = ingombroU - LATO_PROVA_U;
-                double sporgeV = ingombroV - LATO_PROVA_V;
+                double boundingBoxU = (total[3 + axisU] - total[axisU]) * 1000.0;
+                double boundingBoxV = (total[3 + axisV] - total[axisV]) * 1000.0;
+                double protrudesU = boundingBoxU - TEST_SIDE_U;
+                double protrudesV = boundingBoxV - TEST_SIDE_V;
 
                 // Una sporgenza negativa o assurda vuol dire che si e' misurato
                 // qualcos'altro: meglio non saperlo che saperlo sbagliato.
-                if (sporgeU < -0.01 || sporgeV < -0.01 ||
-                    sporgeU > LATO_PROVA_U || sporgeV > LATO_PROVA_V)
+                if (protrudesU < -0.01 || protrudesV < -0.01 ||
+                    protrudesU > TEST_SIDE_U || protrudesV > TEST_SIDE_V)
                 {
                     log(string.Format(CultureInfo.InvariantCulture,
                         "[sezione] sporgenze fuori scala sul telaio di prova: {0:0.##} / {1:0.##}",
-                        sporgeU, sporgeV));
+                        protrudesU, protrudesV));
                     return null;
                 }
                 log(string.Format(CultureInfo.InvariantCulture,
                     "[sezione] telaio di prova {0}x{1}: ingombro {2:0.##}x{3:0.##}, " +
                     "sporgenze {4:0.##}/{5:0.##}",
-                    LATO_PROVA_U, LATO_PROVA_V, ingombroU, ingombroV, sporgeU, sporgeV));
-                return new[] { sporgeU, sporgeV };
+                    TEST_SIDE_U, TEST_SIDE_V, boundingBoxU, boundingBoxV, protrudesU, protrudesV));
+                return new[] { protrudesU, protrudesV };
             }
             finally
             {
@@ -454,7 +454,7 @@ namespace Oce.Solid.Agent.Core
                     if (!closing.IsClosed || closing.AlsoClosed.Count > 0)
                         log("[section] trial frame: " + closing.Message);
                 }
-                string leftModified = OperazioniSw.RichiudiLaLibreria(sw, profilo, libraryBefore, log);
+                string leftModified = SwOperations.CloseLibraryAgain(sw, profile, libraryBefore, log);
                 if (leftModified != null) log("[sezione] " + leftModified);
                 // BACK TO THE DOCUMENT THAT WAS IN FRONT, by its path, with
                 // swDontRebuildActiveDoc: this was ActivateDoc3(title, false, 0),
@@ -474,11 +474,11 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        private static double[] Punto(int asseU, double u, int asseV, double v)
+        private static double[] Point(int axisU, double u, int axisV, double v)
         {
             var p = new double[3];
-            p[asseU] = u;
-            p[asseV] = v;
+            p[axisU] = u;
+            p[axisV] = v;
             return p;
         }
         // ─────────────────────────────────────────────────────────────────
@@ -501,23 +501,23 @@ namespace Oce.Solid.Agent.Core
         /// non e' un dato prezioso — si ricostruisce misurando — ma buttarlo
         /// senza dirlo costerebbe una riapertura di libreria per profilo.
         /// </summary>
-        public static string CartellaArchivio
+        public static string ArchiveFolder
         {
-            get { return _cartellaArchivio; }
+            get { return _archiveFolder; }
             set
             {
-                _cartellaArchivio =
+                _archiveFolder =
                     string.IsNullOrWhiteSpace(value) ? "Riscontro" : value.Trim();
             }
         }
-        private static string _cartellaArchivio = "Riscontro";
+        private static string _archiveFolder = "Riscontro";
 
-        private static string PercorsoArchivio()
+        private static string ReadArchivePath()
         {
-            string cartella = Path.Combine(
+            string folder = Path.Combine(
                 System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
-                _cartellaArchivio);
-            return Path.Combine(cartella, "sezioni-profili.txt");
+                _archiveFolder);
+            return Path.Combine(folder, "sezioni-profili.txt");
         }
 
         /// <summary>
@@ -525,46 +525,46 @@ namespace Oce.Solid.Agent.Core
         /// Niente JSON: questo file lo legge solo lui, e una riga rotta deve
         /// far perdere una misura, non l'archivio.
         /// </summary>
-        private static void Carica()
+        private static void Load()
         {
-            if (_memoria != null) return;
-            _memoria = new Dictionary<string, double[]>(StringComparer.Ordinal);
+            if (_memory != null) return;
+            _memory = new Dictionary<string, double[]>(StringComparer.Ordinal);
             try
             {
-                string f = PercorsoArchivio();
+                string f = ReadArchivePath();
                 if (!File.Exists(f)) return;
-                foreach (var riga in File.ReadAllLines(f, Encoding.UTF8))
+                foreach (var line in File.ReadAllLines(f, Encoding.UTF8))
                 {
-                    var pezzi = riga.Split('\t');
-                    if (pezzi.Length != 4) continue;
+                    var parts = line.Split('\t');
+                    if (parts.Length != 4) continue;
                     // A key without the file's date and size (before
                     // Z-C21.10 N36) is never asked again: left out here, and
                     // the next save does not write it back.
-                    if (!IsCurrentKey(pezzi[0])) continue;
+                    if (!IsCurrentKey(parts[0])) continue;
                     double a, b, c;
-                    if (!double.TryParse(pezzi[1], NumberStyles.Float, CultureInfo.InvariantCulture, out a)) continue;
-                    if (!double.TryParse(pezzi[2], NumberStyles.Float, CultureInfo.InvariantCulture, out b)) continue;
-                    if (!double.TryParse(pezzi[3], NumberStyles.Float, CultureInfo.InvariantCulture, out c)) continue;
-                    _memoria[pezzi[0]] = new[] { a, b, c };
+                    if (!double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out a)) continue;
+                    if (!double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out b)) continue;
+                    if (!double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out c)) continue;
+                    _memory[parts[0]] = new[] { a, b, c };
                 }
             }
             catch { /* un archivio illeggibile costa una misura, non un guasto */ }
         }
 
-        private static void Salva(Action<string> log)
+        private static void Save(Action<string> log)
         {
             try
             {
-                string f = PercorsoArchivio();
+                string f = ReadArchivePath();
                 Directory.CreateDirectory(Path.GetDirectoryName(f));
-                var righe = _memoria
+                var lines = _memory
                     .Where(v => v.Value != null)
                     .Select(v => string.Join("\t",
                         v.Key,
                         v.Value[0].ToString("0.####", CultureInfo.InvariantCulture),
                         v.Value[1].ToString("0.####", CultureInfo.InvariantCulture),
                         v.Value[2].ToString("0.####", CultureInfo.InvariantCulture)));
-                File.WriteAllLines(f, righe, Encoding.UTF8);
+                File.WriteAllLines(f, lines, Encoding.UTF8);
             }
             catch (Exception ex) { log("[sezione] non ho potuto salvare l'archivio: " + ex.Message); }
         }

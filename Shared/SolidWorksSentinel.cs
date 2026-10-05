@@ -48,7 +48,7 @@ namespace Shared
     /// programma.
     ///
     /// «Di fila» e' la parte che conta, ed e' per questo che
-    /// <see cref="Riuscita"/> azzera. Un conto che non si azzera confonde tre
+    /// <see cref="Succeeded"/> azzera. Un conto che non si azzera confonde tre
     /// fallimenti sparsi in ottocento controlli — che sono rumore normale —
     /// con tre fallimenti attaccati, che sono un programma che non c'e' piu'.
     ///
@@ -61,16 +61,16 @@ namespace Shared
     /// fallire apposta ogni volta che si lanciano le prove — in un decimo di
     /// secondo, senza CAD.
     /// </summary>
-    internal sealed class SentinellaSolidWorks
+    internal sealed class SolidWorksSentinel
     {
-        private readonly int _soglia;
-        private int _diFila;
+        private readonly int _threshold;
+        private int _inARow;
 
         /// <summary>
         /// Quanti erano NEL MOMENTO IN CUI E' SCATTATA. Non e' la stessa cosa
-        /// di <see cref="DiFila"/>: quello e' un contatore vivo, e chi
+        /// di <see cref="InARow"/>: quello e' un contatore vivo, e chi
         /// chiedesse il referto dopo che qualcosa ha chiamato
-        /// <see cref="Riuscita"/> leggerebbe «0 tentativi di fila andati a
+        /// <see cref="Succeeded"/> leggerebbe «0 tentativi di fila andati a
         /// vuoto» in un messaggio che annuncia una morte.
         ///
         /// E' successo il 23/9/2026, nella prova scritta per il referto: il
@@ -79,7 +79,7 @@ namespace Shared
         /// che copre un numero sbagliato: la prova adesso pretende «3
         /// tentativi», non «da qualche parte c'e' un 3».
         /// </summary>
-        private int _quandoScatto;
+        private int _whenItFires;
 
         /// <summary>
         /// Quanti fallimenti DI FILA prima di dire che il programma non c'e'
@@ -87,48 +87,48 @@ namespace Shared
         /// devono poter provare anche la soglia uno e la soglia cinque —
         /// altrimenti si proverebbe il numero tre, non la regola.
         /// </summary>
-        internal SentinellaSolidWorks(int soglia)
+        internal SolidWorksSentinel(int threshold)
         {
-            if (soglia < 1)
+            if (threshold < 1)
                 throw new ArgumentOutOfRangeException(
                     "soglia",
                     "una sentinella che scatta dopo zero fallimenti scatta prima "
                     + "di guardare: la soglia e' almeno 1.");
-            _soglia = soglia;
+            _threshold = threshold;
         }
 
         /// <summary>Vero quando il programma va considerato morto. Non torna
         /// piu' falso: da qui in poi non si misura piu' niente, si dice cosa
         /// non si e' misurato.</summary>
-        internal bool SeNEAndato { get; private set; }
+        internal bool HasGone { get; private set; }
 
         /// <summary>Quanti fallimenti di fila in questo momento. Serve al
         /// messaggio: «tre di fila» e' un fatto, «e' morto» e' una
         /// conclusione, e chi legge ha diritto al fatto.</summary>
-        internal int DiFila { get { return _diFila; } }
+        internal int InARow { get { return _inARow; } }
 
         /// <summary>La soglia con cui e' stata costruita, per il messaggio.</summary>
-        internal int Soglia { get { return _soglia; } }
+        internal int Threshold { get { return _threshold; } }
 
         /// <summary>Un documento e' nato: il conto riparte da zero.</summary>
-        internal void Riuscita()
+        internal void Succeeded()
         {
-            _diFila = 0;
+            _inARow = 0;
         }
 
         /// <summary>
         /// Un documento non e' nato. Torna vero quando questo e' il fallimento
         /// che fa scattare la sentinella — o uno successivo.
         /// </summary>
-        internal bool Fallita()
+        internal bool Failed()
         {
-            _diFila++;
-            if (_diFila >= _soglia && !SeNEAndato)
+            _inARow++;
+            if (_inARow >= _threshold && !HasGone)
             {
-                SeNEAndato = true;
-                _quandoScatto = _diFila;
+                HasGone = true;
+                _whenItFires = _inARow;
             }
-            return SeNEAndato;
+            return HasGone;
         }
 
         /// <summary>
@@ -136,11 +136,11 @@ namespace Shared
         /// e su quale soglia. «SOLIDWORKS non risponde» senza numeri non si
         /// distingue da un'opinione.
         /// </summary>
-        internal string Referto()
+        internal string Report()
         {
-            int quanti = SeNEAndato ? _quandoScatto : _diFila;
-            return "SOLIDWORKS NON PRODUCE PIU' DOCUMENTI: " + quanti
-                 + " tentativi di fila andati a vuoto (la soglia e' " + _soglia
+            int howMany = HasGone ? _whenItFires : _inARow;
+            return "SOLIDWORKS NON PRODUCE PIU' DOCUMENTI: " + howMany
+                 + " tentativi di fila andati a vuoto (la soglia e' " + _threshold
                  + "). Le prove che seguono non sono rosse — NON SONO STATE "
                  + "FATTE. Chiudi SOLIDWORKS, riaprilo e rilancia il giro.";
         }

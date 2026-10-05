@@ -1091,15 +1091,15 @@ function runLoadProof(opts) {
       if (k === n) keysKept++; else keysRenamed++;
       const childOld = co.children[k], childNew = cn.children[n];
       if ((childOld || null) !== (childNew || null)) { problems.push(where + '.' + n + ': the loader would read it as ' + (childNew || 'a value') + ', it read ' + (childOld || 'a value')); return; }
-      const va = a[k], vb = b[n];
-      if (!childOld) { same(va, vb, where + '.' + n); return; }
-      if (childOld === 'step' || childOld === 'regression_step') steps += Array.isArray(va) ? va.length : 0;
-      if (childOld === 'expectation' || childOld === 'regression_expectation') expectations += Array.isArray(va) ? va.length : 1;
-      if (Array.isArray(va)) {
-        if (!Array.isArray(vb) || va.length !== vb.length) { problems.push(where + '.' + n + ': another list'); return; }
-        va.forEach((x, j) => { if (isObject(x) && isObject(vb[j])) walk(x, vb[j], childOld, where + '.' + n + '[' + j + ']'); else same(x, vb[j], where + '.' + n + '[' + j + ']'); });
-      } else if (isObject(va) && isObject(vb)) walk(va, vb, childOld, where + '.' + n);
-      else same(va, vb, where + '.' + n);
+      const goes = a[k], vb = b[n];
+      if (!childOld) { same(goes, vb, where + '.' + n); return; }
+      if (childOld === 'step' || childOld === 'regression_step') steps += Array.isArray(goes) ? goes.length : 0;
+      if (childOld === 'expectation' || childOld === 'regression_expectation') expectations += Array.isArray(goes) ? goes.length : 1;
+      if (Array.isArray(goes)) {
+        if (!Array.isArray(vb) || goes.length !== vb.length) { problems.push(where + '.' + n + ': another list'); return; }
+        goes.forEach((x, j) => { if (isObject(x) && isObject(vb[j])) walk(x, vb[j], childOld, where + '.' + n + '[' + j + ']'); else same(x, vb[j], where + '.' + n + '[' + j + ']'); });
+      } else if (isObject(goes) && isObject(vb)) walk(goes, vb, childOld, where + '.' + n);
+      else same(goes, vb, where + '.' + n);
     });
   };
   const nameKeyOld = 'nome', nameKeyNew = map.case_key.get('nome');

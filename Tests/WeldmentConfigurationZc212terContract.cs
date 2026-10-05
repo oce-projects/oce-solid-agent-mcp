@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// one-size profile is known to exist on every station (the per-size file
     /// under the Italian iso folder was never measured for its configurations),
     /// and a case written against a guess is a memory, not a test. So the
-    /// decision is kept in OperazioniSw.EmptyProfileSizeRefusal, which takes
+    /// decision is kept in SwOperations.EmptyProfileSizeRefusal, which takes
     /// the sizes as strings and no interop type, and this group calls it on
     /// the BUILT library by reflection: no SOLIDWORKS.
     /// </summary>
@@ -35,12 +35,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("an empty profile size is accepted only on a one-size file (N25)");
+            Group("an empty profile size is accepted only on a one-size file (N25)");
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("an empty profile size is accepted only on a one-size file",
+                NotHere("an empty profile size is accepted only on a one-size file",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -48,7 +48,7 @@ namespace Oce.Solid.Agent.ContractTests
             Assembly asm;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -63,19 +63,19 @@ namespace Oce.Solid.Agent.ContractTests
                 // may sit on a network drive, where LoadFrom is refused.
                 asm = Assembly.Load(File.ReadAllBytes(library));
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
-            Check(asm);
+            CheckLibrary(asm);
         }
 
         /// <summary>The checks, on a library already loaded.</summary>
-        internal static void Check(Assembly asm)
+        internal static void CheckLibrary(Assembly asm)
         {
-            var sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+            var sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             var method = sw == null ? null : sw.GetMethod("EmptyProfileSizeRefusal", Any);
             if (method == null)
             {
-                Segna("N25: OperazioniSw.EmptyProfileSizeRefusal is there", false,
+                Check("N25: OperazioniSw.EmptyProfileSizeRefusal is there", false,
                       sw == null ? "no Oce.Solid.Agent.Core.OperazioniSw in the library"
                                  : "missing on this library: it is older than the fix");
                 return;
@@ -85,14 +85,14 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 // The guide's case: one file, one size. Nothing to choose.
                 string one = Call(method, "120 x 40 x 5", new[] { "Default" }, null);
-                Segna("N25: an empty size on a one-size file is accepted",
+                Check("N25: an empty size on a one-size file is accepted",
                       one == null,
                       one == null ? "accepted" : "refused: " + one);
 
                 // The probe's file (N7): four sizes, the empty name built the 20 x 20.
                 var probeSizes = new[] { "20 x 20 x 2", "30 x 30 x 2.6", "40 x 40 x 4", "80 x 80 x 5" };
                 string four = Call(method, "square tube", probeSizes, null);
-                Segna("N25: an empty size on the probe's four-size file is refused, naming every size",
+                Check("N25: an empty size on the probe's four-size file is refused, naming every size",
                       four != null && four.Contains("is empty") && four.Contains("has 4 sizes") &&
                       probeSizes.All(s => four.Contains(s)),
                       four ?? "(accepted: the 20 x 20 of N7 would be built without an error)");
@@ -100,7 +100,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // Sizes that cannot be read: the file may have several, so no guess.
                 string unread = Call(method, "square tube", null, "the file is locked");
                 string none = Call(method, "square tube", new string[0], null);
-                Segna("N25: an empty size is refused when the sizes cannot be read",
+                Check("N25: an empty size is refused when the sizes cannot be read",
                       unread != null && unread.Contains("cannot read") && unread.Contains("the file is locked") &&
                       none != null && none.Contains("cannot read"),
                       "unread: " + (unread ?? "(accepted)") + " | none: " + (none ?? "(accepted)"));
@@ -109,12 +109,12 @@ namespace Oce.Solid.Agent.ContractTests
                 // like the refusal of a size that is written wrong.
                 var thirteen = Enumerable.Range(1, 13).Select(i => "S" + i).ToArray();
                 string many = Call(method, "big library", thirteen, null);
-                Segna("N25: a long list of sizes is cut at twelve, and says how many more",
+                Check("N25: a long list of sizes is cut at twelve, and says how many more",
                       many != null && many.Contains("has 13 sizes") && many.Contains("S12 and 1 more") &&
                       !many.Contains("S13"),
                       many ?? "(accepted)");
             }
-            catch (Exception ex) { Segna("N25: EmptyProfileSizeRefusal can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N25: EmptyProfileSizeRefusal can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static string Call(MethodInfo method, string fileName, string[] sizes, string whyUnread)

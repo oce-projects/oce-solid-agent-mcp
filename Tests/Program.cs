@@ -23,8 +23,8 @@ namespace Oce.Solid.Agent.ContractTests
     /// ── COSA PROVA ────────────────────────────────────────────────────────
     ///
     ///   * il **catalogo**: campi, famiglie, nessun percorso di questa macchina
-    ///     dentro le descrizioni, e `Simili()` che su «asole» trova «slot»;
-    ///   * `Sessione.StessoDocumento()` — la guardia contro il blocco estruso
+    ///     dentro le descrizioni, e `Similar()` che su «asole» trova «slot»;
+    ///   * `Session.SameDocument()` — la guardia contro il blocco estruso
     ///     nel pezzo di qualcun altro, che fino a oggi non aveva una prova;
     ///   * il **protocollo MCP**, parlando col ponte su stdin/stdout come
     ///     farebbe un cliente;
@@ -35,45 +35,45 @@ namespace Oce.Solid.Agent.ContractTests
     /// In formato JUnit, che e' quello che ogni CI sa leggere senza che
     /// nessuno le insegni niente.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        internal static int Falliti;
+        internal static int FailedOnes;
 
         /// <summary>
         /// Quanti controlli NON hanno potuto girare su questa macchina.
-        /// Non sono verdi e non sono rossi: vedi <see cref="NonQui"/>.
+        /// Non sono verdi e non sono rossi: vedi <see cref="NotHere"/>.
         /// </summary>
-        internal static int NonEseguibiliQui;
+        internal static int NotRunnableHere;
 
-        internal static readonly List<Esito> Esiti = new List<Esito>();
+        internal static readonly List<Outcome> Outcomes = new List<Outcome>();
 
-        internal sealed class Esito
+        internal sealed class Outcome
         {
-            public string Gruppo;
-            public string Nome;
+            public string Group;
+            public string Name;
             public bool Ok;
-            public bool NonQui;
-            public string Dettaglio;
+            public bool NotHere;
+            public string Detail;
         }
 
-        private static string _gruppo = "generale";
+        private static string _group = "generale";
 
-        internal static void Gruppo(string nome)
+        internal static void Group(string itemName)
         {
-            _gruppo = nome;
+            _group = itemName;
             Console.WriteLine();
-            Console.WriteLine("=== " + nome + " ===");
+            Console.WriteLine("=== " + itemName + " ===");
         }
 
-        internal static void Segna(string nome, bool ok, string dettaglio = "")
+        internal static void Check(string itemName, bool ok, string detail = "")
         {
-            if (!ok) Falliti++;
-            Esiti.Add(new Esito { Gruppo = _gruppo, Nome = nome, Ok = ok, Dettaglio = dettaglio });
+            if (!ok) FailedOnes++;
+            Outcomes.Add(new Outcome { Group = _group, Name = itemName, Ok = ok, Detail = detail });
             // UN VERDE SI ACCORCIA, UN ROSSO NO. Il dettaglio di una prova
             // rossa e' l'unica cosa che si legge davvero, e troncarlo a
             // centodieci caratteri vuol dire rilanciare per vedere il resto.
-            Console.WriteLine((ok ? "  OK   " : "  NO   ") + nome.PadRight(58) +
-                              (ok ? Breve(dettaglio) : dettaglio));
+            Console.WriteLine((ok ? "  OK   " : "  NO   ") + itemName.PadRight(58) +
+                              (ok ? Truncated(detail) : detail));
         }
 
         /// <summary>
@@ -115,12 +115,12 @@ namespace Oce.Solid.Agent.ContractTests
         /// se c'e', l'eseguibile manca perche' qualcuno non ha lanciato
         /// `build.ps1`, e quello **resta rosso**.
         /// </summary>
-        internal static void NonQui(string nome, string perche)
+        internal static void NotHere(string itemName, string why)
         {
-            NonEseguibiliQui++;
-            Esiti.Add(new Esito { Gruppo = _gruppo, Nome = nome, Ok = true,
-                                  NonQui = true, Dettaglio = perche });
-            Console.WriteLine("  --   " + nome.PadRight(58) + perche);
+            NotRunnableHere++;
+            Outcomes.Add(new Outcome { Group = _group, Name = itemName, Ok = true,
+                                  NotHere = true, Detail = why });
+            Console.WriteLine("  --   " + itemName.PadRight(58) + why);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// riepilogo lo grida e i saltati si contano lo stesso, quindi usarla
         /// per «diventare verdi» renderebbe il buco piu' visibile, non meno.
         /// </summary>
-        internal static bool FingiSenzaInterop
+        internal static bool PretendWithoutInterop
         {
             get { return Environment.GetEnvironmentVariable("PROVE_SENZA_INTEROP") == "1"; }
         }
@@ -153,22 +153,22 @@ namespace Oce.Solid.Agent.ContractTests
         /// Un file che lo produce `build.ps1`, e quindi che su una macchina
         /// senza interop non puo' esistere. Sotto simulazione non esiste mai.
         /// </summary>
-        internal static bool ProdottoDaBuild(string percorso)
+        internal static bool ProductFromBuild(string filePath)
         {
-            return !FingiSenzaInterop && File.Exists(percorso);
+            return !PretendWithoutInterop && File.Exists(filePath);
         }
 
-        internal static string DoveStaLInterop()
+        internal static string WhereTheInteropIs()
         {
-            if (FingiSenzaInterop) return null;
-            var candidati = new List<string>();
-            var radiceSw = Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
-            if (!string.IsNullOrEmpty(radiceSw))
-                candidati.Add(Path.Combine(radiceSw, "api", "redist"));
+            if (PretendWithoutInterop) return null;
+            var candidates = new List<string>();
+            var swRoot = Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+            if (!string.IsNullOrEmpty(swRoot))
+                candidates.Add(Path.Combine(swRoot, "api", "redist"));
             var redist = Environment.GetEnvironmentVariable("SW_REDIST");
-            if (!string.IsNullOrEmpty(redist)) candidati.Add(redist);
-            candidati.Add(@"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist");
-            foreach (var c in candidati)
+            if (!string.IsNullOrEmpty(redist)) candidates.Add(redist);
+            candidates.Add(@"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist");
+            foreach (var c in candidates)
             {
                 try
                 {
@@ -185,35 +185,35 @@ namespace Oce.Solid.Agent.ContractTests
         /// Non dice che sia stato compilato: dice che, se manca, la colpa e'
         /// di chi non ha lanciato `build.ps1` e non della macchina.
         /// </summary>
-        internal static bool IlPonteSiPotevaCompilare()
+        internal static bool TheBridgeCouldBeBuilt()
         {
-            return DoveStaLInterop() != null;
+            return WhereTheInteropIs() != null;
         }
 
         /// <summary>
         /// L'eseguibile del ponte, oppure una voce «non qui» e `null`.
         ///
         /// Tre gruppi facevano la stessa cosa in tre modi leggermente diversi
-        /// (`ProveProtocollo`, `ProveSessione`, `ProveCatalogo`): la regola su
+        /// (`ProtocolTests`, `SessionTests`, `CatalogTests`): la regola su
         /// quando un ponte mancante e' colpa della macchina stava scritta tre
         /// volte, ed e' il modo in cui due delle tre restano indietro.
         /// </summary>
-        internal static string PonteOppureNonQui(string cosaNonGira)
+        internal static string BridgeOrNotHere(string whatDoesNotRun)
         {
-            var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
-            if (ProdottoDaBuild(ponte)) return ponte;
-            if (!IlPonteSiPotevaCompilare())
+            var bridge = Path.Combine(Root(), "bin", "oce-solid-agent-mcp.exe");
+            if (ProductFromBuild(bridge)) return bridge;
+            if (!TheBridgeCouldBeBuilt())
             {
-                NonQui(cosaNonGira,
+                NotHere(whatDoesNotRun,
                        "qui SOLIDWORKS non c'e': senza api\\redist\\SolidWorks.Interop.* il " +
                        "ponte non si compila, quindi non esiste nessun eseguibile a cui " +
                        "parlare. Non e' un difetto del ponte, e fingere di averlo provato " +
                        "sarebbe peggio del non averlo provato.");
                 return null;
             }
-            Segna("il ponte c'e'", false,
-                  "non trovo " + ponte + " — ma SOLIDWORKS su questa macchina c'e' (" +
-                  DoveStaLInterop() + "), quindi manca solo .\\build.ps1");
+            Check("il ponte c'e'", false,
+                  "non trovo " + bridge + " — ma SOLIDWORKS su questa macchina c'e' (" +
+                  WhereTheInteropIs() + "), quindi manca solo .\\build.ps1");
             return null;
         }
 
@@ -227,17 +227,17 @@ namespace Oce.Solid.Agent.ContractTests
         /// un clone pulito non esiste, e dicevano «il catalogo servito non
         /// c'e'». Non era un difetto del catalogo, e nemmeno una cosa che la CI
         /// non potesse fare: il file da leggere c'era, in `Tools\`.
-        /// `ProveLeDescrizioni` lo faceva gia' giusto. *Una CI sempre rossa si
+        /// `DescriptionsTests` lo faceva gia' giusto. *Una CI sempre rossa si
         /// impara a non guardarla, ed e' il modo in cui un rosso vero passa.*
         /// </summary>
-        internal static string CatalogoServito()
+        internal static string ServedCatalog()
         {
-            var inBin = Path.Combine(Radice(), "bin", "catalog.json");
+            var inBin = Path.Combine(Root(), "bin", "catalog.json");
             if (File.Exists(inBin)) return inBin;
-            return Path.Combine(Radice(), "Tools", "catalog.json");
+            return Path.Combine(Root(), "Tools", "catalog.json");
         }
 
-        internal static string Breve(string s)
+        internal static string Truncated(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
             s = s.Replace("\r", " ").Replace("\n", " ");
@@ -245,7 +245,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>La radice del repository, due livelli sopra `Tests\bin\`.</summary>
-        internal static string Radice()
+        internal static string Root()
         {
             var bin = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
             return Directory.GetParent(Directory.GetParent(bin).FullName).FullName;
@@ -258,11 +258,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// invece di confrontare con una stringa vuota e trovarla diversa
         /// da tutto.
         /// </summary>
-        internal static string VersioneDelRepository()
+        internal static string RepositoryVersion()
         {
             try
             {
-                var f = Path.Combine(Radice(), "VERSION.txt");
+                var f = Path.Combine(Root(), "VERSION.txt");
                 if (!File.Exists(f)) return null;
                 var s = File.ReadAllText(f).Trim();
                 return s.Length == 0 ? null : s;
@@ -281,77 +281,77 @@ namespace Oce.Solid.Agent.ContractTests
         /// leggere il documento a un controllo.
         ///
         /// SI CONTA ANCHE QUESTO CONTROLLO. Gira per ultimo, quindi quando
-        /// guarda `Esiti.Count` se stesso non c'e' ancora: il numero scritto
+        /// guarda `Outcomes.Count` se stesso non c'e' ancora: il numero scritto
         /// nel documento deve valere `Esiti.Count + 1`. Non e' una furbizia,
         /// e' l'unico conto che torna — e il documento deve dire il totale che
         /// l'utente legge a schermo, non quello meno uno.
         /// </summary>
-        private static void IlLeggimiDiceQuantiSono()
+        private static void TheReadmeSaysHowManyThereAre()
         {
-            Gruppo("il LEGGIMI delle prove");
+            Group("il LEGGIMI delle prove");
 
             // IL CONTO VALE PER UN GIRO INTERO (voce F9-bis). Dove SOLIDWORKS
             // non c'e', un gruppo da quaranta controlli diventa UNA riga «non
             // eseguibile qui»: il totale crolla, il LEGGIMI ha ancora ragione, e
             // questo controllo diventerebbe rosso accusando il documento giusto.
             // Un controllo che sa di non poter rispondere lo dice.
-            if (NonEseguibiliQui > 0)
+            if (NotRunnableHere > 0)
             {
-                NonQui("il LEGGIMI dice quanti controlli ci sono, e sono quelli veri",
-                       "su questa macchina " + NonEseguibiliQui + " controlli non hanno " +
+                NotHere("il LEGGIMI dice quanti controlli ci sono, e sono quelli veri",
+                       "su questa macchina " + NotRunnableHere + " controlli non hanno " +
                        "potuto girare: il numero scritto nel LEGGIMI e' quello di un giro " +
                        "intero e qui non e' confrontabile.");
                 return;
             }
 
-            int veri = Esiti.Count + 1;
+            int real = Outcomes.Count + 1;
 
-            var leggimi = Path.Combine(Radice(), "Tests", "README.md");
-            if (!File.Exists(leggimi))
+            var readme = Path.Combine(Root(), "Tests", "README.md");
+            if (!File.Exists(readme))
             {
-                Segna("il LEGGIMI c'e'", false, leggimi);
+                Check("il LEGGIMI c'e'", false, readme);
                 return;
             }
 
-            string testo;
-            try { testo = File.ReadAllText(leggimi); }
-            catch (Exception ex) { Segna("il LEGGIMI si legge", false, ex.Message); return; }
+            string text;
+            try { text = File.ReadAllText(readme); }
+            catch (Exception ex) { Check("il LEGGIMI si legge", false, ex.Message); return; }
 
             // Si cerca SOLO la forma «<numero> controlli»: il file parla anche
             // di secondi e di licenze, e una regola larga griderebbe su una
             // frase giusta.
-            var trovati = System.Text.RegularExpressions.Regex.Matches(
-                testo, @"(\d+)\s+controlli");
-            if (trovati.Count == 0)
+            var foundItems = System.Text.RegularExpressions.Regex.Matches(
+                text, @"(\d+)\s+controlli");
+            if (foundItems.Count == 0)
             {
-                Segna("il LEGGIMI dice quanti controlli ci sono", false,
+                Check("il LEGGIMI dice quanti controlli ci sono", false,
                       "non trovo nessun «N controlli»: se il numero sparisce, " +
                       "sparisce anche questo controllo");
                 return;
             }
 
-            var sbagliati = new List<string>();
-            foreach (System.Text.RegularExpressions.Match m in trovati)
-                if (Convert.ToInt32(m.Groups[1].Value) != veri)
-                    sbagliati.Add("«" + m.Value + "»");
+            var wrong = new List<string>();
+            foreach (System.Text.RegularExpressions.Match m in foundItems)
+                if (Convert.ToInt32(m.Groups[1].Value) != real)
+                    wrong.Add("«" + m.Value + "»");
 
-            Segna("il LEGGIMI dice quanti controlli ci sono, e sono quelli veri",
-                  sbagliati.Count == 0,
-                  sbagliati.Count == 0
-                      ? veri + " controlli"
-                      : "ne girano " + veri + ", il LEGGIMI dice " +
-                        string.Join(" e ", sbagliati));
+            Check("il LEGGIMI dice quanti controlli ci sono, e sono quelli veri",
+                  wrong.Count == 0,
+                  wrong.Count == 0
+                      ? real + " controlli"
+                      : "ne girano " + real + ", il LEGGIMI dice " +
+                        string.Join(" e ", wrong));
         }
 
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
             System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             Console.OutputEncoding = Encoding.UTF8;
 
             Console.WriteLine("Oce.Solid.Agent.ContractTests — senza SOLIDWORKS, su questa macchina qualunque");
-            Console.WriteLine("radice: " + Radice());
+            Console.WriteLine("radice: " + Root());
 
-            if (FingiSenzaInterop)
+            if (PretendWithoutInterop)
             {
                 Console.WriteLine();
                 Console.WriteLine("### PROVE_SENZA_INTEROP=1 — GIRO SIMULATO ###");
@@ -360,42 +360,42 @@ namespace Oce.Solid.Agent.ContractTests
                 Console.WriteLine("risultati di questo giro NON valgono come collaudo.");
             }
 
-            NessunInterop();
-            OgniSorgenteStaNelSuoProgetto();
-            OgniVariabileDAmbienteStaNelLeggimi();
-            IlLeggimiDelBancoContaIFileGiusti();
-            OgniFamigliaDelCatalogoHaUnDocumentoAmmesso();
-            OgniCartellaDiCasiEDentroLElenco();
-            NessunaVoceDelTodoSiChiamaComeUnAltra();
-            IlRifiutoDelleQuoteDiceAncoraQuelloCheServe();
-            LaLibreriaDelPonteELaSTESSADelBanco();
-            ProveAttese.Tutte();
-            ProveCatalogo.Tutte();
-            ProveSessione.Tutte();
+            NoInterop();
+            EverySourceIsInItsOwnProject();
+            EveryEnvironmentVariableIsInTheReadme();
+            TheBenchReadmeCountsTheRightFiles();
+            EveryCatalogFamilyHasAnAllowedDocument();
+            EveryCasesFolderIsInTheList();
+            NoTodoEntryIsNamedLikeAnother();
+            TheDimensionsRefusalStillSaysWhatIsNeeded();
+            TheBridgeLibraryIsTheSAMEAsTheBench();
+            ExpectationsTests.All();
+            CatalogTests.All();
+            SessionTests.All();
             H19InstallerContract.RunAll();
-            ProveProtocollo.Tutte();
-            ProveIlBanco.Tutte();
-            ProveLaSentinella.Tutte();
-            ProveIlDocumento.Tutte();
-            ProveEnumDiErrore.Tutte();
-            ProveILimiti.Tutte();
-            ProveLeDescrizioni.Tutte();
-            ProveIRifiuti.Tutte();
-            ProveIlDocumentoRichiesto.Tutte();
-            ProveICampiObbligatori.Tutte();
-            ProveGliEsempi.Tutte();
-            ProveLeImmagini.Tutte();
-            ProveIlGuinzaglio.Tutte();
-            ProveLaProvaAVuoto.Tutte();
-            ProveLaConferma.Tutte();
-            ProveLeFirmeVietate.Tutte();
-            ProveLeFirmeDelDocumento.Tutte();
-            ProveIlRegistro.Tutte();
-            ProveLAvanzamento.Tutte();
+            ProtocolTests.All();
+            BenchTests.All();
+            SentinelTests.All();
+            DocumentTests.All();
+            ErrorEnumTests.All();
+            LimitsTests.All();
+            DescriptionsTests.All();
+            RefusalsTests.All();
+            RequestedDocumentTests.All();
+            RequiredFieldsTests.All();
+            ExamplesTests.All();
+            ImagesTests.All();
+            LeashTests.All();
+            DryRunTests.All();
+            ConfirmationTests.All();
+            ForbiddenSignaturesTests.All();
+            DocumentSignaturesTests.All();
+            RegistryTests.All();
+            ProgressTests.All();
             ApiCatalogContracts.Run();
             ObsoleteCallsContract.RunAll();
             SelectionMarksContract.RunAll();
-            FormaSpellingContract.RunAll();
+            ShapeSpellingContract.RunAll();
             Zc2110HelpersContract.RunAll();
             StateChamferContract.RunAll();
             Zc212DrawingContract.RunAll();
@@ -424,22 +424,22 @@ namespace Oce.Solid.Agent.ContractTests
             SafetyNetSelfTests.All();
             // Last group: it reads the lookup log that every group above fills.
             ReflectionTests.All();
-            IlLeggimiDiceQuantiSono();
+            TheReadmeSaysHowManyThereAre();
 
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));
-            int fatti = Esiti.Count - NonEseguibiliQui;
-            var riepilogo = Esiti.Count + " controlli, " + Falliti + " falliti";
-            if (NonEseguibiliQui > 0)
-                riepilogo += ", " + NonEseguibiliQui + " non eseguibili qui (" +
-                             fatti + " fatti davvero)";
-            Console.WriteLine(riepilogo);
+            int done = Outcomes.Count - NotRunnableHere;
+            var summary = Outcomes.Count + " controlli, " + FailedOnes + " falliti";
+            if (NotRunnableHere > 0)
+                summary += ", " + NotRunnableHere + " non eseguibili qui (" +
+                             done + " fatti davvero)";
+            Console.WriteLine(summary);
 
             // IL NUMERO DA SOLO SI LEGGEREBBE COME UN VERDE. Chi guarda una CI
             // legge «0 falliti» e va avanti: se meta' dei controlli non ha
             // girato, quel numero e' vero e ingannevole insieme, ed e'
             // esattamente il difetto che questo repository rimprovera altrove.
-            if (NonEseguibiliQui > 0)
+            if (NotRunnableHere > 0)
             {
                 Console.WriteLine();
                 Console.WriteLine("  «NON ESEGUIBILI QUI» non vuol dire passati.");
@@ -454,21 +454,21 @@ namespace Oce.Solid.Agent.ContractTests
             // verde con tre controlli, e «0 falliti» suonerebbe uguale.
             //
             // SI CONTANO I FATTI, NON LE VOCI (voce F9-bis). Contando
-            // `Esiti.Count` la soglia l'avrebbero superata anche venticinque
+            // `Outcomes.Count` la soglia l'avrebbero superata anche venticinque
             // righe «non eseguibile qui»: un minimo che si lascia soddisfare
             // da cio' che non ha girato non e' un minimo.
-            const int MinimoDichiarato = 25;
-            if (fatti < MinimoDichiarato)
+            const int DeclaredMinimum = 25;
+            if (done < DeclaredMinimum)
             {
-                Console.WriteLine("TROPPO POCHI: ne erano dichiarati almeno " + MinimoDichiarato +
-                                  " davvero eseguiti, e ne risultano " + fatti +
+                Console.WriteLine("TROPPO POCHI: ne erano dichiarati almeno " + DeclaredMinimum +
+                                  " davvero eseguiti, e ne risultano " + done +
                                   ". Una suite che si svuota resta verde, ed e' il modo piu' " +
                                   "silenzioso di smettere di provare.");
-                Falliti++;
+                FailedOnes++;
             }
 
-            ScriviJUnit();
-            return Falliti == 0 ? 0 : 1;
+            WriteJUnit();
+            return FailedOnes == 0 ? 0 : 1;
         }
 
         /// <summary>
@@ -482,18 +482,18 @@ namespace Oce.Solid.Agent.ContractTests
         /// Si guardano i riferimenti dell'assembly, non il testo del csproj: il
         /// csproj si puo' leggere in dieci modi, i riferimenti veri sono uno.
         /// </summary>
-        private static void NessunInterop()
+        private static void NoInterop()
         {
-            Gruppo("questo progetto gira dove SOLIDWORKS non c'e'");
-            var mio = typeof(Programma).Assembly;
-            var dassault = mio.GetReferencedAssemblies()
+            Group("questo progetto gira dove SOLIDWORKS non c'e'");
+            var myOwn = typeof(Program).Assembly;
+            var dassault = myOwn.GetReferencedAssemblies()
                 .Where(a => a.Name.StartsWith("SolidWorks", StringComparison.OrdinalIgnoreCase))
                 .Select(a => a.Name)
                 .ToList();
-            Segna("nessun riferimento a SolidWorks.Interop",
+            Check("nessun riferimento a SolidWorks.Interop",
                   dassault.Count == 0,
                   dassault.Count == 0
-                      ? mio.GetReferencedAssemblies().Length + " riferimenti, nessuno di Dassault"
+                      ? myOwn.GetReferencedAssemblies().Length + " riferimenti, nessuno di Dassault"
                       : "trovati: " + string.Join(", ", dassault));
         }
 
@@ -522,14 +522,14 @@ namespace Oce.Solid.Agent.ContractTests
         /// modo in cui il gancio `pre-push` e' nato (voce W2.10): il controllo
         /// c'era, mancava che qualcuno lo eseguisse. Qui gira a ogni giro.
         /// </summary>
-        private static void OgniSorgenteStaNelSuoProgetto()
+        private static void EverySourceIsInItsOwnProject()
         {
-            Gruppo("i sorgenti stanno nei progetti");
+            Group("i sorgenti stanno nei progetti");
 
             // cartella (relativa alla radice) -> csproj che la deve elencare.
             // I `Checks\<attrezzo>\` hanno un csproj per attrezzo e stanno
             // fuori dalla soluzione apposta: non si controllano qui.
-            var mappa = new[]
+            var map = new[]
             {
                 new { Dove = new[] { @"Oce.Solid.Agent.Core", @"Oce.Solid.Agent.Core\Catalog",
                                      @"Oce.Solid.Agent.Core\Properties", @"Oce.Solid.Agent.Core\Api" },
@@ -556,51 +556,51 @@ namespace Oce.Solid.Agent.ContractTests
                 new { Dove = new[] { @"Installer" }, Progetto = @"Installer\Installer.csproj" },
             };
 
-            int guardati = 0;
-            var fuori = new List<string>();
+            int inspected = 0;
+            var outside = new List<string>();
 
-            foreach (var m in mappa)
+            foreach (var m in map)
             {
-                var csproj = Path.Combine(Radice(), m.Progetto);
+                var csproj = Path.Combine(Root(), m.Progetto);
                 if (!File.Exists(csproj))
                 {
-                    Segna("il progetto «" + m.Progetto + "» c'e'", false, csproj);
+                    Check("il progetto «" + m.Progetto + "» c'e'", false, csproj);
                     continue;
                 }
-                string testo;
-                try { testo = File.ReadAllText(csproj); }
-                catch (Exception ex) { Segna("«" + m.Progetto + "» si legge", false, ex.Message); continue; }
+                string text;
+                try { text = File.ReadAllText(csproj); }
+                catch (Exception ex) { Check("«" + m.Progetto + "» si legge", false, ex.Message); continue; }
 
-                foreach (var cartella in m.Dove)
+                foreach (var folder in m.Dove)
                 {
-                    var piena = Path.Combine(Radice(), cartella);
-                    if (!Directory.Exists(piena)) continue;
+                    var full = Path.Combine(Root(), folder);
+                    if (!Directory.Exists(full)) continue;
                     // SOLO il primo livello: `obj\` e `bin\` sono pieni di
                     // sorgenti generati che nessun csproj elenca, e che non
                     // devono entrare nel conto.
-                    foreach (var f in Directory.GetFiles(piena, "*.cs", SearchOption.TopDirectoryOnly))
+                    foreach (var f in Directory.GetFiles(full, "*.cs", SearchOption.TopDirectoryOnly))
                     {
-                        var nome = Path.GetFileName(f);
+                        var itemName = Path.GetFileName(f);
                         // Generati dal compilatore, mai elencati a mano.
-                        if (nome.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
-                            nome.IndexOf("AssemblyAttributes", StringComparison.OrdinalIgnoreCase) >= 0)
+                        if (itemName.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
+                            itemName.IndexOf("AssemblyAttributes", StringComparison.OrdinalIgnoreCase) >= 0)
                             continue;
-                        guardati++;
+                        inspected++;
                         // Si cerca il NOME fra virgolette: copre sia
                         // `Include="Pippo.cs"` sia `Include="Bridge\Pippo.cs"`.
-                        if (testo.IndexOf(nome + "\"", StringComparison.OrdinalIgnoreCase) < 0)
-                            fuori.Add(cartella + "\\" + nome + " → " + m.Progetto);
+                        if (text.IndexOf(itemName + "\"", StringComparison.OrdinalIgnoreCase) < 0)
+                            outside.Add(folder + "\\" + itemName + " → " + m.Progetto);
                     }
                 }
             }
 
-            Segna("ci sono sorgenti da controllare", guardati > 10, guardati + " file .cs");
-            Segna("ogni sorgente e' elencato nel suo .csproj",
-                  fuori.Count == 0,
-                  fuori.Count == 0
-                      ? "tutti e " + guardati
+            Check("ci sono sorgenti da controllare", inspected > 10, inspected + " file .cs");
+            Check("ogni sorgente e' elencato nel suo .csproj",
+                  outside.Count == 0,
+                  outside.Count == 0
+                      ? "tutti e " + inspected
                       : "FUORI DAL PROGETTO (non vengono compilati): " +
-                        string.Join("; ", fuori));
+                        string.Join("; ", outside));
         }
 
         /// <summary>
@@ -631,51 +631,51 @@ namespace Oce.Solid.Agent.ContractTests
         /// variabile spiegata per esteso in un paragrafo e' documentata. Il
         /// controllo non pretende una forma, pretende che il nome ci sia.
         /// </summary>
-        private static void OgniVariabileDAmbienteStaNelLeggimi()
+        private static void EveryEnvironmentVariableIsInTheReadme()
         {
-            Gruppo("le variabili d'ambiente stanno nel README");
+            Group("le variabili d'ambiente stanno nel README");
 
-            var readme = Path.Combine(Radice(), "README.md");
-            if (!File.Exists(readme)) { Segna("il README c'e'", false, readme); return; }
-            string testo;
-            try { testo = File.ReadAllText(readme); }
-            catch (Exception ex) { Segna("il README si legge", false, ex.Message); return; }
+            var readme = Path.Combine(Root(), "README.md");
+            if (!File.Exists(readme)) { Check("il README c'e'", false, readme); return; }
+            string text;
+            try { text = File.ReadAllText(readme); }
+            catch (Exception ex) { Check("il README si legge", false, ex.Message); return; }
 
-            // `GetEnvironmentVariable("X")` e la scorciatoia `Variabile("X")`
+            // `GetEnvironmentVariable("X")` e la scorciatoia `Variable("X")`
             // di `Bridge\Paths.cs`. La seconda e' proprio quella che nascondeva
             // `RISCONTRO_RADICE` e `RISCONTRO_SOLA_LETTURA` a un grep fatto sul
             // nome lungo: **cercare una sola forma vuol dire trovarne una sola.**
-            var forma = new System.Text.RegularExpressions.Regex(
+            var shape = new System.Text.RegularExpressions.Regex(
                 @"(?:GetEnvironmentVariable|Variabile)\(""([A-Z][A-Z_0-9]+)""\)");
 
-            var trovate = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (var cartella in new[] { "Bridge", "Tools", "Mcp", "Oce.Solid.Agent.Core" })
+            var foundOnes = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var folder in new[] { "Bridge", "Tools", "Mcp", "Oce.Solid.Agent.Core" })
             {
-                var piena = Path.Combine(Radice(), cartella);
-                if (!Directory.Exists(piena)) continue;
-                foreach (var f in Directory.GetFiles(piena, "*.cs", SearchOption.AllDirectories))
+                var full = Path.Combine(Root(), folder);
+                if (!Directory.Exists(full)) continue;
+                foreach (var f in Directory.GetFiles(full, "*.cs", SearchOption.AllDirectories))
                 {
                     if (f.IndexOf(@"\obj\", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         f.IndexOf(@"\bin\", StringComparison.OrdinalIgnoreCase) >= 0) continue;
-                    string sorgente;
-                    try { sorgente = File.ReadAllText(f); } catch { continue; }
-                    foreach (System.Text.RegularExpressions.Match m in forma.Matches(sorgente))
-                        trovate.Add(m.Groups[1].Value);
+                    string source;
+                    try { source = File.ReadAllText(f); } catch { continue; }
+                    foreach (System.Text.RegularExpressions.Match m in shape.Matches(source))
+                        foundOnes.Add(m.Groups[1].Value);
                 }
             }
 
             // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE, e non prova niente.
             // Se un giorno le cartelle cambiano nome, questa riga diventa rossa
             // invece di lasciare che il controllo si spenga in silenzio.
-            Segna("ci sono variabili da controllare", trovate.Count >= 6,
-                  trovate.Count + ": " + string.Join(", ", trovate));
+            Check("ci sono variabili da controllare", foundOnes.Count >= 6,
+                  foundOnes.Count + ": " + string.Join(", ", foundOnes));
 
-            var assenti = trovate.Where(v => testo.IndexOf(v, StringComparison.Ordinal) < 0).ToList();
-            Segna("ogni variabile letta dal ponte e' nominata nel README",
-                  assenti.Count == 0,
-                  assenti.Count == 0
-                      ? "tutte e " + trovate.Count
-                      : "NEL CODICE E NON NEL README: " + string.Join(", ", assenti));
+            var absent = foundOnes.Where(v => text.IndexOf(v, StringComparison.Ordinal) < 0).ToList();
+            Check("ogni variabile letta dal ponte e' nominata nel README",
+                  absent.Count == 0,
+                  absent.Count == 0
+                      ? "tutte e " + foundOnes.Count
+                      : "NEL CODICE E NON NEL README: " + string.Join(", ", absent));
         }
 
         /// <summary>
@@ -703,15 +703,15 @@ namespace Oce.Solid.Agent.ContractTests
         /// somma: 7 + 1 = 8 file. Pretendere che ogni riga da sola combaci
         /// renderebbe rossa una tabella giusta.
         /// </summary>
-        private static void IlLeggimiDelBancoContaIFileGiusti()
+        private static void TheBenchReadmeCountsTheRightFiles()
         {
-            Gruppo("il LEGGIMI del banco conta i file giusti");
+            Group("il LEGGIMI del banco conta i file giusti");
 
-            var leggimi = Path.Combine(Radice(), "Bench", "README.md");
-            if (!File.Exists(leggimi)) { Segna("il LEGGIMI del banco c'e'", false, leggimi); return; }
-            string testo;
-            try { testo = File.ReadAllText(leggimi); }
-            catch (Exception ex) { Segna("il LEGGIMI del banco si legge", false, ex.Message); return; }
+            var readme = Path.Combine(Root(), "Bench", "README.md");
+            if (!File.Exists(readme)) { Check("il LEGGIMI del banco c'e'", false, readme); return; }
+            string text;
+            try { text = File.ReadAllText(readme); }
+            catch (Exception ex) { Check("il LEGGIMI del banco si legge", false, ex.Message); return; }
 
             // `cases/<nome>/` seguito da spazi e da un numero. Le righe di
             // continuazione (la descrizione che va a capo) non hanno il numero
@@ -723,42 +723,42 @@ namespace Oce.Solid.Agent.ContractTests
             // `cases/forma/` non e' nel repository per scelta. In locale passava,
             // perche' i cinque file ci sono; in un clone pulito — la CI — era
             // «nominate e non esistenti: forma», rosso a ogni push dalla 0.85.0.
-            var forma = new System.Text.RegularExpressions.Regex(
+            var shape = new System.Text.RegularExpressions.Regex(
                 @"^cases/([a-z_]+)/\s+(\d+)", System.Text.RegularExpressions.RegexOptions.Multiline);
 
-            var dichiarati = new SortedDictionary<string, int>(StringComparer.Ordinal);
-            foreach (System.Text.RegularExpressions.Match m in forma.Matches(testo))
+            var declared = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            foreach (System.Text.RegularExpressions.Match m in shape.Matches(text))
             {
-                var nome = m.Groups[1].Value;
+                var itemName = m.Groups[1].Value;
                 int n = Convert.ToInt32(m.Groups[2].Value);
-                dichiarati[nome] = (dichiarati.ContainsKey(nome) ? dichiarati[nome] : 0) + n;
+                declared[itemName] = (declared.ContainsKey(itemName) ? declared[itemName] : 0) + n;
             }
 
             // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE. Se la tabella cambia
             // forma, questa riga diventa rossa invece di spegnersi in silenzio.
-            Segna("ci sono cartelle da controllare", dichiarati.Count >= 15,
-                  dichiarati.Count + " righe «cases/<nome>/ N»");
+            Check("ci sono cartelle da controllare", declared.Count >= 15,
+                  declared.Count + " righe «cases/<nome>/ N»");
 
-            var sbagliate = new List<string>();
-            var assenti = new List<string>();
-            foreach (var v in dichiarati)
+            var wrong = new List<string>();
+            var absent = new List<string>();
+            foreach (var v in declared)
             {
-                var cartella = Path.Combine(Radice(), "Bench", "cases", v.Key);
-                if (!Directory.Exists(cartella)) { assenti.Add(v.Key); continue; }
-                int veri = Directory.GetFiles(cartella, "*.json", SearchOption.TopDirectoryOnly).Length;
-                if (veri != v.Value)
-                    sbagliate.Add(v.Key + ": dice " + v.Value + ", ne ha " + veri);
+                var folder = Path.Combine(Root(), "Bench", "cases", v.Key);
+                if (!Directory.Exists(folder)) { absent.Add(v.Key); continue; }
+                int real = Directory.GetFiles(folder, "*.json", SearchOption.TopDirectoryOnly).Length;
+                if (real != v.Value)
+                    wrong.Add(v.Key + ": dice " + v.Value + ", ne ha " + real);
             }
 
-            Segna("ogni cartella nominata nel LEGGIMI esiste",
-                  assenti.Count == 0,
-                  assenti.Count == 0 ? dichiarati.Count + " cartelle"
-                                     : "nominate e non esistenti: " + string.Join(", ", assenti));
-            Segna("i numeri del LEGGIMI sono quanti sono i file",
-                  sbagliate.Count == 0,
-                  sbagliate.Count == 0
-                      ? "tutte e " + dichiarati.Count
-                      : string.Join("; ", sbagliate));
+            Check("ogni cartella nominata nel LEGGIMI esiste",
+                  absent.Count == 0,
+                  absent.Count == 0 ? declared.Count + " cartelle"
+                                     : "nominate e non esistenti: " + string.Join(", ", absent));
+            Check("i numeri del LEGGIMI sono quanti sono i file",
+                  wrong.Count == 0,
+                  wrong.Count == 0
+                      ? "tutte e " + declared.Count
+                      : string.Join("; ", wrong));
         }
 
         /// <summary>
@@ -767,9 +767,9 @@ namespace Oce.Solid.Agent.ContractTests
         /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
         ///
         /// Trovato il 18/9/2026 leggendo `PlanExecutor.cs` per un'altra
-        /// ragione: `ControlliPreliminari()` — che gira **prima del primo
+        /// ragione: `PreliminaryChecks()` — che gira **prima del primo
         /// passo di ogni piano**, e per tutti e quattro gli strumenti del ponte
-        /// — ammette solo `swDocPART` e, se `AncheSuTavole`, `swDocDRAWING`.
+        /// — ammette solo `swDocPART` e, se `AlsoOnDrawings`, `swDocDRAWING`.
         /// Gli assiemi no. Intanto il catalogo servito ai client elencava tre
         /// operazioni di famiglia `assemblies`.
         ///
@@ -782,7 +782,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// ── COME LO GUARDA ───────────────────────────────────────────────
         ///
         /// Dal sorgente, non da un elenco scritto a mano: i tipi ammessi si
-        /// leggono da `ControlliPreliminari` con una regex sui token
+        /// leggono da `PreliminaryChecks` con una regex sui token
         /// `swDoc...`, cosi' il giorno che qualcuno ne aggiunge o ne toglie uno
         /// questa prova se ne accorge invece di restare d'accordo con se stessa.
         ///
@@ -791,87 +791,87 @@ namespace Oce.Solid.Agent.ContractTests
         /// Guarda le FAMIGLIE, non le singole operazioni. `interference_check`
         /// sta in famiglia `checks` e vuole un assieme: questa prova la
         /// classifica come «part» e la lascia passare. Il rimedio vero e' un
-        /// campo `DocumentoRichiesto` su `OperazioneDisegno` — voce a se',
+        /// campo `RequestedDocument` su `OperationSpec` — voce a se',
         /// perche' tocca la libreria. Finche' non c'e', **questa prova copre la
         /// famiglia e non il caso singolo**, ed e' scritto qui perche' chi la
         /// vede verde non creda che copra di piu'.
         /// </summary>
-        private static void OgniFamigliaDelCatalogoHaUnDocumentoAmmesso()
+        private static void EveryCatalogFamilyHasAnAllowedDocument()
         {
-            Gruppo("il catalogo promette solo documenti che l'esecutore ammette");
+            Group("il catalogo promette solo documenti che l'esecutore ammette");
 
             // ── 1. i tipi che l'esecutore ammette, letti dal suo sorgente ──
-            var sorgente = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
-            if (!File.Exists(sorgente))
+            var source = Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
+            if (!File.Exists(source))
             {
-                Segna("il sorgente dell'esecutore c'e'", false, sorgente);
+                Check("il sorgente dell'esecutore c'e'", false, source);
                 return;
             }
-            string codice;
-            try { codice = File.ReadAllText(sorgente); }
-            catch (Exception ex) { Segna("il sorgente si legge", false, ex.Message); return; }
+            string code;
+            try { code = File.ReadAllText(source); }
+            catch (Exception ex) { Check("il sorgente si legge", false, ex.Message); return; }
 
-            int da = codice.IndexOf("bool ammesso", StringComparison.Ordinal);
+            int da = code.IndexOf("bool allowed", StringComparison.Ordinal);
             if (da < 0)
             {
                 // Se la riga cambia forma questa prova NON deve passare in
                 // silenzio: una prova che non trova cio' che cerca e passa e'
                 // peggio di nessuna prova.
-                Segna("trovo la riga che decide i tipi ammessi", false,
-                      "«bool ammesso» non c'e' piu' in PlanExecutor.cs: " +
+                Check("trovo la riga che decide i tipi ammessi", false,
+                      "«bool allowed» non c'e' piu' in PlanExecutor.cs: " +
                       "la prova va riscritta, non tolta");
                 return;
             }
-            int a = codice.IndexOf(';', da);
-            var espressione = a > da ? codice.Substring(da, a - da) : codice.Substring(da);
+            int a = code.IndexOf(';', da);
+            var expression = a > da ? code.Substring(da, a - da) : code.Substring(da);
 
-            var ammessi = new SortedSet<string>(StringComparer.Ordinal);
+            var allowed = new SortedSet<string>(StringComparer.Ordinal);
             foreach (System.Text.RegularExpressions.Match m in
-                     System.Text.RegularExpressions.Regex.Matches(espressione, @"swDoc[A-Z]+"))
-                ammessi.Add(m.Value);
+                     System.Text.RegularExpressions.Regex.Matches(expression, @"swDoc[A-Z]+"))
+                allowed.Add(m.Value);
 
-            Segna("l'esecutore ammette almeno un tipo di documento", ammessi.Count >= 1,
-                  string.Join(", ", ammessi));
+            Check("l'esecutore ammette almeno un tipo di documento", allowed.Count >= 1,
+                  string.Join(", ", allowed));
 
             // ── 2. le famiglie che il catalogo SERVE ai client ─────────────
-            var json = Path.Combine(Radice(), "bin", "catalog.json");
+            var json = Path.Combine(Root(), "bin", "catalog.json");
             // Come nel gruppo «il catalogo» (voce F9-bis): dove il ponte non si
             // poteva compilare, `bin\\` e' vuota e il file buono e' quello in
             // repository. Questo controllo legge un JSON e un sorgente C#: non ha
             // niente da chiedere a SOLIDWORKS, e fermarsi qui vorrebbe dire non
             // fare una verifica che si poteva fare.
-            if (!ProdottoDaBuild(json) && !IlPonteSiPotevaCompilare())
+            if (!ProductFromBuild(json) && !TheBridgeCouldBeBuilt())
             {
-                var inRepository = Path.Combine(Radice(), "Tools", "catalog.json");
+                var inRepository = Path.Combine(Root(), "Tools", "catalog.json");
                 if (File.Exists(inRepository)) json = inRepository;
             }
             if (!File.Exists(json))
             {
-                Segna("il catalogo c'e'", false, "non trovo " + json + " — si produce con .\\build.ps1");
+                Check("il catalogo c'e'", false, "non trovo " + json + " — si produce con .\\build.ps1");
                 return;
             }
-            Dictionary<string, object> radice;
+            Dictionary<string, object> root;
             try
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                 s.MaxJsonLength = 40 * 1024 * 1024;
-                radice = s.DeserializeObject(File.ReadAllText(json)) as Dictionary<string, object>;
+                root = s.DeserializeObject(File.ReadAllText(json)) as Dictionary<string, object>;
             }
-            catch (Exception ex) { Segna("il catalogo si legge", false, ex.Message); return; }
+            catch (Exception ex) { Check("il catalogo si legge", false, ex.Message); return; }
 
-            var elenco = (radice != null && radice.ContainsKey("operations")
-                ? radice["operations"] : null) as object[];
-            if (elenco == null) { Segna("il catalogo ha «operations»", false, ""); return; }
+            var list = (root != null && root.ContainsKey("operations")
+                ? root["operations"] : null) as object[];
+            if (list == null) { Check("il catalogo ha «operations»", false, ""); return; }
 
-            var famiglie = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (var o in elenco)
+            var families = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var o in list)
             {
                 var v = o as Dictionary<string, object>;
                 if (v != null && v.ContainsKey("family") && v["family"] != null)
-                    famiglie.Add(Convert.ToString(v["family"]));
+                    families.Add(Convert.ToString(v["family"]));
             }
-            Segna("ci sono famiglie da controllare", famiglie.Count >= 5,
-                  famiglie.Count + ": " + string.Join(", ", famiglie));
+            Check("ci sono famiglie da controllare", families.Count >= 5,
+                  families.Count + ": " + string.Join(", ", families));
 
             // ── 3. su che tipo di documento ha senso ognuna ────────────────
             // Tre righe scritte a mano, e il loro compito e' proprio di NON
@@ -896,26 +896,26 @@ namespace Oce.Solid.Agent.ContractTests
                 { "dimensions",        "swDocPART"     },
             };
 
-            var sconosciute = famiglie.Where(f => !serve.ContainsKey(f)).ToList();
-            Segna("ogni famiglia del catalogo e' classificata qui dentro",
-                  sconosciute.Count == 0,
-                  sconosciute.Count == 0
-                      ? "tutte e " + famiglie.Count
-                      : "FAMIGLIA NUOVA E NON CLASSIFICATA: " + string.Join(", ", sconosciute) +
+            var unknown = families.Where(f => !serve.ContainsKey(f)).ToList();
+            Check("ogni famiglia del catalogo e' classificata qui dentro",
+                  unknown.Count == 0,
+                  unknown.Count == 0
+                      ? "tutte e " + families.Count
+                      : "FAMIGLIA NUOVA E NON CLASSIFICATA: " + string.Join(", ", unknown) +
                         " — dire su che tipo di documento gira, in Tests\\Program.cs");
 
-            var promesse = famiglie
-                .Where(f => serve.ContainsKey(f) && !ammessi.Contains(serve[f]))
+            var promises = families
+                .Where(f => serve.ContainsKey(f) && !allowed.Contains(serve[f]))
                 .Select(f => f + " (vuole " + serve[f] + ")")
                 .ToList();
 
-            Segna("nessuna famiglia servita e' rifiutata prima del primo passo",
-                  promesse.Count == 0,
-                  promesse.Count == 0
-                      ? famiglie.Count + " famiglie, tutte su un tipo ammesso (" +
-                        string.Join(", ", ammessi) + ")"
-                      : "PROMESSE E IRRAGGIUNGIBILI: " + string.Join("; ", promesse) +
-                        " — l'esecutore ammette solo " + string.Join(", ", ammessi));
+            Check("nessuna famiglia servita e' rifiutata prima del primo passo",
+                  promises.Count == 0,
+                  promises.Count == 0
+                      ? families.Count + " famiglie, tutte su un tipo ammesso (" +
+                        string.Join(", ", allowed) + ")"
+                      : "PROMESSE E IRRAGGIUNGIBILI: " + string.Join("; ", promises) +
+                        " — l'esecutore ammette solo " + string.Join(", ", allowed));
         }
 
         /// <summary>
@@ -974,74 +974,74 @@ namespace Oce.Solid.Agent.ContractTests
         /// La differenza e' fra un controllo che descrive la realta' e uno che
         /// pretende un ordine che non c'e'.
         /// </summary>
-        private static void OgniCartellaDiCasiEDentroLElenco()
+        private static void EveryCasesFolderIsInTheList()
         {
-            Gruppo("le cartelle di casi stanno nell'elenco che il banco scorre");
+            Group("le cartelle di casi stanno nell'elenco che il banco scorre");
 
-            var sorgente = Path.Combine(Radice(), "Bench", "DeclaredCases.cs");
-            var radiceCasi = Path.Combine(Radice(), "Bench", "cases");
-            if (!File.Exists(sorgente) || !Directory.Exists(radiceCasi))
+            var source = Path.Combine(Root(), "Bench", "DeclaredCases.cs");
+            var casesRoot = Path.Combine(Root(), "Bench", "cases");
+            if (!File.Exists(source) || !Directory.Exists(casesRoot))
             {
-                Segna("il banco e i suoi casi ci sono", false,
-                      sorgente + " / " + radiceCasi);
+                Check("il banco e i suoi casi ci sono", false,
+                      source + " / " + casesRoot);
                 return;
             }
 
-            var testo = File.ReadAllText(sorgente);
-            var blocco = System.Text.RegularExpressions.Regex.Match(testo, @"Famiglie\s*=\s*\{([\s\S]*?)\};");
-            if (!blocco.Success)
+            var text = File.ReadAllText(source);
+            var block = System.Text.RegularExpressions.Regex.Match(text, @"Families\s*=\s*\{([\s\S]*?)\};");
+            if (!block.Success)
             {
                 // SE L'ELENCO SPARISCE, SPARISCE ANCHE QUESTO CONTROLLO: e
                 // un controllo che sparisce in silenzio e' peggio di uno che
                 // non c'e' mai stato.
-                Segna("trovo l'elenco delle famiglie", false,
-                      "non c'e' nessun «Famiglie = { ... }» in DeclaredCases.cs");
+                Check("trovo l'elenco delle famiglie", false,
+                      "non c'e' nessun «Families = { ... }» in DeclaredCases.cs");
                 return;
             }
 
-            var elencate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(blocco.Groups[1].Value, "\"([a-z0-9_-]+)\""))
-                elencate.Add(m.Groups[1].Value);
+            var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(block.Groups[1].Value, "\"([a-z0-9_-]+)\""))
+                listed.Add(m.Groups[1].Value);
 
-            Segna("l'elenco delle famiglie si legge", elencate.Count >= 10,
-                  elencate.Count + " famiglie");
-            if (elencate.Count < 10) return;
+            Check("l'elenco delle famiglie si legge", listed.Count >= 10,
+                  listed.Count + " famiglie");
+            if (listed.Count < 10) return;
 
             // `regression` NON sta nell'elenco, e non e' un difetto: ha un
             // giro suo (`--regressione`), con un valutatore suo. Sta scritto
             // qui e non in un elenco di eccezioni generico, perche' e' una
             // sola e ha un motivo.
-            var fuoriPerDisegno = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regression" };
+            var outsideByDesign = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regression" };
 
             var mute = new List<string>();
-            int guardate = 0, conCasi = 0;
-            foreach (var cartella in Directory.GetDirectories(radiceCasi))
+            int inspected = 0, withCases = 0;
+            foreach (var folder in Directory.GetDirectories(casesRoot))
             {
-                guardate++;
-                var nome = Path.GetFileName(cartella);
-                bool haCasi = false;
-                foreach (var f in Directory.GetFiles(cartella, "*.json"))
+                inspected++;
+                var itemName = Path.GetFileName(folder);
+                bool hasCases = false;
+                foreach (var f in Directory.GetFiles(folder, "*.json"))
                 {
-                    string grezzo;
-                    try { grezzo = File.ReadAllText(f); } catch { continue; }
+                    string raw;
+                    try { raw = File.ReadAllText(f); } catch { continue; }
                     // UN CASO E' UN OGGETTO, UN PIANO E' UN ARRAY. Stessa
                     // distinzione strutturale che fa il banco.
-                    var t = grezzo.TrimStart();
+                    var t = raw.TrimStart();
                     if (t.StartsWith("{") && t.IndexOf("\"steps\"", StringComparison.Ordinal) >= 0)
-                    { haCasi = true; break; }
+                    { hasCases = true; break; }
                 }
-                if (!haCasi) continue;
-                conCasi++;
-                if (!elencate.Contains(nome) && !fuoriPerDisegno.Contains(nome))
-                    mute.Add(nome);
+                if (!hasCases) continue;
+                withCases++;
+                if (!listed.Contains(itemName) && !outsideByDesign.Contains(itemName))
+                    mute.Add(itemName);
             }
 
-            Segna("ogni cartella con dei casi dentro e' nell'elenco",
+            Check("ogni cartella con dei casi dentro e' nell'elenco",
                   mute.Count == 0,
                   mute.Count == 0
-                      ? conCasi + " cartelle con casi su " + guardate + ", tutte scorse"
+                      ? withCases + " cartelle con casi su " + inspected + ", tutte scorse"
                       : "MUTE, i loro casi non girano mai: " + string.Join(", ", mute) +
-                        " — si aggiungono a «Famiglie» in Bench\\DeclaredCases.cs");
+                        " — si aggiungono a «Families» in Bench\\DeclaredCases.cs");
         }
 
         /// <summary>
@@ -1052,28 +1052,28 @@ namespace Oce.Solid.Agent.ContractTests
         /// `note-interne\TODO.md` dove sta oggi, e la radice dov'era prima —
         /// cosi' un clone vecchio continua a funzionare senza accorgersene.
         /// </summary>
-        private static string DoveStaIlTodo()
+        private static string WhereTheTodoIs()
         {
-            var suo = Environment.GetEnvironmentVariable("TODO_MD");
-            if (!string.IsNullOrEmpty(suo) && File.Exists(suo)) return suo;
+            var its = Environment.GetEnvironmentVariable("TODO_MD");
+            if (!string.IsNullOrEmpty(its) && File.Exists(its)) return its;
 
             foreach (var c in new[] {
-                Path.Combine(Radice(), "note-interne", "TODO.md"),
-                Path.Combine(Radice(), "TODO.md") })
+                Path.Combine(Root(), "note-interne", "TODO.md"),
+                Path.Combine(Root(), "TODO.md") })
             {
                 if (File.Exists(c)) return c;
             }
             return null;
         }
 
-        private static void NessunaVoceDelTodoSiChiamaComeUnAltra()
+        private static void NoTodoEntryIsNamedLikeAnother()
         {
-            Gruppo("nel TODO due voci non si chiamano allo stesso modo");
+            Group("nel TODO due voci non si chiamano allo stesso modo");
 
             // IL TODO NON E' PIU' NEL REPOSITORY PUBBLICO: e' un diario di
             // lavoro e vive in `note-interne\`, che il .gitignore esclude.
             //
-            // QUI PRIMA C'ERA `Segna(..., false, ...)`, cioe' un ROSSO. Su
+            // QUI PRIMA C'ERA `Check(..., false, ...)`, cioe' un ROSSO. Su
             // questa macchina non sarebbe mai scattato; su ogni clone sarebbe
             // stato rosso sempre, per un file che chi clona non ha e non deve
             // avere - una prova che fallisce per tutti tranne chi l'ha scritta
@@ -1082,59 +1082,59 @@ namespace Oce.Solid.Agent.ContractTests
             // Adesso la prova si SALTA dicendolo. Il conto dei controlli
             // scende di uno invece di salire di un rosso, che e' la differenza
             // fra «non l'ho controllato» e «l'ho controllato e va male».
-            var todo = DoveStaIlTodo();
+            var todo = WhereTheTodoIs();
             if (todo == null)
             {
                 Console.WriteLine("  --   il TODO non c'e' in questo clone: e' interno e non si pubblica.");
                 Console.WriteLine("       QUESTO CONTROLLO NON E' STATO FATTO. Con TODO_MD si indica una copia.");
                 return;
             }
-            string[] righe;
-            try { righe = File.ReadAllLines(todo); }
-            catch (Exception ex) { Segna("il TODO si legge", false, ex.Message); return; }
+            string[] lines;
+            try { lines = File.ReadAllLines(todo); }
+            catch (Exception ex) { Check("il TODO si legge", false, ex.Message); return; }
 
-            var intestazione = new System.Text.RegularExpressions.Regex(
+            var header = new System.Text.RegularExpressions.Regex(
                 @"^#### \[(.)\] (\S+)\s*(.*)$");
-            var traccia = new System.Text.RegularExpressions.Regex(
+            var trace = new System.Text.RegularExpressions.Regex(
                 @"traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             // nome -> quante volte, e quante di quelle erano tracce
-            var quante = new Dictionary<string, int>(StringComparer.Ordinal);
-            var tracce = new Dictionary<string, int>(StringComparer.Ordinal);
+            var howMany = new Dictionary<string, int>(StringComparer.Ordinal);
+            var traces = new Dictionary<string, int>(StringComparer.Ordinal);
             int totali = 0;
 
-            foreach (var r in righe)
+            foreach (var r in lines)
             {
-                var m = intestazione.Match(r);
+                var m = header.Match(r);
                 if (!m.Success) continue;
                 totali++;
-                var nome = m.Groups[2].Value;
-                quante[nome] = (quante.ContainsKey(nome) ? quante[nome] : 0) + 1;
-                if (traccia.IsMatch(m.Groups[3].Value))
-                    tracce[nome] = (tracce.ContainsKey(nome) ? tracce[nome] : 0) + 1;
+                var itemName = m.Groups[2].Value;
+                howMany[itemName] = (howMany.ContainsKey(itemName) ? howMany[itemName] : 0) + 1;
+                if (trace.IsMatch(m.Groups[3].Value))
+                    traces[itemName] = (traces.ContainsKey(itemName) ? traces[itemName] : 0) + 1;
             }
 
             // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE. Se un giorno le
             // intestazioni cambiano forma, questa riga diventa rossa invece di
             // lasciare che il controllo si spenga in silenzio.
-            Segna("ci sono voci da controllare", totali >= 100, totali + " intestazioni");
+            Check("ci sono voci da controllare", totali >= 100, totali + " intestazioni");
 
-            var doppie = new List<string>();
-            foreach (var v in quante)
+            var doubled = new List<string>();
+            foreach (var v in howMany)
             {
-                int t = tracce.ContainsKey(v.Key) ? tracce[v.Key] : 0;
+                int t = traces.ContainsKey(v.Key) ? traces[v.Key] : 0;
                 // una voce viva piu' le sue tracce: va bene. Due vive no.
                 if (v.Value - t > 1)
-                    doppie.Add(v.Key + " (×" + v.Value + ", di cui tracce: " + t + ")");
+                    doubled.Add(v.Key + " (×" + v.Value + ", di cui tracce: " + t + ")");
             }
-            doppie.Sort(StringComparer.Ordinal);
+            doubled.Sort(StringComparer.Ordinal);
 
-            Segna("due voci diverse non si chiamano allo stesso modo",
-                  doppie.Count == 0,
-                  doppie.Count == 0
+            Check("due voci diverse non si chiamano allo stesso modo",
+                  doubled.Count == 0,
+                  doubled.Count == 0
                       ? totali + " intestazioni, nessun nome usato due volte per due cose"
-                      : "STESSO NOME, VOCI DIVERSE: " + string.Join("; ", doppie));
+                      : "STESSO NOME, VOCI DIVERSE: " + string.Join("; ", doubled));
         }
 
         /// <summary>
@@ -1164,32 +1164,32 @@ namespace Oce.Solid.Agent.ContractTests
         /// scatta e nemmeno che dice il vero: quello lo prova il caso di banco
         /// della coppia (dal 26/9/2026).
         /// </summary>
-        private static void IlRifiutoDelleQuoteDiceAncoraQuelloCheServe()
+        private static void TheDimensionsRefusalStillSaysWhatIsNeeded()
         {
-            Gruppo("il rifiuto delle quote dice ancora quello che serve");
+            Group("il rifiuto delle quote dice ancora quello che serve");
 
-            var file = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "DrawingOperations.cs");
-            if (!File.Exists(file)) { Segna("il sorgente c'e'", false, file); return; }
-            string codice;
-            try { codice = File.ReadAllText(file); }
-            catch (Exception ex) { Segna("il sorgente si legge", false, ex.Message); return; }
+            var file = Path.Combine(Root(), "Oce.Solid.Agent.Core", "DrawingOperations.cs");
+            if (!File.Exists(file)) { Check("il sorgente c'e'", false, file); return; }
+            string code;
+            try { code = File.ReadAllText(file); }
+            catch (Exception ex) { Check("il sorgente si legge", false, ex.Message); return; }
 
             // L'ANCORA. Se sparisce, questo controllo non ha piu' un soggetto e
             // deve diventare ROSSO: una prova che non trova cio' che cerca e
             // passa e' peggio di nessuna prova.
-            const string ancora = "Non e' arrivata nessuna quota";
-            if (codice.IndexOf(ancora, StringComparison.Ordinal) < 0)
+            const string anchor = "Non e' arrivata nessuna quota";
+            if (code.IndexOf(anchor, StringComparison.Ordinal) < 0)
             {
-                Segna("trovo il rifiuto di model_dimensions", false,
-                      "«" + ancora + "» non c'e' piu' in DrawingOperations.cs: " +
+                Check("trovo il rifiuto di model_dimensions", false,
+                      "«" + anchor + "» non c'e' piu' in DrawingOperations.cs: " +
                       "se l'import e' stato riparato questa prova va RISCRITTA, non tolta");
                 return;
             }
-            Segna("trovo il rifiuto di model_dimensions", true, "");
+            Check("trovo il rifiuto di model_dimensions", true, "");
 
             // Ogni pezzo, e accanto PERCHE' quel pezzo: un elenco di stringhe
             // senza il motivo e' la prima cosa che qualcuno taglia.
-            var pezzi = new[]
+            var parts = new[]
             {
                 new[] { "marcate per il disegno",
                         "e' il dato che divide in due le cause: marcate e non importate " +
@@ -1203,16 +1203,16 @@ namespace Oce.Solid.Agent.ContractTests
                         "fallimento un fatto invece di un mistero" },
             };
 
-            var mancanti = new List<string>();
-            foreach (var p in pezzi)
-                if (codice.IndexOf(p[0], StringComparison.Ordinal) < 0)
-                    mancanti.Add("«" + p[0] + "» (" + p[1] + ")");
+            var missingItems = new List<string>();
+            foreach (var p in parts)
+                if (code.IndexOf(p[0], StringComparison.Ordinal) < 0)
+                    missingItems.Add("«" + p[0] + "» (" + p[1] + ")");
 
-            Segna("il rifiuto nomina ancora quante quote sono marcate e cosa ha provato",
-                  mancanti.Count == 0,
-                  mancanti.Count == 0
-                      ? "tutti e " + pezzi.Length + " i pezzi ci sono"
-                      : "TOLTO DAL MESSAGGIO: " + string.Join("; ", mancanti));
+            Check("il rifiuto nomina ancora quante quote sono marcate e cosa ha provato",
+                  missingItems.Count == 0,
+                  missingItems.Count == 0
+                      ? "tutti e " + parts.Length + " i pezzi ci sono"
+                      : "TOLTO DAL MESSAGGIO: " + string.Join("; ", missingItems));
         }
 
         /// <summary>
@@ -1246,13 +1246,13 @@ namespace Oce.Solid.Agent.ContractTests
         /// Se una delle due manca lo dice e **non passa**: una prova che non
         /// trova cio' che cerca e passa e' peggio di nessuna prova.
         /// </summary>
-        private static void LaLibreriaDelPonteELaSTESSADelBanco()
+        private static void TheBridgeLibraryIsTheSAMEAsTheBench()
         {
-            Gruppo("le TRE copie della libreria sono la stessa");
+            Group("le TRE copie della libreria sono la stessa");
 
-            var delBanco = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release",
+            var bench = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release",
                                         "Oce.Solid.Agent.Core.dll");
-            var delPonte = Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Core.dll");
+            var bridge = Path.Combine(Root(), "bin", "Oce.Solid.Agent.Core.dll");
 
             // ── LA TERZA, CHE QUESTO CONTROLLO NON GUARDAVA ──────────────
             //
@@ -1272,33 +1272,33 @@ namespace Oce.Solid.Agent.ContractTests
             // — niente lo impedisce — ma dice **subito** che le copie sono
             // divergute, invece di lasciarlo scoprire a un resoconto che
             // accusa il codice sbagliato.
-            var accantoAlBanco = Path.Combine(Radice(), "Bench", "bin",
+            var nextToBench = Path.Combine(Root(), "Bench", "bin",
                                               "Oce.Solid.Agent.Core.dll");
 
-            bool c1 = ProdottoDaBuild(delBanco), c2 = ProdottoDaBuild(delPonte);
+            bool c1 = ProductFromBuild(bench), c2 = ProductFromBuild(bridge);
 
             // Senza interop la libreria non si poteva compilare: mancano tutte e
             // due perche' la macchina non ce la fa, non perche' qualcuno abbia
-            // sbagliato. Vedi `NonQui`.
-            if (!c1 && !c2 && !IlPonteSiPotevaCompilare())
+            // sbagliato. Vedi `NotHere`.
+            if (!c1 && !c2 && !TheBridgeCouldBeBuilt())
             {
-                NonQui("il ponte e il banco caricano la stessa libreria",
+                NotHere("il ponte e il banco caricano la stessa libreria",
                        "qui SOLIDWORKS non c'e': Oce.Solid.Agent.Core.dll non si compila, " +
                        "e due file che non esistono non si possono confrontare.");
                 return;
             }
 
-            Segna("la libreria che misura il banco c'e'", c1, delBanco);
-            Segna("la libreria che carica il ponte c'e'", c2,
-                  c2 ? delPonte : delPonte + " — si produce con .\\build.ps1");
+            Check("la libreria che misura il banco c'e'", c1, bench);
+            Check("la libreria che carica il ponte c'e'", c2,
+                  c2 ? bridge : bridge + " — si produce con .\\build.ps1");
             if (!c1 || !c2) return;
 
-            string v1 = Versione(delBanco), v2 = Versione(delPonte);
-            Segna("le due versioni si leggono", v1 != null && v2 != null,
+            string v1 = Version(bench), v2 = Version(bridge);
+            Check("le due versioni si leggono", v1 != null && v2 != null,
                   (v1 ?? "?") + " / " + (v2 ?? "?"));
             if (v1 == null || v2 == null) return;
 
-            Segna("la sorgente e il ponte hanno la STESSA versione della libreria",
+            Check("la sorgente e il ponte hanno la STESSA versione della libreria",
                   string.Equals(v1, v2, StringComparison.Ordinal),
                   string.Equals(v1, v2, StringComparison.Ordinal)
                       ? "tutti e due " + v1
@@ -1323,17 +1323,17 @@ namespace Oce.Solid.Agent.ContractTests
             // Si legge dal SORGENTE, perche' e' li' che la scelta vive, e
             // perche' un controllo che leggesse il residuo tornerebbe a
             // sorvegliare il sintomo.
-            var sorgenteBanco = Path.Combine(Radice(), "Bench", "Program.cs");
-            if (File.Exists(sorgenteBanco))
+            var benchSource = Path.Combine(Root(), "Bench", "Program.cs");
+            if (File.Exists(benchSource))
             {
-                var testo = File.ReadAllText(sorgenteBanco);
-                bool cercaLaBuona =
-                    testo.IndexOf("LibreriaPredefinita", StringComparison.Ordinal) >= 0 &&
-                    testo.IndexOf("\"Oce.Solid.Agent.Core\", \"bin\", \"Release\"",
+                var text = File.ReadAllText(benchSource);
+                bool findTheGoodOne =
+                    text.IndexOf("DefaultLibrary", StringComparison.Ordinal) >= 0 &&
+                    text.IndexOf("\"Oce.Solid.Agent.Core\", \"bin\", \"Release\"",
                                   StringComparison.Ordinal) >= 0;
-                Segna("senza «--libreria» il banco cerca PRIMA la libreria appena compilata",
-                      cercaLaBuona,
-                      cercaLaBuona
+                Check("senza «--libreria» il banco cerca PRIMA la libreria appena compilata",
+                      findTheGoodOne,
+                      findTheGoodOne
                           ? "il ripiego accanto all'eseguibile resta, ma viene dopo"
                           : "il predefinito punta accanto all'eseguibile: chi lancia " +
                             "`Oce.Solid.Agent.Bench.exe` a mano misura una copia che nessuno " +
@@ -1342,10 +1342,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // E se il residuo c'e', lo si DICE — senza accusare: sapere
                 // che e' vecchio spiega un log confuso di sei mesi fa.
                 var leftoverCheck = "e si sa se accanto all'eseguibile c'e' un residuo vecchio";
-                if (ProdottoDaBuild(accantoAlBanco))
+                if (ProductFromBuild(nextToBench))
                 {
-                    string v3 = Versione(accantoAlBanco);
-                    Segna(leftoverCheck, true,
+                    string v3 = Version(nextToBench);
+                    Check(leftoverCheck, true,
                           string.Equals(v1, v3, StringComparison.Ordinal)
                               ? "ce n'e' una, ed e' allineata (" + v3 + ")"
                               : "ce n'e' una FERMA A " + v3 + " contro " + v1 +
@@ -1358,7 +1358,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // of the contracts then accuses a right document (1/10/2026:
                 // 765 on the main checkout, 764 in a fresh worktree).
                 else
-                    Segna(leftoverCheck, true, "there is none: nothing stale next to the executable");
+                    Check(leftoverCheck, true, "there is none: nothing stale next to the executable");
             }
 
             // ── E IL TERZO NUMERO, QUELLO CHE NESSUNO GUARDA ─────────────
@@ -1376,14 +1376,14 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // Si guarda il binario e non il sorgente: quello che finisce nel
             // pacchetto e' il binario.
-            string informativa = InformazioneDiVersione(delBanco);
-            Segna("la versione mostrata da Windows e' quella vera",
-                  informativa != null &&
-                  v1.StartsWith(informativa, StringComparison.Ordinal),
-                  informativa == null
+            string notice = VersionInformation(bench);
+            Check("la versione mostrata da Windows e' quella vera",
+                  notice != null &&
+                  v1.StartsWith(notice, StringComparison.Ordinal),
+                  notice == null
                       ? "non si legge"
-                      : "assembly " + v1 + ", proprieta' del file " + informativa +
-                        (v1.StartsWith(informativa, StringComparison.Ordinal)
+                      : "assembly " + v1 + ", proprieta' del file " + notice +
+                        (v1.StartsWith(notice, StringComparison.Ordinal)
                             ? ""
                             : " — si allinea AssemblyInformationalVersion in " +
                               "Oce.Solid.Agent.Core\\Properties\\AssemblyInfo.cs"));
@@ -1393,11 +1393,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// `AssemblyInformationalVersion` del file, cioe' quella che si legge
         /// in Proprieta' → Dettagli → Versione prodotto. `null` se non c'e'.
         /// </summary>
-        private static string InformazioneDiVersione(string percorso)
+        private static string VersionInformation(string filePath)
         {
             try
             {
-                var v = System.Diagnostics.FileVersionInfo.GetVersionInfo(percorso)
+                var v = System.Diagnostics.FileVersionInfo.GetVersionInfo(filePath)
                                                           .ProductVersion;
                 return string.IsNullOrWhiteSpace(v) ? null : v.Trim();
             }
@@ -1409,7 +1409,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// caricarlo vorrebbe dire tenerselo, e questa suite gira anche dove
         /// l'interop di Dassault non c'e'.
         /// </summary>
-        private static string Versione(string dll)
+        private static string Version(string dll)
         {
             try { return System.Reflection.AssemblyName.GetAssemblyName(dll).Version.ToString(); }
             catch { return null; }
@@ -1419,41 +1419,41 @@ namespace Oce.Solid.Agent.ContractTests
         /// `prove.xml` in formato JUnit: e' quello che ogni CI sa leggere senza
         /// che nessuno le insegni niente.
         /// </summary>
-        private static void ScriviJUnit()
+        private static void WriteJUnit()
         {
             try
             {
                 var file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "prove.xml");
                 var x = new StringBuilder();
                 x.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                x.AppendLine("<testsuites name=\"Oce.Solid.Agent.ContractTests\" tests=\"" + Esiti.Count +
-                             "\" failures=\"" + Falliti +
-                             "\" skipped=\"" + NonEseguibiliQui + "\">");
-                foreach (var g in Esiti.GroupBy(e => e.Gruppo))
+                x.AppendLine("<testsuites name=\"Oce.Solid.Agent.ContractTests\" tests=\"" + Outcomes.Count +
+                             "\" failures=\"" + FailedOnes +
+                             "\" skipped=\"" + NotRunnableHere + "\">");
+                foreach (var g in Outcomes.GroupBy(e => e.Group))
                 {
                     x.AppendLine("  <testsuite name=\"" + Xml(g.Key) + "\" tests=\"" + g.Count() +
                                  "\" failures=\"" + g.Count(e => !e.Ok) +
-                                 "\" skipped=\"" + g.Count(e => e.NonQui) + "\">");
+                                 "\" skipped=\"" + g.Count(e => e.NotHere) + "\">");
                     foreach (var e in g)
                     {
                         x.Append("    <testcase classname=\"" + Xml(g.Key) +
-                                 "\" name=\"" + Xml(e.Nome) + "\"");
+                                 "\" name=\"" + Xml(e.Name) + "\"");
                         // UN SALTATO NON E' UN PASSATO, nemmeno nell'XML: un
                         // `<testcase />` nudo e' un verde per chiunque legga il
                         // file, e il file lo legge una CI che poi mostra un segno
                         // di spunta. `<skipped>` e' la voce che JUnit ha proprio
                         // per questo, e ogni interfaccia la sa disegnare diversa.
-                        if (e.NonQui)
+                        if (e.NotHere)
                         {
                             x.AppendLine(">");
-                            x.AppendLine("      <skipped message=\"" + Xml(e.Dettaglio) + "\" />");
+                            x.AppendLine("      <skipped message=\"" + Xml(e.Detail) + "\" />");
                             x.AppendLine("    </testcase>");
                         }
                         else if (e.Ok) x.AppendLine(" />");
                         else
                         {
                             x.AppendLine(">");
-                            x.AppendLine("      <failure message=\"" + Xml(e.Dettaglio) + "\" />");
+                            x.AppendLine("      <failure message=\"" + Xml(e.Detail) + "\" />");
                             x.AppendLine("    </testcase>");
                         }
                     }

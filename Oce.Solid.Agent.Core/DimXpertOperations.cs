@@ -28,68 +28,68 @@ namespace Oce.Solid.Agent.Core
     /// Le quote nascono nel MODELLO (MBD), non in una tavola: una vista di
     /// tavola le puo' poi mostrare, ma quella e' un'altra operazione.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito SchemaDiQuote(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome DimensionScheme(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var uid = Lista(a, "references_uid");
+            var uid = StringList(a, "references_uid");
             if (uid.Count != 3)
-                return Fallito(
+                return Failed(
                     "«references_uid» vuole TRE facce piane, in ordine: il riferimento primario " +
                     "(di solito la faccia d'appoggio), il secondario e il terziario (due fianchi " +
                     "fra loro perpendicolari). Ne ho ricevute " + uid.Count + ".");
 
-            var facce = new List<IFace2>();
+            var faces = new List<IFace2>();
             foreach (var u in uid)
             {
-                string motivo;
-                var f = RisolviFaccia(stato, a, u, out motivo);
-                if (f == null) return Fallito("Riferimento «" + u + "»: " + motivo);
-                facce.Add(f);
+                string reason;
+                var f = ResolveFace(docState, a, u, out reason);
+                if (f == null) return Failed("Riferimento «" + u + "»: " + reason);
+                faces.Add(f);
             }
 
             string config = "";
-            try { config = modello.ConfigurationManager.ActiveConfiguration.Name; } catch { }
-            IDimXpertPart parte;
+            try { config = model.ConfigurationManager.ActiveConfiguration.Name; } catch { }
+            IDimXpertPart partDoc;
             try
             {
-                var gestore = modello.Extension.get_DimXpertManager(config, true) as IDimXpertManager;
-                parte = gestore?.DimXpertPart as IDimXpertPart;
+                var handler = model.Extension.get_DimXpertManager(config, true) as IDimXpertManager;
+                partDoc = handler?.DimXpertPart as IDimXpertPart;
             }
-            catch (Exception ex) { return Fallito("DimXpert non risponde: " + ex.Message); }
-            if (parte == null) return Fallito("DimXpert non ha dato la parte da quotare.");
+            catch (Exception ex) { return Failed("DimXpert non risponde: " + ex.Message); }
+            if (partDoc == null) return Failed("DimXpert non ha dato la parte da quotare.");
 
-            int prima = parte.GetAnnotationCount();
+            int before = partDoc.GetAnnotationCount();
 
-            modello.ClearSelection2(true);
-            var selezione = modello.SelectionManager as ISelectionMgr;
-            int[] marchi = { 1, 2, 4 };
+            model.ClearSelection2(true);
+            var selection = model.SelectionManager as ISelectionMgr;
+            int[] marks = { 1, 2, 4 };
             for (int i = 0; i < 3; i++)
-                if (!Seleziona(selezione, facce[i], marchi[i]))
-                    return Fallito("Non sono riuscito a selezionare «" + uid[i] + "».");
+                if (!Select(selection, faces[i], marks[i]))
+                    return Failed("Non sono riuscito a selezionare «" + uid[i] + "».");
 
-            var opzioni = parte.GetAutoDimSchemeOption();
-            opzioni.PartType = (int)swDimXpertAutoDimSchemePartType_e.swDimXpertAutoDimSchemePartType_Prismatic;
-            opzioni.ToleranceType = Str(a, "tolerance", "plus_minus") == "geometric"
+            var options = partDoc.GetAutoDimSchemeOption();
+            options.PartType = (int)swDimXpertAutoDimSchemePartType_e.swDimXpertAutoDimSchemePartType_Prismatic;
+            options.ToleranceType = Str(a, "tolerance", "plus_minus") == "geometric"
                 ? (int)swDimXpertAutoDimSchemeToleranceType_e.swDimXpertAutoDimSchemeToleranceType_Geometric
                 : (int)swDimXpertAutoDimSchemeToleranceType_e.swDimXpertAutoDimSchemeToleranceType_PlusMinus;
-            opzioni.ScopeAllFeature = true;
-            opzioni.FeatureFilters = 0xFFFF;
+            options.ScopeAllFeature = true;
+            options.FeatureFilters = 0xFFFF;
 
-            bool risposta;
-            try { risposta = parte.AutoDimensionScheme(opzioni); }
-            catch (Exception ex) { return Fallito("Lo schema di quote non e' partito: " + ex.Message); }
-            finally { modello.ClearSelection2(true); }
+            bool response;
+            try { response = partDoc.AutoDimensionScheme(options); }
+            catch (Exception ex) { return Failed("Lo schema di quote non e' partito: " + ex.Message); }
+            finally { model.ClearSelection2(true); }
 
-            int dopo = parte.GetAnnotationCount();
-            if (dopo <= prima)
-                return Fallito(
-                    "Lo schema non ha messo nessuna quota (" + prima + " -> " + dopo + "). Di " +
+            int after = partDoc.GetAnnotationCount();
+            if (after <= before)
+                return Failed(
+                    "Lo schema non ha messo nessuna quota (" + before + " -> " + after + "). Di " +
                     "solito i tre riferimenti non sono tre facce piane fra loro perpendicolari.");
 
             var quote = new List<object>();
-            var valori = new List<object>();
-            var ann = parte.GetAnnotations() as object[];
+            var values = new List<object>();
+            var ann = partDoc.GetAnnotations() as object[];
             foreach (var o in ann ?? new object[0])
             {
                 var an = o as IDimXpertAnnotation;
@@ -99,20 +99,20 @@ namespace Oce.Solid.Agent.Core
                 double v;
                 if (ap > 0 && ch > ap && double.TryParse(an.Name.Substring(ap + 1, ch - ap - 1),
                         NumberStyles.Float, CultureInfo.InvariantCulture, out v))
-                    valori.Add(v);
+                    values.Add(v);
             }
-            valori.Sort((x, y) => ((double)x).CompareTo((double)y));
+            values.Sort((x, y) => ((double)x).CompareTo((double)y));
 
-            return SenzaFeature(new Dictionary<string, object>
+            return WithoutFeature(new Dictionary<string, object>
             {
-                ["annotations_before"] = prima,
-                ["annotations_after"] = dopo,
+                ["annotations_before"] = before,
+                ["annotations_after"] = after,
                 ["dimensions"] = quote.Count <= 40 ? quote.ToArray() : quote.GetRange(0, 40).ToArray(),
-                ["values_mm"] = valori.ToArray(),
-                ["characteristics"] = parte.GetFeatureCount(),
+                ["values_mm"] = values.ToArray(),
+                ["characteristics"] = partDoc.GetFeatureCount(),
                 // LA RISPOSTA DELL'API, accanto alla misura e col suo nome: False
                 // anche quando ha quotato. Non si nasconde, si nomina.
-                ["auto_dimension_scheme_response"] = risposta,
+                ["auto_dimension_scheme_response"] = response,
             });
         }
     }

@@ -21,17 +21,17 @@ namespace Oce.Solid.Agent.Tools
     /// a due livelli: un'operazione che non e' stata costruita dentro
     /// SolidWorks e misurata non si offre a nessuno, nemmeno di qui.
     /// </summary>
-    internal sealed class Catalogo
+    internal sealed class Catalog
     {
-        private readonly List<Dictionary<string, object>> _operazioni =
+        private readonly List<Dictionary<string, object>> _operations =
             new List<Dictionary<string, object>>();
-        private Dictionary<string, object> _famiglie = new Dictionary<string, object>();
+        private Dictionary<string, object> _families = new Dictionary<string, object>();
 
-        public string Percorso { get; private set; }
-        public int Quante => _operazioni.Count;
-        public string ErroreDiCaricamento { get; private set; }
+        public string FilePath { get; private set; }
+        public int HowMany => _operations.Count;
+        public string LoadingError { get; private set; }
 
-        public Catalogo()
+        public Catalog()
         {
             // ── DUE NOMI, E UNO SOLO E' QUELLO DI QUESTO PRODOTTO ───────
             //
@@ -45,62 +45,62 @@ namespace Oce.Solid.Agent.Tools
             // L'ordine conta: se sono impostate tutte e due vince la nuova.
             // Chi ne imposta due diverse ha gia' un guaio, e almeno sa quale
             // delle due comanda.
-            Percorso = Environment.GetEnvironmentVariable("RISCONTRO_CATALOGO");
-            if (string.IsNullOrWhiteSpace(Percorso))
-                Percorso = Environment.GetEnvironmentVariable("OPENPDM_CATALOGO");
-            if (string.IsNullOrWhiteSpace(Percorso))
-                Percorso = Path.Combine(
+            FilePath = Environment.GetEnvironmentVariable("RISCONTRO_CATALOGO");
+            if (string.IsNullOrWhiteSpace(FilePath))
+                FilePath = Environment.GetEnvironmentVariable("OPENPDM_CATALOGO");
+            if (string.IsNullOrWhiteSpace(FilePath))
+                FilePath = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
                     "catalog.json");
 
-            if (!File.Exists(Percorso))
+            if (!File.Exists(FilePath))
             {
-                ErroreDiCaricamento =
-                    "Non trovo il catalogo in «" + Percorso + "». Senza, il ponte " +
+                LoadingError =
+                    "Non trovo il catalogo in «" + FilePath + "». Senza, il ponte " +
                     "sa eseguire ma non sa dire cosa si puo' chiedere.";
                 return;
             }
 
             try
             {
-                var radice = Mcp.Protocollo.DaJson(File.ReadAllText(Percorso));
-                _famiglie = Prendi(radice, "families") as Dictionary<string, object>
+                var root = Mcp.Protocol.FromJson(File.ReadAllText(FilePath));
+                _families = Take(root, "families") as Dictionary<string, object>
                             ?? new Dictionary<string, object>();
-                var elenco = Prendi(radice, "operations") as object[];
-                if (elenco != null)
-                    foreach (var o in elenco)
-                        if (o is Dictionary<string, object> voce) _operazioni.Add(voce);
+                var list = Take(root, "operations") as object[];
+                if (list != null)
+                    foreach (var o in list)
+                        if (o is Dictionary<string, object> entry) _operations.Add(entry);
             }
             catch (Exception ex)
             {
-                ErroreDiCaricamento = "Il catalogo non si legge: " + ex.Message;
+                LoadingError = "Il catalogo non si legge: " + ex.Message;
             }
         }
 
-        private static object Prendi(Dictionary<string, object> d, string chiave)
+        private static object Take(Dictionary<string, object> d, string key)
         {
             if (d == null) return null;
-            return d.TryGetValue(chiave, out var v) ? v : null;
+            return d.TryGetValue(key, out var v) ? v : null;
         }
 
-        public bool Conosce(string nome) => Trova(nome) != null;
+        public bool Knows(string itemName) => Find(itemName) != null;
 
         /// <summary>
         /// Lo schema grezzo di un'operazione, per chi deve confrontarci gli
-        /// argomenti. `Descrizione` lo impacchetta per il modello; qui
+        /// argomenti. `Description` lo impacchetta per il modello; qui
         /// serve nudo.
         /// </summary>
-        public Dictionary<string, object> Schema(string nome)
+        public Dictionary<string, object> Schema(string itemName)
         {
-            var op = Trova(nome);
-            return op == null ? null : Prendi(op, "schema") as Dictionary<string, object>;
+            var op = Find(itemName);
+            return op == null ? null : Take(op, "schema") as Dictionary<string, object>;
         }
 
-        public Dictionary<string, object> Trova(string nome)
+        public Dictionary<string, object> Find(string itemName)
         {
-            if (string.IsNullOrWhiteSpace(nome)) return null;
-            return _operazioni.FirstOrDefault(o =>
-                string.Equals(Convert.ToString(Prendi(o, "name")), nome,
+            if (string.IsNullOrWhiteSpace(itemName)) return null;
+            return _operations.FirstOrDefault(o =>
+                string.Equals(Convert.ToString(Take(o, "name")), itemName,
                     StringComparison.OrdinalIgnoreCase));
         }
 
@@ -110,18 +110,18 @@ namespace Oce.Solid.Agent.Tools
         /// Serve allo strumento `measure`, che deve poter dire di NO a
         /// un'operazione che tocca il pezzo — e per dirlo deve sapere di che
         /// famiglia e'. E' un METODO NUOVO e non un parametro in piu' su
-        /// `Trova`: il banco e le prove chiamano questa classe per riflessione,
+        /// `Find`: il banco e le prove chiamano questa classe per riflessione,
         /// e cambiare l'insieme delle firme rompe chi chiama anche quando il
         /// compilatore tace.
         /// </summary>
-        public string Famiglia(string nome)
+        public string Family(string itemName)
         {
-            var op = Trova(nome);
-            return op == null ? null : Convert.ToString(Prendi(op, "family"));
+            var op = Find(itemName);
+            return op == null ? null : Convert.ToString(Take(op, "family"));
         }
 
-        public IEnumerable<string> Nomi =>
-            _operazioni.Select(o => Convert.ToString(Prendi(o, "name")));
+        public IEnumerable<string> Names =>
+            _operations.Select(o => Convert.ToString(Take(o, "name")));
 
         /// <summary>
         /// L'elenco corto: nome e una riga, raggruppato per famiglia.
@@ -131,58 +131,58 @@ namespace Oce.Solid.Agent.Tools
         /// serve, con `describe_operation` — e' il catalogo a due livelli,
         /// che qui vale per lo stesso motivo per cui vale nel server.
         /// </summary>
-        public object Elenco(string famigliaVoluta)
+        public object Items(string wantedFamily)
         {
-            var perFamiglia = new List<object>();
-            var famiglie = _operazioni
-                .Select(o => Convert.ToString(Prendi(o, "family")))
+            var perFamily = new List<object>();
+            var families = _operations
+                .Select(o => Convert.ToString(Take(o, "family")))
                 .Distinct()
                 .OrderBy(f => f, StringComparer.Ordinal);
 
-            foreach (var f in famiglie)
+            foreach (var f in families)
             {
-                if (!string.IsNullOrWhiteSpace(famigliaVoluta) &&
-                    !string.Equals(f, famigliaVoluta, StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(wantedFamily) &&
+                    !string.Equals(f, wantedFamily, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                var voci = _operazioni
-                    .Where(o => Convert.ToString(Prendi(o, "family")) == f)
+                var entries = _operations
+                    .Where(o => Convert.ToString(Take(o, "family")) == f)
                     .Select(o => new Dictionary<string, object>
                     {
-                        ["name"] = Prendi(o, "name"),
-                        ["does"] = Prendi(o, "summary"),
+                        ["name"] = Take(o, "name"),
+                        ["does"] = Take(o, "summary"),
                     })
                     .ToArray();
 
-                perFamiglia.Add(new Dictionary<string, object>
+                perFamily.Add(new Dictionary<string, object>
                 {
                     ["family"] = f,
-                    ["purpose"] = Prendi(_famiglie, f),
-                    ["operations"] = voci,
+                    ["purpose"] = Take(_families, f),
+                    ["operations"] = entries,
                 });
             }
 
             return new Dictionary<string, object>
             {
-                ["total"] = _operazioni.Count,
-                ["families"] = perFamiglia,
+                ["total"] = _operations.Count,
+                ["families"] = perFamily,
                 ["how_to_use_it"] =
                     "Chiedi «describe_operation» per avere lo schema completo " +
                     "di quella che ti serve, poi «build».",
             };
         }
 
-        public object Descrizione(string nome)
+        public object Description(string itemName)
         {
-            var op = Trova(nome);
+            var op = Find(itemName);
             if (op == null) return null;
             return new Dictionary<string, object>
             {
-                ["name"] = Prendi(op, "name"),
-                ["family"] = Prendi(op, "family"),
-                ["precondition"] = Prendi(op, "precondition"),
-                ["details"] = Prendi(op, "details"),
-                ["arguments"] = Prendi(op, "schema"),
+                ["name"] = Take(op, "name"),
+                ["family"] = Take(op, "family"),
+                ["precondition"] = Take(op, "precondition"),
+                ["details"] = Take(op, "details"),
+                ["arguments"] = Take(op, "schema"),
             };
         }
 
@@ -196,16 +196,16 @@ namespace Oce.Solid.Agent.Tools
         /// stato scritto: chi sbaglia un nome quasi sempre ne ha in mente
         /// uno vicino, e lo sbaglia di una lettera.
         /// </summary>
-        public List<string> Simili(string nome)
+        public List<string> Similar(string itemName)
         {
-            if (string.IsNullOrWhiteSpace(nome)) return new List<string>();
-            var pezzi = nome.ToLowerInvariant().Split('_')
+            if (string.IsNullOrWhiteSpace(itemName)) return new List<string>();
+            var parts = itemName.ToLowerInvariant().Split('_')
                 .Where(p => p.Length >= 4)
                 .Select(p => p.Substring(0, Math.Min(p.Length - 1, 6)))
                 .ToList();
-            if (pezzi.Count == 0) return new List<string>();
-            return Nomi
-                .Where(n => pezzi.Any(p => n.ToLowerInvariant().Contains(p)))
+            if (parts.Count == 0) return new List<string>();
+            return Names
+                .Where(n => parts.Any(p => n.ToLowerInvariant().Contains(p)))
                 .Take(5)
                 .ToList();
         }

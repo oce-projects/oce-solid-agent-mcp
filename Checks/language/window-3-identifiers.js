@@ -695,6 +695,12 @@ function pairsOf(map, oldFiles) {
   const add = (a, b) => { if (!p.has(a)) p.set(a, new Set()); p.get(a).add(b); };
   for (const t of ['folder', 'file', 'project', 'identifier']) for (const [a, b] of map[t]) add(a, b);
   for (const [a, b] of derivedFiles(map, oldFiles)) add(a, b);
+  // the names decided apart from the map: the symbols the C# renamer names otherwise where the
+  // row would clash (SYMBOL_OVERRIDES), and the scripts' own (window-3-scripts.js)
+  try {
+    for (const o of require('./window-3-renamer.js').SYMBOL_OVERRIDES) add(o[2], o[3]);
+    for (const [a, b] of require('./window-3-scripts.js').extraPairs()) add(a, b);
+  } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
   for (const [a, b] of map.file) { const x = a.slice(0, a.indexOf('.')), y = b.slice(0, b.indexOf('.')); if (x !== y) add(x, y); }
   for (const [a, b] of map.project) { const x = a.split('.'), y = b.split('.'); if (x.length === y.length) x.forEach((s, i) => { if (s !== y[i]) add(s, y[i]); }); }
   // a dotted name written for a regular expression (Riscontro\.Disegno)
@@ -755,6 +761,20 @@ const HAND_EDITS = [
   ['Checks/language/exceptions.json', '^(?:Controlli/conta-todo|Checks/count-todo)\\\\.js$', '^Checks/count-todo\\\\.js$'],
   ['Checks/language/exceptions.json', '^(?:Prove/Programma|Tests/Program)\\\\.cs$', '^Tests/Program\\\\.cs$'],
   ['Checks/language/exceptions.json', '^(?:Prove|Tests)/', '^Tests/'],
+  // identifiers commit: two contracts already had a method Check(Assembly) and the bench's recorder becomes
+  // Check too, so theirs is called CheckLibrary first (they check the library assembly)
+  ['Tests/StateChamferContract.cs', 'Check(asm);', 'CheckLibrary(asm);'],
+  ['Tests/StateChamferContract.cs', 'internal static void Check(Assembly asm)', 'internal static void CheckLibrary(Assembly asm)'],
+  ['Tests/WeldmentConfigurationZc212terContract.cs', 'Check(asm);', 'CheckLibrary(asm);'],
+  ['Tests/WeldmentConfigurationZc212terContract.cs', 'internal static void Check(Assembly asm)', 'internal static void CheckLibrary(Assembly asm)'],
+  // a regular expression of a contract names the variable of the code it reads, as the code writes it now
+  ['Tests/ForbiddenSignaturesTests.cs', '\\bmodello', '\\bmodel'],
+  // ExtrudeProfile now writes the same line as the spline helper (sketches.AddToDB = addToDbBefore;), so the
+  // change of that contract names its line by the indentation only the helper has
+  ['Tests/Zc2113SplineCentreMarksContract.cs', '"sketches.AddToDB = addToDbBefore;", ""',
+    '"                    try { sketches.AddToDB = addToDbBefore;", "                    try {"'],
+  // same-il.ps1: the addresses of static data blobs are not compared (the hunk is the one of HAND_HUNKS below)
+  ['Checks/language/same-il.ps1', 'lines[i] = Literal(lines[i]);', 'lines[i] = DataLabel.Replace(Literal(lines[i]), "I_<data>");'],
 ];
 // Hunks rewritten by hand as a whole, named by the file and a piece of their
 // new text: [file after the window, new text, why]. Listed by the proof.
@@ -764,10 +784,51 @@ const HAND_HUNKS = [
   ['Checks/language/same-il.ps1', 'A row that keeps the name (old = new) is kept too', 'same-il: a row that keeps a name makes the word optional'],
   ['Checks/language/same-il.ps1', 'The address of a static data blob', 'same-il: the addresses of static data blobs are not compared'],
   ['Checks/language/same-il.ps1', '// Offset: 0x[0-9A-F]+ Length: 0x[0-9A-F]+$', 'same-il: the offset comment of a resource is not compared'],
+  // identifiers commit, by hand (each says why in the commit message and in the CHANGELOG entry)
+  ['Tests/RefusalsTests.cs', '**216, rename window 3', 'a refusal is judged on its string literals, not on the names of the code around them (216 of 937 before and after)'],
+  ['Tests/RefusalsTests.cs', 'private const int Floor = 216;', 'the floor on the literals: 216 of 937, the same on the tree before the window'],
+  ['Tests/RefusalsTests.cs', 'ShareFloorWithRemedy = 216;', 'the floor on the literals: 216 of 937, the same on the tree before the window'],
+  ['Tests/RefusalsTests.cs', 'only what the message says, its string literals', 'the remedy words are looked for in the literals of the message, not in the names of the code'],
+  ['Tests/SafetyNetSelfTests.cs', 'The fakes: rows of the real map', 'the name-map self-test takes the name it removes from the names the tree still has (--found)'],
+  ['Tests/SafetyNetSelfTests.cs', '.Take(3).ToList();', 'the name-map self-test takes the name it removes from the names the tree still has (--found)'],
+  ['Tests/SafetyNetSelfTests.cs', 'lines[leftOut.Index] = null;', 'the name-map self-test takes the name it removes from the names the tree still has (--found)'],
+  ['Tests/SafetyNetSelfTests.cs', '"exit 1, red on a (" + leftOut', 'the name-map self-test takes the name it removes from the names the tree still has (--found)'],
+  ['Checks/language/name-map-extract.js', 'extract, print each Italian name found', 'name-map-extract.js --found: the Italian names the tree has now'],
+  ['Checks/language/name-map-extract.js', "else if (x === '--found') a.found = true;", 'name-map-extract.js --found: the Italian names the tree has now'],
+  ['Checks/language/name-map-extract.js', 'if (args.found) {', 'name-map-extract.js --found: the Italian names the tree has now'],
 ];
+// same-il.ps1 learns what the identifiers need (the identifiers commit): a changed line is judged on the original
+// text of the before side, the rewrite leaves the string literals alone, an accessor is a prefix and a name, a
+// name ildasm quotes is the same name, the runs of nested classes are put in the order of their names (Roslyn
+// writes them sorted), and the lines not explained are counted by the method they sit in.
+for (const text of [
+  'the lines not explained, by the method they sit in',
+  'an accessor is its prefix and the name of the member',
+  'ildasm quotes a name that is an IL keyword',
+  'The order of the lines of a disassembly in which every run of nested classes',
+  'int show, string[] originalBefore)',
+  'int hunkStart = 0;',
+  'Judge(removed, added, originalBefore, hunkStart, mode, map, show, res);',
+  'static readonly Regex MethodLine',
+  'var where = Where(res, originalBefore, hunkStart, Math.Max',
+  '" (in " + where + "):"',
+  ': ExplainedByMap(originalBefore != null',
+  'var where = Where(res, originalBefore, hunkStart + i, 1);',
+  '"not only a literal (in " + where',
+  '$original = $ta',
+  'the runs of nested classes in the order of their names, on both sides',
+  '$r = [SameIlCore]::Compare($fa, $fb, $mode, $nameMap, $show, $original)',
+  'not explained, by method (',
+  // the self-test sees what the mode learned: a message that keeps a word of the map, an iterator that moves, an accessor
+  'a message that keeps two words of the map',
+  'Alpha`tZulu`nLabel`tTag',
+  "Replace('IEnumerable<int> Alpha()'",
+]) HAND_HUNKS.push(['Checks/language/same-il.ps1', text, 'same-il: Renames mode learns the identifiers (see the comment above this list)']);
 // Files the window writes by hand as a whole (judged elsewhere, listed):
 // the version, the changelog entry, the language baseline, this script.
-const HAND_FILES = /^(CHANGELOG\.md|VERSION\.txt|Checks\/language\/baseline\.json|Checks\/language\/window-3-identifiers\.js)$/;
+// (the name map: the English column and the note of the rows the binding proof of the window decided apart;
+// the frozen undecided calls of the obsolete-calls contract: its header says why the counts are what they are)
+const HAND_FILES = /^(CHANGELOG\.md|VERSION\.txt|Checks\/language\/baseline\.json|Checks\/language\/name-map\.tsv|Checks\/language\/lexicon\.json|Checks\/language\/window-3-(identifiers|renamer|scripts|mentions)\.js|Tests\/data\/obsolete-undecided-frozen\.tsv)$/;
 const VERSION_LINE = /\bAssembly(?:File|Informational)?Version\("[0-9.]+"\)/;
 
 // line hunks between two texts: [{ a: [old lines], b: [new lines], at }]
@@ -812,6 +873,13 @@ function runReverseProof(opts) {
       if (file === n && x.includes(from)) { const x2 = x.split(from).join(to); if (x2 === y || lineExplained(n, x2, y)) { handUsed++; return true; } }
     }
     if (VERSION_LINE.test(x) && VERSION_LINE.test(y) && x.replace(/[0-9.]+(?="\))/, '') === y.replace(/[0-9.]+(?="\))/, '')) return true;
+    // a JavaScript shorthand property written out, so that its KEY stays what it was:
+    // { name } -> { name: newName }, const { name } = r -> const { name: newName } = r
+    if (/\.js$/.test(n)) {
+      const y2 = y.replace(/\b([A-Za-z_$][\w$]*): ([A-Za-z_$][\w$]*)(?=[\s,})=;])/g,
+        (m, k, v) => (k !== v && !x.includes(k + ': ') && x.includes(k) && explains(pairs, k, v)) ? k : m);
+      if (y2 !== y && lineExplained(n, x, y2)) return true;
+    }
     const wa = x.split(/([A-Za-z0-9_.\-\\/{}$%~@+*?]+)/), wb = y.split(/([A-Za-z0-9_.\-\\/{}$%~@+*?]+)/);
     if (wa.length !== wb.length) return false;
     for (let k = 0; k < wa.length; k++) if (wa[k] !== wb[k] && !((k % 2 === 1) && explains(pairs, wa[k], wb[k]))) return false;

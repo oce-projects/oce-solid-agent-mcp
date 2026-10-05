@@ -25,27 +25,27 @@ namespace Oce.Solid.Agent.Core
     /// giusto: vuol dire che e' nata una seconda strada, e la seconda strada
     /// prima o poi diverge.
     /// </summary>
-    public static class Unita
+    public static class Units
     {
-        public const double MmPerMetro = 1000.0;
+        public const double MmPerMeter = 1000.0;
 
         /// <summary>Millimetri -> metri, per andare verso SOLIDWORKS.</summary>
-        public static double M(double mm) => mm / MmPerMetro;
+        public static double M(double mm) => mm / MmPerMeter;
 
         /// <summary>Gradi -> radianti, per andare verso SOLIDWORKS.</summary>
-        public static double Rad(double gradi) => gradi * Math.PI / 180.0;
+        public static double Rad(double deg) => deg * Math.PI / 180.0;
 
         /// <summary>Metri -> millimetri, per riportare al server cio' che si e' misurato.</summary>
-        public static double Mm(double metri) => metri * MmPerMetro;
+        public static double Mm(double meters) => meters * MmPerMeter;
 
         /// <summary>
         /// Metri quadri -> millimetri quadri, per le aree lette da SOLIDWORKS.
         /// Sta qui e non accanto alla lettura perche' la regola vale anche per
         /// le aree: una conversione sparsa e' il primo passo verso due strade.
         /// </summary>
-        public static double Mm2(double m2) => m2 * MmPerMetro * MmPerMetro;
+        public static double Mm2(double m2) => m2 * MmPerMeter * MmPerMeter;
 
         /// <summary>Radianti -> gradi, per riportare al server.</summary>
-        public static double Gradi(double radianti) => radianti * 180.0 / Math.PI;
+        public static double Degrees(double radians) => radians * 180.0 / Math.PI;
     }
 }

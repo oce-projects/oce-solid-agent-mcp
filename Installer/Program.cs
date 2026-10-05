@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Oce.Solid.Agent.Installer
 {
-    internal static class Programma
+    internal static class Program
     {
         /// <summary>
         /// STAThread non e' una formalita': senza, le finestre di dialogo del
@@ -16,13 +16,13 @@ namespace Oce.Solid.Agent.Installer
         /// diversa dalla tua.
         /// </summary>
         [STAThread]
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
-            argomenti = argomenti ?? new string[0];
+            arguments = arguments ?? new string[0];
 
-            if (argomenti.Any(a => Uguale(a, "--aiuto") || Uguale(a, "-h") || Uguale(a, "/?")))
+            if (arguments.Any(a => Equal(a, "--aiuto") || Equal(a, "-h") || Equal(a, "/?")))
             {
-                Mostra(Aiuto());
+                Show(Help());
                 return 0;
             }
 
@@ -33,15 +33,15 @@ namespace Oce.Solid.Agent.Installer
             // Chi ha installato da script deve poter togliere da script, e
             // la prova che la cartella NON si cancella quando dentro resta
             // roba d'altri va potuta rifare senza un dito sul mouse.
-            bool uninstall = argomenti.Any(a => Uguale(a, "--disinstalla"));
-            bool verify = argomenti.Any(a => Uguale(a, "--verify"));
-            bool silent = argomenti.Any(a => Uguale(a, "--silenzioso") || Uguale(a, "-s"));
+            bool uninstall = arguments.Any(a => Equal(a, "--disinstalla"));
+            bool verify = arguments.Any(a => Equal(a, "--verify"));
+            bool silent = arguments.Any(a => Equal(a, "--silenzioso") || Equal(a, "-s"));
             if (uninstall || verify || silent)
             {
                 // A REAL CONSOLE, AND A LOG (entry H19, B2): see Output.cs for
                 // what attaching does, and the launch forms that were measured.
                 Output.AttachIfNeeded();
-                var log = Valore(argomenti, "--log");
+                var log = Value(arguments, "--log");
                 if (!string.IsNullOrWhiteSpace(log))
                 {
                     try { Output.TeeTo(log); }
@@ -49,14 +49,14 @@ namespace Oce.Solid.Agent.Installer
                 }
                 try
                 {
-                    if (uninstall) return Toglie(argomenti);
+                    if (uninstall) return Remove(arguments);
                     if (verify)
                         return Verify.Run(
-                            Valore(argomenti, "--cartella") ?? Passi.CartellaPredefinita,
-                            Valore(argomenti, "--redist"),
-                            Valore(argomenti, "--config"),
-                            argomenti.Any(a => Uguale(a, "--json")));
-                    return Silenzioso(argomenti);
+                            Value(arguments, "--cartella") ?? Steps.DefaultFolder,
+                            Value(arguments, "--redist"),
+                            Value(arguments, "--config"),
+                            arguments.Any(a => Equal(a, "--json")));
+                    return Silent(arguments);
                 }
                 catch (Exception ex)
                 {
@@ -72,7 +72,7 @@ namespace Oce.Solid.Agent.Installer
 
             try
             {
-                Application.Run(new Finestra());
+                Application.Run(new Window());
                 return 0;
             }
             catch (Exception ex)
@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Installer
                 MessageBox.Show(
                     "L'installatore si e' fermato per un errore che non ha saputo " +
                     "gestire:\n\n" + ex.Message + "\n\n" + ex.GetType().Name,
-                    Passi.NomeProdotto, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Steps.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
         }
@@ -116,13 +116,13 @@ namespace Oce.Solid.Agent.Installer
         // Uninstall: 0 done; 1 a file of ours stayed; 3 the files are gone but
         // a client entry could not be removed.
 
-        private static bool Uguale(string a, string b) =>
+        private static bool Equal(string a, string b) =>
             string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
-        private static string Valore(string[] argomenti, string nome)
+        private static string Value(string[] arguments, string itemName)
         {
-            for (int i = 0; i < argomenti.Length - 1; i++)
-                if (Uguale(argomenti[i], nome)) return argomenti[i + 1];
+            for (int i = 0; i < arguments.Length - 1; i++)
+                if (Equal(arguments[i], itemName)) return arguments[i + 1];
             return null;
         }
 
@@ -140,32 +140,32 @@ namespace Oce.Solid.Agent.Installer
         /// bridge in THIS folder is removed (Configurazione.Scollega). With
         /// --config only that file is looked at.
         /// </summary>
-        private static int Toglie(string[] argomenti)
+        private static int Remove(string[] arguments)
         {
-            var cartella = Valore(argomenti, "--cartella") ?? Passi.CartellaPredefinita;
-            bool keepClient = argomenti.Any(a => Uguale(a, "--keep-client"));
-            var configScelto = Valore(argomenti, "--config");
-            Action<string> racconta = riga => Console.WriteLine("  " + riga);
-            Console.WriteLine(Passi.NomeProdotto + " - disinstallazione");
-            Console.WriteLine("  cartella: " + cartella);
+            var folder = Value(arguments, "--cartella") ?? Steps.DefaultFolder;
+            bool keepClient = arguments.Any(a => Equal(a, "--keep-client"));
+            var chosenConfig = Value(arguments, "--config");
+            Action<string> tell = line => Console.WriteLine("  " + line);
+            Console.WriteLine(Steps.ProductName + " - disinstallazione");
+            Console.WriteLine("  cartella: " + folder);
 
             bool entryLeft = false;
-            if (keepClient) racconta("--keep-client: the MCP client entries are left as they are");
+            if (keepClient) tell("--keep-client: the MCP client entries are left as they are");
             else
             {
-                foreach (var client in ClientsToTouch(configScelto).Where(c => File.Exists(c.File)))
+                foreach (var client in ClientsToTouch(chosenConfig).Where(c => File.Exists(c.File)))
                 {
-                    try { Unwire(client, cartella, configScelto, racconta); }
+                    try { Unwire(client, folder, chosenConfig, tell); }
                     catch (Exception ex)
                     {
-                        racconta(client.Nome + ": the entry could not be removed: " + ex.Message);
+                        tell(client.Name + ": the entry could not be removed: " + ex.Message);
                         entryLeft = true;
                     }
                 }
             }
 
             List<string> left;
-            try { left = Passi.Disinstalla(cartella, racconta); }
+            try { left = Steps.Uninstall(folder, tell); }
             catch (Exception ex)
             {
                 Console.WriteLine("Disinstallazione fallita: " + ex.Message);
@@ -187,15 +187,15 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>The clients a run touches: the one file of --config, or those found installed.</summary>
-        private static List<Client> ClientsToTouch(string configScelto)
+        private static List<Client> ClientsToTouch(string chosenConfig)
         {
             // CON --config SI COLLEGA QUEL FILE E BASTA.
             // Non si va a cercare quali client sono installati: chi ha
             // indicato un file sa cosa vuole, e andare a toccarne altri
             // sarebbe fare piu' di quello che e' stato chiesto.
-            return string.IsNullOrWhiteSpace(configScelto)
-                ? Configurazione.ClientTrovati().Where(c => c.Installato).ToList()
-                : new List<Client> { new Client { Nome = "file indicato", File = configScelto, Installato = true } };
+            return string.IsNullOrWhiteSpace(chosenConfig)
+                ? Configuration.FoundClients().Where(c => c.Installed).ToList()
+                : new List<Client> { new Client { Name = "file indicato", File = chosenConfig, Installed = true } };
         }
 
         /// <summary>
@@ -204,10 +204,10 @@ namespace Oce.Solid.Agent.Installer
         /// file otherwise, and the file as well when the command fails.
         /// Throws when the client could not be wired.
         /// </summary>
-        internal static void Wire(Client client, string eseguibile, string redist, string weldmentProfiles,
-                                    string configScelto, Action<string> racconta)
+        internal static void Wire(Client client, string executable, string redist, string weldmentProfiles,
+                                    string chosenConfig, Action<string> tell)
         {
-            if (client.ClaudeCode && string.IsNullOrWhiteSpace(configScelto))
+            if (client.ClaudeCode && string.IsNullOrWhiteSpace(chosenConfig))
             {
                 var claude = ClaudeCli.Find();
                 if (claude != null)
@@ -217,57 +217,57 @@ namespace Oce.Solid.Agent.Installer
                     // already in the entry kept (Configurazione.MergedEnv).
                     // `remove` + `add` rewrite .claude.json and drop the old
                     // entry whole, so both are done here, before them.
-                    Configurazione.Backup(client.File, racconta);
-                    var env = Configurazione.MergedEnv(
-                        Configurazione.ConfiguredEnv(client), redist, weldmentProfiles, racconta);
-                    if (ClaudeCli.Register(claude, eseguibile, env, racconta)) return;
-                    racconta("Claude Code: writing " + client.File + " instead");
+                    Configuration.Backup(client.File, tell);
+                    var env = Configuration.MergedEnv(
+                        Configuration.ConfiguredEnv(client), redist, weldmentProfiles, tell);
+                    if (ClaudeCli.Register(claude, executable, env, tell)) return;
+                    tell("Claude Code: writing " + client.File + " instead");
                 }
             }
-            Configurazione.Collega(client, eseguibile, redist, weldmentProfiles, racconta);
+            Configuration.Connect(client, executable, redist, weldmentProfiles, tell);
         }
 
         /// <summary>The other way round: `claude mcp remove` for Claude Code when it can, the file otherwise.</summary>
-        internal static void Unwire(Client client, string cartella, string configScelto, Action<string> racconta)
+        internal static void Unwire(Client client, string folder, string chosenConfig, Action<string> tell)
         {
-            if (client.ClaudeCode && string.IsNullOrWhiteSpace(configScelto))
+            if (client.ClaudeCode && string.IsNullOrWhiteSpace(chosenConfig))
             {
                 var claude = ClaudeCli.Find();
-                var comando = Configurazione.ComeEConfigurato(client);
-                if (claude != null && comando != null &&
-                    Passi.PercorsiUguali(comando, Path.Combine(cartella, Passi.NomeEseguibile)))
+                var command = Configuration.HowItIsConfigured(client);
+                if (claude != null && command != null &&
+                    Steps.EqualPaths(command, Path.Combine(folder, Steps.ExecutableName)))
                 {
-                    Configurazione.Backup(client.File, racconta);
-                    if (ClaudeCli.Unregister(claude, racconta)) return;
+                    Configuration.Backup(client.File, tell);
+                    if (ClaudeCli.Unregister(claude, tell)) return;
                 }
             }
-            Configurazione.Scollega(client, cartella, racconta);
+            Configuration.Disconnect(client, folder, tell);
         }
 
-        private static int Silenzioso(string[] argomenti)
+        private static int Silent(string[] arguments)
         {
-            var cartella = Valore(argomenti, "--cartella") ?? Passi.CartellaPredefinita;
-            var redist = Valore(argomenti, "--redist") ?? Passi.TrovaRedist();
-            bool niente = argomenti.Any(a => Uguale(a, "--senza-client"));
-            var configScelto = Valore(argomenti, "--config");
-            var weldmentProfilesAsked = Valore(argomenti, "--weldment-profiles");
+            var folder = Value(arguments, "--cartella") ?? Steps.DefaultFolder;
+            var redist = Value(arguments, "--redist") ?? Steps.FindRedist();
+            bool nothing = arguments.Any(a => Equal(a, "--senza-client"));
+            var chosenConfig = Value(arguments, "--config");
+            var weldmentProfilesAsked = Value(arguments, "--weldment-profiles");
 
-            Action<string> racconta = riga => Console.WriteLine("  " + riga);
+            Action<string> tell = line => Console.WriteLine("  " + line);
 
             // SOLO ASCII SU CONSOLE. Ci si attacca alla console di chi ha
             // lanciato il comando, con la sua tabella codici: un trattino lungo
             // o un accento escono come un rombo con un punto interrogativo, e
             // un installatore che stampa caratteri rotti sembra rotto lui.
-            Console.WriteLine(Passi.NomeProdotto + " - installazione silenziosa");
+            Console.WriteLine(Steps.ProductName + " - installazione silenziosa");
 
-            var controlli = Passi.Controlla(redist);
-            foreach (var c in controlli)
+            var checks = Steps.Check(redist);
+            foreach (var c in checks)
             {
-                var segno = c.Esito == Esito.Bene ? "[ok]" : c.Esito == Esito.Avviso ? "[~] " : "[NO]";
-                Console.WriteLine(segno + " " + c.Titolo + ": " + c.Dettaglio);
-                if (!string.IsNullOrWhiteSpace(c.CosaFare)) Console.WriteLine("     " + c.CosaFare);
+                var sign = c.Outcome == Outcome.Fine ? "[ok]" : c.Outcome == Outcome.Warning ? "[~] " : "[NO]";
+                Console.WriteLine(sign + " " + c.Title + ": " + c.Detail);
+                if (!string.IsNullOrWhiteSpace(c.WhatToDo)) Console.WriteLine("     " + c.WhatToDo);
             }
-            if (controlli.Any(c => c.Esito == Esito.Male))
+            if (checks.Any(c => c.Outcome == Outcome.Male))
             {
                 Console.WriteLine("Mi fermo: ci sono cose da sistemare.");
                 return ExitNothingInstalled;
@@ -296,8 +296,8 @@ namespace Oce.Solid.Agent.Installer
                 Console.WriteLine((anyProfile ? "[ok] " : "[~]  ") + "weldment profiles: " + weldmentProfiles +
                                   (anyProfile ? "" : " (no .sldlfp file found in it: profili_saldatura will say so)"));
             }
-            else if (!niente &&
-                     (weldmentProfiles = Configurazione.ExistingWeldmentProfiles(ClientsToTouch(configScelto))) != null)
+            else if (!nothing &&
+                     (weldmentProfiles = Configuration.ExistingWeldmentProfiles(ClientsToTouch(chosenConfig))) != null)
             {
                 // A folder already in the client entry was chosen by someone
                 // (H19 review): a reinstall keeps it rather than replace it
@@ -308,7 +308,7 @@ namespace Oce.Solid.Agent.Installer
             else
             {
                 string source;
-                weldmentProfiles = Passi.FindWeldmentProfiles(redist, out source);
+                weldmentProfiles = Steps.FindWeldmentProfiles(redist, out source);
                 if (weldmentProfiles != null)
                     Console.WriteLine("[ok] weldment profiles: " + weldmentProfiles + " (" + source +
                                       "; another folder with --weldment-profiles <folder>)");
@@ -317,8 +317,8 @@ namespace Oce.Solid.Agent.Installer
                                       "PROFILI_SALDATURA is set: install again with --weldment-profiles <folder>");
             }
 
-            string eseguibile;
-            try { eseguibile = Passi.Installa(cartella, racconta); }
+            string executable;
+            try { executable = Steps.Install(folder, tell); }
             catch (Exception ex)
             {
                 Console.WriteLine("Installazione fallita: " + ex.Message);
@@ -326,29 +326,29 @@ namespace Oce.Solid.Agent.Installer
             }
 
             bool clientNotWired = false;
-            if (!niente)
+            if (!nothing)
             {
-                var clienti = ClientsToTouch(configScelto);
-                if (clienti.Count == 0)
+                var clients = ClientsToTouch(chosenConfig);
+                if (clients.Count == 0)
                 {
                     Console.WriteLine("  no MCP client found (Claude Desktop, Claude Code)");
                     clientNotWired = true;
                 }
-                foreach (var client in clienti)
+                foreach (var client in clients)
                 {
                     try
                     {
-                        Wire(client, eseguibile, redist, weldmentProfiles, configScelto, racconta);
+                        Wire(client, executable, redist, weldmentProfiles, chosenConfig, tell);
                         // La finestra lo diceva, il modo silenzioso no (voce
                         // H15): un client aperto legge la configurazione solo
                         // all'avvio, e chi installa da script non lo vede.
-                        if (Configurazione.EAperto(client))
-                            racconta("ATTENZIONE: " + client.Nome + " e' aperto adesso: chiudilo e " +
+                        if (Configuration.IsOpen(client))
+                            tell("ATTENZIONE: " + client.Name + " e' aperto adesso: chiudilo e " +
                                      "riaprilo, se no non legge la configurazione nuova.");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("  " + client.Nome + ": " + ex.Message);
+                        Console.WriteLine("  " + client.Name + ": " + ex.Message);
                         clientNotWired = true;
                     }
                 }
@@ -356,18 +356,18 @@ namespace Oce.Solid.Agent.Installer
                 {
                     Console.WriteLine();
                     Console.WriteLine(PasteHeader);
-                    Console.WriteLine(Configurazione.BloccoDaIncollare(eseguibile, redist, weldmentProfiles));
+                    Console.WriteLine(Configuration.BlockToPaste(executable, redist, weldmentProfiles));
                 }
             }
 
             int code;
-            var detto = Passi.Prova(eseguibile, redist, out code);
-            Console.WriteLine(detto);
-            Console.WriteLine("self-test: exit " + code + ", " + Passi.SelfTestMeaning(code));
+            var said = Steps.Test(executable, redist, out code);
+            Console.WriteLine(said);
+            Console.WriteLine("self-test: exit " + code + ", " + Steps.SelfTestMeaning(code));
 
             if (clientNotWired)
             {
-                Console.WriteLine("Installed in " + cartella + ", but not every MCP client is wired: paste the " +
+                Console.WriteLine("Installed in " + folder + ", but not every MCP client is wired: paste the " +
                                   "block above, then run Installer.exe --verify. (exit 3)");
                 return ExitClientNotWired;
             }
@@ -375,9 +375,9 @@ namespace Oce.Solid.Agent.Installer
             // l'unico motivo per cui non conferma e' che SOLIDWORKS e' chiuso —
             // che non e' un problema di installazione. The exit code of the
             // self-test says which, not its text (entry H19, B3).
-            if (Passi.SelfTestAccepted(code))
+            if (Steps.SelfTestAccepted(code))
             {
-                Console.WriteLine("Installato in " + cartella);
+                Console.WriteLine("Installato in " + folder);
                 return ExitInstalled;
             }
             Console.WriteLine("Installato, ma il giro secco non ha confermato: leggi sopra.");
@@ -388,24 +388,24 @@ namespace Oce.Solid.Agent.Installer
         internal const string PasteHeader =
             "Paste this into the MCP client's configuration file (inside \"mcpServers\" if it has one already):";
 
-        private static void Mostra(string testo)
+        private static void Show(string text)
         {
             // Un eseguibile WinExe non ha una console propria: ci si attacca a
             // quella di chi l'ha lanciato, se c'e'. Senza questo, `--aiuto` da
             // un prompt non stamperebbe niente.
-            if (!Output.AttachIfNeeded()) MessageBox.Show(testo, Passi.NomeProdotto);
-            else Console.WriteLine(testo);
+            if (!Output.AttachIfNeeded()) MessageBox.Show(text, Steps.ProductName);
+            else Console.WriteLine(text);
         }
 
-        private static string Aiuto() =>
-            Passi.NomeProdotto + " - installatore\n\n" +
+        private static string Help() =>
+            Steps.ProductName + " - installatore\n\n" +
             "  Installer.exe                      apre la finestra\n" +
             "  Installer.exe --silenzioso         installa senza finestra\n" +
             "\n" +
             "  Installer.exe --verify [--json]    checks an installation, as a client would find it\n" +
             "\n" +
             "  --cartella <percorso>   dove installare (predefinito: " +
-            Passi.CartellaPredefinita + ")\n" +
+            Steps.DefaultFolder + ")\n" +
             "  --redist <percorso>     la cartella api\\redist di SOLIDWORKS\n" +
             "  --senza-client          non toccare la configurazione dei client MCP\n" +
             "  --config <percorso>     collega QUEL file invece di cercare i client\n" +

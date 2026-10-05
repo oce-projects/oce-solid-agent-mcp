@@ -35,19 +35,19 @@ using SolidWorks.Interop.swconst;
 //      .\Checks\Orphan\bin\Orphan.exe            [--tieni]
 // =============================================================================
 
-internal static class Programma
+internal static class Program
 {
-    private static int _passo;
-    private static bool _orfanaPerSpigolo;
-    private static void Dice(string cosa)
+    private static int _step;
+    private static bool _orphanPerEdge;
+    private static void Says(string what)
     {
-        _passo++;
-        Console.WriteLine("  " + _passo.ToString("00") + ". " + cosa);
+        _step++;
+        Console.WriteLine("  " + _step.ToString("00") + ". " + what);
     }
 
-    private static int Main(string[] argomenti)
+    private static int Main(string[] arguments)
     {
-        bool tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
         Console.WriteLine();
         Console.WriteLine("ORFANA — IsDangling diventa vero? (voce Z-A2)");
         Console.WriteLine("  piastra 100 x 60 x 10, blocco 20 x 20 x 20 sopra; si quota il blocco e lo si sopprime");
@@ -56,60 +56,60 @@ internal static class Programma
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
         catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
-        Dice("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
 
         string file = Path.Combine(Path.GetTempPath(), "orfana-sonda.SLDPRT");
-        IModelDoc2 pezzo = null, tavolaDoc = null;
-        bool chiedevaIlValore = true, spenta = false;
+        IModelDoc2 part = null, drawingDoc = null;
+        bool askedForTheValue = true, off = false;
         try
         {
             // ── IL PEZZO, salvato: una vista di tavola vuole un file ─────
-            string modello = sw.GetUserPreferenceStringValue(
+            string model = sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-            pezzo = (IModelDoc2)sw.NewDocument(modello, 0, 0, 0);
-            if (pezzo == null) { Console.WriteLine("  NewDocument(parte) -> null"); return 4; }
+            part = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
+            if (part == null) { Console.WriteLine("  NewDocument(parte) -> null"); return 4; }
 
-            if (Estrudi(pezzo, 0, 0, 0.100, 0.060, 0.010) == null)
+            if (Extrude(part, 0, 0, 0.100, 0.060, 0.010) == null)
             { Console.WriteLine("  la piastra non e' venuta"); return 4; }
-            var blocco = Estrudi(pezzo, 0.040, 0.020, 0.060, 0.040, 0.020);
-            if (blocco == null) { Console.WriteLine("  il blocco non e' venuto"); return 4; }
-            double vol = Volume(pezzo);
+            var block = Extrude(part, 0.040, 0.020, 0.060, 0.040, 0.020);
+            if (block == null) { Console.WriteLine("  il blocco non e' venuto"); return 4; }
+            double vol = Volume(part);
             // il blocco parte dallo stesso piano della piastra: sporge di 10
-            Dice("pezzo: volume " + vol.ToString("0") + " mm^3 (atteso " + (100 * 60 * 10 + 20 * 20 * 10) +
-                 "), blocco «" + blocco.Name + "»");
+            Says("pezzo: volume " + vol.ToString("0") + " mm^3 (atteso " + (100 * 60 * 10 + 20 * 20 * 10) +
+                 "), blocco «" + block.Name + "»");
 
             try { if (File.Exists(file)) File.Delete(file); } catch { }
             int err = 0, avv = 0;
-            if (!pezzo.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref err, ref avv))
+            if (!part.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref err, ref avv))
             { Console.WriteLine("  SaveAs -> false, errori " + err); return 4; }
-            Dice("salvato in " + file);
+            Says("salvato in " + file);
 
             // ── LA TAVOLA, con la vista frontale ────────────────────────
-            string modTavola = sw.GetUserPreferenceStringValue(
+            string drawingMod = sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing);
-            tavolaDoc = (IModelDoc2)sw.NewDocument(modTavola, (int)swDwgPaperSizes_e.swDwgPaperA3size, 0.42, 0.297);
-            if (tavolaDoc == null) { Console.WriteLine("  NewDocument(tavola) -> null"); return 4; }
-            var tavola = (IDrawingDoc)tavolaDoc;
+            drawingDoc = (IModelDoc2)sw.NewDocument(drawingMod, (int)swDwgPaperSizes_e.swDwgPaperA3size, 0.42, 0.297);
+            if (drawingDoc == null) { Console.WriteLine("  NewDocument(tavola) -> null"); return 4; }
+            var drawing = (IDrawingDoc)drawingDoc;
 
-            IView vista = null;
-            string presa = null;
-            foreach (var nome in new[] { "*Frontale", "*Anteriore", "*Front" })
+            IView view = null;
+            string taken = null;
+            foreach (var itemName in new[] { "*Frontale", "*Anteriore", "*Front" })
             {
-                try { vista = tavola.CreateDrawViewFromModelView3(file, nome, 0.15, 0.15, 0); } catch { vista = null; }
-                if (vista != null) { presa = nome; break; }
+                try { view = drawing.CreateDrawViewFromModelView3(file, itemName, 0.15, 0.15, 0); } catch { view = null; }
+                if (view != null) { taken = itemName; break; }
             }
-            if (vista == null) { Console.WriteLine("  nessuna vista frontale creata"); return 4; }
-            tavolaDoc.EditRebuild3();
-            Dice("vista «" + presa + "» -> «" + vista.GetName2() + "»");
+            if (view == null) { Console.WriteLine("  nessuna vista frontale creata"); return 4; }
+            drawingDoc.EditRebuild3();
+            Says("vista «" + taken + "» -> «" + view.GetName2() + "»");
 
             // ── LO SPIGOLO ALTO DEL BLOCCO ──────────────────────────────
-            var spigoli = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
-            int n = spigoli == null ? 0 : spigoli.Length;
-            IEntity scelto = null;
+            var edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+            int n = edges == null ? 0 : edges.Length;
+            IEntity chosen = null;
             string descr = null;
-            for (int i = 0; i < n && scelto == null; i++)
+            for (int i = 0; i < n && chosen == null; i++)
             {
-                var e = spigoli[i] as IEdge;
+                var e = edges[i] as IEdge;
                 if (e == null) continue;
                 var a = (e.GetStartVertex() as IVertex)?.GetPoint() as double[];
                 var b = (e.GetEndVertex() as IVertex)?.GetPoint() as double[];
@@ -120,123 +120,123 @@ internal static class Programma
                 if (Math.Abs(a[1] - 0.020) < 1e-6 && Math.Abs(b[1] - 0.020) < 1e-6 &&
                     Math.Abs(Math.Abs(b[0] - a[0]) - 0.020) < 1e-6 && Math.Abs(b[2] - a[2]) < 1e-6)
                 {
-                    scelto = spigoli[i] as IEntity;
+                    chosen = edges[i] as IEntity;
                     descr = "spigolo " + i + " di " + n + ": lungo X, 20 mm, a Y 20 e Z " + (a[2] * 1000).ToString("0.###");
                 }
             }
-            if (scelto == null)
+            if (chosen == null)
             {
                 Console.WriteLine("  fra i " + n + " spigoli visibili non c'e' quello alto del blocco");
                 return 4;
             }
-            Dice(descr);
+            Says(descr);
 
             // ── LA QUOTA, come la crea drawing_dimension ──────────────────
-            chiedevaIlValore = sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
+            askedForTheValue = sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
             sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
-            spenta = true;
+            off = true;
 
-            var contorno = vista.GetOutline() as double[];
-            int quotePrima = Quote(tavola);
-            tavolaDoc.ClearSelection2(true);
-            if (!scelto.Select4(false, null)) { Console.WriteLine("  lo spigolo non si seleziona"); return 4; }
-            var nata = tavolaDoc.Extension.AddDimension(
-                (contorno[0] + contorno[2]) / 2, contorno[3] + 0.012, 0, 0) as IDisplayDimension;
-            tavolaDoc.ClearSelection2(true);
-            tavolaDoc.EditRebuild3();
-            int quoteDopo = Quote(tavola);
-            if (quoteDopo <= quotePrima) { Console.WriteLine("  AddDimension non ha fatto nascere la quota"); return 4; }
-            double valore = double.NaN;
-            try { valore = nata.GetDimension2(0).SystemValue * 1000; } catch { }
-            Dice("quota nata: " + quotePrima + " -> " + quoteDopo + " quote in tavola, valore " + valore.ToString("0.###") + " mm");
+            var contour = view.GetOutline() as double[];
+            int dimensionsBefore = Quote(drawing);
+            drawingDoc.ClearSelection2(true);
+            if (!chosen.Select4(false, null)) { Console.WriteLine("  lo spigolo non si seleziona"); return 4; }
+            var born = drawingDoc.Extension.AddDimension(
+                (contour[0] + contour[2]) / 2, contour[3] + 0.012, 0, 0) as IDisplayDimension;
+            drawingDoc.ClearSelection2(true);
+            drawingDoc.EditRebuild3();
+            int dimensionsAfter = Quote(drawing);
+            if (dimensionsAfter <= dimensionsBefore) { Console.WriteLine("  AddDimension non ha fatto nascere la quota"); return 4; }
+            double val = double.NaN;
+            try { val = born.GetDimension2(0).SystemValue * 1000; } catch { }
+            Says("quota nata: " + dimensionsBefore + " -> " + dimensionsAfter + " quote in tavola, valore " + val.ToString("0.###") + " mm");
 
             // ── VERDE: prima di sopprimere ──────────────────────────────
-            var primaStato = Leggi(tavola);
-            Dice("PRIMA  — " + primaStato.Riassunto);
+            var stateBefore = Read(drawing);
+            Says("PRIMA  — " + stateBefore.Summary);
             // Il verso verde del rivelatore indipendente: prima di sopprimere,
             // lo spigolo attaccato DEVE essere fra i visibili.
-            int vistiPrima = 0;
+            int seenBefore = 0;
             try
             {
-                var ents0 = (nata.GetAnnotation() as IAnnotation)?.GetAttachedEntities3() as object[];
-                var vis0 = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+                var ents0 = (born.GetAnnotation() as IAnnotation)?.GetAttachedEntities3() as object[];
+                var vis0 = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
                 foreach (var e in ents0 ?? new object[0])
                     foreach (var v in vis0 ?? new object[0])
-                        if (sw.IsSame(e, v) == (int)swObjectEquality.swObjectSame) { vistiPrima++; break; }
+                        if (sw.IsSame(e, v) == (int)swObjectEquality.swObjectSame) { seenBefore++; break; }
             }
             catch (Exception ex) { Console.WriteLine("      confronto degli attaccati, prima: " + ex.Message); }
-            Dice("rivelatore indipendente, PRIMA: attaccati ancora fra i visibili " + vistiPrima + " (atteso 1)");
-            if (vistiPrima != 1) { Console.WriteLine("  il rivelatore non vede nemmeno lo spigolo giusto: non misura niente"); return 7; }
+            Says("rivelatore indipendente, PRIMA: attaccati ancora fra i visibili " + seenBefore + " (atteso 1)");
+            if (seenBefore != 1) { Console.WriteLine("  il rivelatore non vede nemmeno lo spigolo giusto: non misura niente"); return 7; }
 
             // ── IL ROSSO: si sopprime il blocco, e si ricostruisce ──────
-            bool soppresso = blocco.SetSuppression2(
+            bool suppressed = block.SetSuppression2(
                 (int)swFeatureSuppressionAction_e.swSuppressFeature,
                 (int)swInConfigurationOpts_e.swThisConfiguration, null);
-            pezzo.EditRebuild3();
-            double volDopo = Volume(pezzo);
-            Dice("blocco soppresso: " + soppresso + ", volume del pezzo " + volDopo.ToString("0") + " mm^3 (atteso 60000)");
-            tavolaDoc.ForceRebuild3(false);
-            tavolaDoc.EditRebuild3();
+            part.EditRebuild3();
+            double volAfter = Volume(part);
+            Says("blocco soppresso: " + suppressed + ", volume del pezzo " + volAfter.ToString("0") + " mm^3 (atteso 60000)");
+            drawingDoc.ForceRebuild3(false);
+            drawingDoc.EditRebuild3();
 
             // LA VISTA SI E' AGGIORNATA? Senza questo, «IsDangling falso»
             // potrebbe voler dire solo che la tavola mostra ancora il blocco.
             // Misurato il primo giro (24/9 sera): falso, e non si sapeva perche'.
-            int spigoliPrima = n;
-            var sp1 = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
-            var dopoStato = Leggi(tavola);
-            Dice("DOPO   — spigoli visibili " + spigoliPrima + " -> " + (sp1 == null ? 0 : sp1.Length) + "; " + dopoStato.Riassunto);
+            int edgesBefore = n;
+            var sp1 = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+            var afterState = Read(drawing);
+            Says("DOPO   — spigoli visibili " + edgesBefore + " -> " + (sp1 == null ? 0 : sp1.Length) + "; " + afterState.Summary);
 
             // Secondo tentativo: la tavola DAVANTI e ricostruita tutta.
             int errAtt = 0;
-            sw.ActivateDoc3(tavolaDoc.GetTitle(), false, (int)swRebuildOnActivation_e.swRebuildActiveDoc, ref errAtt);
-            tavolaDoc.ForceRebuild3(false);
-            var sp2 = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
-            var dopo2 = Leggi(tavola);
-            Dice("DOPO, tavola davanti e ricostruita — spigoli visibili " + (sp2 == null ? 0 : sp2.Length) + "; " + dopo2.Riassunto);
-            if (dopo2.Orfane > dopoStato.Orfane) dopoStato = dopo2;
+            sw.ActivateDoc3(drawingDoc.GetTitle(), false, (int)swRebuildOnActivation_e.swRebuildActiveDoc, ref errAtt);
+            drawingDoc.ForceRebuild3(false);
+            var sp2 = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+            var after2 = Read(drawing);
+            Says("DOPO, tavola davanti e ricostruita — spigoli visibili " + (sp2 == null ? 0 : sp2.Length) + "; " + after2.Summary);
+            if (after2.Orfane > afterState.Orfane) afterState = after2;
 
             // UN RIVELATORE CHE NON CHIEDE A SOLIDWORKS SE E' ORFANA: lo
             // spigolo a cui la quota e' attaccata e' ancora fra quelli che la
             // vista mostra? Se IsDangling e' morto, questo e' quello che resta.
-            int attaccatiVisti = 0, attaccati = 0;
-            string valoreDopo = "-";
-            try { valoreDopo = (nata.GetDimension2(0).SystemValue * 1000).ToString("0.###") + " mm"; } catch { }
+            int seenAttached = 0, attached = 0;
+            string valueAfter = "-";
+            try { valueAfter = (born.GetDimension2(0).SystemValue * 1000).ToString("0.###") + " mm"; } catch { }
             try
             {
-                var ents = (nata.GetAnnotation() as IAnnotation)?.GetAttachedEntities3() as object[];
+                var ents = (born.GetAnnotation() as IAnnotation)?.GetAttachedEntities3() as object[];
                 foreach (var e in ents ?? new object[0])
                 {
-                    attaccati++;
+                    attached++;
                     foreach (var v in sp2 ?? new object[0])
-                        if (sw.IsSame(e, v) == (int)swObjectEquality.swObjectSame) { attaccatiVisti++; break; }
+                        if (sw.IsSame(e, v) == (int)swObjectEquality.swObjectSame) { seenAttached++; break; }
                 }
             }
             catch (Exception ex) { Console.WriteLine("      confronto degli attaccati: " + ex.Message); }
             // E il verso verde dello stesso rivelatore, sul PRIMA: lo spigolo
             // scelto era fra i visibili per costruzione.
-            Dice("rivelatore indipendente: attaccati " + attaccati + ", di cui ancora fra i visibili " + attaccatiVisti +
-                 "; valore della quota adesso " + valoreDopo);
-            _orfanaPerSpigolo = attaccati > 0 && attaccatiVisti == 0;
+            Says("rivelatore indipendente: attaccati " + attached + ", di cui ancora fra i visibili " + seenAttached +
+                 "; valore della quota adesso " + valueAfter);
+            _orphanPerEdge = attached > 0 && seenAttached == 0;
 
             Console.WriteLine();
-            if (Math.Abs(volDopo - 60000) > 1)
+            if (Math.Abs(volAfter - 60000) > 1)
             {
-                Console.WriteLine("Il blocco non risulta soppresso (volume " + volDopo.ToString("0") + "): la prova non ha costruito il rosso.");
+                Console.WriteLine("Il blocco non risulta soppresso (volume " + volAfter.ToString("0") + "): la prova non ha costruito il rosso.");
                 return 5;
             }
-            if (primaStato.Orfane != 0)
+            if (stateBefore.Orfane != 0)
             {
-                Console.WriteLine("GIA' ORFANA PRIMA di sopprimere: " + primaStato.Orfane + ". Il verde non regge, il campo non distingue.");
+                Console.WriteLine("GIA' ORFANA PRIMA di sopprimere: " + stateBefore.Orfane + ". Il verde non regge, il campo non distingue.");
                 return 7;
             }
-            if (dopoStato.Orfane > 0)
+            if (afterState.Orfane > 0)
             {
-                Console.WriteLine("REGGE: IsDangling 0 -> " + dopoStato.Orfane + " quando lo spigolo sparisce. Z-A2 ha la sua misura.");
+                Console.WriteLine("REGGE: IsDangling 0 -> " + afterState.Orfane + " quando lo spigolo sparisce. Z-A2 ha la sua misura.");
                 return 0;
             }
             Console.WriteLine("IsDangling resta FALSE anche su una quota senza spigolo: il campo e' morto per le quote in tavola.");
-            Console.WriteLine("Entita' agganciate: " + primaStato.Agganciate + " prima, " + dopoStato.Agganciate + " dopo.");
-            if (_orfanaPerSpigolo)
+            Console.WriteLine("Entita' agganciate: " + stateBefore.Attached + " prima, " + afterState.Attached + " dopo.");
+            if (_orphanPerEdge)
             {
                 Console.WriteLine("MA IL RIVELATORE INDIPENDENTE LA VEDE: lo spigolo a cui e' attaccata non e' piu' fra quelli");
                 Console.WriteLine("che la vista mostra. Z-A2 si costruisce su questo, non su IsDangling.");
@@ -253,29 +253,29 @@ internal static class Programma
         }
         finally
         {
-            if (spenta)
-                try { sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, chiedevaIlValore); } catch { }
-            if (!tieni)
+            if (off)
+                try { sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, askedForTheValue); } catch { }
+            if (!keep)
             {
-                if (tavolaDoc != null) try { sw.CloseDoc(tavolaDoc.GetTitle()); } catch { }
-                if (pezzo != null) try { sw.CloseDoc(pezzo.GetTitle()); } catch { }
+                if (drawingDoc != null) try { sw.CloseDoc(drawingDoc.GetTitle()); } catch { }
+                if (part != null) try { sw.CloseDoc(part.GetTitle()); } catch { }
                 try { if (File.Exists(file)) File.Delete(file); } catch { }
-                Dice("tavola e pezzo chiusi senza salvare, file tolto");
+                Says("tavola e pezzo chiusi senza salvare, file tolto");
             }
         }
     }
 
-    private sealed class Stato
+    private sealed class State
     {
-        public int Annotazioni, Orfane, Agganciate;
-        public string Riassunto;
+        public int Annotations, Orfane, Attached;
+        public string Summary;
     }
 
-    private static Stato Leggi(IDrawingDoc tavola)
+    private static State Read(IDrawingDoc drawing)
     {
-        var s = new Stato();
-        var righe = new List<string>();
-        var v = tavola.GetFirstView() as IView;
+        var s = new State();
+        var lines = new List<string>();
+        var v = drawing.GetFirstView() as IView;
         while (v != null)
         {
             var ann = v.GetAnnotations() as object[];
@@ -284,27 +284,27 @@ internal static class Programma
                 {
                     var a = o as IAnnotation;
                     if (a == null) continue;
-                    s.Annotazioni++;
-                    bool orfana = false;
-                    try { orfana = a.IsDangling(); } catch { }
-                    if (orfana) s.Orfane++;
+                    s.Annotations++;
+                    bool orphan = false;
+                    try { orphan = a.IsDangling(); } catch { }
+                    if (orphan) s.Orfane++;
                     int agg = 0;
                     try { var ents = a.GetAttachedEntities3() as object[]; agg = ents == null ? 0 : ents.Length; } catch { }
-                    s.Agganciate += agg;
+                    s.Attached += agg;
                     if (a.GetType() == (int)swAnnotationType_e.swDisplayDimension)
-                        righe.Add("«" + a.GetName() + "» orfana " + orfana + ", agganciate " + agg);
+                        lines.Add("«" + a.GetName() + "» orfana " + orphan + ", agganciate " + agg);
                 }
             v = v.GetNextView() as IView;
         }
-        s.Riassunto = s.Annotazioni + " annotazioni, " + s.Orfane + " orfane, " + s.Agganciate +
-                      " entita' agganciate" + (righe.Count == 0 ? "" : " [" + string.Join("; ", righe) + "]");
+        s.Summary = s.Annotations + " annotazioni, " + s.Orfane + " orfane, " + s.Attached +
+                      " entita' agganciate" + (lines.Count == 0 ? "" : " [" + string.Join("; ", lines) + "]");
         return s;
     }
 
-    private static int Quote(IDrawingDoc tavola)
+    private static int Quote(IDrawingDoc drawing)
     {
         int n = 0;
-        var v = tavola.GetFirstView() as IView;
+        var v = drawing.GetFirstView() as IView;
         while (v != null)
         {
             var d = v.GetDisplayDimensions() as object[];
@@ -314,7 +314,7 @@ internal static class Programma
         return n;
     }
 
-    private static IFeature Estrudi(IModelDoc2 doc, double x1, double y1, double x2, double y2, double alto)
+    private static IFeature Extrude(IModelDoc2 doc, double x1, double y1, double x2, double y2, double up)
     {
         doc.ClearSelection2(true);
         if (!SelectBasePlane(doc, 2)) return null;
@@ -322,7 +322,7 @@ internal static class Programma
         doc.SketchManager.CreateCornerRectangle(x1, y1, 0, x2, y2, 0);
         doc.SketchManager.InsertSketch(true);
         return doc.FeatureManager.FeatureExtrusion3(
-            true, false, false, 0, 0, alto, 0.0,
+            true, false, false, 0, 0, up, 0.0,
             false, false, false, false, 0, 0, false, false, false, false,
             true, true, true, 0, 0, false) as IFeature;
     }

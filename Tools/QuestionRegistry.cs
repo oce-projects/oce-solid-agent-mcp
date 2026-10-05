@@ -23,7 +23,7 @@ namespace Oce.Solid.Agent.Tools
     /// In OpenPDM il registro delle domande e' cio' che ha fatto trovare il
     /// difetto «libreria cartella / libreria stato»: non si e' scoperto
     /// chiedendo, si e' letto li'. Questo ponte aveva lo stesso dato in mano e
-    /// lo buttava via — il caso `default` di `Attrezzi.Chiama` **sa** che gli
+    /// lo buttava via — il caso `default` di `McpTools.Invoke` **sa** che gli
     /// e' stato chiesto uno strumento che non esiste, risponde bene, e non lo
     /// scrive da nessuna parte.
     ///
@@ -61,7 +61,7 @@ namespace Oce.Solid.Agent.Tools
     ///     si tace e si va avanti. *Un registro che fa fallire la chiamata che
     ///     doveva osservare e' peggio di nessun registro.*
     ///
-    /// Il motivo dell'ultimo silenzio resta in `PercheHaTaciuto`, che nessuno
+    /// Il motivo dell'ultimo silenzio resta in `WhyItWasSilent`, che nessuno
     /// stampa: serve a una prova, per non dover credere sulla parola che il
     /// silenzio fosse voluto.
     ///
@@ -75,28 +75,28 @@ namespace Oce.Solid.Agent.Tools
     ///
     /// Contare e' un problema di chi legge: `Checks/questions-without-answer.js`.
     /// </summary>
-    internal sealed class RegistroDelleDomande
+    internal sealed class QuestionRegistry
     {
-        public const string NomeDelFile = "domande-senza-risposta.jsonl";
+        public const string FileName = "domande-senza-risposta.jsonl";
 
         /// <summary>Il file su cui si scrive, o null se non si e' trovato dove.</summary>
-        public string Percorso { get; }
+        public string FilePath { get; }
 
         /// <summary>
         /// Perche' l'ultima scrittura non e' avvenuta, o null se e' andata.
         /// Non lo stampa nessuno: esiste perche' una prova possa verificare
         /// che il silenzio era voluto e non un ramo morto.
         /// </summary>
-        public string PercheHaTaciuto { get; private set; }
+        public string WhyItWasSilent { get; private set; }
 
         /// <summary>Quante righe questa istanza ha scritto davvero.</summary>
-        public int Scritte { get; private set; }
+        public int Written { get; private set; }
 
-        public RegistroDelleDomande() : this(PercorsoPredefinito()) { }
+        public QuestionRegistry() : this(DefaultPath()) { }
 
-        public RegistroDelleDomande(string percorso)
+        public QuestionRegistry(string filePath)
         {
-            Percorso = percorso;
+            FilePath = filePath;
         }
 
         /// <summary>
@@ -112,29 +112,29 @@ namespace Oce.Solid.Agent.Tools
         /// ripieghi, altrimenti chi la svuota per zittire il registro si
         /// ritrova a scrivere accanto all'eseguibile.
         /// </summary>
-        public static string PercorsoPredefinito()
+        public static string DefaultPath()
         {
-            var dalla = Environment.GetEnvironmentVariable("RISCONTRO_REGISTRO");
-            if (dalla != null) return dalla.Length == 0 ? null : dalla;
+            var fromEnv = Environment.GetEnvironmentVariable("RISCONTRO_REGISTRO");
+            if (fromEnv != null) return fromEnv.Length == 0 ? null : fromEnv;
 
             try
             {
-                var cartella = Path.GetDirectoryName(
+                var folder = Path.GetDirectoryName(
                     Assembly.GetExecutingAssembly().Location);
-                if (string.IsNullOrEmpty(cartella)) return null;
-                return Path.Combine(cartella, NomeDelFile);
+                if (string.IsNullOrEmpty(folder)) return null;
+                return Path.Combine(folder, FileName);
             }
             catch { return null; }
         }
 
-        public void StrumentoCheNonCe(string nome)
+        public void ToolThatDoesNotExist(string itemName)
         {
-            Annota("strumento", nome, null);
+            Annotate("strumento", itemName, null);
         }
 
-        public void OperazioneCheNonCe(string nome, IEnumerable<string> simili)
+        public void OperationThatDoesNotExist(string itemName, IEnumerable<string> similar)
         {
-            Annota("operation", nome, simili);
+            Annotate("operation", itemName, similar);
         }
 
         /// <summary>
@@ -142,44 +142,44 @@ namespace Oce.Solid.Agent.Tools
         ///
         /// Prende l'orologio invece di leggerlo, cosi' una prova puo' fissare
         /// la data e confrontare la riga intera. E serializza con lo stesso
-        /// `Protocollo.InJson` del resto del ponte, invece di incollare
+        /// `Protocol.InJson` del resto del ponte, invece di incollare
         /// virgolette a mano: un modello puo' benissimo inventarsi
         /// un'operazione che si chiama `taglia"a"meta`, e una riga JSONL rotta
         /// rende illeggibile il file da li' in poi.
         /// </summary>
-        public static string Riga(
-            DateTime quando, string tipo, string nome, IEnumerable<string> simili)
+        public static string Line(
+            DateTime timestamp, string typ, string itemName, IEnumerable<string> similar)
         {
-            var voce = new Dictionary<string, object>
+            var entry = new Dictionary<string, object>
             {
-                ["timestamp"] = quando.ToString("s"),
-                ["kind"] = tipo,
-                ["name"] = nome ?? "",
+                ["timestamp"] = timestamp.ToString("s"),
+                ["kind"] = typ,
+                ["name"] = itemName ?? "",
             };
-            if (simili != null)
+            if (similar != null)
             {
-                var vicini = simili.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
-                if (vicini.Length > 0) voce["similar"] = vicini;
+                var neighbors = similar.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                if (neighbors.Length > 0) entry["similar"] = neighbors;
             }
-            return Mcp.Protocollo.InJson(voce);
+            return Mcp.Protocol.InJson(entry);
         }
 
-        private void Annota(string tipo, string nome, IEnumerable<string> simili)
+        private void Annotate(string typ, string itemName, IEnumerable<string> similar)
         {
-            PercheHaTaciuto = null;
+            WhyItWasSilent = null;
 
-            if (Percorso == null)
+            if (FilePath == null)
             {
-                PercheHaTaciuto = "non c'e' nessun file su cui scrivere";
+                WhyItWasSilent = "non c'e' nessun file su cui scrivere";
                 return;
             }
-            if (string.IsNullOrWhiteSpace(nome))
+            if (string.IsNullOrWhiteSpace(itemName))
             {
-                // Un nome vuoto non e' una domanda: `Attrezzi` risponde gia'
+                // Un nome vuoto non e' una domanda: `McpTools` risponde gia'
                 // «manca «operation»», ed e' un guaio di forma del piano, non
                 // una cosa che qualcuno voleva e non c'era. Registrarlo
                 // riempirebbe il file di righe che non insegnano niente.
-                PercheHaTaciuto = "nome vuoto: non e' una domanda";
+                WhyItWasSilent = "nome vuoto: non e' una domanda";
                 return;
             }
 
@@ -189,15 +189,15 @@ namespace Oce.Solid.Agent.Tools
                 // tempo di una riga, e due ponti aperti non si bloccano a
                 // vicenda per tutta la sessione.
                 File.AppendAllText(
-                    Percorso,
-                    Riga(DateTime.Now, tipo, nome, simili) + Environment.NewLine,
+                    FilePath,
+                    Line(DateTime.Now, typ, itemName, similar) + Environment.NewLine,
                     new UTF8Encoding(false));
-                Scritte++;
+                Written++;
             }
             catch (Exception ex)
             {
                 // REGOLA 2. Qui si tace, e il motivo resta in mano a chi prova.
-                PercheHaTaciuto = ex.GetType().Name + ": " + ex.Message;
+                WhyItWasSilent = ex.GetType().Name + ": " + ex.Message;
             }
         }
     }

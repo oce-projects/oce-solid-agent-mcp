@@ -41,71 +41,71 @@ namespace Oce.Solid.Agent.Core
     /// il modello scrive «S235JR» come lo direbbe un progettista, e la grafia
     /// esatta la trova la postazione che deve eseguire.
     /// </summary>
-    public static class MaterialiSolidWorks
+    public static class SolidWorksMaterials
     {
-        public class Materiale
+        public class Material
         {
             /// <summary>Il nome dell'archivio come lo vuole SetMaterialPropertyName2.</summary>
-            public string Archivio;
+            public string Archive;
             /// <summary>La classe dentro l'archivio: «Acciaio», «Leghe di alluminio»...</summary>
-            public string Classe = "";
+            public string Class = "";
             /// <summary>Il nome ESATTO, da copiare senza toccarlo.</summary>
-            public string Nome;
+            public string Name;
         }
 
-        private static readonly object _serratura = new object();
-        private static List<Materiale> _elenco;
+        private static readonly object _lock = new object();
+        private static List<Material> _list;
 
         /// <summary>Tutti i materiali degli archivi dichiarati da SolidWorks.</summary>
-        public static List<Materiale> Tutti(ISldWorks sw, Action<string> log)
+        public static List<Material> All(ISldWorks sw, Action<string> log)
         {
             log = log ?? (m => { });
-            lock (_serratura)
+            lock (_lock)
             {
-                if (_elenco != null) return _elenco;
-                _elenco = new List<Materiale>();
-                string[] archivi = null;
-                try { archivi = sw.GetMaterialDatabases() as string[]; }
+                if (_list != null) return _list;
+                _list = new List<Material>();
+                string[] archives = null;
+                try { archives = sw.GetMaterialDatabases() as string[]; }
                 catch (Exception ex) { log("[materiali] archivi non leggibili: " + ex.Message); }
-                if (archivi == null) return _elenco;
+                if (archives == null) return _list;
 
-                foreach (var percorso in archivi)
+                foreach (var filePath in archives)
                 {
                     // L'argomento «Database» di SetMaterialPropertyName2 e' il
                     // nome del file SENZA estensione: verificato il 9 settembre
                     // 2026, funziona anche con il percorso intero e con le
                     // maiuscole diverse, ma il nome del file e' la forma che
                     // SolidWorks poi rilegge.
-                    string archivio = Path.GetFileNameWithoutExtension(percorso);
+                    string archive = Path.GetFileNameWithoutExtension(filePath);
                     try
                     {
-                        var xml = XDocument.Load(percorso);
-                        foreach (var classe in xml.Descendants()
+                        var xml = XDocument.Load(filePath);
+                        foreach (var fitClass in xml.Descendants()
                                      .Where(e => e.Name.LocalName == "classification"))
                         {
-                            string nomeClasse = (string)classe.Attribute("name") ?? "";
-                            foreach (var m in classe.Descendants()
+                            string className = (string)fitClass.Attribute("name") ?? "";
+                            foreach (var m in fitClass.Descendants()
                                          .Where(e => e.Name.LocalName == "material"))
                             {
-                                string nome = (string)m.Attribute("name");
-                                if (string.IsNullOrWhiteSpace(nome)) continue;
-                                _elenco.Add(new Materiale
+                                string itemName = (string)m.Attribute("name");
+                                if (string.IsNullOrWhiteSpace(itemName)) continue;
+                                _list.Add(new Material
                                 {
-                                    Archivio = archivio,
-                                    Classe = nomeClasse,
-                                    Nome = nome,
+                                    Archive = archive,
+                                    Class = className,
+                                    Name = itemName,
                                 });
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        log("[materiali] archivio illeggibile «" + percorso + "»: " + ex.Message);
+                        log("[materiali] archivio illeggibile «" + filePath + "»: " + ex.Message);
                     }
                 }
-                log("[materiali] letti " + _elenco.Count + " materiali da " +
-                    archivi.Length + " archivi");
-                return _elenco;
+                log("[materiali] letti " + _list.Count + " materiali da " +
+                    archives.Length + " archivi");
+                return _list;
             }
         }
 
@@ -124,75 +124,75 @@ namespace Oce.Solid.Agent.Core
         /// due acciai diversi non si tira a indovinare.
         /// </summary>
         /// <returns>null se non c'e' una risposta sola; «perche'» dice cosa dire all'utente.</returns>
-        public static Materiale Risolvi(
-            ISldWorks sw, string chiesto, string archivioChiesto,
-            Action<string> log, out string perche)
+        public static Material Resolve(
+            ISldWorks sw, string requested, string requestedArchive,
+            Action<string> log, out string why)
         {
-            perche = null;
-            string cercato = (chiesto ?? "").Trim();
-            if (cercato.Length == 0) { perche = "Manca il nome del materiale."; return null; }
+            why = null;
+            string searched = (requested ?? "").Trim();
+            if (searched.Length == 0) { why = "Manca il nome del materiale."; return null; }
 
-            var tutti = Tutti(sw, log);
-            if (tutti.Count == 0)
+            var all = All(sw, log);
+            if (all.Count == 0)
             {
-                perche =
+                why =
                     "Su questa postazione non riesco a leggere nessun archivio di " +
                     "materiali di SolidWorks, quindi non posso applicarne uno.";
                 return null;
             }
 
-            var campo = tutti;
-            if (!string.IsNullOrWhiteSpace(archivioChiesto))
+            var theField = all;
+            if (!string.IsNullOrWhiteSpace(requestedArchive))
             {
-                var ristretto = tutti.Where(m => m.Archivio.IndexOf(
-                    archivioChiesto.Trim(), StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-                if (ristretto.Count > 0) campo = ristretto;
+                var restricted = all.Where(m => m.Archive.IndexOf(
+                    requestedArchive.Trim(), StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                if (restricted.Count > 0) theField = restricted;
             }
 
-            var tappe = new Func<List<Materiale>>[]
+            var stages = new Func<List<Material>>[]
             {
-                () => campo.Where(m => string.Equals(m.Nome, cercato, StringComparison.Ordinal)).ToList(),
-                () => campo.Where(m => string.Equals(
-                    Compatta(m.Nome), Compatta(cercato), StringComparison.OrdinalIgnoreCase)).ToList(),
-                () => campo.Where(m => string.Equals(
-                    Compatta(FraParentesi(m.Nome)), Compatta(cercato),
+                () => theField.Where(m => string.Equals(m.Name, searched, StringComparison.Ordinal)).ToList(),
+                () => theField.Where(m => string.Equals(
+                    Compact(m.Name), Compact(searched), StringComparison.OrdinalIgnoreCase)).ToList(),
+                () => theField.Where(m => string.Equals(
+                    Compact(InParentheses(m.Name)), Compact(searched),
                     StringComparison.OrdinalIgnoreCase)).ToList(),
-                () => campo.Where(m => Compatta(m.Nome).IndexOf(
-                    Compatta(cercato), StringComparison.OrdinalIgnoreCase) >= 0).ToList(),
+                () => theField.Where(m => Compact(m.Name).IndexOf(
+                    Compact(searched), StringComparison.OrdinalIgnoreCase) >= 0).ToList(),
             };
 
-            foreach (var tappa in tappe)
+            foreach (var stage in stages)
             {
-                var trovati = tappa();
-                if (trovati.Count == 1) return trovati[0];
-                if (trovati.Count > 1)
+                var foundItems = stage();
+                if (foundItems.Count == 1) return foundItems[0];
+                if (foundItems.Count > 1)
                 {
-                    perche =
-                        "«" + cercato + "» corrisponde a " + trovati.Count +
+                    why =
+                        "«" + searched + "» corrisponde a " + foundItems.Count +
                         " materiali diversi, e non sono lo stesso acciaio: " +
-                        string.Join(", ", trovati.Take(8).Select(m => "«" + m.Nome + "»")) +
-                        (trovati.Count > 8 ? ", e altri" : "") +
+                        string.Join(", ", foundItems.Take(8).Select(m => "«" + m.Name + "»")) +
+                        (foundItems.Count > 8 ? ", e altri" : "") +
                         ". Dimmi quale.";
                     return null;
                 }
             }
 
-            var simili = campo
-                .Where(m => Somiglia(m.Nome, cercato))
-                .Select(m => "«" + m.Nome + "»")
+            var similar = theField
+                .Where(m => Resemble(m.Name, searched))
+                .Select(m => "«" + m.Name + "»")
                 .Distinct(StringComparer.Ordinal)
                 .Take(8)
                 .ToList();
-            perche =
+            why =
                 "Negli archivi di questa postazione non c'e' nessun materiale " +
-                "«" + cercato + "»." +
-                (simili.Count > 0
-                    ? " Ci sono: " + string.Join(", ", simili) + "."
+                "«" + searched + "»." +
+                (similar.Count > 0
+                    ? " Ci sono: " + string.Join(", ", similar) + "."
                     : " Chiedi all'utente quale materiale usare fra quelli che ha in libreria.");
             return null;
         }
 
-        private static string Compatta(string s)
+        private static string Compact(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
             var sb = new System.Text.StringBuilder(s.Length);
@@ -200,7 +200,7 @@ namespace Oce.Solid.Agent.Core
             return sb.ToString();
         }
 
-        private static string FraParentesi(string s)
+        private static string InParentheses(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
             int a = s.IndexOf('(');
@@ -214,10 +214,10 @@ namespace Oce.Solid.Agent.Core
         /// decidere — decidere su una somiglianza e' esattamente cio' che qui
         /// non si fa.
         /// </summary>
-        private static bool Somiglia(string nome, string cercato)
+        private static bool Resemble(string itemName, string searched)
         {
-            string a = Compatta(nome).ToUpperInvariant();
-            string b = Compatta(cercato).ToUpperInvariant();
+            string a = Compact(itemName).ToUpperInvariant();
+            string b = Compact(searched).ToUpperInvariant();
             if (b.Length < 3) return false;
             for (int i = 0; i + 3 <= b.Length; i++)
                 if (a.IndexOf(b.Substring(i, 3), StringComparison.Ordinal) >= 0) return true;

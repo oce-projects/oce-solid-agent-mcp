@@ -42,126 +42,126 @@ namespace Oce.Solid.Agent.Core
     /// cosa.* Il foglio si conta da `GetSheetNames().Length` prima e dopo, e il
     /// diedro del foglio nuovo si **rilegge** dal foglio nuovo.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         // ─────────────────────────────────────────────────────────────────
         // new_sheet
         // ─────────────────────────────────────────────────────────────────
-        private Esito NuovoFoglio(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome NewSheet(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito(
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed(
                     "Il documento attivo non e' una tavola: i fogli stanno in una " +
                     "tavola. Creala prima con «create_drawing».");
 
-            var nomiPrima = NomiDeiFogli(disegno);
-            if (nomiPrima.Count == 0)
-                return Fallito("Questa tavola non dichiara nessun foglio: non so da cosa partire.");
+            var namesBefore = SheetNames(drawing);
+            if (namesBefore.Count == 0)
+                return Failed("Questa tavola non dichiara nessun foglio: non so da cosa partire.");
 
-            string nome = Str(a, "name", null);
-            if (string.IsNullOrWhiteSpace(nome)) nome = NomeLibero(nomiPrima);
-            if (nomiPrima.Any(n => string.Equals(n, nome, StringComparison.OrdinalIgnoreCase)))
-                return Fallito(
-                    "C'e' gia' un foglio che si chiama «" + nome + "». I nomi dei fogli " +
+            string itemName = Str(a, "name", null);
+            if (string.IsNullOrWhiteSpace(itemName)) itemName = FreeName(namesBefore);
+            if (namesBefore.Any(n => string.Equals(n, itemName, StringComparison.OrdinalIgnoreCase)))
+                return Failed(
+                    "C'e' gia' un foglio che si chiama «" + itemName + "». I nomi dei fogli " +
                     "sono come si chiamano le pagine di una tavola: due uguali e non si " +
                     "sa piu' quale si sta guardando. Ci sono: " +
-                    string.Join(", ", nomiPrima) + ".");
+                    string.Join(", ", namesBefore) + ".");
 
             // ── IL DIEDRO SI LEGGE DAL FOGLIO CORRENTE ──────────────────
-            ISheet corrente;
-            try { corrente = disegno.GetCurrentSheet() as ISheet; }
-            catch (Exception ex) { return Fallito("Non riesco a leggere il foglio corrente: " + ex.Message); }
-            if (corrente == null) return Fallito("La tavola non ha un foglio attivo.");
+            ISheet current;
+            try { current = drawing.GetCurrentSheet() as ISheet; }
+            catch (Exception ex) { return Failed("Non riesco a leggere il foglio corrente: " + ex.Message); }
+            if (current == null) return Failed("La tavola non ha un foglio attivo.");
 
-            var proprieta = ProprietaDelFoglio(corrente);
-            if (proprieta == null || proprieta.Length <= 4)
-                return Fallito(
+            var property = SheetProperty(current);
+            if (property == null || property.Length <= 4)
+                return Failed(
                     "Non riesco a leggere il diedro del foglio corrente, e senza quello " +
                     "il foglio nuovo nascerebbe con un diedro deciso da me. Un secondo " +
                     "foglio specchiato rispetto al primo non da' nessun errore e manda " +
                     "in officina un pezzo rovesciato: preferisco fermarmi.");
-            bool primoDiedro = proprieta[4] != 0;
+            bool firstAngle = property[4] != 0;
 
             // La scala: se non me la dicono, quella del foglio corrente. Due
             // fogli della stessa tavola a scale diverse si possono volere, ma
             // non per distrazione.
-            var scalaCorrente = LeggiScala(corrente);
-            double scalaNum = Num(a, "scale_numerator",
-                scalaCorrente != null && scalaCorrente.Length > 0 ? scalaCorrente[0] : 1);
-            double scalaDen = Num(a, "scale_denominator",
-                scalaCorrente != null && scalaCorrente.Length > 1 ? scalaCorrente[1] : 1);
-            if (scalaNum <= 0 || scalaDen <= 0)
-                return Fallito("La scala deve avere due numeri positivi, per esempio 1:2.");
+            var currentScale = ReadScale(current);
+            double scaleNum = Num(a, "scale_numerator",
+                currentScale != null && currentScale.Length > 0 ? currentScale[0] : 1);
+            double scaleDen = Num(a, "scale_denominator",
+                currentScale != null && currentScale.Length > 1 ? currentScale[1] : 1);
+            if (scaleNum <= 0 || scaleDen <= 0)
+                return Failed("La scala deve avere due numeri positivi, per esempio 1:2.");
 
-            string nomeFormato = Str(a, "paper_size", null);
-            int formato = string.IsNullOrWhiteSpace(nomeFormato)
-                ? FormatoDelFoglio(corrente, proprieta)
-                : FormatoFoglio(nomeFormato);
+            string formatName = Str(a, "paper_size", null);
+            int sheetFormat = string.IsNullOrWhiteSpace(formatName)
+                ? SheetFormat(current, property)
+                : SheetFormatCode(formatName);
 
-            bool risposta;
+            bool response;
             try
             {
-                risposta = disegno.NewSheet4(
-                    nome,
-                    formato,
+                response = drawing.NewSheet4(
+                    itemName,
+                    sheetFormat,
                     (int)swDwgTemplates_e.swDwgTemplateNone,
-                    scalaNum, scalaDen,
-                    primoDiedro,               // ← RIPASSATO, non deciso qui
+                    scaleNum, scaleDen,
+                    firstAngle,               // ← RIPASSATO, non deciso qui
                     "",                        // TemplateName: nessuno
                     0, 0,                      // Width/Height: contano solo col formato «custom»
                     "",                        // PropertyViewName
                     0, 0, 0, 0, 0, 0);         // zone: non si usano
             }
-            catch (Exception ex) { return Fallito("Foglio non creato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Foglio non creato: " + ex.Message); }
 
             // ── SI CONTA, NON SI CREDE ──────────────────────────────────
-            var nomiDopo = NomiDeiFogli(disegno);
-            if (nomiDopo.Count <= nomiPrima.Count)
-                return Fallito(
-                    "Mi e' stato risposto «" + (risposta ? "si'" : "no") + "» e i fogli sono " +
-                    "sempre " + nomiPrima.Count + ". Non lo chiamo fatto.");
+            var namesAfter = SheetNames(drawing);
+            if (namesAfter.Count <= namesBefore.Count)
+                return Failed(
+                    "Mi e' stato risposto «" + (response ? "si'" : "no") + "» e i fogli sono " +
+                    "sempre " + namesBefore.Count + ". Non lo chiamo fatto.");
 
             // E IL DIEDRO DEL FOGLIO NUOVO SI RILEGGE DAL FOGLIO NUOVO.
             // E' la difesa vera di questa operazione: passarlo non e' averlo.
-            ISheet nuovo = null;
-            try { nuovo = disegno.GetCurrentSheet() as ISheet; }
+            ISheet newItem = null;
+            try { newItem = drawing.GetCurrentSheet() as ISheet; }
             catch { }
-            bool diedroDopo = primoDiedro;
-            var propDopo = nuovo == null ? null : ProprietaDelFoglio(nuovo);
-            if (propDopo != null && propDopo.Length > 4) diedroDopo = propDopo[4] != 0;
+            bool firstAngleAfter = firstAngle;
+            var propAfter = newItem == null ? null : SheetProperty(newItem);
+            if (propAfter != null && propAfter.Length > 4) firstAngleAfter = propAfter[4] != 0;
 
-            if (diedroDopo != primoDiedro)
-                return Fallito(
+            if (firstAngleAfter != firstAngle)
+                return Failed(
                     "Il foglio e' nato ma col diedro sbagliato: ho chiesto il " +
-                    (primoDiedro ? "PRIMO" : "TERZO") + " e il foglio dice il " +
-                    (diedroDopo ? "PRIMO" : "TERZO") + ". Due fogli con diedri diversi " +
+                    (firstAngle ? "PRIMO" : "TERZO") + " e il foglio dice il " +
+                    (firstAngleAfter ? "PRIMO" : "TERZO") + ". Due fogli con diedri diversi " +
                     "nella stessa tavola sono un pezzo rovesciato che non da' nessun " +
                     "errore: non dico che e' fatto.");
 
-            var scalaDopo = nuovo == null ? null : LeggiScala(nuovo);
-            var misureFoglio = nuovo == null ? null : MisureFoglio(nuovo);
+            var scaleAfter = newItem == null ? null : ReadScale(newItem);
+            var sheetMeasurements = newItem == null ? null : SheetMeasurements(newItem);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["name"] = nome,
-                ["sheets_before"] = nomiPrima.Count,
-                ["sheets_after"] = nomiDopo.Count,
-                ["sheets"] = nomiDopo.ToArray(),
-                ["active"] = NomeDelFoglio(nuovo) ?? nome,
-                ["projection_angle"] = diedroDopo ? "first" : "third",
+                ["name"] = itemName,
+                ["sheets_before"] = namesBefore.Count,
+                ["sheets_after"] = namesAfter.Count,
+                ["sheets"] = namesAfter.ToArray(),
+                ["active"] = SheetName(newItem) ?? itemName,
+                ["projection_angle"] = firstAngleAfter ? "first" : "third",
                 ["projection_angle_source"] = "riletto dal foglio nuovo, dopo averlo copiato dal foglio " +
                                      "corrente: non e' un valore scelto qui",
-                ["scale"] = scalaDopo != null && scalaDopo.Length > 1
-                    ? scalaDopo[0] + ":" + scalaDopo[1] : null,
-                ["width_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[0], 1) : null,
-                ["height_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[1], 1) : null,
+                ["scale"] = scaleAfter != null && scaleAfter.Length > 1
+                    ? scaleAfter[0] + ":" + scaleAfter[1] : null,
+                ["width_mm"] = sheetMeasurements != null ? (object)Math.Round(sheetMeasurements[0], 1) : null,
+                ["height_mm"] = sheetMeasurements != null ? (object)Math.Round(sheetMeasurements[1], 1) : null,
             };
 
-            if (!diedroDopo)
+            if (!firstAngleAfter)
                 _log("[agente] ATTENZIONE: questa tavola e' in TERZO diedro, e anche il foglio nuovo");
-            _log("[agente] foglio «" + nome + "»: i fogli sono " + nomiDopo.Count);
-            return SenzaFeature(misure);
+            _log("[agente] foglio «" + itemName + "»: i fogli sono " + namesAfter.Count);
+            return WithoutFeature(measurements);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -173,45 +173,45 @@ namespace Oce.Solid.Agent.Core
         /// firma, non ricordato. Un indice sarebbe stato la solita occasione
         /// per attivare il foglio sbagliato senza nessun errore.
         /// </summary>
-        private Esito AttivaFoglio(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ActivateSheet(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+            var drawing = model as IDrawingDoc;
+            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
 
-            var nomi = NomiDeiFogli(disegno);
-            string voluto = Str(a, "name", null);
-            if (string.IsNullOrWhiteSpace(voluto))
-                return Fallito(
+            var names = SheetNames(drawing);
+            string wanted = Str(a, "name", null);
+            if (string.IsNullOrWhiteSpace(wanted))
+                return Failed(
                     "Dimmi quale foglio: «name», come lo riporta lo stato. Ci sono: " +
-                    string.Join(", ", nomi) + ".");
+                    string.Join(", ", names) + ".");
 
-            var suo = nomi.FirstOrDefault(n => string.Equals(n, voluto, StringComparison.OrdinalIgnoreCase));
-            if (suo == null)
-                return Fallito(
-                    "Non c'e' nessun foglio che si chiami «" + voluto + "». Ci sono: " +
-                    string.Join(", ", nomi) + ".");
+            var its = names.FirstOrDefault(n => string.Equals(n, wanted, StringComparison.OrdinalIgnoreCase));
+            if (its == null)
+                return Failed(
+                    "Non c'e' nessun foglio che si chiami «" + wanted + "». Ci sono: " +
+                    string.Join(", ", names) + ".");
 
-            string prima = NomeDelFoglio(FoglioCorrente(disegno));
+            string before = SheetName(CurrentSheet(drawing));
 
-            bool risposta;
-            try { risposta = disegno.ActivateSheet(suo); }
-            catch (Exception ex) { return Fallito("Foglio non attivato: " + ex.Message); }
+            bool response;
+            try { response = drawing.ActivateSheet(its); }
+            catch (Exception ex) { return Failed("Foglio non attivato: " + ex.Message); }
 
             // NON SI CREDE ALLA RISPOSTA: si richiede al documento quale foglio
             // ha davanti adesso.
-            string dopo = NomeDelFoglio(FoglioCorrente(disegno));
-            if (!string.Equals(dopo, suo, StringComparison.OrdinalIgnoreCase))
-                return Fallito(
-                    "Mi e' stato risposto «" + (risposta ? "si'" : "no") + "» ma il foglio " +
-                    "attivo e' «" + (dopo ?? "(non leggibile)") + "», non «" + suo + "». " +
+            string after = SheetName(CurrentSheet(drawing));
+            if (!string.Equals(after, its, StringComparison.OrdinalIgnoreCase))
+                return Failed(
+                    "Mi e' stato risposto «" + (response ? "si'" : "no") + "» ma il foglio " +
+                    "attivo e' «" + (after ?? "(non leggibile)") + "», non «" + its + "». " +
                     "Non lo chiamo fatto: i passi dopo lavorerebbero sul foglio sbagliato.");
 
-            return SenzaFeature(new Dictionary<string, object>
+            return WithoutFeature(new Dictionary<string, object>
             {
-                ["active"] = dopo,
-                ["previous"] = prima,
-                ["sheets"] = nomi.ToArray(),
-                ["changed"] = !string.Equals(prima, dopo, StringComparison.OrdinalIgnoreCase),
+                ["active"] = after,
+                ["previous"] = before,
+                ["sheets"] = names.ToArray(),
+                ["changed"] = !string.Equals(before, after, StringComparison.OrdinalIgnoreCase),
             });
         }
 
@@ -224,38 +224,38 @@ namespace Oce.Solid.Agent.Core
         /// questo che qui si rifiuta quando la lista e' vuota invece di andare
         /// avanti.
         /// </summary>
-        private static List<string> NomiDeiFogli(IDrawingDoc disegno)
+        private static List<string> SheetNames(IDrawingDoc drawing)
         {
             try
             {
-                var nomi = disegno.GetSheetNames() as string[];
-                return nomi == null ? new List<string>() : nomi.ToList();
+                var names = drawing.GetSheetNames() as string[];
+                return names == null ? new List<string>() : names.ToList();
             }
             catch { return new List<string>(); }
         }
 
-        private static ISheet FoglioCorrente(IDrawingDoc disegno)
+        private static ISheet CurrentSheet(IDrawingDoc drawing)
         {
-            try { return disegno.GetCurrentSheet() as ISheet; }
+            try { return drawing.GetCurrentSheet() as ISheet; }
             catch { return null; }
         }
 
-        private static string NomeDelFoglio(ISheet foglio)
+        private static string SheetName(ISheet sheet)
         {
-            if (foglio == null) return null;
-            try { return foglio.GetName(); } catch { return null; }
+            if (sheet == null) return null;
+            try { return sheet.GetName(); } catch { return null; }
         }
 
         /// <summary>
         /// Il formato del foglio corrente, per darlo uguale al foglio nuovo.
         /// `GetProperties2()` mette il formato in posizione 0.
         /// </summary>
-        private static int FormatoDelFoglio(ISheet foglio, double[] proprieta)
+        private static int SheetFormat(ISheet sheet, double[] property)
         {
             try
             {
-                if (proprieta != null && proprieta.Length > 0)
-                    return (int)Math.Round(proprieta[0]);
+                if (property != null && property.Length > 0)
+                    return (int)Math.Round(property[0]);
             }
             catch { }
             return (int)swDwgPaperSizes_e.swDwgPaperA3size;
@@ -267,13 +267,13 @@ namespace Oce.Solid.Agent.Core
         /// foglio nuovo senza dargli un nome non vuole sapere che il nome di
         /// serie era occupato.
         /// </summary>
-        private static string NomeLibero(List<string> esistenti)
+        private static string FreeName(List<string> existing)
         {
-            for (int i = esistenti.Count + 1; i < esistenti.Count + 100; i++)
+            for (int i = existing.Count + 1; i < existing.Count + 100; i++)
             {
-                var tentativo = "Foglio" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                if (!esistenti.Any(n => string.Equals(n, tentativo, StringComparison.OrdinalIgnoreCase)))
-                    return tentativo;
+                var attempt = "Foglio" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (!existing.Any(n => string.Equals(n, attempt, StringComparison.OrdinalIgnoreCase)))
+                    return attempt;
             }
             return "Foglio" + Guid.NewGuid().ToString("N").Substring(0, 4);
         }

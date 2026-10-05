@@ -40,15 +40,15 @@ namespace Oce.Solid.Agent.Bridge
     /// non si riesce a chiudere e' peggio di uno che si sa dove arriva.
     /// **Il limite si scrive qui invece di scoprirlo.**
     /// </summary>
-    internal sealed class TurnoSulDocumento : IDisposable
+    internal sealed class DocumentTurn : IDisposable
     {
         private Mutex _mutex;
 
-        private TurnoSulDocumento(Mutex m) { _mutex = m; }
+        private DocumentTurn(Mutex m) { _mutex = m; }
 
         /// <summary>
         /// Prende il turno sul documento, oppure torna `null` se ce l'ha un
-        /// altro. `diChiE` dice cosa si e' trovato, per il messaggio.
+        /// altro. `whose` dice cosa si e' trovato, per il messaggio.
         ///
         /// ATTESA ZERO, DI PROPOSITO. Aspettare vorrebbe dire che il client
         /// resta appeso senza sapere perche', e il ponte ha gia' un problema di
@@ -56,38 +56,38 @@ namespace Oce.Solid.Agent.Bridge
         /// che dice cosa sta succedendo: chi legge puo' decidere lui se
         /// aspettare.
         /// </summary>
-        public static TurnoSulDocumento Prendi(object doc, out string diChiE)
+        public static DocumentTurn Take(object doc, out string whose)
         {
-            diChiE = "";
-            string chiave = ChiaveDi(doc, out string descrizione);
-            diChiE = descrizione;
-            if (chiave == null)
+            whose = "";
+            string key = KeyOf(doc, out string descriptionText);
+            whose = descriptionText;
+            if (key == null)
             {
                 // Non si e' potuto sapere di quale documento si tratta: NON si
                 // blocca. Un lucchetto su una chiave sbagliata bloccherebbe
                 // documenti diversi fra loro e lascerebbe passare quelli
                 // uguali — cioe' farebbe l'opposto di quello che serve.
-                return new TurnoSulDocumento(null);
+                return new DocumentTurn(null);
             }
 
             Mutex m = null;
             try
             {
-                bool nostro;
-                m = new Mutex(false, @"Local\OceSolidAgent_" + chiave, out nostro);
+                bool our;
+                m = new Mutex(false, @"Local\OceSolidAgent_" + key, out our);
                 if (!m.WaitOne(0))
                 {
                     m.Dispose();
                     return null;
                 }
-                return new TurnoSulDocumento(m);
+                return new DocumentTurn(m);
             }
             catch (AbandonedMutexException)
             {
                 // L'ha lasciato un processo morto senza rilasciarlo: e' NOSTRO
                 // adesso, e non e' un errore. Windows lo segnala una volta sola
                 // proprio per dire «il precedente non ha chiuso la porta».
-                return new TurnoSulDocumento(m);
+                return new DocumentTurn(m);
             }
             catch
             {
@@ -96,7 +96,7 @@ namespace Oce.Solid.Agent.Bridge
                 // questo esistesse. Una difesa nuova che diventa una causa nuova
                 // di rifiuto e' un peggioramento.
                 try { if (m != null) m.Dispose(); } catch { }
-                return new TurnoSulDocumento(null);
+                return new DocumentTurn(null);
             }
         }
 
@@ -110,35 +110,35 @@ namespace Oce.Solid.Agent.Bridge
         /// e due documenti diversi che si bloccano a vicenda sono un difetto
         /// che si manifesta solo quando qualcuno lavora davvero.
         /// </summary>
-        private static string ChiaveDi(object doc, out string descrizione)
+        private static string KeyOf(object doc, out string descriptionText)
         {
-            descrizione = "";
+            descriptionText = "";
             if (doc == null) return null;
-            string percorso = "", titolo = "";
-            try { percorso = Chiedi(doc, "GetPathName") ?? ""; } catch { }
-            try { titolo = Chiedi(doc, "GetTitle") ?? ""; } catch { }
+            string filePath = "", docTitle = "";
+            try { filePath = Ask(doc, "GetPathName") ?? ""; } catch { }
+            try { docTitle = Ask(doc, "GetTitle") ?? ""; } catch { }
 
-            string quale = !string.IsNullOrWhiteSpace(percorso)
-                ? percorso.ToLowerInvariant()
-                : titolo;
-            if (string.IsNullOrWhiteSpace(quale)) return null;
+            string which = !string.IsNullOrWhiteSpace(filePath)
+                ? filePath.ToLowerInvariant()
+                : docTitle;
+            if (string.IsNullOrWhiteSpace(which)) return null;
 
-            descrizione = !string.IsNullOrWhiteSpace(percorso) ? percorso : titolo;
+            descriptionText = !string.IsNullOrWhiteSpace(filePath) ? filePath : docTitle;
 
             using (var sha = SHA1.Create())
             {
-                var b = sha.ComputeHash(Encoding.UTF8.GetBytes(quale));
+                var b = sha.ComputeHash(Encoding.UTF8.GetBytes(which));
                 var s = new StringBuilder(b.Length * 2);
                 foreach (var x in b) s.Append(x.ToString("x2", CultureInfo.InvariantCulture));
                 return s.ToString();
             }
         }
 
-        private static string Chiedi(object oggetto, string metodo)
+        private static string Ask(object obj, string method)
         {
-            return oggetto.GetType().InvokeMember(
-                metodo, System.Reflection.BindingFlags.InvokeMethod,
-                null, oggetto, null) as string;
+            return obj.GetType().InvokeMember(
+                method, System.Reflection.BindingFlags.InvokeMethod,
+                null, obj, null) as string;
         }
 
         public void Dispose()

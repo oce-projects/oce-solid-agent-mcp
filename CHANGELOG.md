@@ -56,6 +56,38 @@ separate commits so that git records every move as a rename:
    (`Bench/viste/`, written by the scripts) keeps its name. CHANGELOG.md, the map,
    the language baseline and the labelled samples of the gate are not rewritten;
    lines that name the old and the new name on purpose carry `window-3: keep`.
+4. **the identifiers** (`--identifiers production`, `harness`, `scripts`,
+   `mentions`): the 3,900 `identifier` rows of the map, in the C# and in the
+   scripts. The C# goes through Roslyn with a semantic model of every project,
+   by symbol: a name is renamed where it binds to a symbol the batch declares,
+   never where the same word means something else (a member of the SOLIDWORKS
+   API, a string, a comment, a local of another method); production first
+   (32,168 edits in 156 files, 2,834 names), then the bench, the contracts and
+   the probes (13,759 edits in 97 files, 1,463 names). A string is renamed only
+   where it names a renamed type or member for reflection, or where a contract
+   quotes the code it reads. The JavaScript (acorn) and the PowerShell (its own
+   parser) files are renamed file by file (3,220 edits in 48 files, 458 names):
+   variables, functions, parameters and the calls of the functions; a shorthand
+   property keeps its key (`{ name }` becomes `{ name: itemName }`). The mentions
+   of a renamed name that a comment, a document or a script string writes follow
+   it, so that the translation of the comments finds the English names already
+   there (695 mentions in 135 files, 317 names: a name of two parts or more
+   anywhere, a single capitalised word between backticks, never a single
+   lowercase word, which may be a local, a key or a word of the sentence).
+   Never renamed, as decided: the keys of serialized types, the members of
+   anonymous types, the MCP tool names, the case files and `Tools/catalog.json`
+   (it is rewritten byte for byte).
+
+   Where the English name of a symbol differs from its row, the tool says why:
+   the nested type of the drawing dimensions is `ProjectedEdge` (`Edge` would
+   hide the SOLIDWORKS type in the same partial class), the three states the
+   undo tool reads are `stateBefore`, `identityNow` and `stateAfter`, the helper
+   that cuts a message is `Truncated`, and in the scripts `Write` and `Type` are
+   aliases of Windows PowerShell (so the functions are `WriteLine` and
+   `TypeName`) and `arguments` is a reserved word of JavaScript (`args`, and
+   `cliArgs` in the one file that already has `args`). Two rows of the map were
+   edited by hand for the same reason (`FindOpenDocument`, the nested
+   `ProjectedEdge`), each with a note.
 
 ### Projects, assemblies and namespaces
 
@@ -114,6 +146,14 @@ library, and the rest).
   bench is `Bench\bin\Oce.Solid.Agent.Bench.exe`, launched by `.\Bench\bench.ps1`;
   the contracts are `Tests\bin\Oce.Solid.Agent.ContractTests.exe`; the probe that
   closes the leftover documents is `Checks\CloseLeftovers\bin\CloseLeftovers.exe`.
+- **The switches of the scripts are English.** `Bench\bench.ps1`: `-Group`,
+  `-Family`, `-Slow`, `-Mutate`, `-Regression`, `-SkipCompilation`, `-Library`;
+  `build.ps1`: `-Clean`, `-BridgeOnly`; `Checks\library-of-the-time.ps1`:
+  `-Clean`; `Checks\error-enum.ps1` and `Checks\todo-signatures.ps1`: `-All`;
+  `Checks\check-catalog.ps1`: `-Catalog`, `-Library`, `-Source`;
+  `Checks\signatures-api.ps1`: `-TestMe`; the CI step `executables-exist.ps1`:
+  `-InteropIsThere`. Every text that wrote one of them (the workflow, the
+  documents, the scripts, the contracts) was renamed with it.
 - An installed bridge keeps a stale `Riscontro.Disegno.dll` next to the new
   `Oce.Solid.Agent.Core.dll` until it is reinstalled; nothing loads it.
 - **Historical comparison (decision D11).** The bench reads a library by its
@@ -141,6 +181,82 @@ library, and the rest).
 - Contracts: 821 checks, only the bench-freshness checks red (no bench on this
   branch). `name-map-extract.js --check` passes. Language gate: held, judged
   commit by commit with the parent's rules.
+
+### The identifiers commit: proofs, hand edits and what is left
+
+- `window-3-identifiers.js --reverse-proof a883903` on the working tree: 779
+  paths, 777 text files, 32,096 lines differ, 0 not explained by pairs of the
+  map. The pairs the tools decided apart are read too (the symbols the renamer
+  names otherwise, the overrides of the scripts), and so is a shorthand
+  property written out (`{ name }` and `{ name: itemName }`); the hand edits
+  of the script are listed with their reason (28 lines).
+- `same-il.ps1 -Mode Renames` against the assemblies built from a883903, on
+  the bridge, the library, the exporter, the installer, the bench, the
+  contracts and the 35 probes: every differing line of IL is explained by the
+  map except (a) the version fields and the Win32 version block (bridge 0.127.1,
+  library 0.150.1: 3 lines per assembly), (b) the embedded resources whose
+  bytes legitimately changed (the payload of the installer, `VERSION.txt`,
+  `api_knowledge.json`, the map), (c) the one message of the bench that says
+  where the historical comparison starts (decision D11), and (d) 630 lines of
+  the contract suite, all in the methods this commit edits by hand (below).
+  The tool learned the identifiers for this, and the self-test has three new
+  cases (a message that keeps a word of the map, an iterator class that moves
+  among its brothers because its method is renamed, an accessor), each seen red
+  on a mutated copy of the tool (17 of 17): a changed line is judged on the
+  original text of the old side, not on the rewritten one; an accessor is its
+  prefix and the name of its member; the quotes ildasm puts round a name that
+  is an IL keyword mean nothing; Roslyn writes the synthesized nested types in
+  the order of their names, so the runs of nested classes are put in order by a
+  key that is the same on both sides; and the lines not explained are counted
+  by the method they sit in.
+- `token-stream.js --mode renames` on the 259 files that changed: names renamed
+  and nothing else, except the version strings and the hand edits below; the
+  `using static` of a dotted namespace is one token for it, and a shorthand
+  property written out adds two tokens, so those files are judged by the reverse
+  proof.
+- Contracts: 821 checks, only the three bench-freshness checks red (no bench on
+  this branch). `Tools/catalog.json` is rewritten byte for byte. `name-map-extract.js
+  --check` passes (6,062 rows). `check-catalog.ps1`, `error-enum.ps1`,
+  `check-documents-without-file.ps1`, `check-workflow.ps1`, `zero-or-unknown.js`,
+  `count-tested.js`, the CI steps and `test-installer.js` (65 passes, 0 failures)
+  give the same verdict as before; the scripts that need SOLIDWORKS were parsed
+  and not run.
+- Language gate: judged commit by commit with the parent's rules. The identifiers
+  of the baseline go from 5,124 names to 1,873. The commit carries
+  `Language-Baseline-Raise`, and this is its reason: three tools of the window
+  (`window-3-renamer.js`, `window-3-scripts.js`, `window-3-mentions.js`) are
+  written against the names they rename and quote four of them in strings.
+  They leave the tree with the map, before the tag.
+
+By hand, each with its reason (and each listed in the reverse proof):
+
+- `RefusalsTests`: a refusal is judged on what its message says, its string
+  literals, not on the names of the code around it. Until this commit a variable
+  or a method whose Italian name held a remedy word counted as a remedy, and the
+  count moved with the names. The floor is 216 of 937, the same on the tree
+  before the window and after it (it was 238 with the names).
+- the obsolete-calls contract: the frozen undecided calls are raised, with the
+  reason in the header of `obsolete-undecided-frozen.tsv` (the receivers are the
+  same, in the same untyped places; only the names now collide with an obsolete
+  name of the SOLIDWORKS API), and its injections quote the new names.
+- the contracts that quote the code they read: the two `Check(Assembly)` that
+  would capture the renamed recorder are `CheckLibrary`; two regular expressions
+  and one change of the spline contract; the anchors of the sketch lookup
+  contract; the pattern the bench source must hold for its default library; the
+  `via` of `consumed-strings.json`.
+- the self-test of the name map takes the name it removes from the names the
+  tree still has (`name-map-extract.js --found`): after this commit no
+  identifier row is left to take, so any row would give a green that proves
+  nothing. The glued identifier of the language gate's contract is made of two
+  words the baseline still has.
+- a script parameter is a flag that other texts pass: the 16 switches are
+  renamed everywhere they are written with their hyphen.
+
+What is left, on purpose: 77 names of the map are still written in code tokens
+of the scripts and of one contract. None is a declaration: they are keys and
+member names of the objects the scripts build, words inside regular expressions
+and two members of an anonymous type. A key may be the key of a JSON, and the
+rule of the window is that keys are not renamed; the owner judges them.
 
 ## Unreleased — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
 

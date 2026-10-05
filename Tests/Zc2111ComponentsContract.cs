@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -71,7 +71,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// STEP count, the BOM reader, and the old reader that must stay gone.
         /// </summary>
         private static readonly string[] OwnNames =
-            "ProprietaDiMassaAssieme IngombroAssieme SolidiAttesiNellAssieme ComponentiPerVoce PezziDellAssieme".Split(' ');
+            "AssemblyMassProperties AssemblyBoundingBox ExpectedSolidsInAssembly ComponentsForEntry PezziDellAssieme".Split(' ');
         private static readonly string MassMember = OwnNames[0];
         private static readonly string BoxMember = OwnNames[1];
         private static readonly string StepCountMember = OwnNames[2];
@@ -83,7 +83,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("which components count: lightweight, envelope and hidden components of an assembly (Z-C21.11)");
+            Group("which components count: lightweight, envelope and hidden components of an assembly (Z-C21.11)");
 
             var sources = ReadLibrary();
             if (sources != null) SourceChecks(sources);
@@ -158,7 +158,7 @@ namespace Oce.Solid.Agent.ContractTests
                 RegexChange(Measures, "no resolution when asked", @"(\w+)\.ResolveAllLightWeightComponents\(false\);", "$1.GetLightWeightComponentCount();"),
                 RegexChange(Measures, "the list not read again after resolving", @"(ResolveAllLightWeightComponents\(false\);[\s\S]*?)ComponentsOrRefusal\(", "${1}OldList("),
                 Change(Measures, "envelopes not named", "\"envelope_components\"", "\"envelopes\""),
-                RegexChange(Measures, "a refusal after resolving that does not say it", @"return RefuseAfterResolving\(resolvedOnRequest,", "return Fallito("),
+                RegexChange(Measures, "a refusal after resolving that does not say it", @"return RefuseAfterResolving\(resolvedOnRequest,", "return Failed("),
                 Change(Measures, "the refusal helper that drops what was resolved", "message + \" \" + resolvedOnRequest", "message"),
                 Change(Catalogue, "the argument not false by default in the catalogue", "\"default\", false", "\"default\", true"));
 
@@ -175,7 +175,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Change(Measures, "lightweight parts not named", "\"lightweight_components_measured\"", "\"measured\""),
                 Change(Measures, "a throw of GetBodies3 swallowed", "catch { bodiesUnread = true; }", "catch { }"),
                 RegexChange(Measures, "a lightweight part without bodies skipped",
-                            @"if \(item\.Load == ComponentLoad\.Lightweight\)\s*return Fallito\(", "if (false) return Fallito("));
+                            @"if \(item\.Load == ComponentLoad\.Lightweight\)\s*return Failed\(", "if (false) return Failed("));
 
             Checked(sources, "STEP count",
                 "the STEP count leaves hidden components out and names them, and counts lightweight parts",
@@ -367,7 +367,7 @@ namespace Oce.Solid.Agent.ContractTests
             // parts stay resolved), directly or through RefuseAfterResolving.
             if (resolve >= 0)
             {
-                foreach (Match refusal in Regex.Matches(body.Substring(resolve), @"return\s+Fallito\(([\s\S]*?)\);"))
+                foreach (Match refusal in Regex.Matches(body.Substring(resolve), @"return\s+Failed\(([\s\S]*?)\);"))
                     if (refusal.Groups[1].Value.IndexOf("resolv", StringComparison.OrdinalIgnoreCase) < 0)
                         problems.Add("a refusal after the resolution does not say the parts were resolved: " + OneLine(refusal.Value));
                 var helper = MemberBody(CodeOnly(sources[Measures]), "RefuseAfterResolving");
@@ -380,7 +380,7 @@ namespace Oce.Solid.Agent.ContractTests
                 string argument = gate.Groups[1].Value;
                 var catalogue = sources[Catalogue];
                 int entry = catalogue.IndexOf("\"" + MassOperation + "\"", StringComparison.Ordinal);
-                int next = entry < 0 ? -1 : catalogue.IndexOf("new OperazioneDisegno", entry, StringComparison.Ordinal);
+                int next = entry < 0 ? -1 : catalogue.IndexOf("new OperationSpec", entry, StringComparison.Ordinal);
                 string block = entry < 0 ? null : (next < 0 ? catalogue.Substring(entry) : catalogue.Substring(entry, next - entry));
                 int property = block == null ? -1 : block.IndexOf("\"" + argument + "\", O(", StringComparison.Ordinal);
                 int description = property < 0 ? -1 : block.IndexOf("\"description\"", property, StringComparison.Ordinal);
@@ -415,9 +415,9 @@ namespace Oce.Solid.Agent.ContractTests
             var bodiesTry = Regex.Match(body, @"try\s*\{[^{}]*\.GetBodies3\([^{}]*\}\s*catch\s*(?:\([^)]*\))?\s*\{\s*(\w+)\s*=\s*true\s*;\s*\}");
             if (!bodiesTry.Success)
                 problems.Add("a throw of GetBodies3 is swallowed (its catch does not set a flag)");
-            else if (!Regex.IsMatch(body, @"if\s*\(\s*" + bodiesTry.Groups[1].Value + @"\s*\)\s*return\s+Fallito\("))
+            else if (!Regex.IsMatch(body, @"if\s*\(\s*" + bodiesTry.Groups[1].Value + @"\s*\)\s*return\s+Failed\("))
                 problems.Add("a throw of GetBodies3 does not refuse the box");
-            if (!Regex.IsMatch(body, @"if\s*\(\s*\w+\.Load\s*==\s*ComponentLoad\.Lightweight\s*\)\s*return\s+Fallito\("))
+            if (!Regex.IsMatch(body, @"if\s*\(\s*\w+\.Load\s*==\s*ComponentLoad\.Lightweight\s*\)\s*return\s+Failed\("))
                 problems.Add("a lightweight part that answers no solid body is skipped instead of refusing");
             foreach (var key in new[] { "\"lightweight_components_measured\"", "\"envelope_components\"", "\"hidden_components\"" })
                 if (!body.Contains(key)) problems.Add("the answer has no " + key);
@@ -521,7 +521,7 @@ namespace Oce.Solid.Agent.ContractTests
             List<string> problems;
             try { problems = check(sources); }
             catch (Exception ex) { problems = new List<string> { ex.GetType().Name + ": " + ex.Message }; }
-            Segna(label, problems.Count == 0, problems.Count == 0 ? green : string.Join(" | ", problems));
+            Check(label, problems.Count == 0, problems.Count == 0 ? green : string.Join(" | ", problems));
 
             var misses = new List<string>();
             if (problems.Count != 0) misses.Add("the untouched source is already red, the changes prove nothing");
@@ -550,7 +550,7 @@ namespace Oce.Solid.Agent.ContractTests
                     if (red.Count == 0) misses.Add(c.Name + ": the changed copy is still green");
                 }
             }
-            Segna("seen red: " + tag + ", on each changed copy", misses.Count == 0,
+            Check("seen red: " + tag + ", on each changed copy", misses.Count == 0,
                   misses.Count == 0 ? changes.Length + " change(s), each one red: " + string.Join("; ", changes.Select(c => c.Name))
                                     : string.Join(" | ", misses));
         }
@@ -560,7 +560,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// <summary>Every .cs file of the library (bin and obj left out), by path relative to it, with \n line ends.</summary>
         private static Dictionary<string, string> ReadLibrary()
         {
-            var dir = Path.Combine(Radice(), Library);
+            var dir = Path.Combine(Root(), Library);
             var sources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -573,13 +573,13 @@ namespace Oce.Solid.Agent.ContractTests
             }
             catch (Exception ex)
             {
-                Segna("the library sources can be read", false, ex.GetType().Name + ": " + ex.Message);
+                Check("the library sources can be read", false, ex.GetType().Name + ": " + ex.Message);
                 return null;
             }
             var missing = new[] { Shared, Measures, Export, Bom, Catalogue }.Where(n => !sources.ContainsKey(n)).ToList();
             if (missing.Count > 0)
             {
-                Segna("the library sources can be read", false, "missing in " + dir + ": " + string.Join(", ", missing));
+                Check("the library sources can be read", false, "missing in " + dir + ": " + string.Join(", ", missing));
                 return null;
             }
             return sources;
@@ -653,10 +653,10 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void PureRules()
         {
-            var library = Path.Combine(Radice(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of Z-C21.11 (load state, part or sub-assembly by extension, indented BOM rows)",
+                NotHere("the pure rules of Z-C21.11 (load state, part or sub-assembly by extension, indented BOM rows)",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -664,7 +664,7 @@ namespace Oce.Solid.Agent.ContractTests
             Type components, sw;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -679,9 +679,9 @@ namespace Oce.Solid.Agent.ContractTests
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
                 components = asm.GetType("Oce.Solid.Agent.Core.AssemblyComponents", false);
-                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
             LoadStates(components);
             FileKinds(components);
@@ -720,9 +720,9 @@ namespace Oce.Solid.Agent.ContractTests
                     var got = Convert.ToString(Call(components, "LoadFromSuppression2", e.Item1));
                     if (got != e.Item2) wrong.Add(e.Item1 + ": " + got + " instead of " + e.Item2);
                 }
-                Segna(label, wrong.Count == 0, wrong.Count == 0 ? expected.Length + " states as expected" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? expected.Length + " states as expected" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(label, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── part or sub-assembly, by the file extension ──────────────────────
@@ -741,9 +741,9 @@ namespace Oce.Solid.Agent.ContractTests
                     Tuple.Create(@"C:\w.sldasm\A.SLDPRT", true, false),
                 };
                 var wrong = Kinds(components, expected);
-                Segna(label, wrong.Count == 0, wrong.Count == 0 ? expected.Length + " paths as expected" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? expected.Length + " paths as expected" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(label, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
 
             const string odd = "an empty, missing or other path is neither, and an illegal character does not throw";
             try
@@ -761,10 +761,10 @@ namespace Oce.Solid.Agent.ContractTests
                 string illegal = @"C:\w\A|B.SLDPRT";
                 try { Call(components, "IsPartFile", illegal); Call(components, "IsAssemblyFile", illegal); }
                 catch (Exception ex) { wrong.Add(illegal + " threw " + ex.GetType().Name); }
-                Segna(odd, wrong.Count == 0,
+                Check(odd, wrong.Count == 0,
                       wrong.Count == 0 ? expected.Length + " paths neither part nor sub-assembly, the illegal one answered" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(odd, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(odd, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static List<string> Kinds(Type components, Tuple<string, bool, bool>[] expected)
@@ -897,7 +897,7 @@ namespace Oce.Solid.Agent.ContractTests
             };
             Action<string> close = label =>
             {
-                Segna(label, all, string.Join("; ", lines));
+                Check(label, all, string.Join("; ", lines));
                 lines.Clear();
                 all = true;
             };
@@ -937,9 +937,9 @@ namespace Oce.Solid.Agent.ContractTests
                     if (rows != e.Item3 || quantity != e.Item4)
                         wrong.Add(e.Item1 + ": " + rows + " rows, quantity " + quantity + " instead of " + e.Item3 + ", " + e.Item4);
                 }
-                Segna(sums, wrong.Count == 0, wrong.Count == 0 ? "rows/quantity " + string.Join(", ", read) : string.Join("; ", wrong));
+                Check(sums, wrong.Count == 0, wrong.Count == 0 ? "rows/quantity " + string.Join(", ", read) : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(sums, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(sums, false, ex.GetType().Name + ": " + ex.Message); }
 
             check("T_ind parts only", Ind(false), PartsOnly, "A 1, B 7");
             check("T_ind top level only", Ind(false), TopLevelOnly, "A 1, B 1, S_show 3");

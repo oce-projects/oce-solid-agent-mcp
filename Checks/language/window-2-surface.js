@@ -294,10 +294,10 @@ function direction(map, reverse, catEnums) {
   d.enumByArg = new Map();
   const enumRows = reverse ? [...map.enum_value].map(([a, b]) => [b, a]) : [...map.enum_value];
   for (const [src, dst] of enumRows) {
-    const [sa, sv] = src.split('=');
+    const [knows, sv] = src.split('=');
     const [, dv] = dst.split('=');
-    if (!d.enumByArg.has(sa)) d.enumByArg.set(sa, new Map());
-    const m = d.enumByArg.get(sa);
+    if (!d.enumByArg.has(knows)) d.enumByArg.set(knows, new Map());
+    const m = d.enumByArg.get(knows);
     if (m.has(sv) && m.get(sv) !== dv) cannot('the enum value ' + src + ' has two targets');
     m.set(sv, dv);
   }

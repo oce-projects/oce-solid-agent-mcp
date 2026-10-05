@@ -27,27 +27,27 @@ namespace Checks.RedTree
     ///
     ///     RedTree.exe        guarda il pezzo attivo
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
         private static int Main()
         {
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
             Console.WriteLine("documento: " + doc.GetTitle());
 
-            bool mostrava = true;
+            bool showed = true;
             try
             {
-                mostrava = sw.GetUserPreferenceToggle(
+                showed = sw.GetUserPreferenceToggle(
                     (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild);
                 sw.SetUserPreferenceToggle(
                     (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild, false);
-                Console.WriteLine("finestra degli errori: era " + mostrava + ", spenta");
+                Console.WriteLine("finestra degli errori: era " + showed + ", spenta");
             }
             catch (Exception e) { Console.WriteLine("finestra degli errori: " + e.Message); }
 
@@ -60,24 +60,24 @@ namespace Checks.RedTree
             // L'ELENCO UFFICIALE DEI GUAI.
             try
             {
-                int quanti = doc.Extension.GetWhatsWrongCount();
-                Console.WriteLine("GetWhatsWrongCount: " + quanti);
-                if (quanti > 0)
+                int howMany = doc.Extension.GetWhatsWrongCount();
+                Console.WriteLine("GetWhatsWrongCount: " + howMany);
+                if (howMany > 0)
                 {
                     // La firma vera di questa installazione e' a TRE uscite,
                     // non a cinque: `GetWhatsWrong(out Features, out
                     // ErrorCodes, out Warnings)`. Letta con ControlliApiQuote,
                     // non ricordata.
-                    object nomi = null, errori = null, avvisi = null;
-                    doc.Extension.GetWhatsWrong(out nomi, out errori, out avvisi);
-                    var vn = nomi as object[];
-                    var ve = errori as int[];
-                    var va = avvisi as bool[];
+                    object names = null, errors = null, warnings = null;
+                    doc.Extension.GetWhatsWrong(out names, out errors, out warnings);
+                    var vn = names as object[];
+                    var ve = errors as int[];
+                    var goes = warnings as bool[];
                     for (int i = 0; vn != null && i < vn.Length; i++)
                         Console.WriteLine("  guaio " + i + ": «" + vn[i] + "»" +
                             (ve != null && i < ve.Length
-                                ? ", errore " + ve[i] + " (" + Spiega(ve[i]) + ")" : "") +
-                            (va != null && i < va.Length ? ", avviso " + va[i] : ""));
+                                ? ", errore " + ve[i] + " (" + Explain(ve[i]) + ")" : "") +
+                            (goes != null && i < goes.Length ? ", avviso " + goes[i] : ""));
                 }
             }
             catch (Exception e) { Console.WriteLine("GetWhatsWrong: " + e.Message); }
@@ -92,12 +92,12 @@ namespace Checks.RedTree
                 while (f != null && n < 100)
                 {
                     n++;
-                    int codice = -1;
-                    bool avviso = false;
-                    try { codice = f.GetErrorCode2(out avviso); } catch { }
-                    string nomeErrore = codice == 0 ? "" : "  <-- " + Spiega(codice);
+                    int code = -1;
+                    bool warning = false;
+                    try { code = f.GetErrorCode2(out warning); } catch { }
+                    string errorName = code == 0 ? "" : "  <-- " + Explain(code);
                     Console.WriteLine("  " + f.Name + " [" + f.GetTypeName2() + "]" +
-                        " errore=" + codice + " avviso=" + avviso + nomeErrore);
+                        " errore=" + code + " avviso=" + warning + errorName);
                     f = f.GetNextFeature() as IFeature;
                 }
             }
@@ -106,7 +106,7 @@ namespace Checks.RedTree
             try
             {
                 sw.SetUserPreferenceToggle(
-                    (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild, mostrava);
+                    (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild, showed);
             }
             catch { }
             return 0;
@@ -117,11 +117,11 @@ namespace Checks.RedTree
         /// come numero invece di inventargli un nome: un nome sbagliato su un
         /// codice e' peggio del numero nudo, perche' sembra una spiegazione.
         /// </summary>
-        private static string Spiega(int codice)
+        private static string Explain(int code)
         {
-            if (Enum.IsDefined(typeof(swFeatureError_e), codice))
-                return ((swFeatureError_e)codice).ToString();
-            return "codice " + codice + ", non nell'enum";
+            if (Enum.IsDefined(typeof(swFeatureError_e), code))
+                return ((swFeatureError_e)code).ToString();
+            return "codice " + code + ", non nell'enum";
         }
     }
 }

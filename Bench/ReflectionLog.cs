@@ -18,8 +18,8 @@ namespace Oce.Solid.Agent.Bench
     /// reason. The static net of Oce.Solid.Agent.ContractTests (ReflectionTests) resolves
     /// their literal names, but a member name resolves as soon as ANY type
     /// declares it, and 14 of the 58 direct member names of `Tests` and `Bench`
-    /// are declared by more than one type (measured on 1/10/2026: `Nome` by
-    /// four, `Tutte` and `Schema` by two). This log asks the type that is
+    /// are declared by more than one type (measured on 1/10/2026: `Name` by
+    /// four, `All` and `Schema` by two). This log asks the type that is
     /// really there, on the path the run takes, and the run says at its end
     /// whether any came back null.
     ///

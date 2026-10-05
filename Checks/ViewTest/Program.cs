@@ -8,7 +8,7 @@ namespace Checks.ViewTest
     /// <summary>
     /// COME SI RIMETTE A POSTO LA VISTA DI CHI LAVORA? (misura per la voce V1)
     ///
-    /// `VistaDelPezzo` gira il pezzo per fotografarlo e **deve** rimetterlo
+    /// `PartView` gira il pezzo per fotografarlo e **deve** rimetterlo
     /// com'era: il ponte si aggancia al documento che un progettista ha davanti,
     /// e lasciarglielo girato e' un danno vero fatto da un'operazione di sola
     /// lettura.
@@ -34,9 +34,9 @@ namespace Checks.ViewTest
     /// misurato che cambia quando la vista cambia, quindi il confronto ha un
     /// ingresso vero.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int _falliti;
+        private static int _failed;
 
         private static int Main()
         {
@@ -51,84 +51,84 @@ namespace Checks.ViewTest
             IModelDoc2 doc = null;
             try
             {
-                string modello = sw.GetUserPreferenceStringValue(
+                string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-                doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
+                doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
                 if (doc == null) { Console.Error.WriteLine("parte non creata"); return 2; }
 
                 // UN PEZZO CI VUOLE. Su un documento vuoto `ViewZoomtofit2` non
                 // ha niente da inquadrare, e mezza prova non proverebbe niente.
-                Blocco(doc, 0.2, 0.1, 0.02);
+                Block(doc, 0.2, 0.1, 0.02);
                 doc.ShowNamedView2("", (int)swStandardViews_e.swIsometricView);
                 doc.GraphicsRedraw2();
                 doc.ViewZoomtofit2();
                 doc.GraphicsRedraw2();
 
-                var vista = doc.ActiveView as IModelView;
-                if (vista == null) { Console.Error.WriteLine("nessuna vista attiva"); return 2; }
+                var view = doc.ActiveView as IModelView;
+                if (view == null) { Console.Error.WriteLine("nessuna vista attiva"); return 2; }
 
                 Console.WriteLine();
                 Console.WriteLine("=== come si rimette a posto la vista ===");
                 Console.WriteLine();
 
                 // ── ha senso confrontare? ────────────────────────────────
-                double[] a = Numeri(vista);
-                Gira(doc, swStandardViews_e.swFrontView);
-                double[] b = Numeri(vista);
-                Segna("ShowNamedView2 cambia davvero i sedici numeri",
-                      a != null && !Uguali(a, b),
+                double[] a = Numbers(view);
+                Turn(doc, swStandardViews_e.swFrontView);
+                double[] b = Numbers(view);
+                Check("ShowNamedView2 cambia davvero i sedici numeri",
+                      a != null && !Equal(a, b),
                       a == null ? "non leggibili" : "");
 
                 // ── 1. riassegnare Transform ─────────────────────────────
-                Prova(doc, vista, "riassegnare Transform", ripristina =>
+                Test(doc, view, "riassegnare Transform", restore =>
                 {
-                    var tenuto = vista.Transform;
-                    ripristina(() => { try { vista.Transform = tenuto; } catch { } });
+                    var kept = view.Transform;
+                    restore(() => { try { view.Transform = kept; } catch { } });
                 });
 
                 // ── 2. Transform COPIATO (IInverse due volte) ────────────
-                Prova(doc, vista, "Transform copiato con IInverse x2", ripristina =>
+                Test(doc, view, "Transform copiato con IInverse x2", restore =>
                 {
-                    var vivo = vista.Transform as IMathTransform;
-                    var rov = vivo == null ? null : vivo.IInverse() as IMathTransform;
-                    var copia = rov == null ? null : rov.IInverse();
-                    ripristina(() => { try { if (copia != null) vista.Transform = copia; } catch { } });
+                    var alive = view.Transform as IMathTransform;
+                    var rov = alive == null ? null : alive.IInverse() as IMathTransform;
+                    var copy = rov == null ? null : rov.IInverse();
+                    restore(() => { try { if (copy != null) view.Transform = copy; } catch { } });
                 });
 
                 // ── 3. ViewOrientationUndo ───────────────────────────────
-                Prova(doc, vista, "ViewOrientationUndo()", ripristina =>
+                Test(doc, view, "ViewOrientationUndo()", restore =>
                 {
-                    ripristina(() => { try { doc.ViewOrientationUndo(); } catch { } });
+                    restore(() => { try { doc.ViewOrientationUndo(); } catch { } });
                 });
 
                 // ── 4. la terna, per riferimento ─────────────────────────
-                Prova(doc, vista, "terna Orientation3/Translation3/Scale2 (riferimento)", ripristina =>
+                Test(doc, view, "terna Orientation3/Translation3/Scale2 (riferimento)", restore =>
                 {
-                    var o = vista.Orientation3;
-                    var t = vista.Translation3;
-                    double s = vista.Scale2;
-                    ripristina(() =>
+                    var o = view.Orientation3;
+                    var t = view.Translation3;
+                    double s = view.Scale2;
+                    restore(() =>
                     {
-                        try { vista.Orientation3 = o; } catch { }
-                        try { vista.Translation3 = t; } catch { }
-                        try { vista.Scale2 = s; } catch { }
+                        try { view.Orientation3 = o; } catch { }
+                        try { view.Translation3 = t; } catch { }
+                        try { view.Scale2 = s; } catch { }
                     });
                 });
 
                 // ── 5. la terna, COPIATA ────────────────────────────────
-                Prova(doc, vista, "terna COPIATA (IInverse x2 + IScale 1.0)", ripristina =>
+                Test(doc, view, "terna COPIATA (IInverse x2 + IScale 1.0)", restore =>
                 {
-                    var o = vista.Orientation3 as IMathTransform;
+                    var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
-                    var oCopia = rov == null ? null : rov.IInverse();
-                    var t = vista.Translation3 as IMathVector;
-                    var tCopia = t == null ? null : t.IScale(1.0);
-                    double s = vista.Scale2;
-                    ripristina(() =>
+                    var orCopy = rov == null ? null : rov.IInverse();
+                    var t = view.Translation3 as IMathVector;
+                    var tCopy = t == null ? null : t.IScale(1.0);
+                    double s = view.Scale2;
+                    restore(() =>
                     {
-                        try { if (oCopia != null) vista.Orientation3 = oCopia; } catch { }
-                        try { if (tCopia != null) vista.Translation3 = tCopia; } catch { }
-                        try { if (s > 0) vista.Scale2 = s; } catch { }
+                        try { if (orCopy != null) view.Orientation3 = orCopy; } catch { }
+                        try { if (tCopy != null) view.Translation3 = tCopy; } catch { }
+                        try { if (s > 0) view.Scale2 = s; } catch { }
                     });
                 });
 
@@ -137,21 +137,21 @@ namespace Checks.ViewTest
                 // le scritture andrebbero su qualcosa di scollegato mentre le
                 // letture continuerebbero a funzionare. Si rilegge `ActiveView`
                 // prima di scrivere e si guarda se cambia qualcosa.
-                Prova(doc, vista, "terna copiata, su ActiveView riletta", ripristina =>
+                Test(doc, view, "terna copiata, su ActiveView riletta", restore =>
                 {
-                    var o = vista.Orientation3 as IMathTransform;
+                    var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
-                    var oCopia = rov == null ? null : rov.IInverse();
-                    var t = vista.Translation3 as IMathVector;
-                    var tCopia = t == null ? null : t.IScale(1.0);
-                    double s = vista.Scale2;
-                    ripristina(() =>
+                    var orCopy = rov == null ? null : rov.IInverse();
+                    var t = view.Translation3 as IMathVector;
+                    var tCopy = t == null ? null : t.IScale(1.0);
+                    double s = view.Scale2;
+                    restore(() =>
                     {
-                        var adesso = doc.ActiveView as IModelView;
-                        if (adesso == null) return;
-                        try { if (oCopia != null) adesso.Orientation3 = oCopia; } catch { }
-                        try { if (tCopia != null) adesso.Translation3 = tCopia; } catch { }
-                        try { if (s > 0) adesso.Scale2 = s; } catch { }
+                        var now = doc.ActiveView as IModelView;
+                        if (now == null) return;
+                        try { if (orCopy != null) now.Orientation3 = orCopy; } catch { }
+                        try { if (tCopy != null) now.Translation3 = tCopy; } catch { }
+                        try { if (s > 0) now.Scale2 = s; } catch { }
                     });
                 });
 
@@ -162,19 +162,19 @@ namespace Checks.ViewTest
                 // l'indice 9, cioe' la traslazione, di 4,77. Mettendo la scala
                 // per ultima si rimette una traslazione che vale per la scala
                 // di prima. Qui si prova l'ordine opposto.
-                Prova(doc, vista, "terna copiata, in ordine O -> S -> T", ripristina =>
+                Test(doc, view, "terna copiata, in ordine O -> S -> T", restore =>
                 {
-                    var o = vista.Orientation3 as IMathTransform;
+                    var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
-                    var oCopia = rov == null ? null : rov.IInverse();
-                    var t = vista.Translation3 as IMathVector;
-                    var tCopia = t == null ? null : t.IScale(1.0);
-                    double s = vista.Scale2;
-                    ripristina(() =>
+                    var orCopy = rov == null ? null : rov.IInverse();
+                    var t = view.Translation3 as IMathVector;
+                    var tCopy = t == null ? null : t.IScale(1.0);
+                    double s = view.Scale2;
+                    restore(() =>
                     {
-                        try { if (oCopia != null) vista.Orientation3 = oCopia; } catch { }
-                        try { if (s > 0) vista.Scale2 = s; } catch { }
-                        try { if (tCopia != null) vista.Translation3 = tCopia; } catch { }
+                        try { if (orCopy != null) view.Orientation3 = orCopy; } catch { }
+                        try { if (s > 0) view.Scale2 = s; } catch { }
+                        try { if (tCopy != null) view.Translation3 = tCopy; } catch { }
                     });
                 });
 
@@ -182,21 +182,21 @@ namespace Checks.ViewTest
                 // Se ogni scrittura si porta dietro un ricalcolo delle altre,
                 // un secondo giro sugli stessi valori converge. Se non
                 // converge, non e' un problema di ordine.
-                Prova(doc, vista, "terna copiata, applicata due volte", ripristina =>
+                Test(doc, view, "terna copiata, applicata due volte", restore =>
                 {
-                    var o = vista.Orientation3 as IMathTransform;
+                    var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
-                    var oCopia = rov == null ? null : rov.IInverse();
-                    var t = vista.Translation3 as IMathVector;
-                    var tCopia = t == null ? null : t.IScale(1.0);
-                    double s = vista.Scale2;
-                    ripristina(() =>
+                    var orCopy = rov == null ? null : rov.IInverse();
+                    var t = view.Translation3 as IMathVector;
+                    var tCopy = t == null ? null : t.IScale(1.0);
+                    double s = view.Scale2;
+                    restore(() =>
                     {
-                        for (int giro = 0; giro < 2; giro++)
+                        for (int benchRun = 0; benchRun < 2; benchRun++)
                         {
-                            try { if (oCopia != null) vista.Orientation3 = oCopia; } catch { }
-                            try { if (s > 0) vista.Scale2 = s; } catch { }
-                            try { if (tCopia != null) vista.Translation3 = tCopia; } catch { }
+                            try { if (orCopy != null) view.Orientation3 = orCopy; } catch { }
+                            try { if (s > 0) view.Scale2 = s; } catch { }
+                            try { if (tCopy != null) view.Translation3 = tCopy; } catch { }
                         }
                     });
                 });
@@ -206,9 +206,9 @@ namespace Checks.ViewTest
                 // questo non e' una soluzione: l'orientamento di chi lavora
                 // quasi mai ha un nome. Ma se e' l'unica che torna, dice che il
                 // problema sta nelle scritture e non nelle letture.
-                Prova(doc, vista, "ShowNamedView2 sulla vista di partenza", ripristina =>
+                Test(doc, view, "ShowNamedView2 sulla vista di partenza", restore =>
                 {
-                    ripristina(() =>
+                    restore(() =>
                     {
                         try
                         {
@@ -220,9 +220,9 @@ namespace Checks.ViewTest
                 });
 
                 Console.WriteLine();
-                Console.WriteLine(_falliti == 0
+                Console.WriteLine(_failed == 0
                     ? "Tutte le strade funzionano."
-                    : _falliti + " strade su 9 non rimettono la vista.");
+                    : _failed + " strade su 9 non rimettono la vista.");
                 return 0;
             }
             catch (Exception ex)
@@ -246,47 +246,47 @@ namespace Checks.ViewTest
         /// aver lasciato la vista da un'altra parte, e allora la prova
         /// successiva partirebbe da un posto che non conosce.
         /// </summary>
-        private static void Prova(
-            IModelDoc2 doc, IModelView vista, string nome, Action<Action<Action>> preparaERimetti)
+        private static void Test(
+            IModelDoc2 doc, IModelView view, string itemName, Action<Action<Action>> prepareAndPutBack)
         {
             doc.ShowNamedView2("", (int)swStandardViews_e.swIsometricView);
             doc.GraphicsRedraw2();
             doc.ViewZoomtofit2();
             doc.GraphicsRedraw2();
 
-            double[] partenza = Numeri(vista);
-            Action rimessa = null;
-            preparaERimetti(azione => { rimessa = azione; });
+            double[] start = Numbers(view);
+            Action restored = null;
+            prepareAndPutBack(action => { restored = action; });
 
-            Gira(doc, swStandardViews_e.swRightView);
+            Turn(doc, swStandardViews_e.swRightView);
             doc.ViewZoomtofit2();
             doc.GraphicsRedraw2();
 
-            if (rimessa != null) rimessa();
+            if (restored != null) restored();
             doc.GraphicsRedraw2();
 
-            double[] finale = Numeri(vista);
-            Segna(nome, Uguali(partenza, finale),
-                  partenza == null ? "numeri non leggibili" : Scarto(partenza, finale));
+            double[] final = Numbers(view);
+            Check(itemName, Equal(start, final),
+                  start == null ? "numeri non leggibili" : Deviation(start, final));
         }
 
-        private static void Gira(IModelDoc2 doc, swStandardViews_e quale)
+        private static void Turn(IModelDoc2 doc, swStandardViews_e which)
         {
-            doc.ShowNamedView2("", (int)quale);
+            doc.ShowNamedView2("", (int)which);
             doc.GraphicsRedraw2();
         }
 
-        private static double[] Numeri(IModelView vista)
+        private static double[] Numbers(IModelView view)
         {
             try
             {
-                var m = vista.Transform as IMathTransform;
+                var m = view.Transform as IMathTransform;
                 return m == null ? null : m.ArrayData as double[];
             }
             catch { return null; }
         }
 
-        private static bool Uguali(double[] a, double[] b)
+        private static bool Equal(double[] a, double[] b)
         {
             if (a == null || b == null) return false;
             if (a.Length != b.Length) return false;
@@ -296,28 +296,28 @@ namespace Checks.ViewTest
         }
 
         /// <summary>Di quanto si e' sbagliato, sul numero che si e' scostato di piu'.</summary>
-        private static string Scarto(double[] a, double[] b)
+        private static string Deviation(double[] a, double[] b)
         {
             if (a == null || b == null || a.Length != b.Length) return "";
-            double peggio = 0;
-            int dove = -1;
+            double worse = 0;
+            int location = -1;
             for (int i = 0; i < a.Length; i++)
             {
                 double d = Math.Abs(a[i] - b[i]);
-                if (d > peggio) { peggio = d; dove = i; }
+                if (d > worse) { worse = d; location = i; }
             }
-            if (peggio <= 1e-9) return "";
-            return "scarto massimo " + peggio.ToString("0.####") + " sul numero " + dove;
+            if (worse <= 1e-9) return "";
+            return "scarto massimo " + worse.ToString("0.####") + " sul numero " + location;
         }
 
-        private static void Segna(string nome, bool ok, string dettaglio)
+        private static void Check(string itemName, bool ok, string detail)
         {
-            if (!ok) _falliti++;
-            Console.WriteLine((ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio);
+            if (!ok) _failed++;
+            Console.WriteLine((ok ? "  OK   " : "  NO   ") + itemName.PadRight(52) + detail);
         }
 
         /// <summary>Un blocco, in metri: SOLIDWORKS lavora in metri.</summary>
-        private static void Blocco(IModelDoc2 doc, double l, double w, double h)
+        private static void Block(IModelDoc2 doc, double l, double w, double h)
         {
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateCornerRectangle(-l / 2, -w / 2, 0, l / 2, w / 2, 0);

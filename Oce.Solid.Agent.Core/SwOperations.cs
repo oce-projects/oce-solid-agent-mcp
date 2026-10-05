@@ -35,19 +35,19 @@ namespace Oce.Solid.Agent.Core
     /// nessun errore. Meglio rifiutare: chi legge un rifiuto capisce, chi
     /// guarda un foro spostato di 30 mm spesso non se ne accorge.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         private readonly ISldWorks _sw;
         private readonly Action<string> _log;
 
         /// <summary>Cosa hanno lasciato i passi precedenti di questo piano.</summary>
-        private IReadOnlyDictionary<int, Riferimenti.Passo> _passiFatti =
-            new Dictionary<int, Riferimenti.Passo>();
+        private IReadOnlyDictionary<int, References.Step> _stepsDone =
+            new Dictionary<int, References.Step>();
 
         /// <summary>
         /// How many features the tree had when this step began.
         ///
-        /// Until Z-C21.5 it was what let <see cref="SenzaLoSchizzo"/> tell a
+        /// Until Z-C21.5 it was what let <see cref="WithoutSketch"/> tell a
         /// sketch made by this step from one already there; that is now
         /// <see cref="_featureNamesAtStepStart"/>, which says WHICH features
         /// were born and not only that the tree grew. The count is still read
@@ -59,14 +59,14 @@ namespace Oce.Solid.Agent.Core
         /// the tree cannot look «grown». A defect of ours must leave one sketch
         /// too many, never delete someone else's feature.
         /// </summary>
-        private int _featureAllInizioDelPasso = int.MaxValue;
+        private int _featuresAtStepStart = int.MaxValue;
 
         /// <summary>
         /// The names of the features of the tree when this step began, or null
         /// (not a part, tree unreadable, or not written yet).
         ///
         /// SINCE Z-C21.5 (scheme S7) this, and no longer the count above, is
-        /// what lets <see cref="SenzaLoSchizzo"/> tell a sketch made by this
+        /// what lets <see cref="WithoutSketch"/> tell a sketch made by this
         /// step from one that was already there: the count only said that the
         /// tree had grown, and the sketch was then taken as the last feature of
         /// the tree, which on a sheet-metal part is the flat pattern. Null is
@@ -75,7 +75,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private HashSet<string> _featureNamesAtStepStart;
 
-        public OperazioniSw(ISldWorks sw, Action<string> log)
+        public SwOperations(ISldWorks sw, Action<string> log)
         {
             _sw = sw;
             _log = log ?? (m => { });
@@ -89,17 +89,17 @@ namespace Oce.Solid.Agent.Core
         /// la feature, perche' prima non c'e' niente da misurare. Se la misura
         /// non torna, il taglio resta: disfare una feature che ha TOLTO
         /// materiale non e' la stessa cosa che togliere uno schizzo vuoto
-        /// (vedi <see cref="SenzaLoSchizzo"/>), e non e' stato provato.
+        /// (vedi <see cref="WithoutSketch"/>), e non e' stato provato.
         ///
         /// Allora lo si DICE, sempre e con le stesse parole. Un rifiuto che
         /// tace lascia credere che il pezzo sia intatto.
         ///
         /// Only where the cut is really still in the part (Z-C21.9, finding
-        /// C9-6): once DeleteSelection2 has removed it, TogliIlTaglio answers
+        /// C9-6): once DeleteSelection2 has removed it, RemoveCut answers
         /// with RemovedButTreeLonger or RemovedButVolumeChanged instead.
         /// </summary>
-        private const string RestaNelPezzo =
-            " Il taglio pero' e' gia' stato fatto: ritiralo — " + Frasi.CosiSiRitira + ".";
+        private const string RemainsInPart =
+            " Il taglio pero' e' gia' stato fatto: ritiralo — " + Sentences.HowToWithdrawIt + ".";
 
         /// <summary>
         /// Coda dei messaggi di errore che lasciano uno schizzo nell'albero.
@@ -114,26 +114,26 @@ namespace Oce.Solid.Agent.Core
         /// Chi la riceve adesso sa due cose vere insieme: che l'operazione non
         /// e' riuscita, e che nel pezzo e' rimasto qualcosa di nostro.
         /// </summary>
-        private const string LasciatoSchizzo =
+        private const string LeftSketchBehind =
             " Nel pezzo e' rimasto lo schizzo che avevo disegnato: puoi toglierlo — " +
-            Frasi.CosiSiRitira + ".";
+            Sentences.HowToWithdrawIt + ".";
 
         /// <summary>
-        /// Il terzo esito di <see cref="SenzaLoSchizzo"/>, e il piu' importante
+        /// Il terzo esito di <see cref="WithoutSketch"/>, e il piu' importante
         /// dei tre: lo schizzo e' stato tolto, ma togliendolo il pezzo e'
         /// cambiato.
         ///
         /// Non dovrebbe succedere — si cancella solo una feature che e' uno
         /// schizzo, che sta in fondo all'albero e da cui non dipende niente —
         /// e proprio per questo va detto se succede. Rispondere
-        /// <see cref="LasciatoSchizzo"/> qui sarebbe una bugia («lo schizzo e'
+        /// <see cref="LeftSketchBehind"/> qui sarebbe una bugia («lo schizzo e'
         /// rimasto» quando non e' rimasto) che coprirebbe un danno vero.
         ///
         /// NON SI E' MAI VISTA ACCADERE, e il 14/9/2026 si e' provato a farla
         /// accadere. Voce D7 del TODO.
         ///
         /// Perche' e' difficile da raggiungere, ragionando sulle condizioni che
-        /// <see cref="SenzaLoSchizzo"/> impone prima di arrivare qui: lo schizzo
+        /// <see cref="WithoutSketch"/> impone prima di arrivare qui: lo schizzo
         /// e' l'ultima feature, e' nato in questo passo, e **non ha figli**. Uno
         /// schizzo senza figli non porta materiale, e `swDelete_Absorbed` toglie
         /// lui e le sue quote e basta. Quindi volume e conteggio corpi non
@@ -162,13 +162,13 @@ namespace Oce.Solid.Agent.Core
         /// pezzo»: quello che si sa e' che i numeri non tornano, non chi sia
         /// stato.
         /// </summary>
-        private const string SchizzoToltoMaNonSolo =
+        private const string SketchRemovedButNotOnlyIt =
             " Ho tolto lo schizzo che avevo disegnato, ma togliendolo e' cambiato" +
             " anche il pezzo: controllalo, e se non e' come lo vuoi ritiralo — " +
-            Frasi.CosiSiRitira + ".";
+            Sentences.HowToWithdrawIt + ".";
 
         /// <summary>
-        /// Il tipo dell'origine del pezzo, l'unica cosa che <see cref="SenzaLoSchizzo"/>
+        /// Il tipo dell'origine del pezzo, l'unica cosa che <see cref="WithoutSketch"/>
         /// rifiuta per NOME di tipo.
         ///
         /// Misurato il 14 settembre 2026: l'origine risponde ISketch a
@@ -177,14 +177,14 @@ namespace Oce.Solid.Agent.Core
         /// tradotto — quello e' `Name`, che in italiano dice «Origine» — e'
         /// il nome di TIPO dell'API, che non cambia con la lingua.
         /// </summary>
-        private const string OrigineDelPezzo = "OriginProfileFeature";
+        private const string PartOrigin = "OriginProfileFeature";
 
-        public class Esito
+        public class Outcome
         {
-            public bool Riuscito;
-            public string Errore;
+            public bool Succeeded;
+            public string Error;
             /// <summary>Nome della feature creata: serve per tornare indietro.</summary>
-            public string FeatureCreata;
+            public string CreatedFeature;
             /// <summary>
             /// La feature vera, non il suo nome. La tiene l'esecutore del piano
             /// per poter risolvere i riferimenti dei passi successivi: il nome
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.Core
             /// quale faccia e' «in cima»; null per le operazioni che una
             /// direzione non ce l'hanno.
             /// </summary>
-            public double[] Direzione;
+            public double[] Direction;
             /// <summary>
             /// IL DOCUMENTO SU CUI SI LAVORA DA ADESSO IN POI, quando questa
             /// operazione lo ha cambiato APPOSTA.
@@ -215,14 +215,14 @@ namespace Oce.Solid.Agent.Core
             /// Si segue solo cio' che e' dichiarato. Un documento che cambia
             /// senza che nessuno lo dica resta un motivo per fermarsi.
             /// </summary>
-            public IModelDoc2 DocumentoNuovo;
-            public Dictionary<string, object> Misure = new Dictionary<string, object>();
+            public IModelDoc2 NewDocument;
+            public Dictionary<string, object> Measurements = new Dictionary<string, object>();
         }
 
         /// <summary>
         /// Esegue una operazione del piano. Ritorna sempre un esito, non solleva.
         /// </summary>
-        /// <param name="passiFatti">
+        /// <param name="stepsDone">
         /// Cosa hanno lasciato i passi gia' eseguiti di questo stesso piano,
         /// per numero d'ordine. E' cio' che permette al passo 2 di dire «la
         /// faccia in cima a quello che hai fatto al passo 1» invece di citare
@@ -245,11 +245,11 @@ namespace Oce.Solid.Agent.Core
         /// **QUESTO ELENCO PUO' DERIVARE DALLO SWITCH, ed e' il suo difetto.**
         /// Ci si difende in due modi, tutti e due nel controllo e nessuno nella
         /// buona volonta': si verifica che ogni nome qui dentro sia davvero
-        /// dispatchabile (chiamando `Esegui` e guardando che NON risponda
+        /// dispatchabile (chiamando `Run` e guardando che NON risponda
         /// «operazione sconosciuta»), e si confronta con i `case` letti dal
         /// sorgente — dove leggerne zero e' un fallimento, non un successo.
         /// </summary>
-        public static readonly string[] NomiEseguibili =
+        public static readonly string[] ExecutableNames =
         {
             "apply_material", "slot", "activate_configuration",
             "mate", "combine_bodies",
@@ -291,14 +291,14 @@ namespace Oce.Solid.Agent.Core
         /// se cambia, il controllo deve accorgersene invece di credere che
         /// tutto vada bene.
         /// </summary>
-        public const string OperazioneSconosciuta = "Operazione sconosciuta: ";
+        public const string UnknownOperation = "Operazione sconosciuta: ";
 
-        public Esito Esegui(
-            IModelDoc2 modello,
-            string operazione,
-            Dictionary<string, object> argomenti,
-            StatoDocumento stato,
-            IReadOnlyDictionary<int, Riferimenti.Passo> passiFatti = null)
+        public Outcome Run(
+            IModelDoc2 model,
+            string operation,
+            Dictionary<string, object> arguments,
+            DocumentState docState,
+            IReadOnlyDictionary<int, References.Step> stepsDone = null)
         {
             // THE NAMES OF BEFORE W3.1-bis.5 (Alias.cs, decision D4): an
             // Italian operation, argument or value is translated here, for the
@@ -306,10 +306,10 @@ namespace Oce.Solid.Agent.Core
             // bench, the add-in), and the answer says so in `deprecated`. The
             // bridge translates before its own checks, so its plans arrive here
             // in English. Removed in W3.1-bis.11.
-            List<string> deprecated = Alias.Step(ref operazione, argomenti);
-            Esito esito = ExecuteWithCurrentNames(modello, operazione, argomenti, stato, passiFatti);
-            AttachDeprecated(esito, deprecated);
-            return esito;
+            List<string> deprecated = Alias.Step(ref operation, arguments);
+            Outcome outcome = ExecuteWithCurrentNames(model, operation, arguments, docState, stepsDone);
+            AttachDeprecated(outcome, deprecated);
+            return outcome;
         }
 
         /// <summary>
@@ -319,41 +319,41 @@ namespace Oce.Solid.Agent.Core
         /// step that worked), and on a failed step in the error too, which is
         /// what a caller reads first. Removed with the aliases in W3.1-bis.11.
         /// </summary>
-        public static void AttachDeprecated(Esito esito, List<string> deprecated)
+        public static void AttachDeprecated(Outcome outcome, List<string> deprecated)
         {
-            if (esito == null || deprecated == null || deprecated.Count == 0) return;
-            if (esito.Misure == null) esito.Misure = new Dictionary<string, object>();
-            esito.Misure["deprecated"] = deprecated.ToArray();
-            if (!esito.Riuscito) esito.Errore = esito.Errore + " (" + string.Join("; ", deprecated) + ")";
+            if (outcome == null || deprecated == null || deprecated.Count == 0) return;
+            if (outcome.Measurements == null) outcome.Measurements = new Dictionary<string, object>();
+            outcome.Measurements["deprecated"] = deprecated.ToArray();
+            if (!outcome.Succeeded) outcome.Error = outcome.Error + " (" + string.Join("; ", deprecated) + ")";
         }
 
-        private Esito ExecuteWithCurrentNames(
-            IModelDoc2 modello,
-            string operazione,
-            Dictionary<string, object> argomenti,
-            StatoDocumento stato,
-            IReadOnlyDictionary<int, Riferimenti.Passo> passiFatti)
+        private Outcome ExecuteWithCurrentNames(
+            IModelDoc2 model,
+            string operation,
+            Dictionary<string, object> arguments,
+            DocumentState docState,
+            IReadOnlyDictionary<int, References.Step> stepsDone)
         {
-            _passiFatti = passiFatti ?? new Dictionary<int, Riferimenti.Passo>();
+            _stepsDone = stepsDone ?? new Dictionary<int, References.Step>();
             // Si svuota all'INIZIO: svuotarlo alla fine lo lascerebbe pieno
             // quando l'operazione fallisce, e la successiva erediterebbe gli
             // spostamenti di quella prima.
-            _riancoraggi.Clear();
+            _reanchors.Clear();
             // The picture of the tree BEFORE anything is touched: the count,
             // read after a withdrawal, and the names, which say WHICH features
-            // this step made (Z-C21.5, scheme S7) and are what SenzaLoSchizzo
+            // this step made (Z-C21.5, scheme S7) and are what WithoutSketch
             // reads, so as never to delete what was already there. Here and not
             // in each operation, because every operation comes through here.
-            _featureAllInizioDelPasso = ContaFeature(modello);
-            _featureNamesAtStepStart = FeatureNamesNow(modello);
+            _featuresAtStepStart = CountFeature(model);
+            _featureNamesAtStepStart = FeatureNamesNow(model);
             try
             {
-                switch (operazione)
+                switch (operation)
                 {
-                    case "extrude_rectangle": return EstrudiRettangolo(modello, argomenti);
-                    case "extrude_circle": return EstrudiCerchio(modello, argomenti);
-                    case "extrude_section": return EstrudiSezione(modello, argomenti);
-                    case "spur_gear": return RuotaDentataOp(modello, argomenti);
+                    case "extrude_rectangle": return ExtrudeRectangle(model, arguments);
+                    case "extrude_circle": return ExtrudeCircle(model, arguments);
+                    case "extrude_section": return ExtrudeSection(model, arguments);
+                    case "spur_gear": return SpurGearOp(model, arguments);
                     // La sagoma libera e le RICETTE finiscono nello stesso
                     // esecutore: una ruota dentata non e' un'altra operazione,
                     // e' un modo di scrivere dei contorni. Il server la espande
@@ -361,48 +361,48 @@ namespace Oce.Solid.Agent.Core
                     // cosa vorrebbero dire due comportamenti che divergono alla
                     // prima modifica.
                     case "extrude_profile":
-                        return EstrudiProfilo(modello, argomenti);
-                    case "cylindrical_cut": return TaglioCilindrico(modello, argomenti, stato);
+                        return ExtrudeProfile(model, arguments);
+                    case "cylindrical_cut": return CylindricalCut(model, arguments, docState);
                     // Il foro fatto come si fa un foro: creazione guidata,
                     // norma ISO, filetto, lamatura, svasatura. Sta in
                     // HoleOperations.cs perche' la ricetta e' lunga e
                     // ogni riga di quella ricetta e' stata misurata.
-                    case "hole_wizard": return ForoGuidato(modello, argomenti, stato);
+                    case "hole_wizard": return HoleWizard(model, arguments, docState);
                     // Il materiale: MaterialOperations.cs.
-                    case "apply_material": return ApplicaMateriale(modello, argomenti);
-                    case "rectangular_cut": return TaglioRettangolare(modello, argomenti, stato);
-                    case "slot": return Asola(modello, argomenti, stato);
-                    case "extrude_on_face": return EstrudiSuFaccia(modello, argomenti, stato);
-                    case "set_dimension": return ModificaQuota(modello, argomenti, stato);
+                    case "apply_material": return ApplyMaterial(model, arguments);
+                    case "rectangular_cut": return RectangularCut(model, arguments, docState);
+                    case "slot": return Slot(model, arguments, docState);
+                    case "extrude_on_face": return ExtrudeOnFace(model, arguments, docState);
+                    case "set_dimension": return SetDimension(model, arguments, docState);
                     // Le variabili globali e le equazioni (voce Z-F1): dare un nome a
                     // un numero invece di ripeterlo. EquationOperations.cs.
-                    case "global_variable": return VariabileGlobale(modello, argomenti, stato);
-                    case "link_dimension": return LegaQuota(modello, argomenti, stato);
+                    case "global_variable": return GlobalVariable(model, arguments, docState);
+                    case "link_dimension": return LinkDimension(model, arguments, docState);
                     // Riordinare l'albero (voce Z-F3). ReorderOperations.cs.
-                    case "reorder_feature": return RiordinaLavorazione(modello, argomenti, stato);
+                    case "reorder_feature": return ReorderFeature(model, arguments, docState);
                     // Cambiare un'estrusione o un taglio gia' fatti (voce Z-F4).
                     // EditExtrusionOperations.cs.
-                    case "edit_extrusion": return CambiaEstrusione(modello, argomenti, stato);
-                    case "dimension_tolerance": return TolleranzaQuota(modello, argomenti);
-                    case "suppress_feature": return SopprimiLavorazione(modello, argomenti, stato);
-                    case "delete_feature": return EliminaLavorazione(modello, argomenti, stato);
-                    case "move_bodies": return SpostaCorpi(modello, argomenti, stato);
+                    case "edit_extrusion": return EditExtrusion(model, arguments, docState);
+                    case "dimension_tolerance": return DimensionTolerance(model, arguments);
+                    case "suppress_feature": return SuppressFeature(model, arguments, docState);
+                    case "delete_feature": return DeleteFeature(model, arguments, docState);
+                    case "move_bodies": return MoveBodies(model, arguments, docState);
                     // Le booleane fra corpi e il raccordo a raggio variabile
                     // stanno in BodyOperations.cs.
-                    case "combine_bodies": return CombinaCorpi(modello, argomenti, stato);
+                    case "combine_bodies": return CombineBodies(model, arguments, docState);
                     case "variable_fillet":
-                        return RaccordoVariabile(modello, argomenti, stato);
+                        return VariableFillet(model, arguments, docState);
                     // Il raccordo di FACCIA (voce GP7, la meta' che mancava):
                     // CreateDefinition(swFmFillet) e marche 2/4, non FeatureFillet3.
                     // FaceFilletOperations.cs.
                     case "fillet_face":
-                        return RaccordoFaccia(modello, argomenti, stato);
+                        return FaceFillet(model, arguments, docState);
                     case "cosmetic_thread":
-                        return FilettaturaCosmetica(modello, argomenti, stato);
-                    case "fillet_edges": return RaccordoSpigoli(modello, argomenti, stato);
-                    case "chamfer_edges": return SmussoSpigoli(modello, argomenti, stato);
-                    case "shell": return Guscio(modello, argomenti, stato);
-                    case "create_plane": return CreaPiano(modello, argomenti);
+                        return CosmeticThread(model, arguments, docState);
+                    case "fillet_edges": return FilletEdges(model, arguments, docState);
+                    case "chamfer_edges": return ChamferEdges(model, arguments, docState);
+                    case "shell": return Shell(model, arguments, docState);
+                    case "create_plane": return CreatePlane(model, arguments);
                     // Il piano obliquo, in PlaneOperations.cs. `create_plane` sa
                     // fare solo lo sfalsato dai tre standard: per una faccia
                     // inclinata non c'era niente su cui disegnare.
@@ -410,7 +410,7 @@ namespace Oce.Solid.Agent.Core
                     // sta in ProfileOperations.cs. Senza, «structural_member»
                     // diceva al modello di copiare da una cosa inesistente.
                     case "weldment_profiles":
-                        return ProfiliSaldatura(modello, argomenti, stato);
+                        return WeldmentProfiles(model, arguments, docState);
 
                     // ── assiemi ─────────────────────────────────────────
                     // La prima. Sta in AssemblyOperations.cs, e la cosa che fa
@@ -418,53 +418,53 @@ namespace Oce.Solid.Agent.Core
                     // «AddComponent5 piazza senza accoppiare», e quattro corpi
                     // liberi sembrano un assieme.
                     case "insert_component":
-                        return InserisciComponente(modello, argomenti, stato);
+                        return InsertComponent(model, arguments, docState);
                     // La seconda, e quella che fa la differenza: inserire non
                     // e' accoppiare. Sta in MateOperations.cs.
                     case "mate":
-                        return Accoppia(modello, argomenti, stato);
+                        return Mate(model, arguments, docState);
                     // «Il coperchio va rifatto»: sta in ReplaceOperations.cs,
                     // e la cosa che misura e' se gli accoppiamenti sopravvivono.
                     case "replace_component":
-                        return SostituisciComponente(modello, argomenti, stato);
+                        return ReplaceComponent(model, arguments, docState);
                     // Fissare o liberare (voce Z-D5): l'unico stato di un componente
                     // che cambia come l'assieme si ricostruisce. FixComponentOperations.cs.
                     case "fix_component":
-                        return FissaComponente(modello, argomenti, stato);
+                        return FixComponent(model, arguments, docState);
                     // La staffa destra e la sinistra (voce GA11). MirrorComponentOperations.cs.
                     case "mirror_component":
-                        return SpecchiaComponente(modello, argomenti, stato);
+                        return MirrorComponent(model, arguments, docState);
                     // Un'immagine da ricalcare, in scala, in uno schizzo (voce Z-F5).
                     // RetraceOperations.cs.
                     case "sketch_picture":
-                        return ImmagineNelloSchizzo(modello, argomenti, stato);
+                        return SketchPicture(model, arguments, docState);
                     case "plane_three_points":
-                        return PianoPerTrePunti(modello, argomenti, stato);
+                        return PlaneThroughThreePoints(model, arguments, docState);
 
                     // ── tubi e transizioni ──────────────
                     // Stanno in PathOperations.cs. Le uniche due operazioni
                     // che fanno una forma non dritta, e le uniche in cui il
                     // profilo e' un NUMERO e non uno schizzo da nominare.
                     case "circular_sweep":
-                        return SweepCircolare(modello, argomenti, stato);
+                        return CircularSweep(model, arguments, docState);
                     case "loft_two_circles":
-                        return LoftFraDueCerchi(modello, argomenti, stato);
+                        return LoftTwoCircles(model, arguments, docState);
                     // ── lamiera (voce GP18) e quote nel modello (voce Z-H3) ──
                     // In SheetMetalOperations.cs e DimXpertOperations.cs, ognuna
                     // con la misura che l'ha resa costruibile scritta in testa.
-                    case "base_flange": return FlangiaBase(modello, argomenti);
-                    case "edge_flange": return FlangiaSpigolo(modello, argomenti, stato);
-                    case "hem": return Orlo(modello, argomenti, stato);
-                    case "sketched_bend": return PiegaDaSchizzo(modello, argomenti, stato);
-                    case "flat_pattern_dxf": return SviluppoDxf(modello, argomenti);
-                    case "dimension_scheme": return SchemaDiQuote(modello, argomenti, stato);
-                    case "create_axis": return CreaAsse(modello, argomenti, stato);
-                    case "linear_pattern": return RipetiLineare(modello, argomenti, stato);
-                    case "mirror": return Specchia(modello, argomenti);
-                    case "revolve": return Rivoluzione(modello, argomenti);
-                    case "circular_pattern": return RipetiCircolare(modello, argomenti, stato);
+                    case "base_flange": return BaseFlange(model, arguments);
+                    case "edge_flange": return EdgeFlange(model, arguments, docState);
+                    case "hem": return Hem(model, arguments, docState);
+                    case "sketched_bend": return SketchedBend(model, arguments, docState);
+                    case "flat_pattern_dxf": return FlatPatternDxf(model, arguments);
+                    case "dimension_scheme": return DimensionScheme(model, arguments, docState);
+                    case "create_axis": return CreateAxis(model, arguments, docState);
+                    case "linear_pattern": return LinearPattern(model, arguments, docState);
+                    case "mirror": return Mirror(model, arguments);
+                    case "revolve": return Revolve(model, arguments);
+                    case "circular_pattern": return CircularPattern(model, arguments, docState);
                     // FillPatternOperations.cs (voce W1.1).
-                    case "fill_pattern": return RipetiRiempimento(modello, argomenti, stato);
+                    case "fill_pattern": return RepeatFill(model, arguments, docState);
 
                     // ── tavola ──────────────────────────
                     // Stanno in DrawingOperations.cs. Sono le prime
@@ -473,50 +473,50 @@ namespace Oce.Solid.Agent.Core
                     // insieme al modello. Le tre trappole della famiglia
                     // (il diedro, la quota che mente, il PDF di un foglio
                     // solo) sono spiegate in testa a quel file.
-                    case "create_drawing": return CreaDisegno(modello, argomenti);
-                    case "set_sheet": return ImpostaFoglio(modello, argomenti);
-                    case "standard_views": return VisteStandard(modello, argomenti);
-                    case "model_view": return VistaModello(modello, argomenti);
-                    case "model_dimensions": return QuoteDalModello(modello, argomenti);
+                    case "create_drawing": return CreateDrawing(model, arguments);
+                    case "set_sheet": return SetSheet(model, arguments);
+                    case "standard_views": return StandardViews(model, arguments);
+                    case "model_view": return ModelView(model, arguments);
+                    case "model_dimensions": return ModelDimensions(model, arguments);
                     // Le croci di centro, in CenterMarkOperations.cs. Una tavola
                     // con dodici fori e nessun centro si stampa e sembra
                     // completa: in officina manca dove forare.
-                    case "center_marks": return CrociDiCentro(modello, argomenti);
-                    case "drawing_dimension": return QuotaInTavola(modello, argomenti);
+                    case "center_marks": return CenterMarks(model, arguments);
+                    case "drawing_dimension": return DrawingDimension(model, arguments);
                     // La nota va sul FOGLIO, non dentro una vista: vedi
                     // `DrawingNoteOperations.cs`, dove c'e' anche perche'
                     // contarla nel posto sbagliato avrebbe chiuso quattro voci.
-                    case "note": return NotaInTavola(modello, argomenti);
-                    case "hole_table": return TabellaForiInTavola(modello, argomenti);
-                    case "flat_pattern_view": return VistaSviluppo(modello, argomenti);
-                    case "drawing_weld_symbol": return SaldaturaInTavola(modello, argomenti);
-                    case "drawing_bom": return DistintaBaseInTavola(modello, argomenti);
-                    case "balloons": return Bollatura(modello, argomenti);
-                    case "surface_finish": return RugositaInTavola(modello, argomenti);
-                    case "datum": return DatumInTavola(modello, argomenti);
-                    case "geometric_tolerance": return TolleranzaGeometricaInTavola(modello, argomenti);
-                    case "section_view": return SezioneInTavola(modello, argomenti);
-                    case "detail_view": return DettaglioInTavola(modello, argomenti);
+                    case "note": return DrawingNote(model, arguments);
+                    case "hole_table": return HoleTable(model, arguments);
+                    case "flat_pattern_view": return FlatPatternView(model, arguments);
+                    case "drawing_weld_symbol": return DrawingWeldSymbol(model, arguments);
+                    case "drawing_bom": return DrawingBom(model, arguments);
+                    case "balloons": return Balloons(model, arguments);
+                    case "surface_finish": return SurfaceFinish(model, arguments);
+                    case "datum": return Datum(model, arguments);
+                    case "geometric_tolerance": return GeometricTolerance(model, arguments);
+                    case "section_view": return SectionView(model, arguments);
+                    case "detail_view": return DetailView(model, arguments);
                     // I fogli, in SheetOperations.cs. `export_pdf` conta gia'
                     // le pagine del PDF, e quel conteggio valeva sempre 1
                     // perche' non c'era modo di fare un secondo foglio.
-                    case "new_sheet": return NuovoFoglio(modello, argomenti);
-                    case "activate_sheet": return AttivaFoglio(modello, argomenti);
+                    case "new_sheet": return NewSheet(model, arguments);
+                    case "activate_sheet": return ActivateSheet(model, arguments);
                     // La distinta di taglio portata in tavola, e CONFRONTATA
                     // con quella del pezzo: la seconda lettura esisteva gia'.
                     case "drawing_cut_list":
-                        return DistintaTaglioInTavola(modello, argomenti);
+                        return DrawingCutList(model, arguments);
                     // «Il coperchio tocca la base?» — in InterferenceOperations.cs.
                     // Due pezzi compenetrati non danno nessun errore: si aprono,
                     // si esportano, si stampano, e in officina non entrano.
                     case "interference_check":
-                        return VerificaInterferenze(modello, argomenti, stato);
+                        return InterferenceCheck(model, arguments, docState);
                     // Il cartiglio, in TitleBlockOperations.cs. Non lo riempie:
                     // dice quali proprieta' CHIEDE e quali MOSTRA, cosi' il
                     // nome da scrivere si copia invece di indovinarlo.
-                    case "title_block": return Cartiglio(modello, argomenti);
-                    case "export_pdf": return EsportaPdf(modello, argomenti);
-                    case "save_document": return SalvaDocumento(modello, argomenti);
+                    case "title_block": return TitleBlock(model, arguments);
+                    case "export_pdf": return ExportPdf(model, arguments);
+                    case "save_document": return SaveDocument(model, arguments);
 
                     // ── saldature ───────────────────────
                     // Stanno in WeldmentOperations.cs: sono un
@@ -530,39 +530,39 @@ namespace Oce.Solid.Agent.Core
                     // stessa cosa vorrebbero dire due comportamenti che
                     // divergono alla prima modifica.
                     case "structural_member":
-                    case "rectangular_frame": return MembroStrutturale(modello, argomenti);
-                    case "trim_members": return TagliaMembri(modello, argomenti, stato);
-                    case "cut_list": return DistintaTaglio(modello, argomenti);
-                    case "end_cap": return TappoEstremita(modello, argomenti, stato);
-                    case "gusset": return Fazzoletto(modello, argomenti, stato);
-                    case "weld_bead": return CordoneSaldatura(modello, argomenti, stato);
+                    case "rectangular_frame": return StructuralMember(model, arguments);
+                    case "trim_members": return TrimMembers(model, arguments, docState);
+                    case "cut_list": return CutList(model, arguments);
+                    case "end_cap": return EndCap(model, arguments, docState);
+                    case "gusset": return Gusset(model, arguments, docState);
+                    case "weld_bead": return WeldBead(model, arguments, docState);
 
                     // ── verifiche ───────────────────────
                     // Stanno in CheckOperations.cs. NON DISEGNANO: dicono
                     // com'e' venuto. `cut_list` e' il precedente —
                     // un'operazione di catalogo che legge invece di costruire.
                     case "check_body_geometry":
-                        return VerificaGeometriaCorpo(modello, argomenti, stato);
+                        return CheckBodyGeometry(model, arguments, docState);
                     // Cosa non si stampa senza supporti. Sta in
                     // OverhangOperations.cs, e come le altre verifiche non
                     // tocca il pezzo: guarda l'angolo di ogni superficie.
                     case "check_overhangs":
-                        return VerificaSovrasporgenze(modello, argomenti, stato);
+                        return CheckOverhangs(model, arguments, docState);
                     // Le due domande che si fanno prima di ordinare: quanto
                     // pesa, e in che scatola ci sta. Stanno in
                     // MeasureOperations.cs.
                     case "mass_properties":
-                        return ProprietaDiMassa(modello, argomenti, stato);
+                        return MassProperties(model, arguments, docState);
                     // Da quali file dipende il documento, e quali mancano (voce Z-B3).
                     // DependencyOperations.cs.
                     case "file_dependencies":
-                        return Dipendenze(modello, argomenti, stato);
+                        return Dependencies(model, arguments, docState);
                     case "body_bounding_box":
-                        return IngombroCorpo(modello, argomenti, stato);
+                        return BodyBoundingBox(model, arguments, docState);
                     case "minimum_distance":
-                        return DistanzaMinima(modello, argomenti, stato);
+                        return MinimumDistance(model, arguments, docState);
                     case "measure_between":
-                        return MisuraFraEntita(modello, argomenti, stato);
+                        return MeasureBetween(model, arguments, docState);
 
                     // ── quello che il pezzo dice di se' ─
                     // Stanno in PropertyOperations.cs. Non disegnano niente:
@@ -571,11 +571,11 @@ namespace Oce.Solid.Agent.Core
                     // CONFIGURAZIONE sono due elenchi separati che non si
                     // vedono a vicenda — misurato, non dedotto.
                     case "set_property":
-                        return ScriviProprieta(modello, argomenti, stato);
+                        return SetProperty(model, arguments, docState);
                     case "create_configuration":
-                        return CreaConfigurazione(modello, argomenti, stato);
+                        return CreateConfiguration(model, arguments, docState);
                     case "activate_configuration":
-                        return AttivaConfigurazione(modello, argomenti, stato);
+                        return ActivateConfiguration(model, arguments, docState);
 
                     // ── la marcatura ────────────────────
                     // Sta in TextOperations.cs. E' l'unica operazione che
@@ -583,7 +583,7 @@ namespace Oce.Solid.Agent.Core
                     // grandezza di cio' che si disegna non si puo' calcolare
                     // prima: dipende dal font. Si misura e si controlla.
                     case "engrave_text":
-                        return IncidiTesto(modello, argomenti, stato);
+                        return EngraveText(model, arguments, docState);
 
                     // ── togliere una copia ──────────────
                     // Sta in InstanceOperations.cs. Non e' una lavorazione nuova:
@@ -591,14 +591,14 @@ namespace Oce.Solid.Agent.Core
                     // l'unica operazione del catalogo che passa da
                     // GetDefinition() + ModifyDefinition().
                     case "suppress_instance":
-                        return SopprimiIstanza(modello, argomenti, stato);
+                        return SuppressInstance(model, arguments, docState);
 
                     // ── l'angolo di spoglia ─────────────
                     // Sta in DraftOperations.cs. Quattro API per lo stesso
                     // comando, e due con la firma IDENTICA: quella giusta si e'
                     // trovata misurando, non leggendo.
                     case "draft":
-                        return Sformo(modello, argomenti, stato);
+                        return Draft(model, arguments, docState);
 
                     // ── la nervatura ────────────────────
                     // Sta in RibOperations.cs (voce W1.2). InsertRib
@@ -606,7 +606,7 @@ namespace Oce.Solid.Agent.Core
                     // l'esempio della guida); il verso del materiale si prova
                     // dritto e poi girato.
                     case "rib":
-                        return Nervatura(modello, argomenti);
+                        return Rib(model, arguments);
 
                     // ── esportazioni ────────────────────
                     // Stanno in ExportOperations.cs. `export_stl` chiama
@@ -614,28 +614,28 @@ namespace Oce.Solid.Agent.Core
                     // se il pezzo non e' un solido chiuso solo: un STL non
                     // porta con se' niente che dica che il pezzo era a posto.
                     case "export_stl":
-                        return EsportaStl(modello, argomenti, stato);
+                        return ExportStl(model, arguments, docState);
                     // STEP e IGES finiscono nello stesso esecutore: cambiano
                     // le preferenze e il modo di rileggere il file, non la
                     // strada. Due esecutori per la stessa cosa vorrebbero dire
                     // due comportamenti che divergono alla prima modifica.
                     case "export_step":
                     case "export_iges":
-                        return EsportaScambio(modello, argomenti, operazione, stato);
+                        return ExportExchange(model, arguments, operation, docState);
                     default:
                         // QUALUNQUE operazione che porta dei contorni si disegna
                         // con lo stesso esecutore. Cosi' una RICETTA nuova
                         // (una sezione normalizzata, una ruota, un profilo di
                         // domani) si aggiunge al server senza toccare l'add-in
                         // e senza che nessuno debba reinstallare niente.
-                        if (argomenti != null && argomenti.ContainsKey("contours"))
-                            return EstrudiProfilo(modello, argomenti);
-                        return Fallito(OperazioneSconosciuta + operazione);
+                        if (arguments != null && arguments.ContainsKey("contours"))
+                            return ExtrudeProfile(model, arguments);
+                        return Failed(UnknownOperation + operation);
                 }
             }
             catch (Exception ex)
             {
-                return Fallito($"{operazione}: {ex.Message}");
+                return Failed($"{operation}: {ex.Message}");
             }
         }
 
@@ -643,28 +643,28 @@ namespace Oce.Solid.Agent.Core
         // Le sei operazioni
         // ─────────────────────────────────────────────────────────────────
 
-        private Esito EstrudiRettangolo(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ExtrudeRectangle(IModelDoc2 model, Dictionary<string, object> a)
         {
-            double lunghezza = Num(a, "length_mm");
-            double larghezza = Num(a, "width_mm");
-            double spessore = Num(a, "thickness_mm");
-            bool centrato = Bool(a, "centered", true);
-            string piano = Str(a, "plane", "front");
+            double length = Num(a, "length_mm");
+            double width = Num(a, "width_mm");
+            double thickness = Num(a, "thickness_mm");
+            bool centered = Bool(a, "centered", true);
+            string plane = Str(a, "plane", "front");
 
             // The names of the tree before the sketch: the sketch selected below
             // is the one born since (scheme S7), not the last of the tree.
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaPiano(modello, piano))
-                return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectPlane(model, plane))
+                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
 
-            var schizzi = modello.SketchManager;
-            schizzi.InsertSketch(true);
+            var sketches = model.SketchManager;
+            sketches.InsertSketch(true);
 
-            double x1 = centrato ? Unita.M(-lunghezza / 2) : 0;
-            double y1 = centrato ? Unita.M(-larghezza / 2) : 0;
-            double x2 = centrato ? Unita.M(lunghezza / 2) : Unita.M(lunghezza);
-            double y2 = centrato ? Unita.M(larghezza / 2) : Unita.M(larghezza);
-            var lati = schizzi.CreateCornerRectangle(x1, y1, 0, x2, y2, 0) as object[];
+            double x1 = centered ? Units.M(-length / 2) : 0;
+            double y1 = centered ? Units.M(-width / 2) : 0;
+            double x2 = centered ? Units.M(length / 2) : Units.M(length);
+            double y2 = centered ? Units.M(width / 2) : Units.M(width);
+            var sides = sketches.CreateCornerRectangle(x1, y1, 0, x2, y2, 0) as object[];
 
             // LE DUE QUOTE CHE RENDONO IL PEZZO MODIFICABILE.
             //
@@ -672,24 +672,24 @@ namespace Oce.Solid.Agent.Core
             // quello verticale. Da questo momento «portami la vasca a 300»
             // e' una modifica di quota invece che un pezzo da rifare, e le
             // quote esistono anche per la tavola.
-            int quoteMesse = QuotaIlRettangolo(modello, lati, x1, y1, x2, y2);
+            int placedDimensions = DimensionTheRectangle(model, sides, x1, y1, x2, y2);
 
-            schizzi.InsertSketch(false);
+            sketches.InsertSketch(false);
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
-            var feature = Estrudi(modello, spessore, unisci: true);
-            if (feature == null) return Fallito("L'estrusione non e' stata creata." + SenzaLoSchizzo(modello));
-            return Riuscito(feature, new Dictionary<string, object>
+            var feature = Extrude(model, thickness, merge: true);
+            if (feature == null) return Failed("L'estrusione non e' stata creata." + WithoutSketch(model));
+            return Succeeded(feature, new Dictionary<string, object>
             {
-                ["length_mm"] = lunghezza,
-                ["width_mm"] = larghezza,
-                ["thickness_mm"] = spessore,
-                ["dimensions_on_sketch"] = quoteMesse,
-            }, Riferimenti.NormaleDelPiano(piano));
+                ["length_mm"] = length,
+                ["width_mm"] = width,
+                ["thickness_mm"] = thickness,
+                ["dimensions_on_sketch"] = placedDimensions,
+            }, References.PlaneNormal(plane));
         }
 
         /// <summary>
@@ -708,46 +708,46 @@ namespace Oce.Solid.Agent.Core
         /// riesce si va avanti e si scrive quante ne sono state messe, che
         /// e' un numero che chi legge puo' controllare.
         /// </summary>
-        private int QuotaIlRettangolo(
-            IModelDoc2 modello, object[] lati,
+        private int DimensionTheRectangle(
+            IModelDoc2 model, object[] sides,
             double x1, double y1, double x2, double y2)
         {
-            if (lati == null || lati.Length == 0) return 0;
+            if (sides == null || sides.Length == 0) return 0;
 
             // Il testo va messo FUORI dal rettangolo, se no finisce sopra il
             // disegno. Un sesto del lato e' abbastanza su un pezzo da 10 mm
             // come su uno da 3 metri.
-            double fuoriX = Math.Max(Math.Abs(x2 - x1) * 0.15, 0.005);
-            double fuoriY = Math.Max(Math.Abs(y2 - y1) * 0.15, 0.005);
+            double outsideX = Math.Max(Math.Abs(x2 - x1) * 0.15, 0.005);
+            double outsideY = Math.Max(Math.Abs(y2 - y1) * 0.15, 0.005);
 
-            var daQuotare = new List<Quota>();
-            bool orizzontaleFatta = false, verticaleFatta = false;
+            var toDimension = new List<Dimension>();
+            bool horizontalDone = false, verticalDone = false;
 
-            foreach (var o in lati)
+            foreach (var o in sides)
             {
-                var linea = o as ISketchLine;
-                if (linea == null) continue;
+                var line = o as ISketchLine;
+                if (line == null) continue;
 
                 double[] p1, p2;
-                if (!EstremiDi(linea, out p1, out p2)) continue;
+                if (!EndsOf(line, out p1, out p2)) continue;
 
-                bool orizzontale = Math.Abs(p1[1] - p2[1]) < 1e-9;
-                bool verticale = Math.Abs(p1[0] - p2[0]) < 1e-9;
-                if (orizzontale && orizzontaleFatta) continue;
-                if (verticale && verticaleFatta) continue;
-                if (!orizzontale && !verticale) continue;
+                bool horizontal = Math.Abs(p1[1] - p2[1]) < 1e-9;
+                bool vertical = Math.Abs(p1[0] - p2[0]) < 1e-9;
+                if (horizontal && horizontalDone) continue;
+                if (vertical && verticalDone) continue;
+                if (!horizontal && !vertical) continue;
 
                 double tx = (p1[0] + p2[0]) / 2;
                 double ty = (p1[1] + p2[1]) / 2;
-                if (orizzontale) ty = Math.Min(y1, y2) - fuoriY;
-                else tx = Math.Min(x1, x2) - fuoriX;
+                if (horizontal) ty = Math.Min(y1, y2) - outsideY;
+                else tx = Math.Min(x1, x2) - outsideX;
 
-                daQuotare.Add(Quota.Su(o, new[] { tx, ty, 0.0 }));
-                if (orizzontale) orizzontaleFatta = true; else verticaleFatta = true;
-                if (orizzontaleFatta && verticaleFatta) break;
+                toDimension.Add(Dimension.Su(o, new[] { tx, ty, 0.0 }));
+                if (horizontal) horizontalDone = true; else verticalDone = true;
+                if (horizontalDone && verticalDone) break;
             }
 
-            return QuotaSegmenti(modello, daQuotare);
+            return DimensionSegments(model, toDimension);
         }
 
         /// <summary>
@@ -786,31 +786,31 @@ namespace Oce.Solid.Agent.Core
         /// inchiodata a zero la quota di un foro su un fianco nasce fuori dal
         /// piano dello schizzo, e SOLIDWORKS la rifiuta senza spiegare.
         /// </summary>
-        private class Quota
+        private class Dimension
         {
-            public object Segmento;
+            public object Segment;
             public double X, Y, Z;
 
-            public static Quota Su(object segmento, double[] punto)
+            public static Dimension Su(object segment, double[] point)
             {
-                return new Quota
+                return new Dimension
                 {
-                    Segmento = segmento,
-                    X = punto[0],
-                    Y = punto[1],
-                    Z = punto.Length > 2 ? punto[2] : 0,
+                    Segment = segment,
+                    X = point[0],
+                    Y = point[1],
+                    Z = point.Length > 2 ? point[2] : 0,
                 };
             }
         }
 
-        private int QuotaSegmenti(IModelDoc2 modello, List<Quota> daQuotare)
+        private int DimensionSegments(IModelDoc2 model, List<Dimension> toDimension)
         {
-            if (modello == null || daQuotare == null || daQuotare.Count == 0) return 0;
+            if (model == null || toDimension == null || toDimension.Count == 0) return 0;
 
-            bool chiedevaIlValore = true;
+            bool askedForTheValue = true;
             try
             {
-                chiedevaIlValore = _sw.GetUserPreferenceToggle(
+                askedForTheValue = _sw.GetUserPreferenceToggle(
                     (int)swUserPreferenceToggle_e.swInputDimValOnCreate);
                 _sw.SetUserPreferenceToggle(
                     (int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
@@ -820,17 +820,17 @@ namespace Oce.Solid.Agent.Core
             // ZERO-E-ZERO: `messe` conta le quote NATE, una per una; una che non
             // nasce non e' una quota. I catch qui sotto chiudono la selezione e
             // rimettono la preferenza: non toccano il conteggio.
-            int messe = 0;
-            foreach (var voce in daQuotare)
+            int put = 0;
+            foreach (var entry in toDimension)
             {
                 try
                 {
-                    modello.ClearSelection2(true);
-                    var segmento = voce.Segmento as ISketchSegment;
-                    if (segmento == null || !segmento.Select4(false, null)) continue;
-                    var nata = modello.Extension.AddDimension(voce.X, voce.Y, voce.Z, 0)
+                    model.ClearSelection2(true);
+                    var segment = entry.Segment as ISketchSegment;
+                    if (segment == null || !segment.Select4(false, null)) continue;
+                    var born = model.Extension.AddDimension(entry.X, entry.Y, entry.Z, 0)
                         as IDisplayDimension;
-                    if (nata == null) continue;
+                    if (born == null) continue;
 
                     // MARCATA PER IL DISEGNO, ed e' la riga che fa la
                     // differenza fra una tavola quotata e una muta.
@@ -846,30 +846,30 @@ namespace Oce.Solid.Agent.Core
                     // Marcandole qui, la tavola prende ESATTAMENTE le quote che
                     // le operazioni hanno messo apposta, e non quelle di
                     // servizio.
-                    try { nata.MarkedForDrawing = true; } catch { }
+                    try { born.MarkedForDrawing = true; } catch { }
                 }
                 catch { continue; }
-                messe++;
+                put++;
             }
 
-            try { modello.ClearSelection2(true); } catch { }
+            try { model.ClearSelection2(true); } catch { }
             try
             {
                 _sw.SetUserPreferenceToggle(
-                    (int)swUserPreferenceToggle_e.swInputDimValOnCreate, chiedevaIlValore);
+                    (int)swUserPreferenceToggle_e.swInputDimValOnCreate, askedForTheValue);
             }
             catch { }
-            return messe;
+            return put;
         }
 
         /// <summary>Gli estremi di una retta di schizzo, in metri.</summary>
-        private static bool EstremiDi(ISketchLine linea, out double[] p1, out double[] p2)
+        private static bool EndsOf(ISketchLine line, out double[] p1, out double[] p2)
         {
             p1 = null; p2 = null;
             try
             {
-                var a = linea.GetStartPoint2() as ISketchPoint;
-                var b = linea.GetEndPoint2() as ISketchPoint;
+                var a = line.GetStartPoint2() as ISketchPoint;
+                var b = line.GetEndPoint2() as ISketchPoint;
                 if (a == null || b == null) return false;
                 p1 = new[] { a.X, a.Y, a.Z };
                 p2 = new[] { b.X, b.Y, b.Z };
@@ -885,70 +885,70 @@ namespace Oce.Solid.Agent.Core
         /// Come la sezione, non e' un'altra estrusione: e' un modo di
         /// scrivere dei contorni, e finisce nello stesso esecutore.
         ///
-        /// La geometria sta in <see cref="RuotaDentata"/>, che e' il file
+        /// La geometria sta in <see cref="SpurGear"/>, che e' il file
         /// piu' delicato della libreria: una traslitterazione sbagliata
         /// dell'evolvente non da' nessun errore, da' una ruota che ingrana
         /// male.
         /// </summary>
-        private Esito RuotaDentataOp(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome SpurGearOp(IModelDoc2 model, Dictionary<string, object> a)
         {
-            double dentiGrezzo, modulo, spessore;
-            string perche;
-            if (!NumObbligatorio(a, "teeth", out dentiGrezzo, out perche))
-                return Fallito("Per una ruota dentata serve «teeth»: " + perche);
-            if (!NumObbligatorio(a, "module_mm", out modulo, out perche))
-                return Fallito("Per una ruota dentata serve «module_mm»: " + perche);
-            if (!NumObbligatorio(a, "thickness_mm", out spessore, out perche))
-                return Fallito("Per una ruota dentata serve «thickness_mm»: " + perche);
+            double rawTeeth, module, thickness;
+            string why;
+            if (!RequiredNum(a, "teeth", out rawTeeth, out why))
+                return Failed("Per una ruota dentata serve «teeth»: " + why);
+            if (!RequiredNum(a, "module_mm", out module, out why))
+                return Failed("Per una ruota dentata serve «module_mm»: " + why);
+            if (!RequiredNum(a, "thickness_mm", out thickness, out why))
+                return Failed("Per una ruota dentata serve «thickness_mm»: " + why);
 
-            int denti = (int)Math.Round(dentiGrezzo);
-            if (Math.Abs(dentiGrezzo - denti) > 1e-9)
-                return Fallito(
-                    "I denti sono " + dentiGrezzo + ": un numero di denti e' " +
+            int teeth = (int)Math.Round(rawTeeth);
+            if (Math.Abs(rawTeeth - teeth) > 1e-9)
+                return Failed(
+                    "I denti sono " + rawTeeth + ": un numero di denti e' " +
                     "intero, e mezzo dente non si taglia.");
-            if (denti < 3)
-                return Fallito("Una ruota da " + denti + " denti non e' una ruota.");
-            if (modulo <= 0 || spessore <= 0)
-                return Fallito("Modulo e spessore devono essere maggiori di zero.");
+            if (teeth < 3)
+                return Failed("Una ruota da " + teeth + " denti non e' una ruota.");
+            if (module <= 0 || thickness <= 0)
+                return Failed("Modulo e spessore devono essere maggiori di zero.");
 
-            string motivo;
-            var contorni = RuotaDentata.Contorni(
-                denti, modulo,
+            string reason;
+            var contours = SpurGear.Contours(
+                teeth, module,
                 Num(a, "pressure_angle_deg", 20.0),
                 Num(a, "bore_mm", 0),
                 Bool(a, "keyway", false),
                 8,
-                out motivo);
-            if (contorni == null) return Fallito(motivo);
+                out reason);
+            if (contours == null) return Failed(reason);
 
-            var suoi = new Dictionary<string, object>
+            var itsItems = new Dictionary<string, object>
             {
-                ["contours"] = contorni.ToArray(),
-                ["thickness_mm"] = spessore,
+                ["contours"] = contours.ToArray(),
+                ["thickness_mm"] = thickness,
             };
-            if (a.ContainsKey("plane")) suoi["plane"] = a["plane"];
+            if (a.ContainsKey("plane")) itsItems["plane"] = a["plane"];
 
             // Il tetto largo: questi punti li ha calcolati una formula, non
             // scritti un modello. Una ruota da 127 denti sono milleventi
             // segmenti, e il tetto dei duecento la rifiuterebbe.
-            var esito = EstrudiProfilo(modello, suoi, MaxVerticiGenerati);
+            var outcome = ExtrudeProfile(model, itsItems, MaxGeneratedVertices);
 
             // I NUMERI DELLA RUOTA, ACCANTO A QUELLI DELL'ESTRUSIONE.
             // Chi ha chiesto z=20 m=2 vuole poter controllare che il
             // diametro esterno sia 44: e' il modo piu' rapido di accorgersi
             // che qualcosa nella matematica non torna, e non si legge dal
             // volume.
-            if (esito != null && esito.Riuscito && esito.Misure != null)
+            if (outcome != null && outcome.Succeeded && outcome.Measurements != null)
             {
-                esito.Misure["teeth"] = denti;
-                esito.Misure["module_mm"] = modulo;
-                esito.Misure["pitch_diameter_mm"] = Math.Round(modulo * denti, 4);
-                esito.Misure["outside_diameter_mm"] = Math.Round(modulo * (denti + 2), 4);
-                esito.Misure["root_diameter_mm"] =
-                    Math.Round(modulo * denti - 2.5 * modulo, 4);
-                esito.Misure["pitch_mm"] = Math.Round(Math.PI * modulo, 4);
+                outcome.Measurements["teeth"] = teeth;
+                outcome.Measurements["module_mm"] = module;
+                outcome.Measurements["pitch_diameter_mm"] = Math.Round(module * teeth, 4);
+                outcome.Measurements["outside_diameter_mm"] = Math.Round(module * (teeth + 2), 4);
+                outcome.Measurements["root_diameter_mm"] =
+                    Math.Round(module * teeth - 2.5 * module, 4);
+                outcome.Measurements["pitch_mm"] = Math.Round(Math.PI * module, 4);
             }
-            return esito;
+            return outcome;
         }
 
         /// <summary>
@@ -965,16 +965,16 @@ namespace Oce.Solid.Agent.Core
         /// ponte rispondeva «operazione sconosciuta» a chi la chiedeva con i
         /// suoi argomenti veri.
         /// </summary>
-        private Esito EstrudiSezione(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ExtrudeSection(IModelDoc2 model, Dictionary<string, object> a)
         {
-            string tipo = Str(a, "variant", "");
+            string typ = Str(a, "variant", "");
 
-            string[] volute;
-            if (string.IsNullOrWhiteSpace(tipo) ||
-                !Sezioni.Volute.TryGetValue(tipo.Trim(), out volute))
-                return Fallito(
-                    "Sezione «" + tipo + "» sconosciuta. Ci sono: " +
-                    string.Join(", ", Sezioni.Volute.Keys) + ".");
+            string[] wanted;
+            if (string.IsNullOrWhiteSpace(typ) ||
+                !Sections.Wanted.TryGetValue(typ.Trim(), out wanted))
+                return Failed(
+                    "Sezione «" + typ + "» sconosciuta. Ci sono: " +
+                    string.Join(", ", Sections.Wanted.Keys) + ".");
 
             // LE QUOTE CHE SERVONO A QUESTA SEZIONE, e solo quelle.
             // Lo schema del catalogo le dichiara tutte insieme perche' e'
@@ -982,39 +982,39 @@ namespace Oce.Solid.Agent.Core
             // tondo non ha una parete: se una manca va detto QUALE, non
             // «parametri non validi».
             var m = new Dictionary<string, double>();
-            var mancanti = new List<string>();
-            foreach (var q in volute)
+            var missingItems = new List<string>();
+            foreach (var q in wanted)
             {
                 double v;
-                string perche;
-                if (!NumObbligatorio(a, q, out v, out perche)) { mancanti.Add(q); continue; }
-                if (v <= 0) return Fallito(
+                string why;
+                if (!RequiredNum(a, q, out v, out why)) { missingItems.Add(q); continue; }
+                if (v <= 0) return Failed(
                     "«" + q + "» e' " + v + ": una quota di una sezione non puo' " +
                     "essere zero o negativa.");
                 m[q] = v;
             }
-            if (mancanti.Count > 0)
-                return Fallito(
-                    "Per una sezione «" + tipo + "» " +
-                    (mancanti.Count == 1 ? "serve " : "servono ") +
-                    string.Join(", ", mancanti.ConvertAll(x => "«" + x + "»")) + ".");
+            if (missingItems.Count > 0)
+                return Failed(
+                    "Per una sezione «" + typ + "» " +
+                    (missingItems.Count == 1 ? "serve " : "servono ") +
+                    string.Join(", ", missingItems.ConvertAll(x => "«" + x + "»")) + ".");
 
-            string motivo;
-            var contorni = Sezioni.Contorni(tipo, m, out motivo);
-            if (contorni == null) return Fallito(motivo);
+            string reason;
+            var contours = Sections.Contours(typ, m, out reason);
+            if (contours == null) return Failed(reason);
 
             // Si riscrivono gli argomenti per l'esecutore dei profili,
             // lasciando fuori le quote della sezione: da qui in poi la
             // sagoma e' fatta, e le quote non servono piu' a nessuno.
-            var suoi = new Dictionary<string, object>
+            var itsItems = new Dictionary<string, object>
             {
-                ["contours"] = contorni.ToArray(),
+                ["contours"] = contours.ToArray(),
                 ["thickness_mm"] = Num(a, "length_mm", 0),
             };
-            if (a.ContainsKey("plane")) suoi["plane"] = a["plane"];
-            if (a.ContainsKey("symmetric")) suoi["symmetric"] = a["symmetric"];
+            if (a.ContainsKey("plane")) itsItems["plane"] = a["plane"];
+            if (a.ContainsKey("symmetric")) itsItems["symmetric"] = a["symmetric"];
 
-            return EstrudiProfilo(modello, suoi, MaxVerticiGenerati);
+            return ExtrudeProfile(model, itsItems, MaxGeneratedVertices);
         }
 
         /// <summary>
@@ -1039,76 +1039,76 @@ namespace Oce.Solid.Agent.Core
         /// caso, anche se qualcosa va storto: e' un'impostazione dell'ambiente
         /// di chi lavora, non nostra.
         /// </summary>
-        private Esito EstrudiProfilo(
-            IModelDoc2 modello, Dictionary<string, object> a,
-            int maxVertici = MaxVerticiModello)
+        private Outcome ExtrudeProfile(
+            IModelDoc2 model, Dictionary<string, object> a,
+            int maxVertices = MaxModelVertices)
         {
-            var contorni = Contorni(a, out string motivo, out string notaContorni, maxVertici);
-            if (contorni == null) return Fallito(motivo);
+            var contours = Contours(a, out string reason, out string noteContours, maxVertices);
+            if (contours == null) return Failed(reason);
 
-            double spessore = Num(a, "thickness_mm");
-            bool simmetrico = Bool(a, "symmetric", false);
-            string piano = Str(a, "plane", "front");
+            double thickness = Num(a, "thickness_mm");
+            bool symmetric = Bool(a, "symmetric", false);
+            string plane = Str(a, "plane", "front");
 
             // Before the sketch: it is selected, and locked after the
             // extrusion, as the one sketch born since (scheme S7).
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaPiano(modello, piano))
-                return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectPlane(model, plane))
+                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
 
-            var schizzi = modello.SketchManager;
-            bool addToDbPrima = false;
-            bool displayPrima = false;
-            try { addToDbPrima = schizzi.AddToDB; displayPrima = schizzi.DisplayWhenAdded; } catch { }
+            var sketches = model.SketchManager;
+            bool addToDbBefore = false;
+            bool displayBefore = false;
+            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
 
-            int segmenti = 0;
+            int segments = 0;
             try
             {
-                schizzi.InsertSketch(true);
-                try { schizzi.AddToDB = true; schizzi.DisplayWhenAdded = false; } catch { }
+                sketches.InsertSketch(true);
+                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
 
-                foreach (var contorno in contorni)
+                foreach (var contour in contours)
                 {
-                    segmenti += DisegnaContorno(schizzi, contorno);
+                    segments += DrawContour(sketches, contour);
                 }
             }
             finally
             {
-                try { schizzi.AddToDB = addToDbPrima; schizzi.DisplayWhenAdded = displayPrima; } catch { }
+                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
             }
-            schizzi.InsertSketch(false);
+            sketches.InsertSketch(false);
 
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
-            var feature = Estrudi(modello, spessore, unisci: true, simmetrico: simmetrico);
-            if (feature == null) return Fallito("L'estrusione non e' stata creata." + SenzaLoSchizzo(modello));
+            var feature = Extrude(model, thickness, merge: true, symmetric: symmetric);
+            if (feature == null) return Failed("L'estrusione non e' stata creata." + WithoutSketch(model));
 
             // The sketch is locked AFTER the extrusion: a FIXED relation added
             // while the sketch was still being drawn raised RPC_E_SERVERFAULT
             // in the probe of 28/9/2026 (finding M5, case R4, which passed an
             // object[]: the typed array was measured only after the feature).
-            string notaBlocco;
+            string noteBlock;
             int fixedRelations;
-            bool bloccato = BloccaSchizzo(modello, sketchNamesBefore, out notaBlocco, out fixedRelations);
+            bool locked = LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["sketch_locked"] = bloccato,
+                ["sketch_locked"] = locked,
                 ["fixed_relations"] = fixedRelations,
-                ["contours"] = contorni.Count,
-                ["segments"] = segmenti,
-                ["thickness_mm"] = spessore,
+                ["contours"] = contours.Count,
+                ["segments"] = segments,
+                ["thickness_mm"] = thickness,
             };
             // Up to library 0.141.0 the note was computed and dropped: whoever
             // reads a sketch that is not locked must be able to read why.
-            if (notaBlocco != null) misure["sketch_lock_note"] = notaBlocco;
+            if (noteBlock != null) measurements["sketch_lock_note"] = noteBlock;
             // I contorni staccati dal primo non si rifiutano, si DICONO: un
             // contorno fuori dal bordo esterno e' una regione a se', ed e'
             // legittimo (quattro alette su una faccia). Ma diventa un corpo in
             // piu', e chi credeva di fare un foro deve poterlo leggere.
-            if (notaContorni != null) misure["note_contours"] = notaContorni;
-            return Riuscito(feature, misure, Riferimenti.NormaleDelPiano(piano));
+            if (noteContours != null) measurements["note_contours"] = noteContours;
+            return Succeeded(feature, measurements, References.PlaneNormal(plane));
         }
 
         /// <summary>
@@ -1126,20 +1126,20 @@ namespace Oce.Solid.Agent.Core
         ///  * poligonale— la spezzata chiusa, che resta la forma naturale per
         ///                una staffa o un tubolare.
         /// </summary>
-        private int DisegnaContorno(ISketchManager schizzi, Contorno contorno)
+        private int DrawContour(ISketchManager sketches, Contour contour)
         {
-            if (contorno.Cerchio)
+            if (contour.Circle)
             {
-                schizzi.CreateCircleByRadius(
-                    Unita.M(contorno.Centro[0]), Unita.M(contorno.Centro[1]), 0,
-                    Unita.M(contorno.Diametro / 2.0));
+                sketches.CreateCircleByRadius(
+                    Units.M(contour.Center[0]), Units.M(contour.Center[1]), 0,
+                    Units.M(contour.Diameter / 2.0));
                 return 1;
             }
 
-            int fatte = 0;
-            foreach (var tratto in contorno.Tratti)
+            int done = 0;
+            foreach (var stroke in contour.Strokes)
             {
-                if (tratto.Spline)
+                if (stroke.Spline)
                 {
                     // TRIPLES x,y,z per point, in metres, in one flat array
                     // (ISketchManager~CreateSpline3.html, Remarks: "PointData
@@ -1147,29 +1147,29 @@ namespace Oce.Solid.Agent.Core
                     // start_pt_z, end_pt_x, end_pt_y, end_pt_z]"). PAIRS break it
                     // with no error: probe_spline3 (Z-C21.3) cases S4, S6 and S8,
                     // 27 or 28 splines of 34 and no extrusion.
-                    var dati = new double[tratto.Punti.Count * 3];
-                    for (int i = 0; i < tratto.Punti.Count; i++)
+                    var data = new double[stroke.Points.Count * 3];
+                    for (int i = 0; i < stroke.Points.Count; i++)
                     {
-                        dati[i * 3] = Unita.M(tratto.Punti[i][0]);
-                        dati[i * 3 + 1] = Unita.M(tratto.Punti[i][1]);
-                        dati[i * 3 + 2] = 0;
+                        data[i * 3] = Units.M(stroke.Points[i][0]);
+                        data[i * 3 + 1] = Units.M(stroke.Points[i][1]);
+                        data[i * 3 + 2] = 0;
                     }
-                    if (CreateSplineThroughPoints(schizzi, dati) != null) fatte++;
+                    if (CreateSplineThroughPoints(sketches, data) != null) done++;
                 }
                 else
                 {
-                    for (int i = 0; i < tratto.Punti.Count - 1; i++)
+                    for (int i = 0; i < stroke.Points.Count - 1; i++)
                     {
-                        var da = tratto.Punti[i];
-                        var a2 = tratto.Punti[i + 1];
-                        schizzi.CreateLine(
-                            Unita.M(da[0]), Unita.M(da[1]), 0,
-                            Unita.M(a2[0]), Unita.M(a2[1]), 0);
-                        fatte++;
+                        var da = stroke.Points[i];
+                        var a2 = stroke.Points[i + 1];
+                        sketches.CreateLine(
+                            Units.M(da[0]), Units.M(da[1]), 0,
+                            Units.M(a2[0]), Units.M(a2[1]), 0);
+                        done++;
                     }
                 }
             }
-            return fatte;
+            return done;
         }
 
         /// <summary>
@@ -1200,7 +1200,7 @@ namespace Oce.Solid.Agent.Core
         /// ISketchManager~CreateSpline3.html, Remarks: "Does not work with
         /// ISketchManager::AddToDB or ISketchManager::DisplayWhenAdded", and
         /// both callers draw with AddToDB on and DisplayWhenAdded off
-        /// (EstrudiProfilo and the revolved profile). The probe measured the
+        /// (ExtrudeProfile and the revolved profile). The probe measured the
         /// switch with false (S7 = S3: the same volume, every spline exact), so
         /// on this gear the state does not change the geometry; the pair true +
         /// AddToDB off was not probed on its own, and the gear case is its
@@ -1256,7 +1256,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// THE SKETCH MUST BE OPEN AND THE ARRAY TYPED (finding M5,
         /// probe_fixed_relation of 28/9/2026: an L profile of six lines extruded
-        /// 10 mm, 11000 mm3, the sketch found by SchizzoAppenaCreato after the
+        /// 10 mm, 11000 mm3, the sketch found by JustCreatedSketch after the
         /// extrusion):
         ///   * sketch closed, object[] (this method up to library 0.141.0):
         ///     AddRelation returns null, 0 FIXED relations before and after the
@@ -1287,51 +1287,51 @@ namespace Oce.Solid.Agent.Core
         /// <paramref name="namesBeforeSketch"/>, the names the caller took before
         /// opening the sketch, found again in the tree after the feature as the
         /// probe found it. A sketch used by a feature stays in the top-level
-        /// walk of IFirstFeature (measured 14/9/2026, see SenzaLoSchizzo), and
+        /// walk of IFirstFeature (measured 14/9/2026, see WithoutSketch), and
         /// the feature itself is no ProfileFeature, so it is still the one born.
         /// Until library 0.146.0 it was the last sketch of the tree.
         /// </summary>
-        private bool BloccaSchizzo(IModelDoc2 modello, HashSet<string> namesBeforeSketch, out string nota, out int fixedRelations)
+        private bool LockSketch(IModelDoc2 model, HashSet<string> namesBeforeSketch, out string note, out int fixedRelations)
         {
-            nota = null;
+            note = null;
             fixedRelations = 0;
             int sketchesBorn;
-            IFeature sketchFeature = SchizzoAppenaCreato(modello, namesBeforeSketch, out sketchesBorn);
-            var schizzo = sketchFeature?.GetSpecificFeature2() as ISketch;
-            if (schizzo == null)
+            IFeature sketchFeature = JustCreatedSketch(model, namesBeforeSketch, out sketchesBorn);
+            var sketch = sketchFeature?.GetSpecificFeature2() as ISketch;
+            if (sketch == null)
             {
-                nota = sketchesBorn > 1
+                note = sketchesBorn > 1
                     ? sketchesBorn + " sketches born since the sketch was opened: which one to lock is not known"
                     : "sketch not found after the feature";
                 return false;
             }
-            int before = FixedRelationCount(schizzo);
-            if (before < 0) { nota = "the relations of the sketch cannot be read"; return false; }
+            int before = FixedRelationCount(sketch);
+            if (before < 0) { note = "the relations of the sketch cannot be read"; return false; }
 
             int segmentCount = 0;
             bool inEdit = false;
             try
             {
-                modello.ClearSelection2(true);
-                if (!sketchFeature.Select2(false, 0)) nota = "the sketch could not be selected";
+                model.ClearSelection2(true);
+                if (!sketchFeature.Select2(false, 0)) note = "the sketch could not be selected";
                 else
                 {
-                    modello.EditSketch();
+                    model.EditSketch();
                     inEdit = true;
-                    if (modello.SketchManager.ActiveSketch == null) nota = "EditSketch did not open the sketch";
+                    if (model.SketchManager.ActiveSketch == null) note = "EditSketch did not open the sketch";
                     else
                     {
                         // Taken again from the feature once in edit mode, as the probe did.
-                        schizzo = sketchFeature.GetSpecificFeature2() as ISketch;
-                        var segmenti = schizzo?.GetSketchSegments() as object[];
-                        if (segmenti == null || segmenti.Length == 0) nota = "the sketch has no segments";
+                        sketch = sketchFeature.GetSpecificFeature2() as ISketch;
+                        var segments = sketch?.GetSketchSegments() as object[];
+                        if (segments == null || segments.Length == 0) note = "the sketch has no segments";
                         else
                         {
-                            segmentCount = segmenti.Length;
-                            var typedSegments = new SketchSegment[segmenti.Length];
-                            for (int i = 0; i < segmenti.Length; i++) typedSegments[i] = (SketchSegment)segmenti[i];
-                            var relations = schizzo.RelationManager;
-                            if (relations == null) nota = "the sketch has no relation manager";
+                            segmentCount = segments.Length;
+                            var typedSegments = new SketchSegment[segments.Length];
+                            for (int i = 0; i < segments.Length; i++) typedSegments[i] = (SketchSegment)segments[i];
+                            var relations = sketch.RelationManager;
+                            if (relations == null) note = "the sketch has no relation manager";
                             else relations.AddRelation(typedSegments, (int)swConstraintType_e.swConstraintType_FIXED);
                         }
                     }
@@ -1339,30 +1339,30 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                nota = "AddRelation FIXED failed: " + ex.Message;
+                note = "AddRelation FIXED failed: " + ex.Message;
             }
             finally
             {
                 // Leave the sketch only if one is open: InsertSketch(true) with
                 // no active sketch and a feature selected would OPEN one.
                 bool stillOpen = false;
-                try { stillOpen = modello.SketchManager.ActiveSketch != null; } catch { }
-                if (stillOpen) { try { modello.SketchManager.InsertSketch(true); } catch { } }
-                if (inEdit || stillOpen) { try { modello.EditRebuild3(); } catch { } }
-                try { modello.ClearSelection2(true); } catch { }
+                try { stillOpen = model.SketchManager.ActiveSketch != null; } catch { }
+                if (stillOpen) { try { model.SketchManager.InsertSketch(true); } catch { } }
+                if (inEdit || stillOpen) { try { model.EditRebuild3(); } catch { } }
+                try { model.ClearSelection2(true); } catch { }
             }
 
             int after = FixedRelationCount(sketchFeature.GetSpecificFeature2() as ISketch);
             if (after < 0)
             {
-                nota = (nota == null ? "" : nota + "; ") + "the relations cannot be read back after the rebuild";
+                note = (note == null ? "" : note + "; ") + "the relations cannot be read back after the rebuild";
                 return false;
             }
             fixedRelations = after - before;
-            if (nota != null) return false;
+            if (note != null) return false;
             if (segmentCount == 0 || fixedRelations < segmentCount)
             {
-                nota = fixedRelations + " FIXED relation(s) read back after the rebuild for " + segmentCount +
+                note = fixedRelations + " FIXED relation(s) read back after the rebuild for " + segmentCount +
                        " segment(s): the sketch is not locked";
                 return false;
             }
@@ -1405,33 +1405,33 @@ namespace Oce.Solid.Agent.Core
         /// metri e' legittima; una sagoma da cinquemila vertici scritta da un
         /// modello quasi mai.
         /// </summary>
-        private const int MaxContorni = 20;
+        private const int MaxContours = 20;
 
         /// <summary>Vertici massimi per contorno, quando li scrive un modello.</summary>
-        private const int MaxVerticiModello = 200;
+        private const int MaxModelVertices = 200;
 
         /// <summary>
         /// Vertici massimi per contorno, quando li genera una ricetta.
         ///
-        /// I contorni che escono da <see cref="RuotaDentata"/> o da
-        /// <see cref="Sezioni"/> non passano dalla testa di nessuno e possono
+        /// I contorni che escono da <see cref="SpurGear"/> o da
+        /// <see cref="Sections"/> non passano dalla testa di nessuno e possono
         /// essere molto piu' fitti: una ruota da 127 denti sono milleventi
         /// segmenti, ed e' giusto cosi'.
         /// </summary>
-        private const int MaxVerticiGenerati = 4000;
+        private const int MaxGeneratedVertices = 4000;
 
-        private class Contorno
+        private class Contour
         {
-            public bool Cerchio;
-            public double[] Centro = new double[2];
-            public double Diametro;
-            public List<Tratto> Tratti = new List<Tratto>();
+            public bool Circle;
+            public double[] Center = new double[2];
+            public double Diameter;
+            public List<Stroke> Strokes = new List<Stroke>();
         }
 
-        private class Tratto
+        private class Stroke
         {
             public bool Spline;
-            public List<double[]> Punti = new List<double[]>();
+            public List<double[]> Points = new List<double[]>();
         }
 
         /// <summary>
@@ -1439,35 +1439,35 @@ namespace Oce.Solid.Agent.Core
         /// deve essere: qui si fallisce invece di tirare a indovinare, perche'
         /// un vertice letto male non da' errore — da' una sagoma diversa.
         /// </summary>
-        private static List<Contorno> Contorni(
-            Dictionary<string, object> a, out string motivo, out string nota,
-            int maxVertici = MaxVerticiModello)
+        private static List<Contour> Contours(
+            Dictionary<string, object> a, out string reason, out string note,
+            int maxVertices = MaxModelVertices)
         {
-            motivo = null;
-            nota = null;
-            object grezzo;
-            if (a == null || !a.TryGetValue("contours", out grezzo) || grezzo == null)
+            reason = null;
+            note = null;
+            object raw;
+            if (a == null || !a.TryGetValue("contours", out raw) || raw == null)
             {
-                motivo = "Non mi e' arrivata nessuna sagoma da disegnare.";
+                reason = "Non mi e' arrivata nessuna sagoma da disegnare.";
                 return null;
             }
-            var elenco = grezzo as System.Collections.IEnumerable;
-            if (elenco == null) { motivo = "La sagoma non e' un elenco di contorni."; return null; }
+            var list = raw as System.Collections.IEnumerable;
+            if (list == null) { reason = "La sagoma non e' un elenco di contorni."; return null; }
 
-            var fuori = new List<Contorno>();
-            foreach (var c in elenco)
+            var outside = new List<Contour>();
+            foreach (var c in list)
             {
-                var voce = c as Dictionary<string, object>;
-                if (voce == null)
+                var entry = c as Dictionary<string, object>;
+                if (entry == null)
                 {
                     // Forma vecchia: un contorno era una lista nuda di punti.
                     // Si continua ad accettarla, cosi' un piano proposto prima
                     // di questa versione non diventa illeggibile a meta' strada.
-                    var punti = Punti(c, out motivo);
-                    if (punti == null) return null;
-                    var vecchio = new Contorno();
-                    vecchio.Tratti.Add(new Tratto { Punti = Chiudi(punti) });
-                    fuori.Add(vecchio);
+                    var points = Points(c, out reason);
+                    if (points == null) return null;
+                    var old = new Contour();
+                    old.Strokes.Add(new Stroke { Points = Close(points) });
+                    outside.Add(old);
                     continue;
                 }
 
@@ -1488,20 +1488,20 @@ namespace Oce.Solid.Agent.Core
                 // per non averne — e proprio sulla forma che il catalogo
                 // consiglia per fori e tondi, dove sbagliare costa un pezzo
                 // in cui l'albero non entra.
-                bool chiaveCerchio = voce.ContainsKey("circle");
-                var tipo = Convert.ToString(
-                    voce.TryGetValue("kind", out var t) ? t
-                    : chiaveCerchio ? "circle" : "polygonal");
-                if (string.Equals(tipo, "circle", StringComparison.OrdinalIgnoreCase))
+                bool circleKey = entry.ContainsKey("circle");
+                var typ = Convert.ToString(
+                    entry.TryGetValue("kind", out var t) ? t
+                    : circleKey ? "circle" : "polygonal");
+                if (string.Equals(typ, "circle", StringComparison.OrdinalIgnoreCase))
                 {
-                    object grezzoCentro = null;
-                    if (voce.TryGetValue("center", out var ce) && ce != null) grezzoCentro = ce;
-                    else if (chiaveCerchio) grezzoCentro = voce["circle"];
-                    var centro = Punti(
-                        grezzoCentro != null ? new[] { grezzoCentro } : null, out motivo);
-                    if (centro == null || centro.Count != 1)
+                    object rawCenter = null;
+                    if (entry.TryGetValue("center", out var there) && there != null) rawCenter = there;
+                    else if (circleKey) rawCenter = entry["circle"];
+                    var center = Points(
+                        rawCenter != null ? new[] { rawCenter } : null, out reason);
+                    if (center == null || center.Count != 1)
                     {
-                        motivo = "Il centro del cerchio non e' [x, y]. Si scrive \"circle\": [x, y] oppure \"variant\": \"circle\" con \"center\": [x, y].";
+                        reason = "Il centro del cerchio non e' [x, y]. Si scrive \"circle\": [x, y] oppure \"variant\": \"circle\" con \"center\": [x, y].";
                         return null;
                     }
 
@@ -1511,68 +1511,68 @@ namespace Oce.Solid.Agent.Core
                     // try. Chi ha scritto {"circle":[0,0]} e basta va
                     // mandato a mettere il diametro, non a controllare un
                     // numero che non ha scritto.
-                    object grezzoDiametro;
-                    if (!voce.TryGetValue("diameter_mm", out grezzoDiametro) || grezzoDiametro == null)
+                    object rawDiameter;
+                    if (!entry.TryGetValue("diameter_mm", out rawDiameter) || rawDiameter == null)
                     {
-                        motivo = "Un cerchio senza \"diameter_mm\": un centro da solo non dice quanto e' grande.";
+                        reason = "Un cerchio senza \"diameter_mm\": un centro da solo non dice quanto e' grande.";
                         return null;
                     }
-                    double diametro;
+                    double diameter;
                     try
                     {
-                        diametro = Convert.ToDouble(
-                            grezzoDiametro, System.Globalization.CultureInfo.InvariantCulture);
+                        diameter = Convert.ToDouble(
+                            rawDiameter, System.Globalization.CultureInfo.InvariantCulture);
                     }
-                    catch { motivo = "Il diametro del cerchio non e' un numero."; return null; }
-                    if (diametro <= 0)
+                    catch { reason = "Il diametro del cerchio non e' un numero."; return null; }
+                    if (diameter <= 0)
                     {
-                        motivo = "Il diametro del cerchio e' " + diametro + ": un cerchio di diametro zero o negativo non si disegna.";
+                        reason = "Il diametro del cerchio e' " + diameter + ": un cerchio di diametro zero o negativo non si disegna.";
                         return null;
                     }
 
-                    fuori.Add(new Contorno { Cerchio = true, Centro = centro[0], Diametro = diametro });
+                    outside.Add(new Contour { Circle = true, Center = center[0], Diameter = diameter });
                     continue;
                 }
 
-                if (string.Equals(tipo, "composite", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(typ, "composite", StringComparison.OrdinalIgnoreCase))
                 {
-                    var contorno = new Contorno();
-                    var tratti = voce.TryGetValue("strokes", out var tr) ? tr as System.Collections.IEnumerable : null;
-                    if (tratti == null) { motivo = "Un contorno composito non ha tratti."; return null; }
-                    foreach (var x in tratti)
+                    var contour = new Contour();
+                    var strokes = entry.TryGetValue("strokes", out var tr) ? tr as System.Collections.IEnumerable : null;
+                    if (strokes == null) { reason = "Un contorno composito non ha tratti."; return null; }
+                    foreach (var x in strokes)
                     {
                         var tt = x as Dictionary<string, object>;
-                        if (tt == null) { motivo = "Un tratto non e' leggibile."; return null; }
-                        var punti = Punti(tt.TryGetValue("points", out var pp) ? pp : null, out motivo);
-                        if (punti == null) return null;
-                        if (punti.Count < 2) { motivo = "Un tratto ha meno di due punti."; return null; }
-                        var nome = Convert.ToString(tt.TryGetValue("stroke", out var nt) ? nt : "lines");
-                        contorno.Tratti.Add(new Tratto
+                        if (tt == null) { reason = "Un tratto non e' leggibile."; return null; }
+                        var points = Points(tt.TryGetValue("points", out var pp) ? pp : null, out reason);
+                        if (points == null) return null;
+                        if (points.Count < 2) { reason = "Un tratto ha meno di due punti."; return null; }
+                        var itemName = Convert.ToString(tt.TryGetValue("stroke", out var nt) ? nt : "lines");
+                        contour.Strokes.Add(new Stroke
                         {
-                            Spline = string.Equals(nome, "spline", StringComparison.OrdinalIgnoreCase),
-                            Punti = punti,
+                            Spline = string.Equals(itemName, "spline", StringComparison.OrdinalIgnoreCase),
+                            Points = points,
                         });
                     }
-                    if (contorno.Tratti.Count == 0) { motivo = "Un contorno composito e' vuoto."; return null; }
-                    fuori.Add(contorno);
+                    if (contour.Strokes.Count == 0) { reason = "Un contorno composito e' vuoto."; return null; }
+                    outside.Add(contour);
                     continue;
                 }
 
-                var vertici = Punti(voce.TryGetValue("vertices", out var vv) ? vv : null, out motivo);
-                if (vertici == null) return null;
-                if (vertici.Count < 3) { motivo = "Un contorno ha meno di tre punti: non si chiude."; return null; }
-                var poligonale = new Contorno();
-                poligonale.Tratti.Add(new Tratto { Punti = Chiudi(vertici) });
-                fuori.Add(poligonale);
+                var vertices = Points(entry.TryGetValue("vertices", out var vv) ? vv : null, out reason);
+                if (vertices == null) return null;
+                if (vertices.Count < 3) { reason = "Un contorno ha meno di tre punti: non si chiude."; return null; }
+                var polygonal = new Contour();
+                polygonal.Strokes.Add(new Stroke { Points = Close(vertices) });
+                outside.Add(polygonal);
             }
-            if (fuori.Count == 0) { motivo = "La sagoma non ha nessun contorno."; return null; }
-            if (fuori.Count > MaxContorni)
+            if (outside.Count == 0) { reason = "La sagoma non ha nessun contorno."; return null; }
+            if (outside.Count > MaxContours)
             {
-                motivo = fuori.Count + " contorni sono troppi (al massimo " + MaxContorni + ").";
+                reason = outside.Count + " contorni sono troppi (al massimo " + MaxContours + ").";
                 return null;
             }
-            if (!SagomaSensata(fuori, maxVertici, out motivo, out nota)) return null;
-            return fuori;
+            if (!SensibleOutline(outside, maxVertices, out reason, out note)) return null;
+            return outside;
         }
 
         /// <summary>
@@ -1581,23 +1581,23 @@ namespace Oce.Solid.Agent.Core
         /// Un cerchio si campiona a 64 lati: serve solo a sapere se sta dentro
         /// il bordo esterno, non a disegnarlo. Disegnato resta un cerchio vero.
         /// </summary>
-        private static List<double[]> PuntiDi(Contorno c)
+        private static List<double[]> PointsOf(Contour c)
         {
-            if (c.Cerchio)
+            if (c.Circle)
             {
-                const int lati = 64;
-                double r = c.Diametro / 2.0;
-                var fuori = new List<double[]>(lati);
-                for (int i = 0; i < lati; i++)
+                const int sides = 64;
+                double r = c.Diameter / 2.0;
+                var outside = new List<double[]>(sides);
+                for (int i = 0; i < sides; i++)
                 {
-                    double t = 2 * Math.PI * i / lati;
-                    fuori.Add(new[] { c.Centro[0] + r * Math.Cos(t), c.Centro[1] + r * Math.Sin(t) });
+                    double t = 2 * Math.PI * i / sides;
+                    outside.Add(new[] { c.Center[0] + r * Math.Cos(t), c.Center[1] + r * Math.Sin(t) });
                 }
-                return fuori;
+                return outside;
             }
-            var tutti = new List<double[]>();
-            foreach (var tratto in c.Tratti) tutti.AddRange(tratto.Punti);
-            return FormaChiusa.Anello(tutti);
+            var all = new List<double[]>();
+            foreach (var stroke in c.Strokes) all.AddRange(stroke.Points);
+            return ClosedShape.Ring(all);
         }
 
         /// <summary>
@@ -1620,80 +1620,80 @@ namespace Oce.Solid.Agent.Core
         /// Il quarto e' il piu' insidioso dei quattro, perche' il pezzo
         /// sbagliato ha l'aria di essere venuto bene.
         /// </summary>
-        private static bool SagomaSensata(
-            List<Contorno> contorni, int maxVertici, out string motivo, out string nota)
+        private static bool SensibleOutline(
+            List<Contour> contours, int maxVertices, out string reason, out string note)
         {
-            motivo = null;
-            nota = null;
-            for (int i = 0; i < contorni.Count; i++)
+            reason = null;
+            note = null;
+            for (int i = 0; i < contours.Count; i++)
             {
-                var voce = contorni[i];
-                string etichetta = i == 0 ? "Il contorno esterno" : "Il vuoto n. " + i;
+                var entry = contours[i];
+                string label = i == 0 ? "Il contorno esterno" : "Il vuoto n. " + i;
 
                 // Un cerchio non si puo' incrociare da solo e non ha area
                 // nulla: campionarlo per scoprirlo sarebbe lavoro sprecato.
-                if (voce.Cerchio) continue;
+                if (entry.Circle) continue;
 
                 // 1. I TRATTI SI ATTACCANO?
                 // La tolleranza e' un millesimo di millimetro e non un
                 // micron: i punti dei contorni generati escono arrotondati al
                 // decimillesimo, e pretendere di piu' rifiuterebbe geometria
                 // giusta.
-                for (int j = 0; j < voce.Tratti.Count; j++)
+                for (int j = 0; j < entry.Strokes.Count; j++)
                 {
-                    var fine = voce.Tratti[j].Punti[voce.Tratti[j].Punti.Count - 1];
-                    var dopo = voce.Tratti[(j + 1) % voce.Tratti.Count].Punti[0];
-                    if (!FormaChiusa.Vicini(fine, dopo, 1e-3))
+                    var fine = entry.Strokes[j].Points[entry.Strokes[j].Points.Count - 1];
+                    var after = entry.Strokes[(j + 1) % entry.Strokes.Count].Points[0];
+                    if (!ClosedShape.Neighbors(fine, after, 1e-3))
                     {
-                        motivo = string.Format(
+                        reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
                             "{0}: il tratto {1} finisce in ({2:0.###}, {3:0.###}) e il " +
                             "seguente comincia in ({4:0.###}, {5:0.###}): il contorno non " +
                             "si chiude, e un contorno aperto non da' errore — non si " +
                             "estrude e basta.",
-                            etichetta, j + 1, fine[0], fine[1], dopo[0], dopo[1]);
+                            label, j + 1, fine[0], fine[1], after[0], after[1]);
                         return false;
                     }
                 }
 
-                var anello = PuntiDi(voce);
-                if (anello.Count > maxVertici)
+                var ring = PointsOf(entry);
+                if (ring.Count > maxVertices)
                 {
-                    motivo = etichetta + " ha " + anello.Count + " vertici (al massimo " +
-                             maxVertici + ").";
+                    reason = label + " ha " + ring.Count + " vertici (al massimo " +
+                             maxVertices + ").";
                     return false;
                 }
-                if (anello.Count < 3)
+                if (ring.Count < 3)
                 {
-                    motivo = etichetta + " ha " + anello.Count + " vertici distinti: con " +
+                    reason = label + " ha " + ring.Count + " vertici distinti: con " +
                              "meno di tre non si chiude una sagoma.";
                     return false;
                 }
 
                 // 2. SI INCROCIA DA SOLO?
-                int dove = FormaChiusa.DoveSiIncrocia(anello);
-                if (dove >= 0)
+                int location = ClosedShape.WhereItCrosses(ring);
+                if (location >= 0)
                 {
-                    var p = anello[dove];
+                    var p = ring[location];
                     // MISURATO, e vale la pena dirlo com'e': su un papillon
                     // SOLIDWORKS si ferma, ma l'unica cosa che dice e'
                     // «L'estrusione non e' stata creata» — che non aiuta a
                     // capire dove sia il guaio. Questo messaggio esiste per
                     // dare il punto, non per aggiungere un rifiuto.
-                    motivo = string.Format(
+                    reason = string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
                         "{0} si incrocia da solo: il lato che parte da ({1:0.###}, " +
                         "{2:0.###}) ne attraversa un altro. SOLIDWORKS si fermerebbe " +
                         "comunque, ma direbbe soltanto «L'estrusione non e' stata " +
                         "creata». Di solito e' l'ordine dei vertici.",
-                        etichetta, p[0], p[1]);
+                        label, p[0], p[1]);
                     return false;
                 }
 
                 // 3. AREA NULLA?
-                if (FormaChiusa.Area(anello) <= 0)
+                if (ClosedShape.Area(ring) <= 0)
                 {
-                    motivo = etichetta + " ha area nulla: i suoi punti stanno tutti " +
+                    reason = label + " ha area nulla: i suoi punti stanno tutti " +
                              "sulla stessa retta.";
                     return false;
                 }
@@ -1722,11 +1722,11 @@ namespace Oce.Solid.Agent.Core
             // (misurato: piastra 100x100 con un cerchio Ø30 a 200 mm, 2 corpi,
             // «succeeded»). Ma lo si dice invece di impedirlo, e chi legge ha in
             // mano anche `bodies_total` per controllare.
-            if (contorni.Count > 1)
+            if (contours.Count > 1)
             {
-                var esterno = PuntiDi(contorni[0]);
-                var staccati = new List<int>();
-                for (int i = 1; i < contorni.Count; i++)
+                var outer = PointsOf(contours[0]);
+                var detached = new List<int>();
+                for (int i = 1; i < contours.Count; i++)
                 {
                     // TRE CASELLE, NON DUE. Un vertice ESATTAMENTE sul bordo
                     // esterno non e' ne' dentro ne' fuori, e costringerlo a
@@ -1744,21 +1744,21 @@ namespace Oce.Solid.Agent.Core
                     // Il guadagno non e' far passare di piu': e' rispondere
                     // uguale da tutt'e due le parti, e dirlo meglio di come lo
                     // dice SOLIDWORKS.
-                    int dentro = 0, fuori = 0, sulBordo = 0;
-                    double[] primoFuori = null;
-                    foreach (var punto in PuntiDi(contorni[i]))
+                    int inside = 0, outside = 0, onBorder = 0;
+                    double[] firstOutside = null;
+                    foreach (var point in PointsOf(contours[i]))
                     {
-                        switch (FormaChiusa.DoveSta(punto, esterno))
+                        switch (ClosedShape.WhereItIs(point, outer))
                         {
-                            case DoveSiTrova.Dentro: dentro++; break;
-                            case DoveSiTrova.SulBordo: sulBordo++; break;
-                            default: fuori++; if (primoFuori == null) primoFuori = punto; break;
+                            case WhereItIsFound.Inside: inside++; break;
+                            case WhereItIsFound.OnBorder: onBorder++; break;
+                            default: outside++; if (firstOutside == null) firstOutside = point; break;
                         }
                     }
 
-                    if (dentro > 0 && fuori > 0)
+                    if (inside > 0 && outside > 0)
                     {
-                        motivo = string.Format(
+                        reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
                             "Il contorno n. {0} sta A CAVALLO del bordo esterno: il punto " +
                             "({1:0.###}, {2:0.###}) e' fuori e altri sono dentro. Non e' " +
@@ -1766,37 +1766,37 @@ namespace Oce.Solid.Agent.Core
                             "dicendo soltanto «L'estrusione non e' stata creata». " +
                             "Spostalo tutto dentro se e' un vuoto, tutto fuori se e' un " +
                             "pezzo a parte.",
-                            i, primoFuori[0], primoFuori[1]);
+                            i, firstOutside[0], firstOutside[1]);
                         return false;
                     }
                     // TOCCA IL BORDO: non si estrude, e si dice perche'.
                     // Non e' «a cavallo» — non c'e' niente fuori — ed e' un
                     // caso a se' che merita il suo messaggio: chi l'ha scritto
                     // voleva un'asola aperta, e la strada per averla c'e'.
-                    if (sulBordo > 0)
+                    if (onBorder > 0)
                     {
-                        motivo = string.Format(
+                        reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
                             "Il contorno n. {0} TOCCA il bordo esterno in {1} " +
-                            (sulBordo == 1 ? "punto" : "punti") + ". Due contorni che si " +
+                            (onBorder == 1 ? "punto" : "punti") + ". Due contorni che si " +
                             "toccano non delimitano una regione, e SOLIDWORKS si ferma " +
                             "dicendo soltanto «L'estrusione non e' stata creata». " +
                             "Se volevi un'asola aperta sul bordo, disegnala come UN " +
                             "contorno solo: il bordo esterno che entra e rientra. Se " +
                             "volevi un foro, spostalo dentro di almeno un decimo.",
-                            i, sulBordo);
+                            i, onBorder);
                         return false;
                     }
 
                     // Staccato vuol dire che non tocca nemmeno.
-                    if (dentro == 0) staccati.Add(i);
+                    if (inside == 0) detached.Add(i);
                 }
 
-                if (staccati.Count > 0)
-                    nota =
-                        (staccati.Count == 1
-                            ? "Il contorno n. " + staccati[0] + " non sta dentro il primo"
-                            : "I contorni n. " + string.Join(", ", staccati) +
+                if (detached.Count > 0)
+                    note =
+                        (detached.Count == 1
+                            ? "Il contorno n. " + detached[0] + " non sta dentro il primo"
+                            : "I contorni n. " + string.Join(", ", detached) +
                               " non stanno dentro il primo") +
                         ": non sono vuoti, sono regioni a se'. Vengono estrusi lo stesso, " +
                         "e il pezzo puo' avere piu' di un corpo — guarda «bodies_total». " +
@@ -1806,11 +1806,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>La spezzata chiusa: si ripete il primo punto in coda.</summary>
-        private static List<double[]> Chiudi(List<double[]> punti)
+        private static List<double[]> Close(List<double[]> points)
         {
-            var fuori = new List<double[]>(punti);
-            fuori.Add(punti[0]);
-            return fuori;
+            var outside = new List<double[]>(points);
+            outside.Add(points[0]);
+            return outside;
         }
 
         /// <summary>
@@ -1818,74 +1818,74 @@ namespace Oce.Solid.Agent.Core
         /// qualcosa non e' un numero: un vertice letto male non da' errore, da'
         /// una sagoma diversa.
         /// </summary>
-        private static List<double[]> Punti(object grezzo, out string motivo)
+        private static List<double[]> Points(object raw, out string reason)
         {
-            motivo = null;
-            if (grezzo == null) { motivo = "Mancano i punti."; return null; }
-            var elenco = grezzo as System.Collections.IEnumerable;
-            if (elenco == null) { motivo = "I punti non sono un elenco."; return null; }
-            var punti = new List<double[]>();
-            foreach (var p in elenco)
+            reason = null;
+            if (raw == null) { reason = "Mancano i punti."; return null; }
+            var list = raw as System.Collections.IEnumerable;
+            if (list == null) { reason = "I punti non sono un elenco."; return null; }
+            var points = new List<double[]>();
+            foreach (var p in list)
             {
-                var coppia = p as System.Collections.IEnumerable;
-                if (coppia == null) { motivo = "Un punto non e' una coppia [x, y]."; return null; }
-                var valori = new List<double>();
-                foreach (var v in coppia)
+                var pair = p as System.Collections.IEnumerable;
+                if (pair == null) { reason = "Un punto non e' una coppia [x, y]."; return null; }
+                var values = new List<double>();
+                foreach (var v in pair)
                 {
                     try
                     {
-                        valori.Add(Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture));
+                        values.Add(Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture));
                     }
-                    catch { motivo = "Un punto contiene un valore che non e' un numero: " + v; return null; }
+                    catch { reason = "Un punto contiene un valore che non e' un numero: " + v; return null; }
                 }
-                if (valori.Count != 2) { motivo = "Un punto non ha esattamente due coordinate."; return null; }
-                if (double.IsNaN(valori[0]) || double.IsNaN(valori[1])
-                    || double.IsInfinity(valori[0]) || double.IsInfinity(valori[1]))
-                { motivo = "Un punto ha coordinate non utilizzabili."; return null; }
-                punti.Add(new[] { valori[0], valori[1] });
+                if (values.Count != 2) { reason = "Un punto non ha esattamente due coordinate."; return null; }
+                if (double.IsNaN(values[0]) || double.IsNaN(values[1])
+                    || double.IsInfinity(values[0]) || double.IsInfinity(values[1]))
+                { reason = "Un punto ha coordinate non utilizzabili."; return null; }
+                points.Add(new[] { values[0], values[1] });
             }
-            if (punti.Count == 0) { motivo = "Un elenco di punti e' vuoto."; return null; }
-            return punti;
+            if (points.Count == 0) { reason = "Un elenco di punti e' vuoto."; return null; }
+            return points;
         }
 
-        private Esito EstrudiCerchio(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome ExtrudeCircle(IModelDoc2 model, Dictionary<string, object> a)
         {
-            double diametro = Num(a, "diameter_mm");
-            double altezza = Num(a, "height_mm");
-            string piano = Str(a, "plane", "front");
+            double diameter = Num(a, "diameter_mm");
+            double height = Num(a, "height_mm");
+            string plane = Str(a, "plane", "front");
 
-            // The names before the sketch (scheme S7): see EstrudiRettangolo.
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaPiano(modello, piano))
-                return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
+            // The names before the sketch (scheme S7): see ExtrudeRectangle.
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectPlane(model, plane))
+                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
 
-            var schizzi = modello.SketchManager;
-            schizzi.InsertSketch(true);
-            var cerchio = schizzi.CreateCircleByRadius(0, 0, 0, Unita.M(diametro / 2));
+            var sketches = model.SketchManager;
+            sketches.InsertSketch(true);
+            var circle = sketches.CreateCircleByRadius(0, 0, 0, Units.M(diameter / 2));
 
             // IL DIAMETRO, sullo schizzo. Un pezzo tondo senza la quota del
             // diametro e' modificabile quanto una vasca senza i lati: cioe'
             // per niente. Il testo va messo fuori dal cerchio, in diagonale,
             // se no finisce sopra il disegno.
-            double lontano = Unita.M(diametro / 2) * 1.4 + 0.005;
-            int quoteMesse = QuotaSegmenti(modello,
-                new List<Quota> { Quota.Su(cerchio, new[] { lontano, lontano, 0.0 }) });
+            double far = Units.M(diameter / 2) * 1.4 + 0.005;
+            int placedDimensions = DimensionSegments(model,
+                new List<Dimension> { Dimension.Su(circle, new[] { far, far, 0.0 }) });
 
-            schizzi.InsertSketch(false);
+            sketches.InsertSketch(false);
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
-            var feature = Estrudi(modello, altezza, unisci: true);
-            if (feature == null) return Fallito("L'estrusione non e' stata creata." + SenzaLoSchizzo(modello));
-            return Riuscito(feature, new Dictionary<string, object>
+            var feature = Extrude(model, height, merge: true);
+            if (feature == null) return Failed("L'estrusione non e' stata creata." + WithoutSketch(model));
+            return Succeeded(feature, new Dictionary<string, object>
             {
-                ["diameter_mm"] = diametro,
-                ["height_mm"] = altezza,
-                ["dimensions_on_sketch"] = quoteMesse,
-            }, Riferimenti.NormaleDelPiano(piano));
+                ["diameter_mm"] = diameter,
+                ["height_mm"] = height,
+                ["dimensions_on_sketch"] = placedDimensions,
+            }, References.PlaneNormal(plane));
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1926,17 +1926,17 @@ namespace Oce.Solid.Agent.Core
         //
         // E il controllo sta PRIMA dello schizzo apposta. Le operazioni che si
         // controllano da sole devono disegnare per poter misurare, e quando
-        // bocciano lo schizzo c'e' gia': tocca a `SenzaLoSchizzo` andarlo a
-        // togliere, e se non ci riesce a dirlo (`LasciatoSchizzo`). Questi due
+        // bocciano lo schizzo c'e' gia': tocca a `WithoutSketch` andarlo a
+        // togliere, e se non ci riesce a dirlo (`LeftSketchBehind`). Questi due
         // no: non c'e' niente da misurare che non si sappia gia', quindi il
         // pezzo resta come era e non c'e' niente da togliere — il rifiuto piu'
         // economico e' quello che non ha disegnato niente.
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>Il nome dell'asse del modello, per poterlo dire a chi legge.</summary>
-        private static string NomeAsse(int indice)
+        private static string AxisName(int index)
         {
-            return indice == 0 ? "X" : indice == 1 ? "Y" : "Z";
+            return index == 0 ? "X" : index == 1 ? "Y" : "Z";
         }
 
         /// <summary>
@@ -1950,17 +1950,17 @@ namespace Oce.Solid.Agent.Core
         /// lo boccia SolidWorks un istante dopo; un profilo bocciato per
         /// sbaglio invece non lo rivede nessuno.
         /// </summary>
-        private static double[] ScatolaDelPezzoMm(IModelDoc2 modello)
+        private static double[] PartBoxMm(IModelDoc2 model)
         {
-            var parte = modello as IPartDoc;
-            var corpi = parte?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            if (corpi == null || corpi.Length == 0) return null;
+            var partDoc = model as IPartDoc;
+            var bodies = partDoc?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            if (bodies == null || bodies.Length == 0) return null;
             // Approximate ON PURPOSE, see the summary: a box that can only
             // be larger than the part makes both checks more permissive.
-            var fuori = ApiHelpers.UnionOfBoxes(corpi, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
-            if (fuori == null) return null;
-            for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(fuori[i]);
-            return fuori;
+            var outside = ApiHelpers.UnionOfBoxes(bodies, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
+            if (outside == null) return null;
+            for (int i = 0; i < 6; i++) outside[i] = Units.Mm(outside[i]);
+            return outside;
         }
 
         /// <summary>
@@ -1972,13 +1972,13 @@ namespace Oce.Solid.Agent.Core
         /// comunque quando la profondita' supera lo spessore misurato lungo la
         /// normale della faccia.
         /// </summary>
-        private static bool DaParteAParte(
-            IModelDoc2 modello, double[] assi, bool passante, double profonditaMm)
+        private static bool ThroughAll(
+            IModelDoc2 model, double[] axes, bool throughAll, double depthMm)
         {
-            if (passante) return true;
-            if (profonditaMm <= 0 || assi == null) return false;
-            double spessore = EstensioneLungoLAsse(modello, (int)assi[2]);
-            return spessore > 0 && profonditaMm >= spessore;
+            if (throughAll) return true;
+            if (depthMm <= 0 || axes == null) return false;
+            double thickness = ExtentAlongAxis(model, (int)axes[2]);
+            return thickness > 0 && depthMm >= thickness;
         }
 
         /// <summary>
@@ -1987,37 +1987,37 @@ namespace Oce.Solid.Agent.Core
         /// altrimenti il motivo, scritto in modo che chi legge sappia quale
         /// numero cambiare.
         /// </summary>
-        /// <param name="cosaE">
+        /// <param name="whatItIs">
         /// La sagoma con le sue misure, gia' scritta: «Il foro da 500 mm».
         /// </param>
         /// <param name="semiU">Mezzo ingombro del profilo sul primo asse.</param>
         /// <param name="semiV">Mezzo ingombro del profilo sul secondo asse.</param>
-        /// <param name="dentroIlProfilo">Questo punto della faccia sta dentro la sagoma?</param>
-        /// <param name="consiglio">
+        /// <param name="insideTheProfile">Questo punto della faccia sta dentro la sagoma?</param>
+        /// <param name="advice">
         /// Date le due distanze dal centro al bordo piu' vicino del pezzo, la
         /// frase che dice cosa ci starebbe. La scrive ogni operazione, perche'
         /// «e' da 274 mm» e «e' 314 x 274 mm» non sono la stessa frase.
         /// </param>
-        private static string TaglioSenzaSperanza(
-            IModelDoc2 modello,
-            double[] assi,
-            string cosaE,
+        private static string CutWithoutHope(
+            IModelDoc2 model,
+            double[] axes,
+            string whatItIs,
             double xMm,
             double yMm,
             double semiU,
             double semiV,
-            Func<double, double, bool> dentroIlProfilo,
-            bool daParteAParte,
-            Func<double, double, string> consiglio)
+            Func<double, double, bool> insideTheProfile,
+            bool throughAll,
+            Func<double, double, string> advice)
         {
-            if (assi == null) return null;
-            var scatola = ScatolaDelPezzoMm(modello);
-            if (scatola == null) return null;   // niente corpo: non c'e' niente da confrontare
+            if (axes == null) return null;
+            var box = PartBoxMm(model);
+            if (box == null) return null;   // niente corpo: non c'e' niente da confrontare
 
-            int iu = (int)assi[0], iv = (int)assi[1];
-            double uMin = scatola[iu], uMax = scatola[iu + 3];
-            double vMin = scatola[iv], vMax = scatola[iv + 3];
-            string nomeU = NomeAsse(iu), nomeV = NomeAsse(iv);
+            int iu = (int)axes[0], iv = (int)axes[1];
+            double uMin = box[iu], uMax = box[iu + 3];
+            double vMin = box[iv], vMax = box[iv + 3];
+            string nameU = AxisName(iu), nameV = AxisName(iv);
 
             // ── 1. IL PROFILO CADE TUTTO FUORI DAL PEZZO ──────────────────
             // Si confrontano le due SCATOLE: se non si toccano nemmeno quelle,
@@ -2031,28 +2031,28 @@ namespace Oce.Solid.Agent.Core
                     "{0} e' centrato a {1} = {2:0.##}, {3} = {4:0.##} mm, ma il pezzo su {1} " +
                     "va da {5:0.##} a {6:0.##} e su {3} da {7:0.##} a {8:0.##}: il profilo cade " +
                     "tutto fuori dal materiale, quindi non c'e' niente da togliere.",
-                    cosaE, nomeU, xMm, nomeV, yMm, uMin, uMax, vMin, vMax);
+                    whatItIs, nameU, xMm, nameV, yMm, uMin, uMax, vMin, vMax);
             }
 
             // ── 2. IL PROFILO COPRE TUTTO IL PEZZO, E IL TAGLIO PASSA ─────
             // Bastano i quattro angoli: cerchio, rettangolo e stadio sono tutti
             // e tre CONVESSI, e una forma convessa che contiene i quattro
             // angoli contiene tutta la scatola.
-            if (daParteAParte &&
-                dentroIlProfilo(uMin, vMin) && dentroIlProfilo(uMin, vMax) &&
-                dentroIlProfilo(uMax, vMin) && dentroIlProfilo(uMax, vMax))
+            if (throughAll &&
+                insideTheProfile(uMin, vMin) && insideTheProfile(uMin, vMax) &&
+                insideTheProfile(uMax, vMin) && insideTheProfile(uMax, vMax))
             {
                 double du = Math.Min(xMm - uMin, uMax - xMm);
                 double dv = Math.Min(yMm - vMin, vMax - yMm);
                 // Il consiglio ha senso solo se il centro sta DENTRO il pezzo:
                 // da un centro fuori, «il piu' grande che ci sta» sarebbe un
                 // numero negativo spacciato per una misura.
-                string dritta = du > 0 && dv > 0 ? " " + consiglio(du, dv) : "";
+                string straight = du > 0 && dv > 0 ? " " + advice(du, dv) : "";
                 return string.Format(
                     "{0} centrato a {1} = {2:0.##}, {3} = {4:0.##} mm copre tutto il pezzo, che " +
                     "qui occupa {5:0.##} x {6:0.##} mm: un taglio da parte a parte cosi' non " +
                     "lascerebbe niente.{7}",
-                    cosaE, nomeU, xMm, nomeV, yMm, uMax - uMin, vMax - vMin, dritta);
+                    whatItIs, nameU, xMm, nameV, yMm, uMax - uMin, vMax - vMin, straight);
             }
 
             return null;
@@ -2064,17 +2064,17 @@ namespace Oce.Solid.Agent.Core
         /// dire dentro, ed e' vero sia nella parte dritta sia nei due
         /// semicerchi. Gli stessi corsa/raggio/cos/sin che disegnano la sagoma.
         /// </summary>
-        private static bool DentroLoStadio(
+        private static bool InsideStadium(
             double u, double v,
-            double centroU, double centroV,
-            double cos, double sin, double corsa, double raggio)
+            double centerU, double centerV,
+            double cos, double sin, double travel, double radius)
         {
-            double du = u - centroU, dv = v - centroV;
+            double du = u - centerU, dv = v - centerV;
             double t = du * cos + dv * sin;
-            if (t > corsa) t = corsa;
-            else if (t < -corsa) t = -corsa;
-            double pu = centroU + t * cos, pv = centroV + t * sin;
-            return (u - pu) * (u - pu) + (v - pv) * (v - pv) <= raggio * raggio;
+            if (t > travel) t = travel;
+            else if (t < -travel) t = -travel;
+            double pu = centerU + t * cos, pv = centerV + t * sin;
+            return (u - pu) * (u - pu) + (v - pv) * (v - pv) <= radius * radius;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -2123,24 +2123,24 @@ namespace Oce.Solid.Agent.Core
         /// che le abbiamo dato; se il punto sta sul pieno, risponde il punto
         /// stesso. E' un «dentro o fuori» chiesto a SolidWorks invece che
         /// dedotto da noi, ed e' la stessa postura di `IGetChildCount` in
-        /// <see cref="SenzaLoSchizzo"/>.
+        /// <see cref="WithoutSketch"/>.
         ///
         /// Non serve nessuno schizzo aperto: qui si resta nel sistema del
-        /// MODELLO e non si passa da `PuntoNelloSchizzo`.
+        /// MODELLO e non si passa da `PointInSketch`.
         /// </summary>
-        private static bool PuntoSullaFaccia(
-            IFace2 faccia, double[] assi, double offsetM, double xMm, double yMm)
+        private static bool PointOnFace(
+            IFace2 face, double[] axes, double offsetM, double xMm, double yMm)
         {
-            if (faccia == null || assi == null) return false;
+            if (face == null || axes == null) return false;
             try
             {
                 var p = new double[3];
-                p[(int)assi[0]] = Unita.M(xMm);
-                p[(int)assi[1]] = Unita.M(yMm);
-                p[(int)assi[2]] = offsetM;
-                var vicino = faccia.GetClosestPointOn(p[0], p[1], p[2]) as double[];
-                if (vicino == null || vicino.Length < 3) return false;
-                double dx = vicino[0] - p[0], dy = vicino[1] - p[1], dz = vicino[2] - p[2];
+                p[(int)axes[0]] = Units.M(xMm);
+                p[(int)axes[1]] = Units.M(yMm);
+                p[(int)axes[2]] = offsetM;
+                var near = face.GetClosestPointOn(p[0], p[1], p[2]) as double[];
+                if (near == null || near.Length < 3) return false;
+                double dx = near[0] - p[0], dy = near[1] - p[1], dz = near[2] - p[2];
                 // Un micron, al quadrato. Non e' una tolleranza di lavorazione:
                 // e' il margine per l'aritmetica in virgola mobile, perche' su
                 // un punto che sta sulla faccia la risposta e' il punto stesso,
@@ -2159,37 +2159,37 @@ namespace Oce.Solid.Agent.Core
         /// SolidWorks ha gia' detto di no, e serve a dire a chi legge quale
         /// delle strade e' ancora aperta.
         /// </summary>
-        private static string SottoIlProfilo(
-            IFace2 faccia, string uidFaccia, double[] assi, double offsetM,
-            List<double[]> campioni)
+        private static string BelowProfile(
+            IFace2 face, string uidFace, double[] axes, double offsetM,
+            List<double[]> samples)
         {
-            if (faccia == null || assi == null || campioni == null || campioni.Count == 0)
+            if (face == null || axes == null || samples == null || samples.Count == 0)
                 return "";
 
-            int sul = 0;
-            foreach (var c in campioni)
-                if (PuntoSullaFaccia(faccia, assi, offsetM, c[0], c[1])) sul++;
+            int onCount = 0;
+            foreach (var c in samples)
+                if (PointOnFace(face, axes, offsetM, c[0], c[1])) onCount++;
 
             // «sulla faccia», non «su la faccia»: la preposizione si articola
             // qui dentro, perche' le tre frasi la usano tutte e tre.
-            string dove = string.IsNullOrEmpty(uidFaccia)
+            string location = string.IsNullOrEmpty(uidFace)
                 ? "sulla faccia scelta"
-                : "sulla faccia «" + uidFaccia + "»";
-            int quanti = campioni.Count;
+                : "sulla faccia «" + uidFace + "»";
+            int howMany = samples.Count;
 
-            if (sul == 0)
-                return " Ho provato " + quanti + " punti sotto il profilo e nessuno cade " +
-                       dove + ": li' il pezzo e' gia' aperto, e dove non c'e' materiale non " +
+            if (onCount == 0)
+                return " Ho provato " + howMany + " punti sotto il profilo e nessuno cade " +
+                       location + ": li' il pezzo e' gia' aperto, e dove non c'e' materiale non " +
                        "c'e' niente da togliere. Sposta il profilo sul pieno, oppure scegli " +
                        "la faccia su cui il materiale c'e'.";
 
-            if (sul == quanti)
-                return " Sotto il profilo il materiale c'e': tutti e " + quanti + " i punti " +
-                       "che ho provato cadono " + dove + ". Quindi non e' la posizione — " +
+            if (onCount == howMany)
+                return " Sotto il profilo il materiale c'e': tutti e " + howMany + " i punti " +
+                       "che ho provato cadono " + location + ". Quindi non e' la posizione — " +
                        "restano la profondita' e il verso del taglio.";
 
-            return " Sotto il profilo il materiale c'e' solo in parte: " + sul + " punti su " +
-                   quanti + " cadono " + dove + ", gli altri no. Il profilo sta a cavallo " +
+            return " Sotto il profilo il materiale c'e' solo in parte: " + onCount + " punti su " +
+                   howMany + " cadono " + location + ", gli altri no. Il profilo sta a cavallo " +
                    "di un bordo o di un'apertura.";
         }
 
@@ -2198,27 +2198,27 @@ namespace Oce.Solid.Agent.Core
         /// non uno perche' un anello solo, preso vicino al bordo, racconta il
         /// bordo e non il profilo; preso vicino al centro, racconta il centro.
         /// </summary>
-        private static List<double[]> CampioniCerchio(double x, double y, double raggio)
+        private static List<double[]> CircleSamples(double x, double y, double radius)
         {
-            var fuori = new List<double[]> { new[] { x, y } };
-            foreach (double frazione in new[] { 0.55, 0.93 })
+            var outside = new List<double[]> { new[] { x, y } };
+            foreach (double fraction in new[] { 0.55, 0.93 })
                 for (int i = 0; i < 8; i++)
                 {
                     double t = i * Math.PI / 4;
-                    fuori.Add(new[]
+                    outside.Add(new[]
                     {
-                        x + raggio * frazione * Math.Cos(t),
-                        y + raggio * frazione * Math.Sin(t),
+                        x + radius * fraction * Math.Cos(t),
+                        y + radius * fraction * Math.Sin(t),
                     });
                 }
-            return fuori;
+            return outside;
         }
 
         /// <summary>Il centro, i quattro mezzi lati e i quattro angoli, tirati dentro.</summary>
-        private static List<double[]> CampioniRettangolo(
-            double x, double y, double lunghezza, double larghezza)
+        private static List<double[]> RectangleSamples(
+            double x, double y, double length, double width)
         {
-            double a = lunghezza / 2 * 0.93, b = larghezza / 2 * 0.93;
+            double a = length / 2 * 0.93, b = width / 2 * 0.93;
             return new List<double[]>
             {
                 new[] { x, y },
@@ -2234,88 +2234,88 @@ namespace Oce.Solid.Agent.Core
         /// lungo, ognuna con il suo punto in mezzo e i due di fianco, piu' i
         /// due colmi. Gli stessi corsa/raggio/cos/sin che lo disegnano.
         /// </summary>
-        private static List<double[]> CampioniStadio(
-            double x, double y, double cos, double sin, double corsa, double raggio)
+        private static List<double[]> StadiumSamples(
+            double x, double y, double cos, double sin, double travel, double radius)
         {
-            var fuori = new List<double[]>();
-            Func<double, double, double[]> nelPiano = (u, v) => new[]
+            var outside = new List<double[]>();
+            Func<double, double, double[]> inPlane = (u, v) => new[]
             {
                 x + u * cos - v * sin,
                 y + u * sin + v * cos,
             };
-            foreach (double u in new[] { -corsa, 0.0, corsa })
-                foreach (double v in new[] { 0.0, -raggio * 0.9, raggio * 0.9 })
-                    fuori.Add(nelPiano(u, v));
-            fuori.Add(nelPiano(-(corsa + raggio) * 0.93, 0));
-            fuori.Add(nelPiano(+(corsa + raggio) * 0.93, 0));
-            return fuori;
+            foreach (double u in new[] { -travel, 0.0, travel })
+                foreach (double v in new[] { 0.0, -radius * 0.9, radius * 0.9 })
+                    outside.Add(inPlane(u, v));
+            outside.Add(inPlane(-(travel + radius) * 0.93, 0));
+            outside.Add(inPlane(+(travel + radius) * 0.93, 0));
+            return outside;
         }
 
-        private Esito TaglioCilindrico(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CylindricalCut(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string uidFaccia = Str(a, "face_uid", "");
-            var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
-            if (faccia == null) return Fallito(motivo);
+            string uidFace = Str(a, "face_uid", "");
+            var face = ResolveFace(docState, a, uidFace, out string reason);
+            if (face == null) return Failed(reason);
 
-            double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
-            if (assi == null) return Fallito(errore);
+            double[] axes = FaceAxes(face, out double offsetM, out string error);
+            if (axes == null) return Failed(error);
 
-            double diametro = Num(a, "diameter_mm");
-            bool passante = Bool(a, "through_all", true);
-            double profondita = Num(a, "depth_mm", 0);
+            double diameter = Num(a, "diameter_mm");
+            bool throughAll = Bool(a, "through_all", true);
+            double depth = Num(a, "depth_mm", 0);
             double x, y;
-            if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
-            if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
+            if (!RequiredNum(a, "x_mm", out x, out error)) return Failed(error);
+            if (!RequiredNum(a, "y_mm", out y, out error)) return Failed(error);
 
             // SI MISURA PRIMA, perche' dopo non si puo' piu'.
-            // Serve al controllo sul volume in fondo: vedi `NotaSulVolume`.
-            double? volumePrima = VolumeMm3(modello);
+            // Serve al controllo sul volume in fondo: vedi `NoteOnVolume`.
+            double? volumeBefore = VolumeMm3(model);
 
-            double raggioForo = diametro / 2;
+            double holeRadius = diameter / 2;
 
             // L'ANCORA (voce E18): cosa tiene il foro dov'e' quando il pezzo
             // cambia. Si controlla tutta PRIMA di disegnare: un'ancora sbagliata
             // non deve lasciare niente nel pezzo. Vuota = il vecchio modo.
-            var ancora = LeggiAncora(a, stato, faccia, assi, offsetM, x, y, raggioForo, raggioForo, out motivo);
-            if (ancora == null) return Fallito(motivo);
+            var anchor = ReadAnchor(a, docState, face, axes, offsetM, x, y, holeRadius, holeRadius, out reason);
+            if (anchor == null) return Failed(reason);
 
-            string senzaSperanza = TaglioSenzaSperanza(
-                modello, assi,
-                "Il foro da " + diametro.ToString("0.##") + " mm",
-                x, y, raggioForo, raggioForo,
-                (u, v) => (u - x) * (u - x) + (v - y) * (v - y) <= raggioForo * raggioForo,
-                DaParteAParte(modello, assi, passante, profondita),
+            string withoutHope = CutWithoutHope(
+                model, axes,
+                "Il foro da " + diameter.ToString("0.##") + " mm",
+                x, y, holeRadius, holeRadius,
+                (u, v) => (u - x) * (u - x) + (v - y) * (v - y) <= holeRadius * holeRadius,
+                ThroughAll(model, axes, throughAll, depth),
                 (du, dv) => "Il piu' grande che ci sta, centrato li', e' da " +
                             (2 * Math.Min(du, dv)).ToString("0.##") + " mm.");
-            if (senzaSperanza != null) return Fallito(senzaSperanza);
+            if (withoutHope != null) return Failed(withoutHope);
 
-            // The names before the sketch (scheme S7): see EstrudiRettangolo.
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
-            var schizzi = modello.SketchManager;
-            schizzi.InsertSketch(true);
-            var centro = PuntoNelloSchizzo(modello, assi, offsetM, x, y, out errore);
-            if (centro == null)
+            // The names before the sketch (scheme S7): see ExtrudeRectangle.
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
+            var sketches = model.SketchManager;
+            sketches.InsertSketch(true);
+            var center = PointInSketch(model, axes, offsetM, x, y, out error);
+            if (center == null)
             {
                 // Lo schizzo aperto va chiuso comunque: lasciarlo aperto
                 // bloccherebbe il documento in modalita' schizzo davanti a una
                 // persona che non ha chiesto niente di tutto questo.
-                try { schizzi.InsertSketch(false); } catch { }
-                return Fallito(errore);
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed(error);
             }
             // CON L'ANCORA, `AddToDB` a vero attorno alla creazione: le
             // relazioni che SOLIDWORKS indovina (centro sull'origine, su un
             // punto medio) si sommerebbero all'ancora e sovravincolerebbero lo
             // schizzo. Senza ancora il foro nasce come e' sempre nato.
-            ISketchSegment cerchioTaglio;
-            bool addPrima = schizzi.AddToDB;
+            ISketchSegment cutCircle;
+            bool addBefore = sketches.AddToDB;
             try
             {
-                if (!ancora.Vuoto) schizzi.AddToDB = true;
-                cerchioTaglio = schizzi.CreateCircleByRadius(
-                    centro[0], centro[1], centro[2], Unita.M(diametro / 2));
+                if (!anchor.Empty) sketches.AddToDB = true;
+                cutCircle = sketches.CreateCircleByRadius(
+                    center[0], center[1], center[2], Units.M(diameter / 2));
             }
-            finally { schizzi.AddToDB = addPrima; }
+            finally { sketches.AddToDB = addBefore; }
 
             // IL DIAMETRO, SULLO SCHIZZO DEL FORO.
             //
@@ -2329,46 +2329,46 @@ namespace Oce.Solid.Agent.Core
             // disegna vuol dire vincolare lo schizzo piu' di quanto abbia
             // chiesto: il `set_dimension` dopo fallirebbe con un messaggio di
             // sovra-vincolo che non parla di niente.
-            string erroreTesto;
-            var testoQuota = PuntoNelloSchizzo(
-                modello, assi, offsetM,
-                x + raggioForo * 1.4 + 5, y + raggioForo * 1.4 + 5, out erroreTesto);
-            int quoteMesse = cerchioTaglio != null && testoQuota != null
-                ? QuotaSegmenti(modello,
-                    new List<Quota> { Quota.Su(cerchioTaglio, testoQuota) })
+            string textError;
+            var dimensionText = PointInSketch(
+                model, axes, offsetM,
+                x + holeRadius * 1.4 + 5, y + holeRadius * 1.4 + 5, out textError);
+            int placedDimensions = cutCircle != null && dimensionText != null
+                ? DimensionSegments(model,
+                    new List<Dimension> { Dimension.Su(cutCircle, dimensionText) })
                 : 0;
 
             // L'ANCORA SI ATTACCA AL CENTRO DEL CERCHIO, dopo il diametro: lo
             // schizzo deve uscirne completamente definito.
-            var misureAncora = new Dictionary<string, object>();
-            if (!ancora.Vuoto)
+            var anchorMeasurements = new Dictionary<string, object>();
+            if (!anchor.Empty)
             {
-                ISketchPoint puntoCentro = null;
-                try { puntoCentro = ((ISketchArc)cerchioTaglio).GetCenterPoint2() as ISketchPoint; } catch { }
-                if (!ApplicaAncora(modello, ancora, puntoCentro, assi, offsetM, x, y, misureAncora, out string erroreAncora))
+                ISketchPoint centerPoint = null;
+                try { centerPoint = ((ISketchArc)cutCircle).GetCenterPoint2() as ISketchPoint; } catch { }
+                if (!ApplyAnchor(model, anchor, centerPoint, axes, offsetM, x, y, anchorMeasurements, out string anchorError))
                 {
-                    try { schizzi.InsertSketch(false); } catch { }
-                    return Fallito(erroreAncora + SenzaLoSchizzo(modello));
+                    try { sketches.InsertSketch(false); } catch { }
+                    return Failed(anchorError + WithoutSketch(model));
                 }
             }
 
-            schizzi.InsertSketch(false);
+            sketches.InsertSketch(false);
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
-            var feature = Taglia(modello, passante, profondita);
+            var feature = Cut(model, throughAll, depth);
             if (feature == null)
             {
                 // Si misura PRIMA di togliere lo schizzo: la faccia resta
                 // valida comunque, ma l'ordine giusto e' leggere il pezzo
                 // com'era quando SolidWorks ha detto di no.
-                string sotto = SottoIlProfilo(
-                    faccia, uidFaccia, assi, offsetM,
-                    CampioniCerchio(x, y, raggioForo));
-                return Fallito("Il taglio non e' stato creato." + sotto + SenzaLoSchizzo(modello));
+                string below = BelowProfile(
+                    face, uidFace, axes, offsetM,
+                    CircleSamples(x, y, holeRadius));
+                return Failed("Il taglio non e' stato creato." + below + WithoutSketch(model));
             }
 
             // UN FORO PASSANTE SU UNA SCATOLA VUOTA NE FA DUE.
@@ -2384,36 +2384,36 @@ namespace Oce.Solid.Agent.Core
             // sempre «attraversa QUESTA parete». Il numero di pareti
             // forate non si indovina, ma si CONTA: ogni parete attraversata
             // lascia una faccia cilindrica del diametro chiesto.
-            int pareti = ParetiForate(feature, diametro);
-            if (passante && pareti > 1)
-                return Fallito(
-                    "Il foro passante ha attraversato " + pareti + " pareti, " +
+            int walls = DrilledWalls(feature, diameter);
+            if (throughAll && walls > 1)
+                return Failed(
+                    "Il foro passante ha attraversato " + walls + " pareti, " +
                     "non una: il pezzo e' cavo e il taglio e' uscito anche " +
                     "dall'altra parte. Se volevi bucare solo questa parete, " +
                     "chiedilo cieco con la profondita' dello spessore." +
-                    RestaNelPezzo);
+                    RemainsInPart);
 
             // LA PROVA DI MOVIMENTO: un'ancora che non regge una modifica non
             // serve, e il taglio che la porta non resta nel pezzo.
-            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
-            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+            string doesNotHold = MovementTest(model, anchor, feature);
+            if (doesNotHold != null) return Failed(doesNotHold + RemoveCut(model, feature, volumeBefore));
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["diameter_mm"] = diametro,
-                ["through_all"] = passante,
-                ["walls_drilled"] = pareti >= 0 ? (object)pareti : null,
-                ["dimensions_on_sketch"] = quoteMesse,
+                ["diameter_mm"] = diameter,
+                ["through_all"] = throughAll,
+                ["walls_drilled"] = walls >= 0 ? (object)walls : null,
+                ["dimensions_on_sketch"] = placedDimensions,
             };
-            foreach (var voce in misureAncora) misure[voce.Key] = voce.Value;
+            foreach (var entry in anchorMeasurements) measurements[entry.Key] = entry.Value;
 
-            // QUANTO SE N'E' ANDATO DAVVERO. Vedi `NotaSulVolume`.
-            NotaSulVolume(
-                misure, volumePrima, VolumeMm3(modello),
-                passante ? 0 : Math.PI * raggioForo * raggioForo * profondita,
-                "Il foro da " + diametro.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " mm");
+            // QUANTO SE N'E' ANDATO DAVVERO. Vedi `NoteOnVolume`.
+            NoteOnVolume(
+                measurements, volumeBefore, VolumeMm3(model),
+                throughAll ? 0 : Math.PI * holeRadius * holeRadius * depth,
+                "Il foro da " + diameter.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " mm");
 
-            return Riuscito(feature, misure, NormaleDellaFaccia(faccia));
+            return Succeeded(feature, measurements, FaceNormal(face));
         }
 
         /// <summary>
@@ -2428,7 +2428,7 @@ namespace Oce.Solid.Agent.Core
         /// cento lascia passare l'arrotondamento senza lasciar passare niente
         /// che abbia una forma.
         /// </summary>
-        private const double ScostamentoVolume = 0.01;
+        private const double VolumeOffset = 0.01;
 
         /// <summary>
         /// SI DICE QUANTO SE N'E' ANDATO, E QUANTO SE NE DOVEVA ANDARE.
@@ -2440,7 +2440,7 @@ namespace Oce.Solid.Agent.Core
         /// invece di 392,7** — esattamente meta' — con il fondo del foro ridotto
         /// a un mezzo disco da 39,27 mm² invece di 78,54.
         ///
-        /// IL GUARDIANO C'ERA E GUARDAVA DALL'ALTRA PARTE. `SottoIlProfilo` sa
+        /// IL GUARDIANO C'ERA E GUARDAVA DALL'ALTRA PARTE. `BelowProfile` sa
         /// contare quanti punti del profilo cadono sulla faccia e lo dice bene,
         /// ma il suo commento dichiara: «NON RIFIUTA NIENTE E NON DEVE MAI
         /// FARLO: si chiama solo quando SOLIDWORKS ha gia' detto di no». Quando
@@ -2458,18 +2458,18 @@ namespace Oce.Solid.Agent.Core
         /// sarebbe inventato. Un allarme sbagliato su un passante legittimo
         /// sarebbe peggio del difetto che si sta chiudendo.
         ///
-        /// <param name="attesoMm3">Zero quando non si puo' sapere.</param>
+        /// <param name="expectedMm3">Zero quando non si puo' sapere.</param>
         /// </summary>
-        private static void NotaSulVolume(
-            Dictionary<string, object> misure,
-            double? volumePrima, double? volumeDopo, double attesoMm3, string cosa)
+        private static void NoteOnVolume(
+            Dictionary<string, object> measurements,
+            double? volumeBefore, double? volumeAfter, double expectedMm3, string what)
         {
-            if (misure == null) return;
+            if (measurements == null) return;
 
             // Un volume che non si e' potuto leggere non diventa uno zero: uno
             // zero vorrebbe dire «non ha tolto niente», che e' un'affermazione.
             //
-            // `<= 0` SU TUTTI E DUE, e la prima scrittura aveva `volumeDopo < 0`.
+            // `<= 0` SU TUTTI E DUE, e la prima scrittura aveva `volumeAfter < 0`.
             // `VolumeMm3` non torna MAI un negativo: risponde 0 quando il
             // documento non e' una parte, quando `GetBodies2` da' null e dal
             // `catch` che avvolge tutto — cioe' su ogni strada di errore.
@@ -2484,93 +2484,93 @@ namespace Oce.Solid.Agent.Core
             // riga a non farla: e' la forma di difetto piu' frequente trovata
             // in questo progetto, commessa mentre la si documentava.
             //
-            // `Guscio` la scrive giusta quindici righe piu' in la'
-            // (`volumePrima > 0 && volumeDopo > 0`): la stessa cosa, fatta bene,
+            // `Shell` la scrive giusta quindici righe piu' in la'
+            // (`volumeBefore > 0 && volumeAfter > 0`): la stessa cosa, fatta bene,
             // nello stesso file.
             //
             // DAL 25/9/2026 (voce Z-C8) LO DICE IL TIPO: `VolumeMm3` torna
             // `double?`, null quando non si legge, e questo controllo non deve
             // piu' indovinare quale zero sia una misura.
-            if (volumePrima == null || volumeDopo == null || volumePrima <= 0) return;
-            double tolti = volumePrima.Value - volumeDopo.Value;
+            if (volumeBefore == null || volumeAfter == null || volumeBefore <= 0) return;
+            double removed = volumeBefore.Value - volumeAfter.Value;
 
-            misure["removed_mm3"] = Math.Round(tolti, 2);
-            if (attesoMm3 <= 0) return;
+            measurements["removed_mm3"] = Math.Round(removed, 2);
+            if (expectedMm3 <= 0) return;
 
-            misure["expected_mm3"] = Math.Round(attesoMm3, 2);
-            double scostamento = Math.Abs(tolti - attesoMm3) / attesoMm3;
-            if (scostamento <= ScostamentoVolume) return;
+            measurements["expected_mm3"] = Math.Round(expectedMm3, 2);
+            double offset = Math.Abs(removed - expectedMm3) / expectedMm3;
+            if (offset <= VolumeOffset) return;
 
-            misure["note_volume"] = string.Format(
+            measurements["note_volume"] = string.Format(
                 System.Globalization.CultureInfo.InvariantCulture,
                 "{0} ha tolto {1:0.##} mm³ invece dei {2:0.##} che ci si aspettava " +
                 "({3:0.#}% {4}). L'operazione e' riuscita, ma il pezzo non e' quello " +
                 "che il piano descriveva: di solito vuol dire che il profilo cade in " +
                 "parte fuori dalla faccia, o su materiale gia' tolto. Guarda il pezzo " +
                 "prima di andare avanti.",
-                cosa, tolti, attesoMm3, scostamento * 100,
-                tolti < attesoMm3 ? "in meno" : "in piu'");
+                what, removed, expectedMm3, offset * 100,
+                removed < expectedMm3 ? "in meno" : "in piu'");
         }
 
-        private Esito TaglioRettangolare(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome RectangularCut(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string uidFaccia = Str(a, "face_uid", "");
-            var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
-            if (faccia == null) return Fallito(motivo);
+            string uidFace = Str(a, "face_uid", "");
+            var face = ResolveFace(docState, a, uidFace, out string reason);
+            if (face == null) return Failed(reason);
 
-            double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
-            if (assi == null) return Fallito(errore);
+            double[] axes = FaceAxes(face, out double offsetM, out string error);
+            if (axes == null) return Failed(error);
 
-            double lunghezza = Num(a, "length_mm");
-            double larghezza = Num(a, "width_mm");
-            bool passante = Bool(a, "through_all", false);
-            double profondita = Num(a, "depth_mm", 0);
-            if (!passante && profondita <= 0)
-                return Fallito("Tasca non passante senza profondita'.");
+            double length = Num(a, "length_mm");
+            double width = Num(a, "width_mm");
+            bool throughAll = Bool(a, "through_all", false);
+            double depth = Num(a, "depth_mm", 0);
+            if (!throughAll && depth <= 0)
+                return Failed("Tasca non passante senza profondita'.");
 
             // SI MISURA PRIMA, perche' dopo non si puo' piu'.
-            double? volumePrima = VolumeMm3(modello);
+            double? volumeBefore = VolumeMm3(model);
             double x, y;
-            if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
-            if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
+            if (!RequiredNum(a, "x_mm", out x, out error)) return Failed(error);
+            if (!RequiredNum(a, "y_mm", out y, out error)) return Failed(error);
 
             // L'ANCORA (voce E18), controllata tutta prima di disegnare.
-            var ancora = LeggiAncora(a, stato, faccia, assi, offsetM, x, y, lunghezza / 2, larghezza / 2, out motivo);
-            if (ancora == null) return Fallito(motivo);
+            var anchor = ReadAnchor(a, docState, face, axes, offsetM, x, y, length / 2, width / 2, out reason);
+            if (anchor == null) return Failed(reason);
 
-            string senzaSperanza = TaglioSenzaSperanza(
-                modello, assi,
-                "La tasca " + lunghezza.ToString("0.##") + " x " + larghezza.ToString("0.##") + " mm",
-                x, y, lunghezza / 2, larghezza / 2,
-                (u, v) => Math.Abs(u - x) <= lunghezza / 2 && Math.Abs(v - y) <= larghezza / 2,
-                DaParteAParte(modello, assi, passante, profondita),
+            string withoutHope = CutWithoutHope(
+                model, axes,
+                "La tasca " + length.ToString("0.##") + " x " + width.ToString("0.##") + " mm",
+                x, y, length / 2, width / 2,
+                (u, v) => Math.Abs(u - x) <= length / 2 && Math.Abs(v - y) <= width / 2,
+                ThroughAll(model, axes, throughAll, depth),
                 (du, dv) => "La piu' grande che ci sta, centrata li', e' " +
                             (2 * du).ToString("0.##") + " x " + (2 * dv).ToString("0.##") + " mm.");
-            if (senzaSperanza != null) return Fallito(senzaSperanza);
+            if (withoutHope != null) return Failed(withoutHope);
 
-            // The names before the sketch (scheme S7): see EstrudiRettangolo.
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
-            var schizzi = modello.SketchManager;
-            schizzi.InsertSketch(true);
-            var p1 = PuntoNelloSchizzo(modello, assi, offsetM, x - lunghezza / 2, y - larghezza / 2, out errore);
+            // The names before the sketch (scheme S7): see ExtrudeRectangle.
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
+            var sketches = model.SketchManager;
+            sketches.InsertSketch(true);
+            var p1 = PointInSketch(model, axes, offsetM, x - length / 2, y - width / 2, out error);
             var p2 = p1 == null
                 ? null
-                : PuntoNelloSchizzo(modello, assi, offsetM, x + lunghezza / 2, y + larghezza / 2, out errore);
+                : PointInSketch(model, axes, offsetM, x + length / 2, y + width / 2, out error);
             if (p1 == null || p2 == null)
             {
-                try { schizzi.InsertSketch(false); } catch { }
-                return Fallito(errore);
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed(error);
             }
-            object[] latiTaglio;
-            bool addPrima = schizzi.AddToDB;
+            object[] cutSides;
+            bool addBefore = sketches.AddToDB;
             try
             {
-                if (!ancora.Vuoto) schizzi.AddToDB = true;
-                latiTaglio = schizzi.CreateCornerRectangle(
+                if (!anchor.Empty) sketches.AddToDB = true;
+                cutSides = sketches.CreateCornerRectangle(
                     p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]) as object[];
             }
-            finally { schizzi.AddToDB = addPrima; }
+            finally { sketches.AddToDB = addBefore; }
 
             // LE DUE QUOTE DELLA TASCA, per lo stesso motivo del foro tondo.
             //
@@ -2581,78 +2581,78 @@ namespace Oce.Solid.Agent.Core
             // vuol dire niente — e non serve saperlo: le due quote nascono
             // comunque giuste, e il criterio della voce si verifica MISURANDO
             // i valori, non deducendoli dall'ordine dei lati.
-            int quoteMesse = 0;
-            if (latiTaglio != null && latiTaglio.Length >= 2)
+            int placedDimensions = 0;
+            if (cutSides != null && cutSides.Length >= 2)
             {
-                string erroreTesto;
-                var sotto = PuntoNelloSchizzo(
-                    modello, assi, offsetM,
-                    x, y - larghezza / 2 - 5, out erroreTesto);
-                var aFianco = PuntoNelloSchizzo(
-                    modello, assi, offsetM,
-                    x + lunghezza / 2 + 5, y, out erroreTesto);
-                var elenco = new List<Quota>();
-                if (sotto != null) elenco.Add(Quota.Su(latiTaglio[0], sotto));
-                if (aFianco != null) elenco.Add(Quota.Su(latiTaglio[1], aFianco));
-                quoteMesse = QuotaSegmenti(modello, elenco);
+                string textError;
+                var below = PointInSketch(
+                    model, axes, offsetM,
+                    x, y - width / 2 - 5, out textError);
+                var beside = PointInSketch(
+                    model, axes, offsetM,
+                    x + length / 2 + 5, y, out textError);
+                var list = new List<Dimension>();
+                if (below != null) list.Add(Dimension.Su(cutSides[0], below));
+                if (beside != null) list.Add(Dimension.Su(cutSides[1], beside));
+                placedDimensions = DimensionSegments(model, list);
             }
 
             // L'ANCORA SI ATTACCA AL CENTRO DELLA TASCA, che si costruisce: il
             // rettangolo per angoli non ha un punto al centro.
-            var misureAncora = new Dictionary<string, object>();
-            if (!ancora.Vuoto)
+            var anchorMeasurements = new Dictionary<string, object>();
+            if (!anchor.Empty)
             {
-                var puntoCentro = CentroDelRettangolo(modello, latiTaglio, p1, p2);
-                string erroreAncora = puntoCentro == null
+                var centerPoint = RectangleCenter(model, cutSides, p1, p2);
+                string anchorError = centerPoint == null
                     ? "Non sono riuscito a costruire il centro della tasca a cui attaccare l'ancora."
                     : null;
-                if (erroreAncora != null ||
-                    !ApplicaAncora(modello, ancora, puntoCentro, assi, offsetM, x, y, misureAncora, out erroreAncora))
+                if (anchorError != null ||
+                    !ApplyAnchor(model, anchor, centerPoint, axes, offsetM, x, y, anchorMeasurements, out anchorError))
                 {
-                    try { schizzi.InsertSketch(false); } catch { }
-                    return Fallito(erroreAncora + SenzaLoSchizzo(modello));
+                    try { sketches.InsertSketch(false); } catch { }
+                    return Failed(anchorError + WithoutSketch(model));
                 }
             }
 
-            schizzi.InsertSketch(false);
+            sketches.InsertSketch(false);
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
-            var feature = Taglia(modello, passante, profondita);
+            var feature = Cut(model, throughAll, depth);
             if (feature == null)
             {
-                string sotto = SottoIlProfilo(
-                    faccia, uidFaccia, assi, offsetM,
-                    CampioniRettangolo(x, y, lunghezza, larghezza));
-                return Fallito("Il taglio non e' stato creato." + sotto + SenzaLoSchizzo(modello));
+                string below = BelowProfile(
+                    face, uidFace, axes, offsetM,
+                    RectangleSamples(x, y, length, width));
+                return Failed("Il taglio non e' stato creato." + below + WithoutSketch(model));
             }
 
-            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
-            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+            string doesNotHold = MovementTest(model, anchor, feature);
+            if (doesNotHold != null) return Failed(doesNotHold + RemoveCut(model, feature, volumeBefore));
 
-            var misureTasca = new Dictionary<string, object>
+            var pocketMeasurements = new Dictionary<string, object>
             {
-                ["length_mm"] = lunghezza,
-                ["width_mm"] = larghezza,
-                ["through_all"] = passante,
-                ["dimensions_on_sketch"] = quoteMesse,
+                ["length_mm"] = length,
+                ["width_mm"] = width,
+                ["through_all"] = throughAll,
+                ["dimensions_on_sketch"] = placedDimensions,
             };
-            foreach (var voce in misureAncora) misureTasca[voce.Key] = voce.Value;
+            foreach (var entry in anchorMeasurements) pocketMeasurements[entry.Key] = entry.Value;
 
             // LO STESSO DIFETTO DI `cylindrical_cut`, e la stessa riparazione
             // (voce E13). Una tasca il cui profilo cade in parte fuori dalla
             // faccia toglie meno materiale di quanto il piano descriveva, e
             // risponde «succeeded» lo stesso.
-            NotaSulVolume(
-                misureTasca, volumePrima, VolumeMm3(modello),
-                passante ? 0 : lunghezza * larghezza * profondita,
-                "La tasca " + lunghezza.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
-                "x" + larghezza.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+            NoteOnVolume(
+                pocketMeasurements, volumeBefore, VolumeMm3(model),
+                throughAll ? 0 : length * width * depth,
+                "La tasca " + length.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+                "x" + width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
 
-            return Riuscito(feature, misureTasca, NormaleDellaFaccia(faccia));
+            return Succeeded(feature, pocketMeasurements, FaceNormal(face));
         }
 
         /// <summary>
@@ -2683,7 +2683,7 @@ namespace Oce.Solid.Agent.Core
         /// `Direction` dice da che parte girare dal primo punto al secondo, e
         /// vive nel piano dello SCHIZZO — mentre i sei punti qui sotto sono
         /// costruiti nel sistema del MODELLO e ci arrivano attraverso
-        /// `PuntoNelloSchizzo`. Quella trasformazione non conserva la mano: il
+        /// `PointInSketch`. Quella trasformazione non conserva la mano: il
         /// suo stesso commento dice che «per due facce opposte l'asse Y
         /// risulta invertito». Quindi lo stesso `-1` significa una cosa su una
         /// faccia e l'opposto su quella dirimpetto.
@@ -2710,45 +2710,45 @@ namespace Oce.Solid.Agent.Core
         /// errore: l'unica difesa contro un pezzo che sembra giusto e' una
         /// misura, ma la misura va scelta in modo che possa fallire.
         /// </summary>
-        private Esito Asola(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome Slot(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string uidFaccia = Str(a, "face_uid", "");
-            var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
-            if (faccia == null) return Fallito(motivo);
+            string uidFace = Str(a, "face_uid", "");
+            var face = ResolveFace(docState, a, uidFace, out string reason);
+            if (face == null) return Failed(reason);
 
-            double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
-            if (assi == null) return Fallito(errore);
+            double[] axes = FaceAxes(face, out double offsetM, out string error);
+            if (axes == null) return Failed(error);
 
-            double lunghezza = Num(a, "length_mm");
-            double larghezza = Num(a, "width_mm");
-            double angolo = Num(a, "angle_deg", 0);
-            bool passante = Bool(a, "through_all", true);
-            double profondita = Num(a, "depth_mm", 0);
+            double length = Num(a, "length_mm");
+            double width = Num(a, "width_mm");
+            double angle = Num(a, "angle_deg", 0);
+            bool throughAll = Bool(a, "through_all", true);
+            double depth = Num(a, "depth_mm", 0);
             double x, y;
-            if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
-            if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
+            if (!RequiredNum(a, "x_mm", out x, out error)) return Failed(error);
+            if (!RequiredNum(a, "y_mm", out y, out error)) return Failed(error);
 
             // LA LUNGHEZZA E' DA FUORI A FUORI. Un'asola lunga quanto e' larga
             // e' un foro tondo, e chiederla cosi' quasi sempre vuol dire che
             // uno dei due numeri e' sbagliato.
-            if (lunghezza <= larghezza)
-                return Fallito(
-                    "L'asola e' lunga " + lunghezza.ToString("0.##") + " e larga " +
-                    larghezza.ToString("0.##") + " mm: la lunghezza si misura da " +
+            if (length <= width)
+                return Failed(
+                    "L'asola e' lunga " + length.ToString("0.##") + " e larga " +
+                    width.ToString("0.##") + " mm: la lunghezza si misura da " +
                     "fuori a fuori e deve essere maggiore della larghezza. Se " +
-                    "volevi un foro tondo da " + larghezza.ToString("0.##") +
+                    "volevi un foro tondo da " + width.ToString("0.##") +
                     " mm usa il foro, non l'asola.");
-            if (!passante && profondita <= 0)
-                return Fallito("Asola non passante senza profondita'.");
+            if (!throughAll && depth <= 0)
+                return Failed("Asola non passante senza profondita'.");
 
             // Lo stadio, nel sistema della faccia e prima di ruotarlo: mezza
             // corsa fra i due centri, e il raggio delle estremita'.
-            double corsa = (lunghezza - larghezza) / 2.0;
-            double raggio = larghezza / 2.0;
-            double rad = angolo * Math.PI / 180.0;
+            double travel = (length - width) / 2.0;
+            double radius = width / 2.0;
+            double rad = angle * Math.PI / 180.0;
             double cos = Math.Cos(rad), sin = Math.Sin(rad);
 
-            Func<double, double, double[]> nelPiano = (u, v) => new[]
+            Func<double, double, double[]> inPlane = (u, v) => new[]
             {
                 x + u * cos - v * sin,
                 y + u * sin + v * cos,
@@ -2757,64 +2757,64 @@ namespace Oce.Solid.Agent.Core
             // I COLMI: il punto piu' esterno di ogni semicerchio, sull'asse
             // lungo dell'asola. Sono cio' che determina l'arco senza doverne
             // dichiarare il verso.
-            var colmoA = nelPiano(-corsa - raggio, 0);
-            var colmoB = nelPiano(+corsa + raggio, 0);
-            var altoA = nelPiano(-corsa, +raggio);
-            var altoB = nelPiano(+corsa, +raggio);
-            var bassoA = nelPiano(-corsa, -raggio);
-            var bassoB = nelPiano(+corsa, -raggio);
+            var crestA = inPlane(-travel - radius, 0);
+            var crestB = inPlane(+travel + radius, 0);
+            var topA = inPlane(-travel, +radius);
+            var topB = inPlane(+travel, +radius);
+            var bottomA = inPlane(-travel, -radius);
+            var bottomB = inPlane(+travel, -radius);
 
             // L'ANCORA (voce E18), controllata tutta prima di disegnare. Il
             // mezzo ingombro per asse e' quello qui sotto: la corsa proiettata
             // piu' il raggio.
-            var ancora = LeggiAncora(a, stato, faccia, assi, offsetM, x, y,
-                Math.Abs(corsa * cos) + raggio, Math.Abs(corsa * sin) + raggio, out motivo);
-            if (ancora == null) return Fallito(motivo);
+            var anchor = ReadAnchor(a, docState, face, axes, offsetM, x, y,
+                Math.Abs(travel * cos) + radius, Math.Abs(travel * sin) + radius, out reason);
+            if (anchor == null) return Failed(reason);
 
             // Mezzo ingombro dello stadio sui due assi della faccia: la corsa
             // proiettata piu' il raggio delle estremita'. Con angolo 0 fa
             // lunghezza/2 e larghezza/2, come deve.
-            string senzaSperanza = TaglioSenzaSperanza(
-                modello, assi,
-                "L'asola " + lunghezza.ToString("0.##") + " x " + larghezza.ToString("0.##") + " mm",
+            string withoutHope = CutWithoutHope(
+                model, axes,
+                "L'asola " + length.ToString("0.##") + " x " + width.ToString("0.##") + " mm",
                 x, y,
-                Math.Abs(corsa * cos) + raggio, Math.Abs(corsa * sin) + raggio,
-                (u, v) => DentroLoStadio(u, v, x, y, cos, sin, corsa, raggio),
-                DaParteAParte(modello, assi, passante, profondita),
+                Math.Abs(travel * cos) + radius, Math.Abs(travel * sin) + radius,
+                (u, v) => InsideStadium(u, v, x, y, cos, sin, travel, radius),
+                ThroughAll(model, axes, throughAll, depth),
                 (du, dv) => "Centrata li', ci sta dentro una sagoma fino a " +
                             (2 * du).ToString("0.##") + " x " + (2 * dv).ToString("0.##") + " mm.");
-            if (senzaSperanza != null) return Fallito(senzaSperanza);
+            if (withoutHope != null) return Failed(withoutHope);
 
-            // The names before the sketch (scheme S7): see EstrudiRettangolo.
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
+            // The names before the sketch (scheme S7): see ExtrudeRectangle.
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
 
-            double? volumePrima = VolumeMm3(modello);
-            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("tagliare l'asola"));
-            var schizzi = modello.SketchManager;
-            schizzi.InsertSketch(true);
+            double? volumeBefore = VolumeMm3(model);
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("tagliare l'asola"));
+            var sketches = model.SketchManager;
+            sketches.InsertSketch(true);
 
-            double[] pAltoA = null, pAltoB = null, pBassoA = null, pBassoB = null;
-            double[] pColmoA = null, pColmoB = null;
-            bool disegnato = false;
-            int segmenti = 0;
-            int quoteStadio = 0;
-            var misureAncora = new Dictionary<string, object>();
+            double[] pTopA = null, pTopB = null, pBottomA = null, pBottomB = null;
+            double[] pCrestA = null, pCrestB = null;
+            bool drawn = false;
+            int segments = 0;
+            int stadiumDimensions = 0;
+            var anchorMeasurements = new Dictionary<string, object>();
             try
             {
-                pAltoA = PuntoNelloSchizzo(modello, assi, offsetM, altoA[0], altoA[1], out errore);
-                pAltoB = pAltoA == null ? null
-                    : PuntoNelloSchizzo(modello, assi, offsetM, altoB[0], altoB[1], out errore);
-                pBassoA = pAltoB == null ? null
-                    : PuntoNelloSchizzo(modello, assi, offsetM, bassoA[0], bassoA[1], out errore);
-                pBassoB = pBassoA == null ? null
-                    : PuntoNelloSchizzo(modello, assi, offsetM, bassoB[0], bassoB[1], out errore);
-                pColmoA = pBassoB == null ? null
-                    : PuntoNelloSchizzo(modello, assi, offsetM, colmoA[0], colmoA[1], out errore);
-                pColmoB = pColmoA == null ? null
-                    : PuntoNelloSchizzo(modello, assi, offsetM, colmoB[0], colmoB[1], out errore);
+                pTopA = PointInSketch(model, axes, offsetM, topA[0], topA[1], out error);
+                pTopB = pTopA == null ? null
+                    : PointInSketch(model, axes, offsetM, topB[0], topB[1], out error);
+                pBottomA = pTopB == null ? null
+                    : PointInSketch(model, axes, offsetM, bottomA[0], bottomA[1], out error);
+                pBottomB = pBottomA == null ? null
+                    : PointInSketch(model, axes, offsetM, bottomB[0], bottomB[1], out error);
+                pCrestA = pBottomB == null ? null
+                    : PointInSketch(model, axes, offsetM, crestA[0], crestA[1], out error);
+                pCrestB = pCrestA == null ? null
+                    : PointInSketch(model, axes, offsetM, crestB[0], crestB[1], out error);
 
-                if (pColmoB != null)
+                if (pCrestB != null)
                 {
                     // ADD-TO-DB, COME PER «extrude_profile», E QUI NON E' PER
                     // ANDARE PIU' VELOCI. Senza, SolidWorks inferisce una
@@ -2826,10 +2826,10 @@ namespace Oce.Solid.Agent.Core
                     // millimetro. Un contorno aperto non si taglia, e infatti
                     // il 10 settembre 2026 dodici prove su dodici finivano con
                     // «l'asola non e' stata tagliata».
-                    ISketchSegment[] creati;
-                    disegnato = DisegnaLoStadio(
-                        schizzi, pAltoA, pAltoB, pBassoA, pBassoB, pColmoA, pColmoB,
-                        out segmenti, out errore, out creati);
+                    ISketchSegment[] created;
+                    drawn = DrawStadium(
+                        sketches, pTopA, pTopB, pBottomA, pBottomB, pCrestA, pCrestB,
+                        out segments, out error, out created);
 
                     // LO STADIO SI DEFINISCE (voce E18): tangenze, raggi uguali,
                     // la mezzeria fra i centri e le sue quote. Senza ancora e'
@@ -2837,16 +2837,16 @@ namespace Oce.Solid.Agent.Core
                     // `set_dimension` — e un errore qui non ferma il taglio;
                     // con l'ancora lo schizzo deve uscirne completamente
                     // definito, o non si taglia.
-                    if (disegnato)
+                    if (drawn)
                     {
-                        string erroreStadio;
-                        quoteStadio = DefinisciLoStadio(
-                            modello, creati, assi, offsetM, x, y, angolo, corsa, raggio,
-                            ancora, misureAncora, out erroreStadio);
-                        if (!ancora.Vuoto && erroreStadio != null)
+                        string stadiumError;
+                        stadiumDimensions = DefineStadium(
+                            model, created, axes, offsetM, x, y, angle, travel, radius,
+                            anchor, anchorMeasurements, out stadiumError);
+                        if (!anchor.Empty && stadiumError != null)
                         {
-                            disegnato = false;
-                            errore = erroreStadio;
+                            drawn = false;
+                            error = stadiumError;
                         }
                     }
                 }
@@ -2856,69 +2856,69 @@ namespace Oce.Solid.Agent.Core
                 // Il `catch` vuoto non e' pigrizia: se uscire dallo schizzo
                 // fallisse, l'eccezione sostituirebbe il motivo VERO del
                 // fallimento — e chi legge si troverebbe l'errore sbagliato.
-                try { schizzi.InsertSketch(false); } catch { }
+                try { sketches.InsertSketch(false); } catch { }
             }
-            if (!disegnato) return Fallito(errore + SenzaLoSchizzo(modello));
+            if (!drawn) return Failed(error + WithoutSketch(model));
 
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
-            var feature = Taglia(modello, passante, profondita);
+            var feature = Cut(model, throughAll, depth);
             if (feature == null)
             {
                 // Con il contorno completo, «il problema e' altrove» era un
                 // modo gentile di dire che non lo sapevamo. Adesso si guarda.
-                string sotto = segmenti < 4
+                string below = segments < 4
                     ? ""
-                    : SottoIlProfilo(
-                        faccia, uidFaccia, assi, offsetM,
-                        CampioniStadio(x, y, cos, sin, corsa, raggio));
-                return Fallito(
-                    "L'asola non e' stata tagliata. Lo schizzo ha " + segmenti +
+                    : BelowProfile(
+                        face, uidFace, axes, offsetM,
+                        StadiumSamples(x, y, cos, sin, travel, radius));
+                return Failed(
+                    "L'asola non e' stata tagliata. Lo schizzo ha " + segments +
                     " segmenti sui quattro che servono (due linee e due archi): " +
-                    (segmenti < 4
+                    (segments < 4
                         ? "il contorno non e' completo, e un contorno aperto non si taglia."
                         : "il contorno e' completo, quindi il problema non e' il disegno.") +
-                    sotto + SenzaLoSchizzo(modello));
+                    below + WithoutSketch(model));
             }
 
             // LA PROVA DI MOVIMENTO dell'ancora, come per foro e tasca.
-            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
-            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+            string doesNotHold = MovementTest(model, anchor, feature);
+            if (doesNotHold != null) return Failed(doesNotHold + RemoveCut(model, feature, volumeBefore));
 
             // ── E ADESSO SI CONTA ────────────────────────────────────────────
             // L'area dello stadio: il rettangolo centrale piu' i due
             // semicerchi, che insieme fanno un cerchio.
-            double area = (lunghezza - larghezza) * larghezza + Math.PI * raggio * raggio;
-            double? volumeDopo = VolumeMm3(modello);
-            if (volumeDopo == null)
-                return Riuscito(feature, new Dictionary<string, object>
+            double area = (length - width) * width + Math.PI * radius * radius;
+            double? volumeAfter = VolumeMm3(model);
+            if (volumeAfter == null)
+                return Succeeded(feature, new Dictionary<string, object>
                 {
-                    ["length_mm"] = lunghezza,
-                    ["width_mm"] = larghezza,
-                    ["angle_deg"] = angolo,
-                    ["through_all"] = passante,
+                    ["length_mm"] = length,
+                    ["width_mm"] = width,
+                    ["angle_deg"] = angle,
+                    ["through_all"] = throughAll,
                     ["area_mm2"] = Math.Round(area, 2),
                     ["material_removed_mm3"] = null,
-                    ["dimensions_on_sketch"] = quoteStadio,
-                    ["volume_not_reread"] = NotaVolumeNonRiletto,
-                }, NormaleDellaFaccia(faccia));
-            double tolto = volumePrima.Value - volumeDopo.Value;
-            if (tolto <= 0)
-                return Fallito(
+                    ["dimensions_on_sketch"] = stadiumDimensions,
+                    ["volume_not_reread"] = NoteVolumeNotReread,
+                }, FaceNormal(face));
+            double removed = volumeBefore.Value - volumeAfter.Value;
+            if (removed <= 0)
+                return Failed(
                     "L'asola non ha tolto niente: il taglio e' riuscito ma il " +
                     "materiale e' rimasto tutto. Di solito vuol dire che il " +
-                    "profilo era fuori dal pezzo." + RestaNelPezzo);
+                    "profilo era fuori dal pezzo." + RemainsInPart);
 
-            if (!passante)
+            if (!throughAll)
             {
-                double atteso = area * profondita;
-                if (Math.Abs(tolto - atteso) > Math.Max(1.0, atteso * 0.03))
-                    return Fallito(
-                        "L'asola e' stata tagliata ma ha tolto " + tolto.ToString("0.#") +
-                        " mm3 invece di " + atteso.ToString("0.#") + ": la forma " +
+                double expected = area * depth;
+                if (Math.Abs(removed - expected) > Math.Max(1.0, expected * 0.03))
+                    return Failed(
+                        "L'asola e' stata tagliata ma ha tolto " + removed.ToString("0.#") +
+                        " mm3 invece di " + expected.ToString("0.#") + ": la forma " +
                         "che e' uscita non e' quella chiesta. Non ti confermo un " +
-                        "pezzo che non torna." + RestaNelPezzo);
+                        "pezzo che non torna." + RemainsInPart);
             }
             else
             {
@@ -2927,18 +2927,18 @@ namespace Oce.Solid.Agent.Core
                 // Quanto materiale ci sia sotto non si sa in generale: un
                 // taglio passante attraversa quello che trova. Per questo qui
                 // non c'e' un'uguaglianza come nel caso cieco.
-                double spessoreMassimo = EstensioneLungoLAsse(modello, (int)assi[2]);
+                double maximumThickness = ExtentAlongAxis(model, (int)axes[2]);
 
                 // 1. IL TETTO. Il pezzo non puo' aver perso piu' materiale di
                 //    quanto ne stia nell'ingombro attraversato. Prende le forme
                 //    molto piu' grandi del dovuto.
-                double limite = area * spessoreMassimo * 1.02;
-                if (spessoreMassimo > 0 && tolto > limite)
-                    return Fallito(
-                        "L'asola ha tolto " + tolto.ToString("0.#") + " mm3, piu' " +
+                double limit = area * maximumThickness * 1.02;
+                if (maximumThickness > 0 && removed > limit)
+                    return Failed(
+                        "L'asola ha tolto " + removed.ToString("0.#") + " mm3, piu' " +
                         "di quanto ne possa togliere un'asola di quelle misure (" +
-                        limite.ToString("0.#") + " al massimo): la forma che e' " +
-                        "uscita non e' quella chiesta." + RestaNelPezzo);
+                        limit.ToString("0.#") + " al massimo): la forma che e' " +
+                        "uscita non e' quella chiesta." + RemainsInPart);
 
                 // 2. IL CONTROLLO CHE CERCA L'ERRORE CHE CONOSCIAMO.
                 //
@@ -2952,34 +2952,34 @@ namespace Oce.Solid.Agent.Core
                 //    L'area sbagliata pero' si sa in anticipo: e' il rettangolo
                 //    MENO il cerchio invece che piu'. Se il materiale tolto
                 //    somiglia a quella, non e' una coincidenza.
-                double areaSbagliata = (lunghezza - larghezza) * larghezza
-                                       - Math.PI * raggio * raggio;
-                if (spessoreMassimo > 0 && areaSbagliata > 0)
+                double wrongArea = (length - width) * width
+                                       - Math.PI * radius * radius;
+                if (maximumThickness > 0 && wrongArea > 0)
                 {
-                    double sospetto = areaSbagliata * spessoreMassimo;
-                    if (Math.Abs(tolto - sospetto) <= Math.Max(1.0, sospetto * 0.03))
-                        return Fallito(
-                            "L'asola ha tolto " + tolto.ToString("0.#") + " mm3, che e' " +
+                    double suspicious = wrongArea * maximumThickness;
+                    if (Math.Abs(removed - suspicious) <= Math.Max(1.0, suspicious * 0.03))
+                        return Failed(
+                            "L'asola ha tolto " + removed.ToString("0.#") + " mm3, che e' " +
                             "esattamente quanto ne toglie un'asola con i semicerchi " +
                             "girati in DENTRO invece che in fuori: sarebbe lunga " +
-                            (lunghezza - larghezza).ToString("0.##") + " mm invece di " +
-                            lunghezza.ToString("0.##") + ", con le estremita' morse a " +
-                            "mezzaluna. Non ti confermo un pezzo cosi'." + RestaNelPezzo);
+                            (length - width).ToString("0.##") + " mm invece di " +
+                            length.ToString("0.##") + ", con le estremita' morse a " +
+                            "mezzaluna. Non ti confermo un pezzo cosi'." + RemainsInPart);
                 }
             }
 
-            var misureAsola = new Dictionary<string, object>
+            var slotMeasurements = new Dictionary<string, object>
             {
-                ["length_mm"] = lunghezza,
-                ["width_mm"] = larghezza,
-                ["angle_deg"] = angolo,
-                ["through_all"] = passante,
+                ["length_mm"] = length,
+                ["width_mm"] = width,
+                ["angle_deg"] = angle,
+                ["through_all"] = throughAll,
                 ["area_mm2"] = Math.Round(area, 2),
-                ["material_removed_mm3"] = Math.Round(tolto, 2),
-                ["dimensions_on_sketch"] = quoteStadio,
+                ["material_removed_mm3"] = Math.Round(removed, 2),
+                ["dimensions_on_sketch"] = stadiumDimensions,
             };
-            foreach (var voce in misureAncora) misureAsola[voce.Key] = voce.Value;
-            return Riuscito(feature, misureAsola, NormaleDellaFaccia(faccia));
+            foreach (var entry in anchorMeasurements) slotMeasurements[entry.Key] = entry.Value;
+            return Succeeded(feature, slotMeasurements, FaceNormal(face));
         }
 
         /// <summary>
@@ -2987,17 +2987,17 @@ namespace Oce.Solid.Agent.Core
         /// come limite superiore per un taglio passante: non e' una misura
         /// fine, e' un tetto.
         /// </summary>
-        private static double EstensioneLungoLAsse(IModelDoc2 modello, int asse)
+        private static double ExtentAlongAxis(IModelDoc2 model, int axis)
         {
-            var parte = modello as IPartDoc;
-            var corpi = parte?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            if (corpi == null || corpi.Length == 0) return 0;
+            var partDoc = model as IPartDoc;
+            var bodies = partDoc?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            if (bodies == null || bodies.Length == 0) return 0;
             // Approximate ON PURPOSE: this is a ceiling for a through cut,
             // and the approximate box encloses the body (IBody2~GetBodyBox.html),
             // so it is never lower than the true one.
-            var u = ApiHelpers.UnionOfBoxes(corpi, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
-            if (u == null || u[asse + 3] <= u[asse]) return 0;
-            return Unita.Mm(u[asse + 3] - u[asse]);
+            var u = ApiHelpers.UnionOfBoxes(bodies, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
+            if (u == null || u[axis + 3] <= u[axis]) return 0;
+            return Units.Mm(u[axis + 3] - u[axis]);
         }
 
         /// <summary>
@@ -3045,65 +3045,65 @@ namespace Oce.Solid.Agent.Core
         /// da' baricentro e volume insieme: i primi tre numeri sono il centro
         /// di massa in metri, il quarto e' il volume.
         /// </summary>
-        private Esito SpostaCorpi(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome MoveBodies(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            int quanti;
-            string motivo;
-            var corpi = CorpiDalRiferimento(a, "bodies_ref", stato, out quanti, out motivo);
-            if (corpi == null) return Fallito(motivo);
+            int howMany;
+            string reason;
+            var bodies = BodiesFromReference(a, "bodies_ref", docState, out howMany, out reason);
+            if (bodies == null) return Failed(reason);
 
             double dx = Num(a, "dx_mm", 0);
             double dy = Num(a, "dy_mm", 0);
             double dz = Num(a, "dz_mm", 0);
-            bool copia = Bool(a, "copy", false);
-            int copie = (int)Num(a, "copy_count", 1);
-            if (!copia) copie = 0;
-            else if (copie < 1) copie = 1;
+            bool copy = Bool(a, "copy", false);
+            int copies = (int)Num(a, "copy_count", 1);
+            if (!copy) copies = 0;
+            else if (copies < 1) copies = 1;
 
-            double distanza = Math.Sqrt(dx * dx + dy * dy + dz * dz);
-            if (distanza < 1e-6)
-                return Fallito(
+            double distance = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            if (distance < 1e-6)
+                return Failed(
                     "Spostamento nullo: dx, dy e dz sono tutti a zero. Se " +
                     "volevi lasciare i corpi dove sono, questa operazione non " +
                     "serve; se volevi copiarli sul posto, due corpi sovrapposti " +
                     "sono un pezzo sbagliato, non una copia.");
 
             // Lo stato di partenza: tutto il pezzo, e i soli corpi da muovere.
-            double volumeTotale, volumeMosso;
-            double[] centroTotale, centroMosso;
-            if (!MassaDi(TuttiICorpiSolidi(modello), out volumeTotale, out centroTotale))
-                return Fallito("Non riesco a misurare il pezzo prima di spostarlo.");
-            if (!MassaDi(corpi, out volumeMosso, out centroMosso))
-                return Fallito("Non riesco a misurare i corpi da spostare.");
-            if (volumeTotale <= 0 || volumeMosso <= 0)
-                return Fallito("I corpi indicati non hanno volume: non c'e' niente da spostare.");
-            int corpiPrima = ContaCorpiSolidi(modello);
-            if (corpiPrima < 0) return Fallito("Non riesco a contare i corpi del pezzo prima di spostarli.");
+            double totalVolume, movedVolume;
+            double[] totalCenter, movedCenter;
+            if (!MassOf(AllSolidBodies(model), out totalVolume, out totalCenter))
+                return Failed("Non riesco a misurare il pezzo prima di spostarlo.");
+            if (!MassOf(bodies, out movedVolume, out movedCenter))
+                return Failed("Non riesco a misurare i corpi da spostare.");
+            if (totalVolume <= 0 || movedVolume <= 0)
+                return Failed("I corpi indicati non hanno volume: non c'e' niente da spostare.");
+            int bodiesBefore = CountSolidBodies(model);
+            if (bodiesBefore < 0) return Failed("Non riesco a contare i corpi del pezzo prima di spostarli.");
 
             // I corpi da muovere vanno selezionati con MARCA 1: e' la marca che
             // la feature legge. Con la marca a zero la selezione c'e' ma la
             // feature non la vede, e non lo dice.
-            modello.ClearSelection2(true);
-            var gestore = modello.SelectionManager as ISelectionMgr;
-            var marca = gestore?.CreateSelectData();
-            if (marca == null) return Fallito("SolidWorks non mi da' come marcare la selezione.");
-            marca.Mark = SelectionMarks.MoveCopyBodyBody;
+            model.ClearSelection2(true);
+            var handler = model.SelectionManager as ISelectionMgr;
+            var mark = handler?.CreateSelectData();
+            if (mark == null) return Failed("SolidWorks non mi da' come marcare la selezione.");
+            mark.Mark = SelectionMarks.MoveCopyBodyBody;
             // UN CORPO NON E' UNA IEntity, E LA DIFFERENZA NON SI VEDE FINCHE'
             // NON SI PROVA. Misurato il 10 settembre 2026 dentro SolidWorks:
             // `corpo as IEntity` torna null nell'interop, il contatore restava a
             // zero e tutte e cinque le prove di spostamento dicevano «i corpi
             // indicati non si sono lasciati selezionare». Le facce e gli spigoli
             // sono IEntity; i corpi hanno il loro `IBody2.Select2`.
-            int selezionati = 0;
-            foreach (var c in corpi)
+            int selected = 0;
+            foreach (var c in bodies)
             {
-                var corpo = c as IBody2;
-                if (corpo != null && corpo.Select2(true, marca)) { selezionati++; continue; }
+                var body = c as IBody2;
+                if (body != null && body.Select2(true, mark)) { selected++; continue; }
                 var ent = c as IEntity;
-                if (ent != null && ent.Select4(true, marca)) selezionati++;
+                if (ent != null && ent.Select4(true, mark)) selected++;
             }
-            if (selezionati == 0)
-                return Fallito("I corpi indicati non si sono lasciati selezionare.");
+            if (selected == 0)
+                return Failed("I corpi indicati non si sono lasciati selezionare.");
 
             IFeature feature;
             try
@@ -3124,87 +3124,87 @@ namespace Oce.Solid.Agent.Core
                 // TransDist resta valorizzato con la distanza vera: se una
                 // versione futura decidesse di leggerlo, leggerebbe il numero
                 // giusto invece di uno zero.
-                feature = modello.FeatureManager.InsertMoveCopyBody2(
-                    TransX: Unita.M(dx),
-                    TransY: Unita.M(dy),
-                    TransZ: Unita.M(dz),
-                    TransDist: Unita.M(distanza),
+                feature = model.FeatureManager.InsertMoveCopyBody2(
+                    TransX: Units.M(dx),
+                    TransY: Units.M(dy),
+                    TransZ: Units.M(dz),
+                    TransDist: Units.M(distance),
                     RotPointX: 0, RotPointY: 0, RotPointZ: 0,
                     RotAngleX: 0, RotAngleY: 0, RotAngleZ: 0,
-                    BCopy: copia,
-                    NumCopies: copie);
+                    BCopy: copy,
+                    NumCopies: copies);
             }
             catch (Exception ex)
             {
-                return Fallito("Lo spostamento non e' riuscito: " + ex.Message);
+                return Failed("Lo spostamento non e' riuscito: " + ex.Message);
             }
             if (feature == null)
-                return Fallito("Lo spostamento non e' stato creato.");
+                return Failed("Lo spostamento non e' stato creato.");
 
             // ── E ADESSO SI MISURA ───────────────────────────────────────────
-            int corpiDopo = ContaCorpiSolidi(modello);
-            int corpiAttesi = corpiPrima + copie * selezionati;
-            if (corpiDopo >= 0 && corpiDopo != corpiAttesi)
-                return Fallito(
-                    "Dopo lo spostamento il pezzo ha " + corpiDopo + " corpi invece di " +
-                    corpiAttesi + ". Non ti confermo un pezzo diverso da quello " +
-                    "che ti ho mostrato: ritiralo — " + Frasi.CosiSiRitira + ".");
+            int bodiesAfter = CountSolidBodies(model);
+            int expectedBodies = bodiesBefore + copies * selected;
+            if (bodiesAfter >= 0 && bodiesAfter != expectedBodies)
+                return Failed(
+                    "Dopo lo spostamento il pezzo ha " + bodiesAfter + " corpi invece di " +
+                    expectedBodies + ". Non ti confermo un pezzo diverso da quello " +
+                    "che ti ho mostrato: ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
-            double volumeDopo;
-            double[] centroDopo;
-            if (!MassaDi(TuttiICorpiSolidi(modello), out volumeDopo, out centroDopo))
-                return Fallito("Non riesco a rimisurare il pezzo dopo lo spostamento.");
+            double volumeAfter;
+            double[] centerAfter;
+            if (!MassOf(AllSolidBodies(model), out volumeAfter, out centerAfter))
+                return Failed("Non riesco a rimisurare il pezzo dopo lo spostamento.");
 
-            double volumeAtteso = volumeTotale + copie * volumeMosso;
-            if (Math.Abs(volumeDopo - volumeAtteso) > Math.Max(1.0, volumeAtteso * 0.005))
-                return Fallito(
+            double expectedVolume = totalVolume + copies * movedVolume;
+            if (Math.Abs(volumeAfter - expectedVolume) > Math.Max(1.0, expectedVolume * 0.005))
+                return Failed(
                     "Dopo lo spostamento il pezzo ha un volume di " +
-                    volumeDopo.ToString("0.#") + " mm3 invece di " +
-                    volumeAtteso.ToString("0.#") + ": qualcosa si e' unito o " +
-                    "tagliato. Ritiralo — " + Frasi.CosiSiRitira + ".");
+                    volumeAfter.ToString("0.#") + " mm3 invece di " +
+                    expectedVolume.ToString("0.#") + ": qualcosa si e' unito o " +
+                    "tagliato. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
             // Il baricentro atteso. Senza copia si sposta la frazione di volume
             // mossa; con le copie, la copia k-esima sta a k*d, e la somma dei k
             // da 1 a n fa n(n+1)/2.
             var d = new[] { dx, dy, dz };
-            var atteso = new double[3];
-            if (copie == 0)
+            var expected = new double[3];
+            if (copies == 0)
             {
                 for (int i = 0; i < 3; i++)
-                    atteso[i] = centroTotale[i] + (volumeMosso / volumeTotale) * d[i];
+                    expected[i] = totalCenter[i] + (movedVolume / totalVolume) * d[i];
             }
             else
             {
-                double sommaK = copie * (copie + 1) / 2.0;
+                double sumK = copies * (copies + 1) / 2.0;
                 for (int i = 0; i < 3; i++)
-                    atteso[i] =
-                        (volumeTotale * centroTotale[i]
-                         + volumeMosso * (copie * centroMosso[i] + sommaK * d[i]))
-                        / volumeAtteso;
+                    expected[i] =
+                        (totalVolume * totalCenter[i]
+                         + movedVolume * (copies * movedCenter[i] + sumK * d[i]))
+                        / expectedVolume;
             }
 
-            double scarto = 0;
-            for (int i = 0; i < 3; i++) scarto = Math.Max(scarto, Math.Abs(centroDopo[i] - atteso[i]));
-            double tolleranza = Math.Max(0.05, distanza * 0.002);
-            if (scarto > tolleranza)
-                return Fallito(
+            double deviation = 0;
+            for (int i = 0; i < 3; i++) deviation = Math.Max(deviation, Math.Abs(centerAfter[i] - expected[i]));
+            double tolerance = Math.Max(0.05, distance * 0.002);
+            if (deviation > tolerance)
+                return Failed(
                     "I corpi non sono finiti dove dovevano: il baricentro del " +
-                    "pezzo e' fuori di " + scarto.ToString("0.###") + " mm da dove " +
-                    "lo mette uno spostamento di " + distanza.ToString("0.##") +
+                    "pezzo e' fuori di " + deviation.ToString("0.###") + " mm da dove " +
+                    "lo mette uno spostamento di " + distance.ToString("0.##") +
                     " mm. Quasi sempre vuol dire che la distanza applicata non e' " +
-                    "quella chiesta. Ritiralo — " + Frasi.CosiSiRitira + ".");
+                    "quella chiesta. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
-            return Riuscito(feature, new Dictionary<string, object>
+            return Succeeded(feature, new Dictionary<string, object>
             {
-                ["bodies_moved"] = selezionati,
+                ["bodies_moved"] = selected,
                 ["dx_mm"] = dx,
                 ["dy_mm"] = dy,
                 ["dz_mm"] = dz,
-                ["distance_mm"] = Math.Round(distanza, 3),
-                ["copy"] = copia,
-                ["copy_count"] = copie,
-                ["bodies_after"] = corpiDopo,
-                ["centroid_deviation_mm"] = Math.Round(scarto, 4),
+                ["distance_mm"] = Math.Round(distance, 3),
+                ["copy"] = copy,
+                ["copy_count"] = copies,
+                ["bodies_after"] = bodiesAfter,
+                ["centroid_deviation_mm"] = Math.Round(deviation, 4),
             }, null);
         }
 
@@ -3222,27 +3222,27 @@ namespace Oce.Solid.Agent.Core
         /// messaggio di errore usa per dire SE il contorno era completo, invece
         /// di lasciare indovinare.
         /// </summary>
-        private static bool DisegnaLoStadio(
-            ISketchManager schizzi,
-            double[] altoA, double[] altoB, double[] bassoA, double[] bassoB,
-            double[] colmoA, double[] colmoB,
-            out int segmenti, out string errore, out ISketchSegment[] creati)
+        private static bool DrawStadium(
+            ISketchManager sketches,
+            double[] topA, double[] topB, double[] bottomA, double[] bottomB,
+            double[] crestA, double[] crestB,
+            out int segments, out string error, out ISketchSegment[] created)
         {
-            segmenti = 0;
-            errore = null;
-            creati = new ISketchSegment[4];
-            bool addToDbPrima = false, displayPrima = false;
-            try { addToDbPrima = schizzi.AddToDB; displayPrima = schizzi.DisplayWhenAdded; } catch { }
+            segments = 0;
+            error = null;
+            created = new ISketchSegment[4];
+            bool addToDbBefore = false, displayBefore = false;
+            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
             try
             {
-                try { schizzi.AddToDB = true; schizzi.DisplayWhenAdded = false; } catch { }
+                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
 
-                creati[0] = schizzi.CreateLine(altoA[0], altoA[1], altoA[2],
-                                               altoB[0], altoB[1], altoB[2]);
-                if (creati[0] != null) segmenti++;
-                creati[1] = schizzi.CreateLine(bassoB[0], bassoB[1], bassoB[2],
-                                               bassoA[0], bassoA[1], bassoA[2]);
-                if (creati[1] != null) segmenti++;
+                created[0] = sketches.CreateLine(topA[0], topA[1], topA[2],
+                                               topB[0], topB[1], topB[2]);
+                if (created[0] != null) segments++;
+                created[1] = sketches.CreateLine(bottomB[0], bottomB[1], bottomB[2],
+                                               bottomA[0], bottomA[1], bottomA[2]);
+                if (created[1] != null) segments++;
 
                 // GLI ARCHI SI DANNO PER TRE PUNTI, NON PER VERSO.
                 //
@@ -3262,34 +3262,34 @@ namespace Oce.Solid.Agent.Core
                 //
                 // `Create3PointArc(capo1, capo2, puntoSull'arco)` toglie di
                 // mezzo la domanda: il terzo punto e' il colmo del semicerchio,
-                // passa per `PuntoNelloSchizzo` come tutti gli altri, e
+                // passa per `PointInSketch` come tutti gli altri, e
                 // l'arco resta determinato dalla GEOMETRIA invece che da una
                 // convenzione. Non c'e' piu' niente da indovinare.
-                creati[2] = schizzi.Create3PointArc(altoB[0], altoB[1], altoB[2],
-                                                    bassoB[0], bassoB[1], bassoB[2],
-                                                    colmoB[0], colmoB[1], colmoB[2]);
-                if (creati[2] != null) segmenti++;
-                creati[3] = schizzi.Create3PointArc(bassoA[0], bassoA[1], bassoA[2],
-                                                    altoA[0], altoA[1], altoA[2],
-                                                    colmoA[0], colmoA[1], colmoA[2]);
-                if (creati[3] != null) segmenti++;
+                created[2] = sketches.Create3PointArc(topB[0], topB[1], topB[2],
+                                                    bottomB[0], bottomB[1], bottomB[2],
+                                                    crestB[0], crestB[1], crestB[2]);
+                if (created[2] != null) segments++;
+                created[3] = sketches.Create3PointArc(bottomA[0], bottomA[1], bottomA[2],
+                                                    topA[0], topA[1], topA[2],
+                                                    crestA[0], crestA[1], crestA[2]);
+                if (created[3] != null) segments++;
             }
             catch (Exception ex)
             {
-                errore = "Lo schizzo dell'asola non e' riuscito: " + ex.Message;
+                error = "Lo schizzo dell'asola non e' riuscito: " + ex.Message;
                 return false;
             }
             finally
             {
-                try { schizzi.AddToDB = addToDbPrima; schizzi.DisplayWhenAdded = displayPrima; } catch { }
+                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
             }
 
-            if (segmenti < 4)
+            if (segments < 4)
             {
-                errore =
-                    "Lo schizzo dell'asola ha solo " + segmenti + " segmenti sui " +
+                error =
+                    "Lo schizzo dell'asola ha solo " + segments + " segmenti sui " +
                     "quattro che servono: SolidWorks non ha costruito " +
-                    (segmenti < 2 ? "le linee" : "gli archi") + ".";
+                    (segments < 2 ? "le linee" : "gli archi") + ".";
                 return false;
             }
             return true;
@@ -3311,34 +3311,34 @@ namespace Oce.Solid.Agent.Core
         /// su un foro riuscito e' un'affermazione falsa. ZERO-E-ZERO: una
         /// feature viva senza facce (`GetFaces` null) non ha forato niente.
         /// </summary>
-        private static int ParetiForate(IFeature feature, double diametroMm)
+        private static int DrilledWalls(IFeature feature, double diameterMm)
         {
             try
             {
-                var facce = feature.GetFaces() as object[];
-                if (facce == null) return 0;
-                int quante = 0;
-                foreach (var o in facce)
+                var faces = feature.GetFaces() as object[];
+                if (faces == null) return 0;
+                int howMany = 0;
+                foreach (var o in faces)
                 {
-                    var superficie = (o as IFace2)?.IGetSurface();
-                    if (superficie == null || !superficie.IsCylinder()) continue;
-                    var par = superficie.CylinderParams as double[];
+                    var surface = (o as IFace2)?.IGetSurface();
+                    if (surface == null || !surface.IsCylinder()) continue;
+                    var par = surface.CylinderParams as double[];
                     if (par == null || par.Length < 7) continue;
-                    if (Math.Abs(par[6] * 2000.0 - diametroMm) > 0.05) continue;
-                    quante++;
+                    if (Math.Abs(par[6] * 2000.0 - diameterMm) > 0.05) continue;
+                    howMany++;
                 }
-                return quante;
+                return howMany;
             }
             catch { return -1; }
         }
 
-        /// <summary>Tutti i corpi solidi del pezzo, come li vuole MassaDi.</summary>
-        private static object[] TuttiICorpiSolidi(IModelDoc2 modello)
+        /// <summary>Tutti i corpi solidi del pezzo, come li vuole MassOf.</summary>
+        private static object[] AllSolidBodies(IModelDoc2 model)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return new object[0];
-            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            return corpi ?? new object[0];
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return new object[0];
+            var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            return bodies ?? new object[0];
         }
 
         /// <summary>
@@ -3350,19 +3350,19 @@ namespace Oce.Solid.Agent.Core
         /// baricentri PESATA SUL VOLUME: farne la media semplice darebbe un
         /// numero plausibile e sbagliato, e nessuno se ne accorgerebbe.
         /// </summary>
-        private static bool MassaDi(object[] corpi, out double volumeMm3, out double[] centroMm)
+        private static bool MassOf(object[] bodies, out double volumeMm3, out double[] centerMm)
         {
             volumeMm3 = 0;
-            centroMm = new double[3];
-            if (corpi == null || corpi.Length == 0) return false;
+            centerMm = new double[3];
+            if (bodies == null || bodies.Length == 0) return false;
             var readings = new List<double[]>();
             try
             {
-                foreach (var c in corpi)
+                foreach (var c in bodies)
                     readings.Add((c as IBody2)?.GetMassProperties(1000.0) as double[]);
             }
             catch { return false; }
-            return MassOfBodies(readings, out volumeMm3, out centroMm);
+            return MassOfBodies(readings, out volumeMm3, out centerMm);
         }
 
         /// <summary>
@@ -3392,7 +3392,7 @@ namespace Oce.Solid.Agent.Core
                 double v = mp[3] * 1e9;
                 if (!(v > 0)) return false;
                 total += v;
-                for (int i = 0; i < 3; i++) weighted[i] += Unita.Mm(mp[i]) * v;
+                for (int i = 0; i < 3; i++) weighted[i] += Units.Mm(mp[i]) * v;
             }
             volumeMm3 = total;
             for (int i = 0; i < 3; i++) centreMm[i] = weighted[i] / total;
@@ -3431,176 +3431,176 @@ namespace Oce.Solid.Agent.Core
         /// uguale, la forma sembra la stessa, e la differenza si vede solo
         /// contando i corpi. Percio' qui si contano.
         /// </summary>
-        private Esito EstrudiSuFaccia(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome ExtrudeOnFace(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var contorni = Contorni(a, out string motivo, out string _);
-            if (contorni == null) return Fallito(motivo);
+            var contours = Contours(a, out string reason, out string _);
+            if (contours == null) return Failed(reason);
 
-            var faccia = RisolviFaccia(stato, a, Str(a, "face_uid", ""), out motivo);
-            if (faccia == null) return Fallito(motivo);
+            var face = ResolveFace(docState, a, Str(a, "face_uid", ""), out reason);
+            if (face == null) return Failed(reason);
 
-            double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
-            if (assi == null) return Fallito(errore);
+            double[] axes = FaceAxes(face, out double offsetM, out string error);
+            if (axes == null) return Failed(error);
 
-            double altezza = Num(a, "height_mm");
-            if (altezza <= 0)
-                return Fallito("Un rialzo di altezza nulla o negativa non e' un rialzo.");
-            bool unisci = Bool(a, "merge", true);
+            double height = Num(a, "height_mm");
+            if (height <= 0)
+                return Failed("Un rialzo di altezza nulla o negativa non e' un rialzo.");
+            bool merge = Bool(a, "merge", true);
 
             // L'ANCORA (voce E18). Qui non ci sono x_mm/y_mm: il punto e' il
             // CENTRO del contorno, e l'ancora vale per un contorno solo, tondo
             // o rettangolare allineato alla faccia.
-            var ancora = new Ancoraggio();
-            double centroX = 0, centroY = 0;
-            object ancoraGrezza;
-            if (a.TryGetValue("anchor", out ancoraGrezza) && ancoraGrezza != null)
+            var anchor = new Anchoring();
+            double centerX = 0, centerY = 0;
+            object rawAnchor;
+            if (a.TryGetValue("anchor", out rawAnchor) && rawAnchor != null)
             {
-                double mezzoU, mezzoV;
-                if (!CentroDelContornoSolo(contorni, out centroX, out centroY, out mezzoU, out mezzoV, out motivo))
-                    return Fallito(motivo);
-                ancora = LeggiAncora(a, stato, faccia, assi, offsetM, centroX, centroY, mezzoU, mezzoV, out motivo);
-                if (ancora == null) return Fallito(motivo);
+                double halfU, halfV;
+                if (!ContourCenterOnly(contours, out centerX, out centerY, out halfU, out halfV, out reason))
+                    return Failed(reason);
+                anchor = ReadAnchor(a, docState, face, axes, offsetM, centerX, centerY, halfU, halfV, out reason);
+                if (anchor == null) return Failed(reason);
             }
-            var misureAncora = new Dictionary<string, object>();
+            var anchorMeasurements = new Dictionary<string, object>();
 
-            int corpiPrima = ContaCorpiSolidi(modello);
-            double? volumePrima = VolumeMm3(modello);
-            if (corpiPrima < 0 || volumePrima == null)
-                return Fallito(VolumeNonLettoPrima("fare il rialzo"));
+            int bodiesBefore = CountSolidBodies(model);
+            double? volumeBefore = VolumeMm3(model);
+            if (bodiesBefore < 0 || volumeBefore == null)
+                return Failed(VolumeNotReadBefore("fare il rialzo"));
 
-            // The names before the sketch (scheme S7): see EstrudiRettangolo.
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
+            // The names before the sketch (scheme S7): see ExtrudeRectangle.
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
 
-            var schizzi = modello.SketchManager;
-            bool addToDbPrima = false, displayPrima = false;
-            try { addToDbPrima = schizzi.AddToDB; displayPrima = schizzi.DisplayWhenAdded; } catch { }
+            var sketches = model.SketchManager;
+            bool addToDbBefore = false, displayBefore = false;
+            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
 
-            int segmenti = 0;
-            bool disegnato = false;
+            int segments = 0;
+            bool drawn = false;
             try
             {
-                schizzi.InsertSketch(true);
-                try { schizzi.AddToDB = true; schizzi.DisplayWhenAdded = false; } catch { }
+                sketches.InsertSketch(true);
+                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
                 // I contorni arrivano in coordinate della FACCIA, non del
                 // piano: e' la stessa convenzione di `rectangular_cut`, e
                 // il modello non deve sapere dove sta la faccia nello spazio.
-                var creati = new List<ISketchSegment>();
-                segmenti = DisegnaContorniSullaFaccia(
-                    modello, schizzi, contorni, assi, offsetM, out errore, creati);
-                disegnato = segmenti > 0;
-                if (disegnato && !ancora.Vuoto &&
-                    !AncoraIlContorno(modello, contorni[0], creati, assi, offsetM, centroX, centroY,
-                                      ancora, misureAncora, out errore))
-                    disegnato = false;
+                var created = new List<ISketchSegment>();
+                segments = DrawContoursOnFace(
+                    model, sketches, contours, axes, offsetM, out error, created);
+                drawn = segments > 0;
+                if (drawn && !anchor.Empty &&
+                    !AnchorContour(model, contours[0], created, axes, offsetM, centerX, centerY,
+                                      anchor, anchorMeasurements, out error))
+                    drawn = false;
             }
-            catch (Exception ex) { errore = ex.Message; }
+            catch (Exception ex) { error = ex.Message; }
             finally
             {
-                try { schizzi.AddToDB = addToDbPrima; schizzi.DisplayWhenAdded = displayPrima; } catch { }
-                try { schizzi.InsertSketch(false); } catch { }
+                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
+                try { sketches.InsertSketch(false); } catch { }
             }
-            if (!disegnato) return Fallito((errore ?? "schizzo non riuscito") + SenzaLoSchizzo(modello));
+            if (!drawn) return Failed((error ?? "schizzo non riuscito") + WithoutSketch(model));
 
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
-            var feature = Estrudi(modello, altezza, unisci: unisci);
+            var feature = Extrude(model, height, merge: merge);
             if (feature == null)
-                return Fallito(
-                    "Il rialzo non e' stato creato. Lo schizzo ha " + segmenti +
+                return Failed(
+                    "Il rialzo non e' stato creato. Lo schizzo ha " + segments +
                     " segmenti: se il contorno non e' chiuso, l'estrusione non parte." +
-                    SenzaLoSchizzo(modello));
+                    WithoutSketch(model));
 
             // ── e adesso si conta ────────────────────────────────────────
-            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
-            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+            string doesNotHold = MovementTest(model, anchor, feature);
+            if (doesNotHold != null) return Failed(doesNotHold + RemoveCut(model, feature, volumeBefore));
 
-            int corpiDopo = ContaCorpiSolidi(modello);
-            double? volumeDopo = VolumeMm3(modello);
-            if (corpiDopo < 0 || volumeDopo == null)
-                return Riuscito(feature, new Dictionary<string, object>
+            int bodiesAfter = CountSolidBodies(model);
+            double? volumeAfter = VolumeMm3(model);
+            if (bodiesAfter < 0 || volumeAfter == null)
+                return Succeeded(feature, new Dictionary<string, object>
                 {
-                    ["height_mm"] = altezza,
-                    ["merge"] = unisci,
-                    ["contours"] = contorni.Count,
-                    ["segments"] = segmenti,
-                    ["bodies"] = NumeroOppureNull(corpiDopo),
+                    ["height_mm"] = height,
+                    ["merge"] = merge,
+                    ["contours"] = contours.Count,
+                    ["segments"] = segments,
+                    ["bodies"] = NumberOrNull(bodiesAfter),
                     ["material_added_mm3"] = null,
-                    ["volume_not_reread"] = NotaVolumeNonRiletto,
-                }, NormaleDellaFaccia(faccia));
-            double aggiunto = volumeDopo.Value - volumePrima.Value;
+                    ["volume_not_reread"] = NoteVolumeNotReread,
+                }, FaceNormal(face));
+            double added = volumeAfter.Value - volumeBefore.Value;
 
-            if (unisci && corpiDopo != corpiPrima)
-                return Fallito(
+            if (merge && bodiesAfter != bodiesBefore)
+                return Failed(
                     "Il rialzo doveva unirsi al pezzo e invece i corpi sono " +
-                    "passati da " + corpiPrima + " a " + corpiDopo + ": quasi " +
+                    "passati da " + bodiesBefore + " a " + bodiesAfter + ": quasi " +
                     "sempre vuol dire che il profilo non tocca il corpo. " +
-                    "Ritiralo — " + Frasi.CosiSiRitira + ".");
+                    "Ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
-            if (aggiunto <= 0)
-                return Fallito(
+            if (added <= 0)
+                return Failed(
                     "Il rialzo non ha aggiunto materiale: il volume e' " +
-                    (aggiunto < 0 ? "calato" : "rimasto uguale") + ". Di solito " +
+                    (added < 0 ? "calato" : "rimasto uguale") + ". Di solito " +
                     "vuol dire che l'estrusione e' andata DENTRO il pezzo " +
-                    "invece che in fuori. Ritiralo — " + Frasi.CosiSiRitira + ".");
+                    "invece che in fuori. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
-            var misureRialzo = new Dictionary<string, object>
+            var bossMeasurements = new Dictionary<string, object>
             {
-                ["height_mm"] = altezza,
-                ["merge"] = unisci,
-                ["contours"] = contorni.Count,
-                ["segments"] = segmenti,
-                ["bodies"] = corpiDopo,
-                ["material_added_mm3"] = Math.Round(aggiunto, 2),
+                ["height_mm"] = height,
+                ["merge"] = merge,
+                ["contours"] = contours.Count,
+                ["segments"] = segments,
+                ["bodies"] = bodiesAfter,
+                ["material_added_mm3"] = Math.Round(added, 2),
             };
-            foreach (var voce in misureAncora) misureRialzo[voce.Key] = voce.Value;
-            return Riuscito(feature, misureRialzo, NormaleDellaFaccia(faccia));
+            foreach (var entry in anchorMeasurements) bossMeasurements[entry.Key] = entry.Value;
+            return Succeeded(feature, bossMeasurements, FaceNormal(face));
         }
 
         /// <summary>
         /// Disegna dei contorni sul piano di una FACCIA, non su un piano
-        /// dell'albero: ogni punto passa per `PuntoNelloSchizzo`, che e' la
+        /// dell'albero: ogni punto passa per `PointInSketch`, che e' la
         /// stessa strada dei tagli su faccia gia' misurati.
         /// </summary>
-        private int DisegnaContorniSullaFaccia(
-            IModelDoc2 modello, ISketchManager schizzi, List<Contorno> contorni,
-            double[] assi, double offsetM, out string errore, List<ISketchSegment> creati = null)
+        private int DrawContoursOnFace(
+            IModelDoc2 model, ISketchManager sketches, List<Contour> contours,
+            double[] axes, double offsetM, out string error, List<ISketchSegment> created = null)
         {
-            errore = null;
-            int fatti = 0;
-            foreach (var contorno in contorni)
+            error = null;
+            int done = 0;
+            foreach (var contour in contours)
             {
-                if (contorno.Cerchio)
+                if (contour.Circle)
                 {
-                    var c = PuntoNelloSchizzo(modello, assi, offsetM,
-                                              contorno.Centro[0], contorno.Centro[1], out errore);
-                    var bordo = PuntoNelloSchizzo(modello, assi, offsetM,
-                                                  contorno.Centro[0] + contorno.Diametro / 2.0,
-                                                  contorno.Centro[1], out errore);
-                    if (c == null || bordo == null) return 0;
+                    var c = PointInSketch(model, axes, offsetM,
+                                              contour.Center[0], contour.Center[1], out error);
+                    var border = PointInSketch(model, axes, offsetM,
+                                                  contour.Center[0] + contour.Diameter / 2.0,
+                                                  contour.Center[1], out error);
+                    if (c == null || border == null) return 0;
                     // CreateCircle vuole un punto sul bordo, non un raggio:
                     // cosi' il cerchio resta tondo anche se il piano dello
                     // schizzo e' girato rispetto al modello.
-                    var cerchio = schizzi.CreateCircle(c[0], c[1], c[2], bordo[0], bordo[1], bordo[2]);
-                    if (cerchio != null) { fatti++; if (creati != null) creati.Add(cerchio); }
+                    var circle = sketches.CreateCircle(c[0], c[1], c[2], border[0], border[1], border[2]);
+                    if (circle != null) { done++; if (created != null) created.Add(circle); }
                     continue;
                 }
-                foreach (var tratto in contorno.Tratti)
+                foreach (var stroke in contour.Strokes)
                 {
-                    for (int i = 0; i < tratto.Punti.Count - 1; i++)
+                    for (int i = 0; i < stroke.Points.Count - 1; i++)
                     {
-                        var p1 = PuntoNelloSchizzo(modello, assi, offsetM,
-                                                   tratto.Punti[i][0], tratto.Punti[i][1], out errore);
-                        var p2 = PuntoNelloSchizzo(modello, assi, offsetM,
-                                                   tratto.Punti[i + 1][0], tratto.Punti[i + 1][1], out errore);
+                        var p1 = PointInSketch(model, axes, offsetM,
+                                                   stroke.Points[i][0], stroke.Points[i][1], out error);
+                        var p2 = PointInSketch(model, axes, offsetM,
+                                                   stroke.Points[i + 1][0], stroke.Points[i + 1][1], out error);
                         if (p1 == null || p2 == null) return 0;
-                        var linea = schizzi.CreateLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
-                        if (linea != null) { fatti++; if (creati != null) creati.Add(linea); }
+                        var line = sketches.CreateLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
+                        if (line != null) { done++; if (created != null) created.Add(line); }
                     }
                 }
             }
-            return fatti;
+            return done;
         }
 
         /// <summary>
@@ -3633,24 +3633,24 @@ namespace Oce.Solid.Agent.Core
         /// e' vecchio — che e' il modo perfetto di far confermare a qualcuno
         /// una modifica che non c'e'.
         /// </summary>
-        private Esito ModificaQuota(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome SetDimension(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string nomeQuota = Str(a, "dimension", "");
-            if (string.IsNullOrWhiteSpace(nomeQuota))
-                return Fallito(
+            string dimensionName = Str(a, "dimension", "");
+            if (string.IsNullOrWhiteSpace(dimensionName))
+                return Failed(
                     "Non hai detto quale quota cambiare. I nomi delle quote " +
                     "stanno nello stato del documento, dentro ogni lavorazione " +
                     "(per esempio «D1@Schizzo1»).");
 
-            double valore;
-            string errore;
-            if (!NumObbligatorio(a, "value_mm", out valore, out errore)) return Fallito(errore);
+            double val;
+            string error;
+            if (!RequiredNum(a, "value_mm", out val, out error)) return Failed(error);
 
-            var quota = TrovaQuota(modello, nomeQuota, out string dove);
-            if (quota == null)
-                return Fallito(
-                    "Non trovo la quota «" + nomeQuota + "» in questo documento." +
-                    (dove == null ? "" : " Ci sono: " + dove + "."));
+            var dimension = FindDimension(model, dimensionName, out string location);
+            if (dimension == null)
+                return Failed(
+                    "Non trovo la quota «" + dimensionName + "» in questo documento." +
+                    (location == null ? "" : " Ci sono: " + location + "."));
 
             // ── LA QUOTA DI SOLA LETTURA NON SI SCAVALCA (voce Z-C21.2, M8) ──
             //
@@ -3662,20 +3662,20 @@ namespace Oce.Solid.Agent.Core
             // una quota GUIDATA (IDimension.DrivenState, swDimensionDriven = 1,
             // inventario swconst): e' una misura di riferimento, non comanda
             // niente, e scriverci sopra non cambierebbe il pezzo.
-            bool solaLettura = false;
-            try { solaLettura = quota.ReadOnly; } catch { }
-            if (solaLettura)
-                return Fallito(
-                    "La quota «" + nomeQuota + "» e' di sola lettura: qualcuno l'ha bloccata " +
+            bool isReadOnly = false;
+            try { isReadOnly = dimension.ReadOnly; } catch { }
+            if (isReadOnly)
+                return Failed(
+                    "La quota «" + dimensionName + "» e' di sola lettura: qualcuno l'ha bloccata " +
                     "apposta, e io non la scavalco anche se SOLIDWORKS me lo permetterebbe. " +
                     "Se va cambiata, togli prima la sola lettura dalla quota in SOLIDWORKS. " +
                     "Non ho toccato niente.");
-            const int Guidata = 1;   // swDimensionDrivenState_e.swDimensionDriven
+            const int Guided = 1;   // swDimensionDrivenState_e.swDimensionDriven
             int comeGuida = 0;
-            try { comeGuida = quota.DrivenState; } catch { }
-            if (comeGuida == Guidata)
-                return Fallito(
-                    "La quota «" + nomeQuota + "» e' guidata (di riferimento): misura il " +
+            try { comeGuida = dimension.DrivenState; } catch { }
+            if (comeGuida == Guided)
+                return Failed(
+                    "La quota «" + dimensionName + "» e' guidata (di riferimento): misura il " +
                     "pezzo, non lo comanda. Cambia invece la quota che la guida. Non ho " +
                     "toccato niente.");
 
@@ -3689,61 +3689,61 @@ namespace Oce.Solid.Agent.Core
             // aveva preso. Lo stato del documento le quote angolari le scrive in
             // `deg` (DocumentState.cs, stessa GetType): qui il valore si legge
             // nella stessa unita' in cui il modello l'ha letto.
-            const int QuotaAngolare = 1, QuotaIntera = 2;
-            int tipoQuota = 0;
-            try { tipoQuota = quota.GetType(); } catch { }
-            if (tipoQuota == QuotaIntera)
-                return Fallito(
-                    "La quota «" + nomeQuota + "» e' un numero intero (per esempio le copie " +
+            const int AngularDimension = 1, WholeDimension = 2;
+            int dimensionType = 0;
+            try { dimensionType = dimension.GetType(); } catch { }
+            if (dimensionType == WholeDimension)
+                return Failed(
+                    "La quota «" + dimensionName + "» e' un numero intero (per esempio le copie " +
                     "di una ripetizione), non una misura: con «value_mm» non la cambio. " +
                     "Non ho toccato niente.");
-            bool angolare = tipoQuota == QuotaAngolare;
-            Func<double, double> daSistema = angolare ? (Func<double, double>)Unita.Gradi : Unita.Mm;
-            Func<double, double> aSistema = angolare ? (Func<double, double>)Unita.Rad : Unita.M;
-            string unita = angolare ? "gradi" : "mm";
+            bool angular = dimensionType == AngularDimension;
+            Func<double, double> fromSystem = angular ? (Func<double, double>)Units.Degrees : Units.Mm;
+            Func<double, double> toSystem = angular ? (Func<double, double>)Units.Rad : Units.M;
+            string units = angular ? "gradi" : "mm";
 
-            double prima = daSistema(ApiHelpers.ReadDimension(quota));
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            if (corpiPrima < 0)
-                return Fallito(
+            double before = fromSystem(ApiHelpers.ReadDimension(dimension));
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
+            if (bodiesBefore < 0)
+                return Failed(
                     "Non riesco a contare i corpi del pezzo prima di cambiare la quota: " +
                     "senza, non saprei dirti se la modifica lo spezza. Non ho toccato niente.");
 
             // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
-            const int inTutteLeConfigurazioni = 2;
-            int esito;
-            var lavorazioniPrima = FaccePerLavorazione(modello);
-            int apertePrima = ApertureChiuse(modello);
+            const int inAllConfigurations = 2;
+            int outcome;
+            var featuresBefore = FacesPerFeature(model);
+            int openBefore = ClosedOpenings(model);
 
             try
             {
-                esito = quota.SetSystemValue3(aSistema(valore), inTutteLeConfigurazioni, null);
+                outcome = dimension.SetSystemValue3(toSystem(val), inAllConfigurations, null);
             }
             catch (Exception ex)
             {
-                return Fallito("La quota non si e' lasciata cambiare: " + ex.Message);
+                return Failed("La quota non si e' lasciata cambiare: " + ex.Message);
             }
-            if (esito != 0)
-                return Fallito(
-                    "SolidWorks ha rifiutato il valore " + valore + " " + unita + " per «" +
-                    nomeQuota + "» (codice " + esito + ": " + ErrorCodeDecoder.SetValueStatus(esito) + "). " +
-                    SetValueRefusalCause(esito));
+            if (outcome != 0)
+                return Failed(
+                    "SolidWorks ha rifiutato il valore " + val + " " + units + " per «" +
+                    dimensionName + "» (codice " + outcome + ": " + ErrorCodeDecoder.SetValueStatus(outcome) + "). " +
+                    SetValueRefusalCause(outcome));
 
-            bool ricostruito;
-            try { ricostruito = modello.EditRebuild3(); }
-            catch (Exception ex) { return Fallito("La ricostruzione e' fallita: " + ex.Message); }
+            bool rebuilt;
+            try { rebuilt = model.EditRebuild3(); }
+            catch (Exception ex) { return Failed("La ricostruzione e' fallita: " + ex.Message); }
 
             // ── e adesso si guarda se e' successo davvero ────────────────
-            double dopo = daSistema(ApiHelpers.ReadDimension(quota));
-            if (Math.Abs(dopo - valore) > 0.001)
-                return Fallito(
-                    "La quota «" + nomeQuota + "» dice ancora " +
-                    dopo.ToString("0.###") + " " + unita + " invece di " + valore + ": il " +
+            double after = fromSystem(ApiHelpers.ReadDimension(dimension));
+            if (Math.Abs(after - val) > 0.001)
+                return Failed(
+                    "La quota «" + dimensionName + "» dice ancora " +
+                    after.ToString("0.###") + " " + units + " invece di " + val + ": il " +
                     "valore non ha preso. Il pezzo non e' cambiato.");
 
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
 
             // UNA MODIFICA CHE NON MUOVE NIENTE E' UN SOSPETTO, NON UN
             // SUCCESSO. Se la quota e' cambiata e il volume no, quasi sempre
@@ -3754,19 +3754,19 @@ namespace Oce.Solid.Agent.Core
             // Fermo si puo' dire solo di due volumi LETTI (voce Z-C8): con due
             // letture fallite lo zero di prima e lo zero di dopo erano uguali,
             // e la nota diceva «il volume no».
-            bool volumeFermo = volumePrima.HasValue && volumeDopo.HasValue &&
-                               Math.Abs(volumeDopo.Value - volumePrima.Value) < 0.01;
-            if (!ricostruito)
-                return Fallito(
+            bool unchangedVolume = volumeBefore.HasValue && volumeAfter.HasValue &&
+                               Math.Abs(volumeAfter.Value - volumeBefore.Value) < 0.01;
+            if (!rebuilt)
+                return Failed(
                     "La quota e' cambiata ma la ricostruzione non e' riuscita: " +
                     "il pezzo e' in errore. Guardalo prima di andare avanti." +
-                    RestaNelPezzo);
+                    RemainsInPart);
 
-            if (corpiDopo >= 0 && corpiDopo != corpiPrima)
-                return Fallito(
-                    "Dopo la modifica il pezzo ha " + corpiDopo + " corpi invece " +
-                    "di " + corpiPrima + ": la quota nuova ha spezzato o unito " +
-                    "qualcosa." + RestaNelPezzo);
+            if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
+                return Failed(
+                    "Dopo la modifica il pezzo ha " + bodiesAfter + " corpi invece " +
+                    "di " + bodiesBefore + ": la quota nuova ha spezzato o unito " +
+                    "qualcosa." + RemainsInPart);
 
             // UN'APERTURA CHE ESCE DAL MATERIALE (voce E18, pezzo c).
             //
@@ -3787,16 +3787,16 @@ namespace Oce.Solid.Agent.Core
             // e' gia' scritta: dire «no» e lasciarla sarebbe dire la verita' e
             // tenersi il danno. Si riscrive `before`, si ricostruisce, e si
             // RILEGGE il volume: se non torna, lo si dice.
-            int aperteDopo = ApertureChiuse(modello);
-            if (apertePrima >= 0 && aperteDopo >= 0 && aperteDopo < apertePrima)
+            int openAfter = ClosedOpenings(model);
+            if (openBefore >= 0 && openAfter >= 0 && openAfter < openBefore)
             {
-                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima, aSistema, unita);
-                return Fallito(
-                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " " + unita + " un'apertura " +
+                string restored = PutBackDimension(model, dimension, before, volumeBefore, toSystem, units);
+                return Failed(
+                    "Con «" + dimensionName + "» a " + val.ToString("0.###") + " " + units + " un'apertura " +
                     "esce dal materiale: le aperture chiuse sulle facce piane passano da " +
-                    apertePrima + " a " + aperteDopo + ". Un foro o un'asola che stava dentro " +
+                    openBefore + " a " + openAfter + ". Un foro o un'asola che stava dentro " +
                     "il pezzo adesso ne apre il bordo, oppure due aperture si sono fuse in una." +
-                    rimesso + " Se e' proprio quello che vuoi, sposta prima l'apertura, poi " +
+                    restored + " Se e' proprio quello che vuoi, sposta prima l'apertura, poi " +
                     "cambia la quota.");
             }
 
@@ -3813,7 +3813,7 @@ namespace Oce.Solid.Agent.Core
             //
             // Il segno c'era gia', e lo si buttava: la lavorazione DI BASE perde
             // una faccia intera — quella che smusso o raccordo adesso si prendono
-            // tutta — e `LavorazioniCambiate` lo scriveva in una nota, con la
+            // tutta — e `ChangedFeatures` lo scriveva in una nota, con la
             // spiegazione sbagliata («una lavorazione cieca diventata passante»).
             // Qui si guarda la stessa cosa con la domanda giusta: una lavorazione
             // che NON e' un taglio ha perso facce, e piu' avanti nell'albero c'e'
@@ -3823,38 +3823,38 @@ namespace Oce.Solid.Agent.Core
             // I TAGLI RESTANO FUORI apposta: una tasca che perde il fondo e'
             // diventata passante, e puo' essere proprio cio' che si voleva (la
             // nota sotto lo dice e non rifiuta).
-            string chiNonCiSta = SmussoCheNonCiSta(modello, lavorazioniPrima, FaccePerLavorazione(modello));
-            if (chiNonCiSta != null)
+            string whoDoesNotFit = ChamferThatDoesNotFit(model, featuresBefore, FacesPerFeature(model));
+            if (whoDoesNotFit != null)
             {
-                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima, aSistema, unita);
-                return Fallito(
-                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " " + unita + " " + chiNonCiSta +
+                string restored = PutBackDimension(model, dimension, before, volumeBefore, toSystem, units);
+                return Failed(
+                    "Con «" + dimensionName + "» a " + val.ToString("0.###") + " " + units + " " + whoDoesNotFit +
                     ": non ci sta piu'. SOLIDWORKS non lo segnala come errore — ricostruisce e " +
                     "cambia la forma da solo — ma il pezzo che esce non e' quello che la lavorazione " +
-                    "descrive." + rimesso + " Se vuoi quella misura, cambia o togli prima lo smusso " +
+                    "descrive." + restored + " Se vuoi quella misura, cambia o togli prima lo smusso " +
                     "o il raccordo, poi la quota.");
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["dimension"] = nomeQuota,
-                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["volume_changed_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2),
+                ["dimension"] = dimensionName,
+                ["volume_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["volume_changed_mm3"] = NumberOrNull(volumeAfter - volumeBefore, 2),
             };
             // UNA QUOTA ANGOLARE NON SI RIPORTA IN «_mm» (M3): un campo che si
             // chiama mm e porta gradi e' lo stesso difetto detto in un altro
             // posto. I nomi nuovi sono in inglese, come i prossimi del ponte.
-            if (angolare)
+            if (angular)
             {
-                misure["before_deg"] = Math.Round(prima, 3);
-                misure["after_deg"] = Math.Round(dopo, 3);
+                measurements["before_deg"] = Math.Round(before, 3);
+                measurements["after_deg"] = Math.Round(after, 3);
             }
             else
             {
-                misure["before_mm"] = Math.Round(prima, 3);
-                misure["now_mm"] = Math.Round(dopo, 3);
+                measurements["before_mm"] = Math.Round(before, 3);
+                measurements["now_mm"] = Math.Round(after, 3);
             }
-            if (volumeDopo == null || corpiDopo < 0) misure["volume_not_reread"] = NotaVolumeNonRiletto;
+            if (volumeAfter == null || bodiesAfter < 0) measurements["volume_not_reread"] = NoteVolumeNotReread;
 
             // L'ALBERO PUO' ESSERE CAMBIATO, NON SOLO LE MISURE.
             //
@@ -3868,14 +3868,14 @@ namespace Oce.Solid.Agent.Core
             // chiesto di assottigliare la piastra magari lo voleva, quindi non
             // si rifiuta; ma deve poterlo leggere qui invece di scoprirlo in
             // officina.
-            var cambiate = LavorazioniCambiate(
-                lavorazioniPrima, FaccePerLavorazione(modello), misure);
+            var changed = ChangedFeatures(
+                featuresBefore, FacesPerFeature(model), measurements);
 
-            misure["note"] = volumeFermo
+            measurements["note"] = unchangedVolume
                 ? "la quota e' cambiata ma il volume no: controlla che sia quella giusta"
-                : cambiate;
+                : changed;
 
-            return Riuscito(null, misure);
+            return Succeeded(null, measurements);
         }
 
         /// <summary>
@@ -3889,31 +3889,31 @@ namespace Oce.Solid.Agent.Core
         /// appoggiare una guardia. Su una faccia piana un anello interno e' un
         /// buco in quella faccia, e basta.
         /// </summary>
-        private static int ApertureChiuse(IModelDoc2 modello)
+        private static int ClosedOpenings(IModelDoc2 model)
         {
             int n = 0;
             try
             {
-                var corpi = (modello as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-                if (corpi == null) return -1;
-                foreach (var c in corpi)
+                var bodies = (model as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+                if (bodies == null) return -1;
+                foreach (var c in bodies)
                 {
-                    var faccia = (c as IBody2)?.GetFirstFace() as IFace2;
-                    while (faccia != null)
+                    var face = (c as IBody2)?.GetFirstFace() as IFace2;
+                    while (face != null)
                     {
-                        bool piana = false;
-                        try { piana = (faccia.GetSurface() as ISurface)?.IsPlane() == true; } catch { }
-                        if (piana)
+                        bool planar = false;
+                        try { planar = (face.GetSurface() as ISurface)?.IsPlane() == true; } catch { }
+                        if (planar)
                         {
-                            var anelli = faccia.GetLoops() as object[];
-                            if (anelli != null)
-                                foreach (var o in anelli)
+                            var rings = face.GetLoops() as object[];
+                            if (rings != null)
+                                foreach (var o in rings)
                                 {
-                                    var anello = o as ILoop2;
-                                    if (anello != null && !anello.IsOuter()) n++;
+                                    var ring = o as ILoop2;
+                                    if (ring != null && !ring.IsOuter()) n++;
                                 }
                         }
-                        faccia = faccia.GetNextFace() as IFace2;
+                        face = face.GetNextFace() as IFace2;
                     }
                 }
             }
@@ -3930,17 +3930,17 @@ namespace Oce.Solid.Agent.Core
         /// Se non lo trova, elenca i nomi che ci sono: un «non trovato» senza
         /// l'elenco costringe a indovinare.
         /// </summary>
-        private static IDimension TrovaQuota(IModelDoc2 modello, string nome, out string disponibili)
+        private static IDimension FindDimension(IModelDoc2 model, string itemName, out string available)
         {
-            disponibili = null;
-            var parte = modello as IPartDoc;
-            if (parte == null) return null;
+            available = null;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return null;
             // UNA VOLTA SOLA PER QUOTA. Uno schizzo assorbito compare due
             // volte nell'albero — come schizzo e dentro la lavorazione che
             // se l'e' preso — e la sua quota si incontra due volte.
-            var nomi = new List<string>();
-            var gia = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            IFeature f = parte.IFirstFeature();
+            var names = new List<string>();
+            var already = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            IFeature f = partDoc.IFirstFeature();
             while (f != null)
             {
                 object display = null;
@@ -3951,11 +3951,11 @@ namespace Oce.Solid.Agent.Core
                     try { d = (display as IDisplayDimension)?.GetDimension2(0); } catch { }
                     if (d != null)
                     {
-                        string pieno = null, corto = null;
-                        try { pieno = d.FullName; corto = d.Name; } catch { }
-                        if (!string.IsNullOrEmpty(pieno))
+                        string full = null, shorter = null;
+                        try { full = d.FullName; shorter = d.Name; } catch { }
+                        if (!string.IsNullOrEmpty(full))
                         {
-                            if (nomi.Count < 12 && gia.Add(pieno)) nomi.Add(pieno);
+                            if (names.Count < 12 && already.Add(full)) names.Add(full);
 
                             // TRE FORME, E TUTTE E TRE DEVONO ANDARE.
                             //
@@ -3973,41 +3973,41 @@ namespace Oce.Solid.Agent.Core
                             // quella non si puo' rilanciare su un altro pezzo.
                             // Senza la forma di mezzo, le prove che cambiano
                             // una quota non sono ripetibili.
-                            string senzaDocumento = pieno;
-                            int ultimaChiocciola = pieno.LastIndexOf('@');
-                            if (ultimaChiocciola > 0)
-                                senzaDocumento = pieno.Substring(0, ultimaChiocciola);
+                            string withoutDocument = full;
+                            int lastAtSign = full.LastIndexOf('@');
+                            if (lastAtSign > 0)
+                                withoutDocument = full.Substring(0, lastAtSign);
 
-                            if (string.Equals(pieno, nome, StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(corto, nome, StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(senzaDocumento, nome, StringComparison.OrdinalIgnoreCase))
+                            if (string.Equals(full, itemName, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(shorter, itemName, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(withoutDocument, itemName, StringComparison.OrdinalIgnoreCase))
                             {
                                 return d;
                             }
                         }
                     }
-                    object prossimo = null;
-                    try { prossimo = f.GetNextDisplayDimension(display); } catch { }
-                    display = prossimo;
+                    object next = null;
+                    try { next = f.GetNextDisplayDimension(display); } catch { }
+                    display = next;
                 }
                 try { f = (IFeature)f.GetNextFeature(); } catch { break; }
             }
-            if (nomi.Count > 0) disponibili = string.Join(", ", nomi);
+            if (names.Count > 0) available = string.Join(", ", names);
             return null;
         }
 
-        private Esito RaccordoSpigoli(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome FilletEdges(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            double raggio = Num(a, "radius_mm");
-            int quanti;
-            string perche;
-            // The volume before, for the check of M37 in EseguiRaccordo; read
+            double radius = Num(a, "radius_mm");
+            int howMany;
+            string why;
+            // The volume before, for the check of M37 in RunFillet; read
             // before the edges are selected (GetMassProperties on the bodies,
             // which does not touch the selection).
-            double? volumeBefore = VolumeMm3(modello);
-            if (!SelezionaSpigoli(modello, a, stato, raggio, out quanti, out perche))
-                return Fallito(perche);
-            return EseguiRaccordo(modello, raggio, quanti, volumeBefore);
+            double? volumeBefore = VolumeMm3(model);
+            if (!SelectEdges(model, a, docState, radius, out howMany, out why))
+                return Failed(why);
+            return RunFillet(model, radius, howMany, volumeBefore);
         }
 
         /// <summary>
@@ -4071,14 +4071,14 @@ namespace Oce.Solid.Agent.Core
         /// <paramref name="measures"/>), the refusal otherwise.
         /// </summary>
         private string EdgeFeatureVolumeCheck(
-            IModelDoc2 modello, string what, double? volumeBefore, Dictionary<string, object> measures)
+            IModelDoc2 model, string what, double? volumeBefore, Dictionary<string, object> measures)
         {
-            try { modello.EditRebuild3(); } catch { }
-            double? volumeAfter = VolumeMm3(modello);
+            try { model.EditRebuild3(); } catch { }
+            double? volumeAfter = VolumeMm3(model);
             string unchanged = EdgeFeatureVolumeFault(volumeBefore, volumeAfter);
             if (unchanged != null)
                 return "The " + what + " was created, but " + unchanged + ": it worked nothing, and the tree says " +
-                       "otherwise. It is still in the part: undo it (" + Frasi.CosiSiRitira + ").";
+                       "otherwise. It is still in the part: undo it (" + Sentences.HowToWithdrawIt + ").";
             if (volumeBefore == null || volumeAfter == null)
                 measures["volume_not_read"] = "The volume of the part could not be read " +
                                               (volumeBefore == null ? "before" : "after") +
@@ -4125,63 +4125,63 @@ namespace Oce.Solid.Agent.Core
         /// at all (audit finding L7-2, not real). Moving to VertexChamDist1/2
         /// means running that case before and after.
         /// </summary>
-        private Esito SmussoSpigoli(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome ChamferEdges(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            double lato = Num(a, "leg_mm");
-            double angolo = Num(a, "angle_deg", 45);
-            double secondoLato = Num(a, "second_leg_mm", 0);
-            bool dueLati = secondoLato > 0;
+            double side = Num(a, "leg_mm");
+            double angle = Num(a, "angle_deg", 45);
+            double secondSide = Num(a, "second_leg_mm", 0);
+            bool twoSides = secondSide > 0;
 
-            int quanti;
-            string perche;
+            int howMany;
+            string why;
             // The volume before, for the check of M37 below (EdgeFeatureVolumeCheck).
-            double? volumeBefore = VolumeMm3(modello);
+            double? volumeBefore = VolumeMm3(model);
             // Il limite «meta' dello spigolo» vale anche per lo smusso: il lato
             // piu' lungo dei due e' quello che non ci puo' stare.
-            if (!SelezionaSpigoli(modello, a, stato,
-                                  Math.Max(lato, secondoLato), out quanti, out perche))
-                return Fallito(perche);
+            if (!SelectEdges(model, a, docState,
+                                  Math.Max(side, secondSide), out howMany, out why))
+                return Failed(why);
 
-            int tipo = dueLati
+            int typ = twoSides
                 ? (int)swChamferType_e.swChamferDistanceDistance
                 : (int)swChamferType_e.swChamferAngleDistance;
 
             IFeature feature;
             try
             {
-                feature = modello.FeatureManager.InsertFeatureChamfer(
+                feature = model.FeatureManager.InsertFeatureChamfer(
                     Options: (int)swFeatureChamferOption_e.swFeatureChamferTangentPropagation,
-                    ChamferType: tipo,
-                    Width: Unita.M(lato),
-                    Angle: Unita.Rad(angolo),
-                    OtherDist: dueLati ? Unita.M(secondoLato) : 0,
+                    ChamferType: typ,
+                    Width: Units.M(side),
+                    Angle: Units.Rad(angle),
+                    OtherDist: twoSides ? Units.M(secondSide) : 0,
                     VertexChamDist1: 0,
                     VertexChamDist2: 0,
                     VertexChamDist3: 0) as IFeature;
             }
             catch (Exception ex)
             {
-                return Fallito("Lo smusso non e' riuscito: " + ex.Message);
+                return Failed("Lo smusso non e' riuscito: " + ex.Message);
             }
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "Lo smusso non e' stato creato. Di solito e' la misura: un " +
                     "lato piu' grande del materiale che c'e' li' intorno non si " +
                     "puo' togliere.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["leg_mm"] = lato,
-                ["edges"] = quanti,
+                ["leg_mm"] = side,
+                ["edges"] = howMany,
             };
-            SelectedEdgesAndFaces(feature, quanti, misure);
-            if (dueLati) misure["second_leg_mm"] = secondoLato;
-            else misure["angle_deg"] = angolo;
+            SelectedEdgesAndFaces(feature, howMany, measurements);
+            if (twoSides) measurements["second_leg_mm"] = secondSide;
+            else measurements["angle_deg"] = angle;
             // After the counts, which SelectedEdgesAndFaces reads right after
             // creation as the probe did: the check rebuilds before measuring.
-            string chamferUnchanged = EdgeFeatureVolumeCheck(modello, "chamfer", volumeBefore, misure);
-            if (chamferUnchanged != null) return Fallito(chamferUnchanged);
-            return Riuscito(feature, misure);
+            string chamferUnchanged = EdgeFeatureVolumeCheck(model, "chamfer", volumeBefore, measurements);
+            if (chamferUnchanged != null) return Failed(chamferUnchanged);
+            return Succeeded(feature, measurements);
         }
 
         /// <summary>
@@ -4209,23 +4209,23 @@ namespace Oce.Solid.Agent.Core
         /// the distance is measured too: a signed distance puts the plane on
         /// the base plane (G5: (0, 0, 0) for -100), hence OptionFlip.
         /// </summary>
-        private Esito CreaPiano(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome CreatePlane(IModelDoc2 model, Dictionary<string, object> a)
         {
-            string piano = Str(a, "plane", "front");
-            double distanza;
-            string errore;
-            if (!NumObbligatorio(a, "distance_mm", out distanza, out errore))
-                return Fallito(errore);
+            string plane = Str(a, "plane", "front");
+            double distance;
+            string error;
+            if (!RequiredNum(a, "distance_mm", out distance, out error))
+                return Failed(error);
 
-            modello.ClearSelection2(true);
-            IFeature riferimento = TrovaPianoBase(modello, piano);
-            if (riferimento == null)
-                return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
+            model.ClearSelection2(true);
+            IFeature reference = FindBasePlane(model, plane);
+            if (reference == null)
+                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
             // The PLANE is selected by name, with mark 0; the tree entry through
             // IFeature.Select2 is only the fallback (the probe's G3 measured it
             // working with InsertRefPlane too).
-            if (!ApiHelpers.SelectOffsetPlaneBase(modello, riferimento))
-                return Fallito($"Non sono riuscito a selezionare il piano «{piano}».");
+            if (!ApiHelpers.SelectOffsetPlaneBase(model, reference))
+                return Failed($"Non sono riuscito a selezionare il piano «{plane}».");
 
             // WHAT SOLIDWORKS REALLY HOLDS WHEN WE CALL. InsertRefPlane works on
             // what is selected WITH THE RIGHT MARK, and with the wrong mark it
@@ -4234,57 +4234,57 @@ namespace Oce.Solid.Agent.Core
             string comEra = "";
             try
             {
-                var sel = modello.SelectionManager as ISelectionMgr;
-                int quanti = sel == null ? -1 : sel.GetSelectedObjectCount2(-1);
-                int marca = (sel != null && quanti > 0) ? sel.GetSelectedObjectMark(1) : -1;
-                string nome = "";
-                try { nome = riferimento.Name; } catch { }
-                int tipo = (sel != null && quanti > 0) ? sel.GetSelectedObjectType3(1, -1) : -1;
-                comEra = " [selezionati " + quanti + ", marca " + marca +
-                         ", tipo " + tipo + ", piano «" + nome + "»]";
+                var sel = model.SelectionManager as ISelectionMgr;
+                int howMany = sel == null ? -1 : sel.GetSelectedObjectCount2(-1);
+                int mark = (sel != null && howMany > 0) ? sel.GetSelectedObjectMark(1) : -1;
+                string itemName = "";
+                try { itemName = reference.Name; } catch { }
+                int typ = (sel != null && howMany > 0) ? sel.GetSelectedObjectType3(1, -1) : -1;
+                comEra = " [selezionati " + howMany + ", marca " + mark +
+                         ", tipo " + typ + ", piano «" + itemName + "»]";
             }
             catch { }
 
             // THE SIDE IS A BIT, NOT A SIGN (probe G4/G5): the absolute
             // distance, with OptionFlip when the distance asked is negative.
-            int pianiPrima = ContaPiani(modello);
-            var namesBefore = FeatureNamesNow(modello);
+            int planesBefore = CountPlanes(model);
+            var namesBefore = FeatureNamesNow(model);
             IFeature feature = null;
             int planesBorn = -1;
             try
             {
-                object grezzo = ApiHelpers.InsertOffsetPlane(modello, distanza);
-                feature = grezzo as IFeature;
+                object raw = ApiHelpers.InsertOffsetPlane(model, distance);
+                feature = raw as IFeature;
                 // The return value is a RefPlane; the probe found it to be an
                 // IFeature as well. When the cast fails the plane is the ONE
                 // RefPlane born in the tree since the call (FeatureBorn, scheme
                 // S7, Z-C21.5), never the last feature of the tree: on a
                 // sheet-metal part that is the flat pattern (finding M9).
                 if (feature == null)
-                    feature = FeatureBorn(modello, namesBefore, "RefPlane", out planesBorn);
+                    feature = FeatureBorn(model, namesBefore, "RefPlane", out planesBorn);
             }
             catch (Exception ex)
             {
-                return Fallito("Il piano non e' stato creato: " + ex.Message + comEra);
+                return Failed("Il piano non e' stato creato: " + ex.Message + comEra);
             }
             if (feature == null && planesBorn > 1)
-                return Fallito(
+                return Failed(
                     "InsertRefPlane returned no plane and " + planesBorn + " reference planes were born in the " +
                     "tree: I do not pick one of them for you. Look at the part before going on." + comEra);
             if (feature == null && namesBefore == null)
-                return Fallito(
+                return Failed(
                     "InsertRefPlane returned no plane, and the feature tree could not be read to find one it " +
                     "may have made. Look at the part before going on." + comEra);
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "Il piano non e' stato creato, e nell'albero non ne e' " +
                     "comparso nessuno." + comEra);
 
-            return Riuscito(feature, new Dictionary<string, object>
+            return Succeeded(feature, new Dictionary<string, object>
             {
-                ["starting_plane"] = piano,
-                ["planes_before"] = pianiPrima,
-                ["distance_mm"] = distanza,
+                ["starting_plane"] = plane,
+                ["planes_before"] = planesBefore,
+                ["distance_mm"] = distance,
             });
         }
 
@@ -4306,56 +4306,56 @@ namespace Oce.Solid.Agent.Core
         /// pattern, and the operation refused an axis it had made and left it
         /// in the tree (finding L8-6). The axis is now the ONE RefAxis born
         /// since the call (FeatureBorn, scheme S7), wherever SOLIDWORKS put it.
-        /// «RefAxis» is the string StatoDocumento recognises axes by, so an axis
+        /// «RefAxis» is the string DocumentState recognises axes by, so an axis
         /// that passes here shows in the state at the next step.
         /// </summary>
-        private Esito CreaAsse(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CreateAxis(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var faccia = RisolviFaccia(stato, a, Str(a, "face_uid", ""), out string motivo);
-            if (faccia == null) return Fallito(motivo);
+            var face = ResolveFace(docState, a, Str(a, "face_uid", ""), out string reason);
+            if (face == null) return Failed(reason);
 
-            bool tonda;
+            bool round;
             try
             {
-                var superficie = faccia.IGetSurface();
-                tonda = superficie != null && (superficie.IsCylinder() || superficie.IsCone());
+                var surface = face.IGetSurface();
+                round = surface != null && (surface.IsCylinder() || surface.IsCone());
             }
             catch (Exception ex)
             {
-                return Fallito("Non riesco a leggere la faccia: " + ex.Message);
+                return Failed("Non riesco a leggere la faccia: " + ex.Message);
             }
-            if (!tonda)
-                return Fallito(
+            if (!round)
+                return Failed(
                     "Questa faccia non e' cilindrica ne' conica: l'asse si fa " +
                     "dal centro di un foro o di un albero. Per l'asse " +
                     "all'intersezione di due piani questa versione non ha " +
                     "un'operazione.");
 
-            modello.ClearSelection2(true);
-            var entita = faccia as IEntity;
-            if (entita == null || !entita.SelectByMark(false, SelectionMarks.AxisFace))
-                return Fallito("Non sono riuscito a selezionare la faccia.");
+            model.ClearSelection2(true);
+            var entity = face as IEntity;
+            if (entity == null || !entity.SelectByMark(false, SelectionMarks.AxisFace))
+                return Failed("Non sono riuscito a selezionare la faccia.");
 
-            var namesBefore = FeatureNamesNow(modello);
+            var namesBefore = FeatureNamesNow(model);
             if (namesBefore == null)
-                return Fallito(
+                return Failed(
                     "I cannot read the feature tree before making the axis, and without it I could not tell " +
                     "the new axis from the ones already there. Nothing was changed.");
 
-            bool creato;
-            try { creato = modello.InsertAxis2(true); }
-            catch (Exception ex) { return Fallito("L'asse non e' stato creato: " + ex.Message); }
-            if (!creato)
-                return Fallito(
+            bool created;
+            try { created = model.InsertAxis2(true); }
+            catch (Exception ex) { return Failed("L'asse non e' stato creato: " + ex.Message); }
+            if (!created)
+                return Failed(
                     "L'asse non e' stato creato. Di solito e' la faccia: non e' " +
                     "abbastanza cilindrica, o e' quella sbagliata.");
 
             // The ONE axis born since the call, not the last feature of the tree
             // (finding L8-6, scheme S7).
             int axesBorn;
-            IFeature feature = FeatureBorn(modello, namesBefore, "RefAxis", out axesBorn);
+            IFeature feature = FeatureBorn(model, namesBefore, "RefAxis", out axesBorn);
             if (feature == null)
-                return Fallito(
+                return Failed(
                     (axesBorn < 0
                         ? "SOLIDWORKS says it made the axis, but I cannot read the feature tree to find it"
                         : axesBorn == 0
@@ -4363,7 +4363,7 @@ namespace Oce.Solid.Agent.Core
                             : "SOLIDWORKS says it made the axis, and " + axesBorn + " new RefAxis features are in the tree") +
                     ": I do not confirm an axis I cannot point to. Look at the part before trusting the rest of the plan.");
 
-            return Riuscito(feature, new Dictionary<string, object>
+            return Succeeded(feature, new Dictionary<string, object>
             {
                 ["axis"] = feature.Name,
             });
@@ -4402,61 +4402,61 @@ namespace Oce.Solid.Agent.Core
         /// e piu' fragile: un foro filettato ripetuto cosi' perde il filetto
         /// sulle copie, e nessun errore lo dice.
         /// </summary>
-        private Esito RipetiLineare(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome LinearPattern(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            double? volumePrima; int corpiPrima, faccePrima;
-            Fotografia(modello, out volumePrima, out corpiPrima, out faccePrima);
-            if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
-                return Fallito(VolumeNonLettoPrima("fare la copia"));
+            double? volumeBefore; int bodiesBefore, facesBefore;
+            Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
+            if (volumeBefore == null || bodiesBefore < 0 || facesBefore < 0)
+                return Failed(VolumeNotReadBefore("fare la copia"));
 
-            double passo1, istanze1Grezzo;
-            string errore;
-            if (!NumObbligatorio(a, "pitch1_mm", out passo1, out errore)) return Fallito(errore);
-            if (!NumObbligatorio(a, "instance_count1", out istanze1Grezzo, out errore))
-                return Fallito(errore);
-            int istanze1 = (int)istanze1Grezzo;
+            double pitch1, instances1Raw;
+            string error;
+            if (!RequiredNum(a, "pitch1_mm", out pitch1, out error)) return Failed(error);
+            if (!RequiredNum(a, "instance_count1", out instances1Raw, out error))
+                return Failed(error);
+            int instances1 = (int)instances1Raw;
 
 
-            string asse2 = Str(a, "axis2_uid", "");
-            bool griglia = !string.IsNullOrEmpty(asse2);
-            int istanze2 = 1;
-            double passo2 = 0;
-            if (griglia)
+            string axis2 = Str(a, "axis2_uid", "");
+            bool grid = !string.IsNullOrEmpty(axis2);
+            int instances2 = 1;
+            double pitch2 = 0;
+            if (grid)
             {
                 double n2;
-                if (!NumObbligatorio(a, "instance_count2", out n2, out errore))
-                    return Fallito("Hai dato «axis2_uid» ma non «instance_count2»: " + errore);
-                istanze2 = (int)n2;
-                if (istanze2 < 2)
-                    return Fallito(
+                if (!RequiredNum(a, "instance_count2", out n2, out error))
+                    return Failed("Hai dato «axis2_uid» ma non «instance_count2»: " + error);
+                instances2 = (int)n2;
+                if (instances2 < 2)
+                    return Failed(
                         "«instance_count2» deve essere almeno 2. Per una fila sola " +
                         "ometti «axis2_uid», invece di mettere 1.");
-                if (!NumObbligatorio(a, "pitch2_mm", out passo2, out errore))
-                    return Fallito("Hai dato «axis2_uid» ma non «pitch2_mm»: " + errore);
+                if (!RequiredNum(a, "pitch2_mm", out pitch2, out error))
+                    return Failed("Hai dato «axis2_uid» ma non «pitch2_mm»: " + error);
             }
 
-            modello.ClearSelection2(true);
-            if (!SelezionaAsse(modello, a, "axis1", stato, SelectionMarks.LinearPatternDirection1, append: false, out errore)) return Fallito(errore);
+            model.ClearSelection2(true);
+            if (!SelectAxis(model, a, "axis1", docState, SelectionMarks.LinearPatternDirection1, append: false, out error)) return Failed(error);
             // La seconda direzione passa dallo STESSO aiutante, con Mark 2:
             // prima aveva una riga sua che accettava solo un asse, e da quando
             // la direzione puo' essere uno spigolo le due strade divergevano —
             // una griglia con la direzione 1 su uno spigolo e la 2 no.
-            if (griglia && !SelezionaAsse(modello, a, "axis2", stato, SelectionMarks.LinearPatternDirection2, append: true, out errore))
-                return Fallito("Direzione 2: " + errore);
+            if (grid && !SelectAxis(model, a, "axis2", docState, SelectionMarks.LinearPatternDirection2, append: true, out error))
+                return Failed("Direzione 2: " + error);
 
-            if (!SelezionaLavorazione(modello, a, out errore)) return Fallito(errore);
+            if (!SelectFeature(model, a, out error)) return Failed(error);
             // Prima di costruire: creare la ripetizione azzera la selezione.
-            var seme = SemeSelezionato(modello, SelectionMarks.LinearPatternFeatures);
+            var seed = SelectedSeed(model, SelectionMarks.LinearPatternFeatures);
 
             IFeature feature;
             try
             {
-                feature = modello.FeatureManager.FeatureLinearPattern5(
-                    Num1: istanze1,
-                    Spacing1: Unita.M(passo1),
-                    Num2: istanze2,
-                    Spacing2: Unita.M(passo2),
+                feature = model.FeatureManager.FeatureLinearPattern5(
+                    Num1: instances1,
+                    Spacing1: Units.M(pitch1),
+                    Num2: instances2,
+                    Spacing2: Units.M(pitch2),
                     FlipDir1: Bool(a, "flip1", false),
                     FlipDir2: Bool(a, "flip2", false),
                     DName1: "",
@@ -4482,39 +4482,39 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Fallito("La ripetizione lineare non e' riuscita: " + ex.Message);
+                return Failed("La ripetizione lineare non e' riuscita: " + ex.Message);
             }
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "La ripetizione lineare non e' stata creata. Di solito e' il " +
                     "passo o il numero: una serie che esce dal materiale, o che " +
                     "si sovrappone a se stessa, non si costruisce.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["instance_count1"] = istanze1,
-                ["pitch1_mm"] = passo1,
+                ["instance_count1"] = instances1,
+                ["pitch1_mm"] = pitch1,
             };
-            if (griglia)
+            if (grid)
             {
-                misure["instance_count2"] = istanze2;
-                misure["pitch2_mm"] = passo2;
+                measurements["instance_count2"] = instances2;
+                measurements["pitch2_mm"] = pitch2;
             }
 
-            var fermo = ConfrontaCopia(
-                modello, volumePrima, corpiPrima, faccePrima, misure,
+            var stopped = CompareCopy(
+                model, volumeBefore, bodiesBefore, facesBefore, measurements,
                 "La ripetizione lineare");
-            if (fermo != null) return Fallito(fermo);
+            if (stopped != null) return Failed(stopped);
 
-            var mancanti = CopieMancanti(
-                misure, feature, seme, istanze1 * istanze2 - 1,
+            var missingItems = MissingCopies(
+                measurements, feature, seed, instances1 * instances2 - 1,
                 "La ripetizione lineare",
                 "Se la fila esce dal pezzo da una parte sola, inverti il verso con " +
                 "«flip1» (o «flip2» per la seconda direzione); " +
                 "altrimenti riduci il passo o il numero di istanze.");
-            if (mancanti != null) return Fallito(mancanti);
+            if (missingItems != null) return Failed(missingItems);
 
-            return Riuscito(feature, misure);
+            return Succeeded(feature, measurements);
         }
 
         /// <summary>
@@ -4542,33 +4542,33 @@ namespace Oce.Solid.Agent.Core
         /// seleziona «il corpo» — nessun aiutante di questo file lo fa — e
         /// riverificare gli stessi Mark su quel ramo.
         /// </summary>
-        private Esito Specchia(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome Mirror(IModelDoc2 model, Dictionary<string, object> a)
         {
-            string piano = Str(a, "plane", "");
-            if (string.IsNullOrEmpty(piano)) return Fallito("Manca il piano di simmetria.");
+            string plane = Str(a, "plane", "");
+            if (string.IsNullOrEmpty(plane)) return Failed("Manca il piano di simmetria.");
 
-            double? volumePrima; int corpiPrima, faccePrima;
-            Fotografia(modello, out volumePrima, out corpiPrima, out faccePrima);
-            if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
-                return Fallito(VolumeNonLettoPrima("fare la copia"));
+            double? volumeBefore; int bodiesBefore, facesBefore;
+            Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
+            if (volumeBefore == null || bodiesBefore < 0 || facesBefore < 0)
+                return Failed(VolumeNotReadBefore("fare la copia"));
 
-            modello.ClearSelection2(true);
-            var pianoFeature = TrovaPianoBase(modello, piano);
+            model.ClearSelection2(true);
+            var planeFeature = FindBasePlane(model, plane);
             // `InsertMirrorFeature2` vuole il PIANO con la marca 2 e le
             // lavorazioni con la 1 — non le stesse marche della ripetizione.
             // Fino alla 0.35.0 qui c'erano 1 e 4, cioe' quelle del pattern, e
             // lo specchio non veniva creato.
-            if (pianoFeature == null || !pianoFeature.Select2(false, SelectionMarks.MirrorFeaturePlane))
-                return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
+            if (planeFeature == null || !planeFeature.Select2(false, SelectionMarks.MirrorFeaturePlane))
+                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
 
-            string errore;
-            if (!SelezionaLavorazione(modello, a, out errore, marca: SelectionMarks.MirrorFeatureFeatures)) return Fallito(errore);
-            var seme = SemeSelezionato(modello, SelectionMarks.MirrorFeatureFeatures);
+            string error;
+            if (!SelectFeature(model, a, out error, mark: SelectionMarks.MirrorFeatureFeatures)) return Failed(error);
+            var seed = SelectedSeed(model, SelectionMarks.MirrorFeatureFeatures);
 
             IFeature feature;
             try
             {
-                feature = modello.FeatureManager.InsertMirrorFeature2(
+                feature = model.FeatureManager.InsertMirrorFeature2(
                     BMirrorBody: false,
                     BGeometryPattern: false,
                     BMerge: true,
@@ -4577,33 +4577,33 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Fallito("Lo specchio non e' riuscito: " + ex.Message);
+                return Failed("Lo specchio non e' riuscito: " + ex.Message);
             }
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "Lo specchio non e' stato creato. Se il piano scelto taglia la " +
                     "lavorazione invece di lasciarla tutta da un lato, o se la " +
                     "copia uscirebbe fuori dal materiale, SolidWorks rifiuta.");
 
-            var misure = new Dictionary<string, object> { ["plane"] = piano };
-            var fermo = ConfrontaCopia(
-                modello, volumePrima, corpiPrima, faccePrima, misure, "Lo specchio");
-            if (fermo != null) return Fallito(fermo);
+            var measurements = new Dictionary<string, object> { ["plane"] = plane };
+            var stopped = CompareCopy(
+                model, volumeBefore, bodiesBefore, facesBefore, measurements, "Lo specchio");
+            if (stopped != null) return Failed(stopped);
 
             // QUI IL RIFIUTO NON PUO' SCATTARE, ED E' GIUSTO COSI'.
             // Con una copia sola servirebbe «zero copie fatte», e zero non
-            // esce mai: CopieMancanti si ferma prima se la feature non ha
+            // esce mai: MissingCopies si ferma prima se la feature non ha
             // facce. Quindi sullo specchio questa chiamata solo RIPORTA
             // «copies_done», e lo specchio che non ha specchiato niente resta
-            // in carico a ConfrontaCopia, qui sopra, che lo prende dal pezzo
+            // in carico a CompareCopy, qui sopra, che lo prende dal pezzo
             // rimasto identico.
             //
             // Sta scritto perche' una guardia che sembra proteggere e non puo'
             // scattare e' peggio di una guardia assente: la prima volta si
             // legge come una difesa, la seconda ci si conta sopra.
-            CopieMancanti(misure, feature, seme, 1, "Lo specchio", "");
+            MissingCopies(measurements, feature, seed, 1, "Lo specchio", "");
 
-            return Riuscito(feature, misure);
+            return Succeeded(feature, measurements);
         }
 
         /// <summary>
@@ -4623,7 +4623,7 @@ namespace Oce.Solid.Agent.Core
         /// rileggendo l'albero, e sarebbe un giro in piu' per arrivare alla
         /// stessa feature che gia' abbiamo in mano.
         /// </summary>
-        /// <param name="prefisso">«axis», «axis1» oppure «axis2»: i campi si
+        /// <param name="prefix">«axis», «axis1» oppure «axis2»: i campi si
         /// chiamano diversamente ma si risolvono identici.</param>
         /// <param name="mark">
         /// The selection mark, from <see cref="SelectionMarks"/>: the main
@@ -4636,42 +4636,42 @@ namespace Oce.Solid.Agent.Core
         /// since Z-C21.6: it used to be inferred from `mark != 1`, which tied
         /// the selection behaviour to the numeric value of a mark.
         /// </param>
-        private bool SelezionaAsse(
-            IModelDoc2 modello, Dictionary<string, object> a, string prefisso,
-            StatoDocumento stato, int mark, bool append, out string motivo)
+        private bool SelectAxis(
+            IModelDoc2 model, Dictionary<string, object> a, string prefix,
+            DocumentState docState, int mark, bool append, out string reason)
         {
-            motivo = null;
-            string campoRif = prefisso + "_ref";
-            if (HaRiferimento(a, campoRif))
+            reason = null;
+            string refField = prefix + "_ref";
+            if (HasReference(a, refField))
             {
-                int numero;
-                var passo = PassoCitato(a, campoRif, out numero, out motivo);
-                if (passo == null)
+                int number;
+                var planStep = CitedStep(a, refField, out number, out reason);
+                if (planStep == null)
                 {
-                    motivo = motivo ?? "Riferimento all'asse non risolto.";
+                    reason = reason ?? "Riferimento all'asse non risolto.";
                     return false;
                 }
-                if (passo.Feature == null)
+                if (planStep.Feature == null)
                 {
-                    motivo = "Il passo " + numero + " non ha lasciato nessun asse.";
+                    reason = "Il passo " + number + " non ha lasciato nessun asse.";
                     return false;
                 }
-                if (!passo.Feature.Select2(append, mark))
+                if (!planStep.Feature.Select2(append, mark))
                 {
-                    motivo = "Non sono riuscito a selezionare l'asse del passo " + numero + ".";
+                    reason = "Non sono riuscito a selezionare l'asse del passo " + number + ".";
                     return false;
                 }
-                _log("[agente] asse preso dal passo " + numero);
+                _log("[agente] asse preso dal passo " + number);
                 return true;
             }
 
-            string uid = Str(a, prefisso + "_uid", "");
+            string uid = Str(a, prefix + "_uid", "");
             if (string.IsNullOrEmpty(uid))
             {
-                motivo =
+                reason =
                     "Non hai detto lungo o attorno a quale direzione. Indica «" +
-                    prefisso + "_uid» con un asse OPPURE con uno spigolo dritto " +
-                    "dello stato del documento, oppure «" + campoRif + "» se " +
+                    prefix + "_uid» con un asse OPPURE con uno spigolo dritto " +
+                    "dello stato del documento, oppure «" + refField + "» se " +
                     "l'asse lo crea un passo precedente di questo piano con " +
                     "«create_axis».";
                 return false;
@@ -4711,38 +4711,38 @@ namespace Oce.Solid.Agent.Core
             // UNO SPIGOLO ANCHE SE ADESSO QUELL'UID NON LO E' PIU' (voce E19): se
             // il piano porta una firma con la lunghezza, quando l'ha letto era
             // uno spigolo, e si cerca come spigolo — non si ripiega sugli assi.
-            StatoDocumento.FirmaEntita firma;
-            var firmaNelPiano = FirmaAttesa(a, uid);
-            bool eraUnoSpigolo = firmaNelPiano != null && firmaNelPiano.ContainsKey("length_mm");
-            if ((stato != null && stato.Firme.TryGetValue(uid, out firma) && firma.Tipo == "EDGE") ||
-                eraUnoSpigolo)
+            DocumentState.EntitySignature signature;
+            var signatureInPlane = ExpectedSignature(a, uid);
+            bool wasAnEdge = signatureInPlane != null && signatureInPlane.ContainsKey("length_mm");
+            if ((docState != null && docState.Signatures.TryGetValue(uid, out signature) && signature.Type == "EDGE") ||
+                wasAnEdge)
             {
-                firma = FirmaDelloSpigolo(
-                    a, stato, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
-                    out motivo);
-                if (firma == null) return false;
+                signature = EdgeSignature(
+                    a, docState, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                    out reason);
+                if (signature == null) return false;
 
-                var spigolo = firma.Entita as IEdge;
-                bool dritto = false;
+                var edge = signature.Entity as IEdge;
+                bool straight = false;
                 try
                 {
-                    var curva = spigolo == null ? null : spigolo.IGetCurve();
-                    dritto = curva != null && curva.IsLine();
+                    var curva = edge == null ? null : edge.IGetCurve();
+                    straight = curva != null && curva.IsLine();
                 }
                 catch { }
-                if (!dritto)
+                if (!straight)
                 {
-                    motivo =
+                    reason =
                         "Lo spigolo «" + uid + "» non e' dritto: non da' una " +
                         "direzione. Per la ripetizione serve uno spigolo " +
                         "rettilineo, oppure un asse fatto con «create_axis».";
                     return false;
                 }
 
-                var entita = spigolo as IEntity;
-                if (entita == null || !entita.SelectByMark(append, mark))
+                var entity = edge as IEntity;
+                if (entity == null || !entity.SelectByMark(append, mark))
                 {
-                    motivo = "Lo spigolo «" + uid + "» non si e' lasciato selezionare.";
+                    reason = "Lo spigolo «" + uid + "» non si e' lasciato selezionare.";
                     return false;
                 }
                 _log("[agente] direzione presa dallo spigolo " + uid);
@@ -4752,18 +4752,18 @@ namespace Oce.Solid.Agent.Core
             // L'ASSE PER IDENTITA', NON SOLO PER NOME (voce E4). Se lo stato lo
             // conosce, la firma che il piano porta deve combaciare con la retta
             // di adesso, e lo si seleziona per oggetto invece che per nome.
-            StatoDocumento.FirmaEntita firmaAsse;
-            if (stato != null && stato.Firme.TryGetValue(uid, out firmaAsse) && firmaAsse.Tipo == "AXIS")
+            DocumentState.EntitySignature axisSignature;
+            if (docState != null && docState.Signatures.TryGetValue(uid, out axisSignature) && axisSignature.Type == "AXIS")
             {
-                string scostamentoAsse;
-                if (!FirmaCombacia(a, uid, firmaAsse, out scostamentoAsse)) { motivo = scostamentoAsse; return false; }
-                var featAsse = firmaAsse.Entita as IFeature;
-                if (featAsse != null && featAsse.Select2(append, mark)) return true;
+                string offsetAxis;
+                if (!SignatureMatches(a, uid, axisSignature, out offsetAxis)) { reason = offsetAxis; return false; }
+                var featAxis = axisSignature.Entity as IFeature;
+                if (featAxis != null && featAxis.Select2(append, mark)) return true;
             }
 
-            if (!modello.Extension.SelectByID2(uid, "AXIS", 0, 0, 0, append, mark, null, 0))
+            if (!model.Extension.SelectByID2(uid, "AXIS", 0, 0, 0, append, mark, null, 0))
             {
-                motivo =
+                reason =
                     "Non ho trovato l'asse «" + uid + "». Gli assi si fanno con " +
                     "«create_axis»; in alternativa indica uno spigolo dritto del " +
                     "pezzo, che nello stato ha un identificativo come «E1».";
@@ -4781,54 +4781,54 @@ namespace Oce.Solid.Agent.Core
         /// circolare e specchio la nominano nello stesso identico modo, e tre
         /// copie della stessa logica divergono alla prima correzione.
         /// </summary>
-        /// <param name="marca">
+        /// <param name="mark">
         /// LA MARCA NON E' LA STESSA PER TUTTE LE FEATURE, ed e' il genere di
         /// dettaglio che non da' errore: con la marca sbagliata la selezione
         /// c'e', la feature non la vede, e torna null senza dire niente.
         /// Le ripetizioni vogliono le lavorazioni con la marca 4 e l'asse con
         /// la 1; lo specchio le vuole con la 1 e il piano con la 2.
         /// </param>
-        private bool SelezionaLavorazione(
-            IModelDoc2 modello, Dictionary<string, object> a, out string motivo,
-            int marca = SelectionMarks.LinearPatternFeatures)
+        private bool SelectFeature(
+            IModelDoc2 model, Dictionary<string, object> a, out string reason,
+            int mark = SelectionMarks.LinearPatternFeatures)
         {
-            motivo = null;
-            if (HaRiferimento(a, "feature_ref"))
+            reason = null;
+            if (HasReference(a, "feature_ref"))
             {
-                int numero;
-                var passo = PassoCitato(a, "feature_ref", out numero, out motivo);
-                if (passo == null)
+                int number;
+                var planStep = CitedStep(a, "feature_ref", out number, out reason);
+                if (planStep == null)
                 {
-                    motivo = motivo ?? "Riferimento non risolto.";
+                    reason = reason ?? "Riferimento non risolto.";
                     return false;
                 }
-                if (passo.Feature == null)
+                if (planStep.Feature == null)
                 {
-                    motivo = "Il passo " + numero + " non ha lasciato una lavorazione.";
+                    reason = "Il passo " + number + " non ha lasciato una lavorazione.";
                     return false;
                 }
-                if (!passo.Feature.Select2(true, marca))
+                if (!planStep.Feature.Select2(true, mark))
                 {
-                    motivo = "Non sono riuscito a selezionare la lavorazione del passo " +
-                             numero + ".";
+                    reason = "Non sono riuscito a selezionare la lavorazione del passo " +
+                             number + ".";
                     return false;
                 }
-                _log("[agente] lavorazione presa dal passo " + numero);
+                _log("[agente] lavorazione presa dal passo " + number);
                 return true;
             }
 
             string uid = Str(a, "feature_uid", "");
             if (string.IsNullOrEmpty(uid))
             {
-                motivo = "Non hai detto quale lavorazione ripetere o specchiare.";
+                reason = "Non hai detto quale lavorazione ripetere o specchiare.";
                 return false;
             }
-            // E' ANCORA QUELLA? Vedi LavorazioneEQuella.
-            if (!LavorazioneEQuella(modello, uid, a, out motivo)) return false;
+            // E' ANCORA QUELLA? Vedi FeatureIsThatOne.
+            if (!FeatureIsThatOne(model, uid, a, out reason)) return false;
 
-            if (!modello.Extension.SelectByID2(uid, "BODYFEATURE", 0, 0, 0, true, marca, null, 0))
+            if (!model.Extension.SelectByID2(uid, "BODYFEATURE", 0, 0, 0, true, mark, null, 0))
             {
-                motivo = "Non ho trovato la lavorazione «" + uid + "».";
+                reason = "Non ho trovato la lavorazione «" + uid + "».";
                 return false;
             }
             return true;
@@ -4849,33 +4849,33 @@ namespace Oce.Solid.Agent.Core
         ///
         /// SI CONTROLLA SOLO SE SI PUO'. Niente firma, o firma senza
         /// `feature_id`, vuol dire niente da confrontare: non si inventa un
-        /// rifiuto. E' la stessa regola di `FirmaCombacia`.
+        /// rifiuto. E' la stessa regola di `SignatureMatches`.
         /// </summary>
-        private static bool LavorazioneEQuella(
-            IModelDoc2 modello, string uid,
-            Dictionary<string, object> argomenti, out string motivo)
+        private static bool FeatureIsThatOne(
+            IModelDoc2 model, string uid,
+            Dictionary<string, object> arguments, out string reason)
         {
-            motivo = null;
-            var attesa = FirmaAttesa(argomenti, uid);
-            if (attesa == null) return true;
-            object grezzo;
-            if (!attesa.TryGetValue("feature_id", out grezzo) || grezzo == null) return true;
-            int atteso;
-            try { atteso = Convert.ToInt32(grezzo); } catch { return true; }
+            reason = null;
+            var expectation = ExpectedSignature(arguments, uid);
+            if (expectation == null) return true;
+            object raw;
+            if (!expectation.TryGetValue("feature_id", out raw) || raw == null) return true;
+            int expected;
+            try { expected = Convert.ToInt32(raw); } catch { return true; }
 
-            var parte = modello as IPartDoc;
-            if (parte == null) return true;
-            IFeature f = parte.IFirstFeature();
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return true;
+            IFeature f = partDoc.IFirstFeature();
             while (f != null)
             {
-                string nome = null;
-                try { nome = f.Name; } catch { }
-                if (string.Equals(nome, uid, StringComparison.OrdinalIgnoreCase))
+                string itemName = null;
+                try { itemName = f.Name; } catch { }
+                if (string.Equals(itemName, uid, StringComparison.OrdinalIgnoreCase))
                 {
-                    int adesso;
-                    try { adesso = f.GetID(); } catch { return true; }
-                    if (adesso == atteso) return true;
-                    motivo =
+                    int now;
+                    try { now = f.GetID(); } catch { return true; }
+                    if (now == expected) return true;
+                    reason =
                         "La lavorazione «" + uid + "» non e' piu' quella che avevi " +
                         "guardato: qualcuno ha rinominato l'albero, e adesso quel nome " +
                         "sta su un'altra lavorazione. Rileggi lo stato del documento e " +
@@ -4892,21 +4892,21 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Il piano base indicato, SENZA selezionarlo.
         ///
-        /// Non e' un doppione pigro di `SelezionaPiano`: quella seleziona
+        /// Non e' un doppione pigro di `SelectPlane`: quella seleziona
         /// sempre con Mark 0 — che va bene alle estrusioni, che i Mark non li
         /// leggono — e restituisce un bool. Qui serve la Feature, per poterla
         /// selezionare con il Mark che l'operazione vuole.
         /// </summary>
-        private static IFeature TrovaPianoBase(IModelDoc2 modello, string quale)
+        private static IFeature FindBasePlane(IModelDoc2 model, string which)
         {
-            if (!(modello is IPartDoc)) return null;
+            if (!(model is IPartDoc)) return null;
             // THREE NAMES AND NOTHING ELSE: an unknown name is null, never the
             // front plane (a final `: 1` did that until the measure of 10
             // September 2026, «mirror on a plane that does not exist»).
             // BY GEOMETRY, NOT BY POSITION (Z-C21.5, scheme S19): the plane with
             // the canonical normal through the origin, Riferimenti.BasePlane.
             // The callers keep their own refusal, which names the plane.
-            return Riferimenti.BasePlane(modello, quale, out _);
+            return References.BasePlane(model, which, out _);
         }
 
         /// <summary>
@@ -4961,71 +4961,71 @@ namespace Oce.Solid.Agent.Core
         /// lascia esattamente UNO: zero o piu' di uno vuol dire che il profilo
         /// e l'asse non erano quello che sembravano.
         /// </summary>
-        private Esito Rivoluzione(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome Revolve(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var contorni = Contorni(a, out string motivo, out string _);
-            if (contorni == null) return Fallito(motivo);
+            var contours = Contours(a, out string reason, out string _);
+            if (contours == null) return Failed(reason);
 
-            object asseGrezzo;
-            if (!a.TryGetValue("axis", out asseGrezzo) || asseGrezzo == null)
-                return Fallito("Manca l'asse di rivoluzione.");
-            var puntiAsse = Punti(asseGrezzo, out motivo);
-            if (puntiAsse == null) return Fallito("Asse di rivoluzione: " + motivo);
-            if (puntiAsse.Count != 2)
-                return Fallito(
+            object rawAxis;
+            if (!a.TryGetValue("axis", out rawAxis) || rawAxis == null)
+                return Failed("Manca l'asse di rivoluzione.");
+            var axisPoints = Points(rawAxis, out reason);
+            if (axisPoints == null) return Failed("Asse di rivoluzione: " + reason);
+            if (axisPoints.Count != 2)
+                return Failed(
                     "L'asse di rivoluzione va dato come due punti [x_mm, y_mm], non " +
-                    puntiAsse.Count + ".");
-            double dx = puntiAsse[1][0] - puntiAsse[0][0];
-            double dy = puntiAsse[1][1] - puntiAsse[0][1];
+                    axisPoints.Count + ".");
+            double dx = axisPoints[1][0] - axisPoints[0][0];
+            double dy = axisPoints[1][1] - axisPoints[0][1];
             if (Math.Sqrt(dx * dx + dy * dy) < 1e-6)
-                return Fallito("I due punti dell'asse coincidono: non definiscono una retta.");
+                return Failed("I due punti dell'asse coincidono: non definiscono una retta.");
 
-            double angolo = Num(a, "angle_deg", 360);
-            string piano = Str(a, "plane", "front");
+            double angle = Num(a, "angle_deg", 360);
+            string plane = Str(a, "plane", "front");
             // Before the sketch: it is selected, and locked after the
             // revolve, as the one sketch born since (scheme S7).
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaPiano(modello, piano))
-                return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectPlane(model, plane))
+                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
 
-            var schizzi = modello.SketchManager;
-            bool addToDbPrima = false, displayPrima = false;
-            try { addToDbPrima = schizzi.AddToDB; displayPrima = schizzi.DisplayWhenAdded; } catch { }
+            var sketches = model.SketchManager;
+            bool addToDbBefore = false, displayBefore = false;
+            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
 
-            int segmenti = 0;
-            bool asseCreato = false;
+            int segments = 0;
+            bool createdAxis = false;
             try
             {
-                schizzi.InsertSketch(true);
-                try { schizzi.AddToDB = true; schizzi.DisplayWhenAdded = false; } catch { }
+                sketches.InsertSketch(true);
+                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
 
-                foreach (var contorno in contorni) segmenti += DisegnaContorno(schizzi, contorno);
+                foreach (var contour in contours) segments += DrawContour(sketches, contour);
 
-                var segmentoAsse = schizzi.CreateCenterLine(
-                    Unita.M(puntiAsse[0][0]), Unita.M(puntiAsse[0][1]), 0,
-                    Unita.M(puntiAsse[1][0]), Unita.M(puntiAsse[1][1]), 0) as ISketchSegment;
+                var axisSegment = sketches.CreateCenterLine(
+                    Units.M(axisPoints[0][0]), Units.M(axisPoints[0][1]), 0,
+                    Units.M(axisPoints[1][0]), Units.M(axisPoints[1][1]), 0) as ISketchSegment;
                 // Ridondante se, come atteso, CreateCenterLine nasce gia' di
                 // costruzione: si scrive lo stesso perche' non costa niente ed
                 // e' la differenza fra un asse riconosciuto e una linea
                 // qualunque, se quell'attesa fosse sbagliata.
-                try { if (segmentoAsse != null) segmentoAsse.ConstructionGeometry = true; } catch { }
-                asseCreato = segmentoAsse != null;
+                try { if (axisSegment != null) axisSegment.ConstructionGeometry = true; } catch { }
+                createdAxis = axisSegment != null;
             }
             finally
             {
-                try { schizzi.AddToDB = addToDbPrima; schizzi.DisplayWhenAdded = displayPrima; } catch { }
+                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
             }
-            schizzi.InsertSketch(false);
+            sketches.InsertSketch(false);
 
-            if (!asseCreato)
-                return Fallito("Non sono riuscito a disegnare l'asse di rivoluzione." + SenzaLoSchizzo(modello));
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!createdAxis)
+                return Failed("Non sono riuscito a disegnare l'asse di rivoluzione." + WithoutSketch(model));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
             IFeature feature;
             try
             {
-                feature = modello.FeatureManager.FeatureRevolve2(
+                feature = model.FeatureManager.FeatureRevolve2(
                     SingleDir: true,
                     IsSolid: true,
                     IsThin: false,
@@ -5034,7 +5034,7 @@ namespace Oce.Solid.Agent.Core
                     BothDirectionUpToSameEntity: false,
                     Dir1Type: (int)swEndConditions_e.swEndCondBlind,
                     Dir2Type: (int)swEndConditions_e.swEndCondBlind,
-                    Dir1Angle: Unita.Rad(angolo),
+                    Dir1Angle: Units.Rad(angle),
                     Dir2Angle: 0,
                     OffsetReverse1: false,
                     OffsetReverse2: false,
@@ -5049,36 +5049,36 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Fallito("La rivoluzione non e' riuscita: " + ex.Message + SenzaLoSchizzo(modello));
+                return Failed("La rivoluzione non e' riuscita: " + ex.Message + WithoutSketch(model));
             }
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "La rivoluzione non e' stata creata. Di solito e' l'asse: deve " +
                     "stare sul piano del profilo, e il profilo non deve " +
-                    "attraversarlo." + SenzaLoSchizzo(modello));
+                    "attraversarlo." + WithoutSketch(model));
 
-            int nCorpi = ContaCorpiSolidi(modello);
-            if (nCorpi >= 0 && nCorpi != 1)
-                return Fallito(
+            int nBodies = CountSolidBodies(model);
+            if (nBodies >= 0 && nBodies != 1)
+                return Failed(
                     "La rivoluzione ha creato la feature ma il documento ha " +
-                    nCorpi + " corpi solidi invece di uno: molto probabilmente " +
+                    nBodies + " corpi solidi invece di uno: molto probabilmente " +
                     "il profilo attraversa l'asse. Non ti confermo un pezzo " +
                     "diverso da quello che ti ho mostrato: ritiralo — " +
-                    Frasi.CosiSiRitira + ".");
+                    Sentences.HowToWithdrawIt + ".");
 
-            string notaBlocco;
+            string noteBlock;
             int fixedRelations;
-            bool bloccato = BloccaSchizzo(modello, sketchNamesBefore, out notaBlocco, out fixedRelations);
+            bool locked = LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
             var revolveMeasures = new Dictionary<string, object>
             {
-                ["sketch_locked"] = bloccato,
+                ["sketch_locked"] = locked,
                 ["fixed_relations"] = fixedRelations,
-                ["contours"] = contorni.Count,
-                ["segments"] = segmenti,
-                ["angle_deg"] = angolo,
+                ["contours"] = contours.Count,
+                ["segments"] = segments,
+                ["angle_deg"] = angle,
             };
-            if (notaBlocco != null) revolveMeasures["sketch_lock_note"] = notaBlocco;
-            return Riuscito(feature, revolveMeasures, Riferimenti.NormaleDelPiano(piano));
+            if (noteBlock != null) revolveMeasures["sketch_lock_note"] = noteBlock;
+            return Succeeded(feature, revolveMeasures, References.PlaneNormal(plane));
         }
 
         /// <summary>
@@ -5107,12 +5107,12 @@ namespace Oce.Solid.Agent.Core
         /// produrre geometria sbagliata senza dare errore (HoleWizard5, foro
         /// da due pollici). Qui il controllo costa due letture.
         /// </summary>
-        private Esito Guscio(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome Shell(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            double spessore = Num(a, "thickness_mm");
-            bool versoEsterno = Bool(a, "outward", false);
-            bool tuttoChiuso = Bool(a, "fully_closed", false);
-            var uid = Lista(a, "faces_uid");
+            double thickness = Num(a, "thickness_mm");
+            bool outwardFacing = Bool(a, "outward", false);
+            bool allClosed = Bool(a, "fully_closed", false);
+            var uid = StringList(a, "faces_uid");
 
             // LE FACCE POSSONO VENIRE DA UN PASSO PRECEDENTE (voce E15).
             //
@@ -5124,26 +5124,26 @@ namespace Oce.Solid.Agent.Core
             // l'antenna: blocco, guscio, alette.
             //
             // UN ELENCO DI RIFERIMENTI SINGOLI, non un genere plurale. Il
-            // vocabolario di `Riferimenti` risolve una faccia per volta, e
+            // vocabolario di `References` risolve una faccia per volta, e
             // nessuna operazione del catalogo usa oggi un genere che ne dia
             // piu' d'una: inventarne uno qui vorrebbe dire aprire superficie
             // nuova per un problema che si risolve ripetendo l'elemento.
-            List<IFace2> daiPassi = null;
-            if (uid.Count == 0 && HaElenco(a, "faces_ref"))
+            List<IFace2> fromSteps = null;
+            if (uid.Count == 0 && HasList(a, "faces_ref"))
             {
-                if (!FacceDaiRiferimenti(a, "faces_ref", out daiPassi, out string perche))
-                    return Fallito(perche);
+                if (!FacesFromReferences(a, "faces_ref", out fromSteps, out string why))
+                    return Failed(why);
             }
-            else if (uid.Count > 0 && HaElenco(a, "faces_ref"))
+            else if (uid.Count > 0 && HasList(a, "faces_ref"))
             {
-                return Fallito(
+                return Failed(
                     "Il guscio ha sia «faces_uid» sia «faces_ref»: uno nomina facce " +
                     "che ci sono gia', l'altro facce che le crea un passo di questo " +
                     "piano. Scegline uno.");
             }
 
-            if (uid.Count == 0 && daiPassi == null && !tuttoChiuso)
-                return Fallito(
+            if (uid.Count == 0 && fromSteps == null && !allClosed)
+                return Failed(
                     "Nessuna faccia indicata per il guscio. Se la faccia la crea un " +
                     "passo precedente di questo piano, usa «faces_ref»: " +
                     "[{\"step\": 1, \"kind\": \"top_face\"}]. Se serve davvero " +
@@ -5151,14 +5151,14 @@ namespace Oce.Solid.Agent.Core
                     "«fully_closed: true» — di solito pero' e' una faccia dimenticata " +
                     "nella richiesta.");
 
-            modello.ClearSelection2(true);
+            model.ClearSelection2(true);
 
-            if (daiPassi != null)
+            if (fromSteps != null)
             {
                 // Le facce arrivano FRESCHE dal passo appena eseguito, non da
                 // una lettura precedente: non c'e' nessuna firma da
                 // confrontare, ed e' lo stesso motivo per cui il ramo
-                // `face_ref` di `RisolviFaccia` salta quel controllo.
+                // `face_ref` di `ResolveFace` salta quel controllo.
                 // TUTTE, NON ALMENO UNA. La prima scrittura contava quante si
                 // erano lasciate selezionare e si fermava solo a zero: con tre
                 // riferimenti risolti e due facce selezionate andava avanti, e
@@ -5173,31 +5173,31 @@ namespace Oce.Solid.Agent.Core
                 // righe piu' giu', rifiuta alla PRIMA faccia che non si
                 // seleziona: una riparazione che copre un ramo e ne lascia
                 // scoperto il gemello.
-                int presi = 0;
-                foreach (var f in daiPassi)
+                int takenOnes = 0;
+                foreach (var f in fromSteps)
                 {
-                    if ((f as IEntity)?.Select4(true, null) == true) { presi++; continue; }
-                    return Fallito(string.Format(
+                    if ((f as IEntity)?.Select4(true, null) == true) { takenOnes++; continue; }
+                    return Failed(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
                         "La faccia n. {0} di «faces_ref» non si e' lasciata selezionare: " +
                         "{1} su {2} erano pronte. Un guscio aperto su meno facce di quelle " +
                         "chieste non e' quasi giusto, e' un pezzo diverso.{3}",
-                        presi + 1, presi, daiPassi.Count, RestaNelPezzo));
+                        takenOnes + 1, takenOnes, fromSteps.Count, RemainsInPart));
                 }
-                _log("[agente] " + presi + " facce prese dai passi precedenti");
+                _log("[agente] " + takenOnes + " facce prese dai passi precedenti");
             }
             else if (uid.Count == 0)
             {
                 // Guscio chiuso: si seleziona il corpo. Con piu' corpi non si
                 // sceglie: si chiede. Un guscio applicato al corpo sbagliato
                 // e' esattamente il pezzo che sembra giusto.
-                var parte = modello as IPartDoc;
-                var corpi = parte?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-                if (corpi == null || corpi.Length == 0)
-                    return Fallito("Non ho trovato nessun corpo solido da rendere cavo.");
-                if (corpi.Length > 1)
-                    return Fallito(
-                        "In questo documento ci sono " + corpi.Length + " corpi " +
+                var partDoc = model as IPartDoc;
+                var bodies = partDoc?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                if (bodies == null || bodies.Length == 0)
+                    return Failed("Non ho trovato nessun corpo solido da rendere cavo.");
+                if (bodies.Length > 1)
+                    return Failed(
+                        "In questo documento ci sono " + bodies.Length + " corpi " +
                         "solidi: un guscio chiuso senza facce indicate lavorerebbe " +
                         "su uno scelto a caso. Indica le facce da togliere.");
                 // UN CORPO NON E' UNA IEntity, e questo ramo non l'ha mai
@@ -5208,7 +5208,7 @@ namespace Oce.Solid.Agent.Core
                 //
                 // La cosa che fa male: la lezione era gia' scritta, in questo
                 // stesso file, quattromila righe piu' su. Il commento di
-                // `SpostaCorpi` la racconta per esteso — misurata dentro
+                // `MoveBodies` la racconta per esteso — misurata dentro
                 // SOLIDWORKS il 10 settembre 2026, con cinque prove che
                 // dicevano «i corpi indicati non si sono lasciati selezionare»
                 // — e li' e' gia' riparata con `IBody2.Select2`. Qui no.
@@ -5216,112 +5216,112 @@ namespace Oce.Solid.Agent.Core
                 // Una lezione scritta e non applicata e' una lezione che il
                 // codice non ha imparato: il commento la ricorda a chi legge
                 // QUELLE righe, e chi scrive altrove non passa di li'.
-                var corpo = corpi[0] as IBody2;
-                bool preso = corpo != null && corpo.Select2(false, null);
-                if (!preso)
+                var body = bodies[0] as IBody2;
+                bool taken = body != null && body.Select2(false, null);
+                if (!taken)
                 {
                     // La vecchia strada resta come ripiego, non come prima
                     // scelta: se un domani l'interop cambiasse idea, questo
                     // ramo continua a funzionare invece di rompersi.
-                    var comeEntita = corpi[0] as IEntity;
-                    preso = comeEntita != null && comeEntita.Select4(false, null);
+                    var asEntity = bodies[0] as IEntity;
+                    taken = asEntity != null && asEntity.Select4(false, null);
                 }
-                if (!preso)
-                    return Fallito("Non sono riuscito a selezionare il corpo solido.");
+                if (!taken)
+                    return Failed("Non sono riuscito a selezionare il corpo solido.");
             }
             else
             {
                 // Le facce si selezionano ACCUMULANDO, come fa il fazzoletto:
-                // `SelezionaFaccia` seleziona con append=false ed e' pensato
+                // `SelectFace` seleziona con append=false ed e' pensato
                 // per una faccia sola prima di uno schizzo. Qui servono tutte
                 // insieme, e usare quell'aiutante lascerebbe selezionata solo
                 // l'ultima — un guscio aperto da un lato invece che da tre,
                 // senza nessun errore.
                 foreach (var u in uid)
                 {
-                    StatoDocumento.FirmaEntita firma;
-                    if (stato == null || !stato.Firme.TryGetValue(u, out firma) ||
-                        firma.Tipo != "FACE")
-                        return Fallito("La faccia «" + u + "» non c'e' piu' in questo documento.");
-                    string scostamento;
-                    if (!FirmaCombacia(a, u, firma, out scostamento)) return Fallito(scostamento);
-                    var ent = firma.Entita as IEntity;
+                    DocumentState.EntitySignature signature;
+                    if (docState == null || !docState.Signatures.TryGetValue(u, out signature) ||
+                        signature.Type != "FACE")
+                        return Failed("La faccia «" + u + "» non c'e' piu' in questo documento.");
+                    string offset;
+                    if (!SignatureMatches(a, u, signature, out offset)) return Failed(offset);
+                    var ent = signature.Entity as IEntity;
                     if (ent == null || !ent.Select4(true, null))
-                        return Fallito("La faccia «" + u + "» non si e' lasciata selezionare.");
+                        return Failed("La faccia «" + u + "» non si e' lasciata selezionare.");
                 }
             }
 
-            int featurePrima = ContaFeature(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            double? volumePrima = VolumeMm3(modello);
-            var namesBefore = FeatureNamesNow(modello);
-            if (corpiPrima < 0 || featurePrima < 0 || namesBefore == null) return Fallito(VolumeNonLettoPrima("fare il guscio").Replace("il volume del pezzo", "i corpi del pezzo"));
+            int featureBefore = CountFeature(model);
+            int bodiesBefore = CountSolidBodies(model);
+            double? volumeBefore = VolumeMm3(model);
+            var namesBefore = FeatureNamesNow(model);
+            if (bodiesBefore < 0 || featureBefore < 0 || namesBefore == null) return Failed(VolumeNotReadBefore("fare il guscio").Replace("il volume del pezzo", "i corpi del pezzo"));
 
             try
             {
-                modello.InsertFeatureShell(Unita.M(spessore), versoEsterno);
+                model.InsertFeatureShell(Units.M(thickness), outwardFacing);
             }
             catch (Exception ex)
             {
-                return Fallito("Il guscio non e' riuscito: " + ex.Message);
+                return Failed("Il guscio non e' riuscito: " + ex.Message);
             }
 
-            int featureDopo = ContaFeature(modello);
-            if (featureDopo < 0)
-                return Fallito(
+            int featureAfter = CountFeature(model);
+            if (featureAfter < 0)
+                return Failed(
                     "Ho chiesto il guscio, ma poi non riesco a ricontare l'albero: non so dirti " +
                     "se e' nato. Guarda il pezzo prima di andare avanti.");
-            if (featureDopo <= featurePrima)
-                return Fallito(
+            if (featureAfter <= featureBefore)
+                return Failed(
                     "Il guscio non e' stato creato. Di solito e' lo spessore: " +
                     "piu' grande di meta' del corpo non ci sta, e vicino a uno " +
                     "spigolo lascerebbe una parete di spessore negativo.");
 
-            int corpiDopo = ContaCorpiSolidi(modello);
-            if (corpiDopo >= 0 && corpiDopo != corpiPrima)
-                return Fallito(
+            int bodiesAfter = CountSolidBodies(model);
+            if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
+                return Failed(
                     "Il guscio ha cambiato il numero di corpi solidi (da " +
-                    corpiPrima + " a " + corpiDopo + "): non e' il corpo svuotato " +
+                    bodiesBefore + " a " + bodiesAfter + "): non e' il corpo svuotato " +
                     "che ci si aspettava. Non te lo lascio passare per buono.");
 
             // IL GUSCIO TOGLIE MATERIALE. Se il volume non e' calato, quella
             // feature non e' un guscio, qualunque cosa dica l'albero.
-            double? volumeDopo = VolumeMm3(modello);
-            if (volumePrima > 0 && volumeDopo > 0 && volumeDopo >= volumePrima - 0.001)
-                return Fallito(string.Format(
+            double? volumeAfter = VolumeMm3(model);
+            if (volumeBefore > 0 && volumeAfter > 0 && volumeAfter >= volumeBefore - 0.001)
+                return Failed(string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
                     "Il guscio non ha tolto niente: il volume era {0:0.#} mm3 ed " +
                     "e' {1:0.#} mm3. Non e' il pezzo che ti ho promesso.",
-                    volumePrima, volumeDopo));
+                    volumeBefore, volumeAfter));
 
             // THE SHELL IS THE ONE FEATURE BORN SINCE THE CALL (FeatureBorn,
             // scheme S7, Z-C21.5), not the last feature of the tree: on a
             // sheet-metal part that is the flat pattern (finding M9).
             int featuresBorn;
-            var feature = FeatureBorn(modello, namesBefore, null, out featuresBorn);
+            var feature = FeatureBorn(model, namesBefore, null, out featuresBorn);
             if (feature == null && featuresBorn > 1)
-                return Fallito(
+                return Failed(
                     "The shell seems made, but " + featuresBorn + " features were born in the tree and I do not " +
                     "pick one of them for you. Look at the part before going on.");
             if (feature == null)
-                return Fallito("Il guscio sembra creato ma non ritrovo la feature nell'albero.");
+                return Failed("Il guscio sembra creato ma non ritrovo la feature nell'albero.");
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["thickness_mm"] = spessore,
-                ["facing"] = versoEsterno ? "outer" : "inner",
+                ["thickness_mm"] = thickness,
+                ["facing"] = outwardFacing ? "outer" : "inner",
                 // NON `uid.Count`: le facce possono arrivare anche da
                 // `faces_ref`, e contare solo gli uid faceva dire «faces_removed:
                 // 0» a un guscio che una faccia l'aveva tolta davvero. Una
                 // misura che dice zero quando il numero e' uno e' il difetto
                 // che questo progetto insegue, in miniatura.
-                ["faces_removed"] = daiPassi != null ? daiPassi.Count : uid.Count,
+                ["faces_removed"] = fromSteps != null ? fromSteps.Count : uid.Count,
             };
-            if (volumePrima > 0 && volumeDopo > 0)
-                misure["material_removed_mm3"] = Math.Round(volumePrima.Value - volumeDopo.Value, 1);
+            if (volumeBefore > 0 && volumeAfter > 0)
+                measurements["material_removed_mm3"] = Math.Round(volumeBefore.Value - volumeAfter.Value, 1);
             else
-                misure["volume_not_reread"] = NotaVolumeNonRiletto;
-            return Riuscito(feature, misure);
+                measurements["volume_not_reread"] = NoteVolumeNotReread;
+            return Succeeded(feature, measurements);
         }
 
         /// <summary>
@@ -5336,14 +5336,14 @@ namespace Oce.Solid.Agent.Core
         /// meta' albero dava un numero piu' basso, e «l'albero non e'
         /// cresciuto» diventava un rifiuto falso.
         /// </summary>
-        private static int ContaFeature(IModelDoc2 modello)
+        private static int CountFeature(IModelDoc2 model)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return -1;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return -1;
             int n = 0;
             try
             {
-                var f = parte.IFirstFeature();
+                var f = partDoc.IFirstFeature();
                 while (f != null) { n++; f = f.IGetNextFeature(); }
             }
             catch { return -1; }
@@ -5355,14 +5355,14 @@ namespace Oce.Solid.Agent.Core
         /// potuto leggere** (voce Z-C8): una feature che non dice il suo tipo,
         /// o un albero che si interrompe, lasciavano un numero piu' basso.
         /// </summary>
-        private static int ContaPiani(IModelDoc2 modello)
+        private static int CountPlanes(IModelDoc2 model)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return -1;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return -1;
             int n = 0;
             try
             {
-                IFeature f = parte.IFirstFeature();
+                IFeature f = partDoc.IFirstFeature();
                 while (f != null)
                 {
                     if (f.GetTypeName2() == "RefPlane") n++;
@@ -5374,10 +5374,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Quanti piani ha aggiunto il passo, o null se un conteggio non si legge.</summary>
-        private static object PianiAggiunti(IModelDoc2 modello, int prima)
+        private static object AddedPlanes(IModelDoc2 model, int before)
         {
-            int ora = ContaPiani(modello);
-            return prima >= 0 && ora >= 0 ? (object)(ora - prima) : null;
+            int now = CountPlanes(model);
+            return before >= 0 && now >= 0 ? (object)(now - before) : null;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -5390,11 +5390,11 @@ namespace Oce.Solid.Agent.Core
         /// feature. Null when the document is not a part or the tree cannot be
         /// read to the end (a partial set would make an old feature look born).
         /// </summary>
-        private static HashSet<string> FeatureNamesNow(IModelDoc2 modello)
+        private static HashSet<string> FeatureNamesNow(IModelDoc2 model)
         {
             List<IFeature> features;
             List<string> names, types;
-            if (!ReadFeatureTree(modello, out features, out names, out types)) return null;
+            if (!ReadFeatureTree(model, out features, out names, out types)) return null;
             return new HashSet<string>(names, StringComparer.Ordinal);
         }
 
@@ -5418,12 +5418,12 @@ namespace Oce.Solid.Agent.Core
         /// name is unique in a part, so the names that were not there before are
         /// what the call added, wherever in the tree it went.
         /// </summary>
-        private static IFeature FeatureBorn(IModelDoc2 modello, HashSet<string> before, string type, out int born)
+        private static IFeature FeatureBorn(IModelDoc2 model, HashSet<string> before, string type, out int born)
         {
             born = -1;
             List<IFeature> features;
             List<string> names, types;
-            if (before == null || !ReadFeatureTree(modello, out features, out names, out types)) return null;
+            if (before == null || !ReadFeatureTree(model, out features, out names, out types)) return null;
             int index = BornFeatureIndex(names, types, before, type, out born);
             return index >= 0 ? features[index] : null;
         }
@@ -5435,7 +5435,7 @@ namespace Oce.Solid.Agent.Core
         /// tree.
         /// </summary>
         private static bool ReadFeatureTree(
-            IModelDoc2 modello, out List<IFeature> features, out List<string> names, out List<string> types)
+            IModelDoc2 model, out List<IFeature> features, out List<string> names, out List<string> types)
         {
             var inTree = new List<IFeature>();
             var theirNames = new List<string>();
@@ -5443,11 +5443,11 @@ namespace Oce.Solid.Agent.Core
             features = inTree;
             names = theirNames;
             types = theirTypes;
-            var parte = modello as IPartDoc;
-            if (parte == null) return false;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return false;
             try
             {
-                IFeature f = parte.IFirstFeature();
+                IFeature f = partDoc.IFirstFeature();
                 while (f != null)
                 {
                     string kind = "";
@@ -5514,19 +5514,19 @@ namespace Oce.Solid.Agent.Core
         /// che lo scanner non vedeva, `int n = 0; try { ... } catch { }`, e due
         /// letture fallite davano «stesse 0 facce» — cioe' il pezzo identico.
         /// </summary>
-        private static int ContaFacce(IModelDoc2 modello)
+        private static int CountFaces(IModelDoc2 model)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return -1;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return -1;
             int n = 0;
             try
             {
-                var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-                if (corpi == null) return 0;
-                foreach (var c in corpi)
+                var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                if (bodies == null) return 0;
+                foreach (var c in bodies)
                 {
-                    var facce = (c as IBody2)?.GetFaces() as object[];
-                    if (facce != null) n += facce.Length;
+                    var faces = (c as IBody2)?.GetFaces() as object[];
+                    if (faces != null) n += faces.Length;
                 }
             }
             catch { return -1; }
@@ -5537,12 +5537,12 @@ namespace Oce.Solid.Agent.Core
         /// Com'e' il pezzo adesso: volume, corpi, facce. E' la fotografia
         /// da confrontare prima e dopo un'operazione che copia.
         /// </summary>
-        private static void Fotografia(
-            IModelDoc2 modello, out double? volume, out int corpi, out int facce)
+        private static void Snapshot(
+            IModelDoc2 model, out double? volume, out int bodies, out int faces)
         {
-            volume = VolumeMm3(modello);
-            corpi = ContaCorpiSolidi(modello);
-            facce = ContaFacce(modello);
+            volume = VolumeMm3(model);
+            bodies = CountSolidBodies(model);
+            faces = CountFaces(model);
         }
 
         /// <summary>
@@ -5561,38 +5561,38 @@ namespace Oce.Solid.Agent.Core
         /// il falso successo, ed e' l'unica cosa che questo controllo
         /// rifiuta.
         /// </summary>
-        private static string ConfrontaCopia(
-            IModelDoc2 modello,
-            double? volumePrima, int corpiPrima, int faccePrima,
-            Dictionary<string, object> misure,
-            string cosaEra)
+        private static string CompareCopy(
+            IModelDoc2 model,
+            double? volumeBefore, int bodiesBefore, int facesBefore,
+            Dictionary<string, object> measurements,
+            string whatItWas)
         {
-            double? volumeDopo; int corpiDopo, facceDopo;
-            Fotografia(modello, out volumeDopo, out corpiDopo, out facceDopo);
+            double? volumeAfter; int bodiesAfter, facesAfter;
+            Snapshot(model, out volumeAfter, out bodiesAfter, out facesAfter);
 
-            misure["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2);
-            misure["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2);
-            misure["volume_changed_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2);
-            misure["faces_before"] = NumeroOppureNull(faccePrima);
-            misure["faces_after"] = NumeroOppureNull(facceDopo);
-            misure["bodies"] = NumeroOppureNull(corpiDopo);
+            measurements["volume_before_mm3"] = NumberOrNull(volumeBefore, 2);
+            measurements["volume_after_mm3"] = NumberOrNull(volumeAfter, 2);
+            measurements["volume_changed_mm3"] = NumberOrNull(volumeAfter - volumeBefore, 2);
+            measurements["faces_before"] = NumberOrNull(facesBefore);
+            measurements["faces_after"] = NumberOrNull(facesAfter);
+            measurements["bodies"] = NumberOrNull(bodiesAfter);
 
             // «IDENTICO» SI DICE SOLO DI COSE LETTE (voce Z-C8): con due letture
             // fallite, zero prima e zero dopo erano «stesso volume, stesse 0
             // facce», e una copia riuscita veniva rifiutata come inesistente.
-            bool tuttoLetto = volumePrima.HasValue && volumeDopo.HasValue &&
-                              faccePrima >= 0 && facceDopo >= 0 && corpiPrima >= 0 && corpiDopo >= 0;
-            if (!tuttoLetto)
+            bool everythingRead = volumeBefore.HasValue && volumeAfter.HasValue &&
+                              facesBefore >= 0 && facesAfter >= 0 && bodiesBefore >= 0 && bodiesAfter >= 0;
+            if (!everythingRead)
             {
-                misure["volume_not_reread"] = NotaVolumeNonRiletto;
+                measurements["volume_not_reread"] = NoteVolumeNotReread;
                 return null;
             }
-            bool volumeFermo = Math.Abs(volumeDopo.Value - volumePrima.Value) < 0.01;
-            if (volumeFermo && facceDopo == faccePrima && corpiDopo == corpiPrima)
+            bool unchangedVolume = Math.Abs(volumeAfter.Value - volumeBefore.Value) < 0.01;
+            if (unchangedVolume && facesAfter == facesBefore && bodiesAfter == bodiesBefore)
                 return
-                    cosaEra + " dice di essere riuscito, ma il pezzo e' identico a prima: " +
-                    "stesso volume (" + Math.Round(volumeDopo.Value, 2) + " mm3), stesse " +
-                    facceDopo + " facce, stessi " + corpiDopo + " corpi. Non e' stato copiato niente. " +
+                    whatItWas + " dice di essere riuscito, ma il pezzo e' identico a prima: " +
+                    "stesso volume (" + Math.Round(volumeAfter.Value, 2) + " mm3), stesse " +
+                    facesAfter + " facce, stessi " + bodiesAfter + " corpi. Non e' stato copiato niente. " +
                     "Di solito vuol dire che la lavorazione indicata non e' quella che credi, " +
                     "oppure che la copia sarebbe caduta esattamente dove c'e' gia' l'originale.";
 
@@ -5609,17 +5609,17 @@ namespace Oce.Solid.Agent.Core
         ///
         /// **-1 quando non si e' potuto leggere** (voce Z-C8). Con lo zero, una
         /// lettura fallita diventava «la lavorazione non ha piu' nessuna
-        /// faccia», e `SopprimiIstanza` rimetteva a posto una modifica giusta.
+        /// faccia», e `SuppressInstance` rimetteva a posto una modifica giusta.
         /// ZERO-E-ZERO: `GetFaces` null su una feature viva vuol dire che non
         /// ne possiede (un piano, uno schizzo): quello zero e' vero.
         /// </summary>
-        private static int FacceDellaFeature(IFeature f)
+        private static int FeatureFaces(IFeature f)
         {
             if (f == null) return -1;
             try
             {
-                var facce = f.GetFaces() as object[];
-                return facce == null ? 0 : facce.Length;
+                var faces = f.GetFaces() as object[];
+                return faces == null ? 0 : faces.Length;
             }
             catch { return -1; }
         }
@@ -5631,15 +5631,15 @@ namespace Oce.Solid.Agent.Core
         /// azzera la selezione. Chi la chiama deve accettare un null: se
         /// il seme non si ritrova non si conta niente, e non si rifiuta.
         /// </summary>
-        private static IFeature SemeSelezionato(IModelDoc2 modello, int marca)
+        private static IFeature SelectedSeed(IModelDoc2 model, int mark)
         {
             try
             {
-                var sel = modello.SelectionManager as ISelectionMgr;
+                var sel = model.SelectionManager as ISelectionMgr;
                 if (sel == null) return null;
-                int quanti = sel.GetSelectedObjectCount2(-1);
-                for (int i = 1; i <= quanti; i++)
-                    if (sel.GetSelectedObjectMark(i) == marca)
+                int howMany = sel.GetSelectedObjectCount2(-1);
+                for (int i = 1; i <= howMany; i++)
+                    if (sel.GetSelectedObjectMark(i) == mark)
                         return sel.GetSelectedObject6(i, -1) as IFeature;
             }
             catch { }
@@ -5674,33 +5674,33 @@ namespace Oce.Solid.Agent.Core
         /// vorrebbe dire che questo modo di contare e' sbagliato, e su un
         /// conto che si e' appena rivelato sbagliato non si nega niente.
         /// </summary>
-        private static string CopieMancanti(
-            Dictionary<string, object> misure, IFeature ripetizione, IFeature seme,
-            int copieChieste, string cosaEra, string comeSiRipara)
+        private static string MissingCopies(
+            Dictionary<string, object> measurements, IFeature repetition, IFeature seed,
+            int requestedCopies, string whatItWas, string howToRepair)
         {
-            if (copieChieste < 1) return null;
+            if (requestedCopies < 1) return null;
 
-            int facceRipetizione = FacceDellaFeature(ripetizione);
-            int facceSeme = FacceDellaFeature(seme);
-            if (facceRipetizione <= 0 || facceSeme <= 0) return null;
-            if (facceRipetizione % facceSeme != 0) return null;
+            int patternFaces = FeatureFaces(repetition);
+            int seedFaceList = FeatureFaces(seed);
+            if (patternFaces <= 0 || seedFaceList <= 0) return null;
+            if (patternFaces % seedFaceList != 0) return null;
 
-            int fatte = facceRipetizione / facceSeme;
-            misure["copies_requested"] = copieChieste;
-            misure["copies_done"] = fatte;
-            if (fatte >= copieChieste) return null;
+            int done = patternFaces / seedFaceList;
+            measurements["copies_requested"] = requestedCopies;
+            measurements["copies_done"] = done;
+            if (done >= requestedCopies) return null;
 
             return
-                cosaEra + " dice di essere riuscita, ma le copie non ci sono tutte: " +
-                "ne ho contate " + fatte + " delle " + copieChieste + " chieste. " +
-                "Le conto dalle facce che la ripetizione possiede (" + facceRipetizione +
-                ") divise per quelle della lavorazione ripetuta (" + facceSeme + "). " +
+                whatItWas + " dice di essere riuscita, ma le copie non ci sono tutte: " +
+                "ne ho contate " + done + " delle " + requestedCopies + " chieste. " +
+                "Le conto dalle facce che la ripetizione possiede (" + patternFaces +
+                ") divise per quelle della lavorazione ripetuta (" + seedFaceList + "). " +
                 "SOLIDWORKS qui non segnala niente: costruisce quello che puo' e " +
                 "dice riuscito. Di solito le copie mancanti cadono fuori dal " +
-                "materiale" + (fatte > 1 ? ", oppure si sono fuse fra loro" : "") + ". " +
-                comeSiRipara +
+                "materiale" + (done > 1 ? ", oppure si sono fuse fra loro" : "") + ". " +
+                howToRepair +
                 " La ripetizione e' rimasta nel pezzo: ritirala — " +
-                Frasi.CosiSiRitira + ".";
+                Sentences.HowToWithdrawIt + ".";
         }
 
         /// <summary>
@@ -5716,29 +5716,29 @@ namespace Oce.Solid.Agent.Core
         /// lavorazioni questa lettura da sola durerebbe piu' dell'operazione.
         /// Oltre il tetto si smette e si riporta quello che si e' visto.
         /// </summary>
-        private static Dictionary<string, int> FaccePerLavorazione(IModelDoc2 modello)
+        private static Dictionary<string, int> FacesPerFeature(IModelDoc2 model)
         {
-            var fuori = new Dictionary<string, int>();
+            var outside = new Dictionary<string, int>();
             try
             {
-                var f = modello.FirstFeature() as IFeature;
-                int viste = 0;
-                while (f != null && viste < 200)
+                var f = model.FirstFeature() as IFeature;
+                int views = 0;
+                while (f != null && views < 200)
                 {
                     // -1 SI TIENE (voce Z-C8): una lavorazione che non si e'
                     // lasciata contare non e' una lavorazione «senza facce», e
                     // toglierla dall'elenco la farebbe risultare sparita.
-                    int quante = FacceDellaFeature(f);
-                    if (quante != 0)
+                    int howMany = FeatureFaces(f);
+                    if (howMany != 0)
                     {
-                        viste++;
-                        try { fuori[f.Name] = quante; } catch { }
+                        views++;
+                        try { outside[f.Name] = howMany; } catch { }
                     }
                     f = f.GetNextFeature() as IFeature;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -5754,37 +5754,37 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Rimette una quota al valore di prima dopo un rifiuto, ricostruisce e
         /// RILEGGE il volume: la coda della frase di rifiuto. Sta in un metodo
-        /// solo perche' la usano due guardie di `ModificaQuota` (aperture che
+        /// solo perche' la usano due guardie di `SetDimension` (aperture che
         /// escono dal materiale, smussi che non ci stanno), e due copie dello
         /// stesso «ho rimesso» divergono alla prima correzione.
         /// </summary>
-        private static string RimettiLaQuota(
-            IModelDoc2 modello, IDimension quota, double prima, double? volumePrima,
-            Func<double, double> aSistema, string unita)
+        private static string PutBackDimension(
+            IModelDoc2 model, IDimension dimension, double before, double? volumeBefore,
+            Func<double, double> toSystem, string units)
         {
             // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
-            const int inTutteLeConfigurazioni = 2;
+            const int inAllConfigurations = 2;
             // Nella stessa unita' in cui `before` e' stata letta: gradi per una
             // quota angolare, mm per le altre (voce Z-C21.2, M3).
             try
             {
-                quota.SetSystemValue3(aSistema(prima), inTutteLeConfigurazioni, null);
-                modello.EditRebuild3();
-                double? tornato = VolumeMm3(modello);
-                return tornato == null || volumePrima == null
-                    ? " Ho rimesso " + prima.ToString("0.###") + " " + unita + ", ma non ho potuto " +
+                dimension.SetSystemValue3(toSystem(before), inAllConfigurations, null);
+                model.EditRebuild3();
+                double? returned = VolumeMm3(model);
+                return returned == null || volumeBefore == null
+                    ? " Ho rimesso " + before.ToString("0.###") + " " + units + ", ma non ho potuto " +
                       "rimisurare il volume per controllare che il pezzo sia com'era: guardalo."
-                    : Math.Abs(tornato.Value - volumePrima.Value) < 0.01
-                    ? " Non l'ho lasciato cosi': ho rimesso " + prima.ToString("0.###") +
-                      " " + unita + " e il pezzo e' com'era."
-                    : " Ho provato a rimettere " + prima.ToString("0.###") + " " + unita + ", ma il " +
-                      "volume adesso e' " + tornato.Value.ToString("0.##") + " mm3 invece di " +
-                      volumePrima.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
+                    : Math.Abs(returned.Value - volumeBefore.Value) < 0.01
+                    ? " Non l'ho lasciato cosi': ho rimesso " + before.ToString("0.###") +
+                      " " + units + " e il pezzo e' com'era."
+                    : " Ho provato a rimettere " + before.ToString("0.###") + " " + units + ", ma il " +
+                      "volume adesso e' " + returned.Value.ToString("0.##") + " mm3 invece di " +
+                      volumeBefore.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
             }
             catch (Exception ex)
             {
-                return " E non sono riuscito a rimettere " + prima.ToString("0.###") +
-                       " " + unita + " (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
+                return " E non sono riuscito a rimettere " + before.ToString("0.###") +
+                       " " + units + " (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
             }
         }
 
@@ -5798,38 +5798,38 @@ namespace Oce.Solid.Agent.Core
         /// facce di prima, e dopo di lei nell'albero c'e' uno smusso o un
         /// raccordo. Un conteggio -1 non entra: «non lo so» non e' «perso».
         /// </summary>
-        private static string SmussoCheNonCiSta(
-            IModelDoc2 modello, Dictionary<string, int> prima, Dictionary<string, int> dopo)
+        private static string ChamferThatDoesNotFit(
+            IModelDoc2 model, Dictionary<string, int> before, Dictionary<string, int> after)
         {
-            if (modello == null || prima == null || dopo == null) return null;
-            string perdente = null, quanto = null;
+            if (model == null || before == null || after == null) return null;
+            string loser = null, howMuch = null;
             try
             {
-                var f = modello.FirstFeature() as IFeature;
-                int viste = 0;
-                while (f != null && viste < 400)
+                var f = model.FirstFeature() as IFeature;
+                int views = 0;
+                while (f != null && views < 400)
                 {
-                    viste++;
-                    string nome = null, tipo = null;
-                    try { nome = f.Name; tipo = f.GetTypeName2(); } catch { }
-                    if (nome != null && tipo != null)
+                    views++;
+                    string itemName = null, typ = null;
+                    try { itemName = f.Name; typ = f.GetTypeName2(); } catch { }
+                    if (itemName != null && typ != null)
                     {
-                        bool eUnTaglio = tipo == "Cut" || tipo == "ICE" || tipo == "HoleWzd" ||
-                                         tipo.IndexOf("Cut", StringComparison.OrdinalIgnoreCase) >= 0;
-                        bool eSmussoORaccordo = tipo == "Chamfer" ||
-                                                tipo.IndexOf("Fillet", StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool isCut = typ == "Cut" || typ == "ICE" || typ == "HoleWzd" ||
+                                         typ.IndexOf("Cut", StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool isChamferOrFillet = typ == "Chamfer" ||
+                                                typ.IndexOf("Fillet", StringComparison.OrdinalIgnoreCase) >= 0;
                         int p, d;
-                        if (perdente == null && !eUnTaglio && !eSmussoORaccordo &&
-                            prima.TryGetValue(nome, out p) && dopo.TryGetValue(nome, out d) &&
+                        if (loser == null && !isCut && !isChamferOrFillet &&
+                            before.TryGetValue(itemName, out p) && after.TryGetValue(itemName, out d) &&
                             p >= 0 && d >= 0 && d < p)
                         {
-                            perdente = nome;
-                            quanto = p + " -> " + d;
+                            loser = itemName;
+                            howMuch = p + " -> " + d;
                         }
-                        else if (perdente != null && eSmussoORaccordo)
+                        else if (loser != null && isChamferOrFillet)
                         {
-                            return (tipo == "Chamfer" ? "lo smusso «" : "il raccordo «") + nome +
-                                   "» si prende una faccia intera di «" + perdente + "» (" + quanto +
+                            return (typ == "Chamfer" ? "lo smusso «" : "il raccordo «") + itemName +
+                                   "» si prende una faccia intera di «" + loser + "» (" + howMuch +
                                    " facce)";
                         }
                     }
@@ -5840,42 +5840,42 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        private static string LavorazioniCambiate(
-            Dictionary<string, int> prima, Dictionary<string, int> dopo,
-            Dictionary<string, object> misure)
+        private static string ChangedFeatures(
+            Dictionary<string, int> before, Dictionary<string, int> after,
+            Dictionary<string, object> measurements)
         {
-            var perse = new List<string>();
-            var prese = new List<string>();
-            var sparite = new List<string>();
+            var lost = new List<string>();
+            var taken = new List<string>();
+            var disappeared = new List<string>();
 
-            foreach (var voce in prima)
+            foreach (var entry in before)
             {
-                if (voce.Value < 0) continue;
-                int ora;
-                if (!dopo.TryGetValue(voce.Key, out ora)) { sparite.Add(voce.Key); continue; }
-                if (ora < 0) continue;
-                if (ora < voce.Value) perse.Add(voce.Key + " " + voce.Value + " -> " + ora);
-                else if (ora > voce.Value) prese.Add(voce.Key + " " + voce.Value + " -> " + ora);
+                if (entry.Value < 0) continue;
+                int now;
+                if (!after.TryGetValue(entry.Key, out now)) { disappeared.Add(entry.Key); continue; }
+                if (now < 0) continue;
+                if (now < entry.Value) lost.Add(entry.Key + " " + entry.Value + " -> " + now);
+                else if (now > entry.Value) taken.Add(entry.Key + " " + entry.Value + " -> " + now);
             }
 
-            if (perse.Count == 0 && prese.Count == 0 && sparite.Count == 0) return null;
+            if (lost.Count == 0 && taken.Count == 0 && disappeared.Count == 0) return null;
 
-            if (perse.Count > 0) misure["features_with_fewer_faces"] = perse.ToArray();
-            if (prese.Count > 0) misure["features_with_more_faces"] = prese.ToArray();
-            if (sparite.Count > 0) misure["features_gone"] = sparite.ToArray();
+            if (lost.Count > 0) measurements["features_with_fewer_faces"] = lost.ToArray();
+            if (taken.Count > 0) measurements["features_with_more_faces"] = taken.ToArray();
+            if (disappeared.Count > 0) measurements["features_gone"] = disappeared.ToArray();
 
-            var righe = new List<string>();
-            if (sparite.Count > 0)
-                righe.Add("non hanno piu' nessuna faccia: " + string.Join(", ", sparite));
-            if (perse.Count > 0)
-                righe.Add("hanno perso facce: " + string.Join(", ", perse) +
+            var lines = new List<string>();
+            if (disappeared.Count > 0)
+                lines.Add("non hanno piu' nessuna faccia: " + string.Join(", ", disappeared));
+            if (lost.Count > 0)
+                lines.Add("hanno perso facce: " + string.Join(", ", lost) +
                           ". Un taglio cieco che perde una faccia di solito e' " +
                           "diventato PASSANTE: il fondo non c'e' piu'");
-            if (prese.Count > 0)
-                righe.Add("hanno preso facce: " + string.Join(", ", prese));
+            if (taken.Count > 0)
+                lines.Add("hanno preso facce: " + string.Join(", ", taken));
 
             return "La quota nuova ha cambiato l'albero, non solo le misure: " +
-                   string.Join("; ", righe) + ".";
+                   string.Join("; ", lines) + ".";
         }
 
         /// <summary>
@@ -5890,14 +5890,14 @@ namespace Oce.Solid.Agent.Core
         /// Chi confronta due conteggi deve guardare prima che siano tutti e due
         /// >= 0: un -1 dentro una differenza e' un numero inventato.
         /// </summary>
-        private static int ContaCorpiSolidi(IModelDoc2 modello)
+        private static int CountSolidBodies(IModelDoc2 model)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return -1;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return -1;
             try
             {
-                var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-                return corpi == null ? 0 : corpi.Length;
+                var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                return bodies == null ? 0 : bodies.Length;
             }
             catch { return -1; }
         }
@@ -5907,32 +5907,32 @@ namespace Oce.Solid.Agent.Core
         /// lo so»). Un campo null si legge come «non misurato»; un -1 si
         /// leggerebbe come un numero.
         /// </summary>
-        private static object NumeroOppureNull(int n)
+        private static object NumberOrNull(int n)
         {
             return n >= 0 ? (object)n : null;
         }
 
         /// <summary>Un volume per il diario: il numero, o «?» se non si e' letto.</summary>
-        private static string Letto(double? v)
+        private static string ReadValue(double? v)
         {
             return v.HasValue ? v.Value.ToString("0.#") : "?";
         }
 
         /// <summary>Un volume per una risposta: arrotondato, o null se non si e' letto.</summary>
-        private static object NumeroOppureNull(double? v, int cifre)
+        private static object NumberOrNull(double? v, int digits)
         {
-            return v.HasValue ? (object)Math.Round(v.Value, cifre) : null;
+            return v.HasValue ? (object)Math.Round(v.Value, digits) : null;
         }
 
         /// <summary>
         /// Il rifiuto quando il volume non si legge PRIMA di fare qualcosa
         /// (voce Z-C8). Non costa niente: non si e' ancora toccato il pezzo, e
         /// senza quel numero ogni controllo dopo sarebbe un confronto con
-        /// l'aria. E' la stessa strada di `SpostaCorpi` con `MassaDi`.
+        /// l'aria. E' la stessa strada di `MoveBodies` con `MassOf`.
         /// </summary>
-        private static string VolumeNonLettoPrima(string cosa)
+        private static string VolumeNotReadBefore(string what)
         {
-            return "Non riesco a misurare il volume del pezzo prima di " + cosa + ": senza quel " +
+            return "Non riesco a misurare il volume del pezzo prima di " + what + ": senza quel " +
                    "numero non saprei dirti cosa e' cambiato. Non ho toccato niente.";
         }
 
@@ -5941,10 +5941,10 @@ namespace Oce.Solid.Agent.Core
         /// rifiuta: la lavorazione c'e', e buttarla per una lettura fallita
         /// sarebbe peggio. Non si scrive nemmeno un numero: si dice che i
         /// controlli sul materiale non sono stati fatti. E' la regola di
-        /// `NotaSulVolume` e del guscio, «la guardia tace invece di inventare»,
+        /// `NoteOnVolume` e del guscio, «la guardia tace invece di inventare»,
         /// detta a voce alta.
         /// </summary>
-        private const string NotaVolumeNonRiletto =
+        private const string NoteVolumeNotReread =
             "Dopo la lavorazione non sono riuscito a rimisurare il volume del pezzo: la " +
             "lavorazione c'e', ma i controlli sul materiale tolto o aggiunto non li ho potuti " +
             "fare. Guarda il pezzo prima di andare avanti.";
@@ -5954,7 +5954,7 @@ namespace Oce.Solid.Agent.Core
         /// potuto leggere** (voce Z-C8).
         ///
         /// Diceva «zero se non si legge», e duemila righe piu' su
-        /// `NotaSulVolume` spiegava perche' quello zero era un'affermazione
+        /// `NoteOnVolume` spiegava perche' quello zero era un'affermazione
         /// falsa — difendendosi da sola, e lasciando il buco a tutti gli altri
         /// chiamanti. Adesso il tipo lo dice: `double?`, e il compilatore
         /// impedisce di sommarlo o arrotondarlo senza guardare.
@@ -5973,16 +5973,16 @@ namespace Oce.Solid.Agent.Core
         /// e cosi' per tutte e undici le taglie da M3 a M24. Su un vettore
         /// letto male quei numeri non tornerebbero.
         /// </summary>
-        private static double? VolumeMm3(IModelDoc2 modello)
+        private static double? VolumeMm3(IModelDoc2 model)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return null;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return null;
             double v = 0;
             try
             {
-                var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-                if (corpi == null) return 0;
-                foreach (var c in corpi)
+                var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                if (bodies == null) return 0;
+                foreach (var c in bodies)
                 {
                     var mp = (c as IBody2)?.GetMassProperties(1000.0) as double[];
                     if (mp == null || mp.Length <= 4) return null;
@@ -6014,35 +6014,35 @@ namespace Oce.Solid.Agent.Core
         /// Mettere due strade sotto lo stesso commento non e' meno pericoloso
         /// che mettere due copie sotto due nomi.
         /// </summary>
-        /// <param name="misuraMassima">
+        /// <param name="maximumMeasure">
         /// Raggio o lato: non puo' superare meta' dello spigolo. Zero = non
         /// controllare.
         /// </param>
-        private bool SelezionaSpigoli(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato,
-            double misuraMassima, out int quanti, out string motivo)
+        private bool SelectEdges(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState,
+            double maximumMeasure, out int howMany, out string reason)
         {
-            quanti = 0;
-            motivo = null;
-            var uid = Lista(a, "edges_uid");
+            howMany = 0;
+            reason = null;
+            var uid = StringList(a, "edges_uid");
 
             // ── Spigoli nominati per riferimento a un passo precedente ──
             //
             // «Arrotonda i quattro angoli della piastra che fai al passo 1»:
             // quando il piano e' stato scritto quegli spigoli non esistevano.
             // Adesso esistono, e il selettore li trova.
-            if (HaRiferimento(a, "edges_ref"))
+            if (HasReference(a, "edges_ref"))
             {
-                int numero;
-                var passo = PassoCitato(a, "edges_ref", out numero, out motivo);
-                if (passo == null)
+                int number;
+                var planStep = CitedStep(a, "edges_ref", out number, out reason);
+                if (planStep == null)
                 {
-                    motivo = motivo ?? "Riferimento non risolto.";
+                    reason = reason ?? "Riferimento non risolto.";
                     return false;
                 }
 
-                List<IEntity> trovati;
-                if (!Riferimenti.Spigoli(passo, GenereDi(a, "edges_ref"), out trovati, out motivo))
+                List<IEntity> foundItems;
+                if (!References.Edges(planStep, KindOf(a, "edges_ref"), out foundItems, out reason))
                     return false;
 
                 // LA MISURA SI CONTROLLA ANCHE QUI, e fino alla 0.25.2 no.
@@ -6060,30 +6060,30 @@ namespace Oce.Solid.Agent.Core
                 // arrivano dal passo, non dallo stato — quindi si misurano
                 // adesso, che e' anche il momento giusto: fra la proposta e
                 // l'esecuzione il pezzo puo' essere cambiato.
-                if (misuraMassima > 0)
+                if (maximumMeasure > 0)
                 {
-                    double corto = 0;
-                    foreach (var e in trovati)
+                    double shorter = 0;
+                    foreach (var e in foundItems)
                     {
-                        double lung = StatoDocumento.LunghezzaMm(e as IEdge);
-                        if (lung <= 0) continue;          // non misurabile: non si inventa un verdetto
-                        if (misuraMassima <= lung / 2) continue;
-                        if (corto == 0 || lung < corto) corto = lung;
+                        double len = DocumentState.LengthMm(e as IEdge);
+                        if (len <= 0) continue;          // non misurabile: non si inventa un verdetto
+                        if (maximumMeasure <= len / 2) continue;
+                        if (shorter == 0 || len < shorter) shorter = len;
                     }
-                    if (corto > 0)
+                    if (shorter > 0)
                     {
-                        motivo = string.Format(
+                        reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
                             "{0:0.##} mm e' troppo per gli spigoli del passo {1}: il piu' corto " +
                             "e' lungo {2:0.##} mm, e non ci sta neanche meta'. " +
                             "Il massimo che ci sta e' {3:0.##} mm.",
-                            misuraMassima, numero, corto, corto / 2);
+                            maximumMeasure, number, shorter, shorter / 2);
                         return false;
                     }
                 }
 
-                modello.ClearSelection2(true);
-                foreach (var e in trovati) e.Select4(true, null);
+                model.ClearSelection2(true);
+                foreach (var e in foundItems) e.Select4(true, null);
 
                 // IL NUMERO VERO LO DICE SOLIDWORKS, NON IL CONTEGGIO NOSTRO.
                 // La stessa entita' incontrata su due facce si seleziona una
@@ -6091,66 +6091,66 @@ namespace Oce.Solid.Agent.Core
                 // finirebbe nel messaggio che l'utente legge dopo.
                 try
                 {
-                    var selezione = modello.SelectionManager as ISelectionMgr;
-                    if (selezione != null) quanti = selezione.GetSelectedObjectCount2(-1);
+                    var selection = model.SelectionManager as ISelectionMgr;
+                    if (selection != null) howMany = selection.GetSelectedObjectCount2(-1);
                 }
                 catch { }
-                if (quanti == 0)
+                if (howMany == 0)
                 {
-                    motivo = "Gli spigoli del passo " + numero +
+                    reason = "Gli spigoli del passo " + number +
                              " non si sono lasciati selezionare.";
                     return false;
                 }
-                _log("[agente] " + quanti + " spigoli presi dal passo " + numero);
+                _log("[agente] " + howMany + " spigoli presi dal passo " + number);
                 return true;
             }
 
             if (uid.Count == 0)
             {
-                motivo = "Nessuno spigolo indicato.";
+                reason = "Nessuno spigolo indicato.";
                 return false;
             }
 
-            modello.ClearSelection2(true);
-            int selezionati = 0;
+            model.ClearSelection2(true);
+            int selected = 0;
             foreach (var u in uid)
             {
                 // Anche gli spigoli sono numerati per posizione, ordinati per
                 // lunghezza: dopo un passo che cambia il corpo, «E7» e' un
                 // altro spigolo. Stesso controllo delle facce, e dalla voce E19
                 // la stessa ricerca per firma.
-                var firma = FirmaDelloSpigolo(
-                    a, stato, u, "Lo spigolo «" + u + "» non c'e' piu' in questo documento.",
-                    out motivo);
-                if (firma == null) return false;
-                var spigolo = firma.Entita as IEntity;
-                if (spigolo == null)
+                var signature = EdgeSignature(
+                    a, docState, u, "Lo spigolo «" + u + "» non c'e' piu' in questo documento.",
+                    out reason);
+                if (signature == null) return false;
+                var edge = signature.Entity as IEntity;
+                if (edge == null)
                 {
-                    motivo = "Lo spigolo «" + u + "» non e' piu' selezionabile.";
+                    reason = "Lo spigolo «" + u + "» non e' piu' selezionabile.";
                     return false;
                 }
 
                 // La misura non puo' superare meta' dello spigolo: il controllo
                 // si rifa' QUI, sulla lunghezza misurata adesso, perche' fra la
                 // proposta e l'esecuzione il pezzo puo' essere cambiato.
-                if (misuraMassima > 0 && firma.Misura > 0 && misuraMassima > firma.Misura / 2)
+                if (maximumMeasure > 0 && signature.Measure > 0 && maximumMeasure > signature.Measure / 2)
                 {
-                    motivo = string.Format(
+                    reason = string.Format(
                         "{0:0.##} mm e' troppo per lo spigolo «{1}», lungo {2:0.##} mm: " +
                         "non ci sta neanche meta'.",
-                        misuraMassima, u, firma.Misura);
+                        maximumMeasure, u, signature.Measure);
                     return false;
                 }
 
-                if (!spigolo.Select4(true, null))
+                if (!edge.Select4(true, null))
                 {
-                    motivo = "Non sono riuscito a selezionare lo spigolo «" + u + "».";
+                    reason = "Non sono riuscito a selezionare lo spigolo «" + u + "».";
                     return false;
                 }
-                selezionati++;
+                selected++;
             }
 
-            quanti = selezionati;
+            howMany = selected;
             return true;
         }
 
@@ -6159,13 +6159,13 @@ namespace Oce.Solid.Agent.Core
         /// is the volume read before the selection, for EdgeFeatureVolumeCheck
         /// (Z-C21.8, finding M37).
         /// </summary>
-        private Esito EseguiRaccordo(IModelDoc2 modello, double raggio, int quantiSpigoli, double? volumeBefore)
+        private Outcome RunFillet(IModelDoc2 model, double radius, int howManyEdges, double? volumeBefore)
         {
-            var opzioni = (int)(swFeatureFilletOptions_e.swFeatureFilletUniformRadius |
+            var options = (int)(swFeatureFilletOptions_e.swFeatureFilletUniformRadius |
                                 swFeatureFilletOptions_e.swFeatureFilletPropagate);
-            var feature = modello.FeatureManager.FeatureFillet3(
-                Options: opzioni,
-                R1: Unita.M(raggio),
+            var feature = model.FeatureManager.FeatureFillet3(
+                Options: options,
+                R1: Units.M(radius),
                 R2: 0,
                 Rho: 0,
                 Ftyp: (int)swFeatureFilletType_e.swFeatureFilletType_Simple,
@@ -6179,18 +6179,18 @@ namespace Oce.Solid.Agent.Core
                 PointDist2Array: null,
                 PointRhoArray: null) as IFeature;
 
-            if (feature == null) return Fallito("Il raccordo non e' stato creato.");
+            if (feature == null) return Failed("Il raccordo non e' stato creato.");
             var measures = new Dictionary<string, object>
             {
-                ["radius_mm"] = raggio,
-                ["edges"] = quantiSpigoli,
+                ["radius_mm"] = radius,
+                ["edges"] = howManyEdges,
             };
-            SelectedEdgesAndFaces(feature, quantiSpigoli, measures);
+            SelectedEdgesAndFaces(feature, howManyEdges, measures);
             // After the counts, which SelectedEdgesAndFaces reads right after
             // creation as the probe did: the check rebuilds before measuring.
-            string filletUnchanged = EdgeFeatureVolumeCheck(modello, "fillet", volumeBefore, measures);
-            if (filletUnchanged != null) return Fallito(filletUnchanged);
-            return Riuscito(feature, measures);
+            string filletUnchanged = EdgeFeatureVolumeCheck(model, "fillet", volumeBefore, measures);
+            if (filletUnchanged != null) return Failed(filletUnchanged);
+            return Succeeded(feature, measures);
         }
 
         /// <summary>
@@ -6207,7 +6207,7 @@ namespace Oce.Solid.Agent.Core
         /// new feature (IFeature~GetFaceCount.html: «Gets the number of faces in
         /// this feature»), read right after creation as the probe read it. The
         /// document state carries the same two fields for every fillet and
-        /// chamfer (StatoDocumento.EdgeAndFaceCounts).
+        /// chamfer (DocumentState.EdgeAndFaceCounts).
         /// </summary>
         private static void SelectedEdgesAndFaces(IFeature feature, int selected, Dictionary<string, object> measures)
         {
@@ -6220,23 +6220,23 @@ namespace Oce.Solid.Agent.Core
             catch { }
         }
 
-        private Esito RipetiCircolare(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CircularPattern(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            double? volumePrima; int corpiPrima, faccePrima;
-            Fotografia(modello, out volumePrima, out corpiPrima, out faccePrima);
-            if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
-                return Fallito(VolumeNonLettoPrima("fare la copia"));
+            double? volumeBefore; int bodiesBefore, facesBefore;
+            Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
+            if (volumeBefore == null || bodiesBefore < 0 || facesBefore < 0)
+                return Failed(VolumeNotReadBefore("fare la copia"));
 
-            int istanze = (int)Num(a, "instance_count");
-            double angolo = Num(a, "total_angle_deg", 360);
+            int instances = (int)Num(a, "instance_count");
+            double angle = Num(a, "total_angle_deg", 360);
             string featureUid = Str(a, "feature_uid", "");
 
-            modello.ClearSelection2(true);
+            model.ClearSelection2(true);
             // L'asse va selezionato per PRIMO con Mark = 1: la ripetizione
             // circolare prende la direzione dalla selezione, non dai parametri.
-            string perche;
-            if (!SelezionaAsse(modello, a, "axis", stato, SelectionMarks.CircularPatternAxis, append: false, out perche)) return Fallito(perche);
+            string why;
+            if (!SelectAxis(model, a, "axis", docState, SelectionMarks.CircularPatternAxis, append: false, out why)) return Failed(why);
 
             // La lavorazione da ripetere puo' essere quella fatta da un passo
             // precedente di questo stesso piano — «fai un foro e ripetilo 6
@@ -6244,27 +6244,27 @@ namespace Oce.Solid.Agent.Core
             // nome che SolidWorks le ha dato lo sapremmo solo rileggendolo, e
             // sarebbe un giro in piu' per arrivare alla stessa feature che
             // gia' abbiamo in mano.
-            if (HaRiferimento(a, "feature_ref"))
+            if (HasReference(a, "feature_ref"))
             {
-                int numero;
-                var precedente = PassoCitato(a, "feature_ref", out numero, out perche);
-                if (precedente == null) return Fallito(perche ?? "Riferimento non risolto.");
-                if (precedente.Feature == null)
-                    return Fallito($"Il passo {numero} non ha lasciato una lavorazione da ripetere.");
-                if (!precedente.Feature.Select2(true, SelectionMarks.CircularPatternFeatures))
-                    return Fallito($"Non sono riuscito a selezionare la lavorazione del passo {numero}.");
-                _log($"[agente] ripeto la lavorazione del passo {numero}");
+                int number;
+                var previous = CitedStep(a, "feature_ref", out number, out why);
+                if (previous == null) return Failed(why ?? "Riferimento non risolto.");
+                if (previous.Feature == null)
+                    return Failed($"Il passo {number} non ha lasciato una lavorazione da ripetere.");
+                if (!previous.Feature.Select2(true, SelectionMarks.CircularPatternFeatures))
+                    return Failed($"Non sono riuscito a selezionare la lavorazione del passo {number}.");
+                _log($"[agente] ripeto la lavorazione del passo {number}");
             }
-            else if (!modello.Extension.SelectByID2(featureUid, "BODYFEATURE", 0, 0, 0, true, SelectionMarks.CircularPatternFeatures, null, 0))
+            else if (!model.Extension.SelectByID2(featureUid, "BODYFEATURE", 0, 0, 0, true, SelectionMarks.CircularPatternFeatures, null, 0))
             {
-                return Fallito($"Non ho trovato la lavorazione «{featureUid}» da ripetere.");
+                return Failed($"Non ho trovato la lavorazione «{featureUid}» da ripetere.");
             }
 
-            var seme = SemeSelezionato(modello, SelectionMarks.CircularPatternFeatures);
+            var seed = SelectedSeed(model, SelectionMarks.CircularPatternFeatures);
 
-            var feature = modello.FeatureManager.FeatureCircularPattern5(
-                Number: istanze,
-                Spacing: Unita.Rad(angolo),
+            var feature = model.FeatureManager.FeatureCircularPattern5(
+                Number: instances,
+                Spacing: Units.Rad(angle),
                 FlipDirection: false,
                 DName: "",
                 GeometryPattern: false,
@@ -6278,25 +6278,25 @@ namespace Oce.Solid.Agent.Core
                 DName2: "",
                 EqualSpacing2: false) as IFeature;
 
-            if (feature == null) return Fallito("La ripetizione non e' stata creata.");
-            var misure = new Dictionary<string, object>
+            if (feature == null) return Failed("La ripetizione non e' stata creata.");
+            var measurements = new Dictionary<string, object>
             {
-                ["instances"] = istanze,
-                ["angle_deg"] = angolo,
+                ["instances"] = instances,
+                ["angle_deg"] = angle,
             };
-            var fermo = ConfrontaCopia(
-                modello, volumePrima, corpiPrima, faccePrima, misure,
+            var stopped = CompareCopy(
+                model, volumeBefore, bodiesBefore, facesBefore, measurements,
                 "La ripetizione circolare");
-            if (fermo != null) return Fallito(fermo);
+            if (stopped != null) return Failed(stopped);
 
-            var mancanti = CopieMancanti(
-                misure, feature, seme, istanze - 1, "La ripetizione circolare",
+            var missingItems = MissingCopies(
+                measurements, feature, seed, instances - 1, "La ripetizione circolare",
                 "Con un angolo minore del giro intero le copie si fermano dove " +
                 "finisce l'arco: controlla «total_angle_deg», oppure porta " +
                 "le istanze a quante ce ne stanno.");
-            if (mancanti != null) return Fallito(mancanti);
+            if (missingItems != null) return Failed(missingItems);
 
-            return Riuscito(feature, misure);
+            return Succeeded(feature, measurements);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -6340,9 +6340,9 @@ namespace Oce.Solid.Agent.Core
         /// it today; the names before and after are what FeatureBorn already
         /// uses for every other feature a call makes.
         /// </summary>
-        private static IFeature SchizzoAppenaCreato(IModelDoc2 modello, HashSet<string> namesBeforeSketch, out int born)
+        private static IFeature JustCreatedSketch(IModelDoc2 model, HashSet<string> namesBeforeSketch, out int born)
         {
-            return FeatureBorn(modello, namesBeforeSketch, "ProfileFeature", out born);
+            return FeatureBorn(model, namesBeforeSketch, "ProfileFeature", out born);
         }
 
         /// <summary>
@@ -6377,30 +6377,30 @@ namespace Oce.Solid.Agent.Core
         /// parameters were right: the selection was missing.
         ///
         /// WHICH SKETCH: the one born since <paramref name="namesBeforeSketch"/>
-        /// (<see cref="SchizzoAppenaCreato"/>), never the last of the tree.
+        /// (<see cref="JustCreatedSketch"/>), never the last of the tree.
         /// </summary>
-        private bool SelezionaSchizzoAppenaCreato(IModelDoc2 modello, HashSet<string> namesBeforeSketch, out string errore)
+        private bool SelectJustCreatedSketch(IModelDoc2 model, HashSet<string> namesBeforeSketch, out string error)
         {
-            errore = null;
+            error = null;
             int born;
-            var schizzo = SchizzoAppenaCreato(modello, namesBeforeSketch, out born);
-            if (schizzo == null)
+            var sketch = JustCreatedSketch(model, namesBeforeSketch, out born);
+            if (sketch == null)
             {
-                errore = SketchNotIdentified(born, "Non ritrovo lo schizzo che ho appena creato.");
+                error = SketchNotIdentified(born, "Non ritrovo lo schizzo che ho appena creato.");
                 return false;
             }
             try
             {
-                modello.ClearSelection2(true);
-                if (!schizzo.Select2(false, 0))
+                model.ClearSelection2(true);
+                if (!sketch.Select2(false, 0))
                 {
-                    errore = "Non sono riuscito a selezionare lo schizzo appena creato.";
+                    error = "Non sono riuscito a selezionare lo schizzo appena creato.";
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                errore = "Selezione dello schizzo non riuscita: " + ex.Message;
+                error = "Selezione dello schizzo non riuscita: " + ex.Message;
                 return false;
             }
             return true;
@@ -6420,7 +6420,7 @@ namespace Oce.Solid.Agent.Core
         /// file — non prendere iniziative dentro il documento di qualcuno —
         /// resta valida per le feature che hanno TOLTO o AGGIUNTO materiale:
         /// quelle si annullano con Ctrl+Z e basta (vedi
-        /// <see cref="RestaNelPezzo"/>). Uno schizzo che non ha prodotto niente
+        /// <see cref="RemainsInPart"/>). Uno schizzo che non ha prodotto niente
         /// e' un caso diverso: non e' una modifica del pezzo, e' un rifiuto
         /// nostro rimasto per terra. Toglierlo non e' iniziativa, e' pulizia.
         ///
@@ -6501,15 +6501,15 @@ namespace Oce.Solid.Agent.Core
         ///
         /// E DOPO SI MISURA. Volume, numero di corpi e numero di feature: il
         /// primo e il secondo devono essere identici, il terzo dev'essere
-        /// calato di UNO. Se non torna, si dice <see cref="SchizzoToltoMaNonSolo"/>,
-        /// che e' la sola risposta onesta: <see cref="LasciatoSchizzo"/> a quel
+        /// calato di UNO. Se non torna, si dice <see cref="SketchRemovedButNotOnlyIt"/>,
+        /// che e' la sola risposta onesta: <see cref="LeftSketchBehind"/> a quel
         /// punto sarebbe una bugia che copre un danno.
         /// </summary>
         /// <returns>
         /// Stringa vuota se lo schizzo e' stato tolto e il pezzo e' quello di
         /// prima — non c'e' niente da aggiungere al motivo del fallimento;
-        /// <see cref="LasciatoSchizzo"/> se non si e' potuto toglierlo;
-        /// <see cref="SchizzoToltoMaNonSolo"/> se toglierlo ha cambiato il pezzo.
+        /// <see cref="LeftSketchBehind"/> se non si e' potuto toglierlo;
+        /// <see cref="SketchRemovedButNotOnlyIt"/> se toglierlo ha cambiato il pezzo.
         /// </returns>
         // ══════════════════════════════════════════════════════════════════
         // R2 — TOGLIERE una lavorazione dall'albero
@@ -6528,24 +6528,24 @@ namespace Oce.Solid.Agent.Core
         // **Le lavorazioni hanno figli.** Togliere l'estrusione di base fa
         // crollare tutto quello che ci sta sopra, e SOLIDWORKS lo fa **senza
         // chiedere**. La guardia `IGetChildCount()` esisteva gia' per lo
-        // schizzo orfano (`SenzaLoSchizzo`, punto 4); qui e' estesa, e quando
+        // schizzo orfano (`WithoutSketch`, punto 4); qui e' estesa, e quando
         // ci sono figli **si rifiuta dicendo quali** — non si sceglie per conto
         // di chi disegna.
         // ══════════════════════════════════════════════════════════════════
 
         /// <summary>La lavorazione che porta quel nome, o null.</summary>
-        private static IFeature TrovaLavorazione(IModelDoc2 modello, string uid)
+        private static IFeature FindFeature(IModelDoc2 model, string uid)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return null;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return null;
             try
             {
-                var f = parte.IFirstFeature();
+                var f = partDoc.IFirstFeature();
                 while (f != null)
                 {
-                    string nome = null;
-                    try { nome = f.Name; } catch { }
-                    if (string.Equals(nome, uid, StringComparison.OrdinalIgnoreCase)) return f;
+                    string itemName = null;
+                    try { itemName = f.Name; } catch { }
+                    if (string.Equals(itemName, uid, StringComparison.OrdinalIgnoreCase)) return f;
                     f = f.IGetNextFeature();
                 }
             }
@@ -6561,22 +6561,22 @@ namespace Oce.Solid.Agent.Core
         /// Raccordo2» gli dice cosa deve togliere prima, o gli fa capire che ha
         /// sbagliato lavorazione.
         /// </summary>
-        private static List<string> FigliDi(IFeature f)
+        private static List<string> ChildrenOf(IFeature f)
         {
-            var nomi = new List<string>();
+            var names = new List<string>();
             try
             {
-                var figli = f.GetChildren() as object[];
-                if (figli == null) return nomi;
-                foreach (var g in figli)
+                var children = f.GetChildren() as object[];
+                if (children == null) return names;
+                foreach (var g in children)
                 {
-                    var figlio = g as IFeature;
-                    if (figlio == null) continue;
-                    try { nomi.Add(figlio.Name); } catch { }
+                    var child = g as IFeature;
+                    if (child == null) continue;
+                    try { names.Add(child.Name); } catch { }
                 }
             }
             catch { }
-            return nomi;
+            return names;
         }
 
         /// <summary>
@@ -6584,38 +6584,38 @@ namespace Oce.Solid.Agent.Core
         /// invece di constatare. Corto: dodici bastano a far capire la forma
         /// dei nomi.
         /// </summary>
-        private static string LavorazioniCheCiSono(IModelDoc2 modello)
+        private static string FeaturesThatExist(IModelDoc2 model)
         {
-            var nomi = new List<string>();
-            var parte = modello as IPartDoc;
-            if (parte == null) return "";
+            var names = new List<string>();
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) return "";
             try
             {
-                var f = parte.IFirstFeature();
-                while (f != null && nomi.Count < 12)
+                var f = partDoc.IFirstFeature();
+                while (f != null && names.Count < 12)
                 {
-                    string nome = null;
-                    try { nome = f.Name; } catch { }
-                    if (!string.IsNullOrEmpty(nome)) nomi.Add(nome);
+                    string itemName = null;
+                    try { itemName = f.Name; } catch { }
+                    if (!string.IsNullOrEmpty(itemName)) names.Add(itemName);
                     f = f.IGetNextFeature();
                 }
             }
             catch { }
-            return string.Join(", ", nomi);
+            return string.Join(", ", names);
         }
 
         /// <summary>
         /// La lavorazione nominata, con tutti i controlli che valgono per
         /// tutte e due le operazioni. Null col motivo se non si puo'.
         /// </summary>
-        private IFeature LavorazioneDaToccare(
-            IModelDoc2 modello, Dictionary<string, object> a, out string motivo)
+        private IFeature FeatureToTouch(
+            IModelDoc2 model, Dictionary<string, object> a, out string reason)
         {
-            motivo = null;
+            reason = null;
             string uid = Str(a, "feature_uid", "");
             if (string.IsNullOrWhiteSpace(uid))
             {
-                motivo = "Non hai detto quale lavorazione. I nomi stanno nello " +
+                reason = "Non hai detto quale lavorazione. I nomi stanno nello " +
                          "stato del documento, dentro «feature» (per esempio " +
                          "«Taglio-Estrusione2»).";
                 return null;
@@ -6624,24 +6624,24 @@ namespace Oce.Solid.Agent.Core
             // E' ANCORA QUELLA? Un nome si rinomina, `GetID()` no. Stessa
             // difesa di `linear_pattern` e `mirror`, e qui pesa di piu':
             // la' si copia una lavorazione sbagliata, qui la si cancella.
-            if (!LavorazioneEQuella(modello, uid, a, out motivo)) return null;
+            if (!FeatureIsThatOne(model, uid, a, out reason)) return null;
 
-            var f = TrovaLavorazione(modello, uid);
+            var f = FindFeature(model, uid);
             if (f == null)
             {
-                string ci = LavorazioniCheCiSono(modello);
-                motivo = "Non trovo la lavorazione «" + uid + "» in questo documento." +
+                string ci = FeaturesThatExist(model);
+                reason = "Non trovo la lavorazione «" + uid + "» in questo documento." +
                          (ci.Length > 0 ? " Ci sono: " + ci + "." : "");
                 return null;
             }
 
             // L'ORIGINE NON SI TOCCA. E' uno schizzo speciale da cui puo'
             // dipendere tutto, e `GetChildren` non sempre lo racconta.
-            string tipo = "";
-            try { tipo = f.GetTypeName2(); } catch { }
-            if (tipo == OrigineDelPezzo)
+            string typ = "";
+            try { typ = f.GetTypeName2(); } catch { }
+            if (typ == PartOrigin)
             {
-                motivo = "«" + uid + "» e' l'origine del pezzo: non e' una " +
+                reason = "«" + uid + "» e' l'origine del pezzo: non e' una " +
                          "lavorazione e togliendola non resta niente.";
                 return null;
             }
@@ -6673,73 +6673,73 @@ namespace Oce.Solid.Agent.Core
         /// il foro e i suoi raccordi»). Diverso da `delete_feature`, dove
         /// i figli fermano tutto: li' non si torna indietro.
         /// </summary>
-        private Esito SopprimiLavorazione(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome SuppressFeature(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string motivo;
-            var f = LavorazioneDaToccare(modello, a, out motivo);
-            if (f == null) return Fallito(motivo);
+            string reason;
+            var f = FeatureToTouch(model, a, out reason);
+            if (f == null) return Failed(reason);
 
             string uid = Str(a, "feature_uid", "");
-            bool riattiva = Bool(a, "reactivate", false);
+            bool reactivate = Bool(a, "reactivate", false);
 
             // Z-C21.7 (S3): IsSuppressed2 in the active configuration, not the
             // obsolete IsSuppressed; guide page and probe numbers in
             // ApiHelpers.IsSuppressedHere.
-            bool eraSoppressa = false;
-            try { eraSoppressa = ApiHelpers.IsSuppressedHere(f); } catch { }
-            if (eraSoppressa == !riattiva)
+            bool wasSuppressed = false;
+            try { wasSuppressed = ApiHelpers.IsSuppressedHere(f); } catch { }
+            if (wasSuppressed == !reactivate)
             {
                 // GIA' COM'E' CHIESTA: non e' un errore, ed e' importante non
                 // trattarlo come tale — un piano che la chiede due volte non ha
                 // rotto niente. Ma non si dice «fatto» e basta, perche' allora
                 // «fatto» non distinguerebbe piu' un cambiamento da un nulla.
-                return Fallito(
+                return Failed(
                     "«" + uid + "» e' gia' " +
-                    (eraSoppressa ? "soppressa" : "attiva") +
+                    (wasSuppressed ? "soppressa" : "attiva") +
                     ": non ho cambiato niente. Se volevi il contrario, " +
-                    (eraSoppressa
+                    (wasSuppressed
                         ? "passa «reactivate»: true."
                         : "togli «reactivate»."));
             }
 
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            var figli = FigliDi(f);
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
+            var children = ChildrenOf(f);
 
             // IN TUTTE LE CONFIGURAZIONI, per la stessa ragione di
             // `set_dimension`: sopprimere in una sola lascerebbe il pezzo
             // diverso a seconda di come lo si guarda.
-            const int inTutteLeConfigurazioni = 2;
-            int azione = riattiva
+            const int inAllConfigurations = 2;
+            int action = reactivate
                 ? (int)swFeatureSuppressionAction_e.swUnSuppressFeature
                 : (int)swFeatureSuppressionAction_e.swSuppressFeature;
 
-            bool fatto;
-            try { fatto = f.SetSuppression2(azione, inTutteLeConfigurazioni, null); }
+            bool done;
+            try { done = f.SetSuppression2(action, inAllConfigurations, null); }
             catch (Exception ex)
             {
-                return Fallito("SOLIDWORKS non ha " +
-                               (riattiva ? "riattivato" : "soppresso") +
+                return Failed("SOLIDWORKS non ha " +
+                               (reactivate ? "riattivato" : "soppresso") +
                                " «" + uid + "»: " + ex.Message);
             }
-            if (!fatto)
-                return Fallito("SOLIDWORKS non ha " +
-                               (riattiva ? "riattivato" : "soppresso") +
+            if (!done)
+                return Failed("SOLIDWORKS non ha " +
+                               (reactivate ? "riattivato" : "soppresso") +
                                " «" + uid + "», e non ha detto perche'.");
 
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
 
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 ["feature"] = uid,
-                ["suppressed"] = !riattiva,
-                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["bodies"] = NumeroOppureNull(corpiDopo),
+                ["suppressed"] = !reactivate,
+                ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
+                ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["bodies"] = NumberOrNull(bodiesAfter),
                 // GLI IDENTIFICATIVI NON VALGONO PIU', e si dice sempre: e' il
                 // difetto piu' caro del progetto — un'operazione giusta fatta
                 // alla cieca — e qui la cecita' e' garantita.
@@ -6748,17 +6748,17 @@ namespace Oce.Solid.Agent.Core
                     "prima non valgono piu'. Rileggi il pezzo prima del passo " +
                     "seguente.",
             };
-            if (corpiPrima >= 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
-                misure["note_bodies"] =
-                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo + ".";
-            if (figli.Count > 0)
-                misure["note_children"] =
-                    "Da «" + uid + "» dipendono " + string.Join(", ", figli) +
-                    ": " + (riattiva ? "si sono riaccese con lei." : "si sono spente con lei.");
+            if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
+                measurements["note_bodies"] =
+                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter + ".";
+            if (children.Count > 0)
+                measurements["note_children"] =
+                    "Da «" + uid + "» dipendono " + string.Join(", ", children) +
+                    ": " + (reactivate ? "si sono riaccese con lei." : "si sono spente con lei.");
 
-            _log("[agente] " + (riattiva ? "riattivata" : "soppressa") + " " + uid +
-                 ", volume " + Letto(volumePrima) + " -> " + Letto(volumeDopo));
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] " + (reactivate ? "riattivata" : "soppressa") + " " + uid +
+                 ", volume " + ReadValue(volumeBefore) + " -> " + ReadValue(volumeAfter));
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -6772,7 +6772,7 @@ namespace Oce.Solid.Agent.Core
         /// chiedere**. Quindi si rifiuta, dicendo quali sono: chi legge decide
         /// se toglierli prima o se aveva in mente un'altra lavorazione.
         ///
-        /// E' la stessa guardia che `SenzaLoSchizzo` usa al punto 4, estesa da
+        /// E' la stessa guardia che `WithoutSketch` usa al punto 4, estesa da
         /// «lo schizzo che ho appena fatto io» a «una lavorazione qualunque».
         ///
         /// ── `DeleteSelection2` E NON `EditDelete` ─────────────────────────
@@ -6798,59 +6798,59 @@ namespace Oce.Solid.Agent.Core
         /// extrusion on its own sketch, took the sketch with it. Deleting A
         /// first is refused here anyway: the probe read IGetChildCount 1 on A.
         /// </summary>
-        private Esito EliminaLavorazione(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome DeleteFeature(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string motivo;
-            var f = LavorazioneDaToccare(modello, a, out motivo);
-            if (f == null) return Fallito(motivo);
+            string reason;
+            var f = FeatureToTouch(model, a, out reason);
+            if (f == null) return Failed(reason);
 
             string uid = Str(a, "feature_uid", "");
 
-            var figli = FigliDi(f);
-            int quantiFigli = 0;
-            try { quantiFigli = f.IGetChildCount(); } catch { quantiFigli = figli.Count; }
-            if (quantiFigli > 0)
-                return Fallito(
+            var children = ChildrenOf(f);
+            int howManyChildren = 0;
+            try { howManyChildren = f.IGetChildCount(); } catch { howManyChildren = children.Count; }
+            if (howManyChildren > 0)
+                return Failed(
                     "Non elimino «" + uid + "»: da lei " +
-                    (quantiFigli == 1 ? "dipende" : "dipendono") + " " +
-                    (figli.Count > 0
-                        ? string.Join(", ", figli)
-                        : quantiFigli + " lavorazion" + (quantiFigli == 1 ? "e" : "i")) +
-                    ". Cancellandola sparirebbe" + (quantiFigli == 1 ? "" : "ro") +
-                    " anche quell" + (quantiFigli == 1 ? "a" : "e") +
+                    (howManyChildren == 1 ? "dipende" : "dipendono") + " " +
+                    (children.Count > 0
+                        ? string.Join(", ", children)
+                        : howManyChildren + " lavorazion" + (howManyChildren == 1 ? "e" : "i")) +
+                    ". Cancellandola sparirebbe" + (howManyChildren == 1 ? "" : "ro") +
+                    " anche quell" + (howManyChildren == 1 ? "a" : "e") +
                     ", e SOLIDWORKS lo farebbe senza chiedere.\n\n" +
                     "Se e' proprio lei che vuoi togliere, togli prima cio' che " +
                     "ci sta sopra. Se ti serve solo vedere il pezzo senza, usa " +
                     "«suppress_feature»: spegne anche i figli e si disfa.");
 
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            int featurePrima = ContaFeature(modello);
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
+            int featureBefore = CountFeature(model);
 
-            bool tolta;
+            bool removed;
             try
             {
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
                 if (!f.Select2(false, 0))
-                    return Fallito("Non sono riuscito a selezionare «" + uid + "».");
-                tolta = modello.Extension.DeleteSelection2(
+                    return Failed("Non sono riuscito a selezionare «" + uid + "».");
+                removed = model.Extension.DeleteSelection2(
                     (int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
             catch (Exception ex)
             {
-                return Fallito("SOLIDWORKS non ha cancellato «" + uid + "»: " + ex.Message);
+                return Failed("SOLIDWORKS non ha cancellato «" + uid + "»: " + ex.Message);
             }
             finally
             {
-                try { modello.ClearSelection2(true); } catch { }
+                try { model.ClearSelection2(true); } catch { }
             }
 
-            if (!tolta)
-                return Fallito("SOLIDWORKS non ha cancellato «" + uid + "», e non ha " +
+            if (!removed)
+                return Failed("SOLIDWORKS non ha cancellato «" + uid + "», e non ha " +
                                "detto perche'. Il pezzo e' rimasto com'era.");
 
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
 
             // ── E ADESSO SI CONTROLLA CHE SIA DAVVERO SPARITA ────────────
             //
@@ -6858,79 +6858,79 @@ namespace Oce.Solid.Agent.Core
             // quel nome nell'albero non c'e' piu'. E' la differenza fra «ha
             // detto di averlo fatto» e «l'ha fatto» — la stessa distanza che
             // questo progetto insegue da cinquanta voci.
-            if (TrovaLavorazione(modello, uid) != null)
-                return Fallito(
+            if (FindFeature(model, uid) != null)
+                return Failed(
                     "Ho chiesto di cancellare «" + uid + "», SOLIDWORKS ha " +
                     "risposto di si', e la lavorazione e' ancora nell'albero. " +
                     "Non so dirti cos'e' successo: guarda il pezzo prima di " +
                     "fare altro.");
 
-            int featureDopo = ContaFeature(modello);
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
+            int featureAfter = CountFeature(model);
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 ["feature_removed"] = uid,
-                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["features_before"] = NumeroOppureNull(featurePrima),
-                ["features_after"] = NumeroOppureNull(featureDopo),
-                ["bodies"] = NumeroOppureNull(corpiDopo),
+                ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
+                ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["features_before"] = NumberOrNull(featureBefore),
+                ["features_after"] = NumberOrNull(featureAfter),
+                ["bodies"] = NumberOrNull(bodiesAfter),
                 ["note_identifiers"] =
                     "Le facce sono cambiate: gli identificativi (F1, E4) di " +
                     "prima non valgono piu'. Rileggi il pezzo prima del passo " +
                     "seguente.",
             };
-            if (corpiPrima >= 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
-                misure["note_bodies"] =
-                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
+            if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
+                measurements["note_bodies"] =
+                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
                     ": togliere questa lavorazione ha spezzato o unito il pezzo.";
 
-            _log("[agente] eliminata " + uid + ", lavorazioni " + featurePrima +
-                 " -> " + featureDopo + ", volume " + Letto(volumePrima) +
-                 " -> " + Letto(volumeDopo));
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] eliminata " + uid + ", lavorazioni " + featureBefore +
+                 " -> " + featureAfter + ", volume " + ReadValue(volumeBefore) +
+                 " -> " + ReadValue(volumeAfter));
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
         /// Un successo che NON ha creato niente.
         ///
-        /// `Riuscito` scrive nel log «creata feature X» e porta la feature
+        /// `Succeeded` scrive nel log «creata feature X» e porta la feature
         /// nuova nell'esito, perche' le trentasei operazioni che c'erano prima
         /// creavano tutte qualcosa. Togliere no — e un'operazione che dice
         /// «creata feature» mentre ne cancella una lascia nel registro una
         /// frase falsa.
         ///
-        /// **Nome nuovo invece di un parametro in piu' su `Riuscito`:**
+        /// **Nome nuovo invece di un parametro in piu' su `Succeeded`:**
         /// cambiare l'insieme delle firme rompe chi chiama per riflessione
         /// anche quando il compilatore tace. E' la lezione della 0.25.1, e
-        /// `Riuscito` e' il punto da cui passa OGNI successo del progetto —
+        /// `Succeeded` e' il punto da cui passa OGNI successo del progetto —
         /// il posto peggiore in cui provarla.
         ///
         /// I riancoraggi si drenano lo stesso: se nel trovare la lavorazione
         /// una faccia e' stata ritrovata altrove, chi legge deve saperlo anche
         /// qui.
         /// </summary>
-        private Esito RiuscitoSenzaCreare(Dictionary<string, object> misure)
+        private Outcome SucceededWithoutCreating(Dictionary<string, object> measurements)
         {
-            if (_riancoraggi.Count > 0)
+            if (_reanchors.Count > 0)
             {
-                if (misure == null) misure = new Dictionary<string, object>();
-                misure["reanchors"] = _riancoraggi.ToArray();
+                if (measurements == null) measurements = new Dictionary<string, object>();
+                measurements["reanchors"] = _reanchors.ToArray();
             }
-            return new Esito
+            return new Outcome
             {
-                Riuscito = true,
-                FeatureCreata = null,
+                Succeeded = true,
+                CreatedFeature = null,
                 Feature = null,
-                Misure = misure,
+                Measurements = measurements,
             };
         }
 
-        private string SenzaLoSchizzo(IModelDoc2 modello)
+        private string WithoutSketch(IModelDoc2 model)
         {
-            if (modello == null) return LasciatoSchizzo;
+            if (model == null) return LeftSketchBehind;
 
             // ── 2 and 3. the newest feature BORN IN THIS STEP ───────────
             // (Z-C21.5, scheme S7): not the last feature of the tree, which on
@@ -6940,99 +6940,99 @@ namespace Oce.Solid.Agent.Core
             List<IFeature> features;
             List<string> names, types;
             if (_featureNamesAtStepStart == null ||
-                !ReadFeatureTree(modello, out features, out names, out types)) return LasciatoSchizzo;
+                !ReadFeatureTree(model, out features, out names, out types)) return LeftSketchBehind;
             var born = BornFeatureIndices(names, _featureNamesAtStepStart);
-            if (born.Count == 0) return LasciatoSchizzo;
-            IFeature ultima = features[born[born.Count - 1]];
-            int featureAdesso = features.Count;
+            if (born.Count == 0) return LeftSketchBehind;
+            IFeature last = features[born[born.Count - 1]];
+            int featureNow = features.Count;
 
             // ── 1. e dev'essere uno schizzo, e NON l'origine ────────────
-            ISketch schizzo = null;
-            try { schizzo = ultima.GetSpecificFeature2() as ISketch; } catch { }
-            if (schizzo == null) return LasciatoSchizzo;
-            string tipo = "";
-            try { tipo = ultima.GetTypeName2(); } catch { }
-            if (tipo == OrigineDelPezzo) return LasciatoSchizzo;
+            ISketch sketch = null;
+            try { sketch = last.GetSpecificFeature2() as ISketch; } catch { }
+            if (sketch == null) return LeftSketchBehind;
+            string typ = "";
+            try { typ = last.GetTypeName2(); } catch { }
+            if (typ == PartOrigin) return LeftSketchBehind;
 
             // ── 4. e non deve avere figli ───────────────────────────────
-            try { if (ultima.IGetChildCount() > 0) return LasciatoSchizzo; }
-            catch { return LasciatoSchizzo; }
+            try { if (last.IGetChildCount() > 0) return LeftSketchBehind; }
+            catch { return LeftSketchBehind; }
 
             // Cio' che NON deve cambiare, letto prima di toccare niente. Se non
             // si legge (voce Z-C8), non si cancella: senza il prima non si
             // potrebbe dire che togliere lo schizzo non ha cambiato il pezzo.
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            if (volumePrima == null || corpiPrima < 0) return LasciatoSchizzo;
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
+            if (volumeBefore == null || bodiesBefore < 0) return LeftSketchBehind;
 
-            string nome = "";
-            try { nome = ultima.Name; } catch { }
+            string itemName = "";
+            try { itemName = last.Name; } catch { }
 
-            bool tolto;
+            bool removed;
             try
             {
-                modello.ClearSelection2(true);
-                if (!ultima.Select2(false, 0)) return LasciatoSchizzo;
-                tolto = modello.Extension.DeleteSelection2(
+                model.ClearSelection2(true);
+                if (!last.Select2(false, 0)) return LeftSketchBehind;
+                removed = model.Extension.DeleteSelection2(
                     (int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
             catch (Exception ex)
             {
                 _log("[agente] non sono riuscito a togliere lo schizzo: " + ex.Message);
-                return LasciatoSchizzo;
+                return LeftSketchBehind;
             }
             finally
             {
-                try { modello.ClearSelection2(true); } catch { }
+                try { model.ClearSelection2(true); } catch { }
             }
 
-            if (!tolto) return LasciatoSchizzo;
+            if (!removed) return LeftSketchBehind;
 
             // ── e adesso si conta ───────────────────────────────────────
-            int featureDopo = ContaFeature(modello);
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
-            if (volumeDopo == null || corpiDopo < 0 || featureDopo < 0)
+            int featureAfter = CountFeature(model);
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
+            if (volumeAfter == null || bodiesAfter < 0 || featureAfter < 0)
                 return " Lo schizzo che avevo disegnato l'ho tolto, ma non ho potuto rimisurare " +
                        "il pezzo per controllare che sia com'era: guardalo.";
-            if (featureDopo != featureAdesso - 1
-                || corpiDopo != corpiPrima
-                || Math.Abs(volumeDopo.Value - volumePrima.Value) > 1e-6)
+            if (featureAfter != featureNow - 1
+                || bodiesAfter != bodiesBefore
+                || Math.Abs(volumeAfter.Value - volumeBefore.Value) > 1e-6)
             {
                 _log(string.Format(
                     "[agente] tolto lo schizzo «{0}» ma il pezzo e' cambiato: " +
                     "feature {1}->{2}, corpi {3}->{4}, volume {5:0.###}->{6:0.###} mm3",
-                    nome, featureAdesso, featureDopo, corpiPrima, corpiDopo,
-                    volumePrima, volumeDopo));
-                return SchizzoToltoMaNonSolo;
+                    itemName, featureNow, featureAfter, bodiesBefore, bodiesAfter,
+                    volumeBefore, volumeAfter));
+                return SketchRemovedButNotOnlyIt;
             }
 
-            _log("[agente] tolto lo schizzo «" + nome + "», che la feature non ha usato");
+            _log("[agente] tolto lo schizzo «" + itemName + "», che la feature non ha usato");
             return "";
         }
 
-        private IFeature Estrudi(IModelDoc2 modello, double spessoreMm, bool unisci, bool simmetrico = false)
+        private IFeature Extrude(IModelDoc2 model, double thicknessMm, bool merge, bool symmetric = false)
         {
             // Simmetrico = meta' per parte del piano. Va detto nel riassunto
             // perche' cambia dove finisce il pezzo: «100 simmetrica» sono 50 da
             // una parte e 50 dall'altra, e chi legge «100» puo' intendere
             // tutt'altro. swEndCondMidPlane = 6, verificato nell'enum.
-            return modello.FeatureManager.FeatureExtrusion3(
+            return model.FeatureManager.FeatureExtrusion3(
                 Sd: true,                       // una direzione sola
                 Flip: false,
                 Dir: false,
-                T1: simmetrico
+                T1: symmetric
                     ? (int)swEndConditions_e.swEndCondMidPlane
                     : (int)swEndConditions_e.swEndCondBlind,
                 T2: (int)swEndConditions_e.swEndCondBlind,
-                D1: Unita.M(spessoreMm),
+                D1: Units.M(thicknessMm),
                 D2: 0,
                 Dchk1: false, Dchk2: false,
                 Ddir1: false, Ddir2: false,
                 Dang1: 0, Dang2: 0,
                 OffsetReverse1: false, OffsetReverse2: false,
                 TranslateSurface1: false, TranslateSurface2: false,
-                Merge: unisci,
+                Merge: merge,
                 UseFeatScope: true,
                 UseAutoSelect: true,
                 T0: (int)swStartConditions_e.swStartSketchPlane,
@@ -7040,17 +7040,17 @@ namespace Oce.Solid.Agent.Core
                 FlipStartOffset: false) as IFeature;
         }
 
-        private IFeature Taglia(IModelDoc2 modello, bool passante, double profonditaMm)
+        private IFeature Cut(IModelDoc2 model, bool throughAll, double depthMm)
         {
-            return modello.FeatureManager.FeatureCut4(
+            return model.FeatureManager.FeatureCut4(
                 Sd: true,
                 Flip: false,
                 Dir: false,
-                T1: passante
+                T1: throughAll
                     ? (int)swEndConditions_e.swEndCondThroughAll
                     : (int)swEndConditions_e.swEndCondBlind,
                 T2: (int)swEndConditions_e.swEndCondBlind,
-                D1: passante ? 0 : Unita.M(profonditaMm),
+                D1: throughAll ? 0 : Units.M(depthMm),
                 D2: 0,
                 Dchk1: false, Dchk2: false,
                 Ddir1: false, Ddir2: false,
@@ -7081,12 +7081,12 @@ namespace Oce.Solid.Agent.Core
         /// normal through the origin (Riferimenti.BasePlane, scheme S19), which
         /// no plane added before them can take.
         /// </summary>
-        private bool SelezionaPiano(IModelDoc2 modello, string quale)
+        private bool SelectPlane(IModelDoc2 model, string which)
         {
-            if (!(modello is IPartDoc)) return false;
+            if (!(model is IPartDoc)) return false;
             // THREE NAMES AND NOTHING ELSE (Z-C21.10, finding N33). Here too a
             // final `: 1` sent ANY unknown name to the front plane: the same
-            // fallback TrovaPianoBase dropped after the measure of 10
+            // fallback FindBasePlane dropped after the measure of 10
             // September 2026. «Superiore» (accepted by the Forma ignoring
             // case, and until 0.140.0 passed on untouched) built the box on
             // the front plane with riuscita:true. An unknown name is now a
@@ -7097,17 +7097,17 @@ namespace Oce.Solid.Agent.Core
             // Forma now rewrites every enum value in the catalogue's spelling
             // (Bridge/Shape.cs, pattern S20); Riferimenti.BasePlane compares
             // Ordinal too.
-            IFeature f = Riferimenti.BasePlane(modello, quale, out _);
+            IFeature f = References.BasePlane(model, which, out _);
             if (f == null) return false;
-            modello.ClearSelection2(true);
+            model.ClearSelection2(true);
             return f.Select2(false, 0);
         }
 
-        private bool SelezionaFaccia(IFace2 faccia)
+        private bool SelectFace(IFace2 face)
         {
-            var entita = faccia as IEntity;
-            if (entita == null) return false;
-            return entita.Select4(false, null);
+            var entity = face as IEntity;
+            if (entity == null) return false;
+            return entity.Select4(false, null);
         }
 
         /// <summary>
@@ -7117,21 +7117,21 @@ namespace Oce.Solid.Agent.Core
         /// volte, e due tolleranze diverse vorrebbero dire che una delle due
         /// parti accetta cio' che l'altra rifiuta.
         /// </summary>
-        private const double TolleranzaPuntoMm = 0.05;
+        private const double PointToleranceMm = 0.05;
 
         /// <summary>
         /// Le lunghezze degli spigoli, nello stato e nelle firme, sono
         /// arrotondate al centesimo: cinque centesimi coprono due arrotondamenti
         /// e restano mille volte sotto la lunghezza di qualunque spigolo vero.
         /// </summary>
-        private const double TolleranzaLunghezzaMm = 0.05;
-        private const double TolleranzaNormale = 0.01;
+        private const double LengthToleranceMm = 0.05;
+        private const double NormalTolerance = 0.01;
 
         /// <summary>
         /// Trova la faccia indicata dal passo, E VERIFICA CHE SIA ANCORA QUELLA.
         ///
         /// PERCHE' NON BASTA CERCARE L'UID
-        /// Gli uid sono POSIZIONALI: StatoDocumento li riassegna a ogni lettura
+        /// Gli uid sono POSIZIONALI: DocumentState li riassegna a ogni lettura
         /// enumerando le facce per area decrescente, e l'esecutore rilegge il
         /// documento prima di ogni passo. Il piano invece e' congelato al
         /// momento della conferma. Se il passo 1 aggiunge materiale, al passo 2
@@ -7140,19 +7140,19 @@ namespace Oce.Solid.Agent.Core
         ///
         /// Per questo il piano porta con se' la FIRMA che la faccia aveva
         /// quando il modello l'ha scelta, e qui si riconfronta. Il commento in
-        /// testa a StatoDocumento prometteva questo controllo da sempre; fino
+        /// testa a DocumentState prometteva questo controllo da sempre; fino
         /// alla 0.24.0 non esisteva in nessun punto del codice.
         ///
         /// Si confronta il punto e la normale, non l'area: l'area cambia in
         /// modo legittimo quando sulla faccia si fa un foro.
         /// </summary>
-        private IFace2 RisolviFaccia(
-            StatoDocumento stato,
-            Dictionary<string, object> argomenti,
+        private IFace2 ResolveFace(
+            DocumentState docState,
+            Dictionary<string, object> arguments,
             string uid,
-            out string motivo)
+            out string reason)
         {
-            motivo = null;
+            reason = null;
 
             // ── La faccia puo' venire da un passo precedente del piano ──
             //
@@ -7165,38 +7165,38 @@ namespace Oce.Solid.Agent.Core
             // che non arrivino tutti e due, ma se arrivassero comunque e'
             // meglio fallire su un uid che non c'e' che lavorare in silenzio
             // sulla faccia sbagliata.
-            if (HaRiferimento(argomenti, "face_ref"))
+            if (HasReference(arguments, "face_ref"))
             {
-                int numero;
-                var passo = PassoCitato(argomenti, "face_ref", out numero, out motivo);
-                if (passo == null) return null;
-                IFace2 dalPasso;
-                if (!Riferimenti.Faccia(
-                        passo, GenereDi(argomenti, "face_ref"), out dalPasso, out motivo))
+                int number;
+                var planStep = CitedStep(arguments, "face_ref", out number, out reason);
+                if (planStep == null) return null;
+                IFace2 fromStep;
+                if (!References.Face(
+                        planStep, KindOf(arguments, "face_ref"), out fromStep, out reason))
                     return null;
-                _log($"[agente] faccia presa dal passo {numero}");
-                return dalPasso;
+                _log($"[agente] faccia presa dal passo {number}");
+                return fromStep;
             }
 
-            if (stato == null || string.IsNullOrEmpty(uid))
+            if (docState == null || string.IsNullOrEmpty(uid))
             {
-                motivo =
+                reason =
                     "Nessuna faccia indicata. Se la faccia la crea un passo " +
                     "precedente di questo piano, va nominata con face_ref.";
                 return null;
             }
-            if (!stato.Firme.TryGetValue(uid, out var firma) || firma.Tipo != "FACE")
+            if (!docState.Signatures.TryGetValue(uid, out var signature) || signature.Type != "FACE")
             {
-                motivo = $"La faccia «{uid}» non c'e' piu' in questo documento.";
+                reason = $"La faccia «{uid}» non c'e' piu' in questo documento.";
                 return null;
             }
-            var faccia = firma.Entita as IFace2;
-            if (faccia == null)
+            var face = signature.Entity as IFace2;
+            if (face == null)
             {
-                motivo = $"La faccia «{uid}» non e' piu' utilizzabile.";
+                reason = $"La faccia «{uid}» non e' piu' utilizzabile.";
                 return null;
             }
-            if (FirmaCombacia(argomenti, uid, firma, out motivo)) return faccia;
+            if (SignatureMatches(arguments, uid, signature, out reason)) return face;
 
             // ── IL PERSIST ID PROPONE, LA MISURA GIUDICA (voce E6) ──────────
             //
@@ -7208,7 +7208,7 @@ namespace Oce.Solid.Agent.Core
             // ERRORE una faccia diversa dopo un rebuild che cambia la topologia:
             // sarebbe il difetto peggiore di tutta la sezione, perche' non
             // darebbe errore. Quello che torna e' un CANDIDATO, e passa dallo
-            // stesso giudice di tutti gli altri — `Corrobora`.
+            // stesso giudice di tutti gli altri — `Corroborates`.
             //
             // MISURATO (0.1, 14/9/2026): 8 facce su 8 ritrovate in tutte e
             // cinque le modifiche riuscite, comprese le tre in cui l'ancora sul
@@ -7219,19 +7219,19 @@ namespace Oce.Solid.Agent.Core
             // E `IsSamePersistentID` non si usa: ha risposto vero 46 volte su
             // 46, anche dove l'area era raddoppiata perche' due facce si erano
             // fuse. Attesta l'identificativo, non la faccia.
-            var attesaPersist = FirmaAttesa(argomenti, uid);
-            if (attesaPersist != null)
+            var expectedPersist = ExpectedSignature(arguments, uid);
+            if (expectedPersist != null)
             {
-                string spostamento;
-                var dalPersist = FacciaDalPersistId(stato, attesaPersist, uid, out spostamento);
-                if (dalPersist != null)
+                string move;
+                var fromPersist = FaceFromPersistId(docState, expectedPersist, uid, out move);
+                if (fromPersist != null)
                 {
                     // SI SPIEGA DI QUANTO, INVECE DI RIFIUTARE. E' il motivo per
                     // cui questa voce esiste: la faccia e' quella giusta, si e'
                     // solo mossa, e chi legge deve sapere che si e' mossa.
-                    Riancorata(spostamento);
-                    motivo = null;
-                    return dalPersist;
+                    ReAnchored(move);
+                    reason = null;
+                    return fromPersist;
                 }
             }
 
@@ -7254,68 +7254,68 @@ namespace Oce.Solid.Agent.Core
             // con quella che il piano descrive, e' quella — e usarla e'
             // piu' giusto che rifiutare. Se ce ne sono due, non si sceglie:
             // li' l'ambiguita' e' vera e va detta.
-            var attesa = FirmaAttesa(argomenti, uid);
-            if (attesa == null) return null;   // niente firma: resta il rifiuto di prima
+            var expectation = ExpectedSignature(arguments, uid);
+            if (expectation == null) return null;   // niente firma: resta il rifiuto di prima
 
-            IFace2 ritrovata = null;
-            StatoDocumento.FirmaEntita firmaRitrovata = null;
-            int quante = 0;
-            string scartataPerche = null;
-            foreach (var voce in stato.Firme)
+            IFace2 foundAgain = null;
+            DocumentState.EntitySignature refoundSignature = null;
+            int howMany = 0;
+            string discardedBecause = null;
+            foreach (var entry in docState.Signatures)
             {
-                if (voce.Value.Tipo != "FACE") continue;
-                var candidata = voce.Value.Entita as IFace2;
-                if (candidata == null) continue;
-                string perche;
-                if (!FirmaCombacia(argomenti, uid, voce.Value, out perche)) continue;
+                if (entry.Value.Type != "FACE") continue;
+                var candidate = entry.Value.Entity as IFace2;
+                if (candidate == null) continue;
+                string why;
+                if (!SignatureMatches(arguments, uid, entry.Value, out why)) continue;
 
                 // COMBACIARE PER POSIZIONE NON BASTA. Vedi Corrobora.
-                string cresciuta;
-                string nonRegge = Corrobora(attesa, uid, voce.Value, out cresciuta);
-                Riancorata(cresciuta);
-                if (nonRegge != null)
+                string grown;
+                string doesNotHold = Corroborates(expectation, uid, entry.Value, out grown);
+                ReAnchored(grown);
+                if (doesNotHold != null)
                 {
                     // Si tiene il PRIMO motivo di scarto per il messaggio: se
                     // alla fine non si ritrova niente, chi legge deve sapere
                     // che una candidata c'era e perche' non e' stata presa.
-                    if (scartataPerche == null) scartataPerche = nonRegge;
+                    if (discardedBecause == null) discardedBecause = doesNotHold;
                     continue;
                 }
 
-                quante++;
-                ritrovata = candidata;
-                firmaRitrovata = voce.Value;
+                howMany++;
+                foundAgain = candidate;
+                refoundSignature = entry.Value;
             }
 
-            if (quante == 1)
+            if (howMany == 1)
             {
                 // SI DICE DI QUANTO, non solo CHE. Fino alla 0.29.0 questa
                 // strada diceva «si era spostata: ritrovata dalla firma» e
                 // basta — un fatto senza una misura, e per giunta solo su
-                // stderr. La firma misurata e' gia' in mano (`firmaRitrovata`),
+                // stderr. La firma misurata e' gia' in mano (`refoundSignature`),
                 // e la frase la scrive la stessa funzione che usa il persist
                 // ID: due strade diverse per ritrovare, una sola per dirlo.
-                Riancorata(
-                    FraseDelloSpostamento(attesaPersist, uid, firmaRitrovata, null)
+                ReAnchored(
+                    MoveSentence(expectedPersist, uid, refoundSignature, null)
                     ?? "la faccia «" + uid + "» si era spostata ed e' stata ritrovata " +
                        "dalla firma misurata.");
-                motivo = null;
-                return ritrovata;
+                reason = null;
+                return foundAgain;
             }
-            if (quante > 1)
+            if (howMany > 1)
             {
-                motivo =
-                    "La faccia «" + uid + "» si e' spostata e ce ne sono " + quante +
+                reason =
+                    "La faccia «" + uid + "» si e' spostata e ce ne sono " + howMany +
                     " che le somigliano tutte uguali: non scelgo io. Rileggi lo " +
                     "stato del documento e nominala di nuovo.";
             }
-            else if (scartataPerche != null)
+            else if (discardedBecause != null)
             {
                 // Il caso che conta: UNA candidata c'era, combaciava per
                 // posizione, e la corroborazione l'ha smentita. Prima veniva
                 // presa e il pezzo usciva sbagliato senza che nessuno dicesse
                 // niente.
-                motivo = scartataPerche;
+                reason = discardedBecause;
             }
             return null;
         }
@@ -7355,7 +7355,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// Gli uid si assegnano per area decrescente. Una faccia che si allarga
         /// abbastanza da scavalcarne un'altra in classifica CAMBIA UID per
-        /// forza: `FirmaCombacia` sull'uid vecchio fallisce, si passa alla
+        /// forza: `SignatureMatches` sull'uid vecchio fallisce, si passa alla
         /// ricerca, la faccia vera viene ritrovata — e veniva scartata proprio
         /// perche' era cresciuta. **La crescita dell'area era insieme la causa
         /// di questa ricerca e il motivo del suo fallimento.**
@@ -7379,7 +7379,7 @@ namespace Oce.Solid.Agent.Core
         /// il taglio), quindi la prima prova le separa e il difetto resta
         /// chiuso: si controlla in `Bench/cases/E2-the-two-cases.md`.
         ///
-        /// PERCHE' QUI E NON DENTRO `FirmaCombacia`. Perche' quel confronto
+        /// PERCHE' QUI E NON DENTRO `SignatureMatches`. Perche' quel confronto
         /// serve anche a decidere se la faccia di partenza va ancora bene, e
         /// li' l'area che cresce e' normale — si allarga il pezzo e la faccia
         /// in alto diventa piu' grande, senza che il punto si muova. La
@@ -7404,28 +7404,28 @@ namespace Oce.Solid.Agent.Core
         ///     quella faccia non esiste piu': e' la risposta giusta al caso
         ///     della lavorazione soppressa, e va lasciata passare alla ricerca
         ///     che sapra' dirlo meglio.
-        ///  3. **Il giudizio deve reggere.** Il candidato passa da `Corrobora`
+        ///  3. **Il giudizio deve reggere.** Il candidato passa da `Corroborates`
         ///     come qualunque altro: stessa lavorazione, e l'area che cresce
         ///     solo se la lavorazione e' accertata. Un persist ID che torna una
         ///     faccia di un'altra lavorazione e' esattamente il difetto
         ///     silenzioso che questa voce temeva, e qui si ferma.
         ///
-        /// <param name="spostamento">
+        /// <param name="move">
         /// Di quanto si e' mossa, in parole, quando si e' mossa. Va a chi legge:
         /// la faccia e' quella giusta e il pezzo NON e' piu' quello di prima,
         /// e tacerlo sarebbe lavorare bene su un pezzo cambiato senza dirlo.
         /// </param>
         /// </summary>
-        private IFace2 FacciaDalPersistId(
-            StatoDocumento stato, Dictionary<string, object> attesa, string uid,
-            out string spostamento)
+        private IFace2 FaceFromPersistId(
+            DocumentState docState, Dictionary<string, object> expectation, string uid,
+            out string move)
         {
-            spostamento = null;
-            if (stato == null || stato.Modello == null || attesa == null) return null;
+            move = null;
+            if (docState == null || docState.Model == null || expectation == null) return null;
 
-            object grezzo;
-            if (!attesa.TryGetValue("persist_id", out grezzo) || grezzo == null) return null;
-            var base64 = Convert.ToString(grezzo);
+            object raw;
+            if (!expectation.TryGetValue("persist_id", out raw) || raw == null) return null;
+            var base64 = Convert.ToString(raw);
             if (string.IsNullOrEmpty(base64)) return null;
 
             byte[] blob;
@@ -7433,34 +7433,34 @@ namespace Oce.Solid.Agent.Core
             catch { return null; }
             if (blob.Length == 0) return null;
 
-            IFace2 candidata;
+            IFace2 candidate;
             try
             {
-                var estensione = stato.Modello.Extension;
-                if (estensione == null) return null;
-                int errore;
-                var oggetto = estensione.GetObjectByPersistReference3(blob, out errore);
-                if (errore != 0 || oggetto == null) return null;
-                candidata = oggetto as IFace2;
-                if (candidata == null) return null;
+                var ext = docState.Model.Extension;
+                if (ext == null) return null;
+                int error;
+                var obj = ext.GetObjectByPersistReference3(blob, out error);
+                if (error != 0 || obj == null) return null;
+                candidate = obj as IFace2;
+                if (candidate == null) return null;
             }
             catch { return null; }
 
             // IL GIUDIZIO. La firma si rimisura ADESSO sulla faccia ritrovata:
             // non si usa quella che il piano porta, che e' cio' che si sta
             // verificando.
-            var firmaOra = StatoDocumento.FirmaDiUnaFaccia(candidata);
-            if (firmaOra == null) return null;
-            // `FirmaDiUnaFaccia` misura UNA faccia e non rilegge il documento:
+            var signatureNow = DocumentState.FaceSignature(candidate);
+            if (signatureNow == null) return null;
+            // `FaceSignature` misura UNA faccia e non rilegge il documento:
             // la scatola del pezzo non ce l'ha, e senza quella la frase non si
             // puo' scrivere. Gliela passa chi il documento l'ha letto.
-            firmaOra.ScatolaPezzoMm = stato?.ScatolaPezzoMm;
+            signatureNow.BoxPartMm = docState?.BoxPartMm;
 
-            string nota;
-            if (Corrobora(attesa, uid, firmaOra, out nota) != null) return null;
+            string note;
+            if (Corroborates(expectation, uid, signatureNow, out note) != null) return null;
 
-            spostamento = FraseDelloSpostamento(attesa, uid, firmaOra, nota);
-            return candidata;
+            move = MoveSentence(expectation, uid, signatureNow, note);
+            return candidate;
         }
 
         /// <summary>
@@ -7472,46 +7472,46 @@ namespace Oce.Solid.Agent.Core
         /// quanto e' cambiata l'area, cosi' chi legge puo' decidere se il piano
         /// contava su quei numeri.
         /// </summary>
-        private static string FraseDelloSpostamento(
-            Dictionary<string, object> attesa, string uid,
-            StatoDocumento.FirmaEntita ora, string notaCorrobora)
+        private static string MoveSentence(
+            Dictionary<string, object> expectation, string uid,
+            DocumentState.EntitySignature now, string corroboratingNote)
         {
-            var pezzi = new List<string>();
+            var parts = new List<string>();
 
-            var primaPunto = Terna(attesa, "point_mm");
-            if (primaPunto != null && ora.PuntoMm != null && primaPunto.Length >= 3 &&
-                ora.PuntoMm.Length >= 3)
+            var pointBefore = Triplet(expectation, "point_mm");
+            if (pointBefore != null && now.PointMm != null && pointBefore.Length >= 3 &&
+                now.PointMm.Length >= 3)
             {
-                double dx = ora.PuntoMm[0] - primaPunto[0];
-                double dy = ora.PuntoMm[1] - primaPunto[1];
-                double dz = ora.PuntoMm[2] - primaPunto[2];
-                double quanto = Math.Sqrt(dx * dx + dy * dy + dz * dz);
-                if (quanto > 0.05)
-                    pezzi.Add(string.Format(
+                double dx = now.PointMm[0] - pointBefore[0];
+                double dy = now.PointMm[1] - pointBefore[1];
+                double dz = now.PointMm[2] - pointBefore[2];
+                double howMuch = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                if (howMuch > 0.05)
+                    parts.Add(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
                         "si e' spostata di {0:0.##} mm, da [{1:0.##}, {2:0.##}, {3:0.##}] " +
                         "a [{4:0.##}, {5:0.##}, {6:0.##}]",
-                        quanto, primaPunto[0], primaPunto[1], primaPunto[2],
-                        ora.PuntoMm[0], ora.PuntoMm[1], ora.PuntoMm[2]));
+                        howMuch, pointBefore[0], pointBefore[1], pointBefore[2],
+                        now.PointMm[0], now.PointMm[1], now.PointMm[2]));
             }
 
-            object grezzoArea;
-            if (attesa.TryGetValue("area_mm2", out grezzoArea) && grezzoArea != null)
+            object rawArea;
+            if (expectation.TryGetValue("area_mm2", out rawArea) && rawArea != null)
             {
-                double primaArea;
+                double beforeArea;
                 try
                 {
-                    primaArea = Convert.ToDouble(
-                        grezzoArea, System.Globalization.CultureInfo.InvariantCulture);
+                    beforeArea = Convert.ToDouble(
+                        rawArea, System.Globalization.CultureInfo.InvariantCulture);
                 }
-                catch { primaArea = 0; }
-                if (primaArea > 0 && Math.Abs(ora.Misura - primaArea) > primaArea * 0.001)
-                    pezzi.Add(string.Format(
+                catch { beforeArea = 0; }
+                if (beforeArea > 0 && Math.Abs(now.Measure - beforeArea) > beforeArea * 0.001)
+                    parts.Add(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
-                        "l'area e' passata da {0:0.##} a {1:0.##} mm²", primaArea, ora.Misura));
+                        "l'area e' passata da {0:0.##} a {1:0.##} mm²", beforeArea, now.Measure));
             }
 
-            if (pezzi.Count == 0) return null;
+            if (parts.Count == 0) return null;
 
             // LA SPIEGAZIONE, che qui e' il caso per cui la voce E10 esisteva:
             // la faccia si e' mossa di sessanta millimetri E sta dove stava
@@ -7519,76 +7519,76 @@ namespace Oce.Solid.Agent.Core
             // qui non si decide niente: la faccia l'ha gia' scelta il
             // riferimento persistente, e il giudizio l'ha gia' dato Corrobora.
             return "la faccia «" + uid + "» l'ha ritrovata SOLIDWORKS dal suo " +
-                   "riferimento persistente: " + string.Join(", ", pezzi) +
+                   "riferimento persistente: " + string.Join(", ", parts) +
                    ". Il pezzo e' cambiato da quando l'hai guardato, ma la faccia e' " +
                    "quella giusta — se il piano contava sulle misure di prima, " +
                    "ricontrolla il risultato." +
-                   Frasi.DoveStavaEDoveSta(
-                       uid, primaPunto, ora.PuntoMm,
-                       Sestina(attesa, "box_part_mm"), ora.ScatolaPezzoMm) +
-                   (notaCorrobora == null ? "" : " " + notaCorrobora);
+                   Sentences.WhereItWasAndWhereItIs(
+                       uid, pointBefore, now.PointMm,
+                       Sextuple(expectation, "box_part_mm"), now.BoxPartMm) +
+                   (corroboratingNote == null ? "" : " " + corroboratingNote);
         }
 
-        private static string Corrobora(
-            Dictionary<string, object> attesa, string uid,
-            StatoDocumento.FirmaEntita candidata, out string nota)
+        private static string Corroborates(
+            Dictionary<string, object> expectation, string uid,
+            DocumentState.EntitySignature candidate, out string note)
         {
-            nota = null;
-            if (attesa == null) return null;
+            note = null;
+            if (expectation == null) return null;
 
             // 1. LA STESSA LAVORAZIONE.
             // Solo se li conosciamo tutti e due: due «-1» non sono una
             // corrispondenza, sono due volte «non lo so».
-            bool stessaLavorazioneAccertata = false;
-            object grezzoId;
-            if (attesa.TryGetValue("feature_id", out grezzoId) && grezzoId != null &&
-                candidata.LavorazioneId >= 0)
+            bool sameFeatureConfirmed = false;
+            object rawId;
+            if (expectation.TryGetValue("feature_id", out rawId) && rawId != null &&
+                candidate.FeatureId >= 0)
             {
-                int atteso;
-                try { atteso = Convert.ToInt32(grezzoId); } catch { atteso = -1; }
-                if (atteso >= 0 && atteso == candidata.LavorazioneId)
-                    stessaLavorazioneAccertata = true;
-                if (atteso >= 0 && atteso != candidata.LavorazioneId)
+                int expected;
+                try { expected = Convert.ToInt32(rawId); } catch { expected = -1; }
+                if (expected >= 0 && expected == candidate.FeatureId)
+                    sameFeatureConfirmed = true;
+                if (expected >= 0 && expected != candidate.FeatureId)
                 {
-                    object nomeAtteso;
-                    string daChi = attesa.TryGetValue("feature", out nomeAtteso) &&
-                                   nomeAtteso != null
-                        ? "«" + Convert.ToString(nomeAtteso) + "»"
+                    object expectedName;
+                    string fromWhom = expectation.TryGetValue("feature", out expectedName) &&
+                                   expectedName != null
+                        ? "«" + Convert.ToString(expectedName) + "»"
                         : "un'altra lavorazione";
                     return
                         "La faccia «" + uid + "» si e' spostata, e l'unica che combacia " +
-                        "per posizione viene da «" + (candidata.Lavorazione ?? "?") +
-                        "» invece che da " + daChi + ": non e' la stessa faccia, e' " +
+                        "per posizione viene da «" + (candidate.Feature ?? "?") +
+                        "» invece che da " + fromWhom + ": non e' la stessa faccia, e' " +
                         "un'altra finita nello stesso posto. Rileggi lo stato del " +
                         "documento e dimmi tu quale.";
                 }
             }
 
             // 2. L'AREA PUO' SOLO CALARE.
-            object grezzoArea;
-            if (attesa.TryGetValue("area_mm2", out grezzoArea) && grezzoArea != null)
+            object rawArea;
+            if (expectation.TryGetValue("area_mm2", out rawArea) && rawArea != null)
             {
-                double areaAttesa;
-                try { areaAttesa = Convert.ToDouble(grezzoArea, System.Globalization.CultureInfo.InvariantCulture); }
+                double expectedArea;
+                try { expectedArea = Convert.ToDouble(rawArea, System.Globalization.CultureInfo.InvariantCulture); }
                 catch { return null; }
                 // Un per mille di margine: le aree si arrotondano al
                 // centesimo e un confronto secco accuserebbe l'arrotondamento.
-                if (areaAttesa > 0 && candidata.Misura > areaAttesa * 1.001)
+                if (expectedArea > 0 && candidate.Measure > expectedArea * 1.001)
                 {
                     // LA LAVORAZIONE ACCERTATA VINCE SULL'AREA.
                     // Se si sa con certezza che viene dalla stessa lavorazione,
                     // l'identita' e' gia' stabilita: una faccia puo' essere
                     // cresciuta perche' una quota e' cambiata, ed e' legittimo.
                     // Si DICE di quanto, e si va avanti.
-                    if (stessaLavorazioneAccertata)
+                    if (sameFeatureConfirmed)
                     {
-                        nota = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        note = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                             "La faccia «{0}» si era spostata ed e' anche CRESCIUTA: " +
                             "{1:0.##} mm² contro {2:0.##} che il piano si aspettava. " +
                             "L'ho presa lo stesso perche' viene dalla stessa lavorazione " +
                             "«{3}», ma se il piano contava sulla misura di prima, " +
                             "ricontrolla il risultato.",
-                            uid, candidata.Misura, areaAttesa, candidata.Lavorazione ?? "?");
+                            uid, candidate.Measure, expectedArea, candidate.Feature ?? "?");
                         return null;
                     }
 
@@ -7598,7 +7598,7 @@ namespace Oce.Solid.Agent.Core
                         "contro {2:0.##}. Una lavorazione toglie area a una faccia, non " +
                         "gliene aggiunge: quella non e' la stessa faccia. Rileggi lo " +
                         "stato del documento e dimmi tu quale.",
-                        uid, candidata.Misura, areaAttesa);
+                        uid, candidate.Measure, expectedArea);
                 }
             }
 
@@ -7627,63 +7627,63 @@ namespace Oce.Solid.Agent.Core
         /// Senza firma nel piano resta tutto com'era: si usa l'uid, o si
         /// rifiuta con `sparito` se lo stato non ce l'ha.
         /// </summary>
-        private StatoDocumento.FirmaEntita FirmaDelloSpigolo(
-            Dictionary<string, object> a, StatoDocumento stato, string uid,
-            string sparito, out string motivo)
+        private DocumentState.EntitySignature EdgeSignature(
+            Dictionary<string, object> a, DocumentState docState, string uid,
+            string disappeared, out string reason)
         {
-            motivo = null;
-            StatoDocumento.FirmaEntita firma = null;
-            bool presente = stato != null && stato.Firme.TryGetValue(uid, out firma) &&
-                            firma.Tipo == "EDGE";
-            if (presente && FirmaCombacia(a, uid, firma, out motivo)) return firma;
-            string rifiuto = presente ? motivo : sparito;
-            motivo = rifiuto;
+            reason = null;
+            DocumentState.EntitySignature signature = null;
+            bool present = docState != null && docState.Signatures.TryGetValue(uid, out signature) &&
+                            signature.Type == "EDGE";
+            if (present && SignatureMatches(a, uid, signature, out reason)) return signature;
+            string refusal = present ? reason : disappeared;
+            reason = refusal;
 
-            var attesa = FirmaAttesa(a, uid);
-            var punto = Terna(attesa, "point_mm");
-            double lunghezza = Num(attesa, "length_mm");
-            if (stato == null || punto == null || lunghezza <= 0) return null;
+            var expectation = ExpectedSignature(a, uid);
+            var point = Triplet(expectation, "point_mm");
+            double length = Num(expectation, "length_mm");
+            if (docState == null || point == null || length <= 0) return null;
 
-            string trovato = null;
-            StatoDocumento.FirmaEntita ritrovata = null;
-            int quanti = 0;
-            foreach (var voce in stato.Firme)
+            string found = null;
+            DocumentState.EntitySignature foundAgain = null;
+            int howMany = 0;
+            foreach (var entry in docState.Signatures)
             {
-                var candidato = voce.Value;
-                if (candidato.Tipo != "EDGE" || candidato.Entita == null) continue;
-                if (Math.Abs(candidato.Misura - lunghezza) > TolleranzaLunghezzaMm) continue;
-                string perche;
-                if (!FirmaCombacia(a, uid, candidato, out perche)) continue;
-                quanti++;
-                trovato = voce.Key;
-                ritrovata = candidato;
+                var candidate = entry.Value;
+                if (candidate.Type != "EDGE" || candidate.Entity == null) continue;
+                if (Math.Abs(candidate.Measure - length) > LengthToleranceMm) continue;
+                string why;
+                if (!SignatureMatches(a, uid, candidate, out why)) continue;
+                howMany++;
+                found = entry.Key;
+                foundAgain = candidate;
             }
 
-            if (quanti == 1)
+            if (howMany == 1)
             {
                 // SI DICE, come per le facce: il piano ha nominato «E9» e il
                 // raccordo e' finito su «E11». Chi legge la risposta deve poter
                 // controllare che sia lo stesso spigolo, e i numeri per farlo
                 // sono questi.
-                Riancorata(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                ReAnchored(string.Format(System.Globalization.CultureInfo.InvariantCulture,
                     "lo spigolo «{0}» adesso si chiama «{1}»: stessa lunghezza ({2:0.##} mm), " +
                     "stesso punto [{3:0.##}, {4:0.##}, {5:0.##}]. Gli spigoli si rinumerano per " +
                     "lunghezza quando il pezzo cambia: ho lavorato su quello che avevi visto.",
-                    uid, trovato, lunghezza, punto[0], punto[1], punto[2]));
-                motivo = null;
-                return ritrovata;
+                    uid, found, length, point[0], point[1], point[2]));
+                reason = null;
+                return foundAgain;
             }
-            if (quanti > 1)
+            if (howMany > 1)
             {
-                motivo = "Lo spigolo «" + uid + "» ha cambiato numero, e ce ne sono " + quanti +
+                reason = "Lo spigolo «" + uid + "» ha cambiato numero, e ce ne sono " + howMany +
                          " con la sua lunghezza nel suo punto: non scelgo io. Rileggi lo stato " +
                          "del documento e nominalo di nuovo.";
                 return null;
             }
-            motivo = rifiuto + string.Format(System.Globalization.CultureInfo.InvariantCulture,
+            reason = refusal + string.Format(System.Globalization.CultureInfo.InvariantCulture,
                 " E fra gli spigoli di adesso nessuno e' lungo {0:0.##} mm in [{1:0.##}, " +
                 "{2:0.##}, {3:0.##}] come quello che avevi visto: non scelgo il piu' vicino.",
-                lunghezza, punto[0], punto[1], punto[2]);
+                length, point[0], point[1], point[2]);
             return null;
         }
 
@@ -7692,45 +7692,45 @@ namespace Oce.Solid.Agent.Core
         /// True anche quando il piano non porta nessuna firma: in quel caso non
         /// c'e' niente da confrontare e non si puo' inventare un rifiuto.
         /// </summary>
-        private static bool FirmaCombacia(
-            Dictionary<string, object> argomenti,
+        private static bool SignatureMatches(
+            Dictionary<string, object> arguments,
             string uid,
-            StatoDocumento.FirmaEntita adesso,
-            out string motivo)
+            DocumentState.EntitySignature now,
+            out string reason)
         {
-            motivo = null;
-            var attesa = FirmaAttesa(argomenti, uid);
-            if (attesa == null) return true;
+            reason = null;
+            var expectation = ExpectedSignature(arguments, uid);
+            if (expectation == null) return true;
 
             // L'ASSE E' UNA RETTA, non un punto (voce E4). Il punto che lo stato
             // pubblica e' l'inizio dell'asse, e l'inizio si sposta se il foro da
             // cui nasce si allunga: la stessa retta con un altro inizio e' lo
             // stesso asse. Quindi la direzione dev'essere parallela, e il punto
             // atteso deve stare sulla retta di adesso.
-            if (adesso.Tipo == "AXIS")
+            if (now.Type == "AXIS")
             {
-                var q = Terna(attesa, "point_mm");
-                var e = Terna(attesa, "direction");
-                var p = adesso.PuntoMm; var d = adesso.Normale;
+                var q = Triplet(expectation, "point_mm");
+                var e = Triplet(expectation, "direction");
+                var p = now.PointMm; var d = now.Normal;
                 if (q == null || p == null || d == null || p.Length != 3 || d.Length != 3) return true;
                 if (e != null)
                 {
                     double dot = Math.Abs(d[0] * e[0] + d[1] * e[1] + d[2] * e[2]);
                     if (dot < Math.Cos(Math.PI / 180.0))
                     {
-                        motivo = "L'asse «" + uid + "» adesso e' orientato in un altro modo. Il pezzo " +
-                                 "e' cambiato da quando hai confermato: " + NonLavoroSu(adesso);
+                        reason = "L'asse «" + uid + "» adesso e' orientato in un altro modo. Il pezzo " +
+                                 "e' cambiato da quando hai confermato: " + IDoNotWorkOn(now);
                         return false;
                     }
                 }
                 double vx = q[0] - p[0], vy = q[1] - p[1], vz = q[2] - p[2];
                 double cx = vy * d[2] - vz * d[1], cy = vz * d[0] - vx * d[2], cz = vx * d[1] - vy * d[0];
                 double dist = Math.Sqrt(cx * cx + cy * cy + cz * cz);
-                if (dist > TolleranzaPuntoMm)
+                if (dist > PointToleranceMm)
                 {
-                    motivo = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    reason = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                         "L'asse «{0}» si e' spostato di {1:0.##} mm. Il pezzo e' cambiato da quando " +
-                        "hai confermato: {2}", uid, dist, NonLavoroSu(adesso));
+                        "hai confermato: {2}", uid, dist, IDoNotWorkOn(now));
                     return false;
                 }
                 return true;
@@ -7747,27 +7747,27 @@ namespace Oce.Solid.Agent.Core
             // medio da solo non basta: uno spigolo accorciato alle DUE estremita'
             // — due smussi uguali — ha lo stesso punto medio e un'altra
             // lunghezza. Si confronta solo con due lunghezze lette.
-            if (adesso.Tipo == "EDGE")
+            if (now.Type == "EDGE")
             {
-                double lunghezzaAttesa = Num(attesa, "length_mm");
-                if (lunghezzaAttesa > 0 && adesso.Misura > 0 &&
-                    Math.Abs(adesso.Misura - lunghezzaAttesa) > TolleranzaLunghezzaMm)
+                double expectedLength = Num(expectation, "length_mm");
+                if (expectedLength > 0 && now.Measure > 0 &&
+                    Math.Abs(now.Measure - expectedLength) > LengthToleranceMm)
                 {
-                    motivo = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    reason = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                         "«{0}» adesso e' lungo {1:0.##} mm invece di {2:0.##}. Il pezzo e' " +
                         "cambiato da quando hai confermato: {3}",
-                        uid, adesso.Misura, lunghezzaAttesa, NonLavoroSu(adesso));
+                        uid, now.Measure, expectedLength, IDoNotWorkOn(now));
                     return false;
                 }
             }
 
-            var puntoAtteso = Terna(attesa, "point_mm") ?? Terna(attesa, "center_mm");
-            if (puntoAtteso != null && adesso.PuntoMm != null && adesso.PuntoMm.Length == 3)
+            var expectedPoint = Triplet(expectation, "point_mm") ?? Triplet(expectation, "center_mm");
+            if (expectedPoint != null && now.PointMm != null && now.PointMm.Length == 3)
             {
-                double scarto = 0;
+                double deviation = 0;
                 for (int i = 0; i < 3; i++)
-                    scarto = Math.Max(scarto, Math.Abs(puntoAtteso[i] - adesso.PuntoMm[i]));
-                if (scarto > TolleranzaPuntoMm)
+                    deviation = Math.Max(deviation, Math.Abs(expectedPoint[i] - now.PointMm[i]));
+                if (deviation > PointToleranceMm)
                 {
                     // LA PAROLA GIUSTA PER LA COSA GIUSTA. Lo stesso confronto
                     // serve a facce, spigoli e corpi, e dire «non lavoro sulla
@@ -7777,27 +7777,27 @@ namespace Oce.Solid.Agent.Core
                     // e' gia' preso: sopra, sui millimetri. Quello che segue e'
                     // una frase — non un numero, non un `bool` — e non puo'
                     // cambiare l'esito nemmeno se qualcuno lo volesse. Vedi
-                    // Frasi.DoveStavaEDoveSta (voce E10).
-                    motivo =
+                    // Frasi.WhereItWasAndWhereItIs (voce E10).
+                    reason =
                         $"«{uid}» adesso indica un'altra parte del pezzo (spostato di " +
-                        $"{scarto:0.##} mm). Il pezzo e' cambiato da quando hai " +
-                        $"confermato: {NonLavoroSu(adesso)}" +
-                        Frasi.DoveStavaEDoveSta(
-                            uid, puntoAtteso, adesso.PuntoMm,
-                            Sestina(attesa, "box_part_mm"), adesso.ScatolaPezzoMm);
+                        $"{deviation:0.##} mm). Il pezzo e' cambiato da quando hai " +
+                        $"confermato: {IDoNotWorkOn(now)}" +
+                        Sentences.WhereItWasAndWhereItIs(
+                            uid, expectedPoint, now.PointMm,
+                            Sextuple(expectation, "box_part_mm"), now.BoxPartMm);
                     return false;
                 }
             }
 
-            var normaleAttesa = Terna(attesa, "normal");
-            if (normaleAttesa != null && adesso.Normale != null && adesso.Normale.Length == 3)
+            var expectedNormal = Triplet(expectation, "normal");
+            if (expectedNormal != null && now.Normal != null && now.Normal.Length == 3)
             {
-                double scarto = 0;
+                double deviation = 0;
                 for (int i = 0; i < 3; i++)
-                    scarto = Math.Max(scarto, Math.Abs(normaleAttesa[i] - adesso.Normale[i]));
-                if (scarto > TolleranzaNormale)
+                    deviation = Math.Max(deviation, Math.Abs(expectedNormal[i] - now.Normal[i]));
+                if (deviation > NormalTolerance)
                 {
-                    motivo =
+                    reason =
                         $"«{uid}» adesso e' orientata in un altro modo. Il pezzo e' " +
                         "cambiato da quando hai confermato.";
                     return false;
@@ -7812,9 +7812,9 @@ namespace Oce.Solid.Agent.Core
         /// messaggio che si capisce e uno che manda a cercare la cosa
         /// sbagliata.
         /// </summary>
-        private static string NonLavoroSu(StatoDocumento.FirmaEntita entita)
+        private static string IDoNotWorkOn(DocumentState.EntitySignature entity)
         {
-            switch (entita?.Tipo)
+            switch (entity?.Type)
             {
                 case "BODY": return "non lavoro sul corpo sbagliato.";
                 case "AXIS": return "non lavoro sull'asse sbagliato.";
@@ -7823,34 +7823,34 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        private static Dictionary<string, object> FirmaAttesa(
-            Dictionary<string, object> argomenti, string uid)
+        private static Dictionary<string, object> ExpectedSignature(
+            Dictionary<string, object> arguments, string uid)
         {
-            if (argomenti == null) return null;
-            if (!argomenti.TryGetValue("_signatures", out var tutte)) return null;
-            var mappa = tutte as Dictionary<string, object>;
-            if (mappa == null) return null;
-            foreach (var voce in mappa)
+            if (arguments == null) return null;
+            if (!arguments.TryGetValue("_signatures", out var all)) return null;
+            var map = all as Dictionary<string, object>;
+            if (map == null) return null;
+            foreach (var entry in map)
             {
-                if (string.Equals(voce.Key, uid, StringComparison.OrdinalIgnoreCase))
-                    return voce.Value as Dictionary<string, object>;
+                if (string.Equals(entry.Key, uid, StringComparison.OrdinalIgnoreCase))
+                    return entry.Value as Dictionary<string, object>;
             }
             return null;
         }
 
         /// <summary>Tre numeri da un campo del JSON, o null se non ci sono.</summary>
-        private static double[] Terna(Dictionary<string, object> mappa, string chiave)
+        private static double[] Triplet(Dictionary<string, object> map, string key)
         {
-            if (mappa == null || !mappa.TryGetValue(chiave, out var v) || v == null) return null;
-            var elenco = v as System.Collections.IEnumerable;
-            if (elenco == null) return null;
-            var fuori = new List<double>();
-            foreach (var x in elenco)
+            if (map == null || !map.TryGetValue(key, out var v) || v == null) return null;
+            var list = v as System.Collections.IEnumerable;
+            if (list == null) return null;
+            var outside = new List<double>();
+            foreach (var x in list)
             {
-                try { fuori.Add(Convert.ToDouble(x, System.Globalization.CultureInfo.InvariantCulture)); }
+                try { outside.Add(Convert.ToDouble(x, System.Globalization.CultureInfo.InvariantCulture)); }
                 catch { return null; }
             }
-            return fuori.Count == 3 ? fuori.ToArray() : null;
+            return outside.Count == 3 ? outside.ToArray() : null;
         }
 
         /// <summary>
@@ -7858,21 +7858,21 @@ namespace Oce.Solid.Agent.Core
         /// (`{minX,minY,minZ,maxX,maxY,maxZ}`), o null se non ci sono.
         ///
         /// Serve solo a scrivere una frase: vedi
-        /// <see cref="Frasi.DoveStavaEDoveSta"/>, dove c'e' anche il motivo per
+        /// <see cref="Sentences.WhereItWasAndWhereItIs"/>, dove c'e' anche il motivo per
         /// cui questi numeri non entrano in nessuna decisione.
         /// </summary>
-        private static double[] Sestina(Dictionary<string, object> mappa, string chiave)
+        private static double[] Sextuple(Dictionary<string, object> map, string key)
         {
-            if (mappa == null || !mappa.TryGetValue(chiave, out var v) || v == null) return null;
-            var elenco = v as System.Collections.IEnumerable;
-            if (elenco == null) return null;
-            var fuori = new List<double>();
-            foreach (var x in elenco)
+            if (map == null || !map.TryGetValue(key, out var v) || v == null) return null;
+            var list = v as System.Collections.IEnumerable;
+            if (list == null) return null;
+            var outside = new List<double>();
+            foreach (var x in list)
             {
-                try { fuori.Add(Convert.ToDouble(x, System.Globalization.CultureInfo.InvariantCulture)); }
+                try { outside.Add(Convert.ToDouble(x, System.Globalization.CultureInfo.InvariantCulture)); }
                 catch { return null; }
             }
-            return fuori.Count == 6 ? fuori.ToArray() : null;
+            return outside.Count == 6 ? outside.ToArray() : null;
         }
 
         /// <summary>
@@ -7880,37 +7880,37 @@ namespace Oce.Solid.Agent.Core
         /// faccia. Ritorna null se la faccia non e' piana e perpendicolare a un
         /// asse principale — caso in cui rifiutiamo invece di indovinare.
         /// </summary>
-        private double[] AssiDellaFaccia(IFace2 faccia, out double offsetM, out string errore)
+        private double[] FaceAxes(IFace2 face, out double offsetM, out string error)
         {
-            errore = null;
+            error = null;
             offsetM = 0;
             try
             {
-                var superficie = faccia.IGetSurface();
-                if (superficie == null || !superficie.IsPlane())
+                var surface = face.IGetSurface();
+                if (surface == null || !surface.IsPlane())
                 {
-                    errore = "La faccia non e' piana: questa versione non ci lavora sopra.";
+                    error = "La faccia non e' piana: questa versione non ci lavora sopra.";
                     return null;
                 }
-                var piano = superficie.PlaneParams as double[];
-                if (piano == null || piano.Length < 6)
+                var plane = surface.PlaneParams as double[];
+                if (plane == null || plane.Length < 6)
                 {
                     // Servono sei numeri: la normale e un punto sul piano. Con
                     // i soli tre della normale non si sa DOVE sta il piano, e
                     // la terza coordinata del punto finirebbe a zero — cioe'
                     // sul piano che passa per l'origine, non su questa faccia.
-                    errore = "Non riesco a leggere la posizione della faccia.";
+                    error = "Non riesco a leggere la posizione della faccia.";
                     return null;
                 }
-                double ax = Math.Abs(piano[0]), ay = Math.Abs(piano[1]), az = Math.Abs(piano[2]);
-                const double quasiUno = 0.999;
+                double ax = Math.Abs(plane[0]), ay = Math.Abs(plane[1]), az = Math.Abs(plane[2]);
+                const double almostOne = 0.999;
                 // L'ultimo indice e' l'asse della NORMALE: da li' si prende
                 // l'offset del piano, cioe' la coordinata che il modello non
                 // deve dire perche' e' la faccia stessa a fissarla.
-                if (az > quasiUno) { offsetM = piano[5]; return new double[] { 0, 1, 2 }; } // normale Z
-                if (ay > quasiUno) { offsetM = piano[4]; return new double[] { 0, 2, 1 }; } // normale Y
-                if (ax > quasiUno) { offsetM = piano[3]; return new double[] { 1, 2, 0 }; } // normale X
-                errore =
+                if (az > almostOne) { offsetM = plane[5]; return new double[] { 0, 1, 2 }; } // normale Z
+                if (ay > almostOne) { offsetM = plane[4]; return new double[] { 0, 2, 1 }; } // normale Y
+                if (ax > almostOne) { offsetM = plane[3]; return new double[] { 1, 2, 0 }; } // normale X
+                error =
                     "La faccia e' inclinata rispetto agli assi principali: in questa " +
                     "versione non ci faccio lavorazioni, perche' le coordinate " +
                     "finirebbero nel punto sbagliato senza dare errore.";
@@ -7918,7 +7918,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                errore = "Non riesco a leggere la faccia: " + ex.Message;
+                error = "Non riesco a leggere la faccia: " + ex.Message;
                 return null;
             }
         }
@@ -7944,64 +7944,64 @@ namespace Oce.Solid.Agent.Core
         /// Va chiamato con lo schizzo GIA' APERTO: prima di InsertSketch(true)
         /// non c'e' nessuno schizzo attivo da cui leggere la trasformazione.
         /// </summary>
-        private double[] PuntoNelloSchizzo(
-            IModelDoc2 modello,
-            double[] assi,
+        private double[] PointInSketch(
+            IModelDoc2 model,
+            double[] axes,
             double offsetM,
             double xMm,
             double yMm,
-            out string errore)
+            out string error)
         {
-            errore = null;
+            error = null;
 
             // 1. Il punto nel sistema del MODELLO, in metri. Le due coordinate
             //    che il modello linguistico ha dato vanno sui due assi liberi;
             //    la terza e' il piano della faccia, che lui non deve indovinare.
-            var nelModello = new double[3];
-            nelModello[(int)assi[0]] = Unita.M(xMm);
-            nelModello[(int)assi[1]] = Unita.M(yMm);
-            nelModello[(int)assi[2]] = offsetM;
+            var inModel = new double[3];
+            inModel[(int)axes[0]] = Units.M(xMm);
+            inModel[(int)axes[1]] = Units.M(yMm);
+            inModel[(int)axes[2]] = offsetM;
 
             try
             {
-                var schizzo = modello.SketchManager?.ActiveSketch;
-                if (schizzo == null)
+                var sketch = model.SketchManager?.ActiveSketch;
+                if (sketch == null)
                 {
-                    errore = "Nessuno schizzo aperto: non posso posizionare la lavorazione.";
+                    error = "Nessuno schizzo aperto: non posso posizionare la lavorazione.";
                     return null;
                 }
-                var trasformazione = schizzo.ModelToSketchTransform;
-                if (trasformazione == null)
+                var transformation = sketch.ModelToSketchTransform;
+                if (transformation == null)
                 {
-                    errore = "SolidWorks non mi da' l'orientamento dello schizzo.";
+                    error = "SolidWorks non mi da' l'orientamento dello schizzo.";
                     return null;
                 }
-                var matematica = _sw.GetMathUtility() as IMathUtility;
-                var punto = matematica?.CreatePoint(nelModello) as IMathPoint;
-                var nelloSchizzo = punto?.MultiplyTransform(trasformazione) as IMathPoint;
-                var fuori = nelloSchizzo?.ArrayData as double[];
-                if (fuori == null || fuori.Length < 3)
+                var math = _sw.GetMathUtility() as IMathUtility;
+                var point = math?.CreatePoint(inModel) as IMathPoint;
+                var inSketch = point?.MultiplyTransform(transformation) as IMathPoint;
+                var outside = inSketch?.ArrayData as double[];
+                if (outside == null || outside.Length < 3)
                 {
-                    errore = "Non sono riuscito a convertire le coordinate nello schizzo.";
+                    error = "Non sono riuscito a convertire le coordinate nello schizzo.";
                     return null;
                 }
-                return new[] { fuori[0], fuori[1], fuori[2] };
+                return new[] { outside[0], outside[1], outside[2] };
             }
             catch (Exception ex)
             {
-                errore = "Conversione delle coordinate non riuscita: " + ex.Message;
+                error = "Conversione delle coordinate non riuscita: " + ex.Message;
                 return null;
             }
         }
 
-        private Esito Riuscito(
+        private Outcome Succeeded(
             IFeature feature,
-            Dictionary<string, object> misure,
-            double[] direzione = null)
+            Dictionary<string, object> measurements,
+            double[] direction = null)
         {
-            string nome = "";
-            try { nome = feature.Name; } catch { }
-            _log($"[agente] creata feature {nome}");
+            string itemName = "";
+            try { itemName = feature.Name; } catch { }
+            _log($"[agente] creata feature {itemName}");
 
             // CIO' CHE SI E' MOSSO ARRIVA A CHI LEGGE (voce E8).
             //
@@ -8026,21 +8026,21 @@ namespace Oce.Solid.Agent.Core
             // addosso: **aveva misurato lo spostamento e buttato via la
             // misura**.
             //
-            // Il canale giusto esisteva gia' ed era vuoto: `Esito.Misure`
+            // Il canale giusto esisteva gia' ed era vuoto: `Outcome.Measurements`
             // arriva dritto nel JSON della risposta, come fa `note_volume`.
-            if (_riancoraggi.Count > 0)
+            if (_reanchors.Count > 0)
             {
-                if (misure == null) misure = new Dictionary<string, object>();
-                misure["reanchors"] = _riancoraggi.ToArray();
+                if (measurements == null) measurements = new Dictionary<string, object>();
+                measurements["reanchors"] = _reanchors.ToArray();
             }
 
-            return new Esito
+            return new Outcome
             {
-                Riuscito = true,
-                FeatureCreata = nome,
+                Succeeded = true,
+                CreatedFeature = itemName,
                 Feature = feature,
-                Direzione = direzione,
-                Misure = misure,
+                Direction = direction,
+                Measurements = measurements,
             };
         }
 
@@ -8056,17 +8056,17 @@ namespace Oce.Solid.Agent.Core
         /// che si svuota alla fine resta pieno se l'operazione fallisce, e la
         /// successiva erediterebbe gli spostamenti di quella prima.
         /// </summary>
-        private readonly List<string> _riancoraggi = new List<string>();
+        private readonly List<string> _reanchors = new List<string>();
 
         /// <summary>
         /// Registra che una faccia e' stata ritrovata altrove, e lo dice anche
         /// a stderr per chi guarda il ponte lavorare.
         /// </summary>
-        private void Riancorata(string frase)
+        private void ReAnchored(string sentence)
         {
-            if (string.IsNullOrEmpty(frase)) return;
-            _log("[agente] " + frase);
-            _riancoraggi.Add(frase);
+            if (string.IsNullOrEmpty(sentence)) return;
+            _log("[agente] " + sentence);
+            _reanchors.Add(sentence);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -8094,59 +8094,59 @@ namespace Oce.Solid.Agent.Core
         /// seconda serratura, per i piani gia' salvati e per il giorno in cui
         /// qualcuno cambia il server.
         /// </summary>
-        private static bool HaRiferimento(Dictionary<string, object> a, string campo)
+        private static bool HasReference(Dictionary<string, object> a, string theField)
         {
-            object grezzo;
-            return a != null && a.TryGetValue(campo, out grezzo) && grezzo != null;
+            object raw;
+            return a != null && a.TryGetValue(theField, out raw) && raw != null;
         }
 
-        private Riferimenti.Passo PassoCitato(
-            Dictionary<string, object> a, string campo, out int numero, out string motivo)
+        private References.Step CitedStep(
+            Dictionary<string, object> a, string theField, out int number, out string reason)
         {
-            numero = 0;
-            // Mai null: un motivo nullo diventa `Fallito(null)`, e chi legge
+            number = 0;
+            // Mai null: un motivo nullo diventa `Failed(null)`, e chi legge
             // trova «Mi sono fermato dopo 1 operazioni: » con il vuoto dopo i
             // due punti. Un fallimento senza ragione scritta e' un fallimento
             // che non si puo' correggere.
-            motivo = $"Il riferimento «{campo}» non si e' potuto risolvere.";
-            object grezzo;
-            if (a == null || !a.TryGetValue(campo, out grezzo) || grezzo == null)
+            reason = $"Il riferimento «{theField}» non si e' potuto risolvere.";
+            object raw;
+            if (a == null || !a.TryGetValue(theField, out raw) || raw == null)
             {
-                motivo =
-                    $"Il piano dice di usare «{campo}», ma quel riferimento e' " +
+                reason =
+                    $"Il piano dice di usare «{theField}», ma quel riferimento e' " +
                     "vuoto. Il passo non si puo' eseguire.";
                 return null;
             }
 
-            var mappa = grezzo as Dictionary<string, object>;
-            if (mappa == null)
+            var map = raw as Dictionary<string, object>;
+            if (map == null)
             {
-                motivo = $"Il riferimento «{campo}» non e' leggibile.";
+                reason = $"Il riferimento «{theField}» non e' leggibile.";
                 return null;
             }
-            object valore;
-            if (!mappa.TryGetValue("step", out valore))
+            object val;
+            if (!map.TryGetValue("step", out val))
             {
-                motivo = $"Il riferimento «{campo}» non dice a quale passo.";
+                reason = $"Il riferimento «{theField}» non dice a quale passo.";
                 return null;
             }
-            try { numero = Convert.ToInt32(valore); }
+            try { number = Convert.ToInt32(val); }
             catch
             {
-                motivo = $"Il riferimento «{campo}» ha un numero di passo illeggibile.";
+                reason = $"Il riferimento «{theField}» ha un numero di passo illeggibile.";
                 return null;
             }
 
-            Riferimenti.Passo passo;
-            if (!_passiFatti.TryGetValue(numero, out passo) || passo == null)
+            References.Step planStep;
+            if (!_stepsDone.TryGetValue(number, out planStep) || planStep == null)
             {
-                motivo =
-                    $"Il riferimento «{campo}» cita il passo {numero}, ma di quel " +
+                reason =
+                    $"Il riferimento «{theField}» cita il passo {number}, ma di quel " +
                     "passo non ho la geometria: o non e' ancora stato eseguito, " +
                     "o non ha creato niente.";
                 return null;
             }
-            return passo;
+            return planStep;
         }
 
         /// <summary>
@@ -8155,43 +8155,43 @@ namespace Oce.Solid.Agent.Core
         /// tasca e' il fondo. Null se la faccia non e' piana — in quel caso il
         /// passo dopo non potra' nominarne il fondo, e lo dira'.
         /// </summary>
-        private static double[] NormaleDellaFaccia(IFace2 faccia)
+        private static double[] FaceNormal(IFace2 face)
         {
             try
             {
-                return ApiHelpers.NormalIfPlanar(faccia);
+                return ApiHelpers.NormalIfPlanar(face);
             }
             catch { return null; }
         }
 
-        private static string GenereDi(Dictionary<string, object> a, string campo)
+        private static string KindOf(Dictionary<string, object> a, string theField)
         {
-            object grezzo;
-            if (a == null || !a.TryGetValue(campo, out grezzo)) return "";
-            var mappa = grezzo as Dictionary<string, object>;
-            if (mappa == null) return "";
+            object raw;
+            if (a == null || !a.TryGetValue(theField, out raw)) return "";
+            var map = raw as Dictionary<string, object>;
+            if (map == null) return "";
             object g;
-            return mappa.TryGetValue("kind", out g) ? Convert.ToString(g) ?? "" : "";
+            return map.TryGetValue("kind", out g) ? Convert.ToString(g) ?? "" : "";
         }
 
-        private Esito Fallito(string motivo)
+        private Outcome Failed(string reason)
         {
             // Un fallimento senza ragione scritta non si puo' correggere.
             // Succedeva davvero: un percorso ritornava il motivo a null, e chi
             // leggeva trovava «Mi sono fermato dopo 1 operazioni: » con il
             // vuoto dopo i due punti. Meglio una frase generica che il nulla.
-            if (string.IsNullOrWhiteSpace(motivo))
-                motivo =
+            if (string.IsNullOrWhiteSpace(reason))
+                reason =
                     "L'operazione non e' riuscita, e non ho una ragione da " +
                     "darti: e' un difetto mio. Segnalalo insieme al log.";
-            _log("[agente] " + motivo);
-            return new Esito { Riuscito = false, Errore = motivo };
+            _log("[agente] " + reason);
+            return new Outcome { Succeeded = false, Error = reason };
         }
 
         // ─── lettura dei parametri, senza sorprese ───────────────────────
-        private static double Num(Dictionary<string, object> a, string chiave, double se = 0)
+        private static double Num(Dictionary<string, object> a, string key, double se = 0)
         {
-            if (a == null || !a.TryGetValue(chiave, out var v) || v == null) return se;
+            if (a == null || !a.TryGetValue(key, out var v) || v == null) return se;
             try { return Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture); }
             catch { return se; }
         }
@@ -8204,51 +8204,51 @@ namespace Oce.Solid.Agent.Core
         /// coordinata. Uno zero al posto di un valore illeggibile non da'
         /// nessun errore: sposta il foro nell'origine e basta.
         /// </summary>
-        private static bool NumObbligatorio(
-            Dictionary<string, object> a, string chiave, out double valore, out string errore)
+        private static bool RequiredNum(
+            Dictionary<string, object> a, string key, out double val, out string error)
         {
-            valore = 0;
-            errore = null;
+            val = 0;
+            error = null;
             object v = null;
-            if (a == null || !a.TryGetValue(chiave, out v) || v == null)
+            if (a == null || !a.TryGetValue(key, out v) || v == null)
             {
-                errore = $"Manca il parametro «{chiave}».";
+                error = $"Manca il parametro «{key}».";
                 return false;
             }
             try
             {
-                valore = Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture);
+                val = Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture);
             }
             catch
             {
-                errore = $"«{chiave}» non e' un numero: {v}.";
+                error = $"«{key}» non e' un numero: {v}.";
                 return false;
             }
-            if (double.IsNaN(valore) || double.IsInfinity(valore))
+            if (double.IsNaN(val) || double.IsInfinity(val))
             {
-                errore = $"«{chiave}» non e' un numero utilizzabile: {v}.";
+                error = $"«{key}» non e' un numero utilizzabile: {v}.";
                 return false;
             }
             return true;
         }
 
-        private static bool Bool(Dictionary<string, object> a, string chiave, bool se)
+        private static bool Bool(Dictionary<string, object> a, string key, bool se)
         {
-            if (a == null || !a.TryGetValue(chiave, out var v) || v == null) return se;
+            if (a == null || !a.TryGetValue(key, out var v) || v == null) return se;
             try { return Convert.ToBoolean(v); }
             catch { return se; }
         }
 
-        private static string Str(Dictionary<string, object> a, string chiave, string se)
+        private static string Str(Dictionary<string, object> a, string key, string se)
         {
-            if (a == null || !a.TryGetValue(chiave, out var v) || v == null) return se;
+            if (a == null || !a.TryGetValue(key, out var v) || v == null) return se;
             return Convert.ToString(v) ?? se;
         }
 
         /// <summary>C'e' un elenco non vuoto sotto questa chiave?</summary>
-        private static bool HaElenco(Dictionary<string, object> a, string chiave)
+        private static bool HasList(Dictionary<string, object> a, string key)
         {
-            if (a == null || !a.TryGetValue(chiave, out var v) || v == null) return false;
+            if (a == null || !a.TryGetValue(key, out var v) || v == null) return false;
             if (v is string) return false;
             var e = v as System.Collections.IEnumerable;
             if (e == null) return false;
@@ -8260,7 +8260,7 @@ namespace Oce.Solid.Agent.Core
         /// Le facce che un elenco di riferimenti a passi precedenti risolve.
         ///
         /// UN ELENCO DI RIFERIMENTI SINGOLI, e non un genere plurale. Il
-        /// vocabolario di <see cref="Riferimenti"/> risolve una faccia per
+        /// vocabolario di <see cref="References"/> risolve una faccia per
         /// volta e rifiuta quando il ruolo non e' univoco — che e' la regola
         /// giusta e non va toccata. Per averne piu' d'una si ripete l'elemento:
         /// e' cio' che fa gia' chi scrive `faces_uid` con tre uid dentro.
@@ -8269,79 +8269,79 @@ namespace Oce.Solid.Agent.Core
         /// facce invece che su tre non e' «quasi giusto»: e' un pezzo diverso,
         /// e sarebbe riuscito in silenzio.
         /// </summary>
-        private bool FacceDaiRiferimenti(
-            Dictionary<string, object> a, string campo,
-            out List<IFace2> facce, out string motivo)
+        private bool FacesFromReferences(
+            Dictionary<string, object> a, string theField,
+            out List<IFace2> faces, out string reason)
         {
-            facce = new List<IFace2>();
-            motivo = null;
+            faces = new List<IFace2>();
+            reason = null;
 
-            object grezzo;
-            if (a == null || !a.TryGetValue(campo, out grezzo) || grezzo == null)
+            object raw;
+            if (a == null || !a.TryGetValue(theField, out raw) || raw == null)
             {
-                motivo = "«" + campo + "» e' vuoto.";
+                reason = "«" + theField + "» e' vuoto.";
                 return false;
             }
-            var elenco = grezzo as System.Collections.IEnumerable;
-            if (elenco == null || grezzo is string)
+            var list = raw as System.Collections.IEnumerable;
+            if (list == null || raw is string)
             {
-                motivo = "«" + campo + "» deve essere un elenco di riferimenti a passi.";
+                reason = "«" + theField + "» deve essere un elenco di riferimenti a passi.";
                 return false;
             }
 
-            int quale = 0;
-            foreach (var v in elenco)
+            int which = 0;
+            foreach (var v in list)
             {
-                quale++;
-                var voce = v as Dictionary<string, object>;
-                if (voce == null)
+                which++;
+                var entry = v as Dictionary<string, object>;
+                if (entry == null)
                 {
-                    motivo = "Il riferimento n. " + quale + " di «" + campo +
+                    reason = "Il riferimento n. " + which + " di «" + theField +
                              "» non e' un oggetto {passo, genere}.";
                     return false;
                 }
 
-                // Si riusa `PassoCitato` costruendo un dizionario di un campo
+                // Si riusa `CitedStep` costruendo un dizionario di un campo
                 // solo: cosi' i controlli sul passo — che esista, che sia
                 // precedente, che abbia creato qualcosa — restano quelli, e
                 // non se ne scrive una seconda copia che divergera'.
-                var uno = new Dictionary<string, object> { [campo] = voce };
-                int numero;
-                var passo = PassoCitato(uno, campo, out numero, out motivo);
-                if (passo == null)
+                var one = new Dictionary<string, object> { [theField] = entry };
+                int number;
+                var planStep = CitedStep(one, theField, out number, out reason);
+                if (planStep == null)
                 {
-                    motivo = "Riferimento n. " + quale + ": " +
-                             (motivo ?? "non risolto.");
+                    reason = "Riferimento n. " + which + ": " +
+                             (reason ?? "non risolto.");
                     return false;
                 }
 
-                IFace2 faccia;
-                if (!Riferimenti.Faccia(passo, GenereDi(uno, campo), out faccia, out motivo))
+                IFace2 face;
+                if (!References.Face(planStep, KindOf(one, theField), out face, out reason))
                 {
-                    motivo = "Riferimento n. " + quale + ": " +
-                             (motivo ?? "faccia non trovata.");
+                    reason = "Riferimento n. " + which + ": " +
+                             (reason ?? "faccia non trovata.");
                     return false;
                 }
-                facce.Add(faccia);
+                faces.Add(face);
             }
 
-            if (facce.Count == 0)
+            if (faces.Count == 0)
             {
-                motivo = "«" + campo + "» non ha nessun riferimento.";
+                reason = "«" + theField + "» non ha nessun riferimento.";
                 return false;
             }
             return true;
         }
 
-        private static List<string> Lista(Dictionary<string, object> a, string chiave)
+        private static List<string> StringList(Dictionary<string, object> a, string key)
         {
-            var fuori = new List<string>();
-            if (a == null || !a.TryGetValue(chiave, out var v) || v == null) return fuori;
+            var outside = new List<string>();
+            if (a == null || !a.TryGetValue(key, out var v) || v == null) return outside;
             if (v is System.Collections.IEnumerable e && !(v is string))
             {
-                foreach (var x in e) if (x != null) fuori.Add(Convert.ToString(x));
+                foreach (var x in e) if (x != null) outside.Add(Convert.ToString(x));
             }
-            return fuori;
+            return outside;
         }
     }
 }

@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Bench
         /// **In tutt'e due i casi la riga «libreria X.Y.Z (percorso)» esce
         /// in testa al giro**, ed e' quella che ha permesso di capirlo.
         /// </remarks>
-        private static string _libreria = LibreriaPredefinita();
+        private static string _library = DefaultLibrary();
 
         /// <summary>
         /// True when `--libreria` named another library: an older one may lack
@@ -91,19 +91,19 @@ namespace Oce.Solid.Agent.Bench
             catch (Exception) { return false; }
         }
 
-        private static string LibreriaPredefinita()
+        private static string DefaultLibrary()
         {
-            var accanto = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".";
+            var nextTo = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".";
             // `Bench\bin\` -> due su -> la radice del repository.
             try
             {
-                var radice = Path.GetFullPath(Path.Combine(accanto, "..", ".."));
-                var buona = Path.Combine(radice, "Oce.Solid.Agent.Core", "bin", "Release",
+                var root = Path.GetFullPath(Path.Combine(nextTo, "..", ".."));
+                var good = Path.Combine(root, "Oce.Solid.Agent.Core", "bin", "Release",
                                          "Oce.Solid.Agent.Core.dll");
-                if (File.Exists(buona)) return buona;
+                if (File.Exists(good)) return good;
             }
             catch { }
-            return Path.Combine(accanto, "Oce.Solid.Agent.Core.dll");
+            return Path.Combine(nextTo, "Oce.Solid.Agent.Core.dll");
         }
 
         /// <summary>I nomi dei tipi, dopo lo spostamento in libreria.</summary>
@@ -133,19 +133,19 @@ namespace Oce.Solid.Agent.Bench
         /// Adesso il ripiego non c'e': vuoto e' vuoto, e `Path.Combine` non lo
         /// vede mai perche' il banco si ferma prima, dicendolo.
         /// </summary>
-        private static readonly string ProfiliSaldatura =
+        private static readonly string WeldmentProfiles =
             System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
 
-        private static readonly string QUADRO = string.IsNullOrWhiteSpace(ProfiliSaldatura)
-            ? null : System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE QUADRO.SLDLFP");
-        private static readonly string RETT = string.IsNullOrWhiteSpace(ProfiliSaldatura)
-            ? null : System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE RETTANGOLARE.SLDLFP");
+        private static readonly string SQUARE_TUBE = string.IsNullOrWhiteSpace(WeldmentProfiles)
+            ? null : System.IO.Path.Combine(WeldmentProfiles, "TUBO STRUTTURALE QUADRO.SLDLFP");
+        private static readonly string RECT = string.IsNullOrWhiteSpace(WeldmentProfiles)
+            ? null : System.IO.Path.Combine(WeldmentProfiles, "TUBO STRUTTURALE RETTANGOLARE.SLDLFP");
 
         private static ISldWorks _sw;
         private static Assembly _addin;
-        private static Type _tOperazioni, _tStato, _tEsito;
-        private static readonly List<string> _esiti = new List<string>();
-        private static int _falliti;
+        private static Type _tOperations, _tState, _tOutcome;
+        private static readonly List<string> _outcomes = new List<string>();
+        private static int _failed;
 
         /// <summary>
         /// LE LIBRERIE DI DASSAULT NON SI COPIANO NEL REPOSITORY, e nemmeno
@@ -161,47 +161,47 @@ namespace Oce.Solid.Agent.Bench
         /// compila tutto il metodo prima di eseguirne la prima riga. Con il
         /// giro dentro `Main` il gestore veniva installato troppo tardi e
         /// l'eccezione usciva "in Program.Main", cioe' prima di qualunque riga
-        /// scritta qui. `Avvio` sta a parte e non si fa incorporare.
+        /// scritta qui. `Startup` sta a parte e non si fa incorporare.
         /// </summary>
-        private static int Main(string[] argomentiRiga)
+        private static int Main(string[] lineArguments)
         {
-            AppDomain.CurrentDomain.AssemblyResolve += (mittente, argomento) =>
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, argument) =>
             {
-                var nome = new AssemblyName(argomento.Name).Name;
-                if (!nome.StartsWith("SolidWorks.Interop", StringComparison.OrdinalIgnoreCase))
+                var itemName = new AssemblyName(argument.Name).Name;
+                if (!itemName.StartsWith("SolidWorks.Interop", StringComparison.OrdinalIgnoreCase))
                     return null;
-                var posti = new List<string>();
+                var places = new List<string>();
                 // VOCE H10: una variabile sola, e il suo significato e' LA
                 // RADICE. `SW_REDIST` resta letta dopo, per chi ce l'ha gia'.
                 // Il banco e il ponte devono cercare NEGLI STESSI POSTI e
                 // nello stesso ordine: due ricerche diverse dello stesso file
                 // sono due programmi che un giorno usano due interop diverse.
-                var radice = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
-                if (!string.IsNullOrWhiteSpace(radice))
-                    posti.Add(Path.Combine(radice.Trim(), "api", "redist"));
-                var suo = System.Environment.GetEnvironmentVariable("SW_REDIST");
-                if (!string.IsNullOrWhiteSpace(suo)) posti.Add(suo);
-                posti.Add(@"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist");
-                posti.Add(@"C:\Program Files\SOLIDWORKS\api\redist");
-                foreach (var cartella in posti)
+                var root = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+                if (!string.IsNullOrWhiteSpace(root))
+                    places.Add(Path.Combine(root.Trim(), "api", "redist"));
+                var its = System.Environment.GetEnvironmentVariable("SW_REDIST");
+                if (!string.IsNullOrWhiteSpace(its)) places.Add(its);
+                places.Add(@"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist");
+                places.Add(@"C:\Program Files\SOLIDWORKS\api\redist");
+                foreach (var folder in places)
                 {
-                    var file = Path.Combine(cartella, nome + ".dll");
+                    var file = Path.Combine(folder, itemName + ".dll");
                     if (File.Exists(file))
                     {
                         try { return Assembly.LoadFrom(file); } catch { }
                     }
                 }
-                Console.WriteLine("non trovo " + nome + ": indica dove e' installato " +
+                Console.WriteLine("non trovo " + itemName + ": indica dove e' installato " +
                                   "SOLIDWORKS nella variabile SW_INSTALL_PATH (la radice, " +
                                   "quella che finisce con \\SOLIDWORKS).");
                 return null;
             };
-            return Avvio(argomentiRiga);
+            return Startup(lineArguments);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static int Avvio(string[] argomentiRiga)
+        private static int Startup(string[] lineArguments)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
@@ -218,7 +218,7 @@ namespace Oce.Solid.Agent.Bench
             // `Path.Combine` a meta' giro, cioe' un'eccezione al posto di una
             // frase. *Togliere un ripiego senza mettere la frase che spiega
             // cosa manca non e' una riparazione, e' spostare il danno.*
-            if (string.IsNullOrWhiteSpace(ProfiliSaldatura))
+            if (string.IsNullOrWhiteSpace(WeldmentProfiles))
             {
                 Console.WriteLine();
                 Console.WriteLine("PROFILI_SALDATURA non e' impostata, e il banco non puo' girare.");
@@ -236,19 +236,19 @@ namespace Oce.Solid.Agent.Bench
 
             // `--libreria <percorso>` prima di tutto il resto: se la libreria
             // e' un'altra, e' un'altra anche la misura, e va detto in testa.
-            var argomenti = new List<string>(argomentiRiga ?? new string[0]);
-            int dove = argomenti.IndexOf("--libreria");
-            if (dove >= 0 && dove + 1 < argomenti.Count)
+            var arguments = new List<string>(lineArguments ?? new string[0]);
+            int location = arguments.IndexOf("--libreria");
+            if (location >= 0 && location + 1 < arguments.Count)
             {
-                _libreria = argomenti[dove + 1];
+                _library = arguments[location + 1];
                 // ONLY A DIFFERENT FILE IS «ANOTHER LIBRARY» (1/10/2026). bench.ps1
                 // always passes --libreria, with the same path as
-                // LibreriaPredefinita, so taking every --libreria for another
+                // DefaultLibrary, so taking every --libreria for another
                 // library skipped the reflection-log test on every full bench
                 // (seen on the bench of 0.148.0, where the test was reported as
                 // skipped). A net that never runs is not a net.
-                _anotherLibrary = !SameLibraryPath(_libreria, LibreriaPredefinita());
-                argomenti.RemoveRange(dove, 2);
+                _anotherLibrary = !SameLibraryPath(_library, DefaultLibrary());
+                arguments.RemoveRange(location, 2);
             }
             // `--lento`: le prove che costano MINUTI, non secondi.
             //
@@ -262,18 +262,18 @@ namespace Oce.Solid.Agent.Bench
             // MA UN CONTROLLO SALTATO SI DEVE VEDERE. Quando non si lancia, il
             // banco lo DICE e lo conta fra i saltati: un controllo che sparisce
             // in silenzio e' come un controllo che non scatta mai.
-            _lento = argomenti.Remove("--lento");
+            _slow = arguments.Remove("--lento");
 
             // `--muta`: non un giro con qualcosa in piu', UN ALTRO GIRO.
             // Perturba i casi e pretende che diventino rossi (voce F6). Costa
             // un documento di SOLIDWORKS per mutazione, quindi si lancia prima
             // di una consegna e non ogni sera.
-            _muta = argomenti.Remove("--muta");
+            _mutate = arguments.Remove("--muta");
 
             // `--regressione`: la suite dei riferimenti (voce F8). Come
             // `--muta`, e' un altro giro: produce tre numeri, non prove verdi
             // e rosse, e mescolarli non direbbe niente a nessuno.
-            _regressione = argomenti.Remove("--regressione");
+            _regression = arguments.Remove("--regressione");
 
             // `--fingi-senza-solidworks`: far MORIRE SOLIDWORKS a comando.
             //
@@ -288,7 +288,7 @@ namespace Oce.Solid.Agent.Bench
             // tutto il resto DICENDOLO, e uscire 4. Si lancia a mano,
             // dura pochi secondi, e serve a guardare con gli occhi cio'
             // che le prove di contratto verificano in astratto.
-            _fingiSenzaSolidWorks = argomenti.Remove("--fingi-senza-solidworks");
+            _pretendWithoutSolidWorks = arguments.Remove("--fingi-senza-solidworks");
 
             // `--gruppo <nomi>`: una famiglia di prove sola, mentre si lavora.
             //
@@ -312,24 +312,24 @@ namespace Oce.Solid.Agent.Bench
             // Quindi: `--gruppo` per sbagliare in fretta, il giro intero prima
             // di committare, e un giro parziale che NON puo' passare per uno
             // intero — il riepilogo lo scrive a chiare lettere.
-            List<string> scelti = null;
-            int doveG = argomenti.IndexOf("--gruppo");
-            if (doveG >= 0)
+            List<string> chosen = null;
+            int whereG = arguments.IndexOf("--gruppo");
+            if (whereG >= 0)
             {
-                if (doveG + 1 >= argomenti.Count)
+                if (whereG + 1 >= arguments.Count)
                 {
-                    Console.WriteLine("«--gruppo» vuole un nome. " + ComeSiChiamano());
+                    Console.WriteLine("«--gruppo» vuole un nome. " + WhatTheyAreCalled());
                     return 2;
                 }
-                scelti = new List<string>(
-                    argomenti[doveG + 1].Split(new[] { ',' },
+                chosen = new List<string>(
+                    arguments[whereG + 1].Split(new[] { ',' },
                                                StringSplitOptions.RemoveEmptyEntries));
-                for (int i = 0; i < scelti.Count; i++) scelti[i] = scelti[i].Trim().ToLowerInvariant();
-                argomenti.RemoveRange(doveG, 2);
+                for (int i = 0; i < chosen.Count; i++) chosen[i] = chosen[i].Trim().ToLowerInvariant();
+                arguments.RemoveRange(whereG, 2);
             }
-            if (argomenti.Remove("--gruppi"))
+            if (arguments.Remove("--gruppi"))
             {
-                Console.WriteLine(ComeSiChiamano());
+                Console.WriteLine(WhatTheyAreCalled());
                 return 0;
             }
 
@@ -338,51 +338,51 @@ namespace Oce.Solid.Agent.Bench
             // dichiarati, tre quarti d'ora: per vedere fallire DUE casi nuovi
             // prima di scrivere il codice — la regola di ogni controllo nuovo —
             // era il giro intero o niente. Implica `--gruppo casi`.
-            int doveF = argomenti.IndexOf("--famiglia");
-            if (doveF >= 0)
+            int whereF = arguments.IndexOf("--famiglia");
+            if (whereF >= 0)
             {
-                if (doveF + 1 >= argomenti.Count)
+                if (whereF + 1 >= arguments.Count)
                 {
-                    Console.WriteLine("«--famiglia» vuole un nome: " + string.Join(", ", Famiglie));
+                    Console.WriteLine("«--famiglia» vuole un nome: " + string.Join(", ", Families));
                     return 2;
                 }
-                _soloFamiglie = new List<string>(
-                    argomenti[doveF + 1].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                _familiesOnly = new List<string>(
+                    arguments[whereF + 1].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                                         .Select(n => n.Trim().ToLowerInvariant()));
-                argomenti.RemoveRange(doveF, 2);
-                var ignote = _soloFamiglie.Where(n => !Famiglie.Contains(n)).ToList();
-                if (ignote.Count > 0)
+                arguments.RemoveRange(whereF, 2);
+                var unknownOnes = _familiesOnly.Where(n => !Families.Contains(n)).ToList();
+                if (unknownOnes.Count > 0)
                 {
                     Console.WriteLine("non conosco la famiglia " +
-                                      string.Join(", ", ignote.Select(n => "«" + n + "»")) +
-                                      ". Le famiglie sono: " + string.Join(", ", Famiglie));
+                                      string.Join(", ", unknownOnes.Select(n => "«" + n + "»")) +
+                                      ". Le famiglie sono: " + string.Join(", ", Families));
                     return 2;
                 }
-                if (scelti == null) scelti = new List<string> { "casi" };
+                if (chosen == null) chosen = new List<string> { "casi" };
             }
 
-            argomentiRiga = argomenti.ToArray();
+            lineArguments = arguments.ToArray();
 
             // UN NOME SBAGLIATO SI DICE SUBITO, prima di agganciare SOLIDWORKS.
             // Un refuso che si scopre dopo trenta secondi di avvio, e che lascia
             // credere «quel gruppo non ha prove», e' peggio di nessun gruppo.
-            if (scelti != null)
+            if (chosen != null)
             {
-                var conosciuti = new HashSet<string>(
-                    Gruppi().Select(g => g.Nome), StringComparer.OrdinalIgnoreCase);
-                var sconosciuti = scelti.Where(n => !conosciuti.Contains(n)).ToList();
-                if (sconosciuti.Count > 0)
+                var known = new HashSet<string>(
+                    Groups().Select(g => g.Name), StringComparer.OrdinalIgnoreCase);
+                var unknown = chosen.Where(n => !known.Contains(n)).ToList();
+                if (unknown.Count > 0)
                 {
                     Console.WriteLine("non conosco " +
-                                      string.Join(", ", sconosciuti.Select(n => "«" + n + "»")) +
-                                      ". " + ComeSiChiamano());
+                                      string.Join(", ", unknown.Select(n => "«" + n + "»")) +
+                                      ". " + WhatTheyAreCalled());
                     return 2;
                 }
             }
 
-            if (!File.Exists(_libreria))
+            if (!File.Exists(_library))
             {
-                Console.WriteLine("non trovo la libreria: " + _libreria);
+                Console.WriteLine("non trovo la libreria: " + _library);
                 Console.WriteLine("indicala con  --libreria <percorso di Oce.Solid.Agent.Core.dll>");
                 return 1;
             }
@@ -395,9 +395,9 @@ namespace Oce.Solid.Agent.Bench
             // NotSupportedException, e la libreria sta proprio li'. Leggere il
             // file e passare i byte gira attorno al problema senza chiedere a
             // nessuno di copiarsi le cose a mano.
-            _addin = Assembly.Load(File.ReadAllBytes(_libreria));
+            _addin = Assembly.Load(File.ReadAllBytes(_library));
             Console.WriteLine("SolidWorks " + _sw.RevisionNumber());
-            Console.WriteLine("libreria " + _addin.GetName().Version + "  (" + _libreria + ")");
+            Console.WriteLine("libreria " + _addin.GetName().Version + "  (" + _library + ")");
             // ── LA LIBRERIA NON SI CARICA NON E' UN GIRO ROSSO (voce F10) ─
             //
             // Puntando `--libreria` a una versione storica — quel che serve per
@@ -411,9 +411,9 @@ namespace Oce.Solid.Agent.Bench
             // significa niente, e questo ne e' il caso limite.
             try
             {
-                _tOperazioni = _addin.GetType(NS + "OperazioniSw", true);
-                _tStato = _addin.GetType(NS + "StatoDocumento", true);
-                _tEsito = _addin.GetType(NS + "OperazioniSw+Esito", true);
+                _tOperations = _addin.GetType(NS + "SwOperations", true);
+                _tState = _addin.GetType(NS + "DocumentState", true);
+                _tOutcome = _addin.GetType(NS + "SwOperations+Outcome", true);
                 // The Italian selectors of before W3.1-bis.5, read through the
                 // dictionary of the library (Alias.cs); a library from before
                 // it has none, and the selectors are read as written.
@@ -421,12 +421,12 @@ namespace Oce.Solid.Agent.Bench
                 var selectorMethod = tAlias == null ? null
                     : tAlias.GetMethod("Selector", new[] { typeof(string), typeof(List<string>) });
                 if (selectorMethod != null)
-                    Attese.SelectorAlias = (s, notes) => (string)selectorMethod.Invoke(null, new object[] { s, notes });
+                    Expectations.SelectorAlias = (s, notes) => (string)selectorMethod.Invoke(null, new object[] { s, notes });
                 var usesProperty = tAlias == null ? null
                     : tAlias.GetProperty("Uses", BindingFlags.Public | BindingFlags.Static);
                 if (usesProperty != null)
                 {
-                    Attese.AliasUsesNow = () => (int)usesProperty.GetValue(null, null);
+                    Expectations.AliasUsesNow = () => (int)usesProperty.GetValue(null, null);
                     AliasUsesNow();   // the start of the count of the run
                 }
             }
@@ -434,8 +434,8 @@ namespace Oce.Solid.Agent.Bench
             {
                 Console.WriteLine();
                 Console.WriteLine("LA LIBRERIA NON ESPONE I TIPI CHE IL BANCO CERCA.");
-                Console.WriteLine("  libreria: " + _addin.GetName().Version + "  (" + _libreria + ")");
-                Console.WriteLine("  cercavo:  " + NS + "OperazioniSw");
+                Console.WriteLine("  libreria: " + _addin.GetName().Version + "  (" + _library + ")");
+                Console.WriteLine("  cercavo:  " + NS + "SwOperations");
                 Console.WriteLine("  " + ex.GetType().Name + ": " + ex.Message);
                 Console.WriteLine();
                 Console.WriteLine("Non e' un giro rosso: e' una libreria che il banco non sa leggere.");
@@ -448,7 +448,7 @@ namespace Oce.Solid.Agent.Bench
             // lo vuole in intestazione, e questo e' l'unico punto in cui la
             // libreria da misurare e' gia' in mano.
             //
-            // E SONO DUE NUMERI (voce F15). `NomiEseguibili` sono tutte quelle
+            // E SONO DUE NUMERI (voce F15). `ExecutableNames` sono tutte quelle
             // che la libreria sa eseguire, comprese le `Provata = false` che
             // `build.ps1` tiene fuori da `catalog.json`. Fino alla 0.112.0 si
             // stampava «catalogo: 73» e il catalogo servito ne aveva 71: il 24/9
@@ -461,43 +461,43 @@ namespace Oce.Solid.Agent.Bench
             {
                 // Through the reflection log: these fall back to null, and the
                 // header would print a count of zero in silence (W3.1-bis.2, item 3).
-                var nomi = ReflectionLog.Global.Field(_tOperazioni, "NomiEseguibili",
+                var names = ReflectionLog.Global.Field(_tOperations, "ExecutableNames",
                     BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string[];
-                int aCatalogo = -1;
-                var catalogueType = ReflectionLog.Global.TypeIn(_addin, "Oce.Solid.Agent.Core.Catalog.Operazioni");
-                var tutte = ReflectionLog.Global.Field(catalogueType, "Tutte", BindingFlags.Public | BindingFlags.Static)?
+                int inCatalog = -1;
+                var catalogueType = ReflectionLog.Global.TypeIn(_addin, "Oce.Solid.Agent.Core.Catalog.Operations");
+                var all = ReflectionLog.Global.Field(catalogueType, "All", BindingFlags.Public | BindingFlags.Static)?
                     .GetValue(null) as System.Collections.IEnumerable;
-                if (tutte != null)
+                if (all != null)
                 {
-                    aCatalogo = 0;
-                    foreach (var o in tutte)
-                        if (ReflectionLog.Global.Field(o.GetType(), "Provata")?.GetValue(o) as bool? == true) aCatalogo++;
+                    inCatalog = 0;
+                    foreach (var o in all)
+                        if (ReflectionLog.Global.Field(o.GetType(), "Tested")?.GetValue(o) as bool? == true) inCatalog++;
                 }
-                if (nomi != null)
-                    Console.WriteLine("eseguibili: " + nomi.Length + " operazioni (a catalogo: " +
-                                      (aCatalogo < 0 ? "?" : aCatalogo.ToString()) + ")");
+                if (names != null)
+                    Console.WriteLine("eseguibili: " + names.Length + " operazioni (a catalogo: " +
+                                      (inCatalog < 0 ? "?" : inCatalog.ToString()) + ")");
             }
             catch { }
 
             // MODO SESSIONE: invece delle prove, il giro completo — un
             // documento tenuto aperto mentre qualcun altro pianifica.
-            if (argomentiRiga != null && argomentiRiga.Length >= 2 &&
-                argomentiRiga[0] == "--sessione")
+            if (lineArguments != null && lineArguments.Length >= 2 &&
+                lineArguments[0] == "--sessione")
             {
                 // Terzo argomento facoltativo: un pezzo gia' fatto da
                 // riprendere, invece di una parte vuota.
-                string daAprire = argomentiRiga.Length >= 3 ? argomentiRiga[2] : null;
-                return Sessione(argomentiRiga[1], daAprire);
+                string toOpen = lineArguments.Length >= 3 ? lineArguments[2] : null;
+                return Session(lineArguments[1], toOpen);
             }
 
             // ── LA SOLIDWORKS DEV'ESSERE PULITA PRIMA, NON DOPO ──────────
-            if (!LaScrivaniaEPulita(argomentiRiga)) return 3;
+            if (!TheDeskIsClean(lineArguments)) return 3;
 
             // Il diario si apre QUI e non prima: l'aggancio a SOLIDWORKS e il
             // caricamento della libreria possono far uscire dal programma, e un
             // diario aperto per un giro che non e' mai cominciato direbbe
             // «piantato al primo passo» quando invece non e' partito affatto.
-            ApriIlDiario();
+            OpenLog();
 
             // IL GUARDIANO SI ACCENDE QUI, e non prima: prima di questa riga
             // il banco puo' ancora uscire da solo (libreria assente, SOLIDWORKS
@@ -506,75 +506,75 @@ namespace Oce.Solid.Agent.Bench
             //
             // E si accende SEMPRE, anche con `--gruppo`: la chiamata che non
             // torna non guarda quale sottoinsieme si e' scelto.
-            AccendiIlGuardiano();
-            Diario("SolidWorks " + _sw.RevisionNumber() +
+            TurnOnGuardian();
+            Log("SolidWorks " + _sw.RevisionNumber() +
                    ", libreria " + _addin.GetName().Version +
-                   (_lento ? ", con --lento" : "") +
-                   (scelti == null ? "" : ", SOLO i gruppi " + string.Join(", ", scelti)));
+                   (_slow ? ", con --lento" : "") +
+                   (chosen == null ? "" : ", SOLO i gruppi " + string.Join(", ", chosen)));
 
             // ── `--muta` E' UN GIRO A SE' ────────────────────────────────
             //
             // Non si aggiunge alle prove: le sostituisce. Mescolarlo vorrebbe
             // dire sommare centinaia di rossi CERCATI a un conteggio che serve
             // a leggere i rossi non cercati.
-            if (_muta || _regressione)
+            if (_mutate || _regression)
             {
-                if (_muta) IlGiroDelleMutazioni();
-                else IlGiroDellaRegressione();
+                if (_mutate) MutationsRun();
+                else RegressionRun();
                 ReflectionLogAsBenchError();
                 Console.WriteLine();
                 Console.WriteLine(new string('=', 76));
-                foreach (var r in _esiti) Console.WriteLine(r);
+                foreach (var r in _outcomes) Console.WriteLine(r);
                 Console.WriteLine();
-                var soloMuta = _muta
-                    ? "MUTAZIONI — " + (_esiti.Count - _saltate - _erroriDiBanco) +
-                      " casi, " + _falliti + " ciechi" +
-                      (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "")
-                    : "REGRESSIONE — " + (_esiti.Count - _saltate - _erroriDiBanco) +
-                      " righe, " + _falliti + " fallite" +
-                      (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "");
-                Console.WriteLine(soloMuta);
-                Console.WriteLine("attese verificate " + _atteseVerificate + " su " + _attese);
+                var mutateOnly = _mutate
+                    ? "MUTAZIONI — " + (_outcomes.Count - _skipped - _benchErrors) +
+                      " casi, " + _failed + " ciechi" +
+                      (_benchErrors > 0 ? ", " + _benchErrors + " ERRORI DI BANCO" : "")
+                    : "REGRESSIONE — " + (_outcomes.Count - _skipped - _benchErrors) +
+                      " righe, " + _failed + " fallite" +
+                      (_benchErrors > 0 ? ", " + _benchErrors + " ERRORI DI BANCO" : "");
+                Console.WriteLine(mutateOnly);
+                Console.WriteLine("attese verificate " + _verifiedExpectations + " su " + _expectations);
                 // No identity test here: it would count as one more case in
                 // the line above. The ledger still says how many are unresolved.
-                WriteTheTestLedger(_muta ? "mutations" : "regression");
-                ChiudiIlDiario(soloMuta);
-                if (_erroriDiBanco > 0) return 2;
-                return _falliti == 0 ? 0 : 1;
+                WriteTheTestLedger(_mutate ? "mutations" : "regression");
+                CloseLog(mutateOnly);
+                if (_benchErrors > 0) return 2;
+                return _failed == 0 ? 0 : 1;
             }
 
-            var nonLanciati = new List<string>();
-            var gruppiFatti = new List<string>();
-            bool fermatoDallaSentinella = false;
-            foreach (var gruppo in Gruppi())
+            var notLaunched = new List<string>();
+            var groupsDone = new List<string>();
+            bool stoppedBySentinel = false;
+            foreach (var theGroup in Groups())
             {
-                if (scelti != null &&
-                    !scelti.Contains(gruppo.Nome, StringComparer.OrdinalIgnoreCase))
+                if (chosen != null &&
+                    !chosen.Contains(theGroup.Name, StringComparer.OrdinalIgnoreCase))
                 {
-                    nonLanciati.Add(gruppo.Nome);
+                    notLaunched.Add(theGroup.Name);
                     continue;
                 }
-                if (gruppo.SoloLento && !_lento)
+                if (theGroup.SlowOnly && !_slow)
                 {
-                    Saltata(gruppo.Cosa, gruppo.PerchePesa ?? "si lancia con --lento");
+                    Skipped(theGroup.What, theGroup.WhyItWeighs ?? "si lancia con --lento");
                     continue;
                 }
                 // DA QUI IN POI LE PROVE SONO DI QUESTO GRUPPO (voce K2).
-                // Si alza qui e non dentro `Corri()` perche' i gruppi sono
+                // Si alza qui e non dentro `Run()` perche' i gruppi sono
                 // diciotto metodi diversi e chiedere a ognuno di ricordarsene
                 // vuol dire che prima o poi uno se ne dimentica — e un gruppo
                 // che non si dichiara finisce in «(fuori gruppo)», che e'
                 // visibile, ma dopo.
-                _gruppoInCorso = gruppo.Nome;
-                try { gruppo.Corri(); }
-                catch (Shared.PreparazioneFallita ex)
+                _groupInProgress = theGroup.Name;
+                try { theGroup.Run(); }
+                catch (Shared.PreparationFailed ex)
                 {
                     // ── IL BUCO DI K17, TROVATO IL 24/9/2026 ─────────────
                     //
                     // Qui c'era un `try/finally` **senza `catch`**. La
-                    // maggior parte dei gruppi cattura `PreparazioneFallita`
+                    // maggior parte dei gruppi cattura `PreparationFailed`
                     // per singola prova e la segna rossa; ma un gruppo che
-                    // la alza PREPARANDOSI — `VistaDelPezzo`, che si fa il
+                    // la alza PREPARANDOSI — `PartView`, che si fa il
                     // pezzo prima di misurare — la lasciava passare di qui,
                     // e moriva `Main`.
                     //
@@ -589,28 +589,28 @@ namespace Oce.Solid.Agent.Bench
                     // esercitando apposta la guardia. *Una guardia che non si
                     // e' mai vista scattare FINO IN FONDO e' provata a meta',
                     // e la meta' che manca e' sempre quella che serve.*
-                    Saltata(gruppo.Cosa, "PreparazioneFallita: " + ex.Message);
-                    _gruppoInCorso = null;
+                    Skipped(theGroup.What, "PreparazioneFallita: " + ex.Message);
+                    _groupInProgress = null;
 
                     // Il resto non si prova nemmeno: SOLIDWORKS non produce
                     // piu' documenti, e ogni gruppo che segue chiederebbe un
                     // pezzo nuovo. Si dicono per nome, come i non lanciati.
-                    foreach (var g in Gruppi())
-                        if (!ReferenceEquals(g, gruppo) &&
-                            !nonLanciati.Contains(g.Nome) &&
-                            Array.IndexOf(gruppiFatti.ToArray(), g.Nome) < 0)
-                            Saltata(g.Cosa, "SOLIDWORKS se n'e' andato prima di questo gruppo");
+                    foreach (var g in Groups())
+                        if (!ReferenceEquals(g, theGroup) &&
+                            !notLaunched.Contains(g.Name) &&
+                            Array.IndexOf(groupsDone.ToArray(), g.Name) < 0)
+                            Skipped(g.What, "SOLIDWORKS se n'e' andato prima di questo gruppo");
 
-                    fermatoDallaSentinella = true;
+                    stoppedBySentinel = true;
                     break;
                 }
-                finally { _gruppoInCorso = null; }
-                gruppiFatti.Add(gruppo.Nome);
+                finally { _groupInProgress = null; }
+                groupsDone.Add(theGroup.Name);
             }
 
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));
-            foreach (var r in _esiti) Console.WriteLine(r);
+            foreach (var r in _outcomes) Console.WriteLine(r);
             Console.WriteLine();
 
             // I GRUPPI NON LANCIATI SI DICONO PER NOME, come le saltate.
@@ -620,10 +620,10 @@ namespace Oce.Solid.Agent.Bench
             // prova non lanciata. La difesa sta nella riga di riepilogo, non
             // nella disciplina di chi lancia: alla sera tardi nessuno si ricorda
             // di essersi limitato a un gruppo.
-            if (nonLanciati.Count > 0)
+            if (notLaunched.Count > 0)
             {
-                Console.WriteLine("NON LANCIATI — " + nonLanciati.Count + " gruppi su " +
-                                  Gruppi().Count + ": " + string.Join(", ", nonLanciati));
+                Console.WriteLine("NON LANCIATI — " + notLaunched.Count + " gruppi su " +
+                                  Groups().Count + ": " + string.Join(", ", notLaunched));
                 Console.WriteLine("il giro intero si lancia senza «--gruppo», " +
                                   "ed e' quello che vale prima di committare.");
             }
@@ -639,27 +639,27 @@ namespace Oce.Solid.Agent.Bench
             // in fondo, e sarebbe stato un controllo che non poteva far
             // fallire niente: la forma peggiore, perche' si legge come un
             // controllo.
-            ControllaIlContoPerGruppo();
+            CheckCountPerGroup();
             CheckTheTestIdentities();
             CheckTheReflectionLog();
             WriteAliasUses();
 
-            var riepilogo =
-                (nonLanciati.Count > 0
-                    ? "GIRO PARZIALE (solo " + string.Join(", ", scelti) + ", " +
-                      nonLanciati.Count + " gruppi non lanciati) — "
+            var summary =
+                (notLaunched.Count > 0
+                    ? "GIRO PARZIALE (solo " + string.Join(", ", chosen) + ", " +
+                      notLaunched.Count + " gruppi non lanciati) — "
                     : "") +
-                (_esiti.Count - _saltate - _erroriDiBanco) + " prove, " + _falliti + " fallite" +
-                (_saltate > 0 ? ", " + _saltate + " SALTATE (--lento le lancia)" : "") +
-                (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "");
-            Console.WriteLine(riepilogo);
+                (_outcomes.Count - _skipped - _benchErrors) + " prove, " + _failed + " fallite" +
+                (_skipped > 0 ? ", " + _skipped + " SALTATE (--lento le lancia)" : "") +
+                (_benchErrors > 0 ? ", " + _benchErrors + " ERRORI DI BANCO" : "");
+            Console.WriteLine(summary);
 
             // ATTESE VERIFICATE N SU M. Si scrive SEMPRE, anche quando i due
             // numeri combaciano: e' il numero che dice se la suite sta
             // misurando, e un numero che compare solo quando le cose vanno male
             // non lo guarda nessuno finche' non e' troppo tardi.
-            var conto = "attese verificate " + _atteseVerificate + " su " + _attese;
-            Console.WriteLine(conto);
+            var count = "attese verificate " + _verifiedExpectations + " su " + _expectations;
+            Console.WriteLine(count);
 
             // ── E QUANTE PROVE NON HANNO NESSUNA ATTESA (voce K3) ────────
             //
@@ -673,8 +673,8 @@ namespace Oce.Solid.Agent.Bench
             // finiscono le righe di servizio del banco, che non provano il
             // prodotto ma se stesse. Il punto e' poterle guardare una per una
             // invece di crederle tutte equivalenti a un'attesa misurata.
-            Console.WriteLine("prove con un'attesa dichiarata: " + _conAttesa +
-                              " — senza: " + _senzaAttesa.Count);
+            Console.WriteLine("prove con un'attesa dichiarata: " + _withExpectation +
+                              " — senza: " + _withoutExpectation.Count);
 
             // Voce K2-bis. Sta accanto al totale come il conto per gruppo,
             // perche' e' la stessa domanda: di quel numero grande, quanto
@@ -683,15 +683,15 @@ namespace Oce.Solid.Agent.Bench
             // e' chiusa dal 23/9/2026: era una riga che raccontava il mondo di
             // ieri, cioe' esattamente cio' che questo banco rimprovera ai
             // numeri scritti a mano. Il conto adesso e' una misura —
-            // `DocumentiAperti()` chiede a SOLIDWORKS quanti documenti ci sono
+            // `OpenDocuments()` chiede a SOLIDWORKS quanti documenti ci sono
             // durante ogni prova — e non ha piu' bisogno di scuse.
-            Console.WriteLine("prove con un documento CAD aperto: " + _conDocumento +
-                              " — senza: " + _senzaDocumento);
-            ScriviLeSenzaAttesa();
-            ScriviIlContoPerGruppo();
-            WriteTheTestLedger(nonLanciati.Count > 0 || _soloFamiglie != null ? "partial" : "full");
+            Console.WriteLine("prove con un documento CAD aperto: " + _withDocument +
+                              " — senza: " + _withoutDocument);
+            WriteWithoutWaiting();
+            WriteCountPerGroup();
+            WriteTheTestLedger(notLaunched.Count > 0 || _familiesOnly != null ? "partial" : "full");
 
-            ChiudiIlDiario(riepilogo + " · " + conto);
+            CloseLog(summary + " · " + count);
 
             // ── QUATTRO USCITE, E LA 4 VINCE SU TUTTE (voce K17) ─────
             //
@@ -700,17 +700,17 @@ namespace Oce.Solid.Agent.Bench
             // due la domanda sbagliata: il giro NON E' STATO FATTO. Dirlo
             // con un codice suo evita che chi legge un 1 si metta a
             // cercare cosa ha rotto.
-            if (Sentinella.SeNEAndato)
+            if (Sentinel.HasGone)
             {
                 Console.WriteLine();
                 Console.WriteLine(new string('!', 76));
-                if (fermatoDallaSentinella)
+                if (stoppedBySentinel)
                     Console.WriteLine(
                         "IL GIRO E' STATO INTERROTTO A META': un gruppo non e' " +
                         "riuscito nemmeno a prepararsi, e i seguenti non sono " +
                         "stati provati.");
-                Console.WriteLine(Sentinella.Referto());
-                Console.WriteLine("GIRO NON VALIDO: i " + _saltate +
+                Console.WriteLine(Sentinel.Report());
+                Console.WriteLine("GIRO NON VALIDO: i " + _skipped +
                                   " casi saltati non sono ne' verdi ne' rossi.");
                 Console.WriteLine(new string('!', 76));
                 return 4;
@@ -718,8 +718,8 @@ namespace Oce.Solid.Agent.Bench
             // TRE USCITE, E IL 2 VINCE SULL'1. Se il banco non ha potuto
             // misurare, quante prove siano fallite e' una domanda a cui non si
             // e' risposto.
-            if (_erroriDiBanco > 0) return 2;
-            return _falliti == 0 ? 0 : 1;
+            if (_benchErrors > 0) return 2;
+            return _failed == 0 ? 0 : 1;
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -731,46 +731,46 @@ namespace Oce.Solid.Agent.Bench
         // rompere il banco. Questa tabella e' l'elenco di prima, con un nome
         // davanti a ogni riga.
         // ══════════════════════════════════════════════════════════════════
-        private sealed class Gruppo
+        private sealed class Group
         {
-            public string Nome;      // come si scrive dopo --gruppo
-            public string Cosa;      // come si chiama quando si dice che e' saltato
-            public bool SoloLento;
-            public string PerchePesa;   // cosa si dice quando --lento non c'e'
+            public string Name;      // come si scrive dopo --gruppo
+            public string What;      // come si chiama quando si dice che e' saltato
+            public bool SlowOnly;
+            public string WhyItWeighs;   // cosa si dice quando --lento non c'e'
 
             /// <summary>
             /// LE PROVE DEL GRUPPO, UNA PER UNA e non una lambda che le
             /// chiama. Una lambda nasconderebbe i metodi veri dietro il suo, e
-            /// `ProvaCheLaTabellaCopreTutto` — il controllo che nessuna
+            /// `TestThatTheTableCoversEverything` — il controllo che nessuna
             /// famiglia resti fuori — non li vedrebbe piu': cercherebbe fra i
             /// metodi generati dal compilatore e direbbe di si' a tutto.
             /// </summary>
-            public Action[] Azioni;
+            public Action[] Actions;
 
-            public void Corri() { foreach (var a in Azioni) a(); }
+            public void Run() { foreach (var a in Actions) a(); }
         }
 
-        private static List<Gruppo> Gruppi()
+        private static List<Group> Groups()
         {
-            Func<Action, Action[]> una = a => new[] { a };
-            return new List<Gruppo>
+            Func<Action, Action[]> one = a => new[] { a };
+            return new List<Group>
             {
-                new Gruppo { Nome = "sezioni",   Cosa = "Services.SezioneProfilo",      Azioni = una(Sezioni) },
-                new Gruppo { Nome = "archivio",  Cosa = "Services.MaterialiSolidWorks", Azioni = una(Materiali) },
-                new Gruppo { Nome = "telai",     Cosa = "rectangular_frame",          Azioni = una(Telai) },
-                new Gruppo { Nome = "fori",      Cosa = "hole_wizard",                 Azioni = una(Fori) },
-                new Gruppo { Nome = "materiale", Cosa = "apply_material",            Azioni = una(Materiale) },
-                new Gruppo { Nome = "stato",     Cosa = "StatoDocumento",               Azioni = una(Stato) },
-                new Gruppo { Nome = "viste",     Cosa = "VistaDelPezzo (V1)",           Azioni = una(ProvaFotografia) },
-                new Gruppo { Nome = "tetto",     Cosa = "il tetto sulle lavorazioni (E12)",
-                             Azioni = una(ProvaTettoLavorazioni), SoloLento = true,
-                             PerchePesa = "85 lavorazioni, circa mezz'ora: si lancia con --lento" },
+                new Group { Name = "sezioni",   What = "Services.SezioneProfilo",      Actions = one(Sections) },
+                new Group { Name = "archivio",  What = "Services.MaterialiSolidWorks", Actions = one(Materials) },
+                new Group { Name = "telai",     What = "rectangular_frame",          Actions = one(Frames) },
+                new Group { Name = "fori",      What = "hole_wizard",                 Actions = one(Holes) },
+                new Group { Name = "materiale", What = "apply_material",            Actions = one(Material) },
+                new Group { Name = "stato",     What = "DocumentState",               Actions = one(State) },
+                new Group { Name = "viste",     What = "VistaDelPezzo (V1)",           Actions = one(TestSnapshot) },
+                new Group { Name = "tetto",     What = "il tetto sulle lavorazioni (E12)",
+                             Actions = one(TestFeatureCap), SlowOnly = true,
+                             WhyItWeighs = "85 lavorazioni, circa mezz'ora: si lancia con --lento" },
 
                 // Quelle che stavano dentro `NuoveOperazioni()`.
-                new Gruppo { Nome = "scatto",       Cosa = "scatta la vista",        Azioni = una(ScattaLaVista) },
-                new Gruppo { Nome = "quanto-vede",  Cosa = "quanto vede il modello", Azioni = una(QuantoVedeIlModello) },
-                new Gruppo { Nome = "facce",        Cosa = "le facce della piastra", Azioni = una(StampaFaccePiastra) },
-                new Gruppo { Nome = "sposta-corpi", Cosa = "move_bodies",           Azioni = una(ProvaSpostaCorpi) },
+                new Group { Name = "scatto",       What = "scatta la vista",        Actions = one(CaptureView) },
+                new Group { Name = "quanto-vede",  What = "quanto vede il modello", Actions = one(HowMuchTheModelSees) },
+                new Group { Name = "facce",        What = "le facce della piastra", Actions = one(PrintPlateFaces) },
+                new Group { Name = "sposta-corpi", What = "move_bodies",           Actions = one(TestMoveBodies) },
                 // «slot» non c'e' piu': e' diventata quindici file in
                 // `cases/slot/`, e si lancia con `--gruppo casi` (voce F11).
                 // «smusso» non c'e' piu': e' diventato tre file in
@@ -789,43 +789,43 @@ namespace Oce.Solid.Agent.Bench
                 // si riagganci con SelectByID2("AXIS"), che e' una chiamata
                 // COM e non un'operazione del catalogo. Tutto il resto della
                 // famiglia sta in `cases/axis/`.
-                new Gruppo { Nome = "crea-asse",    Cosa = "l'asse si ritrova per nome", Azioni = una(ProvaCreaAsse) },
+                new Group { Name = "crea-asse",    What = "l'asse si ritrova per nome", Actions = one(TestCreateAxis) },
                 // LA QUOTA SENZA SPIGOLO (voce Z-A2): il rosso che un caso
                 // dichiarato non sa costruire, perche' dopo `create_drawing` non
                 // torna al pezzo per sopprimere.
-                new Gruppo { Nome = "orfane",       Cosa = "la quota che resta senza spigolo (Z-A2)", Azioni = una(ProvaLeQuoteOrfane) },
+                new Group { Name = "orfane",       What = "la quota che resta senza spigolo (Z-A2)", Actions = one(TestOrphanDimensions) },
                 // IL NUMERO STAMPATO (voce Z-C2): nessuna operazione del catalogo
                 // sovrascrive una quota, quindi la falsificazione si fa qui.
-                new Gruppo { Nome = "numeri",       Cosa = "il numero stampato e' quello del modello (Z-C2)", Azioni = una(ProvaINumeriDelleQuote) },
+                new Group { Name = "numeri",       What = "il numero stampato e' quello del modello (Z-C2)", Actions = one(TestDimensionNumbers) },
                 // LA PORTA DEL CLIENTE (voce F14): non chiama la libreria,
                 // parla al ponte sullo stdio come farebbe un client MCP.
-                new Gruppo { Nome = "porta-del-cliente",
-                             Cosa = "i casi che passano dal ponte (F14)",
-                             Azioni = una(LaPortaDelCliente) },
+                new Group { Name = "porta-del-cliente",
+                             What = "i casi che passano dal ponte (F14)",
+                             Actions = one(TheClientPort) },
                 // «ripeti», «mirror» e «togliere» non ci sono piu': sono
                 // diventati `cases/patterns/`, `cases/mirror/` e
                 // `cases/removal/`, e si lanciano con `--gruppo casi`.
                 // «shape» non c'e' piu': e' diventata `cases/sentence/`, da quando
                 // le attese sanno chiedere «includes» e «does_not_include».
-                new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
-                             Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
-                new Gruppo { Nome = "casi",         Cosa = "i casi dichiarati, che sono file (F3)",
-                             Azioni = new Action[]
+                new Group { Name = "dove-stava",   What = "dove stava, e il grep vuoto (E10)",
+                             Actions = new Action[] { TestWhereItWas, TestThatTheFractionDoesNotDecide } },
+                new Group { Name = "casi",         What = "i casi dichiarati, che sono file (F3)",
+                             Actions = new Action[]
                              {
-                                 ProvaCheIlSelettoreRifiuta,
-                                 ProvaCasiDichiarati,
+                                 TestThatSelectorRefuses,
+                                 TestDeclaredCases,
                                  // DOPO i casi: guarda anche il conto delle
                                  // attese, che prima di eseguirli e' zero.
-                                 ProvaCheUnCampoAssenteNonEUnoZero,
+                                 TestThatAnAbsentFieldIsNotAZero,
                              } },
-                new Gruppo { Nome = "il-null-ha-un-nome", Cosa = "il banco dice dove non e' riuscito (F12)",
-                             Azioni = una(ProvaCheIlNullHaUnNome) },
+                new Group { Name = "il-null-ha-un-nome", What = "il banco dice dove non e' riuscito (F12)",
+                             Actions = one(TestThatNullHasAName) },
                 // La capacita' che apre tutta la sezione G-A: senza, nessuna
                 // operazione di assieme potrebbe avere un caso.
-                new Gruppo { Nome = "assieme-di-prova", Cosa = "il banco sa preparare un assieme (GA0)",
-                             Azioni = una(ProvaLAssiemeDiProva) },
-                new Gruppo { Nome = "tabella",      Cosa = "la tabella dei gruppi copre tutto (F13)",
-                             Azioni = una(ProvaCheLaTabellaCopreTutto) },
+                new Group { Name = "assieme-di-prova", What = "il banco sa preparare un assieme (GA0)",
+                             Actions = one(TestTheTestAssembly) },
+                new Group { Name = "tabella",      What = "la tabella dei gruppi copre tutto (F13)",
+                             Actions = one(TestThatTheTableCoversEverything) },
             };
         }
 
@@ -860,18 +860,18 @@ namespace Oce.Solid.Agent.Bench
         /// scadenza**: chi lo incontra lo alza o lo abbassa, e in tutti e due i
         /// casi ha guardato il numero invece del pezzo.
         ///
-        /// Adesso il setaccio deve trovare SE STESSO. `ProvaCheLaTabellaCopreTutto`
+        /// Adesso il setaccio deve trovare SE STESSO. `TestThatTheTableCoversEverything`
         /// e' un metodo `private static void` senza parametri che comincia per
         /// «Prova»: se la riflessione non lo elenca, non funziona — e la cosa
         /// non dipende da quante famiglie ci siano oggi. Il conto resta
         /// scritto accanto come dato, non come soglia.
         /// </summary>
-        private static void ProvaCheLaTabellaCopreTutto()
+        private static void TestThatTheTableCoversEverything()
         {
             Console.WriteLine();
             Console.WriteLine("=== la tabella dei gruppi copre tutto (F13) ===");
 
-            var famiglie = typeof(Program)
+            var families = typeof(Program)
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
                 .Where(m => m.Name.StartsWith("Prova", StringComparison.Ordinal) &&
                             m.ReturnType == typeof(void) &&
@@ -879,25 +879,25 @@ namespace Oce.Solid.Agent.Bench
                 .ToList();
 
             // IL SETACCIO TROVA SE STESSO, o non funziona.
-            bool miVede = famiglie.Any(m => m.Name == "ProvaCheLaTabellaCopreTutto");
-            Segna("F13 ROSSO: il setaccio vede le famiglie di prove", miVede,
-                  famiglie.Count + " metodi «Prova…()»" +
-                  (miVede ? ", compreso questo" : ", e questo NON c'e': la riflessione non lo elenca"));
+            bool seesMe = families.Any(m => m.Name == "TestThatTheTableCoversEverything");
+            Check("F13 ROSSO: il setaccio vede le famiglie di prove", seesMe,
+                  families.Count + " metodi «Test…()»" +
+                  (seesMe ? ", compreso questo" : ", e questo NON c'e': la riflessione non lo elenca"));
 
-            var gruppi = Gruppi();
-            var nella = new HashSet<MethodInfo>(gruppi.SelectMany(g => g.Azioni).Select(a => a.Method));
-            var fuori = famiglie.Where(m => !nella.Contains(m)).Select(m => m.Name).ToList();
-            Segna("F13: nessuna famiglia di prove fuori dalla tabella",
-                  fuori.Count == 0,
-                  fuori.Count == 0 ? gruppi.Count + " gruppi" : string.Join(", ", fuori));
+            var groups = Groups();
+            var inGroups = new HashSet<MethodInfo>(groups.SelectMany(g => g.Actions).Select(a => a.Method));
+            var outside = families.Where(m => !inGroups.Contains(m)).Select(m => m.Name).ToList();
+            Check("F13: nessuna famiglia di prove fuori dalla tabella",
+                  outside.Count == 0,
+                  outside.Count == 0 ? groups.Count + " gruppi" : string.Join(", ", outside));
 
             // DUE GRUPPI COLLO STESSO NOME: `--gruppo x` ne lancerebbe due e
             // il conto dei non lanciati direbbe una cosa e il giro un'altra.
-            var doppi = gruppi.GroupBy(g => g.Nome, StringComparer.OrdinalIgnoreCase)
+            var doubled = groups.GroupBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
                               .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-            Segna("F13: i nomi dei gruppi sono tutti diversi",
-                  doppi.Count == 0,
-                  doppi.Count == 0 ? "" : string.Join(", ", doppi));
+            Check("F13: i nomi dei gruppi sono tutti diversi",
+                  doubled.Count == 0,
+                  doubled.Count == 0 ? "" : string.Join(", ", doubled));
         }
 
         /// <summary>
@@ -905,10 +905,10 @@ namespace Oce.Solid.Agent.Bench
         /// quali ci sono. Si costruisce dalla stessa tabella che li lancia: un
         /// elenco scritto a mano accanto invecchia al primo gruppo nuovo.
         /// </summary>
-        private static string ComeSiChiamano()
+        private static string WhatTheyAreCalled()
         {
             return "I gruppi sono: " +
-                   string.Join(", ", Gruppi().Select(g => g.Nome)) +
+                   string.Join(", ", Groups().Select(g => g.Name)) +
                    ". Senza «--gruppo» si lanciano tutti, ed e' quello che vale " +
                    "prima di committare.";
         }
@@ -926,40 +926,40 @@ namespace Oce.Solid.Agent.Bench
         /// e' rosso, e una riga che si legge male si legge sbagliata — quel
         /// nome doppio sembra un difetto del banco, e si va a cercarlo.
         /// </summary>
-        private static string InColonna(string nome)
+        private static string InColumn(string itemName)
         {
-            if (nome == null) nome = "";
-            return nome.Length >= 52 ? nome + "  " : nome.PadRight(52);
+            if (itemName == null) itemName = "";
+            return itemName.Length >= 52 ? itemName + "  " : itemName.PadRight(52);
         }
 
         // THE CALLER INFORMATION IS THE IDENTITY OF THE TEST (entry W3.1-bis.2,
         // item 7): the compiler fills file, member and line at every call, and
         // the test ledger turns them into File.cs:Method:ordinal. The four
-        // recording methods (this one, `SegnaAttesa`, `Saltata`, `ErroreDiBanco`)
+        // recording methods (this one, `CheckExpectation`, `Skipped`, `BenchError`)
         // carry the attributes; nobody passes these arguments by hand.
-        private static void Segna(string nome, bool ok, string dettaglio = "",
+        private static void Check(string itemName, bool ok, string detail = "",
                                   [CallerFilePath] string callerFile = "",
                                   [CallerMemberName] string callerMember = "",
                                   [CallerLineNumber] int callerLine = 0)
         {
-            RecordOutcome(nome, ok, dettaglio, callerFile, callerMember, callerLine);
+            RecordOutcome(itemName, ok, detail, callerFile, callerMember, callerLine);
         }
 
         /// <summary>
-        /// The body of `Segna`, with the caller information passed on:
-        /// `SegnaAttesa` records the test of ITS caller, and going through
-        /// `Segna` would name every expectation after `SegnaAttesa` itself.
+        /// The body of `Check`, with the caller information passed on:
+        /// `CheckExpectation` records the test of ITS caller, and going through
+        /// `Check` would name every expectation after `CheckExpectation` itself.
         /// </summary>
-        private static void RecordOutcome(string nome, bool ok, string dettaglio,
+        private static void RecordOutcome(string itemName, bool ok, string detail,
                                           string callerFile, string callerMember, int callerLine)
         {
             // ZITTO: il modo `--muta` riesegue lo stesso caso decine di volte e
             // PRETENDE che diventi rosso (voce F6). Quei rossi non sono
             // regressioni — sono il risultato che si cercava — e finire
             // nell'elenco degli esiti li farebbe leggere come tali.
-            if (_zitto) { if (!ok) _zittoRosso = true; return; }
+            if (_quiet) { if (!ok) _quietRed = true; return; }
 
-            if (!ok) _falliti++;
+            if (!ok) _failed++;
 
             // ── CON O SENZA UN'ATTESA DICHIARATA (voce K3) ───────────────
             //
@@ -980,8 +980,8 @@ namespace Oce.Solid.Agent.Bench
             // Qui si separano e si scrivono i NOMI di quelle senza. Poi si
             // decide, voce per voce, se chiuderle o dichiararle: e' una
             // decisione che si puo' prendere solo avendo l'elenco davanti.
-            if (_attesaInCorso) _conAttesa++;
-            else _senzaAttesa.Add(nome);
+            if (_waitInProgress) _withExpectation++;
+            else _withoutExpectation.Add(itemName);
 
             // ── DI QUALE GRUPPO E' QUESTA PROVA (voce K2) ────────────────
             //
@@ -994,10 +994,10 @@ namespace Oce.Solid.Agent.Bench
             // Il conto per gruppo si scrive accanto al totale. Il totale
             // resta — serve a vedere se la suite cresce — ma smette di essere
             // l'unico numero che si legge.
-            var chiave = _gruppoInCorso ?? "(fuori gruppo)";
-            int quante;
-            _perGruppo.TryGetValue(chiave, out quante);
-            _perGruppo[chiave] = quante + 1;
+            var key = _groupInProgress ?? "(fuori gruppo)";
+            int howMany;
+            _perGroup.TryGetValue(key, out howMany);
+            _perGroup[key] = howMany + 1;
 
             // ── E QUANTE HANNO UN DOCUMENTO CAD SOTTO (voce K2-bis) ──────
             //
@@ -1011,7 +1011,7 @@ namespace Oce.Solid.Agent.Bench
             // SI CHIEDE A SOLIDWORKS, NON AL BANCO. La prima stesura contava
             // le aperture e le chiusure con un contatore interno, e sarebbe
             // stata sbagliata: i documenti si aprono in almeno quattro punti
-            // (`NewPart`, `NuovoAssieme`, `Apri`, la sessione) e si chiudono
+            // (`NewPart`, `NewAssembly`, `Open`, la sessione) e si chiudono
             // in tre, uno dei quali prova DUE VOLTE apposta. Un contatore con
             // sette guardiani e' un contatore che un giorno dira' -1.
             // `GetDocumentCount()` e' la stessa domanda fatta a chi la
@@ -1025,31 +1025,31 @@ namespace Oce.Solid.Agent.Bench
             // risultano «con documento» anche se il CAD non l'hanno toccato.
             // **E' un limite, e va letto insieme alla K12-bis**: finche'
             // quella e' aperta, questo numero e' un tetto, non una misura.
-            if (DocumentiAperti() > 0) _conDocumento++; else _senzaDocumento++;
+            if (OpenDocuments() > 0) _withDocument++; else _withoutDocument++;
 
-            var riga = (ok ? "  OK   " : "  NO   ") + InColonna(nome) + dettaglio;
-            _esiti.Add(riga);
-            Console.WriteLine(riga);
-            Diario(riga);
+            var line = (ok ? "  OK   " : "  NO   ") + InColumn(itemName) + detail;
+            _outcomes.Add(line);
+            Console.WriteLine(line);
+            Log(line);
             Ledger.Record(callerFile, callerMember, callerLine,
-                          ok ? TestLedger.Ok : TestLedger.Failed, nome, _gruppoInCorso);
+                          ok ? TestLedger.Ok : TestLedger.Failed, itemName, _groupInProgress);
         }
 
         /// <summary>
         /// Alzato da chi sta registrando l'esito di un'attesa DICHIARATA, per
-        /// il tempo di quella sola chiamata a `Segna`. Vedi la voce K3.
+        /// il tempo di quella sola chiamata a `Check`. Vedi la voce K3.
         /// </summary>
-        internal static bool _attesaInCorso;
+        internal static bool _waitInProgress;
 
-        internal static int _conAttesa;
-        internal static readonly List<string> _senzaAttesa = new List<string>();
+        internal static int _withExpectation;
+        internal static readonly List<string> _withoutExpectation = new List<string>();
 
         /// <summary>Il gruppo che sta girando adesso (voce K2).</summary>
-        internal static string _gruppoInCorso;
+        internal static string _groupInProgress;
 
         /// <summary>Prove registrate con un documento CAD aperto (voce K2-bis).</summary>
-        internal static int _conDocumento;
-        internal static int _senzaDocumento;
+        internal static int _withDocument;
+        internal static int _withoutDocument;
 
         /// <summary>
         /// Quanti documenti ha aperti SOLIDWORKS adesso, o -1 se non si sa.
@@ -1059,7 +1059,7 @@ namespace Oce.Solid.Agent.Bench
         /// contare come «senza documento» un giro in cui la domanda non e'
         /// passata. Chi legge il numero tratta il -1 come «non lo so».
         /// </summary>
-        internal static int DocumentiAperti()
+        internal static int OpenDocuments()
         {
             try { return _sw.GetDocumentCount(); }
             catch { return -1; }
@@ -1071,23 +1071,23 @@ namespace Oce.Solid.Agent.Bench
         /// totale e' peggio di nessun conto per gruppo, perche' si legge come
         /// una ripartizione mentre e' una ripartizione incompleta.
         /// </summary>
-        internal static readonly Dictionary<string, int> _perGruppo =
+        internal static readonly Dictionary<string, int> _perGroup =
             new Dictionary<string, int>(StringComparer.Ordinal);
 
         /// <summary>
-        /// Registra l'esito di un'attesa dichiarata: come `Segna`, ma conta
+        /// Registra l'esito di un'attesa dichiarata: come `Check`, ma conta
         /// nella colonna giusta. Sta qui e non nei chiamanti perche' un flag
         /// alzato a mano e dimenticato abbassato falsa tutto il conteggio da
         /// li' in avanti — e lo falserebbe in silenzio.
         /// </summary>
-        internal static void SegnaAttesa(string nome, bool ok, string dettaglio = "",
+        internal static void CheckExpectation(string itemName, bool ok, string detail = "",
                                          [CallerFilePath] string callerFile = "",
                                          [CallerMemberName] string callerMember = "",
                                          [CallerLineNumber] int callerLine = 0)
         {
-            _attesaInCorso = true;
-            try { RecordOutcome(nome, ok, dettaglio, callerFile, callerMember, callerLine); }
-            finally { _attesaInCorso = false; }
+            _waitInProgress = true;
+            try { RecordOutcome(itemName, ok, detail, callerFile, callerMember, callerLine); }
+            finally { _waitInProgress = false; }
         }
 
         /// <summary>
@@ -1118,46 +1118,46 @@ namespace Oce.Solid.Agent.Bench
         /// credere che il resto non esista, invece di far cercare dove e'
         /// finito.
         /// </summary>
-        private static void ControllaIlContoPerGruppo()
+        private static void CheckCountPerGroup()
         {
-            if (_perGruppo.Count == 0) return;
-            int somma = 0;
-            foreach (var v in _perGruppo.Values) somma += v;
-            int totale = _conAttesa + _senzaAttesa.Count;
-            Segna("il conto per gruppo fa il totale", somma == totale,
-                  somma == totale
-                      ? somma + " prove in " + _perGruppo.Count + " gruppi"
-                      : "la somma per gruppo e' " + somma + ", le prove sono " + totale +
-                        ": " + Math.Abs(totale - somma) + " non sono attribuite a nessun " +
+            if (_perGroup.Count == 0) return;
+            int sum = 0;
+            foreach (var v in _perGroup.Values) sum += v;
+            int total = _withExpectation + _withoutExpectation.Count;
+            Check("il conto per gruppo fa il totale", sum == total,
+                  sum == total
+                      ? sum + " prove in " + _perGroup.Count + " gruppi"
+                      : "la somma per gruppo e' " + sum + ", le prove sono " + total +
+                        ": " + Math.Abs(total - sum) + " non sono attribuite a nessun " +
                         "gruppo, e una ripartizione che non fa il totale si legge come " +
                         "una ripartizione completa");
         }
 
         /// <summary>Le righe «gruppo: quante», in ordine di quantita'.</summary>
-        private static void ScriviIlContoPerGruppo()
+        private static void WriteCountPerGroup()
         {
-            if (_perGruppo.Count == 0) return;
-            var righe = new List<KeyValuePair<string, int>>(_perGruppo);
-            righe.Sort((a, b) => b.Value != a.Value
+            if (_perGroup.Count == 0) return;
+            var lines = new List<KeyValuePair<string, int>>(_perGroup);
+            lines.Sort((a, b) => b.Value != a.Value
                 ? b.Value.CompareTo(a.Value)
                 : string.CompareOrdinal(a.Key, b.Key));
-            var pezzi = new List<string>();
-            foreach (var r in righe) pezzi.Add(r.Key + " " + r.Value);
-            Console.WriteLine("per gruppo: " + string.Join(", ", pezzi));
+            var parts = new List<string>();
+            foreach (var r in lines) parts.Add(r.Key + " " + r.Value);
+            Console.WriteLine("per gruppo: " + string.Join(", ", parts));
         }
 
-        private static void ScriviLeSenzaAttesa()
+        private static void WriteWithoutWaiting()
         {
-            if (_senzaAttesa.Count == 0) return;
+            if (_withoutExpectation.Count == 0) return;
             try
             {
                 // La cartella del banco si ricava come per il diario: il
                 // binario sta in `Bench/bin/`, quindi il padre e' `Bench/`.
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
-                var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                var dove = Path.Combine(banco != null ? banco.FullName : bin,
+                var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                var location = Path.Combine(bench != null ? bench.FullName : bin,
                                         "report", "senza-attesa.txt");
-                var righe = new List<string>
+                var lines = new List<string>
                 {
                     "# Le prove che passano senza un'attesa DICHIARATA (voce K3).",
                     "#",
@@ -1167,13 +1167,13 @@ namespace Oce.Solid.Agent.Bench
                     "# che passa senza asserzione non dimostra un comportamento: dimostra",
                     "# che non e' esplosa.",
                     "#",
-                    "# " + _senzaAttesa.Count + " righe, su " + (_conAttesa + _senzaAttesa.Count) +
+                    "# " + _withoutExpectation.Count + " righe, su " + (_withExpectation + _withoutExpectation.Count) +
                     " prove in tutto. Il giro e' del " + DateTime.Now.ToString("s") + ".",
                     "",
                 };
-                righe.AddRange(_senzaAttesa);
-                File.WriteAllLines(dove, righe);
-                Console.WriteLine("   l'elenco: " + dove);
+                lines.AddRange(_withoutExpectation);
+                File.WriteAllLines(location, lines);
+                Console.WriteLine("   l'elenco: " + location);
             }
             catch (Exception ex)
             {
@@ -1181,8 +1181,8 @@ namespace Oce.Solid.Agent.Bench
             }
         }
 
-        private static bool _zitto;
-        private static bool _zittoRosso;
+        private static bool _quiet;
+        private static bool _quietRed;
 
         // ══════════════════════════════════════════════════════════════════
         // IL DIARIO: cosa sta facendo il banco, mentre lo fa
@@ -1191,7 +1191,7 @@ namespace Oce.Solid.Agent.Bench
         //
         // Un giro dura dai tredici ai diciassette minuti, e da fuori **un giro
         // lento e un giro piantato si vedono uguali**. Il 14/9/2026 un giro
-        // bloccato sull'ottantaquattresimo taglio di `ProvaTettoLavorazioni` e'
+        // bloccato sull'ottantaquattresimo taglio di `TestFeatureCap` e'
         // sembrato per un'ora e mezza un giro che stava lavorando: l'unico modo
         // di distinguerli e' stato campionare il contatore di CPU di
         // SLDWORKS.exe e guardare l'ora di modifica di un file.
@@ -1228,28 +1228,28 @@ namespace Oce.Solid.Agent.Bench
         // stesso il difetto che questo progetto insegue.
         // ══════════════════════════════════════════════════════════════════
 
-        private static StreamWriter _diario;
-        private static readonly Stopwatch _cronometro = Stopwatch.StartNew();
+        private static StreamWriter _log;
+        private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
         /// <summary>
         /// Apre `Bench/in-corso.txt` accanto all'eseguibile, un livello sopra
         /// `bin\`. Se non ci riesce lo dice e si va avanti senza.
         /// </summary>
-        private static void ApriIlDiario()
+        private static void OpenLog()
         {
-            string percorso = null;
+            string filePath = null;
             try
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
-                var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                percorso = Path.Combine(
-                    banco != null ? banco.FullName : bin, "in-corso.txt");
+                var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                filePath = Path.Combine(
+                    bench != null ? bench.FullName : bin, "in-corso.txt");
 
                 // SI TRONCA: dentro c'e' il giro di ADESSO. Un file che
                 // accumula i giri costringe chi legge a chiedersi quale riga
                 // sia di quale giro, ed e' la domanda che non deve doversi
                 // fare chi sta cercando di capire se e' piantato.
-                _diario = new StreamWriter(percorso, false) { AutoFlush = true };
+                _log = new StreamWriter(filePath, false) { AutoFlush = true };
                 // L'INTESTAZIONE NON NOMINA LA PAROLA CHE CHIUDE IL GIRO.
                 //
                 // La prima scrittura diceva «se l'ultima riga non e' FINE...»,
@@ -1259,32 +1259,32 @@ namespace Oce.Solid.Agent.Bench
                 // scritto. Adesso quella parola compare in un punto solo di
                 // tutto il file, e il controllo piu' ingenuo che si possa fare
                 // e' quello giusto.
-                _diario.WriteLine("# il giro in corso, riga per riga. " +
+                _log.WriteLine("# il giro in corso, riga per riga. " +
                                   "Il numero fra parentesi e' quanti secondi " +
                                   "sono passati dall'avvio.");
-                _diario.WriteLine("# l'ultima riga di un giro arrivato in fondo " +
-                                  "porta il riepilogo; se non c'e', il giro si e' " +
+                _log.WriteLine("# l'ultima riga di un giro arrivato in fondo " +
+                                  "porta il summary; se non c'e', il giro si e' " +
                                   "fermato prima.");
-                _diario.WriteLine("# se il tempo dell'ultima riga non cresce fra " +
+                _log.WriteLine("# se il tempo dell'ultima riga non cresce fra " +
                                   "due letture, e' piantato.");
             }
             catch (Exception ex)
             {
-                _diario = null;
+                _log = null;
                 Console.WriteLine("(niente diario" +
-                                  (percorso == null ? "" : " in " + percorso) +
+                                  (filePath == null ? "" : " in " + filePath) +
                                   ": " + ex.Message + ". Le prove vanno avanti.)");
             }
         }
 
-        private static void Diario(string riga)
+        private static void Log(string line)
         {
-            if (_diario == null) return;
+            if (_log == null) return;
             try
             {
-                _diario.WriteLine(
-                    "[" + _cronometro.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)
-                        .PadLeft(7) + "s] " + riga);
+                _log.WriteLine(
+                    "[" + _stopwatch.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)
+                        .PadLeft(7) + "s] " + line);
             }
             catch { }
         }
@@ -1295,17 +1295,17 @@ namespace Oce.Solid.Agent.Bench
         /// E' la meta' che conta: senza, un file che si ferma vuol dire «sta
         /// lavorando» oppure «e' morto», e sono di nuovo indistinguibili.
         /// </summary>
-        private static void ChiudiIlDiario(string riepilogo)
+        private static void CloseLog(string summary)
         {
-            if (_diario == null) return;
+            if (_log == null) return;
             try
             {
-                Diario("FINE — " + riepilogo);
-                _diario.Dispose();
+                Log("FINE — " + summary);
+                _log.Dispose();
             }
             catch { }
-            _diario = null;
-            ScriviNelloStorico(riepilogo);
+            _log = null;
+            WriteToHistory(summary);
         }
 
         /// <summary>
@@ -1329,31 +1329,31 @@ namespace Oce.Solid.Agent.Bench
         /// da portare in giro. Il conteggio, quando serve a decidere, si copia
         /// nel TODO con la data.
         /// </summary>
-        private static void ScriviNelloStorico(string riepilogo)
+        private static void WriteToHistory(string summary)
         {
             try
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
-                var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                var file = Path.Combine(banco != null ? banco.FullName : bin, "storico.txt");
+                var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                var file = Path.Combine(bench != null ? bench.FullName : bin, "storico.txt");
 
-                var rotte = _esiti.Where(r => r.StartsWith("  NO   ", StringComparison.Ordinal))
+                var broken = _outcomes.Where(r => r.StartsWith("  NO   ", StringComparison.Ordinal))
                                   .Select(r => r.Substring(7).Trim())
                                   .Select(r => r.Length > 52 ? r.Substring(0, 52).Trim() : r)
                                   .ToList();
 
-                var riga = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) +
+                var line = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) +
                            "  libreria " + (_addin != null ? _addin.GetName().Version.ToString() : "?") +
-                           "  " + riepilogo +
-                           (rotte.Count > 0 ? "  ->  " + string.Join(" | ", rotte) : "");
+                           "  " + summary +
+                           (broken.Count > 0 ? "  ->  " + string.Join(" | ", broken) : "");
 
-                bool nuovo = !File.Exists(file);
+                bool newItem = !File.Exists(file);
                 using (var s = new StreamWriter(file, true))
                 {
-                    if (nuovo)
+                    if (newItem)
                         s.WriteLine("# una riga per giro di banco. Serve a contare le prove " +
                                     "che falliscono a caso: «quante volte e' successo a quella?».");
-                    s.WriteLine(riga);
+                    s.WriteLine(line);
                 }
             }
             catch { }
@@ -1367,17 +1367,17 @@ namespace Oce.Solid.Agent.Bench
         /// si lancia e' peggio di una che non esiste — chi legge «88 prove, 0
         /// fallite» crede di aver provato tutto.
         /// </summary>
-        private static void Saltata(string nome, string perche,
+        private static void Skipped(string itemName, string why,
                                     [CallerFilePath] string callerFile = "",
                                     [CallerMemberName] string callerMember = "",
                                     [CallerLineNumber] int callerLine = 0)
         {
-            _saltate++;
-            var riga = "  --   " + InColonna(nome) + "SALTATA: " + perche;
-            _esiti.Add(riga);
-            Console.WriteLine(riga);
-            Diario(riga);
-            Ledger.Record(callerFile, callerMember, callerLine, TestLedger.Skipped, nome, _gruppoInCorso);
+            _skipped++;
+            var line = "  --   " + InColumn(itemName) + "SALTATA: " + why;
+            _outcomes.Add(line);
+            Console.WriteLine(line);
+            Log(line);
+            Ledger.Record(callerFile, callerMember, callerLine, TestLedger.Skipped, itemName, _groupInProgress);
         }
 
         /// <summary>
@@ -1394,21 +1394,21 @@ namespace Oce.Solid.Agent.Bench
         /// Per questo ha un suo simbolo, un suo conteggio, e **il suo codice di
         /// uscita: 2**.
         /// </summary>
-        private static void ErroreDiBanco(string nome, string cosa,
+        private static void BenchError(string itemName, string what,
                                           [CallerFilePath] string callerFile = "",
                                           [CallerMemberName] string callerMember = "",
                                           [CallerLineNumber] int callerLine = 0)
         {
             // Sotto `--muta` un caso mutato che non si puo' nemmeno eseguire
             // conta come «e' diventato rosso»: la mutazione ha morso lo stesso.
-            if (_zitto) { _zittoRosso = true; return; }
+            if (_quiet) { _quietRed = true; return; }
 
-            _erroriDiBanco++;
-            var riga = "  !!   " + InColonna(nome) + "ERRORE DI BANCO: " + cosa;
-            _esiti.Add(riga);
-            Console.WriteLine(riga);
-            Diario(riga);
-            Ledger.Record(callerFile, callerMember, callerLine, TestLedger.BenchError, nome, _gruppoInCorso);
+            _benchErrors++;
+            var line = "  !!   " + InColumn(itemName) + "ERRORE DI BANCO: " + what;
+            _outcomes.Add(line);
+            Console.WriteLine(line);
+            Log(line);
+            Ledger.Record(callerFile, callerMember, callerLine, TestLedger.BenchError, itemName, _groupInProgress);
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -1432,7 +1432,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (_ledger != null) return _ledger;
                 _ledger = new TestLedger(
-                    new[] { nameof(Segna), nameof(SegnaAttesa), nameof(Saltata), nameof(ErroreDiBanco) },
+                    new[] { nameof(Check), nameof(CheckExpectation), nameof(Skipped), nameof(BenchError) },
                     ReadBenchSource);
                 var folder = BenchFolder();
                 if (folder != null)
@@ -1478,7 +1478,7 @@ namespace Oce.Solid.Agent.Bench
         private static void CheckTheTestIdentities()
         {
             var unresolved = Ledger.Tests.Where(t => t.Unresolved != null).ToList();
-            Segna("every test has its identity, file:method:ordinal", unresolved.Count == 0,
+            Check("every test has its identity, file:method:ordinal", unresolved.Count == 0,
                   unresolved.Count == 0
                       ? Ledger.Tests.Count + " tests, each resolved on the sources of this binary"
                       : unresolved.Count + " of " + Ledger.Tests.Count + " unresolved, the first: " +
@@ -1497,11 +1497,11 @@ namespace Oce.Solid.Agent.Bench
             var verdict = ReflectionLog.Global.Verdict();
             if (_anotherLibrary)
             {
-                Saltata(Rule, "another library was named with --libreria" +
+                Skipped(Rule, "another library was named with --libreria" +
                               (verdict == null ? "" : " (" + verdict + ")"));
                 return;
             }
-            Segna(Rule, verdict == null,
+            Check(Rule, verdict == null,
                   verdict ?? ReflectionLog.Global.Lookups + " lookups, none null");
         }
 
@@ -1515,7 +1515,7 @@ namespace Oce.Solid.Agent.Bench
         {
             var verdict = ReflectionLog.Global.Verdict();
             if (verdict != null && !_anotherLibrary)
-                ErroreDiBanco("every lookup by name that falls back to null found its target", verdict);
+                BenchError("every lookup by name that falls back to null found its target", verdict);
         }
 
         /// <summary>
@@ -1545,13 +1545,13 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// Quello che una prova non ha potuto misurare. Vedi ErroreDiBanco.
+        /// Quello che una prova non ha potuto misurare. Vedi BenchError.
         /// </summary>
-        // `NonHoPotutoMisurare` sta in `Expectations.cs`: la alza il valutatore, e
+        // `CouldNotMeasure` sta in `Expectations.cs`: la alza il valutatore, e
         // quel file lo compila anche `Oce.Solid.Agent.ContractTests`, dove SOLIDWORKS non c'e'.
 
-        private static int _saltate;
-        private static int _erroriDiBanco;
+        private static int _skipped;
+        private static int _benchErrors;
 
         /// <summary>
         /// ATTESE TENTATE E ATTESE VERIFICATE, e se divergono qualcosa sta
@@ -1561,12 +1561,12 @@ namespace Oce.Solid.Agent.Bench
         /// dizionario che non trova la chiave torna `null`, e `null`
         /// confrontato con `null` passa.
         /// </summary>
-        private static int _attese;
-        private static int _atteseVerificate;
+        private static int _expectations;
+        private static int _verifiedExpectations;
 
-        private static bool _lento;
-        private static bool _muta;
-        private static bool _regressione;
+        private static bool _slow;
+        private static bool _mutate;
+        private static bool _regression;
 
         /// <summary>
         /// SOLIDWORKS NON DEVE AVERE NIENTE APERTO QUANDO IL GIRO COMINCIA.
@@ -1614,18 +1614,18 @@ namespace Oce.Solid.Agent.Bench
         /// e chiamarlo rosso vorrebbe dire scrivere un resoconto di un giro
         /// che non c'e' stato.
         /// </summary>
-        private static bool LaScrivaniaEPulita(string[] argomentiRiga)
+        private static bool TheDeskIsClean(string[] lineArguments)
         {
-            bool chiudiTu = argomentiRiga != null &&
-                            Array.IndexOf(argomentiRiga, "--chiudi-gli-scarti") >= 0;
+            bool closeItYourself = lineArguments != null &&
+                            Array.IndexOf(lineArguments, "--chiudi-gli-scarti") >= 0;
 
-            var nomi = new List<string>();
+            var names = new List<string>();
             try
             {
                 var d = (IModelDoc2)_sw.GetFirstDocument();
                 while (d != null)
                 {
-                    nomi.Add(d.GetTitle() ?? "(senza titolo)");
+                    names.Add(d.GetTitle() ?? "(senza titolo)");
                     d = (IModelDoc2)d.GetNext();
                 }
             }
@@ -1638,15 +1638,15 @@ namespace Oce.Solid.Agent.Bench
                 return true;
             }
 
-            if (nomi.Count == 0) return true;
+            if (names.Count == 0) return true;
 
-            if (!chiudiTu)
+            if (!closeItYourself)
             {
                 Console.WriteLine();
-                Console.WriteLine("SOLIDWORKS ha gia' " + nomi.Count +
-                                  (nomi.Count == 1 ? " documento aperto" : " documenti aperti") + ":");
-                foreach (var n in nomi.Take(20)) Console.WriteLine("    " + n);
-                if (nomi.Count > 20) Console.WriteLine("    ... e altri " + (nomi.Count - 20));
+                Console.WriteLine("SOLIDWORKS ha gia' " + names.Count +
+                                  (names.Count == 1 ? " documento aperto" : " documenti aperti") + ":");
+                foreach (var n in names.Take(20)) Console.WriteLine("    " + n);
+                if (names.Count > 20) Console.WriteLine("    ... e altri " + (names.Count - 20));
                 Console.WriteLine();
                 Console.WriteLine("Il giro NON parte. Lo stato di un documento elenca i documenti");
                 Console.WriteLine("aperti, quindi questi farebbero fallire «state: sotto i 16 KB»");
@@ -1659,30 +1659,30 @@ namespace Oce.Solid.Agent.Bench
                 return false;
             }
 
-            int chiusi = 0;
-            foreach (var n in nomi)
+            int closed = 0;
+            foreach (var n in names)
             {
-                try { _sw.CloseDoc(n); chiusi++; }
+                try { _sw.CloseDoc(n); closed++; }
                 catch { }
             }
 
             // SI RICONTA. `CloseDoc` non torna niente, e «ho chiamato la
             // chiusura quindici volte» non e' «sono chiusi».
-            int restano = 0;
+            int remain = 0;
             try
             {
                 var d = (IModelDoc2)_sw.GetFirstDocument();
                 while (d != null)
                 {
-                    restano++;
+                    remain++;
                     d = (IModelDoc2)d.GetNext();
                 }
             }
             catch { }
 
-            Console.WriteLine("scrivania: chiusi " + chiusi + " documenti su " + nomi.Count +
-                              ", ne restano " + restano);
-            if (restano > 0)
+            Console.WriteLine("scrivania: chiusi " + closed + " documenti su " + names.Count +
+                              ", ne restano " + remain);
+            if (remain > 0)
             {
                 Console.WriteLine("Non e' partito lo stesso: quelli che restano farebbero fallire");
                 Console.WriteLine("«state: sotto i 16 KB». Chiudili a mano e rilancia.");
@@ -1694,56 +1694,56 @@ namespace Oce.Solid.Agent.Bench
         // ==================================================================
         // 1. il misuratore di sezione dell'add-in
         // ==================================================================
-        private static void Sezioni()
+        private static void Sections()
         {
             Console.WriteLine();
             Console.WriteLine("=== Services.SezioneProfilo ===");
-            var t = _addin.GetType(NS + "SezioneProfilo", true);
-            var m = t.GetMethod("SporgenzeDelTelaio",
+            var t = _addin.GetType(NS + "SectionProfile", true);
+            var m = t.GetMethod("FrameOverhangs",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-            foreach (var caso in new[]
+            foreach (var testCase in new[]
             {
-                new object[] { QUADRO, "80X80X5", 0, 1, 80.0, 80.0 },
-                new object[] { QUADRO, "40x40x3", 0, 2, 40.0, 40.0 },
-                new object[] { RETT, "80X50X5", 0, 1, 50.0, 50.0 },
-                new object[] { RETT, "80X50X5", 0, 2, 80.0, 80.0 },
+                new object[] { SQUARE_TUBE, "80X80X5", 0, 1, 80.0, 80.0 },
+                new object[] { SQUARE_TUBE, "40x40x3", 0, 2, 40.0, 40.0 },
+                new object[] { RECT, "80X50X5", 0, 1, 50.0, 50.0 },
+                new object[] { RECT, "80X50X5", 0, 2, 80.0, 80.0 },
             })
             {
                 var r = m.Invoke(null, new object[]
                 {
-                    _sw, caso[0], caso[1], caso[2], caso[3], 0.0,
+                    _sw, testCase[0], testCase[1], testCase[2], testCase[3], 0.0,
                     1 /* quartabuono */, 0.0,
                     (Action<string>)(s => { }),
                 }) as double[];
                 bool ok = r != null &&
-                          Math.Abs(r[0] - (double)caso[4]) < 0.01 &&
-                          Math.Abs(r[1] - (double)caso[5]) < 0.01;
-                Segna("sporgenza " + caso[1] + " su assi " + caso[2] + "," + caso[3], ok,
+                          Math.Abs(r[0] - (double)testCase[4]) < 0.01 &&
+                          Math.Abs(r[1] - (double)testCase[5]) < 0.01;
+                Check("sporgenza " + testCase[1] + " su assi " + testCase[2] + "," + testCase[3], ok,
                       r == null ? "null" : string.Format("misurato {0:0.##}/{1:0.##}, atteso {2:0.##}/{3:0.##}",
-                          r[0], r[1], caso[4], caso[5]));
+                          r[0], r[1], testCase[4], testCase[5]));
             }
         }
 
         // ==================================================================
         // 2. la risoluzione dei nomi dei materiali
         // ==================================================================
-        private static void Materiali()
+        private static void Materials()
         {
             Console.WriteLine();
             Console.WriteLine("=== Services.MaterialiSolidWorks ===");
-            var t = _addin.GetType(NS + "MaterialiSolidWorks", true);
-            var tutti = t.GetMethod("Tutti",
+            var t = _addin.GetType(NS + "SolidWorksMaterials", true);
+            var all = t.GetMethod("All",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            var risolvi = t.GetMethod("Risolvi",
+            var resolve = t.GetMethod("Resolve",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-            var elenco = tutti.Invoke(null, new object[] { _sw, (Action<string>)(s => { }) })
+            var list = all.Invoke(null, new object[] { _sw, (Action<string>)(s => { }) })
                 as System.Collections.IList;
-            Segna("legge gli archivi di materiali", elenco != null && elenco.Count > 100,
-                  (elenco == null ? "null" : elenco.Count + " materiali"));
+            Check("legge gli archivi di materiali", list != null && list.Count > 100,
+                  (list == null ? "null" : list.Count + " materiali"));
 
-            foreach (var caso in new[]
+            foreach (var testCase in new[]
             {
                 new[] { "AISI 304", "AISI 304" },
                 new[] { "1.0037 (S235JR)", "1.0037 (S235JR)" },
@@ -1754,155 +1754,155 @@ namespace Oce.Solid.Agent.Bench
                 new[] { "acciaio inventato", null },
             })
             {
-                var argomenti = new object[] { _sw, caso[0], "", (Action<string>)(s => { }), null };
-                var trovato = risolvi.Invoke(null, argomenti);
-                string perche = argomenti[4] as string;
-                string nome = null;
-                if (trovato != null)
-                    nome = trovato.GetType().GetField("Nome").GetValue(trovato) as string;
+                var arguments = new object[] { _sw, testCase[0], "", (Action<string>)(s => { }), null };
+                var found = resolve.Invoke(null, arguments);
+                string why = arguments[4] as string;
+                string itemName = null;
+                if (found != null)
+                    itemName = found.GetType().GetField("Name").GetValue(found) as string;
 
-                bool ok = caso[1] == null ? (trovato == null && !string.IsNullOrEmpty(perche))
-                                          : (nome == caso[1]);
-                Segna("materiale «" + caso[0] + "»", ok,
-                      trovato == null ? ("rifiutato: " + (perche ?? "").Substring(0, Math.Min(70, (perche ?? "").Length)))
-                                      : ("-> " + nome));
+                bool ok = testCase[1] == null ? (found == null && !string.IsNullOrEmpty(why))
+                                          : (itemName == testCase[1]);
+                Check("materiale «" + testCase[0] + "»", ok,
+                      found == null ? ("rifiutato: " + (why ?? "").Substring(0, Math.Min(70, (why ?? "").Length)))
+                                      : ("-> " + itemName));
             }
         }
 
         // ==================================================================
         // 3. il telaio a quote esterne, passando dall'add-in
         // ==================================================================
-        private static void Telai()
+        private static void Frames()
         {
             Console.WriteLine();
             Console.WriteLine("=== rectangular_frame (add-in) ===");
-            Telaio("quadro 80x80x5, 1000x800, frontale", QUADRO, "80X80X5", 1000, 800, "front", true);
-            Telaio("quadro 40x40x3, 1000x800, superiore", QUADRO, "40x40x3", 1000, 800, "top", true);
-            Telaio("rettangolare 80x50x5, 1200x600, frontale", RETT, "80X50X5", 1200, 600, "front", true);
-            Telaio("quadro 80x80x5, 600x400, angolo sull'origine", QUADRO, "80X80X5", 600, 400, "front", false);
+            Frame("quadro 80x80x5, 1000x800, frontale", SQUARE_TUBE, "80X80X5", 1000, 800, "front", true);
+            Frame("quadro 40x40x3, 1000x800, superiore", SQUARE_TUBE, "40x40x3", 1000, 800, "top", true);
+            Frame("rettangolare 80x50x5, 1200x600, frontale", RECT, "80X50X5", 1200, 600, "front", true);
+            Frame("quadro 80x80x5, 600x400, angolo sull'origine", SQUARE_TUBE, "80X80X5", 600, 400, "front", false);
             // e uno che DEVE fallire: sezione piu' grande del telaio
-            Telaio("quadro 80x80x5, 60x60 (deve fallire)", QUADRO, "80X80X5", 60, 60, "front", true, deveFallire: true);
+            Frame("quadro 80x80x5, 60x60 (deve fallire)", SQUARE_TUBE, "80X80X5", 60, 60, "front", true, mustFail: true);
         }
 
-        private static void Telaio(string nome, string profilo, string config,
-                                   double L, double W, string piano, bool centrato,
-                                   bool deveFallire = false)
+        private static void Frame(string itemName, string profile, string config,
+                                   double L, double W, string plane, bool centered,
+                                   bool mustFail = false)
         {
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                var argomenti = new Dictionary<string, object>
+                doc = NewPart();
+                var arguments = new Dictionary<string, object>
                 {
-                    ["profile_path"] = profilo,
+                    ["profile_path"] = profile,
                     ["configuration"] = config,
                     ["length_mm"] = L,
                     ["width_mm"] = W,
-                    ["plane"] = piano,
-                    ["centered"] = centrato,
+                    ["plane"] = plane,
+                    ["centered"] = centered,
                     ["corner_treatment"] = "miter",
-                    ["segments"] = SegmentiNominali(L, W, piano, centrato),
+                    ["segments"] = NominalSegments(L, W, plane, centered),
                     ["frame"] = new Dictionary<string, object>
                     {
                         ["length_mm"] = L,
                         ["width_mm"] = W,
-                        ["plane"] = piano,
-                        ["centered"] = centrato,
+                        ["plane"] = plane,
+                        ["centered"] = centered,
                         ["measured_as"] = "overall",
                     },
                 };
 
-                string errore;
-                var misure = Esegui(doc, "rectangular_frame", argomenti, out errore);
-                if (deveFallire)
+                string error;
+                var measurements = Run(doc, "rectangular_frame", arguments, out error);
+                if (mustFail)
                 {
-                    Segna(nome, misure == null && !string.IsNullOrEmpty(errore),
-                          misure == null ? ("rifiutato: " + Corto(errore)) : "NON ha rifiutato");
+                    Check(itemName, measurements == null && !string.IsNullOrEmpty(error),
+                          measurements == null ? ("rifiutato: " + Short(error)) : "NON ha rifiutato");
                     return;
                 }
-                if (misure == null) { Segna(nome, false, "fallito: " + Corto(errore)); return; }
+                if (measurements == null) { Check(itemName, false, "fallito: " + Short(error)); return; }
 
-                string ingombro = misure.ContainsKey("bounding_box_outer_mm")
-                    ? Convert.ToString(misure["bounding_box_outer_mm"]) : "(non verificato)";
-                bool verificato = misure.ContainsKey("bounding_box_checked") &&
-                                  Convert.ToBoolean(misure["bounding_box_checked"]);
+                string boundingBox = measurements.ContainsKey("bounding_box_outer_mm")
+                    ? Convert.ToString(measurements["bounding_box_outer_mm"]) : "(non verificato)";
+                bool verified = measurements.ContainsKey("bounding_box_checked") &&
+                                  Convert.ToBoolean(measurements["bounding_box_checked"]);
                 // e si controlla anche qui, indipendentemente
-                var scatola = ScatolaDelDocumento(doc);
+                var box = DocumentBox(doc);
                 double gu, gv;
-                Assi(piano, out int u, out int v);
-                gu = scatola[3 + u] - scatola[u];
-                gv = scatola[3 + v] - scatola[v];
-                bool ok = verificato && Math.Abs(gu - L) < 0.5 && Math.Abs(gv - W) < 0.5;
-                Segna(nome, ok, string.Format(
+                Axes(plane, out int u, out int v);
+                gu = box[3 + u] - box[u];
+                gv = box[3 + v] - box[v];
+                bool ok = verified && Math.Abs(gu - L) < 0.5 && Math.Abs(gv - W) < 0.5;
+                Check(itemName, ok, string.Format(
                     "add-in dice {0}, misurato {1:0.##}x{2:0.##}, sporgenza {3}, barre {4}",
-                    ingombro, gu, gv,
-                    misure.ContainsKey("overhang_profile_mm") ? misure["overhang_profile_mm"] : "?",
-                    misure.ContainsKey("bars") ? misure["bars"] : "?"));
+                    boundingBox, gu, gv,
+                    measurements.ContainsKey("overhang_profile_mm") ? measurements["overhang_profile_mm"] : "?",
+                    measurements.ContainsKey("bars") ? measurements["bars"] : "?"));
             }
-            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check(itemName, false, Why(ex)); }
+            finally { Close(doc); }
         }
 
         // ==================================================================
         // 4. i fori guidati, passando dall'add-in
         // ==================================================================
-        private static void Fori()
+        private static void Holes()
         {
             Console.WriteLine();
             Console.WriteLine("=== hole_wizard (add-in) ===");
-            Foro("quattro M10 passanti", "clearance", "M10", true, 0,
+            Hole("quattro M10 passanti", "clearance", "M10", true, 0,
                  new[] { new[] { -70.0, -40.0 }, new[] { 70.0, -40.0 },
                          new[] { 70.0, 40.0 }, new[] { -70.0, 40.0 } }, 11.0);
-            Foro("un M8 filettato passante", "threaded", "M8", true, 0,
+            Hole("un M8 filettato passante", "threaded", "M8", true, 0,
                  new[] { new[] { 0.0, 0.0 } }, 6.8);
-            Foro("un M12 filettato cieco 12", "threaded", "M12", false, 12,
+            Hole("un M12 filettato cieco 12", "threaded", "M12", false, 12,
                  new[] { new[] { 30.0, 20.0 } }, 10.2);
-            Foro("due lamati M8", "counterbore", "M8", true, 0,
+            Hole("due lamati M8", "counterbore", "M8", true, 0,
                  new[] { new[] { -50.0, 0.0 }, new[] { 50.0, 0.0 } }, 9.0);
-            Foro("taglia inventata (deve fallire)", "threaded", "M7", true, 0,
-                 new[] { new[] { 0.0, 0.0 } }, 0, deveFallire: true);
-            Foro("due fori nello stesso punto (deve fallire)", "clearance", "M8", true, 0,
-                 new[] { new[] { 10.0, 0.0 }, new[] { 10.0, 0.0 } }, 0, deveFallire: true);
+            Hole("taglia inventata (deve fallire)", "threaded", "M7", true, 0,
+                 new[] { new[] { 0.0, 0.0 } }, 0, mustFail: true);
+            Hole("due fori nello stesso punto (deve fallire)", "clearance", "M8", true, 0,
+                 new[] { new[] { 10.0, 0.0 }, new[] { 10.0, 0.0 } }, 0, mustFail: true);
         }
 
-        private static void Foro(string nome, string tipo, string taglia, bool passante,
-                                 double profondita, double[][] posizioni, double diametroAtteso,
-                                 bool deveFallire = false)
+        private static void Hole(string itemName, string typ, string size, bool throughAll,
+                                 double depth, double[][] positions, double expectedDiameter,
+                                 bool mustFail = false)
         {
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                Piastra(doc, 200, 120, 20);
-                var stato = LeggiStato(doc);
-                string uid = FacciaInCima(stato);
-                if (uid == null) { Segna(nome, false, "nessuna faccia in cima nello stato"); return; }
+                doc = NewPart();
+                Plate(doc, 200, 120, 20);
+                var docState = ReadState(doc);
+                string uid = TopFace(docState);
+                if (uid == null) { Check(itemName, false, "nessuna faccia in cima nello stato"); return; }
 
-                var argomenti = new Dictionary<string, object>
+                var arguments = new Dictionary<string, object>
                 {
                     ["face_uid"] = uid,
-                    ["variant"] = tipo,
-                    ["size"] = taglia,
-                    ["through_all"] = passante,
-                    ["positions"] = posizioni.Select(p => (object)new Dictionary<string, object>
+                    ["variant"] = typ,
+                    ["size"] = size,
+                    ["through_all"] = throughAll,
+                    ["positions"] = positions.Select(p => (object)new Dictionary<string, object>
                     {
                         ["x_mm"] = p[0], ["y_mm"] = p[1],
                     }).ToList(),
                 };
-                if (!passante) argomenti["depth_mm"] = profondita;
+                if (!throughAll) arguments["depth_mm"] = depth;
 
-                string errore;
-                var misure = Esegui(doc, "hole_wizard", argomenti, out errore, stato);
-                if (deveFallire)
+                string error;
+                var measurements = Run(doc, "hole_wizard", arguments, out error, docState);
+                if (mustFail)
                 {
-                    Segna(nome, misure == null && !string.IsNullOrEmpty(errore),
-                          misure == null ? ("rifiutato: " + Corto(errore)) : "NON ha rifiutato");
+                    Check(itemName, measurements == null && !string.IsNullOrEmpty(error),
+                          measurements == null ? ("rifiutato: " + Short(error)) : "NON ha rifiutato");
                     return;
                 }
-                if (misure == null) { Segna(nome, false, "fallito: " + Corto(errore)); return; }
+                if (measurements == null) { Check(itemName, false, "fallito: " + Short(error)); return; }
 
-                double d = misure.ContainsKey("diameter_machined_mm")
-                    ? Convert.ToDouble(misure["diameter_machined_mm"]) : 0;
+                double d = measurements.ContainsKey("diameter_machined_mm")
+                    ? Convert.ToDouble(measurements["diameter_machined_mm"]) : 0;
                 // LA CHIAVE C'ERA SEMPRE, e questo ramo non poteva scattare.
                 // Fino alla 0.25.1 qui c'era `misure.ContainsKey(...)`, e il
                 // ponte scriveva quella chiave senza condizione: `verificate`
@@ -1911,30 +1911,30 @@ namespace Oce.Solid.Agent.Bench
                 // credendo di misurare anche le posizioni.
                 // Adesso la chiave va letta E deve essere vera, e il ponte ne
                 // scrive una DIVERSA quando non ha potuto guardare.
-                bool verificate = misure.ContainsKey("positions_checked") &&
-                                  Convert.ToBoolean(misure["positions_checked"]);
-                string perche = misure.ContainsKey("positions_not_checked")
-                    ? Convert.ToString(misure["positions_not_checked"]) : null;
-                bool ok = verificate && Math.Abs(d - diametroAtteso) < 0.05;
-                Segna(nome, ok, string.Format("diametro {0:0.##} (atteso {1:0.##}), fori {2}, {3}",
-                    d, diametroAtteso,
-                    misure.ContainsKey("holes") ? misure["holes"] : "?",
-                    verificate
+                bool verified = measurements.ContainsKey("positions_checked") &&
+                                  Convert.ToBoolean(measurements["positions_checked"]);
+                string why = measurements.ContainsKey("positions_not_checked")
+                    ? Convert.ToString(measurements["positions_not_checked"]) : null;
+                bool ok = verified && Math.Abs(d - expectedDiameter) < 0.05;
+                Check(itemName, ok, string.Format("diametro {0:0.##} (atteso {1:0.##}), fori {2}, {3}",
+                    d, expectedDiameter,
+                    measurements.ContainsKey("holes") ? measurements["holes"] : "?",
+                    verified
                         ? "posizioni verificate"
-                        : "POSIZIONI NON VERIFICATE" + (perche == null ? "" : ": " + Corto(perche))));
+                        : "POSIZIONI NON VERIFICATE" + (why == null ? "" : ": " + Short(why))));
             }
-            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check(itemName, false, Why(ex)); }
+            finally { Close(doc); }
         }
 
         // ==================================================================
         // 5. il materiale, passando dall'add-in
         // ==================================================================
-        private static void Materiale()
+        private static void Material()
         {
             Console.WriteLine();
             Console.WriteLine("=== apply_material (add-in) ===");
-            foreach (var caso in new[]
+            foreach (var testCase in new[]
             {
                 new object[] { "S235JR", "1.0037 (S235JR)", false },
                 new object[] { "AISI 304", "AISI 304", false },
@@ -1945,110 +1945,110 @@ namespace Oce.Solid.Agent.Bench
                 IModelDoc2 doc = null;
                 try
                 {
-                    doc = NuovaParte();
-                    Piastra(doc, 100, 60, 10);
-                    string errore;
-                    var misure = Esegui(doc, "apply_material",
-                        new Dictionary<string, object> { ["material"] = caso[0] }, out errore);
-                    bool deveFallire = (bool)caso[2];
-                    if (deveFallire)
+                    doc = NewPart();
+                    Plate(doc, 100, 60, 10);
+                    string error;
+                    var measurements = Run(doc, "apply_material",
+                        new Dictionary<string, object> { ["material"] = testCase[0] }, out error);
+                    bool mustFail = (bool)testCase[2];
+                    if (mustFail)
                     {
-                        Segna("materiale «" + caso[0] + "»",
-                              misure == null && !string.IsNullOrEmpty(errore),
-                              misure == null ? ("rifiutato: " + Corto(errore)) : "NON ha rifiutato");
+                        Check("materiale «" + testCase[0] + "»",
+                              measurements == null && !string.IsNullOrEmpty(error),
+                              measurements == null ? ("rifiutato: " + Short(error)) : "NON ha rifiutato");
                         continue;
                     }
-                    if (misure == null) { Segna("materiale «" + caso[0] + "»", false, Corto(errore)); continue; }
+                    if (measurements == null) { Check("materiale «" + testCase[0] + "»", false, Short(error)); continue; }
 
                     // e si rilegge dal documento, non dall'esito
                     string db;
-                    string letto = (doc as IPartDoc).GetMaterialPropertyName2("", out db);
-                    bool ok = letto == (string)caso[1];
+                    string read = (doc as IPartDoc).GetMaterialPropertyName2("", out db);
+                    bool ok = read == (string)testCase[1];
                     // e adesso c'e' anche la massa?
-                    var stato = LeggiStato(doc);
-                    bool haMassa = stato.ContainsKey("mass_kg");
-                    Segna("materiale «" + caso[0] + "»", ok && haMassa,
-                          "sul documento: «" + letto + "»" +
-                          (haMassa ? ", massa " + stato["mass_kg"] + " kg" : ", MASSA ASSENTE"));
+                    var docState = ReadState(doc);
+                    bool hasMass = docState.ContainsKey("mass_kg");
+                    Check("materiale «" + testCase[0] + "»", ok && hasMass,
+                          "sul documento: «" + read + "»" +
+                          (hasMass ? ", massa " + docState["mass_kg"] + " kg" : ", MASSA ASSENTE"));
                 }
-                catch (Exception ex) { Segna("materiale «" + caso[0] + "»", false, Perche(ex)); }
-                finally { Chiudi(doc); }
+                catch (Exception ex) { Check("materiale «" + testCase[0] + "»", false, Why(ex)); }
+                finally { Close(doc); }
             }
         }
 
         // ==================================================================
         // 6. lo stato del documento
         // ==================================================================
-        private static void Stato()
+        private static void State()
         {
             Console.WriteLine();
             Console.WriteLine("=== StatoDocumento ===");
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                var stato = LeggiStato(doc);
-                Segna("documento vuoto: materiale null esplicito",
-                      stato.ContainsKey("material") && stato["material"] == null);
-                Segna("documento vuoto: nessun corpo",
-                      stato.ContainsKey("solid_body") && !Convert.ToBoolean(stato["solid_body"]));
-                Segna("documento vuoto: nessuna massa (manca il materiale)",
-                      !stato.ContainsKey("mass_kg"));
+                doc = NewPart();
+                var docState = ReadState(doc);
+                Check("documento vuoto: materiale null esplicito",
+                      docState.ContainsKey("material") && docState["material"] == null);
+                Check("documento vuoto: nessun corpo",
+                      docState.ContainsKey("solid_body") && !Convert.ToBoolean(docState["solid_body"]));
+                Check("documento vuoto: nessuna massa (manca il materiale)",
+                      !docState.ContainsKey("mass_kg"));
 
                 // un telaio vero
-                var argomenti = new Dictionary<string, object>
+                var arguments = new Dictionary<string, object>
                 {
-                    ["profile_path"] = QUADRO,
+                    ["profile_path"] = SQUARE_TUBE,
                     ["configuration"] = "80X80X5",
                     ["length_mm"] = 1000.0,
                     ["width_mm"] = 800.0,
                     ["plane"] = "front",
                     ["centered"] = true,
                     ["corner_treatment"] = "miter",
-                    ["segments"] = SegmentiNominali(1000, 800, "front", true),
+                    ["segments"] = NominalSegments(1000, 800, "front", true),
                     ["frame"] = new Dictionary<string, object>
                     {
                         ["length_mm"] = 1000.0, ["width_mm"] = 800.0,
                         ["plane"] = "front", ["centered"] = true, ["measured_as"] = "overall",
                     },
                 };
-                string errore;
-                var misure = Esegui(doc, "rectangular_frame", argomenti, out errore);
-                if (misure == null) { Segna("telaio per lo stato", false, Corto(errore)); return; }
+                string error;
+                var measurements = Run(doc, "rectangular_frame", arguments, out error);
+                if (measurements == null) { Check("telaio per lo stato", false, Short(error)); return; }
 
-                stato = LeggiStato(doc);
-                var corpi = stato.ContainsKey("bodies") ? stato["bodies"] as System.Collections.IList : null;
-                Segna("telaio: quattro corpi nello stato", corpi != null && corpi.Count == 4,
-                      corpi == null ? "assenti" : corpi.Count + " corpi");
-                if (corpi != null && corpi.Count > 0)
+                docState = ReadState(doc);
+                var bodies = docState.ContainsKey("bodies") ? docState["bodies"] as System.Collections.IList : null;
+                Check("telaio: quattro corpi nello stato", bodies != null && bodies.Count == 4,
+                      bodies == null ? "assenti" : bodies.Count + " corpi");
+                if (bodies != null && bodies.Count > 0)
                 {
-                    var c0 = corpi[0] as Dictionary<string, object>;
-                    Segna("corpo: ha uid, ingombro, centro e chi lo ha fatto",
+                    var c0 = bodies[0] as Dictionary<string, object>;
+                    Check("corpo: ha uid, ingombro, centro e chi lo ha fatto",
                           c0.ContainsKey("uid") && c0.ContainsKey("bounding_box_mm") &&
                           c0.ContainsKey("center_mm") && c0.ContainsKey("created_by"),
-                          Riga(c0));
+                          Line(c0));
                 }
-                var ing = stato.ContainsKey("bounding_box_mm") ? stato["bounding_box_mm"] as double[] : null;
-                Segna("pezzo: ingombro 1000x800x80",
+                var ing = docState.ContainsKey("bounding_box_mm") ? docState["bounding_box_mm"] as double[] : null;
+                Check("pezzo: ingombro 1000x800x80",
                       ing != null && Math.Abs(ing[0] - 1000) < 0.5 &&
                       Math.Abs(ing[1] - 800) < 0.5 && Math.Abs(ing[2] - 80) < 0.5,
                       ing == null ? "assente" : string.Join("x", ing.Select(x => x.ToString("0.##"))));
-                Segna("pezzo: nessuna massa senza materiale", !stato.ContainsKey("mass_kg"));
+                Check("pezzo: nessuna massa senza materiale", !docState.ContainsKey("mass_kg"));
 
-                var feature = stato["feature"] as System.Collections.IList;
-                var nomi = feature.Cast<Dictionary<string, object>>()
+                var feature = docState["feature"] as System.Collections.IList;
+                var names = feature.Cast<Dictionary<string, object>>()
                     .Select(f => Convert.ToString(f["kind"])).ToList();
-                Segna("feature: solo quelle che contano",
-                      nomi.Contains("WeldMemberFeat") &&
-                      !nomi.Contains("HistoryFolder") && !nomi.Contains("SolidBodyFolder"),
-                      string.Join(", ", nomi));
+                Check("feature: solo quelle che contano",
+                      names.Contains("WeldMemberFeat") &&
+                      !names.Contains("HistoryFolder") && !names.Contains("SolidBodyFolder"),
+                      string.Join(", ", names));
 
-                int nFacce = (stato["faces"] as System.Collections.IList).Count;
-                Segna("facce: tetto sul totale, non per corpo", nFacce <= 60,
-                      nFacce + " facce" +
-                      (stato.ContainsKey("faces_total") ? " su " + stato["faces_total"] : ""));
-                var f0 = (stato["faces"] as System.Collections.IList)[0] as Dictionary<string, object>;
-                Segna("faccia: dice a quale corpo appartiene", f0.ContainsKey("body"), Riga(f0));
+                int nFaces = (docState["faces"] as System.Collections.IList).Count;
+                Check("facce: tetto sul totale, non per corpo", nFaces <= 60,
+                      nFaces + " facce" +
+                      (docState.ContainsKey("faces_total") ? " su " + docState["faces_total"] : ""));
+                var f0 = (docState["faces"] as System.Collections.IList)[0] as Dictionary<string, object>;
+                Check("faccia: dice a quale corpo appartiene", f0.ContainsKey("body"), Line(f0));
 
                 // IL TETTO E' NOSTRO, NON DI SOLIDWORKS NE' DEL MODELLO.
                 //
@@ -2070,7 +2070,7 @@ namespace Oce.Solid.Agent.Bench
                 // Prima di alzarla ancora: guardare se c'e' un campo che
                 // RIPETE un altro campo. Tre ne sono stati trovati in
                 // mezz'ora, per seimila caratteri in tutto.
-                int caratteri = System.Text.Encoding.UTF8.GetByteCount(Json(stato));
+                int characters = System.Text.Encoding.UTF8.GetByteCount(Json(docState));
                 // 14 -> 16 KB il 10 settembre 2026, e cosa ha comprato: il
                 // RUOLO degli spigoli. Prima venti righe con una lunghezza e
                 // basta; adesso ognuno dice lungo quale asse va e fra quali
@@ -2100,12 +2100,12 @@ namespace Oce.Solid.Agent.Bench
                 //
                 // Il numero si stampa SEMPRE, non solo quando fallisce: un
                 // messaggio che dice il criterio serve a leggere anche i verdi.
-                int aperti = 0;
+                int open = 0;
                 try
                 {
-                    var elenco = stato.ContainsKey("documents_open")
-                        ? stato["documents_open"] as System.Collections.IList : null;
-                    if (elenco != null) aperti = elenco.Count;
+                    var list = docState.ContainsKey("documents_open")
+                        ? docState["documents_open"] as System.Collections.IList : null;
+                    if (list != null) open = list.Count;
                 }
                 catch { }
 
@@ -2123,21 +2123,21 @@ namespace Oce.Solid.Agent.Bench
                 // il tetto CON MARGINE», e il margine si stampa sempre: anche
                 // sui verdi, che e' l'unico momento in cui si puo' vedere
                 // arrivare il muro.
-                const int Tetto = 16000;
-                const int MargineMinimoPerCento = 15;
-                int soglia = Tetto - Tetto * MargineMinimoPerCento / 100;
-                int margine = Tetto - caratteri;
-                int perCento = (int)Math.Round(margine * 100.0 / Tetto);
+                const int Cap = 16000;
+                const int MinimumMarginPercent = 15;
+                int threshold = Cap - Cap * MinimumMarginPercent / 100;
+                int margin = Cap - characters;
+                int percent = (int)Math.Round(margin * 100.0 / Cap);
 
-                Segna("stato: sotto i 16 KB con almeno il 15% di margine",
-                      caratteri <= soglia,
-                      caratteri + " caratteri, margine " + margine + " (" + perCento +
-                      "%), " + aperti +
-                      (aperti == 1 ? " documento aperto" : " documenti aperti") +
-                      (aperti > 1 ? " (piu' di uno gonfia la misura: vedi qui sopra)" : ""));
+                Check("stato: sotto i 16 KB con almeno il 15% di margine",
+                      characters <= threshold,
+                      characters + " caratteri, margine " + margin + " (" + percent +
+                      "%), " + open +
+                      (open == 1 ? " documento aperto" : " documenti aperti") +
+                      (open > 1 ? " (piu' di uno gonfia la misura: vedi qui sopra)" : ""));
             }
-            catch (Exception ex) { Segna("stato del documento", false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check("stato del documento", false, Why(ex)); }
+            finally { Close(doc); }
         }
 
         // ==================================================================
@@ -2162,7 +2162,7 @@ namespace Oce.Solid.Agent.Bench
         // V1. la fotografia del pezzo — l'unica cosa che dice una FORMA
         // ==================================================================
         /// <summary>
-        /// Prova `VistaDelPezzo.Scatta`.
+        /// Prova `PartView.Fire`.
         ///
         /// PERCHE' QUESTA PROVA ESISTE, E PERCHE' PROVA QUESTE QUATTRO COSE.
         /// La capacita' di fotografare c'era gia' — il banco salvava BMP con
@@ -2188,44 +2188,44 @@ namespace Oce.Solid.Agent.Bench
         /// `Bitmap` tiene aperto il file la cancellazione fallisce e nessuno
         /// se ne accorge finche' la cartella non e' piena.
         /// </summary>
-        private static void ProvaFotografia()
+        private static void TestSnapshot()
         {
             Console.WriteLine();
             Console.WriteLine("=== VistaDelPezzo (V1) ===");
 
-            var t = _addin.GetType(NS + "VistaDelPezzo", false);
+            var t = _addin.GetType(NS + "PartView", false);
             if (t == null)
             {
-                Segna("fotografia: la classe c'e'", false,
+                Check("fotografia: la classe c'e'", false,
                       "VistaDelPezzo non e' nella libreria caricata");
                 return;
             }
-            var scatta = t.GetMethod("Scatta", BindingFlags.Public | BindingFlags.Static);
-            if (scatta == null)
+            var fire = t.GetMethod("Fire", BindingFlags.Public | BindingFlags.Static);
+            if (fire == null)
             {
-                Segna("fotografia: Scatta c'e'", false, "il metodo non esiste");
+                Check("fotografia: Scatta c'e'", false, "il metodo non esiste");
                 return;
             }
 
-            var doc = NuovaParte();
+            var doc = NewPart();
 
-            string modello = "oce-vista-";
-            int temporaneiPrima = FileTemporanei(modello);
+            string model = "oce-vista-";
+            int temporaryBefore = TemporaryFiles(model);
 
             try
             {
-                string errore;
-                var misure = Esegui(doc, "extrude_rectangle", new Dictionary<string, object>
+                string error;
+                var measurements = Run(doc, "extrude_rectangle", new Dictionary<string, object>
                 {
                     ["plane"] = "top",
                     ["length_mm"] = 200.0,
                     ["width_mm"] = 100.0,
                     ["thickness_mm"] = 20.0,
                     ["centered"] = true,
-                }, out errore);
-                if (misure == null) { Segna("fotografia: il blocco", false, Corto(errore)); return; }
+                }, out error);
+                if (measurements == null) { Check("fotografia: il blocco", false, Short(error)); return; }
 
-                var vista = doc.ActiveView as IModelView;
+                var view = doc.ActiveView as IModelView;
 
                 // ── LE NOVE STRADE STANNO IN `Checks\ViewTest` ──────
                 //
@@ -2244,20 +2244,20 @@ namespace Oce.Solid.Agent.Bench
                 // Qui resta l'affermazione che conta per chi usa il ponte: dopo
                 // una fotografia, il pezzo sullo schermo di chi lavora sta
                 // com'era.
-                double[] prima = Orientamento(vista);
+                double[] before = Orientation(view);
 
                 var p = new object[] { doc, "isometric", 800, 600, null };
-                var png = scatta.Invoke(null, p) as byte[];
-                string motivo = p[4] as string;
+                var png = fire.Invoke(null, p) as byte[];
+                string reason = p[4] as string;
 
-                Segna("fotografia: l'isometrica esce", png != null && png.Length > 0,
-                      png == null ? Corto(motivo) : png.Length + " byte");
+                Check("fotografia: l'isometrica esce", png != null && png.Length > 0,
+                      png == null ? Short(reason) : png.Length + " byte");
 
                 // LA FIRMA DEL PNG: 89 50 4E 47. Un BMP comincia con «BM».
-                bool eUnPng = png != null && png.Length > 8 &&
+                bool isPng = png != null && png.Length > 8 &&
                               png[0] == 0x89 && png[1] == 0x50 &&
                               png[2] == 0x4E && png[3] == 0x47;
-                Segna("fotografia: e' un PNG, non il BMP di SOLIDWORKS", eUnPng,
+                Check("fotografia: e' un PNG, non il BMP di SOLIDWORKS", isPng,
                       png == null || png.Length < 2
                           ? "niente da guardare"
                           : "primi byte " + png[0].ToString("X2") + " " + png[1].ToString("X2"));
@@ -2265,38 +2265,38 @@ namespace Oce.Solid.Agent.Bench
                 // 800x600 non compresso sarebbe 1,4 MB: se il PNG ci si
                 // avvicina, la conversione non ha compresso niente.
                 if (png != null)
-                    Segna("fotografia: pesa molto meno del BMP", png.Length < 800 * 600,
+                    Check("fotografia: pesa molto meno del BMP", png.Length < 800 * 600,
                           png.Length + " byte contro " + (800 * 600 * 3) + " del BMP crudo");
 
-                double[] dopo = Orientamento(vista);
-                Segna("fotografia: l'orientamento di chi lavora e' tornato com'era",
-                      StessoOrientamento(prima, dopo),
-                      prima == null ? "non leggibile" : "16 numeri confrontati");
+                double[] after = Orientation(view);
+                Check("fotografia: l'orientamento di chi lavora e' tornato com'era",
+                      SameOrientation(before, after),
+                      before == null ? "non leggibile" : "16 numeri confrontati");
 
                 // ── IL CASO ROSSO ────────────────────────────────────────
                 var q = new object[] { doc, "assonometrica-della-nonna", 800, 600, null };
-                var nulla = scatta.Invoke(null, q) as byte[];
-                string perche = q[4] as string;
-                Segna("fotografia: una vista inventata e' rifiutata, coi nomi veri",
-                      nulla == null && perche != null &&
-                      perche.IndexOf("isometric", StringComparison.OrdinalIgnoreCase) >= 0,
-                      nulla != null
+                var nothing = fire.Invoke(null, q) as byte[];
+                string why = q[4] as string;
+                Check("fotografia: una vista inventata e' rifiutata, coi nomi veri",
+                      nothing == null && why != null &&
+                      why.IndexOf("isometric", StringComparison.OrdinalIgnoreCase) >= 0,
+                      nothing != null
                           ? "ha scattato lo stesso"
-                          : Corto(perche));
+                          : Short(why));
 
                 // ── NIENTE SPAZZATURA NELLA TEMPORANEA ───────────────────
-                int temporaneiDopo = FileTemporanei(modello);
-                Segna("fotografia: nessun file lasciato nella temporanea",
-                      temporaneiDopo <= temporaneiPrima,
-                      temporaneiPrima + " prima, " + temporaneiDopo + " dopo");
+                int temporaryAfter = TemporaryFiles(model);
+                Check("fotografia: nessun file lasciato nella temporanea",
+                      temporaryAfter <= temporaryBefore,
+                      temporaryBefore + " prima, " + temporaryAfter + " dopo");
             }
-            finally { Chiudi(doc); }
+            finally { Close(doc); }
         }
 
         /// <summary>Quanti file temporanei di questo nome ci sono adesso.</summary>
-        private static int FileTemporanei(string modello)
+        private static int TemporaryFiles(string model)
         {
-            try { return Directory.GetFiles(Path.GetTempPath(), modello + "*").Length; }
+            try { return Directory.GetFiles(Path.GetTempPath(), model + "*").Length; }
             catch { return 0; }
         }
 
@@ -2305,10 +2305,10 @@ namespace Oce.Solid.Agent.Bench
         /// schermo. Null se non si e' potuto leggere — e allora il confronto
         /// non afferma niente, invece di affermare che va tutto bene.
         /// </summary>
-        private static double[] Orientamento(IModelView vista)
+        private static double[] Orientation(IModelView view)
         {
-            if (vista == null) return null;
-            try { return Copia(vista.Transform as IMathTransform); }
+            if (view == null) return null;
+            try { return Copy(view.Transform as IMathTransform); }
             catch { return null; }
         }
 
@@ -2317,14 +2317,14 @@ namespace Oce.Solid.Agent.Bench
         /// riferimento: `ArrayData` costruisce un vettore nuovo a ogni lettura,
         /// ed e' quello che rende il confronto possibile.
         /// </summary>
-        private static double[] Copia(IMathTransform m)
+        private static double[] Copy(IMathTransform m)
         {
             if (m == null) return null;
             try { return m.ArrayData as double[]; }
             catch { return null; }
         }
 
-        private static bool StessoOrientamento(double[] a, double[] b)
+        private static bool SameOrientation(double[] a, double[] b)
         {
             // Se non si e' potuto leggere nemmeno prima, questa prova non ha
             // un ingresso: NON e' verde, e' senza risposta. La si dichiara
@@ -2337,70 +2337,70 @@ namespace Oce.Solid.Agent.Bench
             return true;
         }
 
-        private static void ProvaTettoLavorazioni()
+        private static void TestFeatureCap()
         {
             Console.WriteLine();
             Console.WriteLine("=== il tetto sulle lavorazioni (E12) ===");
 
-            const int Quanti = 85;      // il tetto e' 80: cinque devono restare fuori
-            const int Tetto = 80;
-            var doc = NuovaParte();
+            const int HowMany = 85;      // il tetto e' 80: cinque devono restare fuori
+            const int Cap = 80;
+            var doc = NewPart();
 
             try
             {
-                string errore;
-                var misure = Esegui(doc, "extrude_rectangle", new Dictionary<string, object>
+                string error;
+                var measurements = Run(doc, "extrude_rectangle", new Dictionary<string, object>
                 {
                     ["plane"] = "top",
-                    ["length_mm"] = (Quanti - 1) * 10.0 + 30,
+                    ["length_mm"] = (HowMany - 1) * 10.0 + 30,
                     ["width_mm"] = 30.0,
                     ["thickness_mm"] = 8.0,
                     ["centered"] = true,
-                }, out errore);
-                if (misure == null) { Segna("tetto: la barra", false, Corto(errore)); return; }
+                }, out error);
+                if (measurements == null) { Check("tetto: la barra", false, Short(error)); return; }
 
                 // I tagli, uno per giro. La faccia in alto si ritrova dallo
                 // stato ogni volta: e' cio' che farebbe chi disegna, e non
                 // serve nessun riferimento a un passo.
-                double x0 = -((Quanti - 1) * 10.0) / 2;
-                int fatti = 0;
-                for (int i = 0; i < Quanti; i++)
+                double x0 = -((HowMany - 1) * 10.0) / 2;
+                int done = 0;
+                for (int i = 0; i < HowMany; i++)
                 {
-                    var stato = LeggiStato(doc);
-                    string uidAlto = FacciaInAlto(stato);
-                    if (uidAlto == null) break;
+                    var docState = ReadState(doc);
+                    string topUid = FaceUp(docState);
+                    if (topUid == null) break;
 
-                    var m = Esegui(doc, "cylindrical_cut", new Dictionary<string, object>
+                    var m = Run(doc, "cylindrical_cut", new Dictionary<string, object>
                     {
-                        ["face_uid"] = uidAlto,
+                        ["face_uid"] = topUid,
                         ["x_mm"] = x0 + i * 10.0,
                         ["y_mm"] = 0.0,
                         ["diameter_mm"] = 4.0,
                         ["through_all"] = true,
-                    }, out errore, stato);
+                    }, out error, docState);
                     if (m == null) break;
-                    fatti++;
+                    done++;
                 }
-                Segna("tetto: " + Quanti + " lavorazioni costruite", fatti == Quanti,
-                      fatti + " su " + Quanti + (fatti < Quanti ? " -- " + Corto(errore) : ""));
-                if (fatti < Quanti) return;
+                Check("tetto: " + HowMany + " lavorazioni costruite", done == HowMany,
+                      done + " su " + HowMany + (done < HowMany ? " -- " + Short(error) : ""));
+                if (done < HowMany) return;
 
-                var finale = LeggiStato(doc);
-                var elenco = finale.ContainsKey("feature")
-                    ? finale["feature"] as System.Collections.IList : null;
-                int inElenco = elenco == null ? 0 : elenco.Count;
+                var final = ReadState(doc);
+                var list = final.ContainsKey("feature")
+                    ? final["feature"] as System.Collections.IList : null;
+                int inList = list == null ? 0 : list.Count;
 
                 // 1. IL TETTO SI DICHIARA.
-                int totali = finale.ContainsKey("feature_total")
-                    ? Convert.ToInt32(finale["feature_total"]) : 0;
-                int fuori = finale.ContainsKey("feature_not_listed")
-                    ? Convert.ToInt32(finale["feature_not_listed"]) : 0;
-                bool troncato = finale.ContainsKey("truncated") &&
-                                Convert.ToBoolean(finale["truncated"]);
-                Segna("tetto: dichiarato",
-                      totali == Quanti + 1 && fuori == Quanti + 1 - Tetto && troncato,
-                      "elencate " + inElenco + ", totali " + totali + ", fuori " + fuori +
-                      ", troncato " + troncato);
+                int totali = final.ContainsKey("feature_total")
+                    ? Convert.ToInt32(final["feature_total"]) : 0;
+                int outside = final.ContainsKey("feature_not_listed")
+                    ? Convert.ToInt32(final["feature_not_listed"]) : 0;
+                bool truncated = final.ContainsKey("truncated") &&
+                                Convert.ToBoolean(final["truncated"]);
+                Check("tetto: dichiarato",
+                      totali == HowMany + 1 && outside == HowMany + 1 - Cap && truncated,
+                      "elencate " + inList + ", totali " + totali + ", fuori " + outside +
+                      ", troncato " + truncated);
 
                 // 2. E QUELLA CHE CONTA: L'ULTIMA C'E'.
                 //
@@ -2410,43 +2410,43 @@ namespace Oce.Solid.Agent.Bench
                 // che il piano ha appena fatto -- l'unica che chi legge sta
                 // cercando. Il modello non la trovava e poteva concluderne che
                 // l'operazione non aveva fatto niente, e rifarla.
-                string ultima = null, prima = null;
-                if (elenco != null && elenco.Count > 0)
+                string last = null, before = null;
+                if (list != null && list.Count > 0)
                 {
-                    var u = elenco[elenco.Count - 1] as Dictionary<string, object>;
-                    var p = elenco[0] as Dictionary<string, object>;
-                    if (u != null && u.ContainsKey("uid")) ultima = Convert.ToString(u["uid"]);
-                    if (p != null && p.ContainsKey("uid")) prima = Convert.ToString(p["uid"]);
+                    var u = list[list.Count - 1] as Dictionary<string, object>;
+                    var p = list[0] as Dictionary<string, object>;
+                    if (u != null && u.ContainsKey("uid")) last = Convert.ToString(u["uid"]);
+                    if (p != null && p.ContainsKey("uid")) before = Convert.ToString(p["uid"]);
                 }
-                Segna("tetto: nell'elenco c'e' l'ULTIMA creata, non la prima",
-                      ultima != null && ultima.EndsWith(Quanti.ToString()),
-                      "prima elencata: " + (prima ?? "?") + ", ultima: " + (ultima ?? "?"));
+                Check("tetto: nell'elenco c'e' l'ULTIMA creata, non la prima",
+                      last != null && last.EndsWith(HowMany.ToString()),
+                      "prima elencata: " + (before ?? "?") + ", ultima: " + (last ?? "?"));
 
                 // 3. E L'ESTRUSIONE, che e' la PIU' VECCHIA, non c'e' piu'.
-                bool cSonoLeVecchie = false;
-                if (elenco != null)
-                    foreach (var v in elenco)
+                bool cAreTheOldOnes = false;
+                if (list != null)
+                    foreach (var v in list)
                     {
                         var d = v as Dictionary<string, object>;
                         if (d != null && d.ContainsKey("uid") &&
                             Convert.ToString(d["uid"]).StartsWith("Estrusione"))
-                        { cSonoLeVecchie = true; break; }
+                        { cAreTheOldOnes = true; break; }
                     }
-                Segna("tetto: la piu' vecchia e' stata scartata", !cSonoLeVecchie,
-                      cSonoLeVecchie ? "l'estrusione c'e' ancora: si tengono le prime"
+                Check("tetto: la piu' vecchia e' stata scartata", !cAreTheOldOnes,
+                      cAreTheOldOnes ? "l'estrusione c'e' ancora: si tengono le prime"
                                      : "l'estrusione non c'e' piu', come deve");
             }
-            catch (Exception ex) { Segna("tetto sulle lavorazioni", false, Perche(ex)); }
-            finally { Chiudi(doc); }
+            catch (Exception ex) { Check("tetto sulle lavorazioni", false, Why(ex)); }
+            finally { Close(doc); }
         }
 
         /// <summary>L'uid della faccia piana rivolta in alto, dallo stato.</summary>
-        private static string FacciaInAlto(Dictionary<string, object> stato)
+        private static string FaceUp(Dictionary<string, object> docState)
         {
-            var facce = stato != null && stato.ContainsKey("faces")
-                ? stato["faces"] as System.Collections.IList : null;
-            if (facce == null) return null;
-            foreach (var v in facce)
+            var faces = docState != null && docState.ContainsKey("faces")
+                ? docState["faces"] as System.Collections.IList : null;
+            if (faces == null) return null;
+            foreach (var v in faces)
             {
                 var f = v as Dictionary<string, object>;
                 if (f == null) continue;
@@ -2460,12 +2460,12 @@ namespace Oce.Solid.Agent.Bench
         // ==================================================================
         // riflessione
         // ==================================================================
-        private static Dictionary<string, object> Esegui(
-            IModelDoc2 doc, string operazione, Dictionary<string, object> argomenti,
-            out string errore, object stato = null)
+        private static Dictionary<string, object> Run(
+            IModelDoc2 doc, string operation, Dictionary<string, object> arguments,
+            out string error, object docState = null)
         {
-            IModelDoc2 ignorato;
-            return Esegui(doc, operazione, argomenti, out errore, out ignorato, stato);
+            IModelDoc2 ignored;
+            return Run(doc, operation, arguments, out error, out ignored, docState);
         }
 
         /// <summary>
@@ -2488,69 +2488,69 @@ namespace Oce.Solid.Agent.Bench
         /// e' cio' che ha davanti *chiunque*, e basta che qualcuno apra una
         /// finestra perche' il banco misuri il documento di un altro.
         ///
-        /// L'operazione lo **dichiara**: `Esito.DocumentoNuovo`, che
+        /// L'operazione lo **dichiara**: `Outcome.NewDocument`, che
         /// `create_drawing` riempie apposta. Un cambio dichiarato si puo'
         /// seguire; uno dedotto si puo' solo subire.
         /// </summary>
-        private static Dictionary<string, object> Esegui(
-            IModelDoc2 doc, string operazione, Dictionary<string, object> argomenti,
-            out string errore, out IModelDoc2 documentoNuovo, object stato = null)
+        private static Dictionary<string, object> Run(
+            IModelDoc2 doc, string operation, Dictionary<string, object> arguments,
+            out string error, out IModelDoc2 newDocument, object docState = null)
         {
-            errore = null;
-            documentoNuovo = null;
-            var costruttore = _tOperazioni.GetConstructors(
+            error = null;
+            newDocument = null;
+            var constructor = _tOperations.GetConstructors(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0];
             // QUELLO CHE L'ADD-IN RACCONTA SI LEGGE.
             // Un logger vuoto e' comodo finche' tutto va bene; il giorno in
             // cui un'operazione fa una scelta al posto tuo — ritrovare una
             // faccia che si e' spostata, per esempio — e' l'unica riga che
             // spiega perche' il pezzo e' venuto cosi'.
-            var op = costruttore.Invoke(new object[]
+            var op = constructor.Invoke(new object[]
                 { _sw, (Action<string>)(s => Console.WriteLine("       | " + s)) });
 
-            if (stato == null) stato = LeggiStatoOggetto(doc);
-            var esegui = _tOperazioni.GetMethod("Esegui",
+            if (docState == null) docState = ReadObjectState(doc);
+            var run = _tOperations.GetMethod("Run",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            object statoOggetto = stato is Dictionary<string, object> ? LeggiStatoOggetto(doc) : stato;
+            object objectState = docState is Dictionary<string, object> ? ReadObjectState(doc) : docState;
 
             // IL GUINZAGLIO (voce K18): si annuncia cosa si sta per fare,
             // e si dice quando e' tornata. Il guardiano guarda da fuori.
-            Guinzaglio.Comincia(operazione, DateTime.Now);
-            object esito;
+            Leash.Begin(operation, DateTime.Now);
+            object outcome;
             try
             {
-                esito = esegui.Invoke(op, new object[]
+                outcome = run.Invoke(op, new object[]
                 {
-                    doc, operazione, argomenti, statoOggetto, null,
+                    doc, operation, arguments, objectState, null,
                 });
             }
-            finally { Guinzaglio.Finita(); }
-            bool riuscito = (bool)_tEsito.GetField("Riuscito").GetValue(esito);
-            if (!riuscito)
+            finally { Leash.Finished(); }
+            bool succeeded = (bool)_tOutcome.GetField("Succeeded").GetValue(outcome);
+            if (!succeeded)
             {
-                errore = _tEsito.GetField("Errore").GetValue(esito) as string;
+                error = _tOutcome.GetField("Error").GetValue(outcome) as string;
                 return null;
             }
             // IL CAMPO PUO' NON ESSERCI, e non e' un guasto: il banco carica la
             // libreria per riflessione, e una libreria piu' vecchia di questa
-            // riga non ha `DocumentoNuovo`. In quel caso si torna `null` e si
+            // riga non ha `NewDocument`. In quel caso si torna `null` e si
             // continua come prima — **quello che non si fa e' esplodere**,
             // perche' una prova che muore per un campo assente non misura
             // niente di cio' che doveva misurare.
             try
             {
-                var campo = _tEsito.GetField("DocumentoNuovo");
-                if (campo != null) documentoNuovo = campo.GetValue(esito) as IModelDoc2;
+                var theField = _tOutcome.GetField("NewDocument");
+                if (theField != null) newDocument = theField.GetValue(outcome) as IModelDoc2;
             }
             catch { }
 
             try { doc.EditRebuild3(); } catch { }
-            return _tEsito.GetField("Misure").GetValue(esito) as Dictionary<string, object>;
+            return _tOutcome.GetField("Measurements").GetValue(outcome) as Dictionary<string, object>;
         }
 
-        private static object LeggiStatoOggetto(IModelDoc2 doc)
+        private static object ReadObjectState(IModelDoc2 doc)
         {
-            var leggi = _tStato.GetMethod("Leggi",
+            var read = _tState.GetMethod("Read",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             // L'APPLICAZIONE VA PASSATA. Da un documento non si risale a
             // SolidWorks — ne' IModelDoc2 ne' IModelDocExtension hanno un
@@ -2559,27 +2559,27 @@ namespace Oce.Solid.Agent.Bench
             // dato smette di essere un di piu': una vista si aggancia al
             // percorso di un documento aperto, e se non lo si vede non lo
             // si puo' nominare.
-            return leggi.Invoke(null, new object[] { doc, _sw });
+            return read.Invoke(null, new object[] { doc, _sw });
         }
 
-        private static Dictionary<string, object> LeggiStato(IModelDoc2 doc)
+        private static Dictionary<string, object> ReadState(IModelDoc2 doc)
         {
-            var stato = LeggiStatoOggetto(doc);
-            var dati = _tStato.GetProperty("Dati",
+            var docState = ReadObjectState(doc);
+            var data = _tState.GetProperty("Data",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            return dati.GetValue(stato) as Dictionary<string, object>;
+            return data.GetValue(docState) as Dictionary<string, object>;
         }
 
         /// <summary>La faccia piana piu' grande: su una piastra e' una delle due grandi.</summary>
-        private static string FacciaInCima(Dictionary<string, object> stato)
+        private static string TopFace(Dictionary<string, object> docState)
         {
-            var facce = stato["faces"] as System.Collections.IList;
-            foreach (Dictionary<string, object> f in facce)
+            var faces = docState["faces"] as System.Collections.IList;
+            foreach (Dictionary<string, object> f in faces)
             {
                 var n = f["normal"] as double[];
                 if (n == null) continue;
-                bool assiale = Math.Abs(n[0]) > 0.99 || Math.Abs(n[1]) > 0.99 || Math.Abs(n[2]) > 0.99;
-                if (assiale) return Convert.ToString(f["uid"]);
+                bool axial = Math.Abs(n[0]) > 0.99 || Math.Abs(n[1]) > 0.99 || Math.Abs(n[2]) > 0.99;
+                if (axial) return Convert.ToString(f["uid"]);
             }
             return null;
         }
@@ -2587,28 +2587,28 @@ namespace Oce.Solid.Agent.Bench
         // ==================================================================
         // utilita'
         // ==================================================================
-        private static List<object> SegmentiNominali(double L, double W, string piano, bool centrato)
+        private static List<object> NominalSegments(double L, double W, string plane, bool centered)
         {
-            Assi(piano, out int u, out int v);
-            double u0 = centrato ? -L / 2 : 0, v0 = centrato ? -W / 2 : 0;
+            Axes(plane, out int u, out int v);
+            double u0 = centered ? -L / 2 : 0, v0 = centered ? -W / 2 : 0;
             double u1 = u0 + L, v1 = v0 + W;
             Func<double, double, double[]> p = (a, b) =>
             {
                 var q = new double[3]; q[u] = a; q[v] = b; return q;
             };
-            var angoli = new[] { p(u0, v0), p(u1, v0), p(u1, v1), p(u0, v1) };
-            var fuori = new List<object>();
+            var angles = new[] { p(u0, v0), p(u1, v0), p(u1, v1), p(u0, v1) };
+            var outside = new List<object>();
             for (int i = 0; i < 4; i++)
-                fuori.Add(new Dictionary<string, object>
+                outside.Add(new Dictionary<string, object>
                 {
-                    ["start"] = angoli[i], ["end"] = angoli[(i + 1) % 4],
+                    ["start"] = angles[i], ["end"] = angles[(i + 1) % 4],
                 });
-            return fuori;
+            return outside;
         }
 
-        private static void Assi(string piano, out int u, out int v)
+        private static void Axes(string plane, out int u, out int v)
         {
-            switch ((piano ?? "").ToLowerInvariant())
+            switch ((plane ?? "").ToLowerInvariant())
             {
                 case "top": u = 0; v = 2; return;
                 case "right": u = 1; v = 2; return;
@@ -2616,11 +2616,11 @@ namespace Oce.Solid.Agent.Bench
             }
         }
 
-        private static double[] ScatolaDelDocumento(IModelDoc2 doc)
+        private static double[] DocumentBox(IModelDoc2 doc)
         {
             double[] tot = null;
-            var corpi = (doc as IPartDoc).GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            foreach (var c in corpi)
+            var bodies = (doc as IPartDoc).GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            foreach (var c in bodies)
             {
                 var b = (c as IBody2).GetBodyBox() as double[];
                 if (b == null) continue;
@@ -2631,12 +2631,12 @@ namespace Oce.Solid.Agent.Bench
             return tot;
         }
 
-        private static string Riga(Dictionary<string, object> d)
+        private static string Line(Dictionary<string, object> d)
         {
-            return string.Join(" ", d.Select(kv => kv.Key + "=" + Valore(kv.Value)));
+            return string.Join(" ", d.Select(kv => kv.Key + "=" + Value(kv.Value)));
         }
 
-        private static string Valore(object v)
+        private static string Value(object v)
         {
             var a = v as double[];
             if (a != null) return "[" + string.Join(",", a.Select(x => x.ToString("0.#"))) + "]";
@@ -2669,23 +2669,23 @@ namespace Oce.Solid.Agent.Bench
         /// destinazione di una chiamata», che non dice niente di niente.
         /// Quella che interessa e' sempre l'`InnerException`.
         /// </summary>
-        private static string Perche(Exception ex)
+        private static string Why(Exception ex)
         {
             if (ex == null) return "(nessuna eccezione)";
             while (ex is TargetInvocationException && ex.InnerException != null)
                 ex = ex.InnerException;
 
-            string dove = "";
+            string location = "";
             try
             {
-                var righe = (ex.StackTrace ?? "").Split('\n');
-                if (righe.Length > 0) dove = "  <- " + righe[0].Trim();
+                var lines = (ex.StackTrace ?? "").Split('\n');
+                if (lines.Length > 0) location = "  <- " + lines[0].Trim();
             }
             catch { }
-            return ex.GetType().Name + ": " + Corto(ex.Message) + dove;
+            return ex.GetType().Name + ": " + Short(ex.Message) + location;
         }
 
-        private static string Corto(string s)
+        private static string Short(string s)
         {
             if (string.IsNullOrEmpty(s)) return "(nessun motivo)";
             s = s.Replace("\r", " ").Replace("\n", " ");
@@ -2700,8 +2700,8 @@ namespace Oce.Solid.Agent.Bench
         // di un'ora e mezza che e' costata la sua mancanza, stanno in
         // `Shared/SolidWorksSentinel.cs`.
         // ══════════════════════════════════════════════════════════════
-        internal static readonly Shared.SentinellaSolidWorks Sentinella =
-            new Shared.SentinellaSolidWorks(3);
+        internal static readonly Shared.SolidWorksSentinel Sentinel =
+            new Shared.SolidWorksSentinel(3);
 
         /// <summary>
         /// `--fingi-senza-solidworks`: NewDocument risponde null comunque.
@@ -2712,14 +2712,14 @@ namespace Oce.Solid.Agent.Bench
         /// particolare si accende in una condizione che non si sa
         /// riprodurre a comando.
         /// </summary>
-        private static bool _fingiSenzaSolidWorks;
+        private static bool _pretendWithoutSolidWorks;
 
         /// <summary>
         /// Le famiglie di casi dichiarati da far girare, o null per tutte
         /// (`--famiglia`). Un giro con questa bandiera e' parziale come uno con
         /// `--gruppo`, e il riepilogo lo scrive.
         /// </summary>
-        private static List<string> _soloFamiglie;
+        private static List<string> _familiesOnly;
 
         // ══════════════════════════════════════════════════════════════
         // IL MODELLO DI DOCUMENTO SI COPIA IN LOCALE (voce K19)
@@ -2763,28 +2763,28 @@ namespace Oce.Solid.Agent.Bench
         // carpenteria e gli archivi dei materiali. Questa e' la lettura
         // piu' frequente, non l'unica.
         // ══════════════════════════════════════════════════════════════
-        private static readonly Dictionary<string, string> _modelliInLocale =
+        private static readonly Dictionary<string, string> _localModels =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        internal static string ModelloInLocale(string suo)
+        internal static string LocalModel(string its)
         {
-            if (string.IsNullOrWhiteSpace(suo)) return suo;
+            if (string.IsNullOrWhiteSpace(its)) return its;
 
-            string gia;
-            if (_modelliInLocale.TryGetValue(suo, out gia)) return gia;
+            string already;
+            if (_localModels.TryGetValue(its, out already)) return already;
 
-            string arrivo = suo;
+            string arrival = its;
             try
             {
-                if (DaLontano(suo))
+                if (IsRemote(its))
                 {
-                    var cartella = Path.Combine(Path.GetTempPath(), "banco-modelli");
-                    Directory.CreateDirectory(cartella);
-                    var copia = Path.Combine(cartella, Path.GetFileName(suo));
-                    File.Copy(suo, copia, true);
-                    arrivo = copia;
+                    var folder = Path.Combine(Path.GetTempPath(), "banco-modelli");
+                    Directory.CreateDirectory(folder);
+                    var copy = Path.Combine(folder, Path.GetFileName(its));
+                    File.Copy(its, copy, true);
+                    arrival = copy;
                     Console.WriteLine("  modello copiato in locale: " +
-                                      Path.GetFileName(suo) + " -> " + cartella);
+                                      Path.GetFileName(its) + " -> " + folder);
                 }
             }
             catch (Exception ex)
@@ -2799,48 +2799,48 @@ namespace Oce.Solid.Agent.Bench
                 // quella — e si dice **di quando e'**, perche' un modello
                 // vecchio che si spaccia per quello di adesso sarebbe la
                 // stessa specie di silenzio che questo banco insegue.
-                string vecchia = null;
+                string old = null;
                 try
                 {
                     var c = Path.Combine(Path.GetTempPath(), "banco-modelli",
-                                         Path.GetFileName(suo));
-                    if (File.Exists(c)) vecchia = c;
+                                         Path.GetFileName(its));
+                    if (File.Exists(c)) old = c;
                 }
                 catch { }
 
-                if (vecchia != null)
+                if (old != null)
                 {
                     Console.WriteLine("  non ho potuto rinfrescare il modello (" +
                                       ex.Message + "): uso la copia locale del " +
-                                      File.GetLastWriteTime(vecchia)
+                                      File.GetLastWriteTime(old)
                                           .ToString("d/M/yyyy HH:mm"));
-                    arrivo = vecchia;
+                    arrival = old;
                 }
                 else
                 {
                     // NON SI TACE. Un giro che legge dalla rete e non lo dice
                     // e' un giro che domani si piantera' senza spiegazioni.
                     Console.WriteLine("  NON ho potuto copiare il modello in locale (" +
-                                      ex.Message + "): uso quello di rete, " + suo);
-                    arrivo = suo;
+                                      ex.Message + "): uso quello di rete, " + its);
+                    arrival = its;
                 }
             }
 
-            _modelliInLocale[suo] = arrivo;
-            return arrivo;
+            _localModels[its] = arrival;
+            return arrival;
         }
 
         /// <summary>Vero se il percorso sta su una condivisione di rete —
         /// UNC oppure un'unita' mappata. Un'unita' mappata non si vede dal
         /// percorso: `S:\...` sembra locale, e non lo e'.</summary>
-        private static bool DaLontano(string percorso)
+        private static bool IsRemote(string filePath)
         {
             try
             {
-                if (percorso.StartsWith("\\\\", StringComparison.Ordinal)) return true;
-                var radice = Path.GetPathRoot(percorso);
-                if (string.IsNullOrEmpty(radice)) return false;
-                return new DriveInfo(radice).DriveType == DriveType.Network;
+                if (filePath.StartsWith("\\\\", StringComparison.Ordinal)) return true;
+                var root = Path.GetPathRoot(filePath);
+                if (string.IsNullOrEmpty(root)) return false;
+                return new DriveInfo(root).DriveType == DriveType.Network;
             }
             catch { return false; }
         }
@@ -2858,10 +2858,10 @@ namespace Oce.Solid.Agent.Bench
         // stretto trasformerebbe una prova lenta in un falso allarme, e un
         // falso allarme spegne il guardiano il giorno dopo.
         // ══════════════════════════════════════════════════════════════
-        internal static readonly Shared.Guinzaglio Guinzaglio =
-            new Shared.Guinzaglio(90000);
+        internal static readonly Shared.Leash Leash =
+            new Shared.Leash(90000);
 
-        private static System.Threading.Thread _guardiano;
+        private static System.Threading.Thread _guardian;
 
         /// <summary>
         /// Il guardiano guarda l'orologio e NON tocca il lavoro.
@@ -2877,67 +2877,67 @@ namespace Oce.Solid.Agent.Bench
         /// alzata sul thread del guardiano, dove non la prenderebbe nessuno,
         /// e il thread appeso terrebbe vivo il processo comunque.
         /// </summary>
-        private static void AccendiIlGuardiano()
+        private static void TurnOnGuardian()
         {
-            if (_guardiano != null) return;
-            _guardiano = new System.Threading.Thread(() =>
+            if (_guardian != null) return;
+            _guardian = new System.Threading.Thread(() =>
             {
                 while (true)
                 {
                     System.Threading.Thread.Sleep(5000);
-                    var referto = Guinzaglio.Appesa(DateTime.Now);
-                    if (referto == null) continue;
+                    var report = Leash.Hanging(DateTime.Now);
+                    if (report == null) continue;
                     Console.WriteLine();
                     Console.WriteLine(new string('!', 76));
-                    Console.WriteLine(referto);
+                    Console.WriteLine(report);
                     Console.WriteLine("GIRO NON VALIDO: si e' fermato qui, e " +
                                       "quello che viene dopo non e' stato provato.");
                     Console.WriteLine(new string('!', 76));
                     Console.Out.Flush();
-                    Diario(referto);
+                    Log(report);
                     // `System.Environment` per esteso: l'interop di SOLIDWORKS
                     // ha una sua `Environment`, e senza il nome intero il
                     // compilatore non sa quale delle due.
                     System.Environment.Exit(5);
                 }
             });
-            _guardiano.IsBackground = true;
-            _guardiano.Start();
+            _guardian.IsBackground = true;
+            _guardian.Start();
         }
-        private static IModelDoc2 NuovaParte()
+        private static IModelDoc2 NewPart()
         {
             // GIA' MORTO: non si chiama nemmeno. Ogni chiamata a un
             // SOLIDWORKS che non risponde puo' piantarsi per sempre — e'
             // cosi' che il giro delle 15:36 e' rimasto appeso invece di
             // finire male in fretta.
-            if (Sentinella.SeNEAndato)
-                throw new Shared.PreparazioneFallita(Sentinella.Referto());
+            if (Sentinel.HasGone)
+                throw new Shared.PreparationFailed(Sentinel.Report());
 
-            string tpl = ModelloInLocale(_sw.GetUserPreferenceStringValue(
+            string tpl = LocalModel(_sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplatePart));
 
             // E' QUI CHE SI E' PIANTATO IL 23/9/2026, non dentro una
             // operazione: `NewDocument` che legge il modello da una
             // condivisione di rete. Il guinzaglio serve soprattutto qui.
-            Guinzaglio.Comincia("NewDocument (il modello di documento)", DateTime.Now);
-            IModelDoc2 nata;
+            Leash.Begin("NewDocument (il modello di documento)", DateTime.Now);
+            IModelDoc2 born;
             try
             {
-                nata = _fingiSenzaSolidWorks
+                born = _pretendWithoutSolidWorks
                     ? null
                     : _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
             }
-            finally { Guinzaglio.Finita(); }
+            finally { Leash.Finished(); }
 
-            if (nata != null) { Sentinella.Riuscita(); return nata; }
+            if (born != null) { Sentinel.Succeeded(); return born; }
 
-            if (Sentinella.Fallita())
-                throw new Shared.PreparazioneFallita(Sentinella.Referto());
+            if (Sentinel.Failed())
+                throw new Shared.PreparationFailed(Sentinel.Report());
 
             // Uno o due di fila: puo' ancora essere il pezzo, non il
             // programma. Il messaggio resta quello della F12.
             // NON TORNA NULL: se SOLIDWORKS non apre il documento, lo DICE.
-            return OppureDillo(nata, "la parte nuova su cui provare");
+            return OrSayIt(born, "la parte nuova su cui provare");
         }
 
         /// <summary>
@@ -2951,7 +2951,7 @@ namespace Oce.Solid.Agent.Bench
         /// oggetto.», e basta. Nel giro rosso mancava anche la riga che la
         /// libreria stampa prima di rifiutare, quindi il null stava **prima**
         /// della chiamata da provare — ma su diciotto punti del banco
-        /// `NuovaParte()` veniva usata senza guardare se avesse prodotto
+        /// `NewPart()` veniva usata senza guardare se avesse prodotto
         /// qualcosa, e un `NullReferenceException` non dice quale dei diciotto.
         ///
         /// Il difetto non e' la prova che e' fallita: e' che **fallendo non ha
@@ -2963,11 +2963,11 @@ namespace Oce.Solid.Agent.Bench
         /// PREPARARE il pezzo, ed e' un'altra cosa — per questo il messaggio lo
         /// dice a chiare lettere.
         /// </summary>
-        private static T OppureDillo<T>(T cosa, string quale) where T : class
+        private static T OrSayIt<T>(T what, string which) where T : class
         {
-            if (cosa != null) return cosa;
-            throw new Shared.PreparazioneFallita(
-                "SOLIDWORKS non ha prodotto " + quale + " (ha risposto null). " +
+            if (what != null) return what;
+            throw new Shared.PreparationFailed(
+                "SOLIDWORKS non ha prodotto " + which + " (ha risposto null). " +
                 "Non e' la prova a essere fallita: e' il banco che non e' " +
                 "riuscito a preparare il pezzo. Guarda quanti documenti sono " +
                 "rimasti aperti, e rilancia.");
@@ -2978,34 +2978,34 @@ namespace Oce.Solid.Agent.Bench
         /// nomina se l'albero non li da'. Era l'altro punto della stessa
         /// famiglia (voce F12): `GetFeatures(false) as object[]` puo' tornare
         /// null, e il `.Select` subito dopo dava lo stesso NullReference muto
-        /// di `NuovaParte()`.
+        /// di `NewPart()`.
         /// </summary>
-        private static List<IFeature> PianiDiRiferimento(IModelDoc2 doc)
+        private static List<IFeature> ReferencePlanes(IModelDoc2 doc)
         {
-            var albero = OppureDillo(doc.FeatureManager.GetFeatures(false) as object[],
+            var tree = OrSayIt(doc.FeatureManager.GetFeatures(false) as object[],
                                      "l'albero delle feature del documento");
-            var piani = albero
+            var planes = tree
                 .Select(o => o as IFeature)
                 .Where(f => { try { return f.GetTypeName2() == "RefPlane"; } catch { return false; } })
                 .ToList();
-            if (piani.Count == 0)
+            if (planes.Count == 0)
                 throw new InvalidOperationException(
                     "il documento non ha nessun piano di riferimento: il modello " +
                     "di parte predefinito non e' quello che il banco si aspetta.");
-            return piani;
+            return planes;
         }
 
-        private static void Chiudi(IModelDoc2 doc)
+        private static void Close(IModelDoc2 doc)
         {
             if (doc == null) return;
             try { _sw.CloseDoc(doc.GetTitle()); } catch { }
         }
 
-        private static void Piastra(IModelDoc2 doc, double L, double W, double H)
+        private static void Plate(IModelDoc2 doc, double L, double W, double H)
         {
-            var piani = PianiDiRiferimento(doc);
+            var planes = ReferencePlanes(doc);
             doc.ClearSelection2(true);
-            piani[0].Select2(false, 0);          // frontale: la faccia in cima avra' normale +Z
+            planes[0].Select2(false, 0);          // frontale: la faccia in cima avra' normale +Z
             var sm = doc.SketchManager;
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(0, 0, 0, L / 2000.0, W / 2000.0, 0);

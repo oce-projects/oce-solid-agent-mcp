@@ -23,10 +23,10 @@ namespace Oce.Solid.Agent.Core
     /// una tavola normale e nessuno le nomina; c'e' il loro CONTEGGIO, che e'
     /// quello che serve per accorgersi che una quota non e' arrivata.
     /// </summary>
-    public partial class StatoDocumento
+    public partial class DocumentState
     {
         /// <summary>Quante viste si descrivono per esteso, al massimo.</summary>
-        private const int MaxViste = 24;
+        private const int MaxViews = 24;
 
         /// <summary>
         /// I documenti aperti adesso.
@@ -35,100 +35,100 @@ namespace Oce.Solid.Agent.Core
         /// meglio una riga vera che un elenco assente, perche' l'assenza si
         /// legge come «non c'e' nient'altro» ed e' una bugia.
         /// </summary>
-        private static List<Dictionary<string, object>> DocumentiAperti(
-            ISldWorks sw, IModelDoc2 attivo)
+        private static List<Dictionary<string, object>> OpenDocuments(
+            ISldWorks sw, IModelDoc2 active)
         {
-            var fuori = new List<Dictionary<string, object>>();
-            string percorsoAttivo = "", titoloAttivo = "";
-            try { percorsoAttivo = attivo?.GetPathName() ?? ""; } catch { }
+            var outside = new List<Dictionary<string, object>>();
+            string activePath = "", activeTitle = "";
+            try { activePath = active?.GetPathName() ?? ""; } catch { }
             // IL TITOLO, NON SOLO IL PERCORSO. Un documento mai salvato
             // non ha percorso, e con il solo confronto sul percorso in un
             // elenco di documenti nuovi non risultava attivo NESSUNO.
-            try { titoloAttivo = attivo?.GetTitle() ?? ""; } catch { }
+            try { activeTitle = active?.GetTitle() ?? ""; } catch { }
 
-            if (sw == null) return fuori;
+            if (sw == null) return outside;
             try
             {
                 var d = sw.GetFirstDocument() as IModelDoc2;
-                int guardia = 0;
-                while (d != null && guardia++ < 200)
+                int guard = 0;
+                while (d != null && guard++ < 200)
                 {
-                    string percorso = "", titolo = "";
-                    int tipo = 0;
-                    try { percorso = d.GetPathName() ?? ""; } catch { }
-                    try { titolo = d.GetTitle() ?? ""; } catch { }
-                    try { tipo = d.GetType(); } catch { }
+                    string filePath = "", docTitle = "";
+                    int typ = 0;
+                    try { filePath = d.GetPathName() ?? ""; } catch { }
+                    try { docTitle = d.GetTitle() ?? ""; } catch { }
+                    try { typ = d.GetType(); } catch { }
 
-                    var voce = new Dictionary<string, object>
+                    var entry = new Dictionary<string, object>
                     {
-                        ["document_title"] = titolo,
-                        ["kind"] = OperazioniSw.NomeTipoDocumento(tipo),
+                        ["document_title"] = docTitle,
+                        ["kind"] = SwOperations.DocumentTypeName(typ),
                     };
                     // Il percorso solo se c'e': un documento mai salvato non ne
                     // ha, e una stringa vuota in un elenco di percorsi e' un
                     // invito a usarla.
-                    if (!string.IsNullOrWhiteSpace(percorso)) voce["path"] = percorso;
-                    bool eLui =
-                        !string.IsNullOrWhiteSpace(percorsoAttivo)
-                            ? string.Equals(percorso, percorsoAttivo,
+                    if (!string.IsNullOrWhiteSpace(filePath)) entry["path"] = filePath;
+                    bool isIt =
+                        !string.IsNullOrWhiteSpace(activePath)
+                            ? string.Equals(filePath, activePath,
                                   StringComparison.OrdinalIgnoreCase)
-                            : (!string.IsNullOrWhiteSpace(titoloAttivo) &&
-                               string.Equals(titolo, titoloAttivo, StringComparison.Ordinal));
-                    if (eLui) voce["active"] = true;
+                            : (!string.IsNullOrWhiteSpace(activeTitle) &&
+                               string.Equals(docTitle, activeTitle, StringComparison.Ordinal));
+                    if (isIt) entry["active"] = true;
 
-                    fuori.Add(voce);
+                    outside.Add(entry);
                     d = d.GetNext() as IModelDoc2;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>Fogli, viste e conteggi di una tavola.</summary>
-        private static void DescriviTavola(IDrawingDoc disegno, Dictionary<string, object> dati, ISldWorks sw)
+        private static void DescribeDrawing(IDrawingDoc drawing, Dictionary<string, object> data, ISldWorks sw)
         {
-            if (disegno == null)
+            if (drawing == null)
             {
-                dati["note"] = "unreadable drawing";
+                data["note"] = "unreadable drawing";
                 return;
             }
 
             // ── i fogli ───────────────────────────────────────────────────
-            string attivo = "";
-            try { attivo = (disegno.GetCurrentSheet() as ISheet)?.GetName() ?? ""; } catch { }
+            string active = "";
+            try { active = (drawing.GetCurrentSheet() as ISheet)?.GetName() ?? ""; } catch { }
 
-            var fogli = new List<Dictionary<string, object>>();
+            var sheets = new List<Dictionary<string, object>>();
             try
             {
-                var nomi = disegno.GetSheetNames() as string[];
-                if (nomi != null)
+                var names = drawing.GetSheetNames() as string[];
+                if (names != null)
                 {
-                    for (int i = 0; i < nomi.Length; i++)
+                    for (int i = 0; i < names.Length; i++)
                     {
-                        var voce = new Dictionary<string, object>
+                        var entry = new Dictionary<string, object>
                         {
                             ["uid"] = "S" + (i + 1),
-                            ["name"] = nomi[i],
+                            ["name"] = names[i],
                         };
-                        if (string.Equals(nomi[i], attivo, StringComparison.Ordinal))
-                            voce["active"] = true;
+                        if (string.Equals(names[i], active, StringComparison.Ordinal))
+                            entry["active"] = true;
 
                         // Le proprieta' del foglio si leggono solo da quello
                         // ATTIVO senza cambiare foglio, e cambiare foglio per
                         // leggere sarebbe una lettura che modifica: si legge
                         // quello che si puo' e si tace il resto.
-                        if (voce.ContainsKey("active"))
+                        if (entry.ContainsKey("active"))
                         {
-                            var p = ProprietaFoglio(disegno);
+                            var p = SheetPropertyOf(drawing);
                             if (p != null)
                             {
-                                voce["paper_size_mm"] = new object[]
+                                entry["paper_size_mm"] = new object[]
                                 {
-                                    Math.Round(Unita.Mm(p[5]), 1),
-                                    Math.Round(Unita.Mm(p[6]), 1),
+                                    Math.Round(Units.Mm(p[5]), 1),
+                                    Math.Round(Units.Mm(p[6]), 1),
                                 };
                                 if (p[3] != 0)
-                                    voce["scale"] = FormattaScala(p[2], p[3]);
+                                    entry["scale"] = FormatScale(p[2], p[3]);
                                 // IL DIEDRO SI VEDE. E' l'unica cosa di una
                                 // tavola che puo' essere sbagliata senza che
                                 // nessuna misura se ne accorga: destra e
@@ -136,15 +136,15 @@ namespace Oce.Solid.Agent.Core
                                 // pezzo specchiato. Se non e' scritto qui, il
                                 // modello non ha modo di guardarlo.
                                 if (p.Length > 4)
-                                    voce["projection_angle"] = p[4] != 0 ? "first" : "third";
+                                    entry["projection_angle"] = p[4] != 0 ? "first" : "third";
                             }
                         }
-                        fogli.Add(voce);
+                        sheets.Add(entry);
                     }
                 }
             }
             catch { }
-            if (fogli.Count > 0) dati["sheets"] = fogli;
+            if (sheets.Count > 0) data["sheets"] = sheets;
 
             // ── le viste ──────────────────────────────────────────────────
             //
@@ -152,20 +152,20 @@ namespace Oce.Solid.Agent.Core
             // torna il foglio, e le viste vere cominciano dal `GetNextView()`.
             // Chi lo dimentica descrive un foglio come se fosse una vista, e
             // poi quota un oggetto che non ha geometria.
-            var viste = new List<Dictionary<string, object>>();
+            var views = new List<Dictionary<string, object>>();
             // I TOTALI SONO int? (voce Z-C8): una vista che non risponde fa
             // null il totale, non un totale piu' basso detto come vero. Solo le
             // viste si contano sempre — si stanno scorrendo.
-            int visteTotali = 0;
-            int? quoteTotali = 0, crociTotali = 0;
-            int? gtolTot = 0, datumTot = 0, saldTot = 0, rugTot = 0, noteTot = 0, annTot = 0;
+            int totalViews = 0;
+            int? quoteTotali = 0, totalCenterMarks = 0;
+            int? gtolTot = 0, datumTot = 0, totalWelds = 0, rugTot = 0, noteTot = 0, annTot = 0;
             int orfaneTot = 0;
             // Dimensions attached to a silhouette: not counted as orphans,
-            // because IsSame cannot check them (N3, see QuoteSenzaSpigolo).
+            // because IsSame cannot check them (N3, see DimensionsWithoutEdge).
             int notVerifiableTotal = 0;
-            int? numeriFalsiTot = 0;
-            var numeriFalsi = new List<Dictionary<string, object>>();
-            bool orfaneSconosciute = false;
+            int? totalBogusNumbers = 0;
+            var bogusNumbers = new List<Dictionary<string, object>>();
+            bool unknownOrphans = false;
             // ── IL FOGLIO SI CONTA A PARTE, E NON E' UNA RIFINITURA ────────
             //
             // Misurato il 18/9/2026: le note del cartiglio — trentanove su
@@ -181,19 +181,19 @@ namespace Oce.Solid.Agent.Core
             // ha i suoi sei numeri, con lo stesso nome e in un cassetto suo.
             try
             {
-                var foglioVista = disegno.GetFirstView() as IView;
-                if (foglioVista != null)
-                    dati["sheet_annotations"] = Annotazioni(foglioVista);
+                var viewSheet = drawing.GetFirstView() as IView;
+                if (viewSheet != null)
+                    data["sheet_annotations"] = Annotations(viewSheet);
             }
             catch { }
 
             try
             {
-                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
                 while (v != null)
                 {
-                    visteTotali++;
-                    int? quote = Letto(() => v.GetDimensionCount());
+                    totalViews++;
+                    int? quote = ReadValue(() => v.GetDimensionCount());
                     quoteTotali += quote;
 
                     // LE CROCI DI CENTRO SI CONTANO QUI, e non solo dentro
@@ -204,12 +204,12 @@ namespace Oce.Solid.Agent.Core
                     // quale.
                     // ENUMERATE, non GetCenterMarkCount: quello non vede le croci
                     // messe da SOLIDWORKS alla creazione della vista (26/9/2026).
-                    int? croci = Letto(() => { int n = ContaCroci.DellaVista(v); if (n < 0) throw new InvalidOperationException(); return n; });
-                    crociTotali += croci;
+                    int? centerMarks = ReadValue(() => { int n = CountCenterMarks.OfView(v); if (n < 0) throw new InvalidOperationException(); return n; });
+                    totalCenterMarks += centerMarks;
 
                     // IL NUMERO CHE SI STAMPA E' QUELLO DEL MODELLO? (voce Z-C2)
-                    int? falsi = QuoteColNumeroNonDelModello(v, numeriFalsi);
-                    numeriFalsiTot += falsi;
+                    int? bogus = DimensionsByNumberNotFromTheModel(v, bogusNumbers);
+                    totalBogusNumbers += bogus;
 
                     // ── LE ANNOTAZIONI, UNA FAMIGLIA PER VOLTA (voce Z-E1) ──
                     //
@@ -225,17 +225,17 @@ namespace Oce.Solid.Agent.Core
                     // E' la regola di GA5, applicata prima del bisogno: **lo
                     // stato e l'operazione devono raccontare la stessa cosa,
                     // leggendola per conto proprio.**
-                    int? gtol = Letto(() => v.GetGTolCount());
-                    int? datum = Letto(() => v.GetDatumTagCount());
-                    int? saldature = Letto(() => v.GetWeldSymbolCount());
+                    int? gtol = ReadValue(() => v.GetGTolCount());
+                    int? datum = ReadValue(() => v.GetDatumTagCount());
+                    int? weldments = ReadValue(() => v.GetWeldSymbolCount());
                     // `GetSFSymbolCount`, NON `GetSurfaceFinishSymbolCount`:
                     // il secondo e' il nome per simmetria con
                     // `InsertSurfaceFinishSymbol`, e non esiste.
-                    int? rugosita = Letto(() => v.GetSFSymbolCount());
-                    int? note = Letto(() => v.GetNoteCount());
-                    int? annotazioni = Letto(() => v.GetAnnotationCount());
-                    gtolTot += gtol; datumTot += datum; saldTot += saldature;
-                    rugTot += rugosita; noteTot += note; annTot += annotazioni;
+                    int? roughness = ReadValue(() => v.GetSFSymbolCount());
+                    int? note = ReadValue(() => v.GetNoteCount());
+                    int? annotations = ReadValue(() => v.GetAnnotationCount());
+                    gtolTot += gtol; datumTot += datum; totalWelds += weldments;
+                    rugTot += roughness; noteTot += note; annTot += annotations;
 
                     // LE QUOTE RIMASTE SENZA SPIGOLO (voce Z-A2).
                     //
@@ -248,59 +248,59 @@ namespace Oce.Solid.Agent.Core
                     // MOSTRA (1 prima, 0 dopo). null vuol dire «non lo so»
                     // (voce Z-C8), non zero.
                     int notVerifiable;
-                    int? orfane = QuoteSenzaSpigolo(sw, v, out notVerifiable);
-                    if (orfane.HasValue) orfaneTot += orfane.Value; else orfaneSconosciute = true;
+                    int? orfane = DimensionsWithoutEdge(sw, v, out notVerifiable);
+                    if (orfane.HasValue) orfaneTot += orfane.Value; else unknownOrphans = true;
                     notVerifiableTotal += notVerifiable;
 
-                    if (viste.Count < MaxViste)
+                    if (views.Count < MaxViews)
                     {
-                        var voce = new Dictionary<string, object>
+                        var entry = new Dictionary<string, object>
                         {
-                            ["uid"] = "V" + visteTotali,
+                            ["uid"] = "V" + totalViews,
                         };
-                        try { voce["name"] = v.Name; } catch { }
-                        try { voce["kind"] = NomeTipoVista(v.Type); } catch { }
+                        try { entry["name"] = v.Name; } catch { }
+                        try { entry["kind"] = ViewTypeName(v.Type); } catch { }
 
-                        var pos = PosizioneVista(v);
-                        if (pos != null) voce["position_mm"] = pos;
+                        var pos = ViewPosition(v);
+                        if (pos != null) entry["position_mm"] = pos;
 
                         try
                         {
                             double s = v.ScaleDecimal;
-                            if (s > 0) voce["scale"] = Math.Round(s, 4);
+                            if (s > 0) entry["scale"] = Math.Round(s, 4);
                         }
                         catch { }
 
                         // Zero quote non e' un dettaglio: e' la differenza fra
                         // una tavola e un disegnino. Si scrive sempre.
-                        voce["dimensions"] = quote;
+                        entry["dimensions"] = quote;
                         // E zero croci non e' un dettaglio nemmeno lui: e' la
                         // differenza fra una tavola che si puo' forare e una
                         // che si puo' solo guardare. Si scrive sempre, per lo
                         // stesso motivo — **un campo che compare solo quando ha
                         // un valore interessante insegna a non cercarlo.**
-                        voce["center_marks"] = croci;
-                        voce["dimensions_with_number_not_from_model"] = falsi;
-                        voce["dimensions_orphan"] = orfane;
+                        entry["center_marks"] = centerMarks;
+                        entry["dimensions_with_number_not_from_model"] = bogus;
+                        entry["dimensions_orphan"] = orfane;
                         // Unknown when the orphans are unknown: the same reading.
-                        voce["dimensions_not_verifiable"] = orfane.HasValue ? (object)notVerifiable : null;
+                        entry["dimensions_not_verifiable"] = orfane.HasValue ? (object)notVerifiable : null;
 
                         // SEMPRE, ANCHE TUTTE A ZERO, e per la stessa ragione
                         // delle due righe qui sopra: un campo che compare solo
                         // quando ha un valore interessante insegna a non
                         // cercarlo, e chi non lo trova conclude che l'API non
                         // sappia rispondere invece che il numero sia zero.
-                        voce["annotations"] = Sei(gtol, datum, saldature, rugosita, note, annotazioni);
+                        entry["annotations"] = Six(gtol, datum, weldments, roughness, note, annotations);
 
                         try
                         {
-                            var rif = v.ReferencedDocument as IModelDoc2;
-                            var p = rif?.GetPathName();
-                            if (!string.IsNullOrWhiteSpace(p)) voce["model"] = p;
+                            var refObj = v.ReferencedDocument as IModelDoc2;
+                            var p = refObj?.GetPathName();
+                            if (!string.IsNullOrWhiteSpace(p)) entry["model"] = p;
                         }
                         catch { }
 
-                        viste.Add(voce);
+                        views.Add(entry);
                     }
                     v = v.GetNextView() as IView;
                 }
@@ -309,37 +309,37 @@ namespace Oce.Solid.Agent.Core
             {
                 // Il giro si e' interrotto a meta': i totali sono di una parte
                 // delle viste, e nessuno lo saprebbe. Diventano «non lo so».
-                quoteTotali = crociTotali = null;
-                gtolTot = datumTot = saldTot = rugTot = noteTot = annTot = null;
-                dati["views_half_read"] = true;
+                quoteTotali = totalCenterMarks = null;
+                gtolTot = datumTot = totalWelds = rugTot = noteTot = annTot = null;
+                data["views_half_read"] = true;
             }
 
-            if (viste.Count > 0) dati["views"] = viste;
-            dati["views_total"] = visteTotali;
-            dati["dimensions_total"] = quoteTotali;
-            dati["center_marks_total"] = crociTotali;
-            dati["dimensions_with_number_not_from_model_total"] = numeriFalsiTot;
-            if (numeriFalsi.Count > 0)
+            if (views.Count > 0) data["views"] = views;
+            data["views_total"] = totalViews;
+            data["dimensions_total"] = quoteTotali;
+            data["center_marks_total"] = totalCenterMarks;
+            data["dimensions_with_number_not_from_model_total"] = totalBogusNumbers;
+            if (bogusNumbers.Count > 0)
             {
-                dati["dimensions_with_number_not_from_model"] = numeriFalsi;
-                dati["warning_numbers"] =
-                    numeriFalsi.Count + (numeriFalsi.Count == 1 ? " quota stampa" : " quote stampano") +
+                data["dimensions_with_number_not_from_model"] = bogusNumbers;
+                data["warning_numbers"] =
+                    bogusNumbers.Count + (bogusNumbers.Count == 1 ? " quota stampa" : " quote stampano") +
                     " un numero che non e' quello del modello (sovrascritto, o il valore spento " +
                     "con del testo al suo posto). La geometria e' giusta, la carta no: in officina " +
                     "si lavora col numero stampato.";
             }
-            dati["annotations_total"] = Sei(gtolTot, datumTot, saldTot, rugTot, noteTot, annTot);
-            dati["dimensions_orphan_total"] = orfaneSconosciute && orfaneTot == 0 ? (object)null : orfaneTot;
-            dati["dimensions_not_verifiable_total"] =
-                orfaneSconosciute && notVerifiableTotal == 0 ? (object)null : notVerifiableTotal;
+            data["annotations_total"] = Six(gtolTot, datumTot, totalWelds, rugTot, noteTot, annTot);
+            data["dimensions_orphan_total"] = unknownOrphans && orfaneTot == 0 ? (object)null : orfaneTot;
+            data["dimensions_not_verifiable_total"] =
+                unknownOrphans && notVerifiableTotal == 0 ? (object)null : notVerifiableTotal;
             if (orfaneTot > 0)
-                dati["warning_dimensions"] = orfaneTot + " quote sono attaccate a spigoli che le viste non " +
+                data["warning_dimensions"] = orfaneTot + " quote sono attaccate a spigoli che le viste non " +
                     "mostrano piu': sul foglio si stampano col numero di prima, appese al niente. Di " +
                     "solito il pezzo e' cambiato dopo che la tavola e' stata quotata.";
 
             // DUE CECITA' DICHIARATE, e tutte e due porterebbero a conclusioni
             // sbagliate se restassero implicite.
-            dati["what_is_not_known_about_annotations"] =
+            data["what_is_not_known_about_annotations"] =
                 // 1. IL CARTIGLIO NON E' QUI DENTRO. Questi conteggi girano
                 //    sulle VISTE VERE; le note del formato del foglio stanno
                 //    sulla prima «view», che e' il foglio, e sono decine — su
@@ -360,15 +360,15 @@ namespace Oce.Solid.Agent.Core
                 "match it with any silhouette the view shows: it is not counted as an " +
                 "orphan but in «dimensions_not_verifiable». A dimension attached to a hidden " +
                 "edge still reads as an orphan without being one.";
-            if (visteTotali > viste.Count) dati["views_truncated"] = true;
+            if (totalViews > views.Count) data["views_truncated"] = true;
 
             // LA TAVOLA VUOTA VA DETTA, non lasciata dedurre da un elenco che
             // manca. E' lo stato in cui nasce ogni tavola, ed e' quello in cui
             // resta se `Create1stAngleViews2` ha detto «si'» senza fare niente.
-            if (visteTotali == 0)
-                dati["note"] = "la tavola non ha ancora nessuna vista";
+            if (totalViews == 0)
+                data["note"] = "la tavola non ha ancora nessuna vista";
             else if (quoteTotali.HasValue && quoteTotali.Value == 0)
-                dati["note"] = "le viste ci sono ma non c'e' nessuna quota";
+                data["note"] = "le viste ci sono ma non c'e' nessuna quota";
         }
 
         /// <summary>
@@ -396,7 +396,7 @@ namespace Oce.Solid.Agent.Core
         /// indicate the attached entity types as defined in swSelectType_e») is
         /// not an orphan: it goes in <paramref name="notVerifiable"/>.
         /// </summary>
-        private static int? QuoteSenzaSpigolo(ISldWorks sw, IView v, out int notVerifiable)
+        private static int? DimensionsWithoutEdge(ISldWorks sw, IView v, out int notVerifiable)
         {
             notVerifiable = 0;
             if (sw == null) return null;
@@ -405,23 +405,23 @@ namespace Oce.Solid.Agent.Core
                 var dims = v.GetDisplayDimensions() as object[];
                 if (dims == null || dims.Length == 0) return 0;
                 if (dims.Length > 60) return null;
-                var visibili = new List<object>();
-                foreach (int tipo in new[] { (int)swViewEntityType_e.swViewEntityType_Edge,
+                var visible = new List<object>();
+                foreach (int typ in new[] { (int)swViewEntityType_e.swViewEntityType_Edge,
                                              (int)swViewEntityType_e.swViewEntityType_Vertex })
                 {
-                    var e = v.GetVisibleEntities2(null, tipo) as object[];
-                    if (e != null) visibili.AddRange(e);
+                    var e = v.GetVisibleEntities2(null, typ) as object[];
+                    if (e != null) visible.AddRange(e);
                 }
-                if (visibili.Count > 800) return null;
+                if (visible.Count > 800) return null;
                 int orfane = 0;
                 int onSilhouettes = 0;
                 foreach (var o in dims)
                 {
                     var ann = (o as IDisplayDimension)?.GetAnnotation() as IAnnotation;
-                    var attaccati = ann?.GetAttachedEntities3() as object[];
-                    if (attaccati == null || attaccati.Length == 0) continue;
-                    bool visto = false;
-                    foreach (var a in attaccati)
+                    var attached = ann?.GetAttachedEntities3() as object[];
+                    if (attached == null || attached.Length == 0) continue;
+                    bool seen = false;
+                    foreach (var a in attached)
                     {
                         // A NULL ENTITY IS SKIPPED, AND THE COUNT DOES NOT CHANGE
                         // (Z-C21.3, finding C3-4: null seen, harmless; the filter is
@@ -439,11 +439,11 @@ namespace Oce.Solid.Agent.Core
                         // RPC_E_SERVERFAULT, which through the catch below would have
                         // turned the whole view into «not known».
                         if (a == null) continue;
-                        foreach (var vv in visibili)
-                            if (sw.IsSame(a, vv) == (int)swObjectEquality.swObjectSame) { visto = true; break; }
-                        if (visto) break;
+                        foreach (var vv in visible)
+                            if (sw.IsSame(a, vv) == (int)swObjectEquality.swObjectSame) { seen = true; break; }
+                        if (seen) break;
                     }
-                    if (visto) continue;
+                    if (seen) continue;
                     if (IsAttachedToSilhouette(ann)) onSilhouettes++;
                     else orfane++;
                 }
@@ -504,7 +504,7 @@ namespace Oce.Solid.Agent.Core
         /// modello resta segnalato, perche' si guarda la sovrascrittura, non il
         /// confronto dei valori.
         /// </summary>
-        private static int? QuoteColNumeroNonDelModello(IView v, List<Dictionary<string, object>> dettagli)
+        private static int? DimensionsByNumberNotFromTheModel(IView v, List<Dictionary<string, object>> details)
         {
             int n = 0;
             try
@@ -512,28 +512,28 @@ namespace Oce.Solid.Agent.Core
                 var q = v.GetFirstDisplayDimension5() as IDisplayDimension;
                 while (q != null)
                 {
-                    bool sovrascritta = q.GetOverride();
-                    bool spento = !q.ShowDimensionValue;
-                    if (sovrascritta || spento)
+                    bool overwritten = q.GetOverride();
+                    bool off = !q.ShowDimensionValue;
+                    if (overwritten || off)
                     {
                         n++;
-                        if (dettagli.Count < 10)
+                        if (details.Count < 10)
                         {
                             var dim = q.GetDimension2(0);
-                            var voce = new Dictionary<string, object>();
-                            try { voce["dimension"] = dim.FullName; } catch { }
-                            try { voce["view"] = v.Name; } catch { }
-                            try { voce["of_model_mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000.0, 3); } catch { }
-                            if (sovrascritta)
-                                voce["how"] = "numero sovrascritto: stampa " +
+                            var entry = new Dictionary<string, object>();
+                            try { entry["dimension"] = dim.FullName; } catch { }
+                            try { entry["view"] = v.Name; } catch { }
+                            try { entry["of_model_mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000.0, 3); } catch { }
+                            if (overwritten)
+                                entry["how"] = "numero sovrascritto: stampa " +
                                     Math.Round(q.GetOverrideValue() * 1000.0, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) + " mm";
                             else
                             {
-                                string testo = "";
-                                try { testo = (q.GetText(1) ?? "") + (q.GetText(2) ?? ""); } catch { }
-                                voce["how"] = "valore spento" + (testo.Length > 0 ? ": al suo posto «" + testo + "»" : "");
+                                string text = "";
+                                try { text = (q.GetText(1) ?? "") + (q.GetText(2) ?? ""); } catch { }
+                                entry["how"] = "valore spento" + (text.Length > 0 ? ": al suo posto «" + text + "»" : "");
                             }
-                            dettagli.Add(voce);
+                            details.Add(entry);
                         }
                     }
                     q = q.GetNext5() as IDisplayDimension;
@@ -548,57 +548,57 @@ namespace Oce.Solid.Agent.Core
         /// (voce Z-C8). Il null si porta dietro nelle somme: `int?` sommato a
         /// null fa null, ed e' proprio quello che si vuole.
         /// </summary>
-        private static int? Letto(Func<int> leggi)
+        private static int? ReadValue(Func<int> read)
         {
-            try { return leggi(); }
+            try { return read(); }
             catch { return null; }
         }
 
-        private static Dictionary<string, object> Sei(
-            int? gtol, int? datum, int? saldature, int? rugosita, int? note, int? tutte)
+        private static Dictionary<string, object> Six(
+            int? gtol, int? datum, int? weldments, int? roughness, int? note, int? all)
         {
             return new Dictionary<string, object>
             {
                 ["gtol"] = gtol,
                 ["datum"] = datum,
-                ["welds"] = saldature,
-                ["surface_finish"] = rugosita,
+                ["welds"] = weldments,
+                ["surface_finish"] = roughness,
                 ["note"] = note,
-                ["all"] = tutte,
+                ["all"] = all,
             };
         }
 
         /// <summary>I sei numeri letti da una vista, ognuno per conto suo.</summary>
-        private static Dictionary<string, object> Annotazioni(IView v)
+        private static Dictionary<string, object> Annotations(IView v)
         {
-            return Sei(
-                Letto(() => v.GetGTolCount()), Letto(() => v.GetDatumTagCount()),
-                Letto(() => v.GetWeldSymbolCount()), Letto(() => v.GetSFSymbolCount()),
-                Letto(() => v.GetNoteCount()), Letto(() => v.GetAnnotationCount()));
+            return Six(
+                ReadValue(() => v.GetGTolCount()), ReadValue(() => v.GetDatumTagCount()),
+                ReadValue(() => v.GetWeldSymbolCount()), ReadValue(() => v.GetSFSymbolCount()),
+                ReadValue(() => v.GetNoteCount()), ReadValue(() => v.GetAnnotationCount()));
         }
 
-        private static double[] ProprietaFoglio(IDrawingDoc disegno)
+        private static double[] SheetPropertyOf(IDrawingDoc drawing)
         {
             try
             {
-                var foglio = disegno.GetCurrentSheet() as ISheet;
-                var p = foglio?.GetProperties2() as double[];
+                var sheet = drawing.GetCurrentSheet() as ISheet;
+                var p = sheet?.GetProperties2() as double[];
                 return (p != null && p.Length >= 7) ? p : null;
             }
             catch { return null; }
         }
 
         /// <summary>«1:2» invece di «0,5»: e' come si scrive su una tavola.</summary>
-        private static string FormattaScala(double numeratore, double denominatore)
+        private static string FormatScale(double numerator, double denominator)
         {
             try
             {
-                return Arrotonda(numeratore) + ":" + Arrotonda(denominatore);
+                return RoundOff(numerator) + ":" + RoundOff(denominator);
             }
             catch { return null; }
         }
 
-        private static string Arrotonda(double x)
+        private static string RoundOff(double x)
         {
             double r = Math.Round(x, 4);
             return r == Math.Floor(r)
@@ -606,7 +606,7 @@ namespace Oce.Solid.Agent.Core
                 : r.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static object[] PosizioneVista(IView v)
+        private static object[] ViewPosition(IView v)
         {
             try
             {
@@ -614,16 +614,16 @@ namespace Oce.Solid.Agent.Core
                 if (p == null || p.Length < 2) return null;
                 return new object[]
                 {
-                    Math.Round(Unita.Mm(p[0]), 2),
-                    Math.Round(Unita.Mm(p[1]), 2),
+                    Math.Round(Units.Mm(p[0]), 2),
+                    Math.Round(Units.Mm(p[1]), 2),
                 };
             }
             catch { return null; }
         }
 
-        private static string NomeTipoVista(int tipo)
+        private static string ViewTypeName(int typ)
         {
-            switch (tipo)
+            switch (typ)
             {
                 case (int)swDrawingViewTypes_e.swDrawingSheet: return "foglio";
                 case (int)swDrawingViewTypes_e.swDrawingProjectedView: return "proiezione";

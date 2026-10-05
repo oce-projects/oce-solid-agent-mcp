@@ -51,38 +51,38 @@ using SolidWorks.Interop.gtswutilities;
 //                                                        sessione se non c'e'
 // =============================================================================
 
-internal static class Programma
+internal static class Program
 {
     // Da HKCR\Utilities.UtilitiesApp\CLSID, letto il 24/9/2026 (voce K20).
     private const string ClsidUtilities = "{F80FA0F1-B13D-11d4-944A-000629992CFE}";
 
     // gtSwTools_e / gttckResolutionOptions_e / gtResultOptions_e, per riflessione.
-    private const int StrumentoSpessore = 7;      // gtSWThickChk
-    private const int RisoluzioneAlta = 3;        // gttckHighResolution
-    private const int SenzaFinestra = 0;          // gtResultNoUI
+    private const int ThicknessTool = 7;      // gtSWThickChk
+    private const int HighResolution = 3;        // gttckHighResolution
+    private const int WithoutWindow = 0;          // gtResultNoUI
 
-    private const double LunghezzaMm = 100.0;
-    private const double LarghezzaMm = 60.0;
-    private const double PiastraMm = 2.0;
-    private const double BloccoMm = 10.0;
+    private const double LengthMm = 100.0;
+    private const double WidthMm = 60.0;
+    private const double PlateMm = 2.0;
+    private const double BlockMm = 10.0;
 
-    private static int _passo;
-    private static void Dice(string cosa)
+    private static int _step;
+    private static void Says(string what)
     {
-        _passo++;
-        Console.WriteLine("  " + _passo.ToString("00") + ". " + cosa);
+        _step++;
+        Console.WriteLine("  " + _step.ToString("00") + ". " + what);
     }
 
-    private static int Main(string[] argomenti)
+    private static int Main(string[] arguments)
     {
-        bool tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
-        bool carica = Array.IndexOf(argomenti, "--carica") >= 0;
+        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        bool loadFlag = Array.IndexOf(arguments, "--carica") >= 0;
 
         Console.WriteLine();
         Console.WriteLine("SPESSORE — la misura che dimensiona Z-H1 (SOLIDWORKS Utilities)");
-        Console.WriteLine("  piastra " + LunghezzaMm + " x " + LarghezzaMm + " x " + PiastraMm +
-                          " mm, e su meta' un blocco alto " + BloccoMm + " mm");
-        Console.WriteLine("  spessore minimo = " + PiastraMm.ToString("0.0") + " mm   <- si sa senza calcolatore");
+        Console.WriteLine("  piastra " + LengthMm + " x " + WidthMm + " x " + PlateMm +
+                          " mm, e su meta' un blocco alto " + BlockMm + " mm");
+        Console.WriteLine("  spessore minimo = " + PlateMm.ToString("0.0") + " mm   <- si sa senza calcolatore");
         Console.WriteLine();
 
         ISldWorks sw;
@@ -94,20 +94,20 @@ internal static class Programma
         }
         // Il controllo positivo sull'aggancio: se RevisionNumber non risponde,
         // un null piu' sotto non direbbe niente (e' successo in S3).
-        Dice("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
 
         // ── L'ADD-IN ─────────────────────────────────────────────────────
         object addin = sw.GetAddInObject(ClsidUtilities);
-        if (addin == null && carica)
+        if (addin == null && loadFlag)
         {
             // CARICARE NELLA SESSIONE, NON ALL'AVVIO. `LoadAddIn` lo accende per
             // questa sessione e non tocca AddInsStartup: si toglie chiudendo
             // SOLIDWORKS, o con UnloadAddIn. Solo con --carica: accendere un
             // modulo nella sessione di chi lavora e' una scelta sua, non della
             // sonda.
-            string dll = Path.Combine(RadiceSolidWorks(sw), "sldUtils", "SwLoaderSw.dll");
-            int esito = sw.LoadAddIn(dll);
-            Dice("LoadAddIn(" + dll + ") -> " + esito);
+            string dll = Path.Combine(SolidWorksRoot(sw), "sldUtils", "SwLoaderSw.dll");
+            int outcome = sw.LoadAddIn(dll);
+            Says("LoadAddIn(" + dll + ") -> " + outcome);
             addin = sw.GetAddInObject(ClsidUtilities);
         }
         if (addin == null)
@@ -119,10 +119,10 @@ internal static class Programma
             Console.WriteLine("  rilancia con --carica.");
             return 3;
         }
-        Dice("Utilities caricato: " + addin.GetType().Name);
+        Says("Utilities caricato: " + addin.GetType().Name);
 
-        var utilita = addin as IUtilities;
-        if (utilita == null)
+        var utility = addin as IUtilities;
+        if (utility == null)
         {
             Console.WriteLine("  l'oggetto dell'add-in non e' un IUtilities: la catena accertata per");
             Console.WriteLine("  riflessione non e' quella che gira.");
@@ -132,17 +132,17 @@ internal static class Programma
         IModelDoc2 doc = null;
         try
         {
-            doc = CreaIlPezzo(sw);
+            doc = CreatePart(sw);
             if (doc == null) return 4;
 
-            IBody2 corpo = PrimoCorpo(doc);
-            if (corpo == null) { Console.WriteLine("  nessun corpo solido"); return 4; }
+            IBody2 body = FirstBody(doc);
+            if (body == null) { Console.WriteLine("  nessun corpo solido"); return 4; }
 
             // Il volume, perche' il pezzo sia quello che si crede prima di
             // misurarne lo spessore: 100x60x2 + 50x60x8 = 12000 + 24000 mm^3.
-            double[] massa = doc.Extension.GetMassProperties2(1, out int statoMassa, false) as double[];
-            double volMm3 = massa == null ? double.NaN : massa[3] * 1e9;
-            Dice("volume " + volMm3.ToString("0") + " mm^3 (atteso 36000)");
+            double[] mass = doc.Extension.GetMassProperties2(1, out int massState, false) as double[];
+            double volMm3 = mass == null ? double.NaN : mass[3] * 1e9;
+            Says("volume " + volMm3.ToString("0") + " mm^3 (atteso 36000)");
 
             // ── DUE SOGLIE, E IN DUE UNITA' ──────────────────────────────
             //
@@ -165,7 +165,7 @@ internal static class Programma
             if (Array.IndexOf(System.Environment.GetCommandLineArgs(), "--esplora") >= 0)
             {
                 foreach (double s in new[] { 0.0010, 0.0015, 0.0019, 0.00199, 0.0020, 0.00201, 0.0021, 0.0025, 0.0030, 0.0050, 0.0099, 0.0101, 0.0150 })
-                    Analizza(utilita, corpo, s, s.ToString("0.00000") + " m");
+                    Analyze(utility, body, s, s.ToString("0.00000") + " m");
                 return 0;
             }
 
@@ -188,31 +188,31 @@ internal static class Programma
             // criterio prima di sapere come l'API dice «niente», e lo ha
             // scambiato per un fallimento: e' il caso in cui ha fatto bene a
             // fermarsi invece di chiudere.*
-            const double Metri = 1000.0;
-            var sopra = Analizza(utilita, corpo, 0.003, "0,003 m");
-            var alto = Analizza(utilita, corpo, 0.012, "0,012 m");
-            var sotto = Analizza(utilita, corpo, 0.0015, "0,0015 m");
+            const double Meters = 1000.0;
+            var above = Analyze(utility, body, 0.003, "0,003 m");
+            var up = Analyze(utility, body, 0.012, "0,012 m");
+            var below = Analyze(utility, body, 0.0015, "0,0015 m");
             Console.WriteLine();
 
-            if (sopra == null || sopra.Giro != 0 || sopra.Critiche <= 0 || !Vicino(sopra.Minimo * Metri, PiastraMm, 0.2))
+            if (above == null || above.BenchRun != 0 || above.Critical <= 0 || !Near(above.Minimum * Meters, PlateMm, 0.2))
             {
-                Console.WriteLine("SOGLIA SOPRA IL MINIMO: nessun minimo vicino a " + PiastraMm + " mm con facce critiche.");
+                Console.WriteLine("SOGLIA SOPRA IL MINIMO: nessun minimo vicino a " + PlateMm + " mm con facce critiche.");
                 Console.WriteLine("  NON si costruisce l'operazione finche' non si sa perche'.");
                 return 6;
             }
-            Console.WriteLine("  a mano:  " + PiastraMm.ToString("0.00") + " mm");
-            Console.WriteLine("  l'API:   " + (sopra.Minimo * Metri).ToString("0.00") + " mm   (risponde in metri)");
+            Console.WriteLine("  a mano:  " + PlateMm.ToString("0.00") + " mm");
+            Console.WriteLine("  l'API:   " + (above.Minimum * Meters).ToString("0.00") + " mm   (risponde in metri)");
 
-            const int NienteSottoLaSoglia = 12009;   // gtWarningTckThinAnalRangeBelowMaxThick
-            if (sotto == null || sotto.Giro != NienteSottoLaSoglia)
+            const int NothingBelowThreshold = 12009;   // gtWarningTckThinAnalRangeBelowMaxThick
+            if (below == null || below.BenchRun != NothingBelowThreshold)
             {
                 Console.WriteLine();
                 Console.WriteLine("L'ALTRO VERSO NON TORNA: con la soglia sotto lo spessore minimo l'API");
                 Console.WriteLine("doveva dire 12009 (niente sotto la soglia). Ha detto " +
-                                  (sotto == null ? "niente" : sotto.Giro.ToString()) + ".");
+                                  (below == null ? "niente" : below.BenchRun.ToString()) + ".");
                 return 7;
             }
-            if (alto == null || alto.Giro != 0 || alto.Critiche < sopra.Critiche)
+            if (up == null || up.BenchRun != 0 || up.Critical < above.Critical)
             {
                 Console.WriteLine();
                 Console.WriteLine("LA SOGLIA PIU' ALTA HA MENO FACCE CRITICHE DI QUELLA BASSA: le facce sotto");
@@ -223,67 +223,67 @@ internal static class Programma
             Console.WriteLine();
             Console.WriteLine("REGGE NEI DUE VERSI: sopra il minimo trova le facce sottili e il minimo giusto;");
             Console.WriteLine("sotto il minimo dice che non c'e' niente (12009); piu' alta la soglia, piu'");
-            Console.WriteLine("facce (" + sopra.Critiche + " -> " + alto.Critiche + "). La voce Z-H1 si puo' costruire.");
+            Console.WriteLine("facce (" + above.Critical + " -> " + up.Critical + "). La voce Z-H1 si puo' costruire.");
             return 0;
         }
         catch (Exception ex)
         {
             Console.WriteLine();
-            Console.WriteLine("ECCEZIONE: " + Radice(ex).GetType().Name + ": " + Radice(ex).Message);
+            Console.WriteLine("ECCEZIONE: " + Root(ex).GetType().Name + ": " + Root(ex).Message);
             return 8;
         }
         finally
         {
-            if (doc != null && !tieni)
+            if (doc != null && !keep)
             {
-                try { sw.CloseDoc(doc.GetTitle()); Dice("pezzo chiuso senza salvare"); } catch { }
+                try { sw.CloseDoc(doc.GetTitle()); Says("pezzo chiuso senza salvare"); } catch { }
             }
         }
     }
 
-    private sealed class Esito
+    private sealed class Outcome
     {
-        public int Giro;                 // la risposta di RunThinAnalysis2
-        public double Minimo = double.NaN, Massimo = double.NaN;   // in METRI
-        public int Critiche = -1;
+        public int BenchRun;                 // la risposta di RunThinAnalysis2
+        public double Minimum = double.NaN, Maximum = double.NaN;   // in METRI
+        public int Critical = -1;
     }
 
     /// <summary>Un'analisi dello spessore sottile, con tutti gli esiti stampati.</summary>
-    private static Esito Analizza(IUtilities u, IBody2 corpo, double soglia, string etichetta)
+    private static Outcome Analyze(IUtilities u, IBody2 body, double threshold, string label)
     {
         int err;
-        var t = u.GetToolInterface(StrumentoSpessore, out err) as IThicknessAnalysis;
+        var t = u.GetToolInterface(ThicknessTool, out err) as IThicknessAnalysis;
         if (t == null)
         {
-            Console.WriteLine("  " + etichetta.PadRight(12) + " GetToolInterface -> null, errore " + err);
+            Console.WriteLine("  " + label.PadRight(12) + " GetToolInterface -> null, errore " + err);
             return null;
         }
         try
         {
             int init = t.Init();
-            int corpoOk = t.SetThicknessAnalysisBody((Body2)corpo);
-            int giro = t.RunThinAnalysis2(soglia, RisoluzioneAlta, SenzaFinestra, "", false, false, true);
-            if (giro != 0)
+            int bodyOk = t.SetThicknessAnalysisBody((Body2)body);
+            int benchRun = t.RunThinAnalysis2(threshold, HighResolution, WithoutWindow, "", false, false, true);
+            if (benchRun != 0)
             {
                 // Una risposta non zero NON e' per forza un errore: 12009 vuol
                 // dire «sotto la soglia non c'e' niente». Si restituisce, e
                 // decide chi chiama.
-                Console.WriteLine("  " + etichetta.PadRight(12) + " " + giro.ToString().PadLeft(8) +
-                                  "  (Init " + init + ", corpo " + corpoOk + ")");
-                return new Esito { Giro = giro };
+                Console.WriteLine("  " + label.PadRight(12) + " " + benchRun.ToString().PadLeft(8) +
+                                  "  (Init " + init + ", corpo " + bodyOk + ")");
+                return new Outcome { BenchRun = benchRun };
             }
             int e1, e2, e3;
-            var r = new Esito
+            var r = new Outcome
             {
-                Giro = 0,
-                Minimo = t.GetMinTckOnAnalArea(out e1),
-                Massimo = t.GetMaxTckOnAnalArea(out e2),
-                Critiche = t.GetNumCriticalFaces(out e3),
+                BenchRun = 0,
+                Minimum = t.GetMinTckOnAnalArea(out e1),
+                Maximum = t.GetMaxTckOnAnalArea(out e2),
+                Critical = t.GetNumCriticalFaces(out e3),
             };
-            Console.WriteLine("  " + etichetta.PadRight(12) + " " + giro.ToString().PadLeft(8) + "  " +
-                              r.Minimo.ToString("0.0000").PadLeft(10) + "  " +
-                              r.Massimo.ToString("0.0000").PadLeft(10) + "  " +
-                              r.Critiche.ToString().PadLeft(14) +
+            Console.WriteLine("  " + label.PadRight(12) + " " + benchRun.ToString().PadLeft(8) + "  " +
+                              r.Minimum.ToString("0.0000").PadLeft(10) + "  " +
+                              r.Maximum.ToString("0.0000").PadLeft(10) + "  " +
+                              r.Critical.ToString().PadLeft(14) +
                               (e1 != 0 || e2 != 0 || e3 != 0 ? "   (err " + e1 + "/" + e2 + "/" + e3 + ")" : ""));
             return r;
         }
@@ -293,31 +293,31 @@ internal static class Programma
         }
     }
 
-    private static bool Vicino(double v, double atteso, double tolleranza)
+    private static bool Near(double v, double expected, double tolerance)
     {
-        return !double.IsNaN(v) && Math.Abs(v - atteso) <= tolleranza;
+        return !double.IsNaN(v) && Math.Abs(v - expected) <= tolerance;
     }
 
-    private static IModelDoc2 CreaIlPezzo(ISldWorks sw)
+    private static IModelDoc2 CreatePart(ISldWorks sw)
     {
-        string modello = sw.GetUserPreferenceStringValue(
+        string model = sw.GetUserPreferenceStringValue(
             (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-        var doc = (IModelDoc2)sw.NewDocument(modello, 0, 0, 0);
+        var doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
         if (doc == null) { Console.WriteLine("  NewDocument -> null"); return null; }
 
         // 1. la piastra bassa, intera
-        if (!Estrusione(doc, 0, 0, LunghezzaMm, LarghezzaMm, PiastraMm, false)) return null;
+        if (!Extrusion(doc, 0, 0, LengthMm, WidthMm, PlateMm, false)) return null;
         // 2. il blocco alto, sulla seconda meta', che si unisce alla piastra
-        if (!Estrusione(doc, LunghezzaMm / 2.0, 0, LunghezzaMm, LarghezzaMm, BloccoMm, true)) return null;
+        if (!Extrusion(doc, LengthMm / 2.0, 0, LengthMm, WidthMm, BlockMm, true)) return null;
 
         doc.ViewZoomtofit2();
-        Dice("pezzo creato: piastra da " + PiastraMm + " mm, blocco da " + BloccoMm + " mm su meta'");
+        Says("pezzo creato: piastra da " + PlateMm + " mm, blocco da " + BlockMm + " mm su meta'");
         return doc;
     }
 
-    /// <summary>Un rettangolo sul piano superiore, estruso di `altezzaMm`.</summary>
-    private static bool Estrusione(IModelDoc2 doc, double x1, double y1, double x2, double y2,
-                                   double altezzaMm, bool unisci)
+    /// <summary>Un rettangolo sul piano superiore, estruso di `heightMm`.</summary>
+    private static bool Extrusion(IModelDoc2 doc, double x1, double y1, double x2, double y2,
+                                   double heightMm, bool merge)
     {
         doc.ClearSelection2(true);
         if (!SelectBasePlane(doc, 2))
@@ -332,23 +332,23 @@ internal static class Programma
         doc.SketchManager.CreateCornerRectangle(x1 / 1000.0, y1 / 1000.0, 0, x2 / 1000.0, y2 / 1000.0, 0);
         doc.SketchManager.InsertSketch(true);
         var f = doc.FeatureManager.FeatureExtrusion3(
-            true, false, false, 0, 0, altezzaMm / 1000.0, 0.0,
+            true, false, false, 0, 0, heightMm / 1000.0, 0.0,
             false, false, false, false, 0, 0, false, false, false, false,
-            unisci, true, true, 0, 0, false);
-        if (f == null) { Console.WriteLine("  l'estrusione da " + altezzaMm + " mm non e' venuta"); return false; }
+            merge, true, true, 0, 0, false);
+        if (f == null) { Console.WriteLine("  l'estrusione da " + heightMm + " mm non e' venuta"); return false; }
         return true;
     }
 
-    private static IBody2 PrimoCorpo(IModelDoc2 doc)
+    private static IBody2 FirstBody(IModelDoc2 doc)
     {
-        var parte = doc as IPartDoc;
-        var corpi = parte == null ? null : parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-        if (corpi == null || corpi.Length == 0) return null;
-        if (corpi.Length > 1) Console.WriteLine("      attenzione: " + corpi.Length + " corpi, si analizza il primo");
-        return corpi[0] as IBody2;
+        var partDoc = doc as IPartDoc;
+        var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+        if (bodies == null || bodies.Length == 0) return null;
+        if (bodies.Length > 1) Console.WriteLine("      attenzione: " + bodies.Length + " corpi, si analizza il primo");
+        return bodies[0] as IBody2;
     }
 
-    private static string RadiceSolidWorks(ISldWorks sw)
+    private static string SolidWorksRoot(ISldWorks sw)
     {
         // GetExecutablePath e' la cartella di SLDWORKS.exe: la radice giusta
         // anche con due alberi installati, che su questa postazione ci sono.
@@ -356,7 +356,7 @@ internal static class Programma
         return @"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS";
     }
 
-    private static Exception Radice(Exception ex)
+    private static Exception Root(Exception ex)
     {
         while (ex.InnerException != null) ex = ex.InnerException;
         return ex;

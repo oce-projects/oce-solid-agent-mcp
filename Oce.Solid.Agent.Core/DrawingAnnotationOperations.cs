@@ -33,14 +33,14 @@ namespace Oce.Solid.Agent.Core
     /// triangolo sullo spigolo e la bandierina fuori; la rugosita' e la cornice
     /// hanno la linea di richiamo sullo spigolo.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private sealed class LatoDellaVista
+        private sealed class ViewSide
         {
-            public IEdge Spigolo;
-            public double[] Medio;      // sul foglio, metri
-            public double[] Fuori;      // direzione verso l'esterno del pezzo
-            public double[] Lungo;      // direzione lungo lo spigolo
+            public IEdge Edge;
+            public double[] Midpoint;      // sul foglio, metri
+            public double[] Outside;      // direzione verso l'esterno del pezzo
+            public double[] Along;      // direzione lungo lo spigolo
         }
 
         /// <summary>
@@ -48,27 +48,27 @@ namespace Oce.Solid.Agent.Core
         /// destra): fra gli spigoli dritti orizzontali o verticali, quello piu' in
         /// fuori da quella parte. Null col motivo.
         /// </summary>
-        private LatoDellaVista SpigoloDelLato(IView vista, string lato, out string motivo)
+        private ViewSide SideEdge(IView view, string side, out string reason)
         {
-            motivo = null;
+            reason = null;
             double fx = 0, fy = 0;
-            switch (lato)
+            switch (side)
             {
                 case "top": fy = 1; break;
                 case "bottom": fy = -1; break;
                 case "left": fx = -1; break;
                 case "right": fx = 1; break;
                 default:
-                    motivo = "«side» e' uno fra alto, basso, sinistra, destra, non «" + lato + "».";
+                    reason = "«side» e' uno fra alto, basso, sinistra, destra, non «" + side + "».";
                     return null;
             }
             IMathUtility mu = null; MathTransform tr = null;
-            try { mu = _sw.GetMathUtility() as IMathUtility; tr = vista.ModelToViewTransform; } catch { }
-            if (mu == null || tr == null) { motivo = "Non riesco a leggere come la vista porta il modello sul foglio."; return null; }
-            object[] spigoli = null;
-            try { spigoli = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
-            LatoDellaVista meglio = null; double punteggio = double.MinValue;
-            foreach (var o in spigoli ?? new object[0])
+            try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
+            if (mu == null || tr == null) { reason = "Non riesco a leggere come la vista porta il modello sul foglio."; return null; }
+            object[] edges = null;
+            try { edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
+            ViewSide better = null; double score = double.MinValue;
+            foreach (var o in edges ?? new object[0])
             {
                 var e = o as IEdge;
                 try
@@ -77,27 +77,27 @@ namespace Oce.Solid.Agent.Core
                     if (curva == null || !curva.IsLine()) continue;
                     var a = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.StartPoint)).MultiplyTransform(tr)).ArrayData as double[];
                     var b = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.EndPoint)).MultiplyTransform(tr)).ArrayData as double[];
-                    bool orizzontale = Math.Abs(a[1] - b[1]) < 1e-6, verticale = Math.Abs(a[0] - b[0]) < 1e-6;
-                    if (fy != 0 && !orizzontale || fx != 0 && !verticale) continue;
+                    bool horizontal = Math.Abs(a[1] - b[1]) < 1e-6, vertical = Math.Abs(a[0] - b[0]) < 1e-6;
+                    if (fy != 0 && !horizontal || fx != 0 && !vertical) continue;
                     if (Math.Abs(a[0] - b[0]) + Math.Abs(a[1] - b[1]) < 1e-4) continue;   // troppo corto per attaccarci qualcosa
                     double s = (a[0] + b[0]) / 2 * fx + (a[1] + b[1]) / 2 * fy;
-                    if (s > punteggio + 1e-9)
+                    if (s > score + 1e-9)
                     {
-                        punteggio = s;
-                        meglio = new LatoDellaVista
+                        score = s;
+                        better = new ViewSide
                         {
-                            Spigolo = e,
-                            Medio = new[] { (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 },
-                            Fuori = new[] { fx, fy },
-                            Lungo = new[] { Math.Abs(fy), Math.Abs(fx) },
+                            Edge = e,
+                            Midpoint = new[] { (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 },
+                            Outside = new[] { fx, fy },
+                            Along = new[] { Math.Abs(fy), Math.Abs(fx) },
                         };
                     }
                 }
                 catch { }
             }
-            if (meglio == null)
-                motivo = "La vista non mostra nessuno spigolo dritto sul lato «" + lato + "» a cui attaccare l'annotazione.";
-            return meglio;
+            if (better == null)
+                reason = "La vista non mostra nessuno spigolo dritto sul lato «" + side + "» a cui attaccare l'annotazione.";
+            return better;
         }
 
         /// <summary>
@@ -111,85 +111,85 @@ namespace Oce.Solid.Agent.Core
         /// destra sul testo della quota 10. Un'annotazione va oltre la fascia che
         /// c'e' gia'.
         /// </summary>
-        private static double FasciaOccupata(IView vista, LatoDellaVista lato)
+        private static double OccupiedBand(IView view, ViewSide side)
         {
-            double massimo = 0;   // ZERO-E-ZERO: nessuna annotazione da quella parte
+            double maxValue = 0;   // ZERO-E-ZERO: nessuna annotazione da quella parte
             try
             {
-                double mezzo = 0;
+                double half = 0;
                 try
                 {
-                    var p = ApiHelpers.EdgeParameters(lato.Spigolo);
+                    var p = ApiHelpers.EdgeParameters(side.Edge);
                     var s = p.StartPoint as double[]; var e = p.EndPoint as double[];
-                    double scala = 1; try { scala = vista.ScaleDecimal; } catch { }
-                    mezzo = Math.Sqrt(Math.Pow(e[0] - s[0], 2) + Math.Pow(e[1] - s[1], 2) + Math.Pow(e[2] - s[2], 2)) * (scala > 0 ? scala : 1) / 2;
+                    double scale = 1; try { scale = view.ScaleDecimal; } catch { }
+                    half = Math.Sqrt(Math.Pow(e[0] - s[0], 2) + Math.Pow(e[1] - s[1], 2) + Math.Pow(e[2] - s[2], 2)) * (scale > 0 ? scale : 1) / 2;
                 }
                 catch { }
-                var an = vista.GetFirstAnnotation3() as IAnnotation;
+                var an = view.GetFirstAnnotation3() as IAnnotation;
                 while (an != null)
                 {
                     var q = an.GetPosition() as double[];
                     if (q != null && q.Length >= 2)
                     {
-                        double dx = q[0] - lato.Medio[0], dy = q[1] - lato.Medio[1];
-                        double fuori = dx * lato.Fuori[0] + dy * lato.Fuori[1];
-                        double lungo = Math.Abs(dx * lato.Lungo[0] + dy * lato.Lungo[1]);
-                        if (fuori > 0 && lungo <= mezzo + 0.03) massimo = Math.Max(massimo, fuori);
+                        double dx = q[0] - side.Midpoint[0], dy = q[1] - side.Midpoint[1];
+                        double outside = dx * side.Outside[0] + dy * side.Outside[1];
+                        double along = Math.Abs(dx * side.Along[0] + dy * side.Along[1]);
+                        if (outside > 0 && along <= half + 0.03) maxValue = Math.Max(maxValue, outside);
                     }
                     an = an.GetNext3() as IAnnotation;
                 }
             }
             catch { }
-            return massimo * 1000.0;
+            return maxValue * 1000.0;
         }
 
         /// <summary>La vista, risolta come le altre operazioni di tavola; null col motivo.</summary>
-        private IView VistaPerAnnotare(IModelDoc2 modello, Dictionary<string, object> a, out IDrawingDoc disegno, out string motivo)
+        private IView ViewToAnnotate(IModelDoc2 model, Dictionary<string, object> a, out IDrawingDoc drawing, out string reason)
         {
-            motivo = null;
-            disegno = modello as IDrawingDoc;
-            if (disegno == null)
+            reason = null;
+            drawing = model as IDrawingDoc;
+            if (drawing == null)
             {
-                motivo = "Il documento attivo non e' una tavola: le annotazioni stanno su una vista. Crea prima la " +
+                reason = "Il documento attivo non e' una tavola: le annotazioni stanno su una vista. Crea prima la " +
                          "tavola con «create_drawing».";
                 return null;
             }
-            var nomi = NomiDelleViste(disegno);
-            if (nomi.Count == 0)
+            var names = ViewNames(drawing);
+            if (names.Count == 0)
             {
-                motivo = "La tavola non ha viste: metti prima le viste con «standard_views».";
+                reason = "La tavola non ha viste: metti prima le viste con «standard_views».";
                 return null;
             }
-            var vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
-            if (motivo == null && vista == null) motivo = "Non riesco a prendere la vista.";
-            return vista;
+            var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
+            if (reason == null && view == null) reason = "Non riesco a prendere la vista.";
+            return view;
         }
 
         /// <summary>Seleziona lo spigolo nella vista (la selezione che le tre API usano).</summary>
-        private static bool SelezionaNellaVista(IModelDoc2 modello, IView vista, IEdge spigolo)
+        private static bool SelectInView(IModelDoc2 model, IView view, IEdge edge)
         {
             try
             {
-                modello.ClearSelection2(true);
-                var sel = modello.SelectionManager as ISelectionMgr;
+                model.ClearSelection2(true);
+                var sel = model.SelectionManager as ISelectionMgr;
                 var sd = sel?.CreateSelectData() as SelectData;
                 if (sd == null) return false;
-                sd.View = (View)vista;
-                return (spigolo as IEntity).Select4(false, sd);
+                sd.View = (View)view;
+                return (edge as IEntity).Select4(false, sd);
             }
             catch { return false; }
         }
 
         /// <summary>Quante annotazioni di quel tipo ha la tavola, vista per vista; -1 se non si legge.</summary>
-        private static int AnnotazioniDellaTavola(IDrawingDoc disegno, string tipo)
+        private static int DrawingAnnotations(IDrawingDoc drawing, string typ)
         {
             try
             {
                 int n = 0;
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
-                    n += tipo == "surface_finish" ? v.GetSFSymbolCount() : tipo == "datum" ? v.GetDatumTagCount() : v.GetGTolCount();
+                    n += typ == "surface_finish" ? v.GetSFSymbolCount() : typ == "datum" ? v.GetDatumTagCount() : v.GetGTolCount();
                     v = v.GetNextView() as IView;
                 }
                 return n;
@@ -244,12 +244,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Le lettere dei datum gia' in tavola.</summary>
-        private static List<string> LettereDeiDatum(IDrawingDoc disegno)
+        private static List<string> DatumLetters(IDrawingDoc drawing)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             try
             {
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
                     var d = v.GetFirstDatumTag() as IDatumTag;
@@ -257,14 +257,14 @@ namespace Oce.Solid.Agent.Core
                     {
                         string l = null;
                         try { l = d.GetLabel(); } catch { }
-                        if (!string.IsNullOrWhiteSpace(l)) fuori.Add(l.Trim().ToUpperInvariant());
+                        if (!string.IsNullOrWhiteSpace(l)) outside.Add(l.Trim().ToUpperInvariant());
                         d = d.GetNext() as IDatumTag;
                     }
                     v = v.GetNextView() as IView;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -280,70 +280,70 @@ namespace Oce.Solid.Agent.Core
         /// (larghezza e altezza date da chi chiama), non letto: l'annotazione non
         /// dice quanto e' grande.
         /// </summary>
-        private static double[] ScegliPosto(IDrawingDoc disegno, IView vista, LatoDellaVista lato,
-                                            double fuoriMm, double lungoMm, double larghezzaMm, double altezzaMm)
+        private static double[] ChoosePosition(IDrawingDoc drawing, IView view, ViewSide side,
+                                            double outsideMm, double alongMm, double widthMm, double heightMm)
         {
-            var altre = new List<double[]>();
-            double[] propria = null;
+            var other = new List<double[]>();
+            double[] ownOne = null;
             try
             {
-                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
                 while (v != null)
                 {
                     var o = v.GetOutline() as double[];
                     if (o != null && o.Length >= 4)
                     {
-                        if (ReferenceEquals(v, vista) || v.GetName2() == vista.GetName2()) propria = o;
-                        else altre.Add(o);
+                        if (ReferenceEquals(v, view) || v.GetName2() == view.GetName2()) ownOne = o;
+                        else other.Add(o);
                     }
                     v = v.GetNextView() as IView;
                 }
             }
             catch { }
-            double f = fuoriMm / 1000.0, l = lungoMm / 1000.0, w = larghezzaMm / 1000.0, h = altezzaMm / 1000.0;
-            var candidati = new List<double[]>
+            double f = outsideMm / 1000.0, l = alongMm / 1000.0, w = widthMm / 1000.0, h = heightMm / 1000.0;
+            var candidates = new List<double[]>
             {
-                new[] { lato.Medio[0] + lato.Fuori[0] * f + lato.Lungo[0] * l, lato.Medio[1] + lato.Fuori[1] * f + lato.Lungo[1] * l },
+                new[] { side.Midpoint[0] + side.Outside[0] * f + side.Along[0] * l, side.Midpoint[1] + side.Outside[1] * f + side.Along[1] * l },
             };
-            if (propria != null)
+            if (ownOne != null)
             {
-                double margine = 0.012 + h;
-                if (lato.Fuori[0] != 0)   // spigolo verticale: sopra e sotto la vista, dalla parte del lato
+                double margin = 0.012 + h;
+                if (side.Outside[0] != 0)   // spigolo verticale: sopra e sotto la vista, dalla parte del lato
                 {
-                    double x = lato.Medio[0] + lato.Fuori[0] * 0.008;
-                    candidati.Add(new[] { x, propria[3] + margine });
-                    candidati.Add(new[] { x, propria[1] - margine });
+                    double x = side.Midpoint[0] + side.Outside[0] * 0.008;
+                    candidates.Add(new[] { x, ownOne[3] + margin });
+                    candidates.Add(new[] { x, ownOne[1] - margin });
                 }
                 else                      // spigolo orizzontale: oltre gli angoli, dalla parte del lato
                 {
-                    double y = lato.Medio[1] + lato.Fuori[1] * f;
-                    candidati.Add(new[] { propria[2] + 0.012, y });
-                    candidati.Add(new[] { propria[0] - 0.012 - w, y });
+                    double y = side.Midpoint[1] + side.Outside[1] * f;
+                    candidates.Add(new[] { ownOne[2] + 0.012, y });
+                    candidates.Add(new[] { ownOne[0] - 0.012 - w, y });
                 }
             }
-            foreach (var c in candidati)
+            foreach (var c in candidates)
             {
                 double x0 = c[0], x1 = c[0] + w, y0 = c[1] - h / 2, y1 = c[1] + h / 2;
-                bool libero = true;
-                foreach (var o in altre)
-                    if (x1 > o[0] - 0.005 && x0 < o[2] + 0.005 && y1 > o[1] - 0.005 && y0 < o[3] + 0.005) { libero = false; break; }
-                if (libero) return c;
+                bool free = true;
+                foreach (var o in other)
+                    if (x1 > o[0] - 0.005 && x0 < o[2] + 0.005 && y1 > o[1] - 0.005 && y0 < o[3] + 0.005) { free = false; break; }
+                if (free) return c;
             }
-            return candidati[0];
+            return candidates[0];
         }
 
         /// <summary>
-        /// Sposta un'annotazione nel posto scelto da `ScegliPosto`. Torna la
+        /// Sposta un'annotazione nel posto scelto da `ChoosePosition`. Torna la
         /// posizione riletta in mm, o null.
         /// </summary>
-        private static double[] Sposta(IAnnotation an, IDrawingDoc disegno, IView vista, LatoDellaVista lato,
-                                       double fuoriMm, double lungoMm, double larghezzaMm, double altezzaMm)
+        private static double[] Move(IAnnotation an, IDrawingDoc drawing, IView view, ViewSide side,
+                                       double outsideMm, double alongMm, double widthMm, double heightMm)
         {
             if (an == null) return null;
             try
             {
-                var posto = ScegliPosto(disegno, vista, lato, fuoriMm, lungoMm, larghezzaMm, altezzaMm);
-                double x = posto[0], y = posto[1];
+                var place = ChoosePosition(drawing, view, side, outsideMm, alongMm, widthMm, heightMm);
+                double x = place[0], y = place[1];
                 an.SetPosition2(x, y, 0);
                 var p = an.GetPosition() as double[];
                 return p == null ? null : new[] { Math.Round(p[0] * 1000, 2), Math.Round(p[1] * 1000, 2) };
@@ -354,135 +354,135 @@ namespace Oce.Solid.Agent.Core
         // ──────────────────────────────────────────────────────────────────
         // surface_finish
         // ──────────────────────────────────────────────────────────────────
-        private Esito RugositaInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome SurfaceFinish(IModelDoc2 model, Dictionary<string, object> a)
         {
-            string motivo;
-            IDrawingDoc disegno;
-            var vista = VistaPerAnnotare(modello, a, out disegno, out motivo);
-            if (vista == null) return Fallito(motivo);
+            string reason;
+            IDrawingDoc drawing;
+            var view = ViewToAnnotate(model, a, out drawing, out reason);
+            if (view == null) return Failed(reason);
             double ra;
-            if (!NumObbligatorio(a, "ra_um", out ra, out motivo)) return Fallito(motivo);
+            if (!RequiredNum(a, "ra_um", out ra, out reason)) return Failed(reason);
             if (ra <= 0 || ra > 100)
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "«ra_um» e' la rugosita' Ra in micrometri, fra 0 e 100: {0:0.###} non lo e'.", ra));
-            string lavorazione = Str(a, "process", "material_removal");
-            int tipo = lavorazione == "material_removal" ? (int)swSFSymType_e.swSFMachining_Req
-                     : lavorazione == "any" ? (int)swSFSymType_e.swSFBasic
-                     : lavorazione == "no_removal" ? (int)swSFSymType_e.swSFDont_Machine : -1;
-            if (tipo < 0)
-                return Fallito("«process» e' asportazione, qualsiasi o no_removal, non «" + lavorazione + "».");
-            var lato = SpigoloDelLato(vista, Str(a, "side", "top"), out motivo);
-            if (lato == null) return Fallito(motivo);
+            string featureItem = Str(a, "process", "material_removal");
+            int typ = featureItem == "material_removal" ? (int)swSFSymType_e.swSFMachining_Req
+                     : featureItem == "any" ? (int)swSFSymType_e.swSFBasic
+                     : featureItem == "no_removal" ? (int)swSFSymType_e.swSFDont_Machine : -1;
+            if (typ < 0)
+                return Failed("«process» e' asportazione, qualsiasi o no_removal, non «" + featureItem + "».");
+            var side = SideEdge(view, Str(a, "side", "top"), out reason);
+            if (side == null) return Failed(reason);
 
-            string testoRa = ra.ToString("0.###", CultureInfo.InvariantCulture);
-            double occupata = FasciaOccupata(vista, lato);
-            int prima = AnnotazioniDellaTavola(disegno, "surface_finish");
-            if (!SelezionaNellaVista(modello, vista, lato.Spigolo))
-                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "top") + "».");
-            object grezzo;
+            string textRa = ra.ToString("0.###", CultureInfo.InvariantCulture);
+            double occupied = OccupiedBand(view, side);
+            int before = DrawingAnnotations(drawing, "surface_finish");
+            if (!SelectInView(model, view, side.Edge))
+                return Failed("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "top") + "».");
+            object raw;
             try
             {
-                grezzo = modello.Extension.InsertSurfaceFinishSymbol3(tipo, (int)swLeaderStyle_e.swSTRAIGHT,
-                    lato.Medio[0], lato.Medio[1], 0, (int)swSFLaySym_e.swSFNone, (int)swArrowStyle_e.swCLOSED_ARROWHEAD,
-                    "", "", "", "", testoRa, "", "");
+                raw = model.Extension.InsertSurfaceFinishSymbol3(typ, (int)swLeaderStyle_e.swSTRAIGHT,
+                    side.Midpoint[0], side.Midpoint[1], 0, (int)swSFLaySym_e.swSFNone, (int)swArrowStyle_e.swCLOSED_ARROWHEAD,
+                    "", "", "", "", textRa, "", "");
             }
-            catch (Exception ex) { return Fallito("Il simbolo di rugosita' non e' nato: " + ex.Message); }
-            modello.ClearSelection2(true);
-            var simbolo = grezzo as ISFSymbol;
-            if (simbolo == null) return Fallito("SOLIDWORKS non ha creato il simbolo di rugosita' e non ha detto perche'.");
-            int dopo = AnnotazioniDellaTavola(disegno, "surface_finish");
-            string letto = null;
-            try { letto = simbolo.GetText((int)swSurfaceFinishSymbolText_e.swSFSymbolMaximumRoughness); } catch { }
-            var an = simbolo.GetAnnotation() as IAnnotation;
+            catch (Exception ex) { return Failed("Il simbolo di rugosita' non e' nato: " + ex.Message); }
+            model.ClearSelection2(true);
+            var symbol = raw as ISFSymbol;
+            if (symbol == null) return Failed("SOLIDWORKS non ha creato il simbolo di rugosita' e non ha detto perche'.");
+            int after = DrawingAnnotations(drawing, "surface_finish");
+            string read = null;
+            try { read = symbol.GetText((int)swSurfaceFinishSymbolText_e.swSFSymbolMaximumRoughness); } catch { }
+            var an = symbol.GetAnnotation() as IAnnotation;
             // FUORI DAL PEZZO: il simbolo, lasciato dove SOLIDWORKS lo mette, non sta
             // dove si chiede (misurato). 12 mm verso l'esterno, 20 lungo lo spigolo.
-            var pos = Sposta(an, disegno, vista, lato, Math.Max(12, occupata + 10), 20, 16, 12);
-            int attaccate = -1;
-            try { attaccate = an.GetAttachedEntityCount3(); } catch { }
+            var pos = Move(an, drawing, view, side, Math.Max(12, occupied + 10), 20, 16, 12);
+            int attached = -1;
+            try { attached = an.GetAttachedEntityCount3(); } catch { }
 
-            if (!string.Equals((letto ?? "").Trim(), testoRa, StringComparison.Ordinal))
-                return Fallito("Il simbolo e' nato ma dice Ra «" + letto + "» invece di «" + testoRa + "»: toglilo — " +
-                               Frasi.CosiSiRitira + ".");
-            var misure = new Dictionary<string, object>
+            if (!string.Equals((read ?? "").Trim(), textRa, StringComparison.Ordinal))
+                return Failed("Il simbolo e' nato ma dice Ra «" + read + "» invece di «" + textRa + "»: toglilo — " +
+                               Sentences.HowToWithdrawIt + ".");
+            var measurements = new Dictionary<string, object>
             {
-                ["ra_um"] = testoRa,
-                ["ra_reread"] = letto,
-                ["feature"] = lavorazione,
+                ["ra_um"] = textRa,
+                ["ra_reread"] = read,
+                ["feature"] = featureItem,
                 ["side"] = Str(a, "side", "top"),
-                ["symbols_before"] = NumeroOppureNull(prima),
-                ["symbols_after"] = NumeroOppureNull(dopo),
+                ["symbols_before"] = NumberOrNull(before),
+                ["symbols_after"] = NumberOrNull(after),
                 ["position_mm"] = pos,
-                ["attached_to_edge"] = attaccate > 0,
+                ["attached_to_edge"] = attached > 0,
             };
-            if (prima >= 0 && dopo >= 0 && dopo != prima + 1)
-                misure["warning"] = "I simboli di rugosita' della tavola sono passati da " + prima + " a " + dopo +
+            if (before >= 0 && after >= 0 && after != before + 1)
+                measurements["warning"] = "I simboli di rugosita' della tavola sono passati da " + before + " a " + after +
                                        ": ne aspettavo uno in piu'.";
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
 
         // ──────────────────────────────────────────────────────────────────
         // datum
         // ──────────────────────────────────────────────────────────────────
-        private Esito DatumInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome Datum(IModelDoc2 model, Dictionary<string, object> a)
         {
-            string motivo;
-            IDrawingDoc disegno;
-            var vista = VistaPerAnnotare(modello, a, out disegno, out motivo);
-            if (vista == null) return Fallito(motivo);
-            string lettera = (Str(a, "letter", "A") ?? "").Trim().ToUpperInvariant();
-            if (lettera.Length != 1 || lettera[0] < 'A' || lettera[0] > 'Z')
-                return Fallito("«letter» e' una lettera sola, dalla A alla Z, non «" + Str(a, "letter", "") + "».");
+            string reason;
+            IDrawingDoc drawing;
+            var view = ViewToAnnotate(model, a, out drawing, out reason);
+            if (view == null) return Failed(reason);
+            string letter = (Str(a, "letter", "A") ?? "").Trim().ToUpperInvariant();
+            if (letter.Length != 1 || letter[0] < 'A' || letter[0] > 'Z')
+                return Failed("«letter» e' una lettera sola, dalla A alla Z, non «" + Str(a, "letter", "") + "».");
             // DUE DATUM CON LA STESSA LETTERA non danno errore, e ogni tolleranza che
             // cita quella lettera diventa ambigua (trappola scritta in Z-E6).
-            var gia = LettereDeiDatum(disegno);
-            if (gia.Contains(lettera))
-                return Fallito("In tavola c'e' gia' un datum «" + lettera + "»: due riferimenti con la stessa lettera " +
+            var already = DatumLetters(drawing);
+            if (already.Contains(letter))
+                return Failed("In tavola c'e' gia' un datum «" + letter + "»: due riferimenti con la stessa lettera " +
                                "rendono ambigua ogni tolleranza che lo cita. Usa un'altra lettera (ci sono gia': " +
-                               string.Join(", ", gia) + ").");
-            var lato = SpigoloDelLato(vista, Str(a, "side", "bottom"), out motivo);
-            if (lato == null) return Fallito(motivo);
+                               string.Join(", ", already) + ").");
+            var side = SideEdge(view, Str(a, "side", "bottom"), out reason);
+            if (side == null) return Failed(reason);
 
-            double occupata = FasciaOccupata(vista, lato);
-            int prima = AnnotazioniDellaTavola(disegno, "datum");
-            if (!SelezionaNellaVista(modello, vista, lato.Spigolo))
-                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "bottom") + "».");
-            object grezzo;
-            try { grezzo = modello.InsertDatumTag2(); }
-            catch (Exception ex) { return Fallito("Il datum non e' nato: " + ex.Message); }
-            modello.ClearSelection2(true);
-            var datum = grezzo as IDatumTag;
-            if (datum == null) return Fallito("SOLIDWORKS non ha creato il datum e non ha detto perche'.");
-            bool etichettato = false;
-            try { etichettato = datum.SetLabel(lettera); } catch { }
-            string letta = null;
-            try { letta = datum.GetLabel(); } catch { }
+            double occupied = OccupiedBand(view, side);
+            int before = DrawingAnnotations(drawing, "datum");
+            if (!SelectInView(model, view, side.Edge))
+                return Failed("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "bottom") + "».");
+            object raw;
+            try { raw = model.InsertDatumTag2(); }
+            catch (Exception ex) { return Failed("Il datum non e' nato: " + ex.Message); }
+            model.ClearSelection2(true);
+            var datum = raw as IDatumTag;
+            if (datum == null) return Failed("SOLIDWORKS non ha creato il datum e non ha detto perche'.");
+            bool labeled = false;
+            try { labeled = datum.SetLabel(letter); } catch { }
+            string read = null;
+            try { read = datum.GetLabel(); } catch { }
             var an = datum.GetAnnotation() as IAnnotation;
             // La bandierina FUORI, dalla parte dello spigolo: lasciata dove nasce stava
             // dall'altra parte e la linea attraversava il pezzo (visto nel PNG).
-            var pos = Sposta(an, disegno, vista, lato, Math.Max(12, occupata + 10), -30, 8, 8);
-            int attaccate = -1;
-            try { attaccate = an.GetAttachedEntityCount3(); } catch { }
-            int dopo = AnnotazioniDellaTavola(disegno, "datum");
-            if (!string.Equals((letta ?? "").Trim(), lettera, StringComparison.OrdinalIgnoreCase))
-                return Fallito("Il datum e' nato ma dice «" + letta + "» invece di «" + lettera + "»" +
-                               (etichettato ? "" : " (SetLabel ha risposto no)") + ": toglilo — " + Frasi.CosiSiRitira + ".");
-            var misure = new Dictionary<string, object>
+            var pos = Move(an, drawing, view, side, Math.Max(12, occupied + 10), -30, 8, 8);
+            int attached = -1;
+            try { attached = an.GetAttachedEntityCount3(); } catch { }
+            int after = DrawingAnnotations(drawing, "datum");
+            if (!string.Equals((read ?? "").Trim(), letter, StringComparison.OrdinalIgnoreCase))
+                return Failed("Il datum e' nato ma dice «" + read + "» invece di «" + letter + "»" +
+                               (labeled ? "" : " (SetLabel ha risposto no)") + ": toglilo — " + Sentences.HowToWithdrawIt + ".");
+            var measurements = new Dictionary<string, object>
             {
-                ["letter"] = lettera,
-                ["letter_reread"] = letta,
+                ["letter"] = letter,
+                ["letter_reread"] = read,
                 ["side"] = Str(a, "side", "bottom"),
-                ["datum_before"] = NumeroOppureNull(prima),
-                ["datum_after"] = NumeroOppureNull(dopo),
+                ["datum_before"] = NumberOrNull(before),
+                ["datum_after"] = NumberOrNull(after),
                 ["position_mm"] = pos,
-                ["attached_to_edge"] = attaccate > 0,
+                ["attached_to_edge"] = attached > 0,
             };
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
 
         // ──────────────────────────────────────────────────────────────────
         // geometric_tolerance
         // ──────────────────────────────────────────────────────────────────
-        private static readonly Dictionary<string, int> Caratteristiche = new Dictionary<string, int>
+        private static readonly Dictionary<string, int> Characteristics = new Dictionary<string, int>
         {
             ["straightness"] = (int)swGtolGeomCharSymbol_e.swGcsSTRAIGHT,
             ["flatness"] = (int)swGtolGeomCharSymbol_e.swGcsFLAT,
@@ -501,66 +501,66 @@ namespace Oce.Solid.Agent.Core
         };
 
         /// <summary>Le tolleranze di FORMA non hanno riferimenti (ISO 1101); le altre ne vogliono.</summary>
-        private static bool EDiForma(string c)
+        private static bool IsOfShape(string c)
         {
             return c == "straightness" || c == "flatness" || c == "circularity" || c == "cylindricity";
         }
 
-        private Esito TolleranzaGeometricaInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome GeometricTolerance(IModelDoc2 model, Dictionary<string, object> a)
         {
-            string motivo;
-            IDrawingDoc disegno;
-            var vista = VistaPerAnnotare(modello, a, out disegno, out motivo);
-            if (vista == null) return Fallito(motivo);
-            string caratteristica = Str(a, "characteristic", "");
-            int codice;
-            if (!Caratteristiche.TryGetValue(caratteristica, out codice))
-                return Fallito("«characteristic» e' una fra " + string.Join(", ", Caratteristiche.Keys) +
-                               ", non «" + caratteristica + "».");
-            double valore;
-            if (!NumObbligatorio(a, "value_mm", out valore, out motivo)) return Fallito(motivo);
-            if (valore <= 0) return Fallito("«value_mm» e' l'ampiezza della zona di tolleranza: deve essere maggiore di zero.");
-            string testoValore = valore.ToString("0.###", CultureInfo.InvariantCulture);
+            string reason;
+            IDrawingDoc drawing;
+            var view = ViewToAnnotate(model, a, out drawing, out reason);
+            if (view == null) return Failed(reason);
+            string characteristic = Str(a, "characteristic", "");
+            int code;
+            if (!Characteristics.TryGetValue(characteristic, out code))
+                return Failed("«characteristic» e' una fra " + string.Join(", ", Characteristics.Keys) +
+                               ", non «" + characteristic + "».");
+            double val;
+            if (!RequiredNum(a, "value_mm", out val, out reason)) return Failed(reason);
+            if (val <= 0) return Failed("«value_mm» e' l'ampiezza della zona di tolleranza: deve essere maggiore di zero.");
+            string valueText = val.ToString("0.###", CultureInfo.InvariantCulture);
 
-            var riferimenti = new List<string>();
-            foreach (var r in Lista(a, "references")) if (!string.IsNullOrWhiteSpace(r)) riferimenti.Add(r.Trim().ToUpperInvariant());
-            if (riferimenti.Count > 3)
-                return Fallito("Una cornice cita al massimo tre riferimenti (primario, secondario, terziario).");
-            if (EDiForma(caratteristica) && riferimenti.Count > 0)
-                return Fallito("La tolleranza di " + caratteristica + " e' di FORMA: non si riferisce a nessun datum " +
+            var references = new List<string>();
+            foreach (var r in StringList(a, "references")) if (!string.IsNullOrWhiteSpace(r)) references.Add(r.Trim().ToUpperInvariant());
+            if (references.Count > 3)
+                return Failed("Una cornice cita al massimo tre riferimenti (primario, secondario, terziario).");
+            if (IsOfShape(characteristic) && references.Count > 0)
+                return Failed("La tolleranza di " + characteristic + " e' di FORMA: non si riferisce a nessun datum " +
                                "(ISO 1101). Togli «references», oppure scegli una tolleranza di orientamento o di " +
                                "posizione.");
-            if (!EDiForma(caratteristica) && riferimenti.Count == 0)
-                return Fallito("La tolleranza di " + caratteristica + " si misura rispetto a un riferimento: dai almeno una lettera " +
+            if (!IsOfShape(characteristic) && references.Count == 0)
+                return Failed("La tolleranza di " + characteristic + " si misura rispetto a un riferimento: dai almeno una lettera " +
                                "in «references» (un datum messo con «datum»).");
-            var gia = LettereDeiDatum(disegno);
-            foreach (var r in riferimenti)
-                if (!gia.Contains(r))
-                    return Fallito("La tolleranza cita il datum «" + r + "» e in tavola non c'e'" +
-                                   (gia.Count == 0 ? " nessun datum" : " (ci sono: " + string.Join(", ", gia) + ")") +
+            var already = DatumLetters(drawing);
+            foreach (var r in references)
+                if (!already.Contains(r))
+                    return Failed("La tolleranza cita il datum «" + r + "» e in tavola non c'e'" +
+                                   (already.Count == 0 ? " nessun datum" : " (ci sono: " + string.Join(", ", already) + ")") +
                                    ". Mettilo prima con «datum».");
-            bool diametro = a != null && a.ContainsKey("diameter") && Convert.ToBoolean(a["diameter"], CultureInfo.InvariantCulture);
-            var lato = SpigoloDelLato(vista, Str(a, "side", "right"), out motivo);
-            if (lato == null) return Fallito(motivo);
+            bool diameter = a != null && a.ContainsKey("diameter") && Convert.ToBoolean(a["diameter"], CultureInfo.InvariantCulture);
+            var side = SideEdge(view, Str(a, "side", "right"), out reason);
+            if (side == null) return Failed(reason);
 
-            double occupata = FasciaOccupata(vista, lato);
-            int prima = AnnotazioniDellaTavola(disegno, "gtol");
-            if (!SelezionaNellaVista(modello, vista, lato.Spigolo))
-                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "right") + "».");
-            object grezzo;
-            try { grezzo = modello.InsertGtol(); }
-            catch (Exception ex) { return Fallito("La cornice di tolleranza non e' nata: " + ex.Message); }
-            modello.ClearSelection2(true);
-            var gtol = grezzo as IGtol;
-            if (gtol == null) return Fallito("SOLIDWORKS non ha creato la cornice di tolleranza e non ha detto perche'.");
-            string r1 = riferimenti.Count > 0 ? riferimenti[0] : "", r2 = riferimenti.Count > 1 ? riferimenti[1] : "",
-                   r3 = riferimenti.Count > 2 ? riferimenti[2] : "";
+            double occupied = OccupiedBand(view, side);
+            int before = DrawingAnnotations(drawing, "gtol");
+            if (!SelectInView(model, view, side.Edge))
+                return Failed("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "right") + "».");
+            object raw;
+            try { raw = model.InsertGtol(); }
+            catch (Exception ex) { return Failed("La cornice di tolleranza non e' nata: " + ex.Message); }
+            model.ClearSelection2(true);
+            var gtol = raw as IGtol;
+            if (gtol == null) return Failed("SOLIDWORKS non ha creato la cornice di tolleranza e non ha detto perche'.");
+            string r1 = references.Count > 0 ? references[0] : "", r2 = references.Count > 1 ? references[1] : "",
+                   r3 = references.Count > 2 ? references[2] : "";
             try
             {
-                gtol.SetFrameSymbols(1, (short)codice, diametro, (short)swGtolMatCondition_e.swMcNONE, false,
+                gtol.SetFrameSymbols(1, (short)code, diameter, (short)swGtolMatCondition_e.swMcNONE, false,
                     (short)swGtolMatCondition_e.swMcNONE, (short)swGtolMatCondition_e.swMcNONE,
                     (short)swGtolMatCondition_e.swMcNONE, (short)swGtolMatCondition_e.swMcNONE);
-                gtol.SetFrameValues(1, testoValore, "", r1, r2, r3);
+                gtol.SetFrameValues(1, valueText, "", r1, r2, r3);
             }
             catch (Exception ex)
             {
@@ -568,20 +568,20 @@ namespace Oce.Solid.Agent.Core
                 // as a wrong one below.
                 IAnnotation emptyFrame = null;
                 try { emptyFrame = gtol.GetAnnotation() as IAnnotation; } catch { }
-                bool removedEmpty = RemoveNewAnnotation(modello, emptyFrame,
-                                                        () => AnnotazioniDellaTavola(disegno, "gtol"), prima);
-                return Fallito("The tolerance frame was born but does not let itself be filled (" + ex.Message + ")" +
-                               (removedEmpty ? ": I removed it." : ": remove it — " + Frasi.CosiSiRitira + "."));
+                bool removedEmpty = RemoveNewAnnotation(model, emptyFrame,
+                                                        () => DrawingAnnotations(drawing, "gtol"), before);
+                return Failed("The tolerance frame was born but does not let itself be filled (" + ex.Message + ")" +
+                               (removedEmpty ? ": I removed it." : ": remove it — " + Sentences.HowToWithdrawIt + "."));
             }
             // LA RILETTURA: il simbolo come codice, i valori come stringhe.
-            int simboloLetto = -1;
-            var valoriLetti = new List<string>();
+            int readSymbol = -1;
+            var valuesRead = new List<string>();
             try
             {
                 var fs = gtol.GetFrameSymbols(1) as System.Collections.IEnumerable;
-                if (fs != null) foreach (var x in fs) { simboloLetto = Convert.ToInt32(x, CultureInfo.InvariantCulture); break; }
+                if (fs != null) foreach (var x in fs) { readSymbol = Convert.ToInt32(x, CultureInfo.InvariantCulture); break; }
                 var fv = gtol.GetFrameValues(1) as System.Collections.IEnumerable;
-                if (fv != null) foreach (var x in fv) valoriLetti.Add(Convert.ToString(x, CultureInfo.InvariantCulture) ?? "");
+                if (fv != null) foreach (var x in fv) valuesRead.Add(Convert.ToString(x, CultureInfo.InvariantCulture) ?? "");
             }
             catch { }
             // THE Ø IS READ BACK TOO (Z-C21.8, finding M38). IGtol~GetFrameSymbols2.html:
@@ -598,48 +598,48 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
             var an = gtol.GetAnnotation() as IAnnotation;
-            var pos = Sposta(an, disegno, vista, lato, Math.Max(15, occupata + 12), 0, 10 * (2 + riferimenti.Count), 8);
-            int attaccate = -1;
-            try { attaccate = an.GetAttachedEntityCount3(); } catch { }
-            int dopo = AnnotazioniDellaTavola(disegno, "gtol");
+            var pos = Move(an, drawing, view, side, Math.Max(15, occupied + 12), 0, 10 * (2 + references.Count), 8);
+            int attached = -1;
+            try { attached = an.GetAttachedEntityCount3(); } catch { }
+            int after = DrawingAnnotations(drawing, "gtol");
 
-            string valoreLetto = valoriLetti.Count > 0 ? valoriLetti[0] : "";
-            var riferimentiLetti = new List<string>();
-            for (int i = 2; i < valoriLetti.Count && i < 5; i++) if (!string.IsNullOrWhiteSpace(valoriLetti[i])) riferimentiLetti.Add(valoriLetti[i].Trim());
-            string diameterWrong = GtolDiameterWrong(diametro, frameDiameterFlag);
-            if (simboloLetto != codice || valoreLetto.Trim() != testoValore ||
-                string.Join(",", riferimentiLetti) != string.Join(",", riferimenti) || diameterWrong != null)
+            string valueRead = valuesRead.Count > 0 ? valuesRead[0] : "";
+            var readReferences = new List<string>();
+            for (int i = 2; i < valuesRead.Count && i < 5; i++) if (!string.IsNullOrWhiteSpace(valuesRead[i])) readReferences.Add(valuesRead[i].Trim());
+            string diameterWrong = GtolDiameterWrong(diameter, frameDiameterFlag);
+            if (readSymbol != code || valueRead.Trim() != valueText ||
+                string.Join(",", readReferences) != string.Join(",", references) || diameterWrong != null)
             {
                 // A WRONG FRAME IS NOT LEFT ON THE SHEET (Z-C21.8, finding M38): it
                 // would be printed and read in the shop. Removed as drawing_weld_symbol
                 // removes a wrong weld symbol, and said removed only after a recount.
-                bool removed = RemoveNewAnnotation(modello, an, () => AnnotazioniDellaTavola(disegno, "gtol"), prima);
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                bool removed = RemoveNewAnnotation(model, an, () => DrawingAnnotations(drawing, "gtol"), before);
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "The tolerance frame was born but does not say what I asked: symbol {0} (asked {1}), value «{2}» " +
                     "(asked «{3}»), datums «{4}» (asked «{5}»){6}. {7}",
-                    simboloLetto, codice, valoreLetto, testoValore, string.Join(",", riferimentiLetti),
-                    string.Join(",", riferimenti), diameterWrong == null ? "" : "; " + diameterWrong,
-                    removed ? "I removed it." : "Remove it — " + Frasi.CosiSiRitira + "."));
+                    readSymbol, code, valueRead, valueText, string.Join(",", readReferences),
+                    string.Join(",", references), diameterWrong == null ? "" : "; " + diameterWrong,
+                    removed ? "I removed it." : "Remove it — " + Sentences.HowToWithdrawIt + "."));
             }
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["characteristic"] = caratteristica,
-                ["symbol_reread"] = simboloLetto,
-                ["value_mm"] = testoValore,
-                ["value_reread"] = valoreLetto,
-                ["references"] = riferimenti.ToArray(),
-                ["references_reread"] = riferimentiLetti.ToArray(),
-                ["diameter"] = diametro,
+                ["characteristic"] = characteristic,
+                ["symbol_reread"] = readSymbol,
+                ["value_mm"] = valueText,
+                ["value_reread"] = valueRead,
+                ["references"] = references.ToArray(),
+                ["references_reread"] = readReferences.ToArray(),
+                ["diameter"] = diameter,
                 // The Ø as read back from the frame (M38): null when it could not be
                 // read and was not asked, which GtolDiameterWrong lets through.
                 ["diameter_read"] = frameDiameterFlag < 0 ? null : (object)(frameDiameterFlag == 1),
                 ["side"] = Str(a, "side", "right"),
-                ["frames_before"] = NumeroOppureNull(prima),
-                ["frames_after"] = NumeroOppureNull(dopo),
+                ["frames_before"] = NumberOrNull(before),
+                ["frames_after"] = NumberOrNull(after),
                 ["position_mm"] = pos,
-                ["attached_to_edge"] = attaccate > 0,
+                ["attached_to_edge"] = attached > 0,
             };
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
     }
 }

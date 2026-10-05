@@ -32,7 +32,7 @@ namespace Oce.Solid.Agent.Core
     /// value the schema lists.
     ///
     /// REMOVED IN W3.1-bis.11, before the tag: this file, the embedded map in
-    /// Oce.Solid.Agent.Core.csproj, the calls in OperazioniSw.Esegui,
+    /// Oce.Solid.Agent.Core.csproj, the calls in SwOperations.Esegui,
     /// Tools/McpTools.cs and Bench/Expectations.cs, the cases of
     /// Bench/cases/aliases and the contract AliasLayerContract.
     /// </summary>
@@ -394,10 +394,10 @@ namespace Oce.Solid.Agent.Core
                 if (_schemas != null) return _schemas;
                 var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
                 var schemas = new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal);
-                foreach (var o in Operazioni.Tutte)
+                foreach (var o in Operations.All)
                 {
-                    if (o.Nome == null || o.Schema == null) continue;
-                    schemas[o.Nome] = serializer.DeserializeObject(Nodo.Json(o.Schema)) as Dictionary<string, object>;
+                    if (o.Name == null || o.Schema == null) continue;
+                    schemas[o.Name] = serializer.DeserializeObject(Node.Json(o.Schema)) as Dictionary<string, object>;
                 }
                 _schemas = schemas;
                 return schemas;

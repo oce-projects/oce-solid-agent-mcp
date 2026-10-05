@@ -39,29 +39,29 @@ namespace Oce.Solid.Agent.Core
     ///     Qui si controlla PRIMA, e il rifiuto elenca cosa c'e' di aperto:
     ///     un rifiuto che non dice l'alternativa costringe a indovinare.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito InserisciComponente(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome InsertComponent(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var assieme = modello as IAssemblyDoc;
-            if (assieme == null)
-                return Fallito(
+            var assemblyDoc = model as IAssemblyDoc;
+            if (assemblyDoc == null)
+                return Failed(
                     "Questo non e' un assieme, e' un documento di tipo «" +
-                    NomeTipoDocumento(TipoDi(modello)) + "». I componenti si " +
+                    DocumentTypeName(TypeOf(model)) + "». I componenti si " +
                     "inseriscono solo in un assieme: aprine uno, oppure crealo, " +
                     "e poi richiamami.");
 
-            string percorso = Str(a, "path", null);
-            if (string.IsNullOrWhiteSpace(percorso))
-                return Fallito(
+            string filePath = Str(a, "path", null);
+            if (string.IsNullOrWhiteSpace(filePath))
+                return Failed(
                     "Non mi hai detto quale componente inserire: «path» e' il " +
                     "percorso completo del file, e dev'essere uno dei documenti " +
                     "gia' aperti. Li trovi in «documents_open» dello stato.");
 
-            if (!File.Exists(percorso))
-                return Fallito(
-                    "Il file «" + percorso + "» non esiste. " + CosaEAperto());
+            if (!File.Exists(filePath))
+                return Failed(
+                    "Il file «" + filePath + "» non esiste. " + WhatIsOpen());
 
             // ── E' APERTO? ───────────────────────────────────────────────
             //
@@ -69,16 +69,16 @@ namespace Oce.Solid.Agent.Core
             // niente da leggere: `AddComponent5` risponde null e basta, e un
             // null non dice se il file manca, se e' chiuso, o se il percorso e'
             // scritto in un altro modo.
-            if (!EAperto(percorso))
-                return Fallito(
-                    "«" + Path.GetFileName(percorso) + "» non e' aperto in SOLIDWORKS, e " +
+            if (!IsOpen(filePath))
+                return Failed(
+                    "«" + Path.GetFileName(filePath) + "» non e' aperto in SOLIDWORKS, e " +
                     "l'inserimento vuole un documento gia' aperto: se lo chiamo su un " +
                     "file chiuso mi risponde «non fatto» senza dirmi perche'. " +
-                    CosaEAperto());
+                    WhatIsOpen());
 
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0), z = Num(a, "z_mm", 0);
-            string configurazione = Str(a, "configuration", "");
-            bool configurationAsked = !string.IsNullOrWhiteSpace(configurazione);
+            string configuration = Str(a, "configuration", "");
+            bool configurationAsked = !string.IsNullOrWhiteSpace(configuration);
 
             // ── THE CONFIGURATION ASKED FOR IS CHECKED BEFORE INSERTING ──────
             //
@@ -89,27 +89,27 @@ namespace Oce.Solid.Agent.Core
             // itself (the insertion needs it open anyway) and compared whole:
             // the two configurations of the company template share their first
             // word and differ in the part in angle brackets, which belongs to
-            // the name (see NomeVeroDellaConfigurazione). A refusal here has
+            // the name (see TrueConfigurationName). A refusal here has
             // inserted nothing.
             if (configurationAsked)
             {
-                var source = OpenDocumentAtPath(percorso);
-                var sourceConfigurations = source == null ? new List<string>() : NomiDelleConfigurazioni(source);
+                var source = OpenDocumentAtPath(filePath);
+                var sourceConfigurations = source == null ? new List<string>() : ConfigurationNames(source);
                 if (sourceConfigurations.Count == 0)
-                    return Fallito(
-                        "I could not read the configurations of «" + Path.GetFileName(percorso) + "», so I " +
-                        "cannot check «" + configurazione + "» before inserting it. Nothing was inserted: " +
+                    return Failed(
+                        "I could not read the configurations of «" + Path.GetFileName(filePath) + "», so I " +
+                        "cannot check «" + configuration + "» before inserting it. Nothing was inserted: " +
                         "insert it without a configuration name, or open the file again and retry.");
-                if (!sourceConfigurations.Contains(configurazione, StringComparer.Ordinal))
-                    return Fallito(
-                        "«" + Path.GetFileName(percorso) + "» has no configuration «" + configurazione +
+                if (!sourceConfigurations.Contains(configuration, StringComparer.Ordinal))
+                    return Failed(
+                        "«" + Path.GetFileName(filePath) + "» has no configuration «" + configuration +
                         "». It has: «" + string.Join("», «", sourceConfigurations) + "»" +
                         ". The name is compared whole, the part in angle brackets included. Nothing was inserted.");
             }
 
-            int prima = QuantiComponentiInAssieme(assieme);
+            int before = HowManyComponentsInAssembly(assemblyDoc);
 
-            IComponent2 nato;
+            IComponent2 born;
             try
             {
                 // THE NAMED CONFIGURATION IS ASKED FOR WITH ITS SWITCH (Z-C21.4,
@@ -124,15 +124,15 @@ namespace Oce.Solid.Agent.Core
                 // assembly in its last saved configuration». Without a name that
                 // is still what happens. With a name, what the component really
                 // references is read back below and a different one is refused.
-                nato = assieme.AddComponent5(
-                    percorso,
+                born = assemblyDoc.AddComponent5(
+                    filePath,
                     (int)swAddComponentConfigOptions_e.swAddComponentConfigOptions_CurrentSelectedConfig,
-                    "", configurationAsked, configurationAsked ? configurazione : "",
+                    "", configurationAsked, configurationAsked ? configuration : "",
                     x / 1000.0, y / 1000.0, z / 1000.0) as IComponent2;
             }
             catch (Exception ex)
             {
-                return Fallito("Non sono riuscito a inserire il componente: " + ex.Message);
+                return Failed("Non sono riuscito a inserire il componente: " + ex.Message);
             }
 
             // IL NOME SI PRENDE PRIMA DELLA RICOSTRUZIONE, e serve per ritrovare
@@ -144,29 +144,29 @@ namespace Oce.Solid.Agent.Core
             // E' la regola di casa applicata un livello piu' in la': *il valore
             // che torna da chi ha fatto la cosa non e' la misura della cosa* —
             // e nemmeno l'OGGETTO che torna e' l'oggetto su cui misurare.
-            string nome = null;
-            try { nome = nato == null ? null : nato.Name2; } catch { }
+            string itemName = null;
+            try { itemName = born == null ? null : born.Name2; } catch { }
 
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
 
             // Rilettura: si cerca per nome fra i componenti che l'assieme
             // dichiara ADESSO. Se non si ritrova, si tiene la maniglia vecchia
             // invece di rinunciare alla misura — dirlo e' meglio che tacere,
             // ma una misura sospetta e' meglio di nessuna misura solo finche'
             // si sa che e' sospetta, e infatti il caso di banco la sorveglia.
-            var vero = RileggiIlComponente(assieme, nome) ?? nato;
+            var real = RereadComponent(assemblyDoc, itemName) ?? born;
 
             // ── LA MISURA STA SULL'ASSIEME, NON SULLA RISPOSTA ───────────
             //
             // `AddComponent5` ha risposto un `IComponent2`, e *il valore che
             // torna da chi ha fatto la cosa non e' la misura della cosa*: si
             // conta quanti componenti ci sono adesso.
-            int dopo = QuantiComponentiInAssieme(assieme);
-            if (dopo != prima + 1)
-                return Fallito(
-                    "Ho chiesto di inserire «" + Path.GetFileName(percorso) + "» e " +
-                    (nato == null ? "non mi e' stato risposto niente" : "mi e' stato risposto di si'") +
-                    ", ma l'assieme aveva " + prima + " componenti e adesso ne ha " + dopo +
+            int after = HowManyComponentsInAssembly(assemblyDoc);
+            if (after != before + 1)
+                return Failed(
+                    "Ho chiesto di inserire «" + Path.GetFileName(filePath) + "» e " +
+                    (born == null ? "non mi e' stato risposto niente" : "mi e' stato risposto di si'") +
+                    ", ma l'assieme aveva " + before + " componenti e adesso ne ha " + after +
                     ". Non l'ho considerato inserito.");
 
             // THE CONFIGURATION THE COMPONENT REALLY REFERENCES (Z-C21.4, L11-1),
@@ -175,24 +175,24 @@ namespace Oce.Solid.Agent.Core
             // component that was asked for: it is taken out again, and «taken
             // out» is said only after the components are counted again.
             string referenced = null;
-            try { referenced = vero == null ? null : vero.ReferencedConfiguration; } catch { }
-            if (configurationAsked && !string.Equals(referenced, configurazione, StringComparison.Ordinal))
-                return Fallito(
-                    "I asked SOLIDWORKS for «" + Path.GetFileName(percorso) + "» in configuration «" +
-                    configurazione + "», and the new component references " +
+            try { referenced = real == null ? null : real.ReferencedConfiguration; } catch { }
+            if (configurationAsked && !string.Equals(referenced, configuration, StringComparison.Ordinal))
+                return Failed(
+                    "I asked SOLIDWORKS for «" + Path.GetFileName(filePath) + "» in configuration «" +
+                    configuration + "», and the new component references " +
                     (string.IsNullOrWhiteSpace(referenced) ? "a configuration I could not read" : "«" + referenced + "»") +
                     ". It is not the component you asked for." +
-                    TakeOutInsertedComponent(modello, assieme, vero, prima));
+                    TakeOutInsertedComponent(model, assemblyDoc, real, before));
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["components_before"] = prima,
-                ["components_after"] = dopo,
+                ["components_before"] = before,
+                ["components_after"] = after,
             };
 
-            if (!string.IsNullOrWhiteSpace(nome)) misure["component"] = nome;
+            if (!string.IsNullOrWhiteSpace(itemName)) measurements["component"] = itemName;
 
-            if (!string.IsNullOrWhiteSpace(referenced)) misure["configuration"] = referenced;
+            if (!string.IsNullOrWhiteSpace(referenced)) measurements["configuration"] = referenced;
 
             // ── E' VINCOLATO? LE MISURE CHE FUNZIONANO DAVVERO ──────────
             //
@@ -211,19 +211,19 @@ namespace Oce.Solid.Agent.Core
             // Un componente NON fisso con ZERO accoppiamenti e' appoggiato, e
             // questo lo si sa per certo. Non si sa DI QUANTO sia libero, e
             // infatti non lo si dice.
-            var gradi = GradiDiLiberta(vero);
-            misure["degrees_of_freedom_state"] = gradi.Stato;
-            if (gradi.Disponibile) misure["degrees_of_freedom_remaining"] = gradi.Quanti;
+            var deg = DegreesOfFreedom(real);
+            measurements["degrees_of_freedom_state"] = deg.State;
+            if (deg.Available) measurements["degrees_of_freedom_remaining"] = deg.HowMany;
 
-            bool fisso = false;
-            try { fisso = vero != null && vero.IsFixed(); } catch { }
-            misure["grounded"] = fisso;
+            bool grounded = false;
+            try { grounded = real != null && real.IsFixed(); } catch { }
+            measurements["grounded"] = grounded;
 
-            int accoppiamenti = ContaGliAccoppiamenti(vero);
-            if (accoppiamenti >= 0) misure["mates"] = accoppiamenti;
+            int mates = CountMates(real);
+            if (mates >= 0) measurements["mates"] = mates;
 
-            bool appoggiato = !fisso && accoppiamenti == 0;
-            misure["resting"] = appoggiato;
+            bool resting = !grounded && mates == 0;
+            measurements["resting"] = resting;
 
             // DOVE E' FINITA L'ORIGINE, che NON e' il punto che hai chiesto.
             //
@@ -237,8 +237,8 @@ namespace Oce.Solid.Agent.Core
             // Si riporta perche' e' cio' che il modello rileggera' nello stato,
             // e vedere due numeri diversi senza spiegazione e' peggio che
             // vederne uno solo.
-            var origine = OrigineDelComponenteMm(vero);
-            if (origine != null) misure["origin_mm"] = origine;
+            var origin = ComponentOriginMm(real);
+            if (origin != null) measurements["origin_mm"] = origin;
 
             // IL GIUDIZIO E' UNA FRASE, NON UN NUMERO, e viaggia con le misure.
             //
@@ -247,27 +247,27 @@ namespace Oce.Solid.Agent.Core
             // dell'operazione: l'avvertimento va qui, dove arriva comunque. E'
             // la stessa scelta di `check_body_geometry`, che accanto a
             // `printable` scrive `verdict`.
-            string giudizio =
-                "Inserito «" + (nome ?? Path.GetFileName(percorso)) + "» a " +
-                MmDiAssieme(x) + ", " + MmDiAssieme(y) + ", " + MmDiAssieme(z) + " mm. " +
-                (fisso
+            string verdictValue =
+                "Inserito «" + (itemName ?? Path.GetFileName(filePath)) + "» a " +
+                AssemblyMm(x) + ", " + AssemblyMm(y) + ", " + AssemblyMm(z) + " mm. " +
+                (grounded
                     ? "E' FISSO: non si muove perche' e' inchiodato, non perche' sia " +
                       "accoppiato. Sono due cose diverse."
-                    : appoggiato
+                    : resting
                         ? "ATTENZIONE: non e' fisso e non ha nessun accoppiamento — e' " +
                           "appoggiato li'. Si sposta se qualcuno lo trascina, e l'assieme " +
                           "sembra montato senza esserlo."
-                        : accoppiamenti > 0
-                            ? "Ha " + accoppiamenti +
-                              (accoppiamenti == 1 ? " accoppiamento" : " accoppiamenti") +
+                        : mates > 0
+                            ? "Ha " + mates +
+                              (mates == 1 ? " accoppiamento" : " accoppiamenti") +
                               ". Quanto sia ancora libero non te lo so dire: SOLIDWORKS " +
                               "non fornisce i gradi di liberta' residui da qui."
                             : "Non sono riuscito a dire se sia vincolato: non ho potuto " +
                               "leggere ne' gli accoppiamenti ne' lo stato.");
-            misure["verdict"] = giudizio;
-            _log("[agente] " + giudizio);
+            measurements["verdict"] = verdictValue;
+            _log("[agente] " + verdictValue);
 
-            return RiuscitoSenzaCreare(misure);
+            return SucceededWithoutCreating(measurements);
         }
 
         // =================================================================
@@ -295,42 +295,42 @@ namespace Oce.Solid.Agent.Core
         /// </remarks>
         /// <remarks>
         /// `internal`: la usa anche `StatoAssieme`, per la stessa ragione per
-        /// cui e' internal `GradiDiLiberta` — una sola lettura, un solo posto
+        /// cui e' internal `DegreesOfFreedom` — una sola lettura, un solo posto
         /// da riparare.
         /// </remarks>
-        internal static int AccoppiamentiDi(IComponent2 componente)
+        internal static int MatesOf(IComponent2 component)
         {
-            return ContaGliAccoppiamenti(componente);
+            return CountMates(component);
         }
 
-        internal static GradiDiLibertaLetti GradiDiLiberta(IComponent2 componente)
+        internal static DegreesOfFreedomRead DegreesOfFreedom(IComponent2 component)
         {
-            var fuori = new GradiDiLibertaLetti { Stato = "non letto", Quanti = -1 };
-            if (componente == null) return fuori;
+            var outside = new DegreesOfFreedomRead { State = "non letto", HowMany = -1 };
+            if (component == null) return outside;
             try
             {
                 int s1, s2, s3, s4, s5, s6;
                 MathPoint p1, p2;
                 MathVector d1, d2, t1, t2;
-                int esito = componente.GetRemainingDOFs(
+                int outcome = component.GetRemainingDOFs(
                     out s1, out p1, out s2, out d1,
                     out s3, out p2, out s4, out d2,
                     out s5, out t1, out s6, out t2);
 
-                fuori.Stato = NomeDelloStatoDof(esito);
+                outside.State = DofStateName(outcome);
 
                 // IL CONTEGGIO SI RICAVA DAGLI STATI, e SOLO se l'esito dice
                 // che l'informazione c'e'. I sei `status` sono di
                 // `swDofStatus_e`: `Unused` vuol dire «questo posto non
                 // descrive niente», non «zero gradi».
-                if (esito == (int)swRemainingDofs_e.swRemainingDofs_Restricted ||
-                    esito == (int)swRemainingDofs_e.swRemainingDofs_Unrestricted)
+                if (outcome == (int)swRemainingDofs_e.swRemainingDofs_Restricted ||
+                    outcome == (int)swRemainingDofs_e.swRemainingDofs_Unrestricted)
                 {
-                    fuori.Quanti = QuantiLiberi(s1, s2, s3, s4, s5, s6);
+                    outside.HowMany = HowManyFree(s1, s2, s3, s4, s5, s6);
                 }
             }
-            catch { fuori.Stato = "non letto"; }
-            return fuori;
+            catch { outside.State = "non letto"; }
+            return outside;
         }
 
         /// <summary>
@@ -351,21 +351,21 @@ namespace Oce.Solid.Agent.Core
         /// che ballava. *Un caso in cui due valori diversi danno lo stesso
         /// risultato non tabella niente* — e questo lo pubblicava come misura.
         /// </summary>
-        internal sealed class GradiDiLibertaLetti
+        internal sealed class DegreesOfFreedomRead
         {
             /// <summary>Il nome dello stato: «non disponibile», «libero», …</summary>
-            public string Stato;
+            public string State;
 
             /// <summary>Quanti gradi, oppure `-1` se non si e' potuto sapere.</summary>
-            public int Quanti;
+            public int HowMany;
 
-            public bool Disponibile { get { return Quanti >= 0; } }
+            public bool Available { get { return HowMany >= 0; } }
         }
 
-        private static int QuantiLiberi(params int[] stati)
+        private static int HowManyFree(params int[] states)
         {
             int n = 0;
-            foreach (var s in stati)
+            foreach (var s in states)
                 if (s == (int)swDofStatus_e.swDofStatus_Free ||
                     s == (int)swDofStatus_e.swDofStatus_FreeNormal ||
                     s == (int)swDofStatus_e.swDofStatus_Instantaneous ||
@@ -378,16 +378,16 @@ namespace Oce.Solid.Agent.Core
         /// Restricted=0, Unrestricted=1, **Unavailable=2**, Failed=3,
         /// RootComponent=4 — e il 2 e' quello che si incontra sempre.
         /// </summary>
-        private static string NomeDelloStatoDof(int esito)
+        private static string DofStateName(int outcome)
         {
-            switch (esito)
+            switch (outcome)
             {
                 case (int)swRemainingDofs_e.swRemainingDofs_Restricted: return "vincolato";
                 case (int)swRemainingDofs_e.swRemainingDofs_Unrestricted: return "libero";
                 case (int)swRemainingDofs_e.swRemainingDofs_Unavailable: return "unavailable";
                 case (int)swRemainingDofs_e.swRemainingDofs_Failed: return "non riuscito";
                 case (int)swRemainingDofs_e.swRemainingDofs_RootComponent: return "componente radice";
-                default: return "sconosciuto (" + esito.ToString(CultureInfo.InvariantCulture) + ")";
+                default: return "sconosciuto (" + outcome.ToString(CultureInfo.InvariantCulture) + ")";
             }
         }
 
@@ -400,20 +400,20 @@ namespace Oce.Solid.Agent.Core
         /// ambiguo, nemmeno con due copie dello stesso file («base-1» e
         /// «base-2»).
         /// </summary>
-        private static IComponent2 RileggiIlComponente(IAssemblyDoc assieme, string nome)
+        private static IComponent2 RereadComponent(IAssemblyDoc assemblyDoc, string itemName)
         {
-            if (assieme == null || string.IsNullOrWhiteSpace(nome)) return null;
+            if (assemblyDoc == null || string.IsNullOrWhiteSpace(itemName)) return null;
             try
             {
-                var v = assieme.GetComponents(false) as object[];
+                var v = assemblyDoc.GetComponents(false) as object[];
                 if (v == null) return null;
                 foreach (var o in v)
                 {
                     var c = o as IComponent2;
                     if (c == null) continue;
-                    string suo = null;
-                    try { suo = c.Name2; } catch { }
-                    if (string.Equals(suo, nome, StringComparison.Ordinal)) return c;
+                    string its = null;
+                    try { its = c.Name2; } catch { }
+                    if (string.Equals(its, itemName, StringComparison.Ordinal)) return c;
                 }
             }
             catch { }
@@ -450,19 +450,19 @@ namespace Oce.Solid.Agent.Core
         /// quando lo zero e' un'affermazione che si puo' fare.**
         /// (`Checks/zero-or-unknown.js` legge questo marcatore.)
         /// </summary>
-        private static int ContaGliAccoppiamenti(IComponent2 componente)
+        private static int CountMates(IComponent2 component)
         {
-            if (componente == null) return -1;
+            if (component == null) return -1;
             try
             {
-                var suo = componente.Name2;      // se lancia, la maniglia e' morta
-                if (suo == null) return -1;
+                var its = component.Name2;      // se lancia, la maniglia e' morta
+                if (its == null) return -1;
             }
             catch { return -1; }
 
             try
             {
-                var m = componente.GetMates() as object[];
+                var m = component.GetMates() as object[];
                 return m == null ? 0 : m.Length;
             }
             catch { return -1; }
@@ -476,7 +476,7 @@ namespace Oce.Solid.Agent.Core
         /// `ArrayData`. Il `false` esclude la trasformazione di esploso — con
         /// `true` si leggerebbe la posizione **nella vista esplosa**.
         /// </summary>
-        private static object[] OrigineDelComponenteMm(IComponent2 c)
+        private static object[] ComponentOriginMm(IComponent2 c)
         {
             if (c == null) return null;
             try
@@ -487,9 +487,9 @@ namespace Oce.Solid.Agent.Core
                 if (d == null || d.Length < 12) return null;
                 return new object[]
                 {
-                    Math.Round(Unita.Mm(d[9]), 3),
-                    Math.Round(Unita.Mm(d[10]), 3),
-                    Math.Round(Unita.Mm(d[11]), 3),
+                    Math.Round(Units.Mm(d[9]), 3),
+                    Math.Round(Units.Mm(d[10]), 3),
+                    Math.Round(Units.Mm(d[11]), 3),
                 };
             }
             catch { return null; }
@@ -511,29 +511,29 @@ namespace Oce.Solid.Agent.Core
         /// separa le due cose, ed e' la stessa che il progettista si fa
         /// guardando l'albero rosso.
         /// </summary>
-        internal static int QuantiProblemi(IModelDoc2 modello)
+        internal static int HowManyProblems(IModelDoc2 model)
         {
             try
             {
-                var e = modello == null ? null : modello.Extension;
+                var e = model == null ? null : model.Extension;
                 return e == null ? -1 : e.GetWhatsWrongCount();
             }
             catch { return -1; }
         }
 
-        private static int QuantiComponentiInAssieme(IAssemblyDoc assieme)
+        private static int HowManyComponentsInAssembly(IAssemblyDoc assemblyDoc)
         {
             try
             {
-                var v = assieme.GetComponents(true) as object[];
+                var v = assemblyDoc.GetComponents(true) as object[];
                 return v == null ? -1 : v.Length;
             }
             catch { return -1; }
         }
 
-        private bool EAperto(string percorso)
+        private bool IsOpen(string filePath)
         {
-            return OpenDocumentAtPath(percorso) != null;
+            return OpenDocumentAtPath(filePath) != null;
         }
 
         /// <summary>
@@ -542,18 +542,18 @@ namespace Oce.Solid.Agent.Core
         /// configuration check of L11-1 reads the very document the insertion
         /// will use.
         /// </summary>
-        private IModelDoc2 OpenDocumentAtPath(string percorso)
+        private IModelDoc2 OpenDocumentAtPath(string filePath)
         {
             try
             {
                 var d = _sw.GetFirstDocument() as IModelDoc2;
-                int guardia = 0;
-                while (d != null && guardia++ < 500)
+                int guard = 0;
+                while (d != null && guard++ < 500)
                 {
-                    string suo = "";
-                    try { suo = d.GetPathName() ?? ""; } catch { }
-                    if (!string.IsNullOrWhiteSpace(suo) &&
-                        string.Equals(Path.GetFullPath(suo), Path.GetFullPath(percorso),
+                    string its = "";
+                    try { its = d.GetPathName() ?? ""; } catch { }
+                    if (!string.IsNullOrWhiteSpace(its) &&
+                        string.Equals(Path.GetFullPath(its), Path.GetFullPath(filePath),
                                       StringComparison.OrdinalIgnoreCase))
                         return d;
                     d = d.GetNext() as IModelDoc2;
@@ -569,23 +569,23 @@ namespace Oce.Solid.Agent.Core
         /// tail of the refusal. «Taken out» only when the top-level components,
         /// counted again, are as many as before the insertion. DeleteSelection2
         /// and not EditDelete, which can open a confirmation window (the rule of
-        /// TogliLoSpecchio and TogliLaTabellaDiTaglio); the component is selected
-        /// with its own Select4 (SelezionaIlComponente says why).
+        /// RemoveMirror and RemoveCutTable); the component is selected
+        /// with its own Select4 (SelectComponent says why).
         /// </summary>
         private static string TakeOutInsertedComponent(
-            IModelDoc2 modello, IAssemblyDoc assieme, IComponent2 component, int countBefore)
+            IModelDoc2 model, IAssemblyDoc assemblyDoc, IComponent2 component, int countBefore)
         {
             bool deleted = false;
             try
             {
-                modello.ClearSelection2(true);
-                if (SelezionaIlComponente(component))
-                    deleted = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                modello.ClearSelection2(true);
-                modello.EditRebuild3();
+                model.ClearSelection2(true);
+                if (SelectComponent(component))
+                    deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+                model.EditRebuild3();
             }
             catch { }
-            int countNow = QuantiComponentiInAssieme(assieme);
+            int countNow = HowManyComponentsInAssembly(assemblyDoc);
             if (!deleted)
                 return " DeleteSelection2 did not take it out: it is still in the assembly, remove it yourself.";
             if (countBefore >= 0 && countNow == countBefore)
@@ -605,46 +605,46 @@ namespace Oce.Solid.Agent.Core
         /// riga: si dicono i file aperti, che sono gli unici percorsi che
         /// l'inserimento accetta.
         /// </summary>
-        private string CosaEAperto()
+        private string WhatIsOpen()
         {
-            var nomi = new List<string>();
+            var names = new List<string>();
             try
             {
                 var d = _sw.GetFirstDocument() as IModelDoc2;
-                int guardia = 0;
-                while (d != null && guardia++ < 500)
+                int guard = 0;
+                while (d != null && guard++ < 500)
                 {
-                    string suo = "";
-                    try { suo = d.GetPathName() ?? ""; } catch { }
-                    if (!string.IsNullOrWhiteSpace(suo)) nomi.Add(suo);
+                    string its = "";
+                    try { its = d.GetPathName() ?? ""; } catch { }
+                    if (!string.IsNullOrWhiteSpace(its)) names.Add(its);
                     d = d.GetNext() as IModelDoc2;
                 }
             }
             catch { }
 
-            if (nomi.Count == 0)
+            if (names.Count == 0)
                 return "Adesso non e' aperto nessun documento salvato su disco: " +
                        "un componente mai salvato non si puo' inserire, perche' " +
                        "l'inserimento lo cerca per percorso.";
-            return "Adesso sono aperti: " + string.Join("; ", nomi) + ".";
+            return "Adesso sono aperti: " + string.Join("; ", names) + ".";
         }
 
-        private static int TipoDi(IModelDoc2 modello)
+        private static int TypeOf(IModelDoc2 model)
         {
-            try { return modello == null ? -1 : modello.GetType(); } catch { return -1; }
+            try { return model == null ? -1 : model.GetType(); } catch { return -1; }
         }
 
         /// <summary>
         /// Millimetri per un messaggio.
         ///
         /// NOME DIVERSO DA QUALUNQUE ALTRO HELPER DI QUESTA CLASSE PARZIALE.
-        /// `OperazioniSw` e' spalmata su una quindicina di file, e un metodo
+        /// `SwOperations` e' spalmata su una quindicina di file, e un metodo
         /// privato con lo stesso nome in due file e' un errore di compilazione
-        /// che parla di «piu' definizioni», non del posto giusto. `MmDiAssieme`
-        /// e' brutto e non collide: e' la stessa riparazione di `TernaMm` e
-        /// `DistanzaFraPunti`.
+        /// che parla di «piu' definizioni», non del posto giusto. `AssemblyMm`
+        /// e' brutto e non collide: e' la stessa riparazione di `TripletMm` e
+        /// `DistanceBetweenPoints`.
         /// </summary>
-        private static string MmDiAssieme(double v)
+        private static string AssemblyMm(double v)
         {
             return v.ToString("0.###", CultureInfo.InvariantCulture);
         }

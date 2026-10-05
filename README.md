@@ -431,7 +431,7 @@ Quello che la CI fa davvero:
 | il contenuto del catalogo, letto da `Tools\catalog.json` che sta in repository | **si** |
 | **rifiuta una consegna in cui nessuno ha lanciato il banco** | **si** |
 | compila il ponte | solo dove l'interop c'e' (un runner self-hosted con SOLIDWORKS) |
-| il protocollo MCP, `Sessione.StessoDocumento`, l'esportatore del catalogo | solo li' |
+| il protocollo MCP, `Session.SameDocument`, l'esportatore del catalogo | solo li' |
 
 **E cio' che non gira non diventa verde.** I gruppi che hanno bisogno del
 ponte scrivono una voce **«non eseguibile qui»**: si conta a parte, si stampa,
@@ -468,7 +468,7 @@ a valle rimisurata. Il risultato e' una di tre cose, non due:
 | **si staccano in silenzio** | **0** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
 
 *Misurato il 26/9/2026 su SOLIDWORKS 29.5.1, libreria 0.121.0. Si rifa' con
-`.\Bench\bench.ps1 -Regressione`; il dettaglio caso per caso finisce in
+`.\Bench\bench.ps1 -Regression`; il dettaglio caso per caso finisce in
 `Bench/report/regressione.md`.*
 
 **Il 15/9 erano 12, 0 e 4 su sedici**, e lo zero in mezzo era il numero piu'

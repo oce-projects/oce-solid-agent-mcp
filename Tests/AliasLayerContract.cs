@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using static Oce.Solid.Agent.ContractTests.Programma;
-using static Shared.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Program;
+using static Shared.McpClient;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -26,7 +26,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///      selector; a free-text argument left alone (mate's variant) while
     ///      the facings of mate are translated; the URIs of the resources of
     ///      before; and the deprecated line kept on a step that worked with no
-    ///      measurements (OperazioniSw.AttachDeprecated). Over stdio, a
+    ///      measurements (SwOperations.AttachDeprecated). Over stdio, a
     ///      resource read with the URI of before.
     ///
     /// The Italian names are read from the name map (Checks/language/name-map.tsv)
@@ -41,7 +41,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void RunAll()
         {
-            Gruppo("the Italian names of before the rename, accepted on input until the first release (W3.1-bis.5, D4)");
+            Group("the Italian names of before the rename, accepted on input until the first release (W3.1-bis.5, D4)");
 
             var map = ReadMap();
             if (map == null) return;
@@ -58,8 +58,8 @@ namespace Oce.Solid.Agent.ContractTests
         // English name -> Italian name, per type, from the map (the first row wins).
         private static Dictionary<string, string> ReadMap()
         {
-            var file = Path.Combine(Radice(), "Checks", "language", "name-map.tsv");
-            if (!File.Exists(file)) { Segna("the name map is there", false, "missing " + file); return null; }
+            var file = Path.Combine(Root(), "Checks", "language", "name-map.tsv");
+            if (!File.Exists(file)) { Check("the name map is there", false, "missing " + file); return null; }
             var map = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var line in File.ReadAllLines(file, Encoding.UTF8))
             {
@@ -76,16 +76,16 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void Library(Func<string, string, string> it)
         {
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the aliases of the library", library + " is missing: build the library first (build.ps1)");
+                NotHere("the aliases of the library", library + " is missing: build the library first (build.ps1)");
                 return;
             }
             Type alias;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -99,11 +99,11 @@ namespace Oce.Solid.Agent.ContractTests
                 var asm = Assembly.Load(File.ReadAllBytes(library));
                 alias = asm.GetType("Oce.Solid.Agent.Core.Alias", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (alias == null) { Segna("the library has the aliases", false, "type Oce.Solid.Agent.Core.Alias not found"); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            if (alias == null) { Check("the library has the aliases", false, "type Oce.Solid.Agent.Core.Alias not found"); return; }
 
             var problem = Convert.ToString(alias.GetProperty("Problem").GetValue(null));
-            Segna("the library reads its dictionary (the embedded name map)", string.IsNullOrEmpty(problem),
+            Check("the library reads its dictionary (the embedded name map)", string.IsNullOrEmpty(problem),
                   string.IsNullOrEmpty(problem) ? "read" : problem);
 
             var step = alias.GetMethod("Step");
@@ -121,23 +121,23 @@ namespace Oce.Solid.Agent.ContractTests
             };
             var call = new object[] { opIt, args };
             var notes = step.Invoke(null, call) as List<string>;
-            Segna("an Italian operation becomes the English one", (string)call[0] == "hole_wizard",
+            Check("an Italian operation becomes the English one", (string)call[0] == "hole_wizard",
                   "«" + opIt + "» -> «" + call[0] + "»");
-            Segna("its Italian arguments the arguments of its schema",
+            Check("its Italian arguments the arguments of its schema",
                   args.ContainsKey("variant") && args.ContainsKey("size") && args.ContainsKey("through_all") && args.Count == 3,
                   string.Join(", ", args.Keys));
-            Segna("and an Italian value the value the schema lists",
+            Check("and an Italian value the value the schema lists",
                   Equals(args.ContainsKey("variant") ? args["variant"] : null, "clearance"),
                   "variant = " + (args.ContainsKey("variant") ? args["variant"] : "(none)"));
-            Segna("every old name is in the deprecated lines", notes != null && notes.Count == 5 &&
+            Check("every old name is in the deprecated lines", notes != null && notes.Count == 5 &&
                   notes.All(n => n.Contains("is deprecated, use")),
-                  notes == null ? "(none)" : notes.Count + ": " + Corto(string.Join(" | ", notes)));
+                  notes == null ? "(none)" : notes.Count + ": " + Short(string.Join(" | ", notes)));
 
             // the English names go through untouched, and leave no line
             var english = new Dictionary<string, object> { ["variant"] = "clearance", ["size"] = "M10" };
             var call2 = new object[] { "hole_wizard", english };
             var none = step.Invoke(null, call2) as List<string>;
-            Segna("an English step is left as it is, with no deprecated line",
+            Check("an English step is left as it is, with no deprecated line",
                   none != null && none.Count == 0 && (string)call2[0] == "hole_wizard" && english.Count == 2, "");
 
             // a word of two senses: the schema of the operation decides
@@ -146,7 +146,7 @@ namespace Oce.Solid.Agent.ContractTests
             step.Invoke(null, new object[] { weldIt, weld });
             var section = new Dictionary<string, object> { ["a_mm"] = 5 };
             step.Invoke(null, new object[] { sectionIt, section });
-            Segna("«a_mm» is the throat in the weld symbol and the offset in the section line",
+            Check("«a_mm» is the throat in the weld symbol and the offset in the section line",
                   weld.ContainsKey("throat_mm") && section.ContainsKey("offset_mm"),
                   "weld: " + string.Join(",", weld.Keys) + "; section: " + string.Join(",", section.Keys));
 
@@ -154,7 +154,7 @@ namespace Oce.Solid.Agent.ContractTests
             string partIt = ValueOf(it, "variant", "part");
             var odd = new Dictionary<string, object> { ["variant"] = partIt };
             step.Invoke(null, new object[] { "hole_wizard", odd });
-            Segna("a value is not translated into one the schema does not list",
+            Check("a value is not translated into one the schema does not list",
                   partIt != null && Equals(odd["variant"], partIt), "«" + partIt + "» is a value of the document tool, not of hole_wizard: variant = " + odd["variant"]);
 
             // a selector of the bench
@@ -162,7 +162,7 @@ namespace Oce.Solid.Agent.ContractTests
             var old = faceIt + "(" + frontIt + ")";
             var selNotes = new List<string>();
             var sel = selector.Invoke(null, new object[] { old, selNotes }) as string;
-            Segna("an Italian selector becomes the English one", sel == "@face(normal=front)" && selNotes.Count == 1,
+            Check("an Italian selector becomes the English one", sel == "@face(normal=front)" && selNotes.Count == 1,
                   "«" + old + "» -> «" + sel + "»");
 
             // an argument without an enum takes free text: a word that is a value
@@ -171,14 +171,14 @@ namespace Oce.Solid.Agent.ContractTests
             string filletIt = ValueOf(it, "variant", "fillet");
             var free = new Dictionary<string, object> { ["variant"] = filletIt };
             var freeNotes = step.Invoke(null, new object[] { "mate", free }) as List<string>;
-            Segna("a free-text argument keeps a word that is an enum value elsewhere",
+            Check("a free-text argument keeps a word that is an enum value elsewhere",
                   filletIt != null && Equals(free["variant"], filletIt) && freeNotes != null && freeNotes.Count == 0,
                   "mate variant = " + free["variant"] + (freeNotes == null ? "" : ", " + freeNotes.Count + " deprecated lines"));
             // ... but the facings of mate are values, though no enum lists them
             string frontFacing = frontIt == null ? null : frontIt.Substring(frontIt.IndexOf('=') + 1);
             var facing = new Dictionary<string, object> { ["face_a"] = frontFacing };
             step.Invoke(null, new object[] { "mate", facing });
-            Segna("the facings of mate are translated, though no enum lists them",
+            Check("the facings of mate are translated, though no enum lists them",
                   Equals(facing["face_a"], "front"), "face_a = " + facing["face_a"]);
 
             // the URIs of the catalogue resources of before
@@ -189,21 +189,21 @@ namespace Oce.Solid.Agent.ContractTests
             var listUri = resourceUri == null ? null : resourceUri.Invoke(null, new object[] { oldList, uriNotes }) as string;
             var oneUri = resourceUri == null ? null : resourceUri.Invoke(null, new object[] { oldOne + slotIt, uriNotes }) as string;
             var mixedUri = resourceUri == null ? null : resourceUri.Invoke(null, new object[] { "catalog://operation/" + slotIt, uriNotes }) as string;
-            Segna("an old URI of the resources is read as the English one, with a deprecated line each",
+            Check("an old URI of the resources is read as the English one, with a deprecated line each",
                   listUri == "catalog://operations" && oneUri == "catalog://operation/slot" && mixedUri == "catalog://operation/slot" && uriNotes.Count == 3,
                   listUri + ", " + oneUri + ", " + mixedUri + "; " + uriNotes.Count + " lines");
 
             // a step that worked and left no measurements keeps its warning
-            var ops = alias.Assembly.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
-            var outcomeType = alias.Assembly.GetType("Oce.Solid.Agent.Core.OperazioniSw+Esito", false);
+            var ops = alias.Assembly.GetType("Oce.Solid.Agent.Core.SwOperations", false);
+            var outcomeType = alias.Assembly.GetType("Oce.Solid.Agent.Core.SwOperations+Outcome", false);
             var attach = ops == null ? null : ops.GetMethod("AttachDeprecated");
-            if (attach == null || outcomeType == null) { Segna("the library attaches the deprecated lines to an outcome", false, "OperazioniSw.AttachDeprecated or Esito not found"); return; }
+            if (attach == null || outcomeType == null) { Check("the library attaches the deprecated lines to an outcome", false, "OperazioniSw.AttachDeprecated or Esito not found"); return; }
             var outcome = Activator.CreateInstance(outcomeType);
-            outcomeType.GetField("Riuscito").SetValue(outcome, true);
-            outcomeType.GetField("Misure").SetValue(outcome, null);
+            outcomeType.GetField("Succeeded").SetValue(outcome, true);
+            outcomeType.GetField("Measurements").SetValue(outcome, null);
             attach.Invoke(null, new object[] { outcome, new List<string> { "«x» is deprecated, use «y»" } });
-            var measured = outcomeType.GetField("Misure").GetValue(outcome) as Dictionary<string, object>;
-            Segna("a step that worked with no measurements keeps its deprecated line",
+            var measured = outcomeType.GetField("Measurements").GetValue(outcome) as Dictionary<string, object>;
+            Check("a step that worked with no measurements keeps its deprecated line",
                   measured != null && measured.ContainsKey("deprecated"),
                   measured == null ? "measurements still null: the warning is lost" : string.Join(", ", measured.Keys));
         }
@@ -225,13 +225,13 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void Bridge(Func<string, string, string> it)
         {
-            var exe = PonteOppureNonQui("the aliases of the bridge");
+            var exe = BridgeOrNotHere("the aliases of the bridge");
             if (exe == null) return;
-            var p = Apri(exe);
-            if (p == null) { Segna("the bridge starts", false, "it did not start"); return; }
+            var p = Open(exe);
+            if (p == null) { Check("the bridge starts", false, "it did not start"); return; }
             try
             {
-                Chiedi(p, 1,
+                Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
@@ -246,64 +246,64 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"name\":\"" + buildIt + "\",\"arguments\":{\"dry_run\":true,\"" + stepsIt + "\":[" +
                     "{\"" + operationIt + "\":\"" + opIt + "\",\"" + argumentsIt + "\":{\"" + planeIt + "\":\"" + topIt + "\"," +
                     "\"" + lengthIt + "\":100,\"" + widthIt + "\":50,\"" + thicknessIt + "\":10}}]}}}";
-                var answer = Dentro(Ogg(Chiedi(p, 40, plan)), "result") as Dictionary<string, object>;
+                var answer = Inside(Obj(Ask(p, 40, plan)), "result") as Dictionary<string, object>;
                 var text = AllText(answer);
-                Segna("an Italian tool, plan and step give the dry run of the English plan",
+                Check("an Italian tool, plan and step give the dry run of the English plan",
                       text.IndexOf("PROVA A VUOTO", StringComparison.OrdinalIgnoreCase) >= 0 &&
                       text.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) < 0 &&
-                      !Equals(Dentro(answer, "isError"), true),
-                      Corto(text));
+                      !Equals(Inside(answer, "isError"), true),
+                      Short(text));
                 var expected = new[] { buildIt, stepsIt, operationIt, argumentsIt, opIt, planeIt, topIt, lengthIt, widthIt, thicknessIt };
                 var missing = expected.Where(n => text.IndexOf("«" + n + "» is deprecated", StringComparison.Ordinal) < 0).ToList();
-                Segna("and the answer lists every old name in «deprecated»", missing.Count == 0,
+                Check("and the answer lists every old name in «deprecated»", missing.Count == 0,
                       missing.Count == 0 ? expected.Length + " names" : "not listed: " + string.Join(", ", missing));
-                var structured = Dentro(answer, "structuredContent") as Dictionary<string, object>;
+                var structured = Inside(answer, "structuredContent") as Dictionary<string, object>;
                 if (structured != null)
-                    Segna("structuredContent carries them too", Dentro(structured, "deprecated") is object[], "");
+                    Check("structuredContent carries them too", Inside(structured, "deprecated") is object[], "");
 
                 // the catalogue tools: Italian in, English out
                 string listIt = it("tool", "list_operations"), familyIt = it("argument", "family");
                 string featuresIt = it("catalogue_family", "features");
-                var list = Dentro(Ogg(Chiedi(p, 41,
+                var list = Inside(Obj(Ask(p, 41,
                     "{\"jsonrpc\":\"2.0\",\"id\":41,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"" + listIt + "\",\"arguments\":{\"" + familyIt + "\":\"" + featuresIt + "\"}}}")), "result") as Dictionary<string, object>;
                 var listText = AllText(list);
-                Segna("an Italian family lists the English operations of that family",
-                      listText.Contains("fillet_edges") && listText.Contains("«" + featuresIt + "» is deprecated"), Corto(listText));
+                Check("an Italian family lists the English operations of that family",
+                      listText.Contains("fillet_edges") && listText.Contains("«" + featuresIt + "» is deprecated"), Short(listText));
 
                 string describeIt = it("tool", "describe_operation"), nameIt = it("argument", "name");
                 string slotIt = it("operation", "slot");
-                var described = Dentro(Ogg(Chiedi(p, 42,
+                var described = Inside(Obj(Ask(p, 42,
                     "{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"" + describeIt + "\",\"arguments\":{\"" + nameIt + "\":\"" + slotIt + "\"}}}")), "result") as Dictionary<string, object>;
                 var describedText = AllText(described);
-                Segna("an Italian operation is described, in English only",
-                      describedText.Contains("slot") && !Equals(Dentro(described, "isError"), true),
-                      Corto(describedText));
-                Segna("and the description carries no Italian name of its schema",
+                Check("an Italian operation is described, in English only",
+                      describedText.Contains("slot") && !Equals(Inside(described, "isError"), true),
+                      Short(describedText));
+                Check("and the description carries no Italian name of its schema",
                       describedText.IndexOf("\"" + it("argument", "length_mm") + "\"", StringComparison.Ordinal) < 0,
                       "no «" + it("argument", "length_mm") + "» key");
 
                 // a resource read with the URI of before
-                var resource = Dentro(Ogg(Chiedi(p, 43,
+                var resource = Inside(Obj(Ask(p, 43,
                     "{\"jsonrpc\":\"2.0\",\"id\":43,\"method\":\"resources/read\",\"params\":" +
                     "{\"uri\":\"" + OldUri("operazione/") + slotIt + "\"}}")), "result") as Dictionary<string, object>;
-                var contents = Dentro(resource, "contents") as object[];
+                var contents = Inside(resource, "contents") as object[];
                 var first = contents != null && contents.Length > 0 ? contents[0] : null;
-                Segna("a resource asked with the URI of before is the English one, and says so in «deprecated»",
-                      Equals(Dentro(first, "uri"), "catalog://operation/slot") && Dentro(resource, "deprecated") is object[] &&
-                      Convert.ToString(Dentro(first, "text")).Contains("\"name\""),
-                      "uri " + Dentro(first, "uri") + ", deprecated " + (Dentro(resource, "deprecated") is object[] ? "listed" : "missing"));
+                Check("a resource asked with the URI of before is the English one, and says so in «deprecated»",
+                      Equals(Inside(first, "uri"), "catalog://operation/slot") && Inside(resource, "deprecated") is object[] &&
+                      Convert.ToString(Inside(first, "text")).Contains("\"name\""),
+                      "uri " + Inside(first, "uri") + ", deprecated " + (Inside(resource, "deprecated") is object[] ? "listed" : "missing"));
             }
-            finally { Chiudi(p); }
+            finally { Close(p); }
         }
 
         // Every text item of an answer: the deprecated lines are the last one.
         private static string AllText(Dictionary<string, object> answer)
         {
-            var content = Dentro(answer, "content") as object[];
+            var content = Inside(answer, "content") as object[];
             if (content == null) return "";
-            return string.Join("\n", content.Select(c => Convert.ToString(Dentro(c, "text")) ?? ""));
+            return string.Join("\n", content.Select(c => Convert.ToString(Inside(c, "text")) ?? ""));
         }
     }
 }

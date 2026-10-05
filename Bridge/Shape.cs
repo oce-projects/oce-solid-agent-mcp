@@ -33,7 +33,7 @@ namespace Oce.Solid.Agent.Bridge
     /// bloccherebbe operazioni che oggi funzionano, e lo farebbe con un
     /// messaggio che parla di tipi.
     /// </summary>
-    internal static class Forma
+    internal static class Shape
     {
         /// <summary>
         /// Ritorna il motivo del rifiuto, o null se gli argomenti vanno bene.
@@ -48,32 +48,32 @@ namespace Oce.Solid.Agent.Bridge
         /// S20): «Superiore» is accepted and goes on as «top». The caller
         /// hands the same dictionary to the library, so whatever passes here
         /// reaches the library spelled as the catalogue spells it. See the
-        /// enum block in <see cref="Sbaglia"/> for why.
+        /// enum block in <see cref="Fail"/> for why.
         /// </summary>
-        public static string Controlla(
-            string operazione,
+        public static string Check(
+            string operation,
             Dictionary<string, object> schema,
-            Dictionary<string, object> argomenti)
+            Dictionary<string, object> arguments)
         {
             if (schema == null) return null;
-            var proprieta = Prendi(schema, "properties") as Dictionary<string, object>;
-            if (proprieta == null) return null;
+            var property = Take(schema, "properties") as Dictionary<string, object>;
+            if (property == null) return null;
 
-            argomenti = argomenti ?? new Dictionary<string, object>();
+            arguments = arguments ?? new Dictionary<string, object>();
 
             // ── 1. quello che deve esserci ───────────────────────────────
-            var mancanti = new List<string>();
-            foreach (var nome in Elenco(Prendi(schema, "required")))
+            var missingItems = new List<string>();
+            foreach (var itemName in Items(Take(schema, "required")))
             {
                 object v;
-                if (!argomenti.TryGetValue(nome, out v) || v == null) mancanti.Add(nome);
+                if (!arguments.TryGetValue(itemName, out v) || v == null) missingItems.Add(itemName);
             }
-            if (mancanti.Count == 1)
-                return "Per «" + operazione + "» serve «" + mancanti[0] + "», e non c'e'." +
-                       Suggerisci(proprieta, mancanti[0]);
-            if (mancanti.Count > 1)
-                return "Per «" + operazione + "» servono " +
-                       string.Join(", ", mancanti.Select(x => "«" + x + "»")) +
+            if (missingItems.Count == 1)
+                return "Per «" + operation + "» serve «" + missingItems[0] + "», e non c'e'." +
+                       Suggest(property, missingItems[0]);
+            if (missingItems.Count > 1)
+                return "Per «" + operation + "» servono " +
+                       string.Join(", ", missingItems.Select(x => "«" + x + "»")) +
                        ", e non ci sono.";
 
             // ── 2. quello che c'e', ma della forma sbagliata ─────────────
@@ -83,22 +83,22 @@ namespace Oce.Solid.Agent.Bridge
             // Framework even overwriting an existing key bumps the
             // dictionary's version, and the next MoveNext of a foreach over
             // that same dictionary throws InvalidOperationException.
-            foreach (var voce in argomenti.ToList())
+            foreach (var entry in arguments.ToList())
             {
                 // Le chiavi che cominciano con il trattino basso non sono
                 // parametri dell'operazione: sono roba nostra («_signatures»), e lo
                 // schema giustamente non le nomina.
-                if (voce.Key.StartsWith("_")) continue;
+                if (entry.Key.StartsWith("_")) continue;
 
-                object grezzo;
-                if (!proprieta.TryGetValue(voce.Key, out grezzo)) continue;
-                var regola = grezzo as Dictionary<string, object>;
-                if (regola == null || voce.Value == null) continue;
+                object raw;
+                if (!property.TryGetValue(entry.Key, out raw)) continue;
+                var rule = raw as Dictionary<string, object>;
+                if (rule == null || entry.Value == null) continue;
 
                 string catalogueSpelling;
-                var storto = Sbaglia(operazione, voce.Key, regola, voce.Value, 0, out catalogueSpelling);
-                if (storto != null) return storto;
-                if (catalogueSpelling != null) argomenti[voce.Key] = catalogueSpelling;
+                var crooked = Fail(operation, entry.Key, rule, entry.Value, 0, out catalogueSpelling);
+                if (crooked != null) return crooked;
+                if (catalogueSpelling != null) arguments[entry.Key] = catalogueSpelling;
             }
 
             return null;
@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.Bridge
         /// (`feature_rif.passo`). Tre e' un margine, e il tetto c'e' perche' un
         /// controllo che si chiama da solo senza fondo e' un modo di piantarsi.
         /// </summary>
-        private const int ProfonditaMassima = 3;
+        private const int MaximumDepth = 3;
 
         /// <summary>
         /// Controlla un valore contro la sua regola. Scende anche DENTRO gli
@@ -121,7 +121,7 @@ namespace Oce.Solid.Agent.Bridge
         /// `build` dice al modello: «Il piano viene controllato TUTTO prima di
         /// cominciare: se un passo qualunque ha un nome sbagliato o argomenti
         /// che non rispettano lo schema, non viene eseguito niente e il
-        /// documento resta com'era». `PianoInMemoria` ripete la stessa
+        /// documento resta com'era». `PlanInMemory` ripete la stessa
         /// garanzia.
         ///
         /// Ma il controllo si fermava al primo livello: per `type: "object"`
@@ -139,45 +139,45 @@ namespace Oce.Solid.Agent.Bridge
         /// <paramref name="catalogueSpelling"/> is not null only when the value
         /// is an enum written with a different case: it is the catalogue's
         /// spelling, and the caller writes it back in place of the value.
-        /// Nested objects are rewritten inside <see cref="Annidato"/>.
+        /// Nested objects are rewritten inside <see cref="Nested"/>.
         /// </summary>
-        private static string Sbaglia(
-            string operazione, string nome, Dictionary<string, object> regola,
-            object valore, int profondita, out string catalogueSpelling)
+        private static string Fail(
+            string operation, string itemName, Dictionary<string, object> rule,
+            object val, int depth, out string catalogueSpelling)
         {
             catalogueSpelling = null;
-            var tipo = Convert.ToString(Prendi(regola, "type") ?? "");
+            var typ = Convert.ToString(Take(rule, "type") ?? "");
 
-            switch (tipo)
+            switch (typ)
             {
                 case "number":
                 case "integer":
-                    if (!UnNumero(valore))
-                        return "Per «" + operazione + "», «" + nome + "» vuole un numero e " +
-                               "invece e' " + ComeSiChiama(valore) + ".";
+                    if (!ANumber(val))
+                        return "Per «" + operation + "», «" + itemName + "» vuole un numero e " +
+                               "invece e' " + WhatItIsCalled(val) + ".";
                     break;
 
                 case "boolean":
-                    if (!(valore is bool))
-                        return "Per «" + operazione + "», «" + nome + "» vuole vero o falso e " +
-                               "invece e' " + ComeSiChiama(valore) + ".";
+                    if (!(val is bool))
+                        return "Per «" + operation + "», «" + itemName + "» vuole vero o falso e " +
+                               "invece e' " + WhatItIsCalled(val) + ".";
                     break;
 
                 case "array":
-                    if (valore is string || !(valore is IEnumerable))
-                        return "Per «" + operazione + "», «" + nome + "» vuole un elenco e " +
-                               "invece e' " + ComeSiChiama(valore) + ".";
+                    if (val is string || !(val is IEnumerable))
+                        return "Per «" + operation + "», «" + itemName + "» vuole un elenco e " +
+                               "invece e' " + WhatItIsCalled(val) + ".";
                     break;
 
                 case "object":
-                    var dentro = valore as Dictionary<string, object>;
-                    if (dentro == null)
-                        return "Per «" + operazione + "», «" + nome + "» vuole un oggetto e " +
-                               "invece e' " + ComeSiChiama(valore) + ".";
-                    if (profondita < ProfonditaMassima)
+                    var inside = val as Dictionary<string, object>;
+                    if (inside == null)
+                        return "Per «" + operation + "», «" + itemName + "» vuole un oggetto e " +
+                               "invece e' " + WhatItIsCalled(val) + ".";
+                    if (depth < MaximumDepth)
                     {
-                        var storto = Annidato(operazione, nome, regola, dentro, profondita + 1);
-                        if (storto != null) return storto;
+                        var crooked = Nested(operation, itemName, rule, inside, depth + 1);
+                        if (crooked != null) return crooked;
                     }
                     break;
 
@@ -194,7 +194,7 @@ namespace Oce.Solid.Agent.Bridge
             // pattern S20). The case of a word is form, not merit, so
             // «Superiore» is accepted here, as it always was. Until 0.140.0
             // it then went on to the library untouched, and the library
-            // compares Ordinal: `SelezionaPiano` read «Superiore» as an
+            // compares Ordinal: `SelectPlane` read «Superiore» as an
             // unknown name and fell back to the front plane (the box on the
             // wrong plane, riuscita:true, finding N33), and
             // `rectangular_frame` read «Ingombro» as not-«overall», that
@@ -207,22 +207,22 @@ namespace Oce.Solid.Agent.Bridge
             // An exact match wins. Otherwise the one value that differs only
             // in case. Two such values (a catalogue spelling one word two
             // ways) leave nothing to choose from, and that stays a rejection.
-            var ammessi = Elenco(Prendi(regola, "enum"));
-            if (ammessi.Count > 0)
+            var allowed = Items(Take(rule, "enum"));
+            if (allowed.Count > 0)
             {
-                var scritto = Convert.ToString(valore);
-                if (ammessi.Contains(scritto, StringComparer.Ordinal)) return null;
-                var sameWord = ammessi
-                    .Where(x => string.Equals(x, scritto, StringComparison.OrdinalIgnoreCase))
+                var written = Convert.ToString(val);
+                if (allowed.Contains(written, StringComparer.Ordinal)) return null;
+                var sameWord = allowed
+                    .Where(x => string.Equals(x, written, StringComparison.OrdinalIgnoreCase))
                     .ToList();
                 if (sameWord.Count == 1)
                 {
                     catalogueSpelling = sameWord[0];
                     return null;
                 }
-                return "Per «" + operazione + "», «" + nome + "» puo' essere solo " +
-                       string.Join(", ", ammessi.Select(x => "«" + x + "»")) +
-                       ", e invece dice «" + scritto + "».";
+                return "Per «" + operation + "», «" + itemName + "» puo' essere solo " +
+                       string.Join(", ", allowed.Select(x => "«" + x + "»")) +
+                       ", e invece dice «" + written + "».";
             }
 
             return null;
@@ -230,51 +230,51 @@ namespace Oce.Solid.Agent.Bridge
 
         /// <summary>
         /// Dentro un oggetto annidato: prima cio' che manca, poi cio' che c'e'
-        /// della forma sbagliata. E' la stessa forma di <see cref="Controlla"/>,
+        /// della forma sbagliata. E' la stessa forma di <see cref="Check"/>,
         /// un livello piu' giu'.
         ///
         /// Il nome del campo si scrive per esteso — «feature_rif.passo» — o chi
         /// legge il messaggio non sa dove guardare: lo stesso nome «step» puo'
         /// stare sotto tre riferimenti diversi nello stesso schema.
         /// </summary>
-        private static string Annidato(
-            string operazione, string percorso, Dictionary<string, object> regola,
-            Dictionary<string, object> valore, int profondita)
+        private static string Nested(
+            string operation, string filePath, Dictionary<string, object> rule,
+            Dictionary<string, object> val, int depth)
         {
-            var proprieta = Prendi(regola, "properties") as Dictionary<string, object>;
-            if (proprieta == null) return null;
+            var property = Take(rule, "properties") as Dictionary<string, object>;
+            if (property == null) return null;
 
             // ── quello che manca ──
-            var obbligatori = Elenco(Prendi(regola, "required"));
-            var mancanti = obbligatori
-                .Where(n => !valore.ContainsKey(n) || valore[n] == null)
+            var mandatory = Items(Take(rule, "required"));
+            var missingItems = mandatory
+                .Where(n => !val.ContainsKey(n) || val[n] == null)
                 .ToList();
 
-            if (mancanti.Count == 1)
-                return "Per «" + operazione + "», «" + percorso + "» deve dire anche «" +
-                       mancanti[0] + "», e non lo dice.";
-            if (mancanti.Count > 1)
-                return "Per «" + operazione + "», «" + percorso + "» deve dire anche " +
-                       string.Join(", ", mancanti.Select(x => "«" + x + "»")) +
+            if (missingItems.Count == 1)
+                return "Per «" + operation + "», «" + filePath + "» deve dire anche «" +
+                       missingItems[0] + "», e non lo dice.";
+            if (missingItems.Count > 1)
+                return "Per «" + operation + "», «" + filePath + "» deve dire anche " +
+                       string.Join(", ", missingItems.Select(x => "«" + x + "»")) +
                        ", e non li dice.";
 
             // ── quello che c'e', ma della forma sbagliata ──
             // Over a copy, as in Controlla: an enum value such as
             // «faccia_rif.genere» can be rewritten in `value_text` on the way.
-            foreach (var voce in valore.ToList())
+            foreach (var entry in val.ToList())
             {
-                if (voce.Key.StartsWith("_")) continue;
-                object grezzo;
-                if (!proprieta.TryGetValue(voce.Key, out grezzo)) continue;
-                var dentro = grezzo as Dictionary<string, object>;
-                if (dentro == null || voce.Value == null) continue;
+                if (entry.Key.StartsWith("_")) continue;
+                object raw;
+                if (!property.TryGetValue(entry.Key, out raw)) continue;
+                var inside = raw as Dictionary<string, object>;
+                if (inside == null || entry.Value == null) continue;
 
                 string catalogueSpelling;
-                var storto = Sbaglia(
-                    operazione, percorso + "." + voce.Key, dentro, voce.Value, profondita,
+                var crooked = Fail(
+                    operation, filePath + "." + entry.Key, inside, entry.Value, depth,
                     out catalogueSpelling);
-                if (storto != null) return storto;
-                if (catalogueSpelling != null) valore[voce.Key] = catalogueSpelling;
+                if (crooked != null) return crooked;
+                if (catalogueSpelling != null) val[entry.Key] = catalogueSpelling;
             }
 
             return null;
@@ -285,7 +285,7 @@ namespace Oce.Solid.Agent.Bridge
         /// questo file e' un `type: number` che rifiuta il `20` di
         /// `"thickness_mm": 20` perche' il deserializzatore l'ha fatto `int`.
         /// </summary>
-        private static bool UnNumero(object v)
+        private static bool ANumber(object v)
         {
             if (v is bool) return false;
             if (v is sbyte || v is byte || v is short || v is ushort ||
@@ -301,7 +301,7 @@ namespace Oce.Solid.Agent.Bridge
                    double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
         }
 
-        private static string ComeSiChiama(object v)
+        private static string WhatItIsCalled(object v)
         {
             if (v == null) return "vuoto";
             if (v is bool) return "vero/falso";
@@ -312,35 +312,35 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>La descrizione del parametro mancante, se il catalogo ne ha una.</summary>
-        private static string Suggerisci(Dictionary<string, object> proprieta, string nome)
+        private static string Suggest(Dictionary<string, object> property, string itemName)
         {
-            object grezzo;
-            if (!proprieta.TryGetValue(nome, out grezzo)) return "";
-            var regola = grezzo as Dictionary<string, object>;
-            if (regola == null) return "";
-            var d = Convert.ToString(Prendi(regola, "description") ?? "").Trim();
+            object raw;
+            if (!property.TryGetValue(itemName, out raw)) return "";
+            var rule = raw as Dictionary<string, object>;
+            if (rule == null) return "";
+            var d = Convert.ToString(Take(rule, "description") ?? "").Trim();
             if (string.IsNullOrEmpty(d)) return "";
             if (d.Length > 160) d = d.Substring(0, 160).TrimEnd() + "…";
             return " (" + d + ")";
         }
 
-        private static List<string> Elenco(object grezzo)
+        private static List<string> Items(object raw)
         {
-            var fuori = new List<string>();
-            var e = grezzo as IEnumerable;
-            if (e == null || grezzo is string) return fuori;
+            var outside = new List<string>();
+            var e = raw as IEnumerable;
+            if (e == null || raw is string) return outside;
             foreach (var x in e)
             {
                 var s = Convert.ToString(x);
-                if (!string.IsNullOrWhiteSpace(s)) fuori.Add(s);
+                if (!string.IsNullOrWhiteSpace(s)) outside.Add(s);
             }
-            return fuori;
+            return outside;
         }
 
-        private static object Prendi(Dictionary<string, object> d, string chiave)
+        private static object Take(Dictionary<string, object> d, string key)
         {
             object v;
-            return d != null && d.TryGetValue(chiave, out v) ? v : null;
+            return d != null && d.TryGetValue(key, out v) ? v : null;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Checks.FramingTest
     /// <summary>
     /// IL PEZZO CI STA DENTRO AL FOTOGRAMMA? (voce V5)
     ///
-    /// `VistaDelPezzo.Scatta` gira il pezzo, chiama `ViewZoomtofit2` e salva un
+    /// `PartView.Fire` gira il pezzo, chiama `ViewZoomtofit2` e salva un
     /// PNG 1024x768. L'isometrica esce intera e centrata. **Le tre viste
     /// standard no.**
     ///
@@ -42,12 +42,12 @@ namespace Checks.FramingTest
     ///
     /// Non tocca nessun documento gia' aperto: se ne crea uno suo e lo chiude.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int _falliti;
-        private static int _magre;
-        private static Assembly _libreria;
-        private static Type _vista;
+        private static int _failed;
+        private static int _thinOnes;
+        private static Assembly _library;
+        private static Type _view;
 
         /// <summary>
         /// Quanto vicino al bordo e' «tocca il bordo».
@@ -56,26 +56,26 @@ namespace Checks.FramingTest
         /// arriva a due pixel dal bordo e' comunque tagliato o sul punto di
         /// esserlo. Tre pixel di franchigia su 1024 sono lo 0,3%.
         /// </summary>
-        private const int Franchigia = 3;
+        private const int Allowance = 3;
 
         /// <summary>Quanto deve riempire, almeno, nella direzione migliore.</summary>
-        private const double RiempimentoMinimo = 0.60;
+        private const double MinimumFill = 0.60;
 
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
-            string percorsoLibreria = argomenti.Length > 0
-                ? argomenti[0]
+            string libraryPath = arguments.Length > 0
+                ? arguments[0]
                 : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Oce.Solid.Agent.Core.dll");
-            if (!File.Exists(percorsoLibreria))
+            if (!File.Exists(libraryPath))
             {
-                Console.Error.WriteLine("non trovo la libreria: " + percorsoLibreria);
+                Console.Error.WriteLine("non trovo la libreria: " + libraryPath);
                 return 2;
             }
-            _libreria = Assembly.Load(File.ReadAllBytes(percorsoLibreria));
-            _vista = _libreria.GetType("Oce.Solid.Agent.Core.VistaDelPezzo", false);
-            if (_vista == null)
+            _library = Assembly.Load(File.ReadAllBytes(libraryPath));
+            _view = _library.GetType("Oce.Solid.Agent.Core.PartView", false);
+            if (_view == null)
             {
-                Console.Error.WriteLine("VistaDelPezzo non c'e' in " + percorsoLibreria);
+                Console.Error.WriteLine("VistaDelPezzo non c'e' in " + libraryPath);
                 return 2;
             }
 
@@ -89,11 +89,11 @@ namespace Checks.FramingTest
 
             Console.WriteLine();
             Console.WriteLine("=== il pezzo ci sta dentro al fotogramma? ===");
-            Console.WriteLine("libreria " + _libreria.GetName().Version);
+            Console.WriteLine("libreria " + _library.GetName().Version);
             Console.WriteLine();
 
             // PRIMA SI PROVA IL RIGHELLO, POI SI MISURA.
-            IlRighelloCiVedeBene(sw);
+            TheRulerSeesWell(sw);
             Console.WriteLine();
 
             // ── QUANT'E' LARGO IL VIEWPORT, DAVVERO ──────────────────────
@@ -105,7 +105,7 @@ namespace Checks.FramingTest
             //
             // Un'ipotesi in questa sezione ne ha gia' sbagliate tre di fila.
             // Questa riga la chiede.
-            Aspetto(sw);
+            AspectRatio(sw);
             Console.WriteLine();
 
             // TRE FORME, SCELTE PER ESSERE SCOMODE IN MODI DIVERSI:
@@ -113,68 +113,68 @@ namespace Checks.FramingTest
             //   la piastra e' larga e piatta   -> la destra e' una striscia;
             //   l'albero e' lungo e stretto    -> la frontale e' una riga.
             // Un pezzo cubico non direbbe niente: ci sta sempre.
-            Prova(sw, "staffa a L 120x60x58", doc =>
+            Test(sw, "staffa a L 120x60x58", doc =>
             {
-                Blocco(doc, 0.120, 0.060, 0.008);
+                Block(doc, 0.120, 0.060, 0.008);
             });
-            Prova(sw, "piastra 200x120x15", doc =>
+            Test(sw, "piastra 200x120x15", doc =>
             {
-                Blocco(doc, 0.200, 0.120, 0.015);
+                Block(doc, 0.200, 0.120, 0.015);
             });
-            Prova(sw, "barra 300x20x20", doc =>
+            Test(sw, "barra 300x20x20", doc =>
             {
-                Blocco(doc, 0.300, 0.020, 0.020);
+                Block(doc, 0.300, 0.020, 0.020);
             });
 
             Console.WriteLine();
-            Console.WriteLine(_falliti == 0
+            Console.WriteLine(_failed == 0
                 ? "Nessuna vista tagliata."
-                : _falliti + " VISTE TAGLIATE.");
-            if (_magre > 0)
-                Console.WriteLine(_magre + " viste riempiono meno del " +
-                                  (RiempimentoMinimo * 100).ToString("0") +
+                : _failed + " VISTE TAGLIATE.");
+            if (_thinOnes > 0)
+                Console.WriteLine(_thinOnes + " viste riempiono meno del " +
+                                  (MinimumFill * 100).ToString("0") +
                                   "%: pixel pagati che non mostrano niente. " +
                                   "Non e' un difetto, e' un costo.");
-            return _falliti == 0 ? 0 : 1;
+            return _failed == 0 ? 0 : 1;
         }
 
-        private static readonly string[] Viste =
+        private static readonly string[] Views =
             { "isometric", "front", "top", "right" };
 
-        private static void Prova(ISldWorks sw, string nome, Action<IModelDoc2> costruisci)
+        private static void Test(ISldWorks sw, string itemName, Action<IModelDoc2> build)
         {
             IModelDoc2 doc = null;
             try
             {
-                string modello = sw.GetUserPreferenceStringValue(
+                string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-                doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
-                if (doc == null) { Segna(nome, false, "parte non creata"); return; }
-                costruisci(doc);
+                doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
+                if (doc == null) { Check(itemName, false, "parte non creata"); return; }
+                build(doc);
 
-                Console.WriteLine("  " + nome);
-                foreach (var quale in Viste)
+                Console.WriteLine("  " + itemName);
+                foreach (var which in Views)
                 {
-                    byte[] png = Scatta(doc, quale);
+                    byte[] png = Fire(doc, which);
                     if (png == null || png.Length == 0)
                     {
-                        Segna("    " + quale, false, "niente immagine");
+                        Check("    " + which, false, "niente immagine");
                         continue;
                     }
-                    int primaDeiFalliti = _falliti;
-                    Misura(quale, png);
+                    int beforeTheFailed = _failed;
+                    Measure(which, png);
 
                     // UNO STRUMENTO CHE DICE «TAGLIATA» DEVE FAR VEDERE COSA.
                     // La prima versione di questa misura si sbagliava — la
                     // soglia dello sfondo era presa a occhio — e l'unico modo
                     // di accorgersene e' stato GUARDARE l'immagine. Adesso, se
                     // il verdetto e' rosso, il fotogramma resta su disco.
-                    if (_falliti > primaDeiFalliti) Deponi(nome, quale, png);
+                    if (_failed > beforeTheFailed) Deposit(itemName, which, png);
                 }
             }
             catch (Exception ex)
             {
-                Segna(nome, false, ex.GetType().Name + ": " + ex.Message);
+                Check(itemName, false, ex.GetType().Name + ": " + ex.Message);
             }
             finally
             {
@@ -182,11 +182,11 @@ namespace Checks.FramingTest
             }
         }
 
-        private static byte[] Scatta(IModelDoc2 doc, string quale)
+        private static byte[] Fire(IModelDoc2 doc, string which)
         {
-            var metodo = _vista.GetMethod("Scatta", BindingFlags.Public | BindingFlags.Static);
-            var p = new object[] { doc, quale, 1024, 768, null };
-            return metodo.Invoke(null, p) as byte[];
+            var method = _view.GetMethod("Fire", BindingFlags.Public | BindingFlags.Static);
+            var p = new object[] { doc, which, 1024, 768, null };
+            return method.Invoke(null, p) as byte[];
         }
 
         /// <summary>
@@ -198,21 +198,21 @@ namespace Checks.FramingTest
         /// colore esatto — la sfumatura cambia da pixel a pixel, ed e' proprio
         /// per quello che un confronto con un colore fisso non funzionerebbe.
         /// </summary>
-        private static void Misura(string quale, byte[] png)
+        private static void Measure(string which, byte[] png)
         {
             int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
-            int larghezza, altezza;
+            int width, height;
 
-            using (var dentro = new MemoryStream(png))
-            using (var immagine = new Bitmap(dentro))
+            using (var inside = new MemoryStream(png))
+            using (var image = new Bitmap(inside))
             {
-                larghezza = immagine.Width;
-                altezza = immagine.Height;
+                width = image.Width;
+                height = image.Height;
 
-                for (int y = 0; y < altezza; y++)
-                    for (int x = 0; x < larghezza; x++)
+                for (int y = 0; y < height; y++)
+                    for (int x = 0; x < width; x++)
                     {
-                        if (!EPezzo(immagine.GetPixel(x, y))) continue;
+                        if (!IsPart(image.GetPixel(x, y))) continue;
                         if (x < minX) minX = x;
                         if (y < minY) minY = y;
                         if (x > maxX) maxX = x;
@@ -222,21 +222,21 @@ namespace Checks.FramingTest
 
             if (maxX < 0)
             {
-                Segna("    " + quale, false, "nessun pixel di pezzo: fotogramma vuoto");
+                Check("    " + which, false, "nessun pixel di pezzo: fotogramma vuoto");
                 return;
             }
 
-            bool tocca = minX <= Franchigia || minY <= Franchigia ||
-                         maxX >= larghezza - 1 - Franchigia ||
-                         maxY >= altezza - 1 - Franchigia;
+            bool touches = minX <= Allowance || minY <= Allowance ||
+                         maxX >= width - 1 - Allowance ||
+                         maxY >= height - 1 - Allowance;
 
-            double riempieX = (maxX - minX + 1) / (double)larghezza;
-            double riempieY = (maxY - minY + 1) / (double)altezza;
-            double riempie = Math.Max(riempieX, riempieY);
+            double fillX = (maxX - minX + 1) / (double)width;
+            double fillY = (maxY - minY + 1) / (double)height;
+            double fill = Math.Max(fillX, fillY);
 
-            string dettaglio = string.Format(
+            string detail = string.Format(
                 "scatola x {0}-{1} y {2}-{3}, riempie {4:0}% x {5:0}%",
-                minX, maxX, minY, maxY, riempieX * 100, riempieY * 100);
+                minX, maxX, minY, maxY, fillX * 100, fillY * 100);
 
             // ── I DUE CRITERI NON SONO DELLO STESSO GENERE ───────────────
             //
@@ -248,18 +248,18 @@ namespace Checks.FramingTest
             // Quindi l'esito dipende SOLO dal taglio. Il riempimento si stampa,
             // si vede, e non fa fallire niente — ma si stampa **sempre**, per
             // non farlo sparire: e' quello che paga chi usa il ponte.
-            if (tocca)
+            if (touches)
             {
-                Segna("    " + quale, false, "TAGLIATA -- " + dettaglio);
+                Check("    " + which, false, "TAGLIATA -- " + detail);
                 return;
             }
-            Segna("    " + quale, true, dettaglio);
-            if (riempie < RiempimentoMinimo)
+            Check("    " + which, true, detail);
+            if (fill < MinimumFill)
             {
-                _magre++;
+                _thinOnes++;
                 Console.WriteLine("         (magra: riempie " +
-                                  (riempie * 100).ToString("0") + "%, sotto il " +
-                                  (RiempimentoMinimo * 100).ToString("0") + "% che vorremmo)");
+                                  (fill * 100).ToString("0") + "%, sotto il " +
+                                  (MinimumFill * 100).ToString("0") + "% che vorremmo)");
             }
         }
 
@@ -289,10 +289,10 @@ namespace Checks.FramingTest
         /// **Il canale piu' basso, non la somma:** un grigio medio e un azzurro
         /// chiaro possono avere la stessa somma.
         ///
-        /// E soprattutto: non ci si fida: `IlRighelloCiVedeBene` lo prova su un
+        /// E soprattutto: non ci si fida: `TheRulerSeesWell` lo prova su un
         /// fotogramma in cui **si sa** che di pezzo non ce n'e' nemmeno uno.
         /// </summary>
-        private static bool EPezzo(Color c)
+        private static bool IsPart(Color c)
         {
             return Math.Min(c.R, Math.Min(c.G, c.B)) < 200;
         }
@@ -308,35 +308,35 @@ namespace Checks.FramingTest
         /// Costa uno scatto. Le due soglie sbagliate prima di questa sarebbero
         /// morte qui invece che dopo tre giri e due letture a occhio.
         /// </summary>
-        private static void IlRighelloCiVedeBene(ISldWorks sw)
+        private static void TheRulerSeesWell(ISldWorks sw)
         {
             IModelDoc2 doc = null;
             try
             {
-                string modello = sw.GetUserPreferenceStringValue(
+                string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-                doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
-                if (doc == null) { Segna("il righello ci vede bene", false, "parte non creata"); return; }
+                doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
+                if (doc == null) { Check("il righello ci vede bene", false, "parte non creata"); return; }
 
-                byte[] png = Scatta(doc, "isometric");
-                if (png == null) { Segna("il righello ci vede bene", false, "niente immagine"); return; }
+                byte[] png = Fire(doc, "isometric");
+                if (png == null) { Check("il righello ci vede bene", false, "niente immagine"); return; }
 
-                int quanti = 0;
-                using (var dentro = new MemoryStream(png))
-                using (var immagine = new Bitmap(dentro))
-                    for (int y = 0; y < immagine.Height; y++)
-                        for (int x = 0; x < immagine.Width; x++)
-                            if (EPezzo(immagine.GetPixel(x, y))) quanti++;
+                int howMany = 0;
+                using (var inside = new MemoryStream(png))
+                using (var image = new Bitmap(inside))
+                    for (int y = 0; y < image.Height; y++)
+                        for (int x = 0; x < image.Width; x++)
+                            if (IsPart(image.GetPixel(x, y))) howMany++;
 
-                Segna("il righello ci vede bene", quanti == 0,
-                      quanti == 0
+                Check("il righello ci vede bene", howMany == 0,
+                      howMany == 0
                           ? "su un documento vuoto non vede nessun pezzo"
-                          : quanti + " pixel di «part» su un documento VUOTO: la soglia mente");
-                if (quanti != 0) Deponi("righello", "vuoto", png);
+                          : howMany + " pixel di «part» su un documento VUOTO: la soglia mente");
+                if (howMany != 0) Deposit("righello", "vuoto", png);
             }
             catch (Exception ex)
             {
-                Segna("il righello ci vede bene", false, ex.GetType().Name + ": " + ex.Message);
+                Check("il righello ci vede bene", false, ex.GetType().Name + ": " + ex.Message);
             }
             finally
             {
@@ -345,55 +345,55 @@ namespace Checks.FramingTest
         }
 
         /// <summary>Che forma ha l'area grafica in cui SOLIDWORKS inquadra.</summary>
-        private static void Aspetto(ISldWorks sw)
+        private static void AspectRatio(ISldWorks sw)
         {
             IModelDoc2 doc = null;
             try
             {
-                string modello = sw.GetUserPreferenceStringValue(
+                string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-                doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
-                var vista = doc == null ? null : doc.ActiveView as IModelView;
-                if (vista == null) { Console.WriteLine("  (area grafica non leggibile)"); return; }
+                doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
+                var view = doc == null ? null : doc.ActiveView as IModelView;
+                if (view == null) { Console.WriteLine("  (area grafica non leggibile)"); return; }
 
-                double w = vista.FrameWidth, h = vista.FrameHeight;
-                double aspettoVista = h > 0 ? w / h : 0;
-                double aspettoChiesto = 1024.0 / 768.0;
+                double w = view.FrameWidth, h = view.FrameHeight;
+                double viewAspect = h > 0 ? w / h : 0;
+                double requestedAspect = 1024.0 / 768.0;
                 Console.WriteLine(string.Format(
                     "  area grafica {0:0} x {1:0}  ->  {2:0.###}   chiesto 1024x768 -> {3:0.###}",
-                    w, h, aspettoVista, aspettoChiesto));
+                    w, h, viewAspect, requestedAspect));
                 Console.WriteLine(string.Format(
                     "  scala della vista: {0:0.#####}   rapporto fra i due aspetti: {1:0.###}",
-                    vista.Scale2, aspettoVista > 0 ? aspettoVista / aspettoChiesto : 0));
+                    view.Scale2, viewAspect > 0 ? viewAspect / requestedAspect : 0));
             }
             catch (Exception ex) { Console.WriteLine("  (aspetto non leggibile: " + ex.Message + ")"); }
             finally { if (doc != null) { try { sw.CloseDoc(doc.GetTitle()); } catch { } } }
         }
 
         /// <summary>Il fotogramma di una prova rossa, lasciato da guardare.</summary>
-        private static void Deponi(string forma, string quale, byte[] png)
+        private static void Deposit(string shape, string which, byte[] png)
         {
             try
             {
-                string cartella = Path.Combine(
+                string folder = Path.Combine(
                     AppDomain.CurrentDomain.BaseDirectory, "fotogrammi");
-                Directory.CreateDirectory(cartella);
-                string pulito = forma.Replace(' ', '_').Replace('x', 'X');
-                string file = Path.Combine(cartella, pulito + "-" + quale + ".png");
+                Directory.CreateDirectory(folder);
+                string clean = shape.Replace(' ', '_').Replace('x', 'X');
+                string file = Path.Combine(folder, clean + "-" + which + ".png");
                 File.WriteAllBytes(file, png);
                 Console.WriteLine("         guardalo: " + file);
             }
             catch { }
         }
 
-        private static void Segna(string nome, bool ok, string dettaglio)
+        private static void Check(string itemName, bool ok, string detail)
         {
-            if (!ok) _falliti++;
-            Console.WriteLine((ok ? "  OK   " : "  NO   ") + nome.PadRight(20) + dettaglio);
+            if (!ok) _failed++;
+            Console.WriteLine((ok ? "  OK   " : "  NO   ") + itemName.PadRight(20) + detail);
         }
 
         /// <summary>Un blocco, in metri: SOLIDWORKS lavora in metri.</summary>
-        private static void Blocco(IModelDoc2 doc, double l, double w, double h)
+        private static void Block(IModelDoc2 doc, double l, double w, double h)
         {
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateCornerRectangle(-l / 2, -w / 2, 0, l / 2, w / 2, 0);

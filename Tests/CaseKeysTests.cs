@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using Oce.Solid.Agent.Bench;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -59,9 +59,9 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Gruppo("the bench refuses unknown case keys (W3.1-bis.2, item 4)");
+            Group("the bench refuses unknown case keys (W3.1-bis.2, item 4)");
 
-            var root = Radice();
+            var root = Root();
             var listPath = Path.Combine(root, "Bench", CaseKeys.FileName);
             string listText;
             CaseKeys keys;
@@ -70,8 +70,8 @@ namespace Oce.Solid.Agent.ContractTests
                 listText = File.ReadAllText(listPath);
                 keys = CaseKeys.Parse(listText);
             }
-            catch (Exception ex) { Segna("the list of case keys loads", false, listPath + ": " + ex.Message); return; }
-            Segna("the list of case keys loads", keys.Contexts.Count >= 10,
+            catch (Exception ex) { Check("the list of case keys loads", false, listPath + ": " + ex.Message); return; }
+            Check("the list of case keys loads", keys.Contexts.Count >= 10,
                   keys.Contexts.Count + " contexts, " + keys.FrozenCount + " frozen free keys");
 
             TheListRefusesWhatItDoesNotKnow();
@@ -84,7 +84,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var unknown = keys.Unknown(c.Body, c.Root);
                 if (unknown.Count > 0) dirty.Add(c.Name + ": " + string.Join(", ", unknown));
             }
-            Segna("every case of the tree carries only keys the bench reads",
+            Check("every case of the tree carries only keys the bench reads",
                   cases.Count >= 250 && dirty.Count == 0,
                   dirty.Count == 0
                       ? cases.Count + " cases, " + cases.Count(c => c.Root == keys.RegressionRoot) + " of them regression"
@@ -222,16 +222,16 @@ namespace Oce.Solid.Agent.ContractTests
                     renamedMissed.Add(context + "/" + readHere);
             }
 
-            Segna("every context of the list is used by some case", notTried.Count == 0,
+            Check("every context of the list is used by some case", notTried.Count == 0,
                   notTried.Count == 0 ? tried + " contexts" :
                   "no case uses: " + string.Join(", ", notTried) + " (a context nobody uses is a rule nobody checks)");
-            Segna("a made-up key is refused in every context, with its path", tried > 0 && missed.Count == 0,
+            Check("a made-up key is refused in every context, with its path", tried > 0 && missed.Count == 0,
                   missed.Count == 0 ? tried + " contexts, each refused exactly the injected key"
                                     : "NOT REFUSED: " + string.Join(" | ", missed));
-            Segna("a read key renamed as a wrong translation is refused", renamed > 0 && renamedMissed.Count == 0,
+            Check("a read key renamed as a wrong translation is refused", renamed > 0 && renamedMissed.Count == 0,
                   renamedMissed.Count == 0 ? renamed + " contexts, each with one of its read keys renamed"
                                            : "NOT REFUSED: " + string.Join(", ", renamedMissed));
-            Segna("a free note with the prefix is admitted in every context", noteRefused.Count == 0,
+            Check("a free note with the prefix is admitted in every context", noteRefused.Count == 0,
                   noteRefused.Count == 0 ? tried + " contexts" : "REFUSED in: " + string.Join(", ", noteRefused));
         }
 
@@ -263,7 +263,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             if (host == null || frozenOfTheCase == null || onlyRegression == null)
             {
-                Segna("the context decides, not the key alone", false,
+                Check("the context decides, not the key alone", false,
                       "nothing to try it on: a declared case with an expectation " + (host != null) +
                       ", a key of the case root " + (frozenOfTheCase != null) +
                       ", a key read only by the regression " + (onlyRegression != null));
@@ -280,7 +280,7 @@ namespace Oce.Solid.Agent.ContractTests
             expectation[onlyRegression] = true;
             bool regressionRefused = keys.Unknown(copy, host.Root).Count == 1;
 
-            Segna("the context decides, not the key alone", rootAdmits && frozenRefused && regressionRefused,
+            Check("the context decides, not the key alone", rootAdmits && frozenRefused && regressionRefused,
                   "a key of the case root («" + frozenOfTheCase + "»): admitted at the root " + rootAdmits + ", refused in an expectation " +
                   frozenRefused + "; a key read only by the regression, refused in a declared expectation " +
                   regressionRefused);
@@ -294,7 +294,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void TheFrozenListOnlyShrinks(CaseKeys keys, string listText, List<OneCase> cases)
         {
-            Segna("the frozen list of free keys has the length written here", keys.FrozenCount == FrozenFreeCeiling,
+            Check("the frozen list of free keys has the length written here", keys.FrozenCount == FrozenFreeCeiling,
                   keys.FrozenCount == FrozenFreeCeiling
                       ? FrozenFreeCeiling + " pairs (context, key)"
                       : keys.FrozenCount < FrozenFreeCeiling
@@ -303,15 +303,15 @@ namespace Oce.Solid.Agent.ContractTests
                             ": a new free note starts with «" + CaseKeys.FreePrefix + "», it is not frozen");
 
             var dead = DeadFrozenEntries(keys, cases);
-            Segna("every frozen free key is still used by a case", dead.Count == 0,
+            Check("every frozen free key is still used by a case", dead.Count == 0,
                   dead.Count == 0 ? keys.FrozenCount + " entries, all used"
                                   : "used by no case, remove them and lower the ceiling: " + string.Join(", ", dead.Take(10)));
 
             CaseKeys widened;
             try { widened = CaseKeys.Parse(WithExtraKey(listText, keys.DeclaredRoot, "frozen_free", "made_up_frozen_key")); }
-            catch (Exception ex) { Segna("a frozen entry no case uses is reported", false, "the widened list: " + ex.Message); return; }
+            catch (Exception ex) { Check("a frozen entry no case uses is reported", false, "the widened list: " + ex.Message); return; }
             var deadThere = DeadFrozenEntries(widened, cases);
-            Segna("a frozen entry no case uses is reported", deadThere.Count == dead.Count + 1 &&
+            Check("a frozen entry no case uses is reported", deadThere.Count == dead.Count + 1 &&
                                                               deadThere.Contains(keys.DeclaredRoot + "/made_up_frozen_key"),
                   "on a copy of the list with one entry more: " + string.Join(", ", deadThere.Take(3)));
         }
@@ -337,15 +337,15 @@ namespace Oce.Solid.Agent.ContractTests
         {
             var sources = BenchSources(root);
             var missing = keys.ReadKeysWithoutReader(sources);
-            Segna("every read key of the list is read by the bench sources", sources.Count >= 5 && missing.Count == 0,
+            Check("every read key of the list is read by the bench sources", sources.Count >= 5 && missing.Count == 0,
                   missing.Count == 0 ? sources.Count + " sources, " + keys.Contexts.Values.Sum(c => c.Read.Count) + " read keys"
                                      : "READ BY NOBODY (renamed on one side only?): " + string.Join(", ", missing));
 
             CaseKeys widened;
             try { widened = CaseKeys.Parse(WithExtraKey(listText, "step", "read", "made_up_read_key")); }
-            catch (Exception ex) { Segna("a read key without a reader is reported", false, "the widened list: " + ex.Message); return; }
+            catch (Exception ex) { Check("a read key without a reader is reported", false, "the widened list: " + ex.Message); return; }
             var missingThere = widened.ReadKeysWithoutReader(sources);
-            Segna("a read key without a reader is reported",
+            Check("a read key without a reader is reported",
                   missingThere.Count == missing.Count + 1 && missingThere.Contains("step/made_up_read_key"),
                   "on a copy of the list with one read key more: " + string.Join(", ", missingThere));
 
@@ -368,7 +368,7 @@ namespace Oce.Solid.Agent.ContractTests
             };
             var wrongShapes = shapes.Where(s => readIn(s.Item1) != s.Item2)
                                     .Select(s => "«" + s.Item1 + "» " + (s.Item2 ? "not seen as a read" : "seen as a read")).ToList();
-            Segna("a key quoted only in a comment or written only in an initializer has no reader (fake sources)",
+            Check("a key quoted only in a comment or written only in an initializer has no reader (fake sources)",
                   wrongShapes.Count == 0,
                   wrongShapes.Count == 0 ? shapes.Length + " shapes as expected" : string.Join("; ", wrongShapes));
         }
@@ -441,7 +441,7 @@ namespace Oce.Solid.Agent.ContractTests
                     whyValid = "the small list found " + string.Join(", ", unknown);
             }
             catch (Exception ex) { whyValid = ex.Message; }
-            Segna("a small list loads and names each unknown key by path", whyValid == null,
+            Check("a small list loads and names each unknown key by path", whyValid == null,
                   whyValid ?? "items[2].colour and stray, and nothing else");
 
             var broken = new Dictionary<string, string>
@@ -465,7 +465,7 @@ namespace Oce.Solid.Agent.ContractTests
                 try { CaseKeys.Parse(b.Value); accepted.Add(b.Key); }
                 catch (FormatException) { }
             }
-            Segna("a malformed list of case keys is refused, not emptied", accepted.Count == 0,
+            Check("a malformed list of case keys is refused, not emptied", accepted.Count == 0,
                   accepted.Count == 0 ? broken.Count + " broken lists, each refused"
                                       : "ACCEPTED: " + string.Join(", ", accepted));
         }
@@ -540,7 +540,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Gruppo("the bench report names every test by file:method:ordinal (W3.1-bis.2, item 7)");
+            Group("the bench report names every test by file:method:ordinal (W3.1-bis.2, item 7)");
             TheScanOfAWrittenSource();
             TheScanAgreesWithTheCompiler();
             TheLedger();
@@ -632,7 +632,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var got = call == null ? "no call" : (call.In == null ? "no member" : call.In.Identifier) + ":" + call.Ordinal;
                 if (got != e.Member + ":" + e.Ordinal) wrong.Add(e.Fragment + " -> " + got + ", expected " + e.Member + ":" + e.Ordinal);
             }
-            Segna("the scan names member and ordinal of every written call", wrong.Count == 0,
+            Check("the scan names member and ordinal of every written call", wrong.Count == 0,
                   wrong.Count == 0 ? expected.Length + " calls: constructor, static constructor, lambda, local function, " +
                                      "property, field, generic method, expression body, a declaration over two lines, " +
                                      "and a second method of the same name sharing the count"
@@ -646,7 +646,7 @@ namespace Oce.Solid.Agent.ContractTests
             bool ok = seen.Count == 0 && indexer != null && indexer.In == null &&
                       twice.Count == 1 && twice[0] == LineOf("Mark(\"m1\")") &&
                       declared.Count == 1 && declared[0] == "Mark" && scan.Calls.Count == 14;
-            Segna("non-calls are not counted, unknown shapes are said", ok,
+            Check("non-calls are not counted, unknown shapes are said", ok,
                   "counted in comments, strings or holes: " + (seen.Count == 0 ? "none" : string.Join(", ", seen)) +
                   "; the indexer call in no member: " + (indexer != null && indexer.In == null) +
                   "; lines with two calls: " + string.Join(",", twice) +
@@ -657,7 +657,7 @@ namespace Oce.Solid.Agent.ContractTests
         private static string ReadSource(string callerFile)
         {
             if (string.IsNullOrEmpty(callerFile)) return null;
-            var here = Path.Combine(Radice(), "Tests", Path.GetFileName(callerFile));
+            var here = Path.Combine(Root(), "Tests", Path.GetFileName(callerFile));
             if (File.Exists(here)) return File.ReadAllText(here);
             return File.Exists(callerFile) ? File.ReadAllText(callerFile) : null;
         }
@@ -683,14 +683,14 @@ namespace Oce.Solid.Agent.ContractTests
             const string expectedIds = "ThreeMarks:1, ThreeMarks:2, ThreeMarks:3, " +
                                        "MarksInALambdaAndALocalFunction:1, MarksInALambdaAndALocalFunction:2, " +
                                        "MarkedProperty:1, .ctor:1, MarkedField:1";
-            Segna("the scan puts every call in the member the compiler names", results.Count == 8 &&
+            Check("the scan puts every call in the member the compiler names", results.Count == 8 &&
                                                                                unresolved.Count == 0 && ids == expectedIds,
                   unresolved.Count > 0 ? string.Join(" | ", unresolved) : ids);
 
             var first = Marks[0];
             var wrongMember = ledger.Record(first.File, "SomeOtherMethod", first.Line, TestLedger.Ok, "wrong member", null);
             var noCall = ledger.Record(first.File, first.Member, first.Line - 1, TestLedger.Ok, "no call", null);
-            Segna("a wrong member or a line without a call is unresolved",
+            Check("a wrong member or a line without a call is unresolved",
                   wrongMember.Unresolved != null && wrongMember.Unresolved.Contains("compiler says") &&
                   noCall.Unresolved != null && noCall.Unresolved.Contains("no recording call") &&
                   !wrongMember.Ordinal.HasValue && !noCall.Ordinal.HasValue,
@@ -735,7 +735,7 @@ namespace Oce.Solid.Agent.ContractTests
             var got = string.Join(" ", new[] { one, again, inCase, inCaseError, otherCase, aboutIt }.Select(t => t.Id));
             const string expected = "Probe.cs:One:1 Probe.cs:One:1#2 Probe.cs:One:2@case_one Probe.cs:One:1@case_one " +
                                     "Probe.cs:One:2@case_two Probe.cs:One:2@the_subject";
-            Segna("an identity carries ordinal, subject and occurrence", got == expected, got);
+            Check("an identity carries ordinal, subject and occurrence", got == expected, got);
 
             var c1 = ledger.Cases[0];
             var c2 = ledger.Cases[1];
@@ -743,12 +743,12 @@ namespace Oce.Solid.Agent.ContractTests
                           c1.Tests[TestLedger.Ok] == 1 && c1.Tests[TestLedger.BenchError] == 1 && hadErrors &&
                           c1.Outcome == "bench_error" && c2.Tests[TestLedger.Failed] == 1 && c2.Outcome == "red" &&
                           c2.ExpectationsAttempted == 0;
-            Segna("a case counts its expectations and tests, no leaks", counts,
+            Check("a case counts its expectations and tests, no leaks", counts,
                   "case_one: " + c1.ExpectationsAttempted + " attempted, " + c1.ExpectationsChecked + " checked, " +
                   c1.Tests[TestLedger.Ok] + " ok, " + c1.Tests[TestLedger.BenchError] + " bench errors, " + c1.Outcome +
                   "; case_two: " + c2.Tests[TestLedger.Failed] + " failed, " + c2.Outcome);
 
-            Segna("unseen calls and unreadable sources count as unresolved",
+            Check("unseen calls and unreadable sources count as unresolved",
                   hole.Unresolved != null && missing.Unresolved != null && missing.Unresolved.Contains("cannot be read") &&
                   ledger.UnresolvedCount == 2,
                   (hole.Unresolved ?? "RESOLVED") + " | " + (missing.Unresolved ?? "RESOLVED") +
@@ -768,7 +768,7 @@ namespace Oce.Solid.Agent.ContractTests
                 else if (Convert.ToInt32(((Dictionary<string, object>)cases[0])["expectations_checked"]) != 1) why = "expectations_checked";
             }
             catch (Exception ex) { why = ex.Message; }
-            Segna("the ledger is valid JSON with every test and every case", why == null,
+            Check("the ledger is valid JSON with every test and every case", why == null,
                   why ?? ledger.Tests.Count + " tests, 2 cases, 2 unresolved");
         }
 
@@ -779,7 +779,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void TheBenchSources()
         {
-            var folder = Path.Combine(Radice(), "Bench");
+            var folder = Path.Combine(Root(), "Bench");
             var files = Directory.Exists(folder) ? Directory.GetFiles(folder, "*.cs").OrderBy(x => x, StringComparer.Ordinal).ToList()
                                                  : new List<string>();
             var texts = files.ToDictionary(f => Path.GetFileName(f), f => File.ReadAllText(f));
@@ -800,7 +800,7 @@ namespace Oce.Solid.Agent.ContractTests
                 sameIdentity.AddRange(scan.Calls.Where(c => c.In != null)
                     .GroupBy(c => c.In.Identifier + ":" + c.Ordinal).Where(g => g.Count() > 1).Select(g => t.Key + ":" + g.Key));
             }
-            Segna("every bench recording call: named member, own line",
+            Check("every bench recording call: named member, own line",
                   declared.Count >= 4 && calls >= 200 && outside.Count == 0 && twice.Count == 0 && sameIdentity.Count == 0,
                   declared.Count + " recording methods (" + string.Join(", ", declared) + "), " + calls + " calls" +
                   (outside.Count > 0 ? "; IN NO MEMBER: " + string.Join(", ", outside.Take(5)) : "") +
@@ -814,7 +814,7 @@ namespace Oce.Solid.Agent.ContractTests
             var named = new SortedSet<string>(StringComparer.Ordinal);
             if (built != null && built.Success)
                 foreach (Match n in Regex.Matches(built.Groups[1].Value, @"nameof\(\s*(\w+)\s*\)")) named.Add(n.Groups[1].Value);
-            Segna("the bench ledger uses exactly the declared recorders",
+            Check("the bench ledger uses exactly the declared recorders",
                   named.Count > 0 && named.SetEquals(declared),
                   built == null || !built.Success
                       ? "the construction of the ledger is not in Bench/Program.cs any more: this check must follow it"

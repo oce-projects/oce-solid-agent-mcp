@@ -25,7 +25,7 @@ namespace Oce.Solid.Agent.Core
         /// first, so nobody has to remember it.
         ///
         /// GetCurveParams3 returns ICurveParamData, not a double[] (checked by
-        /// reflection on the interop 29.5.1.1, see StatoDocumento.Estremi).
+        /// reflection on the interop 29.5.1.1, see DocumentState.Estremi).
         /// </summary>
         internal static ICurveParamData EdgeParameters(IEdge edge)
         {
@@ -88,7 +88,7 @@ namespace Oce.Solid.Agent.Core
         /// returned are approximate and should not be used for comparison or
         /// calculation purposes. Furthermore, the bounding box may vary after
         /// rebuilding the model.» The same choice was already written twice
-        /// (StatoDocumento, OperazioniMisura); it now lives here once.
+        /// (DocumentState, OperazioniMisura); it now lives here once.
         /// </summary>
         internal static double[] TrueBoundingBox(IBody2 body)
         {

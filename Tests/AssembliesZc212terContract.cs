@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -42,14 +42,14 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the assembly fixes of Z-C21.2-ter the bench cannot reach (N26, C4-2, N27, L12-8)");
+            Group("the assembly fixes of Z-C21.2-ter the bench cannot reach (N26, C4-2, N27, L12-8)");
 
             SearchFlagInTheSource();
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of the Z-C21.2-ter assembly fixes",
+                NotHere("the pure rules of the Z-C21.2-ter assembly fixes",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -57,7 +57,7 @@ namespace Oce.Solid.Agent.ContractTests
             Type sw;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -71,10 +71,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
 
             MirrorAxes(sw);
             StepSolids(sw);
@@ -116,13 +116,13 @@ namespace Oce.Solid.Agent.ContractTests
                         if (k == asked && problem != null) own.Add(k + ": " + problem);
                         if (k != asked && problem == null) others.Add("measured " + k + " accepted as " + asked);
                     }
-                Segna("N26: each measured orientation matches the one that was set (Right plane)",
+                Check("N26: each measured orientation matches the one that was set (Right plane)",
                       own.Count == 0, own.Count == 0 ? "4 of 4" : string.Join(" | ", own));
-                Segna("N26: and none passes for another one, which the centre check could not see",
+                Check("N26: and none passes for another one, which the centre check could not see",
                       others.Count == 0, others.Count == 0 ? "12 wrong pairs refused" : string.Join(" | ", others));
 
                 var names = sw.GetField("MirrorOrientationNames", Any)?.GetValue(null) as string[];
-                Segna("N26: the four «orientation» names follow swMirrorComponentOrientation2_e 0..3",
+                Check("N26: the four «orientation» names follow swMirrorComponentOrientation2_e 0..3",
                       names != null && names.Length == 4 && names[0] == "mirrored_x_mirrored_y" &&
                       names[1] == "mirrored_and_flipped_x_mirrored_y" && names[2] == "mirrored_x_mirrored_and_flipped_y" &&
                       names[3] == "mirrored_and_flipped_x_mirrored_and_flipped_y",
@@ -132,11 +132,11 @@ namespace Oce.Solid.Agent.ContractTests
                 // bench case (steps 2 and 3) and this rule cannot drift apart.
                 var front = (double[][])Call(sw, "ExpectedMirrorAxes", identity, 2, 0);
                 var top = (double[][])Call(sw, "ExpectedMirrorAxes", identity, 1, 2);
-                Segna("N26: Front plane, default orientation: the axes stay as they are; Top plane, orientation 2: the same",
+                Check("N26: Front plane, default orientation: the axes stay as they are; Top plane, orientation 2: the same",
                       SameAxes(front, identity) && SameAxes(top, identity),
                       "Front " + Axes(front) + ", Top " + Axes(top));
             }
-            catch (Exception ex) { Segna("N26: MirrorAxesProblem can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N26: MirrorAxesProblem can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static bool SameAxes(double[][] a, double[][] b)
@@ -172,14 +172,14 @@ namespace Oce.Solid.Agent.ContractTests
                 int k2 = (int)Call(sw, "ExpectedStepSolids", new[] { p, p }, new[] { 2, 1 }, new[] { 2, 0 });
                 int k3 = (int)Call(sw, "ExpectedStepSolids", new[] { q1, q2 }, new[] { 1, 1 }, new[] { 0, 0 });
                 int bad = (int)Call(sw, "ExpectedStepSolids", new[] { p, p }, new[] { 1 }, new[] { 0, 0 });
-                Segna("C4-2: the counts the STEP files had: 1 uncut, 2 with the hole, 3 with the slot, 2 for two configurations",
+                Check("C4-2: the counts the STEP files had: 1 uncut, 2 with the hole, 3 with the slot, 2 for two configurations",
                       k0 == 1 && k1 == 2 && k2 == 3 && k3 == 2,
                       "K0 " + k0 + ", K1 " + k1 + ", K2 " + k2 + ", K3 " + k3 + " (expected 1, 2, 3, 2)");
-                Segna("C4-2: whichever instance comes first (GetComponents «can be in any order»)",
+                Check("C4-2: whichever instance comes first (GetComponents «can be in any order»)",
                       k1b == 2, "the cut instance second: " + k1b);
-                Segna("C4-2: arrays that do not line up are no count", bad == -1, bad.ToString());
+                Check("C4-2: arrays that do not line up are no count", bad == -1, bad.ToString());
             }
-            catch (Exception ex) { Segna("C4-2: ExpectedStepSolids can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("C4-2: ExpectedStepSolids can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N27: the BOM items of an assembly with sub-assemblies ───────────
@@ -216,7 +216,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var env = Tree("A", -1, false, -1, false, "E", -1, false, -1, true, "F", -1, false, -1, true);
                 check("T_prom top level", TopLevelOnly, prom, "A 1, B 2");
                 check("T_hide parts only", PartsOnly, hide, "A 1, S_hide 1");
-                Segna("N27: the two tables the old count refused: promoted children at the top, a hiding sub-assembly among the parts",
+                Check("N27: the two tables the old count refused: promoted children at the top, a hiding sub-assembly among the parts",
                       all, string.Join("; ", lines));
 
                 lines.Clear();
@@ -227,7 +227,7 @@ namespace Oce.Solid.Agent.ContractTests
                 check("T_show parts only", PartsOnly, show, "A 1, B 2");
                 check("T_env top level", TopLevelOnly, env, "A 1");
                 check("T_env parts only", PartsOnly, env, "A 1");
-                Segna("N27: and the six tables it already read right are still read the same",
+                Check("N27: and the six tables it already read right are still read the same",
                       all, string.Join("; ", lines));
 
                 // Measured on 30/9/2026 (M23, the Z-C21.11 probe of the indented BOM):
@@ -239,10 +239,10 @@ namespace Oce.Solid.Agent.ContractTests
                 lines.Clear();
                 all = true;
                 check("T_hide indented", Indented, hide, "A 1, S_hide 1");
-                Segna("N27/M23: the indented table of T_hide, as measured: the hiding sub-assembly is one row with nothing under it",
+                Check("N27/M23: the indented table of T_hide, as measured: the hiding sub-assembly is one row with nothing under it",
                       all, string.Join("; ", lines));
             }
-            catch (Exception ex) { Segna("N27: ExpectedBomItems can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N27: ExpectedBomItems can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static object[] Tree(params object[] flat) { return flat; }
@@ -279,8 +279,8 @@ namespace Oce.Solid.Agent.ContractTests
         // it too. So no call of the library may pass Searchflag true.
         private static void SearchFlagInTheSource()
         {
-            var folder = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
-            if (!Directory.Exists(folder)) { Segna("L12-8: the library source is there", false, "missing " + folder); return; }
+            var folder = Path.Combine(Root(), "Oce.Solid.Agent.Core");
+            if (!Directory.Exists(folder)) { Check("L12-8: the library source is there", false, "missing " + folder); return; }
             var call = new Regex(@"\bGetDependencies\s*\(\s*(\w+)\s*,\s*(\w+)");
             var calls = new List<string>();
             var searching = new List<string>();
@@ -303,7 +303,7 @@ namespace Oce.Solid.Agent.ContractTests
                     }
                 }
             }
-            Segna("L12-8: every GetDependencies call of the library passes Searchflag false (the saved paths)",
+            Check("L12-8: every GetDependencies call of the library passes Searchflag false (the saved paths)",
                   calls.Count > 0 && searching.Count == 0,
                   calls.Count == 0 ? "no call found: the check would pass on nothing"
                   : searching.Count == 0 ? calls.Count + " call(s): " + string.Join(", ", calls)

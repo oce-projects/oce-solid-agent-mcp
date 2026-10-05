@@ -627,7 +627,7 @@ function overStdio(bridge, fake, timeoutS) {
 
 async function toolsOf(root, opts) {
   const bridge = opts.bridge ? path.resolve(opts.bridge) : path.join(root, LAYOUT.bridge);
-  if (!fs.existsSync(bridge)) cannot('the bridge is missing: ' + bridge + ' (build it with .\\build.ps1 -SoloPonte, or pass --bridge)');
+  if (!fs.existsSync(bridge)) cannot('the bridge is missing: ' + bridge + ' (build it with .\\build.ps1 -BridgeOnly, or pass --bridge)');
   const fake = /\.js$/i.test(bridge);
   let source = opts.toolsFrom;
   let why;
@@ -1819,7 +1819,7 @@ async function take(opts) {
   const catalogue = skip.has('catalogue') ? null : catalogueOf(root);
   if (!skip.has('tools')) {
     const bridge = opts.bridge ? path.resolve(opts.bridge) : path.join(root, LAYOUT.bridge);
-    if (!fs.existsSync(bridge)) cannot('the bridge is missing: ' + bridge + ' (build it with .\\build.ps1 -SoloPonte, or pass --bridge)');
+    if (!fs.existsSync(bridge)) cannot('the bridge is missing: ' + bridge + ' (build it with .\\build.ps1 -BridgeOnly, or pass --bridge)');
   }
 
   // Written into a folder of its own and renamed at the end: a snapshot that
@@ -1940,7 +1940,7 @@ async function compare(snapDir, opts) {
   if (on.tests) readLedger(opts.ledgers[0]);
   if (on.tools) {
     const bridge = opts.bridge ? path.resolve(opts.bridge) : path.join(root, LAYOUT.bridge);
-    if (!fs.existsSync(bridge)) cannot('the bridge is missing: ' + bridge + ' (build it with .\\build.ps1 -SoloPonte, pass --bridge, or --skip tools)');
+    if (!fs.existsSync(bridge)) cannot('the bridge is missing: ' + bridge + ' (build it with .\\build.ps1 -BridgeOnly, pass --bridge, or --skip tools)');
   }
   const reg = on.scripts ? loadRegistry(root) : null;
   if (reg && !todo && !opts.noTodo && reg.entries.some(e => e.todo && e.run)) {

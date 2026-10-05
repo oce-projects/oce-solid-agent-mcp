@@ -27,27 +27,27 @@ namespace Checks.PositionsTest
     ///
     /// Esce 0 se torna tutto, 1 se no.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int guai;
+        private static int trouble;
 
         // Il piano XY, con la normale lungo Z: e' la disposizione di un foro
         // fatto sulla faccia superiore di una piastra.
-        private static readonly double[] PianoXY = { 0, 1, 2 };
+        private static readonly double[] PlaneXy = { 0, 1, 2 };
 
         private static int Main()
         {
             Console.WriteLine("Il giudizio sulle posizioni dei fori");
             Console.WriteLine();
 
-            IlCasoCheNonSiPotevaProvare();
-            QuandoSiPuoGuardare();
-            LaSoglia();
-            LaDistanzaDallAsse();
+            TheCaseThatCouldNotBeTested();
+            WhenItCanBeChecked();
+            TheThreshold();
+            TheDistanceFromAxis();
 
             Console.WriteLine();
-            if (guai == 0) { Console.WriteLine("Tutto torna."); return 0; }
-            Console.WriteLine(guai + " scostamenti.");
+            if (trouble == 0) { Console.WriteLine("Tutto torna."); return 0; }
+            Console.WriteLine(trouble + " scostamenti.");
             return 1;
         }
 
@@ -55,7 +55,7 @@ namespace Checks.PositionsTest
         // 1. Le quattro strade in cui prima si passava per buoni
         // ==================================================================
 
-        private static void IlCasoCheNonSiPotevaProvare()
+        private static void TheCaseThatCouldNotBeTested()
         {
             Console.WriteLine("=== Quando non si e' potuto guardare");
 
@@ -63,35 +63,35 @@ namespace Checks.PositionsTest
             // chiesti, ma sul pezzo non c'e' nessuna faccia cilindrica del
             // diametro atteso: i fori potrebbero non esserci affatto.
             // Prima questa strada usciva come «verificate».
-            Esito("nessuna faccia cilindrica trovata",
-                  EsitoPosizioni.NonVerificabile,
-                  new List<double[]>(), null, DuePunti());
+            Outcome("nessuna faccia cilindrica trovata",
+                  PositionsOutcome.NotVerifiable,
+                  new List<double[]>(), null, TwoPoints());
 
-            Esito("la lista degli assi e' nulla",
-                  EsitoPosizioni.NonVerificabile,
-                  null, null, DuePunti());
+            Outcome("la lista degli assi e' nulla",
+                  PositionsOutcome.NotVerifiable,
+                  null, null, TwoPoints());
 
-            Esito("SOLIDWORKS non dichiara il diametro",
-                  EsitoPosizioni.NonVerificabile,
+            Outcome("SOLIDWORKS non dichiara il diametro",
+                  PositionsOutcome.NotVerifiable,
                   null, "SOLIDWORKS non dichiara un diametro per questa lavorazione: " +
                         "non ho un termine di confronto",
-                  DuePunti());
+                  TwoPoints());
 
-            Esito("la lavorazione non espone le facce",
-                  EsitoPosizioni.NonVerificabile,
-                  null, "la lavorazione non espone le sue facce", DuePunti());
+            Outcome("la lavorazione non espone le facce",
+                  PositionsOutcome.NotVerifiable,
+                  null, "la lavorazione non espone le sue facce", TwoPoints());
 
-            Esito("nessuna posizione chiesta",
-                  EsitoPosizioni.NonVerificabile,
-                  new List<double[]> { AsseZ(30, 20) }, null, new List<double[]>());
+            Outcome("nessuna posizione chiesta",
+                  PositionsOutcome.NotVerifiable,
+                  new List<double[]> { ZAxis(30, 20) }, null, new List<double[]>());
 
             // UN MOTIVO SEMPRE, E MAI VUOTO: chi legge deve sapere PERCHE' non
             // si e' potuto guardare, o «non verificabile» e' inutile quanto
             // «verificate» era falso.
-            string motivo;
-            GiudizioPosizioni.Giudica(new List<double[]>(), null, PianoXY, 0.01, DuePunti(), out motivo);
-            Vero("il motivo c'e' ed e' una frase",
-                 !string.IsNullOrWhiteSpace(motivo) && motivo.Length > 20, motivo);
+            string reason;
+            PositionsVerdict.Judge(new List<double[]>(), null, PlaneXy, 0.01, TwoPoints(), out reason);
+            True("il motivo c'e' ed e' una frase",
+                 !string.IsNullOrWhiteSpace(reason) && reason.Length > 20, reason);
 
             Console.WriteLine();
         }
@@ -100,42 +100,42 @@ namespace Checks.PositionsTest
         // 2. Quando si puo' guardare davvero
         // ==================================================================
 
-        private static void QuandoSiPuoGuardare()
+        private static void WhenItCanBeChecked()
         {
             Console.WriteLine("=== Quando si e' potuto guardare");
 
-            Esito("due fori dove erano stati chiesti",
-                  EsitoPosizioni.Verificate,
-                  new List<double[]> { AsseZ(30, 20), AsseZ(70, 20) }, null, DuePunti());
+            Outcome("due fori dove erano stati chiesti",
+                  PositionsOutcome.Verified,
+                  new List<double[]> { ZAxis(30, 20), ZAxis(70, 20) }, null, TwoPoints());
 
             // Un asse solo per due fori: il secondo foro non c'e'. Il piu'
             // lontano dista 40 mm, e si deve dire.
-            Esito("un foro dei due non c'e'",
-                  EsitoPosizioni.Sbagliate,
-                  new List<double[]> { AsseZ(30, 20) }, null, DuePunti());
+            Outcome("un foro dei due non c'e'",
+                  PositionsOutcome.Wrong,
+                  new List<double[]> { ZAxis(30, 20) }, null, TwoPoints());
 
-            Esito("un foro finito altrove",
-                  EsitoPosizioni.Sbagliate,
-                  new List<double[]> { AsseZ(30, 20), AsseZ(72, 20) }, null, DuePunti());
+            Outcome("un foro finito altrove",
+                  PositionsOutcome.Wrong,
+                  new List<double[]> { ZAxis(30, 20), ZAxis(72, 20) }, null, TwoPoints());
 
             // PIU' ASSI CHE FORI NON E' UN ERRORE: un foro lamato ha due facce
             // cilindriche coassiali, e la lamatura del diametro giusto ci
             // finisce dentro. Conta che ogni punto chiesto ne abbia uno vicino.
-            Esito("piu' assi che fori (lamatura coassiale)",
-                  EsitoPosizioni.Verificate,
-                  new List<double[]> { AsseZ(30, 20), AsseZ(30, 20), AsseZ(70, 20) },
-                  null, DuePunti());
+            Outcome("piu' assi che fori (lamatura coassiale)",
+                  PositionsOutcome.Verified,
+                  new List<double[]> { ZAxis(30, 20), ZAxis(30, 20), ZAxis(70, 20) },
+                  null, TwoPoints());
 
             // La frase del rifiuto deve NOMINARE il foro e lo scostamento:
             // e' il criterio, non il verdetto.
-            string motivo;
-            var esito = GiudizioPosizioni.Giudica(
-                new List<double[]> { AsseZ(30, 20), AsseZ(72, 20) },
-                null, PianoXY, 0.01, DuePunti(), out motivo);
-            Vero("il rifiuto dice quale foro e di quanto",
-                 esito == EsitoPosizioni.Sbagliate &&
-                 motivo != null && motivo.Contains("2") && motivo.Contains("mm"),
-                 motivo);
+            string reason;
+            var outcome = PositionsVerdict.Judge(
+                new List<double[]> { ZAxis(30, 20), ZAxis(72, 20) },
+                null, PlaneXy, 0.01, TwoPoints(), out reason);
+            True("il rifiuto dice quale foro e di quanto",
+                 outcome == PositionsOutcome.Wrong &&
+                 reason != null && reason.Contains("2") && reason.Contains("mm"),
+                 reason);
 
             Console.WriteLine();
         }
@@ -144,21 +144,21 @@ namespace Checks.PositionsTest
         // 3. La soglia, guardata da tutt'e due i lati
         // ==================================================================
 
-        private static void LaSoglia()
+        private static void TheThreshold()
         {
             Console.WriteLine("=== La soglia di " +
-                GiudizioPosizioni.TolleranzaMm.ToString("0.##", CultureInfo.InvariantCulture) + " mm");
+                PositionsVerdict.ToleranceMm.ToString("0.##", CultureInfo.InvariantCulture) + " mm");
 
-            var chiesto = new List<double[]> { new double[] { 30, 20 } };
+            var requested = new List<double[]> { new double[] { 30, 20 } };
 
             // Dentro la soglia: 0.09 mm.
-            Esito("scostamento 0.09 mm", EsitoPosizioni.Verificate,
-                  new List<double[]> { AsseZ(30.09, 20) }, null, chiesto);
+            Outcome("scostamento 0.09 mm", PositionsOutcome.Verified,
+                  new List<double[]> { ZAxis(30.09, 20) }, null, requested);
 
             // Fuori: 0.11 mm. Due valori a cavallo, non uno solo: una soglia
             // provata da un lato solo non e' una soglia, e' un esempio.
-            Esito("scostamento 0.11 mm", EsitoPosizioni.Sbagliate,
-                  new List<double[]> { AsseZ(30.11, 20) }, null, chiesto);
+            Outcome("scostamento 0.11 mm", PositionsOutcome.Wrong,
+                  new List<double[]> { ZAxis(30.11, 20) }, null, requested);
 
             // ESATTAMENTE SULLA SOGLIA NON SI PROVA, e il perche' vale piu'
             // del caso. Scritto qui perche' e' costato una prova rossa.
@@ -176,21 +176,21 @@ namespace Checks.PositionsTest
             // IL RUMORE, MISURATO: e' lo scostamento che il calcolo introduce
             // fra due punti che in millimetri distano esattamente 0.1.
             // Su questi valori vale circa 1.4e-15 mm.
-            double rumore = Math.Abs(
-                GiudizioPosizioni.DistanzaDallAsse(
-                    new double[] { Unita.M(30.1), Unita.M(20), 0.01 },
-                    AsseZ(30, 20)) * 1000.0 - 0.1);
+            double noise = Math.Abs(
+                PositionsVerdict.DistanceFromAxis(
+                    new double[] { Units.M(30.1), Units.M(20), 0.01 },
+                    ZAxis(30, 20)) * 1000.0 - 0.1);
 
             // Fra il rumore e la soglia ci sono quattordici ordini di
             // grandezza: nessuno scostamento vero puo' essere confuso col
             // rumore, e nessun rumore puo' far scattare il rifiuto da solo.
             // E' la stessa forma del ragionamento sulla ruota dentata, dove
             // fra le due grandezze ce n'erano due.
-            Vero("il rumore sta un milione di volte sotto la soglia",
-                 rumore > 0 && rumore * 1e6 < GiudizioPosizioni.TolleranzaMm,
-                 "rumore " + rumore.ToString("0.0e+00", CultureInfo.InvariantCulture) +
+            True("il rumore sta un milione di volte sotto la soglia",
+                 noise > 0 && noise * 1e6 < PositionsVerdict.ToleranceMm,
+                 "rumore " + noise.ToString("0.0e+00", CultureInfo.InvariantCulture) +
                  " mm contro una soglia di " +
-                 GiudizioPosizioni.TolleranzaMm.ToString("0.##", CultureInfo.InvariantCulture));
+                 PositionsVerdict.ToleranceMm.ToString("0.##", CultureInfo.InvariantCulture));
 
             Console.WriteLine();
         }
@@ -199,40 +199,40 @@ namespace Checks.PositionsTest
         // 4. La geometria sotto, che non dipende da niente
         // ==================================================================
 
-        private static void LaDistanzaDallAsse()
+        private static void TheDistanceFromAxis()
         {
             Console.WriteLine("=== La distanza fra un punto e la retta di un cilindro");
 
             // Punto sull'asse.
-            Numero("punto sull'asse", 0,
-                GiudizioPosizioni.DistanzaDallAsse(
+            Number("punto sull'asse", 0,
+                PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.03, 0.02, 0.05 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 1, 0.0034 }));
 
             // Punto a 5 mm di lato, con l'asse lungo Z: la quota lungo l'asse
             // non deve contare.
-            Numero("5 mm di lato, a qualunque quota", 0.005,
-                GiudizioPosizioni.DistanzaDallAsse(
+            Number("5 mm di lato, a qualunque quota", 0.005,
+                PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0.9 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 1, 0.0034 }));
 
             // Direzione non normalizzata: deve venire uguale.
-            Numero("direzione non normalizzata", 0.005,
-                GiudizioPosizioni.DistanzaDallAsse(
+            Number("direzione non normalizzata", 0.005,
+                PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0.9 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 7.3, 0.0034 }));
 
             // Direzione nulla: non si divide per zero, si dice «lontanissimo».
-            Numero("direzione nulla", double.MaxValue,
-                GiudizioPosizioni.DistanzaDallAsse(
+            Number("direzione nulla", double.MaxValue,
+                PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 0, 0.0034 }));
 
             // Argomenti storti: non si esplode.
-            Numero("cilindro nullo", double.MaxValue,
-                GiudizioPosizioni.DistanzaDallAsse(new double[] { 0, 0, 0 }, null));
-            Numero("punto corto", double.MaxValue,
-                GiudizioPosizioni.DistanzaDallAsse(
+            Number("cilindro nullo", double.MaxValue,
+                PositionsVerdict.DistanceFromAxis(new double[] { 0, 0, 0 }, null));
+            Number("punto corto", double.MaxValue,
+                PositionsVerdict.DistanceFromAxis(
                     new double[] { 0, 0 }, new double[] { 0, 0, 0, 0, 0, 1, 1 }));
 
             Console.WriteLine();
@@ -241,13 +241,13 @@ namespace Checks.PositionsTest
         // ==================================================================
 
         /// <summary>Un asse lungo Z che passa per (x, y) in millimetri.</summary>
-        private static double[] AsseZ(double xMm, double yMm)
+        private static double[] ZAxis(double xMm, double yMm)
         {
-            return new double[] { Unita.M(xMm), Unita.M(yMm), 0, 0, 0, 1, 0.0034 };
+            return new double[] { Units.M(xMm), Units.M(yMm), 0, 0, 0, 1, 0.0034 };
         }
 
         /// <summary>Due fori a (30, 20) e (70, 20), in millimetri.</summary>
-        private static List<double[]> DuePunti()
+        private static List<double[]> TwoPoints()
         {
             return new List<double[]>
             {
@@ -256,49 +256,49 @@ namespace Checks.PositionsTest
             };
         }
 
-        private static void Esito(
-            string nome, EsitoPosizioni atteso,
-            List<double[]> assiTrovati, string nonPosso, List<double[]> posizioni)
+        private static void Outcome(
+            string itemName, PositionsOutcome expected,
+            List<double[]> foundAxes, string cannot, List<double[]> positions)
         {
-            string motivo;
-            var avuto = GiudizioPosizioni.Giudica(
-                assiTrovati, nonPosso, PianoXY, 0.01, posizioni, out motivo);
-            if (avuto == atteso)
+            string reason;
+            var had = PositionsVerdict.Judge(
+                foundAxes, cannot, PlaneXy, 0.01, positions, out reason);
+            if (had == expected)
             {
-                Console.WriteLine("  ok  " + nome.PadRight(52) + Corto(motivo));
+                Console.WriteLine("  ok  " + itemName.PadRight(52) + Short(reason));
                 return;
             }
-            guai++;
-            Console.WriteLine("  XX  " + nome.PadRight(52) +
-                "atteso " + atteso + ", avuto " + avuto + "  " + Corto(motivo));
+            trouble++;
+            Console.WriteLine("  XX  " + itemName.PadRight(52) +
+                "atteso " + expected + ", avuto " + had + "  " + Short(reason));
         }
 
-        private static void Vero(string nome, bool condizione, string dettaglio)
+        private static void True(string itemName, bool condition, string detail)
         {
-            if (condizione) { Console.WriteLine("  ok  " + nome.PadRight(52) + Corto(dettaglio)); return; }
-            guai++;
-            Console.WriteLine("  XX  " + nome.PadRight(52) + Corto(dettaglio));
+            if (condition) { Console.WriteLine("  ok  " + itemName.PadRight(52) + Short(detail)); return; }
+            trouble++;
+            Console.WriteLine("  XX  " + itemName.PadRight(52) + Short(detail));
         }
 
-        private static void Numero(string nome, double atteso, double avuto)
+        private static void Number(string itemName, double expected, double had)
         {
-            bool ok = atteso == double.MaxValue
-                ? avuto == double.MaxValue
-                : Math.Abs(avuto - atteso) < 1e-9;
+            bool ok = expected == double.MaxValue
+                ? had == double.MaxValue
+                : Math.Abs(had - expected) < 1e-9;
             if (ok)
             {
-                Console.WriteLine("  ok  " + nome.PadRight(52) +
-                    (atteso == double.MaxValue ? "lontanissimo"
-                     : avuto.ToString("0.######", CultureInfo.InvariantCulture) + " m"));
+                Console.WriteLine("  ok  " + itemName.PadRight(52) +
+                    (expected == double.MaxValue ? "lontanissimo"
+                     : had.ToString("0.######", CultureInfo.InvariantCulture) + " m"));
                 return;
             }
-            guai++;
-            Console.WriteLine("  XX  " + nome.PadRight(52) +
-                "atteso " + atteso.ToString("0.######", CultureInfo.InvariantCulture) +
-                ", avuto " + avuto.ToString("0.######", CultureInfo.InvariantCulture));
+            trouble++;
+            Console.WriteLine("  XX  " + itemName.PadRight(52) +
+                "atteso " + expected.ToString("0.######", CultureInfo.InvariantCulture) +
+                ", avuto " + had.ToString("0.######", CultureInfo.InvariantCulture));
         }
 
-        private static string Corto(string s)
+        private static string Short(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
             s = s.Replace("\r", " ").Replace("\n", " ");

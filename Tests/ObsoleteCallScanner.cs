@@ -117,8 +117,8 @@ namespace Oce.Solid.Agent.ContractTests
     ///      cast (`(IEntity)x`, `x as IFace2`), a well-known accessor
     ///      (`.Extension`, `.FeatureManager`...), `new T(...)`, an element of a
     ///      `T[]`, or the return type of a method declared in the scanned
-    ///      source (`var vista = RisolviVista(...)` is an IView because
-    ///      RisolviVista is declared `IView RisolviVista(`). A `var` whose type
+    ///      source (`var vista = ResolveView(...)` is an IView because
+    ///      ResolveView is declared `IView ResolveView(`). A `var` whose type
     ///      cannot be inferred HIDES any outer name, as it does in C#. With a
     ///      known SOLIDWORKS type the verdict is exact;
     ///   2. with an unknown receiver, the name decides only when it is obsolete
@@ -311,7 +311,7 @@ namespace Oce.Solid.Agent.ContractTests
             m = CallRx.Match(rhs);
             if (m.Success)
             {
-                // The call must be the WHOLE right-hand side: `Metodo(a).Altro` is not Metodo's type.
+                // The call must be the WHOLE right-hand side: `Method(a).Altro` is not Metodo's type.
                 int open = m.Index + m.Length - 1, depth = 0, j = open;
                 for (; j < rhs.Length; j++)
                 {
@@ -559,7 +559,7 @@ namespace Oce.Solid.Agent.ContractTests
                 if (cast.Success) return cast.Groups[1].Value;
                 var asCast = AsInnerRx.Match(inner);
                 if (asCast.Success) return asCast.Groups[1].Value;
-                // A direct call: `RisolviVista(...).Name`, `new T(...).X`.
+                // A direct call: `ResolveView(...).Name`, `new T(...).X`.
                 var callee = Regex.Match(head, @"(?:(?<![\w.])new\s+(?<new>[A-Za-z_]\w*)|(?<![\w.])(?<m>[A-Za-z_]\w*))\s*$");
                 if (callee.Success && callee.Groups["new"].Success) return callee.Groups["new"].Value;
                 if (callee.Success && callee.Groups["m"].Success) return MethodType("|" + callee.Groups["m"].Value);

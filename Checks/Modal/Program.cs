@@ -10,7 +10,7 @@ using SolidWorks.Interop.swconst;
 //  Modale — la guardia contro il modale l'ha mai vista scattare qualcuno? (Z-C3)
 // =============================================================================
 //
-//  `EsecutorePiano.ControlliPreliminari` rifiuta un piano se
+//  `PlanExecutor.PreliminaryChecks` rifiuta un piano se
 //  `ISldWorks.CommandInProgress` e' vero: «SOLIDWORKS e' occupato in un
 //  comando». La frase compare in UN posto del repository, la riga che la
 //  produce. Nessun caso, nessuna prova: una promessa non verificata.
@@ -38,7 +38,7 @@ using SolidWorks.Interop.swconst;
 //      .\Checks\Modal\bin\Modal.exe
 // =============================================================================
 
-internal static class Programma
+internal static class Program
 {
     [DllImport("user32.dll")] private static extern bool IsWindowEnabled(IntPtr h);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
@@ -59,44 +59,44 @@ internal static class Programma
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
         catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
 
-        IntPtr cornice;
-        try { cornice = new IntPtr(((IFrame)sw.Frame()).GetHWnd()); }
+        IntPtr frameBorder;
+        try { frameBorder = new IntPtr(((IFrame)sw.Frame()).GetHWnd()); }
         catch (Exception ex) { Console.WriteLine("Frame().GetHWnd() non risponde: " + ex.Message); return 2; }
         uint pid;
-        GetWindowThreadProcessId(cornice, out pid);
-        Console.WriteLine("  finestra principale 0x" + cornice.ToInt64().ToString("X") + ", processo " + pid);
+        GetWindowThreadProcessId(frameBorder, out pid);
+        Console.WriteLine("  finestra principale 0x" + frameBorder.ToInt64().ToString("X") + ", processo " + pid);
         Console.WriteLine();
         Console.WriteLine("  giro  modale   IsWindowEnabled (ms)   CommandInProgress (ms)");
 
-        int falsiUser32 = 0, falsiCom = 0, nonTornate = 0;
-        for (int giro = 1; giro <= 3; giro++)
+        int bogusUser32 = 0, bogusCom = 0, notReturned = 0;
+        for (int benchRun = 1; benchRun <= 3; benchRun++)
         {
-            foreach (bool aperto in new[] { false, true })
+            foreach (bool open in new[] { false, true })
             {
-                Thread filo = null;
-                IntPtr dialogo = IntPtr.Zero;
-                if (aperto)
+                Thread wire = null;
+                IntPtr dialog = IntPtr.Zero;
+                if (open)
                 {
-                    filo = new Thread(() =>
+                    wire = new Thread(() =>
                     {
                         try
                         {
-                            var suo = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");
-                            suo.SendMsgToUser2("Sonda Z-C3: questa finestra si chiude da sola.",
+                            var its = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");
+                            its.SendMsgToUser2("Sonda Z-C3: questa finestra si chiude da sola.",
                                 (int)swMessageBoxIcon_e.swMbInformation, (int)swMessageBoxBtn_e.swMbOk);
                         }
                         catch { }
                     });
-                    filo.SetApartmentState(ApartmentState.STA);
-                    filo.IsBackground = true;
-                    filo.Start();
+                    wire.SetApartmentState(ApartmentState.STA);
+                    wire.IsBackground = true;
+                    wire.Start();
                     var t0 = Stopwatch.StartNew();
-                    while (dialogo == IntPtr.Zero && t0.ElapsedMilliseconds < 8000)
+                    while (dialog == IntPtr.Zero && t0.ElapsedMilliseconds < 8000)
                     {
                         Thread.Sleep(100);
-                        dialogo = DialogoDi(pid);
+                        dialog = DialogOf(pid);
                     }
-                    if (dialogo == IntPtr.Zero)
+                    if (dialog == IntPtr.Zero)
                     {
                         Console.WriteLine("  il modale non si e' visto entro 8 s: la sonda non puo' misurare");
                         return 4;
@@ -105,41 +105,41 @@ internal static class Programma
                 }
 
                 var c1 = Stopwatch.StartNew();
-                bool abilitata = IsWindowEnabled(cornice);
+                bool enabled = IsWindowEnabled(frameBorder);
                 long msU = c1.ElapsedMilliseconds;
 
-                bool? inCorso = null;
+                bool? inProgress = null;
                 long msC = -1;
-                var lettore = new Thread(() =>
+                var reader = new Thread(() =>
                 {
                     try
                     {
                         var c2 = Stopwatch.StartNew();
-                        var suo = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");
-                        inCorso = suo.CommandInProgress;
+                        var its = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");
+                        inProgress = its.CommandInProgress;
                         msC = c2.ElapsedMilliseconds;
                     }
                     catch { }
                 });
-                lettore.SetApartmentState(ApartmentState.STA);
-                lettore.IsBackground = true;
-                lettore.Start();
-                bool tornata = lettore.Join(5000);
-                if (!tornata) nonTornate++;
+                reader.SetApartmentState(ApartmentState.STA);
+                reader.IsBackground = true;
+                reader.Start();
+                bool returned = reader.Join(5000);
+                if (!returned) notReturned++;
 
                 // ATTESO: aperto -> finestra DISABILITATA e comando in corso.
-                if (abilitata == aperto) falsiUser32++;
-                if (tornata && inCorso.HasValue && inCorso.Value != aperto) falsiCom++;
+                if (enabled == open) bogusUser32++;
+                if (returned && inProgress.HasValue && inProgress.Value != open) bogusCom++;
 
-                Console.WriteLine("  " + giro + "     " + (aperto ? "APERTO " : "chiuso ") + "  " +
-                                  abilitata.ToString().PadRight(6) + " (" + msU + ")".PadRight(10) + "        " +
-                                  (!tornata ? "NON TORNATA entro 5000 ms"
-                                   : inCorso.HasValue ? inCorso.Value + " (" + msC + ")" : "eccezione"));
+                Console.WriteLine("  " + benchRun + "     " + (open ? "APERTO " : "chiuso ") + "  " +
+                                  enabled.ToString().PadRight(6) + " (" + msU + ")".PadRight(10) + "        " +
+                                  (!returned ? "NON TORNATA entro 5000 ms"
+                                   : inProgress.HasValue ? inProgress.Value + " (" + msC + ")" : "eccezione"));
 
-                if (aperto)
+                if (open)
                 {
-                    PostMessage(dialogo, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
-                    if (!filo.Join(8000))
+                    PostMessage(dialog, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+                    if (!wire.Join(8000))
                     {
                         Console.WriteLine("  il modale non si chiude: CHIUDILO A MANO. Mi fermo.");
                         return 5;
@@ -150,18 +150,18 @@ internal static class Programma
         }
 
         Console.WriteLine();
-        Console.WriteLine("  IsWindowEnabled: " + falsiUser32 + " risposte sbagliate su 6");
-        Console.WriteLine("  CommandInProgress: " + falsiCom + " risposte sbagliate su 6, " + nonTornate + " non tornate");
+        Console.WriteLine("  IsWindowEnabled: " + bogusUser32 + " risposte sbagliate su 6");
+        Console.WriteLine("  CommandInProgress: " + bogusCom + " risposte sbagliate su 6, " + notReturned + " non tornate");
         Console.WriteLine();
-        if (falsiUser32 == 0 && falsiCom == 0 && nonTornate == 0)
+        if (bogusUser32 == 0 && bogusCom == 0 && notReturned == 0)
         {
             Console.WriteLine("REGGE: le due letture concordano coi fatti, e la guardia di oggi (CommandInProgress) scatta.");
             return 0;
         }
-        if (falsiUser32 == 0)
+        if (bogusUser32 == 0)
         {
             Console.WriteLine("LA GUARDIA DI OGGI NON BASTA: IsWindowEnabled vede il modale, CommandInProgress " +
-                              (nonTornate > 0 ? "non torna" : "sbaglia") + ".");
+                              (notReturned > 0 ? "non torna" : "sbaglia") + ".");
             Console.WriteLine("La guardia va costruita su IsWindowEnabled della finestra principale.");
             return 6;
         }
@@ -170,19 +170,19 @@ internal static class Programma
     }
 
     /// <summary>Una finestra di dialogo (#32770) visibile del processo di SOLIDWORKS.</summary>
-    private static IntPtr DialogoDi(uint pid)
+    private static IntPtr DialogOf(uint pid)
     {
-        IntPtr trovato = IntPtr.Zero;
+        IntPtr found = IntPtr.Zero;
         EnumWindows((h, l) =>
         {
-            uint suo;
-            GetWindowThreadProcessId(h, out suo);
-            if (suo != pid || !IsWindowVisible(h)) return true;
-            var nome = new StringBuilder(64);
-            GetClassName(h, nome, nome.Capacity);
-            if (nome.ToString() == "#32770") { trovato = h; return false; }
+            uint its;
+            GetWindowThreadProcessId(h, out its);
+            if (its != pid || !IsWindowVisible(h)) return true;
+            var itemName = new StringBuilder(64);
+            GetClassName(h, itemName, itemName.Capacity);
+            if (itemName.ToString() == "#32770") { found = h; return false; }
             return true;
         }, IntPtr.Zero);
-        return trovato;
+        return found;
     }
 }

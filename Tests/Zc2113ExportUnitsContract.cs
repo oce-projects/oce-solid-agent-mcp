@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -39,14 +39,14 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the Z-C21.13 STEP export and unit fixes the bench cannot reach (C5-7, L17-7)");
+            Group("the Z-C21.13 STEP export and unit fixes the bench cannot reach (C5-7, L17-7)");
 
             NoBare242WhereSwStepApIsSet();
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of the Z-C21.13 export and unit fixes",
+                NotHere("the pure rules of the Z-C21.13 export and unit fixes",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.ContractTests
             Type sw;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -68,10 +68,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
 
             LengthUnits(sw);
             Step242Answers(sw);
@@ -135,13 +135,13 @@ namespace Oce.Solid.Agent.ContractTests
             catch (Exception ex)
             {
                 string why = ex.GetType().Name + ": " + ex.Message;
-                Segna(known, false, why);
-                Segna(unknown, false, why);
+                Check(known, false, why);
+                Check(unknown, false, why);
                 return;
             }
-            Segna(known, wrong.Count == 0,
+            Check(known, wrong.Count == 0,
                   wrong.Count == 0 ? factors.Count + " units, each with its factor" : string.Join(" | ", wrong));
-            Segna(unknown, guessed.Count == 0,
+            Check(unknown, guessed.Count == 0,
                   guessed.Count == 0
                       ? "NaN for all four: the caller skips the comparison and says so"
                       : "a number where the probe could not settle one: " + string.Join(" | ", guessed));
@@ -170,16 +170,16 @@ namespace Oce.Solid.Agent.ContractTests
             catch (Exception ex)
             {
                 string why = ex.GetType().Name + ": " + ex.Message;
-                Segna(licence, false, why);
-                Segna(others, false, why);
+                Check(licence, false, why);
+                Check(others, false, why);
                 return;
             }
             Func<string, string[], bool> says = (text, parts) =>
                 text != null && parts.All(p => text.IndexOf(p, StringComparison.Ordinal) >= 0);
-            Segna(licence,
+            Check(licence,
                   r0 == null && says(r4, new[] { "SOLIDWORKS MBD", "swPublishStep242_MBDLicenseNotAvailable", "AP214", "AP203" }),
                   "0 -> " + (r0 ?? "null") + " | 4 -> " + (r4 ?? "null"));
-            Segna(others,
+            Check(others,
                   says(r1, new[] { "swPublishStep242_InvalidPath", path, ".stp" }) &&
                   says(r3, new[] { "swPublishStep242_UnknownError" }) &&
                   says(r2, new[] { "answered 2", "does not list" }),
@@ -199,11 +199,11 @@ namespace Oce.Solid.Agent.ContractTests
                 step = (string)Call(sw, "Step242PathProblem", "C:\\out\\part.step");
                 other = (string)Call(sw, "Step242PathProblem", "C:\\out\\part.igs");
             }
-            catch (Exception ex) { Segna(name, false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check(name, false, ex.GetType().Name + ": " + ex.Message); return; }
             bool ok = stp == null && upper == null &&
                       step != null && step.Contains(".stp path") && step.Contains("swPublishStep242_InvalidPath") &&
                       other != null && other.Contains(".igs") && other.Contains(".stp");
-            Segna(name, ok,
+            Check(name, ok,
                   ".stp -> " + (stp ?? "null") + " | .STP -> " + (upper ?? "null") +
                   " | .step -> " + (step ?? "null") + " | .igs -> " + (other ?? "null"));
         }
@@ -221,8 +221,8 @@ namespace Oce.Solid.Agent.ContractTests
         {
             const string name = "C5-7: a library file that sets swStepAP has no bare 242 in its code " +
                                 "(swStepAP = 242 wrote an AP203 file)";
-            var folder = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
-            if (!Directory.Exists(folder)) { Segna(name, false, "missing " + folder); return; }
+            var folder = Path.Combine(Root(), "Oce.Solid.Agent.Core");
+            if (!Directory.Exists(folder)) { Check(name, false, "missing " + folder); return; }
             var bare242 = new Regex(@"(?<![\w.])242(?![\w.])");
             var found = new List<string>();
             int files = 0;
@@ -248,8 +248,8 @@ namespace Oce.Solid.Agent.ContractTests
                             found.Add(Path.GetFileName(file) + ":" + c.Item1 + " " + c.Item2.Trim());
                 }
             }
-            catch (Exception ex) { Segna(name, false, ex.GetType().Name + ": " + ex.Message); return; }
-            Segna(name, files > 0 && found.Count == 0,
+            catch (Exception ex) { Check(name, false, ex.GetType().Name + ": " + ex.Message); return; }
+            Check(name, files > 0 && found.Count == 0,
                   files == 0
                       ? "no library file names swStepAP in its code: the rule has nothing to look at, and that is not a pass"
                       : found.Count == 0

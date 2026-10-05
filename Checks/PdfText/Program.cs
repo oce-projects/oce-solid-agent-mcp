@@ -37,22 +37,22 @@ using SolidWorks.Interop.swconst;
 //      .\Checks\PdfText\bin\PdfText.exe            [--tieni]
 // =============================================================================
 
-internal static class Programma
+internal static class Program
 {
-    private const string Scritta = "PROVA123";
-    private const string Proprieta = "PROVA456";
-    private const string Assente = "ASSENTE987";
+    private const string Inscription = "PROVA123";
+    private const string Property = "PROVA456";
+    private const string Absent = "ASSENTE987";
 
-    private static int _passo;
-    private static void Dice(string cosa)
+    private static int _step;
+    private static void Says(string what)
     {
-        _passo++;
-        Console.WriteLine("  " + _passo.ToString("00") + ". " + cosa);
+        _step++;
+        Console.WriteLine("  " + _step.ToString("00") + ". " + what);
     }
 
-    private static int Main(string[] argomenti)
+    private static int Main(string[] arguments)
     {
-        bool tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
         Console.WriteLine();
         Console.WriteLine("TESTO NEL PDF — il testo della tavola esce come testo? (voce GT3-bis)");
         Console.WriteLine();
@@ -60,119 +60,119 @@ internal static class Programma
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
         catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
-        Dice("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
 
         string pdf = Path.Combine(Path.GetTempPath(), "testo-nel-pdf-sonda.pdf");
         IModelDoc2 doc = null;
         try
         {
-            string modTavola = sw.GetUserPreferenceStringValue(
+            string drawingMod = sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing);
-            doc = (IModelDoc2)sw.NewDocument(modTavola, (int)swDwgPaperSizes_e.swDwgPaperA3size, 0.42, 0.297);
+            doc = (IModelDoc2)sw.NewDocument(drawingMod, (int)swDwgPaperSizes_e.swDwgPaperA3size, 0.42, 0.297);
             if (doc == null) { Console.WriteLine("  NewDocument(tavola) -> null"); return 4; }
 
             var cpm = doc.Extension.get_CustomPropertyManager("");
-            int esitoProp = cpm.Add3("Descrizione", (int)swCustomInfoType_e.swCustomInfoText, Proprieta,
+            int propOutcome = cpm.Add3("Descrizione", (int)swCustomInfoType_e.swCustomInfoText, Property,
                 (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
-            string letta, risolta; bool dalCache;
-            cpm.Get5("Descrizione", false, out letta, out risolta, out dalCache);
-            Dice("proprieta' Descrizione: Add3 -> " + esitoProp + ", riletta «" + risolta + "»");
+            string read, resolved; bool fromCache;
+            cpm.Get5("Descrizione", false, out read, out resolved, out fromCache);
+            Says("proprieta' Descrizione: Add3 -> " + propOutcome + ", riletta «" + resolved + "»");
 
-            var n1 = doc.InsertNote(Scritta) as INote;
+            var n1 = doc.InsertNote(Inscription) as INote;
             if (n1 != null) (n1.GetAnnotation() as IAnnotation)?.SetPosition2(0.05, 0.25, 0);
             var n2 = doc.InsertNote("$PRP:\"Descrizione\"") as INote;
             if (n2 != null) (n2.GetAnnotation() as IAnnotation)?.SetPosition2(0.05, 0.22, 0);
             doc.ClearSelection2(true);
             doc.EditRebuild3();
-            Dice("note: «" + (n1 == null ? "(non nata)" : n1.GetText()) + "», «" +
+            Says("note: «" + (n1 == null ? "(non nata)" : n1.GetText()) + "», «" +
                  (n2 == null ? "(non nata)" : n2.GetText()) + "»");
             if (n1 == null || n2 == null) { Console.WriteLine("  una nota non e' nata"); return 4; }
 
             // ── IL PDF, come lo scrive export_pdf ──────────────────────
-            var dati = sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;
-            if (dati == null) { Console.WriteLine("  niente opzioni PDF"); return 4; }
-            dati.ViewPdfAfterSaving = false;
-            dati.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
+            var data = sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;
+            if (data == null) { Console.WriteLine("  niente opzioni PDF"); return 4; }
+            data.ViewPdfAfterSaving = false;
+            data.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
             try { if (File.Exists(pdf)) File.Delete(pdf); } catch { }
             int err = 0, avv = 0;
             bool ok = doc.Extension.SaveAs(pdf, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
-                (int)swSaveAsOptions_e.swSaveAsOptions_Silent, dati, ref err, ref avv);
+                (int)swSaveAsOptions_e.swSaveAsOptions_Silent, data, ref err, ref avv);
             if (!ok || !File.Exists(pdf)) { Console.WriteLine("  PDF non scritto, codice " + err); return 4; }
-            byte[] grezzi = File.ReadAllBytes(pdf);
-            Dice("PDF scritto: " + grezzi.Length + " byte");
+            byte[] rawItems = File.ReadAllBytes(pdf);
+            Says("PDF scritto: " + rawItems.Length + " byte");
 
             // ── LE TRE LETTURE ──────────────────────────────────────────
-            string crudo = Encoding.GetEncoding(28591).GetString(grezzi);
-            int flussi, decompressi;
-            string dentro = Decomprimi(grezzi, out flussi, out decompressi);
-            int blocchiDiTesto = Conta(dentro, "BT\n") + Conta(dentro, "BT\r") + Conta(dentro, "BT ");
-            int toUnicode = Conta(crudo, "/ToUnicode") + Conta(dentro, "/ToUnicode");
-            string estratto = PdfToText(pdf);
-            string decodificato = DecodificaConLeCMap(dentro);
+            string rawText = Encoding.GetEncoding(28591).GetString(rawItems);
+            int flows, decompressed;
+            string inside = Decompress(rawItems, out flows, out decompressed);
+            int textBlocks = Count(inside, "BT\n") + Count(inside, "BT\r") + Count(inside, "BT ");
+            int toUnicode = Count(rawText, "/ToUnicode") + Count(inside, "/ToUnicode");
+            string extracted = PdfToText(pdf);
+            string decoded = DecodeWithCMap(inside);
 
             Console.WriteLine();
-            Console.WriteLine("      flussi compressi " + flussi + ", decompressi " + decompressi +
-                              ", blocchi di testo (BT) " + blocchiDiTesto + ", /ToUnicode " + toUnicode);
-            Console.WriteLine("      pdftotext: " + (estratto == null ? "unavailable" : estratto.Length + " caratteri estratti"));
-            Console.WriteLine("      decodificato con le CMap: " + decodificato.Length + " caratteri");
+            Console.WriteLine("      flussi compressi " + flows + ", decompressi " + decompressed +
+                              ", blocchi di testo (BT) " + textBlocks + ", /ToUnicode " + toUnicode);
+            Console.WriteLine("      pdftotext: " + (extracted == null ? "unavailable" : extracted.Length + " caratteri estratti"));
+            Console.WriteLine("      decodificato con le CMap: " + decoded.Length + " caratteri");
             Console.WriteLine();
             Console.WriteLine("      cerca          grezzo  flussi  cmap    pdftotext");
-            var esiti = new Dictionary<string, bool[]>();
-            foreach (var s in new[] { Scritta, Proprieta, Assente })
+            var outcomes = new Dictionary<string, bool[]>();
+            foreach (var s in new[] { Inscription, Property, Absent })
             {
                 var r = new[]
                 {
-                    crudo.Contains(s),
-                    dentro.Contains(s) || dentro.Contains(Esadecimale(s)),
-                    estratto != null && estratto.Contains(s),
-                    decodificato.Contains(s),
+                    rawText.Contains(s),
+                    inside.Contains(s) || inside.Contains(Hexadecimal(s)),
+                    extracted != null && extracted.Contains(s),
+                    decoded.Contains(s),
                 };
-                esiti[s] = r;
+                outcomes[s] = r;
                 Console.WriteLine("      " + s.PadRight(14) + " " + Si(r[0]).PadRight(7) + " " + Si(r[1]).PadRight(7) + " " +
-                                  Si(r[3]).PadRight(7) + " " + (estratto == null ? "-" : Si(r[2])));
+                                  Si(r[3]).PadRight(7) + " " + (extracted == null ? "-" : Si(r[2])));
             }
             Console.WriteLine();
 
-            if (esiti[Assente][3])
+            if (outcomes[Absent][3])
             {
-                Console.WriteLine("IL ROSSO DELLA DECODIFICA NON REGGE: " + Assente + " esce dalle CMap. Il decodificatore inventa.");
+                Console.WriteLine("IL ROSSO DELLA DECODIFICA NON REGGE: " + Absent + " esce dalle CMap. Il decodificatore inventa.");
                 return 7;
             }
-            if (esiti[Scritta][3] && esiti[Proprieta][3] && estratto != null && esiti[Scritta][2])
+            if (outcomes[Inscription][3] && outcomes[Property][3] && extracted != null && outcomes[Inscription][2])
             {
                 Console.WriteLine("REGGE SENZA ATTREZZI: le CMap /ToUnicode, lette qui, danno lo stesso testo di pdftotext.");
                 Console.WriteLine("Il caso di banco di GT3-bis si scrive con questo decodificatore, senza dipendere da Git.");
                 return 0;
             }
 
-            if (esiti[Assente][0] || esiti[Assente][1] || esiti[Assente][2])
+            if (outcomes[Absent][0] || outcomes[Absent][1] || outcomes[Absent][2])
             {
-                Console.WriteLine("IL ROSSO NON REGGE: " + Assente + " si trova, e nella tavola non c'e'. La ricerca e' cieca.");
+                Console.WriteLine("IL ROSSO NON REGGE: " + Absent + " si trova, e nella tavola non c'e'. La ricerca e' cieca.");
                 return 7;
             }
-            bool testoVero = estratto != null && esiti[Scritta][2] && esiti[Proprieta][2];
-            bool senzaAttrezzi = esiti[Scritta][1] && esiti[Proprieta][1];
-            if (testoVero && senzaAttrezzi)
+            bool trueText = extracted != null && outcomes[Inscription][2] && outcomes[Property][2];
+            bool withoutTools = outcomes[Inscription][1] && outcomes[Property][1];
+            if (trueText && withoutTools)
             {
                 Console.WriteLine("REGGE, tutte e due le meta': il PDF porta il testo come testo (pdftotext lo estrae),");
                 Console.WriteLine("e lo si trova anche solo decomprimendo i flussi — un caso di banco non ha bisogno di attrezzi.");
                 return 0;
             }
-            if (testoVero)
+            if (trueText)
             {
                 Console.WriteLine("IL TESTO C'E' (pdftotext lo estrae), ma NON in chiaro nei flussi: i glifi sono codificati");
                 Console.WriteLine("(" + toUnicode + " tabelle /ToUnicode). Il caso di banco deve decodificarle, o dipendere da pdftotext.");
                 return 3;
             }
-            if (estratto == null)
+            if (extracted == null)
             {
-                Console.WriteLine(senzaAttrezzi
+                Console.WriteLine(withoutTools
                     ? "Nei flussi il testo c'e'; pdftotext manca per la seconda meta'."
                     : "Nei flussi non si trova, e pdftotext manca: la sonda non puo' decidere.");
-                return senzaAttrezzi ? 0 : 8;
+                return withoutTools ? 0 : 8;
             }
             Console.WriteLine("IL TESTO NON ESCE COME TESTO: nemmeno pdftotext lo trova. " +
-                              (blocchiDiTesto == 0 ? "Zero blocchi BT: l'esportatore disegna contorni." : "Ci sono " + blocchiDiTesto + " blocchi BT, ma non questo testo."));
+                              (textBlocks == 0 ? "Zero blocchi BT: l'esportatore disegna contorni." : "Ci sono " + textBlocks + " blocchi BT, ma non questo testo."));
             return 6;
         }
         catch (Exception ex)
@@ -184,25 +184,25 @@ internal static class Programma
         }
         finally
         {
-            if (doc != null && !tieni)
+            if (doc != null && !keep)
             {
                 try { sw.CloseDoc(doc.GetTitle()); } catch { }
                 try { if (File.Exists(pdf)) File.Delete(pdf); } catch { }
-                Dice("tavola chiusa senza salvare, PDF tolto");
+                Says("tavola chiusa senza salvare, PDF tolto");
             }
         }
     }
 
     private static string Si(bool b) { return b ? "SI" : "no"; }
 
-    private static int Conta(string testo, string cosa)
+    private static int Count(string text, string what)
     {
         int n = 0, i = 0;
-        while ((i = testo.IndexOf(cosa, i, StringComparison.Ordinal)) >= 0) { n++; i += cosa.Length; }
+        while ((i = text.IndexOf(what, i, StringComparison.Ordinal)) >= 0) { n++; i += what.Length; }
         return n;
     }
 
-    private static string Esadecimale(string s)
+    private static string Hexadecimal(string s)
     {
         var sb = new StringBuilder();
         foreach (char c in s) sb.Append(((int)c).ToString("X2"));
@@ -214,43 +214,43 @@ internal static class Programma
     /// quelli che si lasciano decomprimere (zlib: due byte di intestazione e
     /// poi deflate); gli altri si aggiungono cosi' come sono.
     /// </summary>
-    private static string Decomprimi(byte[] b, out int flussi, out int decompressi)
+    private static string Decompress(byte[] b, out int flows, out int decompressed)
     {
         var lat = Encoding.GetEncoding(28591);
         string s = lat.GetString(b);
-        var fuori = new StringBuilder();
-        flussi = 0; decompressi = 0;
+        var outside = new StringBuilder();
+        flows = 0; decompressed = 0;
         int i = 0;
         while ((i = s.IndexOf("stream", i, StringComparison.Ordinal)) >= 0)
         {
             if (i >= 3 && s.Substring(i - 3, 3) == "end") { i += 6; continue; }
-            int inizio = i + 6;
-            if (inizio < s.Length && s[inizio] == '\r') inizio++;
-            if (inizio < s.Length && s[inizio] == '\n') inizio++;
-            int fine = s.IndexOf("endstream", inizio, StringComparison.Ordinal);
+            int start = i + 6;
+            if (start < s.Length && s[start] == '\r') start++;
+            if (start < s.Length && s[start] == '\n') start++;
+            int fine = s.IndexOf("endstream", start, StringComparison.Ordinal);
             if (fine < 0) break;
-            flussi++;
-            int lung = fine - inizio;
-            string testo = null;
-            if (lung > 2)
+            flows++;
+            int len = fine - start;
+            string text = null;
+            if (len > 2)
             {
                 try
                 {
-                    using (var ms = new MemoryStream(b, inizio + 2, lung - 2))
+                    using (var ms = new MemoryStream(b, start + 2, len - 2))
                     using (var z = new DeflateStream(ms, CompressionMode.Decompress))
                     using (var o = new MemoryStream())
                     {
                         z.CopyTo(o);
-                        testo = lat.GetString(o.ToArray());
-                        decompressi++;
+                        text = lat.GetString(o.ToArray());
+                        decompressed++;
                     }
                 }
-                catch { testo = null; }
+                catch { text = null; }
             }
-            fuori.Append(testo ?? s.Substring(inizio, lung)).Append('\n');
+            outside.Append(text ?? s.Substring(start, len)).Append('\n');
             i = fine + 9;
         }
-        return fuori.ToString();
+        return outside.ToString();
     }
 
     /// <summary>
@@ -266,24 +266,24 @@ internal static class Programma
     /// spazzatura, non PROVA123 — e il rosso ASSENTE987 e' li' per dirlo se
     /// non fosse cosi'.
     /// </summary>
-    internal static string DecodificaConLeCMap(string flussi)
+    internal static string DecodeWithCMap(string flows)
     {
         // 1. le tabelle: da ogni blocco begincmap..endcmap
-        var tabelle = new List<Dictionary<int, string>>();
+        var tables = new List<Dictionary<int, string>>();
         int i = 0;
-        while ((i = flussi.IndexOf("begincmap", i, StringComparison.Ordinal)) >= 0)
+        while ((i = flows.IndexOf("begincmap", i, StringComparison.Ordinal)) >= 0)
         {
-            int fine = flussi.IndexOf("endcmap", i, StringComparison.Ordinal);
+            int fine = flows.IndexOf("endcmap", i, StringComparison.Ordinal);
             if (fine < 0) break;
-            var blocco = flussi.Substring(i, fine - i);
+            var block = flows.Substring(i, fine - i);
             var t = new Dictionary<int, string>();
             foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
-                         blocco, @"beginbfchar(.*?)endbfchar", System.Text.RegularExpressions.RegexOptions.Singleline))
+                         block, @"beginbfchar(.*?)endbfchar", System.Text.RegularExpressions.RegexOptions.Singleline))
                 foreach (System.Text.RegularExpressions.Match c in System.Text.RegularExpressions.Regex.Matches(
                              m.Groups[1].Value, @"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>"))
                     t[Convert.ToInt32(c.Groups[1].Value, 16)] = Utf16(c.Groups[2].Value);
             foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
-                         blocco, @"beginbfrange(.*?)endbfrange", System.Text.RegularExpressions.RegexOptions.Singleline))
+                         block, @"beginbfrange(.*?)endbfrange", System.Text.RegularExpressions.RegexOptions.Singleline))
                 foreach (System.Text.RegularExpressions.Match c in System.Text.RegularExpressions.Regex.Matches(
                              m.Groups[1].Value, @"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>"))
                 {
@@ -291,33 +291,33 @@ internal static class Programma
                     int base0 = Convert.ToInt32(c.Groups[3].Value, 16);
                     for (int k = da; k <= a && k - da < 65536; k++) t[k] = char.ConvertFromUtf32(base0 + (k - da));
                 }
-            if (t.Count > 0) tabelle.Add(t);
+            if (t.Count > 0) tables.Add(t);
             i = fine + 7;
         }
 
         // 2. le stringhe esadecimali dei blocchi di testo, decodificate con
         //    ogni tabella, a due byte per codice (Identity-H) e a uno.
-        var fuori = new StringBuilder();
+        var outside = new StringBuilder();
         foreach (System.Text.RegularExpressions.Match s in System.Text.RegularExpressions.Regex.Matches(
-                     flussi, @"<([0-9A-Fa-f\s]{2,})>"))
+                     flows, @"<([0-9A-Fa-f\s]{2,})>"))
         {
             var esa = System.Text.RegularExpressions.Regex.Replace(s.Groups[1].Value, @"\s", "");
-            foreach (var t in tabelle)
-                foreach (int passo in new[] { 4, 2 })
+            foreach (var t in tables)
+                foreach (int planStep in new[] { 4, 2 })
                 {
-                    if (esa.Length % passo != 0) continue;
+                    if (esa.Length % planStep != 0) continue;
                     var sb = new StringBuilder();
-                    bool tutto = true;
-                    for (int k = 0; k < esa.Length; k += passo)
+                    bool everything = true;
+                    for (int k = 0; k < esa.Length; k += planStep)
                     {
                         string c;
-                        if (t.TryGetValue(Convert.ToInt32(esa.Substring(k, passo), 16), out c)) sb.Append(c);
-                        else { tutto = false; break; }
+                        if (t.TryGetValue(Convert.ToInt32(esa.Substring(k, planStep), 16), out c)) sb.Append(c);
+                        else { everything = false; break; }
                     }
-                    if (tutto && sb.Length > 0) fuori.Append(sb).Append('\n');
+                    if (everything && sb.Length > 0) outside.Append(sb).Append('\n');
                 }
         }
-        return fuori.ToString();
+        return outside.ToString();
     }
 
     private static string Utf16(string esa)
@@ -346,9 +346,9 @@ internal static class Programma
                 };
                 using (var p = Process.Start(psi))
                 {
-                    string testo = p.StandardOutput.ReadToEnd();
+                    string text = p.StandardOutput.ReadToEnd();
                     p.WaitForExit(30000);
-                    if (p.ExitCode == 0) return testo;
+                    if (p.ExitCode == 0) return text;
                 }
             }
             catch { }

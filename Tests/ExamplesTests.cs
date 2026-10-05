@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Web.Script.Serialization;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// si fida piu' del catalogo. Per questo la copertura e' 24/71 e non 71/71,
     /// e per questo questo gruppo la guarda a ogni giro.
     /// </summary>
-    internal static class ProveGliEsempi
+    internal static class ExamplesTests
     {
         /// <summary>
         /// Quante operazioni hanno un esempio. Ventiquattro il 23/9/2026, e
@@ -55,39 +55,39 @@ namespace Oce.Solid.Agent.ContractTests
         /// `fill_pattern`, `gusset`) nascono senza: i loro casi verdi
         /// nominano le facce coi selettori del banco.
         /// </summary>
-        private const int Pavimento = 30;
+        private const int Floor = 30;
 
         /// <summary>Cio' che un client non puo' copiare.</summary>
-        private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}", "{DATI}", "{SOLIDWORKS}" };
+        private static readonly string[] BenchOnly = { "@", "{LAVORO}", "{PROFILI}", "{DATI}", "{SOLIDWORKS}" };
 
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("gli esempi si copiano da un caso verde (Z-G1)");
+            Group("gli esempi si copiano da un caso verde (Z-G1)");
 
-            var file = CatalogoServito();
+            var file = ServedCatalog();
             if (!File.Exists(file))
             {
-                Segna("il catalogo servito c'e'", false, "manca " + file);
+                Check("il catalogo servito c'e'", false, "manca " + file);
                 return;
             }
 
             var s = new JavaScriptSerializer();
-            var radice = s.DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
-            object grezzo;
-            var voci = radice != null && radice.TryGetValue("operations", out grezzo)
-                ? grezzo as object[] : null;
-            if (voci == null)
+            var root = s.DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
+            object raw;
+            var entries = root != null && root.TryGetValue("operations", out raw)
+                ? raw as object[] : null;
+            if (entries == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
-            int conEsempio = 0;
-            var illeggibili = new List<string>();
-            var contaminati = new List<string>();
-            var fuoriSchema = new List<string>();
+            int withExample = 0;
+            var unreadable = new List<string>();
+            var contaminated = new List<string>();
+            var outsideSchema = new List<string>();
 
-            foreach (var v in voci)
+            foreach (var v in entries)
             {
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
@@ -95,21 +95,21 @@ namespace Oce.Solid.Agent.ContractTests
                 o.TryGetValue("name", out n);
                 o.TryGetValue("example", out e);
                 o.TryGetValue("schema", out sc);
-                string nome = Convert.ToString(n);
-                string esempio = Convert.ToString(e);
-                if (string.IsNullOrWhiteSpace(esempio)) continue;
-                conEsempio++;
+                string itemName = Convert.ToString(n);
+                string example = Convert.ToString(e);
+                if (string.IsNullOrWhiteSpace(example)) continue;
+                withExample++;
 
                 // ── E' JSON? ─────────────────────────────────────────────
-                Dictionary<string, object> argomenti = null;
-                try { argomenti = s.DeserializeObject(esempio) as Dictionary<string, object>; }
-                catch (Exception ex) { illeggibili.Add(nome + ": " + ex.Message); continue; }
-                if (argomenti == null) { illeggibili.Add(nome + ": non e' un oggetto"); continue; }
+                Dictionary<string, object> arguments = null;
+                try { arguments = s.DeserializeObject(example) as Dictionary<string, object>; }
+                catch (Exception ex) { unreadable.Add(itemName + ": " + ex.Message); continue; }
+                if (arguments == null) { unreadable.Add(itemName + ": non e' un oggetto"); continue; }
 
                 // ── E' COPIABILE? ────────────────────────────────────────
-                foreach (var brutto in SoloDelBanco)
-                    if (esempio.Contains(brutto))
-                        contaminati.Add(nome + " contiene «" + brutto + "»");
+                foreach (var bad in BenchOnly)
+                    if (example.Contains(bad))
+                        contaminated.Add(itemName + " contiene «" + bad + "»");
 
                 // ── E I CAMPI ESISTONO NELLO SCHEMA? ─────────────────────
                 //
@@ -122,35 +122,35 @@ namespace Oce.Solid.Agent.ContractTests
                 var props = schema != null && schema.TryGetValue("properties", out pg)
                     ? pg as Dictionary<string, object> : null;
                 if (props == null) continue;
-                foreach (var campo in argomenti.Keys)
-                    if (!props.ContainsKey(campo))
-                        fuoriSchema.Add(nome + "." + campo);
+                foreach (var theField in arguments.Keys)
+                    if (!props.ContainsKey(theField))
+                        outsideSchema.Add(itemName + "." + theField);
             }
 
-            Segna("gli esempi non sono diminuiti", conEsempio >= Pavimento,
-                  conEsempio + " operazioni su " + voci.Length +
-                  " hanno un esempio (pavimento " + Pavimento + ")");
+            Check("gli esempi non sono diminuiti", withExample >= Floor,
+                  withExample + " operazioni su " + entries.Length +
+                  " hanno un esempio (pavimento " + Floor + ")");
 
-            Segna("e il pavimento e' quello vero", conEsempio == Pavimento,
-                  conEsempio == Pavimento
+            Check("e il pavimento e' quello vero", withExample == Floor,
+                  withExample == Floor
                       ? "ventiquattro, come misurati"
-                      : "sono " + conEsempio + ": alza il pavimento a questo numero");
+                      : "sono " + withExample + ": alza il pavimento a questo numero");
 
-            Segna("ogni esempio e' JSON leggibile", illeggibili.Count == 0,
-                  illeggibili.Count == 0 ? "tutti" : string.Join(" | ", illeggibili));
+            Check("ogni esempio e' JSON leggibile", unreadable.Count == 0,
+                  unreadable.Count == 0 ? "tutti" : string.Join(" | ", unreadable));
 
             // QUESTO E' IL CONTROLLO CHE CONTA.
-            Segna("nessun esempio usa qualcosa che vive solo nel banco",
-                  contaminati.Count == 0,
-                  contaminati.Count == 0
-                      ? "niente selettori @, niente segnaposto {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
-                      : string.Join(" | ", contaminati));
+            Check("nessun esempio usa qualcosa che vive solo nel banco",
+                  contaminated.Count == 0,
+                  contaminated.Count == 0
+                      ? "niente selettori @, nothing segnaposto {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
+                      : string.Join(" | ", contaminated));
 
-            Segna("e ogni campo dell'esempio esiste nello schema",
-                  fuoriSchema.Count == 0,
-                  fuoriSchema.Count == 0
+            Check("e ogni campo dell'esempio esiste nello schema",
+                  outsideSchema.Count == 0,
+                  outsideSchema.Count == 0
                       ? "nessun esempio invecchiato"
-                      : "campi che lo schema non ha: " + string.Join(", ", fuoriSchema));
+                      : "campi che lo schema non ha: " + string.Join(", ", outsideSchema));
         }
     }
 }

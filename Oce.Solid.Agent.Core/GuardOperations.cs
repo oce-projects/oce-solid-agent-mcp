@@ -24,29 +24,29 @@ namespace Oce.Solid.Agent.Core
     /// Qui: la fotografia del pezzo prima, e dopo la frase di cio' che si e'
     /// rotto, o null. Chi chiama rimette com'era e lo dice.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private sealed class FotoDelPezzo
+        private sealed class PartPhoto
         {
             public double? Volume;
-            public int Corpi;
-            public int Aperte;
+            public int Bodies;
+            public int OpenCount;
             // Il NUMERO di lavorazioni in errore (non un codice d'errore: la
             // guardia Z-C7 vieta di confrontare un codice con una cifra, e questo
             // non lo e'). -1 se non si legge.
-            public int Rotte;
-            public Dictionary<string, int> Lavorazioni;
+            public int Broken;
+            public Dictionary<string, int> Features;
         }
 
-        private static FotoDelPezzo FotografaIlPezzo(IModelDoc2 modello)
+        private static PartPhoto SnapshotPart(IModelDoc2 model)
         {
-            return new FotoDelPezzo
+            return new PartPhoto
             {
-                Volume = VolumeMm3(modello),
-                Corpi = ContaCorpiSolidi(modello),
-                Aperte = ApertureChiuse(modello),
-                Rotte = LavorazioniInErrore(modello),
-                Lavorazioni = FaccePerLavorazione(modello),
+                Volume = VolumeMm3(model),
+                Bodies = CountSolidBodies(model),
+                OpenCount = ClosedOpenings(model),
+                Broken = FeaturesInError(model),
+                Features = FacesPerFeature(model),
             };
         }
 
@@ -63,31 +63,31 @@ namespace Oce.Solid.Agent.Core
         /// da 2 a 1 e il pezzo e' proprio quello chiesto — misurato il 28/9/2026 sul
         /// caso blind_becomes_through, che la guardia rifiutava a torto.
         /// </summary>
-        private static string CosaSiERotto(IModelDoc2 modello, FotoDelPezzo prima, bool ricostruito, bool aperture)
+        private static string WhatBroke(IModelDoc2 model, PartPhoto before, bool rebuilt, bool aperture)
         {
-            int rotte = LavorazioniInErrore(modello);
-            if (prima.Rotte >= 0 && rotte > prima.Rotte)
+            int broken = FeaturesInError(model);
+            if (before.Broken >= 0 && broken > before.Broken)
             {
-                int nuove = rotte - prima.Rotte;
-                return nuove + (nuove > 1 ? " lavorazioni sono andate" : " lavorazione e' andata") +
-                       " in errore (" + rotte + " invece di " + prima.Rotte + ")";
+                int newOnes = broken - before.Broken;
+                return newOnes + (newOnes > 1 ? " lavorazioni sono andate" : " lavorazione e' andata") +
+                       " in errore (" + broken + " invece di " + before.Broken + ")";
             }
             // UNA RICOSTRUZIONE CHE RISPONDE FALSE su un pezzo che era sano (nessuna
             // lavorazione rotta, contata: non «non lo so»). Su un pezzo gia' rotto la
             // risposta e' false comunque, e conta il numero delle rotte, qui sopra.
-            bool eraSano = prima.Rotte >= 0 && prima.Rotte < 1;
-            if (!ricostruito && eraSano)
+            bool wasHealthy = before.Broken >= 0 && before.Broken < 1;
+            if (!rebuilt && wasHealthy)
                 return "la ricostruzione non e' riuscita";
-            int corpi = ContaCorpiSolidi(modello);
-            if (prima.Corpi >= 0 && corpi >= 0 && corpi != prima.Corpi)
-                return "il pezzo ha " + corpi + " corpi invece di " + prima.Corpi + ": qualcosa si e' spezzato o unito";
-            int aperte = aperture ? ApertureChiuse(modello) : -1;
-            if (aperture && prima.Aperte >= 0 && aperte >= 0 && aperte < prima.Aperte)
-                return "un'apertura esce dal materiale (le aperture chiuse sulle facce piane passano da " + prima.Aperte +
-                       " a " + aperte + ": un foro o un'asola adesso apre il bordo, o due aperture si sono fuse)";
-            string smusso = SmussoCheNonCiSta(modello, prima.Lavorazioni, FaccePerLavorazione(modello));
-            if (smusso != null)
-                return smusso + ": non ci sta piu' (SOLIDWORKS non lo segnala come errore, cambia la forma da solo)";
+            int bodies = CountSolidBodies(model);
+            if (before.Bodies >= 0 && bodies >= 0 && bodies != before.Bodies)
+                return "il pezzo ha " + bodies + " corpi invece di " + before.Bodies + ": qualcosa si e' spezzato o unito";
+            int open = aperture ? ClosedOpenings(model) : -1;
+            if (aperture && before.OpenCount >= 0 && open >= 0 && open < before.OpenCount)
+                return "un'apertura esce dal materiale (le aperture chiuse sulle facce piane passano da " + before.OpenCount +
+                       " a " + open + ": un foro o un'asola adesso apre il bordo, o due aperture si sono fuse)";
+            string chamfer = ChamferThatDoesNotFit(model, before.Features, FacesPerFeature(model));
+            if (chamfer != null)
+                return chamfer + ": non ci sta piu' (SOLIDWORKS non lo segnala come errore, cambia la forma da solo)";
             return null;
         }
 
@@ -95,17 +95,17 @@ namespace Oce.Solid.Agent.Core
         /// La coda della frase di rifiuto, dopo aver rimesso le cose: il volume e'
         /// tornato quello della fotografia? Si rilegge, non si crede.
         /// </summary>
-        private static string ETornatoComEra(IModelDoc2 modello, FotoDelPezzo prima, bool rimesso, string cosa)
+        private static string IsBackAsItWas(IModelDoc2 model, PartPhoto before, bool restored, string what)
         {
-            if (!rimesso) return " E non sono riuscito a rimettere " + cosa + ": " + Frasi.CosiSiRitira + ".";
-            double? adesso = VolumeMm3(modello);
-            if (adesso == null || prima.Volume == null)
-                return " Ho rimesso " + cosa + ", ma non ho potuto rimisurare il volume per controllare che il " +
+            if (!restored) return " E non sono riuscito a rimettere " + what + ": " + Sentences.HowToWithdrawIt + ".";
+            double? now = VolumeMm3(model);
+            if (now == null || before.Volume == null)
+                return " Ho rimesso " + what + ", ma non ho potuto rimisurare il volume per controllare che il " +
                        "pezzo sia com'era: guardalo.";
-            if (Math.Abs(adesso.Value - prima.Volume.Value) < 0.01)
-                return " Non l'ho lasciato cosi': ho rimesso " + cosa + " e il pezzo e' com'era.";
-            return " Ho rimesso " + cosa + ", ma il volume adesso e' " + adesso.Value.ToString("0.##") + " mm3 invece di " +
-                   prima.Volume.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
+            if (Math.Abs(now.Value - before.Volume.Value) < 0.01)
+                return " Non l'ho lasciato cosi': ho rimesso " + what + " e il pezzo e' com'era.";
+            return " Ho rimesso " + what + ", ma il volume adesso e' " + now.Value.ToString("0.##") + " mm3 invece di " +
+                   before.Volume.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
         }
 
         /// <summary>
@@ -115,12 +115,12 @@ namespace Oce.Solid.Agent.Core
         /// documento in millimetri. In uno in pollici lo stesso 12mm rileggerebbe
         /// 0,472, e il confronto col 12 chiesto rifiutava una variabile giusta.
         /// </summary>
-        private static double MmPerUnitaDelDocumento(IModelDoc2 modello)
+        private static double MmPerDocumentUnit(IModelDoc2 model)
         {
             int u = -1;
             try
             {
-                u = modello.Extension.GetUserPreferenceInteger(
+                u = model.Extension.GetUserPreferenceInteger(
                     (int)swUserPreferenceIntegerValue_e.swUnitsLinear,
                     (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
             }

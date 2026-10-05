@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -39,7 +39,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         /// <summary>
         /// The files that call ApiHelpers.ReadDimension, each of them a PART
-        /// reader: TrovaQuota answers null on anything but a part (set_dimension,
+        /// reader: FindDimension answers null on anything but a part (set_dimension,
         /// link_dimension, dimension_tolerance), and the state reads the dimensions of a
         /// feature only after its part check. A new caller is added here on
         /// purpose, after checking that it reads a part.
@@ -51,9 +51,9 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("S1 in parts only: the part dimensions through GetSystemValue3, the drawing readers left alone (Z-C21.13 follow-up)");
+            Group("S1 in parts only: the part dimensions through GetSystemValue3, the drawing readers left alone (Z-C21.13 follow-up)");
 
-            string dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
+            string dir = Path.Combine(Root(), "Oce.Solid.Agent.Core");
             string helpers = Read(dir, "ApiHelpers.cs");
             if (helpers != null)
             {
@@ -61,7 +61,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool migrated = reader != null &&
                                 reader.Contains("GetSystemValue3((int)swInConfigurationOpts_e.swThisConfiguration, null)") &&
                                 !reader.Contains(".SystemValue");
-                Segna("S1 in parts: ReadDimension reads GetSystemValue3(swThisConfiguration, null), and SystemValue is gone",
+                Check("S1 in parts: ReadDimension reads GetSystemValue3(swThisConfiguration, null), and SystemValue is gone",
                       migrated,
                       reader == null ? "ReadDimension not found in ApiHelpers.cs" : "body: " + OneLine(reader));
 
@@ -70,7 +70,7 @@ namespace Oce.Solid.Agent.ContractTests
                                     !inConfiguration.Contains("GetSystemValue3(");
                 var callers = Callers(dir, "ApiHelpers.ReadDimension(");
                 var foreign = callers.Where(f => !PartReaders.Contains(f, StringComparer.OrdinalIgnoreCase)).ToList();
-                Segna("S1 stays out of drawings: ReadDimensionInConfiguration keeps GetSystemValue2, and only the part readers call ReadDimension",
+                Check("S1 stays out of drawings: ReadDimensionInConfiguration keeps GetSystemValue2, and only the part readers call ReadDimension",
                       drawingsKept && foreign.Count == 0 && callers.Count > 0,
                       "ReadDimensionInConfiguration on GetSystemValue2 " + drawingsKept + "; callers of ReadDimension: " +
                       (callers.Count == 0 ? "none found" : string.Join(", ", callers)) +
@@ -91,7 +91,7 @@ namespace Oce.Solid.Agent.ContractTests
                                reads.All(l => l.StartsWith("try { readValue = ", StringComparison.Ordinal) &&
                                               l.EndsWith("} catch { }", StringComparison.Ordinal));
                 bool startsNull = state.Contains("object readValue = null;");
-                Segna("the part state writes null, not 0, for a dimension it cannot read, and keeps the other dimensions of the feature",
+                Check("the part state writes null, not 0, for a dimension it cannot read, and keeps the other dimensions of the feature",
                       guarded && startsNull,
                       reads.Count + " reads in DocumentState.cs (2 expected), each inside its own try " + guarded +
                       ", the value starts as null " + startsNull);
@@ -110,15 +110,15 @@ namespace Oce.Solid.Agent.ContractTests
         private static void ShapeRule()
         {
             const string rule = "S1: OneDimensionValue takes one number (Double[1], or Object[1] holding a double) and throws on every other shape";
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui(rule, library + " is missing: build the library first (build.ps1)");
+                NotHere(rule, library + " is missing: build the library first (build.ps1)");
                 return;
             }
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var asm = Assembly.Load(File.ReadAllBytes(library));
                 var helpers = asm.GetType("Oce.Solid.Agent.Core.ApiHelpers", false);
                 var method = helpers == null ? null : helpers.GetMethod("OneDimensionValue", Any);
-                if (method == null) { Segna(rule, false, "ApiHelpers.OneDimensionValue is missing on this library"); return; }
+                if (method == null) { Check(rule, false, "ApiHelpers.OneDimensionValue is missing on this library"); return; }
 
                 var wrong = new List<string>();
                 // The answer of the rule: the value, or "refused" for the
@@ -165,10 +165,10 @@ namespace Oce.Solid.Agent.ContractTests
                     object got = call(e.Item1);
                     if (!Equals(got, e.Item2)) wrong.Add(e.Item3 + ": " + got + " instead of " + e.Item2);
                 }
-                Segna(rule, wrong.Count == 0,
+                Check(rule, wrong.Count == 0,
                       wrong.Count == 0 ? expected.Length + " shapes as expected" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         /// <summary>The body of the member declared by <paramref name="signature"/>, up to its closing brace at 8 spaces.</summary>
@@ -204,7 +204,7 @@ namespace Oce.Solid.Agent.ContractTests
         private static string Read(string dir, string file)
         {
             try { return File.ReadAllText(Path.Combine(dir, file)); }
-            catch (Exception ex) { Segna(file + " can be read", false, ex.Message); return null; }
+            catch (Exception ex) { Check(file + " can be read", false, ex.Message); return null; }
         }
     }
 }

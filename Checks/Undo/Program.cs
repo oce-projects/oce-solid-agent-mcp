@@ -23,29 +23,29 @@ namespace Checks.Undo
     ///     Undo.exe 3          annulla tre volte
     ///     Undo.exe 0          non annulla: stampa solo il volume
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
-            int quante = 1;
-            if (argomenti.Length > 0 && !int.TryParse(argomenti[0], out quante))
+            int howMany = 1;
+            if (arguments.Length > 0 && !int.TryParse(arguments[0], out howMany))
             {
                 Console.Error.WriteLine("L'argomento e' quante volte annullare.");
                 return 2;
             }
 
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
 
             Console.WriteLine("documento: " + doc.GetTitle());
-            Console.WriteLine(Riga("prima", Volume(doc)));
+            Console.WriteLine(Line("prima", Volume(doc)));
 
-            for (int i = 0; i < quante; i++)
+            for (int i = 0; i < howMany; i++)
             {
                 // EditUndo2 e non RunCommand: il comando di menu dipende dal
                 // fuoco della finestra, questo agisce sul documento che si ha
@@ -61,17 +61,17 @@ namespace Checks.Undo
             }
             try { doc.EditRebuild3(); } catch { }
 
-            Console.WriteLine("annullamenti: " + quante);
-            Console.WriteLine(Riga("dopo", Volume(doc)));
+            Console.WriteLine("annullamenti: " + howMany);
+            Console.WriteLine(Line("dopo", Volume(doc)));
             return 0;
         }
 
-        private static string Riga(string quando, double? volume)
+        private static string Line(string timestamp, double? volume)
         {
             return volume == null
-                ? "volume " + quando + ": nessun corpo solido"
+                ? "volume " + timestamp + ": nessun corpo solido"
                 : string.Format(CultureInfo.InvariantCulture,
-                    "volume {0}: {1:0.#} mm3", quando, volume);
+                    "volume {0}: {1:0.#} mm3", timestamp, volume);
         }
 
         /// <summary>
@@ -84,19 +84,19 @@ namespace Checks.Undo
         {
             try
             {
-                var parte = doc as IPartDoc;
-                if (parte == null) return null;
-                var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-                if (corpi == null || corpi.Length == 0) return null;
-                double totale = 0;
-                foreach (var c in corpi)
+                var partDoc = doc as IPartDoc;
+                if (partDoc == null) return null;
+                var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+                if (bodies == null || bodies.Length == 0) return null;
+                double total = 0;
+                foreach (var c in bodies)
                 {
-                    var corpo = c as IBody2;
-                    if (corpo == null) continue;
-                    var p = corpo.GetMassProperties(1) as double[];
-                    if (p != null && p.Length > 3) totale += p[3];
+                    var body = c as IBody2;
+                    if (body == null) continue;
+                    var p = body.GetMassProperties(1) as double[];
+                    if (p != null && p.Length > 3) total += p[3];
                 }
-                return totale * 1e9;
+                return total * 1e9;
             }
             catch { return null; }
         }

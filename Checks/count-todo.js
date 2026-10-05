@@ -46,37 +46,37 @@
 const fs = require("fs");
 const path = require("path");
 
-const { trovaIlTodo } = require("./where-is-the-todo.js");
-const file = trovaIlTodo(path.join(__dirname, ".."), process.argv);
+const { findTheTodo } = require("./where-is-the-todo.js");
+const file = findTheTodo(path.join(__dirname, ".."), process.argv);
 if (!file) process.exit(0);
-const mostraRighe = process.argv.includes("--righe");
+const showLines = process.argv.includes("--righe");
 
-const righe = fs.readFileSync(file, "utf8").split(/\r?\n/);
+const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
 
 // IL CORPO SERVE QUANTO IL TITOLO. Le spie («firme:», «sonda:») stanno
 // sotto l'intestazione, non dentro: una voce letta per titolo e' una voce
 // letta a meta'.
-const voci = [];
-for (let i = 0; i < righe.length; i++) {
-  const m = righe[i].match(/^#### \[([ x~])\] (.+)$/);
+const entries = [];
+for (let i = 0; i < lines.length; i++) {
+  const m = lines[i].match(/^#### \[([ x~])\] (.+)$/);
   if (!m) continue;
-  const corpo = [];
-  for (let j = i + 1; j < righe.length && !/^#### \[/.test(righe[j]); j++) {
-    if (/^#{1,4} /.test(righe[j]) && !/^#### \[/.test(righe[j])) break;
-    corpo.push(righe[j]);
+  const body = [];
+  for (let j = i + 1; j < lines.length && !/^#### \[/.test(lines[j]); j++) {
+    if (/^#{1,4} /.test(lines[j]) && !/^#### \[/.test(lines[j])) break;
+    body.push(lines[j]);
   }
   // Il CODICE della voce (`Z-G7`, `W2.2`, `S3`, `GA11`) si tiene: senza,
   // «dipende da Y1» resta una frase e non una cosa che si puo' guardare.
   const c = m[2].match(/^([A-Z]{1,2}[0-9]+(?:[.-][0-9A-Za-z]+)*|[A-Z]-[A-Z][0-9]+(?:-[a-z]+)?)\b/);
-  voci.push({
-    stato: m[1], titolo: m[2], corpo: corpo.join(' '),
+  entries.push({
+    stato: m[1], titolo: m[2], corpo: body.join(' '),
     codice: c ? c[1] : null,
   });
 }
 
-const piene = voci.filter((v) => v.stato === "x");
-const meta = voci.filter((v) => v.stato === "~");
-const aperte = voci.filter((v) => v.stato === " ");
+const full = entries.filter((v) => v.stato === "x");
+const meta = entries.filter((v) => v.stato === "~");
+const open = entries.filter((v) => v.stato === " ");
 
 // UNA TRACCIA NON HA LA CASELLA, E QUESTO SCRIPT ADESSO LO PRETENDE.
 //
@@ -92,54 +92,54 @@ const aperte = voci.filter((v) => v.stato === " ");
 // a parte: e' un difetto del file, e lo script esce 1. Lo stesso
 // riconoscimento di Tests/Program.cs, perche' due regole per la stessa
 // cosa divergono.
-const TRACCIA = /traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta/i;
-const tracce = voci.filter((v) => TRACCIA.test(v.titolo) && !/FATTO il/.test(v.titolo));
-const lavoroVero = aperte.length - tracce.filter((v) => v.stato === " ").length;
+const TRACE = /traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta/i;
+const traces = entries.filter((v) => TRACE.test(v.titolo) && !/FATTO il/.test(v.titolo));
+const realWork = open.length - traces.filter((v) => v.stato === " ").length;
 
 // E UNA CASELLA FUORI DAI `####` NON LA VEDE NESSUNO. W3.1 — 30-50 ore,
 // prerequisito della pubblicazione — stava a `###` ed era invisibile a questo
 // conto, al controllo sui nomi doppi e al grep che la testa del file indica.
-const fuoriLivello = [];
-for (let i = 0; i < righe.length; i++) {
-  if (/^(#{1,3}|#{5,6}) \[[ x~]\] /.test(righe[i])) fuoriLivello.push(i + 1);
+const offLevel = [];
+for (let i = 0; i < lines.length; i++) {
+  if (/^(#{1,3}|#{5,6}) \[[ x~]\] /.test(lines[i])) offLevel.push(i + 1);
 }
 
-const totale = voci.length;
-const soloPiene = (piene.length / totale) * 100;
-const conMeta = ((piene.length + meta.length * 0.5) / totale) * 100;
-const metaPerIntere = ((piene.length + meta.length) / totale) * 100;
+const total = entries.length;
+const fullOnly = (full.length / total) * 100;
+const conMeta = ((full.length + meta.length * 0.5) / total) * 100;
+const halfForWhole = ((full.length + meta.length) / total) * 100;
 
 console.log(`file: ${path.relative(process.cwd(), file)}`);
-console.log(`voci con casella: ${totale}`);
-console.log(`  [x] chiuse   ${piene.length}`);
+console.log(`voci con casella: ${total}`);
+console.log(`  [x] chiuse   ${full.length}`);
 console.log(`  [~] a meta'  ${meta.length}`);
-console.log(`  [ ] aperte   ${aperte.length}`);
-let difetti = 0;
-if (tracce.length) {
-  difetti++;
+console.log(`  [ ] aperte   ${open.length}`);
+let defects = 0;
+if (traces.length) {
+  defects++;
   console.log();
-  console.log(`  XX  ${tracce.length} tracce hanno ancora la casella, e contano come lavoro:`);
-  for (const v of tracce) console.log(`        [${v.stato}] ${v.titolo.slice(0, 70)}`);
+  console.log(`  XX  ${traces.length} tracce hanno ancora la casella, e contano come lavoro:`);
+  for (const v of traces) console.log(`        [${v.stato}] ${v.titolo.slice(0, 70)}`);
   console.log(`      La regola in testa al TODO: una traccia diventa «(com'era)».`);
-  console.log(`      Al netto: ${lavoroVero} aperte vere.`);
+  console.log(`      Al netto: ${realWork} aperte vere.`);
 }
-if (fuoriLivello.length) {
-  difetti++;
+if (offLevel.length) {
+  defects++;
   console.log();
-  console.log(`  XX  caselle fuori dal livello ####, invisibili a ogni conto: righe ${fuoriLivello.join(", ")}`);
+  console.log(`  XX  caselle fuori dal livello ####, invisibili a ogni conto: righe ${offLevel.join(", ")}`);
 }
 console.log();
 console.log("completamento, e la forchetta e' il numero onesto:");
-console.log(`  solo [x]                      ${soloPiene.toFixed(1)} %`);
+console.log(`  solo [x]                      ${fullOnly.toFixed(1)} %`);
 console.log(`  [x] piene, [~] per meta'      ${conMeta.toFixed(1)} %`);
-console.log(`  [~] contate per intere        ${metaPerIntere.toFixed(1)} %`);
+console.log(`  [~] contate per intere        ${halfForWhole.toFixed(1)} %`);
 console.log();
 console.log("la riga da riscrivere nel §1 del TODO:");
 console.log(
-  `  **${totale} voci**: ${piene.length} chiuse, ${meta.length} a meta', ${aperte.length} aperte ` +
-    `(${soloPiene.toFixed(1)}% / ${conMeta.toFixed(1)}% / ${metaPerIntere.toFixed(1)}%).`
+  `  **${total} voci**: ${full.length} chiuse, ${meta.length} a meta', ${open.length} aperte ` +
+    `(${fullOnly.toFixed(1)}% / ${conMeta.toFixed(1)}% / ${halfForWhole.toFixed(1)}%).`
 );
-if (difetti) process.exitCode = 1;
+if (defects) process.exitCode = 1;
 
 if (process.argv.includes("--blocchi")) {
   // Le spie, in ordine di forza: una decisione del proprietario batte
@@ -156,7 +156,7 @@ if (process.argv.includes("--blocchi")) {
   // una spia. Il numero che stampa e' un punto di partenza per guardare, non
   // un verdetto -- per questo stampa anche i TITOLI, cosi' chi legge puo'
   // contestarlo invece di crederlo.
-  const delProprietario = (v) =>
+  const owner = (v) =>
     /proprietario|decisa dal|force-push|deploy|tag v0|licenza commerciale/i.test(
       v.titolo + " " + v.corpo) ||
     /\*\*decisione\*\*/i.test(v.titolo);
@@ -178,7 +178,7 @@ if (process.argv.includes("--blocchi")) {
   // **Un criterio che promette lavoro che non si puo' fare e' peggio di
   // nessun criterio**: la prima volta ci si prova, la seconda non lo si
   // legge piu'.
-  const documento =
+  const document =
     /documento aperto|sul documento|\.sldprt|\.sldasm|assieme aperto|pezzo aperto|una tavola aperta|apre un|aprire un|oltre il tetto|guarda_il_pezzo/i;
 
   // QUINTA CORREZIONE, il 23/9/2026: una voce che si dichiara **BLOCCATA**
@@ -189,7 +189,7 @@ if (process.argv.includes("--blocchi")) {
   // Cinque correzioni in un giorno. Il numero e' utile, e **non e' un
   // verdetto**: ogni volta che si e' guardata una voce dell'elenco da
   // vicino, l'elenco si e' accorciato.
-  const bloccata = (v) => /BLOCCATA|forse-mai|non stimabile/i.test(v.titolo);
+  const locked = (v) => /BLOCCATA|forse-mai|non stimabile/i.test(v.titolo);
 
   // SESTA CORREZIONE, il 24/9/2026, e questa non e' una regex: e' un
   // controllo.
@@ -218,21 +218,21 @@ if (process.argv.includes("--blocchi")) {
   // E se lo stesso codice restasse ambiguo, vince la voce piu' avanti: fra
   // due righe che parlano della stessa cosa, quella chiusa e' l'ultima
   // parola.
-  const traccia = (v) => /traccia originale|tenuta per riferimento/i.test(v.titolo);
-  const ordine = { "x": 2, "~": 1, " ": 0 };
-  const statoDi = new Map();
-  for (const v of voci) {
-    if (!v.codice || traccia(v)) continue;
-    const gia = statoDi.get(v.codice);
-    if (gia === undefined || ordine[v.stato] > ordine[gia]) statoDi.set(v.codice, v.stato);
+  const trace = (v) => /traccia originale|tenuta per riferimento/i.test(v.titolo);
+  const order = { "x": 2, "~": 1, " ": 0 };
+  const stateOf = new Map();
+  for (const v of entries) {
+    if (!v.codice || trace(v)) continue;
+    const already = stateOf.get(v.codice);
+    if (already === undefined || order[v.stato] > order[already]) stateOf.set(v.codice, v.stato);
   }
 
-  const dipendeDaApertA = (v) => {
-    const dove = (v.titolo + ' ' + v.corpo);
-    const frasi = dove.match(/dipende(?:\s+interamente)?\s+da\s+[^.;)]*/gi) || [];
-    for (const f of frasi) {
+  const dependsOnOpenOne = (v) => {
+    const location = (v.titolo + ' ' + v.corpo);
+    const sentences = location.match(/dipende(?:\s+interamente)?\s+da\s+[^.;)]*/gi) || [];
+    for (const f of sentences) {
       for (const m of f.matchAll(/\b([A-Z]{1,2}[0-9]+(?:[.-][0-9A-Za-z]+)*|[A-Z]-[A-Z][0-9]+)\b/g)) {
-        const s = statoDi.get(m[1]);
+        const s = stateOf.get(m[1]);
         if (s === ' ' || s === '~') return m[1];
       }
     }
@@ -244,48 +244,48 @@ if (process.argv.includes("--blocchi")) {
   // l'ingombro di tutti e due letto». Non nomina nessuna API e non nomina
   // nessun documento — ma un volume e un ingombro **si leggono da un pezzo
   // vero**, e non c'e' nessun altro posto da cui leggerli.
-  const misuraSulPezzo =
+  const measureOnPart =
     /volume (?:tolto|del|di|calcolato|vero)|ingombro (?:di|del|letto|dei)|massa (?:del|di)|area del contorno|corpi indipendenti/i;
 
-  const vuoleSolidWorks = (v) =>
-    misuraSulPezzo.test(v.corpo) ||
+  const wantsSolidWorks = (v) =>
+    measureOnPart.test(v.corpo) ||
     /\*\*firme:\*\*|\*\*sonda:\*\* *s|sonda: *s\u00ec|giro di banco|caso di banco|banco verde/i.test(
       v.corpo) || api.test(v.corpo) || api.test(v.titolo) ||
-    documento.test(v.corpo) || documento.test(v.titolo);
+    document.test(v.corpo) || document.test(v.titolo);
 
-  const gruppi = { proprietario: [], solidworks: [], adesso: [], dipendenti: [] };
-  for (const v of aperte) {
+  const groups = { proprietario: [], solidworks: [], adesso: [], dipendenti: [] };
+  for (const v of open) {
     if (/traccia originale|tenuta per riferimento/i.test(v.titolo)) continue;
-    const nome = v.titolo.split("\u00b7")[0].trim().slice(0, 76);
-    const aspetta = dipendeDaApertA(v);
-    if (delProprietario(v)) { gruppi.proprietario.push(nome); continue; }
-    if (aspetta) { gruppi.dipendenti.push(nome + "   (aspetta " + aspetta + ")"); continue; }
-    if (bloccata(v) || vuoleSolidWorks(v)) { gruppi.solidworks.push(nome); continue; }
-    gruppi.adesso.push(nome);
+    const itemName = v.titolo.split("\u00b7")[0].trim().slice(0, 76);
+    const wait = dependsOnOpenOne(v);
+    if (owner(v)) { groups.proprietario.push(itemName); continue; }
+    if (wait) { groups.dipendenti.push(itemName + "   (aspetta " + wait + ")"); continue; }
+    if (locked(v) || wantsSolidWorks(v)) { groups.solidworks.push(itemName); continue; }
+    groups.adesso.push(itemName);
   }
 
   console.log();
   console.log("cosa blocca le voci aperte (spie, non sentenze):");
-  console.log(`  decisione del proprietario   ${gruppi.proprietario.length}`);
-  console.log(`  vuole SOLIDWORKS acceso      ${gruppi.solidworks.length}`);
-  console.log(`  aspetta un'altra voce        ${gruppi.dipendenti.length}`);
-  console.log(`  SI PUO' FARE ADESSO          ${gruppi.adesso.length}`);
+  console.log(`  decisione del proprietario   ${groups.proprietario.length}`);
+  console.log(`  vuole SOLIDWORKS acceso      ${groups.solidworks.length}`);
+  console.log(`  aspetta un'altra voce        ${groups.dipendenti.length}`);
+  console.log(`  SI PUO' FARE ADESSO          ${groups.adesso.length}`);
   console.log();
   console.log("  -- si puo' fare adesso, senza SOLIDWORKS --");
-  for (const v of gruppi.adesso) console.log("     " + v);
+  for (const v of groups.adesso) console.log("     " + v);
   console.log();
   console.log("  -- aspetta che un'ALTRA VOCE sia chiusa --");
-  for (const v of gruppi.dipendenti) console.log("     " + v);
+  for (const v of groups.dipendenti) console.log("     " + v);
   console.log();
   console.log("  -- aspetta una decisione che non e' di chi programma --");
-  for (const v of gruppi.proprietario) console.log("     " + v);
+  for (const v of groups.proprietario) console.log("     " + v);
 }
 
-if (mostraRighe) {
+if (showLines) {
   console.log();
   console.log("le aperte:");
-  for (const v of aperte) {
-    const segno = /traccia originale|tenuta per riferimento/i.test(v.titolo) ? "  (traccia)" : "";
-    console.log("   " + v.titolo.split("·")[0].trim().slice(0, 78) + segno);
+  for (const v of open) {
+    const sign = /traccia originale|tenuta per riferimento/i.test(v.titolo) ? "  (traccia)" : "";
+    console.log("   " + v.titolo.split("·")[0].trim().slice(0, 78) + sign);
   }
 }

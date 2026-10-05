@@ -41,84 +41,84 @@ namespace Checks.CloseLeftovers
     /// documenti c'erano PRIMA di cominciare e li nomina qui: cosi' chiude
     /// quello che ha aperto lui e non quello che aveva aperto qualcun altro.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
-            bool chiudiDavvero = false;
-            var cartelle = new List<string>();
-            var risparmia = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < argomenti.Length; i++)
+            bool reallyClose = false;
+            var folders = new List<string>();
+            var spare = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < arguments.Length; i++)
             {
-                var a = argomenti[i];
-                if (a == "--chiudi") { chiudiDavvero = true; continue; }
-                if (a == "--risparmia" && i + 1 < argomenti.Length)
+                var a = arguments[i];
+                if (a == "--chiudi") { reallyClose = true; continue; }
+                if (a == "--risparmia" && i + 1 < arguments.Length)
                 {
-                    foreach (var t in argomenti[++i].Split(','))
-                        if (t.Trim().Length > 0) risparmia.Add(t.Trim());
+                    foreach (var t in arguments[++i].Split(','))
+                        if (t.Trim().Length > 0) spare.Add(t.Trim());
                     continue;
                 }
-                cartelle.Add(a.Replace('/', '\\').TrimEnd('\\') + "\\");
+                folders.Add(a.Replace('/', '\\').TrimEnd('\\') + "\\");
             }
 
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException)
             {
                 Console.Error.WriteLine("SOLIDWORKS non e' aperto: niente da chiudere.");
                 return 2;
             }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             // SI FA L'ELENCO PRIMA, POI SI CHIUDE.
             // Chiudere mentre si scorre la catena dei documenti la spezza: il
             // GetNext() successivo parte da un documento che non c'e' piu'.
-            var daChiudere = new List<string>();
-            var tenuti = new List<string>();
+            var toClose = new List<string>();
+            var kept = new List<string>();
             var doc = (IModelDoc2)sw.GetFirstDocument();
             while (doc != null)
             {
-                string titolo = doc.GetTitle();
-                string percorso = doc.GetPathName() ?? "";
-                if (risparmia.Contains(titolo))
-                    tenuti.Add(titolo + "  (risparmiato: c'era gia' prima)");
-                else if (Scarto(percorso, cartelle)) daChiudere.Add(titolo);
-                else tenuti.Add(titolo + (percorso == "" ? "" : "  " + percorso));
+                string docTitle = doc.GetTitle();
+                string filePath = doc.GetPathName() ?? "";
+                if (spare.Contains(docTitle))
+                    kept.Add(docTitle + "  (risparmiato: c'era gia' prima)");
+                else if (Deviation(filePath, folders)) toClose.Add(docTitle);
+                else kept.Add(docTitle + (filePath == "" ? "" : "  " + filePath));
                 doc = (IModelDoc2)doc.GetNext();
             }
 
-            Console.WriteLine(daChiudere.Count + " da chiudere, " + tenuti.Count + " tenuti.");
-            foreach (var t in tenuti) Console.WriteLine("  tenuto:  " + t);
-            if (!chiudiDavvero)
+            Console.WriteLine(toClose.Count + " da chiudere, " + kept.Count + " tenuti.");
+            foreach (var t in kept) Console.WriteLine("  tenuto:  " + t);
+            if (!reallyClose)
             {
-                foreach (var t in daChiudere) Console.WriteLine("  sarebbe chiuso:  " + t);
+                foreach (var t in toClose) Console.WriteLine("  sarebbe chiuso:  " + t);
                 Console.WriteLine("Nessuno chiuso: manca --chiudi.");
                 return 0;
             }
 
-            int fatti = 0;
-            foreach (var t in daChiudere)
+            int done = 0;
+            foreach (var t in toClose)
             {
-                try { sw.CloseDoc(t); fatti++; }
+                try { sw.CloseDoc(t); done++; }
                 catch (Exception e) { Console.Error.WriteLine("  non chiuso " + t + ": " + e.Message); }
             }
-            Console.WriteLine("chiusi: " + fatti);
+            Console.WriteLine("chiusi: " + done);
 
             // IL CONTROLLO CHE E' DAVVERO SUCCESSO. Si ricontano i documenti:
             // CloseDoc non torna niente, e senza ricontare non si distingue
             // «closed» da «chiamato».
-            int restano = 0;
+            int remain = 0;
             var d2 = (IModelDoc2)sw.GetFirstDocument();
-            while (d2 != null) { restano++; d2 = (IModelDoc2)d2.GetNext(); }
-            Console.WriteLine("documenti aperti adesso: " + restano);
+            while (d2 != null) { remain++; d2 = (IModelDoc2)d2.GetNext(); }
+            Console.WriteLine("documenti aperti adesso: " + remain);
             return 0;
         }
 
-        private static bool Scarto(string percorso, List<string> cartelle)
+        private static bool Deviation(string filePath, List<string> folders)
         {
-            if (string.IsNullOrEmpty(percorso)) return true;   // mai salvato
-            string p = percorso.Replace('/', '\\');
-            foreach (var c in cartelle)
+            if (string.IsNullOrEmpty(filePath)) return true;   // mai salvato
+            string p = filePath.Replace('/', '\\');
+            foreach (var c in folders)
                 if (p.StartsWith(c, StringComparison.OrdinalIgnoreCase)) return true;
             return false;
         }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -19,7 +19,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// No bench case can build this: no operation of the bridge makes a
     /// vertex chamfer (chamfer_edges takes edges). So the decision is kept in
-    /// StatoDocumento.ChamferSizes, which takes the reads as functions and no
+    /// DocumentState.ChamferSizes, which takes the reads as functions and no
     /// interop type, and this group calls it on the BUILT library by
     /// reflection, with the numbers of the probe: no SOLIDWORKS. The
     /// functions also record which reads were asked for, because the defect
@@ -32,12 +32,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the state reads a chamfer by its type (N29)");
+            Group("the state reads a chamfer by its type (N29)");
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the state reads a chamfer by its type",
+                NotHere("the state reads a chamfer by its type",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -45,7 +45,7 @@ namespace Oce.Solid.Agent.ContractTests
             Assembly asm;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -60,19 +60,19 @@ namespace Oce.Solid.Agent.ContractTests
                 // may sit on a network drive, where LoadFrom is refused.
                 asm = Assembly.Load(File.ReadAllBytes(library));
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
-            Check(asm);
+            CheckLibrary(asm);
         }
 
         /// <summary>The checks, on a library already loaded.</summary>
-        internal static void Check(Assembly asm)
+        internal static void CheckLibrary(Assembly asm)
         {
-            var state = asm.GetType("Oce.Solid.Agent.Core.StatoDocumento", false);
+            var state = asm.GetType("Oce.Solid.Agent.Core.DocumentState", false);
             var method = state == null ? null : state.GetMethod("ChamferSizes", Any);
             if (method == null)
             {
-                Segna("N29: StatoDocumento.ChamferSizes is there", false,
+                Check("N29: StatoDocumento.ChamferSizes is there", false,
                       state == null ? "no Oce.Solid.Agent.Core.StatoDocumento in the library"
                                     : "missing on this library: it is older than the fix");
                 return;
@@ -84,10 +84,10 @@ namespace Oce.Solid.Agent.ContractTests
                 var v1 = Read(method, 3, new[] { 0.0, 0.0 }, 0.0, new[] { 0.002, 0.003, 0.004 });
                 // V2: the same corner, 3/3/3.
                 var v2 = Read(method, 3, new[] { 0.0, 0.0 }, 0.0, new[] { 0.003, 0.003, 0.003 });
-                Segna("N29: a vertex chamfer is read with its three distances (probe V1 2/3/4, V2 3/3/3)",
+                Check("N29: a vertex chamfer is read with its three distances (probe V1 2/3/4, V2 3/3/3)",
                       v1.Written == "{vertex_distances_mm=[2, 3, 4]}" && v2.Written == "{vertex_distances_mm=[3, 3, 3]}",
                       "V1 " + v1.Written + ", V2 " + v2.Written + " (expected {vertex_distances_mm=[2, 3, 4]} and [3, 3, 3])");
-                Segna("N29: and never with an edge distance or an angle",
+                Check("N29: and never with an edge distance or an angle",
                       v1.Asked == "vertex 0, vertex 1, vertex 2" && v2.Asked == v1.Asked,
                       "asked: " + v1.Asked + " (the old reading asked edge 0, edge 1 and the angle, and wrote {})");
 
@@ -98,7 +98,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // bridge passes 45 for DD too, C7-1), to see that the rule does
                 // not ask for it: «relevant only for an angle-distance type».
                 var dd = Read(method, 2, new[] { 0.003, 0.006 }, 45 * Math.PI / 180, new[] { 0.0, 0.0, 0.0 });
-                Segna("N29: the edge chamfers keep their sizes, read by type (probe C9 5 x 30, C1 3 x 6)",
+                Check("N29: the edge chamfers keep their sizes, read by type (probe C9 5 x 30, C1 3 x 6)",
                       ad.Written == "{angle_deg=30, leg1_mm=5}" && ad.Asked == "edge 0, angle" &&
                       dd.Written == "{leg1_mm=3, leg2_mm=6}" && dd.Asked == "edge 0, edge 1",
                       "angle-distance " + ad.Written + " asking " + ad.Asked +
@@ -106,11 +106,11 @@ namespace Oce.Solid.Agent.ContractTests
 
                 // swChamferEqualDistance (16), not measured: the reading of before.
                 var eq = Read(method, 16, new[] { 0.002, 0.002 }, 0.0, new[] { 0.0, 0.0, 0.0 });
-                Segna("N29: a type the rule does not know keeps the reading of before",
+                Check("N29: a type the rule does not know keeps the reading of before",
                       eq.Written == "{leg1_mm=2}" && eq.Asked == "edge 0, edge 1, angle",
                       "equal distance 2: " + eq.Written + " asking " + eq.Asked);
             }
-            catch (Exception ex) { Segna("N29: ChamferSizes can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N29: ChamferSizes can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private sealed class Reading

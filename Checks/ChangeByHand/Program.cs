@@ -37,16 +37,16 @@ namespace Checks.ChangeByHand
     /// caso lo dice, perche' una sonda che fallisce in silenzio farebbe
     /// sembrare verde la difesa che doveva mettere alla prova.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
-            double lato = 10;
-            if (argomenti.Length > 0 &&
-                !double.TryParse(argomenti[0],
+            double side = 10;
+            if (arguments.Length > 0 &&
+                !double.TryParse(arguments[0],
                                  System.Globalization.NumberStyles.Float,
                                  System.Globalization.CultureInfo.InvariantCulture,
-                                 out lato))
+                                 out side))
             {
                 Console.WriteLine("il lato si scrive in millimetri, per esempio 25");
                 return 1;
@@ -77,26 +77,26 @@ namespace Checks.ChangeByHand
             // IL VOLUME PRIMA E DOPO, perche' «ho chiamato l'estrusione» non e'
             // «il pezzo e' cambiato». E' la stessa regola che il ponte applica
             // a ogni operazione: si rilegge.
-            double prima = Volume(doc);
+            double before = Volume(doc);
 
-            IFeature piano = null;
+            IFeature plane = null;
             try
             {
-                var albero = doc.FeatureManager.GetFeatures(false) as object[];
-                if (albero != null)
+                var tree = doc.FeatureManager.GetFeatures(false) as object[];
+                if (tree != null)
                 {
-                    foreach (var o in albero)
+                    foreach (var o in tree)
                     {
                         var f = o as IFeature;
                         if (f == null) continue;
-                        try { if (f.GetTypeName2() == "RefPlane") { piano = f; break; } }
+                        try { if (f.GetTypeName2() == "RefPlane") { plane = f; break; } }
                         catch { }
                     }
                 }
             }
             catch { }
 
-            if (piano == null)
+            if (plane == null)
             {
                 Console.WriteLine("il documento non ha piani di riferimento.");
                 return 1;
@@ -105,17 +105,17 @@ namespace Checks.ChangeByHand
             try
             {
                 doc.ClearSelection2(true);
-                piano.Select2(false, 0);
+                plane.Select2(false, 0);
                 var sm = doc.SketchManager;
                 sm.InsertSketch(true);
                 // Fuori dall'origine, cosi' e' un corpo in piu' e non un taglio.
-                sm.CreateCenterRectangle(lato / 1000.0, lato / 1000.0, 0,
-                                         lato / 1000.0 + lato / 2000.0,
-                                         lato / 1000.0 + lato / 2000.0, 0);
+                sm.CreateCenterRectangle(side / 1000.0, side / 1000.0, 0,
+                                         side / 1000.0 + side / 2000.0,
+                                         side / 1000.0 + side / 2000.0, 0);
                 sm.InsertSketch(true);
                 doc.FeatureManager.FeatureExtrusion3(
                     true, false, false, (int)swEndConditions_e.swEndCondBlind, 0,
-                    lato / 1000.0, 0, false, false, false, false, 0, 0,
+                    side / 1000.0, 0, false, false, false, false, 0, 0,
                     false, false, false, false, true, true, true, 0, 0, false);
                 doc.ClearSelection2(true);
                 doc.EditRebuild3();
@@ -126,10 +126,10 @@ namespace Checks.ChangeByHand
                 return 1;
             }
 
-            double dopo = Volume(doc);
-            Console.WriteLine("volume: " + prima.ToString("0.#") + " -> " + dopo.ToString("0.#") + " mm3");
+            double after = Volume(doc);
+            Console.WriteLine("volume: " + before.ToString("0.#") + " -> " + after.ToString("0.#") + " mm3");
 
-            if (Math.Abs(dopo - prima) < 1e-6)
+            if (Math.Abs(after - before) < 1e-6)
             {
                 Console.WriteLine("NON E' CAMBIATO NIENTE: la sonda non ha fatto il suo mestiere.");
                 return 1;

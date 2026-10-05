@@ -37,12 +37,12 @@ namespace Oce.Solid.Agent.Core
     /// che era gia' stato creato resta, ed e' scritto nel piano quale passo e'
     /// arrivato dove: chi guarda sa cosa c'e' nel documento e perche'.
     /// </summary>
-    public class EsecutorePiano
+    public class PlanExecutor
     {
         private readonly ISldWorks _sw;
-        private readonly IFontePiano _fonte;
+        private readonly IPlanSource _source;
         private readonly Action<string> _log;
-        private readonly Func<Func<object>, Task<object>> _sulThreadSw;
+        private readonly Func<Func<object>, Task<object>> _onSwThread;
 
         /// <summary>
         /// Come si chiama la voce di annullamento che raccoglie tutto il
@@ -50,12 +50,12 @@ namespace Oce.Solid.Agent.Core
         /// nel menu di SOLIDWORKS, e in una libreria che non presuppone
         /// OpenPDM non puo' essere scritto qui dentro.
         /// </summary>
-        public string NomeAnnullamento
+        public string UndoName
         {
-            get { return _nomeAnnullamento; }
-            set { _nomeAnnullamento = string.IsNullOrWhiteSpace(value) ? "Assistente" : value; }
+            get { return _undoName; }
+            set { _undoName = string.IsNullOrWhiteSpace(value) ? "Assistente" : value; }
         }
-        private string _nomeAnnullamento = "Assistente";
+        private string _undoName = "Assistente";
 
         /// <summary>
         /// Lascia lavorare su un documento MAI SALVATO su disco.
@@ -85,12 +85,12 @@ namespace Oce.Solid.Agent.Core
         /// Non tocca il controllo sulla SOLA LETTURA: quello vale in tutti e due
         /// i mestieri, e un file di sola lettura non si scrive comunque.
         /// </summary>
-        public bool DocumentoSenzaFile { get; set; }
+        public bool DocumentWithoutFile { get; set; }
 
         /// <summary>
         /// Lascia lavorare anche su una TAVOLA, non solo su una parte.
         ///
-        /// Stessa storia di <see cref="DocumentoSenzaFile"/>, altro mestiere:
+        /// Stessa storia di <see cref="DocumentWithoutFile"/>, altro mestiere:
         ///
         ///   * l'assistente dell'add-in disegna PEZZI. Un piano che arriva su
         ///     una tavola li' e' quasi sempre un errore di chi ha cambiato
@@ -107,9 +107,9 @@ namespace Oce.Solid.Agent.Core
         /// dimenticanza: nessuna operazione della libreria sa lavorare su un
         /// assieme». Era vero fino al 16/9/2026. Il 17 sono nate le voci
         /// GA0-GA10 e adesso di operazioni di assieme ce ne sono quattro:
-        /// vedi <see cref="AncheSuAssiemi"/>, e la lezione scritta li'.
+        /// vedi <see cref="AlsoOnAssemblies"/>, e la lezione scritta li'.
         /// </summary>
-        public bool AncheSuTavole { get; set; }
+        public bool AlsoOnDrawings { get; set; }
 
         /// <summary>
         /// Lascia lavorare anche su un ASSIEME.
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// ── PERCHE' ESISTE, E PERCHE' NON C'ERA ──────────────────────────
         ///
-        /// Fino al 18/9/2026 `ControlliPreliminari` rifiutava **ogni** assieme,
+        /// Fino al 18/9/2026 `PreliminaryChecks` rifiutava **ogni** assieme,
         /// e la riga di commento che difendeva quella scelta diceva: *«nessuna
         /// operazione della libreria sa lavorare su un assieme»*. Era vero
         /// quando fu scritta. Il 17/9 sono arrivate `insert_component`,
@@ -135,33 +135,33 @@ namespace Oce.Solid.Agent.Core
         /// rivederla**: chi lo legge trova una ragione, e trovare una ragione
         /// e' come smettere di cercare. Per questo la difesa adesso non e' una
         /// frase ma un controllo —
-        /// `Tests\Program.cs` → `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`
+        /// `Tests\Program.cs` → `EveryCatalogFamilyHasAnAllowedDocument`
         /// confronta le famiglie del catalogo coi tipi ammessi qui sotto, gira
         /// senza SOLIDWORKS, ed e' nata rossa su questo difetto.
         /// </summary>
-        public bool AncheSuAssiemi { get; set; }
+        public bool AlsoOnAssemblies { get; set; }
 
-        public EsecutorePiano(
+        public PlanExecutor(
             ISldWorks sw,
-            IFontePiano fonte,
+            IPlanSource source,
             Action<string> log,
-            Func<Func<object>, Task<object>> sulThreadSw)
+            Func<Func<object>, Task<object>> onThreadSw)
         {
             _sw = sw;
-            _fonte = fonte;
+            _source = source;
             _log = log ?? (m => { });
-            _sulThreadSw = sulThreadSw;
+            _onSwThread = onThreadSw;
         }
 
-        public class Risultato
+        public class Result
         {
-            public bool Completato;
-            public int PassiEseguiti;
-            public string Errore;
+            public bool Completed;
+            public int ExecutedSteps;
+            public string Error;
 
             /// <summary>
             /// Z-C21.14: the document the plan started on, held by reference
-            /// (the documentoAtteso read once at the start), so that the
+            /// (the expectedDocument read once at the start), so that the
             /// bridge reads the state after the plan on THAT document and not
             /// on whatever window is in front at the end. Null only when
             /// SOLIDWORKS had no active document.
@@ -171,7 +171,7 @@ namespace Oce.Solid.Agent.Core
             /// <summary>
             /// Z-C21.14: the document the plan was working on when it ended:
             /// the plan document, or the new one a step declared
-            /// (DocumentoNuovo, e.g. the drawing of create_drawing).
+            /// (NewDocument, e.g. the drawing of create_drawing).
             /// </summary>
             public IModelDoc2 FinalDocument;
 
@@ -204,11 +204,11 @@ namespace Oce.Solid.Agent.Core
         // `pianoId` non c'e' piu' nella firma: e' un numero del server, e
         // chi esegue non deve sapere che esista un server. Lo conosce
         // l'adattatore che implementa IFontePiano.
-        public async Task<Risultato> EseguiAsync(
-            string percorsoAtteso,
-            CancellationToken annulla = default(CancellationToken))
+        public async Task<Result> RunAsync(
+            string expectedPath,
+            CancellationToken undo = default(CancellationToken))
         {
-            var risultato = new Risultato();
+            var result = new Result();
 
             // Se il piano non dice su quale documento vale, si prende quello
             // attivo adesso — ma UNA volta sola, e da qui in poi e' quello.
@@ -233,15 +233,15 @@ namespace Oce.Solid.Agent.Core
             //
             // Il nome resta, ma solo per i MESSAGGI: chi legge vuole sapere
             // come si chiama il pezzo, non il suo puntatore.
-            var documentoAtteso = (IModelDoc2)await _sulThreadSw(() => _sw.IActiveDoc2);
+            var expectedDocument = (IModelDoc2)await _onSwThread(() => _sw.IActiveDoc2);
             // Z-C21.14: the plan document, kept for whoever reads the result.
-            var planDocument = documentoAtteso;
-            risultato.PlanDocument = planDocument;
-            risultato.FinalDocument = planDocument;
+            var planDocument = expectedDocument;
+            result.PlanDocument = planDocument;
+            result.FinalDocument = planDocument;
 
             // ── E I CONTROLLI GUARDANO **QUESTO**, NON QUELLO DI ADESSO ──
             //
-            // Fino al 23/9/2026 `ControlliPreliminari()` girava PRIMA di
+            // Fino al 23/9/2026 `PreliminaryChecks()` girava PRIMA di
             // questa riga e si ripescava `_sw.IActiveDoc2` da solo: due
             // letture diverse dello stesso globale, con una finestra in
             // mezzo. I controlli potevano dire «va bene» del documento A —
@@ -254,36 +254,36 @@ namespace Oce.Solid.Agent.Core
             // Il documento si tiene per mano, non per nome — e nemmeno
             // chiedendolo due volte.
             //
-            // Il caso «nessun documento aperto» lo dice `ControlliPreliminari`
+            // Il caso «nessun documento aperto» lo dice `PreliminaryChecks`
             // con la sua frase, come prima: il controllo del null che stava
             // qui era il SECONDO, e diceva la stessa cosa con parole
             // leggermente diverse a seconda di quale scattava per primo.
-            var controllo = (string)await _sulThreadSw(
-                () => ControlliPreliminari(documentoAtteso));
-            if (controllo != null)
+            var check = (string)await _onSwThread(
+                () => PreliminaryChecks(expectedDocument));
+            if (check != null)
             {
-                risultato.Errore = controllo;
-                risultato.StoppedBeforeWriting = true;
-                return risultato;
+                result.Error = check;
+                result.StoppedBeforeWriting = true;
+                return result;
             }
 
             // Se il chiamante ha detto su quale documento vale il piano, lo si
             // verifica UNA volta, adesso. Dopo di che comanda l'oggetto.
-            if (!string.IsNullOrEmpty(percorsoAtteso))
+            if (!string.IsNullOrEmpty(expectedPath))
             {
-                var qui = (string)await _sulThreadSw(() => Identita(documentoAtteso));
-                if (!string.Equals(qui, percorsoAtteso, StringComparison.OrdinalIgnoreCase))
+                var here = (string)await _onSwThread(() => Identity(expectedDocument));
+                if (!string.Equals(here, expectedPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    risultato.Errore =
-                        "Il piano era per «" + percorsoAtteso + "», ma davanti c'e' «" +
-                        qui + "». Non ho toccato niente.";
-                    risultato.StoppedBeforeWriting = true;
-                    return risultato;
+                    result.Error =
+                        "Il piano era per «" + expectedPath + "», ma davanti c'e' «" +
+                        here + "». Non ho toccato niente.";
+                    result.StoppedBeforeWriting = true;
+                    return result;
                 }
             }
             else
             {
-                percorsoAtteso = (string)await _sulThreadSw(() => Identita(documentoAtteso));
+                expectedPath = (string)await _onSwThread(() => Identity(expectedDocument));
             }
 
             // LA FINESTRA DEGLI ERRORI SI SPEGNE, e si rimette com'era.
@@ -296,15 +296,15 @@ namespace Oce.Solid.Agent.Core
             //
             // Non si perde niente: gli errori si leggono dallo stato, che
             // adesso li riporta lavorazione per lavorazione.
-            bool mostravaGliErrori = false;
-            bool sapevaMostrarli = false;
-            await _sulThreadSw(() =>
+            bool showedTheErrors = false;
+            bool knewHowToShowThem = false;
+            await _onSwThread(() =>
             {
                 try
                 {
-                    mostravaGliErrori = _sw.GetUserPreferenceToggle(
+                    showedTheErrors = _sw.GetUserPreferenceToggle(
                         (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild);
-                    sapevaMostrarli = true;
+                    knewHowToShowThem = true;
                     _sw.SetUserPreferenceToggle(
                         (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild, false);
                 }
@@ -319,18 +319,18 @@ namespace Oce.Solid.Agent.Core
             //
             // ON THE DOCUMENT HELD, AND WRITTEN DOWN (finding M19, lot
             // Z-C21.5). Up to library 0.145.0 the recording was started on a
-            // fresh read of _sw.IActiveDoc2 and finished on documentoAtteso:
+            // fresh read of _sw.IActiveDoc2 and finished on expectedDocument:
             // two documents whenever the window changed in between. Now it is
-            // started on documentoAtteso itself, and undoRecordedOn remembers
+            // started on expectedDocument itself, and undoRecordedOn remembers
             // which document holds it: that is the one it is finished on, and
             // when a step moves the plan to a new document the recording is
             // closed there and a new one opened on the new document (see
-            // DocumentoNuovo below), never retargeted in silence.
+            // NewDocument below), never retargeted in silence.
             IModelDoc2 undoRecordedOn = null;
             bool planDocumentReopened = false;
-            await _sulThreadSw(() =>
+            await _onSwThread(() =>
             {
-                undoRecordedOn = StartUndoRecording(documentoAtteso);
+                undoRecordedOn = StartUndoRecording(expectedDocument);
                 return null;
             });
 
@@ -338,100 +338,100 @@ namespace Oce.Solid.Agent.Core
             // quanto l'esecuzione del piano e non un istante di piu': sono
             // oggetti di SolidWorks, validi solo finche' il documento resta
             // aperto e non viene ricostruito da capo.
-            var passiFatti = new Dictionary<int, Riferimenti.Passo>();
+            var stepsDone = new Dictionary<int, References.Step>();
 
             try
             {
                 while (true)
                 {
-                    if (annulla.IsCancellationRequested)
+                    if (undo.IsCancellationRequested)
                     {
-                        risultato.Errore = "Fermato da te.";
+                        result.Error = "Fermato da te.";
                         break;
                     }
 
                     // The state of the document the plan works on (M19), not
                     // of whatever window is in front: a changed window is
                     // caught right before the step writes, below.
-                    var stato = (Dictionary<string, object>)await _sulThreadSw(() =>
-                        StatoDocumento.Leggi(documentoAtteso)?.Dati);
+                    var docState = (Dictionary<string, object>)await _onSwThread(() =>
+                        DocumentState.Read(expectedDocument)?.Data);
 
-                    var prossimo = await _fonte.ProssimoAsync(stato);
+                    var next = await _source.NextAsync(docState);
 
                     // UNA FONTE CHE NON RISPONDE NON E' UN PIANO FINITO.
                     // Un null qui vorrebbe dire che l'adattatore ha
                     // inghiottito qualcosa: si dice, non si scambia per la
-                    // fine. Vedi la nota su ProssimoPasso.
-                    if (prossimo == null)
+                    // fine. Vedi la nota su NextStep.
+                    if (next == null)
                     {
-                        risultato.Errore =
+                        result.Error =
                             "La fonte del piano non ha risposto niente: non so se il " +
                             "piano sia finito o se sia caduto qualcosa. Mi fermo qui, " +
-                            "dopo " + risultato.PassiEseguiti + " passi.";
+                            "dopo " + result.ExecutedSteps + " passi.";
                         break;
                     }
-                    if (prossimo.Finito)
+                    if (next.Done)
                     {
-                        risultato.Completato = true;
+                        result.Completed = true;
                         break;
                     }
 
-                    var passo = prossimo.Passo;
-                    if (passo == null)
+                    var planStep = next.Step;
+                    if (planStep == null)
                     {
-                        risultato.Errore =
+                        result.Error =
                             "La fonte dice che il piano non e' finito ma non mi da' " +
                             "nessun passo da fare.";
                         break;
                     }
-                    _log($"[agente] passo {passo.Ordine}: {passo.Riassunto}");
-                    if (annulla.IsCancellationRequested)
+                    _log($"[agente] passo {planStep.Order}: {planStep.Summary}");
+                    if (undo.IsCancellationRequested)
                     {
-                        risultato.Errore = "Fermato da te.";
+                        result.Error = "Fermato da te.";
                         break;
                     }
 
-                    var esito = (OperazioniSw.Esito)await _sulThreadSw(() =>
+                    var outcome = (SwOperations.Outcome)await _onSwThread(() =>
                     {
-                        var modello = _sw.IActiveDoc2;
+                        var model = _sw.IActiveDoc2;
 
                         // IL CONTROLLO CHE MANCAVA, ED E' QUI CHE VA FATTO.
                         // Lo stato mandato al server e' stato letto PRIMA della
                         // chiamata di rete; questo e' il documento su cui si
                         // scrive DOPO. Fra i due c'e' tutto il giro HTTP.
-                        if (!StessoOggetto(modello, documentoAtteso))
+                        if (!SameObject(model, expectedDocument))
                         {
-                            return new OperazioniSw.Esito
+                            return new SwOperations.Outcome
                             {
-                                Riuscito = false,
-                                Errore =
+                                Succeeded = false,
+                                Error =
                                     "Il documento attivo e' cambiato mentre eseguivo: " +
-                                    "il piano era per «" + percorsoAtteso + "», adesso " +
-                                    "davanti c'e' «" + Identita(modello) + "». " +
+                                    "il piano era per «" + expectedPath + "», adesso " +
+                                    "davanti c'e' «" + Identity(model) + "». " +
                                     "Non ho toccato niente.",
                             };
                         }
 
-                        var lettura = StatoDocumento.Leggi(modello);
-                        var operazioni = new OperazioniSw(_sw, _log);
+                        var reading = DocumentState.Read(model);
+                        var operations = new SwOperations(_sw, _log);
 
                         // Voce Z-C4: si annuncia cosa si sta per fare. Il
                         // `finally` e' obbligatorio -- senza, un passo che
                         // alza lascerebbe il guinzaglio teso e il guardiano
                         // segnalerebbe appesa una chiamata gia' finita.
-                        AccendiIlGuardiano();
-                        _guinzaglio.Comincia(passo.Operazione, DateTime.Now);
-                        // `OperazioniSw.Esito` col nome intero: `Esito` e' una
+                        TurnOnGuardian();
+                        _leash.Begin(planStep.Operation, DateTime.Now);
+                        // `SwOperations.Outcome` col nome intero: `Outcome` e' una
                         // classe annidata, e senza il prefisso il compilatore
                         // non la trova.
-                        OperazioniSw.Esito e;
+                        SwOperations.Outcome e;
                         try
                         {
-                            e = operazioni.Esegui(
-                                modello, passo.Operazione, passo.Argomenti, lettura, passiFatti);
+                            e = operations.Run(
+                                model, planStep.Operation, planStep.Arguments, reading, stepsDone);
                         }
-                        finally { _guinzaglio.Finita(); }
-                        if (e.Riuscito)
+                        finally { _leash.Finished(); }
+                        if (e.Succeeded)
                         {
                             // Cio' che questo passo ha creato resta a
                             // disposizione dei successivi: e' l'unico modo per
@@ -440,88 +440,88 @@ namespace Oce.Solid.Agent.Core
                             // non nel piano perche' una faccia di SolidWorks
                             // non si serializza: esiste solo qui, solo adesso,
                             // e solo dentro questa sessione.
-                            passiFatti[passo.Ordine] = new Riferimenti.Passo
+                            stepsDone[planStep.Order] = new References.Step
                             {
                                 Feature = e.Feature,
-                                Direzione = e.Direzione,
-                                Operazione = passo.Operazione,
+                                Direction = e.Direction,
+                                Operation = planStep.Operation,
                             };
 
                             // Un rebuild dopo ogni passo: cosi' un errore si
                             // vede subito e non alla fine, quando non si sa
                             // piu' quale passo lo ha causato.
-                            try { modello.EditRebuild3(); } catch { }
+                            try { model.EditRebuild3(); } catch { }
 
                             // SE IL PASSO HA DICHIARATO DI AVER CAMBIATO
                             // DOCUMENTO, si va dietro. Solo se lo dichiara:
                             // un documento che cambia senza che nessuno lo dica
                             // resta un motivo per fermarsi.
-                            if (e.DocumentoNuovo != null)
+                            if (e.NewDocument != null)
                             {
                                 // THE UNDO RECORDING FOLLOWS, EXPLICITLY (M19):
                                 // the steps so far are closed as one entry on
                                 // the document they changed, and the steps to
                                 // come are recorded on the new one.
-                                if (!StessoOggetto(undoRecordedOn, e.DocumentoNuovo))
+                                if (!SameObject(undoRecordedOn, e.NewDocument))
                                 {
-                                    NoteUndoAnswer(risultato, undoRecordedOn, planDocument,
+                                    NoteUndoAnswer(result, undoRecordedOn, planDocument,
                                                    FinishUndoRecording(undoRecordedOn));
-                                    undoRecordedOn = StartUndoRecording(e.DocumentoNuovo);
+                                    undoRecordedOn = StartUndoRecording(e.NewDocument);
                                     // Back on the plan document: a second entry
                                     // there, and one answer no longer says what
                                     // is on top of its stack.
-                                    if (undoRecordedOn != null && StessoOggetto(undoRecordedOn, planDocument))
+                                    if (undoRecordedOn != null && SameObject(undoRecordedOn, planDocument))
                                         planDocumentReopened = true;
                                 }
-                                documentoAtteso = e.DocumentoNuovo;
-                                risultato.FinalDocument = documentoAtteso;
+                                expectedDocument = e.NewDocument;
+                                result.FinalDocument = expectedDocument;
                                 _log("[agente] from here on the plan works on «" +
-                                     Identita(documentoAtteso) + "», with its own undo entry");
+                                     Identity(expectedDocument) + "», with its own undo entry");
                             }
                         }
                         return e;
                     });
 
-                    await _fonte.EsitoAsync(
-                        passo.Ordine,
-                        esito.Riuscito,
-                        esito.Riuscito
+                    await _source.OutcomeAsync(
+                        planStep.Order,
+                        outcome.Succeeded,
+                        outcome.Succeeded
                             ? new Dictionary<string, object>
                             {
-                                ["feature"] = esito.FeatureCreata,
-                                ["measurements"] = esito.Misure,
+                                ["feature"] = outcome.CreatedFeature,
+                                ["measurements"] = outcome.Measurements,
                             }
                             : null,
-                        esito.Errore);
+                        outcome.Error);
 
-                    if (!esito.Riuscito)
+                    if (!outcome.Succeeded)
                     {
-                        risultato.Errore = esito.Errore;
+                        result.Error = outcome.Error;
                         break;
                     }
-                    risultato.PassiEseguiti++;
+                    result.ExecutedSteps++;
                 }
             }
             catch (Exception ex)
             {
-                risultato.Errore = ex.Message;
+                result.Error = ex.Message;
                 _log("[agente] esecuzione interrotta: " + ex.Message);
             }
             finally
             {
-                await _sulThreadSw(() =>
+                await _onSwThread(() =>
                 {
                     // La finestra degli errori torna com'era: e'
                     // un'impostazione di chi lavora, non nostra. Si rimette
                     // solo se si e' riusciti a leggerla — scriverci sopra un
                     // valore inventato sarebbe peggio che lasciarla spenta.
-                    if (sapevaMostrarli)
+                    if (knewHowToShowThem)
                     {
                         try
                         {
                             _sw.SetUserPreferenceToggle(
                                 (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild,
-                                mostravaGliErrori);
+                                showedTheErrors);
                         }
                         catch { }
                     }
@@ -531,20 +531,20 @@ namespace Oce.Solid.Agent.Core
                     // last change of document), not the one with the same name
                     // (it may have been saved and renamed in between) and not
                     // the active one. Up to library 0.145.0 the closing waited
-                    // for documentoAtteso to be the active document, so a plan
+                    // for expectedDocument to be the active document, so a plan
                     // stopped because the window changed left the recording
                     // open. The recording belongs to its document (it is a
                     // member of IModelDocExtension), so another window being in
                     // front does not move it; what FinishRecordingUndoObject
                     // answers is read, not assumed.
-                    NoteUndoAnswer(risultato, undoRecordedOn, planDocument,
+                    NoteUndoAnswer(result, undoRecordedOn, planDocument,
                                    FinishUndoRecording(undoRecordedOn));
-                    if (planDocumentReopened) risultato.UndoEntryOnPlanDocument = null;
+                    if (planDocumentReopened) result.UndoEntryOnPlanDocument = null;
                     return null;
                 });
             }
 
-            return risultato;
+            return result;
         }
 
         /// <summary>
@@ -552,9 +552,9 @@ namespace Oce.Solid.Agent.Core
         /// recording just closed is the one on the plan document.
         /// </summary>
         private static void NoteUndoAnswer(
-            Risultato result, IModelDoc2 recordedOn, IModelDoc2 planDocument, bool? answer)
+            Result result, IModelDoc2 recordedOn, IModelDoc2 planDocument, bool? answer)
         {
-            if (recordedOn != null && StessoOggetto(recordedOn, planDocument))
+            if (recordedOn != null && SameObject(recordedOn, planDocument))
                 result.UndoEntryOnPlanDocument = answer;
         }
 
@@ -599,10 +599,10 @@ namespace Oce.Solid.Agent.Core
             if (recordedOn == null) return null;
             bool ended = false;
             string failure = null;
-            try { ended = recordedOn.Extension.FinishRecordingUndoObject(_nomeAnnullamento); }
+            try { ended = recordedOn.Extension.FinishRecordingUndoObject(_undoName); }
             catch (Exception ex) { failure = ex.Message; }
             if (!ended)
-                _log("[agente] the undo entry «" + _nomeAnnullamento + "» on «" + Identita(recordedOn) +
+                _log("[agente] the undo entry «" + _undoName + "» on «" + Identity(recordedOn) +
                      "» did not close (FinishRecordingUndoObject " +
                      (failure == null ? "answered false" : "threw: " + failure) + ")");
             if (failure != null) return null;
@@ -638,7 +638,7 @@ namespace Oce.Solid.Agent.Core
         /// conteggio, e un conteggio che non torna a zero e' un documento che
         /// SOLIDWORKS non chiude piu'.
         /// </summary>
-        private static bool StessoOggetto(object a, object b)
+        private static bool SameObject(object a, object b)
         {
             if (a == null || b == null) return false;
             if (ReferenceEquals(a, b)) return true;
@@ -657,15 +657,15 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        private static string Identita(IModelDoc2 modello)
+        private static string Identity(IModelDoc2 model)
         {
-            if (modello == null) return "";
+            if (model == null) return "";
             try
             {
-                var percorso = modello.GetPathName();
-                if (!string.IsNullOrEmpty(percorso)) return percorso;
-                var titolo = modello.GetTitle();
-                return string.IsNullOrEmpty(titolo) ? "" : "titolo:" + titolo;
+                var filePath = model.GetPathName();
+                if (!string.IsNullOrEmpty(filePath)) return filePath;
+                var docTitle = model.GetTitle();
+                return string.IsNullOrEmpty(docTitle) ? "" : "titolo:" + docTitle;
             }
             catch { return ""; }
         }
@@ -714,62 +714,62 @@ namespace Oce.Solid.Agent.Core
         // e' appesa e quale — cosi' chi legge i log sa cosa e' successo
         // invece di vedere un ponte che non risponde piu'.
         // ══════════════════════════════════════════════════════════════
-        private static readonly Shared.Guinzaglio _guinzaglio =
-            new Shared.Guinzaglio(120000);
+        private static readonly Shared.Leash _leash =
+            new Shared.Leash(120000);
 
-        private static System.Threading.Thread _guardiano;
-        private static readonly object _chiaveGuardiano = new object();
+        private static System.Threading.Thread _guardian;
+        private static readonly object _guardianKey = new object();
 
-        private static void AccendiIlGuardiano()
+        private static void TurnOnGuardian()
         {
-            lock (_chiaveGuardiano)
+            lock (_guardianKey)
             {
-                if (_guardiano != null) return;
-                _guardiano = new System.Threading.Thread(() =>
+                if (_guardian != null) return;
+                _guardian = new System.Threading.Thread(() =>
                 {
-                    string detto = null;
+                    string said = null;
                     while (true)
                     {
                         System.Threading.Thread.Sleep(10000);
-                        var referto = _guinzaglio.Appesa(DateTime.Now);
-                        if (referto == null) { detto = null; continue; }
+                        var report = _leash.Hanging(DateTime.Now);
+                        if (report == null) { said = null; continue; }
                         // UNA VOLTA SOLA PER CHIAMATA: un guardiano che
                         // ripete la stessa riga ogni dieci secondi riempie
                         // il log di chi ci lavora, e un log pieno non si
                         // legge piu'.
-                        if (referto == detto) continue;
-                        detto = referto;
-                        try { Console.Error.WriteLine("[ponte] " + referto); }
+                        if (report == said) continue;
+                        said = report;
+                        try { Console.Error.WriteLine("[ponte] " + report); }
                         catch { }
                     }
                 });
-                _guardiano.IsBackground = true;
-                _guardiano.Start();
+                _guardian.IsBackground = true;
+                _guardian.Start();
             }
         }
-        private string ControlliPreliminari(IModelDoc2 modello)
+        private string PreliminaryChecks(IModelDoc2 model)
         {
-            if (modello == null) return "Non c'e' nessun documento aperto.";
-            int tipo = modello.GetType();
-            bool ammesso = tipo == (int)swDocumentTypes_e.swDocPART
-                || (AncheSuTavole && tipo == (int)swDocumentTypes_e.swDocDRAWING)
-                || (AncheSuAssiemi && tipo == (int)swDocumentTypes_e.swDocASSEMBLY);
-            if (!ammesso)
+            if (model == null) return "Non c'e' nessun documento aperto.";
+            int typ = model.GetType();
+            bool allowed = typ == (int)swDocumentTypes_e.swDocPART
+                || (AlsoOnDrawings && typ == (int)swDocumentTypes_e.swDocDRAWING)
+                || (AlsoOnAssemblies && typ == (int)swDocumentTypes_e.swDocASSEMBLY);
+            if (!allowed)
             {
                 // IL RIFIUTO DICE COSA E' AMMESSO ADESSO, non una frase fissa.
                 // La vecchia diceva «una parte o una tavola, non un assieme»
                 // anche quando gli assiemi erano ammessi e il documento era
                 // qualcos'altro: un messaggio che elenca il mondo di ieri manda
                 // chi legge a cercare il problema dove non e'.
-                var vanno = new System.Collections.Generic.List<string> { "una parte" };
-                if (AncheSuTavole) vanno.Add("una tavola");
-                if (AncheSuAssiemi) vanno.Add("un assieme");
-                return "Si lavora su " + string.Join(" o ", vanno) +
+                var go = new System.Collections.Generic.List<string> { "una parte" };
+                if (AlsoOnDrawings) go.Add("una tavola");
+                if (AlsoOnAssemblies) go.Add("un assieme");
+                return "Si lavora su " + string.Join(" o ", go) +
                        ": questo documento non e' niente di tutto cio'.";
             }
 
-            var percorso = modello.GetPathName();
-            if (string.IsNullOrEmpty(percorso) && !DocumentoSenzaFile)
+            var filePath = model.GetPathName();
+            if (string.IsNullOrEmpty(filePath) && !DocumentWithoutFile)
                 return "Il documento non e' mai stato salvato: salvalo su disco prima.";
 
             // UN FILE IN SOLA LETTURA NON SI TOCCA, e non e' un dettaglio.
@@ -780,7 +780,7 @@ namespace Oce.Solid.Agent.Core
             // vale anche senza.
             try
             {
-                var info = new System.IO.FileInfo(percorso);
+                var info = new System.IO.FileInfo(filePath);
                 if (info.Exists && info.IsReadOnly)
                     return "Il file e' in sola lettura: toglila (o fai il check-out) prima di chiedere modifiche.";
             }
@@ -811,9 +811,9 @@ namespace Oce.Solid.Agent.Core
             // says exactly that.
             try
             {
-                int cornice = (_sw.Frame() as IFrame)?.GetHWnd() ?? 0;
-                if (cornice != 0 && !IsWindowEnabled(new IntPtr(cornice)))
-                    return FraseDelModale;
+                int frameBorder = (_sw.Frame() as IFrame)?.GetHWnd() ?? 0;
+                if (frameBorder != 0 && !IsWindowEnabled(new IntPtr(frameBorder)))
+                    return ModalSentence;
             }
             catch { }
 
@@ -835,12 +835,12 @@ namespace Oce.Solid.Agent.Core
         /// aspetta una risposta. Pubblica perche' il banco la pretende parola
         /// per parola: una frase scritta in due posti diverge.
         /// </summary>
-        public const string FraseDelModale =
+        public const string ModalSentence =
             "SOLIDWORKS ha una finestra aperta che aspetta una risposta (la sua finestra " +
             "principale e' disabilitata): chiudila e riprova. Lavorarci sopra adesso " +
             "vorrebbe dire restare appesi finche' qualcuno non clicca.";
 
         [DllImport("user32.dll")]
-        private static extern bool IsWindowEnabled(IntPtr finestra);
+        private static extern bool IsWindowEnabled(IntPtr window);
     }
 }

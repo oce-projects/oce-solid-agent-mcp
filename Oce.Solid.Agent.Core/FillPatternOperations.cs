@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.Core
     ///   Create_Fill_Pattern_Example_CSharp.htm — l'unico esempio: Hole1 con
     ///     marca 4, uno spigolo con marca 1, una faccia con marca 16384, POI
     ///     CreateDefinition(swFmFillPattern), solo scalari, CreateFeature. Gli
-    ///     scalari di questo file sono i suoi, uno per uno (vedi ScalariDelRiempimento).
+    ///     scalari di questo file sono i suoi, uno per uno (vedi FillScalars).
     ///
     ///   ...IFillPatternFeatureData~NoOfInstances.html: «the number of instances
     ///     per loop or side», valido con LayoutSpacingType = swPatternLayoutInstances.
@@ -79,43 +79,43 @@ namespace Oce.Solid.Agent.Core
     /// misurata NULL senza il sistema di coordinate con marca 16 che il suo
     /// esempio seleziona.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>Il tipo della feature nata, misurato (GetTypeName2) sulla sonda A.</summary>
-        private const string TipoRiempimento = "APattern";
+        private const string FillType = "APattern";
 
         /// <summary>
         /// Quanto la direzione puo' uscire dal piano della faccia di contorno:
         /// il seno dell'angolo, 0,01 = circa mezzo grado. Uno spigolo della faccia
         /// ci sta dentro con uno zero di macchina.
         /// </summary>
-        private const double RiempimentoFuoriPiano = 0.01;
+        private const double FillOffPlane = 0.01;
 
-        private Esito RipetiRiempimento(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome RepeatFill(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            if (!(modello is IPartDoc))
-                return Fallito("La ripetizione a riempimento si fa su un pezzo: apri il pezzo e richiedimela.");
+            if (!(model is IPartDoc))
+                return Failed("La ripetizione a riempimento si fa su un pezzo: apri il pezzo e richiedimela.");
 
             // ── I NUMERI, prima di toccare qualunque cosa ──
-            double passo, copieGrezze;
-            string errore;
-            if (!NumObbligatorio(a, "pitch_mm", out passo, out errore))
-                return Fallito(errore + " E' la distanza fra un giro di copie e il successivo, " +
+            double planStep, rawCopies;
+            string error;
+            if (!RequiredNum(a, "pitch_mm", out planStep, out error))
+                return Failed(error + " E' la distanza fra un giro di copie e il successivo, " +
                                "in mm: metti per esempio due volte il diametro del foro.");
-            if (passo <= 0)
-                return Fallito("«pitch_mm» deve essere maggiore di zero: e' la distanza fra un giro " +
+            if (planStep <= 0)
+                return Failed("«pitch_mm» deve essere maggiore di zero: e' la distanza fra un giro " +
                                "di copie e il successivo. Metti per esempio due volte il diametro del foro.");
-            if (!NumObbligatorio(a, "copies_per_turn", out copieGrezze, out errore))
-                return Fallito(errore + " E' quante copie stanno su ogni giro attorno al centro " +
+            if (!RequiredNum(a, "copies_per_turn", out rawCopies, out error))
+                return Failed(error + " E' quante copie stanno su ogni giro attorno al centro " +
                                "della faccia: per esempio 10.");
-            int copiePerGiro = (int)copieGrezze;
-            if (copiePerGiro < 1 || Math.Abs(copieGrezze - copiePerGiro) > 1e-9)
-                return Fallito("«copies_per_turn» e' un numero intero da 1 in su, non " +
-                               copieGrezze.ToString(CultureInfo.InvariantCulture) + ": per esempio 10.");
-            double margine = Num(a, "margin_mm", 0);
-            if (margine < 0)
-                return Fallito("«margin_mm» non puo' essere negativo: e' quanto le copie restano " +
+            int copiesPerRound = (int)rawCopies;
+            if (copiesPerRound < 1 || Math.Abs(rawCopies - copiesPerRound) > 1e-9)
+                return Failed("«copies_per_turn» e' un numero intero da 1 in su, non " +
+                               rawCopies.ToString(CultureInfo.InvariantCulture) + ": per esempio 10.");
+            double margin = Num(a, "margin_mm", 0);
+            if (margin < 0)
+                return Failed("«margin_mm» non puo' essere negativo: e' quanto le copie restano " +
                                "lontane dal bordo della faccia. Metti 0 per arrivare al bordo.");
 
             // ── LA DIREZIONE E' OBBLIGATORIA, E SI DICE PRIMA ──
@@ -131,8 +131,8 @@ namespace Oce.Solid.Agent.Core
             // for create_axis itself): the check below («the direction does not lie
             // in the plane of the boundary face») then refused it, 90 degrees
             // out, and a turn was lost. The kind of axis that works is named.
-            if (!HaRiferimento(a, "axis_ref") && string.IsNullOrEmpty(Str(a, "axis_uid", "")))
-                return Fallito(
+            if (!HasReference(a, "axis_ref") && string.IsNullOrEmpty(Str(a, "axis_uid", "")))
+                return Failed(
                     "The direction is missing: without a direction the fill pattern is not born. The API guide " +
                     "calls it optional, but measured on SOLIDWORKS 29.5.1 (28/9/2026) without the direction edge " +
                     "SOLIDWORKS answers nothing and says nothing. Give in «axis_uid» a straight edge that runs " +
@@ -141,31 +141,31 @@ namespace Oce.Solid.Agent.Core
                     "not do: it runs across the face, and a direction that leaves the face is refused.");
 
             // ── LA FACCIA DI CONTORNO, E DEVE ESSERE PIANA ──
-            string facciaUid = Str(a, "face_uid", "");
-            string motivo;
-            var contorno = RisolviFaccia(stato, a, facciaUid, out motivo);
-            if (contorno == null) return Fallito("Faccia di contorno: " + motivo);
-            var normale = NormaleDellaFaccia(contorno);
-            if (normale == null || normale.Length < 3)
-                return Fallito(
-                    "La faccia di contorno" + (facciaUid.Length > 0 ? " «" + facciaUid + "»" : "") +
+            string faceUid = Str(a, "face_uid", "");
+            string reason;
+            var contour = ResolveFace(docState, a, faceUid, out reason);
+            if (contour == null) return Failed("Faccia di contorno: " + reason);
+            var normal = FaceNormal(contour);
+            if (normal == null || normal.Length < 3)
+                return Failed(
+                    "La faccia di contorno" + (faceUid.Length > 0 ? " «" + faceUid + "»" : "") +
                     " non e' piana: il riempimento dispone le copie dentro una faccia piana. " +
                     "Indica la faccia piana su cui sta la lavorazione da ripetere, per esempio " +
                     "quella da cui parte il foro.");
 
             // ── LA FOTOGRAFIA, PRIMA ──
-            var prima = FotografaIlPezzo(modello);
-            double? volumePrima; int corpiPrima, faccePrima;
-            Fotografia(modello, out volumePrima, out corpiPrima, out faccePrima);
-            if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
-                return Fallito(VolumeNonLettoPrima("fare la ripetizione a riempimento"));
+            var before = SnapshotPart(model);
+            double? volumeBefore; int bodiesBefore, facesBefore;
+            Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
+            if (volumeBefore == null || bodiesBefore < 0 || facesBefore < 0)
+                return Failed(VolumeNotReadBefore("fare la ripetizione a riempimento"));
 
-            IFeature seme = null;
+            IFeature seed = null;
             IFeature feature = null;
-            string direzioneDetta = HaRiferimento(a, "axis_ref") ? "la direzione del passo citato" : "«" + Str(a, "axis_uid", "") + "»";
+            string statedDirection = HasReference(a, "axis_ref") ? "la direzione del passo citato" : "«" + Str(a, "axis_uid", "") + "»";
             try
             {
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
 
                 // 1. THE DIRECTION GOES THROUGH ITS HELPER, which checks that the
                 //    edge is straight and still the same one (signature, E19), the
@@ -176,73 +176,73 @@ namespace Oce.Solid.Agent.Core
                 //    call passes append: false, not because of mark 1 (Z-C21.9,
                 //    finding N65: this said «the helper with mark 1 selects from
                 //    scratch», the old signature). With append: true,
-                //    DirezioneSelezionataPerRiempimento, which reads
+                //    SelectedFillDirection, which reads
                 //    GetSelectedObject6(1), would read another object.
-                if (!SelezionaAsse(modello, a, "axis", stato, SelectionMarks.FillPatternDirection, append: false, out errore))
-                    return Fallito("Direzione: " + errore);
-                object direzione = DirezioneSelezionataPerRiempimento(modello);
-                if (direzione == null)
-                    return Fallito("Ho selezionato la direzione ma non riesco a rileggerla dalla " +
+                if (!SelectAxis(model, a, "axis", docState, SelectionMarks.FillPatternDirection, append: false, out error))
+                    return Failed("Direzione: " + error);
+                object direction = SelectedFillDirection(model);
+                if (direction == null)
+                    return Failed("Ho selezionato la direzione ma non riesco a rileggerla dalla " +
                                    "selezione. Prova con uno spigolo dritto dello stato invece di un asse.");
 
                 // LA DIREZIONE DEVE STARE NELLA FACCIA. Il riempimento dispone le
                 // copie dentro il contorno: uno spigolo che esce dalla faccia (lo
                 // spessore della piastra) non ha un verso da seguire la' dentro.
                 // Se il verso non si legge non si inventa un rifiuto.
-                var versore = VersoreDellaDirezione(direzione);
+                var versore = UnitDirectionVector(direction);
                 if (versore != null)
                 {
-                    double seno = Math.Abs(versore[0] * normale[0] + versore[1] * normale[1] + versore[2] * normale[2]);
-                    if (seno > RiempimentoFuoriPiano)
-                        return Fallito(string.Format(CultureInfo.InvariantCulture,
+                    double seno = Math.Abs(versore[0] * normal[0] + versore[1] * normal[1] + versore[2] * normal[2]);
+                    if (seno > FillOffPlane)
+                        return Failed(string.Format(CultureInfo.InvariantCulture,
                             "La direzione {0} non sta nel piano della faccia di contorno: ne esce di " +
                             "{1:0.#} gradi. Il riempimento dispone le copie dentro la faccia, e una " +
                             "direzione che ne esce non ha un verso da seguire. Indica uno spigolo che " +
                             "corre lungo la faccia, per esempio uno dei suoi bordi dritti.",
-                            direzioneDetta, Math.Asin(Math.Min(1.0, seno)) * 180.0 / Math.PI));
+                            statedDirection, Math.Asin(Math.Min(1.0, seno)) * 180.0 / Math.PI));
                 }
-                modello.ClearSelection2(true);
+                model.ClearSelection2(true);
 
                 // 2. La lavorazione da ripetere, marca 4 (SelectByID2 BODYFEATURE,
                 //    come l'esempio; o l'oggetto del passo citato).
-                if (!SelezionaLavorazione(modello, a, out errore, SelectionMarks.FillPatternFeatures))
-                    return Fallito(errore);
-                seme = SemeSelezionato(modello, SelectionMarks.FillPatternFeatures);
+                if (!SelectFeature(model, a, out error, SelectionMarks.FillPatternFeatures))
+                    return Failed(error);
+                seed = SelectedSeed(model, SelectionMarks.FillPatternFeatures);
 
                 // 3. La direzione di nuovo, marca 1, aggiunta.
-                if (!RiselezionaDirezione(modello, direzione))
-                    return Fallito("Non sono riuscito a riselezionare la direzione " + direzioneDetta +
+                if (!ReselectDirection(model, direction))
+                    return Failed("Non sono riuscito a riselezionare la direzione " + statedDirection +
                                    " insieme alla lavorazione. Prova con un altro spigolo dritto della faccia.");
 
                 // 4. Il contorno, marca 16384, aggiunto.
-                var gestore = modello.SelectionManager as ISelectionMgr;
-                if (gestore == null || !Seleziona(gestore, contorno, SelectionMarks.FillPatternBoundary))
-                    return Fallito("Non sono riuscito a selezionare la faccia di contorno" +
-                                   (facciaUid.Length > 0 ? " «" + facciaUid + "»" : "") +
+                var handler = model.SelectionManager as ISelectionMgr;
+                if (handler == null || !Select(handler, contour, SelectionMarks.FillPatternBoundary))
+                    return Failed("Non sono riuscito a selezionare la faccia di contorno" +
+                                   (faceUid.Length > 0 ? " «" + faceUid + "»" : "") +
                                    ". Rileggi lo stato del documento e indica di nuovo la faccia.");
 
                 // 5. SOLO ADESSO la definizione, e soltanto scalari.
-                var dati = modello.FeatureManager.CreateDefinition(
+                var data = model.FeatureManager.CreateDefinition(
                     (int)swFeatureNameID_e.swFmFillPattern) as IFillPatternFeatureData;
-                if (dati == null)
-                    return Fallito("SOLIDWORKS non mi ha dato la definizione di una ripetizione a " +
+                if (data == null)
+                    return Failed("SOLIDWORKS non mi ha dato la definizione di una ripetizione a " +
                                    "riempimento (CreateDefinition vuoto). Non ho toccato il pezzo. " +
                                    "Per copie in fila o in griglia usa «linear_pattern».");
-                ScalariDelRiempimento(dati, Unita.M(passo), copiePerGiro, Unita.M(margine));
-                feature = modello.FeatureManager.CreateFeature(dati) as IFeature;
+                FillScalars(data, Units.M(planStep), copiesPerRound, Units.M(margin));
+                feature = model.FeatureManager.CreateFeature(data) as IFeature;
             }
             catch (Exception ex)
             {
-                return Fallito("La ripetizione a riempimento non e' riuscita: " + ex.Message +
+                return Failed("La ripetizione a riempimento non e' riuscita: " + ex.Message +
                                ". Per copie in fila o in griglia usa «linear_pattern».");
             }
             finally
             {
-                try { modello.ClearSelection2(true); } catch { }
+                try { model.ClearSelection2(true); } catch { }
             }
 
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "La ripetizione a riempimento non e' stata creata, e SOLIDWORKS non dice " +
                     "perche'. Le tre selezioni c'erano (lavorazione, direzione, contorno): di " +
                     "solito vuol dire che nessuna copia entra nella faccia -- il passo e' troppo " +
@@ -252,63 +252,63 @@ namespace Oce.Solid.Agent.Core
                     "«circular_pattern».");
 
             // ── E ADESSO SI MISURA IL PEZZO ──
-            bool ricostruito = false;
-            try { ricostruito = modello.EditRebuild3(); } catch { }
+            bool rebuilt = false;
+            try { rebuilt = model.EditRebuild3(); } catch { }
 
-            string tipo = "";
-            try { tipo = feature.GetTypeName2() ?? ""; } catch { }
-            if (!string.Equals(tipo, TipoRiempimento, StringComparison.Ordinal))
-                return Fallito(
-                    "SOLIDWORKS ha creato una feature di tipo «" + tipo + "», non una ripetizione " +
-                    "a riempimento («" + TipoRiempimento + "», misurato su SOLIDWORKS 29.5.1). " +
+            string typ = "";
+            try { typ = feature.GetTypeName2() ?? ""; } catch { }
+            if (!string.Equals(typ, FillType, StringComparison.Ordinal))
+                return Failed(
+                    "SOLIDWORKS ha creato una feature di tipo «" + typ + "», non una ripetizione " +
+                    "a riempimento («" + FillType + "», misurato su SOLIDWORKS 29.5.1). " +
                     "Non ti confermo una cosa diversa da quella che hai chiesto." +
-                    TogliIlRiempimento(modello, feature, volumePrima));
+                    RemoveFill(model, feature, volumeBefore));
 
             // Le guardie comuni (GuardOperations.cs): lavorazioni in errore,
             // ricostruzione, corpi, aperture che escono dal bordo o si fondono.
             // Le aperture si contano: una copia che morde il bordo della faccia o
             // si fonde con un'altra le fa calare.
-            string rotto = CosaSiERotto(modello, prima, ricostruito, true);
-            if (rotto != null)
-                return Fallito(
-                    "La ripetizione a riempimento e' nata, ma " + rotto + ". Prova un «margin_mm» " +
+            string broken = WhatBroke(model, before, rebuilt, true);
+            if (broken != null)
+                return Failed(
+                    "La ripetizione a riempimento e' nata, ma " + broken + ". Prova un «margin_mm» " +
                     "piu' largo, perche' le copie restino lontane dal bordo, o un «pitch_mm» piu' " +
-                    "grande, perche' non si tocchino." + TogliIlRiempimento(modello, feature, volumePrima));
+                    "grande, perche' non si tocchino." + RemoveFill(model, feature, volumeBefore));
 
             // COSA DICHIARA LA FEATURE, riletto con IFeature::GetDefinition
             // come IFillPatternFeatureData — non gli argomenti ripetuti. Non
             // decide niente (decidono il volume, le copie contate e le
             // guardie); un valore che non si rilegge e' null.
-            var misure = new Dictionary<string, object> { ["feature_type"] = tipo };
-            DichiaratoDalRiempimento(feature, misure);
+            var measurements = new Dictionary<string, object> { ["feature_type"] = typ };
+            DeclaredByFill(feature, measurements);
 
-            // «Niente e' cambiato» e' il falso successo: lo prende ConfrontaCopia.
-            var fermo = ConfrontaCopia(
-                modello, volumePrima, corpiPrima, faccePrima, misure, "La ripetizione a riempimento");
-            if (fermo != null) return Fallito(fermo + TogliIlRiempimento(modello, feature, volumePrima));
+            // «Niente e' cambiato» e' il falso successo: lo prende CompareCopy.
+            var stopped = CompareCopy(
+                model, volumeBefore, bodiesBefore, facesBefore, measurements, "La ripetizione a riempimento");
+            if (stopped != null) return Failed(stopped + RemoveFill(model, feature, volumeBefore));
 
-            // ── LE COPIE, CONTATE DALLE FACCE (come CopieMancanti) ──
+            // ── LE COPIE, CONTATE DALLE FACCE (come MissingCopies) ──
             //
             // Di un riempimento non si sa in anticipo quante copie entrano: lo
             // decide la forma della faccia. Si contano e si dicono. Zero facce
             // possedute vuol dire zero copie, e quello si rifiuta; un conto che
             // non si divide (copie fuse fra loro) si tace invece di inventarlo.
-            int facceRipetizione = FacceDellaFeature(feature);
-            int facceSeme = FacceDellaFeature(seme);
-            if (facceRipetizione == 0)
-                return Fallito(
+            int patternFaces = FeatureFaces(feature);
+            int seedFaceList = FeatureFaces(seed);
+            if (patternFaces == 0)
+                return Failed(
                     "La ripetizione a riempimento e' nata ma non possiede nessuna faccia: nessuna " +
                     "copia e' entrata nella faccia di contorno. Prova un «pitch_mm» piu' piccolo " +
-                    "o «margin_mm» 0." + TogliIlRiempimento(modello, feature, volumePrima));
-            int copie = facceRipetizione > 0 && facceSeme > 0 && facceRipetizione % facceSeme == 0
-                ? facceRipetizione / facceSeme : -1;
-            misure["copies_made"] = NumeroOppureNull(copie);
-            double? volumeDopo = VolumeMm3(modello);
-            misure["volume_per_copy_mm3"] = copie > 0 && volumeDopo.HasValue
-                ? NumeroOppureNull(Math.Abs(volumeDopo.Value - volumePrima.Value) / copie, 2)
+                    "o «margin_mm» 0." + RemoveFill(model, feature, volumeBefore));
+            int copies = patternFaces > 0 && seedFaceList > 0 && patternFaces % seedFaceList == 0
+                ? patternFaces / seedFaceList : -1;
+            measurements["copies_made"] = NumberOrNull(copies);
+            double? volumeAfter = VolumeMm3(model);
+            measurements["volume_per_copy_mm3"] = copies > 0 && volumeAfter.HasValue
+                ? NumberOrNull(Math.Abs(volumeAfter.Value - volumeBefore.Value) / copies, 2)
                 : null;
 
-            return Riuscito(feature, misure);
+            return Succeeded(feature, measurements);
         }
 
         /// <summary>
@@ -326,8 +326,8 @@ namespace Oce.Solid.Agent.Core
         /// GeometryPattern resta false: «valid only if PatternElement is
         /// swFeatureFaces» (GeometryPattern.html), e qui si ripete la feature.
         /// </summary>
-        private static void ScalariDelRiempimento(
-            IFillPatternFeatureData d, double passoM, int copiePerGiro, double margineM)
+        private static void FillScalars(
+            IFillPatternFeatureData d, double pitchM, int copiesPerRound, double marginM)
         {
             d.CreateSeedCutPolygonSides = 0;
             d.CreateSeedCutType = (int)swCreateSeedCutType_e.swCreateSeedCutNone;
@@ -337,11 +337,11 @@ namespace Oce.Solid.Agent.Core
             d.FeaturesToPatternType = (int)swFeaturesToPatternType_e.swFeaturesToPatternSelectedFeatures;
             d.GeometryPattern = false;
             d.InnerRadius = 0.00380422606518061;
-            d.InstanceSpacing = passoM;
+            d.InstanceSpacing = pitchM;
             d.LayoutSpacingType = (int)swPatternLayoutSpacingType_e.swPatternLayoutInstances;
-            d.LoopSpacing = passoM;
-            d.Margins = margineM;
-            d.NoOfInstances = copiePerGiro;
+            d.LoopSpacing = pitchM;
+            d.Margins = marginM;
+            d.NoOfInstances = copiesPerRound;
             d.OuterRadius = 0.004;
             d.PatternLayoutPolygonSides = 0;
             d.PatternLayoutType = (int)swPatternLayoutType_e.swPatternLayoutCircular;
@@ -351,11 +351,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Il primo oggetto della selezione, o null.</summary>
-        private static object DirezioneSelezionataPerRiempimento(IModelDoc2 modello)
+        private static object SelectedFillDirection(IModelDoc2 model)
         {
             try
             {
-                var sel = modello.SelectionManager as ISelectionMgr;
+                var sel = model.SelectionManager as ISelectionMgr;
                 if (sel == null || sel.GetSelectedObjectCount2(-1) < 1) return null;
                 return sel.GetSelectedObject6(1, -1);
             }
@@ -364,26 +364,26 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// Il versore di una direzione selezionata: uno spigolo dritto
-        /// (ICurve.LineParams: punto 0-2, direzione 3-5, come in StatoDocumento)
+        /// (ICurve.LineParams: punto 0-2, direzione 3-5, come in DocumentState)
         /// o un asse di riferimento (IRefAxis.GetRefAxisParams: i due estremi).
         /// Null se non si legge: chi chiama allora non rifiuta.
         /// </summary>
-        private static double[] VersoreDellaDirezione(object direzione)
+        private static double[] UnitDirectionVector(object direction)
         {
             double[] v = null;
             try
             {
-                var spigolo = direzione as IEdge;
-                if (spigolo != null)
+                var edge = direction as IEdge;
+                if (edge != null)
                 {
-                    var curva = spigolo.IGetCurve();
+                    var curva = edge.IGetCurve();
                     var p = curva != null && curva.IsLine() ? curva.LineParams as double[] : null;
                     if (p != null && p.Length >= 6) v = new[] { p[3], p[4], p[5] };
                 }
                 else
                 {
-                    var asse = (direzione as IFeature)?.GetSpecificFeature2() as IRefAxis;
-                    var p = asse?.GetRefAxisParams() as double[];
+                    var axis = (direction as IFeature)?.GetSpecificFeature2() as IRefAxis;
+                    var p = axis?.GetRefAxisParams() as double[];
                     if (p != null && p.Length >= 6) v = new[] { p[3] - p[0], p[4] - p[1], p[5] - p[2] };
                 }
             }
@@ -399,24 +399,24 @@ namespace Oce.Solid.Agent.Core
         /// alla lavorazione. Uno spigolo con `IEntity.Select4` e un
         /// `SelectData` con `Mark = 1`: la chiamata della sonda
         /// (Checks\Fill, `Mark(selMgr, 1)`), la stessa di
-        /// `Seleziona(gestore, faccia, marca)` per la faccia di contorno. Un asse
+        /// `Select(gestore, faccia, marca)` per la faccia di contorno. Un asse
         /// di riferimento per feature (`Select2` con la marca): la sonda non ne
         /// ha usati, ed e' detto nel catalogo.
         /// </summary>
-        private static bool RiselezionaDirezione(IModelDoc2 modello, object direzione)
+        private static bool ReselectDirection(IModelDoc2 model, object direction)
         {
             try
             {
-                if (direzione is IEdge)
+                if (direction is IEdge)
                 {
-                    var entita = direzione as IEntity;
-                    var gestore = modello.SelectionManager as ISelectionMgr;
-                    if (entita == null || gestore == null) return false;
-                    var d = (SelectData)gestore.CreateSelectData();
+                    var entity = direction as IEntity;
+                    var handler = model.SelectionManager as ISelectionMgr;
+                    if (entity == null || handler == null) return false;
+                    var d = (SelectData)handler.CreateSelectData();
                     d.Mark = SelectionMarks.FillPatternDirection;
-                    return entita.Select4(true, d);
+                    return entity.Select4(true, d);
                 }
-                var f = direzione as IFeature;
+                var f = direction as IFeature;
                 if (f != null) return f.Select2(true, SelectionMarks.FillPatternDirection);
             }
             catch { }
@@ -434,73 +434,73 @@ namespace Oce.Solid.Agent.Core
         /// `swPatternLayoutType_e`, mai per cifra. Quello che non si rilegge
         /// resta null: «non lo so» non si riempie con l'argomento.
         /// </summary>
-        private static void DichiaratoDalRiempimento(IFeature feature, Dictionary<string, object> misure)
+        private static void DeclaredByFill(IFeature feature, Dictionary<string, object> measurements)
         {
-            object disposizione = null, passo = null, copie = null, margine = null;
+            object arrangement = null, planStep = null, copies = null, margin = null;
             try
             {
                 var d = feature.GetDefinition() as IFillPatternFeatureData;
                 if (d != null)
                 {
-                    try { disposizione = NomeDellaDisposizione(d.PatternLayoutType); } catch { }
-                    try { passo = Math.Round(Unita.Mm(d.LoopSpacing), 3); } catch { }
-                    try { copie = d.NoOfInstances; } catch { }
-                    try { margine = Math.Round(Unita.Mm(d.Margins), 3); } catch { }
+                    try { arrangement = ArrangementName(d.PatternLayoutType); } catch { }
+                    try { planStep = Math.Round(Units.Mm(d.LoopSpacing), 3); } catch { }
+                    try { copies = d.NoOfInstances; } catch { }
+                    try { margin = Math.Round(Units.Mm(d.Margins), 3); } catch { }
                 }
             }
             catch { }
-            misure["declared_layout"] = disposizione;
-            misure["declared_loop_spacing_mm"] = passo;
-            misure["declared_instances_per_loop"] = copie;
-            misure["declared_margin_mm"] = margine;
+            measurements["declared_layout"] = arrangement;
+            measurements["declared_loop_spacing_mm"] = planStep;
+            measurements["declared_instances_per_loop"] = copies;
+            measurements["declared_margin_mm"] = margin;
         }
 
         /// <summary>Il nome in inglese della disposizione, dal nome dell'enum; null se sconosciuta.</summary>
-        private static string NomeDellaDisposizione(int valore)
+        private static string ArrangementName(int val)
         {
-            if (valore == (int)swPatternLayoutType_e.swPatternLayoutCircular) return "circular";
-            if (valore == (int)swPatternLayoutType_e.swPatternLayoutSquare) return "square";
-            if (valore == (int)swPatternLayoutType_e.swPatternLayoutPolygon) return "polygon";
-            if (valore == (int)swPatternLayoutType_e.swPatternLayoutPerforation) return "perforation";
+            if (val == (int)swPatternLayoutType_e.swPatternLayoutCircular) return "circular";
+            if (val == (int)swPatternLayoutType_e.swPatternLayoutSquare) return "square";
+            if (val == (int)swPatternLayoutType_e.swPatternLayoutPolygon) return "polygon";
+            if (val == (int)swPatternLayoutType_e.swPatternLayoutPerforation) return "perforation";
             return null;
         }
 
         /// <summary>
         /// Toglie la ripetizione appena nata quando una guardia la rifiuta, e torna
         /// la coda del messaggio. Non EditDelete (apre una finestra di conferma:
-        /// ProveLeFirmeVietate), ma DeleteSelection2 come `TogliIlTaglio`; e «ha
+        /// ForbiddenSignaturesTests), ma DeleteSelection2 come `RemoveCut`; e «ha
         /// detto di averla tolta» non basta: si riconta l'albero e si rimisura il
         /// volume.
         /// </summary>
-        private string TogliIlRiempimento(IModelDoc2 modello, IFeature ripetizione, double? volumePrima)
+        private string RemoveFill(IModelDoc2 model, IFeature repetition, double? volumeBefore)
         {
-            bool tolta = false;
+            bool removed = false;
             try
             {
-                modello.ClearSelection2(true);
-                if (ripetizione != null && ripetizione.Select2(false, 0))
-                    tolta = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+                if (repetition != null && repetition.Select2(false, 0))
+                    removed = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
             catch { }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            finally { try { model.ClearSelection2(true); } catch { } }
 
-            const string resta = " La ripetizione pero' e' rimasta nel pezzo: ritirala — " + Frasi.CosiSiRitira + ".";
-            if (!tolta) return resta;
-            try { modello.EditRebuild3(); } catch { }
-            int lavorazioni = ContaFeature(modello);
-            if (lavorazioni < 0 || _featureAllInizioDelPasso < 0)
+            const string remains = " La ripetizione pero' e' rimasta nel pezzo: ritirala — " + Sentences.HowToWithdrawIt + ".";
+            if (!removed) return remains;
+            try { model.EditRebuild3(); } catch { }
+            int features = CountFeature(model);
+            if (features < 0 || _featuresAtStepStart < 0)
                 return " L'ho tolta, ma non ho potuto ricontare l'albero per controllare che il " +
                        "pezzo sia com'era: guardalo.";
             // Removed by DeleteSelection2: from here the pattern is gone, and
             // «still in the part» would be false (Z-C21.9, finding C9-6).
-            if (lavorazioni > _featureAllInizioDelPasso)
-                return RemovedButTreeLonger(lavorazioni - _featureAllInizioDelPasso);
-            double? volumeDopo = VolumeMm3(modello);
-            if (volumePrima == null || volumeDopo == null)
+            if (features > _featuresAtStepStart)
+                return RemovedButTreeLonger(features - _featuresAtStepStart);
+            double? volumeAfter = VolumeMm3(model);
+            if (volumeBefore == null || volumeAfter == null)
                 return " L'ho tolta, ma non ho potuto rimisurare il volume per controllare che il " +
                        "pezzo sia com'era: guardalo.";
-            if (Math.Abs(volumeDopo.GetValueOrDefault() - volumePrima.GetValueOrDefault()) > 0.01)
-                return RemovedButVolumeChanged(volumeDopo.GetValueOrDefault(), volumePrima.GetValueOrDefault());
+            if (Math.Abs(volumeAfter.GetValueOrDefault() - volumeBefore.GetValueOrDefault()) > 0.01)
+                return RemovedButVolumeChanged(volumeAfter.GetValueOrDefault(), volumeBefore.GetValueOrDefault());
             return " L'ho tolta: il pezzo e' com'era prima di questo passo.";
         }
     }

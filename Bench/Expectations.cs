@@ -25,15 +25,15 @@ namespace Oce.Solid.Agent.Bench
     /// da un `Func&lt;string, object&gt;`: chi ha il documento in mano lo passa, chi
     /// non ce l'ha passa null e prova tutto il resto.
     /// </summary>
-    internal static class Attese
+    internal static class Expectations
     {
         /// <summary>
         /// Quello che una prova non ha potuto misurare: un campo assente, un
         /// selettore che non risolve, un caso scritto male (voce F4).
         /// </summary>
-        internal sealed class NonHoPotutoMisurare : Exception
+        internal sealed class CouldNotMeasure : Exception
         {
-            public NonHoPotutoMisurare(string messaggio) : base(messaggio) { }
+            public CouldNotMeasure(string message) : base(message) { }
         }
 
         /// <summary>
@@ -45,12 +45,12 @@ namespace Oce.Solid.Agent.Bench
         /// non esiste - e intanto raccontava com'e' fatto quel disco. Adesso
         /// vuoto e' vuoto, e chi chiama lo deve dire.
         /// </summary>
-        internal static string Profili
+        internal static string Profiles
         {
             get
             {
-                var suo = Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
-                return string.IsNullOrWhiteSpace(suo) ? null : suo;
+                var its = Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+                return string.IsNullOrWhiteSpace(its) ? null : its;
             }
         }
 
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Bench
         /// La cartella si crea se non c'e': un caso non deve fallire perche'
         /// qualcuno ha svuotato il cestino.
         /// </summary>
-        internal static string Lavoro
+        internal static string Work
         {
             get
             {
@@ -74,12 +74,12 @@ namespace Oce.Solid.Agent.Bench
                 // main checkout sits on a network drive, and on 3/10/2026 a
                 // SaveAs3 there answered e=1 and left no file, a bench error
                 // that cost a whole run. OCE_BENCH_WORK names another folder.
-                var sua = Environment.GetEnvironmentVariable("OCE_BENCH_WORK");
-                var dove = Path.GetFullPath(!string.IsNullOrWhiteSpace(sua)
-                    ? sua
+                var its = Environment.GetEnvironmentVariable("OCE_BENCH_WORK");
+                var location = Path.GetFullPath(!string.IsNullOrWhiteSpace(its)
+                    ? its
                     : Path.Combine(Path.GetTempPath(), "oce-bench-work"));
-                try { if (!Directory.Exists(dove)) Directory.CreateDirectory(dove); } catch { }
-                return dove;
+                try { if (!Directory.Exists(location)) Directory.CreateDirectory(location); } catch { }
+                return location;
             }
         }
 
@@ -92,12 +92,12 @@ namespace Oce.Solid.Agent.Bench
         /// predefinita, riconoscendola da SLDWORKS.exe. Se non si trova, il caso
         /// non si puo' misurare — non e' rosso.
         /// </summary>
-        internal static string CartellaSolidWorks
+        internal static string SolidWorksFolder
         {
             get
             {
-                var sua = Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
-                if (!string.IsNullOrWhiteSpace(sua)) return sua;
+                var its = Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+                if (!string.IsNullOrWhiteSpace(its)) return its;
                 foreach (var pf in new[]
                 {
                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
@@ -117,20 +117,20 @@ namespace Oce.Solid.Agent.Bench
         /// Z-F5, 27/9/2026: l'immagine da ricalcare). `{LAVORO}` si svuota a ogni
         /// giro e non e' nel repository, quindi un file d'ingresso non puo' starci.
         /// </summary>
-        internal static string Dati
+        internal static string Data
         {
             get
             {
-                var qui = Path.GetDirectoryName(
+                var here = Path.GetDirectoryName(
                     System.Reflection.Assembly.GetEntryAssembly() != null
                         ? System.Reflection.Assembly.GetEntryAssembly().Location
                         : System.Reflection.Assembly.GetExecutingAssembly().Location);
-                return Path.GetFullPath(Path.Combine(qui ?? ".", "..", "data"));
+                return Path.GetFullPath(Path.Combine(here ?? ".", "..", "data"));
             }
         }
 
         /// <summary>Un testo lungo, accorciato per stare su una riga di esito.</summary>
-        internal static string Breve(string s)
+        internal static string Short(string s)
         {
             if (string.IsNullOrEmpty(s)) return "(nessun motivo)";
             s = s.Replace("\r", " ").Replace("\n", " ");
@@ -140,14 +140,14 @@ namespace Oce.Solid.Agent.Bench
         // ==================================================================
         // LE ATTESE
         // ==================================================================
-        internal static bool Combacia(
-            Dictionary<string, object> attesa, Func<string, object> dalDocumento,
-            Dictionary<string, object> stato, Dictionary<string, object> misure,
-            out string dettaglio)
+        internal static bool Matches(
+            Dictionary<string, object> expectation, Func<string, object> fromDocument,
+            Dictionary<string, object> docState, Dictionary<string, object> measurements,
+            out string detail)
         {
-            dettaglio = "";
-            string cosa = Testo(attesa, "what");
-            if (cosa == null) throw new NonHoPotutoMisurare("un'attesa senza «what»");
+            detail = "";
+            string what = Text(expectation, "what");
+            if (what == null) throw new CouldNotMeasure("un'attesa senza «what»");
 
             // ── QUANDO LA MISURA E' UNA FRASE ─────────────────────────────
             //
@@ -159,39 +159,39 @@ namespace Oce.Solid.Agent.Bench
             // non ci siano — la seconda meta' e' la piu' importante, perche'
             // e' come si prende una frase che dichiara un profilo che il pezzo
             // non ha piu'.
-            bool contiene = attesa.ContainsKey("includes");
-            bool nonContiene = attesa.ContainsKey("does_not_include");
-            if (contiene || nonContiene)
+            bool includes = expectation.ContainsKey("includes");
+            bool doesNotContain = expectation.ContainsKey("does_not_include");
+            if (includes || doesNotContain)
             {
-                if (attesa.ContainsKey("equal_to"))
-                    throw new NonHoPotutoMisurare("«" + cosa + "» ha «equal_to» insieme a " +
+                if (expectation.ContainsKey("equal_to"))
+                    throw new CouldNotMeasure("«" + what + "» ha «equal_to» insieme a " +
                                         "«includes»/«does_not_include»: decidi quale dei due");
-                return Frase(cosa, attesa, dalDocumento, stato, misure, out dettaglio);
+                return Sentence(what, expectation, fromDocument, docState, measurements, out detail);
             }
 
-            if (!attesa.ContainsKey("equal_to")) throw new NonHoPotutoMisurare("«" + cosa + "» senza «equal_to»");
+            if (!expectation.ContainsKey("equal_to")) throw new CouldNotMeasure("«" + what + "» senza «equal_to»");
 
-            double tolleranza = 0;
-            if (attesa.ContainsKey("tolerance") && attesa["tolerance"] != null)
+            double tolerance = 0;
+            if (expectation.ContainsKey("tolerance") && expectation["tolerance"] != null)
             {
-                tolleranza = Convert.ToDouble(attesa["tolerance"], CultureInfo.InvariantCulture);
+                tolerance = Convert.ToDouble(expectation["tolerance"], CultureInfo.InvariantCulture);
                 // IL PERCHE' E' OBBLIGATORIO, e non e' burocrazia: una
                 // tolleranza senza motivo e' il posto in cui un giorno qualcuno
                 // allarghera' il numero invece di guardare il pezzo.
-                if (Math.Abs(tolleranza) > 1e-12 && Testo(attesa, "tolerance_why") == null)
-                    throw new NonHoPotutoMisurare("«" + cosa + "» ha tolleranza " +
-                                        tolleranza.ToString(CultureInfo.InvariantCulture) +
+                if (Math.Abs(tolerance) > 1e-12 && Text(expectation, "tolerance_why") == null)
+                    throw new CouldNotMeasure("«" + what + "» ha tolleranza " +
+                                        tolerance.ToString(CultureInfo.InvariantCulture) +
                                         " e non dice «tolerance_why»");
             }
 
-            object misurato = Misura(cosa, dalDocumento, stato, misure);
-            object atteso = attesa["equal_to"];
+            object measured = Measure(what, fromDocument, docState, measurements);
+            object expected = expectation["equal_to"];
 
             // Un elenco di numeri: l'ingombro, un punto, una terna.
-            var attesoLista = atteso as System.Collections.IEnumerable;
-            if (attesoLista != null && !(atteso is string))
+            var expectedList = expected as System.Collections.IEnumerable;
+            if (expectedList != null && !(expected is string))
             {
-                var attesi = Numeri(attesoLista);
+                var expectedValues = Numbers(expectedList);
 
                 // ── UN ELENCO CHE NUMERI NON NE HA ───────────────────────
                 //
@@ -201,19 +201,19 @@ namespace Oce.Solid.Agent.Bench
                 // chiedeva una cosa sensata e il valutatore non sapeva
                 // confrontarla. Un elenco di TESTO si confronta a uno a uno,
                 // con la stessa scrittura che serve alle gemelle.
-                if (attesi == null)
+                if (expectedValues == null)
                 {
-                    var misuratoElenco = misurato as System.Collections.IEnumerable;
-                    if (misuratoElenco == null || misurato is string)
+                    var measuredList = measured as System.Collections.IEnumerable;
+                    if (measuredList == null || measured is string)
                     {
-                        dettaglio = cosa + " non e' un elenco: " + CosaEra(misurato);
+                        detail = what + " non e' un elenco: " + WhatWas(measured);
                         return false;
                     }
                     var q = new List<string>();
-                    foreach (var x in attesoLista) q.Add(ComeSiScrive(x));
+                    foreach (var x in expectedList) q.Add(HowItIsWritten(x));
                     var r = new List<string>();
-                    foreach (var x in misuratoElenco) r.Add(ComeSiScrive(x));
-                    dettaglio = cosa + " [" + string.Join(", ", r) + "] (atteso [" +
+                    foreach (var x in measuredList) r.Add(HowItIsWritten(x));
+                    detail = what + " [" + string.Join(", ", r) + "] (atteso [" +
                                 string.Join(", ", q) + "])";
                     if (q.Count != r.Count) return false;
                     for (int i = 0; i < q.Count; i++)
@@ -221,44 +221,44 @@ namespace Oce.Solid.Agent.Bench
                     return true;
                 }
 
-                var misurati = Numeri(misurato as System.Collections.IEnumerable);
-                if (misurati == null)
+                var measuredValues = Numbers(measured as System.Collections.IEnumerable);
+                if (measuredValues == null)
                 {
-                    dettaglio = cosa + " non e' un elenco di numeri: " + CosaEra(misurato);
+                    detail = what + " non e' un elenco di numeri: " + WhatWas(measured);
                     return false;
                 }
-                dettaglio = cosa + " " + Insieme(misurati) + " (atteso " + Insieme(attesi) +
-                            (tolleranza > 0 ? " ±" + tolleranza.ToString(CultureInfo.InvariantCulture) : "") + ")";
-                if (attesi.Length != misurati.Length) return false;
-                for (int i = 0; i < attesi.Length; i++)
-                    if (Math.Abs(attesi[i] - misurati[i]) > tolleranza) return false;
+                detail = what + " " + Set(measuredValues) + " (atteso " + Set(expectedValues) +
+                            (tolerance > 0 ? " ±" + tolerance.ToString(CultureInfo.InvariantCulture) : "") + ")";
+                if (expectedValues.Length != measuredValues.Length) return false;
+                for (int i = 0; i < expectedValues.Length; i++)
+                    if (Math.Abs(expectedValues[i] - measuredValues[i]) > tolerance) return false;
                 return true;
             }
 
             // Un numero.
-            double numeroAtteso;
-            if (atteso != null && !(atteso is string) && !(atteso is bool) &&
-                double.TryParse(Convert.ToString(atteso, CultureInfo.InvariantCulture),
-                                NumberStyles.Any, CultureInfo.InvariantCulture, out numeroAtteso))
+            double expectedNumber;
+            if (expected != null && !(expected is string) && !(expected is bool) &&
+                double.TryParse(Convert.ToString(expected, CultureInfo.InvariantCulture),
+                                NumberStyles.Any, CultureInfo.InvariantCulture, out expectedNumber))
             {
-                double numeroMisurato;
-                if (misurato == null ||
-                    !double.TryParse(Convert.ToString(misurato, CultureInfo.InvariantCulture),
-                                     NumberStyles.Any, CultureInfo.InvariantCulture, out numeroMisurato))
+                double measuredNumber;
+                if (measured == null ||
+                    !double.TryParse(Convert.ToString(measured, CultureInfo.InvariantCulture),
+                                     NumberStyles.Any, CultureInfo.InvariantCulture, out measuredNumber))
                 {
-                    dettaglio = cosa + " non e' un numero: " + CosaEra(misurato);
+                    detail = what + " non e' un numero: " + WhatWas(measured);
                     return false;
                 }
-                dettaglio = string.Format(CultureInfo.InvariantCulture,
-                    "{0} {1:0.###} (atteso {2:0.###}{3})", cosa, numeroMisurato, numeroAtteso,
-                    tolleranza > 0 ? " ±" + tolleranza.ToString(CultureInfo.InvariantCulture) : "");
-                return Math.Abs(numeroMisurato - numeroAtteso) <= tolleranza;
+                detail = string.Format(CultureInfo.InvariantCulture,
+                    "{0} {1:0.###} (atteso {2:0.###}{3})", what, measuredNumber, expectedNumber,
+                    tolerance > 0 ? " ±" + tolerance.ToString(CultureInfo.InvariantCulture) : "");
+                return Math.Abs(measuredNumber - expectedNumber) <= tolerance;
             }
 
             // Tutto il resto si confronta come testo: «material», un booleano.
-            string a = Convert.ToString(atteso, CultureInfo.InvariantCulture);
-            string m = Convert.ToString(misurato, CultureInfo.InvariantCulture);
-            dettaglio = cosa + " «" + m + "» (atteso «" + a + "»)";
+            string a = Convert.ToString(expected, CultureInfo.InvariantCulture);
+            string m = Convert.ToString(measured, CultureInfo.InvariantCulture);
+            detail = what + " «" + m + "» (atteso «" + a + "»)";
             return string.Equals(a, m, StringComparison.Ordinal);
         }
 
@@ -274,15 +274,15 @@ namespace Oce.Solid.Agent.Bench
         /// Il confronto e' esatto — maiuscole e accenti compresi — perche' una
         /// frase che il modello legge cambia di senso con una lettera.
         /// </summary>
-        private static bool Frase(
-            string cosa, Dictionary<string, object> attesa, Func<string, object> dalDocumento,
-            Dictionary<string, object> stato, Dictionary<string, object> misure,
-            out string dettaglio)
+        private static bool Sentence(
+            string what, Dictionary<string, object> expectation, Func<string, object> fromDocument,
+            Dictionary<string, object> docState, Dictionary<string, object> measurements,
+            out string detail)
         {
-            object misurato = Misura(cosa, dalDocumento, stato, misure);
-            if (misurato == null)
+            object measured = Measure(what, fromDocument, docState, measurements);
+            if (measured == null)
             {
-                dettaglio = cosa + " non c'e': una frase assente non e' una frase vuota";
+                detail = what + " non c'e': una frase assente non e' una frase vuota";
                 return false;
             }
 
@@ -303,30 +303,30 @@ namespace Oce.Solid.Agent.Bench
             // non «la scrittura dell'elenco lo contiene»: cosi' cercare
             // «80X80X5» trova la voce, e cercare «80X80» trova la stessa voce
             // per prefisso, che e' quello che chi scrive il caso si aspetta.
-            var voci = Elenco(misurato);
-            bool eUnElenco = voci != null;
-            string frase = eUnElenco
-                ? string.Join(", ", voci)
-                : Convert.ToString(misurato, CultureInfo.InvariantCulture);
+            var entries = Items(measured);
+            bool isList = entries != null;
+            string sentence = isList
+                ? string.Join(", ", entries)
+                : Convert.ToString(measured, CultureInfo.InvariantCulture);
 
-            var mancano = new List<string>();
-            foreach (var p in Pezzi(attesa, "includes"))
-                if (!Dentro(voci, frase, p)) mancano.Add("«" + p + "»");
+            var areMissing = new List<string>();
+            foreach (var p in Parts(expectation, "includes"))
+                if (!Inside(entries, sentence, p)) areMissing.Add("«" + p + "»");
 
-            var diTroppo = new List<string>();
-            foreach (var p in Pezzi(attesa, "does_not_include"))
-                if (Dentro(voci, frase, p)) diTroppo.Add("«" + p + "»");
+            var tooMuch = new List<string>();
+            foreach (var p in Parts(expectation, "does_not_include"))
+                if (Inside(entries, sentence, p)) tooMuch.Add("«" + p + "»");
 
-            if (mancano.Count == 0 && diTroppo.Count == 0)
+            if (areMissing.Count == 0 && tooMuch.Count == 0)
             {
-                dettaglio = cosa + (eUnElenco ? " [" + Breve(frase) + "]" : ": " + Breve(frase));
+                detail = what + (isList ? " [" + Short(sentence) + "]" : ": " + Short(sentence));
                 return true;
             }
-            dettaglio = cosa +
-                (mancano.Count > 0 ? " non dice " + string.Join(", ", mancano) : "") +
-                (mancano.Count > 0 && diTroppo.Count > 0 ? ", e" : "") +
-                (diTroppo.Count > 0 ? " dice ancora " + string.Join(", ", diTroppo) : "") +
-                ": " + Breve(frase);
+            detail = what +
+                (areMissing.Count > 0 ? " non dice " + string.Join(", ", areMissing) : "") +
+                (areMissing.Count > 0 && tooMuch.Count > 0 ? ", e" : "") +
+                (tooMuch.Count > 0 ? " dice ancora " + string.Join(", ", tooMuch) : "") +
+                ": " + Short(sentence);
             return false;
         }
 
@@ -335,14 +335,14 @@ namespace Oce.Solid.Agent.Bench
         /// misurato non e' un elenco — e una stringa NON e' un elenco, anche
         /// se in C# e' enumerabile carattere per carattere.
         /// </summary>
-        private static List<string> Elenco(object misurato)
+        private static List<string> Items(object measured)
         {
-            if (misurato == null || misurato is string) return null;
-            var e = misurato as System.Collections.IEnumerable;
+            if (measured == null || measured is string) return null;
+            var e = measured as System.Collections.IEnumerable;
             if (e == null) return null;
-            var fuori = new List<string>();
-            foreach (var x in e) fuori.Add(ComeSiScrive(x));
-            return fuori;
+            var outside = new List<string>();
+            foreach (var x in e) outside.Add(HowItIsWritten(x));
+            return outside;
         }
 
         /// <summary>
@@ -386,29 +386,29 @@ namespace Oce.Solid.Agent.Bench
         /// questo, perche' un interruttore che cambia il senso di un operatore
         /// e' un operatore travestito.
         /// </summary>
-        private static bool Dentro(List<string> voci, string frase, string pezzo)
+        private static bool Inside(List<string> entries, string sentence, string part)
         {
-            if (voci != null)
-                return voci.Any(v => v.IndexOf(pezzo, StringComparison.OrdinalIgnoreCase) >= 0);
-            return frase.IndexOf(pezzo, StringComparison.OrdinalIgnoreCase) >= 0;
+            if (entries != null)
+                return entries.Any(v => v.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0);
+            return sentence.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>I pezzi di frase di un campo: una stringa sola o un elenco.</summary>
-        private static List<string> Pezzi(Dictionary<string, object> attesa, string campo)
+        private static List<string> Parts(Dictionary<string, object> expectation, string theField)
         {
-            var fuori = new List<string>();
+            var outside = new List<string>();
             object v;
-            if (!attesa.TryGetValue(campo, out v) || v == null) return fuori;
-            if (v is string) { fuori.Add((string)v); return fuori; }
-            var elenco = v as System.Collections.IEnumerable;
-            if (elenco == null)
-            { fuori.Add(Convert.ToString(v, CultureInfo.InvariantCulture)); return fuori; }
-            foreach (var x in elenco)
-                fuori.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
-            if (fuori.Count == 0)
-                throw new NonHoPotutoMisurare("«" + campo + "» e' un elenco vuoto: " +
+            if (!expectation.TryGetValue(theField, out v) || v == null) return outside;
+            if (v is string) { outside.Add((string)v); return outside; }
+            var list = v as System.Collections.IEnumerable;
+            if (list == null)
+            { outside.Add(Convert.ToString(v, CultureInfo.InvariantCulture)); return outside; }
+            foreach (var x in list)
+                outside.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
+            if (outside.Count == 0)
+                throw new CouldNotMeasure("«" + theField + "» e' un elenco vuoto: " +
                                     "non chiede niente, e passerebbe sempre");
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -416,9 +416,9 @@ namespace Oce.Solid.Agent.Bench
         /// niente = quello che misura il banco per conto suo, `state.` = lo
         /// stato dell'add-in, `measurements.` = quello che l'operazione ha riportato.
         /// </summary>
-        internal static object Misura(
-            string cosa, Func<string, object> dalDocumento,
-            Dictionary<string, object> stato, Dictionary<string, object> misure)
+        internal static object Measure(
+            string what, Func<string, object> fromDocument,
+            Dictionary<string, object> docState, Dictionary<string, object> measurements)
         {
             // LE TRE MISURE DEL DOCUMENTO ARRIVANO DA FUORI, e chi non ha un
             // documento in mano passa null: e' quello che rende questo file
@@ -430,17 +430,17 @@ namespace Oce.Solid.Agent.Bench
             // vecchio accanto — un messaggio che dice il falso su se stesso.
             // Tutto cio' che non ha un prefisso lo si chiede a chi il documento
             // ce l'ha, ed e' lui a dire se quel nome non lo conosce.
-            if (!cosa.StartsWith("state.", StringComparison.Ordinal) &&
-                !cosa.StartsWith("measurements.", StringComparison.Ordinal))
+            if (!what.StartsWith("state.", StringComparison.Ordinal) &&
+                !what.StartsWith("measurements.", StringComparison.Ordinal))
             {
-                if (dalDocumento == null)
-                    throw new NonHoPotutoMisurare(
-                        "«" + cosa + "» si misura sul documento, e qui non ce n'e' uno");
-                return dalDocumento(cosa);
+                if (fromDocument == null)
+                    throw new CouldNotMeasure(
+                        "«" + what + "» si misura sul documento, e qui non ce n'e' uno");
+                return fromDocument(what);
             }
-            if (cosa.StartsWith("state.", StringComparison.Ordinal))
-                return Dentro(stato, cosa.Substring("state.".Length), cosa);
-            return Dentro(misure, cosa.Substring("measurements.".Length), cosa);
+            if (what.StartsWith("state.", StringComparison.Ordinal))
+                return Inside(docState, what.Substring("state.".Length), what);
+            return Inside(measurements, what.Substring("measurements.".Length), what);
         }
 
         /// <summary>
@@ -459,26 +459,26 @@ namespace Oce.Solid.Agent.Bench
         /// su un dizionario: `Oce.Solid.Agent.ContractTests` la prova in un millesimo di
         /// secondo, senza CAD (voce F7).
         /// </summary>
-        internal static string ComeSiScrive(object v)
+        internal static string HowItIsWritten(object v)
         {
             if (v == null) return "(niente)";
             if (v is string) return (string)v;
 
-            var dizionario = v as Dictionary<string, object>;
-            if (dizionario != null)
+            var dictionary = v as Dictionary<string, object>;
+            if (dictionary != null)
             {
-                var voci = new List<string>();
-                foreach (var k in dizionario.Keys.OrderBy(x => x, StringComparer.Ordinal))
-                    voci.Add(k + "=" + ComeSiScrive(dizionario[k]));
-                return "{" + string.Join(", ", voci) + "}";
+                var entries = new List<string>();
+                foreach (var k in dictionary.Keys.OrderBy(x => x, StringComparer.Ordinal))
+                    entries.Add(k + "=" + HowItIsWritten(dictionary[k]));
+                return "{" + string.Join(", ", entries) + "}";
             }
 
-            var elenco = v as System.Collections.IEnumerable;
-            if (elenco != null)
+            var list = v as System.Collections.IEnumerable;
+            if (list != null)
             {
-                var pezzi = new List<string>();
-                foreach (var x in elenco) pezzi.Add(ComeSiScrive(x));
-                return "[" + string.Join(", ", pezzi) + "]";
+                var parts = new List<string>();
+                foreach (var x in list) parts.Add(HowItIsWritten(x));
+                return "[" + string.Join(", ", parts) + "]";
             }
 
             return Convert.ToString(v, CultureInfo.InvariantCulture);
@@ -502,41 +502,41 @@ namespace Oce.Solid.Agent.Bench
         /// vietare la coppia a meta' del catalogo. Quando le chiavi in gioco
         /// sono una sola, «niente in comune» non e' un indizio: e' l'arita'.
         /// </summary>
-        internal static bool SiSomigliano(
-            Dictionary<string, object> miei, Dictionary<string, object> suoi,
-            out string perche)
+        internal static bool Resemble(
+            Dictionary<string, object> mine, Dictionary<string, object> itsItems,
+            out string why)
         {
-            miei = miei ?? new Dictionary<string, object>();
-            suoi = suoi ?? new Dictionary<string, object>();
+            mine = mine ?? new Dictionary<string, object>();
+            itsItems = itsItems ?? new Dictionary<string, object>();
 
-            var chiavi = new HashSet<string>(miei.Keys, StringComparer.Ordinal);
-            foreach (var k in suoi.Keys) chiavi.Add(k);
+            var keys = new HashSet<string>(mine.Keys, StringComparer.Ordinal);
+            foreach (var k in itsItems.Keys) keys.Add(k);
 
-            int diversi = 0, uguali = 0;
-            var quali = new List<string>();
-            foreach (var k in chiavi.OrderBy(x => x, StringComparer.Ordinal))
+            int different = 0, equal = 0;
+            var whichOnes = new List<string>();
+            foreach (var k in keys.OrderBy(x => x, StringComparer.Ordinal))
             {
-                string a = miei.ContainsKey(k) ? ComeSiScrive(miei[k]) : null;
-                string b = suoi.ContainsKey(k) ? ComeSiScrive(suoi[k]) : null;
-                if (string.Equals(a, b, StringComparison.Ordinal)) uguali++;
-                else { diversi++; quali.Add(k); }
+                string a = mine.ContainsKey(k) ? HowItIsWritten(mine[k]) : null;
+                string b = itsItems.ContainsKey(k) ? HowItIsWritten(itsItems[k]) : null;
+                if (string.Equals(a, b, StringComparison.Ordinal)) equal++;
+                else { different++; whichOnes.Add(k); }
             }
 
-            if (diversi == 0)
-            { perche = "e' identica al rifiuto: non e' una gemella, e' una copia"; return false; }
+            if (different == 0)
+            { why = "e' identica al rifiuto: non e' una gemella, e' una copia"; return false; }
 
-            if (uguali == 0 && chiavi.Count > 1)
+            if (equal == 0 && keys.Count > 1)
             {
-                perche = "non ha nemmeno un argomento in comune col rifiuto: " +
+                why = "non ha nemmeno un argomento in comune col rifiuto: " +
                          "sono due operazioni che non si parlano";
                 return false;
             }
 
-            perche = "stessa operazione, differisce per " + diversi +
-                     (diversi == 1 ? " argomento (" : " argomenti (") +
-                     string.Join(", ", quali) + ")";
-            if (uguali == 0)
-                perche += ", che e' l'unico che questa operazione prende";
+            why = "stessa operazione, differisce per " + different +
+                     (different == 1 ? " argomento (" : " argomenti (") +
+                     string.Join(", ", whichOnes) + ")";
+            if (equal == 0)
+                why += ", che e' l'unico che questa operazione prende";
             return true;
         }
 
@@ -545,7 +545,7 @@ namespace Oce.Solid.Agent.Bench
         /// argomenti su un ALTRO pezzo. Il valore e' la frase che dice cosa
         /// cambia nel pezzo: vuota non vale.
         /// </summary>
-        internal const string CampoDifferenzaNelPezzo = "difference_is_the_part";
+        internal const string DifferenceInPartField = "difference_is_the_part";
 
         /// <summary>
         /// LA GEMELLA CON GLI STESSI ARGOMENTI, SU UN ALTRO PEZZO (voce F5,
@@ -554,12 +554,12 @@ namespace Oce.Solid.Agent.Bench
         /// Ci sono rifiuti che non dipendono da un argomento ma dal PEZZO: la
         /// stessa nervatura (stessa linea, stesso piano, stesso spessore) nasce
         /// nella scatola svuotata e non nasce sulla piastra senza pareti. La
-        /// regola di `SiSomigliano` pretende un argomento diverso, e prima di
+        /// regola di `Resemble` pretende un argomento diverso, e prima di
         /// questa funzione l'unico modo di rispettarla era scriverne uno che non
         /// fa niente (un `distance_mm: 0` che e' il predefinito): F5 verde senza
         /// provare niente.
         ///
-        /// Qui la differenza si DICHIARA (<see cref="CampoDifferenzaNelPezzo"/>)
+        /// Qui la differenza si DICHIARA (<see cref="DifferenceInPartField"/>)
         /// e si CONTROLLA, in tutti e due i versi:
         ///   1. la frase c'e';
         ///   2. gli argomenti sono IDENTICI — se differiscono, la regola normale
@@ -571,61 +571,61 @@ namespace Oce.Solid.Agent.Bench
         /// I passi si confrontano come si scrivono (operazione e argomenti),
         /// senza CAD: e' aritmetica sul JSON, e la prova Oce.Solid.Agent.ContractTests.
         /// </summary>
-        internal static bool SiSomiglianoNelPezzo(
-            Dictionary<string, object> miei, Dictionary<string, object> suoi,
-            IList<object> pezzoMio, IList<object> pezzoSuo, string dichiarazione,
-            out string perche)
+        internal static bool ResembleInPart(
+            Dictionary<string, object> mine, Dictionary<string, object> itsItems,
+            IList<object> myPart, IList<object> itsPart, string declaration,
+            out string why)
         {
-            if (string.IsNullOrWhiteSpace(dichiarazione))
+            if (string.IsNullOrWhiteSpace(declaration))
             {
-                perche = "«" + CampoDifferenzaNelPezzo + "» e' vuoto: deve dire cosa cambia nel pezzo " +
+                why = "«" + DifferenceInPartField + "» e' vuoto: deve dire cosa cambia nel pezzo " +
                          "fra il rifiuto e la gemella";
                 return false;
             }
 
-            string suArgomenti;
-            if (SiSomigliano(miei, suoi, out suArgomenti))
+            string onArguments;
+            if (Resemble(mine, itsItems, out onArguments))
             {
-                perche = "dichiara che la differenza e' il pezzo, ma gli argomenti differiscono gia' (" +
-                         suArgomenti + "): la regola normale basta, togli «" + CampoDifferenzaNelPezzo + "»";
+                why = "dichiara che la differenza e' il pezzo, ma gli argomenti differiscono gia' (" +
+                         onArguments + "): la regola normale basta, togli «" + DifferenceInPartField + "»";
                 return false;
             }
-            if (suArgomenti.IndexOf("copia", StringComparison.Ordinal) < 0)
+            if (onArguments.IndexOf("copia", StringComparison.Ordinal) < 0)
             {
-                perche = "dichiara che la differenza e' il pezzo, ma gli argomenti non sono gli stessi: " +
-                         suArgomenti;
+                why = "dichiara che la differenza e' il pezzo, ma gli argomenti non sono gli stessi: " +
+                         onArguments;
                 return false;
             }
 
-            var mio = (pezzoMio ?? new List<object>()).Select(ComeSiScriveUnPasso).ToList();
-            var suo = (pezzoSuo ?? new List<object>()).Select(ComeSiScriveUnPasso).ToList();
-            int primoDiverso = -1;
-            for (int i = 0; i < Math.Max(mio.Count, suo.Count); i++)
+            var myOwn = (myPart ?? new List<object>()).Select(HowAStepIsWritten).ToList();
+            var its = (itsPart ?? new List<object>()).Select(HowAStepIsWritten).ToList();
+            int firstDifferent = -1;
+            for (int i = 0; i < Math.Max(myOwn.Count, its.Count); i++)
             {
-                string a = i < mio.Count ? mio[i] : null, b = i < suo.Count ? suo[i] : null;
-                if (!string.Equals(a, b, StringComparison.Ordinal)) { primoDiverso = i; break; }
+                string a = i < myOwn.Count ? myOwn[i] : null, b = i < its.Count ? its[i] : null;
+                if (!string.Equals(a, b, StringComparison.Ordinal)) { firstDifferent = i; break; }
             }
-            if (primoDiverso < 0)
+            if (firstDifferent < 0)
             {
-                perche = "stessi argomenti E stesso pezzo (i " + mio.Count + " passi prima sono uguali): " +
+                why = "stessi argomenti E stesso pezzo (i " + myOwn.Count + " passi prima sono uguali): " +
                          "non e' una gemella, e' una copia";
                 return false;
             }
 
-            perche = "stessi argomenti, pezzo diverso dal passo " + (primoDiverso + 1) + " (" +
-                     dichiarazione.Trim() + ")";
+            why = "stessi argomenti, pezzo diverso dal passo " + (firstDifferent + 1) + " (" +
+                     declaration.Trim() + ")";
             return true;
         }
 
         /// <summary>Un passo di un caso come si scrive: operazione e argomenti.</summary>
-        private static string ComeSiScriveUnPasso(object passo)
+        private static string HowAStepIsWritten(object planStep)
         {
-            var p = passo as Dictionary<string, object>;
-            if (p == null) return ComeSiScrive(passo);
+            var p = planStep as Dictionary<string, object>;
+            if (p == null) return HowItIsWritten(planStep);
             object op, arg;
             p.TryGetValue("operation", out op);
             p.TryGetValue("arguments", out arg);
-            return ComeSiScrive(op) + " " + ComeSiScrive(arg);
+            return HowItIsWritten(op) + " " + HowItIsWritten(arg);
         }
 
         /// <summary>
@@ -633,24 +633,24 @@ namespace Oce.Solid.Agent.Bench
         /// Null quando il percorso non porta da nessuna parte — e chi chiama lo
         /// fa diventare un rosso, perche' un campo assente non e' uno zero.
         /// </summary>
-        internal static object Dentro(object radice, string percorso, string nomeIntero)
+        internal static object Inside(object root, string filePath, string fullName)
         {
-            object qui = radice;
-            foreach (var pezzo in percorso.Split('.'))
+            object here = root;
+            foreach (var part in filePath.Split('.'))
             {
-                string chiave = pezzo;
-                int indice = -1;
-                int quadra = pezzo.IndexOf('[');
-                if (quadra >= 0 && pezzo.EndsWith("]", StringComparison.Ordinal))
+                string key = part;
+                int index = -1;
+                int bracket = part.IndexOf('[');
+                if (bracket >= 0 && part.EndsWith("]", StringComparison.Ordinal))
                 {
-                    chiave = pezzo.Substring(0, quadra);
-                    int.TryParse(pezzo.Substring(quadra + 1, pezzo.Length - quadra - 2), out indice);
+                    key = part.Substring(0, bracket);
+                    int.TryParse(part.Substring(bracket + 1, part.Length - bracket - 2), out index);
                 }
 
-                var mappa = qui as Dictionary<string, object>;
-                if (mappa == null)
-                    throw new NonHoPotutoMisurare(
-                        "campo assente: " + nomeIntero + "; «" + chiave +
+                var map = here as Dictionary<string, object>;
+                if (map == null)
+                    throw new CouldNotMeasure(
+                        "campo assente: " + fullName + "; «" + key +
                         "» andrebbe cercato dentro qualcosa che non e' un oggetto");
 
                 // LA CHIAVE CHE NON C'E' E UN VALORE NULL NON SONO LA STESSA
@@ -658,86 +658,86 @@ namespace Oce.Solid.Agent.Bench
                 // «quel posto esiste ed e' vuoto»; una chiave che manca vuol
                 // dire che il caso sta leggendo un campo che non esiste piu' —
                 // e un `null` confrontato con un `null` passerebbe.
-                if (!mappa.ContainsKey(chiave))
-                    throw new NonHoPotutoMisurare(
-                        "campo assente: " + nomeIntero + "; ci sono: " +
-                        string.Join(", ", mappa.Keys.OrderBy(k => k, StringComparer.Ordinal)));
-                qui = mappa[chiave];
+                if (!map.ContainsKey(key))
+                    throw new CouldNotMeasure(
+                        "campo assente: " + fullName + "; ci sono: " +
+                        string.Join(", ", map.Keys.OrderBy(k => k, StringComparer.Ordinal)));
+                here = map[key];
 
-                if (indice >= 0)
+                if (index >= 0)
                 {
-                    var lista = qui as System.Collections.IList;
-                    if (lista == null)
-                        throw new NonHoPotutoMisurare(
-                            "campo assente: " + nomeIntero + "; «" + chiave + "» non e' un elenco");
-                    if (indice >= lista.Count)
-                        throw new NonHoPotutoMisurare(
-                            "campo assente: " + nomeIntero + "; «" + chiave + "» ha " +
-                            lista.Count + " voci e il caso chiede la numero " + indice);
-                    qui = lista[indice];
+                    var itemList = here as System.Collections.IList;
+                    if (itemList == null)
+                        throw new CouldNotMeasure(
+                            "campo assente: " + fullName + "; «" + key + "» non e' un elenco");
+                    if (index >= itemList.Count)
+                        throw new CouldNotMeasure(
+                            "campo assente: " + fullName + "; «" + key + "» ha " +
+                            itemList.Count + " voci e il caso chiede la numero " + index);
+                    here = itemList[index];
                 }
             }
-            return qui;
+            return here;
         }
 
         // ==================================================================
         // I SELETTORI
         // ==================================================================
-        internal static object Risolvi(object grezzo, Dictionary<string, object> stato)
+        internal static object Resolve(object raw, Dictionary<string, object> docState)
         {
-            var mappa = grezzo as Dictionary<string, object>;
-            if (mappa != null)
+            var map = raw as Dictionary<string, object>;
+            if (map != null)
             {
-                var fuori = new Dictionary<string, object>();
-                foreach (var v in mappa) fuori[v.Key] = Risolvi(v.Value, stato);
-                return fuori;
+                var outside = new Dictionary<string, object>();
+                foreach (var v in map) outside[v.Key] = Resolve(v.Value, docState);
+                return outside;
             }
-            var lista = grezzo as System.Collections.IList;
-            if (lista != null)
+            var itemList = raw as System.Collections.IList;
+            if (itemList != null)
             {
-                var fuori = new List<object>();
-                foreach (var v in lista) fuori.Add(Risolvi(v, stato));
-                return fuori;
+                var outside = new List<object>();
+                foreach (var v in itemList) outside.Add(Resolve(v, docState));
+                return outside;
             }
-            var testo = grezzo as string;
-            if (testo != null && testo.StartsWith("@", StringComparison.Ordinal))
-                return Seleziona(testo, stato);
+            var text = raw as string;
+            if (text != null && text.StartsWith("@", StringComparison.Ordinal))
+                return Select(text, docState);
 
             // I SEGNAPOSTO: un caso che nomina un percorso di QUESTA macchina
             // non e' una prova, e' un ricordo. La libreria dei profili saldati
             // sta dove la mette ogni installazione, e il caso dice «{PROFILI}»
             // invece di sapere dov'e'.
-            if (testo != null && testo.Contains("{PROFILI}"))
+            if (text != null && text.Contains("{PROFILI}"))
             {
                 // `String.Replace(a, null)` solleva `ArgumentNullException`, e
                 // da qui uscirebbe come un guasto del banco invece che come la
                 // cosa che e': una precondizione che manca. Si dice.
-                if (Profili == null)
-                    throw new NonHoPotutoMisurare(
+                if (Profiles == null)
+                    throw new CouldNotMeasure(
                         "Questo caso nomina {PROFILI}, ma PROFILI_SALDATURA non e' " +
                         "impostata e non c'e' un percorso predefinito. La libreria " +
                         "dei profili e' di chi lavora, non del repository: dille dov'e'.");
-                return testo.Replace("{PROFILI}", Profili);
+                return text.Replace("{PROFILI}", Profiles);
             }
             // `{LAVORO}`: dove un caso puo' scrivere un file senza sporcare
             // ne' il repository ne' il disco di chi lavora.
-            if (testo != null && testo.Contains("{LAVORO}"))
-                return testo.Replace("{LAVORO}", Lavoro);
+            if (text != null && text.Contains("{LAVORO}"))
+                return text.Replace("{LAVORO}", Work);
             // `{DATI}`: i file d'ingresso versionati (Bench\data\).
-            if (testo != null && testo.Contains("{DATI}"))
-                return testo.Replace("{DATI}", Dati);
+            if (text != null && text.Contains("{DATI}"))
+                return text.Replace("{DATI}", Data);
             // `{SOLIDWORKS}`: i file DI SERIE dell'installazione (i modelli di
             // tabella), che non sono ne' del repository ne' di chi lavora.
-            if (testo != null && testo.Contains("{SOLIDWORKS}"))
+            if (text != null && text.Contains("{SOLIDWORKS}"))
             {
-                var sw = CartellaSolidWorks;
+                var sw = SolidWorksFolder;
                 if (sw == null)
-                    throw new NonHoPotutoMisurare(
+                    throw new CouldNotMeasure(
                         "Questo caso nomina {SOLIDWORKS}, ma non trovo la cartella di " +
                         "installazione di SOLIDWORKS: dilla con SW_INSTALL_PATH.");
-                return testo.Replace("{SOLIDWORKS}", sw);
+                return text.Replace("{SOLIDWORKS}", sw);
             }
-            return grezzo;
+            return raw;
         }
 
         /// <summary>
@@ -762,25 +762,25 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         internal static Func<int> AliasUsesNow;
 
-        internal static string Seleziona(string espressione, Dictionary<string, object> stato)
+        internal static string Select(string expression, Dictionary<string, object> docState)
         {
-            if (SelectorAlias != null) espressione = SelectorAlias(espressione, DeprecatedSelectors);
-            int apre = espressione.IndexOf('(');
-            if (apre < 0 || !espressione.EndsWith(")", StringComparison.Ordinal))
-                throw new NonHoPotutoMisurare("selettore storto: «" + espressione + "»");
-            string tipo = espressione.Substring(1, apre - 1);
-            var condizioni = Condizioni(espressione.Substring(apre + 1, espressione.Length - apre - 2));
+            if (SelectorAlias != null) expression = SelectorAlias(expression, DeprecatedSelectors);
+            int opens = expression.IndexOf('(');
+            if (opens < 0 || !expression.EndsWith(")", StringComparison.Ordinal))
+                throw new CouldNotMeasure("selettore storto: «" + expression + "»");
+            string typ = expression.Substring(1, opens - 1);
+            var conditions = Conditions(expression.Substring(opens + 1, expression.Length - opens - 2));
 
-            switch (tipo)
+            switch (typ)
             {
                 // `n=` VALE PER TUTTI, non solo per le feature: fra quattro
                 // spigoli lunghi uguali non esiste nessun criterio, e chi
                 // scrive il caso l'ordine puo' deciderlo — purche' lo DICA.
                 // Senza `n=` l'ambiguita' resta un rifiuto.
-                case "face":  return UnoSolo(espressione, "faces", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
-                case "edge": return UnoSolo(espressione, "edges", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
-                case "feature": return UnaFeature(espressione, stato, condizioni);
-                case "dimension":   return UnaQuota(espressione, stato, condizioni);
+                case "face":  return OnlyOne(expression, "faces", docState, conditions, "uid", Nth(expression, conditions));
+                case "edge": return OnlyOne(expression, "edges", docState, conditions, "uid", Nth(expression, conditions));
+                case "feature": return AFeature(expression, docState, conditions);
+                case "dimension":   return ADimension(expression, docState, conditions);
                 // I CORPI SI CHIAMANO PER NOME, NON PER NUMERO. Misurato il
                 // 25/9/2026 su tre membri strutturali creati nello stesso
                 // ordine in due giri: una volta lo stato dice C1 = la barra
@@ -789,9 +789,9 @@ namespace Oce.Solid.Agent.Bench
                 // segue invece l'ordine di creazione, ed e' quello che il caso
                 // intende. Il nome ha le parentesi dentro, e il selettore le
                 // regge: si apre alla PRIMA e si chiude all'ULTIMA.
-                case "body":   return UnoSolo(espressione, "bodies", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
+                case "body":   return OnlyOne(expression, "bodies", docState, conditions, "uid", Nth(expression, conditions));
                 default:
-                    throw new NonHoPotutoMisurare("selettore sconosciuto «@" + tipo + "»: ci sono " +
+                    throw new CouldNotMeasure("selettore sconosciuto «@" + typ + "»: ci sono " +
                                         "@face, @edge, @feature, @dimension, @body");
             }
         }
@@ -800,46 +800,46 @@ namespace Oce.Solid.Agent.Bench
         /// `verso=davanti, lungo~=100`: il `~` vuol dire «circa», e serve per le
         /// lunghezze, che non sono mai intere quando il pezzo e' stato ricostruito.
         /// </summary>
-        internal sealed class Condizione
+        internal sealed class Condition
         {
-            public string Campo;
-            public string Valore;
+            public string Field;
+            public string Value;
             public bool Circa;
         }
 
-        internal static List<Condizione> Condizioni(string dentro)
+        internal static List<Condition> Conditions(string inside)
         {
-            var fuori = new List<Condizione>();
-            foreach (var pezzo in dentro.Split(','))
+            var outside = new List<Condition>();
+            foreach (var part in inside.Split(','))
             {
-                var t = pezzo.Trim();
+                var t = part.Trim();
                 if (t.Length == 0) continue;
                 bool circa = t.Contains("~=");
-                int uguale = circa ? t.IndexOf("~=", StringComparison.Ordinal) : t.IndexOf('=');
-                if (uguale < 0) throw new NonHoPotutoMisurare("condizione senza «=»: «" + t + "»");
-                fuori.Add(new Condizione
+                int equal = circa ? t.IndexOf("~=", StringComparison.Ordinal) : t.IndexOf('=');
+                if (equal < 0) throw new CouldNotMeasure("condizione senza «=»: «" + t + "»");
+                outside.Add(new Condition
                 {
-                    Campo = t.Substring(0, uguale).Trim(),
-                    Valore = t.Substring(uguale + (circa ? 2 : 1)).Trim(),
+                    Field = t.Substring(0, equal).Trim(),
+                    Value = t.Substring(equal + (circa ? 2 : 1)).Trim(),
                     Circa = circa,
                 });
             }
-            return fuori;
+            return outside;
         }
 
         // I NOMI DEL CASO E I NOMI DELLO STATO NON SONO GLI STESSI, e la
         // traduzione sta qui e in un punto solo. `@edge(axis=Z)` si legge
         // bene; il campo dello stato si chiama `along`, che da solo vorrebbe
         // dire un'altra cosa.
-        internal static string CampoDelloStato(string nomeNelCaso)
+        internal static string StateField(string nameInCase)
         {
-            switch (nomeNelCaso)
+            switch (nameInCase)
             {
                 case "axis":   return "along";
                 case "length": return "length_mm";
                 case "area":   return "area_mm2";
                 case "normal": return "facing";
-                default:      return nomeNelCaso;
+                default:      return nameInCase;
             }
         }
 
@@ -854,97 +854,97 @@ namespace Oce.Solid.Agent.Bench
         /// coordinate lo spigolo si nomina per DOVE sta:
         /// `@edge(axis=Y,x~=-100,z~=20)`.
         /// </summary>
-        internal static bool ValoreDelCampo(Dictionary<string, object> voce, string campo, out object valore)
+        internal static bool FieldValue(Dictionary<string, object> entry, string theField, out object val)
         {
-            int indice = campo == "x" ? 0 : campo == "y" ? 1 : campo == "z" ? 2 : -1;
-            if (indice >= 0)
+            int index = theField == "x" ? 0 : theField == "y" ? 1 : theField == "z" ? 2 : -1;
+            if (index >= 0)
             {
-                valore = null;
-                object punto;
-                if (!voce.TryGetValue("point_mm", out punto)) return false;
-                var elenco = punto as System.Collections.IList;
-                if (elenco == null || elenco.Count < 3) return false;
-                valore = elenco[indice];
+                val = null;
+                object point;
+                if (!entry.TryGetValue("point_mm", out point)) return false;
+                var list = point as System.Collections.IList;
+                if (list == null || list.Count < 3) return false;
+                val = list[index];
                 return true;
             }
-            return voce.TryGetValue(CampoDelloStato(campo), out valore);
+            return entry.TryGetValue(StateField(theField), out val);
         }
 
-        internal static string UnoSolo(
-            string espressione, string famiglia, Dictionary<string, object> stato,
-            List<Condizione> condizioni, string campoDaTornare, int? ennesimo)
+        internal static string OnlyOne(
+            string expression, string family, Dictionary<string, object> docState,
+            List<Condition> conditions, string fieldToReturn, int? nth)
         {
-            var voci = (stato != null && stato.ContainsKey(famiglia)
-                ? stato[famiglia] : null) as System.Collections.IList;
-            if (voci == null)
-                throw new NonHoPotutoMisurare("lo stato non ha «" + famiglia + "»: " + espressione);
+            var entries = (docState != null && docState.ContainsKey(family)
+                ? docState[family] : null) as System.Collections.IList;
+            if (entries == null)
+                throw new CouldNotMeasure("lo stato non ha «" + family + "»: " + expression);
 
-            var trovate = new List<Dictionary<string, object>>();
-            foreach (var v in voci)
+            var foundOnes = new List<Dictionary<string, object>>();
+            foreach (var v in entries)
             {
-                var voce = v as Dictionary<string, object>;
-                if (voce == null) continue;
-                bool va = true;
-                foreach (var c in condizioni)
+                var entry = v as Dictionary<string, object>;
+                if (entry == null) continue;
+                bool goes = true;
+                foreach (var c in conditions)
                 {
-                    if (c.Campo == "n") continue;
-                    object valore;
-                    if (!ValoreDelCampo(voce, c.Campo, out valore) || valore == null)
-                    { va = false; break; }
+                    if (c.Field == "n") continue;
+                    object val;
+                    if (!FieldValue(entry, c.Field, out val) || val == null)
+                    { goes = false; break; }
                     if (c.Circa)
                     {
                         double a, b;
-                        if (!double.TryParse(Convert.ToString(valore, CultureInfo.InvariantCulture),
+                        if (!double.TryParse(Convert.ToString(val, CultureInfo.InvariantCulture),
                                              NumberStyles.Any, CultureInfo.InvariantCulture, out a) ||
-                            !double.TryParse(c.Valore, NumberStyles.Any,
+                            !double.TryParse(c.Value, NumberStyles.Any,
                                              CultureInfo.InvariantCulture, out b) ||
                             Math.Abs(a - b) > 0.5)
-                        { va = false; break; }
+                        { goes = false; break; }
                     }
                     else if (!string.Equals(
-                        Convert.ToString(valore, CultureInfo.InvariantCulture), c.Valore,
+                        Convert.ToString(val, CultureInfo.InvariantCulture), c.Value,
                         StringComparison.OrdinalIgnoreCase))
-                    { va = false; break; }
+                    { goes = false; break; }
                 }
-                if (va) trovate.Add(voce);
+                if (goes) foundOnes.Add(entry);
             }
 
-            if (ennesimo.HasValue)
+            if (nth.HasValue)
             {
-                if (ennesimo.Value < 1 || ennesimo.Value > trovate.Count)
-                    throw new NonHoPotutoMisurare(espressione + ": ne ho trovate " + trovate.Count +
-                                        ", e il caso chiede la numero " + ennesimo.Value);
-                return Convert.ToString(trovate[ennesimo.Value - 1][campoDaTornare]);
+                if (nth.Value < 1 || nth.Value > foundOnes.Count)
+                    throw new CouldNotMeasure(expression + ": ne ho trovate " + foundOnes.Count +
+                                        ", e il caso chiede la numero " + nth.Value);
+                return Convert.ToString(foundOnes[nth.Value - 1][fieldToReturn]);
             }
 
             // ZERO O PIU' D'UNA: SI RIFIUTA, non si sceglie la prima.
             // E' il difetto silenzioso che questa voce nomina: un caso che gira
             // su una faccia diversa da quella che il nome del file promette, e
             // che magari torna lo stesso volume.
-            if (trovate.Count == 0)
-                throw new NonHoPotutoMisurare(espressione + ": non l'ho trovata");
-            if (trovate.Count > 1)
-                throw new NonHoPotutoMisurare(espressione + ": ne ho trovate " + trovate.Count +
+            if (foundOnes.Count == 0)
+                throw new CouldNotMeasure(expression + ": non l'ho trovata");
+            if (foundOnes.Count > 1)
+                throw new CouldNotMeasure(expression + ": ne ho trovate " + foundOnes.Count +
                                     ". Sceglierne una sarebbe indovinare: aggiungi una " +
                                     "condizione, oppure «n=» se l'ordine lo decidi tu");
-            return Convert.ToString(trovate[0][campoDaTornare]);
+            return Convert.ToString(foundOnes[0][fieldToReturn]);
         }
 
-        internal static string UnaFeature(
-            string espressione, Dictionary<string, object> stato, List<Condizione> condizioni)
+        internal static string AFeature(
+            string expression, Dictionary<string, object> docState, List<Condition> conditions)
         {
-            return UnoSolo(espressione, "feature", stato, condizioni, "uid",
-                           Ennesimo(espressione, condizioni));
+            return OnlyOne(expression, "feature", docState, conditions, "uid",
+                           Nth(expression, conditions));
         }
 
         /// <summary>Il `n=` di un selettore, se c'e'.</summary>
-        internal static int? Ennesimo(string espressione, List<Condizione> condizioni)
+        internal static int? Nth(string expression, List<Condition> conditions)
         {
-            var n = condizioni.FirstOrDefault(c => c.Campo == "n");
+            var n = conditions.FirstOrDefault(c => c.Field == "n");
             if (n == null) return null;
             int k;
-            if (!int.TryParse(n.Valore, out k))
-                throw new NonHoPotutoMisurare(espressione + ": «n» non e' un numero");
+            if (!int.TryParse(n.Value, out k))
+                throw new CouldNotMeasure(expression + ": «n» non e' un numero");
             return k;
         }
 
@@ -964,123 +964,123 @@ namespace Oce.Solid.Agent.Bench
         /// elenca non sono misurati, mentre «l'unica quota angolare del pezzo» e'
         /// un fatto che lo stato dice.
         /// </summary>
-        internal static string UnaQuota(
-            string espressione, Dictionary<string, object> stato, List<Condizione> condizioni)
+        internal static string ADimension(
+            string expression, Dictionary<string, object> docState, List<Condition> conditions)
         {
-            string dentroA = condizioni.FirstOrDefault(c => c.Campo == "feature")?.Valore;
-            string chiamata = condizioni.FirstOrDefault(c => c.Campo == "name")?.Valore;
-            string angolareTesto = condizioni.FirstOrDefault(c => c.Campo == "angular")?.Valore;
-            bool? angolare = null;
-            if (angolareTesto != null)
+            string insideA = conditions.FirstOrDefault(c => c.Field == "feature")?.Value;
+            string call = conditions.FirstOrDefault(c => c.Field == "name")?.Value;
+            string angularText = conditions.FirstOrDefault(c => c.Field == "angular")?.Value;
+            bool? angular = null;
+            if (angularText != null)
             {
                 bool a;
-                if (!bool.TryParse(angolareTesto, out a))
-                    throw new NonHoPotutoMisurare(espressione + ": «angular» e' true o false");
-                angolare = a;
+                if (!bool.TryParse(angularText, out a))
+                    throw new CouldNotMeasure(expression + ": «angular» e' true o false");
+                angular = a;
             }
-            if (chiamata == null && angolare == null)
-                throw new NonHoPotutoMisurare(espressione + ": serve «name» (oppure «angular»)");
+            if (call == null && angular == null)
+                throw new CouldNotMeasure(expression + ": serve «name» (oppure «angular»)");
 
-            var feature = (stato != null && stato.ContainsKey("feature")
-                ? stato["feature"] : null) as System.Collections.IList;
-            if (feature == null) throw new NonHoPotutoMisurare("lo stato non ha «feature»: " + espressione);
+            var feature = (docState != null && docState.ContainsKey("feature")
+                ? docState["feature"] : null) as System.Collections.IList;
+            if (feature == null) throw new CouldNotMeasure("lo stato non ha «feature»: " + expression);
 
-            var trovate = new List<string>();
+            var foundOnes = new List<string>();
             foreach (var f in feature)
             {
-                var voce = f as Dictionary<string, object>;
-                if (voce == null || !voce.ContainsKey("dimensions")) continue;
-                var quote = voce["dimensions"] as System.Collections.IList;
+                var entry = f as Dictionary<string, object>;
+                if (entry == null || !entry.ContainsKey("dimensions")) continue;
+                var quote = entry["dimensions"] as System.Collections.IList;
                 if (quote == null) continue;
                 foreach (var q in quote)
                 {
-                    var quota = q as Dictionary<string, object>;
-                    if (quota == null || !quota.ContainsKey("name")) continue;
-                    string esteso = Convert.ToString(quota["name"]);
+                    var dimension = q as Dictionary<string, object>;
+                    if (dimension == null || !dimension.ContainsKey("name")) continue;
+                    string extended = Convert.ToString(dimension["name"]);
                     // «D1@Schizzo1@Parte286.Part» -> corto «D1», dentro «Schizzo1»
-                    var pezzi = esteso.Split('@');
-                    if (pezzi.Length < 2) continue;
-                    if (chiamata != null &&
-                        !string.Equals(pezzi[0], chiamata, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (angolare.HasValue && quota.ContainsKey("deg") != angolare.Value) continue;
-                    if (dentroA != null &&
-                        !string.Equals(pezzi[1], dentroA, StringComparison.OrdinalIgnoreCase)) continue;
-                    trovate.Add(esteso);
+                    var parts = extended.Split('@');
+                    if (parts.Length < 2) continue;
+                    if (call != null &&
+                        !string.Equals(parts[0], call, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (angular.HasValue && dimension.ContainsKey("deg") != angular.Value) continue;
+                    if (insideA != null &&
+                        !string.Equals(parts[1], insideA, StringComparison.OrdinalIgnoreCase)) continue;
+                    foundOnes.Add(extended);
                 }
             }
 
-            if (trovate.Count == 0) throw new NonHoPotutoMisurare(espressione + ": non l'ho trovata");
-            if (trovate.Count > 1)
-                throw new NonHoPotutoMisurare(espressione + ": ne ho trovate " + trovate.Count +
-                                    " (" + string.Join(", ", trovate) + ")");
-            return trovate[0];
+            if (foundOnes.Count == 0) throw new CouldNotMeasure(expression + ": non l'ho trovata");
+            if (foundOnes.Count > 1)
+                throw new CouldNotMeasure(expression + ": ne ho trovate " + foundOnes.Count +
+                                    " (" + string.Join(", ", foundOnes) + ")");
+            return foundOnes[0];
         }
 
         // ==================================================================
         // MINUTERIA
         // ==================================================================
-        internal static string Testo(Dictionary<string, object> mappa, string chiave)
+        internal static string Text(Dictionary<string, object> map, string key)
         {
             object v;
-            if (mappa == null || !mappa.TryGetValue(chiave, out v) || v == null) return null;
+            if (map == null || !map.TryGetValue(key, out v) || v == null) return null;
             var s = Convert.ToString(v);
             return string.IsNullOrWhiteSpace(s) ? null : s;
         }
 
-        internal static bool Vero(Dictionary<string, object> mappa, string chiave)
+        internal static bool True(Dictionary<string, object> map, string key)
         {
             object v;
-            if (mappa == null || !mappa.TryGetValue(chiave, out v) || v == null) return false;
+            if (map == null || !map.TryGetValue(key, out v) || v == null) return false;
             try { return Convert.ToBoolean(v); } catch { return false; }
         }
 
-        internal static List<object> Elenco(Dictionary<string, object> mappa, string chiave)
+        internal static List<object> Items(Dictionary<string, object> map, string key)
         {
             object v;
-            if (mappa == null || !mappa.TryGetValue(chiave, out v) || v == null) return null;
-            var lista = v as System.Collections.IList;
-            if (lista == null) return null;
-            var fuori = new List<object>();
-            foreach (var x in lista) fuori.Add(x);
-            return fuori;
+            if (map == null || !map.TryGetValue(key, out v) || v == null) return null;
+            var itemList = v as System.Collections.IList;
+            if (itemList == null) return null;
+            var outside = new List<object>();
+            foreach (var x in itemList) outside.Add(x);
+            return outside;
         }
 
-        internal static double[] Numeri(System.Collections.IEnumerable lista)
+        internal static double[] Numbers(System.Collections.IEnumerable itemList)
         {
-            if (lista == null) return null;
-            var fuori = new List<double>();
-            foreach (var x in lista)
+            if (itemList == null) return null;
+            var outside = new List<double>();
+            foreach (var x in itemList)
             {
                 double d;
                 if (!double.TryParse(Convert.ToString(x, CultureInfo.InvariantCulture),
                                      NumberStyles.Any, CultureInfo.InvariantCulture, out d))
                     return null;
-                fuori.Add(d);
+                outside.Add(d);
             }
-            return fuori.ToArray();
+            return outside.ToArray();
         }
 
-        internal static string Insieme(double[] n)
+        internal static string Set(double[] n)
         {
             return "[" + string.Join(", ", n.Select(x => x.ToString("0.###", CultureInfo.InvariantCulture))) + "]";
         }
 
         /// <summary>
         /// Che cos'e' quel valore, per un messaggio. Si chiama cosi' e non
-        /// `Descrivi` perche' in `NewOperationsTests.cs` un `Descrivi` c'e' gia': due
+        /// `Describe` perche' in `NewOperationsTests.cs` un `Describe` c'e' gia': due
         /// metodi con lo stesso nome nella stessa classe parziale non
         /// compilano, ed e' la fine migliore possibile per un nome ripetuto.
         /// </summary>
-        internal static string CosaEra(object x)
+        internal static string WhatWas(object x)
         {
             if (x == null) return "(non c'e')";
-            return Breve(Convert.ToString(x, CultureInfo.InvariantCulture));
+            return Short(Convert.ToString(x, CultureInfo.InvariantCulture));
         }
 
-        internal static int QuanteFeature(Dictionary<string, object> stato)
+        internal static int HowManyFeatures(Dictionary<string, object> docState)
         {
-            var f = (stato != null && stato.ContainsKey("feature")
-                ? stato["feature"] : null) as System.Collections.IList;
+            var f = (docState != null && docState.ContainsKey("feature")
+                ? docState["feature"] : null) as System.Collections.IList;
             return f == null ? 0 : f.Count;
         }
     }

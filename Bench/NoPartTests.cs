@@ -4,7 +4,7 @@
 //
 //  PERCHE' STANNO IN UN FILE LORO. `NewOperationsTests.cs` e' il file delle prove sul
 //  PEZZO: apre un documento, costruisce, misura, chiude. Queste no. Sono
-//  funzioni pure su stringhe - `Frasi.DoveStavaEDoveSta` - e un setaccio che
+//  funzioni pure su stringhe - `Sentences.WhereItWasAndWhereItIs` - e un setaccio che
 //  legge i sorgenti del repo. Durano un millesimo di secondo e non hanno
 //  bisogno di una licenza.
 //
@@ -25,7 +25,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 // UN SOLO `IModelDoc2` IN TUTTO IL FILE, e non ne viene creato nessuno: la
-// prova del null (F12) passa `null` a `OppureDillo<IModelDoc2>` per guardare
+// prova del null (F12) passa `null` a `OrSayIt<IModelDoc2>` per guardare
 // che cosa dice il banco quando la parte non c'e'. Serve il tipo, non il CAD.
 using SolidWorks.Interop.sldworks;
 
@@ -41,54 +41,54 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// Il 15/9/2026 una prova e' uscita rossa con «Riferimento a un oggetto
         /// non impostato su un'istanza di oggetto.» e basta: su diciotto punti
-        /// del banco `NuovaParte()` veniva usata senza guardare se avesse
+        /// del banco `NewPart()` veniva usata senza guardare se avesse
         /// prodotto qualcosa, e un `NullReferenceException` non dice quale dei
-        /// diciotto. Adesso `NuovaParte()` non torna null: alza un'eccezione
+        /// diciotto. Adesso `NewPart()` non torna null: alza un'eccezione
         /// che nomina il passo.
         ///
-        /// Questa prova guarda che il nome ci sia davvero, e che `Perche()` —
+        /// Questa prova guarda che il nome ci sia davvero, e che `Why()` —
         /// la funzione che il banco usa per raccontare un'eccezione — lo porti
         /// fino alla riga di esito. Senza, «il messaggio nomina il passo»
         /// resterebbe un'intenzione scritta in un commento.
         /// </summary>
-        private static void ProvaCheIlNullHaUnNome()
+        private static void TestThatNullHasAName()
         {
             Console.WriteLine();
             Console.WriteLine("=== quando il banco non riesce a preparare il pezzo (F12) ===");
 
             // ── IL ROSSO: il null alza, e il messaggio nomina il passo ────
-            string detto = null;
-            string raccontato = null;
+            string said = null;
+            string told = null;
             try
             {
-                OppureDillo<IModelDoc2>(null, "la parte nuova su cui provare");
+                OrSayIt<IModelDoc2>(null, "la parte nuova su cui provare");
             }
             catch (Exception ex)
             {
-                detto = ex.Message;
-                raccontato = Perche(ex);
+                said = ex.Message;
+                told = Why(ex);
             }
-            Segna("F12 ROSSO: un null alza, e dice QUALE passo",
-                  detto != null && detto.Contains("la parte nuova su cui provare"),
-                  Corto(detto));
+            Check("F12 ROSSO: un null alza, e dice QUALE passo",
+                  said != null && said.Contains("la parte nuova su cui provare"),
+                  Short(said));
 
-            // `Perche` tronca a 110 caratteri: si guarda l'inizio, che e' dove
+            // `Why` tronca a 110 caratteri: si guarda l'inizio, che e' dove
             // sta il nome del passo, e il tipo dell'eccezione.
             // IL TIPO E' CAMBIATO, E IL CAMBIO E' IL PUNTO (voce K17):
-            // `PreparazioneFallita` e' cio' che permette al giro dei casi
+            // `PreparationFailed` e' cio' che permette al giro dei casi
             // di non chiamare rossa una prova che non ha fatto. Resta un
             // `InvalidOperationException`, quindi chi lo cattura cosi'
             // continua a catturarlo.
-            Segna("F12: il racconto dell'eccezione porta tipo e passo",
-                  raccontato != null &&
-                  raccontato.StartsWith("PreparazioneFallita:", StringComparison.Ordinal) &&
-                  raccontato.Contains("la parte nuova"),
-                  Corto(raccontato));
+            Check("F12: il racconto dell'eccezione porta tipo e passo",
+                  told != null &&
+                  told.StartsWith("PreparazioneFallita:", StringComparison.Ordinal) &&
+                  told.Contains("la parte nuova"),
+                  Short(told));
 
             // ── IL VERDE: quel che c'e' passa, e torna lo stesso oggetto ──
-            var qualcosa = new object();
-            Segna("F12: quello che c'e' passa, e torna com'era",
-                  ReferenceEquals(OppureDillo(qualcosa, "un oggetto qualunque"), qualcosa),
+            var something = new object();
+            Check("F12: quello che c'e' passa, e torna com'era",
+                  ReferenceEquals(OrSayIt(something, "un oggetto qualunque"), something),
                   "");
         }
 
@@ -104,38 +104,38 @@ namespace Oce.Solid.Agent.Bench
         /// e' rotto, e una funzione che non ha bisogno del CAD e' proprio
         /// quella che nessuno si ricordera' di riprovare a mano.
         /// </summary>
-        private static void ProvaDoveStava()
+        private static void TestWhereItWas()
         {
             Console.WriteLine();
             Console.WriteLine("=== dove stava, in frazione dell'ingombro (E10) ===");
 
-            var tipo = _addin.GetType("Oce.Solid.Agent.Core.Frasi", false);
-            if (tipo == null) { Segna("E10: la classe c'e'", false, "Frasi assente"); return; }
-            var metodo = tipo.GetMethod("DoveStavaEDoveSta");
-            if (metodo == null)
+            var typ = _addin.GetType("Oce.Solid.Agent.Core.Sentences", false);
+            if (typ == null) { Check("E10: la classe c'e'", false, "Frasi assente"); return; }
+            var method = typ.GetMethod("WhereItWasAndWhereItIs");
+            if (method == null)
             {
-                Segna("E10: il metodo c'e'", false, "DoveStavaEDoveSta assente");
+                Check("E10: il metodo c'e'", false, "DoveStavaEDoveSta assente");
                 return;
             }
 
             Func<double[], double[], double[], double[], string> di =
-                (prima, adesso, sPrima, sAdesso) =>
-                    Convert.ToString(metodo.Invoke(
-                        null, new object[] { "F6", prima, adesso, sPrima, sAdesso }));
+                (before, now, sBefore, sNow) =>
+                    Convert.ToString(method.Invoke(
+                        null, new object[] { "F6", before, now, sBefore, sNow }));
 
             // ── IL CASO A DELLA VOCE E2, coi numeri misurati il 14/9 ──────
             // Blocco 100 x 60 x 20 centrato: la scatola va da -50 a +50 in X.
             // La quota passa da 100 a 160 e il pezzo cresce DA UNA PARTE SOLA:
             // -50 .. +110. La faccia destra va da 50 a 110 — sessanta
             // millimetri — e sta al 100% del lato tutte e due le volte.
-            string caso = di(
+            string testCase = di(
                 new[] { 50.0, 0.0, 0.0 }, new[] { 110.0, 0.0, 0.0 },
                 new[] { -50.0, -30.0, 0.0, 50.0, 30.0, 20.0 },
                 new[] { -50.0, -30.0, 0.0, 110.0, 30.0, 20.0 });
-            Segna("E10: al 100% del lato X, e ci sta ancora",
-                  caso != null && caso.Contains("100%") && caso.Contains("ci sta ancora") &&
-                  caso.Contains("da 100 a 160"),
-                  Corto(caso));
+            Check("E10: al 100% del lato X, e ci sta ancora",
+                  testCase != null && testCase.Contains("100%") && testCase.Contains("ci sta ancora") &&
+                  testCase.Contains("da 100 a 160"),
+                  Short(testCase));
 
             // ── IL ROSSO: una faccia che si e' spostata RISPETTO al pezzo ──
             //
@@ -145,28 +145,28 @@ namespace Oce.Solid.Agent.Bench
             // una piastra che passa da 100 a 300 RESTA a 20 mm dal bordo, e la
             // frazione dice che e' andato a 60. Dirlo e' utile; deciderlo
             // sarebbe il difetto che la voce E10 esiste per non introdurre.
-            string spostata = di(
+            string moved = di(
                 new[] { 20.0, 0.0, 0.0 }, new[] { 20.0, 0.0, 0.0 },
                 new[] { 0.0, 0.0, 0.0, 100.0, 60.0, 20.0 },
                 new[] { 0.0, 0.0, 0.0, 300.0, 60.0, 20.0 });
-            Segna("E10 ROSSO: il foro fermo a 20 mm non si e' mosso, e si tace",
-                  string.IsNullOrEmpty(spostata),
-                  spostata == null ? "(niente, giusto)" : Corto(spostata));
+            Check("E10 ROSSO: il foro fermo a 20 mm non si e' mosso, e si tace",
+                  string.IsNullOrEmpty(moved),
+                  moved == null ? "(niente, giusto)" : Short(moved));
 
             // Lo stesso pezzo che cresce, ma la faccia che si sposta a META'
             // invece che restare dov'era in proporzione: la frase deve dire
             // due percentuali diverse e NON deve dire «ci sta ancora».
-            string diverse = di(
+            string different = di(
                 new[] { 100.0, 0.0, 0.0 }, new[] { 150.0, 0.0, 0.0 },
                 new[] { 0.0, 0.0, 0.0, 100.0, 60.0, 20.0 },
                 new[] { 0.0, 0.0, 0.0, 300.0, 60.0, 20.0 });
-            Segna("E10 ROSSO: frazioni diverse, «ci sta ancora» non si dice",
-                  diverse != null && diverse.Contains("100%") && diverse.Contains("50%") &&
-                  !diverse.Contains("ci sta ancora"),
-                  Corto(diverse));
+            Check("E10 ROSSO: frazioni diverse, «ci sta ancora» non si dice",
+                  different != null && different.Contains("100%") && different.Contains("50%") &&
+                  !different.Contains("ci sta ancora"),
+                  Short(different));
 
             // Senza la scatola non si inventa niente.
-            Segna("E10: senza la scatola, nessuna frase",
+            Check("E10: senza la scatola, nessuna frase",
                   string.IsNullOrEmpty(di(
                       new[] { 50.0, 0.0, 0.0 }, new[] { 110.0, 0.0, 0.0 }, null, null)),
                   "");
@@ -174,7 +174,7 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// IL CRITERIO VERO DELLA VOCE E10: una ricerca di «frazione» o
-        /// «proporzional» dentro `FirmaCombacia` o dentro il ciclo di
+        /// «proporzional» dentro `SignatureMatches` o dentro il ciclo di
         /// ritrovamento deve tornare **vuota**.
         ///
         /// ── PERCHE' UNA PROVA CHE LEGGE IL SORGENTE ──────────────────────
@@ -194,59 +194,59 @@ namespace Oce.Solid.Agent.Bench
         /// su `Sentences.cs`, dove quelle parole ci sono per davvero: se li' non
         /// trova niente, il setaccio e' rotto e lo dice.
         /// </summary>
-        private static void ProvaCheLaFrazioneNonDecide()
+        private static void TestThatTheFractionDoesNotDecide()
         {
             Console.WriteLine();
             Console.WriteLine("=== la frazione non decide: il grep che deve tornare vuoto (E10) ===");
 
-            string radice;
+            string root;
             try
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
-                var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                radice = Directory.GetParent(banco.FullName).FullName;
+                var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                root = Directory.GetParent(bench.FullName).FullName;
             }
             catch (Exception ex)
             {
-                Segna("E10: trovo la radice del repo", false, Perche(ex));
+                Check("E10: trovo la radice del repo", false, Why(ex));
                 return;
             }
 
-            string operazioni = Path.Combine(radice, "Oce.Solid.Agent.Core", "SwOperations.cs");
-            string frasi = Path.Combine(radice, "Oce.Solid.Agent.Core", "Sentences.cs");
-            if (!File.Exists(operazioni) || !File.Exists(frasi))
+            string operations = Path.Combine(root, "Oce.Solid.Agent.Core", "SwOperations.cs");
+            string sentences = Path.Combine(root, "Oce.Solid.Agent.Core", "Sentences.cs");
+            if (!File.Exists(operations) || !File.Exists(sentences))
             {
-                Saltata("E10: il grep che deve tornare vuoto",
+                Skipped("E10: il grep che deve tornare vuoto",
                         "i sorgenti non sono accanto all'eseguibile");
                 return;
             }
 
             // IL SETACCIO FUNZIONA? In `Sentences.cs` quelle parole ci sono.
-            string testoFrasi = File.ReadAllText(frasi);
-            Segna("E10 ROSSO: il setaccio trova le parole dove ci sono",
-                  Pesca(testoFrasi, 0, testoFrasi.Length),
+            string sentencesText = File.ReadAllText(sentences);
+            Check("E10 ROSSO: il setaccio trova le parole dove ci sono",
+                  Pick(sentencesText, 0, sentencesText.Length),
                   "Sentences.cs");
 
-            string testo = File.ReadAllText(operazioni);
+            string text = File.ReadAllText(operations);
 
-            int a = testo.IndexOf("private static bool FirmaCombacia(", StringComparison.Ordinal);
-            Segna("E10: FirmaCombacia non parla di frazioni",
-                  a >= 0 && !Pesca(testo, a, FineDelMetodo(testo, a)),
+            int a = text.IndexOf("private static bool SignatureMatches(", StringComparison.Ordinal);
+            Check("E10: FirmaCombacia non parla di frazioni",
+                  a >= 0 && !Pick(text, a, MethodEnd(text, a)),
                   a < 0 ? "FirmaCombacia non trovata" : "");
 
-            int b = testo.IndexOf("IFace2 ritrovata = null;", StringComparison.Ordinal);
-            Segna("E10: il ciclo di ritrovamento non parla di frazioni",
-                  b >= 0 && !Pesca(testo, b, FineDelMetodo(testo, b)),
+            int b = text.IndexOf("IFace2 foundAgain = null;", StringComparison.Ordinal);
+            Check("E10: il ciclo di ritrovamento non parla di frazioni",
+                  b >= 0 && !Pick(text, b, MethodEnd(text, b)),
                   b < 0 ? "il ciclo non trovato" : "");
         }
 
         /// <summary>Le parole vietate, in un pezzo di sorgente.</summary>
-        private static bool Pesca(string testo, int da, int a)
+        private static bool Pick(string text, int da, int a)
         {
-            if (da < 0 || a <= da || a > testo.Length) return false;
-            string pezzo = testo.Substring(da, a - da);
-            return pezzo.IndexOf("frazione", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   pezzo.IndexOf("proporzional", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (da < 0 || a <= da || a > text.Length) return false;
+            string part = text.Substring(da, a - da);
+            return part.IndexOf("frazione", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   part.IndexOf("proporzional", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>
@@ -255,17 +255,17 @@ namespace Oce.Solid.Agent.Bench
         /// una stringa lo confonderebbe — e sufficiente: qui serve a delimitare
         /// un pezzo di testo su cui cercare due parole, non a compilare.
         /// </summary>
-        private static int FineDelMetodo(string testo, int da)
+        private static int MethodEnd(string text, int da)
         {
-            int i = testo.IndexOf('{', da);
-            if (i < 0) return testo.Length;
-            int aperte = 0;
-            for (; i < testo.Length; i++)
+            int i = text.IndexOf('{', da);
+            if (i < 0) return text.Length;
+            int open = 0;
+            for (; i < text.Length; i++)
             {
-                if (testo[i] == '{') aperte++;
-                else if (testo[i] == '}' && --aperte == 0) return i + 1;
+                if (text[i] == '{') open++;
+                else if (text[i] == '}' && --open == 0) return i + 1;
             }
-            return testo.Length;
+            return text.Length;
         }
     }
 }

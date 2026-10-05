@@ -37,41 +37,41 @@ using SolidWorks.Interop.swconst;
 //      .\Checks\SheetMetal\bin\SheetMetal.exe            [--tieni]
 // =============================================================================
 
-internal static class Programma
+internal static class Program
 {
-    private const double Lato1Mm = 50.0;
-    private const double Lato2Mm = 30.0;
-    private const double ProfonditaMm = 40.0;
-    private const double SpessoreMm = 2.0;
-    private const double RaggioMm = 2.0;
+    private const double Side1Mm = 50.0;
+    private const double Side2Mm = 30.0;
+    private const double DepthMm = 40.0;
+    private const double ThicknessMm = 2.0;
+    private const double RadiusMm = 2.0;
 
-    private static int _passo;
-    private static void Dice(string cosa)
+    private static int _step;
+    private static void Says(string what)
     {
-        _passo++;
-        Console.WriteLine("  " + _passo.ToString("00") + ". " + cosa);
+        _step++;
+        Console.WriteLine("  " + _step.ToString("00") + ". " + what);
     }
 
-    private static int Main(string[] argomenti)
+    private static int Main(string[] arguments)
     {
-        bool tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
         Console.WriteLine();
         Console.WriteLine("LAMIERA — la misura che dimensiona la famiglia (voce GP18)");
-        Console.WriteLine("  flangia base a L: " + Lato1Mm + " + " + Lato2Mm + " mm, profonda " + ProfonditaMm +
-                          ", spessore " + SpessoreMm + ", raggio " + RaggioMm);
+        Console.WriteLine("  flangia base a L: " + Side1Mm + " + " + Side2Mm + " mm, profonda " + DepthMm +
+                          ", spessore " + ThicknessMm + ", raggio " + RadiusMm);
         Console.WriteLine();
 
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
         catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
-        Dice("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
 
         IModelDoc2 doc = null;
         try
         {
-            string modello = sw.GetUserPreferenceStringValue(
+            string model = sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-            doc = (IModelDoc2)sw.NewDocument(modello, 0, 0, 0);
+            doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
             if (doc == null) { Console.WriteLine("  NewDocument -> null"); return 4; }
 
             // ── lo schizzo aperto a L, sul piano frontale ────────────────
@@ -79,35 +79,35 @@ internal static class Programma
             if (!SelectBasePlane(doc, 1))
             { Console.WriteLine("  non trovo «Piano frontale»"); return 4; }
             doc.SketchManager.InsertSketch(true);
-            doc.SketchManager.CreateLine(0, Lato2Mm / 1000.0, 0, 0, 0, 0);
-            doc.SketchManager.CreateLine(0, 0, 0, Lato1Mm / 1000.0, 0, 0);
+            doc.SketchManager.CreateLine(0, Side2Mm / 1000.0, 0, 0, 0, 0);
+            doc.SketchManager.CreateLine(0, 0, 0, Side1Mm / 1000.0, 0, 0);
             doc.SketchManager.InsertSketch(true);
 
-            var flangia = doc.FeatureManager.InsertSheetMetalBaseFlange2(
-                SpessoreMm / 1000.0, false, RaggioMm / 1000.0, ProfonditaMm / 1000.0, 0.0, false,
+            var flange = doc.FeatureManager.InsertSheetMetalBaseFlange2(
+                ThicknessMm / 1000.0, false, RadiusMm / 1000.0, DepthMm / 1000.0, 0.0, false,
                 (int)swEndConditions_e.swEndCondBlind, (int)swEndConditions_e.swEndCondBlind, 0,
                 null, true, (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular,
                 0.0, 0.0, 0.5, true, false, false, false);
-            if (flangia == null) { Console.WriteLine("  InsertSheetMetalBaseFlange2 -> null"); return 5; }
+            if (flange == null) { Console.WriteLine("  InsertSheetMetalBaseFlange2 -> null"); return 5; }
             doc.EditRebuild3();
-            Dice("flangia base creata: " + flangia.Name);
+            Says("flangia base creata: " + flange.Name);
 
             // ── T, R, K RILETTI dalla lamiera ────────────────────────────
-            ISheetMetalFeatureData dati = null;
+            ISheetMetalFeatureData data = null;
             var f = doc.FirstFeature() as IFeature;
-            while (f != null && dati == null)
+            while (f != null && data == null)
             {
-                if (f.GetTypeName2() == "SheetMetal") dati = f.GetDefinition() as ISheetMetalFeatureData;
+                if (f.GetTypeName2() == "SheetMetal") data = f.GetDefinition() as ISheetMetalFeatureData;
                 f = f.GetNextFeature() as IFeature;
             }
-            if (dati == null) { Console.WriteLine("  nessuna feature «SheetMetal» nell'albero"); return 5; }
-            double t = dati.Thickness * 1000.0, r = dati.BendRadius * 1000.0, k = dati.KFactor;
-            int tipoBA = dati.BendAllowanceType;
-            Dice("riletti: T " + t.ToString("0.###") + " mm, R " + r.ToString("0.###") + " mm, K " +
-                 k.ToString("0.###") + ", calcolo della piega tipo " + tipoBA + " (2 = fattore K)");
+            if (data == null) { Console.WriteLine("  nessuna feature «SheetMetal» nell'albero"); return 5; }
+            double t = data.Thickness * 1000.0, r = data.BendRadius * 1000.0, k = data.KFactor;
+            int typeBa = data.BendAllowanceType;
+            Says("riletti: T " + t.ToString("0.###") + " mm, R " + r.ToString("0.###") + " mm, K " +
+                 k.ToString("0.###") + ", calcolo della piega tipo " + typeBa + " (2 = fattore K)");
 
-            double volPiegato = Volume(doc);
-            Dice("volume piegato " + volPiegato.ToString("0.0") + " mm^3");
+            double bentVol = Volume(doc);
+            Says("volume piegato " + bentVol.ToString("0.0") + " mm^3");
 
             // ── SVILUPPATA ───────────────────────────────────────────────
             //
@@ -116,50 +116,50 @@ internal static class Programma
             // lamiera di oggi lo sviluppo e' una LAVORAZIONE in fondo all'albero,
             // soppressa: si sviluppa togliendole la soppressione. Si prova
             // SetBendState lo stesso e si dice cosa ha fatto, poi la lavorazione.
-            int statoPrima = doc.GetBendState();
-            int esito = doc.SetBendState((int)swSMBendState_e.swSMBendStateFlattened);
+            int stateBefore = doc.GetBendState();
+            int outcome = doc.SetBendState((int)swSMBendState_e.swSMBendStateFlattened);
             doc.EditRebuild3();
-            var dopoSet = Ingombro(doc);
-            Dice("GetBendState " + statoPrima + ", SetBendState(sviluppata) -> " + esito + ", GetBendState " +
-                 doc.GetBendState() + ", ingombro " + Tre(dopoSet));
+            var afterSet = BoundingBox(doc);
+            Says("GetBendState " + stateBefore + ", SetBendState(sviluppata) -> " + outcome + ", GetBendState " +
+                 doc.GetBendState() + ", ingombro " + Three(afterSet));
             doc.SetBendState((int)swSMBendState_e.swSMBendStateFolded);
             doc.EditRebuild3();
 
-            IFeature sviluppo = null;
+            IFeature flatPattern = null;
             var g = doc.FirstFeature() as IFeature;
-            while (g != null && sviluppo == null)
+            while (g != null && flatPattern == null)
             {
-                if (g.GetTypeName2() == "FlatPattern") sviluppo = g;
+                if (g.GetTypeName2() == "FlatPattern") flatPattern = g;
                 g = g.GetNextFeature() as IFeature;
             }
-            if (sviluppo == null) { Console.WriteLine("  nessuna lavorazione «FlatPattern» nell'albero"); return 5; }
-            bool tolta = sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swUnSuppressFeature,
+            if (flatPattern == null) { Console.WriteLine("  nessuna lavorazione «FlatPattern» nell'albero"); return 5; }
+            bool removed = flatPattern.SetSuppression2((int)swFeatureSuppressionAction_e.swUnSuppressFeature,
                 (int)swInConfigurationOpts_e.swThisConfiguration, null);
             doc.EditRebuild3();
-            double[] ingombro = Ingombro(doc);
-            double volPiatto = Volume(doc);
-            Dice("«" + sviluppo.Name + "» senza soppressione: " + tolta + ", volume sviluppato " +
-                 volPiatto.ToString("0.0") + " mm^3");
-            sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swSuppressFeature,
+            double[] boundingBox = BoundingBox(doc);
+            double flatVol = Volume(doc);
+            Says("«" + flatPattern.Name + "» senza soppressione: " + removed + ", volume sviluppato " +
+                 flatVol.ToString("0.0") + " mm^3");
+            flatPattern.SetSuppression2((int)swFeatureSuppressionAction_e.swSuppressFeature,
                 (int)swInConfigurationOpts_e.swThisConfiguration, null);
             doc.EditRebuild3();
-            if (ingombro == null) { Console.WriteLine("  nessun ingombro leggibile"); return 6; }
-            Array.Sort(ingombro);
-            double lunghezza = ingombro[2];
-            Console.WriteLine("      ingombro sviluppato: " + ingombro[0].ToString("0.###") + " x " +
-                              ingombro[1].ToString("0.###") + " x " + ingombro[2].ToString("0.###") + " mm");
+            if (boundingBox == null) { Console.WriteLine("  nessun ingombro leggibile"); return 6; }
+            Array.Sort(boundingBox);
+            double length = boundingBox[2];
+            Console.WriteLine("      ingombro sviluppato: " + boundingBox[0].ToString("0.###") + " x " +
+                              boundingBox[1].ToString("0.###") + " x " + boundingBox[2].ToString("0.###") + " mm");
 
             // ── il conto a mano, nelle due convenzioni ───────────────────
             double ba = Math.PI / 2.0 * (r + k * t);
-            double interne = (Lato1Mm - r) + (Lato2Mm - r) + ba;
-            double esterne = (Lato1Mm - r - t) + (Lato2Mm - r - t) + ba;
+            double inner = (Side1Mm - r) + (Side2Mm - r) + ba;
+            double outer = (Side1Mm - r - t) + (Side2Mm - r - t) + ba;
             Console.WriteLine();
             Console.WriteLine("  BA = pi/2 * (R + K*T) = " + ba.ToString("0.###") + " mm");
-            Console.WriteLine("  schizzo = facce interne:  " + interne.ToString("0.###") + " mm   (scarto " +
-                              (lunghezza - interne).ToString("+0.###;-0.###") + ")");
-            Console.WriteLine("  schizzo = facce esterne:  " + esterne.ToString("0.###") + " mm   (scarto " +
-                              (lunghezza - esterne).ToString("+0.###;-0.###") + ")");
-            Console.WriteLine("  l'API, sviluppata:        " + lunghezza.ToString("0.###") + " mm");
+            Console.WriteLine("  schizzo = facce interne:  " + inner.ToString("0.###") + " mm   (scarto " +
+                              (length - inner).ToString("+0.###;-0.###") + ")");
+            Console.WriteLine("  schizzo = facce esterne:  " + outer.ToString("0.###") + " mm   (scarto " +
+                              (length - outer).ToString("+0.###;-0.###") + ")");
+            Console.WriteLine("  l'API, sviluppata:        " + length.ToString("0.###") + " mm");
 
             // ── il DXF ───────────────────────────────────────────────────
             //
@@ -168,61 +168,61 @@ internal static class Programma
             // qualcuno non chiude la finestra. Si salva prima; e la chiamata si
             // fa lo stesso da un altro filo, con un tempo massimo, perche' un
             // secondo modale non ancora conosciuto non pianti la sonda.
-            string pezzoSalvato = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
-            try { if (File.Exists(pezzoSalvato)) File.Delete(pezzoSalvato); } catch { }
-            int se = 0, sa = 0;
-            bool salvato = doc.Extension.SaveAs(pezzoSalvato, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref se, ref sa);
-            Dice("pezzo salvato prima del DXF: " + salvato + " (errori " + se + ")");
+            string savedPart = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
+            try { if (File.Exists(savedPart)) File.Delete(savedPart); } catch { }
+            int se = 0, knows = 0;
+            bool saved = doc.Extension.SaveAs(savedPart, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref se, ref knows);
+            Says("pezzo salvato prima del DXF: " + saved + " (errori " + se + ")");
 
             string dxf = Path.Combine(Path.GetTempPath(), "lamiera-sonda.dxf");
             try { if (File.Exists(dxf)) File.Delete(dxf); } catch { }
-            bool esportato = false;
-            string eccezione = null;
-            var filo = new System.Threading.Thread(() =>
+            bool exported = false;
+            string exception = null;
+            var wire = new System.Threading.Thread(() =>
             {
                 try
                 {
-                    esportato = ((IPartDoc)doc).ExportFlatPatternView(dxf,
+                    exported = ((IPartDoc)doc).ExportFlatPatternView(dxf,
                         (int)swExportFlatPatternViewOptions_e.swExportFlatPatternOption_RemoveBends);
                 }
-                catch (Exception ex) { eccezione = ex.Message; }
+                catch (Exception ex) { exception = ex.Message; }
             });
-            filo.IsBackground = true;
-            filo.Start();
-            if (!filo.Join(60000))
+            wire.IsBackground = true;
+            wire.Start();
+            if (!wire.Join(60000))
             {
                 Console.WriteLine("  ExportFlatPatternView NON E' TORNATA in 60 s: quasi certamente un modale aperto.");
                 Console.WriteLine("  Chiudilo a mano. Mi fermo senza chiudere il pezzo.");
                 return 10;
             }
-            if (eccezione != null) Console.WriteLine("      ExportFlatPatternView alza: " + eccezione);
-            long peso = File.Exists(dxf) ? new FileInfo(dxf).Length : 0;
-            Dice("ExportFlatPatternView -> " + esportato + ", DXF " + peso + " byte");
+            if (exception != null) Console.WriteLine("      ExportFlatPatternView alza: " + exception);
+            long weight = File.Exists(dxf) ? new FileInfo(dxf).Length : 0;
+            Says("ExportFlatPatternView -> " + exported + ", DXF " + weight + " byte");
 
             Console.WriteLine();
-            bool volumiUguali = volPiegato > 0 && Math.Abs(volPiatto - volPiegato) / volPiegato < 0.005;
-            string convenzione = Math.Abs(lunghezza - interne) <= 0.5 ? "facce interne"
-                               : Math.Abs(lunghezza - esterne) <= 0.5 ? "facce esterne" : null;
-            if (!volumiUguali)
+            bool equalVolumes = bentVol > 0 && Math.Abs(flatVol - bentVol) / bentVol < 0.005;
+            string convention = Math.Abs(length - inner) <= 0.5 ? "facce interne"
+                               : Math.Abs(length - outer) <= 0.5 ? "facce esterne" : null;
+            if (!equalVolumes)
             {
-                Console.WriteLine("IL VOLUME NON SI CONSERVA: piegato " + volPiegato.ToString("0.0") +
-                                  ", sviluppato " + volPiatto.ToString("0.0") + ". La lunghezza sopra non e'");
+                Console.WriteLine("IL VOLUME NON SI CONSERVA: piegato " + bentVol.ToString("0.0") +
+                                  ", sviluppato " + flatVol.ToString("0.0") + ". La lunghezza sopra non e'");
                 Console.WriteLine("la misura di uno sviluppo: la famiglia NON si costruisce finche' non si sa perche'.");
                 return 7;
             }
-            if (convenzione == null)
+            if (convention == null)
             {
                 Console.WriteLine("LO SVILUPPO NON COMBACIA CON NESSUNA DELLE DUE CONVENZIONI entro 0,5 mm.");
                 Console.WriteLine("La famiglia NON si costruisce finche' non si sa perche'.");
                 return 6;
             }
-            if (!esportato || peso == 0)
+            if (!exported || weight == 0)
             {
-                Console.WriteLine("Lo sviluppo torna (" + convenzione + "), ma il DXF non e' uscito.");
+                Console.WriteLine("Lo sviluppo torna (" + convention + "), ma il DXF non e' uscito.");
                 return 8;
             }
-            Console.WriteLine("REGGE: lo sviluppo e' " + lunghezza.ToString("0.###") + " mm come il conto a mano con lo");
-            Console.WriteLine("schizzo sulle " + convenzione + ", il volume si conserva, e il DXF esce.");
+            Console.WriteLine("REGGE: lo sviluppo e' " + length.ToString("0.###") + " mm come il conto a mano con lo");
+            Console.WriteLine("schizzo sulle " + convention + ", il volume si conserva, e il DXF esce.");
             Console.WriteLine("La famiglia lamiera si puo' costruire.");
             return 0;
         }
@@ -235,9 +235,9 @@ internal static class Programma
         }
         finally
         {
-            if (doc != null && !tieni)
+            if (doc != null && !keep)
             {
-                try { sw.CloseDoc(doc.GetTitle()); Dice("pezzo chiuso senza salvare"); } catch { }
+                try { sw.CloseDoc(doc.GetTitle()); Says("pezzo chiuso senza salvare"); } catch { }
                 try
                 {
                     var f = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
@@ -248,7 +248,7 @@ internal static class Programma
         }
     }
 
-    private static string Tre(double[] b)
+    private static string Three(double[] b)
     {
         return b == null ? "-" : b[0].ToString("0.###") + " x " + b[1].ToString("0.###") + " x " + b[2].ToString("0.###");
     }
@@ -263,12 +263,12 @@ internal static class Programma
         catch { return double.NaN; }
     }
 
-    private static double[] Ingombro(IModelDoc2 doc)
+    private static double[] BoundingBox(IModelDoc2 doc)
     {
-        var parte = doc as IPartDoc;
-        var corpi = parte == null ? null : parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-        if (corpi == null || corpi.Length == 0) return null;
-        var box = (corpi[0] as IBody2).GetBodyBox() as double[];
+        var partDoc = doc as IPartDoc;
+        var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+        if (bodies == null || bodies.Length == 0) return null;
+        var box = (bodies[0] as IBody2).GetBodyBox() as double[];
         if (box == null || box.Length < 6) return null;
         return new[]
         {

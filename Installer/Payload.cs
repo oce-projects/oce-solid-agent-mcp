@@ -30,17 +30,17 @@ namespace Oce.Solid.Agent.Installer
     /// </summary>
     internal static class Payload
     {
-        private const string Prefisso = "Oce.Solid.Agent.Installer.Payload.";
+        private const string Prefix = "Oce.Solid.Agent.Installer.Payload.";
 
         private static string[] Risorse =>
             Assembly.GetExecutingAssembly().GetManifestResourceNames();
 
         /// <summary>C'e' almeno il ponte, incorporato?</summary>
-        public static bool Incorporato =>
+        public static bool Embedded =>
             Risorse.Any(r => r.EndsWith(
-                Passi.NomeEseguibile, StringComparison.OrdinalIgnoreCase));
+                Steps.ExecutableName, StringComparison.OrdinalIgnoreCase));
 
-        private static string NomeRisorsa(string file)
+        private static string ResourceName(string file)
         {
             // Si cerca per suffisso invece che per nome esatto: MSBuild
             // costruisce il nome della risorsa dal percorso, e una cartella in
@@ -48,63 +48,63 @@ namespace Oce.Solid.Agent.Installer
             // accorga fino all'installazione.
             return Risorse.FirstOrDefault(r =>
                 r.EndsWith("." + file, StringComparison.OrdinalIgnoreCase) ||
-                r.Equals(Prefisso + file, StringComparison.OrdinalIgnoreCase));
+                r.Equals(Prefix + file, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
-        /// Il file c'e'? Guarda dove guarderebbe <see cref="EstraiSePresente"/>:
+        /// Il file c'e'? Guarda dove guarderebbe <see cref="ExtractIfPresent"/>:
         /// prima dentro il carico, poi accanto all'installatore.
         ///
         /// Serve ai controlli, che devono poter dire «ce l'ho» **prima** di
         /// scrivere qualcosa su disco: un controllo che per rispondere deve
         /// installare non e' un controllo.
         /// </summary>
-        public static bool Contiene(string file)
+        public static bool Contains(string file)
         {
-            if (NomeRisorsa(file) != null) return true;
-            try { return File.Exists(Path.Combine(Passi.CartellaDiQuestoExe, file)); }
+            if (ResourceName(file) != null) return true;
+            try { return File.Exists(Path.Combine(Steps.ThisExeFolder, file)); }
             catch { return false; }
         }
 
         /// <summary>Scrive il file, o solleva dicendo perche' non ci riesce.</summary>
-        public static void Estrai(string file, string destinazione, Action<string> racconta)
+        public static void Extract(string file, string destination, Action<string> tell)
         {
-            if (!EstraiSePresente(file, destinazione, racconta))
+            if (!ExtractIfPresent(file, destination, tell))
                 throw new Exception(
                     "Non trovo «" + file + "»: non e' dentro l'installatore ne' " +
                     "accanto a lui. L'installatore e' incompleto.");
         }
 
         /// <summary>Scrive il file se c'e'. Ritorna false se non c'era.</summary>
-        public static bool EstraiSePresente(
-            string file, string destinazione, Action<string> racconta)
+        public static bool ExtractIfPresent(
+            string file, string destination, Action<string> tell)
         {
             // 1. incorporato
-            var nome = NomeRisorsa(file);
-            if (nome != null)
+            var itemName = ResourceName(file);
+            if (itemName != null)
             {
-                using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream(nome))
+                using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream(itemName))
                 {
                     if (s != null)
                     {
-                        ScriviConCura(s, destinazione);
-                        racconta("scritto " + file + " (" + Byte(destinazione) + ")");
+                        WriteWithCare(s, destination);
+                        tell("scritto " + file + " (" + Byte(destination) + ")");
                         return true;
                     }
                 }
             }
 
             // 2. accanto all'installatore
-            var accanto = Path.Combine(Passi.CartellaDiQuestoExe, file);
-            if (File.Exists(accanto))
+            var nextTo = Path.Combine(Steps.ThisExeFolder, file);
+            if (File.Exists(nextTo))
             {
-                if (Passi.PercorsiUguali(accanto, destinazione))
+                if (Steps.EqualPaths(nextTo, destination))
                 {
-                    racconta(file + " e' gia' al suo posto");
+                    tell(file + " e' gia' al suo posto");
                     return true;
                 }
-                using (var s = File.OpenRead(accanto)) ScriviConCura(s, destinazione);
-                racconta("copiato " + file + " (" + Byte(destinazione) + ")");
+                using (var s = File.OpenRead(nextTo)) WriteWithCare(s, destination);
+                tell("copiato " + file + " (" + Byte(destination) + ")");
                 return true;
             }
 
@@ -120,34 +120,34 @@ namespace Oce.Solid.Agent.Installer
         /// da' «impossibile caricare il file o l'assembly», che manda a cercare
         /// una dipendenza mancante che non manca.
         /// </summary>
-        private static void ScriviConCura(Stream sorgente, string destinazione)
+        private static void WriteWithCare(Stream source, string destination)
         {
-            var cartella = Path.GetDirectoryName(destinazione);
-            if (!string.IsNullOrEmpty(cartella)) Directory.CreateDirectory(cartella);
+            var folder = Path.GetDirectoryName(destination);
+            if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
 
-            var temporaneo = destinazione + ".parziale";
+            var temporary = destination + ".parziale";
             try
             {
-                using (var f = File.Create(temporaneo)) sorgente.CopyTo(f);
-                if (File.Exists(destinazione)) File.Delete(destinazione);
-                File.Move(temporaneo, destinazione);
+                using (var f = File.Create(temporary)) source.CopyTo(f);
+                if (File.Exists(destination)) File.Delete(destination);
+                File.Move(temporary, destination);
             }
             catch (UnauthorizedAccessException)
             {
                 throw new Exception(
-                    "Non ho il permesso di scrivere in «" + cartella + "». " +
+                    "Non ho il permesso di scrivere in «" + folder + "». " +
                     "Scegli un'altra cartella, per esempio dentro Documenti.");
             }
-            catch (IOException ex) when (File.Exists(destinazione))
+            catch (IOException ex) when (File.Exists(destination))
             {
                 throw new Exception(
-                    "«" + Path.GetFileName(destinazione) + "» e' in uso: probabilmente " +
+                    "«" + Path.GetFileName(destination) + "» e' in uso: probabilmente " +
                     "il ponte sta girando dentro un client MCP aperto. Chiudi il " +
                     "client e riprova. (" + ex.Message + ")");
             }
             finally
             {
-                try { if (File.Exists(temporaneo)) File.Delete(temporaneo); }
+                try { if (File.Exists(temporary)) File.Delete(temporary); }
                 catch { }
             }
         }

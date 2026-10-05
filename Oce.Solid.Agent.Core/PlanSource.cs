@@ -8,7 +8,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// E' l'UNICO confine inventato in tutta l'estrazione: undici file su
     /// dodici non hanno bisogno di nessuna interfaccia, perche' parlano solo
-    /// con SOLIDWORKS. `EsecutorePiano` invece parlava con il server di
+    /// con SOLIDWORKS. `PlanExecutor` invece parlava con il server di
     /// OpenPDM, e senza questo confine si sarebbe portato dietro il PDM dentro
     /// la libreria che esiste per non dipenderne.
     ///
@@ -16,7 +16,7 @@ namespace Oce.Solid.Agent.Core
     /// JSON, un elenco in memoria per una prova. L'esecutore non lo sa e non
     /// deve saperlo.
     /// </summary>
-    public interface IFontePiano
+    public interface IPlanSource
     {
         /// <summary>
         /// Il prossimo passo, dato lo stato del documento adesso.
@@ -26,13 +26,13 @@ namespace Oce.Solid.Agent.Core
         /// minuti, e in mezzo il documento puo' essere cambiato.
         ///
         /// **Un guasto NON si racconta come «finito»: si solleva.** Vedi la
-        /// nota su <see cref="ProssimoPasso"/>.
+        /// nota su <see cref="NextStep"/>.
         /// </summary>
-        Task<ProssimoPasso> ProssimoAsync(Dictionary<string, object> stato);
+        Task<NextStep> NextAsync(Dictionary<string, object> docState);
 
         /// <summary>Com'e' andato il passo appena eseguito.</summary>
-        Task EsitoAsync(
-            int ordine, bool riuscito, Dictionary<string, object> misure, string errore);
+        Task OutcomeAsync(
+            int order, bool succeeded, Dictionary<string, object> measurements, string error);
     }
 
     /// <summary>
@@ -41,53 +41,53 @@ namespace Oce.Solid.Agent.Core
     ///
     /// PERCHE' UN TIPO INVECE DI UN `null`.
     /// La forma ovvia sarebbe far tornare `null` a <see
-    /// cref="IFontePiano.ProssimoAsync"/> per dire «finito», e risparmiare
+    /// cref="IPlanSource.NextAsync"/> per dire «finito», e risparmiare
     /// questo tipo. Non si fa, ed e' una scelta contro un difetto preciso: un
     /// adattatore che inghiotte un'eccezione di rete e ritorna `null`
     /// racconterebbe **«piano completato»** per un piano interrotto a meta'.
     /// Nessun errore, nessun avviso, e un pezzo che a chi guarda sembra finito.
     ///
-    /// Con <see cref="Finito"/> esplicito, «non ho ricevuto niente» e «non c'e'
+    /// Con <see cref="Done"/> esplicito, «non ho ricevuto niente» e «non c'e'
     /// piu' niente da fare» non hanno la stessa forma, e il primo non si puo'
     /// scrivere per distrazione al posto del secondo.
     ///
     /// Regola per chi implementa la fonte: **un guasto si solleva, non si
     /// traduce.** Se la rete cade, l'eccezione deve arrivare all'esecutore, che
-    /// la scrive in <see cref="EsecutorePiano.Risultato.Errore"/> lasciando
-    /// `Completato` a falso.
+    /// la scrive in <see cref="PlanExecutor.Result.Error"/> lasciando
+    /// `Completed` a falso.
     /// </summary>
-    public class ProssimoPasso
+    public class NextStep
     {
         /// <summary>Vero quando il piano e' arrivato in fondo.</summary>
-        public bool Finito;
+        public bool Done;
 
-        /// <summary>Il passo da eseguire. Null se <see cref="Finito"/>.</summary>
-        public PassoDelPiano Passo;
+        /// <summary>Il passo da eseguire. Null se <see cref="Done"/>.</summary>
+        public PlanStep Step;
 
-        public static ProssimoPasso Fine()
+        public static NextStep Fine()
         {
-            return new ProssimoPasso { Finito = true };
+            return new NextStep { Done = true };
         }
 
-        public static ProssimoPasso Questo(PassoDelPiano passo)
+        public static NextStep This(PlanStep planStep)
         {
-            return new ProssimoPasso { Finito = false, Passo = passo };
+            return new NextStep { Done = false, Step = planStep };
         }
     }
 
     /// <summary>Un passo del piano: cosa fare, con quali argomenti.</summary>
-    public class PassoDelPiano
+    public class PlanStep
     {
         /// <summary>Il numero d'ordine, contando da 1.</summary>
-        public int Ordine;
+        public int Order;
 
         /// <summary>Il nome dell'operazione, come nel catalogo.</summary>
-        public string Operazione;
+        public string Operation;
 
         /// <summary>Gli argomenti dell'operazione.</summary>
-        public Dictionary<string, object> Argomenti;
+        public Dictionary<string, object> Arguments;
 
         /// <summary>Una riga in italiano su cosa fa il passo, per il log.</summary>
-        public string Riassunto;
+        public string Summary;
     }
 }

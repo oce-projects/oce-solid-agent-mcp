@@ -81,108 +81,108 @@ namespace Oce.Solid.Agent.Core
     /// Niente. Il piano sfalsato (se l'ho fatto io), lo schizzo e l'eventuale
     /// nervatura nata storta si tolgono con `DeleteSelection2` (non con
     /// EditDelete, che apre una finestra di conferma e la chiamata COM non
-    /// torna: vedi `EliminaLavorazione`), dal piu' giovane al piu' vecchio, e
+    /// torna: vedi `DeleteFeature`), dal piu' giovane al piu' vecchio, e
     /// si rilegge il volume (`ETornatoComEra` in OperazioniGuardie).
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>
         /// Quanto puo' stare fuori dal piano un estremo della linea, in mm. Lo
         /// stesso margine di `sketched_bend`: cinque centesimi coprono gli
         /// arrotondamenti dello stato e restano lontani da qualunque errore vero.
         /// </summary>
-        private const double NervaturaFuoriPianoMm = 0.05;
+        private const double RibOffPlaneMm = 0.05;
 
         /// <summary>
         /// Sotto questo volume «cresciuto» non e' una misura, e' rumore della
         /// lettura in metri cubi (`VolumeMm3`).
         /// </summary>
-        private const double NervaturaCrescitaMinimaMm3 = 0.01;
+        private const double RibMinimumGrowthMm3 = 0.01;
 
-        private Esito Nervatura(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome Rib(IModelDoc2 model, Dictionary<string, object> a)
         {
-            if (!(modello is IPartDoc))
-                return Fallito("La nervatura si fa su un pezzo. Aprimi il pezzo.");
+            if (!(model is IPartDoc))
+                return Failed("La nervatura si fa su un pezzo. Aprimi il pezzo.");
 
             // ── GLI ARGOMENTI, PRIMA DI TOCCARE IL PEZZO ─────────────────
-            string piano = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
-            if (piano != "front" && piano != "top" && piano != "right")
-                return Fallito(
+            string plane = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
+            if (plane != "front" && plane != "top" && plane != "right")
+                return Failed(
                     "Dimmi «plane»: frontale, superiore o destro. E' il piano in cui sta la linea " +
                     "e in cui la nervatura cresce; con «distance_mm» lo sposto parallelo a se stesso " +
                     "(per esempio a meta' profondita' di una staffa).");
             // FACOLTATIVA, MA SE C'E' DEV'ESSERE UN NUMERO: `Num` inghiottirebbe
             // «25mm» e restituirebbe zero, cioe' la nervatura sul piano base.
-            double distanza = 0;
-            if (a != null && a.TryGetValue("distance_mm", out var grezza) && grezza != null &&
-                !NumObbligatorio(a, "distance_mm", out distanza, out string erroreDistanza))
-                return Fallito(erroreDistanza + " Scrivila in mm, per esempio 25; senza, la nervatura sta " +
+            double distance = 0;
+            if (a != null && a.TryGetValue("distance_mm", out var raw) && raw != null &&
+                !RequiredNum(a, "distance_mm", out distance, out string distanceError))
+                return Failed(distanceError + " Scrivila in mm, per esempio 25; senza, la nervatura sta " +
                                "sul piano base.");
 
-            if (!NumObbligatorio(a, "thickness_mm", out double spessore, out string errore))
-                return Fallito(errore + " E' lo spessore della nervatura: scrivilo in mm (si divide a " +
+            if (!RequiredNum(a, "thickness_mm", out double thickness, out string error))
+                return Failed(error + " E' lo spessore della nervatura: scrivilo in mm (si divide a " +
                                "meta' dalle due parti del piano).");
-            if (spessore <= 0)
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+            if (thickness <= 0)
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "«thickness_mm» dev'essere piu' di zero: {0:0.###} non e' una nervatura. Per una " +
-                    "staffa di lamiera da 10 si usa di solito 4-6 mm.", spessore));
+                    "staffa di lamiera da 10 si usa di solito 4-6 mm.", thickness));
 
-            var da = Terna(a, "start_mm");
-            var fino = Terna(a, "end_mm");
-            if (da == null || fino == null)
-                return Fallito(
+            var da = Triplet(a, "start_mm");
+            var upTo = Triplet(a, "end_mm");
+            if (da == null || upTo == null)
+                return Failed(
                     "«start_mm» e «end_mm» sono i due estremi della linea della nervatura: punti [x, y, z] " +
                     "in mm nel sistema del modello, tutti e due sul piano indicato. Per esempio, " +
                     "nell'angolo di una L: da [10, 40, 25] a [40, 10, 25].");
 
             // I DUE PUNTI STANNO SUL PIANO? Il piano base «front» e' XY
             // (normale +Z), «top» XZ (+Y), «right» YZ (+X): la stessa
-            // tabella di `Riferimenti.NormaleDelPiano`, e il segno della
+            // tabella di `References.PlaneNormal`, e il segno della
             // distanza e' quello di `create_plane` (frontale -250 -> z = -250,
             // misurato dal caso front_plane_minus_250).
-            var normale = Riferimenti.NormaleDelPiano(piano);
-            Func<double[], double> quota = p => p[0] * normale[0] + p[1] * normale[1] + p[2] * normale[2];
-            double scarto = Math.Max(Math.Abs(quota(da) - distanza), Math.Abs(quota(fino) - distanza));
-            if (scarto > NervaturaFuoriPianoMm)
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+            var normal = References.PlaneNormal(plane);
+            Func<double[], double> dimension = p => p[0] * normal[0] + p[1] * normal[1] + p[2] * normal[2];
+            double deviation = Math.Max(Math.Abs(dimension(da) - distance), Math.Abs(dimension(upTo) - distance));
+            if (deviation > RibOffPlaneMm)
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "La linea non sta sul piano {0} a distanza {1:0.###} mm: un estremo ne dista " +
                     "{2:0.###} mm. I due punti vanno presi sul piano della nervatura (sul {0} " +
                     "sfalsato di {1:0.###}, la coordinata {3} di tutti e due e' {1:0.###}); oppure " +
                     "cambia «distance_mm».",
-                    piano, distanza, scarto, piano == "front" ? "z" : piano == "top" ? "y" : "x"));
-            double lunga = Math.Sqrt(Math.Pow(fino[0] - da[0], 2) + Math.Pow(fino[1] - da[1], 2) + Math.Pow(fino[2] - da[2], 2));
-            if (lunga < 1)
-                return Fallito("La linea della nervatura e' lunga meno di un millimetro: i due punti " +
+                    plane, distance, deviation, plane == "front" ? "z" : plane == "top" ? "y" : "x"));
+            double span = Math.Sqrt(Math.Pow(upTo[0] - da[0], 2) + Math.Pow(upTo[1] - da[1], 2) + Math.Pow(upTo[2] - da[2], 2));
+            if (span < 1)
+                return Failed("La linea della nervatura e' lunga meno di un millimetro: i due punti " +
                                "coincidono. Indica due estremi distinti.");
 
             // ── IL PEZZO DI PARTENZA ─────────────────────────────────────
-            var foto = FotografaIlPezzo(modello);
-            if (foto.Volume == null) return Fallito(VolumeNonLettoPrima("fare la nervatura"));
-            if (foto.Corpi == 0)
-                return Fallito(
+            var photo = SnapshotPart(model);
+            if (photo.Volume == null) return Failed(VolumeNotReadBefore("fare la nervatura"));
+            if (photo.Bodies == 0)
+                return Failed(
                     "Nel pezzo non c'e' un corpo solido: la nervatura riempie lo spazio fra una linea e " +
                     "pareti che ci sono gia'. Fai prima il pezzo (per esempio con «extrude_profile»).");
-            var ribPrima = NervaturaNomiDelTipo(modello, "Rib");
-            var schizziPrima = NervaturaNomiDelTipo(modello, "ProfileFeature");
+            var ribBefore = RibNamesOfType(model, "Rib");
+            var sketchesBefore = RibNamesOfType(model, "ProfileFeature");
 
             // Cio' che creo io, dal piu' vecchio al piu' giovane: se mi
             // rifiuto si toglie al contrario.
             var mie = new List<IFeature>();
 
             // ── IL PIANO DELLO SCHIZZO ───────────────────────────────────
-            IFeature pianoDelloSchizzo;
-            bool pianoFattoQui = Math.Abs(distanza) > 1e-9;
-            if (!pianoFattoQui)
+            IFeature sketchPlane;
+            bool planeMadeHere = Math.Abs(distance) > 1e-9;
+            if (!planeMadeHere)
             {
-                pianoDelloSchizzo = TrovaPianoBase(modello, piano);
-                if (pianoDelloSchizzo == null)
-                    return Fallito("Non ho trovato il piano «" + piano + "» nell'albero.");
+                sketchPlane = FindBasePlane(model, plane);
+                if (sketchPlane == null)
+                    return Failed("Non ho trovato il piano «" + plane + "» nell'albero.");
             }
             else
             {
-                pianoDelloSchizzo = NervaturaPianoSfalsato(modello, piano, distanza, out string motivoPiano);
-                if (pianoDelloSchizzo == null) return Fallito(motivoPiano);
-                mie.Add(pianoDelloSchizzo);
+                sketchPlane = RibPlaneOffset(model, plane, distance, out string planeReason);
+                if (sketchPlane == null) return Failed(planeReason);
+                mie.Add(sketchPlane);
             }
 
             // ── LO SCHIZZO: UNA LINEA, PASSATA PER ModelToSketchTransform ──
@@ -190,87 +190,87 @@ namespace Oce.Solid.Agent.Core
             // Sul piano destro la x dello schizzo va in -Z del modello (RAG 81r):
             // non ci si ragiona, si trasforma. E' la ricetta della sonda e di
             // `sketched_bend`.
-            modello.ClearSelection2(true);
-            if (!pianoDelloSchizzo.Select2(false, 0))
-                return Fallito("Non sono riuscito a selezionare il piano dello schizzo." +
-                               NervaturaRitira(modello, mie, foto));
-            modello.SketchManager.InsertSketch(true);
-            var sk = modello.SketchManager.ActiveSketch as ISketch;
-            var matematica = _sw.GetMathUtility() as IMathUtility;
-            if (sk == null || matematica == null)
+            model.ClearSelection2(true);
+            if (!sketchPlane.Select2(false, 0))
+                return Failed("Non sono riuscito a selezionare il piano dello schizzo." +
+                               RibWithdraw(model, mie, photo));
+            model.SketchManager.InsertSketch(true);
+            var sk = model.SketchManager.ActiveSketch as ISketch;
+            var math = _sw.GetMathUtility() as IMathUtility;
+            if (sk == null || math == null)
             {
-                try { if (modello.SketchManager.ActiveSketch != null) modello.SketchManager.InsertSketch(true); } catch { }
+                try { if (model.SketchManager.ActiveSketch != null) model.SketchManager.InsertSketch(true); } catch { }
                 // Everything born of that type goes back out, not just one.
-                mie.AddRange(FeaturesBornOfType(modello, "ProfileFeature", schizziPrima));
-                return Fallito("Lo schizzo della nervatura non si e' aperto." + NervaturaRitira(modello, mie, foto));
+                mie.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
+                return Failed("Lo schizzo della nervatura non si e' aperto." + RibWithdraw(model, mie, photo));
             }
             var tr = sk.ModelToSketchTransform;
-            Func<double[], double[]> nelloSchizzo = p =>
-                ((IMathPoint)((IMathPoint)matematica.CreatePoint(new[] { Unita.M(p[0]), Unita.M(p[1]), Unita.M(p[2]) }))
+            Func<double[], double[]> inSketch = p =>
+                ((IMathPoint)((IMathPoint)math.CreatePoint(new[] { Units.M(p[0]), Units.M(p[1]), Units.M(p[2]) }))
                     .MultiplyTransform(tr)).ArrayData as double[];
-            var s0 = nelloSchizzo(da);
-            var s1 = nelloSchizzo(fino);
-            object linea = null;
-            bool addPrima = modello.SketchManager.AddToDB;
+            var s0 = inSketch(da);
+            var s1 = inSketch(upTo);
+            object line = null;
+            bool addBefore = model.SketchManager.AddToDB;
             try
             {
-                modello.SketchManager.AddToDB = true;
-                linea = modello.SketchManager.CreateLine(s0[0], s0[1], 0, s1[0], s1[1], 0);
+                model.SketchManager.AddToDB = true;
+                line = model.SketchManager.CreateLine(s0[0], s0[1], 0, s1[0], s1[1], 0);
             }
-            finally { modello.SketchManager.AddToDB = addPrima; }
-            modello.SketchManager.InsertSketch(true);
+            finally { model.SketchManager.AddToDB = addBefore; }
+            model.SketchManager.InsertSketch(true);
             int sketchesBorn;
-            var schizzo = NervaturaNuovaDelTipo(modello, "ProfileFeature", schizziPrima, out sketchesBorn);
-            if (schizzo != null) mie.Add(schizzo);
-            else mie.AddRange(FeaturesBornOfType(modello, "ProfileFeature", schizziPrima));
-            if (linea == null || schizzo == null)
-                return Fallito(SketchNotIdentified(sketchesBorn, "La linea della nervatura non e' nata nello schizzo.") +
-                               NervaturaRitira(modello, mie, foto));
+            var sketch = RibNewOfType(model, "ProfileFeature", sketchesBefore, out sketchesBorn);
+            if (sketch != null) mie.Add(sketch);
+            else mie.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
+            if (line == null || sketch == null)
+                return Failed(SketchNotIdentified(sketchesBorn, "La linea della nervatura non e' nata nello schizzo.") +
+                               RibWithdraw(model, mie, photo));
 
             // L'ALBERO DOPO LO SCHIZZO: e' come deve essere prima di OGNI
             // tentativo. Un tentativo fallito che lascia una feature di un altro
             // tipo (non una «Rib») non la vede nessuno, e il secondo tentativo
             // le costruirebbe sopra. La sonda non l'ha mai visto succedere; se
             // succede non si prova l'altro verso, si ritira e si dice.
-            var nomiDopoLoSchizzo = NervaturaNomiDiTutte(modello);
+            var namesAfterTheSketch = RibNamesOfAll(model);
 
             // ── I DUE VERSI DEL MATERIALE ────────────────────────────────
             IFeature rib = null;
-            bool girato = false;
+            bool hasRun = false;
             int tentativi = 0;
-            var esiti = new List<string>();
-            foreach (bool gira in new[] { false, true })
+            var outcomes = new List<string>();
+            foreach (bool flip in new[] { false, true })
             {
                 tentativi++;
-                string alzato = NervaturaInserisci(modello, schizzo, spessore, gira);
-                try { modello.EditRebuild3(); } catch { }
+                string alzato = RibInsert(model, sketch, thickness, flip);
+                try { model.EditRebuild3(); } catch { }
                 int ribsBorn;
-                var nata = NervaturaNuovaDelTipo(modello, "Rib", ribPrima, out ribsBorn);
-                string verso = gira ? "materiale girato" : "materiale dritto";
-                if (nata == null && ribsBorn > 1)
+                var born = RibNewOfType(model, "Rib", ribBefore, out ribsBorn);
+                string facing = flip ? "materiale girato" : "materiale dritto";
+                if (born == null && ribsBorn > 1)
                 {
                     // Two ribs from one call: which one is ours is not known, so
                     // none is kept and every one goes back out.
-                    mie.AddRange(FeaturesBornOfType(modello, "Rib", ribPrima));
-                    return Fallito(ribsBorn + " rib features were born from one InsertRib call (" + verso +
+                    mie.AddRange(FeaturesBornOfType(model, "Rib", ribBefore));
+                    return Failed(ribsBorn + " rib features were born from one InsertRib call (" + facing +
                                    "), and nothing tells which one is the rib asked for: none is kept." +
-                                   NervaturaRitira(modello, mie, foto));
+                                   RibWithdraw(model, mie, photo));
                 }
-                if (nata == null)
+                if (born == null)
                 {
-                    esiti.Add(verso + ": nessuna nervatura" + (alzato == null ? "" : " (" + alzato + ")"));
-                    var intruse = NervaturaNuoveDiTutte(modello, nomiDopoLoSchizzo);
+                    outcomes.Add(facing + ": nessuna nervatura" + (alzato == null ? "" : " (" + alzato + ")"));
+                    var intruse = RibNewOfAll(model, namesAfterTheSketch);
                     if (intruse.Count > 0)
                     {
-                        var nomiIntrusi = new List<string>();
-                        foreach (var f in intruse) { nomiIntrusi.Add(NervaturaNome(f)); mie.Add(f); }
-                        return Fallito(
-                            "Col " + verso + " la nervatura non e' nata, ma l'albero e' cresciuto lo stesso («" +
-                            string.Join("», «", nomiIntrusi) + "»): non provo l'altro verso sopra una " +
+                        var intruderNames = new List<string>();
+                        foreach (var f in intruse) { intruderNames.Add(RibName(f)); mie.Add(f); }
+                        return Failed(
+                            "Col " + facing + " la nervatura non e' nata, ma l'albero e' cresciuto lo stesso («" +
+                            string.Join("», «", intruderNames) + "»): non provo l'altro verso sopra una " +
                             "lavorazione che non ho chiesto. Di solito la linea non sta fra due pareti: " +
                             "spostala nel vuoto, con gli estremi (o il loro prolungamento) sulle pareti da " +
                             "unire; per un rilievo su una faccia piana usa «extrude_on_face»." +
-                            NervaturaRitira(modello, mie, foto));
+                            RibWithdraw(model, mie, photo));
                     }
                     continue;
                 }
@@ -279,81 +279,81 @@ namespace Oce.Solid.Agent.Core
                 // succede non si prova l'altro verso (togliere la sola
                 // nervatura lasciando lo schizzo non e' misurato): si ritira
                 // tutto e si dice.
-                mie.Add(nata);
-                double? dopo = VolumeMm3(modello);
-                if (dopo == null || dopo.Value - foto.Volume.Value < NervaturaCrescitaMinimaMm3)
-                    return Fallito(string.Format(CultureInfo.InvariantCulture,
+                mie.Add(born);
+                double? after = VolumeMm3(model);
+                if (after == null || after.Value - photo.Volume.Value < RibMinimumGrowthMm3)
+                    return Failed(string.Format(CultureInfo.InvariantCulture,
                         "Con il {0} SOLIDWORKS ha fatto nascere «{1}», ma il volume del pezzo {2}: una " +
                         "nervatura che non aggiunge materiale non irrigidisce niente. Di solito la linea " +
                         "sta dentro il materiale invece che nel vuoto fra le pareti: prova a spostarla nel vuoto, " +
                         "con gli estremi (o il loro prolungamento) sulle pareti da unire.{3}",
-                        verso, NervaturaNome(nata),
-                        dopo == null ? "non si rilegge" : "e' rimasto " + dopo.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3",
-                        NervaturaRitira(modello, mie, foto)));
-                rib = nata;
-                girato = gira;
-                esiti.Add(verso + ": nata «" + NervaturaNome(nata) + "»");
+                        facing, RibName(born),
+                        after == null ? "non si rilegge" : "e' rimasto " + after.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3",
+                        RibWithdraw(model, mie, photo)));
+                rib = born;
+                hasRun = flip;
+                outcomes.Add(facing + ": nata «" + RibName(born) + "»");
                 break;
             }
 
             if (rib == null)
-                return Fallito(
+                return Failed(
                     "La nervatura non e' nata in nessuno dei due versi del materiale (" +
-                    string.Join("; ", esiti) + "). Una nervatura riempie, nel piano dello schizzo, lo " +
+                    string.Join("; ", outcomes) + "). Una nervatura riempie, nel piano dello schizzo, lo " +
                     "spazio fra la linea e le pareti del pezzo che la linea prolungata incontra: " +
                     "l'angolo di una L, il fondo e i fianchi di una scatola svuotata. Quando non nasce " +
                     "in nessun verso, di solito dalla linea non c'e' niente da incontrare: una piastra " +
                     "senza pareti (misurato), o una linea fuori dal pezzo. Per un rilievo su una faccia " +
                     "piana usa «extrude_on_face»; oppure sposta la linea fra due pareti." +
-                    NervaturaRitira(modello, mie, foto));
+                    RibWithdraw(model, mie, photo));
 
             // ── LE GUARDIE, SUL PEZZO E NON SULLA FEATURE ────────────────
-            bool ricostruito = true;
-            try { ricostruito = modello.EditRebuild3(); } catch { }
-            string rotto = CosaSiERotto(modello, foto, ricostruito, aperture: false);
-            if (rotto != null)
-                return Fallito("La nervatura «" + NervaturaNome(rib) + "» e' nata, ma " + rotto + "." +
-                               NervaturaRitira(modello, mie, foto));
+            bool rebuilt = true;
+            try { rebuilt = model.EditRebuild3(); } catch { }
+            string broken = WhatBroke(model, photo, rebuilt, aperture: false);
+            if (broken != null)
+                return Failed("La nervatura «" + RibName(rib) + "» e' nata, ma " + broken + "." +
+                               RibWithdraw(model, mie, photo));
 
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
-            double? aggiunto = volumeDopo - foto.Volume;
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
+            double? added = volumeAfter - photo.Volume;
 
             // COSA DICHIARA LA FEATURE (IRibFeatureData2), accanto a cio' che
             // si e' misurato. Non decide niente: lo spessore e il verso
             // dichiarati sono quelli chiesti anche quando il pezzo e' un altro
             // (la lezione dello sformo, `angle_declared_by_feature`).
-            object spessoreDichiarato = null, versoDichiarato = null, paralleloDichiarato = null;
+            object declaredThickness = null, declaredFacing = null, declaredParallel = null;
             try
             {
                 var d = rib.GetDefinition() as IRibFeatureData2;
                 if (d != null)
                 {
-                    spessoreDichiarato = Math.Round(Unita.Mm(d.Thickness), 3);
-                    versoDichiarato = d.FlipSide;
-                    paralleloDichiarato = d.ExtrusionDirection == (int)swRibExtrusionDirection_e.swRibParallelToSketch;
+                    declaredThickness = Math.Round(Units.Mm(d.Thickness), 3);
+                    declaredFacing = d.FlipSide;
+                    declaredParallel = d.ExtrusionDirection == (int)swRibExtrusionDirection_e.swRibParallelToSketch;
                 }
             }
             catch { }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 // CHIESTI, E DETTI COSI': sono gli argomenti (e la lunghezza
                 // della linea fatta con quelli), non misure. Le misure sono il
                 // volume, i corpi, i tentativi e i «declared_*» riletti.
-                ["requested_thickness_mm"] = Math.Round(spessore, 3),
-                ["requested_sketch_plane"] = piano,
-                ["requested_plane_offset_mm"] = Math.Round(distanza, 3),
-                ["requested_line_length_mm"] = Math.Round(lunga, 3),
-                ["plane_created"] = pianoFattoQui,
-                ["material_side"] = girato ? "flipped" : "straight",
+                ["requested_thickness_mm"] = Math.Round(thickness, 3),
+                ["requested_sketch_plane"] = plane,
+                ["requested_plane_offset_mm"] = Math.Round(distance, 3),
+                ["requested_line_length_mm"] = Math.Round(span, 3),
+                ["plane_created"] = planeMadeHere,
+                ["material_side"] = hasRun ? "flipped" : "straight",
                 ["attempts"] = tentativi,
-                ["added_material_mm3"] = NumeroOppureNull(aggiunto, 2),
-                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["bodies"] = NumeroOppureNull(corpiDopo),
-                ["declared_thickness_mm"] = spessoreDichiarato,
-                ["declared_flip_side"] = versoDichiarato,
-                ["declared_parallel_to_sketch"] = paralleloDichiarato,
+                ["added_material_mm3"] = NumberOrNull(added, 2),
+                ["volume_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["bodies"] = NumberOrNull(bodiesAfter),
+                ["declared_thickness_mm"] = declaredThickness,
+                ["declared_flip_side"] = declaredFacing,
+                ["declared_parallel_to_sketch"] = declaredParallel,
                 ["not_checked"] =
                     "Ho misurato che la nervatura e' nata e che il pezzo e' cresciuto, e che non ha rotto " +
                     "niente; non ho guardato QUALI pareti ha unito. Il verso del materiale l'ho provato io " +
@@ -361,16 +361,16 @@ namespace Oce.Solid.Agent.Core
                     "pareti da tutte e due le parti, il verso dritto vince anche se tu pensavi l'altro. " +
                     "Nessuno sformo: la nervatura ha le facce dritte.",
             };
-            if (volumeDopo == null) misure["volume_not_reread"] = NotaVolumeNonRiletto;
+            if (volumeAfter == null) measurements["volume_not_reread"] = NoteVolumeNotReread;
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agente] nervatura {0} su {1}{2}: {3}, volume {4} -> {5}",
-                NervaturaNome(rib), piano, pianoFattoQui ? " a " + distanza.ToString("0.###", CultureInfo.InvariantCulture) : "",
-                string.Join("; ", esiti), Letto(foto.Volume), Letto(volumeDopo)));
+                RibName(rib), plane, planeMadeHere ? " a " + distance.ToString("0.###", CultureInfo.InvariantCulture) : "",
+                string.Join("; ", outcomes), ReadValue(photo.Volume), ReadValue(volumeAfter)));
 
             // Nessuna direzione nell'esito: lo spessore va lungo la normale del
             // piano, ma le facce della nervatura non sono il «fondo» di niente.
-            return Riuscito(rib, misure);
+            return Succeeded(rib, measurements);
         }
 
         // =================================================================
@@ -384,22 +384,22 @@ namespace Oce.Solid.Agent.Core
         /// come nell'esempio della guida: un tentativo fallito puo' aver
         /// consumato la selezione.
         /// </summary>
-        private static string NervaturaInserisci(IModelDoc2 modello, IFeature schizzo, double spessoreMm, bool giraMateriale)
+        private static string RibInsert(IModelDoc2 model, IFeature sketch, double thicknessMm, bool flipMaterial)
         {
             try
             {
-                modello.ClearSelection2(true);
-                string nome = NervaturaNome(schizzo);
-                bool preso = false;
-                try { preso = modello.Extension.SelectByID2(nome, "SKETCH", 0, 0, 0, false, 0, null, 0); } catch { }
-                if (!preso) preso = schizzo.Select2(false, 0);
-                if (!preso) return "lo schizzo non si seleziona";
-                modello.FeatureManager.InsertRib(
+                model.ClearSelection2(true);
+                string itemName = RibName(sketch);
+                bool taken = false;
+                try { taken = model.Extension.SelectByID2(itemName, "SKETCH", 0, 0, 0, false, 0, null, 0); } catch { }
+                if (!taken) taken = sketch.Select2(false, 0);
+                if (!taken) return "lo schizzo non si seleziona";
+                model.FeatureManager.InsertRib(
                     Is2Sided: true,                 // spessore diviso a meta' dalle due parti del piano
                     ReverseThicknessDir: false,     // vale solo per una nervatura da un lato
-                    Thickness: Unita.M(spessoreMm),
+                    Thickness: Units.M(thicknessMm),
                     ReferenceEdgeIndex: 0,
-                    ReverseMaterialDir: giraMateriale,
+                    ReverseMaterialDir: flipMaterial,
                     IsDrafted: false,
                     DraftOutward: false,
                     DraftAngle: 0,
@@ -408,11 +408,11 @@ namespace Oce.Solid.Agent.Core
                 return null;
             }
             catch (Exception ex) { return ex.Message; }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            finally { try { model.ClearSelection2(true); } catch { } }
         }
 
         /// <summary>
-        /// The plane parallel to the base plane, offset by `distanzaMm`: the
+        /// The plane parallel to the base plane, offset by `distanceMm`: the
         /// same call as `create_plane` since Z-C21.7 (L8-1), IFeatureManager.
         /// InsertRefPlane with the base plane selected by name with mark 0
         /// (ApiHelpers.SelectOffsetPlaneBase / InsertOffsetPlane, where the
@@ -422,44 +422,44 @@ namespace Oce.Solid.Agent.Core
         /// (Checks/Rib, `CreatePlaneAtOffset3(0.025, false, true)`).
         /// The tree decides whether the plane was born, not the return value.
         /// </summary>
-        private static IFeature NervaturaPianoSfalsato(IModelDoc2 modello, string piano, double distanzaMm, out string motivo)
+        private static IFeature RibPlaneOffset(IModelDoc2 model, string plane, double distanceMm, out string reason)
         {
-            motivo = null;
-            var basePiano = TrovaPianoBase(modello, piano);
-            if (basePiano == null) { motivo = "Non ho trovato il piano «" + piano + "» nell'albero."; return null; }
-            if (!ApiHelpers.SelectOffsetPlaneBase(modello, basePiano))
+            reason = null;
+            var basePlane = FindBasePlane(model, plane);
+            if (basePlane == null) { reason = "Non ho trovato il piano «" + plane + "» nell'albero."; return null; }
+            if (!ApiHelpers.SelectOffsetPlaneBase(model, basePlane))
             {
-                motivo = "Non sono riuscito a selezionare il piano «" + piano + "»."; return null;
+                reason = "Non sono riuscito a selezionare il piano «" + plane + "»."; return null;
             }
 
-            int pianiPrima = ContaPiani(modello);
-            var namesBefore = FeatureNamesNow(modello);
+            int planesBefore = CountPlanes(model);
+            var namesBefore = FeatureNamesNow(model);
             IFeature returned = null;
             try
             {
-                returned = ApiHelpers.InsertOffsetPlane(modello, distanzaMm) as IFeature;
+                returned = ApiHelpers.InsertOffsetPlane(model, distanceMm) as IFeature;
             }
-            catch (Exception ex) { motivo = "Il piano della nervatura non e' nato: " + ex.Message; return null; }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            catch (Exception ex) { reason = "Il piano della nervatura non e' nato: " + ex.Message; return null; }
+            finally { try { model.ClearSelection2(true); } catch { } }
 
             // THE PLANE IS WHAT InsertRefPlane RETURNED, or else the ONE RefPlane
             // born since the call (FeatureBorn, scheme S7, Z-C21.5). Until then
             // it was the last feature of the tree, checked to be a RefPlane: on a
             // sheet-metal part that is the flat pattern, and a plane that was
             // born was refused and left in the tree.
-            int pianiDopo = ContaPiani(modello);
-            IFeature ultima = returned ?? FeatureBorn(modello, namesBefore, "RefPlane", out _);
-            string tipo = "";
-            try { tipo = ultima?.GetTypeName2() ?? ""; } catch { }
-            if (pianiPrima < 0 || pianiDopo != pianiPrima + 1 || tipo != "RefPlane")
+            int planesAfter = CountPlanes(model);
+            IFeature last = returned ?? FeatureBorn(model, namesBefore, "RefPlane", out _);
+            string typ = "";
+            try { typ = last?.GetTypeName2() ?? ""; } catch { }
+            if (planesBefore < 0 || planesAfter != planesBefore + 1 || typ != "RefPlane")
             {
-                motivo = "Il piano della nervatura, parallelo al " + piano + " a " +
-                         distanzaMm.ToString("0.###", CultureInfo.InvariantCulture) +
-                         " mm, non e' nato (piani " + pianiPrima + " -> " + pianiDopo + "). Puoi farlo prima " +
+                reason = "Il piano della nervatura, parallelo al " + plane + " a " +
+                         distanceMm.ToString("0.###", CultureInfo.InvariantCulture) +
+                         " mm, non e' nato (piani " + planesBefore + " -> " + planesAfter + "). Puoi farlo prima " +
                          "con «create_plane» e guardare dove finisce.";
                 return null;
             }
-            return ultima;
+            return last;
         }
 
         /// <summary>
@@ -472,11 +472,11 @@ namespace Oce.Solid.Agent.Core
         /// toccare una feature si guarda che non abbia figli: se ne ha, qualcosa
         /// ci si e' appoggiato e non e' roba mia.
         /// </summary>
-        private string NervaturaRitira(IModelDoc2 modello, List<IFeature> mie, FotoDelPezzo prima)
+        private string RibWithdraw(IModelDoc2 model, List<IFeature> mie, PartPhoto before)
         {
             if (mie.Count == 0) return " Non ho toccato il pezzo: e' com'era.";
-            bool tutto = true;
-            var nomi = new List<string>();
+            bool everything = true;
+            var names = new List<string>();
             // A SKETCH THAT A FAILED InsertRib HAS TOUCHED CANNOT BE DELETED, ONLY
             // SUPPRESSED. Measured on 28/9/2026 (probe cinque/probe_nervatura_ritira,
             // SOLIDWORKS 29.5.1): after two failed InsertRib on a plate with no walls
@@ -488,106 +488,106 @@ namespace Oce.Solid.Agent.Core
             // Such a sketch is suppressed and named in the answer, instead of
             // declaring a restore that did not happen (full bench on 0.141.0,
             // limit_rib_on_a_plate_without_walls).
-            var soppressi = new List<string>();
+            var suppressedOnes = new List<string>();
             for (int i = mie.Count - 1; i >= 0; i--)
             {
-                string nome = NervaturaNome(mie[i]);
-                nomi.Add(nome);
-                if (string.IsNullOrEmpty(nome) || TrovaLavorazione(modello, nome) == null) continue;   // assorbita da chi l'ha tolta prima
+                string itemName = RibName(mie[i]);
+                names.Add(itemName);
+                if (string.IsNullOrEmpty(itemName) || FindFeature(model, itemName) == null) continue;   // assorbita da chi l'ha tolta prima
                 try
                 {
-                    if (mie[i].IGetChildCount() > 0) { tutto = false; continue; }
-                    modello.ClearSelection2(true);
-                    if (!mie[i].Select2(false, 0)) { tutto = false; continue; }
-                    if (!modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed))
+                    if (mie[i].IGetChildCount() > 0) { everything = false; continue; }
+                    model.ClearSelection2(true);
+                    if (!mie[i].Select2(false, 0)) { everything = false; continue; }
+                    if (!model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed))
                     {
-                        string tipo = "";
-                        try { tipo = mie[i].GetTypeName2(); } catch { }
-                        bool soppresso = false;
-                        if (tipo == "ProfileFeature")
+                        string typ = "";
+                        try { typ = mie[i].GetTypeName2(); } catch { }
+                        bool suppressed = false;
+                        if (typ == "ProfileFeature")
                         {
-                            modello.ClearSelection2(true);
+                            model.ClearSelection2(true);
                             if (mie[i].Select2(false, 0))
                             {
-                                try { modello.EditSuppress2(); } catch { }
+                                try { model.EditSuppress2(); } catch { }
                                 // IsSuppressed2 in the active configuration since Z-C21.7 (S3).
-                                try { soppresso = ApiHelpers.IsSuppressedHere(mie[i]); } catch { }
+                                try { suppressed = ApiHelpers.IsSuppressedHere(mie[i]); } catch { }
                             }
                         }
-                        if (soppresso) soppressi.Add(nome);
-                        else tutto = false;
+                        if (suppressed) suppressedOnes.Add(itemName);
+                        else everything = false;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _log("[agente] nervatura: non riesco a togliere «" + nome + "»: " + ex.Message);
-                    tutto = false;
+                    _log("[agente] nervatura: non riesco a togliere «" + itemName + "»: " + ex.Message);
+                    everything = false;
                 }
-                finally { try { modello.ClearSelection2(true); } catch { } }
+                finally { try { model.ClearSelection2(true); } catch { } }
             }
-            try { modello.EditRebuild3(); } catch { }
+            try { model.EditRebuild3(); } catch { }
             // SI RILEGGE L'ALBERO, NON IL VALORE DI RITORNO.
-            foreach (var n in nomi)
-                if (!string.IsNullOrEmpty(n) && !soppressi.Contains(n) && TrovaLavorazione(modello, n) != null) tutto = false;
-            nomi.Reverse();
-            var tolti = nomi.FindAll(n => !soppressi.Contains(n));
-            string coda = ETornatoComEra(modello, prima, tutto,
-                "il pezzo come l'avevo trovato" + (tolti.Count > 0 ? " (tolti «" + string.Join("», «", tolti) + "»)" : ""));
-            if (soppressi.Count > 0)
-                coda += " Lo schizzo «" + string.Join("», «", soppressi) + "» resta nell'albero, SOPPRESSO: dopo una " +
+            foreach (var n in names)
+                if (!string.IsNullOrEmpty(n) && !suppressedOnes.Contains(n) && FindFeature(model, n) != null) everything = false;
+            names.Reverse();
+            var removed = names.FindAll(n => !suppressedOnes.Contains(n));
+            string queue = IsBackAsItWas(model, before, everything,
+                "il pezzo come l'avevo trovato" + (removed.Count > 0 ? " (tolti «" + string.Join("», «", removed) + "»)" : ""));
+            if (suppressedOnes.Count > 0)
+                queue += " Lo schizzo «" + string.Join("», «", suppressedOnes) + "» resta nell'albero, SOPPRESSO: dopo una " +
                         "nervatura fallita SOLIDWORKS non lo lascia cancellare (misurato), solo sopprimere.";
-            return coda;
+            return queue;
         }
 
         /// <summary>I nomi delle feature di quel tipo, adesso.</summary>
-        private static HashSet<string> NervaturaNomiDelTipo(IModelDoc2 modello, string tipo)
+        private static HashSet<string> RibNamesOfType(IModelDoc2 model, string typ)
         {
-            var nomi = new HashSet<string>(StringComparer.Ordinal);
+            var names = new HashSet<string>(StringComparer.Ordinal);
             try
             {
-                var f = modello.FirstFeature() as IFeature;
+                var f = model.FirstFeature() as IFeature;
                 while (f != null)
                 {
-                    if (f.GetTypeName2() == tipo) nomi.Add(f.Name);
+                    if (f.GetTypeName2() == typ) names.Add(f.Name);
                     f = f.GetNextFeature() as IFeature;
                 }
             }
             catch { }
-            return nomi;
+            return names;
         }
 
         /// <summary>I nomi di tutte le feature dell'albero, adesso.</summary>
-        private static HashSet<string> NervaturaNomiDiTutte(IModelDoc2 modello)
+        private static HashSet<string> RibNamesOfAll(IModelDoc2 model)
         {
-            var nomi = new HashSet<string>(StringComparer.Ordinal);
+            var names = new HashSet<string>(StringComparer.Ordinal);
             try
             {
-                var f = modello.FirstFeature() as IFeature;
+                var f = model.FirstFeature() as IFeature;
                 while (f != null)
                 {
-                    nomi.Add(f.Name);
+                    names.Add(f.Name);
                     f = f.GetNextFeature() as IFeature;
                 }
             }
             catch { }
-            return nomi;
+            return names;
         }
 
         /// <summary>Le feature che prima non c'erano, dalla piu' vecchia alla piu' giovane.</summary>
-        private static List<IFeature> NervaturaNuoveDiTutte(IModelDoc2 modello, HashSet<string> prima)
+        private static List<IFeature> RibNewOfAll(IModelDoc2 model, HashSet<string> before)
         {
-            var nuove = new List<IFeature>();
+            var newOnes = new List<IFeature>();
             try
             {
-                var f = modello.FirstFeature() as IFeature;
+                var f = model.FirstFeature() as IFeature;
                 while (f != null)
                 {
-                    if (!prima.Contains(f.Name)) nuove.Add(f);
+                    if (!before.Contains(f.Name)) newOnes.Add(f);
                     f = f.GetNextFeature() as IFeature;
                 }
             }
             catch { }
-            return nuove;
+            return newOnes;
         }
 
         /// <summary>
@@ -597,9 +597,9 @@ namespace Oce.Solid.Agent.Core
         /// kept the LAST new one, so two born would have given one of them without
         /// a word; now it is <see cref="FeatureBorn"/>, which answers null for two.
         /// </summary>
-        private static IFeature NervaturaNuovaDelTipo(IModelDoc2 modello, string tipo, HashSet<string> prima, out int born)
+        private static IFeature RibNewOfType(IModelDoc2 model, string typ, HashSet<string> before, out int born)
         {
-            return FeatureBorn(modello, prima, tipo, out born);
+            return FeatureBorn(model, before, typ, out born);
         }
 
         /// <summary>
@@ -607,18 +607,18 @@ namespace Oce.Solid.Agent.Core
         /// in tree order: what goes back out when a step is taken away. Empty when
         /// the tree cannot be read.
         /// </summary>
-        private static List<IFeature> FeaturesBornOfType(IModelDoc2 modello, string tipo, HashSet<string> prima)
+        private static List<IFeature> FeaturesBornOfType(IModelDoc2 model, string typ, HashSet<string> before)
         {
-            var nuove = new List<IFeature>();
+            var newOnes = new List<IFeature>();
             List<IFeature> features;
             List<string> names, types;
-            if (prima == null || !ReadFeatureTree(modello, out features, out names, out types)) return nuove;
-            foreach (int i in BornFeatureIndices(names, prima))
-                if (i < types.Count && types[i] == tipo) nuove.Add(features[i]);
-            return nuove;
+            if (before == null || !ReadFeatureTree(model, out features, out names, out types)) return newOnes;
+            foreach (int i in BornFeatureIndices(names, before))
+                if (i < types.Count && types[i] == typ) newOnes.Add(features[i]);
+            return newOnes;
         }
 
-        private static string NervaturaNome(IFeature f)
+        private static string RibName(IFeature f)
         {
             try { return f?.Name ?? ""; } catch { return ""; }
         }

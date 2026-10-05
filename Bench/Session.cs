@@ -35,32 +35,32 @@ namespace Oce.Solid.Agent.Bench
     /// </summary>
     internal static partial class Program
     {
-        private static int Sessione(string cartella, string daAprire = null)
+        private static int Session(string folder, string toOpen = null)
         {
-            Directory.CreateDirectory(cartella);
-            Console.WriteLine("=== sessione: " + cartella + " ===");
+            Directory.CreateDirectory(folder);
+            Console.WriteLine("=== sessione: " + folder + " ===");
 
             IModelDoc2 doc = null;
             try
             {
-                if (!string.IsNullOrWhiteSpace(daAprire))
+                if (!string.IsNullOrWhiteSpace(toOpen))
                 {
-                    doc = ApriDocumento(daAprire);
+                    doc = OpenDocument(toOpen);
                     if (doc == null)
                     {
-                        Console.WriteLine("non riesco ad aprire " + daAprire);
+                        Console.WriteLine("non riesco ad aprire " + toOpen);
                         return 1;
                     }
-                    Console.WriteLine("  ripreso: " + daAprire);
+                    Console.WriteLine("  ripreso: " + toOpen);
                 }
                 else
                 {
-                    // Il controllo su null non c'e' piu': `NuovaParte()` non
+                    // Il controllo su null non c'e' piu': `NewPart()` non
                     // torna null, alza un'eccezione che DICE cos'e' mancato, e
                     // il `catch` qui sotto la stampa (voce F12). Un controllo
                     // irraggiungibile e' peggio di nessun controllo: si legge
                     // come una difesa e non difende da niente.
-                    doc = NuovaParte();
+                    doc = NewPart();
                 }
 
                 // IL DOCUMENTO DELLA SESSIONE VA MESSO DAVANTI.
@@ -72,17 +72,17 @@ namespace Oce.Solid.Agent.Bench
                 // quello. Lo stato iniziale, che invece guardava il
                 // documento giusto, diceva il contrario — due descrizioni
                 // dello stesso istante che non combaciavano.
-                Davanti(doc);
+                Front(doc);
 
                 // Lo stato di partenza. Chi pianifica parte da qui,
                 // esattamente come farebbe l'add-in vero.
-                ScriviStato(cartella, 0, Attivo() ?? doc, new List<object>());
+                WriteState(folder, 0, Active() ?? doc, new List<object>());
                 Console.WriteLine("  stato_0 scritto (documento vuoto)");
 
                 for (int k = 1; k <= 40; k++)
                 {
-                    string richiesta = Path.Combine(cartella, "passo_" + k + ".json");
-                    string fine = Path.Combine(cartella, "fine.json");
+                    string request = Path.Combine(folder, "passo_" + k + ".json");
+                    string fine = Path.Combine(folder, "fine.json");
 
                     // Si aspetta il piano. Mezz'ora: un giro del modello con il
                     // ragionamento acceso ne ha gia' presi nove da solo, e chi
@@ -90,10 +90,10 @@ namespace Oce.Solid.Agent.Bench
                     // prima di mandare il passo dopo. Una sessione che scade
                     // mentre si guarda il difetto costringe a ricominciare il
                     // pezzo da capo.
-                    var scadenza = DateTime.UtcNow.AddMinutes(30);
-                    while (!File.Exists(richiesta) && !File.Exists(fine))
+                    var expiry = DateTime.UtcNow.AddMinutes(30);
+                    while (!File.Exists(request) && !File.Exists(fine))
                     {
-                        if (DateTime.UtcNow > scadenza)
+                        if (DateTime.UtcNow > expiry)
                         {
                             Console.WriteLine("  nessun passo_" + k + " entro mezz'ora: chiudo");
                             return 0;
@@ -104,8 +104,8 @@ namespace Oce.Solid.Agent.Bench
 
                     // Il file puo' essere ancora in scrittura quando lo vediamo.
                     Thread.Sleep(300);
-                    var piano = LeggiPiano(richiesta);
-                    Console.WriteLine("  passo " + k + ": " + piano.Count + " operazioni");
+                    var plane = ReadPlane(request);
+                    Console.WriteLine("  passo " + k + ": " + plane.Count + " operazioni");
 
                     // LE FIRME LE ATTACCA IL BANCO, COME FA IL SERVER.
                     //
@@ -130,16 +130,16 @@ namespace Oce.Solid.Agent.Bench
                     // il banco, adesso, leggendola dallo stato di inizio passo.
                     // Senza, il banco proverebbe una strada che in produzione
                     // non percorre nessuno.
-                    var statoDelPasso = LeggiStato(Attivo() ?? doc);
+                    var stepState = ReadState(Active() ?? doc);
 
-                    var esiti = new List<object>();
-                    foreach (var passo in piano)
+                    var outcomes = new List<object>();
+                    foreach (var planStep in plane)
                     {
-                        string nome = Convert.ToString(passo.Item1);
-                        var argomenti = passo.Item2;
-                        AttaccaFirme(argomenti, statoDelPasso);
-                        string errore;
-                        Dictionary<string, object> misure = null;
+                        string itemName = Convert.ToString(planStep.Item1);
+                        var arguments = planStep.Item2;
+                        AttachSignatures(arguments, stepState);
+                        string error;
+                        Dictionary<string, object> measurements = null;
                         try
                         {
                             // IL DOCUMENTO ATTIVO PUO' CAMBIARE SOTTO I PIEDI.
@@ -149,20 +149,20 @@ namespace Oce.Solid.Agent.Bench
                             // apre un secondo e lo mette davanti: da li' in
                             // poi lavorare sul primo vorrebbe dire mettere
                             // le viste dentro il pezzo.
-                            var suCui = Attivo() ?? doc;
-                            misure = Esegui(suCui, nome, argomenti, out errore);
+                            var onWhich = Active() ?? doc;
+                            measurements = Run(onWhich, itemName, arguments, out error);
                         }
-                        catch (Exception ex) { errore = ex.Message; }
+                        catch (Exception ex) { error = ex.Message; }
 
-                        bool ok = misure != null;
-                        Console.WriteLine("     " + (ok ? "OK  " : "NO  ") + nome +
-                                          (ok ? "" : "  -> " + Corto(errore)));
-                        esiti.Add(new Dictionary<string, object>
+                        bool ok = measurements != null;
+                        Console.WriteLine("     " + (ok ? "OK  " : "NO  ") + itemName +
+                                          (ok ? "" : "  -> " + Short(error)));
+                        outcomes.Add(new Dictionary<string, object>
                         {
-                            ["operation"] = nome,
+                            ["operation"] = itemName,
                             ["succeeded"] = ok,
-                            ["error"] = ok ? null : errore,
-                            ["measurements"] = misure,
+                            ["error"] = ok ? null : error,
+                            ["measurements"] = measurements,
                         });
                         // NON si va avanti dopo un fallimento: un piano e' una
                         // sequenza, e il passo dopo quasi sempre nomina cio' che
@@ -170,7 +170,7 @@ namespace Oce.Solid.Agent.Bench
                         if (!ok) break;
                     }
 
-                    ScriviStato(cartella, k, Attivo() ?? doc, esiti);
+                    WriteState(folder, k, Active() ?? doc, outcomes);
                     Console.WriteLine("  stato_" + k + " scritto");
                 }
                 return 0;
@@ -194,19 +194,19 @@ namespace Oce.Solid.Agent.Bench
         /// senza, chi esegue non ha modo di accorgersi che una faccia si e'
         /// spostata, ne' di ritrovarla.
         /// </summary>
-        private static void AttaccaFirme(
-            Dictionary<string, object> argomenti, Dictionary<string, object> stato)
+        private static void AttachSignatures(
+            Dictionary<string, object> arguments, Dictionary<string, object> docState)
         {
-            if (argomenti == null || stato == null) return;
-            var firme = new Dictionary<string, object>();
+            if (arguments == null || docState == null) return;
+            var signatures = new Dictionary<string, object>();
 
             // I CORPI COME LE FACCE (voce Z-C21.2, rilievo L6-1). Il ponte manda
-            // le firme dei corpi da tempo (`Attrezzi.FirmeDelloStato`, «center_mm»
+            // le firme dei corpi da tempo (`McpTools.StateSignatures`, «center_mm»
             // e «bounding_box_mm»); il banco no, e con «uid_dal_passo» un corpo
-            // nominato prima di un taglio arrivava SENZA firma: `FirmaCombacia`
+            // nominato prima di un taglio arrivava SENZA firma: `SignatureMatches`
             // non aveva niente da confrontare e diceva si'. La voce E4 — il corpo
             // rinumerato da un taglio — dal banco non si poteva vedere.
-            var dove = new[]
+            var location = new[]
             {
                 Tuple.Create("faces", new[] { "face_uid", "faces_uid" }),
                 Tuple.Create("edges", new[] { "edges_uid", "edge_uid" }),
@@ -216,218 +216,218 @@ namespace Oce.Solid.Agent.Bench
                     "bodies_to_trim_uid", "trim_boundary_uid",
                 }),
             };
-            foreach (var coppia in dove)
+            foreach (var pair in location)
             {
-                object grezzo;
-                if (!stato.TryGetValue(coppia.Item1, out grezzo)) continue;
-                var elenco = grezzo as System.Collections.IEnumerable;
-                if (elenco == null) continue;
+                object raw;
+                if (!docState.TryGetValue(pair.Item1, out raw)) continue;
+                var list = raw as System.Collections.IEnumerable;
+                if (list == null) continue;
 
                 // GLI SPIGOLI DELL'ANCORA (voce E18) stanno un livello piu' giu',
                 // in `anchor.x` e `anchor.y`: il ponte manda le firme di TUTTO lo
                 // stato, e la libreria rifiuta un'ancora il cui spigolo non ha
                 // firma in un piano che ne porta. Senza questo, il banco vedrebbe
                 // un rifiuto che in produzione non c'e'.
-                var sorgenti = new List<object>();
-                foreach (var campo in coppia.Item2)
+                var sources = new List<object>();
+                foreach (var theField in pair.Item2)
                 {
-                    object valore;
-                    if (argomenti.TryGetValue(campo, out valore) && valore != null) sorgenti.Add(valore);
+                    object val;
+                    if (arguments.TryGetValue(theField, out val) && val != null) sources.Add(val);
                 }
-                if (coppia.Item1 == "edges") sorgenti.AddRange(SpigoliDellAncora(argomenti));
+                if (pair.Item1 == "edges") sources.AddRange(AnchorEdges(arguments));
 
-                foreach (var valore in sorgenti)
+                foreach (var val in sources)
                 {
-                    var voluti = new List<string>();
-                    if (valore is string) voluti.Add((string)valore);
+                    var wanted = new List<string>();
+                    if (val is string) wanted.Add((string)val);
                     else
                     {
-                        var lista = valore as System.Collections.IEnumerable;
-                        if (lista == null) continue;
-                        foreach (var v in lista) voluti.Add(Convert.ToString(v));
+                        var itemList = val as System.Collections.IEnumerable;
+                        if (itemList == null) continue;
+                        foreach (var v in itemList) wanted.Add(Convert.ToString(v));
                     }
 
-                    foreach (var uid in voluti)
+                    foreach (var uid in wanted)
                     {
-                        foreach (var o in elenco)
+                        foreach (var o in list)
                         {
-                            var voce = o as Dictionary<string, object>;
-                            if (voce == null) continue;
+                            var entry = o as Dictionary<string, object>;
+                            if (entry == null) continue;
                             object u;
-                            if (!voce.TryGetValue("uid", out u)) continue;
+                            if (!entry.TryGetValue("uid", out u)) continue;
                             if (!string.Equals(Convert.ToString(u), uid,
                                     StringComparison.OrdinalIgnoreCase)) continue;
-                            var firma = new Dictionary<string, object>();
-                            foreach (var campoFirma in
+                            var signature = new Dictionary<string, object>();
+                            foreach (var signatureField in
                                      new[] { "point_mm", "normal", "area_mm2", "length_mm",
                                              "center_mm", "bounding_box_mm" })
                             {
                                 object x;
-                                if (voce.TryGetValue(campoFirma, out x) && x != null)
-                                    firma[campoFirma] = x;
+                                if (entry.TryGetValue(signatureField, out x) && x != null)
+                                    signature[signatureField] = x;
                             }
                             // LA SCATOLA DEL PEZZO, come fa il ponte: senza, il
                             // banco leggerebbe messaggi di rifiuto piu' corti
                             // di quelli veri, ed e' esattamente la differenza
                             // che un banco non deve avere.
-                            if (firma.Count > 0)
+                            if (signature.Count > 0)
                             {
-                                var scatola = ScatolaDelPezzo(stato);
-                                if (scatola != null) firma["box_part_mm"] = scatola;
+                                var box = PartBox(docState);
+                                if (box != null) signature["box_part_mm"] = box;
                             }
-                            if (firma.Count > 0) firme[uid] = firma;
+                            if (signature.Count > 0) signatures[uid] = signature;
                             break;
                         }
                     }
                 }
             }
 
-            if (firme.Count > 0) argomenti["_signatures"] = firme;
+            if (signatures.Count > 0) arguments["_signatures"] = signatures;
         }
 
         /// <summary>Gli uid degli spigoli nominati da `anchor` (edge_uid e centered_between, per asse).</summary>
-        private static List<object> SpigoliDellAncora(Dictionary<string, object> argomenti)
+        private static List<object> AnchorEdges(Dictionary<string, object> arguments)
         {
-            var fuori = new List<object>();
-            object grezza;
-            var ancora = argomenti.TryGetValue("anchor", out grezza) ? grezza as Dictionary<string, object> : null;
-            if (ancora == null) return fuori;
-            foreach (var asse in ancora.Values)
+            var outside = new List<object>();
+            object raw;
+            var anchor = arguments.TryGetValue("anchor", out raw) ? raw as Dictionary<string, object> : null;
+            if (anchor == null) return outside;
+            foreach (var axis in anchor.Values)
             {
-                var voce = asse as Dictionary<string, object>;
-                if (voce == null) continue;
+                var entry = axis as Dictionary<string, object>;
+                if (entry == null) continue;
                 object v;
-                if (voce.TryGetValue("edge_uid", out v) && v != null) fuori.Add(v);
-                if (voce.TryGetValue("centered_between", out v) && v != null) fuori.Add(v);
+                if (entry.TryGetValue("edge_uid", out v) && v != null) outside.Add(v);
+                if (entry.TryGetValue("centered_between", out v) && v != null) outside.Add(v);
             }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
         /// {minX,minY,minZ,maxX,maxY,maxZ} in mm dai due campi dello stato:
         /// l'angolo e i lati. Null se uno dei due manca — l'angolo non si
-        /// inventa (vedi il ponte, `Attrezzi.ScatolaDelPezzo`).
+        /// inventa (vedi il ponte, `McpTools.PartBox`).
         /// </summary>
-        private static double[] ScatolaDelPezzo(Dictionary<string, object> stato)
+        private static double[] PartBox(Dictionary<string, object> docState)
         {
-            double[] da = TreNumeri(stato, "bounding_box_from_mm");
-            double[] lati = TreNumeri(stato, "bounding_box_mm");
-            if (da == null || lati == null) return null;
+            double[] da = ThreeNumbers(docState, "bounding_box_from_mm");
+            double[] sides = ThreeNumbers(docState, "bounding_box_mm");
+            if (da == null || sides == null) return null;
             return new[]
             {
                 da[0], da[1], da[2],
-                da[0] + lati[0], da[1] + lati[1], da[2] + lati[2],
+                da[0] + sides[0], da[1] + sides[1], da[2] + sides[2],
             };
         }
 
-        private static double[] TreNumeri(Dictionary<string, object> stato, string chiave)
+        private static double[] ThreeNumbers(Dictionary<string, object> docState, string key)
         {
             object v;
-            if (stato == null || !stato.TryGetValue(chiave, out v) || v == null) return null;
-            var elenco = v as System.Collections.IEnumerable;
-            if (elenco == null) return null;
-            var fuori = new List<double>();
-            foreach (var x in elenco)
+            if (docState == null || !docState.TryGetValue(key, out v) || v == null) return null;
+            var list = v as System.Collections.IEnumerable;
+            if (list == null) return null;
+            var outside = new List<double>();
+            foreach (var x in list)
             {
                 try
                 {
-                    fuori.Add(Convert.ToDouble(
+                    outside.Add(Convert.ToDouble(
                         x, System.Globalization.CultureInfo.InvariantCulture));
                 }
                 catch { return null; }
             }
-            return fuori.Count == 3 ? fuori.ToArray() : null;
+            return outside.Count == 3 ? outside.ToArray() : null;
         }
 
         /// <summary>Apre un documento gia' salvato e lo mette davanti.</summary>
-        private static IModelDoc2 ApriDocumento(string percorso)
+        private static IModelDoc2 OpenDocument(string filePath)
         {
             try
             {
-                if (!File.Exists(percorso)) return null;
-                int tipo = percorso.EndsWith(".SLDDRW", StringComparison.OrdinalIgnoreCase)
+                if (!File.Exists(filePath)) return null;
+                int typ = filePath.EndsWith(".SLDDRW", StringComparison.OrdinalIgnoreCase)
                     ? (int)swDocumentTypes_e.swDocDRAWING
-                    : percorso.EndsWith(".SLDASM", StringComparison.OrdinalIgnoreCase)
+                    : filePath.EndsWith(".SLDASM", StringComparison.OrdinalIgnoreCase)
                         ? (int)swDocumentTypes_e.swDocASSEMBLY
                         : (int)swDocumentTypes_e.swDocPART;
-                int errori = 0, avvisi = 0;
+                int errors = 0, warnings = 0;
                 var d = _sw.OpenDoc6(
-                    percorso, tipo,
+                    filePath, typ,
                     (int)swOpenDocOptions_e.swOpenDocOptions_Silent,
-                    "", ref errori, ref avvisi) as IModelDoc2;
+                    "", ref errors, ref warnings) as IModelDoc2;
                 return d;
             }
             catch { return null; }
         }
 
         /// <summary>Mette un documento davanti a tutti gli altri.</summary>
-        private static void Davanti(IModelDoc2 doc)
+        private static void Front(IModelDoc2 doc)
         {
             try
             {
-                var titolo = doc?.GetTitle();
-                if (string.IsNullOrWhiteSpace(titolo)) return;
-                int errori = 0;
-                _sw.ActivateDoc3(titolo, true,
-                    (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref errori);
+                var docTitle = doc?.GetTitle();
+                if (string.IsNullOrWhiteSpace(docTitle)) return;
+                int errors = 0;
+                _sw.ActivateDoc3(docTitle, true,
+                    (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref errors);
             }
             catch { }
         }
 
         /// <summary>Il documento che SolidWorks ha davanti adesso.</summary>
-        private static IModelDoc2 Attivo()
+        private static IModelDoc2 Active()
         {
             try { return _sw.IActiveDoc2; } catch { return null; }
         }
 
         /// <summary>Il piano: un elenco di {operazione, argomenti}.</summary>
-        private static List<Tuple<string, Dictionary<string, object>>> LeggiPiano(string file)
+        private static List<Tuple<string, Dictionary<string, object>>> ReadPlane(string file)
         {
-            var fuori = new List<Tuple<string, Dictionary<string, object>>>();
-            var testo = File.ReadAllText(file);
+            var outside = new List<Tuple<string, Dictionary<string, object>>>();
+            var text = File.ReadAllText(file);
             var s = new System.Web.Script.Serialization.JavaScriptSerializer();
             s.MaxJsonLength = int.MaxValue;
-            var radice = s.DeserializeObject(testo);
-            var elenco = radice as object[];
-            if (elenco == null)
+            var root = s.DeserializeObject(text);
+            var list = root as object[];
+            if (list == null)
             {
-                var d = radice as Dictionary<string, object>;
+                var d = root as Dictionary<string, object>;
                 object p;
-                if (d != null && d.TryGetValue("steps", out p)) elenco = p as object[];
+                if (d != null && d.TryGetValue("steps", out p)) list = p as object[];
             }
-            if (elenco == null) return fuori;
-            foreach (var voce in elenco)
+            if (list == null) return outside;
+            foreach (var entry in list)
             {
-                var d = voce as Dictionary<string, object>;
+                var d = entry as Dictionary<string, object>;
                 if (d == null) continue;
-                object nome, arg;
-                d.TryGetValue("operation", out nome);
+                object itemName, arg;
+                d.TryGetValue("operation", out itemName);
                 d.TryGetValue("arguments", out arg);
-                fuori.Add(Tuple.Create(
-                    Convert.ToString(nome),
+                outside.Add(Tuple.Create(
+                    Convert.ToString(itemName),
                     (arg as Dictionary<string, object>) ?? new Dictionary<string, object>()));
             }
-            return fuori;
+            return outside;
         }
 
-        private static void ScriviStato(string cartella, int k, IModelDoc2 doc, List<object> esiti)
+        private static void WriteState(string folder, int k, IModelDoc2 doc, List<object> outcomes)
         {
-            var stato = LeggiStato(doc);
-            var fuori = new Dictionary<string, object>
+            var docState = ReadState(doc);
+            var outside = new Dictionary<string, object>
             {
                 ["step"] = k,
-                ["state"] = stato,
-                ["outcomes"] = esiti,
-                ["bodies"] = ContaCorpi(doc),
-                ["volume_mm3"] = Math.Round(VolumeDelDocumento(doc), 1),
+                ["state"] = docState,
+                ["outcomes"] = outcomes,
+                ["bodies"] = CountBodies(doc),
+                ["volume_mm3"] = Math.Round(DocumentVolume(doc), 1),
             };
             // Si scrive su un file temporaneo e poi si rinomina: chi legge
             // dall'altra parte non deve mai vedere mezzo JSON.
-            string finale = Path.Combine(cartella, "stato_" + k + ".json");
-            string temporaneo = finale + ".parziale";
-            File.WriteAllText(temporaneo, Json(fuori));
-            if (File.Exists(finale)) File.Delete(finale);
-            File.Move(temporaneo, finale);
+            string final = Path.Combine(folder, "stato_" + k + ".json");
+            string temporary = final + ".parziale";
+            File.WriteAllText(temporary, Json(outside));
+            if (File.Exists(final)) File.Delete(final);
+            File.Move(temporary, final);
         }
     }
 }

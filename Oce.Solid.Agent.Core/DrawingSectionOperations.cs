@@ -68,13 +68,13 @@ namespace Oce.Solid.Agent.Core
     /// niente. Si contano le viste prima e dopo: quello e' il riscontro, il
     /// valore di ritorno e' una promessa.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito SezioneInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome SectionView(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito(
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed(
                     "Il documento attivo non e' una tavola: una vista di sezione sta " +
                     "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
 
@@ -82,48 +82,48 @@ namespace Oce.Solid.Agent.Core
             //
             // La PRIMA «view» del foglio e' il foglio stesso (tipo 1), e si
             // salta. Chi la prendesse per una vista sezionerebbe il foglio.
-            string chiesta = VistaChiestaPerNome(disegno, Str(a, "view", null));
-            IView bersaglio = null;
-            var nomiViste = new List<string>();
-            int vistePrima = 0;
+            string requested = ViewRequestedByName(drawing, Str(a, "view", null));
+            IView target = null;
+            var viewNames = new List<string>();
+            int viewsBefore = 0;
             try
             {
-                var v = disegno.GetFirstView() as IView;
-                while (v != null && vistePrima < 200)
+                var v = drawing.GetFirstView() as IView;
+                while (v != null && viewsBefore < 200)
                 {
-                    vistePrima++;
+                    viewsBefore++;
                     if (v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
                     {
-                        string nome = "";
-                        try { nome = v.GetName2() ?? ""; } catch { }
-                        nomiViste.Add(nome);
-                        if (bersaglio == null &&
-                            (chiesta == null ||
-                             string.Equals(nome, chiesta, StringComparison.OrdinalIgnoreCase)))
-                            bersaglio = v;
+                        string itemName = "";
+                        try { itemName = v.GetName2() ?? ""; } catch { }
+                        viewNames.Add(itemName);
+                        if (target == null &&
+                            (requested == null ||
+                             string.Equals(itemName, requested, StringComparison.OrdinalIgnoreCase)))
+                            target = v;
                     }
                     v = v.GetNextView() as IView;
                 }
             }
             catch (Exception ex)
             {
-                return Fallito("Non riesco a scorrere le viste del foglio: " + ex.Message);
+                return Failed("Non riesco a scorrere le viste del foglio: " + ex.Message);
             }
 
-            if (bersaglio == null)
-                return Fallito(chiesta == null
+            if (target == null)
+                return Failed(requested == null
                     ? "Sul foglio non c'e' nessuna vista da sezionare: mettici prima " +
                       "le viste con «standard_views»."
-                    : "Non trovo la vista «" + chiesta + "». Sul foglio ci sono: " +
-                      (nomiViste.Count == 0 ? "nessuna vista" : string.Join(", ", nomiViste)) + ".");
+                    : "Non trovo la vista «" + requested + "». Sul foglio ci sono: " +
+                      (viewNames.Count == 0 ? "nessuna vista" : string.Join(", ", viewNames)) + ".");
 
-            string nomeBersaglio = "";
-            try { nomeBersaglio = bersaglio.GetName2() ?? ""; } catch { }
+            string targetName = "";
+            try { targetName = target.GetName2() ?? ""; } catch { }
 
-            var sagoma = bersaglio.GetOutline() as double[];
-            if (sagoma == null || sagoma.Length < 4)
-                return Fallito(
-                    "Non riesco a leggere l'ingombro della vista «" + nomeBersaglio +
+            var outline = target.GetOutline() as double[];
+            if (outline == null || outline.Length < 4)
+                return Failed(
+                    "Non riesco a leggere l'ingombro della vista «" + targetName +
                     "», e senza quello non so dove tracciare la linea di taglio: una " +
                     "linea che sfiora la vista da' una sezione vuota senza dire niente.");
 
@@ -133,145 +133,145 @@ namespace Oce.Solid.Agent.Core
             // millimetri di FOGLIO — non del modello: sul foglio la vista e'
             // in scala, e mescolare le due misure e' il modo piu' rapido di
             // tagliare dove non si voleva.
-            string verso = (Str(a, "orientation", "vertical") ?? "vertical").Trim().ToLowerInvariant();
-            if (verso != "vertical" && verso != "horizontal")
-                return Fallito(
+            string facing = (Str(a, "orientation", "vertical") ?? "vertical").Trim().ToLowerInvariant();
+            if (facing != "vertical" && facing != "horizontal")
+                return Failed(
                     "«orientation» dice come corre la linea di taglio e vale «vertical» o " +
-                    "«horizontal»: ho letto «" + verso + "».");
+                    "«horizontal»: ho letto «" + facing + "».");
 
-            double scostoM = Num(a, "offset_mm", 0) / 1000.0;
-            string etichetta = Str(a, "label", "A");
-            if (string.IsNullOrWhiteSpace(etichetta)) etichetta = "A";
-            double profonditaM = Num(a, "depth_mm", 0) / 1000.0;
+            double offsetM = Num(a, "offset_mm", 0) / 1000.0;
+            string label = Str(a, "label", "A");
+            if (string.IsNullOrWhiteSpace(label)) label = "A";
+            double depthM = Num(a, "depth_mm", 0) / 1000.0;
             // DUE «A-A» SULLA STESSA TAVOLA (voce Z-C13): si rifiuta prima.
-            string doppia = LetteraGiaUsata(disegno, etichetta);
-            if (doppia != null) return Fallito(doppia);
+            string doubled = LetterAlreadyUsed(drawing, label);
+            if (doubled != null) return Failed(doubled);
 
-            double xMin = sagoma[0], yMin = sagoma[1], xMax = sagoma[2], yMax = sagoma[3];
-            double largo = xMax - xMin, alto = yMax - yMin;
+            double xMin = outline[0], yMin = outline[1], xMax = outline[2], yMax = outline[3];
+            double wide = xMax - xMin, up = yMax - yMin;
 
             // SI ESCE DI UN DECIMO OLTRE I BORDI. Una linea che finisce
             // esattamente sul bordo e' un caso limite gratuito, e il caso
             // limite di questa API e' una sezione vuota che non lo dice.
             double x1, y1, x2, y2;
-            if (verso == "vertical")
+            if (facing == "vertical")
             {
-                double x = (xMin + xMax) / 2.0 + scostoM;
+                double x = (xMin + xMax) / 2.0 + offsetM;
                 if (x <= xMin || x >= xMax)
-                    return Fallito(
+                    return Failed(
                         "Con «offset_mm» = " + Num(a, "offset_mm", 0) + " la linea di taglio cade " +
                         "FUORI dalla vista, e una sezione tagliata fuori dal materiale " +
                         "esce vuota senza dare nessun errore. La vista e' larga " +
-                        Math.Round(largo * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
-                        "fra " + Math.Round(-largo * 500, 1) + " e " +
-                        Math.Round(largo * 500, 1) + ".");
-                x1 = x; y1 = yMin - alto * 0.1;
-                x2 = x; y2 = yMax + alto * 0.1;
+                        Math.Round(wide * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
+                        "fra " + Math.Round(-wide * 500, 1) + " e " +
+                        Math.Round(wide * 500, 1) + ".");
+                x1 = x; y1 = yMin - up * 0.1;
+                x2 = x; y2 = yMax + up * 0.1;
             }
             else
             {
-                double y = (yMin + yMax) / 2.0 + scostoM;
+                double y = (yMin + yMax) / 2.0 + offsetM;
                 if (y <= yMin || y >= yMax)
-                    return Fallito(
+                    return Failed(
                         "Con «offset_mm» = " + Num(a, "offset_mm", 0) + " la linea di taglio cade " +
                         "FUORI dalla vista, e una sezione tagliata fuori dal materiale " +
                         "esce vuota senza dare nessun errore. La vista e' alta " +
-                        Math.Round(alto * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
-                        "fra " + Math.Round(-alto * 500, 1) + " e " +
-                        Math.Round(alto * 500, 1) + ".");
-                x1 = xMin - largo * 0.1; y1 = y;
-                x2 = xMax + largo * 0.1; y2 = y;
+                        Math.Round(up * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
+                        "fra " + Math.Round(-up * 500, 1) + " e " +
+                        Math.Round(up * 500, 1) + ".");
+                x1 = xMin - wide * 0.1; y1 = y;
+                x2 = xMax + wide * 0.1; y2 = y;
             }
 
             // ── LA LINEA, SULLO SCHIZZO DEL FOGLIO ──────────────────────
-            try { disegno.EditSheet(); } catch { }
+            try { drawing.EditSheet(); } catch { }
 
             // The segments of the sheet sketch before the line, so that a line
             // left behind by a refusal can be removed and the removal checked
             // (Z-C21.8, finding M41).
-            int segmentsBefore = SheetSketchSegmentCount(disegno);
-            ISketchSegment linea = null;
+            int segmentsBefore = SheetSketchSegmentCount(drawing);
+            ISketchSegment line = null;
             try
             {
-                modello.ClearSelection2(true);
-                linea = modello.SketchManager.CreateLine(x1, y1, 0.0, x2, y2, 0.0) as ISketchSegment;
+                model.ClearSelection2(true);
+                line = model.SketchManager.CreateLine(x1, y1, 0.0, x2, y2, 0.0) as ISketchSegment;
             }
             catch (Exception ex)
             {
-                return Fallito("Non sono riuscito a tracciare la linea di taglio: " + ex.Message);
+                return Failed("Non sono riuscito a tracciare la linea di taglio: " + ex.Message);
             }
-            if (linea == null)
-                return Fallito(
+            if (line == null)
+                return Failed(
                     "«CreateLine» non ha prodotto nessun segmento sul foglio, e senza " +
                     "la linea non c'e' niente da selezionare: «CreateSectionViewAt5» " +
                     "non prende il taglio in firma, lo prende dalla selezione.");
 
             // LO SCHIZZO SI CHIUDE PRIMA. Vedi il docstring: con uno schizzo
             // aperto le API che creano viste si comportano diversamente.
-            try { modello.SketchManager.InsertSketch(true); } catch { }
+            try { model.SketchManager.InsertSketch(true); } catch { }
 
-            bool presa = false;
+            bool taken = false;
             string selectError = null;
             try
             {
-                modello.ClearSelection2(true);
-                presa = linea.Select4(false, null);
+                model.ClearSelection2(true);
+                taken = line.Select4(false, null);
             }
             catch (Exception ex) { selectError = ex.Message; }
-            if (!presa)
-                return Fallito(
+            if (!taken)
+                return Failed(
                     (selectError != null
                         ? "I could not select the cutting line (" + selectError + ")"
                         : "The cutting line is there but does not let itself be selected") +
                     ", and CreateSectionViewAt5 takes the cut from the selection: without it, it would do " +
                     "something other than what you asked" +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, linea, segmentsBefore), "cutting line"));
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, line, segmentsBefore), "cutting line"));
 
             // ── LA SEZIONE, A FIANCO ────────────────────────────────────
-            double xSezione, ySezione;
-            if (verso == "vertical")
+            double xSection, ySection;
+            if (facing == "vertical")
             {
-                xSezione = xMax + largo * 0.8;
-                ySezione = (yMin + yMax) / 2.0;
+                xSection = xMax + wide * 0.8;
+                ySection = (yMin + yMax) / 2.0;
             }
             else
             {
-                xSezione = (xMin + xMax) / 2.0;
-                ySezione = yMin - alto * 0.8;
+                xSection = (xMin + xMax) / 2.0;
+                ySection = yMin - up * 0.8;
             }
 
-            object nata = null;
-            string esplosa = null;
+            object born = null;
+            string exploded = null;
             try
             {
-                nata = disegno.CreateSectionViewAt5(
-                    xSezione, ySezione, 0.0, etichetta, 0, null, profonditaM);
+                born = drawing.CreateSectionViewAt5(
+                    xSection, ySection, 0.0, label, 0, null, depthM);
             }
-            catch (Exception ex) { esplosa = ex.Message; }
+            catch (Exception ex) { exploded = ex.Message; }
 
             // ── IL RISCONTRO: QUANTE VISTE CI SONO ADESSO ───────────────
-            int visteDopo = 0;
-            IView ultima = null;
+            int viewsAfter = 0;
+            IView last = null;
             try
             {
-                var w = disegno.GetFirstView() as IView;
-                while (w != null && visteDopo < 200)
+                var w = drawing.GetFirstView() as IView;
+                while (w != null && viewsAfter < 200)
                 {
-                    visteDopo++;
-                    ultima = w;
+                    viewsAfter++;
+                    last = w;
                     w = w.GetNextView() as IView;
                 }
             }
             catch { }
 
-            if (visteDopo <= vistePrima)
-                return Fallito(
-                    "No view more: the section was NOT born (there were " + vistePrima +
-                    ", there are " + visteDopo + "). CreateSectionViewAt5 " +
-                    (esplosa != null ? "failed: " + esplosa
-                                     : nata == null ? "returned no object"
+            if (viewsAfter <= viewsBefore)
+                return Failed(
+                    "No view more: the section was NOT born (there were " + viewsBefore +
+                    ", there are " + viewsAfter + "). CreateSectionViewAt5 " +
+                    (exploded != null ? "failed: " + exploded
+                                     : born == null ? "returned no object"
                                                     : "returned an object") +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, linea, segmentsBefore), "cutting line"));
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, line, segmentsBefore), "cutting line"));
 
             // THE SECTION IS THE VIEW CreateSectionViewAt5 RETURNS (Z-C21.8, finding
             // M41). CreateSectionViewAt5.html, Return Value: «Section view». Until
@@ -280,19 +280,19 @@ namespace Oce.Solid.Agent.Core
             // count of views stays the check that something was born; the last
             // view is only the fallback when the call returned no view, and the
             // answer says which one was read.
-            IView sectionView = nata as IView;
+            IView sectionView = born as IView;
             string viewReadFrom = "returned by CreateSectionViewAt5";
             if (sectionView == null)
             {
-                sectionView = ultima;
+                sectionView = last;
                 viewReadFrom = "last view of the sheet (CreateSectionViewAt5 returned no view)";
             }
 
-            string nomeSezione = "";
-            int tipoSezione = -1;
-            int tratteggi = -1;
-            try { nomeSezione = sectionView.GetName2() ?? ""; } catch { }
-            try { tipoSezione = sectionView.Type; } catch { }
+            string sectionName = "";
+            int sectionType = -1;
+            int hatching = -1;
+            try { sectionName = sectionView.GetName2() ?? ""; } catch { }
+            try { sectionType = sectionView.Type; } catch { }
             // ── IL CONTATORE GIUSTO E' `GetFaceHatchCount` ──────────────
             //
             // La voce GT4 prescriveva `GetSolidHatchCount() > 0`, e il
@@ -317,13 +317,13 @@ namespace Oce.Solid.Agent.Core
             // appoggiato al contatore sbagliato e' una guardia che dice
             // sempre di no, ed e' indistinguibile da una che funziona finche'
             // non la si usa.*
-            try { tratteggi = sectionView.GetFaceHatchCount(); } catch { }
+            try { hatching = sectionView.GetFaceHatchCount(); } catch { }
 
             // L'altro si legge lo stesso e si riporta: vale zero su una
             // sezione buona, e averlo accanto e' cio' che impedisce a
             // qualcuno di riprovarci fra sei mesi.
-            int solidi = -1;
-            try { int q; sectionView.GetSolidHatchCount(out q); solidi = q; } catch { }
+            int solids = -1;
+            try { int q; sectionView.GetSolidHatchCount(out q); solids = q; } catch { }
 
             // ── IL TRATTEGGIO, E QUI SI FALLISCE ────────────────────────
             //
@@ -335,35 +335,35 @@ namespace Oce.Solid.Agent.Core
             // Only a view that was not on the sheet before is deleted: with no
             // view returned, the name comes from the last view of the chain, and
             // a name read before the call is a view of the user (Z-C21.8, M41).
-            bool vuotaTolta = tratteggi == 0 && !nomiViste.Contains(nomeSezione) && RemoveNewView(modello, nomeSezione);
-            if (tratteggi == 0)
-                return Fallito(
-                    (vuotaTolta ? "Ho tolto la vista «" + nomeSezione + "»: " : "") +
-                    "La vista «" + nomeSezione + "» e' nata ma NON HA TRATTEGGIO " +
+            bool emptyOneRemoved = hatching == 0 && !viewNames.Contains(sectionName) && RemoveNewView(model, sectionName);
+            if (hatching == 0)
+                return Failed(
+                    (emptyOneRemoved ? "Ho tolto la vista «" + sectionName + "»: " : "") +
+                    "La vista «" + sectionName + "» e' nata ma NON HA TRATTEGGIO " +
                     "(campiture di faccia: 0), e " +
                     "una sezione senza tratteggio e' una linea di taglio caduta fuori " +
                     "dal materiale: sul foglio c'e' una vista che sembra buona e non " +
                     "mostra niente. La linea l'ho tracciata " +
-                    (verso == "vertical" ? "in verticale a x=" : "in orizzontale a y=") +
-                    Math.Round((verso == "vertical" ? x1 : y1) * 1000, 2) + " mm di foglio. " +
+                    (facing == "vertical" ? "in verticale a x=" : "in orizzontale a y=") +
+                    Math.Round((facing == "vertical" ? x1 : y1) * 1000, 2) + " mm di foglio. " +
                     "Sposta il taglio con «offset_mm».");
 
             // LA LETTERA EFFETTIVA, riletta dalla vista (Z-C13).
-            string letteraLetta = LetteraDellaVista(sectionView);
-            var fuori = new Dictionary<string, object>
+            string readLetter = ViewLetter(sectionView);
+            var outside = new Dictionary<string, object>
             {
-                ["label_reread"] = letteraLetta,
+                ["label_reread"] = readLetter,
                 ["view_read_from"] = viewReadFrom,
-                ["view_sectioned"] = nomeBersaglio,
-                ["views_before"] = vistePrima,
-                ["views_after"] = visteDopo,
-                ["view_section"] = nomeSezione,
-                ["view_kind"] = tipoSezione,
+                ["view_sectioned"] = targetName,
+                ["views_before"] = viewsBefore,
+                ["views_after"] = viewsAfter,
+                ["view_section"] = sectionName,
+                ["view_kind"] = sectionType,
                 // IL NUMERO CRUDO NON SI LASCIA SOLO: chi legge non ha la
                 // tabella di `swDrawingViewTypes_e` sottomano.
-                ["is_section"] = tipoSezione == (int)swDrawingViewTypes_e.swDrawingSectionView,
-                ["label"] = etichetta,
-                ["facing"] = verso,
+                ["is_section"] = sectionType == (int)swDrawingViewTypes_e.swDrawingSectionView,
+                ["label"] = label,
+                ["facing"] = facing,
                 ["cut_line_mm"] = new object[]
                 {
                     Math.Round(x1 * 1000, 2), Math.Round(y1 * 1000, 2),
@@ -374,9 +374,9 @@ namespace Oce.Solid.Agent.Core
                 // il taglio ha incontrato materiale; `hatches_solids` e'
                 // l'altro contatore, che su una sezione vale zero — sta qui
                 // per non far riprovare a nessuno la strada gia' misurata.
-                ["hatches"] = tratteggi,
-                ["hatches_solids"] = solidi,
-                ["depth_mm"] = Math.Round(profonditaM * 1000, 2),
+                ["hatches"] = hatching,
+                ["hatches_solids"] = solids,
+                ["depth_mm"] = Math.Round(depthM * 1000, 2),
                 ["what_it_does_not_check"] =
                     "SE QUELLA E' LA SEZIONE CHE SERVIVA. So dirti che il taglio ha " +
                     "incontrato materiale (il tratteggio c'e'), non che passa per la " +
@@ -390,9 +390,9 @@ namespace Oce.Solid.Agent.Core
                     "sezione serva: quello dipende da cosa il pezzo ha dentro.",
             };
 
-            _log("[agente] sezione «" + nomeSezione + "» da «" + nomeBersaglio + "»: " +
-                 tratteggi + " tratteggi, viste " + vistePrima + " -> " + visteDopo);
-            return SenzaFeature(fuori);
+            _log("[agente] sezione «" + sectionName + "» da «" + targetName + "»: " +
+                 hatching + " tratteggi, viste " + viewsBefore + " -> " + viewsAfter);
+            return WithoutFeature(outside);
         }
 
         /// <summary>
@@ -446,7 +446,7 @@ namespace Oce.Solid.Agent.Core
             return removed
                 ? ". I removed the " + what + " I had drawn."
                 : ". I could not confirm that the " + what + " I drew is gone: look at the sheet and, if it is " +
-                  "there, remove it — " + Frasi.CosiSiRitira + ".";
+                  "there, remove it — " + Sentences.HowToWithdrawIt + ".";
         }
     }
 }

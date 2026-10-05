@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using static Oce.Solid.Agent.ContractTests.Programma;
-using static Shared.ClienteMcp;
+using static Oce.Solid.Agent.ContractTests.Program;
+using static Shared.McpClient;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -24,20 +24,20 @@ namespace Oce.Solid.Agent.ContractTests
     /// arriva un passo dopo invece che subito — con in piu' la fiducia di chi
     /// l'aveva chiesta.
     /// </summary>
-    internal static class ProveLaProvaAVuoto
+    internal static class DryRunTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("la prova a vuoto: sbagliare senza toccare il pezzo (Z-G6)");
+            Group("la prova a vuoto: sbagliare senza toccare il pezzo (Z-G6)");
 
-            var eseguibile = PonteOppureNonQui("la prova a vuoto sul ponte vero");
-            if (eseguibile == null) return;
+            var executable = BridgeOrNotHere("la prova a vuoto sul ponte vero");
+            if (executable == null) return;
 
-            var p = Apri(eseguibile);
-            if (p == null) { Segna("il ponte parte", false, "non si e' avviato"); return; }
+            var p = Open(executable);
+            if (p == null) { Check("il ponte parte", false, "non si e' avviato"); return; }
             try
             {
-                Chiedi(p, 1,
+                Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
@@ -48,7 +48,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // 2. un argomento obbligatorio che manca
                 // 3. un argomento SCONOSCIUTO, che verrebbe ignorato in silenzio
                 // 4. un rimando a un passo che non c'e' ancora
-                var brutta = Ogg(Chiedi(p, 20,
+                var bad = Obj(Ask(p, 20,
                     "{\"jsonrpc\":\"2.0\",\"id\":20,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" +
                     "{\"operation\":\"estrudi_rettangolino\"}," +
@@ -59,45 +59,45 @@ namespace Oce.Solid.Agent.ContractTests
                     "\"face_ref\":{\"step\":9,\"kind\":\"top_face\"}}}" +
                     "]}}}"));
 
-                var risultato = Dentro(brutta, "result") as Dictionary<string, object>;
-                var testo = TestoDi(risultato);
+                var result = Inside(bad, "result") as Dictionary<string, object>;
+                var text = TextOf(result);
 
-                Segna("la prova a vuoto risponde anche con SOLIDWORKS chiuso",
-                      !string.IsNullOrEmpty(testo), Corto(testo));
+                Check("la prova a vuoto risponde anche con SOLIDWORKS chiuso",
+                      !string.IsNullOrEmpty(text), Short(text));
 
-                Segna("e dice che e' una prova a vuoto",
-                      testo.IndexOf("PROVA A VUOTO", StringComparison.OrdinalIgnoreCase) >= 0,
-                      Corto(testo));
+                Check("e dice che e' una prova a vuoto",
+                      text.IndexOf("PROVA A VUOTO", StringComparison.OrdinalIgnoreCase) >= 0,
+                      Short(text));
 
-                Segna("prende l'operazione che non esiste",
-                      testo.Contains("estrudi_rettangolino") && testo.Contains("non esiste"),
+                Check("prende l'operazione che non esiste",
+                      text.Contains("estrudi_rettangolino") && text.Contains("non esiste"),
                       "e prova a suggerire nomi simili");
 
-                Segna("prende l'argomento obbligatorio che manca",
-                      testo.Contains("width_mm") || testo.Contains("thickness_mm"),
+                Check("prende l'argomento obbligatorio che manca",
+                      text.Contains("width_mm") || text.Contains("thickness_mm"),
                       "su «extrude_rectangle» manca piu' di un obbligatorio");
 
                 // IL PIU' PREZIOSO DEI QUATTRO: un argomento scritto male non
                 // da' nessun errore, viene ignorato, e il pezzo esce diverso
                 // da come lo si e' chiesto. E' il difetto che non si vede.
-                Segna("prende l'argomento SCONOSCIUTO, che verrebbe ignorato",
-                      testo.Contains("depth_mm") &&
-                      testo.IndexOf("IGNORATO", StringComparison.OrdinalIgnoreCase) >= 0,
+                Check("prende l'argomento SCONOSCIUTO, che verrebbe ignorato",
+                      text.Contains("depth_mm") &&
+                      text.IndexOf("IGNORATO", StringComparison.OrdinalIgnoreCase) >= 0,
                       "il difetto che non da' errore");
 
-                Segna("prende il rimando a un passo che non c'e'",
-                      testo.Contains("passo 9") ||
-                      testo.IndexOf("non e' ancora stato fatto", StringComparison.Ordinal) >= 0,
+                Check("prende il rimando a un passo che non c'e'",
+                      text.Contains("passo 9") ||
+                      text.IndexOf("non e' ancora stato fatto", StringComparison.Ordinal) >= 0,
                       "face_ref verso il passo 9, in un piano di quattro");
 
-                Segna("e la risposta e' marcata come errore",
-                      risultato != null && risultato.ContainsKey("isError") &&
-                      Convert.ToString(risultato["isError"]).Equals(
+                Check("e la risposta e' marcata come errore",
+                      result != null && result.ContainsKey("isError") &&
+                      Convert.ToString(result["isError"]).Equals(
                           "True", StringComparison.OrdinalIgnoreCase),
                       "un piano che non regge non e' una risposta neutra");
 
-                Segna("e dichiara cosa NON ha potuto controllare",
-                      testo.Contains("NON controllati") && testo.Contains("uid"),
+                Check("e dichiara cosa NON ha potuto controllare",
+                      text.Contains("NON controllati") && text.Contains("uid"),
                       "tacere sui limiti farebbe credere che il piano sia a posto");
 
                 // ── UN PIANO BUONO NON VIENE BOCCIATO ────────────────────
@@ -105,20 +105,20 @@ namespace Oce.Solid.Agent.ContractTests
                 // La meta' che di solito non si prova. Un controllo che boccia
                 // anche cio' che va bene si smette di usarlo, e allora non
                 // protegge piu' niente.
-                var buona = Ogg(Chiedi(p, 21,
+                var good = Obj(Ask(p, 21,
                     "{\"jsonrpc\":\"2.0\",\"id\":21,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" +
                     "{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                     "{\"plane\":\"front\",\"length_mm\":120,\"width_mm\":80," +
                     "\"thickness_mm\":20}}]}}}"));
-                var suoBuona = Dentro(buona, "result") as Dictionary<string, object>;
-                var testoBuona = TestoDi(suoBuona);
+                var itsGoodOne = Inside(good, "result") as Dictionary<string, object>;
+                var goodText = TextOf(itsGoodOne);
 
-                Segna("un piano buono NON viene bocciato",
-                      testoBuona.Contains("il piano regge"), Corto(testoBuona));
+                Check("un piano buono NON viene bocciato",
+                      goodText.Contains("il piano regge"), Short(goodText));
 
-                Segna("ma anche li' dice cosa non ha guardato",
-                      testoBuona.Contains("NON controllati"),
+                Check("ma anche li' dice cosa non ha guardato",
+                      goodText.Contains("NON controllati"),
                       "soprattutto quando regge");
 
                 // ── E `dry_run` E' DICHIARATO NELLO SCHEMA ─────────────────
@@ -129,15 +129,15 @@ namespace Oce.Solid.Agent.ContractTests
                 // `Dictionary` da' il nome del tipo, e questa riga era nata
                 // rossa proprio cosi' — cercava «dry_run» dentro
                 // «System.Collections.Generic.Dictionary...».
-                var rigaStrumenti = Chiedi(p, 22,
+                var toolsLine = Ask(p, 22,
                     "{\"jsonrpc\":\"2.0\",\"id\":22,\"method\":\"tools/list\",\"params\":{}}");
-                Segna("«dry_run» e' dichiarato nello schema di «build»",
-                      rigaStrumenti != null &&
-                      rigaStrumenti.Contains("\"dry_run\"") &&
-                      rigaStrumenti.Contains("PROVA A VUOTO"),
+                Check("«dry_run» e' dichiarato nello schema di «build»",
+                      toolsLine != null &&
+                      toolsLine.Contains("\"dry_run\"") &&
+                      toolsLine.Contains("PROVA A VUOTO"),
                       "una capacita' che non si vede in tools/list non la usa nessuno");
             }
-            finally { Chiudi(p); }
+            finally { Close(p); }
         }
     }
 }

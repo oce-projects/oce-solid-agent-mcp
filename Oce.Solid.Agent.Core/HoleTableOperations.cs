@@ -33,101 +33,101 @@ namespace Oce.Solid.Agent.Core
     /// Il 17/9 nessuna tabella nasceva su questa installazione (GT2): il 26/9
     /// nascono tutte tranne la distinta di taglio. Vedi la voce GT2 del TODO.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private sealed class ForoInVista
+        private sealed class HoleInView
         {
             public double X, Y;          // centro sul foglio, metri
-            public double DiametroMm;
+            public double DiameterMm;
         }
 
-        private Esito TabellaForiInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome HoleTable(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito("Il documento attivo non e' una tavola: la tabella fori sta su una vista. " +
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed("Il documento attivo non e' una tavola: la tabella fori sta su una vista. " +
                                "Crea prima la tavola con «create_drawing».");
-            var nomi = NomiDelleViste(disegno);
-            if (nomi.Count == 0)
-                return Fallito("La tavola non ha viste: la tabella fori si aggancia a una vista del pezzo. " +
+            var names = ViewNames(drawing);
+            if (names.Count == 0)
+                return Failed("La tavola non ha viste: la tabella fori si aggancia a una vista del pezzo. " +
                                "Metti prima le viste con «standard_views».");
 
-            string origine = Str(a, "origin", "bottom_left");
+            string origin = Str(a, "origin", "bottom_left");
             int sx, sy;
-            switch (origine)
+            switch (origin)
             {
                 case "bottom_left": sx = -1; sy = -1; break;
                 case "bottom_right": sx = 1; sy = -1; break;
                 case "top_left": sx = -1; sy = 1; break;
                 case "top_right": sx = 1; sy = 1; break;
                 default:
-                    return Fallito("«origin» e' uno fra bottom_left, bottom_right, top_left, " +
-                                   "top_right, non «" + origine + "».");
+                    return Failed("«origin» e' uno fra bottom_left, bottom_right, top_left, " +
+                                   "top_right, non «" + origin + "».");
             }
 
-            string motivo;
-            IView vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
-            if (motivo != null) return Fallito(motivo);
-            if (vista == null) return Fallito("Non riesco a prendere la vista.");
-            string nomeVista = "";
-            try { nomeVista = vista.GetName2() ?? ""; } catch { }
+            string reason;
+            IView view = ResolveView(drawing, names, Str(a, "view", null), out reason);
+            if (reason != null) return Failed(reason);
+            if (view == null) return Failed("Non riesco a prendere la vista.");
+            string viewName = "";
+            try { viewName = view.GetName2() ?? ""; } catch { }
 
             IMathUtility mu = null;
             MathTransform tr = null;
-            try { mu = _sw.GetMathUtility() as IMathUtility; tr = vista.ModelToViewTransform; } catch { }
+            try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
             if (mu == null || tr == null)
-                return Fallito("Non riesco a leggere come la vista porta il modello sul foglio.");
-            double scala = 1;
-            try { scala = vista.ScaleDecimal; } catch { }
-            if (scala <= 0) scala = 1;
+                return Failed("Non riesco a leggere come la vista porta il modello sul foglio.");
+            double scale = 1;
+            try { scale = view.ScaleDecimal; } catch { }
+            if (scale <= 0) scale = 1;
 
             // ── LA FACCIA FORATA CHE GUARDA CHI LEGGE ───────────────────────
             //
             // Fra le facce piane del pezzo dietro la vista, quelle la cui normale,
             // portata sul foglio, esce verso chi guarda (z > 0,99); di queste, quella
             // con piu' anelli interni fatti di cerchi — i fori.
-            var pezzo = vista.ReferencedDocument as IModelDoc2;
-            var parte = pezzo as IPartDoc;
-            if (parte == null)
-                return Fallito("Dietro la vista «" + nomeVista + "» non c'e' una parte: la tabella fori si fa " +
+            var part = view.ReferencedDocument as IModelDoc2;
+            var partDoc = part as IPartDoc;
+            if (partDoc == null)
+                return Failed("Dietro la vista «" + viewName + "» non c'e' una parte: la tabella fori si fa " +
                                "sui fori di un pezzo.");
-            Func<double[], double[]> sulFoglio = p =>
+            Func<double[], double[]> onSheet = p =>
                 ((IMathPoint)((IMathPoint)mu.CreatePoint(p)).MultiplyTransform(tr)).ArrayData as double[];
-            Func<double[], double[]> direzioneSulFoglio = v =>
+            Func<double[], double[]> directionOnSheet = v =>
                 ((IMathVector)((IMathVector)mu.CreateVector(v)).MultiplyTransform(tr)).ArrayData as double[];
 
-            IFace2 faccia = null;
-            var fori = new List<ForoInVista>();
+            IFace2 face = null;
+            var holes = new List<HoleInView>();
             try
             {
-                var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-                foreach (var oc in corpi ?? new object[0])
+                var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+                foreach (var oc in bodies ?? new object[0])
                 {
                     foreach (var of in ((oc as IBody2)?.GetFaces() as object[]) ?? new object[0])
                     {
                         var f = of as IFace2;
                         var n = ApiHelpers.NormalIfPlanar(f);
                         if (n == null) continue;
-                        var nv = direzioneSulFoglio(n);
-                        double lung = Math.Sqrt(nv[0] * nv[0] + nv[1] * nv[1] + nv[2] * nv[2]);
-                        if (lung < 1e-12 || nv[2] / lung < 0.99) continue;
-                        var qui = ForiDellaFaccia(f, sulFoglio);
-                        if (qui.Count > fori.Count) { fori = qui; faccia = f; }
+                        var nv = directionOnSheet(n);
+                        double len = Math.Sqrt(nv[0] * nv[0] + nv[1] * nv[1] + nv[2] * nv[2]);
+                        if (len < 1e-12 || nv[2] / len < 0.99) continue;
+                        var here = FaceHoles(f, onSheet);
+                        if (here.Count > holes.Count) { holes = here; face = f; }
                     }
                 }
             }
-            catch (Exception ex) { return Fallito("Non riesco a leggere le facce del pezzo: " + ex.Message); }
-            if (faccia == null || fori.Count == 0)
-                return Fallito("Nella vista «" + nomeVista + "» nessuna faccia con dei fori guarda verso chi legge: " +
+            catch (Exception ex) { return Failed("Non riesco a leggere le facce del pezzo: " + ex.Message); }
+            if (face == null || holes.Count == 0)
+                return Failed("Nella vista «" + viewName + "» nessuna faccia con dei fori guarda verso chi legge: " +
                                "la tabella fori si fa sulla vista in cui i fori si vedono come cerchi (di solito " +
                                "quella dall'alto, V2).");
 
             // ── L'ORIGINE: il vertice del contorno esterno piu' nell'angolo chiesto ──
-            IVertex vertice = null;
-            double vx = 0, vy = 0, meglio = double.MinValue;
+            IVertex vertex = null;
+            double vx = 0, vy = 0, better = double.MinValue;
             try
             {
-                foreach (var oe in (faccia.GetEdges() as object[]) ?? new object[0])
+                foreach (var oe in (face.GetEdges() as object[]) ?? new object[0])
                 {
                     var e = oe as IEdge;
                     foreach (var ov in new[] { e?.GetStartVertex(), e?.GetEndVertex() })
@@ -135,43 +135,43 @@ namespace Oce.Solid.Agent.Core
                         var v = ov as IVertex;
                         var p = v?.GetPoint() as double[];
                         if (p == null) continue;
-                        var s = sulFoglio(p);
-                        double punteggio = s[0] * sx + s[1] * sy;
-                        if (punteggio > meglio + 1e-9) { meglio = punteggio; vertice = v; vx = s[0]; vy = s[1]; }
+                        var s = onSheet(p);
+                        double score = s[0] * sx + s[1] * sy;
+                        if (score > better + 1e-9) { better = score; vertex = v; vx = s[0]; vy = s[1]; }
                     }
                 }
             }
             catch { }
-            if (vertice == null) return Fallito("Non trovo un vertice d'angolo sulla faccia forata.");
+            if (vertex == null) return Failed("Non trovo un vertice d'angolo sulla faccia forata.");
 
             // ── DOVE VA LA TABELLA: in alto a sinistra del foglio, se non si dice ──
-            double larghezzaFoglio = 0.420, altezzaFoglio = 0.297;
+            double sheetWidth = 0.420, sheetHeight = 0.297;
             try
             {
-                var foglio = disegno.GetCurrentSheet() as ISheet;
-                var pr = foglio?.GetProperties2() as double[];
-                if (pr != null && pr.Length >= 7 && pr[5] > 0 && pr[6] > 0) { larghezzaFoglio = pr[5]; altezzaFoglio = pr[6]; }
+                var sheet = drawing.GetCurrentSheet() as ISheet;
+                var pr = sheet?.GetProperties2() as double[];
+                if (pr != null && pr.Length >= 7 && pr[5] > 0 && pr[6] > 0) { sheetWidth = pr[5]; sheetHeight = pr[6]; }
             }
             catch { }
-            double x = Unita.M(Num(a, "x_mm", 15)), y = Unita.M(Num(a, "y_mm", Unita.Mm(altezzaFoglio) - 15));
-            string primoTag = Str(a, "tag_start", "A");
+            double x = Units.M(Num(a, "x_mm", 15)), y = Units.M(Num(a, "y_mm", Units.Mm(sheetHeight) - 15));
+            string firstTag = Str(a, "tag_start", "A");
 
-            int richiamiPrima = RichiamiDiForoNellaVista(vista);
-            int tabellePrima = TabelleDellaTavola(disegno);
-            modello.ClearSelection2(true);
-            var sel = modello.SelectionManager as ISelectionMgr;
+            int calloutsBefore = HoleCalloutsInView(view);
+            int tablesBefore = DrawingTables(drawing);
+            model.ClearSelection2(true);
+            var sel = model.SelectionManager as ISelectionMgr;
             var sdV = sel?.CreateSelectData() as SelectData;
             var sdF = sel?.CreateSelectData() as SelectData;
-            if (sdV == null || sdF == null) return Fallito("Non riesco a preparare la selezione nella vista.");
-            sdV.Mark = SelectionMarks.HoleTableDatumOrigin; sdV.View = (View)vista;
-            sdF.Mark = SelectionMarks.HoleTableHoles; sdF.View = (View)vista;
-            bool okV = (vertice as IEntity).Select4(false, sdV);
-            bool okF = (faccia as IEntity).Select4(true, sdF);
+            if (sdV == null || sdF == null) return Failed("Non riesco a preparare la selezione nella vista.");
+            sdV.Mark = SelectionMarks.HoleTableDatumOrigin; sdV.View = (View)view;
+            sdF.Mark = SelectionMarks.HoleTableHoles; sdF.View = (View)view;
+            bool okV = (vertex as IEntity).Select4(false, sdV);
+            bool okF = (face as IEntity).Select4(true, sdF);
             if (!okV || !okF)
-                return Fallito("Non riesco a selezionare nella vista l'origine e la faccia forata (vertice " + okV +
+                return Failed("Non riesco a selezionare nella vista l'origine e la faccia forata (vertice " + okV +
                                ", faccia " + okF + ").");
 
-            string modelloTabella = PrimoModelloDiTabella((int)swUserPreferenceStringValue_e.swFileLocationsHoleTableTemplates, ".sldholtbt");
+            string tableModel = FirstTableModel((int)swUserPreferenceStringValue_e.swFileLocationsHoleTableTemplates, ".sldholtbt");
             // Z-C21.7 (L15-1): InsertHoleTable3, not the obsolete InsertHoleTable2
             // (IView~InsertHoleTable2.html: «Obsolete. Superseded by
             // IView::InsertHoleTable3»). The two new arguments as case H1 of the
@@ -185,117 +185,117 @@ namespace Oce.Solid.Agent.Core
             // is honoured (H2, numeric: 1 to 5), so the start value this
             // operation takes, the LETTER of the tags, goes with the alphanumeric
             // style.
-            object grezza;
+            object raw;
             try
             {
-                grezza = vista.InsertHoleTable3(false, x, y,
-                    (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft, primoTag, modelloTabella,
+                raw = view.InsertHoleTable3(false, x, y,
+                    (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft, firstTag, tableModel,
                     (int)swHoleTableTagOrder_e.swHoleTableTagOrder_XY,
                     (int)swHoleTableTagStyle_e.swHoleTable_AlphaNumericTags, null);
             }
-            catch (Exception ex) { return Fallito("La tabella fori non e' nata: " + ex.Message); }
-            modello.ClearSelection2(true);
-            var tabella = grezza as ITableAnnotation;
-            if (tabella == null)
-                return Fallito("SOLIDWORKS non ha creato la tabella fori e non ha detto perche'.");
+            catch (Exception ex) { return Failed("La tabella fori non e' nata: " + ex.Message); }
+            model.ClearSelection2(true);
+            var table = raw as ITableAnnotation;
+            if (table == null)
+                return Failed("SOLIDWORKS non ha creato la tabella fori e non ha detto perche'.");
 
-            int righe = -1;
-            try { righe = tabella.RowCount; } catch { }
+            int lines = -1;
+            try { lines = table.RowCount; } catch { }
             // NATA VUOTA: e' cio' che succede coi marchi sbagliati, misurato. Una
             // tabella di sola intestazione si stampa e sembra che il pezzo non abbia fori.
-            if (righe != fori.Count + 1)
+            if (lines != holes.Count + 1)
             {
-                string tolta = TogliLaTabella(modello, disegno, tabella, tabellePrima);
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                string removed = RemoveTable(model, drawing, table, tablesBefore);
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "La tabella fori e' nata con {0} righe e i fori della faccia sono {1}: ne servivano {2} " +
-                    "(l'intestazione piu' un foro per riga).{3}", righe, fori.Count, fori.Count + 1, tolta));
+                    "(l'intestazione piu' un foro per riga).{3}", lines, holes.Count, holes.Count + 1, removed));
             }
 
             // ── LA RILETTURA: ogni riga contro il modello ───────────────────
-            var voci = new List<object>();
-            int combaciano = 0;
-            for (int r = 1; r < righe; r++)
+            var entries = new List<object>();
+            int match = 0;
+            for (int r = 1; r < lines; r++)
             {
-                string tag = PulisciCella(CellaTabella(tabella, r, 0));
-                string sx0 = PulisciCella(CellaTabella(tabella, r, 1));
-                string sy0 = PulisciCella(CellaTabella(tabella, r, 2));
-                string misura = PulisciCella(CellaTabella(tabella, r, 3));
+                string tag = CleanCell(TableCell(table, r, 0));
+                string sx0 = CleanCell(TableCell(table, r, 1));
+                string sy0 = CleanCell(TableCell(table, r, 2));
+                string measure = CleanCell(TableCell(table, r, 3));
                 double lx, ly;
-                bool numeri = double.TryParse(sx0.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out lx) &
+                bool numbers = double.TryParse(sx0.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out lx) &
                               double.TryParse(sy0.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out ly);
-                bool trovato = false;
-                if (numeri)
-                    foreach (var f in fori)
+                bool found = false;
+                if (numbers)
+                    foreach (var f in holes)
                     {
-                        double dx = Math.Abs(f.X - vx) / scala * 1000.0, dy = Math.Abs(f.Y - vy) / scala * 1000.0;
-                        if (Math.Abs(dx - Math.Abs(lx)) <= 0.05 && Math.Abs(dy - Math.Abs(ly)) <= 0.05) { trovato = true; break; }
+                        double dx = Math.Abs(f.X - vx) / scale * 1000.0, dy = Math.Abs(f.Y - vy) / scale * 1000.0;
+                        if (Math.Abs(dx - Math.Abs(lx)) <= 0.05 && Math.Abs(dy - Math.Abs(ly)) <= 0.05) { found = true; break; }
                     }
-                if (trovato) combaciano++;
-                voci.Add(new Dictionary<string, object>
+                if (found) match++;
+                entries.Add(new Dictionary<string, object>
                 {
                     ["tag"] = tag,
-                    ["x_mm"] = numeri ? (object)lx : sx0,
-                    ["y_mm"] = numeri ? (object)ly : sy0,
-                    ["measure"] = misura,
-                    ["in_model"] = trovato,
+                    ["x_mm"] = numbers ? (object)lx : sx0,
+                    ["y_mm"] = numbers ? (object)ly : sy0,
+                    ["measure"] = measure,
+                    ["in_model"] = found,
                 });
             }
-            if (combaciano != fori.Count)
+            if (match != holes.Count)
             {
-                string tolta = TogliLaTabella(modello, disegno, tabella, tabellePrima);
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                string removed = RemoveTable(model, drawing, table, tablesBefore);
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "La tabella fori dice {0} posizioni e solo {1} corrispondono a un foro del pezzo misurato " +
-                    "dall'origine sulla vista: non e' la tabella di questi fori.{2}", fori.Count, combaciano, tolta));
+                    "dall'origine sulla vista: non e' la tabella di questi fori.{2}", holes.Count, match, removed));
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["view"] = nomeVista,
-                ["origin"] = origine,
-                ["holes"] = fori.Count,
-                ["rows"] = righe,
-                ["entries"] = voci.ToArray(),
+                ["view"] = viewName,
+                ["origin"] = origin,
+                ["holes"] = holes.Count,
+                ["rows"] = lines,
+                ["entries"] = entries.ToArray(),
                 ["positions_checked"] = true,
-                ["tables_in_drawing"] = TabelleDellaTavola(disegno),
+                ["tables_in_drawing"] = DrawingTables(drawing),
             };
-            if (!string.IsNullOrEmpty(modelloTabella)) misure["table_template"] = modelloTabella;
+            if (!string.IsNullOrEmpty(tableModel)) measurements["table_template"] = tableModel;
             // I FORI DUE VOLTE (26/9/2026, la prima tavola guardata con la tabella):
             // se la vista aveva gia' i richiami dei fori, la tabella li ripete.
             // «Ciascun elemento si quota una volta sola»: lo si dice. Nell'ordine
             // giusto — tabella prima, poi drawing_dimension — non succede, perche'
             // drawing_dimension lascia i fori alla tabella.
-            if (richiamiPrima > 0)
-                misure["warning"] = "Nella vista c'erano gia' " + richiamiPrima + " richiami di foro (e di solito le " +
+            if (calloutsBefore > 0)
+                measurements["warning"] = "Nella vista c'erano gia' " + calloutsBefore + " richiami di foro (e di solito le " +
                                        "quote di posizione dei fori): con la tabella i fori sono quotati due volte. " +
                                        "Metti la tabella PRIMA di «drawing_dimension», che allora lascia i fori alla tabella.";
-            return SenzaFeature(misure);
+            return WithoutFeature(measurements);
         }
 
         /// <summary>
         /// I fori di una faccia: gli anelli interni fatti di un cerchio intero,
         /// col centro portato sul foglio.
         /// </summary>
-        private static List<ForoInVista> ForiDellaFaccia(IFace2 f, Func<double[], double[]> sulFoglio)
+        private static List<HoleInView> FaceHoles(IFace2 f, Func<double[], double[]> onSheet)
         {
-            var fuori = new List<ForoInVista>();
+            var outside = new List<HoleInView>();
             try
             {
                 foreach (var ol in (f.GetLoops() as object[]) ?? new object[0])
                 {
-                    var anello = ol as ILoop2;
-                    if (anello == null || anello.IsOuter()) continue;
-                    var spigoli = anello.GetEdges() as object[];
-                    if (spigoli == null || spigoli.Length == 0) continue;
-                    var curva = (spigoli[0] as IEdge)?.GetCurve() as ICurve;
+                    var ring = ol as ILoop2;
+                    if (ring == null || ring.IsOuter()) continue;
+                    var edges = ring.GetEdges() as object[];
+                    if (edges == null || edges.Length == 0) continue;
+                    var curva = (edges[0] as IEdge)?.GetCurve() as ICurve;
                     if (curva == null || !curva.IsCircle()) continue;
                     var cp = curva.CircleParams as double[];   // centro x,y,z, asse, raggio
                     if (cp == null || cp.Length < 7) continue;
-                    var c = sulFoglio(new[] { cp[0], cp[1], cp[2] });
-                    fuori.Add(new ForoInVista { X = c[0], Y = c[1], DiametroMm = cp[6] * 2000.0 });
+                    var c = onSheet(new[] { cp[0], cp[1], cp[2] });
+                    outside.Add(new HoleInView { X = c[0], Y = c[1], DiameterMm = cp[6] * 2000.0 });
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -309,12 +309,12 @@ namespace Oce.Solid.Agent.Core
         /// volta. Una tavola e' di un pezzo: una tabella fori sul foglio copre i
         /// fori delle sue viste.
         /// </summary>
-        private static int ForiNellaTabellaFori(IDrawingDoc disegno)
+        private static int HolesInHoleTable(IDrawingDoc drawing)
         {
             try
             {
                 int n = 0;
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
                     foreach (var o in (v.GetTableAnnotations() as object[]) ?? new object[0])
@@ -331,12 +331,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Quanti richiami di foro ha gia' una vista; -1 se non si legge.</summary>
-        private static int RichiamiDiForoNellaVista(IView vista)
+        private static int HoleCalloutsInView(IView view)
         {
             try
             {
                 int n = 0;
-                var d = vista.GetFirstDisplayDimension5() as IDisplayDimension;
+                var d = view.GetFirstDisplayDimension5() as IDisplayDimension;
                 while (d != null)
                 {
                     if (d.IsHoleCallout()) n++;
@@ -348,12 +348,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Quante tabelle ha la tavola, contate vista per vista; -1 se non si legge.</summary>
-        private static int TabelleDellaTavola(IDrawingDoc disegno)
+        private static int DrawingTables(IDrawingDoc drawing)
         {
             try
             {
                 int n = 0;
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null) { n += v.GetTableAnnotationCount(); v = v.GetNextView() as IView; }
                 return n;
             }
@@ -365,33 +365,33 @@ namespace Oce.Solid.Agent.Core
         /// frase di rifiuto. Si conta prima e dopo, perche' «ho cancellato» detto
         /// senza rileggere non e' una misura.
         /// </summary>
-        private static string TogliLaTabella(IModelDoc2 modello, IDrawingDoc disegno, ITableAnnotation tabella, int prima)
+        private static string RemoveTable(IModelDoc2 model, IDrawingDoc drawing, ITableAnnotation table, int before)
         {
             try
             {
-                var ann = tabella.GetAnnotation() as IAnnotation;
-                modello.ClearSelection2(true);
+                var ann = table.GetAnnotation() as IAnnotation;
+                model.ClearSelection2(true);
                 // DeleteSelection2 E NON EditDelete: EditDelete chiede conferma con
-                // una finestra, e la chiamata COM non torna (vedi OperazioniSw,
-                // SenzaLoSchizzo). Era l'unica rimasta, trovata dal workflow W-S il
-                // 27/9/2026; adesso il divieto e' in Tests/ProveLeFirmeVietate.
+                // una finestra, e la chiamata COM non torna (vedi SwOperations,
+                // WithoutSketch). Era l'unica rimasta, trovata dal workflow W-S il
+                // 27/9/2026; adesso il divieto e' in Tests/ForbiddenSignaturesTests.
                 if (ann != null && ann.Select3(false, null))
-                    modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                modello.ClearSelection2(true);
+                    model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
             }
             catch { }
-            int dopo = TabelleDellaTavola(disegno);
-            if (prima >= 0 && dopo == prima) return " L'ho tolta: la tavola e' com'era.";
-            return " Non sono riuscito a toglierla (tabelle " + prima + " -> " + dopo + "): toglila a mano.";
+            int after = DrawingTables(drawing);
+            if (before >= 0 && after == before) return " L'ho tolta: la tavola e' com'era.";
+            return " Non sono riuscito a toglierla (tabelle " + before + " -> " + after + "): toglila a mano.";
         }
 
-        private static string CellaTabella(ITableAnnotation t, int r, int c)
+        private static string TableCell(ITableAnnotation t, int r, int c)
         {
             try { return t.get_Text(r, c) ?? ""; } catch { return ""; }
         }
 
         /// <summary>Il testo di una cella senza i codici di formato: «&lt;MOD-DIAM&gt;» diventa «Ø».</summary>
-        private static string PulisciCella(string s)
+        private static string CleanCell(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
             s = s.Replace("<MOD-DIAM>", "Ø");
@@ -404,15 +404,15 @@ namespace Oce.Solid.Agent.Core
         /// quel tipo; vuoto se non ce n'e'. Si chiede, non si scrive a mano (voce
         /// GT5: la costante giusta serve a fare la domanda, non a saltarla).
         /// </summary>
-        private string PrimoModelloDiTabella(int preferenza, string estensione)
+        private string FirstTableModel(int preference, string ext)
         {
             try
             {
-                string cartelle = _sw.GetUserPreferenceStringValue(preferenza) ?? "";
-                foreach (var c in cartelle.Split(';'))
+                string folders = _sw.GetUserPreferenceStringValue(preference) ?? "";
+                foreach (var c in folders.Split(';'))
                 {
                     if (string.IsNullOrWhiteSpace(c) || !System.IO.Directory.Exists(c)) continue;
-                    var f = System.IO.Directory.GetFiles(c, "*" + estensione, System.IO.SearchOption.AllDirectories);
+                    var f = System.IO.Directory.GetFiles(c, "*" + ext, System.IO.SearchOption.AllDirectories);
                     if (f.Length > 0) { Array.Sort(f, StringComparer.OrdinalIgnoreCase); return f[0]; }
                 }
             }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -57,14 +57,14 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the answers of SOLIDWORKS are read in the weldment, assembly and export operations (Z-C21.8)");
+            Group("the answers of SOLIDWORKS are read in the weldment, assembly and export operations (Z-C21.8)");
 
             DiscardedAnswersOnTheSource();
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of the Z-C21.8 weldment and assembly fixes",
+                NotHere("the pure rules of the Z-C21.8 weldment and assembly fixes",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.ContractTests
             bool interop = false;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     interop = true;
@@ -89,10 +89,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // on a network drive, where LoadFrom is refused.
                 asm = Assembly.Load(File.ReadAllBytes(library));
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
-            Type sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
-            if (sw == null) { Segna("OperazioniSw is in the library", false, "type missing"); return; }
+            Type sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
+            if (sw == null) { Check("OperazioniSw is in the library", false, "type missing"); return; }
 
             TrimEndCondition(sw);
             CutListItems(sw);
@@ -147,14 +147,14 @@ namespace Oce.Solid.Agent.ContractTests
             var names = new[] { "UpdateCutList", "Select4", "Select2", "DeleteSelection2", "SelectByID2" };
             int caught = mustCatch.Count(s => Discarded(s, names).Count > 0);
             var falseAlarms = mustPass.Where(s => Discarded(s, names).Count > 0).ToList();
-            Segna("the rule catches an answer thrown away", caught == mustCatch.Length,
+            Check("the rule catches an answer thrown away", caught == mustCatch.Length,
                   caught + " of " + mustCatch.Length + " discarded calls caught");
-            Segna("and lets an answer that is read go through", falseAlarms.Count == 0,
+            Check("and lets an answer that is read go through", falseAlarms.Count == 0,
                   falseAlarms.Count == 0 ? mustPass.Length + " lines that read the answer, no false alarm"
                                          : string.Join(" | ", falseAlarms));
 
             // ── THEN THE REAL SOURCE ─────────────────────────────────────
-            var folder = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
+            var folder = Path.Combine(Root(), "Oce.Solid.Agent.Core");
             var found = new List<string>();
             int calls = 0;
             foreach (var entry in ReadAnswers)
@@ -165,7 +165,7 @@ namespace Oce.Solid.Agent.ContractTests
                 calls += CountCalls(text, entry.Value);
                 foreach (var d in Discarded(text, entry.Value)) found.Add(entry.Key + ":" + d);
             }
-            Segna("no answer of these calls is thrown away (Select4, cut list, Select2, DeleteSelection2, SelectByID2, AutoBalloon5)",
+            Check("no answer of these calls is thrown away (Select4, cut list, Select2, DeleteSelection2, SelectByID2, AutoBalloon5)",
                   found.Count == 0 && calls > 0,
                   found.Count == 0 ? calls + " calls in " + ReadAnswers.Count + " files, every answer read"
                                    : string.Join(" | ", found));
@@ -175,7 +175,7 @@ namespace Oce.Solid.Agent.ContractTests
             var mirror = Path.Combine(folder, "MirrorComponentOperations.cs");
             string mirrorSource = File.Exists(mirror) ? File.ReadAllText(mirror) : "";
             bool reads = Regex.IsMatch(mirrorSource, @"ApiHelpers\.RebuildError\(\s*\w+\s*,\s*out\s+bool\s+mirrorErrorKnown\s*\)");
-            Segna("L11-7: the component mirror reads GetErrorCode2 of the mirror it made", reads,
+            Check("L11-7: the component mirror reads GetErrorCode2 of the mirror it made", reads,
                   "MirrorComponentOperations.cs: ApiHelpers.RebuildError(..., out bool mirrorErrorKnown)");
         }
 
@@ -382,14 +382,14 @@ namespace Oce.Solid.Agent.ContractTests
                 int none = (int)Call(sw, "TrimEndCondition", "none");
                 int unknown = (int)Call(sw, "TrimEndCondition", "sconosciuta");
                 int missing = (int)Call(sw, "TrimEndCondition", (object)null);
-                Segna("N22: the four catalogue words give Trim 4, Miter 1, Butt1 2, Butt2 3, whatever their case",
+                Check("N22: the four catalogue words give Trim 4, Miter 1, Butt1 2, Butt2 3, whatever their case",
                       trim == 4 && miter == 1 && butt1 == 2 && butt2 == 3,
                       trim + ", " + miter + ", " + butt1 + ", " + butt2);
-                Segna("N22: the word for none, an unknown word and nothing are refused (-1), not Trim",
+                Check("N22: the word for none, an unknown word and nothing are refused (-1), not Trim",
                       none == -1 && unknown == -1 && missing == -1,
                       none + ", " + unknown + ", " + missing);
             }
-            catch (Exception ex) { Segna("N22: TrimEndCondition can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N22: TrimEndCondition can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N15: an item of the cut list, body by body ───────────────────────
@@ -406,22 +406,22 @@ namespace Oce.Solid.Agent.ContractTests
                 var sound = (string)Call(sw, "CutListItemProblem", "TUBE 80X80X5", 2, (int?)2,
                                          new[] { 1469956.0, 1469956.1 });
                 var unread = (string)Call(sw, "CutListItemProblem", null, -1, null, null);
-                Segna("N15: one item holding bars of two volumes is a problem (the defect of GT2)",
+                Check("N15: one item holding bars of two volumes is a problem (the defect of GT2)",
                       gt2 != null && gt2.Contains("different volume"), gt2 ?? "null");
-                Segna("N15: a QUANTITY that is not the bodies of its folder is a problem",
+                Check("N15: a QUANTITY that is not the bodies of its folder is a problem",
                       quantity != null && quantity.Contains("QUANTITY 3") && quantity.Contains("2 bodies"),
                       quantity ?? "null");
-                Segna("N15: equal bodies are sound, and what was not read does not accuse",
+                Check("N15: equal bodies are sound, and what was not read does not accuse",
                       sound == null && unread == null, (sound ?? "null") + " | " + (unread ?? "null"));
 
                 var equalNull = (bool?)Call(sw, "BodiesAreEqual", (object)null);
                 var equalOne = (bool?)Call(sw, "BodiesAreEqual", new[] { 5.0 });
                 var equalNot = (bool?)Call(sw, "BodiesAreEqual", new[] { 5.0, 900.0 });
-                Segna("N15: bodies_equal is null when unknown, true for one body, false for two volumes",
+                Check("N15: bodies_equal is null when unknown, true for one body, false for two volumes",
                       equalNull == null && equalOne == true && equalNot == false,
                       (equalNull.HasValue ? equalNull.ToString() : "null") + ", " + equalOne + ", " + equalNot);
             }
-            catch (Exception ex) { Segna("N15: CutListItemProblem and BodiesAreEqual can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N15: CutListItemProblem and BodiesAreEqual can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N30: the weldment feature that would not go away ─────────────────
@@ -437,23 +437,23 @@ namespace Oce.Solid.Agent.ContractTests
                 var unread = note(true, true, null, 4, 4);
                 var gone = note(true, true, false, 4, 4);
                 var bodies = note(true, true, false, 4, 3);
-                Segna("N30: a Select2 or a DeleteSelection2 that answers false says the part stayed a weldment",
+                Check("N30: a Select2 or a DeleteSelection2 that answers false says the part stayed a weldment",
                       notSelected.Contains("Select2 answered false") && notSelected.Contains("stayed a weldment") &&
                       notDeleted.Contains("DeleteSelection2 answered false") && notDeleted.Contains("stayed a weldment"),
                       notSelected + " | " + notDeleted);
-                Segna("N30: after the deletion IsWeldment decides: true stays a weldment, unread says so",
+                Check("N30: after the deletion IsWeldment decides: true stays a weldment, unread says so",
                       stillWeldment.Contains("still reads true") && unread.Contains("could not read IsWeldment"),
                       stillWeldment + " | " + unread);
-                Segna("N30: «as it was» only when IsWeldment reads false, and bodies that changed are said",
+                Check("N30: «as it was» only when IsWeldment reads false, and bodies that changed are said",
                       gone.Contains("reads false again") && !gone.Contains("stayed") &&
                       bodies.Contains("3 bodies where it had 4"),
                       gone + " | " + bodies);
             }
-            catch (Exception ex) { Segna("N30: WeldmentRemovalNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N30: WeldmentRemovalNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── The component mirror a refusal removes: said removed after a reread ──
-        // TogliLoSpecchio said «the assembly is as it was» on the answer of
+        // RemoveMirror said «the assembly is as it was» on the answer of
         // DeleteSelection2 alone, and L11-7 gave it one more caller. Now the tree
         // is read again: removed only when the mirror is no longer in it.
         private static void MirrorRemoval(Type sw)
@@ -466,7 +466,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var stillThere = note(true, true, null);
                 var unread = note(true, null, null);
                 var refused = note(false, null, "Bracket_left.SLDPRT");
-                Segna("L11-7/M42: the component mirror is said removed only when the tree read again lacks it",
+                Check("L11-7/M42: the component mirror is said removed only when the tree read again lacks it",
                       gone.Contains("I removed") && gone.Contains("it is gone") &&
                       !stillThere.Contains("I removed") && stillThere.Contains("still in the tree") &&
                       !unread.Contains("I removed") && unread.Contains("could not read the tree") &&
@@ -474,7 +474,7 @@ namespace Oce.Solid.Agent.ContractTests
                       refused.Contains("Bracket_left.SLDPRT"),
                       gone + " | " + stillThere + " | " + unread + " | " + refused);
             }
-            catch (Exception ex) { Segna("L11-7/M42: MirrorRemovalNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("L11-7/M42: MirrorRemovalNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N15: the refusal when the automatic cut list does not turn on ────
@@ -485,13 +485,13 @@ namespace Oce.Solid.Agent.ContractTests
                 var oldList = (string)Call(sw, "AutomaticCutListRefusal", (bool?)false, true);
                 var refused = (string)Call(sw, "AutomaticCutListRefusal", (bool?)false, false);
                 var off = (string)Call(sw, "AutomaticCutListRefusal", null, false);
-                Segna("N15: an old cut list gets its own message, and SetAutomaticCutList's false is said",
+                Check("N15: an old cut list gets its own message, and SetAutomaticCutList's false is said",
                       oldList.Contains("Delete that cut list") && oldList.Contains("0.124.0") &&
                       refused.Contains("SetAutomaticCutList answered false") &&
                       off.Contains("GetAutomaticCutList reads false"),
                       oldList + " | " + refused + " | " + off);
             }
-            catch (Exception ex) { Segna("N15: AutomaticCutListRefusal can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N15: AutomaticCutListRefusal can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N38: certain and possible interferences apart ────────────────────
@@ -506,7 +506,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var expected = BenchVerdictWords("assemblies", "cover_inside_base");
                 if (expected == null || expected.Count == 0)
                 {
-                    Segna("N38: the bench case of the lid in the base says what its verdict holds", false,
+                    Check("N38: the bench case of the lid in the base says what its verdict holds", false,
                           "no expected words for the verdict in that bench case");
                     return;
                 }
@@ -516,25 +516,25 @@ namespace Oce.Solid.Agent.ContractTests
                 var onlyPossible = (string)Call(sw, "InterferenceVerdict", 1, (int?)1, true, 5.0, 5.0, two);
                 var mixed = (string)Call(sw, "InterferenceVerdict", 3, (int?)1, true, 30.0, 10.0, two);
                 var unknown = (string)Call(sw, "InterferenceVerdict", 2, null, false, 0.0, 0.0, null);
-                Segna("N38: a certain interference keeps the verdict the bench reads, count and volume",
+                Check("N38: a certain interference keeps the verdict the bench reads, count and volume",
                       expected.All(w => certain.Contains(w)) &&
                       certain.StartsWith(alarm + ": 1 ", StringComparison.Ordinal) &&
                       certain.Contains(" 19200 mm3") && !certain.Contains("POSSIBLE"),
-                      Breve(certain));
-                Segna("N38: one POSSIBLE interference does not raise the alarm of a certain one",
+                      Truncated(certain));
+                Check("N38: one POSSIBLE interference does not raise the alarm of a certain one",
                       !onlyPossible.Contains(alarm) && onlyPossible.Contains("1 POSSIBLE interference") &&
                       onlyPossible.Contains("no certain one"),
                       onlyPossible);
-                Segna("N38: three with one possible: two certain in the head, the possible one apart",
+                Check("N38: three with one possible: two certain in the head, the possible one apart",
                       mixed.StartsWith(alarm + ": 2 ", StringComparison.Ordinal) && mixed.Contains(" 20 mm3") &&
                       mixed.Contains("Besides these, 1 POSSIBLE interference, 10 mm3"),
                       mixed);
-                Segna("N38: when the flag was not read, all are counted and the verdict says it",
+                Check("N38: when the flag was not read, all are counted and the verdict says it",
                       unknown.StartsWith(alarm + ": 2 ", StringComparison.Ordinal) &&
                       unknown.Contains("could not read"),
                       unknown);
             }
-            catch (Exception ex) { Segna("N38: InterferenceVerdict can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N38: InterferenceVerdict can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         /// <summary>
@@ -543,7 +543,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static List<string> BenchVerdictWords(string folder, string caseName)
         {
-            var path = Path.Combine(Radice(), "Bench", "cases", folder, caseName + ".json");
+            var path = Path.Combine(Root(), "Bench", "cases", folder, caseName + ".json");
             if (!File.Exists(path)) return null;
             var json = new System.Web.Script.Serialization.JavaScriptSerializer()
                 .DeserializeObject(File.ReadAllText(path)) as Dictionary<string, object>;
@@ -574,15 +574,15 @@ namespace Oce.Solid.Agent.ContractTests
                 var multibody = (string)Call(sw, "InterferenceSettingsProblem", false, (bool?)false, true, (bool?)false, (bool?)false);
                 var ignored = (string)Call(sw, "InterferenceSettingsProblem", false, (bool?)false, false, (bool?)false, (bool?)true);
                 var unread = (string)Call(sw, "InterferenceSettingsProblem", true, null, true, null, null);
-                Segna("N18: a setting that reads back different from the request is a problem",
+                Check("N18: a setting that reads back different from the request is a problem",
                       coincidence != null && coincidence.Contains("TreatCoincidenceAsInterference reads false") &&
                       multibody != null && multibody.Contains("IncludeMultibodyPartInterferences") &&
                       ignored != null && ignored.Contains("ShowIgnoredInterferences"),
                       (coincidence ?? "null") + " | " + (multibody ?? "null") + " | " + (ignored ?? "null"));
-                Segna("N18: settings read back as asked, or not read back, are no problem",
+                Check("N18: settings read back as asked, or not read back, are no problem",
                       fine == null && unread == null, (fine ?? "null") + " | " + (unread ?? "null"));
             }
-            catch (Exception ex) { Segna("N18: InterferenceSettingsProblem can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N18: InterferenceSettingsProblem can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N18: the components looked at are the ones not suppressed ────────
@@ -591,7 +591,7 @@ namespace Oce.Solid.Agent.ContractTests
             try
             {
                 var m = sw.GetMethod("ComponentsLookedAt", Any);
-                if (m == null) { Segna("N18: ComponentsLookedAt is there", false, "missing on this library"); return; }
+                if (m == null) { Check("N18: ComponentsLookedAt is there", false, "missing on this library"); return; }
                 // swComponentSuppressionState_e: Suppressed 0, FullyResolved 2, Resolved 3.
                 var args = new object[] { new int?[] { 2, 0, 3 }, 0 };
                 int looked = (int)m.Invoke(null, args);
@@ -599,12 +599,12 @@ namespace Oce.Solid.Agent.ContractTests
                 var argsUnread = new object[] { new int?[] { 2, null }, 0 };
                 int lookedUnread = (int)m.Invoke(null, argsUnread);
                 int suppressedUnread = (int)argsUnread[1];
-                Segna("N18: three components, one suppressed: two looked at, one suppressed",
+                Check("N18: three components, one suppressed: two looked at, one suppressed",
                       looked == 2 && suppressed == 1, looked + " looked at, " + suppressed + " suppressed");
-                Segna("N18: a state that cannot be read makes both counts unknown (-1)",
+                Check("N18: a state that cannot be read makes both counts unknown (-1)",
                       lookedUnread == -1 && suppressedUnread == -1, lookedUnread + ", " + suppressedUnread);
             }
-            catch (Exception ex) { Segna("N18: ComponentsLookedAt can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("N18: ComponentsLookedAt can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── M39: the array AutoBalloon5 returns, counted ─────────────────────
@@ -618,14 +618,14 @@ namespace Oce.Solid.Agent.ContractTests
                 var disagree = (string)Call(sw, "BalloonCountNote", 2, 2, 5);
                 var noArray = (string)Call(sw, "BalloonCountNote", -1, 2, 5);
                 var uncounted = (string)Call(sw, "BalloonCountNote", 3, -1, 5);
-                Segna("M39: no array is -1, not zero; the notes of the array are counted",
+                Check("M39: no array is -1, not zero; the notes of the array are counted",
                       none == -1 && two == 2, none + ", " + two);
-                Segna("M39: the returned notes and the balloons counted in the view are compared",
+                Check("M39: the returned notes and the balloons counted in the view are compared",
                       agree == null && disagree != null && disagree.Contains("returned 2 notes") &&
                       noArray != null && noArray.Contains("no array") && uncounted == null,
                       (agree ?? "null") + " | " + (disagree ?? "null") + " | " + (noArray ?? "null"));
             }
-            catch (Exception ex) { Segna("M39: BalloonNotesReturned and BalloonCountNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("M39: BalloonNotesReturned and BalloonCountNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N17: only the preferences that were read go back ─────────────────
@@ -633,8 +633,8 @@ namespace Oce.Solid.Agent.ContractTests
         {
             try
             {
-                var t = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw+UserPreferenceSnapshot", false);
-                if (t == null) { Segna("N17: UserPreferenceSnapshot is there", false, "missing on this library"); return; }
+                var t = asm.GetType("Oce.Solid.Agent.Core.SwOperations+UserPreferenceSnapshot", false);
+                if (t == null) { Check("N17: UserPreferenceSnapshot is there", false, "missing on this library"); return; }
                 var readInteger = t.GetMethod("ReadInteger", AnyInstance);
                 var readToggle = t.GetMethod("ReadToggle", AnyInstance);
                 var restore = t.GetMethod("Restore", AnyInstance);
@@ -661,7 +661,7 @@ namespace Oce.Solid.Agent.ContractTests
                     (Action<int, bool>)((p, v) => { written.Add(p + "=" + v); toggles[p] = v; }),
                     (Func<int, bool>)(p => toggles.ContainsKey(p) && toggles[p]),
                 });
-                Segna("N17: only the preferences that were read are written back",
+                Check("N17: only the preferences that were read are written back",
                       read == 2 && written.Count == 2 && written.Contains("1=2") && written.Contains("3=True") &&
                       notBack.Count == 0,
                       read + " read; written: " + string.Join(", ", written) +
@@ -673,14 +673,14 @@ namespace Oce.Solid.Agent.ContractTests
                     (Action<int, bool>)((p, v) => { }),
                     (Func<int, bool>)(p => false),
                 });
-                Segna("N17: a setter that answers false and a toggle that does not read back are named",
+                Check("N17: a setter that answers false and a toggle that does not read back are named",
                       failing.Contains("quality") && failing.Contains("binary") && failing.Count == 2,
                       string.Join(", ", failing));
             }
             catch (Exception ex)
             {
                 var inner = ex is TargetInvocationException && ex.InnerException != null ? ex.InnerException : ex;
-                Segna("N17: UserPreferenceSnapshot can be used", false, inner.GetType().Name + ": " + inner.Message);
+                Check("N17: UserPreferenceSnapshot can be used", false, inner.GetType().Name + ": " + inner.Message);
             }
         }
 
@@ -696,18 +696,18 @@ namespace Oce.Solid.Agent.ContractTests
                 var errors = (string)Call(sw, "SaveWarningsAdvice", 1);
                 var views = (string)Call(sw, "SaveWarningsAdvice", 4);
                 var animator = (string)Call(sw, "SaveWarningsAdvice", 8);
-                Segna("L13-7: NeedsRebuild is 2, RebuildError 1, ViewsNeedUpdate 4, and each has its advice",
+                Check("L13-7: NeedsRebuild is 2, RebuildError 1, ViewsNeedUpdate 4, and each has its advice",
                       zero == null && animator == null &&
                       rebuild != null && rebuild.Contains("needed a rebuild") && !rebuild.Contains("rebuild errors") &&
                       errors != null && errors.Contains("rebuild errors") &&
                       views != null && views.Contains("drawing views"),
                       (rebuild ?? "null") + " | " + (errors ?? "null") + " | " + (views ?? "null"));
             }
-            catch (Exception ex) { Segna("L13-7: SaveWarningsAdvice can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("L13-7: SaveWarningsAdvice can be called", false, ex.GetType().Name + ": " + ex.Message); }
 
             if (!interop)
             {
-                NonQui("L13-7: the Warnings mask decoded by name",
+                NotHere("L13-7: the Warnings mask decoded by name",
                        "the names come from the interop enum, and the interop of SOLIDWORKS is not on this machine");
                 return;
             }
@@ -716,13 +716,13 @@ namespace Oce.Solid.Agent.ContractTests
                 var none = (string)Call(sw, "SaveWarningsForAnswer", 0);
                 var one = (string)Call(sw, "SaveWarningsForAnswer", 2);
                 var two = (string)Call(sw, "SaveWarningsForAnswer", 5);
-                Segna("L13-7: the Warnings mask goes in the answer by name, and 0 says «none»",
+                Check("L13-7: the Warnings mask goes in the answer by name, and 0 says «none»",
                       none.StartsWith("none", StringComparison.Ordinal) &&
                       one == "swFileSaveWarning_NeedsRebuild" &&
                       two.Contains("swFileSaveWarning_RebuildError") && two.Contains("swFileSaveWarning_ViewsNeedUpdate"),
                       none + " | " + one + " | " + two);
             }
-            catch (Exception ex) { Segna("L13-7: SaveWarningsForAnswer can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("L13-7: SaveWarningsForAnswer can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
     }
 }

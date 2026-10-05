@@ -24,166 +24,166 @@ const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const RADICE = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
-const USCITA = path.join(__dirname, "viste");
+const ROOT = path.resolve(__dirname, "..");
+const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
+const OUTPUT = path.join(__dirname, "viste");
 
 // DUE CHIAMATE, NON UNA: il ponte ne da' al massimo tre per volta, ed e' un
 // tetto voluto (una vista costa piu' di dieci volte l'intero stato scritto).
 // Quattro viste sono due chiamate, e va bene cosi': questo e' il raccoglitore,
 // non il ponte.
-const PRIMA_MANO = ["isometric"];
-const SECONDA_MANO = ["front", "top", "right"];
+const FIRST_ROUND = ["isometric"];
+const SECOND_ROUND = ["front", "top", "right"];
 
-const dati = process.argv.slice(2);
-const piani = dati.length
-  ? dati
+const data = process.argv.slice(2);
+const planes = data.length
+  ? data
   : fs.readdirSync(path.join(__dirname, "cases", "views"))
       .filter(f => f.endsWith(".json"))
       .sort()
       .map(f => path.join(__dirname, "cases", "views", f));
 
-if (!piani.length) { console.error("nessun piano da raccogliere"); process.exit(2); }
-fs.mkdirSync(USCITA, { recursive: true });
+if (!planes.length) { console.error("nessun piano da raccogliere"); process.exit(2); }
+fs.mkdirSync(OUTPUT, { recursive: true });
 
 // ──────────────────────────────────────────────────────────────────────────
 
-let prossimoId = 1;
-const attesa = new Map();
-let avanzo = "";
+let nextId = 1;
+const expectation = new Map();
+let leftover = "";
 
-const ponte = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
-ponte.stderr.on("data", () => {});
-ponte.stdout.on("data", d => {
-  avanzo += d.toString();
+const bridge = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
+bridge.stderr.on("data", () => {});
+bridge.stdout.on("data", d => {
+  leftover += d.toString();
   let i;
-  while ((i = avanzo.indexOf("\n")) >= 0) {
-    const riga = avanzo.slice(0, i).trim();
-    avanzo = avanzo.slice(i + 1);
-    if (!riga) continue;
-    let m; try { m = JSON.parse(riga); } catch (e) { continue; }
-    const chi = attesa.get(m.id);
-    if (chi) { attesa.delete(m.id); chi(m); }
+  while ((i = leftover.indexOf("\n")) >= 0) {
+    const line = leftover.slice(0, i).trim();
+    leftover = leftover.slice(i + 1);
+    if (!line) continue;
+    let m; try { m = JSON.parse(line); } catch (e) { continue; }
+    const chi = expectation.get(m.id);
+    if (chi) { expectation.delete(m.id); chi(m); }
   }
 });
 
-function manda(metodo, parametri) {
-  const id = prossimoId++;
-  return new Promise(risolvi => {
-    attesa.set(id, risolvi);
-    ponte.stdin.write(JSON.stringify(
-      { jsonrpc: "2.0", id: id, method: metodo, params: parametri }) + "\n");
+function send(method, parameters) {
+  const id = nextId++;
+  return new Promise(resolve => {
+    expectation.set(id, resolve);
+    bridge.stdin.write(JSON.stringify(
+      { jsonrpc: "2.0", id: id, method: method, params: parameters }) + "\n");
   });
 }
 
-function avvisa(metodo) {
-  ponte.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: metodo }) + "\n");
+function warn(method) {
+  bridge.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: method }) + "\n");
 }
 
-async function chiama(strumento, argomenti) {
-  const m = await manda("tools/call", { name: strumento, arguments: argomenti || {} });
+async function invoke(tool, args) {
+  const m = await send("tools/call", { name: tool, arguments: args || {} });
   const r = m.result || {};
-  const pezzi = r.content || [];
-  const testo = pezzi.filter(c => c.type === "text").map(c => c.text).join("\n");
-  const immagini = pezzi.filter(c => c.type === "image");
-  let dati = null; try { dati = JSON.parse(testo); } catch (e) {}
-  return { testo: testo, dati: dati, immagini: immagini, errore: !!r.isError };
+  const parts = r.content || [];
+  const text = parts.filter(c => c.type === "text").map(c => c.text).join("\n");
+  const images = parts.filter(c => c.type === "image");
+  let data = null; try { data = JSON.parse(text); } catch (e) {}
+  return { testo: text, dati: data, immagini: images, errore: !!r.isError };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
 
-function nomeDi(percorso) {
-  return path.basename(percorso, ".json");
+function nameOf(filePath) {
+  return path.basename(filePath, ".json");
 }
 
 // LO STATO SI ESTRAE DAL TESTO, e il testo non e' JSON puro quando ci sono
 // immagini: davanti c'e' la didascalia. Si prende da dove comincia l'oggetto.
-function statoDalTesto(testo) {
-  const i = testo.indexOf("{");
+function stateFromText(text) {
+  const i = text.indexOf("{");
   if (i < 0) return null;
-  try { return JSON.parse(testo.slice(i)); } catch (e) { return null; }
+  try { return JSON.parse(text.slice(i)); } catch (e) { return null; }
 }
 
-function salvaImmagini(nome, quali, immagini) {
-  const scritti = [];
-  for (let k = 0; k < immagini.length && k < quali.length; k++) {
-    const file = path.join(USCITA, nome + "-" + quali[k] + ".png");
-    fs.writeFileSync(file, Buffer.from(immagini[k].data, "base64"));
-    scritti.push(path.basename(file) + " (" +
+function saveImages(itemName, whichOnes, images) {
+  const written = [];
+  for (let k = 0; k < images.length && k < whichOnes.length; k++) {
+    const file = path.join(OUTPUT, itemName + "-" + whichOnes[k] + ".png");
+    fs.writeFileSync(file, Buffer.from(images[k].data, "base64"));
+    written.push(path.basename(file) + " (" +
                  Math.round(fs.statSync(file).size / 1024) + " kB)");
   }
-  return scritti;
+  return written;
 }
 
-async function raccogli(percorsoPiano) {
-  const nome = nomeDi(percorsoPiano);
-  const grezzo = JSON.parse(fs.readFileSync(percorsoPiano, "utf8"));
-  const verita = (grezzo.find(p => p._truth) || {})._truth || "(non dichiarata)";
+async function collect(planPath) {
+  const itemName = nameOf(planPath);
+  const raw = JSON.parse(fs.readFileSync(planPath, "utf8"));
+  const truth = (raw.find(p => p._truth) || {})._truth || "(non dichiarata)";
 
   // Il piano che si manda non porta i campi che cominciano per `_`: sono note
   // per chi legge il file, e `build` rifiuterebbe argomenti che lo schema
   // non conosce.
-  const passi = grezzo.map(p => ({ operation: p.operation, arguments: p.arguments }));
+  const steps = raw.map(p => ({ operation: p.operation, arguments: p.arguments }));
 
   console.log("");
-  console.log("=== " + nome + " ===");
+  console.log("=== " + itemName + " ===");
 
-  const r = spawnSync(NUOVA, [], { encoding: "utf8" });
+  const r = spawnSync(NEW, [], { encoding: "utf8" });
   if (r.status !== 0) { console.log("  NO  parte nuova non creata"); return false; }
 
-  await chiama("inspect_part");
-  const fatto = await chiama("build", { steps: passi });
-  if (fatto.errore) {
+  await invoke("inspect_part");
+  const done = await invoke("build", { steps: steps });
+  if (done.errore) {
     console.log("  NO  il piano non e' passato: " +
-                fatto.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
+                done.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
     return false;
   }
-  const volume = (fatto.dati || {}).volume_after_mm3;
+  const volume = (done.dati || {}).volume_after_mm3;
   console.log("  ok  costruito, volume " + volume + " mm3");
 
   // ── lo stato, senza immagini: e' quello che il modello riceve OGGI ──
-  const soloStato = await chiama("inspect_part");
-  const stato = soloStato.dati || statoDalTesto(soloStato.testo);
-  fs.writeFileSync(path.join(USCITA, nome + "-stato.json"),
-                   JSON.stringify(stato, null, 1));
-  const caratteri = fs.statSync(path.join(USCITA, nome + "-stato.json")).size;
-  console.log("  ok  stato: " + caratteri + " caratteri, " +
-              ((stato.faces || []).length) + " facce, " +
-              ((stato.feature || []).length) + " lavorazioni");
+  const stateOnly = await invoke("inspect_part");
+  const docState = stateOnly.dati || stateFromText(stateOnly.testo);
+  fs.writeFileSync(path.join(OUTPUT, itemName + "-stato.json"),
+                   JSON.stringify(docState, null, 1));
+  const characters = fs.statSync(path.join(OUTPUT, itemName + "-stato.json")).size;
+  console.log("  ok  stato: " + characters + " caratteri, " +
+              ((docState.faces || []).length) + " facce, " +
+              ((docState.feature || []).length) + " lavorazioni");
 
   // ── le immagini ──
-  const uno = await chiama("inspect_part", { views: PRIMA_MANO });
-  const tre = await chiama("inspect_part", { views: SECONDA_MANO });
-  const scritti = salvaImmagini(nome, PRIMA_MANO, uno.immagini)
-    .concat(salvaImmagini(nome, SECONDA_MANO, tre.immagini));
-  if (!scritti.length) {
+  const one = await invoke("inspect_part", { views: FIRST_ROUND });
+  const three = await invoke("inspect_part", { views: SECOND_ROUND });
+  const written = saveImages(itemName, FIRST_ROUND, one.immagini)
+    .concat(saveImages(itemName, SECOND_ROUND, three.immagini));
+  if (!written.length) {
     console.log("  NO  nessuna immagine: " +
-                uno.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
+                one.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
     return false;
   }
-  console.log("  ok  " + scritti.join(", "));
+  console.log("  ok  " + written.join(", "));
 
-  fs.writeFileSync(path.join(USCITA, nome + "-verita.txt"),
-                   verita + "\nvolume misurato: " + volume + " mm3\n");
+  fs.writeFileSync(path.join(OUTPUT, itemName + "-verita.txt"),
+                   truth + "\nvolume misurato: " + volume + " mm3\n");
   return true;
 }
 
 (async function () {
-  await manda("initialize", {
+  await send("initialize", {
     protocolVersion: "2024-11-05", capabilities: {},
     clientInfo: { name: "raccogli_viste", version: "1" },
   });
-  avvisa("notifications/initialized");
+  warn("notifications/initialized");
 
-  let bene = 0;
-  for (const p of piani) {
-    try { if (await raccogli(p)) bene++; }
-    catch (e) { console.log("  NO  " + nomeDi(p) + ": " + (e && e.message)); }
+  let fine = 0;
+  for (const p of planes) {
+    try { if (await collect(p)) fine++; }
+    catch (e) { console.log("  NO  " + nameOf(p) + ": " + (e && e.message)); }
   }
 
   console.log("");
-  console.log(bene + " forme su " + piani.length + " raccolte in " + USCITA);
-  ponte.stdin.end();
-  process.exitCode = bene === piani.length ? 0 : 1;
+  console.log(fine + " forme su " + planes.length + " raccolte in " + OUTPUT);
+  bridge.stdin.end();
+  process.exitCode = fine === planes.length ? 0 : 1;
 })();

@@ -40,7 +40,7 @@ using SolidWorks.Interop.cosworks;
 //      .\Checks\Bracket\bin\Bracket.exe --tieni     lascia il pezzo aperto
 // =============================================================================
 
-internal static class Programma
+internal static class Program
 {
     // Il CLSID dell'add-in Simulation, da `HKLM\SOFTWARE\Classes\SldWorks.Simulation\CLSID`.
     private const string ClsidSimulation = "{1CC93C1D-B0C9-4641-A2AD-D19A5700052E}";
@@ -50,38 +50,38 @@ internal static class Programma
     // riflessione, non ricordati.
     private const int VonMises = 9;
     private const int NewtonSuMm2 = 3;
-    private const int StudioStatico = 0;
-    private const int IncastroFisso = 0;
-    private const int ForzaOMomento = 0;
-    private const int Millimetri = 0;
-    private const int NewtonEMetri = 0;   // swsForceUnit_e.swsForceUnitNOrNm
+    private const int StaticStudy = 0;
+    private const int FixedGeometry = 0;
+    private const int ForceOrMoment = 0;
+    private const int Millimeters = 0;
+    private const int NewtonAndMeters = 0;   // swsForceUnit_e.swsForceUnitNOrNm
 
-    private const double LunghezzaMm = 200.0;
-    private const double LarghezzaMm = 20.0;
-    private const double AltezzaMm = 10.0;
-    private const double ForzaN = 100.0;
+    private const double LengthMm = 200.0;
+    private const double WidthMm = 20.0;
+    private const double HeightMm = 10.0;
+    private const double ForceN = 100.0;
 
     /// <summary>Il nome esatto nell'archivio DIN, parentesi comprese.</summary>
-    private const string NomeMateriale = "1.0037 (S235JR)";
+    private const string MaterialName = "1.0037 (S235JR)";
 
-    private static int _passo;
+    private static int _step;
 
-    private static void Dice(string cosa)
+    private static void Says(string what)
     {
-        _passo++;
-        Console.WriteLine("  " + _passo.ToString("00") + ". " + cosa);
+        _step++;
+        Console.WriteLine("  " + _step.ToString("00") + ". " + what);
     }
 
-    private static int Main(string[] argomenti)
+    private static int Main(string[] arguments)
     {
-        bool tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
 
-        double atteso = SigmaAttesa();
+        double expected = ExpectedSigma();
         Console.WriteLine();
         Console.WriteLine("MENSOLA — la misura che dimensiona la sezione S (voce S3)");
-        Console.WriteLine("  trave " + LunghezzaMm + " x " + LarghezzaMm + " x " + AltezzaMm +
-                          " mm, incastrata, " + ForzaN + " N in punta");
-        Console.WriteLine("  sigma = M*c/I = " + atteso.ToString("0.0") + " MPa   <- calcolata a mano");
+        Console.WriteLine("  trave " + LengthMm + " x " + WidthMm + " x " + HeightMm +
+                          " mm, incastrata, " + ForceN + " N in punta");
+        Console.WriteLine("  sigma = M*c/I = " + expected.ToString("0.0") + " MPa   <- calcolata a mano");
         Console.WriteLine();
 
         ISldWorks sw;
@@ -92,7 +92,7 @@ internal static class Programma
             Console.WriteLine("Aprilo e rilancia.");
             return 2;
         }
-        Dice("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
 
         // ── L'ADD-IN, PRIMA DI TUTTO IL RESTO ────────────────────────────
         //
@@ -109,12 +109,12 @@ internal static class Programma
             Console.WriteLine("  Spuntala (anche la colonna «Avvio», se lo vuoi sempre) e rilancia.");
             return 3;
         }
-        Dice("Simulation caricato");
+        Says("Simulation caricato");
 
         IModelDoc2 doc = null;
         try
         {
-            doc = CreaLaTrave(sw);
+            doc = CreateBeam(sw);
             if (doc == null) return 4;
 
             // ── IL MATERIALE PRIMA DELLO STUDIO, E NON DOPO ──────────────
@@ -149,21 +149,21 @@ internal static class Programma
             // dell'archivio, **e si rilegge**: `SetMaterialPropertyName2`
             // torna void, quindi l'unico modo di sapere se ha funzionato e'
             // chiedere al pezzo cos'ha addosso.
-            var parte = doc as IPartDoc;
-            string archivio = ArchivioDin();
-            if (archivio == null) { Console.WriteLine("  non trovo l'archivio DIN"); return 5; }
-            parte.SetMaterialPropertyName2("", archivio, NomeMateriale);
+            var partDoc = doc as IPartDoc;
+            string archive = ArchiveDin();
+            if (archive == null) { Console.WriteLine("  non trovo l'archivio DIN"); return 5; }
+            partDoc.SetMaterialPropertyName2("", archive, MaterialName);
 
             string db2;
-            string messo = parte.GetMaterialPropertyName2("", out db2);
-            if (string.IsNullOrEmpty(messo))
+            string put = partDoc.GetMaterialPropertyName2("", out db2);
+            if (string.IsNullOrEmpty(put))
             {
                 Console.WriteLine("  il materiale NON si e' attaccato: rileggendo trovo il vuoto.");
-                Console.WriteLine("    archivio: " + archivio);
-                Console.WriteLine("    nome:     " + NomeMateriale);
+                Console.WriteLine("    archivio: " + archive);
+                Console.WriteLine("    nome:     " + MaterialName);
                 return 5;
             }
-            Dice("materiale «" + messo + "» (riletto, non assunto)");
+            Says("materiale «" + put + "» (riletto, non assunto)");
 
             // ── I TIPI VERI, E NON LE CHIAMATE PER NOME ──────────────────
             //
@@ -174,29 +174,29 @@ internal static class Programma
             // marshalare un `out Int32`. Con l'interop referenziato il
             // problema non esiste, e il compilatore controlla le firme —
             // che e' meglio di un messaggio a runtime.
-            var richiamo = addin as CwAddincallback;
-            if (richiamo == null)
+            var callout = addin as CwAddincallback;
+            if (callout == null)
             {
                 Console.WriteLine("  l'add-in non e' un CwAddincallback: " + addin.GetType().FullName);
                 return 5;
             }
-            CosmosWorks cw = richiamo.CosmosWorks;
+            CosmosWorks cw = callout.CosmosWorks;
             if (cw == null) { Console.WriteLine("  .CosmosWorks e' null"); return 5; }
-            CWModelDoc attivo = cw.ActiveDoc;
-            if (attivo == null) { Console.WriteLine("  .ActiveDoc e' null: Simulation non vede il pezzo"); return 5; }
-            CWStudyManager gestore = attivo.StudyManager;
-            if (gestore == null) { Console.WriteLine("  .StudyManager e' null"); return 5; }
-            Dice("Simulation vede il documento");
+            CWModelDoc active = cw.ActiveDoc;
+            if (active == null) { Console.WriteLine("  .ActiveDoc e' null: Simulation non vede il pezzo"); return 5; }
+            CWStudyManager handler = active.StudyManager;
+            if (handler == null) { Console.WriteLine("  .StudyManager e' null"); return 5; }
+            Says("Simulation vede il documento");
 
             // ── 1. LO STUDIO ─────────────────────────────────────────────
             int errStudio;
-            CWStudy studio = gestore.CreateNewStudy3("mensola-s3", StudioStatico, 0, out errStudio);
+            CWStudy studio = handler.CreateNewStudy3("mensola-s3", StaticStudy, 0, out errStudio);
             if (studio == null)
             {
                 Console.WriteLine("  CreateNewStudy3 -> null, errore " + errStudio);
                 return 5;
             }
-            Dice("studio statico creato (errore " + errStudio + ")");
+            Says("studio statico creato (errore " + errStudio + ")");
 
             // ── 2. IL MATERIALE, CHE STA SUL CORPO ───────────────────────
             //
@@ -214,19 +214,19 @@ internal static class Programma
             // L'ipotesi che si prova per prima: un `object[]` di `IFace2`,
             // che e' la forma che tutta l'API di SOLIDWORKS usa per «un
             // insieme di entita'».
-            CWLoadsAndRestraintsManager gestoreCarichi = studio.LoadsAndRestraintsManager;
-            if (gestoreCarichi == null) { Console.WriteLine("  LoadsAndRestraintsManager e' null"); return 5; }
+            CWLoadsAndRestraintsManager loadsHandler = studio.LoadsAndRestraintsManager;
+            if (loadsHandler == null) { Console.WriteLine("  LoadsAndRestraintsManager e' null"); return 5; }
 
-            IFace2 facciaIncastro, facciaCarico;
-            if (!DueFacceInPunta(doc, out facciaIncastro, out facciaCarico)) return 4;
-            Dice("trovate le due facce di testa");
+            IFace2 fixedFace, loadFace;
+            if (!TwoFacesAtTip(doc, out fixedFace, out loadFace)) return 4;
+            Says("trovate le due facce di testa");
 
             int errV;
-            CWRestraint vincolo = gestoreCarichi.AddRestraint(
-                IncastroFisso, new object[] { facciaIncastro }, null, out errV);
-            Console.WriteLine("      AddRestraint -> " + (vincolo == null ? "null" : "oggetto") +
+            CWRestraint constraint = loadsHandler.AddRestraint(
+                FixedGeometry, new object[] { fixedFace }, null, out errV);
+            Console.WriteLine("      AddRestraint -> " + (constraint == null ? "null" : "oggetto") +
                               ", errore " + errV);
-            if (vincolo == null)
+            if (constraint == null)
             {
                 Console.WriteLine();
                 Console.WriteLine("  IL FORMATO DI DispArray NON E' UN object[] DI IFace2.");
@@ -235,7 +235,7 @@ internal static class Programma
                 Console.WriteLine("  passare null, oppure un array di Dispatch presi da SelectionMgr.");
                 return 6;
             }
-            Dice("incastro applicato");
+            Says("incastro applicato");
 
             // La forza: verso -Y, in punta.
             // ── LA FORZA VUOLE UNA DIREZIONE, L'INCASTRO NO ──────────────
@@ -253,27 +253,27 @@ internal static class Programma
             // flessione e farebbe leggere un numero piccolo e plausibile —
             // *il modo peggiore di sbagliare, perche' non somiglia a un
             // errore.*
-            object pianoRif = PianoDiRiferimento(doc, 2);
-            if (pianoRif == null) { Console.WriteLine("  non trovo il piano di riferimento"); return 6; }
+            object planeRef = ReferencePlane(doc, 2);
+            if (planeRef == null) { Console.WriteLine("  non trovo il piano di riferimento"); return 6; }
 
             int errF;
-            CWForce forza = gestoreCarichi.AddForce(
-                ForzaOMomento, new object[] { facciaCarico }, pianoRif, out errF);
-            Console.WriteLine("      AddForce -> " + (forza == null ? "null" : "oggetto") +
+            CWForce force = loadsHandler.AddForce(
+                ForceOrMoment, new object[] { loadFace }, planeRef, out errF);
+            Console.WriteLine("      AddForce -> " + (force == null ? "null" : "oggetto") +
                               ", errore " + errF);
-            if (forza == null) { Console.WriteLine("  AddForce non ha accettato nemmeno col piano."); return 6; }
+            if (force == null) { Console.WriteLine("  AddForce non ha accettato nemmeno col piano."); return 6; }
 
             // IL VALORE SI METTE DOPO, sull'oggetto tornato: `AddForce` a
             // quattro argomenti non ha nessun posto dove metterlo. Accertato
             // leggendo `ICWForce`, che ha `SetForceComponentValues2` e la
             // coppia `ForceBeginEdit` / `ForceEndEdit`.
-            forza.ForceBeginEdit();
-            forza.Unit = NewtonEMetri;
+            force.ForceBeginEdit();
+            force.Unit = NewtonAndMeters;
             //                    X      Y     Z        valori
-            forza.SetForceComponentValues2(false, true, false, 0.0, ForzaN, 0.0);
-            int esitoForza = forza.ForceEndEdit();
-            Dice("carico di " + ForzaN + " N lungo Y (esito " + esitoForza + ")");
-            if (esitoForza != 0)
+            force.SetForceComponentValues2(false, true, false, 0.0, ForceN, 0.0);
+            int forceOutcome = force.ForceEndEdit();
+            Says("carico di " + ForceN + " N lungo Y (esito " + forceOutcome + ")");
+            if (forceOutcome != 0)
             {
                 Console.WriteLine("  ForceEndEdit non e' tornato 0: il carico non e' stato accettato.");
                 return 6;
@@ -296,59 +296,59 @@ internal static class Programma
             // *Un numero solo non prova niente, e questo vale in tutt'e due
             // i versi: se avesse dato 60 al primo colpo non avrei saputo se
             // era giusto o fortunato.* Si infittisce e si guarda DOVE VA.
-            double[] lati = { 4.0, 2.0, 1.0, 0.6 };
-            double ultimo = double.NaN;
+            double[] sides = { 4.0, 2.0, 1.0, 0.6 };
+            double last = double.NaN;
 
             Console.WriteLine();
-            Console.WriteLine("  lato mesh    sigma max    scarto da " + atteso.ToString("0.0") + " MPa");
+            Console.WriteLine("  lato mesh    sigma max    scarto da " + expected.ToString("0.0") + " MPa");
             Console.WriteLine("  ---------    ---------    -------------------");
 
-            foreach (double lato in lati)
+            foreach (double side in sides)
             {
-                int eMesh = studio.CreateMesh(Millimetri, lato, lato / 20.0);
+                int eMesh = studio.CreateMesh(Millimeters, side, side / 20.0);
                 if (eMesh != 0)
                 {
-                    Console.WriteLine("  " + lato.ToString("0.0").PadLeft(7) + " mm    mesh fallita (esito " + eMesh + ")");
+                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    mesh fallita (esito " + eMesh + ")");
                     continue;
                 }
-                int eGiro = studio.RunAnalysis();
-                if (eGiro != 0)
+                int runCode = studio.RunAnalysis();
+                if (runCode != 0)
                 {
-                    Console.WriteLine("  " + lato.ToString("0.0").PadLeft(7) + " mm    giro fallito (esito " + eGiro + ")");
+                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    giro fallito (esito " + runCode + ")");
                     continue;
                 }
 
                 int errS;
-                object letto = studio.Results.GetMinMaxStress(
+                object read = studio.Results.GetMinMaxStress(
                     VonMises, 0, 0, null, NewtonSuMm2, out errS);
-                double sigma = MassimoVero(letto);
+                double sigma = TrueMaximum(read);
                 if (double.IsNaN(sigma))
                 {
-                    Console.WriteLine("  " + lato.ToString("0.0").PadLeft(7) + " mm    non si legge (errore " + errS + ")");
+                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    non si legge (errore " + errS + ")");
                     continue;
                 }
-                ultimo = sigma;
-                double sc = (sigma - atteso) / atteso * 100.0;
-                Console.WriteLine("  " + lato.ToString("0.0").PadLeft(7) + " mm  " +
+                last = sigma;
+                double sc = (sigma - expected) / expected * 100.0;
+                Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm  " +
                                   sigma.ToString("0.00").PadLeft(9) + "    " +
                                   (sc >= 0 ? "+" : "") + sc.ToString("0.0") + " %");
             }
 
             // ── IL VERDETTO, SULL'ULTIMA E PIU' FITTA ────────────────────
-            if (double.IsNaN(ultimo))
+            if (double.IsNaN(last))
             {
                 Console.WriteLine();
                 Console.WriteLine("Nessuna mesh e' arrivata in fondo: non c'e' un numero da giudicare.");
                 return 7;
             }
 
-            double scarto = Math.Abs(ultimo - atteso) / atteso * 100.0;
+            double deviation = Math.Abs(last - expected) / expected * 100.0;
             Console.WriteLine();
-            Console.WriteLine("  a mano:            " + atteso.ToString("0.0") + " MPa");
-            Console.WriteLine("  l'API, mesh fitta: " + ultimo.ToString("0.0") + " MPa");
-            Console.WriteLine("  scarto:            " + scarto.ToString("0.0") + " %");
+            Console.WriteLine("  a mano:            " + expected.ToString("0.0") + " MPa");
+            Console.WriteLine("  l'API, mesh fitta: " + last.ToString("0.0") + " MPa");
+            Console.WriteLine("  scarto:            " + deviation.ToString("0.0") + " %");
             Console.WriteLine();
-            if (scarto <= 10.0)
+            if (deviation <= 10.0)
             {
                 Console.WriteLine("ENTRO IL 10%. La catena regge e la sezione S si puo' preventivare.");
                 Console.WriteLine("E la colonna degli scarti dice ANCHE come ci si arriva: e' quella");
@@ -363,7 +363,7 @@ internal static class Programma
         }
         finally
         {
-            if (doc != null && !tieni)
+            if (doc != null && !keep)
             {
                 try { sw.CloseDoc(doc.GetTitle()); } catch { }
             }
@@ -383,17 +383,17 @@ internal static class Programma
     /// scarto 3%» e avrei scritto che la catena regge. Un numero sbagliato e
     /// plausibile non si distingue da una misura.
     /// </summary>
-    private static double MassimoVero(object letto)
+    private static double TrueMaximum(object read)
     {
-        var a = letto as Array;
+        var a = read as Array;
         if (a == null || a.Length < 4) return double.NaN;
         return Convert.ToDouble(a.GetValue(3));
     }
 
-    private static double SigmaAttesa()
+    private static double ExpectedSigma()
     {
-        double L = LunghezzaMm / 1000.0, b = LarghezzaMm / 1000.0, h = AltezzaMm / 1000.0;
-        double M = ForzaN * L;
+        double L = LengthMm / 1000.0, b = WidthMm / 1000.0, h = HeightMm / 1000.0;
+        double M = ForceN * L;
         double I = b * h * h * h / 12.0;
         return M * (h / 2.0) / I / 1e6;   // Pa -> MPa
     }
@@ -406,15 +406,15 @@ internal static class Programma
     /// inglese. Un percorso costante funzionerebbe su questa macchina e su
     /// nessun'altra.
     /// </summary>
-    private static string ArchivioDin()
+    private static string ArchiveDin()
     {
-        string radice = @"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\lang";
-        var suo = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
-        if (!string.IsNullOrEmpty(suo)) radice = System.IO.Path.Combine(suo, "lang");
-        if (!System.IO.Directory.Exists(radice)) return null;
-        foreach (var lingua in System.IO.Directory.GetDirectories(radice))
+        string root = @"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\lang";
+        var its = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+        if (!string.IsNullOrEmpty(its)) root = System.IO.Path.Combine(its, "lang");
+        if (!System.IO.Directory.Exists(root)) return null;
+        foreach (var language in System.IO.Directory.GetDirectories(root))
         {
-            var p = System.IO.Path.Combine(lingua, "sldmaterials", "SolidWorks DIN Materials.sldmat");
+            var p = System.IO.Path.Combine(language, "sldmaterials", "SolidWorks DIN Materials.sldmat");
             if (System.IO.File.Exists(p)) return p;
         }
         return null;
@@ -431,7 +431,7 @@ internal static class Programma
     // W3.1-bis.2 point 10: `which` is now the tree position of the base plane
     // (1 = front, 2 = top, 3 = right), not its localized name — see
     // SelectBasePlane below.
-    private static object PianoDiRiferimento(IModelDoc2 doc, int which)
+    private static object ReferencePlane(IModelDoc2 doc, int which)
     {
         if (!SelectBasePlane(doc, which))
         {
@@ -439,32 +439,32 @@ internal static class Programma
             return null;
         }
         var sel = doc.SelectionManager as ISelectionMgr;
-        object piano = sel == null ? null : sel.GetSelectedObject6(1, -1);
+        object plane = sel == null ? null : sel.GetSelectedObject6(1, -1);
         doc.ClearSelection2(true);
-        return piano;
+        return plane;
     }
 
     /// <summary>La trave, disegnata e estrusa. Null se non e' venuta.</summary>
-    private static IModelDoc2 CreaLaTrave(ISldWorks sw)
+    private static IModelDoc2 CreateBeam(ISldWorks sw)
     {
-        string modello = sw.GetUserPreferenceStringValue(
+        string model = sw.GetUserPreferenceStringValue(
             (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-        var doc = (IModelDoc2)sw.NewDocument(modello, 0, 0, 0);
+        var doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
         if (doc == null) { Console.WriteLine("  NewDocument -> null"); return null; }
 
         SelectBasePlane(doc, 2);
         doc.SketchManager.InsertSketch(true);
         doc.SketchManager.CreateCornerRectangle(
-            0, 0, 0, LunghezzaMm / 1000.0, LarghezzaMm / 1000.0, 0);
+            0, 0, 0, LengthMm / 1000.0, WidthMm / 1000.0, 0);
         doc.SketchManager.InsertSketch(true);
 
         var f = doc.FeatureManager.FeatureExtrusion3(
-            true, false, false, 0, 0, AltezzaMm / 1000.0, 0.0,
+            true, false, false, 0, 0, HeightMm / 1000.0, 0.0,
             false, false, false, false, 0, 0, false, false, false, false,
             true, true, true, 0, 0, false);
         if (f == null) { Console.WriteLine("  l'estrusione non e' venuta"); return null; }
         doc.ViewZoomtofit2();
-        Dice("trave creata: " + LunghezzaMm + " x " + LarghezzaMm + " x " + AltezzaMm + " mm");
+        Says("trave creata: " + LengthMm + " x " + WidthMm + " x " + HeightMm + " mm");
         return doc;
     }
 
@@ -475,27 +475,27 @@ internal static class Programma
     /// promesso da nessuna parte, e prenderle per indice vorrebbe dire che la
     /// prova cambia significato se SOLIDWORKS le rinumera.
     /// </summary>
-    private static bool DueFacceInPunta(IModelDoc2 doc, out IFace2 incastro, out IFace2 carico)
+    private static bool TwoFacesAtTip(IModelDoc2 doc, out IFace2 fixture, out IFace2 forceLoad)
     {
-        incastro = null; carico = null;
-        var parte = doc as IPartDoc;
-        var corpi = parte == null ? null : parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-        if (corpi == null || corpi.Length == 0) { Console.WriteLine("  nessun corpo solido"); return false; }
+        fixture = null; forceLoad = null;
+        var partDoc = doc as IPartDoc;
+        var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+        if (bodies == null || bodies.Length == 0) { Console.WriteLine("  nessun corpo solido"); return false; }
 
-        double L = LunghezzaMm / 1000.0;
-        var faccia = (corpi[0] as IBody2).GetFirstFace() as IFace2;
-        while (faccia != null)
+        double L = LengthMm / 1000.0;
+        var face = (bodies[0] as IBody2).GetFirstFace() as IFace2;
+        while (face != null)
         {
-            var scatola = faccia.GetBox() as double[];
-            if (scatola != null && scatola.Length >= 6)
+            var box = face.GetBox() as double[];
+            if (box != null && box.Length >= 6)
             {
-                bool sottile = Math.Abs(scatola[3] - scatola[0]) < 1e-6;   // spessore nullo in X
-                if (sottile && Math.Abs(scatola[0]) < 1e-6) incastro = faccia;
-                if (sottile && Math.Abs(scatola[0] - L) < 1e-6) carico = faccia;
+                bool slender = Math.Abs(box[3] - box[0]) < 1e-6;   // spessore nullo in X
+                if (slender && Math.Abs(box[0]) < 1e-6) fixture = face;
+                if (slender && Math.Abs(box[0] - L) < 1e-6) forceLoad = face;
             }
-            faccia = faccia.GetNextFace() as IFace2;
+            face = face.GetNextFace() as IFace2;
         }
-        if (incastro == null || carico == null)
+        if (fixture == null || forceLoad == null)
         {
             Console.WriteLine("  non trovo le due facce di testa (x=0 e x=" + L + ")");
             return false;
@@ -510,37 +510,37 @@ internal static class Programma
     // Referenziarlo si puo' — ma cosi' la sonda dice chiaramente QUALE nome
     // sta cercando quando non lo trova, invece di non compilare.
 
-    private static object Prendi(object o, string nome)
+    private static object Take(object o, string itemName)
     {
         if (o == null) return null;
         try
         {
             return o.GetType().InvokeMember(
-                nome, System.Reflection.BindingFlags.GetProperty, null, o, null);
+                itemName, System.Reflection.BindingFlags.GetProperty, null, o, null);
         }
         catch (Exception ex)
         {
-            Console.WriteLine("      ." + nome + " alza: " + Radice(ex).Message);
+            Console.WriteLine("      ." + itemName + " alza: " + Root(ex).Message);
             return null;
         }
     }
 
-    private static object Chiama(object o, string nome, object[] arg)
+    private static object Invoke(object o, string itemName, object[] arg)
     {
         if (o == null) return null;
         try
         {
             return o.GetType().InvokeMember(
-                nome, System.Reflection.BindingFlags.InvokeMethod, null, o, arg);
+                itemName, System.Reflection.BindingFlags.InvokeMethod, null, o, arg);
         }
         catch (Exception ex)
         {
-            Console.WriteLine("      ." + nome + "(...) alza: " + Radice(ex).Message);
+            Console.WriteLine("      ." + itemName + "(...) alza: " + Root(ex).Message);
             return null;
         }
     }
 
-    private static Exception Radice(Exception ex)
+    private static Exception Root(Exception ex)
     {
         while (ex.InnerException != null) ex = ex.InnerException;
         return ex;

@@ -52,7 +52,7 @@ Quelle che restano fuori **si dicono**, su stderr, una per riga: un elenco che
 si accorcia in silenzio non si nota.
 
 Per ogni operazione: `name`, `family`, `summary`, `details`, `schema`,
-`precondition`. `Provata` no — e' una cosa nostra, non del modello.
+`precondition`. `Tested` no — e' una cosa nostra, non del modello.
 
 Fuori restano anche le famiglie che non hanno nemmeno un'operazione provata, e
 anche quelle si dicono. Una famiglia dichiarata e vuota arriva al modello come

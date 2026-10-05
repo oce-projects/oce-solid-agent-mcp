@@ -53,84 +53,84 @@ namespace Oce.Solid.Agent.Core
     /// i centri dei fori, il passo, lo spessore di parete. E' compressione con
     /// dentro un conto gia' fatto.
     /// </summary>
-    public static class FormaAParole
+    public static class ShapeToWords
     {
-        private static readonly CultureInfo Punto = CultureInfo.InvariantCulture;
+        private static readonly CultureInfo Point = CultureInfo.InvariantCulture;
 
         /// <summary>
         /// La frase. Null quando non c'e' abbastanza per dirne una: **meglio
         /// niente che una frase vuota che sembra una descrizione**.
         /// </summary>
-        public static string Descrivi(Dictionary<string, object> stato)
+        public static string Describe(Dictionary<string, object> docState)
         {
-            if (stato == null) return null;
-            if (!Vero(stato, "solid_body")) return null;
+            if (docState == null) return null;
+            if (!True(docState, "solid_body")) return null;
 
-            var pezzi = new List<string>();
+            var parts = new List<string>();
 
             // ── 1. QUANTO E' GRANDE, e quanto e' pieno ──────────────────
             //
             // Il rapporto fra volume e ingombro dice una cosa vera e utile
             // senza classificare niente: 98% e' un pieno, 23% e' qualcosa di
             // cavo o di sottile. E' un numero, non un aggettivo.
-            double[] ing = Vettore(stato, "bounding_box_mm");
-            double volume = Numero(stato, "volume_mm3");
+            double[] ing = Vector(docState, "bounding_box_mm");
+            double volume = Number(docState, "volume_mm3");
             if (ing != null && ing.Length == 3)
             {
-                string misure = Mm(ing[0]) + " x " + Mm(ing[1]) + " x " + Mm(ing[2]) + " mm";
-                double scatola = ing[0] * ing[1] * ing[2];
-                if (volume > 0 && scatola > 0)
+                string measurements = Mm(ing[0]) + " x " + Mm(ing[1]) + " x " + Mm(ing[2]) + " mm";
+                double box = ing[0] * ing[1] * ing[2];
+                if (volume > 0 && box > 0)
                 {
-                    int pieno = (int)Math.Round(volume / scatola * 100.0);
-                    pezzi.Add("Ingombro " + misure + ", volume " + Mm(volume) +
-                              " mm3 (il " + pieno + "% dell'ingombro)");
+                    int full = (int)Math.Round(volume / box * 100.0);
+                    parts.Add("Ingombro " + measurements + ", volume " + Mm(volume) +
+                              " mm3 (il " + full + "% dell'ingombro)");
                 }
-                else pezzi.Add("Ingombro " + misure);
+                else parts.Add("Ingombro " + measurements);
             }
-            else if (volume > 0) pezzi.Add("Volume " + Mm(volume) + " mm3");
+            else if (volume > 0) parts.Add("Volume " + Mm(volume) + " mm3");
 
-            int corpi = (int)Numero(stato, "bodies_total");
-            if (corpi > 1) pezzi.Add(corpi + " corpi separati");
+            int bodies = (int)Number(docState, "bodies_total");
+            if (bodies > 1) parts.Add(bodies + " corpi separati");
 
             // ── 2. COSA CI HANNO FATTO SOPRA ────────────────────────────
             //
             // Solo tipi che il progettista ha scelto: `Shell` e `Revolution`
             // dicono cos'e' il pezzo perche' cos'e' l'ha deciso lui.
-            var feature = Voci(stato, "feature").ToList();
-            if (feature.Any(f => Testo(f, "kind") == "Revolution"))
+            var feature = Entries(docState, "feature").ToList();
+            if (feature.Any(f => Text(f, "kind") == "Revolution"))
             {
-                pezzi.Add("pezzo di rivoluzione");
-                string profilo = ProfiloTornito(stato, ing, volume);
-                if (profilo != null) pezzi.Add(profilo);
+                parts.Add("pezzo di rivoluzione");
+                string profile = TurnedProfile(docState, ing, volume);
+                if (profile != null) parts.Add(profile);
             }
 
-            var guscio = feature.FirstOrDefault(f => Testo(f, "kind") == "Shell");
-            if (guscio != null)
+            var shell = feature.FirstOrDefault(f => Text(f, "kind") == "Shell");
+            if (shell != null)
             {
-                double parete = PrimaQuota(guscio);
-                pezzi.Add(parete > 0
-                    ? "svuotato, parete " + Mm(parete) + " mm"
+                double wall = FirstDimension(shell);
+                parts.Add(wall > 0
+                    ? "svuotato, parete " + Mm(wall) + " mm"
                     : "svuotato");
             }
 
             // ── 3. I FORI, col centro gia' calcolato ────────────────────
-            pezzi.AddRange(Fori(stato));
+            parts.AddRange(Holes(docState));
 
             // ── 4. QUELLO CHE NON SI E' POTUTO DIRE ─────────────────────
             //
             // Un elenco troncato o delle lavorazioni in errore cambiano il
             // senso di tutta la frase, e tacerle la renderebbe una bugia per
             // omissione: chi legge crederebbe di avere il pezzo intero.
-            int fuori = (int)Numero(stato, "feature_not_listed");
-            if (fuori > 0)
-                pezzi.Add("piu' altre " + fuori + " lavorazioni che non sono nell'elenco");
-            int inErrore = (int)Numero(stato, "features_in_error");
-            if (inErrore > 0)
-                pezzi.Add(inErrore + " lavorazion" + (inErrore == 1 ? "e" : "i") +
+            int outside = (int)Number(docState, "feature_not_listed");
+            if (outside > 0)
+                parts.Add("piu' altre " + outside + " lavorazioni che non sono nell'elenco");
+            int inError = (int)Number(docState, "features_in_error");
+            if (inError > 0)
+                parts.Add(inError + " lavorazion" + (inError == 1 ? "e" : "i") +
                           " IN ERRORE: il pezzo non e' quello che l'albero dice");
 
-            if (pezzi.Count == 0) return null;
-            return string.Join(", ", pezzi) + ".";
+            if (parts.Count == 0) return null;
+            return string.Join(", ", parts) + ".";
         }
 
         /// <summary>
@@ -180,52 +180,52 @@ namespace Oce.Solid.Agent.Core
         /// invece di aggiungerlo). Se non torna, **si tace**: resta «pezzo di
         /// rivoluzione», che e' poco ma e' vero.
         /// </summary>
-        private static string ProfiloTornito(
-            Dictionary<string, object> stato, double[] ingombro, double volume)
+        private static string TurnedProfile(
+            Dictionary<string, object> docState, double[] boundingBox, double volume)
         {
-            if (ingombro == null || ingombro.Length != 3 || volume <= 0) return null;
+            if (boundingBox == null || boundingBox.Length != 3 || volume <= 0) return null;
 
             // ── l'asse, e dev'essere uno solo ────────────────────────────
-            int lungoQuale = -1;
-            var tratti = new List<double[]>();   // {posizione, diametro, lunghezza}
+            int alongWhich = -1;
+            var strokes = new List<double[]>();   // {posizione, diametro, lunghezza}
 
-            foreach (var f in Voci(stato, "faces"))
+            foreach (var f in Entries(docState, "faces"))
             {
-                if (Vero(f, "planar")) continue;
-                double d = Numero(f, "diameter_mm");
-                double area = Numero(f, "area_mm2");
-                var asse = Vettore(f, "axis");
-                var punto = Vettore(f, "point_mm");
-                if (d <= 0 || area <= 0 || asse == null || punto == null) return null;
-                if (asse.Length != 3 || punto.Length != 3) return null;
+                if (True(f, "planar")) continue;
+                double d = Number(f, "diameter_mm");
+                double area = Number(f, "area_mm2");
+                var axis = Vector(f, "axis");
+                var point = Vector(f, "point_mm");
+                if (d <= 0 || area <= 0 || axis == null || point == null) return null;
+                if (axis.Length != 3 || point.Length != 3) return null;
 
                 // L'asse dev'essere allineato a X, Y o Z: un tornito storto
                 // rispetto agli assi del modello non si sa raccontare, e
                 // provarci vorrebbe dire indovinare.
-                int quale = -1;
+                int which = -1;
                 for (int i = 0; i < 3; i++)
-                    if (Math.Abs(Math.Abs(asse[i]) - 1) < 1e-6) quale = i;
-                if (quale < 0) return null;
-                if (lungoQuale < 0) lungoQuale = quale;
-                else if (lungoQuale != quale) return null;   // due assi: non e' un tornito semplice
+                    if (Math.Abs(Math.Abs(axis[i]) - 1) < 1e-6) which = i;
+                if (which < 0) return null;
+                if (alongWhich < 0) alongWhich = which;
+                else if (alongWhich != which) return null;   // due assi: non e' un tornito semplice
 
-                tratti.Add(new[] { punto[quale], d, area / (Math.PI * d) });
+                strokes.Add(new[] { point[which], d, area / (Math.PI * d) });
             }
 
-            if (lungoQuale < 0 || tratti.Count == 0) return null;
+            if (alongWhich < 0 || strokes.Count == 0) return null;
 
-            tratti.Sort((a, b) => a[0].CompareTo(b[0]));
+            strokes.Sort((a, b) => a[0].CompareTo(b[0]));
 
             // ── 1. le lunghezze fanno l'ingombro? ────────────────────────
-            double somma = tratti.Sum(t => t[2]);
-            if (Math.Abs(somma - ingombro[lungoQuale]) > 0.05) return null;
+            double sum = strokes.Sum(t => t[2]);
+            if (Math.Abs(sum - boundingBox[alongWhich]) > 0.05) return null;
 
             // ── 2. e il volume torna? ────────────────────────────────────
-            double ricostruito = tratti.Sum(t => Math.PI * (t[1] / 2) * (t[1] / 2) * t[2]);
-            if (Math.Abs(ricostruito - volume) > Math.Max(0.5, volume * 0.005)) return null;
+            double rebuilt = strokes.Sum(t => Math.PI * (t[1] / 2) * (t[1] / 2) * t[2]);
+            if (Math.Abs(rebuilt - volume) > Math.Max(0.5, volume * 0.005)) return null;
 
             return "profilo " + string.Join(", ",
-                tratti.Select(t => Diam(Mm(t[1])) + " per " + Mm(t[2]))) + " mm";
+                strokes.Select(t => Diam(Mm(t[1])) + " per " + Mm(t[2]))) + " mm";
         }
 
         /// <summary>
@@ -242,40 +242,40 @@ namespace Oce.Solid.Agent.Core
         /// (`from_feature`): sono i fori e le tasche tonde. I raccordi
         /// d'angolo di un profilo sono cilindrici anche loro e fori non sono.
         /// </summary>
-        private static IEnumerable<string> Fori(Dictionary<string, object> stato)
+        private static IEnumerable<string> Holes(Dictionary<string, object> docState)
         {
-            var perDiametro = new Dictionary<string, List<double[]>>();
-            foreach (var f in Voci(stato, "faces"))
+            var perDiameter = new Dictionary<string, List<double[]>>();
+            foreach (var f in Entries(docState, "faces"))
             {
-                if (Vero(f, "planar")) continue;
-                double d = Numero(f, "diameter_mm");
+                if (True(f, "planar")) continue;
+                double d = Number(f, "diameter_mm");
                 if (d <= 0) continue;
-                if (string.IsNullOrEmpty(Testo(f, "from_feature"))) continue;
-                var centro = Vettore(f, "center_mm");
-                if (centro == null) continue;
+                if (string.IsNullOrEmpty(Text(f, "from_feature"))) continue;
+                var center = Vector(f, "center_mm");
+                if (center == null) continue;
 
-                string chiave = Mm(d);
-                if (!perDiametro.ContainsKey(chiave)) perDiametro[chiave] = new List<double[]>();
-                perDiametro[chiave].Add(centro);
+                string key = Mm(d);
+                if (!perDiameter.ContainsKey(key)) perDiameter[key] = new List<double[]>();
+                perDiameter[key].Add(center);
             }
 
-            foreach (var g in perDiametro.OrderByDescending(x => Convert.ToDouble(x.Key, Punto)))
+            foreach (var g in perDiameter.OrderByDescending(x => Convert.ToDouble(x.Key, Point)))
             {
-                int quanti = g.Value.Count;
-                string voce = quanti + (quanti == 1 ? " foro" : " fori") + " " + Diam(g.Key);
+                int howMany = g.Value.Count;
+                string entry = howMany + (howMany == 1 ? " foro" : " fori") + " " + Diam(g.Key);
 
                 // SE STANNO SU UNA CIRCONFERENZA, LO SI DICE.
                 // E' il dato che serve a chi deve imbullonare, ed e' proprio
                 // quello che il solo elenco delle facce faceva sbagliare.
-                double diametroCorona;
-                if (quanti >= 3 && SuUnaCirconferenza(g.Value, out diametroCorona))
-                    voce += " su una circonferenza " + Diam(Mm(diametroCorona)) +
-                            " a passo " + Mm(360.0 / quanti) + " gradi";
-                else if (quanti <= 6)
-                    voce += (quanti == 1 ? " (centro " : " (centri ") + string.Join("; ",
+                double rimDiameter;
+                if (howMany >= 3 && OnCircumference(g.Value, out rimDiameter))
+                    entry += " su una circonferenza " + Diam(Mm(rimDiameter)) +
+                            " a passo " + Mm(360.0 / howMany) + " gradi";
+                else if (howMany <= 6)
+                    entry += (howMany == 1 ? " (centro " : " (centri ") + string.Join("; ",
                         g.Value.Select(c => Mm(c[0]) + "," + Mm(c[1]) + "," + Mm(c[2]))) + ")";
 
-                yield return voce;
+                yield return entry;
             }
         }
 
@@ -309,30 +309,30 @@ namespace Oce.Solid.Agent.Core
         /// e' esattamente il difetto che questa classe esiste per non avere —
         /// ed e' lo stesso di E16, commesso dal codice scritto per ripararlo.
         /// </summary>
-        private static bool SuUnaCirconferenza(List<double[]> centri, out double diametro)
+        private static bool OnCircumference(List<double[]> centers, out double diameter)
         {
-            diametro = 0;
-            if (centri.Count < 3) return false;
+            diameter = 0;
+            if (centers.Count < 3) return false;
 
-            for (int fisso = 0; fisso < 3; fisso++)
+            for (int grounded = 0; grounded < 3; grounded++)
             {
-                int a = (fisso + 1) % 3, b = (fisso + 2) % 3;
+                int a = (grounded + 1) % 3, b = (grounded + 2) % 3;
 
                 // 1. stesso piano
-                double quota = centri[0][fisso];
-                if (!centri.All(c => Math.Abs(c[fisso] - quota) < 0.05)) continue;
+                double dimension = centers[0][grounded];
+                if (!centers.All(c => Math.Abs(c[grounded] - dimension) < 0.05)) continue;
 
                 // 2. stesso raggio
-                double raggio = Math.Sqrt(centri[0][a] * centri[0][a] + centri[0][b] * centri[0][b]);
-                if (raggio < 0.05) continue;
-                if (!centri.All(c =>
-                        Math.Abs(Math.Sqrt(c[a] * c[a] + c[b] * c[b]) - raggio) < 0.05))
+                double radius = Math.Sqrt(centers[0][a] * centers[0][a] + centers[0][b] * centers[0][b]);
+                if (radius < 0.05) continue;
+                if (!centers.All(c =>
+                        Math.Abs(Math.Sqrt(c[a] * c[a] + c[b] * c[b]) - radius) < 0.05))
                     continue;
 
                 // 3. passo angolare regolare
-                if (!PassoRegolare(centri, a, b)) continue;
+                if (!RegularPitch(centers, a, b)) continue;
 
-                diametro = raggio * 2;
+                diameter = radius * 2;
                 return true;
             }
             return false;
@@ -346,97 +346,97 @@ namespace Oce.Solid.Agent.Core
         /// disegno vero non e' mai esatto al centesimo, e mezzo grado su una
         /// corona Ø90 sono 0,4 mm.
         /// </summary>
-        private static bool PassoRegolare(List<double[]> centri, int a, int b)
+        private static bool RegularPitch(List<double[]> centers, int a, int b)
         {
-            var angoli = centri
+            var angles = centers
                 .Select(c => Math.Atan2(c[b], c[a]) * 180.0 / Math.PI)
                 .Select(g => g < 0 ? g + 360 : g)
                 .OrderBy(g => g)
                 .ToList();
 
-            double atteso = 360.0 / angoli.Count;
-            for (int i = 0; i < angoli.Count; i++)
+            double expected = 360.0 / angles.Count;
+            for (int i = 0; i < angles.Count; i++)
             {
-                double salto = (i + 1 < angoli.Count)
-                    ? angoli[i + 1] - angoli[i]
-                    : angoli[0] + 360 - angoli[i];
-                if (Math.Abs(salto - atteso) > 0.5) return false;
+                double skip = (i + 1 < angles.Count)
+                    ? angles[i + 1] - angles[i]
+                    : angles[0] + 360 - angles[i];
+                if (Math.Abs(skip - expected) > 0.5) return false;
             }
             return true;
         }
 
         // ── letture dallo stato, tutte tolleranti ────────────────────────
 
-        private static IEnumerable<Dictionary<string, object>> Voci(
-            Dictionary<string, object> stato, string chiave)
+        private static IEnumerable<Dictionary<string, object>> Entries(
+            Dictionary<string, object> docState, string key)
         {
             object g;
-            if (stato == null || !stato.TryGetValue(chiave, out g) || g == null) yield break;
-            var elenco = g as System.Collections.IEnumerable;
-            if (elenco == null) yield break;
-            foreach (var v in elenco)
+            if (docState == null || !docState.TryGetValue(key, out g) || g == null) yield break;
+            var list = g as System.Collections.IEnumerable;
+            if (list == null) yield break;
+            foreach (var v in list)
             {
-                var voce = v as Dictionary<string, object>;
-                if (voce != null) yield return voce;
+                var entry = v as Dictionary<string, object>;
+                if (entry != null) yield return entry;
             }
         }
 
-        private static double PrimaQuota(Dictionary<string, object> feature)
+        private static double FirstDimension(Dictionary<string, object> feature)
         {
-            foreach (var q in Voci(feature, "dimensions"))
+            foreach (var q in Entries(feature, "dimensions"))
             {
-                double mm = Numero(q, "mm");
+                double mm = Number(q, "mm");
                 if (mm > 0) return mm;
             }
             return 0;
         }
 
-        private static double Numero(Dictionary<string, object> d, string chiave)
+        private static double Number(Dictionary<string, object> d, string key)
         {
             object v;
-            if (d == null || !d.TryGetValue(chiave, out v) || v == null) return 0;
-            try { return Convert.ToDouble(v, Punto); } catch { return 0; }
+            if (d == null || !d.TryGetValue(key, out v) || v == null) return 0;
+            try { return Convert.ToDouble(v, Point); } catch { return 0; }
         }
 
-        private static string Testo(Dictionary<string, object> d, string chiave)
+        private static string Text(Dictionary<string, object> d, string key)
         {
             object v;
-            if (d == null || !d.TryGetValue(chiave, out v) || v == null) return null;
+            if (d == null || !d.TryGetValue(key, out v) || v == null) return null;
             return Convert.ToString(v);
         }
 
-        private static bool Vero(Dictionary<string, object> d, string chiave)
+        private static bool True(Dictionary<string, object> d, string key)
         {
             object v;
-            if (d == null || !d.TryGetValue(chiave, out v) || v == null) return false;
+            if (d == null || !d.TryGetValue(key, out v) || v == null) return false;
             try { return Convert.ToBoolean(v); } catch { return false; }
         }
 
-        private static double[] Vettore(Dictionary<string, object> d, string chiave)
+        private static double[] Vector(Dictionary<string, object> d, string key)
         {
             object v;
-            if (d == null || !d.TryGetValue(chiave, out v) || v == null) return null;
-            var pronto = v as double[];
-            if (pronto != null) return pronto;
-            var elenco = v as System.Collections.IEnumerable;
-            if (elenco == null) return null;
-            var fuori = new List<double>();
-            foreach (var x in elenco)
+            if (d == null || !d.TryGetValue(key, out v) || v == null) return null;
+            var ready = v as double[];
+            if (ready != null) return ready;
+            var list = v as System.Collections.IEnumerable;
+            if (list == null) return null;
+            var outside = new List<double>();
+            foreach (var x in list)
             {
-                try { fuori.Add(Convert.ToDouble(x, Punto)); } catch { return null; }
+                try { outside.Add(Convert.ToDouble(x, Point)); } catch { return null; }
             }
-            return fuori.Count == 0 ? null : fuori.ToArray();
+            return outside.Count == 0 ? null : outside.ToArray();
         }
 
         /// <summary>Un numero come lo scriverebbe un disegnatore: senza zeri inutili.</summary>
         private static string Mm(double v)
         {
-            return v.ToString("0.##", Punto);
+            return v.ToString("0.##", Point);
         }
 
-        private static string Diam(string misura)
+        private static string Diam(string measure)
         {
-            return "Ø" + misura;
+            return "Ø" + measure;
         }
     }
 }

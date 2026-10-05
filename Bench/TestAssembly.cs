@@ -4,10 +4,10 @@ using System.Globalization;
 using System.IO;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
-// Stessa ragione di `DeclaredCases.cs`: `Testo`, `Elenco`, `Risolvi` e `Breve`
-// vivono in `Attese`, che non tocca SOLIDWORKS (voce F7). `using static` li
+// Stessa ragione di `DeclaredCases.cs`: `Text`, `Items`, `Resolve` e `Short`
+// vivono in `Expectations`, che non tocca SOLIDWORKS (voce F7). `using static` li
 // lascia scrivere come se fossero qui.
-using static Oce.Solid.Agent.Bench.Attese;
+using static Oce.Solid.Agent.Bench.Expectations;
 
 namespace Oce.Solid.Agent.Bench
 {
@@ -16,9 +16,9 @@ namespace Oce.Solid.Agent.Bench
     ///
     /// ── PERCHE' QUESTA VOCE VIENE PRIMA DI TUTTA LA SEZIONE G-A ──────────
     ///
-    /// Fino al 16 settembre 2026 `NuovaParte()` era l'UNICO modo in cui il
+    /// Fino al 16 settembre 2026 `NewPart()` era l'UNICO modo in cui il
     /// banco preparava un documento, e usava `swDefaultTemplatePart`. Nessun
-    /// `NuovoAssieme`, e `"start": { "new_part": true }` era l'unica forma di
+    /// `NewAssembly`, e `"start": { "new_part": true }` era l'unica forma di
     /// preparazione che i 270 casi sapessero esprimere.
     ///
     /// Conseguenza: **nessuna operazione di assieme poteva avere un caso.** Si
@@ -47,7 +47,7 @@ namespace Oce.Solid.Agent.Bench
     ///
     /// ── LA REGOLA CHE NON SI ROMPE ───────────────────────────────────────
     ///
-    /// Ogni passo che non riesce chiama `ErroreDiBanco`, **non** `Segna(false)`.
+    /// Ogni passo che non riesce chiama `BenchError`, **non** `Check(false)`.
     /// Non e' una prova rossa: e' il banco che non e' riuscito a preparare il
     /// pezzo, e sono due cose diverse (voce F12). Una preparazione fallita
     /// dichiarata «prova fallita» farebbe credere che si sia misurato qualcosa.
@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// Non c'e' ancora nessun caso `.json` di assieme, e il motivo e'
         /// onesto: **non esiste nessuna operazione di assieme da eseguire**, e
-        /// `EseguiIPassi` vuole almeno un passo. Un caso finto, con dentro
+        /// `RunSteps` vuole almeno un passo. Un caso finto, con dentro
         /// un'operazione di parte messa li' per riempire, proverebbe altro.
         ///
         /// Quindi la capacita' si prova come il banco prova se stesso (voci F1,
@@ -79,65 +79,65 @@ namespace Oce.Solid.Agent.Bench
         ///      non e' un caso, e' un ricordo.* Senza questa riga, la pulizia
         ///      rotta si scoprirebbe mesi dopo, guardando una cartella piena.
         /// </summary>
-        private static void ProvaLAssiemeDiProva()
+        private static void TestTheTestAssembly()
         {
             Console.WriteLine();
             Console.WriteLine("=== il banco sa preparare un assieme (GA0) ===");
 
-            var caso = new Dictionary<string, object>
+            var testCase = new Dictionary<string, object>
             {
                 ["name"] = "ga0_assieme_di_due",
                 ["assembly"] = new Dictionary<string, object>
                 {
                     ["components"] = new List<object>
                     {
-                        UnaPiastra("base", 100, 60, 10, null),
-                        UnaPiastra("coperchio", 100, 60, 4, new object[] { 0.0, 0.0, 20.0 }),
+                        APlate("base", 100, 60, 10, null),
+                        APlate("coperchio", 100, 60, 4, new object[] { 0.0, 0.0, 20.0 }),
                     },
                 },
             };
 
-            Preparazione p = null;
+            Preparation p = null;
             var file = new List<string>();
             try
             {
-                p = PreparaIlDocumento("ga0_assieme_di_due", caso);
-                if (p == null || p.Documento == null)
+                p = PrepareDocument("ga0_assieme_di_due", testCase);
+                if (p == null || p.Document == null)
                 {
-                    // `PreparaIlDocumento` ha gia' chiamato `ErroreDiBanco` e
+                    // `PrepareDocument` ha gia' chiamato `BenchError` e
                     // detto a quale dei sette passi si e' fermata: ripetere qui
                     // aggiungerebbe una riga che dice la stessa cosa peggio.
                     return;
                 }
-                file.AddRange(p.FileDaCancellare);
+                file.AddRange(p.FilesToDelete);
 
-                var ass = p.Documento as IAssemblyDoc;
-                int quanti = ass == null ? -1 : QuantiComponenti(ass);
-                Segna("l'assieme nasce con due componenti", quanti == 2,
-                      quanti + " componenti");
+                var ass = p.Document as IAssemblyDoc;
+                int howMany = ass == null ? -1 : HowManyComponents(ass);
+                Check("l'assieme nasce con due componenti", howMany == 2,
+                      howMany + " componenti");
 
-                int ciSono = 0;
-                foreach (var f in file) if (File.Exists(f)) ciSono++;
-                Segna("i file dei componenti ci sono, mentre servono",
-                      ciSono == file.Count, ciSono + " su " + file.Count);
+                int thereAre = 0;
+                foreach (var f in file) if (File.Exists(f)) thereAre++;
+                Check("i file dei componenti ci sono, mentre servono",
+                      thereAre == file.Count, thereAre + " su " + file.Count);
             }
-            finally { ButtaViaLaPreparazione(p); }
+            finally { ThrowAwayPreparation(p); }
 
-            int rimasti = 0;
-            foreach (var f in file) if (File.Exists(f)) rimasti++;
-            Segna("dopo, in «lavoro» non resta niente", rimasti == 0,
-                  rimasti == 0
+            int remained = 0;
+            foreach (var f in file) if (File.Exists(f)) remained++;
+            Check("dopo, in «lavoro» non resta niente", remained == 0,
+                  remained == 0
                       ? file.Count + " file cancellati"
-                      : rimasti + " file rimasti: il giro dopo li troverebbe gia' li'");
+                      : remained + " file rimasti: il giro dopo li troverebbe gia' li'");
         }
 
         /// <summary>Un componente: una piastra, con la sua posizione.</summary>
-        private static Dictionary<string, object> UnaPiastra(
-            string nome, double lunghezza, double larghezza, double spessore, object[] posizione)
+        private static Dictionary<string, object> APlate(
+            string itemName, double length, double width, double thickness, object[] position)
         {
             var c = new Dictionary<string, object>
             {
-                ["name"] = nome,
+                ["name"] = itemName,
                 ["steps"] = new List<object>
                 {
                     new Dictionary<string, object>
@@ -146,15 +146,15 @@ namespace Oce.Solid.Agent.Bench
                         ["arguments"] = new Dictionary<string, object>
                         {
                             ["plane"] = "top",
-                            ["length_mm"] = lunghezza,
-                            ["width_mm"] = larghezza,
-                            ["thickness_mm"] = spessore,
+                            ["length_mm"] = length,
+                            ["width_mm"] = width,
+                            ["thickness_mm"] = thickness,
                             ["centered"] = true,
                         },
                     },
                 },
             };
-            if (posizione != null) c["position_mm"] = posizione;
+            if (position != null) c["position_mm"] = position;
             return c;
         }
 
@@ -162,22 +162,22 @@ namespace Oce.Solid.Agent.Bench
         /// Il documento su cui gira un caso, piu' i file da cancellare dopo.
         ///
         /// E' una CLASSE e non una tupla perche' chi la riceve deve poterla
-        /// passare a `ButtaViaLaPreparazione` senza ricordarsi l'ordine di due
+        /// passare a `ThrowAwayPreparation` senza ricordarsi l'ordine di due
         /// valori: dimenticarsi di cancellare i componenti lascia file che il
         /// giro successivo trova gia' li', e un caso che riesce perche' un file
         /// del giro prima era rimasto non e' un caso, e' un ricordo.
         /// </summary>
-        internal sealed class Preparazione
+        internal sealed class Preparation
         {
-            public IModelDoc2 Documento;
-            public readonly List<string> FileDaCancellare = new List<string>();
+            public IModelDoc2 Document;
+            public readonly List<string> FilesToDelete = new List<string>();
 
             /// <summary>
             /// Documenti da chiudere indicati per NOME. Va bene per i
             /// componenti di un assieme: sono salvati su disco prima di
             /// essere aperti, e il loro nome non cambia piu'.
             /// </summary>
-            public readonly List<string> TitoliDaChiudere = new List<string>();
+            public readonly List<string> TitlesToClose = new List<string>();
 
             /// <summary>
             /// Documenti da chiudere indicati per RIFERIMENTO (voce K12-bis).
@@ -197,7 +197,7 @@ namespace Oce.Solid.Agent.Bench
             /// stessa lezione del documento attivo: si tiene il riferimento,
             /// e il titolo si chiede nel momento in cui serve.
             /// </summary>
-            public readonly List<IModelDoc2> DocumentiDaChiudere = new List<IModelDoc2>();
+            public readonly List<IModelDoc2> DocumentsToClose = new List<IModelDoc2>();
         }
 
         /// <summary>
@@ -205,26 +205,26 @@ namespace Oce.Solid.Agent.Bench
         /// assieme con dentro i suoi componenti.
         ///
         /// Torna `null` quando la preparazione non e' riuscita — e in quel caso
-        /// ha gia' detto perche' con `ErroreDiBanco`.
+        /// ha gia' detto perche' con `BenchError`.
         /// </summary>
-        internal static Preparazione PreparaIlDocumento(
-            string nome, Dictionary<string, object> caso)
+        internal static Preparation PrepareDocument(
+            string itemName, Dictionary<string, object> testCase)
         {
-            var fuori = new Preparazione();
-            var assieme = caso != null && caso.ContainsKey("assembly")
-                ? caso["assembly"] as Dictionary<string, object>
+            var outside = new Preparation();
+            var assemblyDoc = testCase != null && testCase.ContainsKey("assembly")
+                ? testCase["assembly"] as Dictionary<string, object>
                 : null;
 
-            if (assieme == null)
+            if (assemblyDoc == null)
             {
-                fuori.Documento = NuovaParte();
-                return fuori;
+                outside.Document = NewPart();
+                return outside;
             }
 
-            var componenti = Elenco(assieme, "components");
-            if (componenti == null || componenti.Count == 0)
+            var components = Items(assemblyDoc, "components");
+            if (components == null || components.Count == 0)
             {
-                ErroreDiBanco(nome, "«assembly» non porta nessun componente: un " +
+                BenchError(itemName, "«assembly» non porta nessun componente: un " +
                                     "assieme vuoto non prova niente");
                 return null;
             }
@@ -244,33 +244,33 @@ namespace Oce.Solid.Agent.Bench
             // that asked for an envelope and ran on a normal part would measure
             // another assembly and look right.
             bool reopenLightweight;
-            if (!FlagOf(nome, assieme, "reopen_lightweight", out reopenLightweight)) return null;
+            if (!FlagOf(itemName, assemblyDoc, "reopen_lightweight", out reopenLightweight)) return null;
             var envelopeNames = new List<string>();
             var hiddenNames = new List<string>();
-            for (int i = 0; i < componenti.Count; i++)
+            for (int i = 0; i < components.Count; i++)
             {
-                var one = componenti[i] as Dictionary<string, object>;
+                var one = components[i] as Dictionary<string, object>;
                 if (one == null) continue;   // said by the loop below, with its number
-                string itsName = Testo(one, "name") ?? ("comp" + (i + 1));
+                string itsName = Text(one, "name") ?? ("comp" + (i + 1));
                 bool envelope, hidden;
-                if (!FlagOf(nome, one, "envelope", out envelope) || !FlagOf(nome, one, "hidden", out hidden))
+                if (!FlagOf(itemName, one, "envelope", out envelope) || !FlagOf(itemName, one, "hidden", out hidden))
                     return null;
-                bool isSubassembly = Elenco(one, "components") != null;
+                bool isSubassembly = Items(one, "components") != null;
                 if (envelope && isSubassembly)
                 {
-                    ErroreDiBanco(nome, "«envelope» on the sub-assembly «" + itsName + "»: an envelope was " +
+                    BenchError(itemName, "«envelope» on the sub-assembly «" + itsName + "»: an envelope was " +
                                         "measured on a part only (probe of 28/9/2026)");
                     return null;
                 }
-                if ((envelope || hidden) && !DaInserire(one))
+                if ((envelope || hidden) && !ToInsert(one))
                 {
-                    ErroreDiBanco(nome, "«" + itsName + "» asks «envelope» or «hidden» with «to_insert» false: " +
+                    BenchError(itemName, "«" + itsName + "» asks «envelope» or «hidden» with «to_insert» false: " +
                                         "the preparation does not insert it, so it cannot make it either");
                     return null;
                 }
-                if (reopenLightweight && !DaInserire(one))
+                if (reopenLightweight && !ToInsert(one))
                 {
-                    ErroreDiBanco(nome, "«reopen_lightweight» closes every document of the components, and «" +
+                    BenchError(itemName, "«reopen_lightweight» closes every document of the components, and «" +
                                         itsName + "» («to_insert» false) is there to be inserted by a step, " +
                                         "which needs its document open");
                     return null;
@@ -292,59 +292,59 @@ namespace Oce.Solid.Agent.Bench
             // il segnaposto esiste gia' e vale su qualunque macchina. *Un caso
             // che nomina un percorso di questa macchina non e' una prova, e' un
             // ricordo.*
-            var percorsi = new List<string>();
-            var posizioni = new List<double[]>();
+            var paths = new List<string>();
+            var positions = new List<double[]>();
             // The file of each component by its name in the case, for the
             // «configurations» of step 7 (Z-C21.4), which name components.
             var pathByComponentName = new Dictionary<string, string>(StringComparer.Ordinal);
-            for (int i = 0; i < componenti.Count; i++)
+            for (int i = 0; i < components.Count; i++)
             {
-                var c = componenti[i] as Dictionary<string, object>;
+                var c = components[i] as Dictionary<string, object>;
                 if (c == null)
                 {
-                    ErroreDiBanco(nome, "il componente " + (i + 1) + " non e' un oggetto");
+                    BenchError(itemName, "il componente " + (i + 1) + " non e' un oggetto");
                     return null;
                 }
-                string suoNome = Testo(c, "name") ?? ("comp" + (i + 1));
+                string ownName = Text(c, "name") ?? ("comp" + (i + 1));
                 // A component with a list of components of its own is a
                 // SUB-ASSEMBLY (Z-C21.5, L11-3/L11-5): see BuildSubassembly.
-                var children = Elenco(c, "components");
-                string percorso = Path.Combine(
-                    Attese.Lavoro, NomeDiFile(nome) + "_" + NomeDiFile(suoNome) +
+                var children = Items(c, "components");
+                string filePath = Path.Combine(
+                    Expectations.Work, FileName(itemName) + "_" + FileName(ownName) +
                                    (children != null ? ".sldasm" : ".sldprt"));
-                pathByComponentName[suoNome] = percorso;
+                pathByComponentName[ownName] = filePath;
 
                 if (children != null)
                 {
-                    if (!BuildSubassembly(nome + " · sub-assembly «" + suoNome + "»",
-                                          NomeDiFile(nome) + "_" + NomeDiFile(suoNome), children, percorso, fuori))
+                    if (!BuildSubassembly(itemName + " · sub-assembly «" + ownName + "»",
+                                          FileName(itemName) + "_" + FileName(ownName), children, filePath, outside))
                         return null;
                 }
-                else if (!CostruisciESalva(nome + " · componente «" + suoNome + "»", c, percorso))
+                else if (!BuildAndSave(itemName + " · componente «" + ownName + "»", c, filePath))
                     return null;
 
-                Register(fuori, percorso);
+                Register(outside, filePath);
 
-                if (!DaInserire(c)) continue;
-                percorsi.Add(percorso);
-                posizioni.Add(PosizioneMm(c));
+                if (!ToInsert(c)) continue;
+                paths.Add(filePath);
+                positions.Add(PositionMm(c));
             }
 
             // ── 4. il documento di assieme ───────────────────────────────
             IModelDoc2 doc;
-            try { doc = NuovoAssieme(); }
+            try { doc = NewAssembly(); }
             catch (Exception ex)
             {
-                ErroreDiBanco(nome, "l'assieme nuovo su cui provare: " + Perche(ex));
-                ButtaViaIFile(fuori);
+                BenchError(itemName, "l'assieme nuovo su cui provare: " + Why(ex));
+                ThrowAwayFiles(outside);
                 return null;
             }
-            fuori.Documento = doc;
+            outside.Document = doc;
 
             var ass = doc as IAssemblyDoc;
             if (ass == null)
             {
-                ErroreDiBanco(nome, "il documento nuovo non e' un IAssemblyDoc: " +
+                BenchError(itemName, "il documento nuovo non e' un IAssemblyDoc: " +
                                     "il modello di assieme predefinito non e' un assieme");
                 return null;
             }
@@ -352,8 +352,8 @@ namespace Oce.Solid.Agent.Bench
             // ── 5a. TUTTI i componenti si riaprono, anche quelli che non si
             //        inseriscono: `insert_component` vuole il documento
             //        aperto, e chi lo chiama dal caso lo trova cosi'.
-            foreach (var f in new List<string>(fuori.FileDaCancellare))
-                if (!Apri(f, nome)) return null;
+            foreach (var f in new List<string>(outside.FilesToDelete))
+                if (!Open(f, itemName)) return null;
 
             // ── 5b. riaprire i componenti e inserirli ────────────────────
             //
@@ -361,26 +361,26 @@ namespace Oce.Solid.Agent.Bench
             // documento GIA' APERTO, altrimenti risponde null senza dire
             // perche'. E' la stessa precondizione delle viste di tavola, dove
             // era gia' costata un giro.
-            for (int i = 0; i < percorsi.Count; i++)
+            for (int i = 0; i < paths.Count; i++)
             {
-                var p = posizioni[i];
-                IComponent2 inserito = null;
+                var p = positions[i];
+                IComponent2 inserted = null;
                 try
                 {
-                    inserito = ass.AddComponent5(
-                        percorsi[i], 0, "", false, "",
+                    inserted = ass.AddComponent5(
+                        paths[i], 0, "", false, "",
                         p[0] / 1000.0, p[1] / 1000.0, p[2] / 1000.0) as IComponent2;
                 }
                 catch (Exception ex)
                 {
-                    ErroreDiBanco(nome, "AddComponent5 su «" +
-                                        Path.GetFileName(percorsi[i]) + "»: " + Perche(ex));
+                    BenchError(itemName, "AddComponent5 su «" +
+                                        Path.GetFileName(paths[i]) + "»: " + Why(ex));
                     return null;
                 }
-                if (inserito == null)
+                if (inserted == null)
                 {
-                    ErroreDiBanco(nome, "AddComponent5 ha risposto null su «" +
-                                        Path.GetFileName(percorsi[i]) + "»: il componente " +
+                    BenchError(itemName, "AddComponent5 ha risposto null su «" +
+                                        Path.GetFileName(paths[i]) + "»: il componente " +
                                         "non e' entrato, e nessuno lo direbbe piu' avanti");
                     return null;
                 }
@@ -395,11 +395,11 @@ namespace Oce.Solid.Agent.Bench
             // assieme diverso da quello dichiarato — e tutte le sue misure
             // sarebbero credibili e sbagliate.
             try { doc.EditRebuild3(); } catch { }
-            int quanti = QuantiComponenti(ass);
-            if (quanti != percorsi.Count)
+            int howMany = HowManyComponents(ass);
+            if (howMany != paths.Count)
             {
-                ErroreDiBanco(nome, "ho inserito " + percorsi.Count + " componenti e " +
-                                    "l'assieme ne ha " + quanti);
+                BenchError(itemName, "ho inserito " + paths.Count + " componenti e " +
+                                    "l'assieme ne ha " + howMany);
                 return null;
             }
 
@@ -408,17 +408,17 @@ namespace Oce.Solid.Agent.Bench
             // After the count and before «configurations»: each is set in the
             // configuration active now, and read back (Z-C21.11). A failure here
             // closes and deletes what the preparation made (see Abandon).
-            if (!MakeEnvelopes(nome, doc, ass, envelopeNames, pathByComponentName) ||
-                !HideComponents(nome, ass, hiddenNames, pathByComponentName))
+            if (!MakeEnvelopes(itemName, doc, ass, envelopeNames, pathByComponentName) ||
+                !HideComponents(itemName, ass, hiddenNames, pathByComponentName))
             {
-                ButtaViaLaPreparazione(fuori);
+                ThrowAwayPreparation(outside);
                 return null;
             }
 
             // ── 7. the configurations of the assembly, when the case asks ──
-            var configurations = Elenco(assieme, "configurations");
+            var configurations = Items(assemblyDoc, "configurations");
             if (configurations != null &&
-                !PrepareConfigurations(nome, doc, ass, configurations, pathByComponentName))
+                !PrepareConfigurations(itemName, doc, ass, configurations, pathByComponentName))
                 return null;
 
             // ── 8. saved, closed and reopened lightweight, when the case asks ──
@@ -429,12 +429,12 @@ namespace Oce.Solid.Agent.Bench
             // the REOPENED document: the one built above is closed.
             if (reopenLightweight)
             {
-                IModelDoc2 reopened = ReopenLightweight(nome, doc, percorsi.Count, fuori);
+                IModelDoc2 reopened = ReopenLightweight(itemName, doc, paths.Count, outside);
                 if (reopened == null) return null;
-                fuori.Documento = reopened;
+                outside.Document = reopened;
             }
 
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -442,13 +442,13 @@ namespace Oce.Solid.Agent.Bench
         /// Boolean is itself, anything else is a bench error (never read as
         /// false: the case would run on another assembly and look right).
         /// </summary>
-        private static bool FlagOf(string nome, Dictionary<string, object> map, string key, out bool value)
+        private static bool FlagOf(string itemName, Dictionary<string, object> map, string key, out bool value)
         {
             value = false;
             object raw;
             if (map == null || !map.TryGetValue(key, out raw) || raw == null) return true;
             if (raw is bool flag) { value = flag; return true; }
-            ErroreDiBanco(nome, "«" + key + "» is «" + Convert.ToString(raw, CultureInfo.InvariantCulture) +
+            BenchError(itemName, "«" + key + "» is «" + Convert.ToString(raw, CultureInfo.InvariantCulture) +
                                 "», not true or false");
             return false;
         }
@@ -468,18 +468,18 @@ namespace Oce.Solid.Agent.Bench
         /// rebuild, by its file, and IsEnvelope is READ BACK: an envelope that
         /// did not take is a bench error, never a case run on a normal part.
         /// </summary>
-        private static bool MakeEnvelopes(string nome, IModelDoc2 doc, IAssemblyDoc ass, List<string> names,
+        private static bool MakeEnvelopes(string itemName, IModelDoc2 doc, IAssemblyDoc ass, List<string> names,
                                           Dictionary<string, string> pathByComponentName)
         {
             foreach (var componentName in names)
             {
-                IComponent2 component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«envelope»");
+                IComponent2 component = ComponentOfCase(itemName, ass, componentName, pathByComponentName, "«envelope»");
                 if (component == null) return false;
                 string configuration = null;
                 try { configuration = component.ReferencedConfiguration; } catch { }
                 if (string.IsNullOrEmpty(configuration))
                 {
-                    ErroreDiBanco(nome, "«envelope»: I could not read which configuration «" + componentName +
+                    BenchError(itemName, "«envelope»: I could not read which configuration «" + componentName +
                                         "» references (ReferencedConfiguration), and CompConfigProperties6 is given it");
                     return false;
                 }
@@ -491,12 +491,12 @@ namespace Oce.Solid.Agent.Bench
                 }
                 catch (Exception ex)
                 {
-                    ErroreDiBanco(nome, "«envelope»: selecting «" + componentName + "»: " + Perche(ex));
+                    BenchError(itemName, "«envelope»: selecting «" + componentName + "»: " + Why(ex));
                     return false;
                 }
                 if (!selected)
                 {
-                    ErroreDiBanco(nome, "«envelope»: Select4 did not select «" + componentName + "», and " +
+                    BenchError(itemName, "«envelope»: Select4 did not select «" + componentName + "», and " +
                                         "CompConfigProperties6 acts on the selected component");
                     return false;
                 }
@@ -512,18 +512,18 @@ namespace Oce.Solid.Agent.Bench
                 catch (Exception ex)
                 {
                     try { doc.ClearSelection2(true); } catch { }
-                    ErroreDiBanco(nome, "CompConfigProperties6 on «" + componentName + "»: " + Perche(ex));
+                    BenchError(itemName, "CompConfigProperties6 on «" + componentName + "»: " + Why(ex));
                     return false;
                 }
                 try { doc.ClearSelection2(true); } catch { }
                 try { doc.EditRebuild3(); } catch { }
-                IComponent2 again = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«envelope»");
+                IComponent2 again = ComponentOfCase(itemName, ass, componentName, pathByComponentName, "«envelope»");
                 if (again == null) return false;
                 bool isEnvelope = false;
                 try { isEnvelope = again.IsEnvelope(); } catch { }
                 if (!isEnvelope)
                 {
-                    ErroreDiBanco(nome, "«" + componentName + "» is not an envelope after CompConfigProperties6 " +
+                    BenchError(itemName, "«" + componentName + "» is not an envelope after CompConfigProperties6 " +
                                         "(it answered " + answer + ", and IsEnvelope reads false or cannot be read)");
                     return false;
                 }
@@ -541,26 +541,26 @@ namespace Oce.Solid.Agent.Bench
         /// on the component found again by its file (false, so that a
         /// lightweight component is not taken for hidden: IComponent2~IsHidden.html).
         /// </summary>
-        private static bool HideComponents(string nome, IAssemblyDoc ass, List<string> names,
+        private static bool HideComponents(string itemName, IAssemblyDoc ass, List<string> names,
                                            Dictionary<string, string> pathByComponentName)
         {
             foreach (var componentName in names)
             {
-                IComponent2 component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«hidden»");
+                IComponent2 component = ComponentOfCase(itemName, ass, componentName, pathByComponentName, "«hidden»");
                 if (component == null) return false;
                 try { component.Visible = (int)swComponentVisibilityState_e.swComponentHidden; }
                 catch (Exception ex)
                 {
-                    ErroreDiBanco(nome, "«hidden»: IComponent2.Visible on «" + componentName + "»: " + Perche(ex));
+                    BenchError(itemName, "«hidden»: IComponent2.Visible on «" + componentName + "»: " + Why(ex));
                     return false;
                 }
-                IComponent2 again = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«hidden»");
+                IComponent2 again = ComponentOfCase(itemName, ass, componentName, pathByComponentName, "«hidden»");
                 if (again == null) return false;
                 bool hiddenNow = false;
                 try { hiddenNow = again.IsHidden(false); } catch { }
                 if (!hiddenNow)
                 {
-                    ErroreDiBanco(nome, "«" + componentName + "» is not hidden after IComponent2.Visible = " +
+                    BenchError(itemName, "«" + componentName + "» is not hidden after IComponent2.Visible = " +
                                         "swComponentHidden (IsHidden(false) reads false or cannot be read)");
                     return false;
                 }
@@ -584,7 +584,7 @@ namespace Oce.Solid.Agent.Bench
         ///      title);
         ///   2. it is closed by reference, then every loaded document whose FILE
         ///      is one of the case's is closed, twice (a part stays loaded while a
-        ///      sub-assembly that holds it is open, as in ButtaViaLaPreparazione);
+        ///      sub-assembly that holds it is open, as in ThrowAwayPreparation);
         ///   3. nothing of the case may still be loaded, looked at by path: a
         ///      leftover would come back resolved and the case would measure a
         ///      resolved assembly believing it lightweight;
@@ -596,41 +596,41 @@ namespace Oce.Solid.Agent.Bench
         /// open (insert_component) cannot follow, which step 0 refuses. Any
         /// failure closes and deletes what the preparation made.
         /// </summary>
-        private static IModelDoc2 ReopenLightweight(string nome, IModelDoc2 doc, int topLevelCount, Preparazione fuori)
+        private static IModelDoc2 ReopenLightweight(string itemName, IModelDoc2 doc, int topLevelCount, Preparation outside)
         {
-            string path = Path.Combine(Attese.Lavoro, NomeDiFile(nome) + ".sldasm");
+            string path = Path.Combine(Expectations.Work, FileName(itemName) + ".sldasm");
             int e = 0, w = 0;
             try { SaveTo(doc, path, out e, out w); }
             catch (Exception ex)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: saving the assembly: " + Perche(ex));
-                return Abandon(fuori);
+                BenchError(itemName, "«reopen_lightweight»: saving the assembly: " + Why(ex));
+                return Abandon(outside);
             }
             if (!File.Exists(path))
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: saved without errors (e=" + e + ", w=" + w + ") but «" +
+                BenchError(itemName, "«reopen_lightweight»: saved without errors (e=" + e + ", w=" + w + ") but «" +
                                     path + "» is not there");
-                return Abandon(fuori);
+                return Abandon(outside);
             }
-            Register(fuori, path);
+            Register(outside, path);
 
-            Chiudi(doc);
+            Close(doc);
             for (int round = 0; round < 2; round++)
-                foreach (IModelDoc2 loaded in LoadedDocumentsOf(fuori.FileDaCancellare) ?? new List<IModelDoc2>())
-                    Chiudi(loaded);
+                foreach (IModelDoc2 loaded in LoadedDocumentsOf(outside.FilesToDelete) ?? new List<IModelDoc2>())
+                    Close(loaded);
             // As the probe, before looking: the COM wrappers of the closed
             // documents are let go, so that nothing of this process keeps one.
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
-            List<IModelDoc2> still = LoadedDocumentsOf(fuori.FileDaCancellare);
+            List<IModelDoc2> still = LoadedDocumentsOf(outside.FilesToDelete);
             if (still == null || still.Count > 0)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: " + (still == null
+                BenchError(itemName, "«reopen_lightweight»: " + (still == null
                     ? "I could not read which documents are loaded (GetFirstDocument, GetNext, GetPathName)"
                     : "still loaded after closing: " + string.Join(", ", FileNamesOf(still))) +
                     ". Reopened now, those would come back resolved.");
-                return Abandon(fuori);
+                return Abandon(outside);
             }
 
             const int options = (int)swOpenDocOptions_e.swOpenDocOptions_Silent |
@@ -645,43 +645,43 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: OpenDoc6: " + Perche(ex));
-                return Abandon(fuori);
+                BenchError(itemName, "«reopen_lightweight»: OpenDoc6: " + Why(ex));
+                return Abandon(outside);
             }
             if (reopened == null)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: OpenDoc6 answered null (e=" + errors + ", w=" + warnings + ")");
-                return Abandon(fuori);
+                BenchError(itemName, "«reopen_lightweight»: OpenDoc6 answered null (e=" + errors + ", w=" + warnings + ")");
+                return Abandon(outside);
             }
             // From here the cleanup closes the reopened document.
-            fuori.Documento = reopened;
+            outside.Document = reopened;
             if ((warnings & (int)swFileLoadWarning_e.swFileLoadWarning_AlreadyOpen) != 0)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: OpenDoc6 warned that the assembly was already open " +
+                BenchError(itemName, "«reopen_lightweight»: OpenDoc6 warned that the assembly was already open " +
                                     "(w=" + warnings + "): it was not reopened, so it is not lightweight");
-                return Abandon(fuori);
+                return Abandon(outside);
             }
             IAssemblyDoc reopenedAssembly = reopened as IAssemblyDoc;
             if (reopenedAssembly == null)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: the reopened document is not an IAssemblyDoc");
-                return Abandon(fuori);
+                BenchError(itemName, "«reopen_lightweight»: the reopened document is not an IAssemblyDoc");
+                return Abandon(outside);
             }
             int lightweight = -1;
             try { lightweight = reopenedAssembly.GetLightWeightComponentCount(); } catch { }
             if (lightweight <= 0)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: after OpenDoc6 (options " + options + ") " +
+                BenchError(itemName, "«reopen_lightweight»: after OpenDoc6 (options " + options + ") " +
                                     "GetLightWeightComponentCount " + (lightweight < 0 ? "could not be read" : "answered 0") +
                                     ": the case would run on a resolved assembly");
-                return Abandon(fuori);
+                return Abandon(outside);
             }
-            int count = QuantiComponenti(reopenedAssembly);
+            int count = HowManyComponents(reopenedAssembly);
             if (count != topLevelCount)
             {
-                ErroreDiBanco(nome, "«reopen_lightweight»: the assembly was built with " + topLevelCount +
+                BenchError(itemName, "«reopen_lightweight»: the assembly was built with " + topLevelCount +
                                     " top-level components and reopens with " + count);
-                return Abandon(fuori);
+                return Abandon(outside);
             }
             Console.WriteLine("       | assembly saved as «" + Path.GetFileName(path) + "», closed with its components " +
                               "and reopened lightweight: " + lightweight + " lightweight component(s)");
@@ -743,13 +743,13 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>
         /// A preparation that stopped half-way (Z-C21.11): what it made is closed
         /// and deleted here, since the caller gets null and has nothing to hand
-        /// to ButtaViaLaPreparazione. A document left open would be found by the
+        /// to ThrowAwayPreparation. A document left open would be found by the
         /// next case, and a file left in Bench\lavoro would be found by the next
         /// round.
         /// </summary>
-        private static IModelDoc2 Abandon(Preparazione p)
+        private static IModelDoc2 Abandon(Preparation p)
         {
-            ButtaViaLaPreparazione(p);
+            ThrowAwayPreparation(p);
             return null;
         }
 
@@ -772,29 +772,29 @@ namespace Oce.Solid.Agent.Bench
         /// asks for it with «activate_before».
         /// </summary>
         private static bool PrepareConfigurations(
-            string nome, IModelDoc2 doc, IAssemblyDoc ass, List<object> configurations,
+            string itemName, IModelDoc2 doc, IAssemblyDoc ass, List<object> configurations,
             Dictionary<string, string> pathByComponentName)
         {
             var manager = doc.ConfigurationManager;
             if (manager == null)
             {
-                ErroreDiBanco(nome, "«configurations»: the assembly gives no ConfigurationManager");
+                BenchError(itemName, "«configurations»: the assembly gives no ConfigurationManager");
                 return false;
             }
             for (int i = 0; i < configurations.Count; i++)
             {
                 var one = configurations[i] as Dictionary<string, object>;
-                string name = one == null ? null : Testo(one, "name");
+                string name = one == null ? null : Text(one, "name");
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    ErroreDiBanco(nome, "«configurations» " + (i + 1) + " has no «name»");
+                    BenchError(itemName, "«configurations» " + (i + 1) + " has no «name»");
                     return false;
                 }
                 IConfiguration made = null;
                 try { made = manager.AddConfiguration2(name, "", "", 0, "", "", true) as IConfiguration; }
                 catch (Exception ex)
                 {
-                    ErroreDiBanco(nome, "AddConfiguration2(«" + name + "»): " + Perche(ex));
+                    BenchError(itemName, "AddConfiguration2(«" + name + "»): " + Why(ex));
                     return false;
                 }
                 string active = null;
@@ -806,7 +806,7 @@ namespace Oce.Solid.Agent.Bench
                 catch { }
                 if (made == null || !string.Equals(active, name, StringComparison.Ordinal))
                 {
-                    ErroreDiBanco(nome, "AddConfiguration2(«" + name + "») answered " +
+                    BenchError(itemName, "AddConfiguration2(«" + name + "») answered " +
                                         (made == null ? "null" : "«" + made.Name + "»") + " and the active " +
                                         "configuration is «" + (active ?? "?") + "»: the settings of this " +
                                         "configuration would land on another one");
@@ -815,20 +815,20 @@ namespace Oce.Solid.Agent.Bench
 
                 foreach (var componentName in TextsOf(one, "suppressed"))
                 {
-                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«configurations»");
+                    var component = ComponentOfCase(itemName, ass, componentName, pathByComponentName, "«configurations»");
                     if (component == null) return false;
                     int answer = -1;
                     try { answer = component.SetSuppression2((int)swComponentSuppressionState_e.swComponentSuppressed); }
                     catch (Exception ex)
                     {
-                        ErroreDiBanco(nome, "SetSuppression2 on «" + componentName + "»: " + Perche(ex));
+                        BenchError(itemName, "SetSuppression2 on «" + componentName + "»: " + Why(ex));
                         return false;
                     }
                     bool suppressed = false;
                     try { suppressed = component.IsSuppressed(); } catch { }
                     if (!suppressed)
                     {
-                        ErroreDiBanco(nome, "«" + componentName + "» is not suppressed in «" + name +
+                        BenchError(itemName, "«" + componentName + "» is not suppressed in «" + name +
                                             "» after SetSuppression2 (answer " + answer + ")");
                         return false;
                     }
@@ -836,7 +836,7 @@ namespace Oce.Solid.Agent.Bench
 
                 foreach (var componentName in TextsOf(one, "excluded_from_bom"))
                 {
-                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«configurations»");
+                    var component = ComponentOfCase(itemName, ass, componentName, pathByComponentName, "«configurations»");
                     if (component == null) return false;
                     int answer = -1;
                     object readBack = null;
@@ -849,12 +849,12 @@ namespace Oce.Solid.Agent.Bench
                     }
                     catch (Exception ex)
                     {
-                        ErroreDiBanco(nome, "SetExcludeFromBOM2 on «" + componentName + "»: " + Perche(ex));
+                        BenchError(itemName, "SetExcludeFromBOM2 on «" + componentName + "»: " + Why(ex));
                         return false;
                     }
                     if (!OnlyTrue(readBack))
                     {
-                        ErroreDiBanco(nome, "«" + componentName + "» is not excluded from the BOM of «" + name +
+                        BenchError(itemName, "«" + componentName + "» is not excluded from the BOM of «" + name +
                                             "» after SetExcludeFromBOM2 (answer " + answer + ")");
                         return false;
                     }
@@ -873,7 +873,7 @@ namespace Oce.Solid.Agent.Bench
         private static List<string> TextsOf(Dictionary<string, object> one, string field)
         {
             var list = new List<string>();
-            var raw = one == null ? null : Elenco(one, field);
+            var raw = one == null ? null : Items(one, field);
             if (raw == null) return list;
             foreach (var x in raw) if (x != null) list.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
             return list;
@@ -891,18 +891,18 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>
         /// The top-level component of the assembly made from the case component
         /// called <paramref name="componentName"/>, found by its FILE, never by
-        /// its position; null (after ErroreDiBanco) when there is none.
+        /// its position; null (after BenchError) when there is none.
         /// <paramref name="askedBy"/> is the key of the case that names it
         /// («configurations», «envelope», «hidden»), for the message.
         /// </summary>
         private static IComponent2 ComponentOfCase(
-            string nome, IAssemblyDoc ass, string componentName, Dictionary<string, string> pathByComponentName,
+            string itemName, IAssemblyDoc ass, string componentName, Dictionary<string, string> pathByComponentName,
             string askedBy)
         {
             string path;
             if (!pathByComponentName.TryGetValue(componentName, out path))
             {
-                ErroreDiBanco(nome, askedBy + " names «" + componentName + "», which is not a component of the case");
+                BenchError(itemName, askedBy + " names «" + componentName + "», which is not a component of the case");
                 return null;
             }
             object[] all = null;
@@ -916,7 +916,7 @@ namespace Oce.Solid.Agent.Bench
                     string.Equals(Path.GetFullPath(own), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase))
                     return c;
             }
-            ErroreDiBanco(nome, askedBy + " names «" + componentName + "», and no component of the assembly " +
+            BenchError(itemName, askedBy + " names «" + componentName + "», and no component of the assembly " +
                                 "uses its file (it has «to_insert» false?)");
             return null;
         }
@@ -931,17 +931,17 @@ namespace Oce.Solid.Agent.Bench
         /// caso, e' un ricordo** — e si accorgerebbe del difetto solo chi
         /// svuota la cartella a mano.
         /// </summary>
-        internal static void ButtaViaLaPreparazione(Preparazione p)
+        internal static void ThrowAwayPreparation(Preparation p)
         {
             if (p == null) return;
 
             // ── DUE GIRI, E L'ORDINE NON SI PRETENDE DI SAPERLO (voce GT0) ──
             //
             // Prima di GT0 la lista conteneva solo i componenti di un assieme,
-            // e l'assieme era `Documento`: si chiudeva l'assieme e poi i pezzi,
+            // e l'assieme era `Document`: si chiudeva l'assieme e poi i pezzi,
             // cioe' dall'alto. Adesso la lista puo' contenere anche una TAVOLA,
             // e li' il sopra e il sotto sono rovesciati — la tavola sta sopra il
-            // pezzo, che e' `Documento`.
+            // pezzo, che e' `Document`.
             //
             // **Non si sceglie un ordine buono per tutti e due**, perche' non
             // c'e': si prova, e si riprova. `CloseDoc` su un documento che ha
@@ -950,13 +950,13 @@ namespace Oce.Solid.Agent.Bench
             // *Quando non si sa in che ordine vanno smontate due cose, si
             // smontano due volte — e' meno codice che dedurre l'ordine, e non
             // sbaglia quando la deduzione era sbagliata.*
-            for (int giro = 0; giro < 2; giro++)
+            for (int benchRun = 0; benchRun < 2; benchRun++)
             {
-                Chiudi(p.Documento);
+                Close(p.Document);
                 // Per riferimento PRIMA: e' la tavola, e finche' e' aperta
-                // tiene aperto il pezzo. Vedi `DocumentiDaChiudere`.
-                foreach (var d in p.DocumentiDaChiudere) Chiudi(d);
-                foreach (var t in p.TitoliDaChiudere)
+                // tiene aperto il pezzo. Vedi `DocumentsToClose`.
+                foreach (var d in p.DocumentsToClose) Close(d);
+                foreach (var t in p.TitlesToClose)
                 {
                     try { _sw.CloseDoc(t); } catch { }
                 }
@@ -971,27 +971,27 @@ namespace Oce.Solid.Agent.Bench
             // fallito, e un secondo rosso coprirebbe il primo — ma si puo'
             // DIRE, e una riga che compare solo quando qualcosa non e'
             // andato e' il minimo per non riscoprirlo fra una settimana.
-            int restano = 0;
+            int remain = 0;
             try
             {
                 var d = (IModelDoc2)_sw.GetFirstDocument();
-                while (d != null) { restano++; d = (IModelDoc2)d.GetNext(); }
+                while (d != null) { remain++; d = (IModelDoc2)d.GetNext(); }
             }
-            catch { restano = -1; }
-            if (restano > 0)
-                Console.WriteLine("       | smontaggio: restano " + restano +
+            catch { remain = -1; }
+            if (remain > 0)
+                Console.WriteLine("       | smontaggio: restano " + remain +
                                   " documenti aperti");
 
-            ButtaViaIFile(p);
+            ThrowAwayFiles(p);
         }
 
-        private static void ButtaViaIFile(Preparazione p)
+        private static void ThrowAwayFiles(Preparation p)
         {
-            foreach (var f in p.FileDaCancellare)
+            foreach (var f in p.FilesToDelete)
             {
                 try { if (File.Exists(f)) File.Delete(f); } catch { }
             }
-            p.FileDaCancellare.Clear();
+            p.FilesToDelete.Clear();
         }
 
         // =================================================================
@@ -1000,16 +1000,16 @@ namespace Oce.Solid.Agent.Bench
         /// Costruisce una parte eseguendo i passi del componente e la salva.
         ///
         /// I passi sono le STESSE operazioni dei casi, eseguite con lo stesso
-        /// `Esegui`: un componente non ha un linguaggio suo, altrimenti sarebbe
+        /// `Run`: un componente non ha un linguaggio suo, altrimenti sarebbe
         /// una seconda implementazione da tenere allineata a mano.
         /// </summary>
-        private static bool CostruisciESalva(
-            string etichetta, Dictionary<string, object> componente, string percorso)
+        private static bool BuildAndSave(
+            string label, Dictionary<string, object> component, string filePath)
         {
-            var passi = Elenco(componente, "steps");
-            if (passi == null || passi.Count == 0)
+            var steps = Items(component, "steps");
+            if (steps == null || steps.Count == 0)
             {
-                ErroreDiBanco(etichetta, "manca «steps»: un componente senza " +
+                BenchError(label, "manca «steps»: un componente senza " +
                                          "lavorazioni sarebbe un documento vuoto");
                 return false;
             }
@@ -1017,62 +1017,62 @@ namespace Oce.Solid.Agent.Bench
             IModelDoc2 doc = null;
             try
             {
-                doc = NuovaParte();
-                var stato = LeggiStato(doc);
-                for (int i = 0; i < passi.Count; i++)
+                doc = NewPart();
+                var docState = ReadState(doc);
+                for (int i = 0; i < steps.Count; i++)
                 {
-                    var passo = passi[i] as Dictionary<string, object>;
-                    if (passo == null)
+                    var planStep = steps[i] as Dictionary<string, object>;
+                    if (planStep == null)
                     {
-                        ErroreDiBanco(etichetta, "il passo " + (i + 1) + " non e' un oggetto");
+                        BenchError(label, "il passo " + (i + 1) + " non e' un oggetto");
                         return false;
                     }
-                    string operazione = Testo(passo, "operation");
-                    if (operazione == null)
+                    string operation = Text(planStep, "operation");
+                    if (operation == null)
                     {
-                        ErroreDiBanco(etichetta, "al passo " + (i + 1) + " manca «operation»");
+                        BenchError(label, "al passo " + (i + 1) + " manca «operation»");
                         return false;
                     }
-                    object grezzi;
-                    passo.TryGetValue("arguments", out grezzi);
-                    var argomenti = Risolvi(grezzi, stato) as Dictionary<string, object>
+                    object rawItems;
+                    planStep.TryGetValue("arguments", out rawItems);
+                    var arguments = Resolve(rawItems, docState) as Dictionary<string, object>
                                     ?? new Dictionary<string, object>();
 
-                    string errore;
-                    Esegui(doc, operazione, argomenti, out errore, stato);
-                    if (!string.IsNullOrEmpty(errore))
+                    string error;
+                    Run(doc, operation, arguments, out error, docState);
+                    if (!string.IsNullOrEmpty(error))
                     {
                         // UN COMPONENTE CHE NON SI COSTRUISCE NON E' UNA PROVA
                         // ROSSA. Il caso voleva misurare un assieme, e l'assieme
                         // non e' mai esistito: dirlo «fallito» farebbe cercare
                         // il difetto nell'operazione di assieme, che non e'
                         // nemmeno stata chiamata.
-                        ErroreDiBanco(etichetta, "il passo " + (i + 1) + " («" + operazione +
-                                                 "») e' stato rifiutato: " + Attese.Breve(errore));
+                        BenchError(label, "il passo " + (i + 1) + " («" + operation +
+                                                 "») e' stato rifiutato: " + Expectations.Short(error));
                         return false;
                     }
-                    stato = LeggiStato(doc);
+                    docState = ReadState(doc);
                 }
 
                 int e, w;
-                SaveTo(doc, percorso, out e, out w);
+                SaveTo(doc, filePath, out e, out w);
                 // SI GUARDA IL FILE, NON IL CODICE DI RITORNO. `SaveAs` scrive
                 // due interi che raccontano cosa pensa SOLIDWORKS di aver
                 // fatto; l'unica prova che il file ci sia e' che ci sia.
-                if (!File.Exists(percorso))
+                if (!File.Exists(filePath))
                 {
-                    ErroreDiBanco(etichetta, "salvato senza errori (e=" + e + ", w=" + w +
-                                             ") ma «" + percorso + "» non c'e'");
+                    BenchError(label, "salvato senza errori (e=" + e + ", w=" + w +
+                                             ") ma «" + filePath + "» non c'e'");
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                ErroreDiBanco(etichetta, Perche(ex));
+                BenchError(label, Why(ex));
                 return false;
             }
-            finally { Chiudi(doc); }
+            finally { Close(doc); }
         }
 
         /// <summary>
@@ -1096,10 +1096,10 @@ namespace Oce.Solid.Agent.Bench
         /// whole cleanup, and a file missing from them is the file the next
         /// round finds already there.
         /// </summary>
-        private static void Register(Preparazione p, string path)
+        private static void Register(Preparation p, string path)
         {
-            p.FileDaCancellare.Add(path);
-            p.TitoliDaChiudere.Add(Path.GetFileName(path));
+            p.FilesToDelete.Add(path);
+            p.TitlesToClose.Add(Path.GetFileName(path));
         }
 
         /// <summary>
@@ -1126,11 +1126,11 @@ namespace Oce.Solid.Agent.Bench
         /// its «position_mm».
         /// </summary>
         private static bool BuildSubassembly(
-            string label, string stem, List<object> children, string path, Preparazione fuori)
+            string label, string stem, List<object> children, string path, Preparation outside)
         {
             if (children.Count == 0)
             {
-                ErroreDiBanco(label, "the list of components is empty: a sub-assembly with nothing inside proves nothing");
+                BenchError(label, "the list of components is empty: a sub-assembly with nothing inside proves nothing");
                 return false;
             }
             var childPaths = new List<string>();
@@ -1142,12 +1142,12 @@ namespace Oce.Solid.Agent.Bench
                 var child = children[k] as Dictionary<string, object>;
                 if (child == null)
                 {
-                    ErroreDiBanco(label, "component " + (k + 1) + " is not an object");
+                    BenchError(label, "component " + (k + 1) + " is not an object");
                     return false;
                 }
-                if (Elenco(child, "components") != null)
+                if (Items(child, "components") != null)
                 {
-                    ErroreDiBanco(label, "a sub-assembly inside a sub-assembly is not supported by the bench");
+                    BenchError(label, "a sub-assembly inside a sub-assembly is not supported by the bench");
                     return false;
                 }
                 // Z-C21.11: «envelope» and «hidden» act on top-level components
@@ -1156,12 +1156,12 @@ namespace Oce.Solid.Agent.Bench
                 // would run on another assembly.
                 if (child.ContainsKey("envelope") || child.ContainsKey("hidden"))
                 {
-                    ErroreDiBanco(label, "«envelope» and «hidden» act on top-level components only, and component " +
+                    BenchError(label, "«envelope» and «hidden» act on top-level components only, and component " +
                                          (k + 1) + " is inside a sub-assembly");
                     return false;
                 }
-                string childName = Testo(child, "name") ?? ("comp" + (k + 1));
-                string childPath = Path.Combine(Attese.Lavoro, stem + "_" + NomeDiFile(childName) + ".sldprt");
+                string childName = Text(child, "name") ?? ("comp" + (k + 1));
+                string childPath = Path.Combine(Expectations.Work, stem + "_" + FileName(childName) + ".sldprt");
                 // A NAME ALREADY BUILT HERE IS ONE MORE INSTANCE OF THE SAME PART
                 // (Z-C21.11, finding M23): the indented BOM of «A + 3 x S(2 B) + B»
                 // needs two instances of ONE file inside S, and the file name comes
@@ -1171,9 +1171,9 @@ namespace Oce.Solid.Agent.Bench
                 // ignored.
                 if (builtHere.Contains(childName))
                 {
-                    if (Elenco(child, "steps") != null)
+                    if (Items(child, "steps") != null)
                     {
-                        ErroreDiBanco(label, "component «" + childName + "» repeats a name already built in this " +
+                        BenchError(label, "component «" + childName + "» repeats a name already built in this " +
                                              "sub-assembly and brings steps of its own: a repeated name is one more " +
                                              "instance of the same part, built once from the first");
                         return false;
@@ -1181,26 +1181,26 @@ namespace Oce.Solid.Agent.Bench
                 }
                 else
                 {
-                    if (!CostruisciESalva(label + " · component «" + childName + "»", child, childPath))
+                    if (!BuildAndSave(label + " · component «" + childName + "»", child, childPath))
                         return false;
-                    Register(fuori, childPath);
+                    Register(outside, childPath);
                     builtHere.Add(childName);
                 }
                 childPaths.Add(childPath);
-                childPositions.Add(PosizioneMm(child));
+                childPositions.Add(PositionMm(child));
             }
 
             IModelDoc2 sub;
-            try { sub = NuovoAssieme(); }
+            try { sub = NewAssembly(); }
             catch (Exception ex)
             {
-                ErroreDiBanco(label, "the new sub-assembly: " + Perche(ex));
+                BenchError(label, "the new sub-assembly: " + Why(ex));
                 return false;
             }
             string failure = FillAndSave(sub, childPaths, childPositions, path, label);
             if (failure == null) return true;
-            ErroreDiBanco(label, failure);
-            Chiudi(sub);
+            BenchError(label, failure);
+            Close(sub);
             return false;
         }
 
@@ -1217,7 +1217,7 @@ namespace Oce.Solid.Agent.Bench
             if (subAssembly == null) return "the new document is not an IAssemblyDoc";
             // AddComponent5 wants the document open, as in the main assembly.
             foreach (var p in childPaths)
-                if (!Apri(p, label)) return "a part of the sub-assembly did not open again (the line above says which)";
+                if (!Open(p, label)) return "a part of the sub-assembly did not open again (the line above says which)";
             for (int k = 0; k < childPaths.Count; k++)
             {
                 var at = childPositions[k];
@@ -1230,14 +1230,14 @@ namespace Oce.Solid.Agent.Bench
                 }
                 catch (Exception ex)
                 {
-                    return "AddComponent5 on «" + Path.GetFileName(childPaths[k]) + "»: " + Perche(ex);
+                    return "AddComponent5 on «" + Path.GetFileName(childPaths[k]) + "»: " + Why(ex);
                 }
                 if (inserted == null)
                     return "AddComponent5 answered null on «" + Path.GetFileName(childPaths[k]) +
                            "»: the component did not go in";
             }
             try { sub.EditRebuild3(); } catch { }
-            int count = QuantiComponenti(subAssembly);
+            int count = HowManyComponents(subAssembly);
             if (count != childPaths.Count)
                 return "inserted " + childPaths.Count + " components and the sub-assembly has " + count;
 
@@ -1248,42 +1248,42 @@ namespace Oce.Solid.Agent.Bench
             return null;
         }
 
-        private static IModelDoc2 NuovoAssieme()
+        private static IModelDoc2 NewAssembly()
         {
             // Voce K19: la copia in locale vale anche per l'assieme.
-            string tpl = Program.ModelloInLocale(_sw.GetUserPreferenceStringValue(
+            string tpl = Program.LocalModel(_sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplateAssembly));
             // La sentinella (voce K17) vale anche qui: un assieme di prova
             // comincia da componenti che sono parti nuove, e se non nascono
             // piu' non e' il caso a essere sbagliato.
-            if (Program.Sentinella.SeNEAndato)
-                throw new Shared.PreparazioneFallita(Program.Sentinella.Referto());
+            if (Program.Sentinel.HasGone)
+                throw new Shared.PreparationFailed(Program.Sentinel.Report());
 
-            var nata = _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
-            if (nata != null) Program.Sentinella.Riuscita();
-            else if (Program.Sentinella.Fallita())
-                throw new Shared.PreparazioneFallita(Program.Sentinella.Referto());
+            var born = _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
+            if (born != null) Program.Sentinel.Succeeded();
+            else if (Program.Sentinel.Failed())
+                throw new Shared.PreparationFailed(Program.Sentinel.Report());
 
-            return OppureDillo(nata,
+            return OrSayIt(born,
                                "l'assieme nuovo su cui provare");
         }
 
-        private static bool Apri(string percorso, string nome)
+        private static bool Open(string filePath, string itemName)
         {
             try
             {
                 int e = 0, w = 0;
                 // A sub-assembly (Z-C21.5) opens as an assembly, a component as a part.
-                int type = percorso.EndsWith(".sldasm", StringComparison.OrdinalIgnoreCase)
+                int type = filePath.EndsWith(".sldasm", StringComparison.OrdinalIgnoreCase)
                     ? (int)swDocumentTypes_e.swDocASSEMBLY
                     : (int)swDocumentTypes_e.swDocPART;
                 var d = _sw.OpenDoc6(
-                    percorso, type,
+                    filePath, type,
                     (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref e, ref w);
                 if (d == null)
                 {
-                    ErroreDiBanco(nome, "non riesco a riaprire «" +
-                                        Path.GetFileName(percorso) + "» (e=" + e + ", w=" + w +
+                    BenchError(itemName, "non riesco a riaprire «" +
+                                        Path.GetFileName(filePath) + "» (e=" + e + ", w=" + w +
                                         "): AddComponent5 vuole un documento gia' aperto");
                     return false;
                 }
@@ -1291,13 +1291,13 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                ErroreDiBanco(nome, "riaprendo «" + Path.GetFileName(percorso) + "»: " + Perche(ex));
+                BenchError(itemName, "riaprendo «" + Path.GetFileName(filePath) + "»: " + Why(ex));
                 return false;
             }
         }
 
         /// <summary>Quanti componenti ci sono davvero nell'assieme.</summary>
-        private static int QuantiComponenti(IAssemblyDoc ass)
+        private static int HowManyComponents(IAssemblyDoc ass)
         {
             try
             {
@@ -1317,11 +1317,11 @@ namespace Oce.Solid.Agent.Bench
         /// a ogni componente sarebbe rumore. `false` si scrive solo quando si
         /// vuole provare l'inserimento, che e' il caso raro.
         /// </summary>
-        private static bool DaInserire(Dictionary<string, object> componente)
+        private static bool ToInsert(Dictionary<string, object> component)
         {
             object v;
-            if (componente == null ||
-                !componente.TryGetValue("to_insert", out v) || v == null) return true;
+            if (component == null ||
+                !component.TryGetValue("to_insert", out v) || v == null) return true;
             return Convert.ToString(v, CultureInfo.InvariantCulture)
                           .Equals("True", StringComparison.OrdinalIgnoreCase);
         }
@@ -1341,17 +1341,17 @@ namespace Oce.Solid.Agent.Bench
         /// numero senza unita' e' un numero che qualcuno interpretera' in
         /// metri.
         /// </summary>
-        private static double[] PosizioneMm(Dictionary<string, object> componente)
+        private static double[] PositionMm(Dictionary<string, object> component)
         {
             var v = new double[3];
-            object grezzo;
-            if (componente == null || !componente.TryGetValue("position_mm", out grezzo) ||
-                grezzo == null)
+            object raw;
+            if (component == null || !component.TryGetValue("position_mm", out raw) ||
+                raw == null)
                 return v;
-            var lista = grezzo as System.Collections.IEnumerable;
-            if (lista == null) return v;
+            var itemList = raw as System.Collections.IEnumerable;
+            if (itemList == null) return v;
             int i = 0;
-            foreach (var x in lista)
+            foreach (var x in itemList)
             {
                 if (i >= 3) break;
                 try { v[i++] = Convert.ToDouble(x, CultureInfo.InvariantCulture); }
@@ -1368,7 +1368,7 @@ namespace Oce.Solid.Agent.Bench
         /// caso futuro perche' `SaveAs` fallisca con un messaggio che parla di
         /// permessi invece che del nome.
         /// </summary>
-        private static string NomeDiFile(string s)
+        private static string FileName(string s)
         {
             if (string.IsNullOrWhiteSpace(s)) return "x";
             var b = new System.Text.StringBuilder();

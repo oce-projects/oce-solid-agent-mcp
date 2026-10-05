@@ -13,7 +13,7 @@ namespace Oce.Solid.Agent.Core
     /// Qui ce n'e' una sola, e i tre file che la usano dicono la stessa cosa
     /// per costruzione.
     /// </summary>
-    internal static class Frasi
+    internal static class Sentences
     {
         /// <summary>
         /// Come si ritira quello che e' appena stato fatto.
@@ -37,7 +37,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// Comincia con lo spazio: si attacca in coda a un messaggio.
         /// </summary>
-        public const string CosiSiRitira =
+        public const string HowToWithdrawIt =
             "«undo» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo";
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Core
         /// un dettaglio: una frase non entra in un `if`. Chi volesse promuovere
         /// questo numero a criterio — fra due mesi, «tanto il conto c'e' gia'»
         /// — dovrebbe rileggersi la frase per estrarne i numeri, e lo si
-        /// vedrebbe. Una ricerca di «frazione» dentro `FirmaCombacia` o dentro
+        /// vedrebbe. Una ricerca di «frazione» dentro `SignatureMatches` o dentro
         /// il ciclo di ritrovamento deve tornare **vuota**: e' il vero criterio
         /// di chiusura della voce E10.
         ///
@@ -75,57 +75,57 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         /// <param name="uid">Come si chiama l'entita' nel messaggio.</param>
         /// <param name="before">Il punto che il piano portava con se', in mm.</param>
-        /// <param name="adesso">Il punto misurato adesso, in mm.</param>
-        /// <param name="scatolaPrima">{minX,minY,minZ,maxX,maxY,maxZ} di allora.</param>
-        /// <param name="scatolaAdesso">{minX,minY,minZ,maxX,maxY,maxZ} di adesso.</param>
-        public static string DoveStavaEDoveSta(
-            string uid, double[] prima, double[] adesso,
-            double[] scatolaPrima, double[] scatolaAdesso)
+        /// <param name="now">Il punto misurato adesso, in mm.</param>
+        /// <param name="boxBefore">{minX,minY,minZ,maxX,maxY,maxZ} di allora.</param>
+        /// <param name="boxNow">{minX,minY,minZ,maxX,maxY,maxZ} di adesso.</param>
+        public static string WhereItWasAndWhereItIs(
+            string uid, double[] before, double[] now,
+            double[] boxBefore, double[] boxNow)
         {
-            if (prima == null || adesso == null ||
-                scatolaPrima == null || scatolaAdesso == null) return null;
-            if (prima.Length < 3 || adesso.Length < 3 ||
-                scatolaPrima.Length < 6 || scatolaAdesso.Length < 6) return null;
+            if (before == null || now == null ||
+                boxBefore == null || boxNow == null) return null;
+            if (before.Length < 3 || now.Length < 3 ||
+                boxBefore.Length < 6 || boxNow.Length < 6) return null;
 
             // L'ASSE CHE SI E' MOSSO, uno solo. Dire tutti e tre vorrebbe dire
             // scrivere due righe su due direzioni in cui non e' successo
             // niente: un messaggio piu' lungo che si legge peggio.
-            int asse = -1;
-            double quanto = 0;
+            int axis = -1;
+            double howMuch = 0;
             for (int i = 0; i < 3; i++)
             {
-                double d = System.Math.Abs(adesso[i] - prima[i]);
-                if (d > quanto) { quanto = d; asse = i; }
+                double d = System.Math.Abs(now[i] - before[i]);
+                if (d > howMuch) { howMuch = d; axis = i; }
             }
-            if (asse < 0 || quanto <= 0.05) return null;
+            if (axis < 0 || howMuch <= 0.05) return null;
 
-            double latoPrima = scatolaPrima[asse + 3] - scatolaPrima[asse];
-            double latoAdesso = scatolaAdesso[asse + 3] - scatolaAdesso[asse];
+            double sideBefore = boxBefore[axis + 3] - boxBefore[axis];
+            double sideNow = boxNow[axis + 3] - boxNow[axis];
             // Sotto il decimo di millimetro la divisione non significa piu'
             // niente: un lato di 0,01 mm fa uscire percentuali da migliaia.
-            if (latoPrima < 0.1 || latoAdesso < 0.1) return null;
+            if (sideBefore < 0.1 || sideNow < 0.1) return null;
 
-            double uPrima = (prima[asse] - scatolaPrima[asse]) / latoPrima;
-            double uAdesso = (adesso[asse] - scatolaAdesso[asse]) / latoAdesso;
+            double uBefore = (before[axis] - boxBefore[axis]) / sideBefore;
+            double uNow = (now[axis] - boxNow[axis]) / sideNow;
 
-            string nome = asse == 0 ? "X" : (asse == 1 ? "Y" : "Z");
+            string itemName = axis == 0 ? "X" : (axis == 1 ? "Y" : "Z");
             var c = System.Globalization.CultureInfo.InvariantCulture;
 
             // UN PUNTO PERCENTUALE. Piu' stretto sarebbe un confronto fra
             // arrotondamenti; piu' largo direbbe «ci sta ancora» di una faccia
             // che si e' spostata davvero rispetto al pezzo.
-            if (System.Math.Abs(uPrima - uAdesso) <= 0.01)
+            if (System.Math.Abs(uBefore - uNow) <= 0.01)
                 return string.Format(c,
                     " Per quel che vale: «{0}» stava al {1:0.#}% del lato {2} e ci sta " +
                     "ancora — il lato e' passato da {3:0.##} a {4:0.##} mm. Puo' essere la " +
                     "stessa faccia cresciuta col pezzo, ma questo non lo decido io: " +
                     "l'identita' si misura in millimetri.",
-                    uid, uPrima * 100.0, nome, latoPrima, latoAdesso);
+                    uid, uBefore * 100.0, itemName, sideBefore, sideNow);
 
             return string.Format(c,
                 " Per quel che vale: «{0}» stava al {1:0.#}% del lato {2} e adesso e' al " +
                 "{3:0.#}% — il lato e' passato da {4:0.##} a {5:0.##} mm.",
-                uid, uPrima * 100.0, nome, uAdesso * 100.0, latoPrima, latoAdesso);
+                uid, uBefore * 100.0, itemName, uNow * 100.0, sideBefore, sideNow);
         }
     }
 }

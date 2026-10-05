@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Web.Script.Serialization;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -61,16 +61,16 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Gruppo("the language gate catches every category (W3.1-bis.1)");
+            Group("the language gate catches every category (W3.1-bis.1)");
 
-            var root = Radice();
+            var root = Root();
             var detector = Path.Combine(root, "Checks", "language", "detect-italian.js");
-            if (!File.Exists(detector)) { Segna("the detector exists", false, detector); return; }
+            if (!File.Exists(detector)) { Check("the detector exists", false, detector); return; }
 
             string version;
             if (Run("node", "--version", root, out version) != 0)
             {
-                NonQui("the language gate on a copy of the tree",
+                NotHere("the language gate on a copy of the tree",
                        "node is not on this machine: the gate is a Node script and the CI runner has Node. " +
                        "Not running it here is not the same as passing.");
                 return;
@@ -90,7 +90,7 @@ namespace Oce.Solid.Agent.ContractTests
             }
             catch (Exception ex)
             {
-                Segna("the gate contract runs to the end", false, ex.GetType().Name + ": " + ex.Message);
+                Check("the gate contract runs to the end", false, ex.GetType().Name + ": " + ex.Message);
             }
             finally
             {
@@ -106,26 +106,26 @@ namespace Oce.Solid.Agent.ContractTests
 
             // 1. a baseline on the untouched copy
             int code = Run("node", Q(detector) + " --root " + Q(copy) + " --write-baseline " + Q(baseline), copy, out text);
-            Segna("the gate runs on a copy of the tracked tree", code == 0 && File.Exists(baseline), Tail(text));
+            Check("the gate runs on a copy of the tracked tree", code == 0 && File.Exists(baseline), Tail(text));
             if (code != 0) return;
 
             // 2. nothing grew on the untouched copy, and every text file was read
             var report0 = Path.Combine(output, "report0.json");
             code = Run("node", Q(detector) + " --root " + Q(copy) + " --baseline " + Q(baseline) + " --report " + Q(report0), copy, out text);
-            Segna("on the untouched copy nothing grew", code == 0, Tail(text));
+            Check("on the untouched copy nothing grew", code == 0, Tail(text));
             var read0 = Strings(ReadJson(report0), "files_read");
             var textFiles = tracked.Where(f => !HasBinaryExtension(f)).ToList();
             var unread = textFiles.Where(f => !read0.Contains(f)).ToList();
-            Segna("every tracked file with a text extension is read",
+            Check("every tracked file with a text extension is read",
                   textFiles.Count > 400 && unread.Count == 0,
                   read0.Count + " read of " + textFiles.Count + (unread.Count == 0 ? "" : "; not read: " + string.Join(", ", unread.Take(5))));
-            Segna("the file that used to carry a NUL byte is read",
+            Check("the file that used to carry a NUL byte is read",
                   read0.Contains("Checks/questions-without-answer.js"), "Checks/questions-without-answer.js");
 
             // 3. the samples, and the proof that the glued identifier is new
             var lexicon = ReadJson(Path.Combine(copy, "Checks", "language", "lexicon.json"));
             var samples = lexicon.ContainsKey("injection_samples") ? lexicon["injection_samples"] as Dictionary<string, object> : null;
-            if (samples == null) { Segna("lexicon.json has injection_samples", false, ""); return; }
+            if (samples == null) { Check("lexicon.json has injection_samples", false, ""); return; }
             string prose = S(samples, "prose"), transition = S(samples, "transition"), identifier = S(samples, "identifier"),
                    jsonKey = S(samples, "json_key"), protocol = S(samples, "protocol"), segment = S(samples, "path_segment"),
                    compound = S(samples, "compound"), contentOnly = S(samples, "content_only"), appended = S(samples, "appended"),
@@ -137,7 +137,7 @@ namespace Oce.Solid.Agent.ContractTests
                           .Select(o => o.ToString()).FirstOrDefault(t => t.EndsWith("atura", StringComparison.Ordinal));
             if (new[] { compound, contentOnly, appended, typographic, holdout }.Any(string.IsNullOrEmpty) || englishHomographs.Count == 0)
             {
-                Segna("lexicon.json has every injection sample", false, "compound, content_only, appended, typographic, weak_alone_english, holdout_workshop_terms");
+                Check("lexicon.json has every injection sample", false, "compound, content_only, appended, typographic, weak_alone_english, holdout_workshop_terms");
                 return;
             }
             var newWord = "probe" + char.ToUpperInvariant(holdout[0]) + holdout.Substring(1);
@@ -145,7 +145,7 @@ namespace Oce.Solid.Agent.ContractTests
             var baseDoc = ReadJson(baseline);
             var baseSets = baseDoc["sets"] as Dictionary<string, object>;
             var baseIdentifiers = new HashSet<string>(Items(baseSets["identifiers"]).Select(o => o.ToString()), StringComparer.Ordinal);
-            Segna("the glued identifier is new, and its words are already there one by one",
+            Check("the glued identifier is new, and its words are already there one by one",
                   !baseIdentifiers.Contains(identifier) && knownParts.Count >= 2 && knownParts.All(baseIdentifiers.Contains),
                   identifier + " made of " + string.Join(" + ", knownParts));
 
@@ -197,19 +197,19 @@ namespace Oce.Solid.Agent.ContractTests
             var workflowCheck = Path.Combine(copy, "Checks", "check-workflow.ps1");
             var wcLines = File.ReadAllLines(workflowCheck).ToList();
             int target = wcLines.FindIndex(l => l.StartsWith("#  Il ", StringComparison.Ordinal));
-            Segna("the Italian comment line to append to is there", target >= 0, "Checks/check-workflow.ps1");
+            Check("the Italian comment line to append to is there", target >= 0, "Checks/check-workflow.ps1");
             if (target >= 0) { wcLines[target] = wcLines[target] + " " + appended; File.WriteAllLines(workflowCheck, wcLines, new UTF8Encoding(false)); }
 
             Run("git", "add -A", copy, out text);
 
             string numstat;
             Run("git", "diff --cached --numstat -- Checks/nul-probe.js", copy, out numstat);
-            Segna("git calls the probe with a NUL byte binary", numstat.StartsWith("-\t-\t", StringComparison.Ordinal), numstat.Trim());
+            Check("git calls the probe with a NUL byte binary", numstat.StartsWith("-\t-\t", StringComparison.Ordinal), numstat.Trim());
 
             // 5. what grew
             var report1 = Path.Combine(output, "report1.json");
             code = Run("node", Q(detector) + " --root " + Q(copy) + " --baseline " + Q(baseline) + " --report " + Q(report1), copy, out text);
-            Segna("with the injections the gate exits 1 and says why",
+            Check("with the injections the gate exits 1 and says why",
                   code == 1 && text.Contains("LANGUAGE GATE:"), "exit " + code + "; " + Tail(text));
             if (!File.Exists(report1)) return;
             var report = ReadJson(report1);
@@ -225,7 +225,7 @@ namespace Oce.Solid.Agent.ContractTests
             Element(growth, "protocol", protocol, "an Italian line in protocol is counted");
             Element(growth, "paths", segment, "a new file with an Italian folder is blocked");
             var read1 = Strings(report, "files_read");
-            Segna("the probe git calls binary is read, and its Italian counted",
+            Check("the probe git calls binary is read, and its Italian counted",
                   read1.Contains("Checks/nul-probe.js") && HasGrowth(growth, "comments", "Checks/nul-probe.js"),
                   read1.Contains("Checks/nul-probe.js") ? "read" : "NOT READ");
 
@@ -241,7 +241,7 @@ namespace Oce.Solid.Agent.ContractTests
             Named(growth, "strings", "Checks/hooks/probe-heredoc", "the body of a here-document is counted");
             Named(growth, "comments", "Checks/check-workflow.ps1", "Italian appended to a line that is already Italian makes the file grow");
             Named(growth, "markdown", "QUICKSTART.md", "the typographic apostrophe counts as the accent");
-            Segna("English lines with one Italian homograph each do not count",
+            Check("English lines with one Italian homograph each do not count",
                   !growth.Any(g => S(g, "file") == "RELEASE.md"), string.Join(" | ", englishHomographs));
 
             // 6. a baseline raised in place is caught, a lowered one is not
@@ -255,7 +255,7 @@ namespace Oce.Solid.Agent.ContractTests
             File.WriteAllText(raisedFile, Json.Serialize(raised), new UTF8Encoding(false));
             int up = Run("node", Q(detector) + " --compare-baselines " + Q(baseline) + " " + Q(raisedFile), copy, out text);
             int down = Run("node", Q(detector) + " --compare-baselines " + Q(raisedFile) + " " + Q(baseline), copy, out text);
-            Segna("a baseline raised in place is caught, a lowered one passes", up == 1 && down == 0,
+            Check("a baseline raised in place is caught, a lowered one passes", up == 1 && down == 0,
                   "raised: exit " + up + ", lowered: exit " + down);
 
             // 7. the JSON key with spaces does not jam the gate: once the
@@ -263,7 +263,7 @@ namespace Oce.Solid.Agent.ContractTests
             var rewritten = Path.Combine(output, "rewritten.json");
             Run("node", Q(detector) + " --root " + Q(copy) + " --write-baseline " + Q(rewritten), copy, out text);
             code = Run("node", Q(detector) + " --root " + Q(copy) + " --baseline " + Q(rewritten), copy, out text);
-            Segna("after a rewritten baseline the injected tree holds (no element that never matches)", code == 0, "exit " + code + "; " + Tail(text));
+            Check("after a rewritten baseline the injected tree holds (no element that never matches)", code == 0, "exit " + code + "; " + Tail(text));
 
             // 8. exceptions that cover a whole file, directly or by a side door, are refused
             var original = File.ReadAllText(exceptionsFile);
@@ -271,7 +271,7 @@ namespace Oce.Solid.Agent.ContractTests
                 "{\"class\": \"quote\", \"file\": \"^README\\\\.md$\"}", "never a whole file",
                 "an exception that covers a whole file is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
-                "{\"class\": \"detector-lexicon\", \"file\": \"^Bench/cases/\", \"json_path\": \"^(nome|passi|attese)\"}", "exactly one file of Checks/language",
+                "{\"class\": \"detector-lexicon\", \"file\": \"^Bench/cases/\", \"json_path\": \"^(itemName|passi|expectations)\"}", "exactly one file of Checks/language",
                 "a json_path over a folder of cases is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
                 "{\"class\": \"quote\", \"file\": \"^Bench/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",
@@ -292,7 +292,7 @@ namespace Oce.Solid.Agent.ContractTests
             File.WriteAllText(exceptionsFile, t.Substring(0, t.LastIndexOf(']')).TrimEnd() + ",\n " + full + "\n]\n", new UTF8Encoding(false));
             string text;
             int code = Run("node", Q(detector) + " --root " + Q(copy) + " --baseline " + Q(baseline), copy, out text);
-            Segna(name, code == 2 && text.Contains(expected), "exit " + code + "; " + Tail(text));
+            Check(name, code == 2 && text.Contains(expected), "exit " + code + "; " + Tail(text));
             File.WriteAllText(exceptionsFile, original, new UTF8Encoding(false));
         }
 
@@ -303,7 +303,7 @@ namespace Oce.Solid.Agent.ContractTests
             string text;
             if (Run("powershell.exe", "-NoProfile -Command \"exit 0\"", root, out text) != 0)
             {
-                NonQui("the CI step of the language gate on a repository with commits",
+                NotHere("the CI step of the language gate on a repository with commits",
                        "powershell.exe is not on this machine: the step is a PowerShell script and the CI runner has it.");
                 return;
             }
@@ -348,7 +348,7 @@ namespace Oce.Solid.Agent.ContractTests
                 int got = int.Parse(r.Substring(0, r.IndexOf('|')));
                 var outText = r.Substring(r.IndexOf('|') + 1);
                 bool reason = because == null || outText.Contains(because);
-                Segna("CI step: " + name, got == want && reason,
+                Check("CI step: " + name, got == want && reason,
                       "expected exit " + want + (because == null ? "" : " with \"" + because + "\"") + ", got " + got + "; " + Tail(outText));
             };
             Action<string> branch = (name) => Git(repo, "checkout -q -B " + name + " " + baseSha);
@@ -441,7 +441,7 @@ namespace Oce.Solid.Agent.ContractTests
             File.WriteAllText(baseCopy, GitOut(repo, "show " + baseSha + ":.github/steps/language-gate.ps1") + "\n", new UTF8Encoding(false));
             string o2;
             int c2 = Run("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File " + Q(baseCopy) + " -Root " + Q(repo) + " -Base " + baseSha, repo, out o2);
-            Segna("CI step: the gate script switched off, judged by the base's copy: refused", c2 == 1 && o2.Contains("changes the gate itself"), "exit " + c2 + "; " + Tail(o2));
+            Check("CI step: the gate script switched off, judged by the base's copy: refused", c2 == 1 && o2.Contains("changes the gate itself"), "exit " + c2 + "; " + Tail(o2));
             Git(repo, "checkout -q -- .");
 
             branch("release");
@@ -496,12 +496,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void Counted(List<Dictionary<string, object>> growth, string category, string file)
         {
-            Segna("an Italian line in " + category + " is counted", HasGrowth(growth, category, file), category + " in " + file);
+            Check("an Italian line in " + category + " is counted", HasGrowth(growth, category, file), category + " in " + file);
         }
 
         private static void Named(List<Dictionary<string, object>> growth, string category, string file, string name)
         {
-            Segna(name, HasGrowth(growth, category, file), category + " in " + file);
+            Check(name, HasGrowth(growth, category, file), category + " in " + file);
         }
 
         private static bool HasGrowth(List<Dictionary<string, object>> growth, string category, string file)
@@ -514,7 +514,7 @@ namespace Oce.Solid.Agent.ContractTests
             bool found = growth.Any(g => S(g, "category") == category &&
                                          g.ContainsKey("elements") &&
                                          Items(g["elements"]).Any(e => e != null && e.ToString() == element));
-            Segna(name, found, category + ": " + element);
+            Check(name, found, category + ": " + element);
         }
 
         // The tracked files, copied as they are on disk, in a fresh repository.
@@ -523,7 +523,7 @@ namespace Oce.Solid.Agent.ContractTests
             string list;
             if (Run("git", "-C " + Q(root) + " ls-files -z", root, out list) != 0)
             {
-                NonQui("the language gate on a copy of the tree", "git ls-files did not answer here: " + Tail(list));
+                NotHere("the language gate on a copy of the tree", "git ls-files did not answer here: " + Tail(list));
                 return null;
             }
             var tracked = list.Split('\0').Where(s => s.Length > 0).ToList();

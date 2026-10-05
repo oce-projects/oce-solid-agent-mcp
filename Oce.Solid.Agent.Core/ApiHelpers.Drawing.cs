@@ -13,7 +13,7 @@ namespace Oce.Solid.Agent.Core
     /// filter"). See ApiHelpers.cs for the rules every helper follows: each one
     /// quotes its page, and each one throws what the API throws.
     ///
-    /// First user: OperazioniQuoteTavola.ChiaviGiaQuotate ("already dimensioned
+    /// First user: OperazioniQuoteTavola.KeysAlreadyDimensioned ("already dimensioned
     /// in this drawing"). The other walks named by the audit
     /// (OperazioniTestiQuote, OperazioniQuoteNelPdf, OperazioniTabellaFori,
     /// StatoTavola: C8-3 and N1, lot Z-C21.3) are meant to move here, one at a

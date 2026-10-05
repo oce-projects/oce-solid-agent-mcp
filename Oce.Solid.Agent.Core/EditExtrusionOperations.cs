@@ -25,9 +25,9 @@ namespace Oce.Solid.Agent.Core
     /// il volume dal pezzo, le lavorazioni in errore. Se la modifica ne rompe una
     /// a valle, si rimette la definizione di prima e ci si rifiuta.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private static string NomeDellaFine(int c)
+        private static string EndName(int c)
         {
             switch (c)
             {
@@ -59,32 +59,32 @@ namespace Oce.Solid.Agent.Core
         /// refused access stops here, before anything is written, and nothing
         /// is released because nothing was accessed.
         /// </summary>
-        private static bool ScriviEstrusione(IModelDoc2 modello, IFeature f, int fine, double profonditaM, out string refusedBy)
+        private static bool WriteExtrusion(IModelDoc2 model, IFeature f, int fine, double depthM, out string refusedBy)
         {
             refusedBy = null;
-            var dati = f.GetDefinition() as IExtrudeFeatureData2;
-            if (dati == null) { refusedBy = "GetDefinition gave no extrusion definition"; return false; }
+            var data = f.GetDefinition() as IExtrudeFeatureData2;
+            if (data == null) { refusedBy = "GetDefinition gave no extrusion definition"; return false; }
             bool access;
-            try { access = dati.AccessSelections(modello, null); }
+            try { access = data.AccessSelections(model, null); }
             catch (Exception ex) { refusedBy = "AccessSelections threw: " + ex.Message; return false; }
             if (!access) { refusedBy = "AccessSelections answered false"; return false; }
-            bool fatto = false;
+            bool done = false;
             try
             {
-                dati.SetEndCondition(true, fine);
+                data.SetEndCondition(true, fine);
                 // ANCHE IL PIANO MEDIO HA LA SUA PROFONDITA' (revisione del 27/9/2026):
                 // senza, il ripristino rimetteva la condizione e lasciava la misura nuova.
                 if (fine == (int)swEndConditions_e.swEndCondBlind || fine == (int)swEndConditions_e.swEndCondMidPlane)
-                    dati.SetDepth(true, profonditaM);
+                    data.SetDepth(true, depthM);
                 // S11: ModifyDefinition always with GetErrorCode2 (ApiHelpers).
                 // The verdict on errors stays with the caller, which rebuilds
-                // and counts the features in error (LavorazioniInErrore).
-                fatto = ApiHelpers.ModifyAndVerify(f, dati, modello).Applied;
-                if (!fatto) refusedBy = "ModifyDefinition answered false";
+                // and counts the features in error (FeaturesInError).
+                done = ApiHelpers.ModifyAndVerify(f, data, model).Applied;
+                if (!done) refusedBy = "ModifyDefinition answered false";
             }
-            catch (Exception ex) { fatto = false; refusedBy = "writing the definition threw: " + ex.Message; }
-            if (!fatto) { try { dati.ReleaseSelectionAccess(); } catch { } }
-            return fatto;
+            catch (Exception ex) { done = false; refusedBy = "writing the definition threw: " + ex.Message; }
+            if (!done) { try { data.ReleaseSelectionAccess(); } catch { } }
+            return done;
         }
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace Oce.Solid.Agent.Core
         /// 0.144.0 the refusal said that nothing had been touched, without
         /// looking.
         /// </summary>
-        private static string ExtrusionReadBack(IModelDoc2 modello, IFeature f, int endBefore, double depthBeforeM, double? volumeBefore)
+        private static string ExtrusionReadBack(IModelDoc2 model, IFeature f, int endBefore, double depthBeforeM, double? volumeBefore)
         {
             int endNow = -1;
             double depthNowM = double.NaN;
@@ -109,8 +109,8 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { endNow = -1; }
-            return ExtrusionReadBackTail(endBefore, Unita.Mm(depthBeforeM), volumeBefore,
-                                         endNow, Unita.Mm(depthNowM), VolumeMm3(modello));
+            return ExtrusionReadBackTail(endBefore, Units.Mm(depthBeforeM), volumeBefore,
+                                         endNow, Units.Mm(depthNowM), VolumeMm3(model));
         }
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace Oce.Solid.Agent.Core
             int endNow, double depthNowMm, double? volumeNow)
         {
             if (endNow < 0 || volumeNow == null || volumeBefore == null)
-                return " I could not read it back (end condition " + (endNow < 0 ? "not read" : "«" + NomeDellaFine(endNow) + "»") +
+                return " I could not read it back (end condition " + (endNow < 0 ? "not read" : "«" + EndName(endNow) + "»") +
                        ", volume " + (volumeNow == null ? "not read" : volumeNow.GetValueOrDefault().ToString("0.##", CultureInfo.InvariantCulture) + " mm3") +
                        "): look at the feature before going on.";
             bool withDepth = endBefore == (int)swEndConditions_e.swEndCondBlind ||
@@ -136,46 +136,46 @@ namespace Oce.Solid.Agent.Core
             bool sameVolume = Math.Abs(volumeNow.GetValueOrDefault() - volumeBefore.GetValueOrDefault()) < 0.01;
             string volumeText = volumeNow.GetValueOrDefault().ToString("0.##", CultureInfo.InvariantCulture) + " mm3";
             if (sameEnd && sameDepth && sameVolume)
-                return " Read back: still «" + NomeDellaFine(endNow) + "»" +
+                return " Read back: still «" + EndName(endNow) + "»" +
                        (withDepth ? ", " + depthNowMm.ToString("0.###", CultureInfo.InvariantCulture) + " mm deep" : "") +
                        ", and the volume is the one before (" + volumeText + "): nothing changed.";
             bool depthNowShown = endNow == (int)swEndConditions_e.swEndCondBlind ||
                                  endNow == (int)swEndConditions_e.swEndCondMidPlane;
-            return " Read back, it is now «" + NomeDellaFine(endNow) + "»" +
+            return " Read back, it is now «" + EndName(endNow) + "»" +
                    (depthNowShown && !double.IsNaN(depthNowMm) ? ", " + depthNowMm.ToString("0.###", CultureInfo.InvariantCulture) + " mm deep" : "") +
                    ", with a volume of " + volumeText + " instead of " +
                    volumeBefore.GetValueOrDefault().ToString("0.##", CultureInfo.InvariantCulture) + " mm3: the feature is not as it was. " +
-                   "Look at it, and undo the step (" + Frasi.CosiSiRitira + ").";
+                   "Look at it, and undo the step (" + Sentences.HowToWithdrawIt + ").";
         }
 
-        private Esito CambiaEstrusione(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome EditExtrusion(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            if (!(modello is IPartDoc))
-                return Fallito("Cambio le lavorazioni di un pezzo. Aprimi il pezzo.");
+            if (!(model is IPartDoc))
+                return Failed("Cambio le lavorazioni di un pezzo. Aprimi il pezzo.");
             string uid = (Str(a, "feature_uid", "") ?? "").Trim();
             if (uid.Length == 0)
-                return Fallito("Dimmi «feature_uid»: la lavorazione da cambiare, col nome dallo stato («feature»).");
-            bool chiedePassante = a != null && a.ContainsKey("through_all") && a["through_all"] is bool && (bool)a["through_all"];
-            bool chiedeProfondita = a != null && a.ContainsKey("depth_mm");
-            if (chiedePassante == chiedeProfondita)
-                return Fallito("Dimmi O «through_all»: true (un taglio che attraversa tutto) O «depth_mm» (quanto va " +
+                return Failed("Dimmi «feature_uid»: la lavorazione da cambiare, col nome dallo stato («feature»).");
+            bool asksThroughAll = a != null && a.ContainsKey("through_all") && a["through_all"] is bool && (bool)a["through_all"];
+            bool asksDepth = a != null && a.ContainsKey("depth_mm");
+            if (asksThroughAll == asksDepth)
+                return Failed("Dimmi O «through_all»: true (un taglio che attraversa tutto) O «depth_mm» (quanto va " +
                                "a fondo, in mm), uno dei due.");
-            double profondita = double.NaN; string errore;
-            if (chiedeProfondita)
+            double depth = double.NaN; string error;
+            if (asksDepth)
             {
-                if (!NumObbligatorio(a, "depth_mm", out profondita, out errore)) return Fallito(errore);
-                if (profondita <= 0) return Fallito("«depth_mm» deve essere positiva.");
+                if (!RequiredNum(a, "depth_mm", out depth, out error)) return Failed(error);
+                if (depth <= 0) return Failed("«depth_mm» deve essere positiva.");
             }
-            string motivo;
-            if (!LavorazioneEQuella(modello, uid, a, out motivo)) return Fallito(motivo);
-            var f = TrovaLavorazione(modello, uid);
+            string reason;
+            if (!FeatureIsThatOne(model, uid, a, out reason)) return Failed(reason);
+            var f = FindFeature(model, uid);
             if (f == null)
             {
-                string ci = LavorazioniCheCiSono(modello);
-                return Fallito("Non trovo «" + uid + "» in questo documento." + (ci.Length > 0 ? " Ci sono: " + ci + "." : ""));
+                string ci = FeaturesThatExist(model);
+                return Failed("Non trovo «" + uid + "» in questo documento." + (ci.Length > 0 ? " Ci sono: " + ci + "." : ""));
             }
-            string tipo = "";
-            try { tipo = f.GetTypeName2(); } catch { }
+            string typ = "";
+            try { typ = f.GetTypeName2(); } catch { }
             // «ICE» NON VUOL DIRE TAGLIO (voce Z-C21.2, rilievo M7).
             //
             // IFeature~GetTypeName2.html: «To get the underlying type of feature
@@ -204,29 +204,29 @@ namespace Oce.Solid.Agent.Core
             // sono «ICE» per GetTypeName2: «Extrusion» e' solo la base, che non e'
             // un «boss» e non e' un taglio. Dove il tipo e' gia' «Cut» o
             // «Extrusion» decide il tipo, come prima di Z-C21.2.
-            if (tipo != "Extrusion" && tipo != "Cut" && tipo != "ICE")
-                return Fallito("«" + f.Name + "» e' una lavorazione di tipo «" + tipo + "»: so cambiare le estrusioni e i tagli " +
+            if (typ != "Extrusion" && typ != "Cut" && typ != "ICE")
+                return Failed("«" + f.Name + "» e' una lavorazione di tipo «" + typ + "»: so cambiare le estrusioni e i tagli " +
                                "estrusi. Per una quota qualunque c'e' «set_dimension».");
-            var prima = f.GetDefinition() as IExtrudeFeatureData2;
-            if (prima == null) return Fallito("Non leggo la definizione di «" + f.Name + "».");
-            bool taglio = tipo == "Cut";
-            if (tipo == "ICE")
+            var before = f.GetDefinition() as IExtrudeFeatureData2;
+            if (before == null) return Failed("Non leggo la definizione di «" + f.Name + "».");
+            bool cut = typ == "Cut";
+            if (typ == "ICE")
             {
-                try { taglio = !prima.IsBossFeature(); }
+                try { cut = !before.IsBossFeature(); }
                 catch (Exception ex)
                 {
                     // «Nothing touched» needs no reread here (Z-C21.8, finding
                     // M42): up to this line the feature has only been read
                     // (GetDefinition, IsBossFeature), never accessed or modified.
-                    return Fallito("Non riesco a sapere se «" + f.Name + "» e' un taglio o un rialzo (" + ex.Message +
+                    return Failed("Non riesco a sapere se «" + f.Name + "» e' un taglio o un rialzo (" + ex.Message +
                                    "): non la tocco. Non ho toccato niente.");
                 }
             }
-            if (chiedePassante && !taglio)
-                return Fallito("«through_all» vale per un taglio: un'estrusione che «attraversa tutto» non ha niente da " +
+            if (asksThroughAll && !cut)
+                return Failed("«through_all» vale per un taglio: un'estrusione che «attraversa tutto» non ha niente da " +
                                "attraversare. Per farla crescere dimmi «depth_mm».");
-            int finePrima = prima.GetEndCondition(true);
-            double profPrima = prima.GetDepth(true);
+            int endBefore = before.GetEndCondition(true);
+            double depthBefore = before.GetDepth(true);
 
             // DUE VERSI INDIPENDENTI: SI RIFIUTA (voce Z-C21.2, rilievo L5-1).
             //
@@ -240,17 +240,17 @@ namespace Oce.Solid.Agent.Core
             // solo da pezzi fatti fuori: rifiutare costa poco e non toglie niente
             // che funzionasse davvero. Il piano medio NON e' «due versi» (e' una
             // condizione del verso 1) e resta ammesso.
-            bool dueVersi = false;
-            try { dueVersi = prima.BothDirections; } catch { }
-            if (dueVersi && finePrima != (int)swEndConditions_e.swEndCondMidPlane &&
-                finePrima != (int)swEndConditions_e.swEndCondThroughAllBoth)
+            bool twoDirections = false;
+            try { twoDirections = before.BothDirections; } catch { }
+            if (twoDirections && endBefore != (int)swEndConditions_e.swEndCondMidPlane &&
+                endBefore != (int)swEndConditions_e.swEndCondThroughAllBoth)
             {
                 int fine2 = -1; double prof2 = double.NaN;
-                try { fine2 = prima.GetEndCondition(false); prof2 = prima.GetDepth(false); } catch { }
+                try { fine2 = before.GetEndCondition(false); prof2 = before.GetDepth(false); } catch { }
                 bool conProf2 = fine2 == (int)swEndConditions_e.swEndCondBlind;
-                return Fallito("«" + f.Name + "» va in due versi indipendenti: il primo «" + NomeDellaFine(finePrima) +
-                               "», il secondo «" + NomeDellaFine(fine2) + "»" +
-                               (conProf2 ? " profondo " + Unita.Mm(prof2).ToString("0.###") + " mm" : "") +
+                return Failed("«" + f.Name + "» va in due versi indipendenti: il primo «" + EndName(endBefore) +
+                               "», il secondo «" + EndName(fine2) + "»" +
+                               (conProf2 ? " profondo " + Units.Mm(prof2).ToString("0.###") + " mm" : "") +
                                ". Io cambio e rileggo solo il primo, e ti direi «fatto» con il secondo com'era: " +
                                "non la tocco. Cambiala a mano, oppure dimmi una quota da cambiare con " +
                                "«set_dimension». Non ho toccato niente.");
@@ -264,71 +264,71 @@ namespace Oce.Solid.Agent.Core
             // Le condizioni con un RIFERIMENTO (fino a una superficie, a un vertice,
             // a un corpo) non si toccano: cambiarle perde il riferimento, e se
             // qualcosa si rompe non saprei rimetterlo.
-            bool conRiferimento = finePrima == (int)swEndConditions_e.swEndCondUpToSurface ||
-                                  finePrima == (int)swEndConditions_e.swEndCondOffsetFromSurface ||
-                                  finePrima == (int)swEndConditions_e.swEndCondUpToVertex ||
-                                  finePrima == (int)swEndConditions_e.swEndCondUpToBody ||
-                                  finePrima == (int)swEndConditions_e.swEndCondUpToSelection ||
-                                  finePrima == (int)swEndConditions_e.swEndCondUpToNext;
-            if (conRiferimento)
-                return Fallito("«" + f.Name + "» finisce «" + NomeDellaFine(finePrima) + "»: cambiarla perderebbe il " +
+            bool withReference = endBefore == (int)swEndConditions_e.swEndCondUpToSurface ||
+                                  endBefore == (int)swEndConditions_e.swEndCondOffsetFromSurface ||
+                                  endBefore == (int)swEndConditions_e.swEndCondUpToVertex ||
+                                  endBefore == (int)swEndConditions_e.swEndCondUpToBody ||
+                                  endBefore == (int)swEndConditions_e.swEndCondUpToSelection ||
+                                  endBefore == (int)swEndConditions_e.swEndCondUpToNext;
+            if (withReference)
+                return Failed("«" + f.Name + "» finisce «" + EndName(endBefore) + "»: cambiarla perderebbe il " +
                                "riferimento, e se qualcosa si rompesse non saprei rimetterlo. Cambiala a mano, oppure " +
                                "dimmi una quota da cambiare con «set_dimension».");
-            bool simmetrica = finePrima == (int)swEndConditions_e.swEndCondMidPlane ||
-                              finePrima == (int)swEndConditions_e.swEndCondThroughAllBoth;
-            int fineChiesta = chiedePassante
-                ? (simmetrica ? (int)swEndConditions_e.swEndCondThroughAllBoth : (int)swEndConditions_e.swEndCondThroughAll)
-                : (simmetrica ? (int)swEndConditions_e.swEndCondMidPlane : (int)swEndConditions_e.swEndCondBlind);
+            bool symmetric = endBefore == (int)swEndConditions_e.swEndCondMidPlane ||
+                              endBefore == (int)swEndConditions_e.swEndCondThroughAllBoth;
+            int requestedEnd = asksThroughAll
+                ? (symmetric ? (int)swEndConditions_e.swEndCondThroughAllBoth : (int)swEndConditions_e.swEndCondThroughAll)
+                : (symmetric ? (int)swEndConditions_e.swEndCondMidPlane : (int)swEndConditions_e.swEndCondBlind);
             // LE GUARDIE DI set_dimension: corpi, aperture, smussi, errori.
-            var foto = FotografaIlPezzo(modello);
-            double? volumePrima = foto.Volume;
+            var photo = SnapshotPart(model);
+            double? volumeBefore = photo.Volume;
             string refusedBy;
-            if (!ScriviEstrusione(modello, f, fineChiesta, chiedeProfondita ? Unita.M(profondita) : profPrima, out refusedBy))
+            if (!WriteExtrusion(model, f, requestedEnd, asksDepth ? Units.M(depth) : depthBefore, out refusedBy))
             {
-                try { modello.ForceRebuild3(false); } catch { }
-                return Fallito("SOLIDWORKS did not take the new definition of «" + f.Name + "» (" + refusedBy + ")." +
-                               ExtrusionReadBack(modello, f, finePrima, profPrima, volumePrima));
+                try { model.ForceRebuild3(false); } catch { }
+                return Failed("SOLIDWORKS did not take the new definition of «" + f.Name + "» (" + refusedBy + ")." +
+                               ExtrusionReadBack(model, f, endBefore, depthBefore, volumeBefore));
             }
-            bool ricostruito = false;
-            try { ricostruito = modello.ForceRebuild3(false); } catch { }
-            int erroriDopo = LavorazioniInErrore(modello);
+            bool rebuilt = false;
+            try { rebuilt = model.ForceRebuild3(false); } catch { }
+            int errorsAfter = FeaturesInError(model);
             // Senza le aperture: cambia solo la profondita', e un passante che torna
-            // cieco le fa calare a ragione (vedi CosaSiERotto).
-            string rotto = CosaSiERotto(modello, foto, ricostruito, false);
-            if (rotto != null)
+            // cieco le fa calare a ragione (vedi WhatBroke).
+            string broken = WhatBroke(model, photo, rebuilt, false);
+            if (broken != null)
             {
-                bool rimessa = ScriviEstrusione(modello, f, finePrima, profPrima, out _);
-                try { modello.ForceRebuild3(false); } catch { }
-                return Fallito("Con la definizione nuova di «" + f.Name + "» " + rotto + "." +
-                               ETornatoComEra(modello, foto, rimessa, "la definizione di prima (" + NomeDellaFine(finePrima) + ")"));
+                bool restored = WriteExtrusion(model, f, endBefore, depthBefore, out _);
+                try { model.ForceRebuild3(false); } catch { }
+                return Failed("Con la definizione nuova di «" + f.Name + "» " + broken + "." +
+                               IsBackAsItWas(model, photo, restored, "la definizione di prima (" + EndName(endBefore) + ")"));
             }
-            var dopo = f.GetDefinition() as IExtrudeFeatureData2;
-            int fineDopo = dopo == null ? -1 : dopo.GetEndCondition(true);
-            double profDopo = dopo == null ? double.NaN : dopo.GetDepth(true);
-            bool conProfondita = fineDopo == (int)swEndConditions_e.swEndCondBlind || fineDopo == (int)swEndConditions_e.swEndCondMidPlane;
-            if (fineDopo != fineChiesta || (chiedeProfondita && Math.Abs(Unita.Mm(profDopo) - profondita) > 0.001))
-                return Fallito("SOLIDWORKS dice di aver cambiato «" + f.Name + "», ma rileggendola e' " + NomeDellaFine(fineDopo) +
-                               (conProfondita ? " profonda " + Unita.Mm(profDopo).ToString("0.###") + " mm" : "") +
+            var after = f.GetDefinition() as IExtrudeFeatureData2;
+            int endAfter = after == null ? -1 : after.GetEndCondition(true);
+            double depthAfter = after == null ? double.NaN : after.GetDepth(true);
+            bool withDepth = endAfter == (int)swEndConditions_e.swEndCondBlind || endAfter == (int)swEndConditions_e.swEndCondMidPlane;
+            if (endAfter != requestedEnd || (asksDepth && Math.Abs(Units.Mm(depthAfter) - depth) > 0.001))
+                return Failed("SOLIDWORKS dice di aver cambiato «" + f.Name + "», ma rileggendola e' " + EndName(endAfter) +
+                               (withDepth ? " profonda " + Units.Mm(depthAfter).ToString("0.###") + " mm" : "") +
                                ": non e' quello che hai chiesto.");
-            double? volumeDopo = VolumeMm3(modello);
-            var misure = new Dictionary<string, object>
+            double? volumeAfter = VolumeMm3(model);
+            var measurements = new Dictionary<string, object>
             {
                 ["feature"] = f.Name,
-                ["kind"] = taglio ? "cut" : "extrusion",
-                ["end_before"] = NomeDellaFine(finePrima),
-                ["depth_before_mm"] = finePrima == (int)swEndConditions_e.swEndCondBlind || finePrima == (int)swEndConditions_e.swEndCondMidPlane
-                    ? (object)Math.Round(Unita.Mm(profPrima), 4) : null,
-                ["end_after"] = NomeDellaFine(fineDopo),
-                ["depth_after_mm"] = conProfondita ? (object)Math.Round(Unita.Mm(profDopo), 4) : null,
-                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["features_in_error"] = erroriDopo >= 0 ? (object)erroriDopo : null,
+                ["kind"] = cut ? "cut" : "extrusion",
+                ["end_before"] = EndName(endBefore),
+                ["depth_before_mm"] = endBefore == (int)swEndConditions_e.swEndCondBlind || endBefore == (int)swEndConditions_e.swEndCondMidPlane
+                    ? (object)Math.Round(Units.Mm(depthBefore), 4) : null,
+                ["end_after"] = EndName(endAfter),
+                ["depth_after_mm"] = withDepth ? (object)Math.Round(Units.Mm(depthAfter), 4) : null,
+                ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
+                ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["features_in_error"] = errorsAfter >= 0 ? (object)errorsAfter : null,
             };
-            if (volumePrima != null && volumeDopo != null && Math.Abs(volumePrima.Value - volumeDopo.Value) < 0.01)
-                misure["warning"] = "La definizione e' cambiata ma il volume no: la profondita' nuova non cambia il pezzo " +
+            if (volumeBefore != null && volumeAfter != null && Math.Abs(volumeBefore.Value - volumeAfter.Value) < 0.01)
+                measurements["warning"] = "La definizione e' cambiata ma il volume no: la profondita' nuova non cambia il pezzo " +
                                        "(un taglio cieco piu' profondo del materiale e' gia' passante, per esempio).";
-            _log("[agente] " + f.Name + ": " + NomeDellaFine(finePrima) + " -> " + NomeDellaFine(fineDopo));
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] " + f.Name + ": " + EndName(endBefore) + " -> " + EndName(endAfter));
+            return SucceededWithoutCreating(measurements);
         }
     }
 }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using static Oce.Solid.Agent.Core.Catalog.Nodo;
+using static Oce.Solid.Agent.Core.Catalog.Node;
 
 namespace Oce.Solid.Agent.Core.Catalog
 {
@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Core.Catalog
     /// Il JSON e' un PRODOTTO, non una fonte: si rigenera, non si modifica. Chi
     /// vuole cambiare una descrizione tocca `Operations.cs` e riesporta.
     /// </summary>
-    public static class Esporta
+    public static class Export
     {
         /// <summary>
         /// Il catalogo come lo legge il ponte.
@@ -26,42 +26,42 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// niente — ed e' un difetto gia' successo una volta, nell'esportatore
         /// Python di prima.
         /// </summary>
-        public static Nodo Catalogo()
+        public static Node Catalog()
         {
-            var provate = Operazioni.Tutte.Where(o => o.Provata).ToList();
-            var usate = new HashSet<string>(provate.Select(o => o.Famiglia));
+            var tested = Operations.All.Where(o => o.Tested).ToList();
+            var used = new HashSet<string>(tested.Select(o => o.Family));
 
-            var famiglie = new List<object>();
-            foreach (var f in Operazioni.Famiglie)
+            var families = new List<object>();
+            foreach (var f in Operations.Families)
             {
-                if (!usate.Contains(f.Key)) continue;
-                famiglie.Add(f.Key);
-                famiglie.Add(f.Value);
+                if (!used.Contains(f.Key)) continue;
+                families.Add(f.Key);
+                families.Add(f.Value);
             }
 
-            var elenco = new List<object>();
-            foreach (var o in provate)
+            var list = new List<object>();
+            foreach (var o in tested)
             {
-                elenco.Add(O(
-                    "name", o.Nome,
-                    "family", o.Famiglia,
-                    "summary", o.Sommario,
-                    "details", o.Descrizione,
+                list.Add(O(
+                    "name", o.Name,
+                    "family", o.Family,
+                    "summary", o.Summary,
+                    "details", o.Description,
                     "schema", o.Schema,
-                    "precondition", o.Precondizione,
-                    "document", o.DocumentoRichiesto,
-                    "example", o.Esempio));
+                    "precondition", o.Precondition,
+                    "document", o.RequestedDocument,
+                    "example", o.Example));
             }
 
             return O(
-                "families", O(famiglie.ToArray()),
-                "operations", A(elenco.ToArray()));
+                "families", O(families.ToArray()),
+                "operations", A(list.ToArray()));
         }
 
         /// <summary>Il catalogo scritto, pronto da salvare.</summary>
         public static string Json()
         {
-            return Nodo.Json(Catalogo());
+            return Node.Json(Catalog());
         }
 
         /// <summary>
@@ -70,13 +70,13 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// esporta deve saperlo, perche' il caso normale e' che sia una
         /// dimenticanza.
         /// </summary>
-        public static List<string> FamiglieSenzaOperazioni()
+        public static List<string> FamiliesWithoutOperations()
         {
-            var usate = new HashSet<string>(
-                Operazioni.Tutte.Where(o => o.Provata).Select(o => o.Famiglia));
-            return Operazioni.Famiglie
+            var used = new HashSet<string>(
+                Operations.All.Where(o => o.Tested).Select(o => o.Family));
+            return Operations.Families
                 .Select(f => f.Key)
-                .Where(k => !usate.Contains(k))
+                .Where(k => !used.Contains(k))
                 .ToList();
         }
 
@@ -85,9 +85,9 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// Restano fuori dal JSON, e si dicono: un elenco che si accorcia in
         /// silenzio non si nota.
         /// </summary>
-        public static List<string> NonProvate()
+        public static List<string> NotTested()
         {
-            return Operazioni.Tutte.Where(o => !o.Provata).Select(o => o.Nome).ToList();
+            return Operations.All.Where(o => !o.Tested).Select(o => o.Name).ToList();
         }
     }
 }

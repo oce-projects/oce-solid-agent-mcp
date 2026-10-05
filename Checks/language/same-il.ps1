@@ -133,6 +133,8 @@ public class SameIlResult
     public int Unexplained;
     public int Rewritten;
     public List<string> Samples = new List<string>();
+    // the lines not explained, by the method they sit in
+    public SortedDictionary<string, int> ByMethod = new SortedDictionary<string, int>(StringComparer.Ordinal);
 }
 
 public static class SameIlCore
@@ -286,6 +288,14 @@ public static class SameIlCore
             {
                 int j = i;
                 while (j < s.Length && IsWord(s[j])) j++;
+                // an accessor is its prefix and the name of the member: get_Name, set_Name, add_Name, remove_Name
+                int cut = 0;
+                foreach (var pre in new[] { "get_", "set_", "add_", "remove_" })
+                    if (j - i > pre.Length && string.CompareOrdinal(s, i, pre, 0, pre.Length) == 0 && char.IsLetter(s[i + pre.Length])) { cut = pre.Length; break; }
+                if (cut > 0) { list.Add(s.Substring(i, cut)); i += cut; }
+                // `<>3__name`: the number of the generated field and the name it carries
+                var gen = Regex.Match(s.Substring(i, j - i), @"^[0-9]+__(?=[A-Za-z])");
+                if (gen.Success) { list.Add(gen.Value); i += gen.Length; }
                 list.Add(s.Substring(i, j - i));
                 i = j;
             }
@@ -322,8 +332,10 @@ public static class SameIlCore
     // a search over positions, so a word with two rows is tried both ways.
     public static bool ExplainedByMap(string a, string b, Dictionary<string, List<string[][]>> map)
     {
-        var A = Words(a);
-        var B = Words(b);
+        // ildasm quotes a name that is an IL keyword (error, strict, value...): a rename that makes a name
+        // a keyword adds quotes, and they mean nothing
+        var A = Words(a.Replace("'", ""));
+        var B = Words(b.Replace("'", ""));
         var seen = new HashSet<long>();
         var stack = new Stack<long>();
         stack.Push(0);
@@ -380,10 +392,82 @@ public static class SameIlCore
         return result;
     }
 
+    static readonly Regex NestedStart = new Regex(@"^(\s*)\.class\b.*\bnested\b");
+
+    // The order of the lines of a disassembly in which every run of nested classes is sorted by the name
+    // of the class. Roslyn writes the synthesized nested types (the iterator of a method, a closure) in
+    // the order of their names, so a renamed method moves its iterator class among its brothers; the
+    // same text with the runs sorted is the same text whatever the names were.
+    static readonly Regex NestedNameRx = new Regex(@"\.class\b.*?\bnested\s+(?:[a-z]+\s+)*?('(?:[^']|'')+'|[^\s']+)(?=\s+(?:extends|implements)\b|\s*$)");
+
+    // the name of the nested class a `.class ... nested ... name extends ...` line declares
+    static string NestedName(string line)
+    {
+        var m = NestedNameRx.Match(line);
+        return m.Success ? m.Groups[1].Value : line.Trim();
+    }
+
+    public static string[] Permute(string[] lines, int[] order)
+    {
+        var r = new string[order.Length];
+        for (int i = 0; i < order.Length; i++) r[i] = lines[order[i]];
+        return r;
+    }
+
+    public static int[] NestedOrder(string[] lines, Dictionary<string, List<string[][]>> map)
+    {
+        // every word of a name as its Italian word: the old words are themselves, the new ones go back to their row
+        var back = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var kv in map) foreach (var p in kv.Value)
+            if (p[0].Length == 1 && p[1].Length == 1 && !back.ContainsKey(p[1][0])) back[p[1][0]] = p[0][0];
+        return SortNested(lines, 0, lines.Length, back).ToArray();
+    }
+
+    static List<int> SortNested(string[] key, int from, int to, Dictionary<string, string> back)
+    {
+        var res = new List<int>();
+        int i = from;
+        while (i < to)
+        {
+            var m = NestedStart.Match(key[i]);
+            if (!m.Success) { res.Add(i); i++; continue; }
+            string indent = m.Groups[1].Value;
+            var blocks = new List<KeyValuePair<string, List<int>>>();
+            while (i < to)
+            {
+                var mm = NestedStart.Match(key[i]);
+                if (!mm.Success || mm.Groups[1].Value != indent) break;
+                string name = NestedName(key[i]);
+                int j = i + 1;
+                while (j < to && !(key[j].TrimStart().StartsWith("}", StringComparison.Ordinal) && key[j].Contains("// end of class " + name))) j++;
+                var list = new List<int> { i };
+                list.AddRange(SortNested(key, i + 1, Math.Min(j, to), back));
+                if (j < to) list.Add(j);
+                // the blank lines after the class go with it
+                int k = j + 1;
+                while (k < to && key[k].Trim().Length == 0) { list.Add(k); k++; }
+                var canon = new StringBuilder();
+                foreach (var w in Words(name)) { string old; canon.Append(back.TryGetValue(w, out old) ? old : w); }
+                blocks.Add(new KeyValuePair<string, List<int>>(canon.ToString(), list));
+                i = k;
+            }
+            // a stable sort: the brothers with one name keep their order
+            var ordered = new List<KeyValuePair<string, List<int>>>(blocks);
+            for (int a = 1; a < ordered.Count; a++)
+            {
+                var x = ordered[a]; int b = a - 1;
+                while (b >= 0 && string.CompareOrdinal(ordered[b].Key, x.Key) > 0) { ordered[b + 1] = ordered[b]; b--; }
+                ordered[b + 1] = x;
+            }
+            foreach (var blk in ordered) res.AddRange(blk.Value);
+        }
+        return res;
+    }
+
     // git diff --no-index -U0, hunk by hunk: a hunk with as many old lines as
     // new ones is judged line by line, any other is unexplained as a whole.
     public static SameIlResult Compare(string beforeFile, string afterFile, string mode,
-                                       Dictionary<string, List<string[][]>> map, int show)
+                                       Dictionary<string, List<string[][]>> map, int show, string[] originalBefore)
     {
         var psi = new ProcessStartInfo("git", "diff --no-index --no-color --text -U0 -- \"" + beforeFile + "\" \"" + afterFile + "\"");
         psi.UseShellExecute = false;
@@ -399,19 +483,45 @@ public static class SameIlCore
         var res = new SameIlResult();
         var removed = new List<string>();
         var added = new List<string>();
+        int hunkStart = 0;
         foreach (var raw in text.Split('\n'))
         {
             var l = raw.TrimEnd('\r');
-            if (l.StartsWith("@@")) { Judge(removed, added, mode, map, show, res); continue; }
+            if (l.StartsWith("@@"))
+            {
+                Judge(removed, added, originalBefore, hunkStart, mode, map, show, res);
+                var hm = Regex.Match(l, @"^@@ -(\d+)");
+                hunkStart = hm.Success ? int.Parse(hm.Groups[1].Value) - 1 : 0;
+                continue;
+            }
             if (l.StartsWith("---") || l.StartsWith("+++")) continue;
             if (l.StartsWith("-")) removed.Add(l.Substring(1));
             else if (l.StartsWith("+")) added.Add(l.Substring(1));
         }
-        Judge(removed, added, mode, map, show, res);
+        Judge(removed, added, originalBefore, hunkStart, mode, map, show, res);
         return res;
     }
 
-    static void Judge(List<string> removed, List<string> added, string mode,
+    static readonly Regex MethodLine = new Regex(@"^\s*\.method\b.*?([^\s(]+)\(");
+    static readonly Regex ClassLine = new Regex(@"^\s*\.class\b.*?(?:nested\s+)?(?:[a-z]+\s+)*?('(?:[^']|'')+'|[^\s']+)(?=\s+(?:extends|implements)\b|\s*$)");
+
+    // the method (or, before any, the class) the line before `at` belongs to
+    static string Where(SameIlResult res, string[] before, int at, int lines)
+    {
+        string where = "(the top)";
+        if (before != null)
+            for (int k = Math.Min(at, before.Length - 1); k >= 0; k--)
+            {
+                var m = MethodLine.Match(before[k]);
+                if (m.Success) { where = m.Groups[1].Value; break; }
+                var c = ClassLine.Match(before[k]);
+                if (c.Success && before[k].TrimStart().StartsWith(".class", StringComparison.Ordinal)) { where = "class " + c.Groups[1].Value; break; }
+            }
+        int n; res.ByMethod.TryGetValue(where, out n); res.ByMethod[where] = n + lines;
+        return where;
+    }
+
+    static void Judge(List<string> removed, List<string> added, string[] originalBefore, int hunkStart, string mode,
                       Dictionary<string, List<string[][]>> map, int show, SameIlResult res)
     {
         if (removed.Count == 0 && added.Count == 0) return;
@@ -419,8 +529,9 @@ public static class SameIlCore
         if (removed.Count != added.Count || mode == "Identical")
         {
             res.Unexplained += Math.Max(removed.Count, added.Count);
+            var where = Where(res, originalBefore, hunkStart, Math.Max(removed.Count, added.Count));
             if (res.Samples.Count < show)
-                res.Samples.Add((removed.Count != added.Count ? removed.Count + " line(s) became " + added.Count + ":" : "differs:") +
+                res.Samples.Add((removed.Count != added.Count ? removed.Count + " line(s) became " + added.Count + " (in " + where + "):" : "differs (in " + where + "):") +
                                 "\n        before: " + Cut(removed.Count > 0 ? removed[0] : "(nothing)") +
                                 "\n        after:  " + Cut(added.Count > 0 ? added[0] : "(nothing)"));
         }
@@ -430,11 +541,12 @@ public static class SameIlCore
             {
                 bool ok = mode == "Ldstr"
                     ? WithoutLiterals(removed[i]) == WithoutLiterals(added[i])
-                    : ExplainedByMap(removed[i], added[i], map);
+                    : ExplainedByMap(originalBefore != null && hunkStart + i < originalBefore.Length ? originalBefore[hunkStart + i] : removed[i], added[i], map);
                 if (ok) { res.Explained++; continue; }
                 res.Unexplained++;
+                var where = Where(res, originalBefore, hunkStart + i, 1);
                 if (res.Samples.Count < show)
-                    res.Samples.Add((mode == "Ldstr" ? "not only a literal:" : "not explained by the map:") +
+                    res.Samples.Add((mode == "Ldstr" ? "not only a literal (in " + where + "):" : "not explained by the map (in " + where + "):") +
                                     "\n        before: " + Cut(removed[i]) + "\n        after:  " + Cut(added[i]));
             }
         }
@@ -647,7 +759,7 @@ function Read-NameMap([string] $file) {
 }
 
 # ildasm text of one assembly, normalized, plus one line per resource.
-function Get-IlText([string] $assembly, [string] $ildasmExe) {
+function Get-TheText([string] $assembly, [string] $ildasmExe) {
     if (-not (Test-Path -LiteralPath $assembly)) { Stop-Cannot "no assembly at $assembly" }
     $work = New-TempFolder 'same-il'
     try {
@@ -686,13 +798,20 @@ function Get-IlText([string] $assembly, [string] $ildasmExe) {
 
 # Compares two assemblies; returns a SameIlResult.
 function Compare-Assembly([string] $a, [string] $b, [string] $mode, $nameMap, [string] $ildasmExe, [int] $show) {
-    $ta = Get-IlText $a $ildasmExe
-    $tb = Get-IlText $b $ildasmExe
+    $ta = Get-TheText $a $ildasmExe
+    $tb = Get-TheText $b $ildasmExe
     $rewritten = 0
+    $original = $ta
     if ($mode -eq 'Renames') {
         $sub = [SameIlCore]::Substitute($ta, $nameMap)
         $rewritten = [SameIlCore]::CountDifferent($ta, $sub)
-        $ta = $sub
+        # the runs of nested classes in the order of their names, on both sides (the original lines of the
+        # before side follow the rewritten ones, so that a line is judged on its own text)
+        $orderBefore = [SameIlCore]::NestedOrder($original, $nameMap)
+        $orderAfter = [SameIlCore]::NestedOrder($tb, $nameMap)
+        $ta = [SameIlCore]::Permute($sub, $orderBefore)
+        $original = [SameIlCore]::Permute($original, $orderBefore)
+        $tb = [SameIlCore]::Permute($tb, $orderAfter)
     }
     $work = New-TempFolder 'same-il-diff'
     try {
@@ -701,7 +820,7 @@ function Compare-Assembly([string] $a, [string] $b, [string] $mode, $nameMap, [s
         $enc = New-Object System.Text.UTF8Encoding($false)
         [IO.File]::WriteAllText($fa, (($ta -join "`n") + "`n"), $enc)
         [IO.File]::WriteAllText($fb, (($tb -join "`n") + "`n"), $enc)
-        $r = [SameIlCore]::Compare($fa, $fb, $mode, $nameMap, $show)
+        $r = [SameIlCore]::Compare($fa, $fb, $mode, $nameMap, $show, $original)
         $r.Rewritten = $rewritten
         return $r
     } finally {
@@ -756,6 +875,12 @@ namespace Probe.Legacy
     {
         public const string Constant = "constant text";
         public static string Short() { return "short text"; }
+        // a message that keeps two words of the map, a property (its accessor is get_Label) and two iterators
+        // (their classes are written in the order of the names of the methods)
+        public static string Say() { return "Short and Alpha stay words of a message"; }
+        public static string Label { get { return "label text"; } }
+        public static System.Collections.Generic.IEnumerable<int> Alpha() { yield return 1; }
+        public static System.Collections.Generic.IEnumerable<int> Middle() { yield return 2; }
         public static string Degree() { return "ten \u00b0C"; }
         public static string Long() { return "LONGTEXT"; }
         public static int Pick(string s)
@@ -774,7 +899,7 @@ namespace Probe.Legacy
 '@
     $source = $source.Replace('LONGTEXT', $long)
     $mapFile = Join-Path $work 'map.tsv'
-    [IO.File]::WriteAllText($mapFile, "old`tnew`nProbe.Legacy`tProbe.Modern`nSample`tExample`nShort`tBrief`n", (New-Object System.Text.UTF8Encoding($false)))
+    [IO.File]::WriteAllText($mapFile, "old`tnew`nProbe.Legacy`tProbe.Modern`nSample`tExample`nShort`tBrief`nAlpha`tZulu`nLabel`tTag`n", (New-Object System.Text.UTF8Encoding($false)))
     $partialMap = Join-Path $work 'partial-map.tsv'
     [IO.File]::WriteAllText($partialMap, "old`tnew`nProbe.Legacy`tProbe.Modern`nSample`tExample`n", (New-Object System.Text.UTF8Encoding($false)))
 
@@ -810,7 +935,7 @@ namespace Probe.Legacy
             'constant'  = $source.Replace('"constant text"', '"other constant"')
             'code'      = $source.Replace('return x + 1;', 'return x + 2;')
             'case'      = $source.Replace('case "alpha"', 'case "omega"')
-            'renamed'   = $source.Replace('Probe.Legacy', 'Probe.Modern').Replace('class Sample', 'class Example').Replace('string Short()', 'string Brief()')
+            'renamed'   = $source.Replace('Probe.Legacy', 'Probe.Modern').Replace('class Sample', 'class Example').Replace('string Short()', 'string Brief()').Replace('IEnumerable<int> Alpha()', 'IEnumerable<int> Zulu()').Replace('string Label {', 'string Tag {')
         }
         $built = @{}
         foreach ($k in $variants.Keys) { $built[$k] = Build $k $variants[$k] }
@@ -1006,6 +1131,9 @@ try {
         if ($Mode -eq 'Renames') { $what += " ($($r.Rewritten) lines rewritten by the map before the comparison)" }
         Write-Output ("  {0}: {1} differing lines{2}" -f $name, $r.Differing, $what)
         foreach ($s in $r.Samples) { Write-Output ("      " + $s) }
+        if ($Mode -eq 'Renames' -and $r.ByMethod.Count) {
+            Write-Output ("      not explained, by method (" + $r.ByMethod.Count + "): " + (($r.ByMethod.GetEnumerator() | ForEach-Object { $_.Key + ' x' + $_.Value }) -join '; '))
+        }
         $summary += [pscustomobject]@{ assembly = $name; differing = $r.Differing; explained = $r.Explained; unexplained = $r.Unexplained }
     }
     Write-Output ''

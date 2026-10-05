@@ -1,14 +1,14 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// LA GUARDIA CHE NESSUNO POTREBBE MAI VEDERE SCATTARE (voce K17).
     ///
-    /// `SentinellaSolidWorks` decide quando il banco deve smettere di provare
+    /// `SolidWorksSentinel` decide quando il banco deve smettere di provare
     /// perche' SOLIDWORKS non c'e' piu'. La condizione che la accende — tre
     /// documenti nuovi che non nascono di fila — nella vita vera capita dopo
     /// ore di giro e non si sa riprodurre a comando: e' esattamente il tipo di
@@ -20,11 +20,11 @@ namespace Oce.Solid.Agent.ContractTests
     /// giro di `Oce.Solid.Agent.ContractTests` la fa scattare, e la fa NON scattare quando
     /// non deve — che e' la meta' che di solito nessuno prova.
     /// </summary>
-    internal static class ProveLaSentinella
+    internal static class SentinelTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("la sentinella: quando SOLIDWORKS se n'e' andato");
+            Group("la sentinella: quando SOLIDWORKS se n'e' andato");
 
             // ── DUE FALLIMENTI NON BASTANO ───────────────────────────────
             //
@@ -32,25 +32,25 @@ namespace Oce.Solid.Agent.ContractTests
             // al primo fallimento fermerebbe un giro intero per un modello di
             // documento momentaneamente occupato — e a quel punto la si
             // toglierebbe, ed e' peggio che non averla.
-            var s1 = new Shared.SentinellaSolidWorks(3);
-            s1.Fallita();
-            s1.Fallita();
-            Segna("due fallimenti di fila non bastano", !s1.SeNEAndato,
-                  "di fila: " + s1.DiFila + " su soglia " + s1.Soglia);
+            var s1 = new Shared.SolidWorksSentinel(3);
+            s1.Failed();
+            s1.Failed();
+            Check("due fallimenti di fila non bastano", !s1.HasGone,
+                  "di fila: " + s1.InARow + " su soglia " + s1.Threshold);
 
             // ── TRE SI' ──────────────────────────────────────────────────
-            bool scattata = s1.Fallita();
-            Segna("al terzo la sentinella scatta", scattata && s1.SeNEAndato,
-                  "di fila: " + s1.DiFila);
+            bool fired = s1.Failed();
+            Check("al terzo la sentinella scatta", fired && s1.HasGone,
+                  "di fila: " + s1.InARow);
 
             // ── E NON TORNA PIU' INDIETRO ────────────────────────────────
             //
             // Dopo che il programma e' morto, un documento che nasce per caso
             // non lo resuscita: da li' in poi il giro non e' piu' valido
             // comunque, perche' in mezzo ci sono prove non fatte.
-            s1.Riuscita();
-            Segna("una volta scattata non si spegne", s1.SeNEAndato,
-                  "dopo Riuscita(): " + s1.SeNEAndato);
+            s1.Succeeded();
+            Check("una volta scattata non si spegne", s1.HasGone,
+                  "dopo Succeeded(): " + s1.HasGone);
 
             // ── «DI FILA» E' LA PAROLA CHE CONTA ─────────────────────────
             //
@@ -58,23 +58,23 @@ namespace Oce.Solid.Agent.ContractTests
             // normale: un caso che lascia SOLIDWORKS storto e il successivo
             // che si riprende. Se la sentinella li sommasse, fermerebbe i giri
             // sani — e il primo che la vede fermare un giro sano la disattiva.
-            var s2 = new Shared.SentinellaSolidWorks(3);
-            s2.Fallita(); s2.Riuscita();
-            s2.Fallita(); s2.Riuscita();
-            s2.Fallita(); s2.Riuscita();
-            s2.Fallita();
-            Segna("tre fallimenti SPARSI non la fanno scattare", !s2.SeNEAndato,
-                  "quattro fallimenti in tutto, mai due di fila: di fila = " + s2.DiFila);
+            var s2 = new Shared.SolidWorksSentinel(3);
+            s2.Failed(); s2.Succeeded();
+            s2.Failed(); s2.Succeeded();
+            s2.Failed(); s2.Succeeded();
+            s2.Failed();
+            Check("tre fallimenti SPARSI non la fanno scattare", !s2.HasGone,
+                  "quattro fallimenti in tutto, mai due di fila: di fila = " + s2.InARow);
 
             // ── LA SOGLIA E' UN PARAMETRO, NON IL NUMERO TRE ─────────────
-            var s3 = new Shared.SentinellaSolidWorks(1);
-            s3.Fallita();
-            Segna("con soglia 1 scatta al primo", s3.SeNEAndato, "soglia " + s3.Soglia);
+            var s3 = new Shared.SolidWorksSentinel(1);
+            s3.Failed();
+            Check("con soglia 1 scatta al primo", s3.HasGone, "soglia " + s3.Threshold);
 
-            bool rifiutata = false;
-            try { new Shared.SentinellaSolidWorks(0); }
-            catch (ArgumentOutOfRangeException) { rifiutata = true; }
-            Segna("una soglia di zero viene rifiutata", rifiutata,
+            bool refused = false;
+            try { new Shared.SolidWorksSentinel(0); }
+            catch (ArgumentOutOfRangeException) { refused = true; }
+            Check("una soglia di zero viene rifiutata", refused,
                   "scatterebbe prima di guardare");
 
             // ── IL REFERTO PORTA I NUMERI ────────────────────────────────
@@ -86,10 +86,10 @@ namespace Oce.Solid.Agent.ContractTests
             // di questa riga cercava la cifra e passava mentre il referto
             // diceva «0 tentativi di fila andati a vuoto» — il 3 che trovava
             // era la soglia, nella stessa frase. Vedi `_quandoScatto`.
-            string referto = s1.Referto();
-            Segna("il referto dice quanti tentativi", referto.Contains("3 tentativi"), referto);
-            Segna("il referto dice che NON sono rosse",
-                  referto.IndexOf("NON SONO STATE", StringComparison.Ordinal) >= 0,
+            string report = s1.Report();
+            Check("il referto dice quanti tentativi", report.Contains("3 tentativi"), report);
+            Check("il referto dice che NON sono rosse",
+                  report.IndexOf("NON SONO STATE", StringComparison.Ordinal) >= 0,
                   "la differenza fra «fallita» e «non fatta» e' tutto il punto");
 
             // ── E IL BANCO LA USA DAVVERO ────────────────────────────────
@@ -99,46 +99,46 @@ namespace Oce.Solid.Agent.ContractTests
             // lanciare il banco — serve SOLIDWORKS — ma possono leggere il
             // sorgente e pretendere che i tre punti che creano documenti ci
             // passino, e che il verdetto abbia la sua uscita.
-            IlBancoLaConsulta();
+            TheBenchConsultsIt();
         }
 
-        private static void IlBancoLaConsulta()
+        private static void TheBenchConsultsIt()
         {
-            string programma = Path.Combine(Radice(), "Bench", "Program.cs");
-            string assieme = Path.Combine(Radice(), "Bench", "TestAssembly.cs");
-            string casi = Path.Combine(Radice(), "Bench", "DeclaredCases.cs");
+            string program = Path.Combine(Root(), "Bench", "Program.cs");
+            string assemblyDoc = Path.Combine(Root(), "Bench", "TestAssembly.cs");
+            string cases = Path.Combine(Root(), "Bench", "DeclaredCases.cs");
 
-            foreach (var f in new[] { programma, assieme, casi })
+            foreach (var f in new[] { program, assemblyDoc, cases })
                 if (!File.Exists(f))
                 {
-                    Segna("i sorgenti del banco ci sono", false, "manca " + f);
+                    Check("i sorgenti del banco ci sono", false, "manca " + f);
                     return;
                 }
 
-            string p = File.ReadAllText(programma);
-            string a = File.ReadAllText(assieme);
-            string c = File.ReadAllText(casi);
+            string p = File.ReadAllText(program);
+            string a = File.ReadAllText(assemblyDoc);
+            string c = File.ReadAllText(cases);
 
-            Segna("il banco costruisce la sentinella",
-                  Regex.IsMatch(p, @"new Shared\.SentinellaSolidWorks\(\s*3\s*\)"),
+            Check("il banco costruisce la sentinella",
+                  Regex.IsMatch(p, @"new Shared\.SolidWorksSentinel\(\s*3\s*\)"),
                   "soglia 3 in Bench/Program.cs");
 
             // I TRE PUNTI CHE CREANO DOCUMENTI, uno per uno. Un punto che non
             // ci passa e' una strada per cui il banco continua a provare
             // contro un programma morto — cioe' il difetto, intatto.
-            Segna("NuovaParte consulta la sentinella",
-                  p.Contains("if (Sentinella.SeNEAndato)") &&
-                  p.Contains("Sentinella.Fallita()") &&
-                  p.Contains("Sentinella.Riuscita()"),
+            Check("NuovaParte consulta la sentinella",
+                  p.Contains("if (Sentinel.HasGone)") &&
+                  p.Contains("Sentinel.Failed()") &&
+                  p.Contains("Sentinel.Succeeded()"),
                   "Bench/Program.cs");
 
-            Segna("anche l'assieme di prova ci passa",
-                  a.Contains("Program.Sentinella.SeNEAndato") &&
-                  a.Contains("Program.Sentinella.Fallita()"),
+            Check("anche l'assieme di prova ci passa",
+                  a.Contains("Program.Sentinel.HasGone") &&
+                  a.Contains("Program.Sentinel.Failed()"),
                   "Bench/TestAssembly.cs: un assieme comincia da parti nuove");
 
-            Segna("i casi dichiarati si SALTANO, non falliscono",
-                  c.Contains("Sentinella.SeNEAndato") && c.Contains("Saltata("),
+            Check("i casi dichiarati si SALTANO, non falliscono",
+                  c.Contains("Sentinel.HasGone") && c.Contains("Skipped("),
                   "Bench/DeclaredCases.cs: saltata non conta ne' verde ne' rossa");
 
             // ── E ANCHE PRIMA DELLO SCATTO, ROSSO E' LA PAROLA SBAGLIATA ─
@@ -146,15 +146,15 @@ namespace Oce.Solid.Agent.ContractTests
             // I due casi che consumano i primi due fallimenti non sono rossi:
             // sono non misurati. Prima finivano in un `catch (Exception)` che
             // segnava rosso qualunque cosa fosse successa.
-            Segna("una preparazione fallita non diventa rossa",
-                  c.Contains("catch (Shared.PreparazioneFallita"),
+            Check("una preparazione fallita non diventa rossa",
+                  c.Contains("catch (Shared.PreparationFailed"),
                   "Bench/DeclaredCases.cs: errore di banco, o saltata se gia' morto");
 
             // E IL TIPO, NON IL TESTO. Un `catch` che riconoscesse la
             // preparazione dal messaggio tornerebbe a segnare rosso il giorno
             // in cui qualcuno riscrive la frase — senza che niente lo dica.
-            Segna("la preparazione si riconosce dal TIPO, non dal messaggio",
-                  p.Contains("throw new Shared.PreparazioneFallita("),
+            Check("la preparazione si riconosce dal TIPO, non dal messaggio",
+                  p.Contains("throw new Shared.PreparationFailed("),
                   "Bench/Program.cs: OppureDillo e la sentinella alzano lo stesso tipo");
 
             // ── L'USCITA 4, E CHE VENGA PRIMA DELLE ALTRE ────────────────
@@ -162,14 +162,14 @@ namespace Oce.Solid.Agent.ContractTests
             // Se il 2 o l'1 uscissero per primi, chi legge il codice di uscita
             // andrebbe a cercare cosa ha rotto — e non ha rotto niente: il
             // giro non e' stato fatto.
-            int dove4 = p.IndexOf("return 4;", StringComparison.Ordinal);
-            int dove2 = p.LastIndexOf("if (_erroriDiBanco > 0) return 2;", StringComparison.Ordinal);
-            Segna("il verdetto ha l'uscita 4", dove4 >= 0, "Bench/Program.cs");
-            Segna("la 4 viene prima della 2", dove4 >= 0 && dove2 >= 0 && dove4 < dove2,
+            int where4 = p.IndexOf("return 4;", StringComparison.Ordinal);
+            int where2 = p.LastIndexOf("if (_benchErrors > 0) return 2;", StringComparison.Ordinal);
+            Check("il verdetto ha l'uscita 4", where4 >= 0, "Bench/Program.cs");
+            Check("la 4 viene prima della 2", where4 >= 0 && where2 >= 0 && where4 < where2,
                   "un giro non fatto non e' un giro con errori");
 
             // ── E SI PUO' FAR MORIRE SOLIDWORKS A COMANDO ────────────────
-            Segna("c'e' un modo di vederla scattare sul banco vero",
+            Check("c'e' un modo di vederla scattare sul banco vero",
                   p.Contains("--fingi-senza-solidworks"),
                   "senza, resterebbe una guardia creduta e mai vista");
 
@@ -180,21 +180,21 @@ namespace Oce.Solid.Agent.ContractTests
             // si pianta mentre lo apre, tiene la presa e il file non si legge
             // piu' nemmeno da fuori: il 23/9/2026 sono morti tre giri di fila,
             // e sembrava la rete.
-            Segna("il modello di documento si copia in locale",
-                  p.Contains("ModelloInLocale("),
+            Check("il modello di documento si copia in locale",
+                  p.Contains("LocalModel("),
                   "Bench/Program.cs");
 
-            Segna("la parte nuova nasce dalla copia locale",
-                  p.Contains("ModelloInLocale(_sw.GetUserPreferenceStringValue("),
+            Check("la parte nuova nasce dalla copia locale",
+                  p.Contains("LocalModel(_sw.GetUserPreferenceStringValue("),
                   "non dal percorso di rete");
 
-            Segna("e anche l'assieme di prova",
-                  a.Contains("Program.ModelloInLocale("),
+            Check("e anche l'assieme di prova",
+                  a.Contains("Program.LocalModel("),
                   "Bench/TestAssembly.cs");
 
             // E LA COPIA SI ANNUNCIA. Un banco che usa in silenzio un modello
             // diverso da quello della postazione misura un'altra cosa.
-            Segna("la copia si dice, e anche quando non riesce",
+            Check("la copia si dice, e anche quando non riesce",
                   p.Contains("modello copiato in locale") &&
                   p.Contains("NON ho potuto copiare il modello in locale"),
                   "tutte e due le strade parlano");
@@ -206,7 +206,7 @@ namespace Oce.Solid.Agent.ContractTests
             // locale c'e' la copia di un giro precedente si usa quella, e si
             // dice **di quando e'** — un modello vecchio spacciato per quello
             // di adesso sarebbe lo stesso silenzio di sempre.
-            Segna("se la copia fallisce si usa quella del giro prima",
+            Check("se la copia fallisce si usa quella del giro prima",
                   p.Contains("uso la copia locale del") &&
                   p.Contains("File.GetLastWriteTime("),
                   "e la sua data si legge nel resoconto");

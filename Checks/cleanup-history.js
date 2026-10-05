@@ -17,7 +17,7 @@ var path = require('path');
 // compare: separatore singolo (stringhe verbatim C#), doppio (JSON con escape)
 // e barra dritta. Questo schema non nomina niente di aziendale, quindi sta
 // qui.
-var PERCORSO = /C:[\\\/]+Users[\\\/]+[^\\\/"\s]+[\\\/]+AppData[\\\/]+Local[\\\/]+Temp[\\\/]+claude[\\\/]+[^\\\/"\s]+[\\\/]+[^\\\/"\s]+[\\\/]+scratchpad/gi;
+var PATH = /C:[\\\/]+Users[\\\/]+[^\\\/"\s]+[\\\/]+AppData[\\\/]+Local[\\\/]+Temp[\\\/]+claude[\\\/]+[^\\\/"\s]+[\\\/]+[^\\\/"\s]+[\\\/]+scratchpad/gi;
 
 // ── GLI SCHEMI DI QUESTO IMPIANTO STANNO FUORI DAL REPOSITORY ─────────────
 //
@@ -35,49 +35,49 @@ var PERCORSO = /C:[\\\/]+Users[\\\/]+[^\\\/"\s]+[\\\/]+AppData[\\\/]+Local[\\\/]
 //     module.exports = [ { schema: /.../g, con: 'testo di ricambio' }, ... ];
 // Se non c'e', si applica il solo PERCORSO e non e' un errore: un clone pulito
 // non ha niente di aziendale da togliere.
-var LOCALI = [];
+var LOCALS = [];
 try {
-    LOCALI = require(path.join(__dirname, 'bonifica-schemi.local.js')) || [];
+    LOCALS = require(path.join(__dirname, 'bonifica-schemi.local.js')) || [];
 } catch (e) { /* non c'e': va bene cosi' */ }
 
-var ESTENSIONI = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.txt', '.config', '.manifest'];
-var SALTA = ['.git', 'bin', 'obj', 'node_modules'];
+var EXTENSIONS = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.txt', '.config', '.manifest'];
+var SKIP = ['.git', 'bin', 'obj', 'node_modules'];
 
-var toccati = 0;
+var touched = 0;
 
-function giro(cartella) {
-    var voci;
-    try { voci = fs.readdirSync(cartella, { withFileTypes: true }); } catch (e) { return; }
-    for (var i = 0; i < voci.length; i++) {
-        var v = voci[i];
-        var pieno = path.join(cartella, v.name);
+function benchRun(folder) {
+    var entries;
+    try { entries = fs.readdirSync(folder, { withFileTypes: true }); } catch (e) { return; }
+    for (var i = 0; i < entries.length; i++) {
+        var v = entries[i];
+        var full = path.join(folder, v.name);
         if (v.isDirectory()) {
-            if (SALTA.indexOf(v.name) >= 0) continue;
-            giro(pieno);
+            if (SKIP.indexOf(v.name) >= 0) continue;
+            benchRun(full);
             continue;
         }
         if (!v.isFile()) continue;
-        if (ESTENSIONI.indexOf(path.extname(v.name).toLowerCase()) < 0) continue;
+        if (EXTENSIONS.indexOf(path.extname(v.name).toLowerCase()) < 0) continue;
 
-        var testo;
-        try { testo = fs.readFileSync(pieno, 'utf8'); } catch (e) { continue; }
+        var text;
+        try { text = fs.readFileSync(full, 'utf8'); } catch (e) { continue; }
 
         // NESSUN FILTRO VELOCE. La prima stesura usciva subito se il file non
         // conteneva «AppData»: con l'aggiunta di schemi nuovi avrebbe saltato
         // proprio i file da riparare — un filtro di velocita' che diventa un
         // filtro di correttezza, in silenzio. Su qualche centinaio di file la
         // differenza non si misura; su un difetto che non da' errore si'.
-        var nuovo = testo.replace(PERCORSO, '{BANCO}');
-        for (var k = 0; k < LOCALI.length; k++)
-            nuovo = nuovo.replace(LOCALI[k].schema, LOCALI[k].con);
-        if (nuovo === testo) continue;
+        var newItem = text.replace(PATH, '{BANCO}');
+        for (var k = 0; k < LOCALS.length; k++)
+            newItem = newItem.replace(LOCALS[k].schema, LOCALS[k].con);
+        if (newItem === text) continue;
 
-        fs.writeFileSync(pieno, nuovo, 'utf8');
-        toccati++;
+        fs.writeFileSync(full, newItem, 'utf8');
+        touched++;
     }
 }
 
-giro(process.cwd());
+benchRun(process.cwd());
 
 // Muto di proposito: `filter-branch` esegue questo comando per ogni commit e
 // stampare qui renderebbe illeggibile l'uscita. Il conteggio si verifica dopo,

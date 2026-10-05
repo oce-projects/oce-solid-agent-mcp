@@ -58,85 +58,85 @@ namespace Oce.Solid.Agent.Core
     /// quante stanno all'inclinazione chiesta rispetto alla neutra, prima e
     /// dopo. E' l'unico numero che nel caso sbagliato viene diverso.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>Quanto si tollera sull'angolo letto dalle facce, in gradi.</summary>
-        private const double SformoTolleranzaGradi = 0.05;
+        private const double DraftToleranceDeg = 0.05;
 
-        private Esito Sformo(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome Draft(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            double angolo = Num(a, "angle_deg", 0);
-            if (angolo <= 0)
-                return Fallito(
+            double angle = Num(a, "angle_deg", 0);
+            if (angle <= 0)
+                return Failed(
                     "Manca «angle_deg», o e' zero: uno sformo di zero gradi non e' uno " +
                     "sformo, e' una parete dritta.");
-            if (angolo >= 90)
-                return Fallito(
+            if (angle >= 90)
+                return Failed(
                     "«angle_deg» dev'essere sotto i 90: a 90 gradi la parete si " +
                     "sdraia sulla faccia neutra. Per uno stampo si usa 1-3 gradi.");
 
-            string neutraUid = Str(a, "neutral_face_uid", "");
-            var neutra = RisolviFaccia(stato, a, neutraUid, out string motivo);
-            if (neutra == null) return Fallito("Faccia neutra: " + motivo);
+            string neutralUid = Str(a, "neutral_face_uid", "");
+            var neutral = ResolveFace(docState, a, neutralUid, out string reason);
+            if (neutral == null) return Failed("Faccia neutra: " + reason);
 
-            var uid = Lista(a, "faces_uid");
+            var uid = StringList(a, "faces_uid");
             if (uid.Count == 0)
-                return Fallito(
+                return Failed(
                     "Manca «faces_uid»: quali facce sformare. La faccia NEUTRA -- quella " +
                     "che resta ferma -- si dice a parte, in «neutral_face_uid».");
-            if (uid.Contains(neutraUid, StringComparer.OrdinalIgnoreCase))
-                return Fallito(
-                    "«" + neutraUid + "» e' insieme la faccia neutra e una da sformare. " +
+            if (uid.Contains(neutralUid, StringComparer.OrdinalIgnoreCase))
+                return Failed(
+                    "«" + neutralUid + "» e' insieme la faccia neutra e una da sformare. " +
                     "La neutra e' quella che NON si muove: e' il piano da cui si misura " +
                     "l'angolo.");
 
-            var facce = new List<IFace2>();
+            var faces = new List<IFace2>();
             foreach (var u in uid)
             {
-                var f = RisolviFaccia(stato, a, u, out motivo);
-                if (f == null) return Fallito("Faccia «" + u + "»: " + motivo);
-                facce.Add(f);
+                var f = ResolveFace(docState, a, u, out reason);
+                if (f == null) return Failed("Faccia «" + u + "»: " + reason);
+                faces.Add(f);
             }
 
-            var normaleNeutra = NormaleDellaFaccia(neutra);
-            if (normaleNeutra == null)
-                return Fallito("Non riesco a leggere l'orientamento della faccia neutra.");
+            var neutralNormal = FaceNormal(neutral);
+            if (neutralNormal == null)
+                return Failed("Non riesco a leggere l'orientamento della faccia neutra.");
 
-            bool capovolgi = Bool(a, "flip", false);
-            double? volumePrima = VolumeMm3(modello);
-            int corpiPrima = ContaCorpiSolidi(modello);
-            int inclinatePrima = QuanteFacceInclinate(modello, normaleNeutra, angolo);
-            if (corpiPrima < 0 || inclinatePrima < 0)
-                return Fallito(VolumeNonLettoPrima("fare lo sformo").Replace("il volume del pezzo", "le facce del pezzo"));
+            bool flip = Bool(a, "flip", false);
+            double? volumeBefore = VolumeMm3(model);
+            int bodiesBefore = CountSolidBodies(model);
+            int inclinedBefore = HowManyInclinedFaces(model, neutralNormal, angle);
+            if (bodiesBefore < 0 || inclinedBefore < 0)
+                return Failed(VolumeNotReadBefore("fare lo sformo").Replace("il volume del pezzo", "le facce del pezzo"));
 
-            modello.ClearSelection2(true);
-            var gestore = modello.SelectionManager as ISelectionMgr;
-            if (gestore == null) return Fallito("Non riesco a usare il gestore di selezione.");
+            model.ClearSelection2(true);
+            var handler = model.SelectionManager as ISelectionMgr;
+            if (handler == null) return Failed("Non riesco a usare il gestore di selezione.");
 
             // NEUTRA MARCHIO 1, FACCE MARCHIO 2. Scambiati, la feature nasce
             // lo stesso e sforma le facce sbagliate: vedi la nota in testa.
-            if (!Seleziona(gestore, neutra, SelectionMarks.DraftNeutralFace))
-                return Fallito("Non sono riuscito a selezionare la faccia neutra.");
-            for (int i = 0; i < facce.Count; i++)
-                if (!Seleziona(gestore, facce[i], SelectionMarks.DraftFaces))
-                    return Fallito("Non sono riuscito a selezionare la faccia «" + uid[i] + "».");
+            if (!Select(handler, neutral, SelectionMarks.DraftNeutralFace))
+                return Failed("Non sono riuscito a selezionare la faccia neutra.");
+            for (int i = 0; i < faces.Count; i++)
+                if (!Select(handler, faces[i], SelectionMarks.DraftFaces))
+                    return Failed("Non sono riuscito a selezionare la faccia «" + uid[i] + "».");
 
             IFeature feature;
             try
             {
-                feature = modello.FeatureManager.InsertMultiFaceDraft(
-                    Angle: angolo * Math.PI / 180.0,
-                    FlipDir: capovolgi,
+                feature = model.FeatureManager.InsertMultiFaceDraft(
+                    Angle: angle * Math.PI / 180.0,
+                    FlipDir: flip,
                     EdgeDraft: false,
                     PropType: (int)swDraftFacePropagationType_e.swFacePropNone,
                     IsStepDraft: false,
                     IsBodyDraft: false) as IFeature;
             }
-            catch (Exception ex) { return Fallito("Lo sformo non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("Lo sformo non e' riuscito: " + ex.Message); }
 
             if (feature == null)
-                return Fallito(
+                return Failed(
                     "Lo sformo non e' stato creato, e SOLIDWORKS non dice perche'. Di " +
                     "solito e' l'angolo troppo grande per l'altezza della parete, o una " +
                     "faccia che non tocca la neutra.");
@@ -146,22 +146,22 @@ namespace Oce.Solid.Agent.Core
             // `IDraftFeatureData.Angle` rilegge l'angolo CHIESTO anche quando
             // non si e' inclinato niente. L'unica misura vera e' quante facce
             // del pezzo stanno all'angolo chiesto rispetto alla neutra.
-            int inclinateDopo = QuanteFacceInclinate(modello, normaleNeutra, angolo);
-            double? volumeDopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
-            int nuove = inclinateDopo - inclinatePrima;
-            if (inclinateDopo < 0)
-                return Fallito(
+            int inclinedAfter = HowManyInclinedFaces(model, neutralNormal, angle);
+            double? volumeAfter = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
+            int newOnes = inclinedAfter - inclinedBefore;
+            if (inclinedAfter < 0)
+                return Failed(
                     "Lo sformo e' nato, ma poi non riesco a ricontare le facce inclinate: " +
                     "la feature dichiara l'angolo anche quando non ha inclinato niente, quindi " +
                     "senza quel conto non posso dirti che ha funzionato. Guarda il pezzo — " +
-                    Frasi.CosiSiRitira + ".");
+                    Sentences.HowToWithdrawIt + ".");
 
-            if (nuove < facce.Count)
+            if (newOnes < faces.Count)
             {
-                string comeSiRitira =
-                    " Ritiralo — " + Frasi.CosiSiRitira + ".";
-                return Fallito(string.Format(
+                string howToWithdraw =
+                    " Ritiralo — " + Sentences.HowToWithdrawIt + ".";
+                return Failed(string.Format(
                     CultureInfo.InvariantCulture,
                     "Ho chiesto di sformare {0} facce di {1:0.###} gradi e la lavorazione " +
                     "e' nata, ma sul pezzo le facce a quell'angolo sono passate da {2} a " +
@@ -170,33 +170,33 @@ namespace Oce.Solid.Agent.Core
                     "facce -- ed e' quello che ho fatto. Quasi sempre vuol dire che la " +
                     "faccia neutra non e' quella giusta, o che le facce indicate non la " +
                     "toccano.{5}",
-                    facce.Count, angolo, inclinatePrima, inclinateDopo,
-                    nuove <= 0 ? "non se n'e' inclinata nessuna" : "ne mancano " + (facce.Count - nuove),
-                    comeSiRitira));
+                    faces.Count, angle, inclinedBefore, inclinedAfter,
+                    newOnes <= 0 ? "non se n'e' inclinata nessuna" : "ne mancano " + (faces.Count - newOnes),
+                    howToWithdraw));
             }
 
-            if (corpiDopo >= 0 && corpiDopo != corpiPrima)
-                return Fallito(
-                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
+            if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
+                return Failed(
+                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
                     ": uno sformo non deve spezzare il pezzo. Ritiralo — " +
-                    Frasi.CosiSiRitira + ".");
+                    Sentences.HowToWithdrawIt + ".");
 
             // Lo sformo non si decide sul volume (le facce si contano): qui il
             // volume si riporta soltanto, e se non si legge si dice (voce Z-C8).
-            double? mosso = volumeDopo - volumePrima;
-            var misure = new Dictionary<string, object>
+            double? moved = volumeAfter - volumeBefore;
+            var measurements = new Dictionary<string, object>
             {
-                ["angle_deg"] = angolo,
-                ["faces_drafted"] = facce.Count,
-                ["faces_at_corner_before"] = inclinatePrima,
-                ["faces_at_corner_after"] = inclinateDopo,
-                ["flip"] = capovolgi,
-                ["material_mm3"] = NumeroOppureNull(mosso, 2),
-                ["part_grew"] = mosso.HasValue ? (object)(mosso.Value > 0) : null,
-                ["bodies"] = NumeroOppureNull(corpiDopo),
+                ["angle_deg"] = angle,
+                ["faces_drafted"] = faces.Count,
+                ["faces_at_corner_before"] = inclinedBefore,
+                ["faces_at_corner_after"] = inclinedAfter,
+                ["flip"] = flip,
+                ["material_mm3"] = NumberOrNull(moved, 2),
+                ["part_grew"] = moved.HasValue ? (object)(moved.Value > 0) : null,
+                ["bodies"] = NumberOrNull(bodiesAfter),
                 // L'ANGOLO DICHIARATO DALLA FEATURE, accanto a quello misurato
                 // e con scritto che cos'e'. Non si nasconde: si nomina.
-                ["angle_declared_by_feature"] = AngoloDellaFeature(feature),
+                ["angle_declared_by_feature"] = FeatureAngle(feature),
                 ["what_it_does_not_check"] =
                     "Ho contato le facce che stanno all'angolo chiesto rispetto alla neutra, " +
                     "non VERIFICATO UNA PER UNA che siano proprio quelle che mi hai " +
@@ -207,20 +207,20 @@ namespace Oce.Solid.Agent.Core
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agente] sformo di {0:0.###} gradi su {1} facce: all'angolo {2} -> {3}, " +
-                "volume {4}", angolo, facce.Count, inclinatePrima, inclinateDopo, Letto(mosso)));
+                "volume {4}", angle, faces.Count, inclinedBefore, inclinedAfter, ReadValue(moved)));
 
-            return Riuscito(feature, misure, normaleNeutra);
+            return Succeeded(feature, measurements, neutralNormal);
         }
 
         // =================================================================
 
-        private static bool Seleziona(ISelectionMgr gestore, IFace2 faccia, int marchio)
+        private static bool Select(ISelectionMgr handler, IFace2 face, int mark)
         {
             try
             {
-                var d = (SelectData)gestore.CreateSelectData();
-                d.Mark = marchio;
-                return (faccia as IEntity).Select4(true, d);
+                var d = (SelectData)handler.CreateSelectData();
+                d.Mark = mark;
+                return (face as IEntity).Select4(true, d);
             }
             catch { return false; }
         }
@@ -240,45 +240,45 @@ namespace Oce.Solid.Agent.Core
         /// **-1 se non si e' potuto leggere** (voce Z-C8). ZERO-E-ZERO: un pezzo
         /// senza corpi solidi (`GetBodies2` null) non ha facce inclinate.
         /// </summary>
-        private static int QuanteFacceInclinate(
-            IModelDoc2 modello, double[] normaleNeutra, double angoloGradi)
+        private static int HowManyInclinedFaces(
+            IModelDoc2 model, double[] neutralNormal, double angleDeg)
         {
-            int quante = 0;
+            int howMany = 0;
             try
             {
-                var corpi = (modello as IPartDoc)
+                var bodies = (model as IPartDoc)
                     .GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-                if (corpi == null) return 0;
-                foreach (var oc in corpi)
+                if (bodies == null) return 0;
+                foreach (var oc in bodies)
                 {
-                    var corpo = oc as IBody2;
-                    if (corpo == null) continue;
-                    var f = corpo.GetFirstFace() as IFace2;
+                    var body = oc as IBody2;
+                    if (body == null) continue;
+                    var f = body.GetFirstFace() as IFace2;
                     while (f != null)
                     {
                         var n = ApiHelpers.NormalIfPlanar(f);
                         if (n != null)
                         {
-                            double coseno =
-                                n[0] * normaleNeutra[0] +
-                                n[1] * normaleNeutra[1] +
-                                n[2] * normaleNeutra[2];
-                            if (coseno > 1) coseno = 1;
-                            if (coseno < -1) coseno = -1;
-                            double gradi = Math.Acos(coseno) * 180.0 / Math.PI;
-                            if (Math.Abs(gradi - (90.0 - angoloGradi)) < SformoTolleranzaGradi ||
-                                Math.Abs(gradi - (90.0 + angoloGradi)) < SformoTolleranzaGradi)
-                                quante++;
+                            double cosine =
+                                n[0] * neutralNormal[0] +
+                                n[1] * neutralNormal[1] +
+                                n[2] * neutralNormal[2];
+                            if (cosine > 1) cosine = 1;
+                            if (cosine < -1) cosine = -1;
+                            double deg = Math.Acos(cosine) * 180.0 / Math.PI;
+                            if (Math.Abs(deg - (90.0 - angleDeg)) < DraftToleranceDeg ||
+                                Math.Abs(deg - (90.0 + angleDeg)) < DraftToleranceDeg)
+                                howMany++;
                         }
                         f = f.GetNextFace() as IFace2;
                     }
                 }
             }
             catch { return -1; }
-            return quante;
+            return howMany;
         }
 
-        private static object AngoloDellaFeature(IFeature feature)
+        private static object FeatureAngle(IFeature feature)
         {
             try
             {

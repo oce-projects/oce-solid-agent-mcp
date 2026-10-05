@@ -30,9 +30,9 @@ namespace Oce.Solid.Agent.Core
     /// lungo. Una vista senza giunti visibili si rifiuta: un simbolo attaccato a
     /// uno spigolo qualunque manderebbe il saldatore nel posto sbagliato.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private static readonly Dictionary<string, string> SimboliDiSaldatura = new Dictionary<string, string>
+        private static readonly Dictionary<string, string> WeldSymbols = new Dictionary<string, string>
         {
             ["fillet"] = "<WELD-FILL>",
             ["v"] = "<WELD-BUSV>",
@@ -40,134 +40,134 @@ namespace Oce.Solid.Agent.Core
             ["butt"] = "<WELD-BUSQ>",
         };
 
-        private Esito SaldaturaInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome DrawingWeldSymbol(IModelDoc2 model, Dictionary<string, object> a)
         {
-            string motivo;
-            IDrawingDoc disegno;
-            var vista = VistaPerAnnotare(modello, a, out disegno, out motivo);
-            if (vista == null) return Fallito(motivo);
+            string reason;
+            IDrawingDoc drawing;
+            var view = ViewToAnnotate(model, a, out drawing, out reason);
+            if (view == null) return Failed(reason);
 
-            string tipo = Str(a, "variant", "fillet");
-            string simbolo;
-            if (!SimboliDiSaldatura.TryGetValue(tipo, out simbolo))
-                return Fallito("«variant» e' uno fra " + string.Join(", ", SimboliDiSaldatura.Keys) + ", non «" + tipo + "».");
-            double gola;
-            if (!NumObbligatorio(a, "throat_mm", out gola, out motivo)) return Fallito(motivo);
-            if (gola <= 0 || gola > 50)
-                return Fallito("«throat_mm» (la gola del cordone) sta fra 0 e 50 mm, non " +
-                               gola.ToString("0.###", CultureInfo.InvariantCulture) + ".");
-            double lunghezza = Num(a, "length_mm", 0);
-            if (lunghezza < 0) return Fallito("«length_mm» non puo' essere negativa.");
-            bool tuttoAttorno = Bool(a, "all_around", false);
+            string typ = Str(a, "variant", "fillet");
+            string symbol;
+            if (!WeldSymbols.TryGetValue(typ, out symbol))
+                return Failed("«variant» e' uno fra " + string.Join(", ", WeldSymbols.Keys) + ", non «" + typ + "».");
+            double throat;
+            if (!RequiredNum(a, "throat_mm", out throat, out reason)) return Failed(reason);
+            if (throat <= 0 || throat > 50)
+                return Failed("«throat_mm» (la gola del cordone) sta fra 0 e 50 mm, non " +
+                               throat.ToString("0.###", CultureInfo.InvariantCulture) + ".");
+            double length = Num(a, "length_mm", 0);
+            if (length < 0) return Failed("«length_mm» non puo' essere negativa.");
+            bool everythingAround = Bool(a, "all_around", false);
             bool inOpera = Bool(a, "field_weld", false);
-            bool dueLati = Bool(a, "both_sides", false);
-            string latoAnnotazione = Str(a, "side", "top");
+            bool twoSides = Bool(a, "both_sides", false);
+            string annotationSide = Str(a, "side", "top");
 
             // ── IL GIUNTO VISIBILE ──────────────────────────────────────────
-            var pezzo = vista.ReferencedDocument as IModelDoc2;
-            var parte = pezzo as IPartDoc;
-            if (parte == null)
-                return Fallito("Dietro la vista non c'e' una parte: il simbolo di saldatura va su un giunto fra i " +
+            var part = view.ReferencedDocument as IModelDoc2;
+            var partDoc = part as IPartDoc;
+            if (partDoc == null)
+                return Failed("Dietro la vista non c'e' una parte: il simbolo di saldatura va su un giunto fra i " +
                                "corpi di un saldato.");
-            object[] corpi = null;
-            try { corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[]; } catch { }
-            if (corpi == null)
-                return Fallito("Non riesco a leggere i corpi del pezzo dietro la vista: senza, non so dire dove sia il " +
+            object[] bodies = null;
+            try { bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[]; } catch { }
+            if (bodies == null)
+                return Failed("Non riesco a leggere i corpi del pezzo dietro la vista: senza, non so dire dove sia il " +
                                "giunto. Guarda il pezzo e riprova.");
-            if (corpi.Length < 2)
-                return Fallito("Il pezzo dietro la vista ha " + corpi.Length + " corpi: un " +
+            if (bodies.Length < 2)
+                return Failed("Il pezzo dietro la vista ha " + bodies.Length + " corpi: un " +
                                "giunto saldato e' fra DUE corpi, e un simbolo su un corpo solo non indica nessuna saldatura.");
-            IEdge giunto; double lungoGiunto;
-            if (!GiuntoVisibile(vista, corpi, out giunto, out lungoGiunto))
-                return Fallito("Nella vista «" + (vista.GetName2() ?? "") + "» non si vede nessuno spigolo in cui un corpo " +
+            IEdge joint; double alongJoint;
+            if (!VisibleJoint(view, bodies, out joint, out alongJoint))
+                return Failed("Nella vista «" + (view.GetName2() ?? "") + "» non si vede nessuno spigolo in cui un corpo " +
                                "tocca l'altro: il simbolo va sulla linea del giunto. Prova la vista in cui il giunto si vede " +
                                "di fianco.");
 
-            var lato = SpigoloDelLato(vista, latoAnnotazione, out motivo);
-            if (lato == null) return Fallito(motivo);
-            double occupata = FasciaOccupata(vista, lato);
+            var side = SideEdge(view, annotationSide, out reason);
+            if (side == null) return Failed(reason);
+            double occupied = OccupiedBand(view, side);
 
-            int prima = SimboliDiSaldaturaInTavola(disegno);
-            if (!SelezionaNellaVista(modello, vista, giunto))
-                return Fallito("Non riesco a selezionare nella vista lo spigolo del giunto.");
-            string dim1 = "a" + gola.ToString("0.##", CultureInfo.InvariantCulture);
-            string dim2 = lunghezza > 0 ? lunghezza.ToString("0.##", CultureInfo.InvariantCulture) : "";
-            try { disegno.InsertWeldSymbol(dim1, simbolo, dim2, dueLati, inOpera, false, false, tuttoAttorno, false, ""); }
-            catch (Exception ex) { modello.ClearSelection2(true); return Fallito("Il simbolo di saldatura non e' nato: " + ex.Message); }
-            modello.ClearSelection2(true);
-            int dopo = SimboliDiSaldaturaInTavola(disegno);
-            IWeldSymbol ws = UltimoSimboloDiSaldatura(disegno, vista);
+            int before = DrawingWeldSymbols(drawing);
+            if (!SelectInView(model, view, joint))
+                return Failed("Non riesco a selezionare nella vista lo spigolo del giunto.");
+            string dim1 = "a" + throat.ToString("0.##", CultureInfo.InvariantCulture);
+            string dim2 = length > 0 ? length.ToString("0.##", CultureInfo.InvariantCulture) : "";
+            try { drawing.InsertWeldSymbol(dim1, symbol, dim2, twoSides, inOpera, false, false, everythingAround, false, ""); }
+            catch (Exception ex) { model.ClearSelection2(true); return Failed("Il simbolo di saldatura non e' nato: " + ex.Message); }
+            model.ClearSelection2(true);
+            int after = DrawingWeldSymbols(drawing);
+            IWeldSymbol ws = LastWeldSymbol(drawing, view);
             // IL SIMBOLO NUOVO SI CONTA: senza i due conteggi letti, l'ultimo
             // simbolo della vista potrebbe essere uno che c'era gia' (e il ramo
             // «sbagliato» lo toglierebbe). Revisione del 26/9/2026.
-            if (prima < 0 || dopo < 0)
-                return Fallito("Non riesco a contare i simboli di saldatura della tavola (prima " + prima + ", dopo " +
-                               dopo + "): senza, non so se e' nato quello chiesto. Guarda la tavola.");
-            if (ws == null || dopo != prima + 1)
-                return Fallito("SOLIDWORKS non ha creato il simbolo di saldatura e non ha detto perche' (simboli in " +
-                               "tavola: " + prima + " prima, " + dopo + " dopo).");
+            if (before < 0 || after < 0)
+                return Failed("Non riesco a contare i simboli di saldatura della tavola (prima " + before + ", dopo " +
+                               after + "): senza, non so se e' nato quello chiesto. Guarda la tavola.");
+            if (ws == null || after != before + 1)
+                return Failed("SOLIDWORKS non ha creato il simbolo di saldatura e non ha detto perche' (simboli in " +
+                               "tavola: " + before + " prima, " + after + " dopo).");
 
             // ── RILETTO ─────────────────────────────────────────────────────
-            string simboloLetto = null, sinistraLetta = null, destraLetta = null;
-            int testi = -1, frecce = -1, attaccate = -1;
-            bool perimetroLetto = false; int campoLetto = -1, simmetricoLetto = -1;
-            try { simboloLetto = ws.GetText((int)swWeldSymbolTextTypes_e.swWeldSymbolTextAbove); } catch { }
-            try { sinistraLetta = ws.GetText((int)swWeldSymbolTextTypes_e.swWeldLeftTextAbove); } catch { }
-            try { destraLetta = ws.GetText((int)swWeldSymbolTextTypes_e.swWeldRightTextAbove); } catch { }
-            try { testi = ws.GetTextCount(); } catch { }
-            try { frecce = ws.GetLeaderCount(); } catch { }
-            try { perimetroLetto = ws.GetPeripheral(); } catch { }
-            try { campoLetto = ws.GetFieldWeld(); } catch { }
-            try { simmetricoLetto = ws.GetSymmetric(); } catch { }
+            string readSymbol = null, readLeft = null, readRight = null;
+            int texts = -1, arrows = -1, attached = -1;
+            bool readPerimeter = false; int readField = -1, readSymmetric = -1;
+            try { readSymbol = ws.GetText((int)swWeldSymbolTextTypes_e.swWeldSymbolTextAbove); } catch { }
+            try { readLeft = ws.GetText((int)swWeldSymbolTextTypes_e.swWeldLeftTextAbove); } catch { }
+            try { readRight = ws.GetText((int)swWeldSymbolTextTypes_e.swWeldRightTextAbove); } catch { }
+            try { texts = ws.GetTextCount(); } catch { }
+            try { arrows = ws.GetLeaderCount(); } catch { }
+            try { readPerimeter = ws.GetPeripheral(); } catch { }
+            try { readField = ws.GetFieldWeld(); } catch { }
+            try { readSymmetric = ws.GetSymmetric(); } catch { }
             var an = ws.GetAnnotation() as IAnnotation;
-            try { attaccate = an.GetAttachedEntityCount3(); } catch { }
-            var pos = Sposta(an, disegno, vista, lato, Math.Max(15, occupata + 12), 20, 25, 10);
+            try { attached = an.GetAttachedEntityCount3(); } catch { }
+            var pos = Move(an, drawing, view, side, Math.Max(15, occupied + 12), 20, 25, 10);
 
-            var sbagliato = new List<string>();
-            if (!string.Equals((simboloLetto ?? "").Trim(), simbolo, StringComparison.OrdinalIgnoreCase))
-                sbagliato.Add("il simbolo dice «" + simboloLetto + "» invece di «" + simbolo + "»");
-            if (!string.Equals((sinistraLetta ?? "").Trim(), dim1, StringComparison.OrdinalIgnoreCase))
-                sbagliato.Add("la gola dice «" + sinistraLetta + "» invece di «" + dim1 + "»");
-            if (dim2.Length > 0 && !string.Equals((destraLetta ?? "").Trim(), dim2, StringComparison.OrdinalIgnoreCase))
-                sbagliato.Add("la lunghezza dice «" + destraLetta + "» invece di «" + dim2 + "»");
-            if (tuttoAttorno != perimetroLetto) sbagliato.Add("«tutto attorno» non e' come chiesto");
-            bool campoOk = campoLetto == (int)swWeldSymbolField_e.swFieldWeldUp || campoLetto == (int)swWeldSymbolField_e.swFieldWeldDown;
-            if (campoLetto < 0) sbagliato.Add("«in opera» non si rilegge");
-            else if (inOpera != campoOk) sbagliato.Add("«in opera» non e' come chiesto");
-            if (simmetricoLetto < 0 && dueLati) sbagliato.Add("«entrambi i lati» non si rilegge");
-            else if (dueLati != (simmetricoLetto == (int)swWeldSymbolSymmetric_e.swWeldSymmetric)) sbagliato.Add("«entrambi i lati» non e' come chiesto");
-            if (attaccate == 0) sbagliato.Add("non e' attaccato a nessuno spigolo");
-            if (attaccate < 0) sbagliato.Add("non si rilegge a cosa e' attaccato");
-            string textsWrong = WeldSymbolTextsWrong(testi);
-            if (textsWrong != null) sbagliato.Add(textsWrong);
-            if (sbagliato.Count > 0)
+            var wrong = new List<string>();
+            if (!string.Equals((readSymbol ?? "").Trim(), symbol, StringComparison.OrdinalIgnoreCase))
+                wrong.Add("il simbolo dice «" + readSymbol + "» invece di «" + symbol + "»");
+            if (!string.Equals((readLeft ?? "").Trim(), dim1, StringComparison.OrdinalIgnoreCase))
+                wrong.Add("la gola dice «" + readLeft + "» invece di «" + dim1 + "»");
+            if (dim2.Length > 0 && !string.Equals((readRight ?? "").Trim(), dim2, StringComparison.OrdinalIgnoreCase))
+                wrong.Add("la lunghezza dice «" + readRight + "» invece di «" + dim2 + "»");
+            if (everythingAround != readPerimeter) wrong.Add("«tutto attorno» non e' come chiesto");
+            bool fieldOk = readField == (int)swWeldSymbolField_e.swFieldWeldUp || readField == (int)swWeldSymbolField_e.swFieldWeldDown;
+            if (readField < 0) wrong.Add("«in opera» non si rilegge");
+            else if (inOpera != fieldOk) wrong.Add("«in opera» non e' come chiesto");
+            if (readSymmetric < 0 && twoSides) wrong.Add("«entrambi i lati» non si rilegge");
+            else if (twoSides != (readSymmetric == (int)swWeldSymbolSymmetric_e.swWeldSymmetric)) wrong.Add("«entrambi i lati» non e' come chiesto");
+            if (attached == 0) wrong.Add("non e' attaccato a nessuno spigolo");
+            if (attached < 0) wrong.Add("non si rilegge a cosa e' attaccato");
+            string textsWrong = WeldSymbolTextsWrong(texts);
+            if (textsWrong != null) wrong.Add(textsWrong);
+            if (wrong.Count > 0)
             {
                 // UN SIMBOLO SBAGLIATO NON SI LASCIA IN TAVOLA: si stampa e manda il
                 // saldatore a fare un'altra saldatura. Removed through
                 // RemoveNewAnnotation, next to the tolerance frame: «removed» is
                 // said only when the weld symbols of the drawing, counted again,
                 // are back to the count before the insertion (Z-C21.8, M38).
-                bool tolto = RemoveNewAnnotation(modello, an, () => SimboliDiSaldaturaInTavola(disegno), prima);
-                return Fallito("Il simbolo di saldatura e' nato ma " + string.Join("; ", sbagliato) +
-                               (tolto ? ": l'ho tolto." : ": toglilo — " + Frasi.CosiSiRitira + "."));
+                bool removed = RemoveNewAnnotation(model, an, () => DrawingWeldSymbols(drawing), before);
+                return Failed("Il simbolo di saldatura e' nato ma " + string.Join("; ", wrong) +
+                               (removed ? ": l'ho tolto." : ": toglilo — " + Sentences.HowToWithdrawIt + "."));
             }
 
-            return SenzaFeature(new Dictionary<string, object>
+            return WithoutFeature(new Dictionary<string, object>
             {
-                ["kind"] = tipo,
-                ["symbol"] = simbolo,
-                ["symbol_reread"] = simboloLetto,
-                ["throat_reread"] = sinistraLetta,
-                ["length_reread"] = string.IsNullOrEmpty(destraLetta) ? null : destraLetta,
-                ["all_around"] = perimetroLetto,
-                ["field_weld"] = campoLetto == (int)swWeldSymbolField_e.swFieldWeldUp || campoLetto == (int)swWeldSymbolField_e.swFieldWeldDown,
-                ["both_sides"] = simmetricoLetto == (int)swWeldSymbolSymmetric_e.swWeldSymmetric,
-                ["texts"] = NumeroOppureNull(testi),
-                ["arrows"] = NumeroOppureNull(frecce),
-                ["attached_to_edge"] = attaccate > 0,
-                ["joint_mm"] = Math.Round(lungoGiunto, 2),
-                ["symbols_before"] = NumeroOppureNull(prima),
-                ["symbols_after"] = NumeroOppureNull(dopo),
+                ["kind"] = typ,
+                ["symbol"] = symbol,
+                ["symbol_reread"] = readSymbol,
+                ["throat_reread"] = readLeft,
+                ["length_reread"] = string.IsNullOrEmpty(readRight) ? null : readRight,
+                ["all_around"] = readPerimeter,
+                ["field_weld"] = readField == (int)swWeldSymbolField_e.swFieldWeldUp || readField == (int)swWeldSymbolField_e.swFieldWeldDown,
+                ["both_sides"] = readSymmetric == (int)swWeldSymbolSymmetric_e.swWeldSymmetric,
+                ["texts"] = NumberOrNull(texts),
+                ["arrows"] = NumberOrNull(arrows),
+                ["attached_to_edge"] = attached > 0,
+                ["joint_mm"] = Math.Round(alongJoint, 2),
+                ["symbols_before"] = NumberOrNull(before),
+                ["symbols_after"] = NumberOrNull(after),
                 ["position_mm"] = pos,
             });
         }
@@ -202,62 +202,62 @@ namespace Oce.Solid.Agent.Core
         /// Lo spigolo visibile piu' lungo in cui un corpo tocca l'altro: inizio,
         /// meta' e fine su una faccia di un ALTRO corpo, entro un millesimo di mm.
         /// </summary>
-        private static bool GiuntoVisibile(IView vista, object[] corpi, out IEdge giunto, out double lunghezzaMm)
+        private static bool VisibleJoint(IView view, object[] bodies, out IEdge joint, out double lengthMm)
         {
-            giunto = null; lunghezzaMm = 0;
-            object[] spigoli = null;
-            try { spigoli = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
-            foreach (var o in spigoli ?? new object[0])
+            joint = null; lengthMm = 0;
+            object[] edges = null;
+            try { edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
+            foreach (var o in edges ?? new object[0])
             {
                 try
                 {
                     var e = o as IEdge;
-                    var suo = e?.GetBody() as IBody2;
+                    var its = e?.GetBody() as IBody2;
                     var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
-                    if (suo == null || curva == null || p == null) continue;
+                    if (its == null || curva == null || p == null) continue;
                     double u0 = p.UMinValue, u1 = p.UMaxValue;
-                    var punti = new List<double[]>();
+                    var points = new List<double[]>();
                     foreach (double t in new[] { u0, (u0 + u1) / 2, u1 })
                     {
                         var v = curva.Evaluate2(t, 0) as double[];
-                        if (v != null) punti.Add(new[] { v[0], v[1], v[2] });
+                        if (v != null) points.Add(new[] { v[0], v[1], v[2] });
                     }
-                    if (punti.Count < 3) continue;
+                    if (points.Count < 3) continue;
                     double l = curva.GetLength3(u0, u1) * 1000.0;
-                    if (l <= lunghezzaMm) continue;
-                    foreach (var oc in corpi)
+                    if (l <= lengthMm) continue;
+                    foreach (var oc in bodies)
                     {
-                        var altro = oc as IBody2;
-                        if (altro == null || altro.Name == suo.Name) continue;
+                        var other = oc as IBody2;
+                        if (other == null || other.Name == its.Name) continue;
                         bool sta = false;
-                        foreach (var of in (altro.GetFaces() as object[]) ?? new object[0])
+                        foreach (var of in (other.GetFaces() as object[]) ?? new object[0])
                         {
                             var f = of as IFace2;
                             if (f == null) continue;
-                            bool tutti = true;
-                            foreach (var q in punti)
+                            bool all = true;
+                            foreach (var q in points)
                             {
                                 var c = f.GetClosestPointOn(q[0], q[1], q[2]) as double[];
                                 if (c == null || Math.Sqrt(Math.Pow(c[0] - q[0], 2) + Math.Pow(c[1] - q[1], 2) + Math.Pow(c[2] - q[2], 2)) > 1e-6)
-                                { tutti = false; break; }
+                                { all = false; break; }
                             }
-                            if (tutti) { sta = true; break; }
+                            if (all) { sta = true; break; }
                         }
-                        if (sta) { giunto = e; lunghezzaMm = l; break; }
+                        if (sta) { joint = e; lengthMm = l; break; }
                     }
                 }
                 catch { }
             }
-            return giunto != null;
+            return joint != null;
         }
 
         /// <summary>Quanti simboli di saldatura ha la tavola, vista per vista; -1 se non si legge.</summary>
-        private static int SimboliDiSaldaturaInTavola(IDrawingDoc disegno)
+        private static int DrawingWeldSymbols(IDrawingDoc drawing)
         {
             try
             {
                 int n = 0;
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null) { n += v.GetWeldSymbolCount(); v = v.GetNextView() as IView; }
                 return n;
             }
@@ -270,21 +270,21 @@ namespace Oce.Solid.Agent.Core
         /// sonda li ha trovati cercando in tutte le viste, e dove SOLIDWORKS lo
         /// registri non e' misurato caso per caso. Null se non ce n'e'.
         /// </summary>
-        private static IWeldSymbol UltimoSimboloDiSaldatura(IDrawingDoc disegno, IView vista)
+        private static IWeldSymbol LastWeldSymbol(IDrawingDoc drawing, IView view)
         {
             try
             {
-                var suoi = vista.GetWeldSymbols() as object[];
-                if (suoi != null && suoi.Length > 0) return suoi[suoi.Length - 1] as IWeldSymbol;
-                IWeldSymbol ultimo = null;
-                var v = disegno.GetFirstView() as IView;
+                var itsItems = view.GetWeldSymbols() as object[];
+                if (itsItems != null && itsItems.Length > 0) return itsItems[itsItems.Length - 1] as IWeldSymbol;
+                IWeldSymbol last = null;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
                     var o = v.GetWeldSymbols() as object[];
-                    if (o != null && o.Length > 0) ultimo = o[o.Length - 1] as IWeldSymbol;
+                    if (o != null && o.Length > 0) last = o[o.Length - 1] as IWeldSymbol;
                     v = v.GetNextView() as IView;
                 }
-                return ultimo;
+                return last;
             }
             catch { return null; }
         }

@@ -44,18 +44,18 @@ namespace Oce.Solid.Agent.Core
     /// codice vorrebbe dire che chi clona il repository deve modificarlo per
     /// far girare qualsiasi cosa di carpenteria.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>Quanti profili si elencano prima di troncare.</summary>
-        private const int MaxProfili = 40;
+        private const int MaxProfiles = 40;
 
         /// <summary>Quante misure si elencano per profilo.</summary>
-        private const int MaxMisurePerProfilo = 24;
+        private const int MaxMeasurementsPerProfile = 24;
 
-        private Esito ProfiliSaldatura(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome WeldmentProfiles(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string cartella = CartellaDeiProfili();
+            string folder = ProfilesFolder();
 
             // DUE MESSAGGI E NON UNO. `Directory.Exists(null)` risponde `false`
             // senza sollevare niente, quindi con la variabile non impostata il
@@ -63,54 +63,54 @@ namespace Oce.Solid.Agent.Core
             // percorso vuoto fra virgolette, che si legge come un guasto e non
             // come una cosa da fare. *Non impostata e sbagliata sono due
             // problemi diversi e chiedono due azioni diverse.*
-            if (cartella == null)
-                return Fallito(
+            if (folder == null)
+                return Failed(
                     "Non so dove sia la libreria dei profili. E' una cartella di file " +
                     ".sldlfp, uno per forma: dimmi dov'e' con la variabile d'ambiente " +
                     "PROFILI_SALDATURA. Non c'e' un percorso predefinito, perche' " +
                     "ogni officina tiene la propria libreria dove vuole.");
 
-            if (!Directory.Exists(cartella))
-                return Fallito(
-                    "Non trovo la cartella dei profili: «" + cartella + "», che e' quello " +
+            if (!Directory.Exists(folder))
+                return Failed(
+                    "Non trovo la cartella dei profili: «" + folder + "», che e' quello " +
                     "che dice PROFILI_SALDATURA. La libreria e' una cartella di file " +
                     ".sldlfp; controlla il percorso.");
 
-            string cercato = Str(a, "search", null);
-            bool conMisure = Bool(a, "with_measurements", true);
+            string searched = Str(a, "search", null);
+            bool withMeasurements = Bool(a, "with_measurements", true);
 
             string[] file;
-            try { file = Directory.GetFiles(cartella, "*.sldlfp", SearchOption.AllDirectories); }
+            try { file = Directory.GetFiles(folder, "*.sldlfp", SearchOption.AllDirectories); }
             catch (Exception ex)
             {
-                return Fallito("Non riesco a leggere la cartella dei profili: " + ex.Message);
+                return Failed("Non riesco a leggere la cartella dei profili: " + ex.Message);
             }
             if (file.Length == 0)
-                return Fallito(
-                    "Nella cartella «" + cartella + "» non c'e' nessun file .sldlfp. E' la " +
+                return Failed(
+                    "Nella cartella «" + folder + "» non c'e' nessun file .sldlfp. E' la " +
                     "cartella giusta? I profili di saldatura sono file .sldlfp, uno per " +
                     "forma, e ognuno contiene tutte le misure come configurazioni.");
 
-            var tenuti = file.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(cercato))
-                tenuti = tenuti.Where(f =>
+            var kept = file.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(searched))
+                kept = kept.Where(f =>
                     Path.GetFileNameWithoutExtension(f)
-                        .IndexOf(cercato, StringComparison.OrdinalIgnoreCase) >= 0);
+                        .IndexOf(searched, StringComparison.OrdinalIgnoreCase) >= 0);
 
-            var elencati = tenuti.OrderBy(f => Path.GetFileNameWithoutExtension(f),
+            var listed = kept.OrderBy(f => Path.GetFileNameWithoutExtension(f),
                                           StringComparer.OrdinalIgnoreCase).ToList();
-            if (elencati.Count == 0)
-                return Fallito(
-                    "Nessun profilo si chiama come «" + cercato + "». Ce ne sono " +
+            if (listed.Count == 0)
+                return Failed(
+                    "Nessun profilo si chiama come «" + searched + "». Ce ne sono " +
                     file.Length + " in tutto: richiama senza «search» per vederli.");
 
-            int troncati = Math.Max(0, elencati.Count - MaxProfili);
-            var voci = new List<Dictionary<string, object>>();
-            int senzaMisure = 0;
+            int truncated = Math.Max(0, listed.Count - MaxProfiles);
+            var entries = new List<Dictionary<string, object>>();
+            int withoutMeasurements = 0;
 
-            foreach (var f in elencati.Take(MaxProfili))
+            foreach (var f in listed.Take(MaxProfiles))
             {
-                var voce = new Dictionary<string, object>
+                var entry = new Dictionary<string, object>
                 {
                     ["name"] = Path.GetFileNameWithoutExtension(f),
                     // IL PERCORSO SI DA' INTERO E SI COPIA INTERO. E' quello
@@ -119,39 +119,39 @@ namespace Oce.Solid.Agent.Core
                     ["profile_path"] = f,
                 };
 
-                if (conMisure)
+                if (withMeasurements)
                 {
-                    string[] misure = null;
-                    try { misure = _sw.GetConfigurationNames(f) as string[]; }
+                    string[] measurements = null;
+                    try { measurements = _sw.GetConfigurationNames(f) as string[]; }
                     catch { }
-                    if (misure == null || misure.Length == 0)
+                    if (measurements == null || measurements.Length == 0)
                     {
-                        senzaMisure++;
+                        withoutMeasurements++;
                         // NON SI TACE. Un profilo di cui non si sono potute
                         // leggere le misure e' diverso da uno senza misure, e
                         // tutti e due sono diversi da uno a posto.
-                        voce["measurements"] = null;
-                        voce["note"] =
+                        entry["measurements"] = null;
+                        entry["note"] =
                             "Non sono riuscito a leggere le misure di questo profilo: non " +
                             "copiarne una a memoria.";
                     }
                     else
                     {
-                        voce["how_many_measurements"] = misure.Length;
-                        voce["measurements"] = misure.Take(MaxMisurePerProfilo).ToArray();
-                        if (misure.Length > MaxMisurePerProfilo)
-                            voce["measurements_not_listed"] = misure.Length - MaxMisurePerProfilo;
+                        entry["how_many_measurements"] = measurements.Length;
+                        entry["measurements"] = measurements.Take(MaxMeasurementsPerProfile).ToArray();
+                        if (measurements.Length > MaxMeasurementsPerProfile)
+                            entry["measurements_not_listed"] = measurements.Length - MaxMeasurementsPerProfile;
                     }
                 }
-                voci.Add(voce);
+                entries.Add(entry);
             }
 
-            var misureTot = new Dictionary<string, object>
+            var totalMeasurements = new Dictionary<string, object>
             {
-                ["folder"] = cartella,
+                ["folder"] = folder,
                 ["profiles_total"] = file.Length,
-                ["profiles_listed"] = voci.Count,
-                ["profiles"] = voci.ToArray(),
+                ["profiles_listed"] = entries.Count,
+                ["profiles"] = entries.ToArray(),
                 ["how_to_use_it"] =
                     "Copia «profile_path» e una delle «measurements» ALLA LETTERA dentro " +
                     "«structural_member» o «rectangular_frame», in «profile_path» e " +
@@ -160,22 +160,22 @@ namespace Oce.Solid.Agent.Core
                     "quella attiva del profilo, e il pezzo esce con una parete diversa da " +
                     "quella che credi.",
             };
-            if (troncati > 0)
+            if (truncated > 0)
             {
-                misureTot["profiles_not_listed"] = troncati;
-                misureTot["truncated"] = true;
-                misureTot["how_to_see_them_all"] =
-                    "Ce ne sono altri " + troncati + ". Richiama con «search» e un pezzo del " +
+                totalMeasurements["profiles_not_listed"] = truncated;
+                totalMeasurements["truncated"] = true;
+                totalMeasurements["how_to_see_them_all"] =
+                    "Ce ne sono altri " + truncated + ". Richiama con «search» e un pezzo del " +
                     "nome, per esempio «tube» o «IPE».";
             }
-            if (!string.IsNullOrWhiteSpace(cercato)) misureTot["search"] = cercato;
-            if (senzaMisure > 0) misureTot["profiles_without_readable_measurements"] = senzaMisure;
+            if (!string.IsNullOrWhiteSpace(searched)) totalMeasurements["search"] = searched;
+            if (withoutMeasurements > 0) totalMeasurements["profiles_without_readable_measurements"] = withoutMeasurements;
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agente] profili di saldatura: {0} in «{1}», elencati {2}",
-                file.Length, cartella, voci.Count));
+                file.Length, folder, entries.Count));
 
-            return RiuscitoSenzaCreare(misureTot);
+            return SucceededWithoutCreating(totalMeasurements);
         }
 
         /// <summary>
@@ -192,10 +192,10 @@ namespace Oce.Solid.Agent.Core
         ///
         /// Vuoto vuol dire vuoto, e chi chiama lo dice.
         /// </summary>
-        private static string CartellaDeiProfili()
+        private static string ProfilesFolder()
         {
-            var suo = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
-            return string.IsNullOrWhiteSpace(suo) ? null : suo;
+            var its = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+            return string.IsNullOrWhiteSpace(its) ? null : its;
         }
     }
 }

@@ -28,7 +28,7 @@ namespace Oce.Solid.Agent.Core
     ///    apre il modale «Nuovo documento SOLIDWORKS» e la chiamata non torna:
     ///    la verifica e' il conto dei solidi nel testo, non la riapertura.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>
         /// The components of an assembly as <see cref="AssemblyComponents"/> reads them,
@@ -37,10 +37,10 @@ namespace Oce.Solid.Agent.Core
         /// IsSuppressed — TRUE on a lightweight component (measured) — and so called
         /// lightweight parts «soppressi» and left them out.
         /// </summary>
-        private static List<AssemblyComponent> ComponentsOrRefusal(IAssemblyDoc assieme, string what, out string refusal)
+        private static List<AssemblyComponent> ComponentsOrRefusal(IAssemblyDoc assemblyDoc, string what, out string refusal)
         {
             refusal = null;
-            var all = AssemblyComponents.Read(assieme);
+            var all = AssemblyComponents.Read(assemblyDoc);
             if (all == null)
             {
                 refusal = "I could not read the components of the assembly (GetComponents): no " + what + ".";
@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Core
             return all;
         }
 
-        private static double? MassaDelPezzo(IModelDoc2 doc)
+        private static double? PartMass(IModelDoc2 doc)
         {
             try
             {
@@ -103,16 +103,16 @@ namespace Oce.Solid.Agent.Core
         ///    (IAssemblyDoc.ResolveAllLightWeightComponents(false): swResolveOk on the
         ///    probe, and GetLightWeightComponentCount 0 after it).
         /// </summary>
-        private Esito ProprietaDiMassaAssieme(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome AssemblyMassProperties(IModelDoc2 model, Dictionary<string, object> a)
         {
             if (!string.IsNullOrWhiteSpace(Str(a, "body_uid", null)))
-                return Fallito(
+                return Failed(
                     "Su un assieme «body_uid» non vale: peso l'assieme intero, cioe' i componenti non " +
                     "soppressi. Per un pezzo solo, aprilo e chiedimelo li'.");
-            var assieme = modello as IAssemblyDoc;
+            var assemblyDoc = model as IAssemblyDoc;
             string refusal;
-            var all = ComponentsOrRefusal(assieme, "mass", out refusal);
-            if (all == null) return Fallito(refusal);
+            var all = ComponentsOrRefusal(assemblyDoc, "mass", out refusal);
+            if (all == null) return Failed(refusal);
 
             // ── LIGHTWEIGHT PARTS: resolved on request, otherwise a refusal ──
             string resolvedOnRequest = null;
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.Core
             if (lightweight.Count > 0)
             {
                 if (!Bool(a, "resolve_lightweight", false))
-                    return Fallito(
+                    return Failed(
                         lightweight.Count + " part(s) of the assembly are lightweight (" +
                         string.Join(", ", AssemblyComponents.Names(lightweight)) + "). SOLIDWORKS weighs them, but " +
                         "their material cannot be read while they are lightweight (they have no document), so a part " +
@@ -129,15 +129,15 @@ namespace Oce.Solid.Agent.Core
                         "«resolve_lightweight»: true and I resolve them first (they stay resolved).");
                 int status = -1;
                 string thrown = null;
-                try { status = assieme.ResolveAllLightWeightComponents(false); }
+                try { status = assemblyDoc.ResolveAllLightWeightComponents(false); }
                 catch (Exception ex) { thrown = ex.Message; }
-                all = ComponentsOrRefusal(assieme, "mass", out refusal);
-                if (all == null) return Fallito("After ResolveAllLightWeightComponents: " + refusal);
+                all = ComponentsOrRefusal(assemblyDoc, "mass", out refusal);
+                if (all == null) return Failed("After ResolveAllLightWeightComponents: " + refusal);
                 var still = all.Where(c => c.IsPart && c.Load == ComponentLoad.Lightweight && !c.Envelope).ToList();
                 string answered = thrown != null ? "threw: " + thrown :
                     Enum.GetName(typeof(swComponentResolveStatus_e), status) ?? status.ToString();
                 if (still.Count > 0)
-                    return Fallito(
+                    return Failed(
                         "I asked SOLIDWORKS to resolve the lightweight parts (ResolveAllLightWeightComponents " + answered +
                         ") and these are still lightweight: " + string.Join(", ", AssemblyComponents.Names(still)) +
                         ". No mass.");
@@ -146,22 +146,22 @@ namespace Oce.Solid.Agent.Core
                 _log("[agent] assembly mass: " + resolvedOnRequest);
             }
 
-            var soppressi = AssemblyComponents.Names(all.Where(c => c.Load == ComponentLoad.Suppressed));
+            var suppressedOnes = AssemblyComponents.Names(all.Where(c => c.Load == ComponentLoad.Suppressed));
             var envelopes = all.Where(c => c.IsPart && c.Load != ComponentLoad.Suppressed && c.Envelope).ToList();
-            var pezzi = all.Where(c => c.IsPart && c.Load == ComponentLoad.Resolved && !c.Envelope).ToList();
-            if (pezzi.Count == 0)
+            var parts = all.Where(c => c.IsPart && c.Load == ComponentLoad.Resolved && !c.Envelope).ToList();
+            if (parts.Count == 0)
                 return RefuseAfterResolving(resolvedOnRequest,
                     "The assembly has no part to weigh" +
-                    (soppressi.Length > 0 ? ": suppressed " + string.Join(", ", soppressi) : "") +
+                    (suppressedOnes.Length > 0 ? ": suppressed " + string.Join(", ", suppressedOnes) : "") +
                     (envelopes.Count > 0 ? "; envelopes (SOLIDWORKS leaves them out of the mass) " +
                                            string.Join(", ", AssemblyComponents.Names(envelopes)) : "") + ".");
 
-            var senzaMateriale = new List<string>();
+            var withoutMaterial = new List<string>();
             var noDocument = new List<string>();
-            var altraConfigurazione = new List<string>();
-            double somma = 0;
-            bool sommaLetta = true;
-            foreach (AssemblyComponent item in pezzi)
+            var otherConfiguration = new List<string>();
+            double sum = 0;
+            bool readSum = true;
+            foreach (AssemblyComponent item in parts)
             {
                 var c = item.Component;
                 var doc = item.Document;
@@ -174,20 +174,20 @@ namespace Oce.Solid.Agent.Core
                 // resta fuori dalla somma di controllo (la massa dell'assieme e'
                 // giusta: SOLIDWORKS pesa la configurazione che il componente usa), e
                 // il materiale si chiede alla configurazione usata.
-                string usata = null, attiva = null;
-                try { usata = c.ReferencedConfiguration; } catch { }
-                try { attiva = (doc.GetActiveConfiguration() as IConfiguration)?.Name; } catch { }
-                bool altra = !string.IsNullOrEmpty(usata) && !string.IsNullOrEmpty(attiva) &&
-                             !string.Equals(usata, attiva, StringComparison.OrdinalIgnoreCase);
-                if (string.IsNullOrEmpty(MaterialeDelPezzo(doc, altra ? usata : ""))) senzaMateriale.Add(item.Name);
-                if (altra)
+                string used = null, activate = null;
+                try { used = c.ReferencedConfiguration; } catch { }
+                try { activate = (doc.GetActiveConfiguration() as IConfiguration)?.Name; } catch { }
+                bool other = !string.IsNullOrEmpty(used) && !string.IsNullOrEmpty(activate) &&
+                             !string.Equals(used, activate, StringComparison.OrdinalIgnoreCase);
+                if (string.IsNullOrEmpty(PartMaterial(doc, other ? used : ""))) withoutMaterial.Add(item.Name);
+                if (other)
                 {
-                    altraConfigurazione.Add(item.Name + " (usa «" + usata + "», il pezzo e' aperto su «" + attiva + "»)");
-                    sommaLetta = false;
+                    otherConfiguration.Add(item.Name + " (usa «" + used + "», il pezzo e' aperto su «" + activate + "»)");
+                    readSum = false;
                     continue;
                 }
-                var m = MassaDelPezzo(doc);
-                if (m == null) sommaLetta = false; else somma += m.Value;
+                var m = PartMass(doc);
+                if (m == null) readSum = false; else sum += m.Value;
             }
 
             if (noDocument.Count > 0)
@@ -197,80 +197,80 @@ namespace Oce.Solid.Agent.Core
 
             // UN OGGETTO PER NUMERO, come per la parte: IMassProperty cambia le sue
             // risposte a seconda di cosa gli si e' chiesto prima (OperazioniMisura).
-            var prendi = new Func<Func<IMassProperty, object>, object>(leggi =>
+            var take = new Func<Func<IMassProperty, object>, object>(read =>
             {
                 try
                 {
-                    var mp = ApiHelpers.NewMassProperty(modello, null, out _);
+                    var mp = ApiHelpers.NewMassProperty(model, null, out _);
                     if (mp == null) return null;
-                    return leggi(mp);
+                    return read(mp);
                 }
                 catch { return null; }
             });
-            object m0 = prendi(p => p.Mass);
-            object v0 = prendi(p => p.Volume);
-            object c0 = prendi(p => p.CenterOfMass);
+            object m0 = take(p => p.Mass);
+            object v0 = take(p => p.Volume);
+            object c0 = take(p => p.CenterOfMass);
             if (m0 == null || v0 == null)
                 return RefuseAfterResolving(resolvedOnRequest, "SOLIDWORKS non ha dato le proprieta' di massa dell'assieme. Non ti do numeri a meta'.");
-            double massa = Convert.ToDouble(m0);
+            double mass = Convert.ToDouble(m0);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 ["document"] = "assembly",
-                ["components_weighed"] = pezzi.Count,
-                ["components_suppressed"] = soppressi,
+                ["components_weighed"] = parts.Count,
+                ["components_suppressed"] = suppressedOnes,
                 ["volume_mm3"] = Math.Round(Convert.ToDouble(v0) * 1e9, 2),
-                ["center_of_mass_mm"] = Scala(c0 as double[], 1000.0),
+                ["center_of_mass_mm"] = Scale(c0 as double[], 1000.0),
                 ["units"] = "millimeter kilogram",
             };
-            if (envelopes.Count > 0) misure["envelope_components"] = AssemblyComponents.Names(envelopes);
-            var hidden = pezzi.Where(c => c.Hidden).ToList();
-            if (hidden.Count > 0) misure["hidden_components_weighed"] = AssemblyComponents.Names(hidden);
-            if (resolvedOnRequest != null) misure["lightweight_resolved_on_request"] = resolvedOnRequest;
-            if (altraConfigurazione.Count > 0)
-                misure["sum_not_checked_for_configs"] = altraConfigurazione.ToArray();
+            if (envelopes.Count > 0) measurements["envelope_components"] = AssemblyComponents.Names(envelopes);
+            var hidden = parts.Where(c => c.Hidden).ToList();
+            if (hidden.Count > 0) measurements["hidden_components_weighed"] = AssemblyComponents.Names(hidden);
+            if (resolvedOnRequest != null) measurements["lightweight_resolved_on_request"] = resolvedOnRequest;
+            if (otherConfiguration.Count > 0)
+                measurements["sum_not_checked_for_configs"] = otherConfiguration.ToArray();
 
-            if (senzaMateriale.Count > 0)
+            if (withoutMaterial.Count > 0)
             {
                 // LA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA» — come per la
                 // parte: SOLIDWORKS risponderebbe con la densita' dell'acqua.
-                misure["mass_kg"] = null;
-                misure["without_material"] = senzaMateriale.ToArray();
-                misure["why_no_mass"] =
-                    "A " + string.Join(", ", senzaMateriale) + " non e' stato dato un materiale: la massa " +
+                measurements["mass_kg"] = null;
+                measurements["without_material"] = withoutMaterial.ToArray();
+                measurements["why_no_mass"] =
+                    "A " + string.Join(", ", withoutMaterial) + " non e' stato dato un materiale: la massa " +
                     "dell'assieme non si sa. SOLIDWORKS risponderebbe lo stesso con la densita' predefinita " +
                     "(1000 kg/m3, l'acqua): un numero credibile e sbagliato. Dai il materiale ai pezzi " +
                     "(«apply_material» su ognuno) e richiedimelo.";
             }
             else
             {
-                misure["mass_kg"] = Math.Round(massa, 4);
+                measurements["mass_kg"] = Math.Round(mass, 4);
                 // IL CONTO RIFATTO: la massa dell'assieme contro la somma dei suoi
                 // pezzi letti uno per uno. Se divergono, una delle due letture non e'
                 // quella che sembra (un materiale messo sul componente, diverso da
                 // quello del pezzo; un componente che conta due volte).
-                if (sommaLetta)
+                if (readSum)
                 {
-                    misure["sum_of_parts_kg"] = Math.Round(somma, 4);
-                    double scarto = massa > 0 ? Math.Abs(somma - massa) / massa : double.NaN;
-                    misure["deviation_on_sum"] = double.IsNaN(scarto) ? null : (object)Math.Round(scarto, 6);
-                    if (double.IsNaN(scarto) || scarto > 0.001)
+                    measurements["sum_of_parts_kg"] = Math.Round(sum, 4);
+                    double deviation = mass > 0 ? Math.Abs(sum - mass) / mass : double.NaN;
+                    measurements["deviation_on_sum"] = double.IsNaN(deviation) ? null : (object)Math.Round(deviation, 6);
+                    if (double.IsNaN(deviation) || deviation > 0.001)
                         return RefuseAfterResolving(resolvedOnRequest,
-                            "La massa dell'assieme (" + massa.ToString("0.####") + " kg) e la somma dei suoi pezzi (" +
-                            somma.ToString("0.####") + " kg) non combaciano: una delle due letture non e' quella che " +
+                            "La massa dell'assieme (" + mass.ToString("0.####") + " kg) e la somma dei suoi pezzi (" +
+                            sum.ToString("0.####") + " kg) non combaciano: una delle due letture non e' quella che " +
                             "sembra (un materiale messo sul componente nell'assieme? un componente contato due volte?). " +
                             "Non ti do un numero.");
                 }
-                else misure["sum_of_parts_kg"] = null;   // un pezzo non si e' lasciato pesare, o usa un'altra configurazione: niente controllo
+                else measurements["sum_of_parts_kg"] = null;   // un pezzo non si e' lasciato pesare, o usa un'altra configurazione: niente controllo
             }
-            misure["what_it_does_not_check"] =
+            measurements["what_it_does_not_check"] =
                 "Suppressed components do not weigh, and they are listed. Envelopes do not weigh either: SOLIDWORKS " +
                 "leaves them out of the assembly mass (measured), and so does the sum. Hidden components weigh. A " +
                 "material set on the COMPONENT in the assembly, different from the part's, is not in the sum of the " +
                 "parts: if there is one, the gap says so and I stop.";
-            _log("[agente] massa dell'assieme: " + pezzi.Count + " pezzi, " +
-                 (senzaMateriale.Count > 0 ? "senza materiale" : massa.ToString("0.###") + " kg"));
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] massa dell'assieme: " + parts.Count + " pezzi, " +
+                 (withoutMaterial.Count > 0 ? "senza materiale" : mass.ToString("0.###") + " kg"));
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -279,10 +279,10 @@ namespace Oce.Solid.Agent.Core
         /// refusal says so as the success does, instead of changing the assembly
         /// without a word.
         /// </summary>
-        private Esito RefuseAfterResolving(string resolvedOnRequest, string message)
+        private Outcome RefuseAfterResolving(string resolvedOnRequest, string message)
         {
             string said = resolvedOnRequest == null ? message : message + " " + resolvedOnRequest;
-            return Fallito(said);
+            return Failed(said);
         }
 
         /// <summary>
@@ -296,98 +296,98 @@ namespace Oce.Solid.Agent.Core
         /// opened lightweight. Envelopes and hidden components are in the box, and the
         /// answer names them.
         /// </summary>
-        private Esito IngombroAssieme(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome AssemblyBoundingBox(IModelDoc2 model, Dictionary<string, object> a)
         {
             if (!string.IsNullOrWhiteSpace(Str(a, "body_uid", null)))
-                return Fallito(
+                return Failed(
                     "Su un assieme «body_uid» non vale: misuro l'ingombro dell'assieme intero. Per un pezzo " +
                     "solo, aprilo e chiedimelo li'.");
-            var assieme = modello as IAssemblyDoc;
+            var assemblyDoc = model as IAssemblyDoc;
             string refusal;
-            var all = ComponentsOrRefusal(assieme, "box", out refusal);
-            if (all == null) return Fallito(refusal);
-            var soppressi = AssemblyComponents.Names(all.Where(c => c.Load == ComponentLoad.Suppressed));
-            var pezzi = all.Where(c => c.IsPart && c.Load != ComponentLoad.Suppressed).ToList();
-            if (pezzi.Count == 0)
-                return Fallito("The assembly has no part to measure" +
-                               (soppressi.Length > 0 ? ": every part is suppressed" : "") + ".");
-            var elenco = new List<object>();
-            double[] tutto = null;
-            foreach (AssemblyComponent item in pezzi)
+            var all = ComponentsOrRefusal(assemblyDoc, "box", out refusal);
+            if (all == null) return Failed(refusal);
+            var suppressedOnes = AssemblyComponents.Names(all.Where(c => c.Load == ComponentLoad.Suppressed));
+            var parts = all.Where(c => c.IsPart && c.Load != ComponentLoad.Suppressed).ToList();
+            if (parts.Count == 0)
+                return Failed("The assembly has no part to measure" +
+                               (suppressedOnes.Length > 0 ? ": every part is suppressed" : "") + ".");
+            var list = new List<object>();
+            double[] everything = null;
+            foreach (AssemblyComponent item in parts)
             {
                 var c = item.Component;
                 object info;
-                object[] corpi = null;
+                object[] bodies = null;
                 bool bodiesUnread = false;
-                try { corpi = c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[]; } catch { bodiesUnread = true; }
+                try { bodies = c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[]; } catch { bodiesUnread = true; }
                 // A PART LEFT OUT IN SILENCE IS A PARTIAL BOX ANSWERED AS A SUCCESS
                 // (finding N5): a throw refuses, and so does a lightweight part that
                 // answers no solid body (the probe read the bodies of every
                 // lightweight part; once resolved, a part without solids is skipped
                 // below as before).
                 if (bodiesUnread)
-                    return Fallito("I could not read the bodies of «" + item.Name + "» (GetBodies3 threw): its box " +
+                    return Failed("I could not read the bodies of «" + item.Name + "» (GetBodies3 threw): its box " +
                                    "would be missing from the assembly's. No box.");
-                if (corpi == null || corpi.Length == 0)
+                if (bodies == null || bodies.Length == 0)
                 {
                     if (item.Load == ComponentLoad.Lightweight)
-                        return Fallito("The lightweight part «" + item.Name + "» answered no solid body (GetBodies3): " +
+                        return Failed("The lightweight part «" + item.Name + "» answered no solid body (GetBodies3): " +
                                        "its box would be missing from the assembly's. Resolve it and ask again.");
                     continue;   // a resolved part without solid bodies (surfaces only): nothing to box
                 }
                 MathTransform tr = null;
                 try { tr = c.Transform2; } catch { }
                 if (tr == null)
-                    return Fallito("Non leggo dove sta «" + item.Name + "» nell'assieme (Transform2): senza, la " +
+                    return Failed("Non leggo dove sta «" + item.Name + "» nell'assieme (Transform2): senza, la " +
                                    "sua scatola starebbe nel posto sbagliato. Non ti do un ingombro.");
-                double[] suo = null;
-                foreach (var ob in corpi)
+                double[] its = null;
+                foreach (var ob in bodies)
                 {
                     // I CORPI ARRIVANO NELLO SPAZIO DELLA PARTE (misurato): una copia,
                     // portata nell'assieme, e la scatola di quella.
-                    IBody2 copia = null;
-                    try { copia = (ob as IBody2)?.Copy() as IBody2; } catch { }
-                    bool portato = false;
-                    try { portato = copia != null && copia.ApplyTransform(tr); } catch { }
-                    var sc = portato ? ScatolaDelCorpo(copia) : null;
+                    IBody2 copy = null;
+                    try { copy = (ob as IBody2)?.Copy() as IBody2; } catch { }
+                    bool brought = false;
+                    try { brought = copy != null && copy.ApplyTransform(tr); } catch { }
+                    var sc = brought ? BodyBox(copy) : null;
                     if (sc == null)
-                        return Fallito("Non riesco a portare nell'assieme un corpo di «" + item.Name + "» o a " +
+                        return Failed("Non riesco a portare nell'assieme un corpo di «" + item.Name + "» o a " +
                                        "leggerne la scatola: non ti do un ingombro a meta'.");
-                    if (suo == null) suo = (double[])sc.Clone();
-                    else { for (int k = 0; k < 3; k++) suo[k] = Math.Min(suo[k], sc[k]); for (int k = 3; k < 6; k++) suo[k] = Math.Max(suo[k], sc[k]); }
+                    if (its == null) its = (double[])sc.Clone();
+                    else { for (int k = 0; k < 3; k++) its[k] = Math.Min(its[k], sc[k]); for (int k = 3; k < 6; k++) its[k] = Math.Max(its[k], sc[k]); }
                 }
-                if (suo == null) continue;
-                elenco.Add(new Dictionary<string, object>
+                if (its == null) continue;
+                list.Add(new Dictionary<string, object>
                 {
                     ["component"] = item.Name,
-                    ["from_mm"] = new[] { Tondo(suo[0]), Tondo(suo[1]), Tondo(suo[2]) },
-                    ["to_mm"] = new[] { Tondo(suo[3]), Tondo(suo[4]), Tondo(suo[5]) },
+                    ["from_mm"] = new[] { Round(its[0]), Round(its[1]), Round(its[2]) },
+                    ["to_mm"] = new[] { Round(its[3]), Round(its[4]), Round(its[5]) },
                 });
-                if (tutto == null) tutto = (double[])suo.Clone();
-                else { for (int k = 0; k < 3; k++) tutto[k] = Math.Min(tutto[k], suo[k]); for (int k = 3; k < 6; k++) tutto[k] = Math.Max(tutto[k], suo[k]); }
+                if (everything == null) everything = (double[])its.Clone();
+                else { for (int k = 0; k < 3; k++) everything[k] = Math.Min(everything[k], its[k]); for (int k = 3; k < 6; k++) everything[k] = Math.Max(everything[k], its[k]); }
             }
-            if (tutto == null) return Fallito("Nessun componente dell'assieme ha un corpo solido da misurare.");
-            var misure = new Dictionary<string, object>
+            if (everything == null) return Failed("Nessun componente dell'assieme ha un corpo solido da misurare.");
+            var measurements = new Dictionary<string, object>
             {
                 ["document"] = "assembly",
-                ["components"] = elenco.ToArray(),
-                ["components_suppressed"] = soppressi,
-                ["from_mm"] = new[] { Tondo(tutto[0]), Tondo(tutto[1]), Tondo(tutto[2]) },
-                ["to_mm"] = new[] { Tondo(tutto[3]), Tondo(tutto[4]), Tondo(tutto[5]) },
-                ["bounding_box_mm"] = new[] { Tondo(tutto[3] - tutto[0]), Tondo(tutto[4] - tutto[1]), Tondo(tutto[5] - tutto[2]) },
+                ["components"] = list.ToArray(),
+                ["components_suppressed"] = suppressedOnes,
+                ["from_mm"] = new[] { Round(everything[0]), Round(everything[1]), Round(everything[2]) },
+                ["to_mm"] = new[] { Round(everything[3]), Round(everything[4]), Round(everything[5]) },
+                ["bounding_box_mm"] = new[] { Round(everything[3] - everything[0]), Round(everything[4] - everything[1]), Round(everything[5] - everything[2]) },
                 ["units"] = "millimetri, nel sistema di coordinate dell'assieme",
                 ["what_it_does_not_check"] =
                     "It is the box aligned to the assembly axes, not the smallest one. Suppressed components are " +
                     "not in it (they are listed). Lightweight parts are in it (their bodies are read without " +
                     "resolving them), and so are envelopes and hidden components, each listed.",
             };
-            var light = pezzi.Where(c => c.Load == ComponentLoad.Lightweight).ToList();
-            if (light.Count > 0) misure["lightweight_components_measured"] = AssemblyComponents.Names(light);
-            var envelopes = pezzi.Where(c => c.Envelope).ToList();
-            if (envelopes.Count > 0) misure["envelope_components"] = AssemblyComponents.Names(envelopes);
-            var hidden = pezzi.Where(c => c.Hidden).ToList();
-            if (hidden.Count > 0) misure["hidden_components"] = AssemblyComponents.Names(hidden);
-            return RiuscitoSenzaCreare(misure);
+            var light = parts.Where(c => c.Load == ComponentLoad.Lightweight).ToList();
+            if (light.Count > 0) measurements["lightweight_components_measured"] = AssemblyComponents.Names(light);
+            var envelopes = parts.Where(c => c.Envelope).ToList();
+            if (envelopes.Count > 0) measurements["envelope_components"] = AssemblyComponents.Names(envelopes);
+            var hidden = parts.Where(c => c.Hidden).ToList();
+            if (hidden.Count > 0) measurements["hidden_components"] = AssemblyComponents.Names(hidden);
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -429,12 +429,12 @@ namespace Oce.Solid.Agent.Core
         ///    them; up to library 0.146.0 they were taken for suppressed;
         ///  - ENVELOPES are written (A + envelope E: 2 solids, as on 28/9) and count.
         /// </summary>
-        private static int SolidiAttesiNellAssieme(IAssemblyDoc assieme, List<string> hiddenLeftOut)
+        private static int ExpectedSolidsInAssembly(IAssemblyDoc assemblyDoc, List<string> hiddenLeftOut)
         {
             var keys = new List<string>();
             var bodies = new List<int>();
             var userBodies = new List<int>();
-            var all = AssemblyComponents.Read(assieme);
+            var all = AssemblyComponents.Read(assemblyDoc);
             if (all == null) return -1;
             foreach (AssemblyComponent item in all)
             {
@@ -445,14 +445,14 @@ namespace Oce.Solid.Agent.Core
                 if (!item.IsPart) { if (item.IsSubAssembly) continue; return -1; }
                 if (item.Hidden) { if (hiddenLeftOut != null) hiddenLeftOut.Add(item.Name); continue; }
                 var c = item.Component;
-                string chiave;
-                try { chiave = (c.GetPathName() ?? "") + "|" + (c.ReferencedConfiguration ?? ""); }
+                string key;
+                try { key = (c.GetPathName() ?? "") + "|" + (c.ReferencedConfiguration ?? ""); }
                 catch { return -1; }
                 object info;
                 object[] found;
                 try { found = c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[]; }
                 catch { return -1; }
-                keys.Add(chiave);
+                keys.Add(key);
                 // ZERO-E-ZERO: a real zero. Suppressed components are left out above,
                 // an unreadable load state and a failed call return -1; GetBodies3
                 // answers null for a component that has no solid body (a
@@ -470,9 +470,9 @@ namespace Oce.Solid.Agent.Core
         /// lightweight components of the probe's assemblies, and a change the user
         /// did not ask for is said.
         /// </summary>
-        private static int LightweightCount(IAssemblyDoc assieme)
+        private static int LightweightCount(IAssemblyDoc assemblyDoc)
         {
-            try { return assieme == null ? -1 : assieme.GetLightWeightComponentCount(); }
+            try { return assemblyDoc == null ? -1 : assemblyDoc.GetLightWeightComponentCount(); }
             catch { return -1; }
         }
 
@@ -530,14 +530,14 @@ namespace Oce.Solid.Agent.Core
         /// un'entita' complessa puo' nominare tutte e due — contata una volta sola
         /// (revisione avversariale del 27/9/2026).
         /// </summary>
-        private static int SolidiNelloStep(string percorso)
+        private static int SolidsInStep(string filePath)
         {
             try
             {
                 int n = 0;
-                foreach (var istanza in File.ReadAllText(percorso).Split(';'))
-                    if (istanza.IndexOf("MANIFOLD_SOLID_BREP", StringComparison.Ordinal) >= 0 ||
-                        istanza.IndexOf("BREP_WITH_VOIDS", StringComparison.Ordinal) >= 0) n++;
+                foreach (var instance in File.ReadAllText(filePath).Split(';'))
+                    if (instance.IndexOf("MANIFOLD_SOLID_BREP", StringComparison.Ordinal) >= 0 ||
+                        instance.IndexOf("BREP_WITH_VOIDS", StringComparison.Ordinal) >= 0) n++;
                 return n;
             }
             catch { return -1; }

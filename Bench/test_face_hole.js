@@ -13,7 +13,7 @@
 //
 // ── IL DIFETTO ────────────────────────────────────────────────────────────
 //
-// `Riferimenti` cercava le facce «cilindriche» del passo: una sola la
+// `References` cercava le facce «cilindriche» del passo: una sola la
 // restituiva, piu' d'una faceva scattare un rifiuto. Ma **un raccordo lascia
 // facce cilindriche come un foro**. Un passo che ne lasciava esattamente una, e
 // quella era un raccordo, la restituiva senza dire niente.
@@ -24,11 +24,11 @@
 const { spawn, spawnSync } = require("child_process");
 const path = require("path");
 
-const RADICE = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
-const NUOVA = path.join(RADICE, "Checks", "NewPart", "bin", "NewPart.exe");
+const ROOT = path.resolve(__dirname, "..");
+const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 
-const PIASTRA = {
+const PLATE = {
   operation: "extrude_rectangle",
   arguments: {
     plane: "top", length_mm: 100, width_mm: 60,
@@ -45,8 +45,8 @@ const PIASTRA = {
 
 // ROSSO 1: il passo 2 e' un RACCORDO, che lascia facce cilindriche CONVESSE.
 // Il passo 3 chiede «la parete del foro» di quel passo: non esiste.
-const RACCORDO_NON_E_FORO = [
-  PIASTRA,
+const FILLET_IS_NOT_HOLE = [
+  PLATE,
   {
     operation: "fillet_edges",
     arguments: {
@@ -64,8 +64,8 @@ const RACCORDO_NON_E_FORO = [
 ];
 
 // VERDE: il passo 2 e' un foro vero, uno solo. Il passo 3 lo prende.
-const IL_FORO_SI_PRENDE = [
-  PIASTRA,
+const THE_HOLE_IS_PICKED = [
+  PLATE,
   {
     operation: "cylindrical_cut",
     arguments: {
@@ -102,8 +102,8 @@ const IL_FORO_SI_PRENDE = [
 // La lezione che e' costata i tre tentativi: **un caso di prova non deve
 // dipendere da geometria che il caso stesso sta creando**, e «quale operazione
 // lascia N facce» si legge nel catalogo invece di dedurlo.
-const PIU_PARETI = [
-  PIASTRA,
+const MULTIPLE_WALLS = [
+  PLATE,
   {
     operation: "hole_wizard",
     arguments: {
@@ -127,115 +127,115 @@ const PIU_PARETI = [
 
 // ──────────────────────────────────────────────────────────────────────────
 
-let prossimoId = 1;
-const attesa = new Map();
-let avanzo = "";
+let nextId = 1;
+const expectation = new Map();
+let leftover = "";
 
-const ponte = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
-ponte.stderr.on("data", () => {});
-ponte.stdout.on("data", d => {
-  avanzo += d.toString();
+const bridge = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
+bridge.stderr.on("data", () => {});
+bridge.stdout.on("data", d => {
+  leftover += d.toString();
   let i;
-  while ((i = avanzo.indexOf("\n")) >= 0) {
-    const riga = avanzo.slice(0, i).trim();
-    avanzo = avanzo.slice(i + 1);
-    if (!riga) continue;
-    let m; try { m = JSON.parse(riga); } catch (e) { continue; }
-    const chi = attesa.get(m.id);
-    if (chi) { attesa.delete(m.id); chi(m); }
+  while ((i = leftover.indexOf("\n")) >= 0) {
+    const line = leftover.slice(0, i).trim();
+    leftover = leftover.slice(i + 1);
+    if (!line) continue;
+    let m; try { m = JSON.parse(line); } catch (e) { continue; }
+    const chi = expectation.get(m.id);
+    if (chi) { expectation.delete(m.id); chi(m); }
   }
 });
 
-function manda(metodo, parametri) {
-  const id = prossimoId++;
-  return new Promise(risolvi => {
-    attesa.set(id, risolvi);
-    ponte.stdin.write(JSON.stringify(
-      { jsonrpc: "2.0", id: id, method: metodo, params: parametri }) + "\n");
+function send(method, parameters) {
+  const id = nextId++;
+  return new Promise(resolve => {
+    expectation.set(id, resolve);
+    bridge.stdin.write(JSON.stringify(
+      { jsonrpc: "2.0", id: id, method: method, params: parameters }) + "\n");
   });
 }
 
-function avvisa(metodo) {
-  ponte.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: metodo }) + "\n");
+function warn(method) {
+  bridge.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: method }) + "\n");
 }
 
-async function chiama(strumento, argomenti) {
-  const m = await manda("tools/call", { name: strumento, arguments: argomenti || {} });
+async function invoke(tool, args) {
+  const m = await send("tools/call", { name: tool, arguments: args || {} });
   const r = m.result || {};
-  const testo = (r.content || []).filter(c => c.type === "text")
+  const text = (r.content || []).filter(c => c.type === "text")
                                  .map(c => c.text).join("\n");
-  let dati = null;
-  const i = testo.indexOf("{");
-  if (i >= 0) { try { dati = JSON.parse(testo.slice(i)); } catch (e) {} }
-  return { testo: testo, dati: dati, errore: !!r.isError };
+  let data = null;
+  const i = text.indexOf("{");
+  if (i >= 0) { try { data = JSON.parse(text.slice(i)); } catch (e) {} }
+  return { testo: text, dati: data, errore: !!r.isError };
 }
 
-let falliti = 0;
-function segna(nome, ok, dettaglio) {
-  if (!ok) falliti++;
-  console.log((ok ? "  OK   " : "  NO   ") + nome.padEnd(52) + (dettaglio || ""));
+let failed = 0;
+function check(itemName, ok, detail) {
+  if (!ok) failed++;
+  console.log((ok ? "  OK   " : "  NO   ") + itemName.padEnd(52) + (detail || ""));
 }
 
-function corto(s) {
+function shorter(s) {
   if (!s) return "(niente)";
-  const uno = s.replace(/[\r\n]+/g, " ");
-  return uno.length > 150 ? uno.slice(0, 150) + "..." : uno;
+  const one = s.replace(/[\r\n]+/g, " ");
+  return one.length > 150 ? one.slice(0, 150) + "..." : one;
 }
 
 // L'ERRORE DEL PASSO, non il testo intero della risposta: dentro c'e' anche lo
 // stato del documento, e cercarci una parola dentro darebbe falsi positivi.
-function erroreDeiPassi(dati) {
-  if (!dati || !Array.isArray(dati.outcomes)) return "";
-  return dati.outcomes.filter(e => e && e.errore).map(e => e.errore).join(" | ");
+function stepsError(data) {
+  if (!data || !Array.isArray(data.outcomes)) return "";
+  return data.outcomes.filter(e => e && e.errore).map(e => e.errore).join(" | ");
 }
 
-async function piano(nome, passi) {
-  const r = spawnSync(NUOVA, [], { encoding: "utf8" });
-  if (r.status !== 0) { segna(nome, false, "parte nuova non creata"); return null; }
-  await chiama("inspect_part");
-  return await chiama("build", { steps: passi });
+async function plane(itemName, steps) {
+  const r = spawnSync(NEW, [], { encoding: "utf8" });
+  if (r.status !== 0) { check(itemName, false, "parte nuova non creata"); return null; }
+  await invoke("inspect_part");
+  return await invoke("build", { steps: steps });
 }
 
 (async function () {
-  await manda("initialize", {
+  await send("initialize", {
     protocolVersion: "2024-11-05", capabilities: {},
     clientInfo: { name: "prova_faccia_foro", version: "1" },
   });
-  avvisa("notifications/initialized");
+  warn("notifications/initialized");
 
   console.log("");
   console.log("=== hole_face: un foro si', un raccordo no (E14) ===");
   console.log("");
 
   // ── ROSSO 1 ────────────────────────────────────────────────────────────
-  const a = await piano("ROSSO 1", RACCORDO_NON_E_FORO);
+  const a = await plane("ROSSO 1", FILLET_IS_NOT_HOLE);
   if (a) {
-    const perche = erroreDeiPassi(a.dati);
-    segna("ROSSO: «la parete del foro» di un RACCORDO e' rifiutata",
-          a.errore && /convess/i.test(perche),
-          a.errore ? corto(perche) : "NON ha rifiutato: ha preso la faccia del raccordo");
+    const why = stepsError(a.dati);
+    check("ROSSO: «la parete del foro» di un RACCORDO e' rifiutata",
+          a.errore && /convess/i.test(why),
+          a.errore ? shorter(why) : "NON ha rifiutato: ha preso la faccia del raccordo");
   }
 
   // ── VERDE ──────────────────────────────────────────────────────────────
-  const b = await piano("VERDE", IL_FORO_SI_PRENDE);
+  const b = await plane("VERDE", THE_HOLE_IS_PICKED);
   if (b) {
-    segna("un foro vero, uno solo, si prende",
+    check("un foro vero, uno solo, si prende",
           !b.errore,
-          b.errore ? corto(erroreDeiPassi(b.dati)) :
+          b.errore ? shorter(stepsError(b.dati)) :
                      "volume " + (b.dati || {}).volume_after_mm3);
   }
 
   // ── ROSSO 2 ────────────────────────────────────────────────────────────
-  const c = await piano("ROSSO 2", PIU_PARETI);
+  const c = await plane("ROSSO 2", MULTIPLE_WALLS);
   if (c) {
-    const perche = erroreDeiPassi(c.dati);
-    segna("ROSSO: piu' pareti di foro, «la» parete non esiste",
-          c.errore && /pareti di foro/i.test(perche),
-          c.errore ? corto(perche) : "NON ha rifiutato: ne ha scelta una a caso");
+    const why = stepsError(c.dati);
+    check("ROSSO: piu' pareti di foro, «la» parete non esiste",
+          c.errore && /pareti di foro/i.test(why),
+          c.errore ? shorter(why) : "NON ha rifiutato: ne ha scelta una a caso");
   }
 
   console.log("");
-  console.log(falliti === 0 ? "Tutto torna." : falliti + " prove fallite.");
-  ponte.stdin.end();
-  process.exitCode = falliti === 0 ? 0 : 1;
+  console.log(failed === 0 ? "Tutto torna." : failed + " prove fallite.");
+  bridge.stdin.end();
+  process.exitCode = failed === 0 ? 0 : 1;
 })();

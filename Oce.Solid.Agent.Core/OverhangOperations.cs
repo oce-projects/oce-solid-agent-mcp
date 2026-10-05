@@ -62,88 +62,88 @@ namespace Oce.Solid.Agent.Core
     /// stampa benissimo. Contarla sarebbe dichiarare non stampabile ogni pezzo
     /// esistente.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>Quanto si tollera sul piano di appoggio, in mm.</summary>
-        private const double SulPianoMm = 0.05;
+        private const double OnPlaneMm = 0.05;
 
-        private Esito VerificaSovrasporgenze(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CheckOverhangs(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            double soglia = Num(a, "threshold_deg", 45);
-            if (soglia <= 0 || soglia >= 90)
-                return Fallito(
+            double threshold = Num(a, "threshold_deg", 45);
+            if (threshold <= 0 || threshold >= 90)
+                return Failed(
                     "«threshold_deg» va fra 0 e 90 esclusi. E' l'angolo oltre il quale una " +
                     "parete non si regge: 45 per una stampante a filamento normale, 30-35 " +
                     "se vuoi stare largo, 60 se la macchina raffredda bene.");
 
-            double[] su = Direzione(a, "print_direction");
+            double[] su = Direction(a, "print_direction");
             if (su == null)
-                return Fallito(
+                return Failed(
                     "«print_direction» dev'essere tre numeri, per esempio [0, 0, 1]. " +
                     "E' il verso in cui cresce la stampa: il piano della macchina sta sotto, " +
                     "perpendicolare a questo.");
 
-            var corpi = CorpiDaGuardare(modello, a, stato, out string motivo);
-            if (corpi == null) return Fallito(motivo);
-            int corpiNascosti = 0;
-            foreach (var c in corpi)
+            var bodies = BodiesToCheck(model, a, docState, out string reason);
+            if (bodies == null) return Failed(reason);
+            int hiddenBodies = 0;
+            foreach (var c in bodies)
             {
-                try { if (!c.Visible) corpiNascosti++; } catch { }
+                try { if (!c.Visible) hiddenBodies++; } catch { }
             }
 
             // La quota del piano di appoggio: il punto piu' basso del pezzo
             // nella direzione di stampa.
-            double quotaPiano = double.MaxValue;
-            foreach (var c in corpi)
+            double bedLevel = double.MaxValue;
+            foreach (var c in bodies)
             {
-                var estremo = new double[3];
+                var end = new double[3];
                 if (c.GetExtremePoint(-su[0], -su[1], -su[2],
-                                      out estremo[0], out estremo[1], out estremo[2]))
+                                      out end[0], out end[1], out end[2]))
                 {
-                    double q = estremo[0] * su[0] + estremo[1] * su[1] + estremo[2] * su[2];
-                    if (q < quotaPiano) quotaPiano = q;
+                    double q = end[0] * su[0] + end[1] * su[1] + end[2] * su[2];
+                    if (q < bedLevel) bedLevel = q;
                 }
             }
-            if (quotaPiano == double.MaxValue)
-                return Fallito("Non riesco a trovare il punto piu' basso del pezzo.");
+            if (bedLevel == double.MaxValue)
+                return Failed("Non riesco a trovare il punto piu' basso del pezzo.");
 
-            double areaTotale = 0, areaSporgente = 0, areaSulPiano = 0;
-            double peggiore = 0;
-            int facceGuardate = 0, facceSporgenti = 0, facceCurve = 0;
-            int facceNonAnalizzate = 0;
-            double areaNonAnalizzata = 0;
+            double totalArea = 0, overhangingArea = 0, areaOnPlane = 0;
+            double worse = 0;
+            int checkedFaces = 0, overhangingFaces = 0, curvedFaces = 0;
+            int unanalyzedFaces = 0;
+            double unanalyzedArea = 0;
             // Planar faces that hang over the threshold but whose true box did
             // not answer: whether they rest on the plate is unknown, so they
-            // count as not analysed (part of facceNonAnalizzate), never as
+            // count as not analysed (part of unanalyzedFaces), never as
             // overhangs and never as resting.
             int planarWithoutBox = 0;
             double planarWithoutBoxArea = 0;
-            int concordi = 0, discordi = 0;
-            var elenco = new List<Dictionary<string, object>>();
+            int consistent = 0, conflicting = 0;
+            var list = new List<Dictionary<string, object>>();
 
-            foreach (var corpo in corpi)
+            foreach (var body in bodies)
             {
-                var f = corpo.GetFirstFace() as IFace2;
+                var f = body.GetFirstFace() as IFace2;
                 while (f != null)
                 {
-                    var faccia = f;
+                    var face = f;
                     f = f.GetNextFace() as IFace2;
-                    facceGuardate++;
+                    checkedFaces++;
 
-                    double[] normale = null;
-                    try { normale = ApiHelpers.NormalIfPlanar(faccia); } catch { }
-                    bool piana = false;
-                    try { var s = faccia.GetSurface() as ISurface; piana = s != null && s.IsPlane(); }
+                    double[] normal = null;
+                    try { normal = ApiHelpers.NormalIfPlanar(face); } catch { }
+                    bool planar = false;
+                    try { var s = face.GetSurface() as ISurface; planar = s != null && s.IsPlane(); }
                     catch { }
-                    if (!piana) facceCurve++;
+                    if (!planar) curvedFaces++;
 
-                    double areaFaccia = 0;
-                    try { areaFaccia = faccia.GetArea() * 1e6; } catch { }
-                    areaTotale += areaFaccia;
+                    double faceArea = 0;
+                    try { faceArea = face.GetArea() * 1e6; } catch { }
+                    totalArea += faceArea;
 
                     // ── i triangoli, e il controllo dell'avvolgimento ────
-                    var tri = Triangoli(faccia);
+                    var tri = Triangles(face);
                     if (tri == null || tri.Count == 0)
                     {
                         // Niente tassellazione: si ripiega sulla normale, che
@@ -161,61 +161,61 @@ namespace Oce.Solid.Agent.Core
                         // niente. Adesso la faccia curva senza triangoli si
                         // CONTA come non analizzata, e il giudizio diventa non
                         // conclusivo (qui sotto).
-                        if (!piana)
+                        if (!planar)
                         {
-                            facceNonAnalizzate++;
-                            areaNonAnalizzata += areaFaccia;
+                            unanalyzedFaces++;
+                            unanalyzedArea += faceArea;
                             continue;
                         }
-                        if (normale == null) continue;
-                        double gradiP = Sporgenza(normale, su);
-                        bool giuP = Prodotto(normale, su) < 0;
-                        bool? resting = giuP && gradiP > soglia ? SulPiano(faccia, su, quotaPiano) : true;
+                        if (normal == null) continue;
+                        double degP = Overhang(normal, su);
+                        bool downP = Product(normal, su) < 0;
+                        bool? resting = downP && degP > threshold ? OnPlane(face, su, bedLevel) : true;
                         if (resting == null)
                         {
                             // S6: the true box replaced IFace2.GetBox, which always
                             // answered. A box that does not answer is not "not on
                             // the plate": it is a face this check did not look at.
-                            facceNonAnalizzate++;
-                            areaNonAnalizzata += areaFaccia;
+                            unanalyzedFaces++;
+                            unanalyzedArea += faceArea;
                             planarWithoutBox++;
-                            planarWithoutBoxArea += areaFaccia;
+                            planarWithoutBoxArea += faceArea;
                             continue;
                         }
                         if (resting == false)
                         {
-                            facceSporgenti++;
-                            areaSporgente += areaFaccia;
-                            if (gradiP > peggiore) peggiore = gradiP;
-                            Aggiungi(elenco, gradiP, areaFaccia, piana, faccia, su);
+                            overhangingFaces++;
+                            overhangingArea += faceArea;
+                            if (degP > worse) worse = degP;
+                            Add(list, degP, faceArea, planar, face, su);
                         }
                         continue;
                     }
 
-                    double areaGiu = 0;
-                    double peggioreQui = 0;
+                    double downArea = 0;
+                    double worseHere = 0;
                     foreach (var t in tri)
                     {
                         // Il verso dell'avvolgimento contro quello della
                         // faccia: si controlla dove la risposta si conosce.
-                        if (piana && normale != null)
+                        if (planar && normal != null)
                         {
-                            if (Prodotto(t.Normale, normale) > 0) concordi++; else discordi++;
+                            if (Product(t.Normal, normal) > 0) consistent++; else conflicting++;
                         }
-                        if (Prodotto(t.Normale, su) >= 0) continue;   // guarda in su
-                        double gradi = Sporgenza(t.Normale, su);
-                        if (gradi <= soglia) continue;
-                        if (SulPianoPunto(t.Centro, su, quotaPiano)) { areaSulPiano += t.Area; continue; }
-                        areaGiu += t.Area;
-                        if (gradi > peggioreQui) peggioreQui = gradi;
+                        if (Product(t.Normal, su) >= 0) continue;   // guarda in su
+                        double deg = Overhang(t.Normal, su);
+                        if (deg <= threshold) continue;
+                        if (PointOnPlane(t.Center, su, bedLevel)) { areaOnPlane += t.Area; continue; }
+                        downArea += t.Area;
+                        if (deg > worseHere) worseHere = deg;
                     }
 
-                    if (areaGiu > 0)
+                    if (downArea > 0)
                     {
-                        facceSporgenti++;
-                        areaSporgente += areaGiu;
-                        if (peggioreQui > peggiore) peggiore = peggioreQui;
-                        Aggiungi(elenco, peggioreQui, areaGiu, piana, faccia, su);
+                        overhangingFaces++;
+                        overhangingArea += downArea;
+                        if (worseHere > worse) worse = worseHere;
+                        Add(list, worseHere, downArea, planar, face, su);
                     }
                 }
             }
@@ -226,86 +226,86 @@ namespace Oce.Solid.Agent.Core
             // delle facce PIANE -- dove la risposta si conosce -- allora
             // l'analisi delle facce CURVE e' rovesciata, e non c'e' modo di
             // accorgersene guardando il risultato.
-            if (concordi + discordi > 0 && discordi > 0)
-                return Fallito(string.Format(
+            if (consistent + conflicting > 0 && conflicting > 0)
+                return Failed(string.Format(
                     CultureInfo.InvariantCulture,
                     "Non mi fido della mia stessa analisi: su {0} triangoli di facce piane, " +
                     "{1} hanno il verso opposto a quello della faccia. Vuol dire che " +
                     "l'avvolgimento della tassellazione qui non segue la regola che ho " +
                     "verificato, e allora sulle facce curve direi il contrario del vero " +
                     "senza che si veda. Non ti do un'analisi rovesciata.",
-                    concordi + discordi, discordi));
+                    consistent + conflicting, conflicting));
 
-            elenco = elenco.OrderByDescending(v => Convert.ToDouble(v["overhang_deg"])).ToList();
-            const int quanteNeDico = 12;
-            bool troncato = elenco.Count > quanteNeDico;
+            list = list.OrderByDescending(v => Convert.ToDouble(v["overhang_deg"])).ToList();
+            const int howManyISay = 12;
+            bool truncated = list.Count > howManyISay;
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["threshold_deg"] = soglia,
+                ["threshold_deg"] = threshold,
                 ["print_direction"] = su.Select(x => Math.Round(x, 4)).ToArray(),
-                ["faces_checked"] = facceGuardate,
-                ["faces_curved"] = facceCurve,
-                ["faces_overhanging"] = facceSporgenti,
-                ["overhang_worst_deg"] = Math.Round(peggiore, 2),
-                ["area_overhanging_mm2"] = Math.Round(areaSporgente, 2),
-                ["area_total_mm2"] = Math.Round(areaTotale, 2),
-                ["area_resting_on_plane_mm2"] = Math.Round(areaSulPiano, 2),
+                ["faces_checked"] = checkedFaces,
+                ["faces_curved"] = curvedFaces,
+                ["faces_overhanging"] = overhangingFaces,
+                ["overhang_worst_deg"] = Math.Round(worse, 2),
+                ["area_overhanging_mm2"] = Math.Round(overhangingArea, 2),
+                ["area_total_mm2"] = Math.Round(totalArea, 2),
+                ["area_resting_on_plane_mm2"] = Math.Round(areaOnPlane, 2),
                 // NON CONCLUSIVO E' UN TERZO VALORE, non un «si'» (rilievo
                 // L12-2): con una faccia curva che non si e' potuta guardare,
                 // «nessuna sporgenza trovata» non vuol dire «nessuna sporgenza».
                 // Una sporgenza trovata resta un «no» anche cosi'.
-                ["prints_without_supports"] = facceSporgenti > 0
+                ["prints_without_supports"] = overhangingFaces > 0
                     ? (object)false
-                    : facceNonAnalizzate > 0 ? null : (object)true,
-                ["overhangs"] = elenco.Take(quanteNeDico).ToArray(),
-                ["triangles_checked"] = concordi + discordi,
+                    : unanalyzedFaces > 0 ? null : (object)true,
+                ["overhangs"] = list.Take(howManyISay).ToArray(),
+                ["triangles_checked"] = consistent + conflicting,
                 // Nomi nuovi, in inglese come i prossimi del ponte.
-                ["faces_not_analyzed"] = facceNonAnalizzate,
-                ["hidden_bodies"] = corpiNascosti,
+                ["faces_not_analyzed"] = unanalyzedFaces,
+                ["hidden_bodies"] = hiddenBodies,
             };
-            if (facceNonAnalizzate > 0)
-                misure["area_not_analyzed_mm2"] = Math.Round(areaNonAnalizzata, 2);
+            if (unanalyzedFaces > 0)
+                measurements["area_not_analyzed_mm2"] = Math.Round(unanalyzedArea, 2);
             if (planarWithoutBox > 0)
             {
-                misure["planar_faces_without_true_box"] = planarWithoutBox;
-                misure["planar_area_without_true_box_mm2"] = Math.Round(planarWithoutBoxArea, 2);
+                measurements["planar_faces_without_true_box"] = planarWithoutBox;
+                measurements["planar_area_without_true_box_mm2"] = Math.Round(planarWithoutBoxArea, 2);
             }
-            if (troncato)
+            if (truncated)
             {
-                misure["overhangs_not_listed"] = elenco.Count - quanteNeDico;
-                misure["truncated"] = true;
+                measurements["overhangs_not_listed"] = list.Count - howManyISay;
+                measurements["truncated"] = true;
             }
 
-            int curvedNotAnalysed = facceNonAnalizzate - planarWithoutBox;
-            string nonGuardate = curvedNotAnalysed == 0 ? "" : string.Format(
+            int curvedNotAnalysed = unanalyzedFaces - planarWithoutBox;
+            string notChecked = curvedNotAnalysed == 0 ? "" : string.Format(
                 CultureInfo.InvariantCulture,
                 " ATTENZIONE: {0} facce curve ({1:0.##} mm2) non si sono lasciate tassellare " +
                 "e non le ho potute guardare: una faccia curva non ha una normale sola.",
-                curvedNotAnalysed, areaNonAnalizzata - planarWithoutBoxArea);
+                curvedNotAnalysed, unanalyzedArea - planarWithoutBoxArea);
             if (planarWithoutBox > 0)
-                nonGuardate += string.Format(
+                notChecked += string.Format(
                     CultureInfo.InvariantCulture,
                     " WARNING: {0} planar faces ({1:0.##} mm2) hang over the threshold, but their true " +
                     "bounding box could not be measured, so I cannot tell whether they rest on the plate.",
                     planarWithoutBox, planarWithoutBoxArea);
-            misure["verdict"] = facceSporgenti > 0
+            measurements["verdict"] = overhangingFaces > 0
                 ? string.Format(CultureInfo.InvariantCulture,
                     "NON si stampa senza supporti: {0} facce pendono oltre {1:0.#} gradi, " +
                     "la peggiore a {2:0.#}, per {3:0.##} mm2 su {4:0.##} di superficie. " +
                     "Gira il pezzo, o mettici i supporti, o smussa quelle facce.",
-                    facceSporgenti, soglia, peggiore, areaSporgente, areaTotale) + nonGuardate
-                : facceNonAnalizzate > 0
+                    overhangingFaces, threshold, worse, overhangingArea, totalArea) + notChecked
+                : unanalyzedFaces > 0
                     ? string.Format(CultureInfo.InvariantCulture,
                         "NON POSSO DIRE se si stampa senza supporti con la soglia di {0:0.#} " +
-                        "gradi: sulle facce che ho guardato non pende niente oltre.", soglia) +
-                      nonGuardate +
+                        "gradi: sulle facce che ho guardato non pende niente oltre.", threshold) +
+                      notChecked +
                       " Riprova dopo una ricostruzione, o guarda quelle facce a occhio."
                     : string.Format(CultureInfo.InvariantCulture,
                         "Si stampa senza supporti con la soglia di {0:0.#} gradi: non c'e' " +
-                        "nessuna superficie che pende oltre.", soglia);
+                        "nessuna superficie che pende oltre.", threshold);
 
-            misure["what_it_does_not_check"] =
+            measurements["what_it_does_not_check"] =
                 "Guardo l'angolo di ogni superficie rispetto alla direzione di stampa, e " +
                 "basta. NON guardo: i ponti fra due appoggi (una traversa corta si stampa " +
                 "anche se e' orizzontale), lo spessore delle pareti, le isole staccate che " +
@@ -315,17 +315,17 @@ namespace Oce.Solid.Agent.Core
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agente] sporgenze oltre {0:0.#} gradi: {1} facce, peggiore {2:0.#}, " +
-                "{3:0.##} mm2", soglia, facceSporgenti, peggiore, areaSporgente));
+                "{3:0.##} mm2", threshold, overhangingFaces, worse, overhangingArea));
 
-            return RiuscitoSenzaCreare(misure);
+            return SucceededWithoutCreating(measurements);
         }
 
         // =================================================================
 
-        private sealed class Triangolo
+        private sealed class Triangle
         {
-            public double[] Normale;
-            public double[] Centro;
+            public double[] Normal;
+            public double[] Center;
             public double Area;
         }
 
@@ -337,36 +337,36 @@ namespace Oce.Solid.Agent.Core
         /// trappola gia' documentata nel RAG, e qui e' scritta perche' chi
         /// tocca questo codice non la ripaghi.
         /// </summary>
-        private static List<Triangolo> Triangoli(IFace2 faccia)
+        private static List<Triangle> Triangles(IFace2 face)
         {
-            float[] grezzo;
-            try { grezzo = faccia.GetTessTriangles(true) as float[]; }
+            float[] raw;
+            try { raw = face.GetTessTriangles(true) as float[]; }
             catch { return null; }
-            if (grezzo == null || grezzo.Length < 9) return null;
+            if (raw == null || raw.Length < 9) return null;
 
-            var fuori = new List<Triangolo>(grezzo.Length / 9);
-            for (int i = 0; i + 8 < grezzo.Length; i += 9)
+            var outside = new List<Triangle>(raw.Length / 9);
+            for (int i = 0; i + 8 < raw.Length; i += 9)
             {
-                var ax = grezzo[i]; var ay = grezzo[i + 1]; var az = grezzo[i + 2];
-                var bx = grezzo[i + 3]; var by = grezzo[i + 4]; var bz = grezzo[i + 5];
-                var cx = grezzo[i + 6]; var cy = grezzo[i + 7]; var cz = grezzo[i + 8];
+                var ax = raw[i]; var ay = raw[i + 1]; var az = raw[i + 2];
+                var bx = raw[i + 3]; var by = raw[i + 4]; var bz = raw[i + 5];
+                var cx = raw[i + 6]; var cy = raw[i + 7]; var cz = raw[i + 8];
 
                 double ux = bx - ax, uy = by - ay, uz = bz - az;
                 double vx = cx - ax, vy = cy - ay, vz = cz - az;
                 double nx = uy * vz - uz * vy;
                 double ny = uz * vx - ux * vz;
                 double nz = ux * vy - uy * vx;
-                double lung = Math.Sqrt(nx * nx + ny * ny + nz * nz);
-                if (lung < 1e-15) continue;   // triangolo degenere
-                fuori.Add(new Triangolo
+                double len = Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                if (len < 1e-15) continue;   // triangolo degenere
+                outside.Add(new Triangle
                 {
-                    Normale = new[] { nx / lung, ny / lung, nz / lung },
-                    Centro = new[] { (ax + bx + cx) / 3.0, (ay + by + cy) / 3.0, (az + bz + cz) / 3.0 },
+                    Normal = new[] { nx / len, ny / len, nz / len },
+                    Center = new[] { (ax + bx + cx) / 3.0, (ay + by + cy) / 3.0, (az + bz + cz) / 3.0 },
                     // meta' del modulo del prodotto vettoriale, in mm2
-                    Area = lung / 2.0 * 1e6,
+                    Area = len / 2.0 * 1e6,
                 });
             }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -378,14 +378,14 @@ namespace Oce.Solid.Agent.Core
         /// numeri che si somigliano e dicono il contrario: qui si scrive quale
         /// dei due e', e il campo si chiama `overhang_deg`.
         /// </summary>
-        private static double Sporgenza(double[] normale, double[] su)
+        private static double Overhang(double[] normal, double[] su)
         {
-            double c = Math.Abs(Prodotto(normale, su));
+            double c = Math.Abs(Product(normal, su));
             if (c > 1) c = 1;
             return 90.0 - Math.Acos(c) * 180.0 / Math.PI;
         }
 
-        private static double Prodotto(double[] a, double[] b)
+        private static double Product(double[] a, double[] b)
         {
             return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
         }
@@ -394,62 +394,62 @@ namespace Oce.Solid.Agent.Core
         /// Whether the face rests on the plate; null when its true box cannot
         /// be measured (the caller counts it as not analysed).
         /// </summary>
-        private static bool? SulPiano(IFace2 faccia, double[] su, double quotaPiano)
+        private static bool? OnPlane(IFace2 face, double[] su, double bedLevel)
         {
             try
             {
-                var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
+                var b = ApiHelpers.TrueBoundingBox(face);   // S6: not IFace2.GetBox, approximate
                 if (b == null || b.Length < 6) return null;
                 // l'angolo piu' alto della scatola, proiettato sulla direzione
-                double alto = double.MinValue;
+                double up = double.MinValue;
                 for (int i = 0; i < 8; i++)
                 {
                     double x = (i & 1) == 0 ? b[0] : b[3];
                     double y = (i & 2) == 0 ? b[1] : b[4];
                     double z = (i & 4) == 0 ? b[2] : b[5];
                     double q = x * su[0] + y * su[1] + z * su[2];
-                    if (q > alto) alto = q;
+                    if (q > up) up = q;
                 }
-                return alto - quotaPiano < Unita.M(SulPianoMm);
+                return up - bedLevel < Units.M(OnPlaneMm);
             }
             catch { return null; }
         }
 
-        private static bool SulPianoPunto(double[] punto, double[] su, double quotaPiano)
+        private static bool PointOnPlane(double[] point, double[] su, double bedLevel)
         {
-            double q = punto[0] * su[0] + punto[1] * su[1] + punto[2] * su[2];
-            return q - quotaPiano < Unita.M(SulPianoMm);
+            double q = point[0] * su[0] + point[1] * su[1] + point[2] * su[2];
+            return q - bedLevel < Units.M(OnPlaneMm);
         }
 
-        private static void Aggiungi(
-            List<Dictionary<string, object>> elenco, double gradi, double area,
-            bool piana, IFace2 faccia, double[] su)
+        private static void Add(
+            List<Dictionary<string, object>> list, double deg, double area,
+            bool planar, IFace2 face, double[] su)
         {
-            var voce = new Dictionary<string, object>
+            var entry = new Dictionary<string, object>
             {
-                ["overhang_deg"] = Math.Round(gradi, 2),
+                ["overhang_deg"] = Math.Round(deg, 2),
                 ["area_mm2"] = Math.Round(area, 2),
-                ["planar"] = piana,
+                ["planar"] = planar,
             };
             try
             {
-                var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
+                var b = ApiHelpers.TrueBoundingBox(face);   // S6: not IFace2.GetBox, approximate
                 if (b != null && b.Length >= 6)
-                    voce["is_between_mm"] = new[]
+                    entry["is_between_mm"] = new[]
                     {
-                        Math.Round(Unita.Mm(b[0]), 2), Math.Round(Unita.Mm(b[1]), 2),
-                        Math.Round(Unita.Mm(b[2]), 2), Math.Round(Unita.Mm(b[3]), 2),
-                        Math.Round(Unita.Mm(b[4]), 2), Math.Round(Unita.Mm(b[5]), 2),
+                        Math.Round(Units.Mm(b[0]), 2), Math.Round(Units.Mm(b[1]), 2),
+                        Math.Round(Units.Mm(b[2]), 2), Math.Round(Units.Mm(b[3]), 2),
+                        Math.Round(Units.Mm(b[4]), 2), Math.Round(Units.Mm(b[5]), 2),
                     };
             }
             catch { }
-            elenco.Add(voce);
+            list.Add(entry);
         }
 
-        private static double[] Direzione(Dictionary<string, object> a, string chiave)
+        private static double[] Direction(Dictionary<string, object> a, string key)
         {
             object v;
-            if (a == null || !a.TryGetValue(chiave, out v) || v == null)
+            if (a == null || !a.TryGetValue(key, out v) || v == null)
                 return new double[] { 0, 0, 1 };
             var e = v as System.Collections.IEnumerable;
             if (e == null || v is string) return null;
@@ -460,18 +460,18 @@ namespace Oce.Solid.Agent.Core
                 catch { return null; }
             }
             if (n.Count != 3) return null;
-            double lung = Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-            if (lung < 1e-9) return null;
-            return new[] { n[0] / lung, n[1] / lung, n[2] / lung };
+            double len = Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+            if (len < 1e-9) return null;
+            return new[] { n[0] / len, n[1] / len, n[2] / len };
         }
 
-        private List<IBody2> CorpiDaGuardare(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato,
-            out string motivo)
+        private List<IBody2> BodiesToCheck(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState,
+            out string reason)
         {
-            motivo = null;
-            var parte = modello as IPartDoc;
-            if (parte == null) { motivo = "Questo non e' un documento di parte."; return null; }
+            reason = null;
+            var partDoc = model as IPartDoc;
+            if (partDoc == null) { reason = "Questo non e' un documento di parte."; return null; }
             // TUTTI I CORPI, ANCHE QUELLI NASCOSTI (voce Z-C21.2, rilievo L12-1).
             //
             // IPartDoc~GetBodies2.html, parametro BVisibleOnly: «True gets only
@@ -488,19 +488,19 @@ namespace Oce.Solid.Agent.Core
             // corpo nascosto non tassella, il giudizio diventa «non posso dire»
             // e non torna il «si'» silenzioso. La mini-sonda che lo misura e'
             // ancora da lanciare (voce Z-C21.2, CHANGELOG).
-            var grezzi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            var tutti = (grezzi ?? new object[0]).Select(o => o as IBody2).Where(b => b != null).ToList();
-            if (tutti.Count == 0) { motivo = "Il pezzo non ha corpi solidi da guardare."; return null; }
+            var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            var all = (rawItems ?? new object[0]).Select(o => o as IBody2).Where(b => b != null).ToList();
+            if (all.Count == 0) { reason = "Il pezzo non ha corpi solidi da guardare."; return null; }
 
             string uid = Str(a, "body_uid", null);
-            if (string.IsNullOrWhiteSpace(uid)) return tutti;
+            if (string.IsNullOrWhiteSpace(uid)) return all;
 
             // IL CORPO PER FIRMA, come in combine_bodies e move_bodies (schema S5,
             // rilievo L6-1): GetBodies2.html, «May vary the order in which bodies
             // are returned».
-            var trovati = CorpiDaUid(stato, new List<string> { uid.Trim() }, a, out motivo);
-            if (trovati == null) return null;
-            return new List<IBody2> { trovati[0] };
+            var foundItems = BodiesFromUid(docState, new List<string> { uid.Trim() }, a, out reason);
+            if (foundItems == null) return null;
+            return new List<IBody2> { foundItems[0] };
         }
     }
 }

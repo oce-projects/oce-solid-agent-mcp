@@ -37,16 +37,16 @@
 
 $ErrorActionPreference = "Continue"
 
-$radice = "C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS"
-$redist = Join-Path $radice "api\redist"
+$root = "C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS"
+$redist = Join-Path $root "api\redist"
 
-function Riga($etichetta, $valore) {
-    Write-Output ("  {0,-34} {1}" -f $etichetta, $valore)
+function Line($label, $val) {
+    Write-Output ("  {0,-34} {1}" -f $label, $val)
 }
 
-function FileC($percorso) {
-    if (Test-Path $percorso) {
-        $b = (Get-Item $percorso).Length
+function FileC($filePath) {
+    if (Test-Path $filePath) {
+        $b = (Get-Item $filePath).Length
         return ("SI'  " + "{0:N0}" -f $b + " byte")
     }
     return "NO"
@@ -62,13 +62,13 @@ function FileC($percorso) {
 #
 # Qui si cerca sotto la radice e si stampa DOVE si e' trovato: il percorso e'
 # parte della misura, non un dettaglio.
-function Trova($nome) {
+function Find($itemName) {
     try {
-        $f = Get-ChildItem -Path $radice -Filter $nome -Recurse -File -ErrorAction SilentlyContinue |
+        $f = Get-ChildItem -Path $root -Filter $itemName -Recurse -File -ErrorAction SilentlyContinue |
              Select-Object -First 1
         if ($f) {
             return ("SI'  " + "{0:N0}" -f $f.Length + " byte  ->  " +
-                    $f.DirectoryName.Replace($radice, "<radice>"))
+                    $f.DirectoryName.Replace($root, "<radice>"))
         }
     } catch { }
     return "NON TROVATO sotto la radice"
@@ -97,15 +97,15 @@ function Coclass($dll) {
 # `OpenSubKey` fa la stessa domanda in un millesimo del tempo.
 #
 # Un attrezzo che non finisce non e' lento: e' un attrezzo che non risponde.
-function Registrato($guid) {
+function Recorded($guid) {
     # HKCU PRIMA DI HKLM, come Windows fonde HKCR. Questa funzione guardava
     # solo HKLM: e' l'errore che questa casa ha gia' pagato con l'add-in
     # (HKCU\Software\Classes nasconde HKLM). Corretto il 24/9/2026 (voce K20).
     try {
-        foreach ($radice in @([Microsoft.Win32.Registry]::CurrentUser,
+        foreach ($root in @([Microsoft.Win32.Registry]::CurrentUser,
                               [Microsoft.Win32.Registry]::LocalMachine)) {
-            foreach ($tipo in @("InprocServer32", "LocalServer32")) {
-                $k = $radice.OpenSubKey("SOFTWARE\Classes\CLSID\{$guid}\$tipo")
+            foreach ($typ in @("InprocServer32", "LocalServer32")) {
+                $k = $root.OpenSubKey("SOFTWARE\Classes\CLSID\{$guid}\$typ")
                 if ($k) {
                     $v = $k.GetValue("")
                     $k.Close()
@@ -124,14 +124,14 @@ function Registrato($guid) {
 # registrato», e la riga che contava -- la fabbrica, l'unica che si crea con
 # `new` -- spariva in mezzo. Un elenco che si legge male e' un elenco che non
 # si legge, e allora la misura non e' stata fatta.
-function Elenca($dll) {
+function List($dll) {
     $cc = Coclass $dll
     $reg = 0
     foreach ($c in $cc) {
-        $dove = Registrato $c.Guid
-        if ($dove) { Riga ("  " + $c.Nome) "REGISTRATO -> $dove"; $reg++ }
+        $location = Recorded $c.Guid
+        if ($location) { Line ("  " + $c.Nome) "REGISTRATO -> $location"; $reg++ }
     }
-    Riga "coclass nell'interop" ("" + $cc.Count + ", di cui registrate: " + $reg)
+    Line "coclass nell'interop" ("" + $cc.Count + ", di cui registrate: " + $reg)
     if ($reg -eq 0 -and $cc.Count -gt 0) {
         # QUESTA RIGA DICEVA «il modulo e' sul disco ma non si puo' creare», ed
         # era una conclusione cieca: il 24/9/2026 Simulation ha girato (voce S3)
@@ -144,59 +144,59 @@ function Elenca($dll) {
 }
 
 Write-Output ""
-Write-Output "radice: $radice"
+Write-Output "radice: $root"
 Write-Output ""
 
 # ── Z-H1: SOLIDWORKS Utilities -----------------------------------------------
 Write-Output "=== Z-H1  SOLIDWORKS Utilities (IThicknessAnalysis) ==="
-Riga "cartella sldutils" $(if (Test-Path (Join-Path $radice "sldutils")) {
-    "SI'  " + (Get-ChildItem (Join-Path $radice "sldutils") -File | Measure-Object).Count + " file" } else { "NO" })
-Riga "ThickChkswu.dll" (Trova "ThickChkswu.dll")
-Riga "interop gtswutilities" (FileC (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll"))
-Elenca (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll")
+Line "cartella sldutils" $(if (Test-Path (Join-Path $root "sldutils")) {
+    "SI'  " + (Get-ChildItem (Join-Path $root "sldutils") -File | Measure-Object).Count + " file" } else { "NO" })
+Line "ThickChkswu.dll" (Find "ThickChkswu.dll")
+Line "interop gtswutilities" (FileC (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll"))
+List (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll")
 Write-Output ""
 
 # ── Z-H2: Document Manager ---------------------------------------------------
 Write-Output "=== Z-H2  Document Manager (serve una CHIAVE, non una spunta) ==="
-Riga "swdocumentmgr.dll" (Trova "swdocumentmgr.dll")
-Riga "interop swdocumentmgr" (FileC (Join-Path $redist "SolidWorks.Interop.swdocumentmgr.dll"))
-Elenca (Join-Path $redist "SolidWorks.Interop.swdocumentmgr.dll")
+Line "swdocumentmgr.dll" (Find "swdocumentmgr.dll")
+Line "interop swdocumentmgr" (FileC (Join-Path $redist "SolidWorks.Interop.swdocumentmgr.dll"))
+List (Join-Path $redist "SolidWorks.Interop.swdocumentmgr.dll")
 Write-Output "  NOTA: GetApplication vuole una chiave rilasciata da Dassault."
 Write-Output "        Finche' non e' in mano, non si scrive una riga attorno (W2.14)."
 Write-Output ""
 
 # ── Z-H3: DimXpert ------------------------------------------------------------
 Write-Output "=== Z-H3  DimXpert ==="
-Riga "slddimxpertclru.dll" (Trova "slddimxpertclru.dll")
-Riga "interop swdimxpert" (FileC (Join-Path $redist "SolidWorks.Interop.swdimxpert.dll"))
-Elenca (Join-Path $redist "SolidWorks.Interop.swdimxpert.dll")
+Line "slddimxpertclru.dll" (Find "slddimxpertclru.dll")
+Line "interop swdimxpert" (FileC (Join-Path $redist "SolidWorks.Interop.swdimxpert.dll"))
+List (Join-Path $redist "SolidWorks.Interop.swdimxpert.dll")
 Write-Output ""
 
 # ── Z-H4: Simulation ----------------------------------------------------------
 Write-Output "=== Z-H4  Simulation ==="
-Riga "cosworks.dll" (Trova "cosworks.dll")
-Riga "interop cosworks" (FileC (Join-Path $redist "SolidWorks.Interop.cosworks.dll"))
+Line "cosworks.dll" (Find "cosworks.dll")
+Line "interop cosworks" (FileC (Join-Path $redist "SolidWorks.Interop.cosworks.dll"))
 $k = "HKCU:\SOFTWARE\SolidWorks\AddInsStartup"
 if (Test-Path $k) {
     $p = Get-ItemProperty $k
     foreach ($n in ($p.PSObject.Properties | Where-Object { $_.Name -notlike 'PS*' })) {
         if ($n.Name -match 'cw|cos|Simulation') {
-            Riga ("add-in " + $n.Name) $(if ($n.Value -eq 0) { "0 = NON attivo all'avvio" } else { $n.Value })
+            Line ("add-in " + $n.Name) $(if ($n.Value -eq 0) { "0 = NON attivo all'avvio" } else { $n.Value })
         }
     }
-} else { Riga "AddInsStartup" "la chiave non c'e'" }
+} else { Line "AddInsStartup" "la chiave non c'e'" }
 Write-Output ""
 
 # ── Z-H5: Toolbox --------------------------------------------------------------
 Write-Output "=== Z-H5  Toolbox ==="
-Riga "cartella Toolbox" $(if (Test-Path "C:\SOLIDWORKS Data") { "SI'  C:\SOLIDWORKS Data" } else { "non in C:\SOLIDWORKS Data" })
-Riga "interop toolboxconfigure" (FileC (Join-Path $redist "SolidWorks.Interop.sldtoolboxconfigureaddin.dll"))
+Line "cartella Toolbox" $(if (Test-Path "C:\SOLIDWORKS Data") { "SI'  C:\SOLIDWORKS Data" } else { "non in C:\SOLIDWORKS Data" })
+Line "interop toolboxconfigure" (FileC (Join-Path $redist "SolidWorks.Interop.sldtoolboxconfigureaddin.dll"))
 Write-Output ""
 
 # -- S4: Routing ----------------------------------------------------------------
 Write-Output "=== S4  Routing (serve a questa officina?) ==="
-Riga "interop SWRoutingLib" (FileC (Join-Path $redist "SolidWorks.Interop.SWRoutingLib.dll"))
-Elenca (Join-Path $redist "SolidWorks.Interop.SWRoutingLib.dll")
+Line "interop SWRoutingLib" (FileC (Join-Path $redist "SolidWorks.Interop.SWRoutingLib.dll"))
+List (Join-Path $redist "SolidWorks.Interop.SWRoutingLib.dll")
 Write-Output ""
 
 # ==============================================================================
@@ -236,24 +236,24 @@ Write-Output ""
 $regHKCU = [Microsoft.Win32.Registry]::CurrentUser
 $regHKLM = [Microsoft.Win32.Registry]::LocalMachine
 
-function ApriClasse($sotto) {
+function OpenClass($below) {
     foreach ($r in @($regHKCU, $regHKLM)) {
-        $k = $r.OpenSubKey("SOFTWARE\Classes\$sotto")
+        $k = $r.OpenSubKey("SOFTWARE\Classes\$below")
         if ($k) { return $k }
     }
     return $null
 }
 
-function ClsidDelProgId($progId) {
-    $k = ApriClasse "$progId\CLSID"
+function ProgIdClsid($progId) {
+    $k = OpenClass "$progId\CLSID"
     if (-not $k) { return $null }
     $g = $k.GetValue(""); $k.Close()
     return $g
 }
 
-function FileDelServer($guid) {
-    foreach ($tipo in @("InprocServer32", "LocalServer32")) {
-        $k = ApriClasse "CLSID\$guid\$tipo"
+function ServerFile($guid) {
+    foreach ($typ in @("InprocServer32", "LocalServer32")) {
+        $k = OpenClass "CLSID\$guid\$typ"
         if (-not $k) { continue }
         $v = $k.GetValue("")
         if ($v -and $v -match 'mscoree') {
@@ -272,14 +272,14 @@ function FileDelServer($guid) {
         $k.Close()
         if ($v) {
             $v = $v.Trim('"')
-            if ($v.StartsWith('.\')) { $v = Join-Path $radice $v.Substring(2) }
+            if ($v.StartsWith('.\')) { $v = Join-Path $root $v.Substring(2) }
             return $v
         }
     }
     return $null
 }
 
-function Avvio($guid) {
+function Startup($guid) {
     $k = $regHKCU.OpenSubKey("SOFTWARE\SolidWorks\AddInsStartup")
     if (-not $k) { return "" }
     $v = $k.GetValue($guid)
@@ -291,7 +291,7 @@ function Avvio($guid) {
 }
 
 # I moduli, per ProgID. Si aggiungono qui, non si indovinano.
-$moduli = @(
+$modules = @(
     @{ nome = "Simulation";          progId = "SldWorks.Simulation";         positivo = $true },
     @{ nome = "OpenPDM (add-in .NET)"; guid = "{0FED85A2-3F4A-4F2C-8DCF-7C8AE1E15A5C}"; positivo = $true },
     @{ nome = "SOLIDWORKS Utilities (Z-H1)"; progId = "Utilities.UtilitiesApp" },
@@ -299,23 +299,23 @@ $moduli = @(
 )
 
 Write-Output "=== GLI ADD-IN, RISOLTI (ProgID -> CLSID -> file) ==="
-$ciechi = 0
-foreach ($m in $moduli) {
+$blindOnes = 0
+foreach ($m in $modules) {
     $g = $m.guid
-    if (-not $g -and $m.progId) { $g = ClsidDelProgId $m.progId }
+    if (-not $g -and $m.progId) { $g = ProgIdClsid $m.progId }
     if (-not $g) {
-        Riga $m.nome "ProgID NON registrato"
-        if ($m.positivo) { $ciechi++ }
+        Line $m.nome "ProgID NON registrato"
+        if ($m.positivo) { $blindOnes++ }
         continue
     }
-    $f = FileDelServer $g
-    $esito = if (-not $f) { "CLSID senza server" }
+    $f = ServerFile $g
+    $outcome = if (-not $f) { "CLSID senza server" }
              elseif (Test-Path $f) { "RAGGIUNGIBILE" }
              else { "server dichiarato, FILE ASSENTE" }
-    $a = Avvio $g
-    Riga $m.nome ($esito + $(if ($a) { " - $a" } else { "" }))
-    if ($f) { Write-Output ("      -> " + $f.Replace($radice, "<radice>")) }
-    if ($m.positivo -and $esito -ne "RAGGIUNGIBILE") { $ciechi++ }
+    $a = Startup $g
+    Line $m.nome ($outcome + $(if ($a) { " - $a" } else { "" }))
+    if ($f) { Write-Output ("      -> " + $f.Replace($root, "<radice>")) }
+    if ($m.positivo -and $outcome -ne "RAGGIUNGIBILE") { $blindOnes++ }
 }
 Write-Output ""
 
@@ -326,20 +326,20 @@ foreach ($c in @(
     @{ n = "HKLM AddIns";                 r = $regHKLM; p = "SOFTWARE\SolidWorks\AddIns" },
     @{ n = "HKLM SOLIDWORKS 2021\AddIns"; r = $regHKLM; p = "SOFTWARE\SolidWorks\SOLIDWORKS 2021\AddIns" })) {
     $k = $c.r.OpenSubKey($c.p)
-    if (-not $k) { Riga $c.n "la chiave non c'e'"; continue }
+    if (-not $k) { Line $c.n "la chiave non c'e'"; continue }
     foreach ($g in $k.GetSubKeyNames()) {
         $s = $k.OpenSubKey($g); $t = ""
         if ($s) { $t = "" + $s.GetValue("Title"); $s.Close() }
-        $f = FileDelServer $g
-        $esito = if ($f -and (Test-Path $f)) { "ok" } elseif ($f) { "file assente" } else { "senza server" }
-        Riga ("  " + $t) ($c.n + ": " + $esito)
+        $f = ServerFile $g
+        $outcome = if ($f -and (Test-Path $f)) { "ok" } elseif ($f) { "file assente" } else { "senza server" }
+        Line ("  " + $t) ($c.n + ": " + $outcome)
     }
     $k.Close()
 }
 Write-Output ""
 
-if ($ciechi -gt 0) {
-    Write-Output "XX  CRITERIO CIECO: $ciechi controlli positivi non risultano raggiungibili."
+if ($blindOnes -gt 0) {
+    Write-Output "XX  CRITERIO CIECO: $blindOnes controlli positivi non risultano raggiungibili."
     Write-Output "    Simulation e l'add-in .NET DEVONO risolversi: se non lo fanno, e' la"
     Write-Output "    sonda a sbagliare, e ogni 'non raggiungibile' qui sopra non vale niente."
     exit 1

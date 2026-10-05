@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-using static Oce.Solid.Agent.Core.Catalog.Nodo;
+using static Oce.Solid.Agent.Core.Catalog.Node;
 
 namespace Oce.Solid.Agent.Core.Catalog
 {
@@ -19,15 +19,15 @@ namespace Oce.Solid.Agent.Core.Catalog
     /// POTEVA rigenerare `catalog.json`: servivano il server, docker e un
     /// container usa-e-getta. Adesso serve `Oce.Solid.Agent.Catalog.exe`.
     ///
-    /// `Provata` non finisce nel JSON ed e' voluto: e' la promessa che
+    /// `Tested` non finisce nel JSON ed e' voluto: e' la promessa che
     /// l'operazione e' stata costruita e MISURATA dentro SOLIDWORKS, e
     /// finche' e' falsa l'operazione non si esporta — quindi il modello non
     /// la vede. Sta accanto al codice che esegue, non in un file lontano.
     /// </summary>
-    public static class Operazioni
+    public static class Operations
     {
         /// <summary>Le famiglie, con la riga che le spiega.</summary>
-        public static readonly List<KeyValuePair<string, string>> Famiglie =
+        public static readonly List<KeyValuePair<string, string>> Families =
             new List<KeyValuePair<string, string>>
             {
                 new KeyValuePair<string, string>(
@@ -90,26 +90,26 @@ namespace Oce.Solid.Agent.Core.Catalog
                     "quote e tolleranze messe sul PEZZO (DimXpert), non su una tavola"),
             };
 
-        public static readonly List<OperazioneDisegno> Tutte =
-            new List<OperazioneDisegno>
+        public static readonly List<OperationSpec> All =
+            new List<OperationSpec>
             {
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "extrude_circle",
-                    Famiglia = "extrusions",
-                    Esempio = "{\"plane\":\"front\",\"diameter_mm\":6,\"height_mm\":10}",   // da `thread_on_pin`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "extrude_circle",
+                    Family = "extrusions",
+                    Example = "{\"plane\":\"front\",\"diameter_mm\":6,\"height_mm\":10}",   // da `thread_on_pin`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un cilindro pieno centrato sull'origine.",
-                    Descrizione =
+                    Description =
                         "Crea un cilindro pieno: cerchio su un piano, estruso. E' "
                         + "l'operazione per perni, spine, boccole, dischi."
                         + "\n\nOn a part that already has a body, the new cylinder merges with the "
                         + "bodies it touches (merge and automatic body selection are on, as the guide "
                         + "describes them); it cannot merge with a body it does not touch, and the "
                         + "document state counts the bodies afterwards.",
-                    Precondizione = "document_without_body",
+                    Precondition = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -129,16 +129,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "diameter_mm",
                             "height_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "extrude_profile",
-                    Famiglia = "extrusions",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "extrude_profile",
+                    Family = "extrusions",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una sagoma qualunque, data per contorni, estrusa: il modo "
                         + "generale di fare il primo corpo.",
-                    Descrizione =
+                    Description =
                         "Estrude una SAGOMA QUALSIASI, data come elenco di vertici. E' "
                         + "l'operazione con cui si fa tutto quello che non e' un rettangolo "
                         + "o un cerchio: staffe sagomate, squadrette, fazzoletti, angolari, "
@@ -158,7 +158,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "it touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
                         + "counts the bodies afterwards.",
-                    Precondizione = "document_without_body",
+                    Precondition = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -197,16 +197,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "contours",
                             "thickness_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "extrude_rectangle",
-                    Famiglia = "extrusions",
-                    Esempio = "{\"plane\":\"front\",\"length_mm\":200,\"width_mm\":120,\"thickness_mm\":20,\"centered\":true}",   // da `blind_slot`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "extrude_rectangle",
+                    Family = "extrusions",
+                    Example = "{\"plane\":\"front\",\"length_mm\":200,\"width_mm\":120,\"thickness_mm\":20,\"centered\":true}",   // da `blind_slot`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una piastra rettangolare piena, il primo corpo del pezzo.",
-                    Descrizione =
+                    Description =
                         "Crea una piastra rettangolare: disegna un rettangolo su un piano "
                         + "e lo estrude. E' l'operazione per piastre, staffe, basi, flange "
                         + "squadrate."
@@ -217,7 +217,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "it touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
                         + "counts the bodies afterwards.",
-                    Precondizione = "document_without_body",
+                    Precondition = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -248,16 +248,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "width_mm",
                             "thickness_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "extrude_section",
-                    Famiglia = "extrusions",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "extrude_section",
+                    Family = "extrusions",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una barra da sezione normalizzata (tubolare, tondo, angolare, U, "
                         + "T, piatto, esagono, asola) NON di carpenteria.",
-                    Descrizione =
+                    Description =
                         "Estrude una sezione normalizzata — tubolare, tondo, tubo, "
                         + "angolare a L, profilato a U o a T, piatto, esagono, asola — e "
                         + "ottiene un CORPO SOLIDO con quella forma.\n\nNON E' L'OPERAZIONE "
@@ -296,7 +296,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
                         + "counts the bodies afterwards.",
-                    Precondizione = "document_without_body",
+                    Precondition = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -345,17 +345,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "variant",
                             "length_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "revolve",
-                    Famiglia = "extrusions",
-                    Esempio = "{\"plane\":\"front\",\"angle_deg\":360,\"axis\":[[0,0],[90,0]],\"contours\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `drilled_shaft_no_longer_declares_profile`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "revolve",
+                    Family = "extrusions",
+                    Example = "{\"plane\":\"front\",\"angle_deg\":360,\"axis\":[[0,0],[90,0]],\"contours\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `drilled_shaft_no_longer_declares_profile`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un solido a simmetria di rotazione: boccole, distanziali, alberi "
                         + "a gradini, flange, pulegge, volantini.",
-                    Descrizione =
+                    Description =
                         "Ruota un profilo attorno a un asse e ottiene un corpo a simmetria "
                         + "di rotazione. E' l'operazione per tutto cio' che si fa al tornio "
                         + "quando la forma VARIA lungo l'asse: alberi a gradini, boccole con "
@@ -381,7 +381,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
                         + "locked, «sketch_lock_note» with the reason.",
-                    Precondizione = "document_without_body",
+                    Precondition = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -419,15 +419,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "contours",
                             "axis")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "spur_gear",
-                    Famiglia = "extrusions",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "spur_gear",
+                    Family = "extrusions",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una ruota dentata a evolvente, con foro e cava per linguetta.",
-                    Descrizione =
+                    Description =
                         "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di "
                         + "denti e dal modulo. Il profilo del dente e' a evolvente e lo "
                         + "calcolo io: tu dai solo i dati di progetto.\n\nCon bore_mm "
@@ -440,7 +440,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
                         + "locked, «sketch_lock_note» with the reason.",
-                    Precondizione = "document_without_body",
+                    Precondition = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -476,15 +476,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "module_mm",
                             "thickness_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "slot",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "slot",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un foro allungato: il fissaggio che si registra in montaggio.",
-                    Descrizione =
+                    Description =
                         "Taglia un'ASOLA su una faccia: un foro allungato, con le "
                         + "estremita' tonde. E' quello che permette di REGISTRARE in opera — "
                         + "una staffa con due asole si allinea, una con due fori tondi o "
@@ -503,7 +503,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "piu' grande della faccia e la coprirebbe tutta; e se lunghezza e "
                         + "larghezza sono uguali -- quella e' una circonferenza, e la lunghezza qui "
                         + "si misura da fuori a fuori.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -545,7 +545,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
-                            "anchor", SchemaAncora("l'asola"),
+                            "anchor", AnchorSchema("l'asola"),
                             "length_mm", O(
                                 "type", "number",
                                 "description", "lunghezza TOTALE da fuori a fuori, non la corsa. Dev'essere "
@@ -576,16 +576,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "length_mm",
                             "width_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "extrude_on_face",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "extrude_on_face",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Fa CRESCERE materiale da una faccia: un rialzo, un labbro, un "
                         + "distanziale, un'aletta.",
-                    Descrizione =
+                    Description =
                         "Disegna un contorno su una faccia che c'e' gia' e lo estrude in "
                         + "FUORI, aggiungendo materiale al pezzo.\n\nE' L'OPERAZIONE CHE FA "
                         + "CRESCERE UN RIALZO. Le altre su un pezzo esistente tolgono (fori, "
@@ -607,7 +607,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "l'«anchor» su piu' di un contorno o su un contorno che non e' ne' tondo "
                         + "ne' un rettangolo allineato: il punto che l'ancora tiene e' il centro, "
                         + "e il centro di un poligono qualunque non lo indovino.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -647,7 +647,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "height_mm", O(
                                 "type", "number",
                                 "description", "quanto sporge dalla faccia"),
-                            "anchor", SchemaAncora("il rialzo", true),
+                            "anchor", AnchorSchema("il rialzo", true),
                             "merge", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'. A falso fa un corpo separato.")),
@@ -655,17 +655,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "contours",
                             "height_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "hole_wizard",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "hole_wizard",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un foro come si fa un foro: creazione guidata, norma ISO, "
                         + "filettato o di passaggio, lamato o svasato, anche piu' fori in "
                         + "una volta.",
-                    Descrizione =
+                    Description =
                         "IL MODO GIUSTO DI FARE UN FORO: la creazione guidata fori di "
                         + "SolidWorks, norma ISO. Da preferire SEMPRE a «cylindrical_cut» "
                         + "quando il foro alloggia una vite, un perno o una filettatura.\n\nLe "
@@ -687,7 +687,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "says so in «anchor_fit_not_checked».\n\nMI RIFIUTO, e tolgo il foro, anche se "
                         + "ricostruisce in errore o non toglie materiale: per esempio una "
                         + "posizione che sta fuori dalla faccia.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -768,7 +768,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                         "y_mm", O(
                                             "type", "number",
                                             "description", "vedi x_mm"),
-                                        "anchor", SchemaAncora("il foro")),
+                                        "anchor", AnchorSchema("il foro")),
                                     "required", A(
                                         "x_mm",
                                         "y_mm"))),
@@ -782,16 +782,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "size",
                             "positions")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "shell",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "shell",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Svuota un corpo pieno lasciando una parete di spessore costante: "
                         + "scatole, carter, coperchi.",
-                    Descrizione =
+                    Description =
                         "Il guscio: prende un corpo pieno e lo svuota, lasciando una "
                         + "parete di spessore costante. Le facce indicate in «faces_uid» "
                         + "vengono TOLTE, cioe' restano aperte — una faccia sola apre una "
@@ -803,7 +803,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "guscio senza nessuna faccia tolta e' un corpo cavo chiuso: "
                         + "legittimo ma raro, e quasi sempre il segno che manca una faccia "
                         + "nella richiesta. Per questo va confermato con «fully_closed».",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -851,15 +851,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "thickness_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "edit_extrusion",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Esempio = "{\"feature_uid\":\"Cut-Extrude1\",\"through_all\":true}",   // da `blind_becomes_through`
-                    Sommario = "Cambia un'estrusione o un taglio gia' fatti: cieco -> passante, o un'altra profondita'.",
-                    Descrizione =
+                    Name = "edit_extrusion",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Example = "{\"feature_uid\":\"Cut-Extrude1\",\"through_all\":true}",   // da `blind_becomes_through`
+                    Summary = "Cambia un'estrusione o un taglio gia' fatti: cieco -> passante, o un'altra profondita'.",
+                    Description =
                         "Cambia la definizione di un'estrusione o di un taglio estruso che c'e' gia': un "
                         + "foro cieco che deve diventare passante («through_all»: true), o una profondita' "
                         + "diversa («depth_mm»). Non si rifa' il pezzo: la lavorazione cambia al suo "
@@ -873,7 +873,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "«ICE» come i tagli ma e' un'estrusione —, se l'estrusione va in DUE VERSI "
                         + "indipendenti (cambio e rileggo solo il primo, e il secondo resterebbe com'era), e "
                         + "se non mi dai uno solo fra «through_all» e «depth_mm».",
-                    Precondizione = "un pezzo con un'estrusione o un taglio estruso",
+                    Precondition = "un pezzo con un'estrusione o un taglio estruso",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -888,15 +888,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "la profondita' nuova, in mm (cieca). Oppure «through_all».")),
                         "required", A("feature_uid")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "reorder_feature",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Esempio = "{\"feature_uid\":\"Shell1\",\"relative_to_uid\":\"Cut-Extrude1\",\"placement\":\"before\"}",   // da `order_changes_the_part`
-                    Sommario = "Sposta una lavorazione prima o dopo un'altra nell'albero, e dice come e' cambiato il pezzo.",
-                    Descrizione =
+                    Name = "reorder_feature",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Example = "{\"feature_uid\":\"Shell1\",\"relative_to_uid\":\"Cut-Extrude1\",\"placement\":\"before\"}",   // da `order_changes_the_part`
+                    Summary = "Sposta una lavorazione prima o dopo un'altra nell'albero, e dice come e' cambiato il pezzo.",
+                    Description =
                         "Sposta una lavorazione nell'albero, prima o dopo un'altra: uno svuotamento "
                         + "messo prima di un foro da' un pezzo diverso da uno messo dopo (misurato: "
                         + "56485,7 contro 51952,38 mm3 sulla stessa scatola). Ti do l'ordine prima e "
@@ -907,7 +907,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "«before» o «after», e se SOLIDWORKS non la sposta: succede quando dipende da "
                         + "una lavorazione che verrebbe dopo (un foro prima dell'estrusione su cui "
                         + "sta).",
-                    Precondizione = "un pezzo con almeno due lavorazioni",
+                    Precondition = "un pezzo con almeno due lavorazioni",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -923,15 +923,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "before o after di «relative_to_uid».")),
                         "required", A("feature_uid", "relative_to_uid", "placement")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "global_variable",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Esempio = "{\"name\":\"parete\",\"value_mm\":12}",   // da `wall_has_a_name`
-                    Sommario = "Dai un NOME a un numero (parete = 3 mm): le quote legate cambiano con lui.",
-                    Descrizione =
+                    Name = "global_variable",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Example = "{\"name\":\"parete\",\"value_mm\":12}",   // da `wall_has_a_name`
+                    Summary = "Dai un NOME a un numero (parete = 3 mm): le quote legate cambiano con lui.",
+                    Description =
                         "Crea o cambia una variabile globale del pezzo: «parete» = 12 mm, oppure "
                         + "un'espressione («2 * \"parete\" + 1mm»). Le quote legate con "
                         + "«link_dimension» cambiano quando la cambi: e' il modo di fare un pezzo che "
@@ -941,7 +941,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "cifre e «_», se mi dai insieme (o nessuno dei due) «value_mm» ed "
                         + "«expression», e se SOLIDWORKS non accetta il nome: nel SOLIDWORKS in "
                         + "italiano «spessore» e' gia' preso (misurato) — usa per esempio «parete».",
-                    Precondizione = "un pezzo aperto",
+                    Precondition = "un pezzo aperto",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -957,14 +957,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "«2 * \"parete\" + 1mm». Oppure «value_mm».")),
                         "required", A("name")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "link_dimension",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario = "Lega una quota a una variabile o a un conto: la guida l'equazione.",
-                    Descrizione =
+                    Name = "link_dimension",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary = "Lega una quota a una variabile o a un conto: la guida l'equazione.",
+                    Description =
                         "Lega una quota del pezzo (il suo nome dallo stato, «D1@Sketch1») a "
                         + "un'espressione: una variabile globale («\"parete\"») o un conto "
                         + "(«2 * \"parete\" + 1mm»). Da li' la quota la guida l'equazione, e "
@@ -974,7 +974,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "non c'e' (ti dico quali ci sono) o se SOLIDWORKS non accetta "
                         + "l'espressione (una variabile che non esiste: creala prima con "
                         + "«global_variable»).",
-                    Precondizione = "un pezzo aperto con almeno una quota",
+                    Precondition = "un pezzo aperto con almeno una quota",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -987,15 +987,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "«2 * \"parete\" + 1mm».")),
                         "required", A("dimension", "expression")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "set_dimension",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "set_dimension",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Cambia una quota di una lavorazione che c'e' gia', senza rifare niente.",
-                    Descrizione =
+                    Description =
                         "Cambia il VALORE di una quota — uno spessore, una profondita', un "
                         + "diametro, un raggio — su una lavorazione che il pezzo ha "
                         + "gia'.\n\nE' LA RICHIESTA PIU' FREQUENTE IN OFFICINA: «quel foro "
@@ -1028,7 +1028,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "RIFIUTA le quote di sola lettura (non le scavalco, anche se SOLIDWORKS "
                         + "lo permetterebbe), quelle guidate, che misurano e non comandano, e "
                         + "quelle intere, come le copie di una ripetizione.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1043,15 +1043,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "dimension",
                             "value_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "dimension_tolerance",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "dimension_tolerance",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "La tolleranza su una quota del modello (±, bilaterale, accoppiamento ISO), riscontrata e con i decimali giusti.",
-                    Descrizione =
+                    Description =
                         "Mette la TOLLERANZA su una quota del modello: simmetrica (±valore), bilaterale "
                         + "(scostamenti superiore e inferiore) o un accoppiamento ISO (classe, es. H7 per un "
                         + "foro, g6 per un albero). Sulla quota del modello arriva in tavola da sola con "
@@ -1068,7 +1068,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "risposta porta scostamenti e limiti (10,000 / 10,015 per un Ø10 H7).\n\nMI RIFIUTO "
                         + "per un grado IT fuori da 5..11 o una quota oltre 500 mm (non li so riscontrare), per "
                         + "una bilaterale con l'inferiore sopra il superiore, e quando il riscontro non torna.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1085,16 +1085,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "fit_class", O("type", "string", "description", "per «fit»: la classe ISO, maiuscola per un foro (H7), minuscola per un albero (g6).")),
                         "required", A("dimension", "variant")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "suppress_feature",
-                    Famiglia = "features",
-                    Esempio = "{\"feature_uid\":\"Cut-Extrude2\"}",   // da `limit_suppress_twice`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "suppress_feature",
+                    Family = "features",
+                    Example = "{\"feature_uid\":\"Cut-Extrude2\"}",   // da `limit_suppress_twice`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "SPEGNE una lavorazione dell'albero, senza cancellarla. Si riaccende.",
-                    Descrizione =
+                    Description =
                         "Spegne una lavorazione: il pezzo torna com'era senza di lei, ma lei "
                         + "resta nell'albero e si puo' riaccendere con «reactivate».\n\nE' la "
                         + "strada da prendere quando vuoi VEDERE il pezzo senza una "
@@ -1111,7 +1111,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "l'operazione che la riattiva. Sopprimere due volte non fa niente e non "
                         + "da' errore: e' il modo piu' facile di credere di aver cambiato il pezzo "
                         + "senza averlo toccato.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1125,16 +1125,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "feature_uid")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "delete_feature",
-                    Famiglia = "features",
-                    Esempio = "{\"feature_uid\":\"Cut-Extrude1\"}",   // da `delete_first_hole`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "delete_feature",
+                    Family = "features",
+                    Example = "{\"feature_uid\":\"Cut-Extrude1\"}",   // da `delete_first_hole`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "CANCELLA una lavorazione dall'albero. Non si disfa con un'altra operazione.",
-                    Descrizione =
+                    Description =
                         "Toglie una lavorazione dall'albero per sempre. Lo schizzo che aveva "
                         + "assorbito se ne va con lei, cosi' nell'albero non resta niente di "
                         + "orfano.\n\nNON SI DISFA con un'altra operazione: l'unica strada "
@@ -1148,7 +1148,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "LAVORAZIONE STA NELLO STATO DEL DOCUMENTO, dentro «feature». "
                         + "Copialo cosi' com'e'.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO "
                         + "PIU': rileggi il pezzo prima del passo seguente.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1158,15 +1158,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "feature_uid")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "fillet_edges",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "fillet_edges",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Raccordo a raggio costante su uno o piu' spigoli.",
-                    Descrizione =
+                    Description =
                         "Arrotonda uno o piu' spigoli con lo stesso raggio. Gli spigoli si "
                         + "indicano con gli identificativi presi dallo stato del documento."
                         + "\n\nSe fra la lettura dello stato e adesso gli spigoli hanno cambiato "
@@ -1185,7 +1185,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "there to undo. On a concave edge the volume grows, and that is fine. "
                         + "material_change_mm3 gives the change (after minus before); volume_not_read "
                         + "says when the volume could not be read.",
-                    Precondizione = "solid_body_and_edge",
+                    Precondition = "solid_body_and_edge",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1225,15 +1225,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "radius_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "circular_pattern",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "circular_pattern",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Ripete una lavorazione in circolo attorno a un asse o a uno spigolo dritto.",
-                    Descrizione =
+                    Description =
                         "Ripete una lavorazione gia' fatta, in circolo attorno a un asse. "
                         + "La lavorazione e l'asse si indicano con gli identificativi presi "
                         + "dallo stato del documento.\n\nL'ASSE PUO' ESSERE UNO SPIGOLO DRITTO "
@@ -1243,7 +1243,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "foro e' un cerchio, non una retta, e come direzione viene "
                         + "rifiutato. Se quell'asse non c'e' ancora, fallo prima con "
                         + "«create_axis».",
-                    Precondizione = "feature_and_direction",
+                    Precondition = "feature_and_direction",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1299,16 +1299,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "instance_count")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "linear_pattern",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "linear_pattern",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Ripete una lavorazione in fila, o in griglia su due direzioni: "
                         + "otto fori in fila si fanno cosi'.",
-                    Descrizione =
+                    Description =
                         "Ripete una lavorazione gia' fatta, in fila lungo un asse — o in "
                         + "griglia, lungo due assi insieme. E' il gemello di "
                         + "«circular_pattern» e si indica allo stesso modo.\n\nOtto fori in "
@@ -1330,7 +1330,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nMI RIFIUTO SE LA DIREZIONE ARRIVA DA UNO SPIGOLO CURVO: serve uno "
                         + "spigolo rettilineo. Un arco non ha una direzione sola, e prenderne una "
                         + "a caso vorrebbe dire una ripetizione storta che sembra giusta.",
-                    Precondizione = "feature_and_direction",
+                    Precondition = "feature_and_direction",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1402,17 +1402,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "pitch1_mm",
                             "instance_count1")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "fill_pattern",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
+                    Name = "fill_pattern",
+                    Family = "features",
+                    RequestedDocument = "part",
                     // true SOLO dopo il banco verde su cases/patterns (il verde e i tre rifiuti).
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Riempie una faccia piana di copie di una lavorazione: una piastra forata "
                         + "per alleggerire, una griglia di sfiato.",
-                    Descrizione =
+                    Description =
                         "Riempie una faccia piana di copie di una lavorazione gia' fatta: una "
                         + "piastra forata per alleggerire, una griglia di sfiato, un crivello. "
                         + "SOLIDWORKS mette la prima copia al CENTRO della faccia e aggiunge giri "
@@ -1438,10 +1438,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "NEL PIANO DELLA FACCIA (uno spigolo dello spessore). E mi rifiuto, togliendo "
                         + "la ripetizione, se nasce con lavorazioni in errore, con i corpi cambiati o "
                         + "con copie che mordono il bordo o si fondono fra loro.",
-                    Precondizione = "feature_and_direction",
+                    Precondition = "feature_and_direction",
                     // Niente Esempio: il caso verde usa selettori del banco
                     // (@feature, @face, @edge), e un esempio che il client non
-                    // puo' copiare e' una trappola (ProveGliEsempi, voce Z-G1).
+                    // puo' copiare e' una trappola (ExamplesTests, voce Z-G1).
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1530,15 +1530,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "pitch_mm",
                             "copies_per_turn")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "chamfer_edges",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "chamfer_edges",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Smussa uno o piu' spigoli: bava, invito di montaggio, cianfrino da saldare.",
-                    Descrizione =
+                    Description =
                         "Smusso su uno o piu' spigoli. E' il gemello di «fillet_edges» "
                         + "e si indica allo stesso modo.\n\nPredefinito 45 gradi, che e' lo "
                         + "smusso di gran lunga piu' comune. Per uno smusso non simmetrico — "
@@ -1561,7 +1561,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "there to undo. On a concave edge the volume grows, and that is fine. "
                         + "material_change_mm3 gives the change (after minus before); volume_not_read "
                         + "says when the volume could not be read.",
-                    Precondizione = "solid_body_and_edge",
+                    Precondition = "solid_body_and_edge",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1606,15 +1606,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "leg_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "mirror",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "mirror",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Specchia una lavorazione rispetto a uno dei tre piani base.",
-                    Descrizione =
+                    Description =
                         "Specchia una lavorazione gia' fatta rispetto a un piano di "
                         + "simmetria. La lavorazione si indica come per "
                         + "«circular_pattern».\n\nIl piano e' sempre uno dei tre base, e va "
@@ -1625,7 +1625,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nMI RIFIUTO SE IL PIANO NON ESISTE, e ti dico quali ci sono. I nomi "
                         + "inventati -- diagonale, obliquo -- non li interpreto: specchiare sul "
                         + "piano sbagliato produce un pezzo plausibile e sbagliato.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1660,15 +1660,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "plane")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "move_bodies",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "move_bodies",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Sposta o COPIA dei corpi gia' fatti, di una distanza data.",
-                    Descrizione =
+                    Description =
                         "Sposta i corpi indicati di «dx_mm», «dy_mm», «dz_mm». Con «copy» "
                         + "a vero li LASCIA DOVE SONO e ne mette delle copie piu' in la': e' "
                         + "cosi' che si fanno due telai uguali a una certa distanza.\n\nSERVE "
@@ -1682,7 +1682,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "passo precedente di questo stesso piano. Uno o l'altro, mai tutti "
                         + "e due.\n\nSolo spostamento in linea retta: questa operazione non "
                         + "ruota niente. Se serve ruotare, dillo invece di far finta.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1728,22 +1728,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "numero k finisce a k volte lo spostamento.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "cylindrical_cut",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "cylindrical_cut",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un taglio tondo su una faccia: per un passaggio che NON e' un "
                         + "foro da viteria.",
-                    Descrizione =
+                    Description =
                         "Fa un foro su una faccia gia' esistente, alle coordinate indicate "
                         + "nel piano di quella faccia. Passante o cieco."
                         + "\n\nMI RIFIUTO SE IL FORO CADE TUTTO FUORI DAL MATERIALE (ti dico fra quali "
                         + "coordinate sta la faccia) e se e' cosi' largo da coprire tutta la "
                         + "faccia: quello non e' un foro, e' un pezzo che sparisce.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1788,7 +1788,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
-                            "anchor", SchemaAncora("il foro"),
+                            "anchor", AnchorSchema("il foro"),
                             "diameter_mm", O(
                                 "type", "number"),
                             "through_all", O(
@@ -1802,20 +1802,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "y_mm",
                             "diameter_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "rectangular_cut",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "rectangular_cut",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una tasca rettangolare su una faccia.",
-                    Descrizione =
+                    Description =
                         "Scava una tasca rettangolare su una faccia esistente."
                         + "\n\nMI RIFIUTO SE LA TASCA COPRE TUTTA LA FACCIA, e ti dico quanto misura. "
                         + "Una tasca grande quanto il pezzo non e' una tasca: e' il pezzo che non "
                         + "c'e' piu'.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1857,7 +1857,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
-                            "anchor", SchemaAncora("la tasca"),
+                            "anchor", AnchorSchema("la tasca"),
                             "length_mm", O(
                                 "type", "number",
                                 "description", "lungo x_mm"),
@@ -1875,16 +1875,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "length_mm",
                             "width_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "apply_material",
-                    Famiglia = "physical_properties",
-                    Esempio = "{\"material\":\"AISI 304\"}",   // da `mass_of_a_steel_cube`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "apply_material",
+                    Family = "physical_properties",
+                    Example = "{\"material\":\"AISI 304\"}",   // da `mass_of_a_steel_cube`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Assegna il materiale al pezzo: senza, non c'e' peso ne' distinta utile.",
-                    Descrizione =
+                    Description =
                         "Assegna il materiale al pezzo. VA FATTO SEMPRE, su ogni pezzo che "
                         + "disegni: senza materiale non c'e' densita', senza densita' non "
                         + "c'e' peso, e la distinta di taglio esce con la colonna del "
@@ -1903,7 +1903,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "reaches only the active configuration and the ones derived from it). The "
                         + "answer lists them in «configurations»; I refuse the step, naming them, if "
                         + "any configuration does not take the material.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1923,16 +1923,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                         // e' una scelta.
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "create_axis",
-                    Famiglia = "references",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "create_axis",
+                    Family = "references",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un asse lungo il centro di un foro o di un albero: serve per "
                         + "ripetere ATTORNO a quel foro.",
-                    Descrizione =
+                    Description =
                         "Crea un asse di riferimento lungo il centro di una faccia "
                         + "cilindrica o conica gia' esistente — il foro o l'albero attorno a "
                         + "cui poi ripetere qualcosa con «circular_pattern».\n\nQUANDO SERVE "
@@ -1947,7 +1947,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "quelle con «planar: false»."
                         + "\n\nOn a sheet-metal part too: the axis is the one the call made, wherever "
                         + "SOLIDWORKS puts it in the tree (before the flat pattern).",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1978,17 +1978,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "kind"))),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "create_plane",
-                    Famiglia = "references",
-                    Esempio = "{\"plane\":\"front\",\"distance_mm\":-250}",   // da `front_plane_minus_250`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "create_plane",
+                    Family = "references",
+                    Example = "{\"plane\":\"front\",\"distance_mm\":-250}",   // da `front_plane_minus_250`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un piano di riferimento nuovo, parallelo a un piano base e "
                         + "spostato di una quota.",
-                    Descrizione =
+                    Description =
                         "Crea un piano di riferimento parallelo a un piano base (frontale, "
                         + "superiore o destro) e spostato di una quota lungo la sua normale. "
                         + "The base plane is found by its geometry (its normal through the "
@@ -2001,7 +2001,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "coincidente col base, come oggetto distinto.\n\nSolo piani base: "
                         + "questa versione non sa appoggiare il piano nuovo su una faccia "
                         + "del pezzo.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2018,15 +2018,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "distance_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "weld_bead",
-                    Famiglia = "weldments",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "weld_bead",
+                    Family = "weldments",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Cordone di saldatura cosmetico fra due facce di due barre che si toccano ad angolo.",
-                    Descrizione =
+                    Description =
                         "Mette un cordone di saldatura d'angolo, cosmetico, fra DUE facce "
                         + "di due corpi che si toccano lungo uno spigolo e formano un angolo: "
                         + "per una barra in battuta su un'altra, la faccia LATERALE della "
@@ -2041,7 +2041,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "rifiuto: SOLIDWORKS il cordone lo creerebbe lo stesso, e in "
                         + "distinta finirebbe una saldatura che non esiste. La lunghezza che "
                         + "ti torno e' quella dello spigolo in comune.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2061,15 +2061,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "end_face_uid",
                             "leg_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "cut_list",
-                    Famiglia = "weldments",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "cut_list",
+                    Family = "weldments",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Crea o aggiorna la distinta di taglio del pezzo saldato. Va per ultima.",
-                    Descrizione =
+                    Description =
                         "Crea o aggiorna la DISTINTA DI TAGLIO del pezzo saldato: l'elenco "
                         + "delle barre con profilo, misura, lunghezza e quantita'.\n\nE' il "
                         + "documento con cui si va in officina, ed e' il motivo per cui un "
@@ -2092,7 +2092,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "before library 0.124.0) is refused: delete it first. When a refusal removes "
                         + "the weldment feature this step added, the message says whether IsWeldment "
                         + "reads false again.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2102,11 +2102,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "seconda (predefinito: si')")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "gusset",
-                    Famiglia = "weldments",
-                    DocumentoRichiesto = "part",
+                    Name = "gusset",
+                    Family = "weldments",
+                    RequestedDocument = "part",
                     // ── PROVATA DAL 28/9/2026 (voce GP20) ───────────────
                     //
                     // Fino alla libreria 0.139.0 non e' mai nato un fazzoletto:
@@ -2120,11 +2120,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // spesso 5 +9000 mm3, poligono 60/60/15/15 +12937,5, corpi
                     // 2 -> 3. Casi: weldments/gusset_sits_in_the_corner e
                     // weldments/gusset_polygon_is_not_degenerate.
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Fazzoletto di rinforzo, triangolare o poligonale, nell'angolo fra due facce "
                         + "piane di due barre che si toccano.",
-                    Descrizione =
+                    Description =
                         "Mette un FAZZOLETTO di rinforzo nell'angolo fra due barre di un telaio "
                         + "saldato: una piastra, corpo a se', che irrigidisce il nodo e finisce in "
                         + "distinta.\n\nLE DUE FACCE si indicano per identificativo, prese dallo "
@@ -2154,9 +2154,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "saldatura, usa «weld_bead».",
                     // Niente esempio: i due casi verdi nominano le facce coi
                     // selettori del banco (@face(area~=...,normal=...)), che il
-                    // client non puo' copiare (vedi OperazioneDisegno.Esempio).
-                    Esempio = null,
-                    Precondizione = "solid_body_and_face",
+                    // client non puo' copiare (vedi OperationSpec.Esempio).
+                    Example = null,
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2204,16 +2204,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "leg1_mm",
                             "leg2_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "structural_member",
-                    Famiglia = "weldments",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "structural_member",
+                    Family = "weldments",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Barre vere di carpenteria lungo i segmenti che dai: e' cio' che "
                         + "genera la distinta di taglio.",
-                    Descrizione =
+                    Description =
                         "Crea una o piu' BARRE di un telaio saldato: membri strutturali "
                         + "veri, con il profilo preso dalla libreria dell'azienda.\n\nE' "
                         + "L'OPERAZIONE DA USARE PER TUTTO CIO' CHE E' CARPENTERIA: "
@@ -2243,7 +2243,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "was saved on (measured: the 20 x 20 of the four in iso\\square tube.sldlfp). "
                         + "An empty size is accepted only on a file with one size, and the answer says so "
                         + "in «configuration_note».",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2304,15 +2304,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "configuration",
                             "segments")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "trim_members",
-                    Famiglia = "weldments",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "trim_members",
+                    Family = "weldments",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Taglia o estende le barre dove si incontrano.",
-                    Descrizione =
+                    Description =
                         "Taglia le barre dove si incontrano, o le estende fino a toccarsi. "
                         + "E' il «taglia/estendi» della barra di saldature.\n\nServe quando "
                         + "due gruppi di barre si incrociano e non sono stati trattati agli "
@@ -2324,7 +2324,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nA bar that stops short of the other one is extended to its face "
                         + "(measured: a bar 20 mm short grows by 20 mm, Options 1|2|8); a bar that "
                         + "enters the other is cut at its face as before. The coped cut is not used.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2395,15 +2395,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "in SOLIDWORKS non viene ereditato")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "end_cap",
-                    Famiglia = "weldments",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "end_cap",
+                    Family = "weldments",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Chiude con un tappo le estremita' aperte delle barre cave.",
-                    Descrizione =
+                    Description =
                         "Chiude con un tappo le estremita' aperte di una barra cava. Si "
                         + "mette sulle facce di estremita' create da un passo precedente, "
                         + "oppure sulle barre che ci sono gia' nel documento («C1», "
@@ -2419,7 +2419,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "by the bar itself, so an end whose inner edges were chamfered or "
                         + "counterbored is left out the same way. When a face cannot be told "
                         + "apart, nothing is capped and the answer says why.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2468,16 +2468,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A(
                             "thickness_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "rectangular_frame",
-                    Famiglia = "weldments",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "rectangular_frame",
+                    Family = "weldments",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un telaio rettangolare di quattro barre, dato con due quote "
                         + "invece che con otto coordinate.",
-                    Descrizione =
+                    Description =
                         "RICETTA: un telaio rettangolare piano, quattro barre saldate agli "
                         + "angoli. E' il caso piu' comune della carpenteria, e si chiede con "
                         + "due quote invece che con otto coordinate.\n\nLe quote sono "
@@ -2496,7 +2496,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "or the refusal can also say that the library is still LOADED, hidden, "
                         + "because an open document references it or the close did nothing, with the changes in memory even "
                         + "if its save flag reads clean.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2553,16 +2553,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "length_mm",
                             "width_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "create_drawing",
-                    Famiglia = "drawing",
-                    Esempio = "{\"paper_size\":\"A3\"}",   // da `two_sheets_and_the_same_projection_angle`
-                    DocumentoRichiesto = "part/assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "create_drawing",
+                    Family = "drawing",
+                    Example = "{\"paper_size\":\"A3\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    RequestedDocument = "part/assembly",
+                    Tested = true,
+                    Summary =
                         "Apre la tavola del pezzo che stai guardando.",
-                    Descrizione =
+                    Description =
                         "Crea il documento di DISEGNO del pezzo aperto e lo mette davanti. "
                         + "Il pezzo resta aperto: una vista di tavola si aggancia al "
                         + "PERCORSO di un documento aperto, non a un file.\n\nIL PEZZO DEVE "
@@ -2572,7 +2572,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "dell'officina e il diedro giusto. Da qui in poi il documento "
                         + "attivo e' la TAVOLA, e le operazioni di disegno del pezzo non "
                         + "valgono piu' finche' non torni sul pezzo.",
-                    Precondizione = "un pezzo o un assieme SALVATO su disco",
+                    Precondition = "un pezzo o un assieme SALVATO su disco",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2588,15 +2588,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "formato del foglio; A3 se non dici niente")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "export_pdf",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "export_pdf",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Il PDF di TUTTI i fogli, con le pagine contate.",
-                    Descrizione =
+                    Description =
                         "Scrive il PDF della tavola.\n\nTUTTI i fogli, non solo quello che "
                         + "stai guardando: l'esportazione di serie prende il foglio "
                         + "corrente, e una tavola da tre fogli esce in officina come una "
@@ -2615,7 +2615,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "pezzo) e ti dico quali ci sono («found») e quali no "
                         + "(«not_found»). Il testo nel PDF e' scritto come indici di "
                         + "glifo, e una ricerca nei byte non lo trova: qui si decodifica.",
-                    Precondizione = "una tavola aperta",
+                    Precondition = "una tavola aperta",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2629,15 +2629,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "scritte che il PDF deve contenere: si rilegge il file e si dice quali ci sono")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "set_sheet",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "set_sheet",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Formato e scala del foglio.",
-                    Descrizione =
+                    Description =
                         "Cambia FORMATO e SCALA del foglio attivo, e rilegge per "
                         + "controllare.\n\nIL DIEDRO NON SI TOCCA e non e' un parametro. Una "
                         + "tavola in terzo diedro ha la vista destra e la sinistra "
@@ -2645,7 +2645,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "specchiato: si legge quello che il modello di tavola "
                         + "dell'officina ha gia' deciso e si riscrive uguale. Nelle misure "
                         + "trovi qual e'.",
-                    Precondizione = "una tavola aperta",
+                    Precondition = "una tavola aperta",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2667,15 +2667,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il secondo numero della scala: 2 in «1:2»")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "model_dimensions",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "model_dimensions",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Porta in tavola le quote che il pezzo ha gia'.",
-                    Descrizione =
+                    Description =
                         "Prende le quote dal MODELLO e le mette sulle viste.\n\nThe import "
                         + "works from this bridge, out of process: measured on 26/9/2026 (7 "
                         + "dimensions on a plate) and again on 28/9/2026. To put on the drawing "
@@ -2697,7 +2697,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nMI RIFIUTO se la tavola non ha viste (le quote "
                         + "non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico "
                         + "con quante il pezzo ne ha marcate, invece di rispondere «fatto».",
-                    Precondizione = "una tavola con almeno una vista",
+                    Precondition = "una tavola con almeno una vista",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2713,11 +2713,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "Attive se non dici niente.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "center_marks",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
+                    Name = "center_marks",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
                     // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
                     //
                     // Dal 17/9 era `Provata = false`: `AutoInsertCenterMarks2`
@@ -2728,10 +2728,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // vista) e `GetCenterMarkCount` non le contava; da codice una
                     // croce nuova non nasce. L'operazione e' un controllo: conta
                     // enumerando e rifiuta i fori senza croce. Vedi la voce W2.11.
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Controlla che ogni foro delle viste abbia la croce di centro, contandole davvero, e rifiuta se ne manca.",
-                    Descrizione =
+                    Description =
                         "CONTROLLA che ogni foro visibile nelle viste abbia la croce di centro, e "
                         + "prova a metterla dove manca. SOLIDWORKS le mette da se' creando la vista, "
                         + "se l'opzione del documento «Croci di centro sui fori» e' accesa: quei fori "
@@ -2752,7 +2752,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "della vista, e diceva zero su un foglio che ne aveva tre."
                         + "\n\nThe walk over the holes is the one standard_views also uses on views "
                         + "left with no mark.",
-                    Precondizione = "una tavola con almeno una vista",
+                    Precondition = "una tavola con almeno una vista",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2774,12 +2774,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "del cerchio. Spente se non dici niente.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "drawing_dimension",
-                    Famiglia = "drawing",
-                    Esempio = "{\"edges\":[0,1,2,3]}",   // da `drawing_dimensions_itself`
-                    DocumentoRichiesto = "drawing",
+                    Name = "drawing_dimension",
+                    Family = "drawing",
+                    Example = "{\"edges\":[0,1,2,3]}",   // da `drawing_dimensions_itself`
+                    RequestedDocument = "drawing",
                     // ── PROVATA, E COSA VUOL DIRE QUI ──────────────────
                     //
                     // Misurato il 18/9/2026 fuori processo: quattro quote su
@@ -2793,10 +2793,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // ogni quota e restituisce il millimetro, e per questo il
                     // primo giro della sonda — che rispondeva `?` al valore —
                     // NON sarebbe bastato a marcarla provata.
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Mette le quote sugli spigoli di una vista, e RILEGGE quanto misurano.",
-                    Descrizione =
+                    Description =
                         "Mette quote di riferimento sugli spigoli di una vista di tavola, e "
                         + "per ognuna ti dice **quanti millimetri misura**, riletti da "
                         + "SOLIDWORKS dopo averla messa.\n\nQUESTA E' L'OPERAZIONE CHE "
@@ -2870,7 +2870,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "fare quotando alla cieca. E rifiuto una vista in cui non resta niente "
                         + "da quotare perche' e' tutto gia' quotato altrove: zero quote non sono "
                         + "una risposta «fatto».",
-                    Precondizione = "una tavola con almeno una vista che mostri spigoli",
+                    Precondition = "una tavola con almeno una vista che mostri spigoli",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2897,15 +2897,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "Predefinito 10.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "hole_table",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "hole_table",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "La tabella fori su una vista: un tag per foro, la posizione dall'origine e la misura.",
-                    Descrizione =
+                    Description =
                         "Mette in tavola la TABELLA FORI della faccia forata che si vede in una vista: "
                         + "per ogni foro un tag (A1, A2...), la posizione X e Y da un vertice d'angolo "
                         + "del pezzo, e la misura («Ø8 PASSANTE»). E' la tabella che serve a chi fora "
@@ -2920,7 +2920,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "VUOTA senza errore.\n\nMI RIFIUTO se nessuna faccia con dei fori guarda "
                         + "verso chi legge in quella vista, e se la tabella nasce vuota o dice "
                         + "posizioni che il pezzo non ha: in quei casi la tolgo.",
-                    Precondizione = "una tavola con una vista del pezzo in cui i fori si vedono come cerchi",
+                    Precondition = "una tavola con una vista del pezzo in cui i fori si vedono come cerchi",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2936,14 +2936,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "tag_start", O("type", "string", "description", "la lettera dei tag. Predefinito «A».")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "flat_pattern_view",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario = "La vista dello SVILUPPO di una lamiera in tavola, misurata contro il pezzo.",
-                    Descrizione =
+                    Name = "flat_pattern_view",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary = "La vista dello SVILUPPO di una lamiera in tavola, misurata contro il pezzo.",
+                    Description =
                         "Mette in tavola la vista dello SVILUPPO di un pezzo di lamiera: la lamiera "
                         + "distesa, con le linee di piega, com'e' prima di andare in pressa. E' la "
                         + "vista che serve a chi taglia il lamierino.\n\nLa vista si MISURA: "
@@ -2959,7 +2959,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "remove it. I also refuse, before placing any view, when the flat pattern of the "
                         + "part does not unsuppress (or suppress again) while I measure its flat length: "
                         + "the part may then be left flattened, and the message says so.",
-                    Precondizione = "una tavola e, aperto, un pezzo di lamiera salvato su disco",
+                    Precondition = "una tavola e, aperto, un pezzo di lamiera salvato su disco",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2970,14 +2970,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "hide_bends", O("type", "boolean", "description", "senza le linee di piega. Predefinito falso: chi piega le vuole.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "drawing_weld_symbol",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario = "Il simbolo di saldatura ISO sul giunto fra due corpi, in una vista.",
-                    Descrizione =
+                    Name = "drawing_weld_symbol",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary = "Il simbolo di saldatura ISO sul giunto fra due corpi, in una vista.",
+                    Description =
                         "Mette in tavola il SIMBOLO DI SALDATURA (ISO 2553) sul giunto fra due corpi "
                         + "di un saldato: la freccia sulla linea del giunto, il simbolo del cordone "
                         + "(angolo, V, mezza V, testa), la gola «a» a sinistra e, se la dai, la "
@@ -2993,7 +2993,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "il pezzo ha un corpo solo, se nella vista non si vede nessun giunto, e se "
                         + "il simbolo nato non e' quello chiesto (in that case I remove it, and say "
                         + "so only after counting the weld symbols of the drawing again).",
-                    Precondizione = "una tavola con una vista di un saldato in cui si vede il giunto fra due corpi",
+                    Precondition = "una tavola con una vista di un saldato in cui si vede il giunto fra due corpi",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3007,14 +3007,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "side", O("type", "string", "enum", A("top", "bottom", "left", "right"), "description", "da che parte della vista va il simbolo. Predefinito top.")),
                         "required", A("throat_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "drawing_bom",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario = "La distinta base di un assieme in tavola, confrontata coi componenti dell'assieme.",
-                    Descrizione =
+                    Name = "drawing_bom",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary = "La distinta base di un assieme in tavola, confrontata coi componenti dell'assieme.",
+                    Description =
                         "Mette in tavola la DISTINTA BASE dell'assieme che sta dietro una vista: numero di "
                         + "voce, componente, quantita'. Di serie il primo livello; «parts_only» o "
                         + "«indented» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali "
@@ -3048,7 +3048,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "configuration cannot be activated, or the active one cannot be put back, I refuse "
                         + "before inserting the table and say where the assembly stayed. The exclusion from "
                         + "the BOM is read in the configuration of the assembly that holds each component.",
-                    Precondizione = "una tavola con una vista di un assieme salvato",
+                    Precondition = "una tavola con una vista di un assieme salvato",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3057,14 +3057,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "template", O("type", "string", "description", "il modello di tabella. Vuoto = il primo della cartella dei modelli di distinta.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "balloons",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario = "La bollatura: i palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
-                    Descrizione =
+                    Name = "balloons",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary = "La bollatura: i palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
+                    Description =
                         "Fa la BOLLATURA: mette i palloncini sui componenti dell'assieme in una vista, col numero di voce della "
                         + "distinta base (AutoBalloon5). Li conta sulla vista prima e dopo, e ti dice i numeri "
                         + "scritti. Poi confronta le voci della distinta coi palloncini di TUTTA la tavola e ti "
@@ -3077,7 +3077,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "runs. balloons_returned is the number of notes AutoBalloon5 returned (null "
                         + "when it returned no array), and balloons_count_note appears when it disagrees "
                         + "with the count in the view.",
-                    Precondizione = "una tavola con la distinta base e una vista dell'assieme",
+                    Precondition = "una tavola con la distinta base e una vista dell'assieme",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3085,14 +3085,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "come disporre i palloncini attorno alla vista. Predefinito square.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "surface_finish",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario = "Il simbolo di rugosita' (Ra in micrometri) su uno spigolo di bordo di una vista.",
-                    Descrizione =
+                    Name = "surface_finish",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary = "Il simbolo di rugosita' (Ra in micrometri) su uno spigolo di bordo di una vista.",
+                    Description =
                         "Mette il simbolo di RUGOSITA' (UNI EN ISO 1302) con la linea di richiamo sullo spigolo "
                         + "di bordo di una vista, dal «side» chiesto, e lo porta fuori dal pezzo. «process»: "
                         + "asportazione (la barretta, predefinito), qualsiasi, no_removal (il cerchietto)."
@@ -3100,7 +3100,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "fuori cornice ignorando le coordinate; per questo la posizione si imposta e si rilegge."
                         + "\n\nMI RIFIUTO se Ra non sta fra 0 e 100 micrometri, se la vista non ha uno spigolo dritto "
                         + "su quel lato, e se il simbolo nato dice un Ra diverso.",
-                    Precondizione = "una tavola con una vista",
+                    Precondition = "una tavola con una vista",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3116,14 +3116,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "come si ottiene la superficie. Predefinito «material_removal».")),
                         "required", A("ra_um")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "datum",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario = "Un riferimento (datum A, B...) su uno spigolo di bordo di una vista.",
-                    Descrizione =
+                    Name = "datum",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary = "Un riferimento (datum A, B...) su uno spigolo di bordo di una vista.",
+                    Description =
                         "Mette un DATUM (UNI EN ISO 5459): il triangolo sullo spigolo di bordo della vista dal "
                         + "«side» chiesto, e la bandierina con la «letter» fuori dal pezzo, dalla stessa parte. "
                         + "E' il riferimento che le tolleranze geometriche citano.\n\nLa lettera si RILEGGE. "
@@ -3131,7 +3131,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "spigolo e la linea attraversa il pezzo; per questo si sposta.\n\nMI RIFIUTO se la "
                         + "lettera c'e' gia' in tavola — due datum con la stessa lettera non danno errore e rendono "
                         + "ambigua ogni tolleranza — e se la vista non ha uno spigolo dritto su quel lato.",
-                    Precondizione = "una tavola con una vista",
+                    Precondition = "una tavola con una vista",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3143,14 +3143,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "letter", O("type", "string", "description", "la lettera del riferimento, dalla A alla Z. Predefinita «A».")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "geometric_tolerance",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario = "Una cornice di tolleranza geometrica (planarita', perpendicolarita', posizione...) su uno spigolo.",
-                    Descrizione =
+                    Name = "geometric_tolerance",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary = "Una cornice di tolleranza geometrica (planarita', perpendicolarita', posizione...) su uno spigolo.",
+                    Description =
                         "Mette una CORNICE DI TOLLERANZA GEOMETRICA (UNI EN ISO 1101) con la freccia sullo spigolo "
                         + "di bordo della vista dal «side» chiesto: la «characteristic», l'ampiezza della zona in mm "
                         + "e i «references» (fino a tre lettere di datum, nell'ordine primario, secondario, "
@@ -3163,7 +3163,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "cornice nata non dice cio' che si e' chiesto, Ø included: such a frame, or one "
                         + "that cannot be filled, is removed from the sheet, and said removed only after "
                         + "the frames of the drawing are counted again.",
-                    Precondizione = "una tavola con una vista, e i datum che si citano gia' messi",
+                    Precondition = "una tavola con una vista, e i datum che si citano gia' messi",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3186,12 +3186,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "diameter", O("type", "boolean", "description", "zona cilindrica: il Ø davanti al valore")),
                         "required", A("characteristic", "value_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "note",
-                    Famiglia = "drawing",
-                    Esempio = "{\"text\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `note_ends_up_on_the_sheet`
-                    DocumentoRichiesto = "drawing",
+                    Name = "note",
+                    Family = "drawing",
+                    Example = "{\"text\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `note_ends_up_on_the_sheet`
+                    RequestedDocument = "drawing",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la nota NASCA, che finisca sul FOGLIO e non dentro
@@ -3201,11 +3201,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // quello che c'e' scritto sia giusto: una nota e' testo
                     // libero, e «materiale S355» su un pezzo S275 passa ogni
                     // conteggio e ogni rilettura.
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Scrive una nota di testo sul foglio della tavola, e RILEGGE "
                         + "quello che c'e' scritto.",
-                    Descrizione =
+                    Description =
                         "Mette una nota di testo sul foglio di una tavola — le note "
                         + "generali: «smussare tutti gli spigoli vivi», «zincare dopo "
                         + "saldatura», «tolleranze non indicate ISO 2768-mK».\n\n"
@@ -3222,7 +3222,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "stampando non compare, e nessun errore lo direbbe.\n\n"
                         + "QUELLO CHE NON POSSO SAPERE e' se quello che scrivi e' VERO. "
                         + "Garantisco che la nota c'e' e dice quello che hai scritto.",
-                    Precondizione = "una tavola aperta, con un foglio attivo",
+                    Precondition = "una tavola aperta, con un foglio attivo",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3240,14 +3240,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "millimetri. Predefinito 20 mm sotto il bordo alto.")),
                         "required", A("text")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "section_view",
+                    Name = "section_view",
                     // Z-C13 (26/9/2026): una lettera gia' usata da una sezione o da un
                     // dettaglio si rifiuta; la lettera effettiva si rilegge.
-                    Famiglia = "drawing",
-                    Esempio = "{\"label\":\"A\",\"offset_mm\":0}",   // da `section_cuts_the_part`
-                    DocumentoRichiesto = "drawing",
+                    Family = "drawing",
+                    Example = "{\"label\":\"A\",\"offset_mm\":0}",   // da `section_cuts_the_part`
+                    RequestedDocument = "drawing",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la vista di sezione NASCA (il conto delle viste
@@ -3259,11 +3259,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // Non e' provata — e non puo' esserlo — sul fatto che
                     // il taglio passi dove serviva: dieci millimetri piu' in
                     // la' e' altrettanto valido e non fa vedere il foro.
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Crea una vista di sezione su una tavola, e controlla che "
                         + "il taglio abbia incontrato materiale.",
-                    Descrizione =
+                    Description =
                         "Taglia una vista della tavola e mette la sezione a fianco. "
                         + "E' la prima cosa che manca per una tavola d'officina vera: "
                         + "un pezzo con una cavita' interna, senza sezione, non si "
@@ -3294,7 +3294,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "QUELLO CHE NON POSSO SAPERE e' se quella e' la sezione che "
                         + "serviva. So dirti che il taglio ha incontrato materiale, non "
                         + "che passa per la cavita' che volevi mostrare.",
-                    Precondizione = "una tavola aperta con almeno una vista di modello",
+                    Precondition = "una tavola aperta con almeno una vista di modello",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3324,12 +3324,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "parte.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "detail_view",
-                    Famiglia = "drawing",
-                    Esempio = "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8}",   // da `detail_enlarges`
-                    DocumentoRichiesto = "drawing",
+                    Name = "detail_view",
+                    Family = "drawing",
+                    Example = "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8}",   // da `detail_enlarges`
+                    RequestedDocument = "drawing",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la vista di dettaglio NASCA, che sia del tipo
@@ -3342,11 +3342,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // niente, e la campitura li' e' zero (misurato). Copiare
                     // il controllo della sezione darebbe un'operazione che
                     // rifiuta sempre.
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Crea una vista di dettaglio ingrandita su una tavola, e "
                         + "controlla che il cerchio sia diventato un dettaglio.",
-                    Descrizione =
+                    Description =
                         "Ingrandisce un pezzo di una vista. E' l'altra meta' di cio' "
                         + "che manca a una tavola d'officina: la sezione fa vedere cosa "
                         + "c'e' dentro, il dettaglio fa vedere cio' che e' troppo "
@@ -3373,7 +3373,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "QUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che "
                         + "serviva: un cerchio spostato di dieci millimetri ingrandisce un "
                         + "pezzo di piano liscio, ed e' altrettanto valido.",
-                    Precondizione = "una tavola aperta con almeno una vista di modello",
+                    Precondition = "una tavola aperta con almeno una vista di modello",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3406,16 +3406,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "perche' «A» di solito se la prende la sezione.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "title_block",
-                    Famiglia = "checks",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "title_block",
+                    Family = "checks",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Dice quali proprieta' il cartiglio CHIEDE e quali MOSTRA. "
                         + "Non tocca niente.",
-                    Descrizione =
+                    Description =
                         "Legge il CARTIGLIO del foglio attivo e ti dice due cose "
                         + "diverse: **quali proprieta' personalizzate chiede** e **quali "
                         + "sta mostrando**.\n\nPERCHE' SONO DUE COSE. Un cartiglio non "
@@ -3436,23 +3436,23 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "ha nessuna nota collegata te lo dico invece di lasciarti "
                         + "riempire proprieta' che non comparirebbero: quel testo e' "
                         + "disegnato dentro il formato, non alimentato.",
-                    Precondizione = "una tavola aperta",
+                    Precondition = "una tavola aperta",
                     Schema = O(
                         "type", "object",
                         "properties", O(),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "interference_check",
-                    Famiglia = "checks",
-                    Esempio = "{\"touching_counts\":true}",   // da `touching_is_not_interpenetrating`
-                    DocumentoRichiesto = "assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "interference_check",
+                    Family = "checks",
+                    Example = "{\"touching_counts\":true}",   // da `touching_is_not_interpenetrating`
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Summary =
                         "Dice se i componenti dell'assieme si compenetrano, e di quanto "
                         + "volume. Non tocca niente.",
-                    Descrizione =
+                    Description =
                         "Cerca le INTERFERENZE fra i componenti dell'assieme aperto: i "
                         + "punti in cui due pezzi occupano lo stesso spazio.\n\n"
                         + "PERCHE' CONTA. Due pezzi compenetrati si aprono, si "
@@ -3486,7 +3486,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "refused."
                         + "\n\nNon modifica "
                         + "niente: si puo' chiedere anche con «measure».",
-                    Precondizione = "un assieme aperto con almeno due componenti",
+                    Precondition = "un assieme aperto con almeno due componenti",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3502,11 +3502,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "diversi.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "drawing_cut_list",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
+                    Name = "drawing_cut_list",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
                     // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
                     //
                     // La tabella nasce quando il pezzo e' un SALDATO con la
@@ -3535,11 +3535,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // due API di annotazione che non c'entrano niente fra loro,
                     // tutte e due mute sulla stessa tavola. Vedi la voce GT2
                     // del TODO per dove ripartire.
-                    Provata = true,
-                    Sommario =
+                    Tested = true,
+                    Summary =
                         "Mette in tavola la distinta di taglio del saldato, e la confronta "
                         + "con quella del pezzo.",
-                    Descrizione =
+                    Description =
                         "Inserisce nella tavola la DISTINTA DI TAGLIO del saldato che sta "
                         + "dietro una vista: l'elenco delle barre con lunghezze e "
                         + "quantita'.\n\nE LA CONFRONTO. Il pezzo sa gia', per conto suo, "
@@ -3567,7 +3567,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "activated for the count (finding M32, open): on a part with sub-weldments, or "
                         + "with the view on another configuration, a mismatch can be the count's and not "
                         + "the table's.",
-                    Precondizione = "una tavola con una vista di un saldato che ha gia' la distinta di taglio",
+                    Precondition = "una tavola con una vista di un saldato che ha gia' la distinta di taglio",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3595,16 +3595,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il modello di tabella. Vuoto = quello dell'installazione.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "new_sheet",
-                    Famiglia = "drawing",
-                    Esempio = "{\"name\":\"Assembly\"}",   // da `two_sheets_and_the_same_projection_angle`
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "new_sheet",
+                    Family = "drawing",
+                    Example = "{\"name\":\"Assembly\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Aggiunge un foglio alla tavola, con lo stesso diedro del primo.",
-                    Descrizione =
+                    Description =
                         "Aggiunge un FOGLIO alla tavola aperta e lo attiva.\n\n"
                         + "IL DIEDRO NON TE LO CHIEDO, e non e' una semplificazione: lo "
                         + "leggo dal foglio corrente e lo ripasso uguale. Se il foglio 2 "
@@ -3618,7 +3618,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "per distrazione.\n\nIl nome, se non lo dici, e' il primo "
                         + "«FoglioN» libero. Un nome gia' usato lo rifiuto: due fogli con "
                         + "lo stesso nome e non si sa piu' quale si sta guardando.",
-                    Precondizione = "una tavola aperta",
+                    Precondition = "una tavola aperta",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3636,16 +3636,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il secondo numero della scala. 1:2 si scrive 1 e 2.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "activate_sheet",
-                    Famiglia = "drawing",
-                    Esempio = "{\"name\":\"Sheet1\"}",   // da `two_sheets_and_the_same_projection_angle`
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "activate_sheet",
+                    Family = "drawing",
+                    Example = "{\"name\":\"Sheet1\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Mette davanti un foglio della tavola, per nome.",
-                    Descrizione =
+                    Description =
                         "Attiva un FOGLIO della tavola: da li' in poi le viste e le "
                         + "annotazioni vanno su quello.\n\nSI CHIEDE PER NOME, non per "
                         + "numero. Un indice sarebbe l'occasione perfetta per lavorare sul "
@@ -3658,7 +3658,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "loro nome. Su una tavola a piu' fogli sbagliare foglio non da' nessun "
                         + "errore: le viste finiscono su quello attivo, e in officina arriva un "
                         + "foglio con sopra roba di un altro.",
-                    Precondizione = "una tavola aperta con piu' di un foglio",
+                    Precondition = "una tavola aperta con piu' di un foglio",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3667,15 +3667,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il nome esatto del foglio, come lo riporta lo stato The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is.")),
                         "required", A("name")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "save_document",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "any",
-                    Provata = true,
-                    Sommario =
+                    Name = "save_document",
+                    Family = "drawing",
+                    RequestedDocument = "any",
+                    Tested = true,
+                    Summary =
                         "Salva il documento aperto.",
-                    Descrizione =
+                    Description =
                         "Salva su disco il documento attivo — pezzo o tavola.\n\nServe anche "
                         + "come PRIMO PASSO di una tavola: una vista si aggancia al percorso "
                         + "del pezzo, quindi un pezzo mai salvato non si puo' mettere in "
@@ -3685,7 +3685,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "«none») and save_warnings_note when the model needed a rebuild, had "
                         + "rebuild errors, or had views needing an update. A failed save gives the "
                         + "error and warning names next to the raw codes.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3695,22 +3695,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "mai salvato senza percorso e' un errore.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "model_view",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "model_view",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Una vista con nome: isometrica, fronte, sopra...",
-                    Descrizione =
+                    Description =
                         "Aggiunge al foglio una VISTA CON NOME del pezzo, nel punto che "
                         + "dici.\n\nLa piu' utile e' l'ISOMETRICA: da sola fa capire il pezzo "
                         + "a chi guarda la tavola, e le tre viste standard da sole spesso "
                         + "no.\n\nx_mm e y_mm sono la posizione SUL FOGLIO, con l'origine in "
                         + "basso a sinistra: su un A3 (420x297) l'angolo in alto a destra e' "
                         + "intorno a 320, 220.",
-                    Precondizione = "una tavola aperta e il pezzo aperto accanto",
+                    Precondition = "una tavola aperta e il pezzo aperto accanto",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3738,15 +3738,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il percorso del pezzo. Se non lo dici si usa il primo pezzo aperto.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "standard_views",
-                    Famiglia = "drawing",
-                    DocumentoRichiesto = "drawing",
-                    Provata = true,
-                    Sommario =
+                    Name = "standard_views",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Summary =
                         "Le tre viste standard, in primo diedro.",
-                    Descrizione =
+                    Description =
                         "Mette sul foglio le TRE VISTE STANDARD del pezzo, in PRIMO diedro "
                         + "— quello che si usa in Europa.\n\nIl terzo diedro non esiste in "
                         + "questo catalogo, di proposito: e' una chiamata gemella che non "
@@ -3766,7 +3766,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "option that inserts them, null when it cannot be read). A hole the bridge could "
                         + "not mark is counted in holes_left_without_centre_mark, with centre_marks_note "
                         + "saying what to do.",
-                    Precondizione = "una tavola aperta e il pezzo aperto accanto",
+                    Precondition = "una tavola aperta e il pezzo aperto accanto",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3776,15 +3776,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "il primo pezzo aperto. Lo trovi in «documents_open» nello stato.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "check_body_geometry",
-                    Famiglia = "checks",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "check_body_geometry",
+                    Family = "checks",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Dice se i corpi sono solidi chiusi e sani. Non tocca il pezzo.",
-                    Descrizione =
+                    Description =
                         "Guarda i CORPI del pezzo e dice se sono solidi chiusi e senza "
                         + "difetti.\n\nNon disegna e non modifica niente: e' una domanda, non "
                         + "un'operazione. Chiamala prima di consegnare un pezzo che verra' "
@@ -3807,7 +3807,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nATTENZIONE a cosa NON "
                         + "guarda: lo spessore delle pareti e le sovrasporgenze. Un guscio da "
                         + "tre decimi passa di qui senza una parola.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3824,17 +3824,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "leave body_uid out.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "check_overhangs",
-                    Famiglia = "checks",
-                    Esempio = "{\"threshold_deg\":70}",   // da `walls_at_sixty_degrees_do_not_print`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "check_overhangs",
+                    Family = "checks",
+                    Example = "{\"threshold_deg\":70}",   // da `walls_at_sixty_degrees_do_not_print`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Dice cosa non si stampa senza supporti, e di quanto. Non tocca il "
                         + "pezzo.",
-                    Descrizione =
+                    Description =
                         "Una parete che pende nel vuoto oltre un certo angolo si stampa a "
                         + "filamenti persi. SOLIDWORKS non dice niente -- il pezzo e' sano, "
                         + "il volume e' giusto, la geometria e' chiusa -- e il difetto si "
@@ -3857,7 +3857,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "tassellare non la posso guardare: la conto in «faces_not_analyzed», "
                         + "e se non ho trovato sporgenze altrove «prints_without_supports» "
                         + "e' null, non true.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3879,14 +3879,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "tutti.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "file_dependencies",
-                    Famiglia = "checks",
-                    DocumentoRichiesto = "any",
-                    Provata = true,
-                    Sommario = "Da quali file dipende il documento, e quali mancano sul disco. Non tocca niente.",
-                    Descrizione =
+                    Name = "file_dependencies",
+                    Family = "checks",
+                    RequestedDocument = "any",
+                    Tested = true,
+                    Summary = "Da quali file dipende il documento, e quali mancano sul disco. Non tocca niente.",
+                    Description =
                         "Un assieme (o una tavola) e' un grafo di file sul disco: ti dico da quali file "
                         + "dipende, a tutti i livelli, e per ognuno se c'e'. Un file che manca e' un "
                         + "componente che l'assieme mostra SOPPRESSO: prima di misurare o esportare va "
@@ -3896,21 +3896,21 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "Searchflag false): with the search rules, a component that is not loaded "
                         + "could come back as another file with the same name found in another folder, "
                         + "which exists, and a missing file would not be reported (measured, L12-8).",
-                    Precondizione = "un documento salvato",
+                    Precondition = "un documento salvato",
                     Schema = O(
                         "type", "object",
                         "properties", O(),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "mass_properties",
-                    Famiglia = "checks",
-                    DocumentoRichiesto = "part/assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "mass_properties",
+                    Family = "checks",
+                    RequestedDocument = "part/assembly",
+                    Tested = true,
+                    Summary =
                         "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
-                    Descrizione =
+                    Description =
                         "Risponde a «quanto pesa questo pezzo»: volume, area della "
                         + "superficie, massa, densita' e baricentro.\n\nLA MASSA SENZA "
                         + "MATERIALE NON E' ZERO, E' «NON SI SA»: se al pezzo non e' stato "
@@ -3944,7 +3944,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "checked against its signature (centre and box): if the part changed since and "
                         + "the identifier now names another body, the step is refused instead of weighing "
                         + "the other one.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3964,15 +3964,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "«lightweight_resolved_on_request».")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "body_bounding_box",
-                    Famiglia = "checks",
-                    DocumentoRichiesto = "part/assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "body_bounding_box",
+                    Family = "checks",
+                    RequestedDocument = "part/assembly",
+                    Tested = true,
+                    Summary =
                         "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
-                    Descrizione =
+                    Description =
                         "Risponde a «entra nella scatola 300x260x40»: da dove a dove arriva "
                         + "il pezzo su ognuno dei tre assi, e quanto misura.\n\nI punti sono "
                         + "quelli VERI del corpo, presi in sei direzioni, non la scatola "
@@ -3991,7 +3991,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the box too, named in «envelope_components» and «hidden_components». A component "
                         + "whose load state cannot be read refuses the step, and so does one that is neither a "
                         + "part nor a sub-assembly by its file extension or its document.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4006,16 +4006,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "body by the identifier asked.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "cosmetic_thread",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "cosmetic_thread",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Dice «qui c'e' un filetto» su un perno o un foro gia' fatto. Non "
                         + "taglia niente.",
-                    Descrizione =
+                    Description =
                         "Mette una FILETTATURA COSMETICA sul bordo tondo di un perno o di un "
                         + "foro: e' un'annotazione, non un taglio. Il volume del pezzo resta "
                         + "quello di prima, e se cambia fallisco -- vorrebbe dire che ha "
@@ -4028,7 +4028,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "Questa chiamata di SOLIDWORKS ignora lo standard e la taglia: non "
                         + "c'e' nessuna tabella che controlli se «M6x1» e' giusto per un "
                         + "perno da 6. Se lo scrivi sbagliato, in officina arriva sbagliato.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4053,15 +4053,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "lo dici, lo misuro dallo spigolo.")),
                         "required", A("edge_uid", "designation")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "variable_fillet",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "variable_fillet",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un raccordo che cambia raggio da un capo all'altro dello spigolo.",
-                    Descrizione =
+                    Description =
                         "Arrotonda uno spigolo con un raggio che VARIA: grande da una parte, "
                         + "piccolo dall'altra.\n\nServe dove il pezzo deve incassare un carico "
                         + "in un punto e non ha posto nell'altro -- una staffa che si allarga "
@@ -4074,7 +4074,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "controllo che abbia tolto davvero del materiale: una feature che "
                         + "nasce senza togliere niente lascia lo spigolo vivo, e l'albero "
                         + "cresciuto per finta.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4090,16 +4090,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il raggio all'altro capo, in mm.")),
                         "required", A("edge_uid", "start_radius_mm", "end_radius_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "fillet_face",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "fillet_face",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un raccordo appoggiato a due facce invece che a uno spigolo: la palla "
                         + "del raggio rotola toccandole tutte e due.",
-                    Descrizione =
+                    Description =
                         "Arrotonda il passaggio fra DUE FACCE: la superficie che nasce e' "
                         + "quella lasciata da una palla del raggio chiesto che rotola "
                         + "appoggiata a tutte e due. Sullo spigolo fra due facce che si "
@@ -4130,7 +4130,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "«fillet_edges».\n\nUna faccia per insieme; le facce si nominano "
                         + "con gli identificativi dello stato, non con un riferimento a un "
                         + "passo.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4148,16 +4148,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "due le facce.")),
                         "required", A("face_1_uid", "face_2_uid", "radius_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "combine_bodies",
-                    Famiglia = "features",
-                    Esempio = "{\"operation\":\"intersect\"}",   // da `intersect_two_cubes`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "combine_bodies",
+                    Family = "features",
+                    Example = "{\"operation\":\"intersect\"}",   // da `intersect_two_cubes`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
-                    Descrizione =
+                    Description =
                         "La booleana fra CORPI dello stesso pezzo: «union» li fonde in uno, "
                         + "«subtract» toglie gli altri dal principale, «intersect» tiene solo "
                         + "quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai "
@@ -4177,7 +4177,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nSE NON DICI QUALE BOOLEANA faccio «union», ed e' scritto "
                         + "nella risposta. «subtract» e «intersect» si chiedono per nome, "
                         + "perche' cambiano il pezzo in modo opposto.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4236,16 +4236,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                         // Z-G3: predefinito «union», dichiarato nella risposta.
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "minimum_distance",
-                    Famiglia = "checks",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "minimum_distance",
+                    Family = "checks",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Quanto distano due facce o due spigoli, col controllo che il "
                         + "numero non sia smentito dai suoi stessi punti.",
-                    Descrizione =
+                    Description =
                         "Misura la distanza PIU' CORTA fra due facce, due spigoli, o una "
                         + "faccia e uno spigolo. E' il modo di rispondere a «quanto materiale "
                         + "resta fra la cava della guarnizione e la faccia esterna»: due cose "
@@ -4255,7 +4255,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "tornano, la chiamata e' fallita e ha risposto lo stesso, e in quel "
                         + "caso fallisco invece di darti il numero.\n\nZero vuol dire che le "
                         + "due cose si toccano, e te lo dico.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4268,16 +4268,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "identificativo della seconda.")),
                         "required", A("start_uid", "end_uid")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "measure_between",
-                    Famiglia = "checks",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "measure_between",
+                    Family = "checks",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Lo strumento di misura: area, perimetro, distanza, angolo, "
                         + "parallelismo fra una o due entita'.",
-                    Descrizione =
+                    Description =
                         "Misura UNA faccia o uno spigolo -- area, perimetro, lunghezza, "
                         + "raggio -- oppure DUE, e allora dice anche distanza, differenze sui "
                         + "tre assi, angolo, se sono parallele o perpendicolari.\n\nE' lo "
@@ -4293,7 +4293,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "read back from SOLIDWORKS) and «projection»: none. Measured on two holes "
                         + "D10 and D20 at 50 mm centres: centre 50, minimum 35 (the wall between "
                         + "them), maximum 65. I refuse any other value of «arc_measure».",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4313,16 +4313,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "given too, centre to centre.")),
                         "required", A("uid")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "export_stl",
-                    Famiglia = "exports",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "export_stl",
+                    Family = "exports",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo "
                         + "prima, e rifiuta se non e' un solido chiuso.",
-                    Descrizione =
+                    Description =
                         "Scrive il pezzo come STL, il formato che gli slicer delle stampanti "
                         + "3D leggono.\n\nPRIMA DI SCRIVERE chiama «check_body_geometry» e "
                         + "SI RIFIUTA se il pezzo non e' un solo corpo solido chiuso senza "
@@ -4342,7 +4342,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "rebuild errors; preferences_not_restored names any user preference that "
                         + "could not be put back. A failed save gives the error and warning names "
                         + "next to the raw codes.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4366,16 +4366,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "falso. Usalo solo sapendo che cosa non andava.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "export_step",
-                    Famiglia = "exports",
-                    DocumentoRichiesto = "part/assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "export_step",
+                    Family = "exports",
+                    RequestedDocument = "part/assembly",
+                    Tested = true,
+                    Summary =
                         "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file "
                         + "quale protocollo e' uscito davvero.",
-                    Descrizione =
+                    Description =
                         "Scrive il pezzo come STEP: e' il formato con cui si manda un pezzo a "
                         + "un fornitore, a un cliente, o lo si porta in un altro CAD.\n\nA "
                         + "differenza dello STL NON SI RIFIUTA se il pezzo ha piu' corpi o "
@@ -4415,7 +4415,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "save_warnings_note when the model needed a rebuild or had rebuild errors; "
                         + "preferences_not_restored names any user preference that could not be put "
                         + "back. A failed save gives the error and warning names next to the raw codes.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4443,15 +4443,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "says so. The document that was in front is brought back by its path.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "export_iges",
-                    Famiglia = "exports",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "export_iges",
+                    Family = "exports",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Scrive l'IGES, per i CAD e le macchine che lo STEP non lo leggono.",
-                    Descrizione =
+                    Description =
                         "Scrive il pezzo come IGES. Serve quando dall'altra parte c'e' un CAD "
                         + "o una macchina che lo STEP non lo legge: e' un formato piu' vecchio "
                         + "e meno preciso, e fra i due lo STEP e' sempre la prima scelta."
@@ -4475,7 +4475,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "rebuild errors; preferences_not_restored names any user preference that "
                         + "could not be put back. A failed save gives the error and warning names "
                         + "next to the raw codes.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4499,17 +4499,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "says so. The document that was in front is brought back by its path.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "weldment_profiles",
-                    Famiglia = "weldments",
-                    Esempio = "{\"search\":\"TUBO STRUTTURALE QUADRO\"}",   // da `profiles_are_read_first`
-                    DocumentoRichiesto = "none",
-                    Provata = true,
-                    Sommario =
+                    Name = "weldment_profiles",
+                    Family = "weldments",
+                    Example = "{\"search\":\"TUBO STRUTTURALE QUADRO\"}",   // da `profiles_are_read_first`
+                    RequestedDocument = "none",
+                    Tested = true,
+                    Summary =
                         "Elenca i profili della libreria e le loro misure, scritte come vanno "
                         + "copiate. Non tocca niente.",
-                    Descrizione =
+                    Description =
                         "Dice quali profili ci sono -- tubolari, IPE, angolari, piatti -- e "
                         + "per ognuno quali misure, scritte esattamente come vanno copiate."
                         + "\n\nCHIAMAMI PRIMA di «structural_member» e «rectangular_frame». "
@@ -4522,7 +4522,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "documenti e non lascio niente in giro.\n\nSe la libreria e' grande "
                         + "te ne do i primi quaranta e te lo dico: con «search» e un pezzo del "
                         + "nome li restringi.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4536,16 +4536,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "Falso se ti basta sapere quali profili esistono: costa meno.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "mate",
-                    Famiglia = "assemblies",
-                    DocumentoRichiesto = "assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "mate",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Summary =
                         "Vincola due componenti fra loro prendendo una faccia per uno. "
                         + "E' la differenza fra un assieme e un mucchio ordinato.",
-                    Descrizione =
+                    Description =
                         "Mette un accoppiamento fra due componenti dell'assieme aperto.\n\n"
                         + "LE FACCE SI NOMINANO PER VERSO, non per identificativo: «la "
                         + "faccia in basso di C2 sulla faccia in alto di C1». I componenti "
@@ -4587,7 +4587,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "componenti prima e dopo, e se non sono aumentati te lo dico invece "
                         + "di dichiarare fatto.\n\nIf one of the two faces cannot be selected, the "
                         + "step is refused and AddMate5 is not called.",
-                    Precondizione = "un assieme aperto con almeno due componenti",
+                    Precondition = "un assieme aperto con almeno due componenti",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4623,15 +4623,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "guardano vogliono «opposto».")),
                         "required", A("component_a", "face_a", "component_b", "face_b")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "mirror_component",
-                    Famiglia = "assemblies",
-                    DocumentoRichiesto = "assembly",
-                    Provata = true,
-                    Esempio = "{\"component\":\"C2\",\"plane\":\"right\",\"mode\":\"instance\"}",   // da `right_bracket_and_left_bracket`
-                    Sommario = "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
-                    Descrizione =
+                    Name = "mirror_component",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Example = "{\"component\":\"C2\",\"plane\":\"right\",\"mode\":\"instance\"}",   // da `right_bracket_and_left_bracket`
+                    Summary = "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
+                    Description =
                         "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). "
                         + "DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «instance»: lo stesso "
                         + "file, specchiato. Giusto per un pezzo simmetrico.\n- «opposite_linked»: un file "
@@ -4656,7 +4656,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nA mirror born with a rebuild error (GetErrorCode2) is refused and removed. "
                         + "Whenever a refusal removes the mirror it made, it says so only after reading the "
                         + "tree again and not finding it there; otherwise it asks you to remove it.",
-                    Precondizione = "un assieme aperto con almeno un componente",
+                    Precondition = "un assieme aperto con almeno un componente",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4685,15 +4685,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "per gli opposti: cosa aggiungere al nome del file. Predefinito «_spec».")),
                         "required", A("component", "plane", "mode")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "fix_component",
-                    Famiglia = "assemblies",
-                    DocumentoRichiesto = "assembly",
-                    Provata = true,
-                    Esempio = "{\"component\":\"C2\",\"grounded\":true}",   // da `fixed_is_not_mated`
-                    Sommario = "Fissa o libera un componente dell'assieme, e lo rilegge.",
-                    Descrizione =
+                    Name = "fix_component",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Example = "{\"component\":\"C2\",\"grounded\":true}",   // da `fixed_is_not_mated`
+                    Summary = "Fissa o libera un componente dell'assieme, e lo rilegge.",
+                    Description =
                         "Fissa un componente (non si muove piu', qualunque accoppiamento abbia) o "
                         + "lo libera (lo tengono solo i suoi accoppiamenti). E' l'unico stato di "
                         + "un componente che cambia come l'assieme si ricostruisce.\n\nFISSO NON "
@@ -4709,7 +4709,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "sub-assembly that holds it and its uid; IsFixed and FixComponent work on the "
                         + "top level only. Open the sub-assembly to fix one of its parts, or fix the "
                         + "sub-assembly itself.",
-                    Precondizione = "un assieme aperto con almeno un componente",
+                    Precondition = "un assieme aperto con almeno un componente",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4721,16 +4721,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "true per fissarlo, false per liberarlo.")),
                         "required", A("component", "grounded")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "replace_component",
-                    Famiglia = "assemblies",
-                    DocumentoRichiesto = "assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "replace_component",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Summary =
                         "Cambia il file di un componente gia' montato, e ti dice se i "
                         + "vincoli sono sopravvissuti SANI o solo sopravvissuti.",
-                    Descrizione =
+                    Description =
                         "«Il coperchio va rifatto»: cambia il file di un componente gia' "
                         + "montato.\n\nGUARDA SEMPRE COSA TI RISPONDO SUGLI ACCOPPIAMENTI. "
                         + "Misurato: i vincoli del pezzo vecchio **restano** -- non si "
@@ -4764,7 +4764,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "already mounted on the new file does not count. «took_its_place» names the "
                         + "component(s) that took it; the C1..Cn numbers follow the names, so read the "
                         + "state again before naming one by uid.",
-                    Precondizione = "un assieme aperto, e il file nuovo gia' aperto",
+                    Precondition = "un assieme aperto, e il file nuovo gia' aperto",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4790,16 +4790,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "volte, le sostituisce tutte. Falso: solo quella.")),
                         "required", A("component", "path")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "insert_component",
-                    Famiglia = "assemblies",
-                    DocumentoRichiesto = "assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "insert_component",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Summary =
                         "Mette un pezzo gia' aperto dentro l'assieme aperto, e ti dice "
                         + "se e' vincolato o solo appoggiato li'.",
-                    Descrizione =
+                    Description =
                         "Inserisce un componente in un assieme.\n\nQUELLO CHE DEVI SAPERE "
                         + "PRIMA DI TUTTO IL RESTO: inserire NON e' accoppiare. Il pezzo "
                         + "appare, l'albero si riempie, la ricostruzione e' pulita -- e il "
@@ -4842,7 +4842,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "diverse.\n\nNon conto sulla "
                         + "risposta dell'inserimento: conto i componenti prima e dopo, e se "
                         + "non sono aumentati di uno te lo dico invece di dichiarare fatto.",
-                    Precondizione = "un assieme aperto, e il componente da inserire gia' aperto",
+                    Precondition = "un assieme aperto, e il componente da inserire gia' aperto",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4872,17 +4872,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "configuration.")),
                         "required", A("path")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "circular_sweep",
-                    Famiglia = "extrusions",
-                    Esempio = "{\"path_mm\":[[0,0,0],[100,0,0]],\"diameter_mm\":20}",   // da `straight_pipe_area_per_length`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "circular_sweep",
+                    Family = "extrusions",
+                    Example = "{\"path_mm\":[[0,0,0],[100,0,0]],\"diameter_mm\":20}",   // da `straight_pipe_area_per_length`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un tubo pieno di diametro dato lungo un percorso di punti. Su un "
                         + "percorso dritto controllo che il volume sia area per lunghezza.",
-                    Descrizione =
+                    Description =
                         "Fa una forma che segue una strada: un bocchettone passacavo, un "
                         + "manico, un tubo piegato. E' la prima operazione del catalogo che "
                         + "fa qualcosa che non e' dritto.\n\nIL PROFILO E' UN NUMERO, non uno "
@@ -4898,7 +4898,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "risposta.\n\nUNA CURVA PIU' STRETTA DEL RAGGIO DEL TUBO non si "
                         + "puo' fare: la superficie si attraverserebbe. SOLIDWORKS in quel "
                         + "caso non crea niente e non dice perche'; io te lo dico.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4912,17 +4912,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il diametro del tubo, in mm.")),
                         "required", A("path_mm", "diameter_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "loft_two_circles",
-                    Famiglia = "extrusions",
-                    Esempio = "{\"plane\":\"front\",\"diameter1_mm\":40,\"diameter2_mm\":20,\"distance_mm\":50}",   // da `loft_is_not_a_cone`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "loft_two_circles",
+                    Family = "extrusions",
+                    Example = "{\"plane\":\"front\",\"diameter1_mm\":40,\"diameter2_mm\":20,\"distance_mm\":50}",   // da `loft_is_not_a_cone`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una transizione fra due cerchi di diametro diverso, e ti dico di "
                         + "quanto si scosta dal tronco di cono.",
-                    Descrizione =
+                    Description =
                         "Raccorda due sezioni tonde diverse: un riduttore, un imbocco, una "
                         + "transizione da un tubo grosso a uno sottile.\n\nUN LOFT FRA DUE "
                         + "CERCHI NON E' UN CONO, ed e' la cosa che vale la pena sapere. La "
@@ -4934,7 +4934,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nI due cerchi stanno su piani paralleli a quello che scegli, "
                         + "alla distanza che dici. Puoi sfalsarli uno rispetto all'altro per "
                         + "fare una transizione obliqua.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4963,14 +4963,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "transizione obliqua. Predefinito 0.")),
                         "required", A("diameter1_mm", "diameter2_mm", "distance_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "sketch_picture",
-                    Famiglia = "references",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario = "Mette una foto o uno schizzo a mano, in scala, su un piano: da ricalcare.",
-                    Descrizione =
+                    Name = "sketch_picture",
+                    Family = "references",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary = "Mette una foto o uno schizzo a mano, in scala, su un piano: da ricalcare.",
+                    Description =
                         "Mette un'immagine (una foto del pezzo, uno schizzo con le quote a penna) in uno "
                         + "schizzo su un piano, IN SCALA: tu mi dici quanto e' larga davvero tutta "
                         + "l'immagine («width_mm» — una misura nota divisa per i suoi pixel, per la "
@@ -4991,7 +4991,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "I also refuse when SetSize or SetOrigin answers false, or when the width, "
                         + "height or lower left corner read back is more than 0.01 mm from what was "
                         + "asked; the picture then stays in the sketch, to be removed.",
-                    Precondizione = "un pezzo aperto (anche vuoto)",
+                    Precondition = "un pezzo aperto (anche vuoto)",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5009,17 +5009,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "y_mm", O("type", "number", "description", "dove va l'angolo in basso a sinistra, y. Predefinito 0.")),
                         "required", A("path", "plane", "width_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "plane_three_points",
-                    Famiglia = "references",
-                    Esempio = "{\"point1_mm\":[0,0,0],\"point2_mm\":[50,0,0],\"point3_mm\":[100,10,0]}",   // da `limit_three_points_in_a_row`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "plane_three_points",
+                    Family = "references",
+                    Example = "{\"point1_mm\":[0,0,0],\"point2_mm\":[50,0,0],\"point3_mm\":[100,10,0]}",   // da `limit_three_points_in_a_row`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Un piano obliquo, dato per tre punti, e rileggo la sua normale per "
                         + "dirti che e' quello.",
-                    Descrizione =
+                    Description =
                         "«create_plane» sa fare solo il piano SFALSATO da uno dei tre standard: "
                         + "serve a tutto quello che e' allineato agli assi e a niente altro. "
                         + "Per un foro inclinato, una faccia obliqua o una staffa a 30 gradi "
@@ -5034,7 +5034,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "anche di un piano storto, e su un piano storto ci disegneresti "
                         + "sopra senza accorgertene.\n\nTRE PUNTI IN FILA NON FANNO UN PIANO, "
                         + "e te lo dico prima di provare: per una retta ne passano infiniti.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5052,15 +5052,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "il terzo punto. Non dev'essere sulla retta degli altri due.")),
                         "required", A("point1_mm", "point2_mm", "point3_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "base_flange",
-                    Famiglia = "sheet_metal",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "base_flange",
+                    Family = "sheet_metal",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una lamiera piegata da un profilo aperto: spessore, raggio di piega, profondita'.",
-                    Descrizione =
+                    Description =
                         "Fa una LAMIERA da un profilo aperto disegnato su un piano base: una L, "
                         + "una U, uno zeta. Ogni angolo del profilo diventa una piega col raggio "
                         + "chiesto.\n\nI PUNTI SONO LE FACCE INTERNE quando il profilo va nel verso "
@@ -5080,7 +5080,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondizione = "una parte senza corpi, o a cui aggiungere una lamiera",
+                    Precondition = "una parte senza corpi, o a cui aggiungere una lamiera",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5098,15 +5098,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "depth_mm", O("type", "number", "description", "quanto e' profonda la lamiera, perpendicolare al piano")),
                         "required", A("points", "thickness_mm", "radius_mm", "depth_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "edge_flange",
-                    Famiglia = "sheet_metal",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "edge_flange",
+                    Family = "sheet_metal",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una piega nuova su uno spigolo di bordo di una lamiera che c'e' gia'.",
-                    Descrizione =
+                    Description =
                         "Aggiunge una FLANGIA a 90 gradi su uno spigolo di bordo di una lamiera "
                         + "(fatta con «base_flange»): e' cosi' che si chiude una scatola, con pieghe "
                         + "su spigoli di direzioni diverse.\n\nLo spigolo e' quello fra la faccia "
@@ -5124,7 +5124,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondizione = "una parte di lamiera",
+                    Precondition = "una parte di lamiera",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5136,15 +5136,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "quanto e' lunga la flangia, misurata allo spigolo virtuale esterno")),
                         "required", A("edge_uid", "length_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "hem",
-                    Famiglia = "sheet_metal",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "hem",
+                    Family = "sheet_metal",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Il bordo di una lamiera ripiegato su se stesso, chiuso o aperto.",
-                    Descrizione =
+                    Description =
                         "Ripiega su se stesso il bordo di una lamiera (fatta con «base_flange»): "
                         + "l'orlo che toglie il filo tagliente e irrigidisce il bordo. «closed» e' "
                         + "schiacciato sulla lamiera; «open» lascia «gap_mm» fra il bordo e la "
@@ -5159,7 +5159,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondizione = "una parte di lamiera",
+                    Precondition = "una parte di lamiera",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5178,15 +5178,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "solo per «open»: lo spazio fra il bordo ripiegato e la lamiera")),
                         "required", A("edge_uid", "length_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "sketched_bend",
-                    Famiglia = "sheet_metal",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "sketched_bend",
+                    Family = "sheet_metal",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Piega una lamiera lungo una linea tracciata su una sua faccia.",
-                    Descrizione =
+                    Description =
                         "Piega una lamiera che c'e' gia' lungo una LINEA tracciata su una sua "
                         + "faccia piana, dall'estremo «start_mm» a «end_mm» (punti [x, y, z] in mm sul "
                         + "piano della faccia). La linea attraversa la faccia da bordo a bordo.\n\n"
@@ -5201,7 +5201,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened), and before bending I refuse if that happens.",
-                    Precondizione = "una parte di lamiera",
+                    Precondition = "una parte di lamiera",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5219,15 +5219,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "l'angolo di piega. Predefinito 90.")),
                         "required", A("face_uid", "start_mm", "end_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "flat_pattern_dxf",
-                    Famiglia = "sheet_metal",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "flat_pattern_dxf",
+                    Family = "sheet_metal",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Il DXF dello sviluppo di una lamiera, per il taglio.",
-                    Descrizione =
+                    Description =
                         "Scrive il pezzo di lamiera SPIANATO in un DXF: il disegno che va alla "
                         + "macchina di taglio.\n\nIL PEZZO DEV'ESSERE SALVATO: su un pezzo senza "
                         + "file SOLIDWORKS apre «Salva con nome» e resta ad aspettare che qualcuno "
@@ -5238,7 +5238,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondizione = "una parte di lamiera, salvata",
+                    Precondition = "una parte di lamiera, salvata",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5247,15 +5247,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "dove scrivere il .dxf. Predefinito: accanto al pezzo, col suo nome.")),
                         "required", A()),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "dimension_scheme",
-                    Famiglia = "dimensions",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "dimension_scheme",
+                    Family = "dimensions",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Quota il pezzo nel modello con DimXpert, da tre facce di riferimento.",
-                    Descrizione =
+                    Description =
                         "Mette sul PEZZO (non su una tavola) le quote che un disegnatore "
                         + "metterebbe: spessori, lati, diametri dei fori e la loro posizione "
                         + "dai riferimenti. E' DimXpert di SOLIDWORKS, dal nucleo, senza "
@@ -5268,7 +5268,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "quotato quello che serviva. La risposta di SOLIDWORKS alla chiamata "
                         + "(«auto_dimension_scheme_response») vale False anche quando ha "
                         + "quotato — misurato: non la si guarda.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5282,16 +5282,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "piu'/meno sulle quote (predefinito) o tolleranze geometriche")),
                         "required", A("references_uid")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "draft",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "draft",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Inclina delle facce di un angolo, rispetto a una faccia che resta "
                         + "ferma. Misura l'angolo sul pezzo, non sulla lavorazione.",
-                    Descrizione =
+                    Description =
                         "L'angolo di spoglia: le pareti di un pezzo stampato in stampo devono "
                         + "pendere di un grado o due, o il pezzo non esce dalla forma. Serve "
                         + "anche alle fusioni e alle lavorazioni con angolo di spoglia."
@@ -5311,7 +5311,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "mosso e da che parte, cosi' lo vedi senza guardare il pezzo di "
                         + "lato.\n\nSOLO FACCE PIANE: una faccia cilindrica sformata diventa "
                         + "conica e non ha un'inclinazione sola, quindi non la conto.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5333,17 +5333,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "cresce invece di calare. Predefinito falso.")),
                         "required", A("neutral_face_uid", "faces_uid", "angle_deg")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "rib",
-                    Famiglia = "features",
-                    Esempio = "{\"plane\":\"front\",\"distance_mm\":25,\"start_mm\":[10,40,25],\"end_mm\":[40,10,25],\"thickness_mm\":6}",   // da `rib_in_the_corner_of_the_l`
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "rib",
+                    Family = "features",
+                    Example = "{\"plane\":\"front\",\"distance_mm\":25,\"start_mm\":[10,40,25],\"end_mm\":[40,10,25],\"thickness_mm\":6}",   // da `rib_in_the_corner_of_the_l`
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Una nervatura di irrigidimento: riempie, nel piano di una linea, lo spazio "
                         + "fra la linea e le pareti del pezzo. Misura il materiale aggiunto.",
-                    Descrizione =
+                    Description =
                         "Irrigidisce una parete sottile: l'angolo di una staffa a L, il fondo di una "
                         + "scatola svuotata. Dai una LINEA con due estremi «start_mm» e «end_mm» (punti "
                         + "[x, y, z] in mm nel sistema del modello) che sta su un piano: uno dei tre "
@@ -5369,7 +5369,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "Non faccio nervature sformate e non guardo QUALI pareti la nervatura ha "
                         + "unito: misuro che e' nata, il materiale aggiunto e che il pezzo non si e' "
                         + "rotto.",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5398,16 +5398,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "parti del piano. Per una staffa da 10 di solito 4-6.")),
                         "required", A("plane", "start_mm", "end_mm", "thickness_mm")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "suppress_instance",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "suppress_instance",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Toglie una o piu' copie da una ripetizione gia' fatta, e si "
                         + "rifiuta se la copia non c'era.",
-                    Descrizione =
+                    Description =
                         "Una griglia di fori che ne salta uno dove passa una nervatura, una "
                         + "fila di asole che si ferma prima della piega. La ripetizione si fa "
                         + "prima, intera, con «linear_pattern» o «circular_pattern»; poi si "
@@ -5438,7 +5438,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "il conto delle facce non torna e non posso dire cosa ho tolto. Nella "
                         + "risposta «faces_per_copy» dice quante facce vale una copia (null se "
                         + "non l'ho potuto leggere: allora questo controllo non si e' fatto).",
-                    Precondizione = "solid_body",
+                    Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5458,16 +5458,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "Predefinito falso.")),
                         "required", A("feature_uid", "copies")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "engrave_text",
-                    Famiglia = "features",
-                    DocumentoRichiesto = "part",
-                    Provata = true,
-                    Sommario =
+                    Name = "engrave_text",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Summary =
                         "Incide (o fa in rilievo) una scritta su una faccia piana, e si "
                         + "rifiuta se la scritta non ci sta.",
-                    Descrizione =
+                    Description =
                         "Scrive delle PAROLE nel pezzo: numero di serie, verso di montaggio, "
                         + "nome del cliente, «ALTO». Incisa (predefinito) o in rilievo."
                         + "\n\nCONTROLLO PRIMA CHE CI STIA, ED E' LA META' DEL LAVORO. La "
@@ -5484,7 +5484,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "e' il modo di controllare due marcature l'una con l'altra."
                         + "\n\nNON SU UNA FACCIA CURVA: il testo avvolto e' un'altra "
                         + "lavorazione, che non ho.",
-                    Precondizione = "solid_body_and_face",
+                    Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5527,17 +5527,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "3D o una fusione si leggono meglio. Predefinito falso.")),
                         "required", A("text", "face_uid")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "set_property",
-                    Famiglia = "identity",
-                    Esempio = "{\"name\":\"NumeroDisegno\",\"value_text\":\"DIS-1234\"}",   // da `the_two_lists_do_not_see_each_other`
-                    DocumentoRichiesto = "any",
-                    Provata = true,
-                    Sommario =
+                    Name = "set_property",
+                    Family = "identity",
+                    Example = "{\"name\":\"NumeroDisegno\",\"value_text\":\"DIS-1234\"}",   // da `the_two_lists_do_not_see_each_other`
+                    RequestedDocument = "any",
+                    Tested = true,
+                    Summary =
                         "Scrive una proprieta' personalizzata -- numero disegno, revisione, "
                         + "cliente -- sul documento oppure su una configurazione.",
-                    Descrizione =
+                    Description =
                         "Scrive una proprieta' personalizzata: e' cio' che finisce nel "
                         + "cartiglio della tavola e nella scheda del PDM. «Numero disegno», "
                         + "«Revision», «Cliente», «Descrizione».\n\nIL DOCUMENTO E UNA "
@@ -5556,7 +5556,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is "
                         + "checked as the TEXT written, and resolved_value gives what SOLIDWORKS "
                         + "evaluates it to, when the two differ.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5575,17 +5575,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "nello stato del documento, dentro «configurations».")),
                         "required", A("name", "value_text")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "create_configuration",
-                    Famiglia = "identity",
-                    Esempio = "{\"name\":\"Left\",\"details\":\"staffa sinistra\"}",   // da `the_two_lists_do_not_see_each_other`
-                    DocumentoRichiesto = "part/assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "create_configuration",
+                    Family = "identity",
+                    Example = "{\"name\":\"Left\",\"details\":\"staffa sinistra\"}",   // da `the_two_lists_do_not_see_each_other`
+                    RequestedDocument = "part/assembly",
+                    Tested = true,
+                    Summary =
                         "Fa una variante del pezzo -- sinistra e destra, con e senza foro -- "
                         + "e la attiva subito.",
-                    Descrizione =
+                    Description =
                         "Crea una configurazione: la stessa staffa sinistra e destra, con e "
                         + "senza foro, dentro un file solo. E' come un'officina a disegno "
                         + "chiede una famiglia di pezzi.\n\nLA CREA E LA ATTIVA. SOLIDWORKS "
@@ -5601,7 +5601,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "configurazioni omonime non sono un doppione innocuo: le lavorazioni "
                         + "soppresse in una e attive nell'altra fanno due pezzi diversi con lo "
                         + "stesso nome, e la distinta ne conta uno.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5618,17 +5618,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "un commento libero.")),
                         "required", A("name")),
                 },
-                new OperazioneDisegno
+                new OperationSpec
                 {
-                    Nome = "activate_configuration",
-                    Famiglia = "identity",
-                    Esempio = "{\"name\":\"Left\"}",   // da `limit_configuration_that_already_exists`
-                    DocumentoRichiesto = "part/assembly",
-                    Provata = true,
-                    Sommario =
+                    Name = "activate_configuration",
+                    Family = "identity",
+                    Example = "{\"name\":\"Left\"}",   // da `limit_configuration_that_already_exists`
+                    RequestedDocument = "part/assembly",
+                    Tested = true,
+                    Summary =
                         "Passa a una configurazione gia' esistente, e verifica che ci sia "
                         + "davvero passato.",
-                    Descrizione =
+                    Description =
                         "Sposta il documento su un'altra configurazione. Da qui in poi quello "
                         + "che disegni e quello che lo stato ti racconta riguardano quella."
                         + "\n\nIL NOME NON E' QUELLO CHE SEMBRA. La configurazione predefinita "
@@ -5648,7 +5648,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "Default<Come lavorata>. Un nome parziale non lo indovino, perche' "
                         + "indovinare vorrebbe dire attivare la configurazione sbagliata in "
                         + "silenzio.",
-                    Precondizione = null,
+                    Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5666,20 +5666,20 @@ namespace Oce.Solid.Agent.Core.Catalog
         /// un metodo e non un campo: la lista qui sopra si inizializza prima dei
         /// campi dichiarati dopo di lei, e un campo varrebbe ancora null.
         /// </summary>
-        private static Nodo SchemaAncora(string cosa, bool dalContorno = false)
+        private static Node AnchorSchema(string what, bool fromContour = false)
         {
-            string punto = dalContorno
+            string point = fromContour
                 ? "Il punto e' il CENTRO del contorno, e l'ancora vale per UN contorno solo, " +
                   "tondo o rettangolare allineato agli assi della faccia."
                 : "x_mm/y_mm restano obbligatori e devono dire lo stesso punto.";
             return O(
                 "type", "object",
-                "description", "COSA TIENE " + cosa.ToUpperInvariant() + " DOV'E' QUANDO IL PEZZO CAMBIA. Senza, "
-                    + "x_mm/y_mm sono coordinate assolute: se la piastra si allunga, " + cosa + " resta "
+                "description", "COSA TIENE " + what.ToUpperInvariant() + " DOV'E' QUANDO IL PEZZO CAMBIA. Senza, "
+                    + "x_mm/y_mm sono coordinate assolute: se la piastra si allunga, " + what + " resta "
                     + "dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: "
                     + "{\"edge_uid\": \"E7\", \"distance_mm\": 20}, la distanza dal CENTRO a uno "
                     + "spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure "
-                    + "{\"centered_between\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. " + punto
+                    + "{\"centered_between\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. " + point
                     + "\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso "
                     + "punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro "
                     + "asse o sta sul bordo di uno smusso o di un raccordo (l'altra faccia dello "
@@ -5693,29 +5693,29 @@ namespace Oce.Solid.Agent.Core.Catalog
                     + "sketch I cannot read, or an anchor dimension I cannot read or move (the test "
                     + "would pass without testing anything).",
                 "properties", O(
-                    "x", AsseDellAncora("x"),
-                    "y", AsseDellAncora("y")),
+                    "x", AxisOfAnchor("x"),
+                    "y", AxisOfAnchor("y")),
                 "required", A("x", "y"));
         }
 
-        private static Nodo AsseDellAncora(string asse)
+        private static Node AxisOfAnchor(string axis)
         {
-            string altro = asse == "x" ? "y" : "x";
+            string other = axis == "x" ? "y" : "x";
             return O(
                 "type", "object",
-                "description", "l'ancora lungo " + asse + "_mm: edge_uid + distance_mm, oppure centered_between",
+                "description", "l'ancora lungo " + axis + "_mm: edge_uid + distance_mm, oppure centered_between",
                 "properties", O(
                     "edge_uid", O(
                         "type", "string",
-                        "description", "uno spigolo dritto della faccia, dallo stato, che corre lungo " + altro + "_mm"),
+                        "description", "uno spigolo dritto della faccia, dallo stato, che corre lungo " + other + "_mm"),
                     "distance_mm", O(
                         "type", "number",
-                        "description", "dal CENTRO del profilo allo spigolo, misurata lungo " + asse + "_mm"),
+                        "description", "dal CENTRO del profilo allo spigolo, misurata lungo " + axis + "_mm"),
                     "centered_between", O(
                         "type", "array",
                         "items", O("type", "string"),
                         "description", "due spigoli opposti della faccia, dallo stato, che corrono lungo "
-                            + altro + "_mm: il centro resta a meta' fra loro")));
+                            + other + "_mm: il centro resta a meta' fra loro")));
         }
     }
 }

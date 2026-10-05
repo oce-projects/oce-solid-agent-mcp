@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -34,16 +34,16 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("every string another program looks for is still produced (W3.1-bis.2)");
+            Group("every string another program looks for is still produced (W3.1-bis.2)");
 
-            var root = Radice();
+            var root = Root();
             var script = Path.Combine(root, "Checks", "language", "consumed-strings.js");
-            if (!File.Exists(script)) { Segna("the consumed-strings check exists", false, script); return; }
+            if (!File.Exists(script)) { Check("the consumed-strings check exists", false, script); return; }
 
             string output;
             if (Run("node", "--version", root, out output) != 0)
             {
-                NonQui("every consumed string is still produced",
+                NotHere("every consumed string is still produced",
                        "node is not on this machine: the check is a Node script, and the CI runner has Node. " +
                        "Not running it here is not the same as passing.");
                 return;
@@ -53,19 +53,19 @@ namespace Oce.Solid.Agent.ContractTests
             //    kept only in a comment, a consumer translated alone...
             int code = Run("node", Q(script) + " --self-test", root, out output);
             var fakes = Regex.Match(output, @"self-test: (\d+) fakes, (\d+) ended otherwise");
-            Segna("the consumed-strings check turns red on its fakes (a string taken out of its producer, and more)",
+            Check("the consumed-strings check turns red on its fakes (a string taken out of its producer, and more)",
                   code == 0 && fakes.Success && fakes.Groups[2].Value == "0" && int.Parse(fakes.Groups[1].Value) >= 20,
                   code == 0 && fakes.Success ? fakes.Value : Tail(output));
 
             // 2. the inventory on this tree
             code = Run("node", Q(script) + " --root " + Q(root), root, out output);
             var summary = Regex.Match(output, @"consumed strings: (\d+) entries, (\d+) runs checked, (\d+) broken");
-            Segna("every consumed string is still in a string literal of its producer",
+            Check("every consumed string is still in a string literal of its producer",
                   code == 0 && summary.Success && summary.Groups[3].Value == "0",
                   code == 0 && summary.Success ? summary.Value : Tail(output));
 
             int entries = summary.Success ? int.Parse(summary.Groups[1].Value) : -1;
-            Segna("the inventory of consumed strings has not shrunk",
+            Check("the inventory of consumed strings has not shrunk",
                   entries >= MinimumEntries,
                   entries < 0 ? "the check did not say how many entries it read"
                               : entries + " entries, floor " + MinimumEntries);

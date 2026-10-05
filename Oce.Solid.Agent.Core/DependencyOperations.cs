@@ -51,67 +51,67 @@ namespace Oce.Solid.Agent.Core
     /// assembly, both flags answer that file: the component is resolved, and no
     /// path tells it apart.)
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito Dipendenze(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome Dependencies(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            object grezzo = null;
-            try { grezzo = modello.Extension.GetDependencies(true, false, false, true, false); }   // L12-8: Searchflag false
-            catch (Exception ex) { return Fallito("Non leggo le dipendenze del documento: " + ex.Message); }
-            var voci = grezzo as object[];
+            object raw = null;
+            try { raw = model.Extension.GetDependencies(true, false, false, true, false); }   // L12-8: Searchflag false
+            catch (Exception ex) { return Failed("Non leggo le dipendenze del documento: " + ex.Message); }
+            var entries = raw as object[];
             var file = new List<object>();
-            var mancanti = new List<string>();
-            var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (voci != null)
-                for (int i = 0; i + 1 < voci.Length; i += 2)
+            var missingItems = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (entries != null)
+                for (int i = 0; i + 1 < entries.Length; i += 2)
                 {
-                    string nome = Convert.ToString(voci[i]);
-                    string percorso = Convert.ToString(voci[i + 1]);
-                    if (string.IsNullOrWhiteSpace(percorso) || !visti.Add(percorso)) continue;
+                    string itemName = Convert.ToString(entries[i]);
+                    string filePath = Convert.ToString(entries[i + 1]);
+                    if (string.IsNullOrWhiteSpace(filePath) || !seen.Add(filePath)) continue;
                     // THE DISK, NOT THE PARAMETER (N60): ListBrokenRefs includes
                     // broken references in the list without marking them (the
                     // guide promises no mark; measured), so the disk says
                     // whether the file is there.
-                    bool esiste = false;
-                    try { esiste = File.Exists(percorso); } catch { }
-                    if (!esiste) mancanti.Add(percorso);
+                    bool exists = false;
+                    try { exists = File.Exists(filePath); } catch { }
+                    if (!exists) missingItems.Add(filePath);
                     file.Add(new Dictionary<string, object>
                     {
-                        ["name"] = nome,
-                        ["path"] = percorso,
-                        ["exists"] = esiste,
+                        ["name"] = itemName,
+                        ["path"] = filePath,
+                        ["exists"] = exists,
                     });
                 }
-            string mio = "";
-            try { mio = modello.GetPathName() ?? ""; } catch { }
-            var misure = new Dictionary<string, object>
+            string myOwn = "";
+            try { myOwn = model.GetPathName() ?? ""; } catch { }
+            var measurements = new Dictionary<string, object>
             {
-                ["document"] = mio.Length > 0 ? mio : null,
+                ["document"] = myOwn.Length > 0 ? myOwn : null,
                 ["file"] = file.ToArray(),
                 ["how_many_files"] = file.Count,
-                ["missing"] = mancanti.ToArray(),
-                ["how_many_missing"] = mancanti.Count,
+                ["missing"] = missingItems.ToArray(),
+                ["how_many_missing"] = missingItems.Count,
                 ["how_known"] = "GetDependencies lists the files the document depends on, at every level, at the path " +
                                  "where each one was last saved (Searchflag false: the search rules can answer another " +
                                  "file with the same name, found in another folder, for a component that is not loaded; " +
                                  "measured). Whether each file is there, the disk says (File.Exists): a missing file is " +
                                  "listed with its path like the others.",
             };
-            if (voci == null)
+            if (entries == null)
             {
                 // L'API NON HA RISPOSTO: «non lo so», non «zero file» — e nemmeno
                 // «zero mancanti» (revisione del 27/9/2026: how_many_missing diceva 0).
-                misure["how_many_files"] = null;
-                misure["missing"] = null;
-                misure["how_many_missing"] = null;
-                misure["warning"] = "GetDependencies non ha risposto: non so da quali file dipende il documento, " +
+                measurements["how_many_files"] = null;
+                measurements["missing"] = null;
+                measurements["how_many_missing"] = null;
+                measurements["warning"] = "GetDependencies non ha risposto: non so da quali file dipende il documento, " +
                                        "ne' se ne manca qualcuno. Non prenderlo per un documento senza dipendenze.";
             }
-            if (mancanti.Count > 0)
-                misure["warning"] = mancanti.Count + (mancanti.Count == 1 ? " file manca" : " file mancano") + " sul disco: " +
-                    string.Join(", ", mancanti) + ". In un assieme quei componenti risultano soppressi: ritrova i file " +
+            if (missingItems.Count > 0)
+                measurements["warning"] = missingItems.Count + (missingItems.Count == 1 ? " file manca" : " file mancano") + " sul disco: " +
+                    string.Join(", ", missingItems) + ". In un assieme quei componenti risultano soppressi: ritrova i file " +
                     "(o sostituiscili con «replace_component») prima di misurare o esportare.";
-            return RiuscitoSenzaCreare(misure);
+            return SucceededWithoutCreating(measurements);
         }
     }
 }

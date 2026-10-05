@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -47,16 +47,16 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the selection marks come from the table (Z-C21.6, S9)");
+            Group("the selection marks come from the table (Z-C21.6, S9)");
 
-            var tablePath = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "SelectionMarks.cs");
+            var tablePath = Path.Combine(Root(), "Oce.Solid.Agent.Core", "SelectionMarks.cs");
             if (!File.Exists(tablePath))
             {
-                Segna("the table of marks is there", false, tablePath);
+                Check("the table of marks is there", false, tablePath);
                 return;
             }
             var cases = new HashSet<string>(StringComparer.Ordinal);
-            var casesDir = Path.Combine(Radice(), "Bench", "cases");
+            var casesDir = Path.Combine(Root(), "Bench", "cases");
             if (Directory.Exists(casesDir))
                 foreach (var f in Directory.GetFiles(casesDir, "*.json", SearchOption.AllDirectories))
                     cases.Add(Path.GetFileNameWithoutExtension(f));
@@ -80,37 +80,37 @@ namespace Oce.Solid.Agent.ContractTests
                          badProblems.Any(p => p.StartsWith("WrongNumber")) &&
                          badProblems.Any(p => p.StartsWith("NoGuide")) &&
                          badProblems.Any(p => p.StartsWith("UnknownCase"));
-            Segna("the table rule catches a wrong number, a missing page, an unknown case", teeth,
+            Check("the table rule catches a wrong number, a missing page, an unknown case", teeth,
                   teeth ? "3 of 3 wrong constants caught, the right one left alone" : string.Join(" | ", badProblems));
 
             var literalSamples = new[]
             {
                 "if (!feat.Select2(true, 4)) return;",
                 "sd.Mark = 2;",
-                "modello.Extension.SelectByID2(n, \"PLANE\", 0, 0, 0, false,\n    1, null, 0);",
+                "model.Extension.SelectByID2(n, \"PLANE\", 0, 0, 0, false,\n    1, null, 0);",
                 "e.SelectByMark(false, 1);",
-                "bool Seleziona(ISelectionMgr g, IFace2 f, int marchio)\n{\n    return true;\n}\nvoid M() { Seleziona(g, f, 2); }",
+                "bool Select(ISelectionMgr g, IFace2 f, int mark)\n{\n    return true;\n}\nvoid M() { Select(g, f, 2); }",
             };
             var fineSamples = new[]
             {
                 "if (!feat.Select2(true, SelectionMarks.SweepPath)) return;",
                 "feat.Select2(false, 0);",
-                "modello.Extension.SelectByID2(n, \"PLANE\", 0, 0, 0, false, 0, null, 0);",
+                "model.Extension.SelectByID2(n, \"PLANE\", 0, 0, 0, false, 0, null, 0);",
                 "sd.Mark = SelectionMarks.HoleTableHoles;",
                 "// Select2(true, 4) is what the old code did",
-                "bool Seleziona(ISelectionMgr g, IFace2 f, int marchio)\n{\n    return true;\n}\nvoid M() { Seleziona(g, f, SelectionMarks.DraftFaces); }",
+                "bool Select(ISelectionMgr g, IFace2 f, int mark)\n{\n    return true;\n}\nvoid M() { Select(g, f, SelectionMarks.DraftFaces); }",
             };
             int caught = literalSamples.Count(s => LiteralMarks("t.cs", s).Count == 1);
             var falseAlarms = fineSamples.Where(s => LiteralMarks("t.cs", s).Count != 0).ToList();
-            Segna("the literal-mark rule catches the five call shapes", caught == literalSamples.Length,
+            Check("the literal-mark rule catches the five call shapes", caught == literalSamples.Length,
                   caught + " of " + literalSamples.Length + " (Select2, .Mark =, SelectByID2 over two lines, SelectByMark, " +
                   "a helper's mark parameter)");
-            Segna("and leaves marks from the table, mark 0 and comments alone", falseAlarms.Count == 0,
+            Check("and leaves marks from the table, mark 0 and comments alone", falseAlarms.Count == 0,
                   falseAlarms.Count == 0 ? fineSamples.Length + " lines, no false alarm" : string.Join(" | ", falseAlarms));
 
             // ── THE REAL TABLE ───────────────────────────────────────────
             var problems = TableProblems(File.ReadAllText(tablePath), cases, out int constants);
-            Segna("every mark in the table cites its page and agrees with it", problems.Count == 0 && constants >= 10,
+            Check("every mark in the table cites its page and agrees with it", problems.Count == 0 && constants >= 10,
                   problems.Count == 0 ? constants + " marks, each with its page and quote (or its measuring case)"
                                       : string.Join(" | ", problems));
 
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.ContractTests
             var texts = new List<KeyValuePair<string, string>>();
             foreach (var folder in new[] { "Oce.Solid.Agent.Core", "Bridge" })
             {
-                var dir = Path.Combine(Radice(), folder);
+                var dir = Path.Combine(Root(), folder);
                 if (!Directory.Exists(dir)) continue;
                 foreach (var f in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
                 {
@@ -138,7 +138,7 @@ namespace Oce.Solid.Agent.ContractTests
                 used += Regex.Matches(t.Value, @"\bSelectionMarks\.\w+").Count;
                 found.AddRange(LiteralMarks(t.Key, t.Value, markParams));
             }
-            Segna("no selection call carries a non-zero literal mark", found.Count == 0,
+            Check("no selection call carries a non-zero literal mark", found.Count == 0,
                   found.Count == 0 ? used + " marks taken from the table; helpers with a mark parameter: " +
                                      (markParams.Count == 0 ? "none" : string.Join(", ", markParams.Keys.OrderBy(k => k, StringComparer.Ordinal)))
                                    : string.Join(" | ", found));

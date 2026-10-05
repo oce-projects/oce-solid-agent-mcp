@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -62,15 +62,15 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("machining and anchor returns and messages the bench cannot reach (Z-C21.8, Z-C21.9: " +
+            Group("machining and anchor returns and messages the bench cannot reach (Z-C21.8, Z-C21.9: " +
                    "L5-5, L5-6, L5-7, L12-9, L17-8, M24, M35, M36, M37, M42, M43, N16, N49, N53, N56, C7-3, C9-6)");
 
             CallSites();
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of the Z-C21.8 and Z-C21.9 machining fixes",
+                NotHere("the pure rules of the Z-C21.8 and Z-C21.9 machining fixes",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.ContractTests
             Type sw;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -92,10 +92,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Segna("OperazioniSw is in the library", false, "type not found"); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
 
             ExtrusionReadBack(sw);
             ToleranceDecimals(sw);
@@ -127,9 +127,9 @@ namespace Oce.Solid.Agent.ContractTests
                              texts[1].Contains("does not take this value");
                 bool noBlanket = texts.Take(5).Count(t => t.Contains("equation")) == 1;   // only the reasonless Failure
                 bool unknown = !string.IsNullOrEmpty(texts[5]);
-                Segna(rule, distinct && named && noBlanket && unknown, string.Join(" | ", texts));
+                Check(rule, distinct && named && noBlanket && unknown, string.Join(" | ", texts));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static object Call(Type t, string method, params object[] args)
@@ -160,10 +160,10 @@ namespace Oce.Solid.Agent.ContractTests
                           deeper != null && !deeper.Contains("nothing changed") &&
                           unread != null && unread.Contains("could not read") &&
                           noVolume != null && noVolume.Contains("could not read");
-                Segna(rule, ok, "same " + Shown(same) + " | volume moved " + Shown(moved) + " | deeper " + Shown(deeper) +
+                Check(rule, ok, "same " + Shown(same) + " | volume moved " + Shown(moved) + " | deeper " + Shown(deeper) +
                                 " | end not read " + Shown(unread) + " | volume not read " + Shown(noVolume));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── L5-7: every displayed dimension ──────────────────────────────────
@@ -186,12 +186,12 @@ namespace Oce.Solid.Agent.ContractTests
                 bool ok = firstMissed != null && firstMissed.Contains("displayed dimension 1") &&
                           allTook == null && problem != null && failed != null && threw != null && none != null &&
                           other == null && note != null && noNote == null;
-                Segna(rule, ok, "first missed " + Shown(firstMissed) + " | all took " + Shown(allTook) +
+                Check(rule, ok, "first missed " + Shown(firstMissed) + " | all took " + Shown(allTook) +
                                 " | status 3 " + Shown(problem) + " | status -1 " + Shown(failed) + " | threw " + Shown(threw) +
                                 " | none " + Shown(none) + " | status 1 " + Shown(other) + " | note " + Shown(note) +
                                 " | no note " + Shown(noNote));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── M42: the tree read back ──────────────────────────────────────────
@@ -205,11 +205,11 @@ namespace Oce.Solid.Agent.ContractTests
                 var swapped = (string)Call(sw, "TreeReadBackFault", ab, new[] { "B", "A" }, (double?)100.0, (double?)100.0);
                 var volume = (string)Call(sw, "TreeReadBackFault", ab, new[] { "A", "B" }, (double?)100.0, (double?)90.0);
                 var unread = (string)Call(sw, "TreeReadBackFault", ab, new[] { "A", "B" }, (double?)100.0, null);
-                Segna(rule, same == null && swapped != null && volume != null && unread != null,
+                Check(rule, same == null && swapped != null && volume != null && unread != null,
                       "same " + Shown(same) + " | swapped " + Shown(swapped) + " | volume " + Shown(volume) +
                       " | not read " + Shown(unread));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── M35: the text written, not the evaluated value ───────────────────
@@ -223,10 +223,10 @@ namespace Oce.Solid.Agent.ContractTests
                 bool missing = (bool)Call(sw, "PropertyWrittenAsAsked", formula, false, formula);
                 bool other = (bool)Call(sw, "PropertyWrittenAsAsked", "A", true, "B");
                 bool empty = (bool)Call(sw, "PropertyWrittenAsAsked", "", true, null);
-                Segna(rule, asWritten && !missing && !other && empty,
+                Check(rule, asWritten && !missing && !other && empty,
                       "formula " + asWritten + ", missing " + missing + ", other text " + other + ", empty " + empty);
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── M36: the picture where it was asked ──────────────────────────────
@@ -244,12 +244,12 @@ namespace Oce.Solid.Agent.ContractTests
                 var sizeFalse = at(false, true, true, 10.0, 60.0);
                 var originFalse = at(true, false, true, 10.0, 60.0);
                 var unread = at(true, true, false, 10.0, 60.0);
-                Segna(rule, good == null && off != null && tall != null && sizeFalse != null && originFalse != null && unread != null,
+                Check(rule, good == null && off != null && tall != null && sizeFalse != null && originFalse != null && unread != null,
                       "good " + Shown(good) + " | origin off " + Shown(off) + " | height off " + Shown(tall) +
                       " | SetSize false " + Shown(sizeFalse) + " | SetOrigin false " + Shown(originFalse) +
                       " | not read " + Shown(unread));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── M37: the volume must move ────────────────────────────────────────
@@ -263,11 +263,11 @@ namespace Oce.Solid.Agent.ContractTests
                 var less = (string)Call(sw, "EdgeFeatureVolumeFault", (double?)1000.0, (double?)990.0);
                 var more = (string)Call(sw, "EdgeFeatureVolumeFault", (double?)1000.0, (double?)1010.0);
                 var unread = (string)Call(sw, "EdgeFeatureVolumeFault", null, (double?)1000.0);
-                Segna(rule, still != null && less == null && more == null && unread == null,
+                Check(rule, still != null && less == null && more == null && unread == null,
                       "unchanged " + Shown(still) + " | less " + Shown(less) + " | more " + Shown(more) +
                       " | not read " + Shown(unread));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── M43: no body skipped ─────────────────────────────────────────────
@@ -288,11 +288,11 @@ namespace Oce.Solid.Agent.ContractTests
                 var withGap = new List<double[]> { new[] { 0.0, 0.0, 0.0, 1e-6 }, null };
                 bool okGap = (bool)m.Invoke(null, new object[] { withGap, 0.0, null });
                 bool numbers = okTwo && Math.Abs(volume - 2000) < 1e-6 && centre != null && Math.Abs(centre[0] - 5) < 1e-9;
-                Segna(rule, numbers && !okGap,
+                Check(rule, numbers && !okGap,
                       "two bodies " + okTwo + " (" + volume + " mm3, x " + (centre == null ? "?" : centre[0].ToString()) +
                       "), with an unreadable body " + okGap);
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N16: an unreadable Check3 ────────────────────────────────────────
@@ -304,10 +304,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // A null body makes the Check3 access throw inside the method:
                 // the unreadable case, without SOLIDWORKS.
                 object faults = Call(sw, "BodyFaultNames", new object[] { null });
-                Segna(rule, faults == null,
+                Check(rule, faults == null,
                       faults == null ? "null" : "a list of " + ((ICollection)faults).Count + " (the answer of a sound body)");
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N53: the seven statuses ──────────────────────────────────────────
@@ -328,10 +328,10 @@ namespace Oce.Solid.Agent.ContractTests
                           unknown != null && unknown.Contains("does not know") &&
                           unread != null && unread.Contains("could not read") &&
                           under != null && under.Contains("under defined") && unnamed.Count == 0;
-                Segna(rule, ok, "7 " + Shown(off) + " | 1 " + Shown(unknown) + " | -1 " + Shown(unread) + " | 2 " + Shown(under) +
+                Check(rule, ok, "7 " + Shown(off) + " | 1 " + Shown(unknown) + " | -1 " + Shown(unread) + " | 2 " + Shown(under) +
                                 (unnamed.Count == 0 ? "" : " | without a name: " + string.Join(", ", unnamed)));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── C7-3: fill and table patterns named ─────────────────────────────
@@ -349,9 +349,9 @@ namespace Oce.Solid.Agent.ContractTests
                           table != null && table.Contains("TABLE") && !table.Contains(old) &&
                           other != null && other.Contains(old) &&
                           new[] { fill, table, other }.All(s => s.IndexOf("derived", StringComparison.OrdinalIgnoreCase) < 0);
-                Segna(rule, ok, "fill " + Shown(fill) + " | table " + Shown(table) + " | other " + Shown(other));
+                Check(rule, ok, "fill " + Shown(fill) + " | table " + Shown(table) + " | other " + Shown(other));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── C9-6: a removed feature is not «still in the part» ───────────────
@@ -366,9 +366,9 @@ namespace Oce.Solid.Agent.ContractTests
                 bool ok = volume != null && volume.Contains("I removed it") && volume.Contains("990") &&
                           volume.Contains("1000") && !volume.Contains("still in the part") &&
                           longer != null && longer.Contains("1 feature more") && !longer.Contains("still in the part");
-                Segna(rule, ok, "volume " + Shown(volume) + " | tree " + Shown(longer));
+                Check(rule, ok, "volume " + Shown(volume) + " | tree " + Shown(longer));
             }
-            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── the call sites, in the source ────────────────────────────────────
@@ -377,15 +377,15 @@ namespace Oce.Solid.Agent.ContractTests
         // counts include the definition where there is one.
         private static void CallSites()
         {
-            string dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
+            string dir = Path.Combine(Root(), "Oce.Solid.Agent.Core");
 
             string extrusion = Read(dir, "EditExtrusionOperations.cs");
             if (extrusion != null)
             {
-                bool kept = Regex.IsMatch(extrusion, @"\w+\s*=\s*dati\.AccessSelections\(");
-                bool bare = Regex.IsMatch(extrusion, @"(?m)^\s*dati\.AccessSelections\(");
+                bool kept = Regex.IsMatch(extrusion, @"\w+\s*=\s*data\.AccessSelections\(");
+                bool bare = Regex.IsMatch(extrusion, @"(?m)^\s*data\.AccessSelections\(");
                 int readBacks = Count(extrusion, "ExtrusionReadBack(");
-                Segna("L5-5/M42: edit_extrusion keeps the answer of AccessSelections and reads a refused definition back",
+                Check("L5-5/M42: edit_extrusion keeps the answer of AccessSelections and reads a refused definition back",
                       kept && !bare && readBacks >= 2,
                       "answer kept " + kept + ", bare call " + bare + ", ExtrusionReadBack " + readBacks + " (with the definition)");
             }
@@ -398,7 +398,7 @@ namespace Oce.Solid.Agent.ContractTests
                 int voidOpeners = Regex.Matches(patterns, @"void \w+\(object d, IModelDoc2 m\)").Count;
                 int returned = Regex.Matches(patterns, @"return \(\(I\w+PatternFeatureData\)d\)\.AccessSelections\(").Count;
                 int refusals = Count(patterns, "AccessSelections answered false");
-                Segna("L5-5: suppress_instance reads AccessSelections for its three families, where it opens and where it puts back",
+                Check("L5-5: suppress_instance reads AccessSelections for its three families, where it opens and where it puts back",
                       voidOpeners == 0 && returned == 3 && refusals == 2,
                       voidOpeners + " void openers, " + returned + " returned answers, " + refusals + " refusals on a false answer");
             }
@@ -410,7 +410,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool kept = Regex.IsMatch(tolerance, @"status\s*=\s*dd\.SetPrecision3\(");
                 int verdicts = Count(tolerance, "ToleranceDecimalsFault(");
                 int restores = Count(tolerance, "RestoreTolerance(");
-                Segna("L5-7/M42: dimension_tolerance keeps every SetPrecision3 answer, judges them all and reads the restore back",
+                Check("L5-7/M42: dimension_tolerance keeps every SetPrecision3 answer, judges them all and reads the restore back",
                       !bare && kept && verdicts >= 2 && restores >= 3,
                       "bare call " + bare + ", answer kept " + kept + ", ToleranceDecimalsFault " + verdicts +
                       ", RestoreTolerance " + restores + " (definition and two calls expected)");
@@ -419,8 +419,8 @@ namespace Oce.Solid.Agent.ContractTests
             string measure = Read(dir, "MeasureOperations.cs");
             if (measure != null)
             {
-                bool guarded = Regex.IsMatch(measure, @"if \(\w+ < 0\)\s*return Fallito\(\s*""SOLIDWORKS found no closest distance");
-                Segna("L12-9: minimum_distance says ClosestDistance's -1 as «no solution»", guarded,
+                bool guarded = Regex.IsMatch(measure, @"if \(\w+ < 0\)\s*return Failed\(\s*""SOLIDWORKS found no closest distance");
+                Check("L12-9: minimum_distance says ClosestDistance's -1 as «no solution»", guarded,
                       guarded ? "guarded" : "no guard on the -1");
             }
 
@@ -430,7 +430,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool bare = Regex.IsMatch(state, @"(?m)^\s*\w+\.Get6\(");
                 bool kept = Regex.IsMatch(state, @"int \w+ = \w+\.Get6\(");
                 bool notPresent = state.Contains("swCustomInfoGetResult_NotPresent) continue;");
-                Segna("L17-8: the state reads the result code of Get6 and leaves out a name that is not present",
+                Check("L17-8: the state reads the result code of Get6 and leaves out a name that is not present",
                       !bare && kept && notPresent, "bare call " + bare + ", code kept " + kept + ", NotPresent skipped " + notPresent);
             }
 
@@ -441,7 +441,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool unsuppress = Regex.IsMatch(sheet, @"bool \w+ = \w+\.SetSuppression2\(");
                 bool suppress = Regex.IsMatch(sheet, @"\w+ = \w+\.SetSuppression2\(\(int\)swFeatureSuppressionAction_e\.swSuppressFeature");
                 int reported = Count(sheet, "[\"flat_pattern_problem\"] = ");
-                Segna("M24: both SetSuppression2 answers around the flat pattern are read, and the answers say a refusal",
+                Check("M24: both SetSuppression2 answers around the flat pattern are read, and the answers say a refusal",
                       !bare && unsuppress && suppress && reported >= 5,
                       "bare call " + bare + ", unsuppress kept " + unsuppress + ", suppress kept " + suppress +
                       ", answers that report it " + reported);
@@ -451,12 +451,12 @@ namespace Oce.Solid.Agent.ContractTests
                 // refuses before placing the view when the flat pattern did not
                 // toggle (flat_pattern_view called the NaN-only overload until the
                 // review of this lot).
-                bool nanOnly = Regex.IsMatch(sheet, @"double LunghezzaSviluppata\(IModelDoc2 \w+, out double \w+\)");
+                bool nanOnly = Regex.IsMatch(sheet, @"double FlattenedLength\(IModelDoc2 \w+, out double \w+\)");
                 string flatView = Read(dir, "DrawingFlatPatternOperations.cs");
                 bool viewReports = flatView != null &&
-                                   Regex.IsMatch(flatView, @"LunghezzaSviluppata\(\w+, out double _, out string flatPatternProblem\);") &&
+                                   Regex.IsMatch(flatView, @"FlattenedLength\(\w+, out double _, out string flatPatternProblem\);") &&
                                    flatView.Contains("if (flatPatternProblem != null)");
-                Segna("M24: every caller of the flat length gets the reason, flat_pattern_view included",
+                Check("M24: every caller of the flat length gets the reason, flat_pattern_view included",
                       !nanOnly && viewReports, "NaN-only overload " + nanOnly + ", flat_pattern_view reports it " + viewReports);
             }
 
@@ -464,17 +464,17 @@ namespace Oce.Solid.Agent.ContractTests
             if (properties != null)
             {
                 bool compared = Regex.IsMatch(properties, @"if \(!PropertyWrittenAsAsked\(\w+, \w+, \w+\)\)");
-                Segna("M35: set_property compares the text written with ValOut", compared,
+                Check("M35: set_property compares the text written with ValOut", compared,
                       compared ? "compared" : "PropertyWrittenAsAsked is not called");
             }
 
             string picture = Read(dir, "RetraceOperations.cs");
             if (picture != null)
             {
-                bool size = Regex.IsMatch(picture, @"\w+ = foto\.SetSize\(");
-                bool origin = Regex.IsMatch(picture, @"\w+ = foto\.SetOrigin\(");
+                bool size = Regex.IsMatch(picture, @"\w+ = photo\.SetSize\(");
+                bool origin = Regex.IsMatch(picture, @"\w+ = photo\.SetOrigin\(");
                 int judged = Count(picture, "PicturePlacementFault(");
-                Segna("M36: sketch_picture keeps both answers and judges the placement",
+                Check("M36: sketch_picture keeps both answers and judges the placement",
                       size && origin && judged >= 2, "SetSize kept " + size + ", SetOrigin kept " + origin +
                       ", PicturePlacementFault " + judged + " (with the definition)");
             }
@@ -485,10 +485,10 @@ namespace Oce.Solid.Agent.ContractTests
                 bool fillet = Regex.IsMatch(main, @"EdgeFeatureVolumeCheck\(\w+, ""fillet""");
                 bool chamfer = Regex.IsMatch(main, @"EdgeFeatureVolumeCheck\(\w+, ""chamfer""");
                 bool mass = Regex.IsMatch(main, @"return MassOfBodies\(readings, out \w+, out \w+\);");
-                Segna("M37/M43: fillet and chamfer check the volume, and MassaDi goes through MassOfBodies",
+                Check("M37/M43: fillet and chamfer check the volume, and MassaDi goes through MassOfBodies",
                       fillet && chamfer && mass, "fillet " + fillet + ", chamfer " + chamfer + ", MassOfBodies " + mass);
                 bool byStatus = Regex.IsMatch(main, @"SetValueRefusalCause\(\w+\)\);");
-                Segna("L5-6: set_dimension words its refusal by the status of SetSystemValue3", byStatus,
+                Check("L5-6: set_dimension words its refusal by the status of SetSystemValue3", byStatus,
                       byStatus ? "SetValueRefusalCause is called" : "SetValueRefusalCause is not called");
             }
 
@@ -496,7 +496,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (bodies != null)
             {
                 bool r1 = Regex.IsMatch(bodies, @"R1:\s*0,");
-                Segna("M37: the variable fillet passes R1 = 0, as FeatureFillet3.html asks", r1,
+                Check("M37: the variable fillet passes R1 = 0, as FeatureFillet3.html asks", r1,
                       r1 ? "R1: 0" : "R1 is not 0");
             }
 
@@ -504,7 +504,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (order != null)
             {
                 int reread = Count(order, "TreeReadBackFault(");
-                Segna("M42: reorder_feature reads the tree back before «nothing touched» and «put back»",
+                Check("M42: reorder_feature reads the tree back before «nothing touched» and «put back»",
                       reread >= 3, "TreeReadBackFault " + reread + " (definition and two calls expected)");
             }
 
@@ -516,7 +516,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool opened = Regex.IsMatch(anchor, @"var openSketch = \w+\.ActiveSketch;");
                 int clearBeforeClose = Regex.Matches(anchor,
                     @"try \{ \w+\.ClearSelection2\(true\); \} catch \{ \}\s*if \(\w+\) \{ try \{ \w+\.InsertSketch\(true\); \} catch \{ \} \}").Count;
-                Segna("N49/N53/N56: no direct sketch-point cast, the status named, the open sketch read, the selection cleared first",
+                Check("N49/N53/N56: no direct sketch-point cast, the status named, the open sketch read, the selection cleared first",
                       casts == 0 && statusNamed && opened && clearBeforeClose >= 1,
                       casts + " direct casts, status named " + statusNamed + ", open sketch read " + opened +
                       ", clear before close " + clearBeforeClose);
@@ -526,16 +526,16 @@ namespace Oce.Solid.Agent.ContractTests
             foreach (var file in new[] { "AnchorOperations.cs", "FillPatternOperations.cs", "WeldmentOperations.cs" })
             {
                 string text = Read(dir, file);
-                if (text != null && text.Contains("return RemovedButVolumeChanged(volumeDopo.GetValueOrDefault(), volumePrima.GetValueOrDefault());")) removals++;
+                if (text != null && text.Contains("return RemovedButVolumeChanged(volumeAfter.GetValueOrDefault(), volumeBefore.GetValueOrDefault());")) removals++;
             }
-            Segna("C9-6: the three removal helpers give the new volume instead of «still in the part»",
+            Check("C9-6: the three removal helpers give the new volume instead of «still in the part»",
                   removals == 3, removals + " of 3");
         }
 
         private static string Read(string dir, string file)
         {
             try { return File.ReadAllText(Path.Combine(dir, file)); }
-            catch (Exception ex) { Segna(file + " can be read", false, ex.Message); return null; }
+            catch (Exception ex) { Check(file + " can be read", false, ex.Message); return null; }
         }
 
         private static int Count(string text, string what)

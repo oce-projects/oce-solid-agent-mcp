@@ -31,7 +31,7 @@
 param([string]$SwInstallPath, [string]$SwRedist)
 
 $ErrorActionPreference = 'Stop'
-$radice = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent $PSScriptRoot
 
 $csc = @(
     'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe',
@@ -40,12 +40,12 @@ $csc = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $csc) { throw "Roslyn (csc.exe dei Build Tools) non trovato." }
 
-$radiciSw = @($SwInstallPath, $env:SW_INSTALL_PATH) |
+$swRoots = @($SwInstallPath, $env:SW_INSTALL_PATH) |
     Where-Object { $_ } |
     ForEach-Object { Join-Path $_ 'api\redist' }
 
 $interop = @(
-    $radiciSw +
+    $swRoots +
     @(
         $SwRedist,
         $env:SW_REDIST,
@@ -53,10 +53,10 @@ $interop = @(
     )
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 
-$libreria = Join-Path $radice 'Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll'
+$library = Join-Path $root 'Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll'
 
 # nome ; cosa gli serve accanto
-$attrezzi = @(
+$tools = @(
     @{ nome = 'GearTest';     sw = $false; lib = $true  },
     @{ nome = 'OutlineTest';    sw = $false; lib = $true  },
     @{ nome = 'PositionsTest'; sw = $false; lib = $true  },
@@ -111,30 +111,30 @@ $attrezzi = @(
     @{ nome = 'RibWithdraw'; sw = $true; lib = $false }
 )
 
-foreach ($a in $attrezzi) {
-    $cartella = Join-Path $PSScriptRoot $a.nome
-    $bin = Join-Path $cartella 'bin'
-    $sorgente = Join-Path $cartella 'Program.cs'
-    if (-not (Test-Path $sorgente)) { throw "manca $sorgente" }
+foreach ($a in $tools) {
+    $folder = Join-Path $PSScriptRoot $a.nome
+    $bin = Join-Path $folder 'bin'
+    $source = Join-Path $folder 'Program.cs'
+    if (-not (Test-Path $source)) { throw "manca $source" }
     New-Item -ItemType Directory -Force -Path $bin | Out-Null
 
-    $rif = @()
+    $refObj = @()
     if ($a.lib) {
-        if (-not (Test-Path $libreria)) {
-            throw "manca $libreria : costruisci prima la libreria (.\build.ps1)"
+        if (-not (Test-Path $library)) {
+            throw "manca $library : costruisci prima la libreria (.\build.ps1)"
         }
         # La DLL si COPIA accanto all'eseguibile, non si referenzia e basta:
         # senza la copia l'exe parte e muore con FileNotFoundException al primo
         # uso, che e' il modo peggiore di accorgersene.
-        Copy-Item $libreria $bin -Force
-        $rif += '-reference:' + (Join-Path $bin 'Oce.Solid.Agent.Core.dll')
+        Copy-Item $library $bin -Force
+        $refObj += '-reference:' + (Join-Path $bin 'Oce.Solid.Agent.Core.dll')
     }
     if ($a.sw) {
         foreach ($d in @('SolidWorks.Interop.sldworks.dll', 'SolidWorks.Interop.swconst.dll')) {
             $p = Join-Path $interop $d
             if (-not (Test-Path $p)) { throw "manca $p" }
             Copy-Item $p $bin -Force
-            $rif += '-reference:' + (Join-Path $bin $d)
+            $refObj += '-reference:' + (Join-Path $bin $d)
         }
     }
 
@@ -153,7 +153,7 @@ foreach ($a in $attrezzi) {
             continue
         }
         Copy-Item $p $bin -Force
-        $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.cosworks.dll')
+        $refObj += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.cosworks.dll')
     }
 
     # `util = $true`: l'interop di SOLIDWORKS Utilities, per la stessa ragione
@@ -165,26 +165,26 @@ foreach ($a in $attrezzi) {
             continue
         }
         Copy-Item $p $bin -Force
-        $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.gtswutilities.dll')
+        $refObj += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.gtswutilities.dll')
     }
 
     if ($a.dimx) {
         $p = Join-Path $interop 'SolidWorks.Interop.swdimxpert.dll'
         if (-not (Test-Path $p)) { throw "manca $p" }
         Copy-Item $p $bin -Force
-        $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.swdimxpert.dll')
+        $refObj += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.swdimxpert.dll')
     }
 
     # `disegno = $true` aggiunge System.Drawing: serve a chi guarda i PIXEL di
     # un'immagine invece della geometria. Roslyn non lo referenzia da solo, e
     # senza si prende un CS0246 su `Bitmap` che non dice da dove viene.
-    if ($a.disegno) { $rif += '-reference:System.Drawing.dll' }
+    if ($a.disegno) { $refObj += '-reference:System.Drawing.dll' }
 
-    $uscita = Join-Path $bin ($a.nome + '.exe')
-    & $csc -nologo -langversion:7.3 -target:exe "-out:$uscita" @rif $sorgente
+    $output = Join-Path $bin ($a.nome + '.exe')
+    & $csc -nologo -langversion:7.3 -target:exe "-out:$output" @refObj $source
     if ($LASTEXITCODE -ne 0) { throw ($a.nome + ' non compila') }
     Write-Host ('  ' + $a.nome + '.exe')
 }
 
 Write-Host ''
-Write-Host 'Fatti. Le tre Prova* non aprono SOLIDWORKS; ChiudiScarti e NuovaParte si.'
+Write-Host 'Fatti. Le tre Prova* non aprono SOLIDWORKS; ChiudiScarti e NewPart si.'

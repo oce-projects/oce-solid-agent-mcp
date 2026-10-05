@@ -23,82 +23,82 @@ namespace Checks.Select
     /// gli identificativi dello stato: sono due numerazioni diverse, ed e'
     /// proprio la differenza che questa prova serve a misurare.
     /// </summary>
-    internal static class Programma
+    internal static class Program
     {
-        private static int Main(string[] argomenti)
+        private static int Main(string[] arguments)
         {
             // `--aggiungi` non svuota la selezione di prima: serve a provare
             // il caso che la voce E9 nominava come rischio — piu' entita'
             // selezionate insieme — che altrimenti non si costruisce.
-            bool aggiungi = false;
-            var puliti = new System.Collections.Generic.List<string>();
-            foreach (var a in argomenti)
+            bool append = false;
+            var clean = new System.Collections.Generic.List<string>();
+            foreach (var a in arguments)
             {
-                if (a == "--aggiungi") aggiungi = true;
-                else puliti.Add(a);
+                if (a == "--aggiungi") append = true;
+                else clean.Add(a);
             }
-            argomenti = puliti.ToArray();
+            arguments = clean.ToArray();
 
-            string cosa = argomenti.Length > 0 ? argomenti[0] : "faccia";
-            int quale = argomenti.Length > 1 && int.TryParse(argomenti[1], out var n) ? n : 1;
+            string what = arguments.Length > 0 ? arguments[0] : "faccia";
+            int which = arguments.Length > 1 && int.TryParse(arguments[1], out var n) ? n : 1;
 
-            object grezzo;
-            try { grezzo = Marshal.GetActiveObject("SldWorks.Application"); }
+            object raw;
+            try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
-            var sw = (ISldWorks)grezzo;
+            var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
-            if (!aggiungi) doc.ClearSelection2(true);
-            if (cosa == "niente")
+            if (!append) doc.ClearSelection2(true);
+            if (what == "niente")
             {
                 doc.ClearSelection2(true);
                 Console.WriteLine("selezione svuotata");
                 return 0;
             }
 
-            var parte = doc as IPartDoc;
-            if (parte == null) { Console.Error.WriteLine("Non e' una parte."); return 2; }
-            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-            if (corpi == null || corpi.Length == 0)
+            var partDoc = doc as IPartDoc;
+            if (partDoc == null) { Console.Error.WriteLine("Non e' una parte."); return 2; }
+            var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+            if (bodies == null || bodies.Length == 0)
             {
                 Console.Error.WriteLine("Il pezzo non ha corpi solidi.");
                 return 1;
             }
 
-            var corpo = corpi[Math.Min(quale, corpi.Length) - 1] as IBody2;
-            bool preso = false;
-            switch (cosa)
+            var body = bodies[Math.Min(which, bodies.Length) - 1] as IBody2;
+            bool taken = false;
+            switch (what)
             {
                 case "body":
-                    try { preso = corpo.Select2(aggiungi, null); } catch { }
+                    try { taken = body.Select2(append, null); } catch { }
                     break;
                 case "edge":
                 {
-                    var spigoli = corpo.GetEdges() as object[];
-                    if (spigoli != null && spigoli.Length >= quale)
+                    var edges = body.GetEdges() as object[];
+                    if (edges != null && edges.Length >= which)
                     {
-                        var e = spigoli[quale - 1] as IEntity;
-                        try { preso = e.Select4(aggiungi, null); } catch { }
+                        var e = edges[which - 1] as IEntity;
+                        try { taken = e.Select4(append, null); } catch { }
                     }
                     break;
                 }
                 default:
                 {
-                    var facce = corpo.GetFaces() as object[];
-                    if (facce != null && facce.Length >= quale)
+                    var faces = body.GetFaces() as object[];
+                    if (faces != null && faces.Length >= which)
                     {
-                        var f = facce[quale - 1] as IEntity;
-                        try { preso = f.Select4(aggiungi, null); } catch { }
+                        var f = faces[which - 1] as IEntity;
+                        try { taken = f.Select4(append, null); } catch { }
                     }
                     break;
                 }
             }
 
-            var selezione = (ISelectionMgr)doc.SelectionManager;
-            Console.WriteLine("selezionato: " + preso +
-                ", oggetti selezionati: " + selezione.GetSelectedObjectCount2(-1));
-            return preso ? 0 : 1;
+            var selection = (ISelectionMgr)doc.SelectionManager;
+            Console.WriteLine("selezionato: " + taken +
+                ", oggetti selezionati: " + selection.GetSelectedObjectCount2(-1));
+            return taken ? 0 : 1;
         }
     }
 }

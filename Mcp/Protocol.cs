@@ -22,11 +22,11 @@ namespace Oce.Solid.Agent.Mcp
     /// conversazione senza dire perche': i messaggi di servizio vanno su
     /// stderr, sempre. E' la trappola numero uno di ogni server MCP su stdio.
     /// </summary>
-    internal static class Protocollo
+    internal static class Protocol
     {
-        private static readonly JavaScriptSerializer Json = Creatore();
+        private static readonly JavaScriptSerializer Json = Creator();
 
-        private static JavaScriptSerializer Creatore()
+        private static JavaScriptSerializer Creator()
         {
             var s = new JavaScriptSerializer();
             s.MaxJsonLength = int.MaxValue;
@@ -36,17 +36,17 @@ namespace Oce.Solid.Agent.Mcp
 
         public static string InJson(object o) => Json.Serialize(o);
 
-        public static Dictionary<string, object> DaJson(string testo)
+        public static Dictionary<string, object> FromJson(string text)
         {
-            return Json.DeserializeObject(testo) as Dictionary<string, object>;
+            return Json.DeserializeObject(text) as Dictionary<string, object>;
         }
 
         /// <summary>Scrive un messaggio su stdout. Una riga, niente altro.</summary>
-        public static void Manda(TextWriter uscita, object messaggio)
+        public static void Send(TextWriter output, object message)
         {
-            uscita.Write(InJson(messaggio));
-            uscita.Write("\n");
-            uscita.Flush();
+            output.Write(InJson(message));
+            output.Write("\n");
+            output.Flush();
         }
 
         /// <summary>
@@ -70,24 +70,24 @@ namespace Oce.Solid.Agent.Mcp
         /// **una riga non-JSON su stdout rompe il client** (e' la trappola
         /// numero uno dei server MCP su stdio, gia' sorvegliata da una prova).
         /// </summary>
-        private static TextWriter _canale;
-        private static string _livello = "info";
+        private static TextWriter _channel;
+        private static string _level = "info";
 
         /// <summary>
         /// I livelli in ordine, come li elenca lo spec (syslog). Un messaggio
         /// esce se il suo livello e' **almeno** quello chiesto dal client.
         /// </summary>
-        private static readonly string[] Livelli =
+        private static readonly string[] Levels =
         {
             "debug", "info", "notice", "warning", "error", "critical", "alert", "emergency",
         };
 
-        public static void AccendiIlCanale(TextWriter uscita) { _canale = uscita; }
+        public static void TurnOnChannel(TextWriter output) { _channel = output; }
 
         /// <summary>
         /// Una notifica sul canale registrato, e **non solleva mai**.
         ///
-        /// Stessa ragione di `MandaComeNotifica`, scritta li' e valida
+        /// Stessa ragione di `SendAsNotification`, scritta li' e valida
         /// qui: se scrivere la notifica fallisse e l'errore risalisse, si
         /// perderebbe la RISPOSTA a cui la notifica era accessoria. *Un
         /// racconto che fa fallire la cosa raccontata e' peggio del
@@ -97,11 +97,11 @@ namespace Oce.Solid.Agent.Mcp
         /// `--prova`, e di ogni prova che costruisce il messaggio senza
         /// avere nessuno a cui mandarlo.
         /// </summary>
-        internal static void NotificaSulCanale(object messaggio)
+        internal static void NotifyOnChannel(object message)
         {
-            var canale = _canale;
-            if (canale == null) return;
-            try { Manda(canale, messaggio); }
+            var channel = _channel;
+            if (channel == null) return;
+            try { Send(channel, message); }
             catch { }
         }
 
@@ -110,57 +110,57 @@ namespace Oce.Solid.Agent.Mcp
         /// applica**: cambiarlo a caso vorrebbe dire far sparire messaggi senza
         /// che nessuno l'abbia chiesto. Torna `true` se e' stato accettato.
         /// </summary>
-        public static bool ImpostaIlLivello(string livello)
+        public static bool SetLevel(string level)
         {
-            if (string.IsNullOrWhiteSpace(livello)) return false;
-            var l = livello.Trim().ToLowerInvariant();
-            if (Array.IndexOf(Livelli, l) < 0) return false;
-            _livello = l;
+            if (string.IsNullOrWhiteSpace(level)) return false;
+            var l = level.Trim().ToLowerInvariant();
+            if (Array.IndexOf(Levels, l) < 0) return false;
+            _level = l;
             return true;
         }
 
-        public static void Nota(string testo)
+        public static void Note(string text)
         {
-            Console.Error.WriteLine(testo);
+            Console.Error.WriteLine(text);
             Console.Error.Flush();
-            MandaComeNotifica(testo, "info");
+            SendAsNotification(text, "info");
         }
 
-        private static void MandaComeNotifica(string testo, string livello)
+        private static void SendAsNotification(string text, string level)
         {
-            var canale = _canale;
-            if (canale == null) return;
-            if (Array.IndexOf(Livelli, livello) < Array.IndexOf(Livelli, _livello)) return;
+            var channel = _channel;
+            if (channel == null) return;
+            if (Array.IndexOf(Levels, level) < Array.IndexOf(Levels, _level)) return;
 
             // TUTTO DENTRO UN try CHE NON RILANCIA, e non e' pigrizia: se
             // scrivere la notifica fallisse e l'errore risalisse, si
             // perderebbe la RISPOSTA a cui la notifica era accessoria. Un
             // racconto che fa fallire la cosa raccontata e' peggio del silenzio.
-            // E non si chiama `Nota` qui dentro: sarebbe ricorsione infinita.
+            // E non si chiama `Note` qui dentro: sarebbe ricorsione infinita.
             try
             {
-                Manda(canale, new Dictionary<string, object>
+                Send(channel, new Dictionary<string, object>
                 {
                     ["jsonrpc"] = "2.0",
                     ["method"] = "notifications/message",
                     ["params"] = new Dictionary<string, object>
                     {
-                        ["level"] = livello,
+                        ["level"] = level,
                         ["logger"] = "oce-solid-agent",
-                        ["data"] = testo,
+                        ["data"] = text,
                     },
                 });
             }
             catch { }
         }
 
-        public static Dictionary<string, object> Risposta(object id, object risultato)
+        public static Dictionary<string, object> Response(object id, object result)
         {
             return new Dictionary<string, object>
             {
                 ["jsonrpc"] = "2.0",
                 ["id"] = id,
-                ["result"] = risultato,
+                ["result"] = result,
             };
         }
 
@@ -171,7 +171,7 @@ namespace Oce.Solid.Agent.Mcp
         /// chiama non puo' distinguere «non ti ho capito» da «il pezzo non e'
         /// venuto».
         /// </summary>
-        public static Dictionary<string, object> Errore(object id, int codice, string messaggio)
+        public static Dictionary<string, object> Error(object id, int code, string message)
         {
             return new Dictionary<string, object>
             {
@@ -179,22 +179,22 @@ namespace Oce.Solid.Agent.Mcp
                 ["id"] = id,
                 ["error"] = new Dictionary<string, object>
                 {
-                    ["code"] = codice,
-                    ["message"] = messaggio,
+                    ["code"] = code,
+                    ["message"] = message,
                 },
             };
         }
 
         /// <summary>Il risultato di uno strumento: testo, con o senza errore.</summary>
-        public static Dictionary<string, object> Contenuto(string testo, bool eUnErrore = false)
+        public static Dictionary<string, object> Content(string text, bool isError = false)
         {
             return new Dictionary<string, object>
             {
                 ["content"] = new object[]
                 {
-                    new Dictionary<string, object> { ["type"] = "text", ["text"] = testo },
+                    new Dictionary<string, object> { ["type"] = "text", ["text"] = text },
                 },
-                ["isError"] = eUnErrore,
+                ["isError"] = isError,
             };
         }
 
@@ -232,19 +232,19 @@ namespace Oce.Solid.Agent.Mcp
         /// codice. Scritto qui perche' il prossimo che passa non lo aggiunga
         /// «perche' mancava».
         ///
-        /// UN NOME DIVERSO invece di un parametro in piu' su `Contenuto`: la
+        /// UN NOME DIVERSO invece di un parametro in piu' su `Content`: la
         /// stessa lezione gia' pagata due volte, l'ultima con
-        /// `ContenutoConImmagini`.
+        /// `ContentWithImages`.
         /// </summary>
-        public static Dictionary<string, object> ContenutoConDati(
-            string testo, object dati, bool eUnErrore = false)
+        public static Dictionary<string, object> ContentWithData(
+            string text, object data, bool isError = false)
         {
-            var fuori = Contenuto(testo, eUnErrore);
+            var outside = Content(text, isError);
             // NON si scrive il campo quando non c'e' niente da metterci: un
             // `structuredContent: null` e' una promessa disattesa, e un client
             // che lo trova puo' solo dedurre che qualcosa e' andato storto.
-            if (dati != null) fuori["structuredContent"] = dati;
-            return fuori;
+            if (data != null) outside["structuredContent"] = data;
+            return outside;
         }
 
         /// <summary>
@@ -261,24 +261,24 @@ namespace Oce.Solid.Agent.Mcp
         /// si sta guardando. Un'immagine senza didascalia in mezzo a una
         /// conversazione e' un indovinello.
         ///
-        /// UN NOME DIVERSO invece di un parametro in piu' su `Contenuto`:
+        /// UN NOME DIVERSO invece di un parametro in piu' su `Content`:
         /// cambiare l'insieme delle firme di un metodo rompe chi lo chiama per
         /// riflessione anche quando il compilatore tace. E' la lezione della
         /// 0.25.1, applicata prima di ricascarci.
         /// </summary>
-        public static Dictionary<string, object> ContenutoConImmagini(
-            string testo, IEnumerable<KeyValuePair<string, byte[]>> immagini)
+        public static Dictionary<string, object> ContentWithImages(
+            string text, IEnumerable<KeyValuePair<string, byte[]>> images)
         {
-            var pezzi = new List<object>
+            var parts = new List<object>
             {
-                new Dictionary<string, object> { ["type"] = "text", ["text"] = testo },
+                new Dictionary<string, object> { ["type"] = "text", ["text"] = text },
             };
 
-            if (immagini != null)
-                foreach (var i in immagini)
+            if (images != null)
+                foreach (var i in images)
                 {
                     if (i.Value == null || i.Value.Length == 0) continue;
-                    pezzi.Add(new Dictionary<string, object>
+                    parts.Add(new Dictionary<string, object>
                     {
                         ["type"] = "image",
                         ["data"] = Convert.ToBase64String(i.Value),
@@ -288,15 +288,15 @@ namespace Oce.Solid.Agent.Mcp
 
             return new Dictionary<string, object>
             {
-                ["content"] = pezzi.ToArray(),
+                ["content"] = parts.ToArray(),
                 ["isError"] = false,
             };
         }
 
-        public const int ErroreParsing = -32700;
-        public const int RichiestaNonValida = -32600;
-        public const int MetodoSconosciuto = -32601;
-        public const int ParametriNonValidi = -32602;
-        public const int ErroreInterno = -32603;
+        public const int ParsingError = -32700;
+        public const int InvalidRequest = -32600;
+        public const int UnknownMethod = -32601;
+        public const int InvalidParameters = -32602;
+        public const int InternalError = -32603;
     }
 }

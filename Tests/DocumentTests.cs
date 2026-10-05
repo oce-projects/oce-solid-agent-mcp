@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -26,7 +26,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// e questo controllo costringe chi la aggiunge a passare di qui e
     /// aggiornare il numero sapendo cosa sta aggiornando.
     /// </summary>
-    internal static class ProveIlDocumento
+    internal static class DocumentTests
     {
         /// <summary>
         /// How many reads of `_sw.IActiveDoc2` `PlanExecutor.cs` has,
@@ -34,86 +34,86 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// Two, since finding M19 (lot Z-C21.5; five before, six before 23/9/2026):
         ///
-        ///   documentoAtteso    taken ONCE at the start: THE GOOD READ
+        ///   expectedDocument    taken ONCE at the start: THE GOOD READ
         ///   modello            the document a step writes on, compared with
-        ///                      documentoAtteso right after («still the same?»)
+        ///                      expectedDocument right after («still the same?»)
         ///
         /// The three M19 removed: the undo recording was STARTED on a fresh read
-        /// (and finished on documentoAtteso, two documents whenever the window
+        /// (and finished on expectedDocument, two documents whenever the window
         /// changed); the state sent to the plan source was read from the active
         /// document; and the closing of the recording waited for the active
-        /// document to be documentoAtteso. All three now use the document held.
-        /// The one removed on 23/9/2026 was in `ControlliPreliminari`, which now
+        /// document to be expectedDocument. All three now use the document held.
+        /// The one removed on 23/9/2026 was in `PreliminaryChecks`, which now
         /// RECEIVES the document.
         /// </summary>
-        private const int Tetto = 2;
+        private const int Cap = 2;
 
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("il documento si tiene per mano (Z-C5)");
+            Group("il documento si tiene per mano (Z-C5)");
 
-            string file = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
+            string file = Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(file))
             {
-                Segna("PlanExecutor.cs c'e'", false, "manca " + file);
+                Check("PlanExecutor.cs c'e'", false, "manca " + file);
                 return;
             }
 
-            var righe = File.ReadAllLines(file);
-            int quante = 0;
-            var dove = new System.Collections.Generic.List<string>();
-            for (int i = 0; i < righe.Length; i++)
+            var lines = File.ReadAllLines(file);
+            int howMany = 0;
+            var location = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < lines.Length; i++)
             {
-                var r = righe[i];
+                var r = lines[i];
                 // I COMMENTI PARLANO DI QUESTE LETTURE, e sono tanti: contarli
                 // vorrebbe dire che spiegare il problema lo peggiora.
-                var senzaSpazi = r.TrimStart();
-                if (senzaSpazi.StartsWith("//", StringComparison.Ordinal) ||
-                    senzaSpazi.StartsWith("///", StringComparison.Ordinal)) continue;
-                if (r.Contains("_sw.IActiveDoc2")) { quante++; dove.Add((i + 1).ToString()); }
+                var withoutSpaces = r.TrimStart();
+                if (withoutSpaces.StartsWith("//", StringComparison.Ordinal) ||
+                    withoutSpaces.StartsWith("///", StringComparison.Ordinal)) continue;
+                if (r.Contains("_sw.IActiveDoc2")) { howMany++; location.Add((i + 1).ToString()); }
             }
 
-            Segna("le letture del documento attivo non sono aumentate",
-                  quante <= Tetto,
-                  quante + " letture (tetto " + Tetto + "), alle righe " +
-                  string.Join(", ", dove));
+            Check("le letture del documento attivo non sono aumentate",
+                  howMany <= Cap,
+                  howMany + " letture (tetto " + Cap + "), alle righe " +
+                  string.Join(", ", location));
 
             // E IL TETTO NON DEV'ESSERE PIU' LARGO DEL VERO. Un tetto messo
             // alto «per stare tranquilli» non e' un tetto: e' un numero che non
             // ha mai detto di no, e il giorno in cui servirebbe non lo dira'.
-            Segna("il tetto e' quello vero, non uno comodo",
-                  quante == Tetto,
-                  quante == Tetto
-                      ? quante + ", the ones listed in the comment"
-                      : quante + " left: if that is meant, lower the ceiling");
+            Check("il tetto e' quello vero, non uno comodo",
+                  howMany == Cap,
+                  howMany == Cap
+                      ? howMany + ", the ones listed in the comment"
+                      : howMany + " left: if that is meant, lower the ceiling");
 
             // ── E CHI DECIDE NON SE LO RIPESCA ──────────────────────────
             //
-            // Il difetto vero non era il numero: era che `ControlliPreliminari`
+            // Il difetto vero non era il numero: era che `PreliminaryChecks`
             // leggeva il globale per conto suo e poi il piano lo rileggeva.
             // Approvavano due documenti diversi senza che niente lo dicesse.
-            string testo = File.ReadAllText(file);
-            Segna("i controlli preliminari RICEVONO il documento",
-                  Regex.IsMatch(testo,
-                      @"private string ControlliPreliminari\(\s*IModelDoc2 \w+\s*\)"),
-                  "non `ControlliPreliminari()`");
+            string text = File.ReadAllText(file);
+            Check("i controlli preliminari RICEVONO il documento",
+                  Regex.IsMatch(text,
+                      @"private string PreliminaryChecks\(\s*IModelDoc2 \w+\s*\)"),
+                  "non `PreliminaryChecks()`");
 
             // E che li riceva non basta se poi se lo ripesca lo stesso: si
             // guarda il corpo del metodo, non solo la firma.
-            int inizio = testo.IndexOf("private string ControlliPreliminari(",
+            int start = text.IndexOf("private string PreliminaryChecks(",
                                        StringComparison.Ordinal);
-            string corpo = inizio < 0 ? "" : testo.Substring(inizio);
-            Segna("e dentro non se lo ripesca",
-                  inizio >= 0 && !CorpoLegge(corpo),
+            string body = start < 0 ? "" : text.Substring(start);
+            Check("e dentro non se lo ripesca",
+                  start >= 0 && !BodyReads(body),
                   "nessun `_sw.IActiveDoc2` nel corpo di ControlliPreliminari");
 
-            UndoOnTheDocumentHeld(righe);
+            UndoOnTheDocumentHeld(lines);
         }
 
         /// <summary>
         /// THE UNDO RECORDING AND THE STATE GO WITH THE DOCUMENT HELD (finding
         /// M19, lot Z-C21.5). On library 0.145.0 the recording was started on
-        /// a fresh read of the active document and finished on documentoAtteso,
+        /// a fresh read of the active document and finished on expectedDocument,
         /// the state sent to the plan source was read from the active document,
         /// and a step that moved the plan to a new document retargeted the
         /// finish without closing the first recording. Checked on the source,
@@ -136,7 +136,7 @@ namespace Oce.Solid.Agent.ContractTests
             string startBody = Body(text, "private static IModelDoc2 StartUndoRecording(");
             // It returns what SOLIDWORKS answered since Z-C21.14 (bool?).
             string finishBody = Body(text, "private bool? FinishUndoRecording(");
-            Segna("the undo recording is started and finished in one place each",
+            Check("the undo recording is started and finished in one place each",
                   starts == 1 && finishes == 1 &&
                   startBody != null && startBody.Contains("StartRecordingUndoObject") &&
                   finishBody != null && Regex.IsMatch(finishBody, @"FinishRecordingUndoObject2?\s*\("),
@@ -146,26 +146,26 @@ namespace Oce.Solid.Agent.ContractTests
 
             // With the two reads of the ceiling above, a state read that is not
             // on the active document can only be on the document held.
-            Segna("it starts on the document held, and the state is not read from the active one (M19)",
-                  text.Contains("undoRecordedOn = StartUndoRecording(documentoAtteso)") &&
-                  !Regex.IsMatch(text, @"StatoDocumento\.Leggi\(\s*_sw\.IActiveDoc2"),
+            Check("it starts on the document held, and the state is not read from the active one (M19)",
+                  text.Contains("undoRecordedOn = StartUndoRecording(expectedDocument)") &&
+                  !Regex.IsMatch(text, @"DocumentState\.Read\(\s*_sw\.IActiveDoc2"),
                   "not on a fresh _sw.IActiveDoc2");
 
             // The change of document: the old recording is closed and a new one
-            // opened BEFORE documentoAtteso moves.
-            int block = text.IndexOf("if (e.DocumentoNuovo != null)", StringComparison.Ordinal);
-            int move = block < 0 ? -1 : text.IndexOf("documentoAtteso = e.DocumentoNuovo;", block, StringComparison.Ordinal);
+            // opened BEFORE expectedDocument moves.
+            int block = text.IndexOf("if (e.NewDocument != null)", StringComparison.Ordinal);
+            int move = block < 0 ? -1 : text.IndexOf("expectedDocument = e.NewDocument;", block, StringComparison.Ordinal);
             string between = move < 0 ? "" : text.Substring(block, move - block);
-            Segna("a step that changes document closes the recording and opens a new one",
+            Check("a step that changes document closes the recording and opens a new one",
                   move > block &&
                   between.Contains("FinishUndoRecording(undoRecordedOn)") &&
-                  between.Contains("undoRecordedOn = StartUndoRecording(e.DocumentoNuovo)"),
+                  between.Contains("undoRecordedOn = StartUndoRecording(e.NewDocument)"),
                   move < 0 ? "the DocumentoNuovo block or its reassignment is missing"
                            : "FinishUndoRecording, then StartUndoRecording on the new document, before the reassignment");
 
             // The only finish call sits in FinishUndoRecording (checked above),
             // so these two calls are all the closings there are.
-            Segna("and the plan closes the recording on the document that holds it",
+            Check("and the plan closes the recording on the document that holds it",
                   Regex.Matches(text, @"FinishUndoRecording\(undoRecordedOn\)").Count == 2,
                   "FinishUndoRecording(undoRecordedOn) at the change of document and at the end, " +
                   "not a finish on another document behind an active-document test");
@@ -192,22 +192,22 @@ namespace Oce.Solid.Agent.ContractTests
 
         /// <summary>Il corpo del metodo, fino alla chiusura della graffa —
         /// contata, non indovinata da un'indentazione.</summary>
-        private static bool CorpoLegge(string daQui)
+        private static bool BodyReads(string fromHere)
         {
-            int graffe = 0;
-            bool cominciato = false;
-            for (int i = 0; i < daQui.Length; i++)
+            int braces = 0;
+            bool begun = false;
+            for (int i = 0; i < fromHere.Length; i++)
             {
-                char c = daQui[i];
-                if (c == '{') { graffe++; cominciato = true; }
+                char c = fromHere[i];
+                if (c == '{') { braces++; begun = true; }
                 else if (c == '}')
                 {
-                    graffe--;
-                    if (cominciato && graffe == 0)
-                        return daQui.Substring(0, i).Contains("_sw.IActiveDoc2");
+                    braces--;
+                    if (begun && braces == 0)
+                        return fromHere.Substring(0, i).Contains("_sw.IActiveDoc2");
                 }
             }
-            return daQui.Contains("_sw.IActiveDoc2");
+            return fromHere.Contains("_sw.IActiveDoc2");
         }
     }
 }

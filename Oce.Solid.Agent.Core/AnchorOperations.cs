@@ -72,65 +72,65 @@ namespace Oce.Solid.Agent.Core
     /// dire lo stesso punto, e se non lo dicono si rifiuta: una quota da 20 su
     /// un punto che sta a 25 sposterebbe il profilo di 5 mm senza errore.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private sealed class SpigoloDiAncora
+        private sealed class AnchorEdge
         {
             public string Uid;
-            public IEdge Spigolo;
-            public double[] InizioMm, FineMm;   // nel sistema del MODELLO
+            public IEdge Edge;
+            public double[] StartMm, FineMm;   // nel sistema del MODELLO
         }
 
-        private sealed class AncoraAsse
+        private sealed class AnchorAxis
         {
-            public string Nome;                 // «x» o «y»
-            public int Indice;                  // 0 = x, 1 = y (lungo assi[Indice])
-            public SpigoloDiAncora Spigolo;     // quota da uno spigolo
-            public double DistanzaMm;
-            public SpigoloDiAncora Fra1, Fra2;  // oppure centrata fra due
-            public bool Centrata { get { return Fra1 != null; } }
-            public IDimension QuotaNata;        // per la prova di movimento
+            public string Name;                 // «x» o «y»
+            public int Index;                  // 0 = x, 1 = y (lungo assi[Indice])
+            public AnchorEdge Edge;     // quota da uno spigolo
+            public double DistanceMm;
+            public AnchorEdge Fra1, Fra2;  // oppure centrata fra due
+            public bool Centered { get { return Fra1 != null; } }
+            public IDimension CreatedDimension;        // per la prova di movimento
         }
 
-        private sealed class Ancoraggio
+        private sealed class Anchoring
         {
-            public AncoraAsse X, Y;
-            public bool Vuoto { get { return X == null && Y == null; } }
-            public IEnumerable<AncoraAsse> Assi() { if (X != null) yield return X; if (Y != null) yield return Y; }
+            public AnchorAxis X, Y;
+            public bool Empty { get { return X == null && Y == null; } }
+            public IEnumerable<AnchorAxis> Axes() { if (X != null) yield return X; if (Y != null) yield return Y; }
         }
 
         /// <summary>
         /// Legge `anchor` e la confronta con la faccia, con `x_mm`/`y_mm` e con
-        /// l'ingombro del profilo (`mezzoU`, `mezzoV`: meta' della larghezza del
+        /// l'ingombro del profilo (`halfU`, `halfV`: meta' della larghezza del
         /// profilo lungo x e lungo y — il raggio per un foro). Torna un
         /// ancoraggio VUOTO se l'argomento non c'e' (il vecchio modo, coordinate
         /// assolute, resta com'e'); null con il motivo se l'ancora e' sbagliata.
         /// </summary>
-        private Ancoraggio LeggiAncora(
-            Dictionary<string, object> a, StatoDocumento stato, IFace2 faccia,
-            double[] assi, double offsetM, double x, double y, double mezzoU, double mezzoV,
-            out string motivo)
+        private Anchoring ReadAnchor(
+            Dictionary<string, object> a, DocumentState docState, IFace2 face,
+            double[] axes, double offsetM, double x, double y, double halfU, double halfV,
+            out string reason)
         {
-            motivo = null;
-            object grezza;
-            if (a == null || !a.TryGetValue("anchor", out grezza) || grezza == null) return new Ancoraggio();
+            reason = null;
+            object raw;
+            if (a == null || !a.TryGetValue("anchor", out raw) || raw == null) return new Anchoring();
 
-            var d = grezza as Dictionary<string, object>;
+            var d = raw as Dictionary<string, object>;
             if (d == null)
             {
-                motivo = "«anchor» dev'essere un oggetto con «x» e «y»: per ognuno " +
+                reason = "«anchor» dev'essere un oggetto con «x» e «y»: per ognuno " +
                          "{\"edge_uid\": \"E7\", \"distance_mm\": 20} oppure {\"centered_between\": [\"E3\", \"E5\"]}.";
                 return null;
             }
-            foreach (var chiave in d.Keys)
-                if (chiave != "x" && chiave != "y")
+            foreach (var key in d.Keys)
+                if (key != "x" && key != "y")
                 {
-                    motivo = "«anchor» non conosce «" + chiave + "»: le chiavi sono «x» e «y», una per asse.";
+                    reason = "«anchor» non conosce «" + key + "»: le chiavi sono «x» e «y», una per asse.";
                     return null;
                 }
             if (!d.ContainsKey("x") || !d.ContainsKey("y"))
             {
-                motivo = "L'ancora vuole TUTTI E DUE gli assi, «x» e «y». Un asse senza ancora resterebbe " +
+                reason = "L'ancora vuole TUTTI E DUE gli assi, «x» e «y». Un asse senza ancora resterebbe " +
                          "libero, e alla prima modifica del pezzo il profilo andrebbe dove lo mette il " +
                          "risolutore, senza errore. Se su un asse vuoi la posizione di adesso, ancoralo allo " +
                          "spigolo da cui la misureresti.";
@@ -141,89 +141,89 @@ namespace Oce.Solid.Agent.Core
             // IFace2~Normal.html, Remarks: «If the face is not a planar face, then
             // this property returns 0,0,0». Con (0,0,0) il controllo del bordo
             // di smusso qui sotto dava coseno 0 per OGNI faccia adiacente, e
-            // lasciava passare tutto. NormaleDellaFaccia chiede IsPlane() prima,
+            // lasciava passare tutto. FaceNormal chiede IsPlane() prima,
             // come Riferimenti.Normale; senza una faccia piana l'ancora si rifiuta.
-            double[] normale = NormaleDellaFaccia(faccia);
-            if (normale == null || normale.Length < 3)
+            double[] normal = FaceNormal(face);
+            if (normal == null || normal.Length < 3)
             {
-                motivo = "La faccia su cui lavori non e' piana (o non riesco a leggerne la normale): " +
+                reason = "La faccia su cui lavori non e' piana (o non riesco a leggerne la normale): " +
                          "l'ancora misura le distanze dagli spigoli nel piano della faccia, e su una " +
                          "faccia curva quel piano non c'e'. Togli «anchor» e dai la posizione con " +
                          "x_mm e y_mm.";
                 return null;
             }
-            var anc = new Ancoraggio();
-            foreach (var nome in new[] { "x", "y" })
+            var anc = new Anchoring();
+            foreach (var itemName in new[] { "x", "y" })
             {
-                int k = nome == "x" ? 0 : 1;
-                double qui = k == 0 ? x : y;
-                double mezzo = k == 0 ? mezzoU : mezzoV;
-                var voce = d[nome] as Dictionary<string, object>;
-                if (voce == null)
+                int k = itemName == "x" ? 0 : 1;
+                double here = k == 0 ? x : y;
+                double half = k == 0 ? halfU : halfV;
+                var entry = d[itemName] as Dictionary<string, object>;
+                if (entry == null)
                 {
-                    motivo = "«ancora." + nome + "» dev'essere {\"edge_uid\": ..., \"distance_mm\": ...} " +
+                    reason = "«ancora." + itemName + "» dev'essere {\"edge_uid\": ..., \"distance_mm\": ...} " +
                              "oppure {\"centered_between\": [..., ...]}.";
                     return null;
                 }
-                var asse = new AncoraAsse { Nome = nome, Indice = k };
+                var axis = new AnchorAxis { Name = itemName, Index = k };
 
-                if (voce.ContainsKey("centered_between"))
+                if (entry.ContainsKey("centered_between"))
                 {
                     var uid = new List<string>();
-                    var elenco = voce["centered_between"] as IEnumerable;
-                    if (elenco != null && !(voce["centered_between"] is string))
-                        foreach (var o in elenco) uid.Add(Convert.ToString(o, CultureInfo.InvariantCulture));
+                    var list = entry["centered_between"] as IEnumerable;
+                    if (list != null && !(entry["centered_between"] is string))
+                        foreach (var o in list) uid.Add(Convert.ToString(o, CultureInfo.InvariantCulture));
                     if (uid.Count != 2 || uid[0] == uid[1])
                     {
-                        motivo = "«ancora." + nome + ".centrata_fra» vuole DUE spigoli diversi, opposti, presi dallo stato.";
+                        reason = "«ancora." + itemName + ".centrata_fra» vuole DUE spigoli diversi, opposti, presi dallo stato.";
                         return null;
                     }
-                    asse.Fra1 = SpigoloPerAncora(a, stato, uid[0], offsetM, assi, normale, out motivo);
-                    if (asse.Fra1 == null) return null;
-                    asse.Fra2 = SpigoloPerAncora(a, stato, uid[1], offsetM, assi, normale, out motivo);
-                    if (asse.Fra2 == null) return null;
+                    axis.Fra1 = EdgeForAnchor(a, docState, uid[0], offsetM, axes, normal, out reason);
+                    if (axis.Fra1 == null) return null;
+                    axis.Fra2 = EdgeForAnchor(a, docState, uid[1], offsetM, axes, normal, out reason);
+                    if (axis.Fra2 == null) return null;
                     // PER CENTRARE LUNGO x i due spigoli corrono lungo y.
-                    if (AsseDelloSpigolo(asse.Fra1, assi) != 1 - k || AsseDelloSpigolo(asse.Fra2, assi) != 1 - k)
+                    if (EdgeAxis(axis.Fra1, axes) != 1 - k || EdgeAxis(axis.Fra2, axes) != 1 - k)
                     {
-                        motivo = "Per centrare lungo «" + nome + "» i due spigoli devono correre lungo «" +
+                        reason = "Per centrare lungo «" + itemName + "» i due spigoli devono correre lungo «" +
                                  (k == 0 ? "y" : "x") + "» della faccia: «" + uid[0] + "» e «" + uid[1] + "» non lo fanno.";
                         return null;
                     }
-                    double c1 = Coord(asse.Fra1.InizioMm, assi, k), c2 = Coord(asse.Fra2.InizioMm, assi, k);
-                    if ((c1 - qui) * (c2 - qui) >= 0)
+                    double c1 = Coord(axis.Fra1.StartMm, axes, k), c2 = Coord(axis.Fra2.StartMm, axes, k);
+                    if ((c1 - here) * (c2 - here) >= 0)
                     {
-                        motivo = "Il punto non sta FRA «" + uid[0] + "» e «" + uid[1] + "» lungo «" + nome +
+                        reason = "Il punto non sta FRA «" + uid[0] + "» e «" + uid[1] + "» lungo «" + itemName +
                                  "»: sono dalla stessa parte, e fra loro non c'e' niente in mezzo a cui centrare.";
                         return null;
                     }
-                    double centro = (c1 + c2) / 2;
-                    if (Math.Abs(centro - qui) > TolleranzaPuntoMm)
+                    double center = (c1 + c2) / 2;
+                    if (Math.Abs(center - here) > PointToleranceMm)
                     {
-                        motivo = string.Format(CultureInfo.InvariantCulture,
+                        reason = string.Format(CultureInfo.InvariantCulture,
                             "Il punto che hai dato ha {0} = {1:0.##}, ma a meta' fra «{2}» e «{3}» c'e' {0} = {4:0.##}. " +
                             "x_mm/y_mm dicono dove il punto sta ADESSO, l'ancora cosa lo tiene li': devono dire lo " +
                             "stesso punto. Rifiuto invece di spostarlo in silenzio.",
-                            nome, qui, uid[0], uid[1], centro);
+                            itemName, here, uid[0], uid[1], center);
                         return null;
                     }
-                    if (Math.Abs(centro - c1) < mezzo)
+                    if (Math.Abs(center - c1) < half)
                     {
-                        motivo = string.Format(CultureInfo.InvariantCulture,
+                        reason = string.Format(CultureInfo.InvariantCulture,
                             "Fra «{0}» e «{1}» ci sono {2:0.##} mm lungo «{3}», e il profilo ne e' largo {4:0.##}: " +
-                            "non ci sta.", uid[0], uid[1], Math.Abs(c2 - c1), nome, 2 * mezzo);
+                            "non ci sta.", uid[0], uid[1], Math.Abs(c2 - c1), itemName, 2 * half);
                         return null;
                     }
                 }
                 else
                 {
-                    string uid = voce.ContainsKey("edge_uid")
-                        ? Convert.ToString(voce["edge_uid"], CultureInfo.InvariantCulture) : "";
-                    double distanza;
-                    if (uid.Length == 0 || !voce.ContainsKey("distance_mm") ||
-                        !double.TryParse(Convert.ToString(voce["distance_mm"], CultureInfo.InvariantCulture),
-                                         NumberStyles.Any, CultureInfo.InvariantCulture, out distanza))
+                    string uid = entry.ContainsKey("edge_uid")
+                        ? Convert.ToString(entry["edge_uid"], CultureInfo.InvariantCulture) : "";
+                    double distance;
+                    if (uid.Length == 0 || !entry.ContainsKey("distance_mm") ||
+                        !double.TryParse(Convert.ToString(entry["distance_mm"], CultureInfo.InvariantCulture),
+                                         NumberStyles.Any, CultureInfo.InvariantCulture, out distance))
                     {
-                        motivo = "«ancora." + nome + "» vuole {\"edge_uid\": \"E7\", \"distance_mm\": 20} " +
+                        reason = "«ancora." + itemName + "» vuole {\"edge_uid\": \"E7\", \"distance_mm\": 20} " +
                                  "oppure {\"centered_between\": [\"E3\", \"E5\"]}.";
                         return null;
                     }
@@ -231,36 +231,36 @@ namespace Oce.Solid.Agent.Core
                     // puo' essere meno di meta' della sua larghezza: il profilo
                     // scavalcherebbe lo spigolo (rischio 5 del critico). Uguale
                     // e' ammesso: e' una battuta.
-                    if (distanza + 1e-9 < mezzo)
+                    if (distance + 1e-9 < half)
                     {
-                        motivo = string.Format(CultureInfo.InvariantCulture,
+                        reason = string.Format(CultureInfo.InvariantCulture,
                             "«distance_mm» e' dal CENTRO del profilo allo spigolo, e {0:0.##} e' meno di meta' della " +
                             "sua larghezza lungo «{1}» ({2:0.##}): il profilo scavalcherebbe lo spigolo «{3}».",
-                            distanza, nome, mezzo, uid);
+                            distance, itemName, half, uid);
                         return null;
                     }
-                    var sp = SpigoloPerAncora(a, stato, uid, offsetM, assi, normale, out motivo);
+                    var sp = EdgeForAnchor(a, docState, uid, offsetM, axes, normal, out reason);
                     if (sp == null) return null;
-                    if (AsseDelloSpigolo(sp, assi) != 1 - k)
+                    if (EdgeAxis(sp, axes) != 1 - k)
                     {
-                        motivo = "Per ancorare «" + nome + "» serve uno spigolo che corre lungo «" + (k == 0 ? "y" : "x") +
-                                 "» della faccia (la distanza si misura lungo «" + nome + "»): «" + uid + "» non lo fa.";
+                        reason = "Per ancorare «" + itemName + "» serve uno spigolo che corre lungo «" + (k == 0 ? "y" : "x") +
+                                 "» della faccia (la distanza si misura lungo «" + itemName + "»): «" + uid + "» non lo fa.";
                         return null;
                     }
-                    double vera = Math.Abs(qui - Coord(sp.InizioMm, assi, k));
-                    if (Math.Abs(vera - distanza) > TolleranzaPuntoMm)
+                    double real = Math.Abs(here - Coord(sp.StartMm, axes, k));
+                    if (Math.Abs(real - distance) > PointToleranceMm)
                     {
-                        motivo = string.Format(CultureInfo.InvariantCulture,
+                        reason = string.Format(CultureInfo.InvariantCulture,
                             "Il punto che hai dato sta a {0:0.##} mm da «{1}», non a {2:0.##}. x_mm/y_mm dicono dove il " +
                             "punto sta ADESSO, l'ancora cosa lo tiene li': devono dire lo stesso punto. Rifiuto invece " +
                             "di spostare il profilo di {3:0.##} mm in silenzio.",
-                            vera, uid, distanza, Math.Abs(vera - distanza));
+                            real, uid, distance, Math.Abs(real - distance));
                         return null;
                     }
-                    asse.Spigolo = sp;
-                    asse.DistanzaMm = distanza;
+                    axis.Edge = sp;
+                    axis.DistanceMm = distance;
                 }
-                if (k == 0) anc.X = asse; else anc.Y = asse;
+                if (k == 0) anc.X = axis; else anc.Y = axis;
             }
             return anc;
         }
@@ -269,50 +269,50 @@ namespace Oce.Solid.Agent.Core
         /// Lo spigolo per uid: con la firma, dritto, nel piano della faccia, e
         /// non sul bordo di uno smusso o di un raccordo.
         /// </summary>
-        private SpigoloDiAncora SpigoloPerAncora(
-            Dictionary<string, object> a, StatoDocumento stato, string uid,
-            double offsetM, double[] assi, double[] normaleFaccia, out string motivo)
+        private AnchorEdge EdgeForAnchor(
+            Dictionary<string, object> a, DocumentState docState, string uid,
+            double offsetM, double[] axes, double[] faceNormal, out string reason)
         {
-            motivo = null;
+            reason = null;
             // LA FIRMA E' OBBLIGATORIA QUANDO IL PIANO NE PORTA (rischio 2 del
-            // critico): `FirmaCombacia` senza firma risponde si', e fra spigoli
+            // critico): `SignatureMatches` senza firma risponde si', e fra spigoli
             // uguali l'ordine dello stato non e' garantito — un foro a meta'
             // altezza passerebbe la coerenza anche legato al lato sbagliato. Un
             // piano che porta `_signatures` ma non quella di questo spigolo e' un piano
             // che non sa quale spigolo intendeva.
-            if (a != null && a.ContainsKey("_signatures") && FirmaAttesa(a, uid) == null)
+            if (a != null && a.ContainsKey("_signatures") && ExpectedSignature(a, uid) == null)
             {
-                motivo = "Il piano porta le firme delle entita' ma non quella dello spigolo «" + uid + "»: " +
+                reason = "Il piano porta le firme delle entita' ma non quella dello spigolo «" + uid + "»: " +
                          "senza, non so se «" + uid + "» e' ancora lo spigolo che avevi visto.";
                 return null;
             }
             // Se l'uid e' cambiato fra la lettura e adesso, lo spigolo si
             // ritrova per firma (voce E19): stessa lunghezza, stesso punto.
-            var firma = FirmaDelloSpigolo(
-                a, stato, uid,
+            var signature = EdgeSignature(
+                a, docState, uid,
                 "Lo spigolo «" + uid + "» non c'e' in questo documento: gli spigoli dell'ancora si " +
-                "prendono dallo stato (E1, E2...).", out motivo);
-            if (firma == null) return null;
-            var spigolo = firma.Entita as IEdge;
+                "prendono dallo stato (E1, E2...).", out reason);
+            if (signature == null) return null;
+            var edge = signature.Entity as IEdge;
             ICurve curva = null;
             ICurveParamData par = null;
-            try { par = ApiHelpers.EdgeParameters(spigolo, out curva); } catch { }
+            try { par = ApiHelpers.EdgeParameters(edge, out curva); } catch { }
             if (curva == null || par == null || !curva.IsLine())
             {
-                motivo = "Lo spigolo «" + uid + "» non e' dritto: l'ancora si prende da uno spigolo dritto.";
+                reason = "Lo spigolo «" + uid + "» non e' dritto: l'ancora si prende da uno spigolo dritto.";
                 return null;
             }
             var p0 = par.StartPoint as double[];
             var p1 = par.EndPoint as double[];
             if (p0 == null || p1 == null || p0.Length < 3 || p1.Length < 3)
             {
-                motivo = "Non riesco a leggere gli estremi dello spigolo «" + uid + "».";
+                reason = "Non riesco a leggere gli estremi dello spigolo «" + uid + "».";
                 return null;
             }
-            int n = (int)assi[2];
+            int n = (int)axes[2];
             if (Math.Abs(p0[n] - offsetM) > 1e-6 || Math.Abs(p1[n] - offsetM) > 1e-6)
             {
-                motivo = string.Format(CultureInfo.InvariantCulture,
+                reason = string.Format(CultureInfo.InvariantCulture,
                     "Lo spigolo «{0}» non sta nel piano della faccia su cui lavori (e' a {1:0.##} mm da quel piano): " +
                     "l'ancora si prende da uno spigolo della faccia stessa.",
                     uid, Math.Max(Math.Abs(p0[n] - offsetM), Math.Abs(p1[n] - offsetM)) * 1000.0);
@@ -332,7 +332,7 @@ namespace Oce.Solid.Agent.Core
             // vera, e lo spigolo tangente del raccordo passava per spigolo vivo.
             // Il controllo funzionava solo per lo smusso (faccia piana obliqua).
             // Adesso IsPlane() viene prima di Normal, come in
-            // Riferimenti.Normale e NormaleDellaFaccia; una faccia non piana si
+            // Riferimenti.Normale e FaceNormal; una faccia non piana si
             // rifiuta con lo stesso messaggio.
             //
             // E SE NON RIESCE A GUARDARE, NON ACCETTA (rilievo N6). Prima un
@@ -340,22 +340,22 @@ namespace Oce.Solid.Agent.Core
             // mancanti lasciavano passare lo spigolo senza averlo guardato: un
             // controllo che non guarda e dice si' e' peggio di nessun controllo
             // (memoria «controllo mai visto scattare»).
-            string nonGuardato = null;
+            string notChecked = null;
             try
             {
-                var facce = spigolo.GetTwoAdjacentFaces2() as object[];
-                if (facce == null || facce.Length == 0)
-                    nonGuardato = "SOLIDWORKS non mi da' le facce dello spigolo";
-                else if (normaleFaccia == null || normaleFaccia.Length < 3)
-                    nonGuardato = "non ho la normale della faccia su cui lavori";
+                var faces = edge.GetTwoAdjacentFaces2() as object[];
+                if (faces == null || faces.Length == 0)
+                    notChecked = "SOLIDWORKS non mi da' le facce dello spigolo";
+                else if (faceNormal == null || faceNormal.Length < 3)
+                    notChecked = "non ho la normale della faccia su cui lavori";
                 else
-                    foreach (var o in facce)
+                    foreach (var o in faces)
                     {
                         var f = o as IFace2;
                         if (f == null) continue;   // uno spigolo di bordo ha una faccia sola e un NULL (GetTwoAdjacentFaces2.html)
-                        bool piana = false;
-                        ISurface superficie = null;
-                        try { superficie = f.GetSurface() as ISurface; piana = superficie?.IsPlane() == true; } catch { }
+                        bool planar = false;
+                        ISurface surface = null;
+                        try { surface = f.GetSurface() as ISurface; planar = surface?.IsPlane() == true; } catch { }
                         // LA NORMALE: di una faccia piana da Normal; di una curva
                         // nel punto medio dello spigolo, da EvaluateAtPoint
                         // (revisione di Z-C21.2, difetto 8). ISurface~EvaluateAtPoint.html:
@@ -370,75 +370,75 @@ namespace Oce.Solid.Agent.Core
                         // era falso. Il raccordo si riconosce perche' e' TANGENTE:
                         // la sua normale sullo spigolo e' quella della faccia.
                         double[] nf = null;
-                        if (piana) nf = ApiHelpers.NormalIfPlanar(f);
-                        else if (superficie != null)
+                        if (planar) nf = ApiHelpers.NormalIfPlanar(f);
+                        else if (surface != null)
                         {
                             try
                             {
-                                var v = superficie.EvaluateAtPoint(
+                                var v = surface.EvaluateAtPoint(
                                     (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2) as double[];
                                 if (v != null && v.Length >= 3) nf = new[] { v[0], v[1], v[2] };
                             }
                             catch { nf = null; }
                         }
-                        double lunghezza = nf == null || nf.Length < 3 ? 0
+                        double length = nf == null || nf.Length < 3 ? 0
                             : Math.Sqrt(nf[0] * nf[0] + nf[1] * nf[1] + nf[2] * nf[2]);
-                        if (lunghezza < 1e-9)
+                        if (length < 1e-9)
                         {
-                            nonGuardato = "non riesco a leggere la normale di una faccia dello spigolo" +
-                                          (piana ? "" : " (non e' piana)");
+                            notChecked = "non riesco a leggere la normale di una faccia dello spigolo" +
+                                          (planar ? "" : " (non e' piana)");
                             break;
                         }
-                        double coseno = Math.Abs(nf[0] * normaleFaccia[0] + nf[1] * normaleFaccia[1] +
-                                                 nf[2] * normaleFaccia[2]) / lunghezza;
-                        if (piana && coseno > 0.999) continue;          // la faccia stessa, o complanare
-                        if (!piana && coseno > 0.999)
+                        double cosine = Math.Abs(nf[0] * faceNormal[0] + nf[1] * faceNormal[1] +
+                                                 nf[2] * faceNormal[2]) / length;
+                        if (planar && cosine > 0.999) continue;          // la faccia stessa, o complanare
+                        if (!planar && cosine > 0.999)
                         {
-                            motivo = "Lo spigolo «" + uid + "» sta sul bordo di un raccordo (la sua altra faccia e' " +
+                            reason = "Lo spigolo «" + uid + "» sta sul bordo di un raccordo (la sua altra faccia e' " +
                                      "curva e tangente a questa): se il raccordo cambia, lo spigolo si sposta e il " +
                                      "profilo con lui. Ancoralo a uno spigolo vivo del pezzo.";
                             return null;
                         }
-                        if (coseno > 0.01)
+                        if (cosine > 0.01)
                         {
-                            motivo = "Lo spigolo «" + uid + "» sta sul bordo di uno smusso o di un raccordo (la sua " +
-                                     "altra faccia " + (piana ? "" : "e' curva e ") + "non e' perpendicolare a questa): " +
+                            reason = "Lo spigolo «" + uid + "» sta sul bordo di uno smusso o di un raccordo (la sua " +
+                                     "altra faccia " + (planar ? "" : "e' curva e ") + "non e' perpendicolare a questa): " +
                                      "se lo smusso o il raccordo cambia, il profilo si sposta con lui. Ancoralo " +
                                      "a uno spigolo vivo del pezzo.";
                             return null;
                         }
                     }
             }
-            catch (Exception ex) { nonGuardato = ex.Message; }
-            if (nonGuardato != null)
+            catch (Exception ex) { notChecked = ex.Message; }
+            if (notChecked != null)
             {
-                motivo = "Non sono riuscito a guardare l'altra faccia dello spigolo «" + uid + "» (" + nonGuardato +
+                reason = "Non sono riuscito a guardare l'altra faccia dello spigolo «" + uid + "» (" + notChecked +
                          "): non so se sta sul bordo di uno smusso o di un raccordo, e un'ancora presa li' " +
                          "si sposterebbe con lui senza errore. Ancoralo a un altro spigolo vivo del pezzo.";
                 return null;
             }
-            return new SpigoloDiAncora
+            return new AnchorEdge
             {
                 Uid = uid,
-                Spigolo = spigolo,
-                InizioMm = new[] { p0[0] * 1000.0, p0[1] * 1000.0, p0[2] * 1000.0 },
+                Edge = edge,
+                StartMm = new[] { p0[0] * 1000.0, p0[1] * 1000.0, p0[2] * 1000.0 },
                 FineMm = new[] { p1[0] * 1000.0, p1[1] * 1000.0, p1[2] * 1000.0 },
             };
         }
 
         /// <summary>Lungo quale asse della faccia corre lo spigolo: 0 = x, 1 = y, -1 = obliquo.</summary>
-        private static int AsseDelloSpigolo(SpigoloDiAncora s, double[] assi)
+        private static int EdgeAxis(AnchorEdge s, double[] axes)
         {
-            double du = Math.Abs(Coord(s.FineMm, assi, 0) - Coord(s.InizioMm, assi, 0));
-            double dv = Math.Abs(Coord(s.FineMm, assi, 1) - Coord(s.InizioMm, assi, 1));
+            double du = Math.Abs(Coord(s.FineMm, axes, 0) - Coord(s.StartMm, axes, 0));
+            double dv = Math.Abs(Coord(s.FineMm, axes, 1) - Coord(s.StartMm, axes, 1));
             if (du > 0.01 && dv < 0.001) return 0;
             if (dv > 0.01 && du < 0.001) return 1;
             return -1;
         }
 
-        private static double Coord(double[] puntoMm, double[] assi, int quale)
+        private static double Coord(double[] pointMm, double[] axes, int which)
         {
-            return puntoMm[(int)assi[quale]];
+            return pointMm[(int)axes[which]];
         }
 
         /// <summary>
@@ -446,140 +446,140 @@ namespace Oce.Solid.Agent.Core
         /// asse per asse, rilegge tutto, e pretende lo schizzo COMPLETAMENTE
         /// DEFINITO. Torna false con il motivo se qualcosa non torna.
         /// </summary>
-        private bool ApplicaAncora(
-            IModelDoc2 modello, Ancoraggio anc, ISketchPoint punto,
-            double[] assi, double offsetM, double x, double y,
-            Dictionary<string, object> misure, out string motivo, bool pretendiDefinito = true)
+        private bool ApplyAnchor(
+            IModelDoc2 model, Anchoring anc, ISketchPoint point,
+            double[] axes, double offsetM, double x, double y,
+            Dictionary<string, object> measurements, out string reason, bool expectDefined = true)
         {
-            motivo = null;
-            if (anc == null || anc.Vuoto) return true;
-            if (punto == null)
+            reason = null;
+            if (anc == null || anc.Empty) return true;
+            if (point == null)
             {
-                motivo = "Non ho il punto di riferimento del profilo a cui attaccare l'ancora.";
+                reason = "Non ho il punto di riferimento del profilo a cui attaccare l'ancora.";
                 return false;
             }
-            var detto = new Dictionary<string, object>();
-            var schizzi = modello.SketchManager;
+            var said = new Dictionary<string, object>();
+            var sketches = model.SketchManager;
 
-            foreach (var asse in anc.Assi())
+            foreach (var axis in anc.Axes())
             {
-                int k = asse.Indice;
-                string errore;
-                if (asse.Centrata)
+                int k = axis.Index;
+                string error;
+                if (axis.Centered)
                 {
                     // LA MEZZERIA: lungo l'asse k, all'altezza del punto
                     // sull'altro asse, con gli estremi sulla RETTA dei due
                     // spigoli (coincidenza), perpendicolare a loro, e il punto a
                     // meta'. Misurato il 25/9/2026: centra lungo k e lascia
                     // l'altro asse all'altra ancora.
-                    double altro = k == 0 ? y : x;
-                    double c1 = Coord(asse.Fra1.InizioMm, assi, k), c2 = Coord(asse.Fra2.InizioMm, assi, k);
-                    var m1 = PuntoNelloSchizzo(modello, assi, offsetM, k == 0 ? c1 : altro, k == 0 ? altro : c1, out errore);
+                    double other = k == 0 ? y : x;
+                    double c1 = Coord(axis.Fra1.StartMm, axes, k), c2 = Coord(axis.Fra2.StartMm, axes, k);
+                    var m1 = PointInSketch(model, axes, offsetM, k == 0 ? c1 : other, k == 0 ? other : c1, out error);
                     var m2 = m1 == null ? null
-                        : PuntoNelloSchizzo(modello, assi, offsetM, k == 0 ? c2 : altro, k == 0 ? altro : c2, out errore);
-                    if (m1 == null || m2 == null) { motivo = errore; return false; }
+                        : PointInSketch(model, axes, offsetM, k == 0 ? c2 : other, k == 0 ? other : c2, out error);
+                    if (m1 == null || m2 == null) { reason = error; return false; }
 
-                    int relPrima = RelazioniDelloSchizzo(schizzi);
-                    ISketchSegment mezzeria;
-                    bool addPrima = schizzi.AddToDB;
+                    int relBefore = SketchRelations(sketches);
+                    ISketchSegment centerline;
+                    bool addBefore = sketches.AddToDB;
                     try
                     {
-                        schizzi.AddToDB = true;
-                        mezzeria = schizzi.CreateCenterLine(m1[0], m1[1], m1[2], m2[0], m2[1], m2[2]);
+                        sketches.AddToDB = true;
+                        centerline = sketches.CreateCenterLine(m1[0], m1[1], m1[2], m2[0], m2[1], m2[2]);
                     }
-                    finally { schizzi.AddToDB = addPrima; }
-                    var linea = mezzeria as ISketchLine;
-                    if (linea == null) { motivo = "La mezzeria fra «" + asse.Fra1.Uid + "» e «" + asse.Fra2.Uid + "» non e' nata."; return false; }
+                    finally { sketches.AddToDB = addBefore; }
+                    var line = centerline as ISketchLine;
+                    if (line == null) { reason = "La mezzeria fra «" + axis.Fra1.Uid + "» e «" + axis.Fra2.Uid + "» non e' nata."; return false; }
 
                     // THE ENDS ARE CHECKED (Z-C21.8, finding N49): ISketchLine~
                     // GetStartPoint2.html, «Start sketch point or NULL if operation
                     // fails». A null end made the relation fail and the refusal
                     // count relations, which pointed at the wrong thing.
-                    var centreLineStart = linea.GetStartPoint2() as ISketchPoint;
-                    var centreLineEnd = linea.GetEndPoint2() as ISketchPoint;
+                    var centreLineStart = line.GetStartPoint2() as ISketchPoint;
+                    var centreLineEnd = line.GetEndPoint2() as ISketchPoint;
                     if (centreLineStart == null || centreLineEnd == null)
                     {
-                        motivo = "The centre line between «" + asse.Fra1.Uid + "» and «" + asse.Fra2.Uid + "» gives no " +
+                        reason = "The centre line between «" + axis.Fra1.Uid + "» and «" + axis.Fra2.Uid + "» gives no " +
                                  (centreLineStart == null ? "start" : "end") + " point (GetStartPoint2 / GetEndPoint2 " +
-                                 "answered null): I cannot centre along «" + asse.Nome + "».";
+                                 "answered null): I cannot centre along «" + axis.Name + "».";
                         return false;
                     }
-                    bool r1 = Relazione(modello, centreLineStart, asse.Fra1.Spigolo, "sgCOINCIDENT");
-                    bool r2 = Relazione(modello, centreLineEnd, asse.Fra2.Spigolo, "sgCOINCIDENT");
-                    bool r3 = Relazione(modello, mezzeria, asse.Fra1.Spigolo, "sgPERPENDICULAR");
-                    bool r4 = Relazione(modello, punto, mezzeria, "sgATMIDDLE");
-                    int relDopo = RelazioniDelloSchizzo(schizzi);
+                    bool r1 = Relation(model, centreLineStart, axis.Fra1.Edge, "sgCOINCIDENT");
+                    bool r2 = Relation(model, centreLineEnd, axis.Fra2.Edge, "sgCOINCIDENT");
+                    bool r3 = Relation(model, centerline, axis.Fra1.Edge, "sgPERPENDICULAR");
+                    bool r4 = Relation(model, point, centerline, "sgATMIDDLE");
+                    int relAfter = SketchRelations(sketches);
                     // QUATTRO RELAZIONI, CONTATE: `SketchAddConstraints` e' Void,
                     // e una relazione che non nasce non lo dice nessuno.
-                    if (!r1 || !r2 || !r3 || !r4 || (relPrima >= 0 && relDopo - relPrima < 4))
+                    if (!r1 || !r2 || !r3 || !r4 || (relBefore >= 0 && relAfter - relBefore < 4))
                     {
-                        motivo = "Non sono riuscito a centrare lungo «" + asse.Nome + "» fra «" + asse.Fra1.Uid + "» e «" +
-                                 asse.Fra2.Uid + "» (relazioni nate: " +
-                                 (relPrima < 0 ? "?" : (relDopo - relPrima).ToString(CultureInfo.InvariantCulture)) + " su 4).";
+                        reason = "Non sono riuscito a centrare lungo «" + axis.Name + "» fra «" + axis.Fra1.Uid + "» e «" +
+                                 axis.Fra2.Uid + "» (relazioni nate: " +
+                                 (relBefore < 0 ? "?" : (relAfter - relBefore).ToString(CultureInfo.InvariantCulture)) + " su 4).";
                         return false;
                     }
-                    detto[asse.Nome] = new Dictionary<string, object>
+                    said[axis.Name] = new Dictionary<string, object>
                     {
-                        ["centered_between"] = new[] { asse.Fra1.Uid, asse.Fra2.Uid },
+                        ["centered_between"] = new[] { axis.Fra1.Uid, axis.Fra2.Uid },
                     };
                 }
                 else
                 {
-                    double suo = Coord(asse.Spigolo.InizioMm, assi, k);
+                    double its = Coord(axis.Edge.StartMm, axes, k);
                     // Il numero a meta' strada fra punto e spigolo, un po' di lato:
                     // solo DOVE si scrive, non cosa misura.
-                    double tu = k == 0 ? (x + suo) / 2 : x + 6;
-                    double tv = k == 0 ? y + 6 : (y + suo) / 2;
-                    var testo = PuntoNelloSchizzo(modello, assi, offsetM, tu, tv, out errore);
-                    if (testo == null) { motivo = errore; return false; }
+                    double tu = k == 0 ? (x + its) / 2 : x + 6;
+                    double tv = k == 0 ? y + 6 : (y + its) / 2;
+                    var text = PointInSketch(model, axes, offsetM, tu, tv, out error);
+                    if (text == null) { reason = error; return false; }
                     // LA DIREZIONE SI LEGGE NELLO SCHIZZO, non nel modello: lo
                     // spigolo corre lungo l'altro asse della faccia, e nello
                     // schizzo quell'asse puo' essere la X o la Y (sulla faccia
                     // di destra x_mm e' la Y del modello). Si portano i due
                     // estremi nello schizzo e si guarda dove corre.
-                    double altro1 = Coord(asse.Spigolo.InizioMm, assi, 1 - k), altro2 = Coord(asse.Spigolo.FineMm, assi, 1 - k);
-                    var e1 = PuntoNelloSchizzo(modello, assi, offsetM, k == 0 ? suo : altro1, k == 0 ? altro1 : suo, out errore);
+                    double other1 = Coord(axis.Edge.StartMm, axes, 1 - k), other2 = Coord(axis.Edge.FineMm, axes, 1 - k);
+                    var e1 = PointInSketch(model, axes, offsetM, k == 0 ? its : other1, k == 0 ? other1 : its, out error);
                     var e2 = e1 == null ? null
-                        : PuntoNelloSchizzo(modello, assi, offsetM, k == 0 ? suo : altro2, k == 0 ? altro2 : suo, out errore);
-                    if (e2 == null) { motivo = errore; return false; }
-                    bool spigoloVerticale = Math.Abs(e2[1] - e1[1]) > Math.Abs(e2[0] - e1[0]);
-                    IDimension nata;
-                    double riletta = QuotaPuntoSpigolo(modello, punto, asse.Spigolo.Spigolo, testo, spigoloVerticale, out nata);
-                    if (riletta < 0)
+                        : PointInSketch(model, axes, offsetM, k == 0 ? its : other2, k == 0 ? other2 : its, out error);
+                    if (e2 == null) { reason = error; return false; }
+                    bool verticalEdge = Math.Abs(e2[1] - e1[1]) > Math.Abs(e2[0] - e1[0]);
+                    IDimension born;
+                    double reread = DimensionPointEdge(model, point, axis.Edge.Edge, text, verticalEdge, out born);
+                    if (reread < 0)
                     {
-                        motivo = "La quota fra il punto e lo spigolo «" + asse.Spigolo.Uid + "» non e' nata.";
+                        reason = "La quota fra il punto e lo spigolo «" + axis.Edge.Uid + "» non e' nata.";
                         return false;
                     }
-                    if (Math.Abs(riletta - asse.DistanzaMm) > TolleranzaPuntoMm)
+                    if (Math.Abs(reread - axis.DistanceMm) > PointToleranceMm)
                     {
-                        motivo = string.Format(CultureInfo.InvariantCulture,
+                        reason = string.Format(CultureInfo.InvariantCulture,
                             "La quota dallo spigolo «{0}» e' nata ma vale {1:0.###} mm invece di {2:0.###}: misura " +
-                            "un'altra cosa, e non la tengo.", asse.Spigolo.Uid, riletta, asse.DistanzaMm);
+                            "un'altra cosa, e non la tengo.", axis.Edge.Uid, reread, axis.DistanceMm);
                         return false;
                     }
-                    asse.QuotaNata = nata;
-                    detto[asse.Nome] = new Dictionary<string, object>
+                    axis.CreatedDimension = born;
+                    said[axis.Name] = new Dictionary<string, object>
                     {
-                        ["edge"] = asse.Spigolo.Uid,
-                        ["distance_mm"] = asse.DistanzaMm,
-                        ["dimension_reread_mm"] = Math.Round(riletta, 3),
+                        ["edge"] = axis.Edge.Uid,
+                        ["distance_mm"] = axis.DistanceMm,
+                        ["dimension_reread_mm"] = Math.Round(reread, 3),
                     };
                 }
             }
 
             // COMPLETAMENTE DEFINITO, O NIENTE — ma con piu' punti nello stesso
             // schizzo (i fori di `hole_wizard`) lo si guarda dopo l'ultimo.
-            if (pretendiDefinito)
+            if (expectDefined)
             {
-                if (!SchizzoDefinitoESano(schizzi, out motivo)) return false;
-                detto["sketch"] = "fully defined";
+                if (!SketchDefinedAndHealthy(sketches, out reason)) return false;
+                said["sketch"] = "fully defined";
             }
             // LA TAVOLA (rischio 15): un asse centrato lo tiene una relazione,
             // non una quota, e `model_dimensions` non ha niente da riportare.
-            if ((anc.X != null && anc.X.Centrata) || (anc.Y != null && anc.Y.Centrata))
-                detto["note_drawing"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
+            if ((anc.X != null && anc.X.Centered) || (anc.Y != null && anc.Y.Centered))
+                said["note_drawing"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
                                        "model_dimensions non la riporta, drawing_dimension la misura dai bordi.";
-            misure["anchor"] = detto;
+            measurements["anchor"] = said;
             return true;
         }
 
@@ -589,27 +589,27 @@ namespace Oce.Solid.Agent.Core
         /// si rompe alla modifica; una relazione penzolante, sovravincolante o
         /// rotta (rischio 1 del critico) non la esclude lo stato «definito».
         /// </summary>
-        private static bool SchizzoDefinitoESano(ISketchManager schizzi, out string motivo)
+        private static bool SketchDefinedAndHealthy(ISketchManager sketches, out string reason)
         {
-            motivo = null;
-            int stato = -1;
-            try { stato = schizzi.ActiveSketch.GetConstrainedStatus(); } catch { stato = -1; }
-            if (stato != (int)swConstrainedStatus_e.swFullyConstrained)
+            reason = null;
+            int docState = -1;
+            try { docState = sketches.ActiveSketch.GetConstrainedStatus(); } catch { docState = -1; }
+            if (docState != (int)swConstrainedStatus_e.swFullyConstrained)
             {
-                motivo = ConstrainedStatusRefusal(stato);
+                reason = ConstrainedStatusRefusal(docState);
                 return false;
             }
-            string malate, notRead;
-            if (!RelazioniMalate(schizzi, out malate, out notRead))
+            string unhealthy, notRead;
+            if (!UnhealthyRelations(sketches, out unhealthy, out notRead))
             {
-                motivo = "I cannot read the relations of the anchor sketch (" + notRead + "): fully defined is " +
+                reason = "I cannot read the relations of the anchor sketch (" + notRead + "): fully defined is " +
                          "not enough, a dangling, over-defining or broken relation would break it at the first " +
                          "change, and I do not cut without having looked.";
                 return false;
             }
-            if (malate != null)
+            if (unhealthy != null)
             {
-                motivo = "Lo schizzo dell'ancora ha relazioni " + malate + ": non taglio, si romperebbe alla prima modifica.";
+                reason = "Lo schizzo dell'ancora ha relazioni " + unhealthy + ": non taglio, si romperebbe alla prima modifica.";
                 return false;
             }
             return true;
@@ -617,7 +617,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// L'ANCORA DI `hole_wizard` (voce E18, l'ultimo pezzo). Lo schizzo dei
-        /// punti lo fa HoleWizard, e `PosizionaIFori` ci mette i punti: qui ci si
+        /// punti lo fa HoleWizard, e `PositionHoles` ci mette i punti: qui ci si
         /// rientra, e ogni punto riceve la sua ancora. Misurato il 25/9/2026
         /// (`prova0089 guidato`, il caso r01): lo schizzo di posizionamento e'
         /// il sotto-schizzo con i punti e senza segmenti, si apre con
@@ -628,23 +628,23 @@ namespace Oce.Solid.Agent.Core
         /// Lo stato di definizione si guarda DOPO l'ultimo punto: un punto non
         /// ancora ancorato lascia lo schizzo sottovincolato per costruzione.
         /// </summary>
-        private bool AncoraIFori(
-            IModelDoc2 modello, IFeature foro, double[] assi, double offsetM,
-            List<double[]> posizioni, List<Ancoraggio> ancore,
-            Dictionary<string, object> misure, out string motivo)
+        private bool AnchorHoles(
+            IModelDoc2 model, IFeature hole, double[] axes, double offsetM,
+            List<double[]> positions, List<Anchoring> anchors,
+            Dictionary<string, object> measurements, out string reason)
         {
-            motivo = null;
-            var featSchizzo = SchizzoDiPosizionamento(foro);
-            var schizzo = featSchizzo?.GetSpecificFeature2() as ISketch;
-            if (schizzo == null) { motivo = "Non trovo lo schizzo che tiene la posizione dei fori."; return false; }
-            var gestore = modello.SketchManager;
-            var dette = new List<object>();
-            bool inModifica = false;
+            reason = null;
+            var featSketch = PositioningSketch(hole);
+            var sketch = featSketch?.GetSpecificFeature2() as ISketch;
+            if (sketch == null) { reason = "Non trovo lo schizzo che tiene la posizione dei fori."; return false; }
+            var handler = model.SketchManager;
+            var called = new List<object>();
+            bool beingEdited = false;
             try
             {
-                modello.ClearSelection2(true);
-                if (!featSchizzo.Select2(false, 0)) { motivo = "Non riesco a selezionare lo schizzo dei fori."; return false; }
-                modello.EditSketch();
+                model.ClearSelection2(true);
+                if (!featSketch.Select2(false, 0)) { reason = "Non riesco a selezionare lo schizzo dei fori."; return false; }
+                model.EditSketch();
                 // EDIT MODE IS READ BACK, NOT ASSUMED (Z-C21.8, finding N56).
                 // IModelDoc2~EditSketch.html returns nothing: «If the selection is
                 // a feature, its underlying sketch is placed in edit mode». The
@@ -652,44 +652,44 @@ namespace Oce.Solid.Agent.Core
                 // went on to ActiveSketch.ModelToSketchTransform and a .NET null
                 // reference. Now the open sketch must be there, and must be the
                 // positioning sketch when its name can be read.
-                var openSketch = gestore.ActiveSketch;
+                var openSketch = handler.ActiveSketch;
                 string openName = null, expectedName = null;
                 try { openName = (openSketch as IFeature)?.Name; } catch { openName = null; }
-                try { expectedName = featSchizzo.Name; } catch { expectedName = null; }
+                try { expectedName = featSketch.Name; } catch { expectedName = null; }
                 bool anotherSketch = openName != null && expectedName != null &&
                                      !string.Equals(openName, expectedName, StringComparison.Ordinal);
                 if (openSketch == null || anotherSketch)
                 {
-                    inModifica = openSketch != null;   // another sketch is open: the finally closes it
-                    motivo = openSketch == null
+                    beingEdited = openSketch != null;   // another sketch is open: the finally closes it
+                    reason = openSketch == null
                         ? "The positioning sketch of the holes did not open for editing (EditSketch returns nothing, " +
                           "and no sketch is active after it): I cannot anchor the holes."
                         : "Editing the positioning sketch «" + expectedName + "» opened «" + openName + "» instead: I " +
                           "cannot anchor the holes.";
                     return false;
                 }
-                inModifica = true;
-                var matematica = _sw.GetMathUtility() as IMathUtility;
-                var trasformazione = gestore.ActiveSketch.ModelToSketchTransform;
-                var punti = (gestore.ActiveSketch.GetSketchPoints2() as object[]) ?? new object[0];
-                for (int i = 0; i < posizioni.Count; i++)
+                beingEdited = true;
+                var math = _sw.GetMathUtility() as IMathUtility;
+                var transformation = handler.ActiveSketch.ModelToSketchTransform;
+                var points = (handler.ActiveSketch.GetSketchPoints2() as object[]) ?? new object[0];
+                for (int i = 0; i < positions.Count; i++)
                 {
-                    var atteso = NelloSchizzo(matematica, trasformazione, assi, offsetM, posizioni[i]);
-                    var candidati = new List<ISketchPoint>();
-                    foreach (var o in punti)
+                    var expected = InSketch(math, transformation, axes, offsetM, positions[i]);
+                    var candidates = new List<ISketchPoint>();
+                    foreach (var o in points)
                     {
                         var p = o as ISketchPoint;
-                        if (p != null && atteso != null && Math.Abs(p.X - atteso[0]) < 1e-7 && Math.Abs(p.Y - atteso[1]) < 1e-7)
-                            candidati.Add(p);
+                        if (p != null && expected != null && Math.Abs(p.X - expected[0]) < 1e-7 && Math.Abs(p.Y - expected[1]) < 1e-7)
+                            candidates.Add(p);
                     }
-                    if (candidati.Count == 0)
+                    if (candidates.Count == 0)
                     {
-                        motivo = "Non ritrovo nello schizzo il punto del foro " + (i + 1) + ".";
+                        reason = "Non ritrovo nello schizzo il punto del foro " + (i + 1) + ".";
                         return false;
                     }
                     // N23: MORE THAN ONE SKETCH POINT CAN ANSWER TO THE SAME
                     // SEARCH WINDOW (1e-7 m above — loose on purpose, since
-                    // NelloSchizzo's own transform carries some numerical
+                    // InSketch's own transform carries some numerical
                     // slack). Up to library 0.146.0 the loop just kept the LAST
                     // one it found: a guess. SameHolePoint proves the candidates
                     // are the same point by the sketch point's own ID, not by
@@ -699,7 +699,7 @@ namespace Oce.Solid.Agent.Core
                     // names every candidate, in millimetres, with its ID.
                     var candidateXY = new List<double[]>();
                     var candidateIds = new List<long[]>();
-                    foreach (ISketchPoint c in candidati)
+                    foreach (ISketchPoint c in candidates)
                     {
                         candidateXY.Add(new[] { c.X, c.Y });
                         candidateIds.Add(SketchPointId(c));
@@ -707,25 +707,25 @@ namespace Oce.Solid.Agent.Core
                     string ambiguity;
                     if (!SameHolePoint(candidateXY.ToArray(), candidateIds.ToArray(), out ambiguity))
                     {
-                        motivo = "Hole " + (i + 1) + ": " + ambiguity;
+                        reason = "Hole " + (i + 1) + ": " + ambiguity;
                         return false;
                     }
-                    var suo = candidati[0];
-                    var suaMisura = new Dictionary<string, object>();
-                    if (!ApplicaAncora(modello, ancore[i], suo, assi, offsetM, posizioni[i][0], posizioni[i][1],
-                                       suaMisura, out motivo, pretendiDefinito: false))
+                    var its = candidates[0];
+                    var itsMeasure = new Dictionary<string, object>();
+                    if (!ApplyAnchor(model, anchors[i], its, axes, offsetM, positions[i][0], positions[i][1],
+                                       itsMeasure, out reason, expectDefined: false))
                     {
-                        motivo = "Foro " + (i + 1) + ": " + motivo;
+                        reason = "Foro " + (i + 1) + ": " + reason;
                         return false;
                     }
-                    dette.Add(suaMisura.ContainsKey("anchor") ? suaMisura["anchor"] : null);
+                    called.Add(itsMeasure.ContainsKey("anchor") ? itsMeasure["anchor"] : null);
                 }
-                if (!SchizzoDefinitoESano(gestore, out motivo)) return false;
-                misure["anchors"] = dette.ToArray();
-                misure["hole_sketch"] = "fully defined";
+                if (!SketchDefinedAndHealthy(handler, out reason)) return false;
+                measurements["anchors"] = called.ToArray();
+                measurements["hole_sketch"] = "fully defined";
                 return true;
             }
-            catch (Exception ex) { motivo = "L'ancora dei fori non e' riuscita: " + ex.Message; return false; }
+            catch (Exception ex) { reason = "L'ancora dei fori non e' riuscita: " + ex.Message; return false; }
             finally
             {
                 // THE SELECTION IS CLEARED BEFORE THE SKETCH IS CLOSED (Z-C21.8,
@@ -733,14 +733,14 @@ namespace Oce.Solid.Agent.Core
                 // sketch open it starts a new one on the selected plane or face.
                 // The anchoring leaves points and edges selected behind it; with
                 // the selection empty, the toggle can only close.
-                try { modello.ClearSelection2(true); } catch { }
-                if (inModifica) { try { gestore.InsertSketch(true); } catch { } }
-                try { modello.ClearSelection2(true); } catch { }
+                try { model.ClearSelection2(true); } catch { }
+                if (beingEdited) { try { handler.InsertSketch(true); } catch { } }
+                try { model.ClearSelection2(true); } catch { }
             }
         }
 
         /// <summary>
-        /// N23: are the sketch points AncoraIFori found within its search
+        /// N23: are the sketch points AnchorHoles found within its search
         /// window the SAME point, or an ambiguity to refuse instead of guess?
         ///
         /// SAME POINT MEANS SAME ID, NOT SAME PLACE. ISketchPoint~GetID.html,
@@ -826,37 +826,37 @@ namespace Oce.Solid.Agent.Core
         /// may overrun an edge with the real radius.
         ///
         /// CENTRED AXES TOO, AND THE WIDEST CUT (Z-C21.2, finding N50). This
-        /// check skipped centred axes (`!asse.Centrata`), and LeggiAncora runs
+        /// check skipped centred axes (`!asse.Centrata`), and ReadAnchor runs
         /// with mezzo = 0 for hole_wizard, so its rule «the profile fits
-        /// between the two edges» (the «non ci sta» refusal in LeggiAncora)
+        /// between the two edges» (the «non ci sta» refusal in ReadAnchor)
         /// never fired: an M8 centred between two edges 6 mm apart was
         /// confirmed, and the hole cut through both of them. The same rule is
         /// applied here, half the gap against the radius, with the same `Coord`
         /// reading of the two edges; equal is allowed, as for a distance.
-        /// <paramref name="raggioMm"/> is the radius of the widest cut of the
-        /// hole (counterbore or countersink included, see ForoGuidato), and
+        /// <paramref name="radiusMm"/> is the radius of the widest cut of the
+        /// hole (counterbore or countersink included, see HoleWizard), and
         /// <paramref name="widestCut"/> names it in the message.
         /// </summary>
-        private static string ScavalcaColRaggio(List<Ancoraggio> ancore, double[] assi, double raggioMm, string widestCut)
+        private static string BypassWithRadius(List<Anchoring> anchors, double[] axes, double radiusMm, string widestCut)
         {
-            for (int i = 0; i < ancore.Count; i++)
-                foreach (var asse in ancore[i].Assi())
+            for (int i = 0; i < anchors.Count; i++)
+                foreach (var axis in anchors[i].Axes())
                 {
-                    if (asse.Centrata)
+                    if (axis.Centered)
                     {
-                        double gap = Math.Abs(Coord(asse.Fra2.InizioMm, assi, asse.Indice) -
-                                              Coord(asse.Fra1.InizioMm, assi, asse.Indice));
-                        if (gap / 2 + 1e-9 < raggioMm)
+                        double gap = Math.Abs(Coord(axis.Fra2.StartMm, axes, axis.Index) -
+                                              Coord(axis.Fra1.StartMm, axes, axis.Index));
+                        if (gap / 2 + 1e-9 < radiusMm)
                             return string.Format(CultureInfo.InvariantCulture,
                                 "Hole {0}: between «{1}» and «{2}» there are {3:0.##} mm along «{4}», and the {5} is " +
                                 "{6:0.##} mm wide: it does not fit, and it would cut through both edges.",
-                                i + 1, asse.Fra1.Uid, asse.Fra2.Uid, gap, asse.Nome, widestCut, 2 * raggioMm);
+                                i + 1, axis.Fra1.Uid, axis.Fra2.Uid, gap, axis.Name, widestCut, 2 * radiusMm);
                     }
-                    else if (asse.DistanzaMm + 1e-9 < raggioMm)
+                    else if (axis.DistanceMm + 1e-9 < radiusMm)
                         return string.Format(CultureInfo.InvariantCulture,
                             "Hole {0}: «distance_mm» {1:0.##} from edge «{2}» is less than the radius of the {3} " +
                             "({4:0.##} mm): the {3} would cut past the edge.",
-                            i + 1, asse.DistanzaMm, asse.Spigolo.Uid, widestCut, raggioMm);
+                            i + 1, axis.DistanceMm, axis.Edge.Uid, widestCut, radiusMm);
                 }
             return null;
         }
@@ -918,10 +918,10 @@ namespace Oce.Solid.Agent.Core
         /// andare in errore; poi il valore si rimette e si rilegge. Torna null se
         /// regge, il motivo se no.
         /// </summary>
-        private string ProvaDiMovimento(IModelDoc2 modello, Ancoraggio anc, IFeature taglio)
+        private string MovementTest(IModelDoc2 model, Anchoring anc, IFeature cut)
         {
-            if (anc == null || anc.Vuoto) return null;
-            foreach (var asse in anc.Assi())
+            if (anc == null || anc.Empty) return null;
+            foreach (var axis in anc.Axes())
             {
                 // A CENTRED AXIS HAS NO DIMENSION TO MOVE (Z-C21.2, finding
                 // N51): the sgATMIDDLE relation on the centre line holds it, and
@@ -930,18 +930,18 @@ namespace Oce.Solid.Agent.Core
                 // thing: both went through a `continue`, and the test «passed»
                 // having moved nothing, the pattern that M12 closed below for
                 // the return of SetSystemValue3. Now they stop the test.
-                if (asse.Centrata) continue;
-                var q = asse.QuotaNata;
+                if (axis.Centered) continue;
+                var q = axis.CreatedDimension;
                 if (q == null)
-                    return MovementTestNotVerifiable(asse, "the anchor dimension was not kept when it was created");
+                    return MovementTestNotVerifiable(axis, "the anchor dimension was not kept when it was created");
                 double era;
                 try { era = ApiHelpers.ReadDimensionInConfiguration(q, ""); }
                 catch (Exception ex)
                 {
-                    return MovementTestNotVerifiable(asse, "I cannot read the anchor dimension: " + ex.Message);
+                    return MovementTestNotVerifiable(axis, "I cannot read the anchor dimension: " + ex.Message);
                 }
-                string rotta = null;
-                string ferma = null;
+                string broken = null;
+                string stop = null;
                 string notVerified = null;
                 try
                 {
@@ -954,44 +954,44 @@ namespace Oce.Solid.Agent.Core
                     // muoveva, la ricostruzione non trovava errori perche' non era
                     // cambiato niente, e la prova «passava» senza aver provato.
                     // Si rilegge anche il valore: mosso vuol dire mosso.
-                    int esitoMossa = q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
-                    if (esitoMossa != (int)swSetValueReturnStatus_e.swSetValue_Successful)
-                        ferma = "SOLIDWORKS ha risposto " + esitoMossa.ToString(CultureInfo.InvariantCulture) +
-                                " a SetSystemValue3 (" + ErrorCodeDecoder.SetValueStatus(esitoMossa) + ")";
+                    int moveOutcome = q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
+                    if (moveOutcome != (int)swSetValueReturnStatus_e.swSetValue_Successful)
+                        stop = "SOLIDWORKS ha risposto " + moveOutcome.ToString(CultureInfo.InvariantCulture) +
+                                " a SetSystemValue3 (" + ErrorCodeDecoder.SetValueStatus(moveOutcome) + ")";
                     else
                     {
-                        modello.EditRebuild3();
-                        double mossa = era;
-                        try { mossa = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
-                        if (Math.Abs(mossa - (era + 0.0001)) > 1e-9)
-                            ferma = "rilette, la quota non si e' spostata";
+                        model.EditRebuild3();
+                        double moved = era;
+                        try { moved = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
+                        if (Math.Abs(moved - (era + 0.0001)) > 1e-9)
+                            stop = "rilette, la quota non si e' spostata";
                         else
-                            rotta = LavorazioneInErrore(taglio, out notVerified);
+                            broken = FeatureInError(cut, out notVerified);
                     }
                 }
-                catch (Exception ex) { rotta = ex.Message; }
+                catch (Exception ex) { broken = ex.Message; }
                 finally
                 {
                     try
                     {
                         q.SetSystemValue3(era, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
-                        modello.EditRebuild3();
+                        model.EditRebuild3();
                     }
                     catch { }
                 }
-                if (ferma != null)
-                    return "Non sono riuscito a spostare la quota d'ancora «" + asse.Nome + "» di un decimo (" + ferma +
+                if (stop != null)
+                    return "Non sono riuscito a spostare la quota d'ancora «" + axis.Name + "» di un decimo (" + stop +
                            "): la prova di movimento non ha provato niente, e un'ancora che non so far muovere " +
                            "non te la confermo.";
                 if (notVerified != null)
-                    return MovementTestNotVerifiable(asse, "the anchor dimension moved, but " + notVerified);
-                if (rotta != null)
-                    return "Spostando la quota d'ancora «" + asse.Nome + "» di un decimo, il taglio va in errore (" + rotta +
+                    return MovementTestNotVerifiable(axis, "the anchor dimension moved, but " + notVerified);
+                if (broken != null)
+                    return "Spostando la quota d'ancora «" + axis.Name + "» di un decimo, il taglio va in errore (" + broken +
                            "): lo schizzo non regge una modifica, e un'ancora che non regge una modifica non serve.";
-                double tornata = -1;
-                try { tornata = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
-                if (Math.Abs(tornata - era) > 1e-9)
-                    return "Dopo la prova di movimento la quota d'ancora «" + asse.Nome + "» non e' tornata al suo valore.";
+                double returned = -1;
+                try { returned = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
+                if (Math.Abs(returned - era) > 1e-9)
+                    return "Dopo la prova di movimento la quota d'ancora «" + axis.Name + "» non e' tornata al suo valore.";
             }
             return null;
         }
@@ -1000,9 +1000,9 @@ namespace Oce.Solid.Agent.Core
         /// The movement test that could not test anything, in words: an anchor
         /// that cannot be tested is not confirmed (Z-C21.2, finding N51).
         /// </summary>
-        private static string MovementTestNotVerifiable(AncoraAsse asse, string why)
+        private static string MovementTestNotVerifiable(AnchorAxis axis, string why)
         {
-            return "The movement test of the anchor on «" + asse.Nome + "» is not verifiable (" + why +
+            return "The movement test of the anchor on «" + axis.Name + "» is not verifiable (" + why +
                    "): it would pass without having tested anything, and I do not confirm an anchor I cannot test.";
         }
 
@@ -1018,10 +1018,10 @@ namespace Oce.Solid.Agent.Core
         /// IFeature~GetFirstSubFeature.html, «If no sub-features exist for this
         /// feature, then this method returns NULL».
         /// </summary>
-        private static string LavorazioneInErrore(IFeature taglio, out string notVerified)
+        private static string FeatureInError(IFeature cut, out string notVerified)
         {
             notVerified = null;
-            if (taglio == null)
+            if (cut == null)
             {
                 notVerified = "there is no feature to watch";
                 return null;
@@ -1029,18 +1029,18 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 // S11: ApiHelpers.RebuildError (GetErrorCode2, warnings excluded),
-                // which also says the code in words (ErroriFeature), as the summary promises.
+                // which also says the code in words (FeatureErrors), as the summary promises.
                 bool known;
-                var cutError = ApiHelpers.RebuildError(taglio, out known);
+                var cutError = ApiHelpers.RebuildError(cut, out known);
                 if (!known)
                 {
                     notVerified = "GetErrorCode2 did not answer on the feature";
                     return null;
                 }
                 if (cutError != null) return cutError;
-                var schizzo = taglio.GetFirstSubFeature() as IFeature;
-                if (schizzo == null) return null;
-                var sketchError = ApiHelpers.RebuildError(schizzo, out known);
+                var sketch = cut.GetFirstSubFeature() as IFeature;
+                if (sketch == null) return null;
+                var sketchError = ApiHelpers.RebuildError(sketch, out known);
                 if (!known)
                 {
                     notVerified = "GetErrorCode2 did not answer on its sketch";
@@ -1062,34 +1062,34 @@ namespace Oce.Solid.Agent.Core
         /// modifica non si lascia nel pezzo con «ritirala tu». Torna la coda
         /// del messaggio: tolto e pezzo com'era, oppure cosa e' rimasto.
         ///
-        /// «Ha detto di averlo tolto» non basta, come in `EliminaLavorazione`:
+        /// «Ha detto di averlo tolto» non basta, come in `DeleteFeature`:
         /// si ricontano le lavorazioni e si rimisura il volume.
         /// </summary>
-        private string TogliIlTaglio(IModelDoc2 modello, IFeature taglio, double? volumePrima)
+        private string RemoveCut(IModelDoc2 model, IFeature cut, double? volumeBefore)
         {
-            bool tolto = false;
+            bool removed = false;
             try
             {
-                modello.ClearSelection2(true);
-                if (taglio.Select2(false, 0))
-                    tolto = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+                if (cut.Select2(false, 0))
+                    removed = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
             catch { }
-            finally { try { modello.ClearSelection2(true); } catch { } }
-            if (!tolto) return RestaNelPezzo;
-            try { modello.EditRebuild3(); } catch { }
-            int lavorazioni = ContaFeature(modello);
-            if (lavorazioni < 0 || _featureAllInizioDelPasso < 0)
+            finally { try { model.ClearSelection2(true); } catch { } }
+            if (!removed) return RemainsInPart;
+            try { model.EditRebuild3(); } catch { }
+            int features = CountFeature(model);
+            if (features < 0 || _featuresAtStepStart < 0)
                 return " L'ho tolto, con il suo schizzo, ma non ho potuto ricontare " +
                        "l'albero per controllare che il pezzo sia com'era: guardalo.";
-            if (lavorazioni > _featureAllInizioDelPasso)
-                return RemovedButTreeLonger(lavorazioni - _featureAllInizioDelPasso);
-            double? volumeDopo = VolumeMm3(modello);
-            if (volumePrima == null || volumeDopo == null)
+            if (features > _featuresAtStepStart)
+                return RemovedButTreeLonger(features - _featuresAtStepStart);
+            double? volumeAfter = VolumeMm3(model);
+            if (volumeBefore == null || volumeAfter == null)
                 return " L'ho tolto, con il suo schizzo, ma non ho potuto rimisurare il " +
                        "volume per controllare che il pezzo sia com'era: guardalo.";
-            if (Math.Abs(volumeDopo.GetValueOrDefault() - volumePrima.GetValueOrDefault()) > 0.01)
-                return RemovedButVolumeChanged(volumeDopo.GetValueOrDefault(), volumePrima.GetValueOrDefault());
+            if (Math.Abs(volumeAfter.GetValueOrDefault() - volumeBefore.GetValueOrDefault()) > 0.01)
+                return RemovedButVolumeChanged(volumeAfter.GetValueOrDefault(), volumeBefore.GetValueOrDefault());
             return " L'ho tolto, con il suo schizzo: il pezzo e' com'era prima di questo passo.";
         }
 
@@ -1098,17 +1098,17 @@ namespace Oce.Solid.Agent.Core
         /// step had made, and the tree read back is still LONGER than before the
         /// step (Z-C21.9, finding C9-6). Something of this step is still there,
         /// but not necessarily the feature that was removed: until library
-        /// 0.144.0 the three removal helpers (TogliIlTaglio, TogliIlRiempimento,
-        /// TogliIlFazzoletto) answered «it is still in the part: undo it» about
+        /// 0.144.0 the three removal helpers (RemoveCut, RemoveFill,
+        /// RemoveGusset) answered «it is still in the part: undo it» about
         /// a feature that was gone. The same words as the face fillet
-        /// (TogliIlRaccordoDiFaccia): the features in excess, counted.
+        /// (RemoveFaceFillet): the features in excess, counted.
         /// </summary>
         internal static string RemovedButTreeLonger(int extraFeatures)
         {
             return " I tried to remove it, but the tree still has " +
                    extraFeatures.ToString(CultureInfo.InvariantCulture) +
                    (extraFeatures == 1 ? " feature" : " features") + " more than before this step: undo " +
-                   (extraFeatures == 1 ? "it" : "them") + " (" + Frasi.CosiSiRitira + ").";
+                   (extraFeatures == 1 ? "it" : "them") + " (" + Sentences.HowToWithdrawIt + ").";
         }
 
         /// <summary>
@@ -1116,7 +1116,7 @@ namespace Oce.Solid.Agent.Core
         /// made and the tree is back as it was, but the volume read back is not
         /// the one before the step (Z-C21.9, finding C9-6). The removed feature
         /// is gone, so the sentence says so and gives the new volume, as the
-        /// face fillet does (TogliIlRaccordoDiFaccia), instead of «it is still in
+        /// face fillet does (RemoveFaceFillet), instead of «it is still in
         /// the part: undo it».
         /// </summary>
         internal static string RemovedButVolumeChanged(double volumeNowMm3, double volumeBeforeMm3)
@@ -1142,41 +1142,41 @@ namespace Oce.Solid.Agent.Core
         /// (niente direzione). Si sceglie dalla direzione dello spigolo NELLO
         /// SCHIZZO: spigolo verticale, quota orizzontale.
         /// </summary>
-        private double QuotaPuntoSpigolo(
-            IModelDoc2 modello, ISketchPoint punto, IEdge spigolo, double[] testo, bool spigoloVerticale,
-            out IDimension nata)
+        private double DimensionPointEdge(
+            IModelDoc2 model, ISketchPoint point, IEdge edge, double[] text, bool verticalEdge,
+            out IDimension born)
         {
-            nata = null;
-            bool chiedeva = true;
+            born = null;
+            bool asked = true;
             try
             {
-                chiedeva = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
+                asked = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
                 _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
             }
             catch { }
             try
             {
-                modello.ClearSelection2(true);
-                if (!punto.Select4(false, null)) return -1;
-                if (!((IEntity)spigolo).Select4(true, null)) return -1;
-                var quota = (spigoloVerticale
-                    ? modello.AddHorizontalDimension2(testo[0], testo[1], testo[2])
-                    : modello.AddVerticalDimension2(testo[0], testo[1], testo[2])) as IDisplayDimension;
-                nata = quota?.GetDimension2(0);
-                if (nata == null) return -1;
-                try { quota.MarkedForDrawing = true; } catch { }
-                return ApiHelpers.ReadDimensionInConfiguration(nata, "") * 1000.0;
+                model.ClearSelection2(true);
+                if (!point.Select4(false, null)) return -1;
+                if (!((IEntity)edge).Select4(true, null)) return -1;
+                var dimension = (verticalEdge
+                    ? model.AddHorizontalDimension2(text[0], text[1], text[2])
+                    : model.AddVerticalDimension2(text[0], text[1], text[2])) as IDisplayDimension;
+                born = dimension?.GetDimension2(0);
+                if (born == null) return -1;
+                try { dimension.MarkedForDrawing = true; } catch { }
+                return ApiHelpers.ReadDimensionInConfiguration(born, "") * 1000.0;
             }
             catch { return -1; }
             finally
             {
-                try { modello.ClearSelection2(true); } catch { }
-                try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, chiedeva); } catch { }
+                try { model.ClearSelection2(true); } catch { }
+                try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, asked); } catch { }
             }
         }
 
         /// <summary>
-        /// LO STADIO DELL'ASOLA, DEFINITO (voce E18). `DisegnaLoStadio` lo
+        /// LO STADIO DELL'ASOLA, DEFINITO (voce E18). `DrawStadium` lo
         /// disegna con quattro entita' sotto `AddToDB` e basta: niente relazioni,
         /// niente quote. Qui si aggiunge cio' che lo rende un'asola anche dopo
         /// una modifica, e — se c'e' — l'ancora. Torna quante quote ha messo;
@@ -1205,32 +1205,32 @@ namespace Oce.Solid.Agent.Core
         /// da cui misurare l'angolo): si dice nelle misure. Con l'ancora l'angolo
         /// si quota contro il suo primo spigolo.
         /// </summary>
-        private int DefinisciLoStadio(
-            IModelDoc2 modello, ISketchSegment[] stadio, double[] assi, double offsetM,
-            double x, double y, double angoloGradi, double corsa, double raggio,
-            Ancoraggio ancora, Dictionary<string, object> misure, out string errore)
+        private int DefineStadium(
+            IModelDoc2 model, ISketchSegment[] stadium, double[] axes, double offsetM,
+            double x, double y, double angleDeg, double travel, double radius,
+            Anchoring anchor, Dictionary<string, object> measurements, out string error)
         {
-            errore = null;
-            if (stadio == null || stadio.Length < 4 || stadio.Any(s => s == null))
+            error = null;
+            if (stadium == null || stadium.Length < 4 || stadium.Any(s => s == null))
             {
-                errore = "Lo stadio non ha i suoi quattro pezzi: non posso definirlo.";
+                error = "Lo stadio non ha i suoi quattro pezzi: non posso definirlo.";
                 return 0;
             }
-            ISketchSegment l1 = stadio[0], l2 = stadio[1], a1 = stadio[2], a2 = stadio[3];
-            var arcoB = a1 as ISketchArc;   // a1 e' l'estremita' dalla parte +corsa
-            var arcoA = a2 as ISketchArc;
-            if (arcoA == null || arcoB == null)
+            ISketchSegment l1 = stadium[0], l2 = stadium[1], a1 = stadium[2], a2 = stadium[3];
+            var arcB = a1 as ISketchArc;   // a1 e' l'estremita' dalla parte +corsa
+            var arcA = a2 as ISketchArc;
+            if (arcA == null || arcB == null)
             {
-                errore = "Le estremita' dell'asola non sono archi: non posso definirla.";
+                error = "Le estremita' dell'asola non sono archi: non posso definirla.";
                 return 0;
             }
-            var schizzi = modello.SketchManager;
+            var sketches = model.SketchManager;
 
             // TANGENZE E RAGGI UGUALI: quattro linee-arco, e i due archi uguali.
-            int relPrima = RelazioniDelloSchizzo(schizzi);
-            foreach (var coppia in new[] { new[] { l1, a1 }, new[] { l1, a2 }, new[] { l2, a1 }, new[] { l2, a2 } })
-                Relazione(modello, coppia[0], coppia[1], "sgTANGENT");
-            Relazione(modello, a1, a2, "sgSAMELENGTH");
+            int relBefore = SketchRelations(sketches);
+            foreach (var pair in new[] { new[] { l1, a1 }, new[] { l1, a2 }, new[] { l2, a1 }, new[] { l2, a2 } })
+                Relation(model, pair[0], pair[1], "sgTANGENT");
+            Relation(model, a1, a2, "sgSAMELENGTH");
             // THE FIVE ARE COUNTED HERE, BEFORE THE CENTRE LINE (Z-C21.2,
             // finding N54). IModelDoc2~SketchAddConstraints.html gives it no
             // return value (C# «void SketchAddConstraints»), so the relation
@@ -1239,119 +1239,119 @@ namespace Oce.Solid.Agent.Core
             // the case in which the centre line does NOT fuse with the centres:
             // then they add two relations, and two missing tangencies passed as
             // «5 of 5».
-            int relStadio = RelazioniDelloSchizzo(schizzi);
-            if (relPrima < 0 || relStadio < 0)
-                misure["slot_relations"] = "not counted: SOLIDWORKS did not give the relation count of the " +
+            int stadiumRelations = SketchRelations(sketches);
+            if (relBefore < 0 || stadiumRelations < 0)
+                measurements["slot_relations"] = "not counted: SOLIDWORKS did not give the relation count of the " +
                                            "sketch, so I could not check that the four tangencies and the " +
                                            "equal radii were born";
-            else if (relStadio - relPrima < 5)
+            else if (stadiumRelations - relBefore < 5)
             {
-                errore = "Not all the relations of the slot were born (" +
-                         (relStadio - relPrima).ToString(CultureInfo.InvariantCulture) +
+                error = "Not all the relations of the slot were born (" +
+                         (stadiumRelations - relBefore).ToString(CultureInfo.InvariantCulture) +
                          " of 5: four tangencies and the equal radii).";
                 // Without an anchor the caller does not stop on `error` (a slot
                 // that is only less constrained is still cut): the response says it.
-                misure["slot_relations"] = (relStadio - relPrima).ToString(CultureInfo.InvariantCulture) +
+                measurements["slot_relations"] = (stadiumRelations - relBefore).ToString(CultureInfo.InvariantCulture) +
                                            " of 5 born (four tangencies and the equal radii): after a change the " +
                                            "slot may lose its shape";
             }
 
             // LA MEZZERIA FRA I CENTRI, di costruzione e legata a tutti e due.
-            double rad = angoloGradi * Math.PI / 180.0, cos = Math.Cos(rad), sin = Math.Sin(rad);
+            double rad = angleDeg * Math.PI / 180.0, cos = Math.Cos(rad), sin = Math.Sin(rad);
             string e1;
-            var cA = PuntoNelloSchizzo(modello, assi, offsetM, x - corsa * cos, y - corsa * sin, out e1);
-            var cB = cA == null ? null : PuntoNelloSchizzo(modello, assi, offsetM, x + corsa * cos, y + corsa * sin, out e1);
-            if (cB == null) { errore = e1; return 0; }
-            ISketchSegment mezzeria;
-            bool addPrima = schizzi.AddToDB;
+            var cA = PointInSketch(model, axes, offsetM, x - travel * cos, y - travel * sin, out e1);
+            var cB = cA == null ? null : PointInSketch(model, axes, offsetM, x + travel * cos, y + travel * sin, out e1);
+            if (cB == null) { error = e1; return 0; }
+            ISketchSegment centerline;
+            bool addBefore = sketches.AddToDB;
             try
             {
-                schizzi.AddToDB = true;
-                mezzeria = schizzi.CreateCenterLine(cA[0], cA[1], cA[2], cB[0], cB[1], cB[2]);
+                sketches.AddToDB = true;
+                centerline = sketches.CreateCenterLine(cA[0], cA[1], cA[2], cB[0], cB[1], cB[2]);
             }
-            finally { schizzi.AddToDB = addPrima; }
-            var linea = mezzeria as ISketchLine;
-            if (linea == null) { errore = "La mezzeria fra i centri dell'asola non e' nata."; return 0; }
+            finally { sketches.AddToDB = addBefore; }
+            var line = centerline as ISketchLine;
+            if (line == null) { error = "La mezzeria fra i centri dell'asola non e' nata."; return 0; }
             // Disegnata sotto AddToDB esattamente sui centri, la mezzeria vi si
             // FONDE (misurato: le coincidenze non aggiungono relazioni). Si
             // chiedono lo stesso, per il caso in cui un arrotondamento le
             // lasciasse a parte; il conto che vale e' quello delle altre cinque.
             // The points go in with `as` (Z-C21.8, finding N49): a null point
-            // makes `Relazione` answer false without an exception, and these two
+            // makes `Relation` answer false without an exception, and these two
             // relations are optional by design, so their answer is not needed.
-            Relazione(modello, linea.GetStartPoint2() as ISketchPoint, arcoA.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
-            Relazione(modello, linea.GetEndPoint2() as ISketchPoint, arcoB.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
+            Relation(model, line.GetStartPoint2() as ISketchPoint, arcA.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
+            Relation(model, line.GetEndPoint2() as ISketchPoint, arcB.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
 
             // LE QUOTE: il raggio e la mezzeria (la lunghezza fra i centri).
             string e2;
-            var testoR = PuntoNelloSchizzo(modello, assi, offsetM,
-                x + (corsa + raggio + 6) * cos, y + (corsa + raggio + 6) * sin + 6, out e2);
-            var testoL = PuntoNelloSchizzo(modello, assi, offsetM,
-                x - (raggio + 8) * sin, y + (raggio + 8) * cos, out e2);
-            var daQuotare = new List<Quota>();
-            if (testoR != null) daQuotare.Add(Quota.Su(a1, testoR));
-            if (testoL != null) daQuotare.Add(Quota.Su(mezzeria, testoL));
-            int quote = QuotaSegmenti(modello, daQuotare);
-            if (quote < 2 && errore == null) errore = "Le quote dell'asola non sono nate tutte (" + quote + " su 2).";
+            var textR = PointInSketch(model, axes, offsetM,
+                x + (travel + radius + 6) * cos, y + (travel + radius + 6) * sin + 6, out e2);
+            var textL = PointInSketch(model, axes, offsetM,
+                x - (radius + 8) * sin, y + (radius + 8) * cos, out e2);
+            var toDimension = new List<Dimension>();
+            if (textR != null) toDimension.Add(Dimension.Su(a1, textR));
+            if (textL != null) toDimension.Add(Dimension.Su(centerline, textL));
+            int quote = DimensionSegments(model, toDimension);
+            if (quote < 2 && error == null) error = "Le quote dell'asola non sono nate tutte (" + quote + " su 2).";
 
             // L'ORIENTAMENTO. Mezzeria orizzontale o verticale NELLO SCHIZZO:
             // una relazione. Obliqua: un angolo contro il primo spigolo
             // dell'ancora, se c'e'; altrimenti resta libera, e lo si dice.
-            bool orizzontale = Math.Abs(cB[1] - cA[1]) < 1e-9, verticale = Math.Abs(cB[0] - cA[0]) < 1e-9;
-            if (orizzontale || verticale)
-                RelazioneSola(modello, mezzeria, orizzontale ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
-            else if (!ancora.Vuoto)
+            bool horizontal = Math.Abs(cB[1] - cA[1]) < 1e-9, vertical = Math.Abs(cB[0] - cA[0]) < 1e-9;
+            if (horizontal || vertical)
+                SingleRelation(model, centerline, horizontal ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
+            else if (!anchor.Empty)
             {
-                var asse = ancora.X ?? ancora.Y;
-                var riferimento = asse.Centrata ? asse.Fra1 : asse.Spigolo;
+                var axis = anchor.X ?? anchor.Y;
+                var reference = axis.Centered ? axis.Fra1 : axis.Edge;
                 string e3;
-                var testoA = PuntoNelloSchizzo(modello, assi, offsetM,
-                    x + (corsa + raggio + 14) * cos, y + (corsa + raggio + 14) * sin, out e3);
+                var textA = PointInSketch(model, axes, offsetM,
+                    x + (travel + radius + 14) * cos, y + (travel + radius + 14) * sin, out e3);
                 // The angle the dimension must read: between the slot line and
                 // the reference edge, both on the face (Z-C21.2, finding N55).
-                // It is not `angoloGradi` itself: against an edge that runs
+                // It is not `angleDeg` itself: against an edge that runs
                 // along y (the edge of an «x» anchor) a slot at 30 degrees reads
                 // 60, or its supplement.
                 double edgeDeg = Math.Atan2(
-                    Coord(riferimento.FineMm, assi, 1) - Coord(riferimento.InizioMm, assi, 1),
-                    Coord(riferimento.FineMm, assi, 0) - Coord(riferimento.InizioMm, assi, 0)) * 180.0 / Math.PI;
+                    Coord(reference.FineMm, axes, 1) - Coord(reference.StartMm, axes, 1),
+                    Coord(reference.FineMm, axes, 0) - Coord(reference.StartMm, axes, 0)) * 180.0 / Math.PI;
                 string angleNotKept = null;
-                if (testoA == null ||
-                    !QuotaAngolo(modello, mezzeria, riferimento.Spigolo, testoA,
-                                 AngleBetweenLinesDeg(angoloGradi, edgeDeg), out angleNotKept))
+                if (textA == null ||
+                    !AngleDimension(model, centerline, reference.Edge, textA,
+                                 AngleBetweenLinesDeg(angleDeg, edgeDeg), out angleNotKept))
                 {
-                    if (errore == null)
-                        errore = "The angle of the slot against edge «" + riferimento.Uid + "» " +
+                    if (error == null)
+                        error = "The angle of the slot against edge «" + reference.Uid + "» " +
                                  (angleNotKept ?? "was not born.");
                 }
                 else quote++;
             }
             else
-                misure["orientation"] = "libero: un'asola obliqua senza ancora non ha uno spigolo da cui " +
+                measurements["orientation"] = "libero: un'asola obliqua senza ancora non ha uno spigolo da cui " +
                                          "misurare l'angolo, e dopo una modifica puo' ruotare.";
 
             // L'ANCORA, sul punto a meta' della mezzeria.
-            if (!ancora.Vuoto)
+            if (!anchor.Empty)
             {
-                if (errore != null) return quote;
+                if (error != null) return quote;
                 string e4;
-                var centro = PuntoNelloSchizzo(modello, assi, offsetM, x, y, out e4);
-                if (centro == null) { errore = e4; return quote; }
-                ISketchPoint punto;
+                var center = PointInSketch(model, axes, offsetM, x, y, out e4);
+                if (center == null) { error = e4; return quote; }
+                ISketchPoint point;
                 try
                 {
-                    schizzi.AddToDB = true;
-                    punto = schizzi.CreatePoint(centro[0], centro[1], centro[2]);
+                    sketches.AddToDB = true;
+                    point = sketches.CreatePoint(center[0], center[1], center[2]);
                 }
-                finally { schizzi.AddToDB = addPrima; }
-                if (punto == null || !Relazione(modello, punto, mezzeria, "sgATMIDDLE"))
+                finally { sketches.AddToDB = addBefore; }
+                if (point == null || !Relation(model, point, centerline, "sgATMIDDLE"))
                 {
-                    errore = "Non sono riuscito a mettere il punto al centro dell'asola.";
+                    error = "Non sono riuscito a mettere il punto al centro dell'asola.";
                     return quote;
                 }
                 string e5;
-                if (!ApplicaAncora(modello, ancora, punto, assi, offsetM, x, y, misure, out e5))
-                    errore = e5;
+                if (!ApplyAnchor(model, anchor, point, axes, offsetM, x, y, measurements, out e5))
+                    error = e5;
             }
             return quote;
         }
@@ -1365,50 +1365,50 @@ namespace Oce.Solid.Agent.Core
         /// disegna, e indovinarlo vorrebbe dire ancorare un punto che non ha
         /// scelto nessuno.
         /// </summary>
-        private static bool CentroDelContornoSolo(
-            List<Contorno> contorni, out double cx, out double cy, out double mezzoU, out double mezzoV,
-            out string motivo)
+        private static bool ContourCenterOnly(
+            List<Contour> contours, out double cx, out double cy, out double halfU, out double halfV,
+            out string reason)
         {
-            cx = cy = mezzoU = mezzoV = 0;
-            motivo = null;
-            const string Regola =
+            cx = cy = halfU = halfV = 0;
+            reason = null;
+            const string Rule =
                 "L'ancora di un rialzo vale per UN contorno solo, tondo o rettangolare allineato " +
                 "agli assi della faccia: il punto che tiene e' il suo centro. ";
-            int quanti = contorni == null ? -1 : contorni.Count;
-            if (quanti != 1)
+            int howMany = contours == null ? -1 : contours.Count;
+            if (howMany != 1)
             {
-                motivo = Regola + (quanti < 0 ? "Qui non ci sono contorni." : "Qui i contorni sono " + quanti +
+                reason = Rule + (howMany < 0 ? "Qui non ci sono contorni." : "Qui i contorni sono " + howMany +
                          ": fai un rialzo per contorno, e ancora ciascuno.");
                 return false;
             }
-            var c = contorni[0];
-            if (c.Cerchio)
+            var c = contours[0];
+            if (c.Circle)
             {
-                cx = c.Centro[0]; cy = c.Centro[1];
-                mezzoU = mezzoV = c.Diametro / 2.0;
+                cx = c.Center[0]; cy = c.Center[1];
+                halfU = halfV = c.Diameter / 2.0;
                 return true;
             }
-            var punti = new List<double[]>();
-            if (c.Tratti.Count == 1 && !c.Tratti[0].Spline)
-                foreach (var p in c.Tratti[0].Punti)
-                    if (!punti.Any(q => Math.Abs(q[0] - p[0]) < 1e-9 && Math.Abs(q[1] - p[1]) < 1e-9))
-                        punti.Add(p);
-            bool rettangolo = punti.Count == 4;
-            for (int i = 0; rettangolo && i < 4; i++)
+            var points = new List<double[]>();
+            if (c.Strokes.Count == 1 && !c.Strokes[0].Spline)
+                foreach (var p in c.Strokes[0].Points)
+                    if (!points.Any(q => Math.Abs(q[0] - p[0]) < 1e-9 && Math.Abs(q[1] - p[1]) < 1e-9))
+                        points.Add(p);
+            bool rectangle = points.Count == 4;
+            for (int i = 0; rectangle && i < 4; i++)
             {
-                var p = punti[i]; var q = punti[(i + 1) % 4];
-                bool orizzontale = Math.Abs(p[1] - q[1]) < 1e-9, verticale = Math.Abs(p[0] - q[0]) < 1e-9;
-                if (orizzontale == verticale) rettangolo = false;
+                var p = points[i]; var q = points[(i + 1) % 4];
+                bool horizontal = Math.Abs(p[1] - q[1]) < 1e-9, vertical = Math.Abs(p[0] - q[0]) < 1e-9;
+                if (horizontal == vertical) rectangle = false;
             }
-            if (!rettangolo)
+            if (!rectangle)
             {
-                motivo = Regola + "Questo contorno non e' ne' un cerchio ne' un rettangolo allineato.";
+                reason = Rule + "Questo contorno non e' ne' un cerchio ne' un rettangolo allineato.";
                 return false;
             }
-            double minX = punti.Min(p => p[0]), maxX = punti.Max(p => p[0]);
-            double minY = punti.Min(p => p[1]), maxY = punti.Max(p => p[1]);
+            double minX = points.Min(p => p[0]), maxX = points.Max(p => p[0]);
+            double minY = points.Min(p => p[1]), maxY = points.Max(p => p[1]);
             cx = (minX + maxX) / 2; cy = (minY + maxY) / 2;
-            mezzoU = (maxX - minX) / 2; mezzoV = (maxY - minY) / 2;
+            halfU = (maxX - minX) / 2; halfV = (maxY - minY) / 2;
             return true;
         }
 
@@ -1419,73 +1419,73 @@ namespace Oce.Solid.Agent.Core
         /// gia' fusi — misurato sull'asola): orizzontali e verticali, due quote,
         /// e l'ancora sul centro costruito con la diagonale, come la tasca.
         /// </summary>
-        private bool AncoraIlContorno(
-            IModelDoc2 modello, Contorno contorno, List<ISketchSegment> creati, double[] assi, double offsetM,
-            double cx, double cy, Ancoraggio ancora, Dictionary<string, object> misure, out string errore)
+        private bool AnchorContour(
+            IModelDoc2 model, Contour contour, List<ISketchSegment> created, double[] axes, double offsetM,
+            double cx, double cy, Anchoring anchor, Dictionary<string, object> measurements, out string error)
         {
-            errore = null;
-            ISketchPoint punto;
-            if (contorno.Cerchio)
+            error = null;
+            ISketchPoint point;
+            if (contour.Circle)
             {
-                var cerchio = creati.Count == 1 ? creati[0] as ISketchArc : null;
-                if (cerchio == null) { errore = "Il cerchio del rialzo non e' nato come ci si aspetta."; return false; }
-                var testo = PuntoNelloSchizzo(modello, assi, offsetM,
-                    cx + contorno.Diametro * 0.7 + 5, cy + contorno.Diametro * 0.7 + 5, out errore);
-                if (testo == null || QuotaSegmenti(modello, new List<Quota> { Quota.Su(creati[0], testo) }) < 1)
+                var circle = created.Count == 1 ? created[0] as ISketchArc : null;
+                if (circle == null) { error = "Il cerchio del rialzo non e' nato come ci si aspetta."; return false; }
+                var text = PointInSketch(model, axes, offsetM,
+                    cx + contour.Diameter * 0.7 + 5, cy + contour.Diameter * 0.7 + 5, out error);
+                if (text == null || DimensionSegments(model, new List<Dimension> { Dimension.Su(created[0], text) }) < 1)
                 {
-                    errore = errore ?? "Il diametro del rialzo non si e' lasciato quotare.";
+                    error = error ?? "Il diametro del rialzo non si e' lasciato quotare.";
                     return false;
                 }
-                punto = cerchio.GetCenterPoint2() as ISketchPoint;
+                point = circle.GetCenterPoint2() as ISketchPoint;
             }
             else
             {
-                if (creati.Count != 4 || creati.Any(s => !(s is ISketchLine)))
+                if (created.Count != 4 || created.Any(s => !(s is ISketchLine)))
                 {
-                    errore = "Il rettangolo del rialzo non ha i suoi quattro lati.";
+                    error = "Il rettangolo del rialzo non ha i suoi quattro lati.";
                     return false;
                 }
                 // THE ENDS ARE CHECKED (Z-C21.8, finding N49): ISketchLine~
                 // GetStartPoint2.html, «Start sketch point or NULL if operation
                 // fails». A null end reached .X and gave the bare .NET message;
-                // the twin in CentroDelRettangolo already skipped nulls.
+                // the twin in RectangleCenter already skipped nulls.
                 const string noEnd =
                     "A side of the rectangle of the boss gives no end point (GetStartPoint2 / GetEndPoint2 answered " +
                     "null): I cannot anchor the rectangle.";
-                var angoli = new List<double[]>();
-                foreach (var s in creati)
+                var angles = new List<double[]>();
+                foreach (var s in created)
                 {
                     var l = (ISketchLine)s;
                     var a0 = l.GetStartPoint2() as ISketchPoint;
                     var a1 = l.GetEndPoint2() as ISketchPoint;
-                    if (a0 == null || a1 == null) { errore = noEnd; return false; }
-                    bool orizzontale = Math.Abs(a0.Y - a1.Y) < 1e-9;
-                    RelazioneSola(modello, s, orizzontale ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
-                    angoli.Add(new[] { a0.X, a0.Y, a0.Z });
+                    if (a0 == null || a1 == null) { error = noEnd; return false; }
+                    bool horizontal = Math.Abs(a0.Y - a1.Y) < 1e-9;
+                    SingleRelation(model, s, horizontal ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
+                    angles.Add(new[] { a0.X, a0.Y, a0.Z });
                 }
                 // Le due quote: un lato per verso, col testo fuori dal rettangolo.
-                var p0 = ((ISketchLine)creati[0]).GetStartPoint2() as ISketchPoint;
-                var p1 = ((ISketchLine)creati[0]).GetEndPoint2() as ISketchPoint;
-                var q1 = ((ISketchLine)creati[1]).GetEndPoint2() as ISketchPoint;
-                if (p0 == null || p1 == null || q1 == null) { errore = noEnd; return false; }
-                var daQuotare = new List<Quota>
+                var p0 = ((ISketchLine)created[0]).GetStartPoint2() as ISketchPoint;
+                var p1 = ((ISketchLine)created[0]).GetEndPoint2() as ISketchPoint;
+                var q1 = ((ISketchLine)created[1]).GetEndPoint2() as ISketchPoint;
+                if (p0 == null || p1 == null || q1 == null) { error = noEnd; return false; }
+                var toDimension = new List<Dimension>
                 {
-                    Quota.Su(creati[0], new[] { (p0.X + p1.X) / 2 + (p1.X - q1.X) * 0.2, (p0.Y + p1.Y) / 2 + (p1.Y - q1.Y) * 0.2, 0.0 }),
-                    Quota.Su(creati[1], new[] { (p1.X + q1.X) / 2 + (p1.X - p0.X) * 0.2, (p1.Y + q1.Y) / 2 + (p1.Y - p0.Y) * 0.2, 0.0 }),
+                    Dimension.Su(created[0], new[] { (p0.X + p1.X) / 2 + (p1.X - q1.X) * 0.2, (p0.Y + p1.Y) / 2 + (p1.Y - q1.Y) * 0.2, 0.0 }),
+                    Dimension.Su(created[1], new[] { (p1.X + q1.X) / 2 + (p1.X - p0.X) * 0.2, (p1.Y + q1.Y) / 2 + (p1.Y - p0.Y) * 0.2, 0.0 }),
                 };
-                if (QuotaSegmenti(modello, daQuotare) < 2)
+                if (DimensionSegments(model, toDimension) < 2)
                 {
-                    errore = "Le quote del rettangolo del rialzo non sono nate tutte.";
+                    error = "Le quote del rettangolo del rialzo non sono nate tutte.";
                     return false;
                 }
-                punto = CentroDelRettangolo(modello, creati.Cast<object>().ToArray(), angoli[0], angoli[2]);
-                if (punto == null)
+                point = RectangleCenter(model, created.Cast<object>().ToArray(), angles[0], angles[2]);
+                if (point == null)
                 {
-                    errore = "Non sono riuscito a costruire il centro del rettangolo a cui attaccare l'ancora.";
+                    error = "Non sono riuscito a costruire il centro del rettangolo a cui attaccare l'ancora.";
                     return false;
                 }
             }
-            return ApplicaAncora(modello, ancora, punto, assi, offsetM, cx, cy, misure, out errore);
+            return ApplyAnchor(model, anchor, point, axes, offsetM, cx, cy, measurements, out error);
         }
 
         /// <summary>
@@ -1503,37 +1503,37 @@ namespace Oce.Solid.Agent.Core
         /// value. Now the status must be Success and the value, read back,
         /// must be <paramref name="betweenDeg"/> or its supplement: an angular
         /// dimension between two lines shows one of the two, depending on
-        /// where its text sits, like QuotaPuntoSpigolo refuses a dimension that
+        /// where its text sits, like DimensionPointEdge refuses a dimension that
         /// measures something else. False with <paramref name="whyNot"/> null
         /// means «not born» (the caller's message); not null says what is wrong.
         /// </summary>
-        private bool QuotaAngolo(IModelDoc2 modello, ISketchSegment linea, IEdge spigolo, double[] testo,
+        private bool AngleDimension(IModelDoc2 model, ISketchSegment line, IEdge edge, double[] text,
                                  double betweenDeg, out string whyNot)
         {
             whyNot = null;
-            bool chiedeva = true;
+            bool asked = true;
             try
             {
-                chiedeva = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
+                asked = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
                 _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
             }
             catch { }
             try
             {
-                modello.ClearSelection2(true);
-                if (!linea.Select4(false, null) || !((IEntity)spigolo).Select4(true, null)) return false;
-                int errore = 0;
-                var quota = modello.Extension.AddSpecificDimension(
-                    testo[0], testo[1], testo[2], (int)swDimensionType_e.swAngularDimension, ref errore) as IDisplayDimension;
-                if (quota == null) return false;
-                if (errore != (int)swAddSpecificDimension_e.swAddSpecificDimension_Success)
+                model.ClearSelection2(true);
+                if (!line.Select4(false, null) || !((IEntity)edge).Select4(true, null)) return false;
+                int error = 0;
+                var dimension = model.Extension.AddSpecificDimension(
+                    text[0], text[1], text[2], (int)swDimensionType_e.swAngularDimension, ref error) as IDisplayDimension;
+                if (dimension == null) return false;
+                if (error != (int)swAddSpecificDimension_e.swAddSpecificDimension_Success)
                 {
-                    whyNot = "was born, but AddSpecificDimension answered " + (swAddSpecificDimension_e)errore +
+                    whyNot = "was born, but AddSpecificDimension answered " + (swAddSpecificDimension_e)error +
                              ": I do not keep a dimension of the wrong type.";
                     return false;
                 }
                 double readDeg;
-                try { readDeg = Unita.Gradi(ApiHelpers.ReadDimensionInConfiguration(quota.GetDimension2(0), "")); }
+                try { readDeg = Units.Degrees(ApiHelpers.ReadDimensionInConfiguration(dimension.GetDimension2(0), "")); }
                 catch (Exception ex)
                 {
                     whyNot = "was born, but I cannot read its value back (" + ex.Message + ").";
@@ -1548,14 +1548,14 @@ namespace Oce.Solid.Agent.Core
                         "something else, and I do not keep it.", readDeg, betweenDeg, 180.0 - betweenDeg);
                     return false;
                 }
-                try { quota.MarkedForDrawing = true; } catch { }
+                try { dimension.MarkedForDrawing = true; } catch { }
                 return true;
             }
             catch { return false; }
             finally
             {
-                try { modello.ClearSelection2(true); } catch { }
-                try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, chiedeva); } catch { }
+                try { model.ClearSelection2(true); } catch { }
+                try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, asked); } catch { }
             }
         }
 
@@ -1576,85 +1576,85 @@ namespace Oce.Solid.Agent.Core
         /// `IEntity` — «as IEntity» torna null in silenzio, e la prima stesura
         /// della mezzeria faceva nascere due relazioni su quattro.
         /// </summary>
-        private static bool Relazione(IModelDoc2 modello, object uno, object due, string quale)
+        private static bool Relation(IModelDoc2 model, object one, object due, string which)
         {
             try
             {
-                modello.ClearSelection2(true);
-                if (!Seleziona(uno, false) || !Seleziona(due, true)) return false;
-                modello.SketchAddConstraints(quale);
+                model.ClearSelection2(true);
+                if (!Select(one, false) || !Select(due, true)) return false;
+                model.SketchAddConstraints(which);
                 return true;
             }
             catch { return false; }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            finally { try { model.ClearSelection2(true); } catch { } }
         }
 
         /// <summary>Una relazione su una cosa sola (orizzontale, verticale).</summary>
-        private static bool RelazioneSola(IModelDoc2 modello, object cosa, string quale)
+        private static bool SingleRelation(IModelDoc2 model, object what, string which)
         {
             try
             {
-                modello.ClearSelection2(true);
-                if (!Seleziona(cosa, false)) return false;
-                modello.SketchAddConstraints(quale);
+                model.ClearSelection2(true);
+                if (!Select(what, false)) return false;
+                model.SketchAddConstraints(which);
                 return true;
             }
             catch { return false; }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            finally { try { model.ClearSelection2(true); } catch { } }
         }
 
-        private static bool Seleziona(object cosa, bool aggiungi)
+        private static bool Select(object what, bool append)
         {
-            var punto = cosa as ISketchPoint;
-            if (punto != null) return punto.Select4(aggiungi, null);
-            var segmento = cosa as ISketchSegment;
-            if (segmento != null) return segmento.Select4(aggiungi, null);
-            var entita = cosa as IEntity;
-            if (entita != null) return entita.Select4(aggiungi, null);
+            var point = what as ISketchPoint;
+            if (point != null) return point.Select4(append, null);
+            var segment = what as ISketchSegment;
+            if (segment != null) return segment.Select4(append, null);
+            var entity = what as IEntity;
+            if (entity != null) return entity.Select4(append, null);
             return false;
         }
 
         /// <summary>
         /// The dangling, over-defining and broken relations of the open sketch,
-        /// in words in <paramref name="malate"/> (null if there are none).
+        /// in words in <paramref name="unhealthy"/> (null if there are none).
         ///
         /// «NONE» AND «NOT READ» ARE TWO ANSWERS (Z-C21.2, finding N52). The
         /// function returned null both for a sketch without sick relations and
         /// when the RelationManager did not come or GetRelationsCount threw,
-        /// and SchizzoDefinitoESano read null as healthy: the check said yes
+        /// and SketchDefinedAndHealthy read null as healthy: the check said yes
         /// without having looked. ISketchRelationManager~GetRelationsCount.html:
         /// «Return Value Number of sketch relations»; a count that does not come,
         /// or comes negative, is not a count. Now the function returns false,
         /// with the reason in <paramref name="notRead"/>, and the caller refuses.
         /// </summary>
-        private static bool RelazioniMalate(ISketchManager schizzi, out string malate, out string notRead)
+        private static bool UnhealthyRelations(ISketchManager sketches, out string unhealthy, out string notRead)
         {
-            malate = null;
+            unhealthy = null;
             notRead = null;
             try
             {
-                var gestore = schizzi.ActiveSketch?.RelationManager as ISketchRelationManager;
-                if (gestore == null)
+                var handler = sketches.ActiveSketch?.RelationManager as ISketchRelationManager;
+                if (handler == null)
                 {
                     notRead = "SOLIDWORKS does not give the relation manager of the open sketch";
                     return false;
                 }
-                var dette = new List<string>();
-                int n = gestore.GetRelationsCount((int)swSketchRelationFilterType_e.swDangling);
-                if (n > 0) dette.Add(n + " penzolant" + (n == 1 ? "e" : "i"));
+                var called = new List<string>();
+                int n = handler.GetRelationsCount((int)swSketchRelationFilterType_e.swDangling);
+                if (n > 0) called.Add(n + " penzolant" + (n == 1 ? "e" : "i"));
                 int dangling = n;
-                n = gestore.GetRelationsCount((int)swSketchRelationFilterType_e.swOverDefining);
-                if (n > 0) dette.Add(n + " sovravincolant" + (n == 1 ? "e" : "i"));
+                n = handler.GetRelationsCount((int)swSketchRelationFilterType_e.swOverDefining);
+                if (n > 0) called.Add(n + " sovravincolant" + (n == 1 ? "e" : "i"));
                 int overDefining = n;
-                n = gestore.GetRelationsCount((int)swSketchRelationFilterType_e.swBroken);
-                if (n > 0) dette.Add(n + " rott" + (n == 1 ? "a" : "e"));
+                n = handler.GetRelationsCount((int)swSketchRelationFilterType_e.swBroken);
+                if (n > 0) called.Add(n + " rott" + (n == 1 ? "a" : "e"));
                 if (dangling < 0 || overDefining < 0 || n < 0)
                 {
                     notRead = string.Format(CultureInfo.InvariantCulture,
                         "GetRelationsCount answered {0} dangling, {1} over-defining, {2} broken", dangling, overDefining, n);
                     return false;
                 }
-                malate = dette.Count == 0 ? null : string.Join(", ", dette);
+                unhealthy = called.Count == 0 ? null : string.Join(", ", called);
                 return true;
             }
             catch (Exception ex)
@@ -1664,12 +1664,12 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        private static int RelazioniDelloSchizzo(ISketchManager schizzi)
+        private static int SketchRelations(ISketchManager sketches)
         {
             try
             {
-                var gestore = schizzi.ActiveSketch?.RelationManager as ISketchRelationManager;
-                return gestore == null ? -1 : gestore.GetRelationsCount((int)swSketchRelationFilterType_e.swAll);
+                var handler = sketches.ActiveSketch?.RelationManager as ISketchRelationManager;
+                return handler == null ? -1 : handler.GetRelationsCount((int)swSketchRelationFilterType_e.swAll);
             }
             catch { return -1; }
         }
@@ -1680,11 +1680,11 @@ namespace Oce.Solid.Agent.Core
         /// il 25/9/2026: cosi' la tasca segue la mezzeria; col centro di
         /// `CreateCenterRectangle` no. Null se qualcosa non e' nato.
         /// </summary>
-        private static ISketchPoint CentroDelRettangolo(IModelDoc2 modello, object[] lati, double[] p1, double[] p2)
+        private static ISketchPoint RectangleCenter(IModelDoc2 model, object[] sides, double[] p1, double[] p2)
         {
-            if (lati == null) return null;
+            if (sides == null) return null;
             ISketchPoint a1 = null, a2 = null;
-            foreach (var o in lati)
+            foreach (var o in sides)
             {
                 var l = o as ISketchLine;
                 if (l == null) continue;
@@ -1696,34 +1696,34 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             if (a1 == null || a2 == null) return null;
-            var schizzi = modello.SketchManager;
-            ISketchSegment diagonale;
-            ISketchPoint centro;
-            bool addPrima = schizzi.AddToDB;
+            var sketches = model.SketchManager;
+            ISketchSegment diagonal;
+            ISketchPoint center;
+            bool addBefore = sketches.AddToDB;
             try
             {
-                schizzi.AddToDB = true;
-                diagonale = schizzi.CreateLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
+                sketches.AddToDB = true;
+                diagonal = sketches.CreateLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
             }
-            finally { schizzi.AddToDB = addPrima; }
-            var dl = diagonale as ISketchLine;
+            finally { sketches.AddToDB = addBefore; }
+            var dl = diagonal as ISketchLine;
             if (dl == null) return null;
-            try { diagonale.ConstructionGeometry = true; } catch { return null; }
+            try { diagonal.ConstructionGeometry = true; } catch { return null; }
             // `as` and a null check (Z-C21.8, finding N49); null is «nothing
             // born», which the caller already refuses in words.
             var diagonalStart = dl.GetStartPoint2() as ISketchPoint;
             var diagonalEnd = dl.GetEndPoint2() as ISketchPoint;
             if (diagonalStart == null || diagonalEnd == null) return null;
-            if (!Relazione(modello, diagonalStart, a1, "sgCOINCIDENT")) return null;
-            if (!Relazione(modello, diagonalEnd, a2, "sgCOINCIDENT")) return null;
+            if (!Relation(model, diagonalStart, a1, "sgCOINCIDENT")) return null;
+            if (!Relation(model, diagonalEnd, a2, "sgCOINCIDENT")) return null;
             try
             {
-                schizzi.AddToDB = true;
-                centro = schizzi.CreatePoint((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2, (p1[2] + p2[2]) / 2);
+                sketches.AddToDB = true;
+                center = sketches.CreatePoint((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2, (p1[2] + p2[2]) / 2);
             }
-            finally { schizzi.AddToDB = addPrima; }
-            if (centro == null || !Relazione(modello, centro, diagonale, "sgATMIDDLE")) return null;
-            return centro;
+            finally { sketches.AddToDB = addBefore; }
+            if (center == null || !Relation(model, center, diagonal, "sgATMIDDLE")) return null;
+            return center;
         }
     }
 }

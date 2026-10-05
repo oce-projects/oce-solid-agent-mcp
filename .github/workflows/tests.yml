@@ -53,7 +53,7 @@
 #  ── E COSA LA SUITE FA, QUANDO IL PONTE NON C'E' ───────────────────────────
 #
 #  Non salta in silenzio. I gruppi che hanno bisogno dell'eseguibile del ponte
-#  — il protocollo MCP, `Sessione.StessoDocumento`, l'esportatore del catalogo,
+#  — il protocollo MCP, `Session.SameDocument`, l'esportatore del catalogo,
 #  il confronto fra le due librerie — scrivono una voce **«non eseguibile
 #  qui»**, che si conta a parte, si stampa e finisce in `prove.xml` come
 #  `<skipped>`. Il riepilogo dice `N controlli, 0 falliti, M non eseguibili qui
@@ -136,7 +136,7 @@ jobs:
 
       - name: Gli eseguibili esistono davvero
         shell: pwsh
-        run: .\.github\steps\executables-exist.ps1 -InteropCe '${{ steps.interop.outputs.ce }}'
+        run: .\.github\steps\executables-exist.ps1 -InteropIsThere '${{ steps.interop.outputs.ce }}'
 
       - name: Lancia le prove di contratto
         run: Tests\bin\Oce.Solid.Agent.ContractTests.exe

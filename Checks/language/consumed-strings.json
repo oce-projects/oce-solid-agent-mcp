@@ -99,7 +99,7 @@
         "file": "Bench/bench.ps1",
         "sha1": "776d0b24e7a3",
         "kind": "regex",
-        "via": "Prendi",
+        "via": "Take",
         "nocase": true,
         "line_hint": 224
       },
@@ -114,7 +114,7 @@
         "file": "Bench/bench.ps1",
         "sha1": "4153ea8c1995",
         "kind": "regex",
-        "via": "Prendi",
+        "via": "Take",
         "nocase": true,
         "line_hint": 225
       },
@@ -129,7 +129,7 @@
         "file": "Bench/bench.ps1",
         "sha1": "73f09abd1223",
         "kind": "regex",
-        "via": "Prendi",
+        "via": "Take",
         "nocase": true,
         "line_hint": 229
       },
@@ -144,7 +144,7 @@
         "file": "Bench/bench.ps1",
         "sha1": "b7654f289074",
         "kind": "regex",
-        "via": "Prendi",
+        "via": "Take",
         "nocase": true,
         "line_hint": 230
       },

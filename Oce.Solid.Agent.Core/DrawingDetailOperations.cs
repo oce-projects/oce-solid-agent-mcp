@@ -54,65 +54,65 @@ namespace Oce.Solid.Agent.Core
     /// vista di partenza ha una circonferenza di dettaglio in piu': 0 -> 1.
     /// Senza, sul foglio resterebbe un cerchio disegnato a mano.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito DettaglioInTavola(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome DetailView(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito(
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed(
                     "Il documento attivo non e' una tavola: una vista di dettaglio sta " +
                     "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
 
             // ── LA VISTA DA DETTAGLIARE ─────────────────────────────────
             //
             // La PRIMA «view» del foglio e' il foglio stesso, e si salta.
-            string chiesta = VistaChiestaPerNome(disegno, Str(a, "view", null));
-            IView bersaglio = null;
-            var nomiViste = new List<string>();
-            int vistePrima = 0;
+            string requested = ViewRequestedByName(drawing, Str(a, "view", null));
+            IView target = null;
+            var viewNames = new List<string>();
+            int viewsBefore = 0;
             try
             {
-                var v = disegno.GetFirstView() as IView;
-                while (v != null && vistePrima < 200)
+                var v = drawing.GetFirstView() as IView;
+                while (v != null && viewsBefore < 200)
                 {
-                    vistePrima++;
+                    viewsBefore++;
                     if (v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
                     {
-                        string nome = "";
-                        try { nome = v.GetName2() ?? ""; } catch { }
-                        nomiViste.Add(nome);
-                        if (bersaglio == null &&
-                            (chiesta == null ||
-                             string.Equals(nome, chiesta, StringComparison.OrdinalIgnoreCase)))
-                            bersaglio = v;
+                        string itemName = "";
+                        try { itemName = v.GetName2() ?? ""; } catch { }
+                        viewNames.Add(itemName);
+                        if (target == null &&
+                            (requested == null ||
+                             string.Equals(itemName, requested, StringComparison.OrdinalIgnoreCase)))
+                            target = v;
                     }
                     v = v.GetNextView() as IView;
                 }
             }
             catch (Exception ex)
             {
-                return Fallito("Non riesco a scorrere le viste del foglio: " + ex.Message);
+                return Failed("Non riesco a scorrere le viste del foglio: " + ex.Message);
             }
 
-            if (bersaglio == null)
-                return Fallito(chiesta == null
+            if (target == null)
+                return Failed(requested == null
                     ? "Sul foglio non c'e' nessuna vista da dettagliare: mettici prima " +
                       "le viste con «standard_views»."
-                    : "Non trovo la vista «" + chiesta + "». Sul foglio ci sono: " +
-                      (nomiViste.Count == 0 ? "nessuna vista" : string.Join(", ", nomiViste)) + ".");
+                    : "Non trovo la vista «" + requested + "». Sul foglio ci sono: " +
+                      (viewNames.Count == 0 ? "nessuna vista" : string.Join(", ", viewNames)) + ".");
 
-            string nomeBersaglio = "";
-            try { nomeBersaglio = bersaglio.GetName2() ?? ""; } catch { }
+            string targetName = "";
+            try { targetName = target.GetName2() ?? ""; } catch { }
 
-            var sagoma = bersaglio.GetOutline() as double[];
-            if (sagoma == null || sagoma.Length < 4)
-                return Fallito(
-                    "Non riesco a leggere l'ingombro della vista «" + nomeBersaglio +
+            var outline = target.GetOutline() as double[];
+            if (outline == null || outline.Length < 4)
+                return Failed(
+                    "Non riesco a leggere l'ingombro della vista «" + targetName +
                     "», e senza quello non so dove mettere il cerchio del dettaglio.");
 
-            double xMin = sagoma[0], yMin = sagoma[1], xMax = sagoma[2], yMax = sagoma[3];
-            double largo = xMax - xMin, alto = yMax - yMin;
+            double xMin = outline[0], yMin = outline[1], xMax = outline[2], yMax = outline[3];
+            double wide = xMax - xMin, up = yMax - yMin;
 
             // ── DOVE, E QUANTO GRANDE ───────────────────────────────────
             //
@@ -125,141 +125,141 @@ namespace Oce.Solid.Agent.Core
             double cx = double.IsNaN(xM) ? (xMin + xMax) / 2.0 : (xMin + xMax) / 2.0 + xM / 1000.0;
             double cy = double.IsNaN(yM) ? (yMin + yMax) / 2.0 : (yMin + yMax) / 2.0 + yM / 1000.0;
 
-            double raggioMm = Num(a, "radius_mm", Math.Min(largo, alto) / 4.0 * 1000.0);
-            if (raggioMm <= 0)
-                return Fallito("«radius_mm» dev'essere maggiore di zero: ho letto " + raggioMm + ".");
-            double raggio = raggioMm / 1000.0;
+            double radiusMm = Num(a, "radius_mm", Math.Min(wide, up) / 4.0 * 1000.0);
+            if (radiusMm <= 0)
+                return Failed("«radius_mm» dev'essere maggiore di zero: ho letto " + radiusMm + ".");
+            double radius = radiusMm / 1000.0;
 
             // IL CERCHIO DEVE STARE DENTRO LA VISTA. Uno che sborda ingrandisce
             // del vuoto, e il vuoto ingrandito e' comunque una vista valida.
-            if (cx - raggio < xMin || cx + raggio > xMax ||
-                cy - raggio < yMin || cy + raggio > yMax)
-                return Fallito(
-                    "Il cerchio del dettaglio non sta dentro la vista «" + nomeBersaglio +
+            if (cx - radius < xMin || cx + radius > xMax ||
+                cy - radius < yMin || cy + radius > yMax)
+                return Failed(
+                    "Il cerchio del dettaglio non sta dentro la vista «" + targetName +
                     "»: centro (" + Math.Round((cx - (xMin + xMax) / 2.0) * 1000, 1) + ", " +
                     Math.Round((cy - (yMin + yMax) / 2.0) * 1000, 1) + ") mm dal centro, raggio " +
-                    Math.Round(raggioMm, 1) + " mm, su una vista " +
-                    Math.Round(largo * 1000, 1) + " x " + Math.Round(alto * 1000, 1) +
+                    Math.Round(radiusMm, 1) + " mm, su una vista " +
+                    Math.Round(wide * 1000, 1) + " x " + Math.Round(up * 1000, 1) +
                     " mm di foglio. Un cerchio che sborda ingrandisce del vuoto, e il " +
                     "vuoto ingrandito e' comunque una vista che sembra buona.");
 
-            double scala1 = Num(a, "scale", 2);
-            if (scala1 <= 0)
-                return Fallito("«scale» dev'essere maggiore di zero: ho letto " + scala1 + ".");
-            string etichetta = Str(a, "label", "B");
-            if (string.IsNullOrWhiteSpace(etichetta)) etichetta = "B";
+            double scale1 = Num(a, "scale", 2);
+            if (scale1 <= 0)
+                return Failed("«scale» dev'essere maggiore di zero: ho letto " + scale1 + ".");
+            string label = Str(a, "label", "B");
+            if (string.IsNullOrWhiteSpace(label)) label = "B";
             // UN DETTAGLIO «B» ACCANTO A UNA SEZIONE «B-B» (voce Z-C13): si rifiuta prima.
-            string doppia = LetteraGiaUsata(disegno, etichetta);
-            if (doppia != null) return Fallito(doppia);
+            string doubled = LetterAlreadyUsed(drawing, label);
+            if (doubled != null) return Failed(doubled);
 
             // Quante circonferenze aveva PRIMA. Vedi il docstring: il conto e'
             // il valore di RITORNO, non l'`out`.
-            int cerchiPrima = -1;
-            try { int quanti; cerchiPrima = bersaglio.GetDetailCircleCount2(out quanti); }
+            int circlesBefore = -1;
+            try { int howMany; circlesBefore = target.GetDetailCircleCount2(out howMany); }
             catch { }
 
             // ── IL CERCHIO, SULLO SCHIZZO DEL FOGLIO ────────────────────
-            try { disegno.EditSheet(); } catch { }
+            try { drawing.EditSheet(); } catch { }
 
             // As for the section: the sheet sketch counted before the circle, so
             // that a circle left behind by a refusal can be removed and the
             // removal checked (Z-C21.8, finding M41).
-            int segmentsBefore = SheetSketchSegmentCount(disegno);
-            ISketchSegment cerchio = null;
+            int segmentsBefore = SheetSketchSegmentCount(drawing);
+            ISketchSegment circle = null;
             try
             {
-                modello.ClearSelection2(true);
-                cerchio = modello.SketchManager.CreateCircleByRadius(cx, cy, 0.0, raggio)
+                model.ClearSelection2(true);
+                circle = model.SketchManager.CreateCircleByRadius(cx, cy, 0.0, radius)
                           as ISketchSegment;
             }
             catch (Exception ex)
             {
-                return Fallito("Non sono riuscito a tracciare il cerchio del dettaglio: " + ex.Message);
+                return Failed("Non sono riuscito a tracciare il cerchio del dettaglio: " + ex.Message);
             }
-            if (cerchio == null)
-                return Fallito(
+            if (circle == null)
+                return Failed(
                     "«CreateCircleByRadius» non ha prodotto nessun cerchio sul foglio, e " +
                     "senza il cerchio non c'e' niente da selezionare: " +
                     "«CreateDetailViewAt4» non prende la zona in firma, la prende dalla " +
                     "selection.");
 
             // Lo schizzo si chiude prima, come per la sezione.
-            try { modello.SketchManager.InsertSketch(true); } catch { }
+            try { model.SketchManager.InsertSketch(true); } catch { }
 
-            bool presa = false;
+            bool taken = false;
             string selectError = null;
             try
             {
-                modello.ClearSelection2(true);
-                presa = cerchio.Select4(false, null);
+                model.ClearSelection2(true);
+                taken = circle.Select4(false, null);
             }
             catch (Exception ex) { selectError = ex.Message; }
-            if (!presa)
-                return Fallito(
+            if (!taken)
+                return Failed(
                     (selectError != null
                         ? "I could not select the detail circle (" + selectError + ")"
                         : "The detail circle is there but does not let itself be selected") +
                     ", and CreateDetailViewAt4 takes the zone from the selection: without it, it would do " +
                     "something other than what you asked" +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, cerchio, segmentsBefore), "circle"));
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, circle, segmentsBefore), "circle"));
 
             // ── IL DETTAGLIO, A FIANCO ──────────────────────────────────
-            double xDettaglio = xMax + largo * 0.8;
-            double yDettaglio = (yMin + yMax) / 2.0;
+            double xDetail = xMax + wide * 0.8;
+            double yDetail = (yMin + yMax) / 2.0;
 
-            object nata = null;
-            string esplosa = null;
+            object born = null;
+            string exploded = null;
             try
             {
-                nata = disegno.CreateDetailViewAt4(
-                    xDettaglio, yDettaglio, 0.0,
-                    (int)swDetViewStyle_e.swDetViewSTANDARD, scala1, 1.0, etichetta,
+                born = drawing.CreateDetailViewAt4(
+                    xDetail, yDetail, 0.0,
+                    (int)swDetViewStyle_e.swDetViewSTANDARD, scale1, 1.0, label,
                     (int)swDetCircleShowType_e.swDetCircleCIRCLE,
                     false, false, false, 0);
             }
-            catch (Exception ex) { esplosa = ex.Message; }
+            catch (Exception ex) { exploded = ex.Message; }
 
-            int visteDopo = 0;
-            IView ultima = null;
+            int viewsAfter = 0;
+            IView last = null;
             try
             {
-                var w = disegno.GetFirstView() as IView;
-                while (w != null && visteDopo < 200)
+                var w = drawing.GetFirstView() as IView;
+                while (w != null && viewsAfter < 200)
                 {
-                    visteDopo++;
-                    ultima = w;
+                    viewsAfter++;
+                    last = w;
                     w = w.GetNextView() as IView;
                 }
             }
             catch { }
 
-            if (visteDopo <= vistePrima)
-                return Fallito(
-                    "No view more: the detail was NOT born (there were " + vistePrima +
-                    ", there are " + visteDopo + "). CreateDetailViewAt4 " +
-                    (esplosa != null ? "failed: " + esplosa
-                                     : nata == null ? "returned no object"
+            if (viewsAfter <= viewsBefore)
+                return Failed(
+                    "No view more: the detail was NOT born (there were " + viewsBefore +
+                    ", there are " + viewsAfter + "). CreateDetailViewAt4 " +
+                    (exploded != null ? "failed: " + exploded
+                                     : born == null ? "returned no object"
                                                     : "returned an object") +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, cerchio, segmentsBefore), "circle"));
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, circle, segmentsBefore), "circle"));
 
             // THE DETAIL IS THE VIEW CreateDetailViewAt4 RETURNS (Z-C21.8, finding
             // M41), as for the section: the last view of the chain only when the
             // call returned no view, and the answer says which one was read.
-            IView detailView = nata as IView;
+            IView detailView = born as IView;
             string viewReadFrom = "returned by CreateDetailViewAt4";
             if (detailView == null)
             {
-                detailView = ultima;
+                detailView = last;
                 viewReadFrom = "last view of the sheet (CreateDetailViewAt4 returned no view)";
             }
 
-            string nomeDettaglio = "";
-            int tipoDettaglio = -1;
-            try { nomeDettaglio = detailView.GetName2() ?? ""; } catch { }
-            try { tipoDettaglio = detailView.Type; } catch { }
+            string detailName = "";
+            int detailType = -1;
+            try { detailName = detailView.GetName2() ?? ""; } catch { }
+            try { detailType = detailView.Type; } catch { }
 
-            int cerchiDopo = -1;
-            try { int quanti; cerchiDopo = bersaglio.GetDetailCircleCount2(out quanti); }
+            int circlesAfter = -1;
+            try { int howMany; circlesAfter = target.GetDetailCircleCount2(out howMany); }
             catch { }
 
             // ── LA PROVA CHE IL CERCHIO E' DIVENTATO UN DETTAGLIO ───────
@@ -269,7 +269,7 @@ namespace Oce.Solid.Agent.Core
             // una circonferenza di dettaglio in piu'. Senza, sul foglio
             // resterebbe un cerchio disegnato a mano accanto a una vista in
             // piu' che non gli e' legata.
-            if (cerchiPrima >= 0 && cerchiDopo >= 0 && cerchiDopo <= cerchiPrima)
+            if (circlesBefore >= 0 && circlesAfter >= 0 && circlesAfter <= circlesBefore)
             {
                 // NEITHER IS LEFT ON THE SHEET (Z-C21.8, finding M41): until library
                 // 0.144.0 this refusal described the loose circle and the unlinked
@@ -279,41 +279,41 @@ namespace Oce.Solid.Agent.Core
                 // ONLY A VIEW THAT WAS NOT THERE BEFORE IS DELETED: with no view
                 // returned, the name comes from the last view of the chain, and a
                 // name read before the call is a view of the user.
-                bool viewIsNew = !nomiViste.Contains(nomeDettaglio);
-                bool viewRemoved = viewIsNew && RemoveNewView(modello, nomeDettaglio);
-                bool circleRemoved = RemoveSheetSketchSegment(modello, disegno, cerchio, segmentsBefore);
-                return Fallito(
-                    "The view «" + nomeDettaglio + "» was born, but on «" + nomeBersaglio +
-                    "» the detail circles are still " + cerchiDopo + ": the circle did not become a detail. " +
+                bool viewIsNew = !viewNames.Contains(detailName);
+                bool viewRemoved = viewIsNew && RemoveNewView(model, detailName);
+                bool circleRemoved = RemoveSheetSketchSegment(model, drawing, circle, segmentsBefore);
+                return Failed(
+                    "The view «" + detailName + "» was born, but on «" + targetName +
+                    "» the detail circles are still " + circlesAfter + ": the circle did not become a detail. " +
                     (viewRemoved ? "I removed the view"
-                     : !viewIsNew ? "The view I read, «" + nomeDettaglio + "», was on the sheet before this step, so I " +
-                                    "did not delete it: find the new view and remove it — " + Frasi.CosiSiRitira
-                     : "I could not remove the view «" + nomeDettaglio + "» (remove it — " + Frasi.CosiSiRitira + ")") +
+                     : !viewIsNew ? "The view I read, «" + detailName + "», was on the sheet before this step, so I " +
+                                    "did not delete it: find the new view and remove it — " + Sentences.HowToWithdrawIt
+                     : "I could not remove the view «" + detailName + "» (remove it — " + Sentences.HowToWithdrawIt + ")") +
                     SheetLineRemovedOrNot(circleRemoved, "circle"));
             }
 
-            string letteraLetta = LetteraDellaVista(detailView);
-            var fuori = new Dictionary<string, object>
+            string readLetter = ViewLetter(detailView);
+            var outside = new Dictionary<string, object>
             {
-                ["label_reread"] = letteraLetta,
+                ["label_reread"] = readLetter,
                 ["view_read_from"] = viewReadFrom,
-                ["view_detailed"] = nomeBersaglio,
-                ["views_before"] = vistePrima,
-                ["views_after"] = visteDopo,
-                ["view_detail"] = nomeDettaglio,
-                ["view_kind"] = tipoDettaglio,
+                ["view_detailed"] = targetName,
+                ["views_before"] = viewsBefore,
+                ["views_after"] = viewsAfter,
+                ["view_detail"] = detailName,
+                ["view_kind"] = detailType,
                 ["is_detail"] =
-                    tipoDettaglio == (int)swDrawingViewTypes_e.swDrawingDetailView,
-                ["label"] = etichetta,
-                ["scale"] = scala1,
+                    detailType == (int)swDrawingViewTypes_e.swDrawingDetailView,
+                ["label"] = label,
+                ["scale"] = scale1,
                 ["circle_mm"] = new object[]
                 {
                     Math.Round((cx - (xMin + xMax) / 2.0) * 1000, 2),
                     Math.Round((cy - (yMin + yMax) / 2.0) * 1000, 2),
-                    Math.Round(raggioMm, 2),
+                    Math.Round(radiusMm, 2),
                 },
-                ["circles_before"] = cerchiPrima,
-                ["circles_after"] = cerchiDopo,
+                ["circles_before"] = circlesBefore,
+                ["circles_after"] = circlesAfter,
                 ["what_it_does_not_check"] =
                     "SE QUELLO E' IL PARTICOLARE CHE SERVIVA. So dirti che il cerchio e' " +
                     "diventato un dettaglio e che sta dentro la vista, non che dentro ci " +
@@ -326,10 +326,10 @@ namespace Oce.Solid.Agent.Core
                     "cio' che va quotato.",
             };
 
-            _log("[agente] dettaglio «" + nomeDettaglio + "» da «" + nomeBersaglio +
-                 "»: circonferenze " + cerchiPrima + " -> " + cerchiDopo +
-                 ", viste " + vistePrima + " -> " + visteDopo);
-            return SenzaFeature(fuori);
+            _log("[agente] dettaglio «" + detailName + "» da «" + targetName +
+                 "»: circonferenze " + circlesBefore + " -> " + circlesAfter +
+                 ", viste " + viewsBefore + " -> " + viewsAfter);
+            return WithoutFeature(outside);
         }
     }
 }

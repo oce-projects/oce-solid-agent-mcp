@@ -28,17 +28,17 @@ usa e getta e la chiude.
 
 > **Prima di tutto questo c'e' `Tests\Oce.Solid.Agent.ContractTests.exe`** — 54 controlli in
 > pochi secondi, **senza SOLIDWORKS**: il valutatore delle attese, il catalogo,
-> `StessoDocumento`, il protocollo MCP. Vedi [Tests/README.md](../Tests/README.md).
+> `SameDocument`, il protocollo MCP. Vedi [Tests/README.md](../Tests/README.md).
 > Se sono rossi quelli, aprire il CAD e' tempo perso.
 
 ### Un comando solo
 
 ```
 .\Bench\bench.ps1                        tutto, e scrive il resoconto
-.\Bench\bench.ps1 -Gruppo viste          una famiglia sola
-.\Bench\bench.ps1 -Famiglia reanchor    una cartella sola di casi dichiarati
-.\Bench\bench.ps1 -Lento                 anche quelle che costano minuti
-.\Bench\bench.ps1 -SaltaCompilazione     il binario che c'e' gia'
+.\Bench\bench.ps1 -Group viste          una famiglia sola
+.\Bench\bench.ps1 -Family reanchor    una cartella sola di casi dichiarati
+.\Bench\bench.ps1 -Slow                 anche quelle che costano minuti
+.\Bench\bench.ps1 -SkipCompilation     il binario che c'e' gia'
 ```
 
 Compila libreria e banco (e **si ferma** se una delle due fallisce), guarda se
@@ -86,7 +86,7 @@ mutation or regression run a miss is a bench error. `Oce.Solid.Agent.ContractTes
 > «Periodo di timeout del semaforo scaduto».
 >
 > Costato due volte: un giro pieno morto a **8469 s** (644 prove passate, zero
-> fallite) e un `-Gruppo casi` morto a **1132 s**. In tutti e due i casi **zero
+> fallite) e un `-Group casi` morto a **1132 s**. In tutti e due i casi **zero
 > rossi**: e' tempo buttato, non informazione.
 >
 > **Il segnale che li distingue e' semplice: un giro vero scrive SEMPRE un file
@@ -371,16 +371,16 @@ scrive un argomento finto per far passare la regola: si dichiara in
 "difference_is_the_part": "la piastra non ha pareti; la gemella e' la scatola svuotata"
 ```
 
-e banco e contratti (`Attese.SiSomiglianoNelPezzo`) pretendono tre cose: la frase
+e banco e contratti (`Expectations.ResembleInPart`) pretendono tre cose: la frase
 c'e', gli argomenti sono **identici** a quelli della gemella (se differiscono la
 regola normale basta, e la dichiarazione e' di troppo), e i passi **prima** sono
 diversi (stesso pezzo e stessi argomenti resta una copia). Oggi la usa un caso
 solo: `features/limit_rib_on_a_plate_without_walls`.
 
-### `-Regressione` — quanto reggono i riferimenti
+### `-Regression` — quanto reggono i riferimenti
 
 ```
-.\Bench\bench.ps1 -Regressione
+.\Bench\bench.ps1 -Regression
 ```
 
 Diciannove pezzi in `cases/regression/`, ognuno con `build`, **una sola
@@ -410,10 +410,10 @@ Due campi in piu' rispetto ai casi normali:
   fori non ne lascia. Il volume da solo non distingue una tasca ferma da una
   tasca che ha seguito il bordo.
 
-### `-Muta` — ogni caso deve poter diventare rosso
+### `-Mutate` — ogni caso deve poter diventare rosso
 
 ```
-.\Bench\bench.ps1 -Muta
+.\Bench\bench.ps1 -Mutate
 ```
 
 Perturba **il piano, non il codice**: un argomento alla volta moltiplicato per
@@ -440,8 +440,8 @@ di **prima** della riparazione, diventa rossa.
 
 ```
 .\Checks\library-of-the-time.ps1 0.70.0
-.\Bench\bench.ps1 -Libreria <il percorso stampato> -Gruppo casi -SaltaCompilazione
-.\Checks\library-of-the-time.ps1 0.70.0 -Pulisci
+.\Bench\bench.ps1 -Library <il percorso stampato> -Group casi -SkipCompilation
+.\Checks\library-of-the-time.ps1 0.70.0 -Clean
 ```
 
 La DLL non si conserva da nessuna parte: **si ricostruisce**, perche' in questo
@@ -505,7 +505,7 @@ node Bench\test_undo.js           «undo» (voce R1), coi suoi tre rossi
 `test_undo.js` sta qui e non in `Oce.Solid.Agent.Bench` per una ragione precisa:
 `undo` **non e' nella libreria**. E' uno strumento del ponte, e la parte che
 conta — il ricordo dell'ultimo piano, e i tre casi in cui si RIFIUTA — vive in
-`Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
+`McpTools`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
 
 Since Z-C21.14 four more `undo` cases run in the full bench, in the group that
 talks to the bridge (`ClientPort.cs`, `UndoHonesty`): (a) a later plan that
@@ -573,7 +573,7 @@ addosso, un piano da mezzo secondo di lavoro ne impiega ottantacinque.
 ## I casi
 
 **I casi dichiarati** — quelli che `--gruppo casi` esegue e misura. L'elenco
-delle famiglie sta in `Famiglie` in `DeclaredCases.cs`: una cartella che c'e'
+delle famiglie sta in `Families` in `DeclaredCases.cs`: una cartella che c'e'
 ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
@@ -799,9 +799,9 @@ cases/aliases/     4   the names of before the rename, accepted until the first
                        part, and the step lists them in measurements.deprecated
 ```
 
-`-Famiglia` (voce E19) fa girare solo quelle cartelle dei casi dichiarati: il
+`-Family` (voce E19) fa girare solo quelle cartelle dei casi dichiarati: il
 gruppo `casi` da solo sono tre quarti d'ora, e un caso nuovo si vede fallire
-PRIMA di scrivere il codice. Il giro e' parziale come con `-Gruppo`, e riscrive
+PRIMA di scrivere il codice. Il giro e' parziale come con `-Group`, e riscrive
 `last.json` come lui: si rimette con `git checkout` prima del giro intero.
 
 `"uid_from_step": N` in un passo prende selettori e firme dallo stato di PRIMA

@@ -72,9 +72,9 @@ namespace Oce.Solid.Agent.Installer
         {
             tell = tell ?? (s => { });
             string output;
-            Run(claude, "mcp remove --scope user " + Configurazione.NomeServer, out output);
+            Run(claude, "mcp remove --scope user " + Configuration.ServerName, out output);
 
-            var args = new StringBuilder("mcp add --scope user " + Configurazione.NomeServer);
+            var args = new StringBuilder("mcp add --scope user " + Configuration.ServerName);
             if (env != null)
                 foreach (var kv in env.OrderBy(k => k.Key, StringComparer.Ordinal))
                     args.Append(" -e ").Append(Quote(kv.Key + "=" + kv.Value));
@@ -96,7 +96,7 @@ namespace Oce.Solid.Agent.Installer
         {
             tell = tell ?? (s => { });
             string output;
-            int code = Run(claude, "mcp remove --scope user " + Configurazione.NomeServer, out output);
+            int code = Run(claude, "mcp remove --scope user " + Configuration.ServerName, out output);
             if (code == 0) tell("Claude Code: removed with \"claude mcp remove --scope user\"");
             else tell("Claude Code: \"claude mcp remove\" exited " + code +
                       (string.IsNullOrWhiteSpace(output) ? "" : ": " + Last(output)));

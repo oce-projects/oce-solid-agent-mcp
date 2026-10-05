@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -19,7 +19,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// document is not rebuilt, and Errors contains
     /// swActivateDocError_e.swDocNeedsRebuildWarning. You can then rebuild the
     /// document using IModelDoc2::EditRebuild3.» Up to library 0.146.0
-    /// `Bridge/Documents.cs::PortaDavanti` read the activation Errors bitmask
+    /// `Bridge/Documents.cs::BringToFront` read the activation Errors bitmask
     /// into a local and never looked at it again: a plan whose first step is
     /// read-only (`mass_properties`, `overall`) would measure stale geometry,
     /// since the executor's own rebuild only follows a SUCCESSFUL step
@@ -30,9 +30,9 @@ namespace Oce.Solid.Agent.ContractTests
     /// ActivateDoc3 call (not the bench's own) brings to the front while
     /// swDontRebuildActiveDoc is in effect — nothing the bench's one bridge
     /// process can stage. So this checks the two things a bench case cannot:
-    ///   - on the SOURCE, that `PortaDavanti` calls IModelDoc2.EditRebuild3
+    ///   - on the SOURCE, that `BringToFront` calls IModelDoc2.EditRebuild3
     ///     exactly when its own bit test says to;
-    ///   - the bit test itself (`Sessione.NeedsRebuildAfterActivation`), by
+    ///   - the bit test itself (`Session.NeedsRebuildAfterActivation`), by
     ///     reflection on the built bridge, against every shape ActivateAndReadBack
     ///     can hand it: -1 (ActivateDoc3 was never called — already in front),
     ///     0 (no warning), swGenericActivateError alone, swDocNeedsRebuildWarning
@@ -46,36 +46,36 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("C4-3: a pending rebuild left by ActivateDoc3 is not lost");
+            Group("C4-3: a pending rebuild left by ActivateDoc3 is not lost");
 
             SourceWiring();
             LibraryWiring();
 
-            var bridge = PonteOppureNonQui("Sessione.NeedsRebuildAfterActivation, in full");
+            var bridge = BridgeOrNotHere("Sessione.NeedsRebuildAfterActivation, in full");
             if (bridge == null) return;
 
             MethodInfo needsRebuild;
             try
             {
-                var type = Carica.Classe(Carica.Ponte(bridge), "Sessione");
-                if (type == null) { Segna("Sessione.NeedsRebuildAfterActivation is there", false, "no such type"); return; }
+                var type = Load.Class(Load.Bridge(bridge), "Session");
+                if (type == null) { Check("Sessione.NeedsRebuildAfterActivation is there", false, "no such type"); return; }
                 needsRebuild = type.GetMethod("NeedsRebuildAfterActivation",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (needsRebuild == null) { Segna("Sessione.NeedsRebuildAfterActivation is there", false, "no such method"); return; }
+                if (needsRebuild == null) { Check("Sessione.NeedsRebuildAfterActivation is there", false, "no such method"); return; }
             }
-            catch (Exception ex) { Segna("the bridge loads", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
             Func<int, bool> needs = errors => (bool)needsRebuild.Invoke(null, new object[] { errors });
 
-            Segna("ActivateDoc3 not called (-1, already in front): nothing to act on",
+            Check("ActivateDoc3 not called (-1, already in front): nothing to act on",
                   !needs(-1));
-            Segna("Errors = 0 (no warning): no rebuild is asked",
+            Check("Errors = 0 (no warning): no rebuild is asked",
                   !needs(0));
-            Segna("swGenericActivateError alone (1) is not swDocNeedsRebuildWarning",
+            Check("swGenericActivateError alone (1) is not swDocNeedsRebuildWarning",
                   !needs(SwGenericActivateError));
-            Segna("swDocNeedsRebuildWarning alone (2): a rebuild is asked",
+            Check("swDocNeedsRebuildWarning alone (2): a rebuild is asked",
                   needs(SwDocNeedsRebuildWarning));
-            Segna("both bits together (3): the warning bit still fires",
+            Check("both bits together (3): the warning bit still fires",
                   needs(SwGenericActivateError | SwDocNeedsRebuildWarning));
         }
 
@@ -90,7 +90,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void LibraryWiring()
         {
-            var dir = Path.Combine(Radice(), "Oce.Solid.Agent.Core");
+            var dir = Path.Combine(Root(), "Oce.Solid.Agent.Core");
             var loose = new System.Collections.Generic.List<string>();
             int calls = 0;
             try
@@ -110,16 +110,16 @@ namespace Oce.Solid.Agent.ContractTests
                     }
                 }
             }
-            catch (Exception ex) { Segna("the library sources read", false, ex.Message); return; }
-            Segna("every library ActivateAndReadBack acts on swDocNeedsRebuildWarning (rebuild ours, say it on the user's)",
+            catch (Exception ex) { Check("the library sources read", false, ex.Message); return; }
+            Check("every library ActivateAndReadBack acts on swDocNeedsRebuildWarning (rebuild ours, say it on the user's)",
                   calls > 0 && loose.Count == 0,
                   calls == 0 ? "no call found: moved or renamed" : loose.Count == 0 ? calls + " calls" : "not acting: " + string.Join(", ", loose));
 
-            var library = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
-            if (!File.Exists(library)) { NonQui("DocumentByPath.NeedsRebuildAfterActivation", library + " is missing: build the library first"); return; }
+            var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            if (!File.Exists(library)) { NotHere("DocumentByPath.NeedsRebuildAfterActivation", library + " is missing: build the library first"); return; }
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (sender, a) =>
@@ -132,17 +132,17 @@ namespace Oce.Solid.Agent.ContractTests
                 }
                 var type = Assembly.Load(File.ReadAllBytes(library)).GetType("Oce.Solid.Agent.Core.DocumentByPath", false);
                 var method = type == null ? null : type.GetMethod("NeedsRebuildAfterActivation", BindingFlags.Public | BindingFlags.Static);
-                if (method == null) { Segna("DocumentByPath.NeedsRebuildAfterActivation is there", false, "not found"); return; }
+                if (method == null) { Check("DocumentByPath.NeedsRebuildAfterActivation is there", false, "not found"); return; }
                 Func<int, bool> needs = e => (bool)method.Invoke(null, new object[] { e });
-                Segna("library bit test: -1, 0 and swGenericActivateError alone ask nothing; the warning bit, alone or with 1, asks a rebuild",
+                Check("library bit test: -1, 0 and swGenericActivateError alone ask nothing; the warning bit, alone or with 1, asks a rebuild",
                       !needs(-1) && !needs(0) && !needs(SwGenericActivateError) && needs(SwDocNeedsRebuildWarning) &&
                       needs(SwGenericActivateError | SwDocNeedsRebuildWarning));
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         /// <summary>
-        /// ON THE SOURCE: `PortaDavanti` (Bridge/Documents.cs) calls
+        /// ON THE SOURCE: `BringToFront` (Bridge/Documents.cs) calls
         /// IModelDoc2.EditRebuild3() inside the same `if` that tests
         /// `NeedsRebuildAfterActivation`. A bench case cannot force
         /// swDocNeedsRebuildWarning, so nothing else here would ever turn red if
@@ -150,45 +150,45 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void SourceWiring()
         {
-            var path = Path.Combine(Radice(), "Bridge", SourceFile);
+            var path = Path.Combine(Root(), "Bridge", SourceFile);
             if (!File.Exists(path))
             {
-                Segna("Bridge/" + SourceFile + " reads", false, "not found: " + path);
+                Check("Bridge/" + SourceFile + " reads", false, "not found: " + path);
                 return;
             }
             string source;
             try { source = File.ReadAllText(path); }
-            catch (Exception ex) { Segna("Bridge/" + SourceFile + " reads", false, ex.Message); return; }
+            catch (Exception ex) { Check("Bridge/" + SourceFile + " reads", false, ex.Message); return; }
 
             var method = Regex.Match(source,
-                @"private\s+Dictionary<string,\s*object>\s+PortaDavanti\s*\([^)]*\)\s*\{(.*?)\n        \}",
+                @"private\s+Dictionary<string,\s*object>\s+BringToFront\s*\([^)]*\)\s*\{(.*?)\n        \}",
                 RegexOptions.Singleline);
-            Segna("PortaDavanti is found in the source", method.Success,
+            Check("PortaDavanti is found in the source", method.Success,
                   method.Success ? "" : "the method does not match the pattern: renamed or moved");
             if (!method.Success) return;
             string body = method.Groups[1].Value;
 
             bool testsTheBit = Regex.IsMatch(body, @"NeedsRebuildAfterActivation\s*\(\s*activationErrors\s*\)");
-            Segna("PortaDavanti tests NeedsRebuildAfterActivation(activationErrors)", testsTheBit);
+            Check("PortaDavanti tests NeedsRebuildAfterActivation(activationErrors)", testsTheBit);
 
             bool callsRebuild = Regex.IsMatch(body, @"doc\.EditRebuild3\s*\(\s*\)");
-            Segna("PortaDavanti calls doc.EditRebuild3() (not a different document reference)", callsRebuild);
+            Check("PortaDavanti calls doc.EditRebuild3() (not a different document reference)", callsRebuild);
 
             // THE CALL IS GUARDED BY THE TEST, not unconditional: an
             // unconditional EditRebuild3 on every activation would rebuild a
             // document nobody asked to touch, on every call that brings a
-            // document to the front (ApriDocumento, AttivaDocumento).
+            // document to the front (OpenDocument, ActivateDocument).
             var guarded = Regex.Match(body,
                 @"if\s*\(\s*needsRebuild\s*\)\s*\{[^}]*EditRebuild3", RegexOptions.Singleline);
             var bitRead = Regex.Match(body,
                 @"(?:bool\s+needsRebuild\s*=\s*NeedsRebuildAfterActivation\s*\(\s*activationErrors\s*\)\s*;)",
                 RegexOptions.Singleline);
-            Segna("the EditRebuild3 call sits behind the bit test, not unconditionally",
+            Check("the EditRebuild3 call sits behind the bit test, not unconditionally",
                   bitRead.Success && guarded.Success,
                   bitRead.Success ? "" : "no local named needsRebuild computed from the bit test right after activation");
 
             bool saysSo = Regex.IsMatch(body, "rebuilt_on_activation");
-            Segna("the answer says a rebuild happened (rebuilt_on_activation)", saysSo);
+            Check("the answer says a rebuild happened (rebuilt_on_activation)", saysSo);
         }
     }
 }

@@ -173,34 +173,34 @@ using SolidWorks.Interop.swconst;
 //    1 variante/i non si sono comportate come previsto: guarda sopra.
 // =============================================================================
 
-internal static class Programma
+internal static class Program
 {
-    private const string NomeFileProfilo = "TUBO STRUTTURALE QUADRO.SLDLFP";
-    private const string Configurazione = "80X80X5";
+    private const string ProfileFileName = "TUBO STRUTTURALE QUADRO.SLDLFP";
+    private const string Configuration = "80X80X5";
 
     // Geometria della T di prova, in metri.
-    private const double LungaX0 = 0.0, LungaX1 = 0.6;
+    private const double LongX0 = 0.0, LongX1 = 0.6;
     private const double CortaZ0 = 0.0, CortaZ1 = 0.3;
     private const double CortaX = 0.3;
 
     // Le due facce attese dopo il taglio (vedi il commento in testa al file).
-    private const double AreaAltaLunga = 0.0408;      // m^2 : 0.6 x 0.068
+    private const double TallLongArea = 0.0408;      // m^2 : 0.6 x 0.068
     private const double AreaLateraleCorta = 0.01768; // m^2 : 0.26 x 0.068
-    private const double TolleranzaArea = 0.0006;      // +-6 cm^2, generosa
-    private const double TolleranzaQuota = 0.0003;     // +-0.3 mm sulla quota costante della faccia
+    private const double AreaTolerance = 0.0006;      // +-6 cm^2, generosa
+    private const double DimensionTolerance = 0.0003;     // +-0.3 mm sulla quota costante della faccia
 
-    private static bool _tieni;
-    private static int _passo;
+    private static bool _keep;
+    private static int _step;
 
-    private static void Dice(string cosa)
+    private static void Says(string what)
     {
-        _passo++;
-        Console.WriteLine("    " + _passo.ToString("00") + ". " + cosa);
+        _step++;
+        Console.WriteLine("    " + _step.ToString("00") + ". " + what);
     }
 
-    private static int Main(string[] argomenti)
+    private static int Main(string[] arguments)
     {
-        _tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
+        _keep = Array.IndexOf(arguments, "--tieni") >= 0;
 
         Console.WriteLine();
         Console.WriteLine("PROBE FAZZOLETTO — voce GP20 (il fazzoletto di saldatura non nasce)");
@@ -208,17 +208,17 @@ internal static class Programma
         Console.WriteLine("  una T fresca per ciascuna variante, chiusa senza salvare a fine giro");
         Console.WriteLine();
 
-        string cartellaProfili = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
-        if (string.IsNullOrWhiteSpace(cartellaProfili))
+        string profilesFolder = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+        if (string.IsNullOrWhiteSpace(profilesFolder))
         {
-            Console.WriteLine("PROFILI_SALDATURA non e' impostata: non so dove sta " + NomeFileProfilo + ".");
+            Console.WriteLine("PROFILI_SALDATURA non e' impostata: non so dove sta " + ProfileFileName + ".");
             Console.WriteLine("Impostala (la cartella coi .SLDLFP) e rilancia.");
             return 2;
         }
-        string percorsoProfilo = Path.Combine(cartellaProfili, NomeFileProfilo);
-        if (!File.Exists(percorsoProfilo))
+        string profilePath = Path.Combine(profilesFolder, ProfileFileName);
+        if (!File.Exists(profilePath))
         {
-            Console.WriteLine("Non trovo il profilo: " + percorsoProfilo);
+            Console.WriteLine("Non trovo il profilo: " + profilePath);
             return 2;
         }
 
@@ -236,179 +236,179 @@ internal static class Programma
         {
             new Ricetta
             {
-                Titolo = "0 — CONTROLLO: la ricetta esatta spedita nel ponte (WeldmentOperations.cs)",
-                Chiamata = "InsertGussetFeature3",
+                Title = "0 — CONTROLLO: la ricetta esatta spedita nel ponte (WeldmentOperations.cs)",
+                Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
                 LocType = (short)swGussetProfileLocationType_e.swGussetProfileLocationCenter,
                 IsProfile = true,
                 D1 = 0.060, D2 = 0.060, D3 = 0.0, Angle = 0.0, D4 = 0.0,
                 UseLenDim = true,
-                Marca = 0,
-                SiAttendeFallimento = true,
-                PercheFallisceOForse =
+                Mark = 0,
+                FailureExpected = true,
+                WhyItFailsOrMaybe =
                     "profilo degenere: BIsProfile=true (poligono) con D3=0 e D4=0 (BUseLenDim=true) e' un " +
                     "poligono a lato zero — la stessa forma spedita nel ponte, mai cambiata in 16 varianti.",
             },
             new Ricetta
             {
-                Titolo = "1 — RICETTA DELLA GUIDA (Insert_Gusset_Feature_Example_CSharp.htm): triangolo, marca 1/1",
-                Chiamata = "InsertGussetFeature3",
+                Title = "1 — RICETTA DELLA GUIDA (Insert_Gusset_Feature_Example_CSharp.htm): triangolo, marca 1/1",
+                Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
                 LocType = (short)swGussetProfileLocationType_e.swGussetProfileLocationCenter,
                 IsProfile = false,
                 D1 = 0.060, D2 = 0.060, D3 = 0.015, Angle = 0.785398163397448, D4 = 0.015,
                 UseLenDim = false,
-                Marca = 1,
-                SiAttendeFallimento = false,
-                PercheFallisceOForse =
+                Mark = 1,
+                FailureExpected = false,
+                WhyItFailsOrMaybe =
                     "ricetta letta parola per parola dalla pagina d'esempio (stessi valori, lati 60 mm invece di " +
                     "25/25 mm per pesare quanto la voce GP20 chiede: 60x60/2x5 = 9000 mm3 a lati pieni).",
             },
             new Ricetta
             {
-                Titolo = "2 — IPOTESI 'basta un profilo non degenere': poligono con D3/D4 reali",
-                Chiamata = "InsertGussetFeature3",
+                Title = "2 — IPOTESI 'basta un profilo non degenere': poligono con D3/D4 reali",
+                Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
                 LocType = (short)swGussetProfileLocationType_e.swGussetProfileLocationCenter,
                 IsProfile = true,
                 D1 = 0.060, D2 = 0.060, D3 = 0.015, D4 = 0.015, Angle = 0.0,
                 UseLenDim = true,
-                Marca = 1,
-                SiAttendeFallimento = false,
-                PercheFallisceOForse =
+                Mark = 1,
+                FailureExpected = false,
+                WhyItFailsOrMaybe =
                     "stessa forma POLIGONALE che il ponte intendeva (BIsProfile=true), ma con D3 e D4 " +
                     "diversi da zero: isola 'il profilo era degenere' da 'serviva il triangolo'.",
             },
             new Ricetta
             {
-                Titolo = "3 — IPOTESI 'bastava la marca': ricetta del ponte (profilo degenere incluso) con marca 1/1",
-                Chiamata = "InsertGussetFeature3",
+                Title = "3 — IPOTESI 'bastava la marca': ricetta del ponte (profilo degenere incluso) con marca 1/1",
+                Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
                 LocType = (short)swGussetProfileLocationType_e.swGussetProfileLocationCenter,
                 IsProfile = true,
                 D1 = 0.060, D2 = 0.060, D3 = 0.0, Angle = 0.0, D4 = 0.0,
                 UseLenDim = true,
-                Marca = 1,
-                SiAttendeFallimento = false,
-                PercheFallisceOForse =
+                Mark = 1,
+                FailureExpected = false,
+                WhyItFailsOrMaybe =
                     "identica alla variante 0, sola differenza la marca 1 su entrambe le facce invece di " +
                     "nessuna: se fallisce come la 0, la marca da sola non e' la causa (il TODO gia' la dava " +
                     "provata, ma non necessariamente con QUESTI stessi parametri messi insieme).",
             },
             new Ricetta
             {
-                Titolo = "4 — IPOTESI 'e' l'array, non la selezione': stessa ricetta della 1, via InsertGussetFeature2",
-                Chiamata = "InsertGussetFeature2",
+                Title = "4 — IPOTESI 'e' l'array, non la selezione': stessa ricetta della 1, via InsertGussetFeature2",
+                Call = "InsertGussetFeature2",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
                 LocType = (short)swGussetProfileLocationType_e.swGussetProfileLocationCenter,
                 IsProfile = false,
                 D1 = 0.060, D2 = 0.060, D3 = 0.015, Angle = 0.785398163397448, D4 = 0.015,
                 UseLenDim = false,
-                Marca = 0,
-                SiAttendeFallimento = false,
-                PercheFallisceOForse =
+                Mark = 0,
+                FailureExpected = false,
+                WhyItFailsOrMaybe =
                     "stessi parametri della variante 1 ma le facce passate come Face2[] esplicito, senza " +
                     "nessuna selezione/marca: la pagina di InsertGussetFeature2 non la richiede.",
             },
         };
 
-        int falliteInAttese = 0;
+        int failedInExpectations = 0;
         foreach (var r in varianti)
         {
-            _passo = 0;
+            _step = 0;
             Console.WriteLine();
             Console.WriteLine("──────────────────────────────────────────────────────────────────");
-            Console.WriteLine(r.Titolo);
-            Console.WriteLine("  " + r.PercheFallisceOForse);
-            bool comeAtteso = EseguiVariante(sw, percorsoProfilo, r);
-            if (!comeAtteso) falliteInAttese++;
+            Console.WriteLine(r.Title);
+            Console.WriteLine("  " + r.WhyItFailsOrMaybe);
+            bool asExpected = RunVariant(sw, profilePath, r);
+            if (!asExpected) failedInExpectations++;
         }
 
         Console.WriteLine();
         Console.WriteLine("══════════════════════════════════════════════════════════════════");
-        if (falliteInAttese == 0)
+        if (failedInExpectations == 0)
             Console.WriteLine("Tutte le varianti si sono comportate come previsto (compreso il controllo).");
         else
-            Console.WriteLine(falliteInAttese + " variante/i non si sono comportate come previsto: guarda sopra.");
-        return falliteInAttese == 0 ? 0 : 1;
+            Console.WriteLine(failedInExpectations + " variante/i non si sono comportate come previsto: guarda sopra.");
+        return failedInExpectations == 0 ? 0 : 1;
     }
 
     /// <summary>Una ricetta di argomenti per InsertGussetFeature2/3, piu' come selezionare.</summary>
     private sealed class Ricetta
     {
-        public string Titolo;
-        public string PercheFallisceOForse;
-        public string Chiamata;   // "InsertGussetFeature3" oppure "InsertGussetFeature2"
+        public string Title;
+        public string WhyItFailsOrMaybe;
+        public string Call;   // "InsertGussetFeature3" oppure "InsertGussetFeature2"
         public double Depth;
         public short DirType;
         public short LocType;
         public bool IsProfile;
         public double D1, D2, D3, Angle, D4;
         public bool UseLenDim;
-        public int Marca;                 // 0 = nessuna marca (Select4(true, null)); altrimenti Select4 con Mark = Marca su ENTRAMBE le facce
-        public bool SiAttendeFallimento;  // true solo per il controllo (variante 0)
+        public int Mark;                 // 0 = nessuna marca (Select4(true, null)); altrimenti Select4 con Mark = Marca su ENTRAMBE le facce
+        public bool FailureExpected;  // true solo per il controllo (variante 0)
     }
 
     /// <summary>Costruisce una T fresca, prova la ricetta, misura, chiude il pezzo. Torna true se l'esito e' quello atteso.</summary>
-    private static bool EseguiVariante(ISldWorks sw, string percorsoProfilo, Ricetta r)
+    private static bool RunVariant(ISldWorks sw, string profilePath, Ricetta r)
     {
         IModelDoc2 doc = null;
         try
         {
-            doc = CostruisciT(sw, percorsoProfilo);
+            doc = BuildT(sw, profilePath);
             if (doc == null) return false;
 
-            IBody2 corpoLungo, corpoCorto;
-            if (!ClassificaCorpi(doc, out corpoLungo, out corpoCorto)) return false;
-            Dice("due corpi, classificati lungo/corto per ingombro in X");
+            IBody2 longBody, shortBody;
+            if (!ClassifyBodies(doc, out longBody, out shortBody)) return false;
+            Says("due corpi, classificati lungo/corto per ingombro in X");
 
-            if (!Taglia(doc, corpoCorto, corpoLungo)) return false;
-            Dice("corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)");
+            if (!Cut(doc, shortBody, longBody)) return false;
+            Says("corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)");
 
             // Dopo il taglio i riferimenti ai corpi restano validi (stesso Body2),
             // ma li ripesco comunque: piu' fedele a "cosa farebbe il ponte".
-            if (!ClassificaCorpi(doc, out corpoLungo, out corpoCorto)) return false;
+            if (!ClassifyBodies(doc, out longBody, out shortBody)) return false;
 
-            IFace2 facciaAltaLunga, facciaLateraleCorta;
-            if (!TrovaLeDueFacce(corpoLungo, corpoCorto, out facciaAltaLunga, out facciaLateraleCorta))
+            IFace2 tallLongFace, shortSideFace;
+            if (!FindTwoFaces(longBody, shortBody, out tallLongFace, out shortSideFace))
             {
                 Console.WriteLine("    NON TROVO le due facce attese (alta della lunga / laterale della corta).");
                 Console.WriteLine("    La T di prova non e' venuta come previsto: nessun verdetto sul fazzoletto qui.");
                 return false;
             }
-            Dice("trovate le due facce: alta della lunga (" + FormattaArea(facciaAltaLunga) +
-                 ") e laterale della corta (" + FormattaArea(facciaLateraleCorta) + ")");
+            Says("trovate le due facce: alta della lunga (" + FormattaArea(tallLongFace) +
+                 ") e laterale della corta (" + FormattaArea(shortSideFace) + ")");
 
-            double? volumePrima = VolumeMm3(doc);
-            int corpiPrima = ContaCorpi(doc);
-            int featurePrima = ContaFeatureAlbero(doc);
+            double? volumeBefore = VolumeMm3(doc);
+            int bodiesBefore = CountBodies(doc);
+            int featureBefore = CountTreeFeatures(doc);
 
             IFeature feature = null;
-            string erroreChiamata = null;
+            string callError = null;
             try
             {
-                if (r.Chiamata == "InsertGussetFeature2")
+                if (r.Call == "InsertGussetFeature2")
                 {
                     // Nessuna selezione: le facce vanno come array tipizzato Face2[].
                     // (memoria api-sw-array-tipizzati: object[] da' feature fantasma)
-                    var facce = new Face2[] { (Face2)facciaAltaLunga, (Face2)facciaLateraleCorta };
+                    var faces = new Face2[] { (Face2)tallLongFace, (Face2)shortSideFace };
                     feature = doc.FeatureManager.InsertGussetFeature2(
                         r.Depth, r.DirType, r.LocType, r.IsProfile,
                         r.D1, r.D2, r.D3, r.Angle, r.D4,
                         false, 0.0, 0,
                         false, false, r.UseLenDim,
-                        facce) as IFeature;
+                        faces) as IFeature;
                 }
                 else
                 {
                     doc.ClearSelection2(true);
-                    if (!SelezionaFaccia(doc, facciaAltaLunga, r.Marca)) { erroreChiamata = "selezione della faccia alta non riuscita"; }
-                    else if (!SelezionaFaccia(doc, facciaLateraleCorta, r.Marca)) { erroreChiamata = "selezione della faccia laterale non riuscita"; }
+                    if (!SelectFace(doc, tallLongFace, r.Mark)) { callError = "selezione della faccia alta non riuscita"; }
+                    else if (!SelectFace(doc, shortSideFace, r.Mark)) { callError = "selezione della faccia laterale non riuscita"; }
                     else
                     {
                         feature = doc.FeatureManager.InsertGussetFeature3(
@@ -423,35 +423,35 @@ internal static class Programma
             }
             catch (Exception ex)
             {
-                erroreChiamata = ex.Message;
+                callError = ex.Message;
             }
             doc.ClearSelection2(true);
 
-            double? volumeDopo = VolumeMm3(doc);
-            int corpiDopo = ContaCorpi(doc);
-            int featureDopo = ContaFeatureAlbero(doc);
+            double? volumeAfter = VolumeMm3(doc);
+            int bodiesAfter = CountBodies(doc);
+            int featureAfter = CountTreeFeatures(doc);
 
-            bool nata = feature != null && featureDopo > featurePrima;
-            string tipo = nata ? SicuroGetTypeName(feature) : "-";
-            double? delta = (volumePrima.HasValue && volumeDopo.HasValue) ? volumeDopo.Value - volumePrima.Value : (double?)null;
+            bool born = feature != null && featureAfter > featureBefore;
+            string typ = born ? SafeGetTypeName(feature) : "-";
+            double? delta = (volumeBefore.HasValue && volumeAfter.HasValue) ? volumeAfter.Value - volumeBefore.Value : (double?)null;
 
             Console.WriteLine();
-            Console.WriteLine("    RISULTATO — " + r.Chiamata + (r.Chiamata == "InsertGussetFeature3" ? " (marca " + r.Marca + ")" : " (Face2[])"));
-            Console.WriteLine("      feature creata:  " + (nata ? "SI'" : "NO") + (erroreChiamata != null ? "   [eccezione: " + erroreChiamata + "]" : ""));
-            Console.WriteLine("      tipo feature:    " + tipo);
-            Console.WriteLine("      corpi:           " + corpiPrima + " -> " + corpiDopo);
-            Console.WriteLine("      feature albero:  " + featurePrima + " -> " + featureDopo);
+            Console.WriteLine("    RISULTATO — " + r.Call + (r.Call == "InsertGussetFeature3" ? " (marca " + r.Mark + ")" : " (Face2[])"));
+            Console.WriteLine("      feature creata:  " + (born ? "SI'" : "NO") + (callError != null ? "   [eccezione: " + callError + "]" : ""));
+            Console.WriteLine("      tipo feature:    " + typ);
+            Console.WriteLine("      corpi:           " + bodiesBefore + " -> " + bodiesAfter);
+            Console.WriteLine("      feature albero:  " + featureBefore + " -> " + featureAfter);
             Console.WriteLine("      volume mm3:      " +
-                (volumePrima.HasValue ? volumePrima.Value.ToString("0.##", CultureInfo.InvariantCulture) : "?") + " -> " +
-                (volumeDopo.HasValue ? volumeDopo.Value.ToString("0.##", CultureInfo.InvariantCulture) : "?") +
+                (volumeBefore.HasValue ? volumeBefore.Value.ToString("0.##", CultureInfo.InvariantCulture) : "?") + " -> " +
+                (volumeAfter.HasValue ? volumeAfter.Value.ToString("0.##", CultureInfo.InvariantCulture) : "?") +
                 (delta.HasValue ? "   (delta " + delta.Value.ToString("+0.##;-0.##", CultureInfo.InvariantCulture) + ")" : ""));
-            if (nata && delta.HasValue)
+            if (born && delta.HasValue)
                 Console.WriteLine("      attesa GP20:     ~9000 mm3 (60x60/2 x 5, meno lo smusso se c'e')");
 
-            bool comeAtteso = r.SiAttendeFallimento ? !nata : nata;
-            Console.WriteLine("      VERDETTO:        " + (comeAtteso ? "come previsto" : "DIVERSO DAL PREVISTO — guarda qui sopra"));
+            bool asExpected = r.FailureExpected ? !born : born;
+            Console.WriteLine("      VERDETTO:        " + (asExpected ? "come previsto" : "DIVERSO DAL PREVISTO — guarda qui sopra"));
 
-            return comeAtteso;
+            return asExpected;
         }
         catch (Exception ex)
         {
@@ -460,7 +460,7 @@ internal static class Programma
         }
         finally
         {
-            if (doc != null && !_tieni)
+            if (doc != null && !_keep)
             {
                 try { sw.CloseDoc(doc.GetTitle()); } catch { }
             }
@@ -476,85 +476,85 @@ internal static class Programma
     /// selezione, non sull'entita', e senza costruirla `Select4(true, null)`
     /// non marca niente anche se marca &gt; 0 fosse passato per sbaglio a null.
     /// </summary>
-    private static bool SelezionaFaccia(IModelDoc2 doc, IFace2 faccia, int marca)
+    private static bool SelectFace(IModelDoc2 doc, IFace2 face, int mark)
     {
-        var ent = faccia as IEntity;
+        var ent = face as IEntity;
         if (ent == null) return false;
-        if (marca <= 0) return ent.Select4(true, null);
+        if (mark <= 0) return ent.Select4(true, null);
 
         var selMgr = doc.SelectionManager as ISelectionMgr;
         if (selMgr == null) return false;
         var sd = selMgr.CreateSelectData() as SelectData;
         if (sd == null) return false;
-        sd.Mark = marca;
+        sd.Mark = mark;
         return ent.Select4(true, sd);
     }
 
     /// <summary>Le due strutturali fresche: 3D sketch + StructuralMemberGroup + InsertStructuralWeldment5, due volte.</summary>
-    private static IModelDoc2 CostruisciT(ISldWorks sw, string percorsoProfilo)
+    private static IModelDoc2 BuildT(ISldWorks sw, string profilePath)
     {
-        string modello = sw.GetUserPreferenceStringValue(
+        string model = sw.GetUserPreferenceStringValue(
             (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-        if (string.IsNullOrWhiteSpace(modello) || !File.Exists(modello))
+        if (string.IsNullOrWhiteSpace(model) || !File.Exists(model))
         {
             Console.WriteLine("    non c'e' un modello di parte predefinito.");
             return null;
         }
-        var doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
+        var doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
         if (doc == null) { Console.WriteLine("    NewDocument -> null"); return null; }
 
-        if (!AggiungiMembro(doc, percorsoProfilo, 0, 0, 0, LungaX1, 0, 0))
+        if (!AddMember(doc, profilePath, 0, 0, 0, LongX1, 0, 0))
         {
             Console.WriteLine("    la barra lunga non e' nata.");
             return null;
         }
-        if (!AggiungiMembro(doc, percorsoProfilo, CortaX, 0, CortaZ0, CortaX, 0, CortaZ1))
+        if (!AddMember(doc, profilePath, CortaX, 0, CortaZ0, CortaX, 0, CortaZ1))
         {
             Console.WriteLine("    la barra corta non e' nata.");
             return null;
         }
         doc.ViewZoomtofit2();
-        Dice("T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo " + Configurazione);
+        Says("T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo " + Configuration);
         return doc;
     }
 
-    private static bool AggiungiMembro(
-        IModelDoc2 doc, string percorsoProfilo,
+    private static bool AddMember(
+        IModelDoc2 doc, string profilePath,
         double xa, double ya, double za, double xb, double yb, double zb)
     {
         doc.ClearSelection2(true);
-        var schizzi = doc.SketchManager;
-        schizzi.Insert3DSketch(true);
-        var seg = schizzi.CreateLine(xa, ya, za, xb, yb, zb) as ISketchSegment;
-        schizzi.Insert3DSketch(true);
+        var sketches = doc.SketchManager;
+        sketches.Insert3DSketch(true);
+        var seg = sketches.CreateLine(xa, ya, za, xb, yb, zb) as ISketchSegment;
+        sketches.Insert3DSketch(true);
         if (seg == null) return false;
 
-        var gruppo = doc.FeatureManager.CreateStructuralMemberGroup() as IStructuralMemberGroup;
-        if (gruppo == null) return false;
-        gruppo.Segments = new SketchSegment[] { (SketchSegment)seg };
+        var theGroup = doc.FeatureManager.CreateStructuralMemberGroup() as IStructuralMemberGroup;
+        if (theGroup == null) return false;
+        theGroup.Segments = new SketchSegment[] { (SketchSegment)seg };
 
         // SOLIDWORKS opens the profile library by itself and leaves it DIRTY
-        // (OperazioniSaldatura.RichiudiLaLibreria): a stray Ctrl+S would rewrite
+        // (OperazioniSaldatura.CloseLibraryAgain): a stray Ctrl+S would rewrite
         // the shared company library. Close it again, but only if it was not
         // already open before this insert.
         var sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");
-        bool libraryWasOpen = sw.GetOpenDocumentByName(percorsoProfilo) != null;
+        bool libraryWasOpen = sw.GetOpenDocumentByName(profilePath) != null;
         var feature = doc.FeatureManager.InsertStructuralWeldment5(
-            Path: percorsoProfilo,
+            Path: profilePath,
             ConnectedSegmentsOption: 1,
             AllowProtrusion: false,
-            Groups: new StructuralMemberGroup[] { (StructuralMemberGroup)gruppo },
-            ConfigurationName: Configurazione) as IFeature;
+            Groups: new StructuralMemberGroup[] { (StructuralMemberGroup)theGroup },
+            ConfigurationName: Configuration) as IFeature;
         doc.ClearSelection2(true);
         if (!libraryWasOpen)
         {
-            var lib = sw.GetOpenDocumentByName(percorsoProfilo) as IModelDoc2;
+            var lib = sw.GetOpenDocumentByName(profilePath) as IModelDoc2;
             if (lib != null) { try { sw.CloseDoc(lib.GetTitle()); } catch { } }
         }
         return feature != null;
     }
 
-    private static bool Taglia(IModelDoc2 doc, IBody2 daTagliare, IBody2 contro)
+    private static bool Cut(IModelDoc2 doc, IBody2 toCut, IBody2 against)
     {
         try
         {
@@ -562,8 +562,8 @@ internal static class Programma
                 EndCond: (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionTrim,
                 Options: 0,
                 GapValue: 0.0,
-                BodiesToTrim: new Body2[] { (Body2)daTagliare },
-                BodiesOrFaces: new Body2[] { (Body2)contro }) as IFeature;
+                BodiesToTrim: new Body2[] { (Body2)toCut },
+                BodiesOrFaces: new Body2[] { (Body2)against }) as IFeature;
             return feature != null;
         }
         catch (Exception ex)
@@ -574,18 +574,18 @@ internal static class Programma
     }
 
     /// <summary>Classifica i due corpi solidi per ingombro in X: il piu' lungo e' la barra lunga.</summary>
-    private static bool ClassificaCorpi(IModelDoc2 doc, out IBody2 lungo, out IBody2 corto)
+    private static bool ClassifyBodies(IModelDoc2 doc, out IBody2 along, out IBody2 shorter)
     {
-        lungo = null; corto = null;
-        var parte = doc as IPartDoc;
-        var corpi = parte == null ? null : parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-        if (corpi == null || corpi.Length != 2)
+        along = null; shorter = null;
+        var partDoc = doc as IPartDoc;
+        var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+        if (bodies == null || bodies.Length != 2)
         {
-            Console.WriteLine("    mi aspettavo 2 corpi solidi, ne trovo " + (corpi == null ? 0 : corpi.Length) + ".");
+            Console.WriteLine("    mi aspettavo 2 corpi solidi, ne trovo " + (bodies == null ? 0 : bodies.Length) + ".");
             return false;
         }
-        var a = corpi[0] as IBody2;
-        var b = corpi[1] as IBody2;
+        var a = bodies[0] as IBody2;
+        var b = bodies[1] as IBody2;
         var boxA = a.GetBodyBox() as double[];
         var boxB = b.GetBodyBox() as double[];
         if (boxA == null || boxB == null || boxA.Length < 6 || boxB.Length < 6)
@@ -593,17 +593,17 @@ internal static class Programma
             Console.WriteLine("    non riesco a leggere l'ingombro di uno dei due corpi.");
             return false;
         }
-        double estensioneXA = boxA[3] - boxA[0];
-        double estensioneXB = boxB[3] - boxB[0];
-        if (estensioneXA >= estensioneXB) { lungo = a; corto = b; }
-        else { lungo = b; corto = a; }
+        double extensionXA = boxA[3] - boxA[0];
+        double extensionXB = boxB[3] - boxB[0];
+        if (extensionXA >= extensionXB) { along = a; shorter = b; }
+        else { along = b; shorter = a; }
         return true;
     }
 
     /// <summary>
     /// La faccia ALTA della lunga e la faccia LATERALE della corta, trovate
     /// per geometria (area + quota costante su un asse), non per indice:
-    /// stesso principio di Checks/Bracket/Program.cs (DueFacceInPunta).
+    /// stesso principio di Checks/Bracket/Program.cs (TwoFacesAtTip).
     ///
     /// GLI ASSI, DERIVATI DALLA GEOMETRIA DELLA T (non assunti):
     /// la lunga corre lungo X (sezione nel piano Y-Z, centrata su Y=0,Z=0:
@@ -619,13 +619,13 @@ internal static class Programma
     /// hanno la STESSA area per la stessa ragione, e vanno escluse fissando
     /// l'asse a 0/X, non lasciandolo libero).
     /// </summary>
-    private static bool TrovaLeDueFacce(
-        IBody2 corpoLungo, IBody2 corpoCorto,
-        out IFace2 facciaAltaLunga, out IFace2 facciaLateraleCorta)
+    private static bool FindTwoFaces(
+        IBody2 longBody, IBody2 shortBody,
+        out IFace2 tallLongFace, out IFace2 shortSideFace)
     {
-        facciaAltaLunga = TrovaFaccia(corpoLungo, AreaAltaLunga, 2 /* Z */, +0.04);
-        facciaLateraleCorta = TrovaFaccia(corpoCorto, AreaLateraleCorta, 0 /* X */, null);
-        return facciaAltaLunga != null && facciaLateraleCorta != null;
+        tallLongFace = FindFace(longBody, TallLongArea, 2 /* Z */, +0.04);
+        shortSideFace = FindFace(shortBody, AreaLateraleCorta, 0 /* X */, null);
+        return tallLongFace != null && shortSideFace != null;
     }
 
     /// <summary>
@@ -636,45 +636,45 @@ internal static class Programma
     /// (qualunque essa sia): serve per la corta, che ha due facce laterali
     /// candidate (x=0.26 e x=0.34) ugualmente valide.
     /// </summary>
-    private static IFace2 TrovaFaccia(IBody2 corpo, double areaAttesa, int asse, double? quotaAttesa)
+    private static IFace2 FindFace(IBody2 body, double expectedArea, int axis, double? expectedDimension)
     {
-        var faccia = corpo.GetFirstFace() as IFace2;
-        while (faccia != null)
+        var face = body.GetFirstFace() as IFace2;
+        while (face != null)
         {
             double area;
-            try { area = faccia.GetArea(); }
+            try { area = face.GetArea(); }
             catch { area = -1; }
-            if (Math.Abs(area - areaAttesa) <= TolleranzaArea)
+            if (Math.Abs(area - expectedArea) <= AreaTolerance)
             {
-                var box = faccia.GetBox() as double[];
+                var box = face.GetBox() as double[];
                 if (box != null && box.Length >= 6)
                 {
-                    double min = box[asse];
-                    double max = box[asse + 3];
-                    bool piana = Math.Abs(max - min) < 1e-6;
-                    bool quotaOk = quotaAttesa == null || Math.Abs(min - quotaAttesa.Value) <= TolleranzaQuota;
-                    if (piana && quotaOk) return faccia;
+                    double min = box[axis];
+                    double max = box[axis + 3];
+                    bool planar = Math.Abs(max - min) < 1e-6;
+                    bool dimensionOk = expectedDimension == null || Math.Abs(min - expectedDimension.Value) <= DimensionTolerance;
+                    if (planar && dimensionOk) return face;
                 }
             }
-            faccia = faccia.GetNextFace() as IFace2;
+            face = face.GetNextFace() as IFace2;
         }
         return null;
     }
 
-    private static string FormattaArea(IFace2 faccia)
+    private static string FormattaArea(IFace2 face)
     {
-        try { return (faccia.GetArea() * 1e6).ToString("0", CultureInfo.InvariantCulture) + " mm2"; }
+        try { return (face.GetArea() * 1e6).ToString("0", CultureInfo.InvariantCulture) + " mm2"; }
         catch { return "? mm2"; }
     }
 
-    private static int ContaCorpi(IModelDoc2 doc)
+    private static int CountBodies(IModelDoc2 doc)
     {
-        var parte = doc as IPartDoc;
-        var corpi = parte == null ? null : parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-        return corpi == null ? 0 : corpi.Length;
+        var partDoc = doc as IPartDoc;
+        var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+        return bodies == null ? 0 : bodies.Length;
     }
 
-    private static int ContaFeatureAlbero(IModelDoc2 doc)
+    private static int CountTreeFeatures(IModelDoc2 doc)
     {
         int n = 0;
         try
@@ -688,14 +688,14 @@ internal static class Programma
 
     private static double? VolumeMm3(IModelDoc2 doc)
     {
-        var parte = doc as IPartDoc;
-        if (parte == null) return null;
+        var partDoc = doc as IPartDoc;
+        if (partDoc == null) return null;
         double v = 0;
         try
         {
-            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            if (corpi == null) return 0;
-            foreach (var c in corpi)
+            var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            if (bodies == null) return 0;
+            foreach (var c in bodies)
             {
                 var mp = (c as IBody2)?.GetMassProperties(1000.0) as double[];
                 if (mp == null || mp.Length <= 4) return null;
@@ -706,7 +706,7 @@ internal static class Programma
         return v;
     }
 
-    private static string SicuroGetTypeName(IFeature f)
+    private static string SafeGetTypeName(IFeature f)
     {
         try { return f.GetTypeName2(); }
         catch { return "?"; }

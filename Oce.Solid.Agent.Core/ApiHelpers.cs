@@ -216,10 +216,10 @@ namespace Oce.Solid.Agent.Core
         ///     components») and IncludeHiddenBodiesOrComponents then decides
         ///     about hidden components: not measured, while the assembly mass was
         ///     measured with this call (the sum of the parts to the gram);
-        ///   - the DOCUMENT STATE (StatoDocumento.Massa): CreateMassProperty2
+        ///   - the DOCUMENT STATE (DocumentState.Massa): CreateMassProperty2
         ///     measures what is SELECTED, so the probe cleared the selection
         ///     first, and the state must not: it reads the designer's selection
-        ///     a few lines later (StatoDocumento.LaSelezione, the selection field
+        ///     a few lines later (DocumentState.TheSelection, the selection field
         ///     of the state), and clearing it would erase what the designer
         ///     points at. Left in place, the selection changes the number: the
         ///     probe measured a pre-selected body A (N2 by SelectByID2, N3 by
@@ -302,7 +302,7 @@ namespace Oce.Solid.Agent.Core
             /// <summary>A real rebuild error, not a warning.</summary>
             public bool InError => ErrorCode != (int)swFeatureError_e.swFeatureErrorNone && !IsWarning;
             /// <summary>The phrase for the error, or null if there is none.</summary>
-            public string ErrorPhrase => InError ? ErroriFeature.Frase(ErrorCode) : null;
+            public string ErrorPhrase => InError ? FeatureErrors.Sentence(ErrorCode) : null;
         }
 
         /// <summary>
@@ -322,8 +322,8 @@ namespace Oce.Solid.Agent.Core
         /// does not become an error, but <see cref="DefinitionChange.ErrorCodeKnown"/>
         /// says so: a caller that has no other check (volume, faces) must not
         /// read "not known" as "sound" (the project measured that GetErrorCode2
-        /// alone can stay silent on a real defect, see CopieMancanti in
-        /// OperazioniSw).
+        /// alone can stay silent on a real defect, see MissingCopies in
+        /// SwOperations).
         /// </summary>
         internal static DefinitionChange ModifyAndVerify(
             IFeature feature, object definition, IModelDoc2 topDocument, object component = null)
@@ -355,7 +355,7 @@ namespace Oce.Solid.Agent.Core
         {
             known = ReadErrorCode(feature, out int code, out bool warning);
             return code != (int)swFeatureError_e.swFeatureErrorNone && !warning
-                ? ErroriFeature.Frase(code) : null;
+                ? FeatureErrors.Sentence(code) : null;
         }
 
         /// <summary>GetErrorCode2; false (and code 0) when it throws.</summary>
@@ -385,7 +385,7 @@ namespace Oce.Solid.Agent.Core
             /// <summary>False when GetErrorCode2 threw (see <see cref="DefinitionChange.ErrorCodeKnown"/>).</summary>
             public bool ErrorCodeKnown;
             public bool InError => ErrorCode != (int)swFeatureError_e.swFeatureErrorNone && !IsWarning;
-            public string ErrorPhrase => InError ? ErroriFeature.Frase(ErrorCode) : null;
+            public string ErrorPhrase => InError ? FeatureErrors.Sentence(ErrorCode) : null;
         }
 
         /// <summary>
@@ -509,7 +509,7 @@ namespace Oce.Solid.Agent.Core
             int constraint = (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_Distance;
             if (distanceMm < 0)
                 constraint |= (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_OptionFlip;
-            return document.FeatureManager.InsertRefPlane(constraint, Unita.M(Math.Abs(distanceMm)), 0, 0, 0, 0);
+            return document.FeatureManager.InsertRefPlane(constraint, Units.M(Math.Abs(distanceMm)), 0, 0, 0, 0);
         }
     }
 }

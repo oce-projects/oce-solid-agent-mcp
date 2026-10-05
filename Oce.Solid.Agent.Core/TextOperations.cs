@@ -87,81 +87,81 @@ namespace Oce.Solid.Agent.Core
     /// note said the call ignores the argument altogether, which the page
     /// does not support.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>Quanto si tollera che la scritta sbordi, in mm.</summary>
-        private const double SbordoTollerato = 0.01;
+        private const double ToleratedSpill = 0.01;
 
-        private Esito IncidiTesto(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome EngraveText(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string testo = Str(a, "text", null);
-            if (string.IsNullOrEmpty(testo))
-                return Fallito("Manca il «text» da incidere.");
+            string text = Str(a, "text", null);
+            if (string.IsNullOrEmpty(text))
+                return Failed("Manca il «text» da incidere.");
 
-            var faccia = RisolviFaccia(stato, a, Str(a, "face_uid", ""), out string motivo);
-            if (faccia == null) return Fallito(motivo);
+            var face = ResolveFace(docState, a, Str(a, "face_uid", ""), out string reason);
+            if (face == null) return Failed(reason);
 
-            double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
-            if (assi == null) return Fallito(errore);
+            double[] axes = FaceAxes(face, out double offsetM, out string error);
+            if (axes == null) return Failed(error);
 
-            double altezza = Num(a, "height_mm", 5);
-            if (altezza <= 0)
-                return Fallito("Un testo di altezza nulla o negativa non e' un testo.");
-            double profondita = Num(a, "depth_mm", 0.5);
-            if (profondita <= 0)
-                return Fallito(
+            double height = Num(a, "height_mm", 5);
+            if (height <= 0)
+                return Failed("Un testo di altezza nulla o negativa non e' un testo.");
+            double depth = Num(a, "depth_mm", 0.5);
+            if (depth <= 0)
+                return Failed(
                     "Una marcatura di profondita' nulla non lascia segno. Se volevi solo " +
                     "un'annotazione e non una lavorazione, questa non e' l'operazione.");
 
-            bool inRilievo = Bool(a, "raised", false);
+            bool embossed = Bool(a, "raised", false);
             double xMm = Num(a, "x_mm", 0);
             double yMm = Num(a, "y_mm", 0);
             string font = Str(a, "font", null);
-            bool grassetto = Bool(a, "bold", false);
+            bool bold = Bool(a, "bold", false);
 
-            int corpiPrima = ContaCorpiSolidi(modello);
-            double? volumePrima = VolumeMm3(modello);
-            if (corpiPrima < 0 || volumePrima == null)
-                return Fallito(VolumeNonLettoPrima("marcare la faccia"));
+            int bodiesBefore = CountSolidBodies(model);
+            double? volumeBefore = VolumeMm3(model);
+            if (bodiesBefore < 0 || volumeBefore == null)
+                return Failed(VolumeNotReadBefore("marcare la faccia"));
 
             // La scatola della FACCIA, per sapere dove la scritta puo' stare.
-            double[] scatolaFaccia = ScatolaDellaFaccia(faccia);
-            // Without the face box the overflow check (SbordaFuori) cannot run,
+            double[] faceBox = FaceBox(face);
+            // Without the face box the overflow check (SpillsOutside) cannot run,
             // and a truncated inscription would be engraved without a word.
             // Refuse before touching the part (S6: the true box can fail where
             // IFace2.GetBox always answered).
-            if (scatolaFaccia == null)
-                return Fallito(
+            if (faceBox == null)
+                return Failed(
                     "I cannot measure the face: its true bounding box did not answer, so I " +
                     "cannot check that the text stays inside it. Nothing was changed.");
-            double areaFaccia = 0;
-            try { areaFaccia = faccia.GetArea() * 1e6; } catch { }
+            double faceArea = 0;
+            try { faceArea = face.GetArea() * 1e6; } catch { }
 
             // The names of the tree before the sketch: the sketch engraved below
-            // is the one born since (scheme S7, OperazioniSw.SchizzoAppenaCreato),
+            // is the one born since (scheme S7, SwOperations.JustCreatedSketch),
             // not the last sketch of the tree.
-            var sketchNamesBefore = FeatureNamesNow(modello);
-            if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
+            var sketchNamesBefore = FeatureNamesNow(model);
+            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
 
-            var schizzi = modello.SketchManager;
-            bool addToDbPrima = false, displayPrima = false;
-            try { addToDbPrima = schizzi.AddToDB; displayPrima = schizzi.DisplayWhenAdded; } catch { }
+            var sketches = model.SketchManager;
+            bool addToDbBefore = false, displayBefore = false;
+            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
 
-            ISketchText scritta = null;
-            double[] scatolaTesto = null;
-            int contorni = 0;
+            ISketchText written = null;
+            double[] textBox = null;
+            int contours = 0;
             try
             {
-                schizzi.InsertSketch(true);
-                try { schizzi.AddToDB = true; schizzi.DisplayWhenAdded = false; } catch { }
+                sketches.InsertSketch(true);
+                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
 
-                var punto = PuntoNelloSchizzo(modello, assi, offsetM, xMm, yMm, out errore);
-                if (punto == null) throw new InvalidOperationException(errore);
+                var point = PointInSketch(model, axes, offsetM, xMm, yMm, out error);
+                if (point == null) throw new InvalidOperationException(error);
 
-                scritta = modello.InsertSketchText(
-                    punto[0], punto[1], punto[2],
-                    testo,
+                written = model.InsertSketchText(
+                    point[0], point[1], point[2],
+                    text,
                     // Alignment (justification): on free text it moves nothing,
                     // measured; see the note at the top.
                     0,
@@ -170,179 +170,179 @@ namespace Oce.Solid.Agent.Core
                     100, // WidthFactor, in centesimi
                     100  // SpaceBetweenChars, in centesimi
                 ) as ISketchText;
-                if (scritta == null)
+                if (written == null)
                     throw new InvalidOperationException(
                         "SOLIDWORKS non ha creato il testo di schizzo, e non dice perche'.");
 
-                var formato = scritta.GetTextFormat() as ITextFormat;
-                if (formato == null)
+                var sheetFormat = written.GetTextFormat() as ITextFormat;
+                if (sheetFormat == null)
                     throw new InvalidOperationException(
                         "Non riesco a leggere il formato del testo: senza, l'altezza " +
                         "resterebbe quella predefinita e tu crederesti di averla scelta.");
-                formato.CharHeight = Unita.M(altezza);
-                formato.Bold = grassetto;
-                if (!string.IsNullOrWhiteSpace(font)) formato.TypeFaceName = font;
-                if (!scritta.SetTextFormat(false, formato))
+                sheetFormat.CharHeight = Units.M(height);
+                sheetFormat.Bold = bold;
+                if (!string.IsNullOrWhiteSpace(font)) sheetFormat.TypeFaceName = font;
+                if (!written.SetTextFormat(false, sheetFormat))
                     throw new InvalidOperationException(
-                        "SOLIDWORKS ha rifiutato il formato del testo (altezza " + altezza +
+                        "SOLIDWORKS ha rifiutato il formato del testo (altezza " + height +
                         " mm" + (font == null ? "" : ", font «" + font + "»") + ").");
 
                 // E SI RILEGGE. `CharHeight` e' l'unica cosa che distingue una
                 // marcatura da leggere da una da indovinare.
-                var riletto = scritta.GetTextFormat() as ITextFormat;
-                double altezzaVera = riletto == null ? -1 : Unita.Mm(riletto.CharHeight);
-                if (Math.Abs(altezzaVera - altezza) > 0.001)
+                var reread = written.GetTextFormat() as ITextFormat;
+                double trueHeight = reread == null ? -1 : Units.Mm(reread.CharHeight);
+                if (Math.Abs(trueHeight - height) > 0.001)
                     throw new InvalidOperationException(string.Format(
                         CultureInfo.InvariantCulture,
                         "Ho chiesto lettere alte {0:0.###} mm e rileggendo trovo {1}.",
-                        altezza,
-                        altezzaVera < 0 ? "niente"
-                            : altezzaVera.ToString("0.###", CultureInfo.InvariantCulture) + " mm"));
+                        height,
+                        trueHeight < 0 ? "niente"
+                            : trueHeight.ToString("0.###", CultureInfo.InvariantCulture) + " mm"));
 
-                scatolaTesto = ScatolaDelleCurve(scritta, out contorni);
+                textBox = CurvesBox(written, out contours);
             }
-            catch (Exception ex) { errore = ex.Message; scritta = null; }
+            catch (Exception ex) { error = ex.Message; written = null; }
             finally
             {
-                try { schizzi.AddToDB = addToDbPrima; schizzi.DisplayWhenAdded = displayPrima; } catch { }
-                try { schizzi.InsertSketch(false); } catch { }
+                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
+                try { sketches.InsertSketch(false); } catch { }
             }
-            if (scritta == null)
-                return Fallito((errore ?? "il testo non e' stato creato") + SenzaLoSchizzo(modello));
+            if (written == null)
+                return Failed((error ?? "il testo non e' stato creato") + WithoutSketch(model));
 
             // ── E QUI SI GUARDA SE CI STA, PRIMA DI TAGLIARE ─────────────
             //
             // Dopo non si puo' piu': la feature e' verde e le lettere di
             // troppo non ci sono. Lo schizzo si porta via — un pezzo con uno
             // schizzo orfano che nessuno vede e' peggio di un rifiuto.
-            if (scatolaTesto == null)
-                return Fallito(
-                    "Non riesco a leggere dove finisce la scritta (" + contorni + " contorni " +
+            if (textBox == null)
+                return Failed(
+                    "Non riesco a leggere dove finisce la scritta (" + contours + " contorni " +
                     "letti). Senza, non posso dirti se ci sta sulla faccia, e una scritta " +
-                    "tagliata a meta' non da' nessun errore." + SenzaLoSchizzo(modello));
+                    "tagliata a meta' non da' nessun errore." + WithoutSketch(model));
 
-            string dove = SbordaFuori(scatolaTesto, scatolaFaccia, assi);
-            if (dove != null)
-                return Fallito(string.Format(
+            string location = SpillsOutside(textBox, faceBox, axes);
+            if (location != null)
+                return Failed(string.Format(
                     CultureInfo.InvariantCulture,
                     "«{0}» alto {1:0.###} mm occupa {2:0.##} x {3:0.##} mm e {4} Non lo " +
                     "incido: la parte che esce sparirebbe senza che niente dia errore, e " +
                     "nel pezzo resterebbe una scritta monca. Sposta l'ancora, abbassa " +
                     "«height_mm», o accorcia il testo.{5}",
-                    testo, altezza,
-                    scatolaTesto[3] - scatolaTesto[0],
-                    scatolaTesto[4] - scatolaTesto[1],
-                    dove, SenzaLoSchizzo(modello)));
+                    text, height,
+                    textBox[3] - textBox[0],
+                    textBox[4] - textBox[1],
+                    location, WithoutSketch(model)));
 
-            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
-                return Fallito(erroreSel + SenzaLoSchizzo(modello));
+            if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
+                return Failed(selError + WithoutSketch(model));
 
             IFeature feature;
             try
             {
-                feature = inRilievo
-                    ? Estrudi(modello, profondita, unisci: true)
-                    : Taglia(modello, passante: false, profonditaMm: profondita);
+                feature = embossed
+                    ? Extrude(model, depth, merge: true)
+                    : Cut(model, throughAll: false, depthMm: depth);
             }
             catch (Exception ex)
             {
-                return Fallito(
-                    (inRilievo ? "Il rilievo" : "L'incisione") + " non e' riuscita: " +
-                    ex.Message + SenzaLoSchizzo(modello));
+                return Failed(
+                    (embossed ? "Il rilievo" : "L'incisione") + " non e' riuscita: " +
+                    ex.Message + WithoutSketch(model));
             }
 
             if (feature == null)
-                return Fallito(
-                    (inRilievo ? "Il rilievo" : "L'incisione") + " non e' stata creata, e " +
+                return Failed(
+                    (embossed ? "Il rilievo" : "L'incisione") + " non e' stata creata, e " +
                     "SOLIDWORKS non dice perche'. Con un testo che sta tutto fuori dalla " +
-                    "faccia risponde cosi'." + SenzaLoSchizzo(modello));
+                    "faccia risponde cosi'." + WithoutSketch(model));
 
             // ── e adesso si conta ────────────────────────────────────────
-            double? dopo = VolumeMm3(modello);
-            int corpiDopo = ContaCorpiSolidi(modello);
-            if (dopo == null || corpiDopo < 0)
-                return Riuscito(feature, new Dictionary<string, object>
+            double? after = VolumeMm3(model);
+            int bodiesAfter = CountSolidBodies(model);
+            if (after == null || bodiesAfter < 0)
+                return Succeeded(feature, new Dictionary<string, object>
                 {
-                    ["text"] = testo,
-                    ["height_mm"] = altezza,
-                    ["depth_mm"] = profondita,
-                    ["raised"] = inRilievo,
-                    ["contours"] = contorni,
-                    ["width_written_mm"] = Tondo(scatolaTesto[3] - scatolaTesto[0]),
-                    ["height_written_mm"] = Tondo(scatolaTesto[4] - scatolaTesto[1]),
-                    [inRilievo ? "material_added_mm3" : "material_removed_mm3"] = null,
-                    ["bodies"] = NumeroOppureNull(corpiDopo),
-                    ["volume_not_reread"] = NotaVolumeNonRiletto,
-                }, NormaleDellaFaccia(faccia));
-            double mosso = inRilievo ? dopo.Value - volumePrima.Value : volumePrima.Value - dopo.Value;
+                    ["text"] = text,
+                    ["height_mm"] = height,
+                    ["depth_mm"] = depth,
+                    ["raised"] = embossed,
+                    ["contours"] = contours,
+                    ["width_written_mm"] = Round(textBox[3] - textBox[0]),
+                    ["height_written_mm"] = Round(textBox[4] - textBox[1]),
+                    [embossed ? "material_added_mm3" : "material_removed_mm3"] = null,
+                    ["bodies"] = NumberOrNull(bodiesAfter),
+                    ["volume_not_reread"] = NoteVolumeNotReread,
+                }, FaceNormal(face));
+            double moved = embossed ? after.Value - volumeBefore.Value : volumeBefore.Value - after.Value;
 
-            if (mosso <= 0)
-                return Fallito(
-                    "La marcatura non ha " + (inRilievo ? "aggiunto" : "tolto") +
+            if (moved <= 0)
+                return Failed(
+                    "La marcatura non ha " + (embossed ? "aggiunto" : "tolto") +
                     " materiale: il volume e' " +
-                    (Math.Abs(mosso) < 1e-9 ? "rimasto uguale" : "andato dall'altra parte") +
-                    ". " + (inRilievo
+                    (Math.Abs(moved) < 1e-9 ? "rimasto uguale" : "andato dall'altra parte") +
+                    ". " + (embossed
                         ? "Di solito vuol dire che il rilievo e' cresciuto DENTRO il pezzo."
                         : "Di solito vuol dire che l'incisione e' andata in fuori.") +
-                    " Ritirala — " + Frasi.CosiSiRitira + ".");
+                    " Ritirala — " + Sentences.HowToWithdrawIt + ".");
 
-            if (corpiDopo != corpiPrima)
-                return Fallito(
-                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
+            if (bodiesAfter != bodiesBefore)
+                return Failed(
+                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
                     ": una marcatura non deve spezzare ne' staccare niente. Ritirala — " +
-                    Frasi.CosiSiRitira + ".");
+                    Sentences.HowToWithdrawIt + ".");
 
-            double areaLettere = mosso / profondita;
-            var misure = new Dictionary<string, object>
+            double lettersArea = moved / depth;
+            var measurements = new Dictionary<string, object>
             {
-                ["text"] = testo,
-                ["height_mm"] = altezza,
-                ["depth_mm"] = profondita,
-                ["raised"] = inRilievo,
-                ["contours"] = contorni,
-                ["width_written_mm"] = Tondo(scatolaTesto[3] - scatolaTesto[0]),
-                ["height_written_mm"] = Tondo(scatolaTesto[4] - scatolaTesto[1]),
-                [inRilievo ? "material_added_mm3" : "material_removed_mm3"] = Tondo(mosso),
+                ["text"] = text,
+                ["height_mm"] = height,
+                ["depth_mm"] = depth,
+                ["raised"] = embossed,
+                ["contours"] = contours,
+                ["width_written_mm"] = Round(textBox[3] - textBox[0]),
+                ["height_written_mm"] = Round(textBox[4] - textBox[1]),
+                [embossed ? "material_added_mm3" : "material_removed_mm3"] = Round(moved),
                 // L'AREA DELLE LETTERE, che e' il volume diviso la profondita'.
                 // Non si puo' prevedere dalla stringa -- dipende dal font -- ma
                 // va col QUADRATO dell'altezza, e quel rapporto e' l'unica cosa
                 // che due marcature diverse hanno in comune.
-                ["area_letters_mm2"] = Tondo(areaLettere),
-                ["area_over_height_squared"] = Tondo(areaLettere / (altezza * altezza), 4),
-                ["bodies"] = corpiDopo,
+                ["area_letters_mm2"] = Round(lettersArea),
+                ["area_over_height_squared"] = Round(lettersArea / (height * height), 4),
+                ["bodies"] = bodiesAfter,
             };
-            if (!string.IsNullOrWhiteSpace(font)) misure["font"] = font;
+            if (!string.IsNullOrWhiteSpace(font)) measurements["font"] = font;
 
             // COSA NON HO GUARDATO, detto a ogni chiamata e non una volta nel
             // catalogo: chi legge la risposta potrebbe non averlo mai letto.
-            double areaScatola = 0;
-            if (scatolaFaccia != null)
+            double boxArea = 0;
+            if (faceBox != null)
             {
-                var lati = LatiSulPiano(scatolaFaccia, assi);
-                areaScatola = lati[0] * lati[1];
+                var sides = SidesOnPlane(faceBox, axes);
+                boxArea = sides[0] * sides[1];
             }
-            bool facciaPiena = areaScatola > 0 && Math.Abs(areaFaccia - areaScatola) / areaScatola < 0.01;
-            misure["what_it_does_not_check"] = string.Format(
+            bool fullFace = boxArea > 0 && Math.Abs(faceArea - boxArea) / boxArea < 0.01;
+            measurements["what_it_does_not_check"] = string.Format(
                 CultureInfo.InvariantCulture,
                 "Ho controllato che la scritta stia dentro la SCATOLA della faccia{0} E non " +
                 "guardo se la scritta finisce sopra un'altra lavorazione.",
-                facciaPiena
+                fullFace
                     ? string.Format(CultureInfo.InvariantCulture,
                         ", e questa faccia la riempie tutta (area {0:0.##} mm2 contro " +
                         "{1:0.##} di scatola), quindi il controllo e' completo.",
-                        areaFaccia, areaScatola)
+                        faceArea, boxArea)
                     : string.Format(CultureInfo.InvariantCulture,
                         ", ma questa faccia NON riempie la sua scatola (area {0:0.##} mm2 " +
                         "contro {1:0.##} di scatola): ha un foro o un contorno rientrante, " +
                         "e una lettera potrebbe cadere li' sopra senza che io me ne " +
                         "accorga. Guarda il materiale tolto.",
-                        areaFaccia, areaScatola));
+                        faceArea, boxArea));
 
-            _log("[agente] «" + testo + "» " + (inRilievo ? "in rilievo " : "incisa ") +
-                 profondita + " mm: " + Tondo(mosso) + " mm3, scritta " +
-                 Tondo(scatolaTesto[3] - scatolaTesto[0]) + " mm larga");
+            _log("[agente] «" + text + "» " + (embossed ? "in rilievo " : "incisa ") +
+                 depth + " mm: " + Round(moved) + " mm3, scritta " +
+                 Round(textBox[3] - textBox[0]) + " mm larga");
 
-            return Riuscito(feature, misure, NormaleDellaFaccia(faccia));
+            return Succeeded(feature, measurements, FaceNormal(face));
         }
 
         // =================================================================
@@ -358,51 +358,51 @@ namespace Oce.Solid.Agent.Core
         /// estremi, e la pancia di una «O» e' esattamente il punto che
         /// sborderebbe per primo.
         /// </summary>
-        private static double[] ScatolaDelleCurve(ISketchText scritta, out int contorni)
+        private static double[] CurvesBox(ISketchText written, out int contours)
         {
-            contorni = 0;
-            object[] bordi;
-            try { bordi = scritta.GetEdges() as object[]; }
+            contours = 0;
+            object[] borders;
+            try { borders = written.GetEdges() as object[]; }
             catch { return null; }
-            if (bordi == null || bordi.Length == 0) return null;
+            if (borders == null || borders.Length == 0) return null;
 
             double minX = double.MaxValue, minY = double.MaxValue, minZ = double.MaxValue;
             double maxX = double.MinValue, maxY = double.MinValue, maxZ = double.MinValue;
-            foreach (var o in bordi)
+            foreach (var o in borders)
             {
-                var bordo = o as IEdge;
-                if (bordo == null) continue;
+                var border = o as IEdge;
+                if (border == null) continue;
                 double[] p;
-                try { p = ApiHelpers.EdgeParameterArray(bordo); }
+                try { p = ApiHelpers.EdgeParameterArray(border); }
                 catch { continue; }
                 if (p == null || p.Length < 8) continue;
-                contorni++;
-                Allarga(p[0], p[1], p[2], ref minX, ref minY, ref minZ, ref maxX, ref maxY, ref maxZ);
-                Allarga(p[3], p[4], p[5], ref minX, ref minY, ref minZ, ref maxX, ref maxY, ref maxZ);
+                contours++;
+                Widen(p[0], p[1], p[2], ref minX, ref minY, ref minZ, ref maxX, ref maxY, ref maxZ);
+                Widen(p[3], p[4], p[5], ref minX, ref minY, ref minZ, ref maxX, ref maxY, ref maxZ);
                 try
                 {
-                    var curva = bordo.GetCurve() as ICurve;
+                    var curva = border.GetCurve() as ICurve;
                     if (curva == null) continue;
                     for (int i = 1; i < 6; i++)
                     {
                         double t = p[6] + (p[7] - p[6]) * i / 6.0;
-                        var punto = curva.Evaluate(t) as double[];
-                        if (punto != null && punto.Length >= 3)
-                            Allarga(punto[0], punto[1], punto[2],
+                        var point = curva.Evaluate(t) as double[];
+                        if (point != null && point.Length >= 3)
+                            Widen(point[0], point[1], point[2],
                                     ref minX, ref minY, ref minZ, ref maxX, ref maxY, ref maxZ);
                     }
                 }
                 catch { }
             }
-            if (contorni == 0) return null;
+            if (contours == 0) return null;
             return new[]
             {
-                Unita.Mm(minX), Unita.Mm(minY), Unita.Mm(minZ),
-                Unita.Mm(maxX), Unita.Mm(maxY), Unita.Mm(maxZ),
+                Units.Mm(minX), Units.Mm(minY), Units.Mm(minZ),
+                Units.Mm(maxX), Units.Mm(maxY), Units.Mm(maxZ),
             };
         }
 
-        private static void Allarga(
+        private static void Widen(
             double x, double y, double z,
             ref double minX, ref double minY, ref double minZ,
             ref double maxX, ref double maxY, ref double maxZ)
@@ -413,27 +413,27 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>La scatola di una faccia, in mm e in coordinate del modello.</summary>
-        private static double[] ScatolaDellaFaccia(IFace2 faccia)
+        private static double[] FaceBox(IFace2 face)
         {
             try
             {
-                var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
+                var b = ApiHelpers.TrueBoundingBox(face);   // S6: not IFace2.GetBox, approximate
                 if (b == null || b.Length < 6) return null;
-                var fuori = new double[6];
-                for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(b[i]);
-                return fuori;
+                var outside = new double[6];
+                for (int i = 0; i < 6; i++) outside[i] = Units.Mm(b[i]);
+                return outside;
             }
             catch { return null; }
         }
 
         /// <summary>I due lati della scatola sul piano della faccia, in mm.</summary>
-        private static double[] LatiSulPiano(double[] scatola, double[] assi)
+        private static double[] SidesOnPlane(double[] box, double[] axes)
         {
-            int a0 = (int)assi[0], a1 = (int)assi[1];
+            int a0 = (int)axes[0], a1 = (int)axes[1];
             return new[]
             {
-                scatola[3 + a0] - scatola[a0],
-                scatola[3 + a1] - scatola[a1],
+                box[3 + a0] - box[a0],
+                box[3 + a1] - box[a1],
             };
         }
 
@@ -444,30 +444,30 @@ namespace Oce.Solid.Agent.Core
         /// terzo e' lo spessore, la scritta ci sta per costruzione, e
         /// confrontarlo darebbe un rifiuto per un millesimo di arrotondamento.
         /// </summary>
-        private static string SbordaFuori(double[] testo, double[] faccia, double[] assi)
+        private static string SpillsOutside(double[] text, double[] face, double[] axes)
         {
-            if (faccia == null) return null;
-            var nomi = new[] { "X", "Y", "Z" };
-            var fuori = new List<string>();
+            if (face == null) return null;
+            var names = new[] { "X", "Y", "Z" };
+            var outside = new List<string>();
             for (int i = 0; i < 2; i++)
             {
-                int asse = (int)assi[i];
-                if (testo[asse] < faccia[asse] - SbordoTollerato)
-                    fuori.Add(string.Format(CultureInfo.InvariantCulture,
+                int axis = (int)axes[i];
+                if (text[axis] < face[axis] - ToleratedSpill)
+                    outside.Add(string.Format(CultureInfo.InvariantCulture,
                         "esce di {0:0.##} mm dal bordo {1} basso",
-                        faccia[asse] - testo[asse], nomi[asse]));
-                if (testo[3 + asse] > faccia[3 + asse] + SbordoTollerato)
-                    fuori.Add(string.Format(CultureInfo.InvariantCulture,
+                        face[axis] - text[axis], names[axis]));
+                if (text[3 + axis] > face[3 + axis] + ToleratedSpill)
+                    outside.Add(string.Format(CultureInfo.InvariantCulture,
                         "esce di {0:0.##} mm dal bordo {1} alto",
-                        testo[3 + asse] - faccia[3 + asse], nomi[asse]));
+                        text[3 + axis] - face[3 + axis], names[axis]));
             }
-            if (fuori.Count == 0) return null;
-            return string.Join(", ", fuori) + " della faccia.";
+            if (outside.Count == 0) return null;
+            return string.Join(", ", outside) + " della faccia.";
         }
 
-        private static double Tondo(double v, int cifre = 2)
+        private static double Round(double v, int digits = 2)
         {
-            return Math.Round(v, cifre);
+            return Math.Round(v, digits);
         }
     }
 }

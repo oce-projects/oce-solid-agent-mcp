@@ -1,7 +1,7 @@
 {
   "name": "fillet_rounds_the_four_corners",
   "family": "features",
-  "why": "VOCE Z-C6, la seconda meta'. `fillet_edges` era a catalogo con un caso solo nella REGRESSIONE (r04), che gira soltanto con `-Regressione`: in un giro normale nessun caso la toccava. L'ha trovato il controllo di contratto nuovo, il primo giro in cui il banco ha scritto i suoi casi verdi (25/9/2026).",
+  "why": "VOCE Z-C6, la seconda meta'. `fillet_edges` era a catalogo con un caso solo nella REGRESSIONE (r04), che gira soltanto con `-Regression`: in un giro normale nessun caso la toccava. L'ha trovato il controllo di contratto nuovo, il primo giro in cui il banco ha scritto i suoi casi verdi (25/9/2026).",
   "defect_caught": "Un raccordo che nasce su meno spigoli di quelli chiesti, o col raggio sbagliato: il volume lo distingue al millesimo, perche' il conto a mano e' esatto.",
   "_the_edges_by_where_they_are": "I quattro spigoli verticali (lungo Y) della piastra, nominati per coordinate: x = ±50, z = ±30. Misurato col banchetto il 25/9/2026.",
   "start": { "new_part": true },

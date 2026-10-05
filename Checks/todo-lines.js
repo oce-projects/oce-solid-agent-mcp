@@ -54,16 +54,16 @@
 const fs = require('fs');
 const path = require('path');
 
-const radice = path.join(__dirname, '..');
-const tutti = process.argv.includes('--tutti');
-const { trovaIlTodo } = require('./where-is-the-todo.js');
-const fileTodo = trovaIlTodo(radice, process.argv);
+const root = path.join(__dirname, '..');
+const all = process.argv.includes('--tutti');
+const { findTheTodo } = require('./where-is-the-todo.js');
+const fileTodo = findTheTodo(root, process.argv);
 if (!fileTodo) process.exit(0);
-const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
+const lines = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // Le stesse cartelle di `todo-paths.js`: il TODO scrive i nomi da dove
 // si lavora.
-const BASI = ['', 'Banco', 'Oce.Solid.Agent.Core', 'Strumenti', 'Controlli',
+const BASES = ['', 'Banco', 'Oce.Solid.Agent.Core', 'Strumenti', 'Controlli',
               'Tests', 'Mcp', 'Bridge', 'Oce.Solid.Agent.Core/Catalog'];
 
 // LA CARTELLA SCRITTA NELLA CITAZIONE COMANDA, e la prima scrittura la
@@ -80,82 +80,82 @@ const BASI = ['', 'Banco', 'Oce.Solid.Agent.Core', 'Strumenti', 'Controlli',
 // quando trova piu' di un file con lo stesso nome **si astiene** invece di
 // scegliere: due file omonimi sono esattamente il caso in cui indovinare
 // produce il rosso sbagliato.
-function dove(citato) {
+function location(cited) {
   // 1. con la cartella: e' un indirizzo, non un suggerimento.
-  if (citato.indexOf('/') >= 0) {
-    const p = path.join(radice, citato);
+  if (cited.indexOf('/') >= 0) {
+    const p = path.join(root, cited);
     return fs.existsSync(p) ? p : null;
   }
 
   // 2. senza: si cerca, e si conta quanti ne trova.
-  const nome = path.basename(citato);
-  const trovati = [];
-  for (const b of BASI) {
-    const p = path.join(radice, b, nome);
-    if (fs.existsSync(p)) trovati.push(p);
+  const itemName = path.basename(cited);
+  const foundItems = [];
+  for (const b of BASES) {
+    const p = path.join(root, b, itemName);
+    if (fs.existsSync(p)) foundItems.push(p);
   }
-  if (trovati.length === 1) return trovati[0];
-  if (trovati.length > 1) { omonimi.add(nome); return null; }
+  if (foundItems.length === 1) return foundItems[0];
+  if (foundItems.length > 1) { namesakes.add(itemName); return null; }
   return null;
 }
 
 // I nomi che stanno in piu' di una cartella: non si sceglie per loro, e lo
 // si dice — se no la prossima citazione senza cartella sbaglia in silenzio.
-const omonimi = new Set();
+const namesakes = new Set();
 
-let statoVoce = null;
-const citate = new Map();   // "file:riga" -> stato della voce
+let stateEntry = null;
+const citedOnes = new Map();   // "file:riga" -> stato della voce
 
-for (const r of righe) {
+for (const r of lines) {
   const h = r.match(/^#{2,4} \[([ x~])\]/);
-  if (h) statoVoce = h[1];
-  else if (/^#{1,4} /.test(r)) statoVoce = null;
+  if (h) stateEntry = h[1];
+  else if (/^#{1,4} /.test(r)) stateEntry = null;
 
   // `NomeFile.cs:123` oppure `Cartella/NomeFile.cs:123`
   for (const m of r.matchAll(/`?([A-Za-z0-9_.\/\\-]+\.(?:cs|js|ps1|json|md)):(\d+)/g)) {
-    const chiave = m[1].replace(/\\/g, '/') + ':' + m[2];
-    if (!citate.has(chiave)) citate.set(chiave, statoVoce);
+    const key = m[1].replace(/\\/g, '/') + ':' + m[2];
+    if (!citedOnes.has(key)) citedOnes.set(key, stateEntry);
   }
 }
 
-const morte = [];
-const nonTrovati = new Set();
-let ok = 0, storiche = 0;
+const death = [];
+const notFound = new Set();
+let ok = 0, historical = 0;
 
-for (const [c, stato] of citate) {
-  const taglio = c.lastIndexOf(':');
-  const nome = c.slice(0, taglio);
-  const n = parseInt(c.slice(taglio + 1), 10);
-  const p = dove(nome);
-  if (!p) { nonTrovati.add(nome); continue; }
-  const quante = fs.readFileSync(p, 'utf8').split(/\r?\n/).length;
-  if (n <= quante) { ok++; if (tutti) console.log('  ok   ' + c + '  (il file ha ' + quante + ' righe)'); continue; }
-  if (stato === 'x') { storiche++; continue; }   // voce chiusa: era vero allora
-  morte.push(c + '  — il file ha ' + quante + ' righe');
+for (const [c, docState] of citedOnes) {
+  const cut = c.lastIndexOf(':');
+  const itemName = c.slice(0, cut);
+  const n = parseInt(c.slice(cut + 1), 10);
+  const p = location(itemName);
+  if (!p) { notFound.add(itemName); continue; }
+  const howMany = fs.readFileSync(p, 'utf8').split(/\r?\n/).length;
+  if (n <= howMany) { ok++; if (all) console.log('  ok   ' + c + '  (il file ha ' + howMany + ' righe)'); continue; }
+  if (docState === 'x') { historical++; continue; }   // voce chiusa: era vero allora
+  death.push(c + '  — il file ha ' + howMany + ' righe');
 }
 
-console.log('citazioni `file:riga`:     ' + citate.size);
+console.log('citazioni `file:riga`:     ' + citedOnes.size);
 console.log('che puntano dentro il file: ' + ok);
-console.log('in voci chiuse, non si toccano: ' + storiche);
+console.log('in voci chiuse, non si toccano: ' + historical);
 // SI STAMPANO I NOMI, non solo quanti sono. Un «7» non si puo' controllare:
 // per sapere se e' giusto bisogna rifare a mano il lavoro della sonda.
-if (nonTrovati.size) {
+if (notFound.size) {
   console.log('file non trovati (altro repo, rinominati, o cartella sbagliata): ' +
-              nonTrovati.size);
-  for (const n of nonTrovati) console.log('    - ' + n);
+              notFound.size);
+  for (const n of notFound) console.log('    - ' + n);
 }
-if (omonimi.size) {
+if (namesakes.size) {
   console.log('nomi che stanno in piu\' cartelle, e senza cartella non si sceglie: ' +
-              [...omonimi].join(', '));
+              [...namesakes].join(', '));
   console.log('  (scrivere la cartella nella citazione li rende controllabili)');
 }
 console.log('');
 
-if (morte.length === 0) {
+if (death.length === 0) {
   console.log('Nessuna voce aperta manda a una riga che non esiste.');
 } else {
-  console.log('VOCI APERTE che mandano OLTRE LA FINE del file: ' + morte.length);
-  for (const m of morte) console.log('  !  ' + m);
+  console.log('VOCI APERTE che mandano OLTRE LA FINE del file: ' + death.length);
+  for (const m of death) console.log('  !  ' + m);
   console.log('');
   console.log('Quella riga non c\'e\' proprio: la citazione e\' morta, non spostata.');
   process.exitCode = 1;
@@ -168,72 +168,72 @@ if (morte.length === 0) {
 // Quante righe intorno a un rimando a riga singola si guardano. Largo apposta:
 // una finestra stretta accuserebbe chi cita l'inizio di un paragrafo. Questo
 // attrezzo preferisce lasciar passare un rimando storto che accusarne uno buono.
-const PRIMA = 5, DOPO = 20;
+const BEFORE = 5, AFTER = 20;
 
-function soggetti(riga) {
-  const fuori = [];
-  for (const m of riga.matchAll(/`([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)`/g)) {
+function subjects(line) {
+  const outside = [];
+  for (const m of line.matchAll(/`([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)`/g)) {
     const s = m[1];
     if (s.length < 6) continue;              // `uid`, `x`: non sono soggetti
     if (!/[A-Z]/.test(s)) continue;          // prosa fra backtick, non codice
     if (/\.(cs|js|ps1|json|md)$/i.test(s)) continue;   // e' un nome di file
-    fuori.push(s);
+    outside.push(s);
   }
-  return fuori;
+  return outside;
 }
 
-function passataDue(righe, nomeFile) {
-  const rotti = [], saltati = [];
-  let buoni = 0;
-  for (let i = 0; i < righe.length; i++) {
-    const r = righe[i];
+function secondPass(lines, fileName) {
+  const brokenOnes = [], skippedOnes = [];
+  let good = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const r = lines[i];
     for (const m of r.matchAll(/`?TODO\.md:~?(\d+)(?:\s*[-\u2013]\s*(\d+))?/g)) {
       const a = parseInt(m[1], 10);
       const b = m[2] ? parseInt(m[2], 10) : null;
-      const da = b ? a : Math.max(1, a - PRIMA);
-      const al = b ? b : a + DOPO;
-      const dove = 'riga ' + (i + 1) + ' → TODO.md:' + a + (b ? '-' + b : '');
-      const sogg = soggetti(r);
-      if (sogg.length === 0) { saltati.push(dove + '  (nessun identificatore sulla riga)'); continue; }
-      const finestra = righe.slice(da - 1, al).join('\n');
-      const trovato = sogg.filter(s => finestra.indexOf(s) >= 0);
-      if (trovato.length) { buoni++; if (tutti) console.log('  ok   ' + dove + '  (ci trova ' + trovato[0] + ')'); continue; }
-      rotti.push(dove + '  — la' + (b ? ' zona' : ' zona intorno') + ' non nomina ' + sogg.slice(0, 3).join(' ne\' '));
+      const da = b ? a : Math.max(1, a - BEFORE);
+      const al = b ? b : a + AFTER;
+      const location = 'riga ' + (i + 1) + ' → TODO.md:' + a + (b ? '-' + b : '');
+      const subject = subjects(r);
+      if (subject.length === 0) { skippedOnes.push(location + '  (nessun identificatore sulla riga)'); continue; }
+      const window = lines.slice(da - 1, al).join('\n');
+      const found = subject.filter(s => window.indexOf(s) >= 0);
+      if (found.length) { good++; if (all) console.log('  ok   ' + location + '  (ci trova ' + found[0] + ')'); continue; }
+      brokenOnes.push(location + '  — la' + (b ? ' zona' : ' zona intorno') + ' non nomina ' + subject.slice(0, 3).join(' ne\' '));
     }
   }
   console.log('');
-  console.log('rimandi interni a ' + nomeFile + ':');
-  console.log('  che trovano il loro soggetto: ' + buoni);
-  if (saltati.length) console.log('  saltati (senza soggetto da controllare): ' + saltati.length);
-  if (rotti.length === 0) {
+  console.log('rimandi interni a ' + fileName + ':');
+  console.log('  che trovano il loro soggetto: ' + good);
+  if (skippedOnes.length) console.log('  saltati (senza soggetto da controllare): ' + skippedOnes.length);
+  if (brokenOnes.length === 0) {
     console.log('  Nessun rimando interno manda a righe che parlano d\'altro.');
     return 0;
   }
-  console.log('  RIMANDI CHE MANDANO NEL POSTO SBAGLIATO: ' + rotti.length);
-  for (const x of rotti) console.log('    !  ' + x);
+  console.log('  RIMANDI CHE MANDANO NEL POSTO SBAGLIATO: ' + brokenOnes.length);
+  for (const x of brokenOnes) console.log('    !  ' + x);
   console.log('');
   console.log('  La riga citata esiste — ma non parla di quello che la frase dice.');
-  return rotti.length;
+  return brokenOnes.length;
 }
 
-if (passataDue(righe, path.basename(fileTodo)) > 0) process.exitCode = 1;
+if (secondPass(lines, path.basename(fileTodo)) > 0) process.exitCode = 1;
 
 // ── e adesso lo si fa fallire apposta, in tutt'e due i versi ───────────────
 if (process.argv.includes('--provami')) {
   console.log('');
   console.log('=== PROVA DEL CONTROLLO: lo stesso rimando, rotto e sano ===');
-  const finte = [];
-  for (let i = 0; i < 40; i++) finte.push('riempitivo');
-  finte[29] = 'qui si parla di `IFace2.Normal` e di sottosquadri.';
-  finte[34] = 'e qui invece `GetRemainingDOFs` risponde 2 = non disponibile.';
+  const fake = [];
+  for (let i = 0; i < 40; i++) fake.push('riempitivo');
+  fake[29] = 'qui si parla di `IFace2.Normal` e di sottosquadri.';
+  fake[34] = 'e qui invece `GetRemainingDOFs` risponde 2 = non disponibile.';
 
-  const rotto = finte.slice();
-  rotto.push('la strada e\' morta: `TODO.md:25-30` registra che `GetRemainingDOFs` non torna un conteggio.');
-  const sano = finte.slice();
-  sano.push('la strada e\' morta: `TODO.md:33-36` registra che `GetRemainingDOFs` non torna un conteggio.');
+  const broken = fake.slice();
+  broken.push('la strada e\' morta: `TODO.md:25-30` registra che `GetRemainingDOFs` non torna un conteggio.');
+  const sound = fake.slice();
+  sound.push('la strada e\' morta: `TODO.md:33-36` registra che `GetRemainingDOFs` non torna un conteggio.');
 
-  const a = passataDue(rotto, 'FINTO-rotto');
-  const b = passataDue(sano, 'FINTO-sano');
+  const a = secondPass(broken, 'FINTO-rotto');
+  const b = secondPass(sound, 'FINTO-sano');
   console.log('');
   if (a === 1 && b === 0) {
     console.log('IL CONTROLLO SCATTA sul rimando rotto e TACE su quello sano. Provato.');

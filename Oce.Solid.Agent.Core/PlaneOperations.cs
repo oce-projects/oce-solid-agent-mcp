@@ -60,66 +60,66 @@ namespace Oce.Solid.Agent.Core
     /// difference cannot be seen: `true` stays, unexposed, and the probe with
     /// P1->P2 along Y is due the day an operation uses the plane's own axes.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito PianoPerTrePunti(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome PlaneThroughThreePoints(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            var punti = new List<double[]>();
-            foreach (var chiave in new[] { "point1_mm", "point2_mm", "point3_mm" })
+            var points = new List<double[]>();
+            foreach (var key in new[] { "point1_mm", "point2_mm", "point3_mm" })
             {
-                var p = TernaMm(a, chiave);
+                var p = TripletMm(a, key);
                 if (p == null)
-                    return Fallito(
-                        "«" + chiave + "» dev'essere tre numeri in millimetri, per esempio " +
+                    return Failed(
+                        "«" + key + "» dev'essere tre numeri in millimetri, per esempio " +
                         "[0, 0, 20]. Servono tutti e tre i punti: un piano per due punti non " +
                         "e' uno, sono infiniti.");
-                punti.Add(p);
+                points.Add(p);
             }
 
             // ── TRE PUNTI IN FILA NON FANNO UN PIANO ────────────────────
             //
             // SOLIDWORKS risponde null e non dice perche'. Qui si guarda prima,
             // perche' il perche' si sa: il prodotto vettoriale e' zero.
-            var u = Meno(punti[1], punti[0]);
-            var v = Meno(punti[2], punti[0]);
-            var n = Vettoriale(u, v);
-            double modulo = Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+            var u = Less(points[1], points[0]);
+            var v = Less(points[2], points[0]);
+            var n = VectorProduct(u, v);
+            double module = Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
             double lu = Math.Sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
             double lv = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
             if (lu < 1e-9 || lv < 1e-9)
-                return Fallito("Due dei tre punti sono lo stesso punto: cosi' non fanno un piano.");
-            if (modulo / (lu * lv) < 1e-6)
-                return Fallito(string.Format(
+                return Failed("Due dei tre punti sono lo stesso punto: cosi' non fanno un piano.");
+            if (module / (lu * lv) < 1e-6)
+                return Failed(string.Format(
                     CultureInfo.InvariantCulture,
                     "I tre punti sono in fila: ({0}), ({1}) e ({2}) stanno sulla stessa " +
                     "retta, e per una retta passano infiniti piani. Spostane uno fuori.",
-                    Scrivi(punti[0]), Scrivi(punti[1]), Scrivi(punti[2])));
+                    Write(points[0]), Write(points[1]), Write(points[2])));
 
-            var attesa = new[] { n[0] / modulo, n[1] / modulo, n[2] / modulo };
+            var expectation = new[] { n[0] / module, n[1] / module, n[2] / module };
 
-            int pianiPrima = ContaPiani(modello);
-            var namesBefore = FeatureNamesNow(modello);
-            object grezzo;
+            int planesBefore = CountPlanes(model);
+            var namesBefore = FeatureNamesNow(model);
+            object raw;
             try
             {
-                modello.ClearSelection2(true);
-                grezzo = modello.CreatePlaneFixed2(
-                    punti[0].Select(Unita.M).ToArray(),
-                    punti[1].Select(Unita.M).ToArray(),
-                    punti[2].Select(Unita.M).ToArray(),
+                model.ClearSelection2(true);
+                raw = model.CreatePlaneFixed2(
+                    points[0].Select(Units.M).ToArray(),
+                    points[1].Select(Units.M).ToArray(),
+                    points[2].Select(Units.M).ToArray(),
                     // UseGlobal: same normal either way; it turns only the
                     // plane's own X axis (see the note at the top, L8-3).
                     true);
             }
-            catch (Exception ex) { return Fallito("Il piano non e' stato creato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Il piano non e' stato creato: " + ex.Message); }
 
-            int pianiDopo = ContaPiani(modello);
+            int planesAfter = CountPlanes(model);
             // «Non e' comparso nessun piano» si dice di due conteggi letti; con
             // uno illeggibile resta l'oggetto restituito (voce Z-C8).
-            if ((pianiPrima >= 0 && pianiDopo >= 0 && pianiDopo == pianiPrima) ||
-                ((pianiPrima < 0 || pianiDopo < 0) && grezzo == null))
-                return Fallito(
+            if ((planesBefore >= 0 && planesAfter >= 0 && planesAfter == planesBefore) ||
+                ((planesBefore < 0 || planesAfter < 0) && raw == null))
+                return Failed(
                     "Il piano non e' stato creato, e nell'albero non ne e' comparso nessuno. " +
                     "SOLIDWORKS non dice perche'.");
 
@@ -128,12 +128,12 @@ namespace Oce.Solid.Agent.Core
             // feature reported was the last one of the tree: on a sheet-metal
             // part the flat pattern, answered as the plane just made (finding
             // M9), while the normal came from the returned object.
-            var feature = grezzo as IFeature;
+            var feature = raw as IFeature;
             if (feature == null)
-                feature = FeatureBorn(modello, namesBefore, "RefPlane", out _);
-            var piano = grezzo as IRefPlane;
-            if (piano == null && feature != null)
-                try { piano = feature.GetSpecificFeature2() as IRefPlane; } catch { }
+                feature = FeatureBorn(model, namesBefore, "RefPlane", out _);
+            var plane = raw as IRefPlane;
+            if (plane == null && feature != null)
+                try { plane = feature.GetSpecificFeature2() as IRefPlane; } catch { }
 
             // ── E ADESSO SI RILEGGE LA NORMALE ──────────────────────────
             //
@@ -142,19 +142,19 @@ namespace Oce.Solid.Agent.Core
             // che il piano dice di essere e' l'unica prova che il piano sia
             // QUELLO: «una feature in piu' nell'albero» lo direbbe anche di un
             // piano sbagliato.
-            double[] letta = NormaleDelPiano(piano);
-            var misure = new Dictionary<string, object>
+            double[] read = PlaneNormal(plane);
+            var measurements = new Dictionary<string, object>
             {
-                ["points_mm"] = punti.Select(p => p.Select(x => Math.Round(x, 4)).ToArray()).ToArray(),
-                ["normal_computed"] = attesa.Select(x => Math.Round(x, 6)).ToArray(),
-                ["planes_before"] = NumeroOppureNull(pianiPrima),
-                ["planes_now"] = NumeroOppureNull(pianiDopo),
+                ["points_mm"] = points.Select(p => p.Select(x => Math.Round(x, 4)).ToArray()).ToArray(),
+                ["normal_computed"] = expectation.Select(x => Math.Round(x, 6)).ToArray(),
+                ["planes_before"] = NumberOrNull(planesBefore),
+                ["planes_now"] = NumberOrNull(planesAfter),
             };
 
-            if (letta == null)
+            if (read == null)
             {
-                misure["normal_reread"] = null;
-                misure["warning"] =
+                measurements["normal_reread"] = null;
+                measurements["warning"] =
                     "Il piano c'e' ma non sono riuscito a rileggerne l'orientamento, quindi " +
                     "non ti posso garantire che sia quello dei tre punti che mi hai dato.";
             }
@@ -162,27 +162,27 @@ namespace Oce.Solid.Agent.Core
             {
                 // Il verso puo' essere l'uno o l'altro: un piano non ha un
                 // sopra e un sotto. Si confronta la DIREZIONE.
-                double coseno = Math.Abs(
-                    letta[0] * attesa[0] + letta[1] * attesa[1] + letta[2] * attesa[2]);
-                if (coseno > 1) coseno = 1;
-                double scarto = Math.Acos(coseno) * 180.0 / Math.PI;
-                misure["normal_reread"] = letta.Select(x => Math.Round(x, 6)).ToArray();
-                misure["deviation_deg"] = Math.Round(scarto, 4);
-                if (scarto > 0.01)
-                    return Fallito(string.Format(
+                double cosine = Math.Abs(
+                    read[0] * expectation[0] + read[1] * expectation[1] + read[2] * expectation[2]);
+                if (cosine > 1) cosine = 1;
+                double deviation = Math.Acos(cosine) * 180.0 / Math.PI;
+                measurements["normal_reread"] = read.Select(x => Math.Round(x, 6)).ToArray();
+                measurements["deviation_deg"] = Math.Round(deviation, 4);
+                if (deviation > 0.01)
+                    return Failed(string.Format(
                         CultureInfo.InvariantCulture,
                         "Il piano e' nato ma non e' quello che ho chiesto: dai tre punti la " +
                         "normale viene ({0}), e il piano dice ({1}) — {2:0.###} gradi di " +
                         "scarto. Non ti confermo un piano su cui disegneresti storto. " +
-                        "Ritiralo — " + Frasi.CosiSiRitira + ".",
-                        Scrivi(attesa), Scrivi(letta), scarto));
+                        "Ritiralo — " + Sentences.HowToWithdrawIt + ".",
+                        Write(expectation), Write(read), deviation));
             }
 
-            _log("[agente] piano per tre punti, normale (" + Scrivi(attesa) + ")");
+            _log("[agente] piano per tre punti, normale (" + Write(expectation) + ")");
 
             return feature != null
-                ? Riuscito(feature, misure, attesa)
-                : RiuscitoSenzaCreare(misure);
+                ? Succeeded(feature, measurements, expectation)
+                : SucceededWithoutCreating(measurements);
         }
 
         // =================================================================
@@ -199,16 +199,16 @@ namespace Oce.Solid.Agent.Core
         /// Riferimenti.PlaneFrame, which the base planes are recognised by too
         /// (scheme S19).
         /// </summary>
-        private static double[] NormaleDelPiano(IRefPlane piano)
+        private static double[] PlaneNormal(IRefPlane plane)
         {
             double[] normal, origin;
-            return Riferimenti.PlaneFrame(piano, out normal, out origin) ? normal : null;
+            return References.PlaneFrame(plane, out normal, out origin) ? normal : null;
         }
 
-        private static double[] TernaMm(Dictionary<string, object> a, string chiave)
+        private static double[] TripletMm(Dictionary<string, object> a, string key)
         {
             object v;
-            if (a == null || !a.TryGetValue(chiave, out v) || v == null) return null;
+            if (a == null || !a.TryGetValue(key, out v) || v == null) return null;
             var e = v as System.Collections.IEnumerable;
             if (e == null || v is string) return null;
             var n = new List<double>();
@@ -220,12 +220,12 @@ namespace Oce.Solid.Agent.Core
             return n.Count == 3 ? n.ToArray() : null;
         }
 
-        private static double[] Meno(double[] a, double[] b)
+        private static double[] Less(double[] a, double[] b)
         {
             return new[] { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
         }
 
-        private static double[] Vettoriale(double[] u, double[] v)
+        private static double[] VectorProduct(double[] u, double[] v)
         {
             return new[]
             {
@@ -235,7 +235,7 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
-        private static string Scrivi(double[] v)
+        private static string Write(double[] v)
         {
             return string.Join(", ", v.Select(x =>
                 x.ToString("0.####", CultureInfo.InvariantCulture)));

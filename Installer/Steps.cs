@@ -9,15 +9,15 @@ using Microsoft.Win32;
 namespace Oce.Solid.Agent.Installer
 {
     /// <summary>Com'e' andato un controllo: verde, giallo, rosso.</summary>
-    internal enum Esito { Bene, Avviso, Male }
+    internal enum Outcome { Fine, Warning, Male }
 
-    internal sealed class Controllo
+    internal sealed class CheckItem
     {
-        public string Titolo;
-        public Esito Esito;
-        public string Dettaglio;
+        public string Title;
+        public Outcome Outcome;
+        public string Detail;
         /// <summary>Cosa deve fare chi legge, se c'e' qualcosa da fare.</summary>
-        public string CosaFare;
+        public string WhatToDo;
     }
 
     /// <summary>
@@ -33,18 +33,18 @@ namespace Oce.Solid.Agent.Installer
     /// Sviluppo desktop .NET» fa ripartire il lavoro. E' la stessa regola che
     /// vale per i messaggi di errore delle operazioni di disegno.
     /// </summary>
-    internal static class Passi
+    internal static class Steps
     {
-        public const string NomeProdotto = "OCE Solid Agent";
-        public const string NomeEseguibile = "oce-solid-agent-mcp.exe";
-        public const string NomeCatalogo = "catalog.json";
+        public const string ProductName = "OCE Solid Agent";
+        public const string ExecutableName = "oce-solid-agent-mcp.exe";
+        public const string CatalogName = "catalog.json";
         /// <summary>
         /// Le operazioni di disegno. **Sta nel carico**, non si cerca sulla
         /// macchina: fino alla 0.5.0 era `OpenPDM.SwAddin.dll`, codice
         /// privato che il pacchetto non poteva contenere, e l'installatore
         /// doveva andarla a cercare. Adesso ce l'ha dentro.
         /// </summary>
-        public const string NomeLibreria = "Oce.Solid.Agent.Core.dll";
+        public const string LibraryName = "Oce.Solid.Agent.Core.dll";
 
         /// <summary>
         /// I file che l'installazione mette nella cartella, e quindi gli UNICI
@@ -53,13 +53,13 @@ namespace Oce.Solid.Agent.Installer
         /// UNA LISTA SOLA PER I DUE VERSI (voce H15). Prima la disinstallazione
         /// aveva la sua, e ci cercava `Oce.Solid.Agent.pdb` — un file che
         /// nessuna versione ha mai installato: fino alla 0.27.0 si chiamava
-        /// `SolidWorksMcp.pdb`, e in tutti e due i casi `Installa` non l'ha mai
+        /// `SolidWorksMcp.pdb`, e in tutti e due i casi `Install` non l'ha mai
         /// estratto. Due liste che dovrebbero dire la stessa cosa si separano
         /// il giorno in cui se ne tocca una.
         /// </summary>
-        public static readonly string[] FileInstallati =
+        public static readonly string[] InstalledFiles =
         {
-            NomeEseguibile, NomeEseguibile + ".config", NomeCatalogo, NomeLibreria,
+            ExecutableName, ExecutableName + ".config", CatalogName, LibraryName,
             "LICENSE", "NOTICE",
         };
 
@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Installer
         /// Files the BRIDGE writes beside itself while it runs, which no
         /// install puts there (entry H19, A5). Today one: the log of questions
         /// that had no operation (Tools/QuestionRegistry.cs, file name
-        /// RegistroDelleDomande.NomeDelFile; RISCONTRO_REGISTRO can move it
+        /// QuestionRegistry.FileName; RISCONTRO_REGISTRO can move it
         /// elsewhere, and then it is not ours to remove). Left behind, it kept
         /// the folder alive with the message that the folder held someone
         /// else's files, which was not true.
@@ -113,32 +113,32 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>Dove va installato, se chi installa non dice altro.</summary>
-        public static string CartellaPredefinita =>
+        public static string DefaultFolder =>
             Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Oce.Solid.Agent");
 
-        public static string CartellaDiQuestoExe =>
+        public static string ThisExeFolder =>
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
 
         // ─────────────────────────────────────────────────────────────────
         // I controlli
         // ─────────────────────────────────────────────────────────────────
 
-        public static List<Controllo> Controlla(string redist)
+        public static List<CheckItem> Check(string redist)
         {
-            var fuori = new List<Controllo>
+            var outside = new List<CheckItem>
             {
-                ControllaFramework(),
-                ControllaSolidWorks(redist),
-                ControllaPayload(),
-                ControllaLibreria(),
-                ControllaSolidWorksAperto(),
+                CheckFramework(),
+                CheckSolidWorks(redist),
+                CheckPayload(),
+                CheckLibrary(),
+                CheckSolidWorksOpen(),
             };
-            return fuori;
+            return outside;
         }
 
-        private static Controllo ControllaFramework()
+        private static CheckItem CheckFramework()
         {
             // .NET Framework 4.8 c'e' di serie da Windows 10 1903. Su macchine
             // piu' vecchie va messo a mano, ed e' l'unico prerequisito vero.
@@ -154,35 +154,35 @@ namespace Oce.Solid.Agent.Installer
             catch { }
 
             if (release >= 528040)
-                return new Controllo
+                return new CheckItem
                 {
-                    Titolo = ".NET Framework 4.8",
-                    Esito = Esito.Bene,
-                    Dettaglio = "release " + release,
+                    Title = ".NET Framework 4.8",
+                    Outcome = Outcome.Fine,
+                    Detail = "release " + release,
                 };
 
             // Se siamo arrivati a eseguire questo codice, un .NET c'e'. Quindi
             // il caso «zero» e' «non riesco a leggerlo», non «non c'e'».
             if (release == 0)
-                return new Controllo
+                return new CheckItem
                 {
-                    Titolo = ".NET Framework 4.8",
-                    Esito = Esito.Avviso,
-                    Dettaglio = "non riesco a leggerne la versione dal registro",
-                    CosaFare = "Se l'installazione fallisce, e' probabilmente questo.",
+                    Title = ".NET Framework 4.8",
+                    Outcome = Outcome.Warning,
+                    Detail = "non riesco a leggerne la versione dal registro",
+                    WhatToDo = "Se l'installazione fallisce, e' probabilmente questo.",
                 };
 
-            return new Controllo
+            return new CheckItem
             {
-                Titolo = ".NET Framework 4.8",
-                Esito = Esito.Male,
-                Dettaglio = "installato release " + release + ", ne serve almeno 528040",
-                CosaFare = "Scarica .NET Framework 4.8 da " +
+                Title = ".NET Framework 4.8",
+                Outcome = Outcome.Male,
+                Detail = "installato release " + release + ", ne serve almeno 528040",
+                WhatToDo = "Scarica .NET Framework 4.8 da " +
                            "https://dotnet.microsoft.com/download/dotnet-framework/net48",
             };
         }
 
-        public static string TrovaRedist()
+        public static string FindRedist()
         {
             // SW_INSTALL_PATH FIRST, AND IT IS THE ROOT (entry H10, read here
             // since H19 A7). The bridge, build.ps1 and the README all give it
@@ -194,12 +194,12 @@ namespace Oce.Solid.Agent.Installer
             {
                 string fromRoot = null;
                 try { fromRoot = Path.Combine(root.Trim(), "api", "redist"); } catch { }
-                if (CartellaHaInterop(fromRoot)) return fromRoot;
+                if (FolderHasInterop(fromRoot)) return fromRoot;
             }
-            var suo = Environment.GetEnvironmentVariable("SW_REDIST");
-            if (!string.IsNullOrWhiteSpace(suo) && CartellaHaInterop(suo)) return suo;
+            var its = Environment.GetEnvironmentVariable("SW_REDIST");
+            if (!string.IsNullOrWhiteSpace(its) && FolderHasInterop(its)) return its;
 
-            var candidati = new List<string>();
+            var candidates = new List<string>();
             foreach (var pf in new[]
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
@@ -207,8 +207,8 @@ namespace Oce.Solid.Agent.Installer
             })
             {
                 if (string.IsNullOrWhiteSpace(pf)) continue;
-                candidati.Add(Path.Combine(pf, @"SOLIDWORKS Corp\SOLIDWORKS\api\redist"));
-                candidati.Add(Path.Combine(pf, @"SolidWorks Corp\SolidWorks\api\redist"));
+                candidates.Add(Path.Combine(pf, @"SOLIDWORKS Corp\SOLIDWORKS\api\redist"));
+                candidates.Add(Path.Combine(pf, @"SolidWorks Corp\SolidWorks\api\redist"));
             }
 
             // Anche le installazioni per anno: SOLIDWORKS 2024, 2025...
@@ -221,43 +221,43 @@ namespace Oce.Solid.Agent.Installer
                 try
                 {
                     foreach (var d in Directory.GetDirectories(pf, "SOLIDWORKS*"))
-                        candidati.Add(Path.Combine(d, @"SOLIDWORKS\api\redist"));
+                        candidates.Add(Path.Combine(d, @"SOLIDWORKS\api\redist"));
                 }
                 catch { }
             }
 
-            foreach (var c in candidati)
-                if (CartellaHaInterop(c)) return c;
+            foreach (var c in candidates)
+                if (FolderHasInterop(c)) return c;
             return null;
         }
 
         /// <summary>La versione principale di SOLIDWORKS provata: 29 = 2021 (SP5.1).</summary>
-        public const int VersioneProvata = 29;
+        public const int TestedVersion = 29;
 
         /// <summary>«29.5.1.1» -> 29; 0 se non si legge. 29 e' la 2021: l'anno e' 1992 + la principale.</summary>
-        public static int VersionePrincipale(string v)
+        public static int MainVersion(string v)
         {
             if (string.IsNullOrWhiteSpace(v)) return 0;
-            int punto = v.IndexOf('.');
+            int point = v.IndexOf('.');
             int n;
-            return int.TryParse(punto > 0 ? v.Substring(0, punto) : v, out n) ? n : 0;
+            return int.TryParse(point > 0 ? v.Substring(0, point) : v, out n) ? n : 0;
         }
 
-        public static bool CartellaHaInterop(string cartella)
+        public static bool FolderHasInterop(string folder)
         {
             try
             {
-                return !string.IsNullOrWhiteSpace(cartella) &&
-                       File.Exists(Path.Combine(cartella, "SolidWorks.Interop.sldworks.dll"));
+                return !string.IsNullOrWhiteSpace(folder) &&
+                       File.Exists(Path.Combine(folder, "SolidWorks.Interop.sldworks.dll"));
             }
             catch { return false; }
         }
 
-        private static Controllo ControllaSolidWorks(string redist)
+        private static CheckItem CheckSolidWorks(string redist)
         {
-            if (string.IsNullOrWhiteSpace(redist)) redist = TrovaRedist();
+            if (string.IsNullOrWhiteSpace(redist)) redist = FindRedist();
 
-            if (CartellaHaInterop(redist))
+            if (FolderHasInterop(redist))
             {
                 string v = "";
                 try
@@ -271,31 +271,31 @@ namespace Oce.Solid.Agent.Installer
                 // (interop 29.5.1). Una versione diversa non si blocca: si avvisa.
                 // Le piu' vecchie si possono provare quando serve, le piu' nuove no
                 // (la licenza su cui si prova non le installa).
-                int principale = VersionePrincipale(v);
-                string anno = principale > 0 ? (principale + 1992).ToString() : null;
-                bool provata = principale == VersioneProvata;
-                return new Controllo
+                int main = MainVersion(v);
+                string anno = main > 0 ? (main + 1992).ToString() : null;
+                bool tested = main == TestedVersion;
+                return new CheckItem
                 {
-                    Titolo = "SOLIDWORKS installato",
-                    Esito = provata || principale <= 0 ? Esito.Bene : Esito.Avviso,
-                    Dettaglio = redist + (string.IsNullOrWhiteSpace(v) ? "" : "  (interop " + v +
+                    Title = "SOLIDWORKS installato",
+                    Outcome = tested || main <= 0 ? Outcome.Fine : Outcome.Warning,
+                    Detail = redist + (string.IsNullOrWhiteSpace(v) ? "" : "  (interop " + v +
                                 (anno == null ? "" : ", SOLIDWORKS " + anno) + ")"),
-                    CosaFare = provata || principale <= 0 ? null :
+                    WhatToDo = tested || main <= 0 ? null :
                         "Il ponte e' provato solo su SOLIDWORKS 2021 SP5.1. Con la " + anno + " si installa lo " +
-                        "stesso, ma nessuno l'ha misurata: " + (principale > VersioneProvata
+                        "stesso, ma nessuno l'ha misurata: " + (main > TestedVersion
                             ? "e' piu' nuova di quella provata, e certe API possono essersi mosse."
                             : "e' piu' vecchia di quella provata; si puo' provare, e se qualcosa non va dillo."),
                 };
             }
 
-            return new Controllo
+            return new CheckItem
             {
-                Titolo = "SOLIDWORKS installato",
-                Esito = Esito.Male,
-                Dettaglio = "non trovo la cartella api\\redist",
+                Title = "SOLIDWORKS installato",
+                Outcome = Outcome.Male,
+                Detail = "non trovo la cartella api\\redist",
                 // There is no Browse button for SOLIDWORKS, in the window or
                 // anywhere else (entry H19, A7): the text named one.
-                CosaFare =
+                WhatToDo =
                     "Serve SOLIDWORKS installato su questa macchina: le librerie di " +
                     "interoperabilita' si prendono da li' e non sono incluse qui. " +
                     "If it is installed in a non-standard folder, pass --redist <its api\\redist folder>, " +
@@ -303,31 +303,31 @@ namespace Oce.Solid.Agent.Installer
             };
         }
 
-        private static Controllo ControllaPayload()
+        private static CheckItem CheckPayload()
         {
-            if (Payload.Incorporato)
-                return new Controllo
+            if (Payload.Embedded)
+                return new CheckItem
                 {
-                    Titolo = "Ponte da installare",
-                    Esito = Esito.Bene,
-                    Dettaglio = "incluso in questo installatore",
+                    Title = "Ponte da installare",
+                    Outcome = Outcome.Fine,
+                    Detail = "incluso in questo installatore",
                 };
 
-            var accanto = Path.Combine(CartellaDiQuestoExe, NomeEseguibile);
-            if (File.Exists(accanto))
-                return new Controllo
+            var nextTo = Path.Combine(ThisExeFolder, ExecutableName);
+            if (File.Exists(nextTo))
+                return new CheckItem
                 {
-                    Titolo = "Ponte da installare",
-                    Esito = Esito.Bene,
-                    Dettaglio = "preso dalla cartella dell'installatore",
+                    Title = "Ponte da installare",
+                    Outcome = Outcome.Fine,
+                    Detail = "preso dalla cartella dell'installatore",
                 };
 
-            return new Controllo
+            return new CheckItem
             {
-                Titolo = "Ponte da installare",
-                Esito = Esito.Male,
-                Dettaglio = "non trovo " + NomeEseguibile,
-                CosaFare =
+                Title = "Ponte da installare",
+                Outcome = Outcome.Male,
+                Detail = "non trovo " + ExecutableName,
+                WhatToDo =
                     "Questo installatore non ha il ponte dentro e non lo trova " +
                     "accanto a se'. Se hai clonato il repository, compila prima " +
                     "con build.ps1: produce un Installer.exe completo.",
@@ -346,11 +346,11 @@ namespace Oce.Solid.Agent.Installer
         /// Serve solo al caso di chi lancia l'installatore appena compilato
         /// dalla cartella `bin`, dove il carico non e' ancora incorporato.
         /// </summary>
-        public static string TrovaLibreriaAccanto()
+        public static string FindLibraryNextTo()
         {
             try
             {
-                var c = Path.Combine(CartellaDiQuestoExe, NomeLibreria);
+                var c = Path.Combine(ThisExeFolder, LibraryName);
                 if (File.Exists(c)) return Path.GetFullPath(c);
             }
             catch { }
@@ -365,27 +365,27 @@ namespace Oce.Solid.Agent.Installer
         /// Il caso che resta e' l'installatore lanciato dalla cartella `bin`
         /// appena compilata, dove il carico non e' ancora incorporato.
         /// </summary>
-        private static Controllo ControllaLibreria()
+        private static CheckItem CheckLibrary()
         {
-            if (Payload.Contiene(NomeLibreria))
-                return new Controllo
+            if (Payload.Contains(LibraryName))
+                return new CheckItem
                 {
-                    Titolo = "Operazioni di disegno",
-                    Esito = Esito.Bene,
-                    Dettaglio = NomeLibreria + " e' dentro l'installatore",
+                    Title = "Operazioni di disegno",
+                    Outcome = Outcome.Fine,
+                    Detail = LibraryName + " e' dentro l'installatore",
                 };
 
-            var accanto = TrovaLibreriaAccanto();
-            if (!string.IsNullOrWhiteSpace(accanto))
+            var nextTo = FindLibraryNextTo();
+            if (!string.IsNullOrWhiteSpace(nextTo))
             {
                 string v = "";
-                try { v = FileVersionInfo.GetVersionInfo(accanto).FileVersion; }
+                try { v = FileVersionInfo.GetVersionInfo(nextTo).FileVersion; }
                 catch { }
-                return new Controllo
+                return new CheckItem
                 {
-                    Titolo = "Operazioni di disegno",
-                    Esito = Esito.Bene,
-                    Dettaglio = accanto + (string.IsNullOrWhiteSpace(v) ? "" : "  (" + v + ")"),
+                    Title = "Operazioni di disegno",
+                    Outcome = Outcome.Fine,
+                    Detail = nextTo + (string.IsNullOrWhiteSpace(v) ? "" : "  (" + v + ")"),
                 };
             }
 
@@ -395,38 +395,38 @@ namespace Oce.Solid.Agent.Installer
             // partiva e diceva di non essere agganciato. Adesso le operazioni
             // sono parte del prodotto: se mancano, il pacchetto e' rotto, e un
             // pacchetto rotto che si installa lo scopre chi lo usa.
-            return new Controllo
+            return new CheckItem
             {
-                Titolo = "Operazioni di disegno",
-                Esito = Esito.Male,
-                Dettaglio = NomeLibreria + " non c'e' ne' dentro ne' accanto",
-                CosaFare =
+                Title = "Operazioni di disegno",
+                Outcome = Outcome.Male,
+                Detail = LibraryName + " non c'e' ne' dentro ne' accanto",
+                WhatToDo =
                     "Questo installatore e' incompleto. Se hai clonato il " +
                     "repository, compila con build.ps1: produce un Installer.exe " +
                     "con il ponte e le operazioni dentro.",
             };
         }
 
-        private static Controllo ControllaSolidWorksAperto()
+        private static CheckItem CheckSolidWorksOpen()
         {
-            bool aperto = false;
-            try { aperto = Process.GetProcessesByName("SLDWORKS").Length > 0; }
+            bool open = false;
+            try { open = Process.GetProcessesByName("SLDWORKS").Length > 0; }
             catch { }
 
-            if (aperto)
-                return new Controllo
+            if (open)
+                return new CheckItem
                 {
-                    Titolo = "SOLIDWORKS aperto adesso",
-                    Esito = Esito.Bene,
-                    Dettaglio = "la verifica finale potra' guardare il documento",
+                    Title = "SOLIDWORKS aperto adesso",
+                    Outcome = Outcome.Fine,
+                    Detail = "la verifica finale potra' guardare il documento",
                 };
 
-            return new Controllo
+            return new CheckItem
             {
-                Titolo = "SOLIDWORKS aperto adesso",
-                Esito = Esito.Avviso,
-                Dettaglio = "closed",
-                CosaFare =
+                Title = "SOLIDWORKS aperto adesso",
+                Outcome = Outcome.Warning,
+                Detail = "closed",
+                WhatToDo =
                     "Non serve per installare. Serve per usare il ponte: si " +
                     "aggancia a una sessione che c'e' gia', non ne avvia una.",
             };
@@ -440,14 +440,14 @@ namespace Oce.Solid.Agent.Installer
         /// Copia il ponte nella cartella scelta. Ritorna il percorso
         /// dell'eseguibile installato, o solleva con un motivo leggibile.
         /// </summary>
-        public static string Installa(
-            string cartella, Action<string> racconta)
+        public static string Install(
+            string folder, Action<string> tell)
         {
-            if (string.IsNullOrWhiteSpace(cartella))
+            if (string.IsNullOrWhiteSpace(folder))
                 throw new Exception("Non mi hai detto dove installare.");
 
-            Directory.CreateDirectory(cartella);
-            racconta("cartella: " + cartella);
+            Directory.CreateDirectory(folder);
+            tell("cartella: " + folder);
 
             // 1. il ponte e il catalogo
             //
@@ -456,43 +456,43 @@ namespace Oce.Solid.Agent.Installer
             // dentro l'eseguibile che c'e' PRIMA di sovrascriverlo, e dentro
             // quello nuovo DOPO. Nessuna delle due letture e' una promessa: se
             // una non riesce, si dice «versione non leggibile».
-            var eseguibile = Path.Combine(cartella, NomeEseguibile);
-            string vecchia = File.Exists(eseguibile) ? VersioneDi(eseguibile) ?? "versione non leggibile" : null;
-            Payload.Estrai(NomeEseguibile, eseguibile, racconta);
-            string nuova = VersioneDi(eseguibile) ?? "versione non leggibile";
-            if (vecchia == null) racconta("installo la " + nuova);
-            else if (vecchia == nuova) racconta("reinstallo la " + nuova + " (era gia' questa)");
-            else racconta("aggiorno dalla " + vecchia + " alla " + nuova);
-            Payload.Estrai(NomeCatalogo, Path.Combine(cartella, NomeCatalogo), racconta);
-            Payload.EstraiSePresente(
-                NomeEseguibile + ".config",
-                Path.Combine(cartella, NomeEseguibile + ".config"), racconta);
+            var executable = Path.Combine(folder, ExecutableName);
+            string old = File.Exists(executable) ? VersionOf(executable) ?? "versione non leggibile" : null;
+            Payload.Extract(ExecutableName, executable, tell);
+            string newOne = VersionOf(executable) ?? "versione non leggibile";
+            if (old == null) tell("installo la " + newOne);
+            else if (old == newOne) tell("reinstallo la " + newOne + " (era gia' questa)");
+            else tell("aggiorno dalla " + old + " alla " + newOne);
+            Payload.Extract(CatalogName, Path.Combine(folder, CatalogName), tell);
+            Payload.ExtractIfPresent(
+                ExecutableName + ".config",
+                Path.Combine(folder, ExecutableName + ".config"), tell);
 
             // 2. LE OPERAZIONI. Prima dal carico; se il carico non ce l'ha
             //    (installatore lanciato dalla cartella bin appena
             //    compilata), da accanto all'eseguibile. Se non c'e' ne'
             //    l'una ne' l'altra si SOLLEVA: un ponte installato che non
             //    disegna e' peggio di un'installazione che si ferma.
-            //    `Estrai` guarda prima dentro il carico e poi accanto
+            //    `Extract` guarda prima dentro il carico e poi accanto
             //    all'installatore, e solleva se non c'e' ne' l'una ne' l'altra.
             //    Solleva ed e' giusto: un ponte installato che non disegna e'
             //    peggio di un'installazione che si ferma dicendo cosa manca.
-            var libreria = Path.Combine(cartella, NomeLibreria);
-            Payload.Estrai(NomeLibreria, libreria, racconta);
+            var library = Path.Combine(folder, LibraryName);
+            Payload.Extract(LibraryName, library, tell);
 
             // 3. le note legali viaggiano con il programma
             //
-            // Un file nuovo estratto qui va anche in `FileInstallati`, se no la
+            // Un file nuovo estratto qui va anche in `InstalledFiles`, se no la
             // disinstallazione lo lascia li' per sempre.
-            foreach (var nome in new[] { "LICENSE", "NOTICE" })
-                Payload.EstraiSePresente(nome, Path.Combine(cartella, nome), racconta);
+            foreach (var itemName in new[] { "LICENSE", "NOTICE" })
+                Payload.ExtractIfPresent(itemName, Path.Combine(folder, itemName), tell);
 
-            if (!File.Exists(eseguibile))
+            if (!File.Exists(executable))
                 throw new Exception(
-                    "Ho finito senza errori ma " + NomeEseguibile + " non c'e'. " +
+                    "Ho finito senza errori ma " + ExecutableName + " non c'e'. " +
                     "Non lo chiamo riuscito.");
 
-            return eseguibile;
+            return executable;
         }
 
         /// <summary>
@@ -504,15 +504,15 @@ namespace Oce.Solid.Agent.Installer
         /// e' proprio quello da sovrascrivere. La versione del file Win32 non
         /// serve: dice 0.0.0.0 (voce H14).
         /// </summary>
-        public static string VersioneDi(string eseguibile)
+        public static string VersionOf(string executable)
         {
             try
             {
-                var a = Assembly.Load(File.ReadAllBytes(eseguibile));
-                foreach (var nome in a.GetManifestResourceNames())
+                var a = Assembly.Load(File.ReadAllBytes(executable));
+                foreach (var itemName in a.GetManifestResourceNames())
                 {
-                    if (!nome.EndsWith("VERSION.txt", StringComparison.OrdinalIgnoreCase)) continue;
-                    using (var s = a.GetManifestResourceStream(nome))
+                    if (!itemName.EndsWith("VERSION.txt", StringComparison.OrdinalIgnoreCase)) continue;
+                    using (var s = a.GetManifestResourceStream(itemName))
                     using (var r = new StreamReader(s))
                     {
                         var v = r.ReadToEnd().Trim();
@@ -524,7 +524,7 @@ namespace Oce.Solid.Agent.Installer
             return null;
         }
 
-        public static bool PercorsiUguali(string a, string b)
+        public static bool EqualPaths(string a, string b)
         {
             try
             {
@@ -547,28 +547,28 @@ namespace Oce.Solid.Agent.Installer
         /// were going to be translated. The text is still returned, for
         /// whoever reads it.
         /// </summary>
-        public static string Prova(string eseguibile, string redist, out int code)
+        public static string Test(string executable, string redist, out int code)
         {
             code = SelfTestNoAnswer;
             try
             {
-                var avvio = new ProcessStartInfo(eseguibile, "--prova")
+                var startup = new ProcessStartInfo(executable, "--prova")
                 {
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Path.GetDirectoryName(eseguibile),
+                    WorkingDirectory = Path.GetDirectoryName(executable),
                 };
                 if (!string.IsNullOrWhiteSpace(redist))
                 {
                     // The folder the installer decided on is the one the
                     // bridge uses: SW_INSTALL_PATH would win over SW_REDIST.
-                    avvio.EnvironmentVariables.Remove("SW_INSTALL_PATH");
-                    avvio.EnvironmentVariables["SW_REDIST"] = redist;
+                    startup.EnvironmentVariables.Remove("SW_INSTALL_PATH");
+                    startup.EnvironmentVariables["SW_REDIST"] = redist;
                 }
 
-                using (var p = Process.Start(avvio))
+                using (var p = Process.Start(startup))
                 {
                     // `--prova` scrive su stderr di proposito: stdout appartiene
                     // al protocollo e li' non ci va nient'altro.
@@ -595,12 +595,12 @@ namespace Oce.Solid.Agent.Installer
         /// of ours that could NOT be removed (entry H19, A5): until 0.125.0 a
         /// locked file was mentioned in a line and the uninstall still exited 0.
         /// </summary>
-        public static List<string> Disinstalla(string cartella, Action<string> racconta)
+        public static List<string> Uninstall(string folder, Action<string> tell)
         {
             var left = new List<string>();
-            if (string.IsNullOrWhiteSpace(cartella) || !Directory.Exists(cartella))
+            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
             {
-                racconta("niente da togliere in " + cartella);
+                tell("niente da togliere in " + folder);
                 return left;
             }
 
@@ -608,30 +608,30 @@ namespace Oce.Solid.Agent.Installer
             // `Directory.Delete(recursive)` su una cartella scelta da chi
             // installa e' il modo classico di cancellare il desktop di
             // qualcuno per un percorso incollato male.
-            foreach (var nome in FileInstallati.Concat(BridgeOwnFiles))
+            foreach (var itemName in InstalledFiles.Concat(BridgeOwnFiles))
             {
-                var f = Path.Combine(cartella, nome);
+                var f = Path.Combine(folder, itemName);
                 try
                 {
-                    if (File.Exists(f)) { File.Delete(f); racconta("tolto " + nome); }
+                    if (File.Exists(f)) { File.Delete(f); tell("tolto " + itemName); }
                 }
                 catch (Exception ex)
                 {
-                    racconta("non riesco a togliere " + nome + ": " + ex.Message);
-                    left.Add(nome);
+                    tell("non riesco a togliere " + itemName + ": " + ex.Message);
+                    left.Add(itemName);
                 }
             }
 
             try
             {
-                if (!Directory.EnumerateFileSystemEntries(cartella).Any())
+                if (!Directory.EnumerateFileSystemEntries(folder).Any())
                 {
-                    Directory.Delete(cartella);
-                    racconta("tolta la cartella");
+                    Directory.Delete(folder);
+                    tell("tolta la cartella");
                 }
                 else if (left.Count == 0)
                 {
-                    racconta("la cartella resta: dentro c'e' anche altro, e non e' mio.");
+                    tell("la cartella resta: dentro c'e' anche altro, e non e' mio.");
                 }
             }
             catch { }
@@ -675,8 +675,8 @@ namespace Oce.Solid.Agent.Installer
                 int major = 0;
                 try
                 {
-                    if (CartellaHaInterop(redist))
-                        major = VersionePrincipale(FileVersionInfo.GetVersionInfo(
+                    if (FolderHasInterop(redist))
+                        major = MainVersion(FileVersionInfo.GetVersionInfo(
                             Path.Combine(redist, "SolidWorks.Interop.sldworks.dll")).FileVersion);
                 }
                 catch { }
@@ -708,7 +708,7 @@ namespace Oce.Solid.Agent.Installer
 
                 // 2. what SOLIDWORKS installs
                 string swRoot = null;
-                try { if (CartellaHaInterop(redist)) swRoot = Directory.GetParent(redist.TrimEnd('\\'))?.Parent?.FullName; } catch { }
+                try { if (FolderHasInterop(redist)) swRoot = Directory.GetParent(redist.TrimEnd('\\'))?.Parent?.FullName; } catch { }
                 if (swRoot == null) return null;
                 string language = null;
                 foreach (var valueName in new[] { "Weldment Cut List Template Folders", "Weld Table Template Folder" })

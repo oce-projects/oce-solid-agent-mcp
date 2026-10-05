@@ -19,31 +19,31 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function Scrivi($righe) {
-    $righe | ForEach-Object { Write-Output $_ }
+function WriteLine($lines) {
+    $lines | ForEach-Object { Write-Output $_ }
     if ($env:GITHUB_STEP_SUMMARY) {
-        ($righe -join "`n") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+        ($lines -join "`n") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
     }
 }
 
 if (-not (Test-Path $File)) {
-    Scrivi @("### prove.xml non e' stato scritto ($File)")
+    WriteLine @("### prove.xml non e' stato scritto ($File)")
     exit 0
 }
 
 [xml] $x = Get-Content $File
-$tutti   = @($x.testsuites.testsuite.testcase)
-$saltati = @($tutti | Where-Object { $_.skipped })
-$rossi   = @($tutti | Where-Object { $_.failure })
-$fatti   = $tutti.Count - $saltati.Count
+$all   = @($x.testsuites.testsuite.testcase)
+$skippedOnes = @($all | Where-Object { $_.skipped })
+$red   = @($all | Where-Object { $_.failure })
+$done   = $all.Count - $skippedOnes.Count
 
 $r = @()
 $r += "### Oce.Solid.Agent.ContractTests"
 $r += ""
-$r += "- **$fatti** controlli fatti davvero"
-$r += "- **$($rossi.Count)** falliti"
-$r += "- **$($saltati.Count)** non eseguibili qui"
-if ($saltati.Count -gt 0) {
+$r += "- **$done** controlli fatti davvero"
+$r += "- **$($red.Count)** falliti"
+$r += "- **$($skippedOnes.Count)** non eseguibili qui"
+if ($skippedOnes.Count -gt 0) {
     $r += ""
     # Apici singoli: dentro ci sono le virgolette della citazione, e in una
     # stringa fra virgolette doppie sarebbero la fine della stringa.
@@ -51,6 +51,6 @@ if ($saltati.Count -gt 0) {
     $r += "non c'e', quindi il ponte non si poteva nemmeno compilare e i controlli che"
     $r += "gli parlano non hanno girato."
     $r += ""
-    foreach ($s in $saltati) { $r += "- ``$($s.name)``" }
+    foreach ($s in $skippedOnes) { $r += "- ``$($s.name)``" }
 }
-Scrivi $r
+WriteLine $r

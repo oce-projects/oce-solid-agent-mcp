@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// `Sessione.StessoDocumento()` — LA GUARDIA CHE NON AVEVA UNA PROVA.
+    /// `Session.SameDocument()` — LA GUARDIA CHE NON AVEVA UNA PROVA.
     ///
     /// E' la funzione che impedisce al ponte di lavorare sul documento di
     /// qualcun altro: piu' sessioni sullo stesso SOLIDWORKS, il documento
@@ -18,76 +18,76 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// Confronta due dizionari. Non tocca SOLIDWORKS, e infatti sta qui.
     /// </summary>
-    internal static class ProveSessione
+    internal static class SessionTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("Sessione.StessoDocumento");
+            Group("Sessione.StessoDocumento");
 
-            var ponte = PonteOppureNonQui("Sessione.StessoDocumento, per intero");
-            if (ponte == null) return;
+            var bridge = BridgeOrNotHere("Sessione.StessoDocumento, per intero");
+            if (bridge == null) return;
 
-            MethodInfo stesso;
+            MethodInfo same;
             try
             {
-                var asm = Carica.Ponte(ponte);
-                var tipo = Carica.Classe(asm, "Sessione");
-                if (tipo == null) { Segna("la classe Sessione c'e'", false, ""); return; }
-                stesso = tipo.GetMethod("StessoDocumento",
+                var asm = Load.Bridge(bridge);
+                var typ = Load.Class(asm, "Session");
+                if (typ == null) { Check("la classe Sessione c'e'", false, ""); return; }
+                same = typ.GetMethod("SameDocument",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (stesso == null) { Segna("StessoDocumento c'e'", false, ""); return; }
+                if (same == null) { Check("StessoDocumento c'e'", false, ""); return; }
             }
-            catch (Exception ex) { Segna("il ponte si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
 
-            Func<Dictionary<string, object>, Dictionary<string, object>, bool> uguali =
-                (a, b) => (bool)stesso.Invoke(null, new object[] { a, b });
+            Func<Dictionary<string, object>, Dictionary<string, object>, bool> equal =
+                (a, b) => (bool)same.Invoke(null, new object[] { a, b });
 
-            Func<string, string, Dictionary<string, object>> id = (percorso, titolo) =>
-                new Dictionary<string, object> { ["path"] = percorso, ["document_title"] = titolo };
+            Func<string, string, Dictionary<string, object>> id = (filePath, docTitle) =>
+                new Dictionary<string, object> { ["path"] = filePath, ["document_title"] = docTitle };
 
             // ── IL PERCORSO VINCE SUL TITOLO ─────────────────────────────
             //
             // E' l'unica cosa che non cambia. Due documenti col titolo uguale e
             // il percorso diverso sono due pezzi diversi, e prenderli per uno
             // e' esattamente il difetto da cui questa funzione difende.
-            Segna("stesso percorso, titolo diverso: lo stesso documento",
-                  uguali(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\b.SLDPRT", "Parte2")));
-            Segna("percorso diverso, titolo uguale: NON lo stesso documento",
-                  !uguali(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\c.SLDPRT", "Parte1")));
+            Check("stesso percorso, titolo diverso: lo stesso documento",
+                  equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\b.SLDPRT", "Parte2")));
+            Check("percorso diverso, titolo uguale: NON lo stesso documento",
+                  !equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\c.SLDPRT", "Parte1")));
 
             // ── LE DUE BARRE SONO LA STESSA BARRA ────────────────────────
-            Segna("«/» e «\\» sono lo stesso percorso",
-                  uguali(id("S:/a/b.SLDPRT", ""), id(@"S:\a\b.SLDPRT", "")));
-            Segna("maiuscole e minuscole non contano",
-                  uguali(id(@"S:\A\B.sldprt", ""), id(@"s:\a\b.SLDPRT", "")));
-            Segna("gli spazi attorno non contano",
-                  uguali(id(@"  S:\a\b.SLDPRT  ", ""), id(@"S:\a\b.SLDPRT", "")));
+            Check("«/» e «\\» sono lo stesso percorso",
+                  equal(id("S:/a/b.SLDPRT", ""), id(@"S:\a\b.SLDPRT", "")));
+            Check("maiuscole e minuscole non contano",
+                  equal(id(@"S:\A\B.sldprt", ""), id(@"s:\a\b.SLDPRT", "")));
+            Check("gli spazi attorno non contano",
+                  equal(id(@"  S:\a\b.SLDPRT  ", ""), id(@"S:\a\b.SLDPRT", "")));
 
             // ── I MAI SALVATI SI CONFRONTANO PER TITOLO ──────────────────
-            Segna("senza percorso, il titolo decide",
-                  uguali(id("", "Parte286"), id("", "Parte286")));
-            Segna("senza percorso, titoli diversi: documenti diversi",
-                  !uguali(id("", "Parte286"), id("", "Parte287")));
+            Check("senza percorso, il titolo decide",
+                  equal(id("", "Parte286"), id("", "Parte286")));
+            Check("senza percorso, titoli diversi: documenti diversi",
+                  !equal(id("", "Parte286"), id("", "Parte287")));
 
             // ── DUE IDENTITA' VUOTE NON SONO LO STESSO DOCUMENTO ─────────
             //
             // E' il caso che conta: «non so chi sei» e «non so chi sei» non
             // fanno «siete la stessa persona». Rispondere di si' qui vorrebbe
             // dire lasciar passare qualunque documento.
-            Segna("due identita' vuote NON sono lo stesso documento",
-                  !uguali(id("", ""), id("", "")));
-            Segna("null non e' lo stesso di niente", !uguali(null, id("", "Parte1")));
-            Segna("null e null non sono lo stesso documento", !uguali(null, null));
+            Check("due identita' vuote NON sono lo stesso documento",
+                  !equal(id("", ""), id("", "")));
+            Check("null non e' lo stesso di niente", !equal(null, id("", "Parte1")));
+            Check("null e null non sono lo stesso documento", !equal(null, null));
 
             // ── UNO SALVATO E UNO NO: diversi ────────────────────────────
-            Segna("uno salvato e uno mai salvato, stesso titolo: diversi",
-                  !uguali(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
+            Check("uno salvato e uno mai salvato, stesso titolo: diversi",
+                  !equal(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
 
-            LaChiaveDelTurno(ponte);
-            IlTurnoScatta(ponte);
-            IlPezzoECambiato(ponte);
-            NonInstallatoONonAperto(ponte);
-            LaVersioneDelFile(ponte);
+            TheTurnKey(bridge);
+            TheTurnFires(bridge);
+            ThePartHasChanged(bridge);
+            NotInstalledOrNotOpen(bridge);
+            TheFileVersion(bridge);
         }
 
         /// <summary>
@@ -100,29 +100,29 @@ namespace Oce.Solid.Agent.ContractTests
         /// L'installatore si controlla solo se e' stato costruito; se non c'e'
         /// lo si dice, e non si da' verde.
         /// </summary>
-        private static void LaVersioneDelFile(string ponte)
+        private static void TheFileVersion(string bridge)
         {
-            Gruppo("le proprieta' del file dicono la versione (H14)");
-            string attesa;
-            try { attesa = File.ReadAllText(Path.Combine(Radice(), "VERSION.txt")).Trim(); }
-            catch (Exception ex) { Segna("VERSION.txt si legge", false, ex.Message); return; }
+            Group("le proprieta' del file dicono la versione (H14)");
+            string expectation;
+            try { expectation = File.ReadAllText(Path.Combine(Root(), "VERSION.txt")).Trim(); }
+            catch (Exception ex) { Check("VERSION.txt si legge", false, ex.Message); return; }
 
-            var vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(ponte);
-            Segna("il ponte: versione del file = VERSION.txt",
-                  vi.FileVersion == attesa + ".0", "file " + vi.FileVersion + ", VERSION.txt " + attesa);
-            Segna("il ponte: versione del prodotto = VERSION.txt",
-                  vi.ProductVersion == attesa, "prodotto " + vi.ProductVersion);
+            var vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(bridge);
+            Check("il ponte: versione del file = VERSION.txt",
+                  vi.FileVersion == expectation + ".0", "file " + vi.FileVersion + ", VERSION.txt " + expectation);
+            Check("il ponte: versione del prodotto = VERSION.txt",
+                  vi.ProductVersion == expectation, "prodotto " + vi.ProductVersion);
 
-            var installa = Path.Combine(Radice(), "dist", "Installer.exe");
-            if (!File.Exists(installa))
+            var install = Path.Combine(Root(), "dist", "Installer.exe");
+            if (!File.Exists(install))
             {
-                Segna("l'installatore c'e' (dist\\Installer.exe) per controllarne la versione", false,
+                Check("l'installatore c'e' (dist\\Installer.exe) per controllarne la versione", false,
                       "non costruito: .\\build.ps1");
                 return;
             }
-            var vj = System.Diagnostics.FileVersionInfo.GetVersionInfo(installa);
-            Segna("l'installatore: versione del file = VERSION.txt",
-                  vj.FileVersion == attesa + ".0", "file " + vj.FileVersion + ", VERSION.txt " + attesa);
+            var vj = System.Diagnostics.FileVersionInfo.GetVersionInfo(install);
+            Check("l'installatore: versione del file = VERSION.txt",
+                  vj.FileVersion == expectation + ".0", "file " + vj.FileVersion + ", VERSION.txt " + expectation);
         }
 
         /// <summary>
@@ -135,33 +135,33 @@ namespace Oce.Solid.Agent.ContractTests
         /// no sentence (H19InstallerContract checks the codes): these checks
         /// keep the two sentences for a person apart, nothing more.
         /// </summary>
-        private static void NonInstallatoONonAperto(string ponte)
+        private static void NotInstalledOrNotOpen(string bridge)
         {
-            Gruppo("Sessione.MessaggioDiAggancio: non installato o non aperto (H16)");
+            Group("Sessione.MessaggioDiAggancio: non installato o non aperto (H16)");
             MethodInfo m;
             try
             {
-                var tipo = Carica.Classe(Carica.Ponte(ponte), "Sessione");
-                m = tipo?.GetMethod("MessaggioDiAggancio", BindingFlags.NonPublic | BindingFlags.Static);
-                if (m == null) { Segna("MessaggioDiAggancio c'e'", false, ""); return; }
+                var typ = Load.Class(Load.Bridge(bridge), "Session");
+                m = typ?.GetMethod("AttachMessage", BindingFlags.NonPublic | BindingFlags.Static);
+                if (m == null) { Check("MessaggioDiAggancio c'e'", false, ""); return; }
             }
-            catch (Exception ex) { Segna("il ponte si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
 
-            Func<uint, string> frase = c => (string)m.Invoke(null, new object[] { unchecked((int)c) });
+            Func<uint, string> sentence = c => (string)m.Invoke(null, new object[] { unchecked((int)c) });
 
-            var aperto = frase(0x800401E3);
-            Segna("MK_E_UNAVAILABLE: the sentence says SOLIDWORKS is not running",
-                  aperto.IndexOf("non risulta aperto", StringComparison.Ordinal) >= 0, aperto);
+            var open = sentence(0x800401E3);
+            Check("MK_E_UNAVAILABLE: the sentence says SOLIDWORKS is not running",
+                  open.IndexOf("non risulta aperto", StringComparison.Ordinal) >= 0, open);
             foreach (var c in new uint[] { 0x800401F3, 0x80040154 })
             {
-                var t = frase(c);
-                Segna("0x" + c.ToString("X8") + ": dice «non e' installato»",
+                var t = sentence(c);
+                Check("0x" + c.ToString("X8") + ": dice «non e' installato»",
                       t.IndexOf("non e' installato", StringComparison.Ordinal) >= 0, t);
-                Segna("0x" + c.ToString("X8") + ": and does NOT say it is not running (it is not installed)",
+                Check("0x" + c.ToString("X8") + ": and does NOT say it is not running (it is not installed)",
                       t.IndexOf("non risulta aperto", StringComparison.Ordinal) < 0, t);
             }
-            var altro = frase(0x80004005);
-            Segna("un codice qualunque si dice in esadecimale", altro.Contains("0x80004005"), altro);
+            var other = sentence(0x80004005);
+            Check("un codice qualunque si dice in esadecimale", other.Contains("0x80004005"), other);
         }
 
         /// <summary>
@@ -172,102 +172,102 @@ namespace Oce.Solid.Agent.ContractTests
         /// documento vero — cioe' SOLIDWORKS. Non e' cosi': il lucchetto e' un
         /// mutex con nome in `Local\`, e un mutex con nome lo tiene qualunque
         /// processo della stessa sessione. Qui lo tiene un SECONDO PROCESSO
-        /// (una PowerShell figlia), e `Prendi` deve rispondere `null` — che e'
+        /// (una PowerShell figlia), e `Take` deve rispondere `null` — che e'
         /// il rifiuto del ponte. Poi il processo muore senza rilasciarlo, e
-        /// `Prendi` deve riuscire: Windows dice «abbandonato», e il ponte lo
+        /// `Take` deve riuscire: Windows dice «abbandonato», e il ponte lo
         /// tratta come libero.
         ///
         /// *Un controllo mai visto scattare non e' un controllo* — e questo si
         /// poteva vedere da sempre, senza il CAD.
         ///
-        /// COSA NON PROVA: che il ponte, in `Session.cs`, chiami `Prendi` sul
+        /// COSA NON PROVA: che il ponte, in `Session.cs`, chiami `Take` sul
         /// documento giusto. Quella meta' vuole due ponti e SOLIDWORKS.
         /// </summary>
-        private static void IlTurnoScatta(string ponte)
+        private static void TheTurnFires(string bridge)
         {
-            Gruppo("TurnoSulDocumento: il lucchetto scatta fra due processi (W2.9)");
+            Group("TurnoSulDocumento: il lucchetto scatta fra due processi (W2.9)");
 
-            MethodInfo prendi, chiaveDi;
+            MethodInfo take, keyOf;
             try
             {
-                var asm = Carica.Ponte(ponte);
-                var tipo = Carica.Classe(asm, "TurnoSulDocumento");
-                if (tipo == null) { Segna("la classe TurnoSulDocumento c'e'", false, ""); return; }
-                prendi = tipo.GetMethod("Prendi", BindingFlags.Public | BindingFlags.Static);
-                chiaveDi = tipo.GetMethod("ChiaveDi", BindingFlags.NonPublic | BindingFlags.Static);
-                if (prendi == null || chiaveDi == null) { Segna("Prendi e ChiaveDi ci sono", false, ""); return; }
+                var asm = Load.Bridge(bridge);
+                var typ = Load.Class(asm, "DocumentTurn");
+                if (typ == null) { Check("la classe TurnoSulDocumento c'e'", false, ""); return; }
+                take = typ.GetMethod("Take", BindingFlags.Public | BindingFlags.Static);
+                keyOf = typ.GetMethod("KeyOf", BindingFlags.NonPublic | BindingFlags.Static);
+                if (take == null || keyOf == null) { Check("Prendi e ChiaveDi ci sono", false, ""); return; }
             }
-            catch (Exception ex) { Segna("TurnoSulDocumento si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("TurnoSulDocumento si carica", false, ex.ToString()); return; }
 
             // Un percorso che non esiste e che nessun ponte vero sta usando:
             // il lucchetto e' suo e basta.
-            var finto = new DocumentoFinto(
+            var fake = new FakeDocument(
                 @"C:\prova-turno\" + Guid.NewGuid().ToString("N") + ".sldprt", "prova");
-            var chiave = chiaveDi.Invoke(null, new object[] { finto, null }) as string;
-            if (string.IsNullOrEmpty(chiave)) { Segna("la chiave di prova c'e'", false, ""); return; }
-            string nome = @"Local\OceSolidAgent_" + chiave;
+            var key = keyOf.Invoke(null, new object[] { fake, null }) as string;
+            if (string.IsNullOrEmpty(key)) { Check("la chiave di prova c'e'", false, ""); return; }
+            string itemName = @"Local\OceSolidAgent_" + key;
 
-            Func<IDisposable> prova = () =>
-                prendi.Invoke(null, new object[] { finto, null }) as IDisposable;
+            Func<IDisposable> test = () =>
+                take.Invoke(null, new object[] { fake, null }) as IDisposable;
 
             // 1. libero: si prende, e rilasciandolo torna libero.
-            var t1 = prova();
-            Segna("libero: il turno si prende", t1 != null);
+            var t1 = test();
+            Check("libero: il turno si prende", t1 != null);
             if (t1 != null) t1.Dispose();
 
             // 2. lo tiene UN ALTRO PROCESSO: il ponte deve rifiutare.
             //    La figlia prende il mutex, scrive «preso» e aspetta.
-            string pronto = Path.Combine(Path.GetTempPath(), "turno-" + chiave.Substring(0, 12) + ".txt");
-            try { File.Delete(pronto); } catch { }
-            string comando =
-                "$m = New-Object System.Threading.Mutex($false, '" + nome + "'); " +
-                "[void]$m.WaitOne(); Set-Content -Path '" + pronto + "' -Value preso; " +
+            string ready = Path.Combine(Path.GetTempPath(), "turno-" + key.Substring(0, 12) + ".txt");
+            try { File.Delete(ready); } catch { }
+            string command =
+                "$m = New-Object System.Threading.Mutex($false, '" + itemName + "'); " +
+                "[void]$m.WaitOne(); Set-Content -Path '" + ready + "' -Value preso; " +
                 "Start-Sleep -Seconds 20";
-            System.Diagnostics.Process figlia = null;
+            System.Diagnostics.Process child = null;
             try
             {
-                figlia = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = "-NoProfile -NonInteractive -Command \"" + comando + "\"",
+                    Arguments = "-NoProfile -NonInteractive -Command \"" + command + "\"",
                     UseShellExecute = false,
                     CreateNoWindow = true,
                 });
-                var entro = DateTime.UtcNow.AddSeconds(15);
-                while (!File.Exists(pronto) && DateTime.UtcNow < entro && !figlia.HasExited)
+                var within = DateTime.UtcNow.AddSeconds(15);
+                while (!File.Exists(ready) && DateTime.UtcNow < within && !child.HasExited)
                     System.Threading.Thread.Sleep(100);
-                if (!File.Exists(pronto))
+                if (!File.Exists(ready))
                 {
-                    Segna("un secondo processo tiene il lucchetto", false,
+                    Check("un secondo processo tiene il lucchetto", false,
                           "la PowerShell figlia non ha preso il mutex entro 15 s");
                     return;
                 }
 
-                var t2 = prova();
-                Segna("lo tiene un ALTRO processo: il ponte rifiuta", t2 == null,
+                var t2 = test();
+                Check("lo tiene un ALTRO processo: il ponte rifiuta", t2 == null,
                       t2 == null ? "Prendi -> null, cioe' «il documento e' in uso da un altro ponte»"
                                  : "Prendi ha dato il turno anche se un altro processo lo teneva");
                 if (t2 != null) t2.Dispose();
 
                 // 3. il processo MUORE senza rilasciare: il turno torna libero.
-                figlia.Kill();
-                figlia.WaitForExit(5000);
-                var t3 = prova();
-                Segna("chi lo teneva e' morto senza rilasciarlo: il turno si riprende", t3 != null,
+                child.Kill();
+                child.WaitForExit(5000);
+                var t3 = test();
+                Check("chi lo teneva e' morto senza rilasciarlo: il turno si riprende", t3 != null,
                       "un lucchetto che resta chiuso dopo che chi l'ha chiuso e' morto non e' un lucchetto, e' un guasto");
                 if (t3 != null) t3.Dispose();
             }
             finally
             {
-                try { if (figlia != null && !figlia.HasExited) figlia.Kill(); } catch { }
-                try { File.Delete(pronto); } catch { }
+                try { if (child != null && !child.HasExited) child.Kill(); } catch { }
+                try { File.Delete(ready); } catch { }
             }
 
             // 4. un altro documento non e' toccato dal lucchetto del primo.
-            var tA = prova();
-            var altro = new DocumentoFinto(@"C:\prova-turno\altro-" + Guid.NewGuid().ToString("N") + ".sldprt", "altro");
-            var tB = prendi.Invoke(null, new object[] { altro, null }) as IDisposable;
-            Segna("un documento diverso non aspetta il lucchetto del primo", tA != null && tB != null);
+            var tA = test();
+            var other = new FakeDocument(@"C:\prova-turno\altro-" + Guid.NewGuid().ToString("N") + ".sldprt", "altro");
+            var tB = take.Invoke(null, new object[] { other, null }) as IDisposable;
+            Check("un documento diverso non aspetta il lucchetto del primo", tA != null && tB != null);
             if (tA != null) tA.Dispose();
             if (tB != null) tB.Dispose();
         }
@@ -275,9 +275,9 @@ namespace Oce.Solid.Agent.ContractTests
         /// <summary>
         /// «E' lo stesso documento?» e «e' ancora lo stesso pezzo?» (voce X2).
         ///
-        /// `StessoDocumento` risponde alla prima e basta: titolo e percorso
+        /// `SameDocument` risponde alla prima e basta: titolo e percorso
         /// combaciano benissimo mentre qualcuno tira una quota a mano nella
-        /// finestra di SOLIDWORKS. `CosaECambiato` risponde alla seconda,
+        /// finestra di SOLIDWORKS. `WhatChanged` risponde alla seconda,
         /// confrontando due firme leggere — volume, numero di lavorazioni,
         /// data di scrittura del file.
         ///
@@ -286,30 +286,30 @@ namespace Oce.Solid.Agent.ContractTests
         /// prova che gira solo su questa macchina, per misurare del confronto
         /// di stringhe.
         /// </summary>
-        private static void IlPezzoECambiato(string ponte)
+        private static void ThePartHasChanged(string bridge)
         {
-            Gruppo("Attrezzi.CosaECambiato");
+            Group("Attrezzi.CosaECambiato");
 
-            MethodInfo cambiato;
+            MethodInfo changed;
             try
             {
-                var asm = Carica.Ponte(ponte);
-                var tipo = Carica.Classe(asm, "Attrezzi");
-                if (tipo == null) { Segna("la classe Attrezzi c'e'", false, ""); return; }
-                cambiato = tipo.GetMethod("CosaECambiato",
+                var asm = Load.Bridge(bridge);
+                var typ = Load.Class(asm, "McpTools");
+                if (typ == null) { Check("la classe Attrezzi c'e'", false, ""); return; }
+                changed = typ.GetMethod("WhatChanged",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (cambiato == null) { Segna("CosaECambiato c'e'", false, ""); return; }
+                if (changed == null) { Check("CosaECambiato c'e'", false, ""); return; }
             }
-            catch (Exception ex) { Segna("il ponte si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
 
-            Func<Dictionary<string, object>, Dictionary<string, object>, string> che =
-                (a, b) => (string)cambiato.Invoke(null, new object[] { a, b });
+            Func<Dictionary<string, object>, Dictionary<string, object>, string> whichOne =
+                (a, b) => (string)changed.Invoke(null, new object[] { a, b });
 
-            Func<object, object, Dictionary<string, object>> firma = (vol, lav) =>
+            Func<object, object, Dictionary<string, object>> signature = (vol, feat) =>
             {
                 var d = new Dictionary<string, object>(StringComparer.Ordinal);
                 if (vol != null) d["volume_mm3"] = vol;
-                if (lav != null) d["features"] = lav;
+                if (feat != null) d["features"] = feat;
                 return d;
             };
 
@@ -319,9 +319,9 @@ namespace Oce.Solid.Agent.ContractTests
             // passerebbe quel controllo e fermerebbe «build» dicendo niente:
             // il peggiore dei due modi di sbagliare, perche' l'avviso c'e' e
             // non si capisce di cosa parli.
-            Segna("due firme uguali: non e' cambiato niente",
-                  che(firma(96000.0, 3), firma(96000.0, 3)) == null,
-                  Convert.ToString(che(firma(96000.0, 3), firma(96000.0, 3)) ?? "(null)"));
+            Check("due firme uguali: non e' cambiato niente",
+                  whichOne(signature(96000.0, 3), signature(96000.0, 3)) == null,
+                  Convert.ToString(whichOne(signature(96000.0, 3), signature(96000.0, 3)) ?? "(null)"));
 
             // ── IL VOLUME, COL NUMERO DI PRIMA E QUELLO DI ADESSO ────────
             //
@@ -329,12 +329,12 @@ namespace Oce.Solid.Agent.ContractTests
             // controlla. E' il criterio scritto nella voce X2, ed e' la
             // differenza fra un avviso che si legge e uno che si impara a
             // ignorare.
-            var v = che(firma(96000.0, 3), firma(94500.0, 3));
-            Segna("il volume cambiato si dice, con i due numeri",
+            var v = whichOne(signature(96000.0, 3), signature(94500.0, 3));
+            Check("il volume cambiato si dice, con i due numeri",
                   v != null && v.Contains("96000") && v.Contains("94500"), v ?? "(null)");
 
-            var l = che(firma(96000.0, 3), firma(96000.0, 4));
-            Segna("una lavorazione in piu' si dice, con i due conti",
+            var l = whichOne(signature(96000.0, 3), signature(96000.0, 4));
+            Check("una lavorazione in piu' si dice, con i due conti",
                   l != null && l.Contains("3") && l.Contains("4"), l ?? "(null)");
 
             // ── DUE COSE CAMBIATE SI DICONO TUTTE E DUE ──────────────────
@@ -342,8 +342,8 @@ namespace Oce.Solid.Agent.ContractTests
             // Fermarsi alla prima differenza farebbe leggere «il volume e'
             // cambiato» a chi ha anche una lavorazione in piu', e la seconda
             // verrebbe fuori solo al giro dopo.
-            var due = che(firma(96000.0, 3), firma(94500.0, 4));
-            Segna("due differenze si dicono tutte e due",
+            var due = whichOne(signature(96000.0, 3), signature(94500.0, 4));
+            Check("due differenze si dicono tutte e due",
                   due != null && due.Contains("volume") && due.Contains("lavorazioni"),
                   due ?? "(null)");
 
@@ -352,9 +352,9 @@ namespace Oce.Solid.Agent.ContractTests
             // Un documento vuoto non ha volume. Trattare la chiave mancante
             // come zero direbbe «il volume e' passato da 0 a 96000», che e' una
             // frase su un pezzo che non e' mai esistito.
-            var nato = che(firma(null, 0), firma(96000.0, 1));
-            Segna("da «nessun volume» a un volume: e' una differenza",
-                  nato != null && nato.Contains("nessuno"), nato ?? "(null)");
+            var born = whichOne(signature(null, 0), signature(96000.0, 1));
+            Check("da «nessun volume» a un volume: e' una differenza",
+                  born != null && born.Contains("nessuno"), born ?? "(null)");
 
             // ── SENZA UN TERMINE NON SI CONFRONTA ────────────────────────
             //
@@ -362,20 +362,20 @@ namespace Oce.Solid.Agent.ContractTests
             // uguale» ne' «e' cambiato tutto»: e' l'assenza della domanda. Se
             // rispondesse «changed», «build» si fermerebbe sempre alla prima
             // chiamata dopo un ponte appena partito.
-            Segna("senza la firma di prima non si dice niente",
-                  che(null, firma(96000.0, 3)) == null);
-            Segna("senza la firma di adesso non si dice niente",
-                  che(firma(96000.0, 3), null) == null);
+            Check("senza la firma di prima non si dice niente",
+                  whichOne(null, signature(96000.0, 3)) == null);
+            Check("senza la firma di adesso non si dice niente",
+                  whichOne(signature(96000.0, 3), null) == null);
 
             // ── LA DATA DEL FILE ─────────────────────────────────────────
-            var scritto1 = new Dictionary<string, object>(StringComparer.Ordinal)
+            var written1 = new Dictionary<string, object>(StringComparer.Ordinal)
                 { ["file_written"] = "2026-09-23T05:00:00.0000000Z" };
-            var scritto2 = new Dictionary<string, object>(StringComparer.Ordinal)
+            var written2 = new Dictionary<string, object>(StringComparer.Ordinal)
                 { ["file_written"] = "2026-09-23T07:00:00.0000000Z" };
-            var riscritto = che(scritto1, scritto2);
-            Segna("un file riscritto si dice", riscritto != null && riscritto.Contains("riscritto"),
-                  riscritto ?? "(null)");
-            Segna("stessa data: non e' cambiato niente", che(scritto1, scritto1) == null);
+            var rewritten = whichOne(written1, written2);
+            Check("un file riscritto si dice", rewritten != null && rewritten.Contains("riscritto"),
+                  rewritten ?? "(null)");
+            Check("stessa data: non e' cambiato niente", whichOne(written1, written1) == null);
         }
 
         /// <summary>
@@ -394,80 +394,80 @@ namespace Oce.Solid.Agent.ContractTests
         /// e non protegge. E' il difetto che non da' errore applicato a un
         /// lucchetto.
         ///
-        /// Si prova per riflessione su `ChiaveDi`, che e' privata: i documenti
+        /// Si prova per riflessione su `KeyOf`, che e' privata: i documenti
         /// sono finti — basta che rispondano a `GetPathName` e `GetTitle`,
         /// perche' il ponte li interroga cosi'.
         /// </summary>
-        private static void LaChiaveDelTurno(string ponte)
+        private static void TheTurnKey(string bridge)
         {
-            Gruppo("TurnoSulDocumento: la chiave");
+            Group("TurnoSulDocumento: la chiave");
 
-            MethodInfo chiaveDi;
+            MethodInfo keyOf;
             try
             {
-                var asm = Carica.Ponte(ponte);
-                var tipo = Carica.Classe(asm, "TurnoSulDocumento");
-                if (tipo == null) { Segna("la classe TurnoSulDocumento c'e'", false, ""); return; }
-                chiaveDi = tipo.GetMethod("ChiaveDi",
+                var asm = Load.Bridge(bridge);
+                var typ = Load.Class(asm, "DocumentTurn");
+                if (typ == null) { Check("la classe TurnoSulDocumento c'e'", false, ""); return; }
+                keyOf = typ.GetMethod("KeyOf",
                     BindingFlags.NonPublic | BindingFlags.Static);
-                if (chiaveDi == null) { Segna("ChiaveDi c'e'", false, ""); return; }
+                if (keyOf == null) { Check("ChiaveDi c'e'", false, ""); return; }
             }
-            catch (Exception ex) { Segna("TurnoSulDocumento si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("TurnoSulDocumento si carica", false, ex.ToString()); return; }
 
-            Func<string, string, string> chiave = (percorso, titolo) =>
+            Func<string, string, string> key = (filePath, docTitle) =>
             {
-                var arg = new object[] { new DocumentoFinto(percorso, titolo), null };
-                return chiaveDi.Invoke(null, arg) as string;
+                var arg = new object[] { new FakeDocument(filePath, docTitle), null };
+                return keyOf.Invoke(null, arg) as string;
             };
 
-            Segna("lo stesso percorso da' la stessa chiave",
-                  chiave(@"S:\a\b.sldprt", "b") == chiave(@"S:\a\b.sldprt", "altro"),
+            Check("lo stesso percorso da' la stessa chiave",
+                  key(@"S:\a\b.sldprt", "b") == key(@"S:\a\b.sldprt", "altro"),
                   "e il titolo non c'entra: conta il file");
-            Segna("maiuscole diverse, stessa chiave",
-                  chiave(@"S:\A\B.SLDPRT", "") == chiave(@"s:\a\b.sldprt", ""),
+            Check("maiuscole diverse, stessa chiave",
+                  key(@"S:\A\B.SLDPRT", "") == key(@"s:\a\b.sldprt", ""),
                   "su Windows due percorsi che differiscono per il caso sono lo stesso file");
-            Segna("percorsi diversi, chiavi diverse",
-                  chiave(@"S:\a\b.sldprt", "") != chiave(@"S:\a\c.sldprt", ""));
+            Check("percorsi diversi, chiavi diverse",
+                  key(@"S:\a\b.sldprt", "") != key(@"S:\a\c.sldprt", ""));
 
             // IL CASO CHE UN TRONCAMENTO AVREBBE ROTTO: due file nella stessa
             // cartella profondissima, diversi solo per l'ultima lettera. Con la
             // chiave ricavata dal percorso troncato sarebbero la stessa cosa, e
             // due pezzi diversi si bloccherebbero a vicenda.
-            string lungo = @"S:\" + new string('x', 200) + @"\";
-            Segna("due file in una cartella profondissima restano distinti",
-                  chiave(lungo + "uno.sldprt", "") != chiave(lungo + "due.sldprt", ""),
+            string along = @"S:\" + new string('x', 200) + @"\";
+            Check("due file in una cartella profondissima restano distinti",
+                  key(along + "uno.sldprt", "") != key(along + "due.sldprt", ""),
                   "e' il caso che un troncamento del percorso avrebbe fuso");
 
-            Segna("senza percorso si usa il titolo",
-                  chiave("", "Parte286") != null &&
-                  chiave("", "Parte286") == chiave("", "Parte286"));
-            Segna("titoli diversi, chiavi diverse",
-                  chiave("", "Parte286") != chiave("", "Parte287"));
+            Check("senza percorso si usa il titolo",
+                  key("", "Parte286") != null &&
+                  key("", "Parte286") == key("", "Parte286"));
+            Check("titoli diversi, chiavi diverse",
+                  key("", "Parte286") != key("", "Parte287"));
 
             // NIENTE DI NIENTE: nessuna chiave, e quindi nessun lucchetto.
             // Bloccare su una chiave inventata unirebbe documenti diversi e
             // lascerebbe passare quelli uguali: farebbe l'opposto di cio' che
             // serve.
-            Segna("senza percorso NE titolo non c'e' chiave", chiave("", "") == null,
+            Check("senza percorso NE titolo non c'e' chiave", key("", "") == null,
                   "un lucchetto su una chiave inventata e' peggio di nessun lucchetto");
         }
 
         /// <summary>
         /// Un documento finto: risponde solo alle due domande che il ponte fa.
         ///
-        /// `TurnoSulDocumento` interroga per riflessione (`InvokeMember`), quindi
+        /// `DocumentTurn` interroga per riflessione (`InvokeMember`), quindi
         /// non serve implementare `IModelDoc2` — cosa che qui, senza SOLIDWORKS,
         /// non si potrebbe nemmeno fare.
         /// </summary>
-        private sealed class DocumentoFinto
+        private sealed class FakeDocument
         {
-            private readonly string _percorso, _titolo;
-            public DocumentoFinto(string percorso, string titolo)
+            private readonly string _filePath, _title;
+            public FakeDocument(string filePath, string docTitle)
             {
-                _percorso = percorso; _titolo = titolo;
+                _filePath = filePath; _title = docTitle;
             }
-            public string GetPathName() { return _percorso; }
-            public string GetTitle() { return _titolo; }
+            public string GetPathName() { return _filePath; }
+            public string GetTitle() { return _title; }
         }
     }
 }

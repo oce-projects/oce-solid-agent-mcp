@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -32,7 +32,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// in SOLIDWORKS. What a case cannot reach is checked here:
     ///  * the pure rules (the moved transform, the rule per direction on
     ///    synthetic transforms -- the S3 slide among them -- the redundant
-    ///    decision, the words of the removal) are static methods of OperazioniSw
+    ///    decision, the words of the removal) are static methods of SwOperations
     ///    with no interop in their signature, called by reflection on the BUILT
     ///    library; the S3 data is also checked to tell the rule of the moved
     ///    direction from the rule of the whole transform, so that it cannot pass
@@ -95,7 +95,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the second number for a mate: the directions it blocks, and the redundant mate refused (Z-C14)");
+            Group("the second number for a mate: the directions it blocks, and the redundant mate refused (Z-C14)");
 
             SlideDataTellsTheRules();
             var sources = ReadLibrary();
@@ -175,7 +175,7 @@ namespace Oce.Solid.Agent.ContractTests
                     : LocalAngleDeg(start, row.Item2) < 0.01;
                 if (!moved || whole) wrong.Add(row.Item1 + ": moved-direction rule " + moved + ", whole-transform rule " + whole);
             }
-            Segna(label, wrong.Count == 0, wrong.Count == 0 ? "2 rows, each blocked by one rule and free by the other" : string.Join("; ", wrong));
+            Check(label, wrong.Count == 0, wrong.Count == 0 ? "2 rows, each blocked by one rule and free by the other" : string.Join("; ", wrong));
         }
 
         private static double LocalDistanceMm(double[] a, double[] b)
@@ -221,7 +221,7 @@ namespace Oce.Solid.Agent.ContractTests
                 "returned, a refusal, REDUNDANT, «AddMate5 answered NoError» and «GetWhatsWrongCount is 0»",
                 Change(Mates, "the redundant branch never taken", "if (verdict == MateRedundant)", "if (verdict == MateNotJudged && false)"),
                 Change(Mates, "the mate not taken out", ", mate, nameA, nameB, uidA", ", null, nameA, nameB, uidA"),
-                Change(Mates, "not refused", "return Fallito(refusal);", "_log(refusal);"),
+                Change(Mates, "not refused", "return Failed(refusal);", "_log(refusal);"),
                 Change(Mates, "the refusal does not quote SOLIDWORKS", "GetWhatsWrongCount is 0", "no problem"),
                 Change(Mates, "not the word", "is REDUNDANT:", "adds nothing:"));
 
@@ -231,7 +231,7 @@ namespace Oce.Solid.Agent.ContractTests
                 "mate as IFeature, Select2(false, 0), DeleteSelection2 (not EditDelete), both mate counts read again after it " +
                 "and passed to MateRemovalNote; no SelectByID2, no walk of the tree, no name compared",
                 Change(Mates, "the mate looked for in the tree", "var feature = mate as IFeature;", "var feature = FirstMateInTheTree() as IFeature;"),
-                Change(Mates, "the counts not read again", "int nowA = AccoppiamentiDi(ComponentByName(", "int nowA = 1 + 0 * Unused("),
+                Change(Mates, "the counts not read again", "int nowA = MatesOf(ComponentByName(", "int nowA = 1 + 0 * Unused("),
                 Change(Mates, "EditDelete instead of DeleteSelection2",
                        ".Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);", ".EditDelete();"),
                 Change(Mates, "selected by name", "if (feature.Select2(false, 0))", "if (SelectByName(featureName))"));
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (block == null) { problems.Add("the redundant branch has no block"); return problems; }
             if (!Regex.IsMatch(block, @"RemoveTheMateJustMade\([^;,]*,[^;,]*,\s*mate\s*,"))
                 problems.Add("the redundant branch does not take out the mate by the object AddMate5 returned");
-            if (!Regex.IsMatch(block, @"return\s+Fallito\("))
+            if (!Regex.IsMatch(block, @"return\s+Failed\("))
                 problems.Add("the redundant branch does not refuse");
             foreach (var words in new[] { "is REDUNDANT:", "AddMate5 answered NoError", "GetWhatsWrongCount is 0" })
                 if (!block.Contains(words)) problems.Add("the refusal does not say «" + words + "»");
@@ -447,7 +447,7 @@ namespace Oce.Solid.Agent.ContractTests
             var catalogue = sources[Catalogue];
             int entry = catalogue.IndexOf("\"" + MateOperation + "\"", StringComparison.Ordinal);
             if (entry < 0) { problems.Add("the catalogue has no entry " + MateOperation); return problems; }
-            int next = catalogue.IndexOf("new OperazioneDisegno", entry, StringComparison.Ordinal);
+            int next = catalogue.IndexOf("new OperationSpec", entry, StringComparison.Ordinal);
             string block = next < 0 ? catalogue.Substring(entry) : catalogue.Substring(entry, next - entry);
             foreach (var words in new[] { "blocked_directions_before", "blocked_directions_after", "degrees_removed and direction_test",
                                           "A REDUNDANT MATE IS REFUSED", "NoError", "GetWhatsWrongCount", "THE COST: 13 rebuilds" })
@@ -509,7 +509,7 @@ namespace Oce.Solid.Agent.ContractTests
             List<string> problems;
             try { problems = check(sources); }
             catch (Exception ex) { problems = new List<string> { ex.GetType().Name + ": " + ex.Message }; }
-            Segna(label, problems.Count == 0, problems.Count == 0 ? green : string.Join(" | ", problems));
+            Check(label, problems.Count == 0, problems.Count == 0 ? green : string.Join(" | ", problems));
 
             var misses = new List<string>();
             if (problems.Count != 0) misses.Add("the untouched source is already red, the changes prove nothing");
@@ -529,7 +529,7 @@ namespace Oce.Solid.Agent.ContractTests
                     if (red.Count == 0) misses.Add(c.Name + ": the changed copy is still green");
                 }
             }
-            Segna("seen red: " + tag + ", on each changed copy", misses.Count == 0,
+            Check("seen red: " + tag + ", on each changed copy", misses.Count == 0,
                   misses.Count == 0 ? changes.Length + " change(s), each one red: " + string.Join("; ", changes.Select(c => c.Name))
                                     : string.Join(" | ", misses));
         }
@@ -539,7 +539,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// <summary>The two files this group reads, by path relative to the library, with \n line ends; null when one is missing.</summary>
         private static Dictionary<string, string> ReadLibrary()
         {
-            var dir = Path.Combine(Radice(), Library);
+            var dir = Path.Combine(Root(), Library);
             var sources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -551,13 +551,13 @@ namespace Oce.Solid.Agent.ContractTests
             }
             catch (Exception ex)
             {
-                Segna("the library sources of Z-C14 can be read", false, ex.GetType().Name + ": " + ex.Message);
+                Check("the library sources of Z-C14 can be read", false, ex.GetType().Name + ": " + ex.Message);
                 return null;
             }
             var missing = new[] { Mates, Catalogue }.Where(n => !sources.ContainsKey(n)).ToList();
             if (missing.Count > 0)
             {
-                Segna("the library sources of Z-C14 can be read", false, "missing in " + dir + ": " + string.Join(", ", missing));
+                Check("the library sources of Z-C14 can be read", false, "missing in " + dir + ": " + string.Join(", ", missing));
                 return null;
             }
             return sources;
@@ -625,10 +625,10 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void PureRules()
         {
-            var library = Path.Combine(Radice(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NonQui("the pure rules of Z-C14 (the moves, the rule per direction, the redundant decision, the removal)",
+                NotHere("the pure rules of Z-C14 (the moves, the rule per direction, the redundant decision, the removal)",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -636,7 +636,7 @@ namespace Oce.Solid.Agent.ContractTests
             Type sw;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -650,9 +650,9 @@ namespace Oce.Solid.Agent.ContractTests
                 // From the bytes, as ApiCatalogContracts: the repository may sit
                 // on a network drive, where LoadFrom is refused.
                 var asm = Assembly.Load(File.ReadAllBytes(library));
-                sw = asm.GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+                sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
-            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
+            catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
 
             Moves(sw);
             RulePerDirection(sw);
@@ -681,9 +681,9 @@ namespace Oce.Solid.Agent.ContractTests
                     bool got = (bool)Call(sw, "StandardMate", r.Item1, r.Item2);
                     if (got != r.Item3) wrong.Add("type " + r.Item1 + " limit " + (r.Item2 == null ? "unread" : r.Item2.ToString()) + ": " + got);
                 }
-                Segna(label, wrong.Count == 0, wrong.Count == 0 ? rows.Length + " types as expected" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? rows.Length + " types as expected" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(label, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static object Call(Type t, string method, params object[] args)
@@ -734,9 +734,9 @@ namespace Oce.Solid.Agent.ContractTests
                     if (!Near(rx[i], expected[i], 1e-9))
                     { wrong.Add("RX of a block turned about Z: row value " + i + " is " + rx[i] + ", expected " + expected[i]); break; }
                 if (Call(sw, "MovedForTest", new double[11], 0) != null) wrong.Add("11 numbers give a moved transform");
-                Segna(label, wrong.Count == 0, wrong.Count == 0 ? "six moves, the turn about the assembly's axes, a short array refused" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? "six moves, the turn about the assembly's axes, a short array refused" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(label, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── the rule, one direction at a time ────────────────────────────────
@@ -756,9 +756,9 @@ namespace Oce.Solid.Agent.ContractTests
                 foreach (var unreadable in new[] { null, new double[11], Transform(new double[] { 1, 0, 0, 0, double.NaN, 0, 0, 0, 1 }, 100, 10, 100) })
                     if (Call(sw, "DirectionBlocked", start, unreadable, 1) != null)
                         wrong.Add("an unreadable transform (" + (unreadable == null ? "null" : unreadable.Length + " numbers") + ") is not «unknown»");
-                Segna(label, wrong.Count == 0, wrong.Count == 0 ? RuleRows().Count + " rows, the two S3 slides blocked, 3 unreadable transforms unknown" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? RuleRows().Count + " rows, the two S3 slides blocked, 3 unreadable transforms unknown" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(label, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
 
             // THE THIRD READING. The probe named three outcomes of a move --
             // BLOCKED, free, ELSEWHERE -- and ReadBlockedDirections makes the
@@ -781,9 +781,9 @@ namespace Oce.Solid.Agent.ContractTests
                     string expected = elsewhere.Contains(row.Item1) ? "elsewhere" : row.Item4 ? "blocked" : "free";
                     if (got != expected) wrong.Add(row.Item1 + ": " + got + " instead of " + expected);
                 }
-                Segna(third, wrong.Count == 0, wrong.Count == 0 ? RuleRows().Count + " rows: 2 elsewhere, the S3 slides blocked, the moves that stay free" : string.Join("; ", wrong));
+                Check(third, wrong.Count == 0, wrong.Count == 0 ? RuleRows().Count + " rows: 2 elsewhere, the S3 slides blocked, the moves that stay free" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(third, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(third, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── the redundant decision ───────────────────────────────────────────
@@ -815,9 +815,9 @@ namespace Oce.Solid.Agent.ContractTests
                 }
                 var added = (string[])Call(sw, "NewlyBlocked", new[] { "RZ" }, new[] { "RZ", "RY", "TX" });
                 if (string.Join(" ", added) != "TX RY") wrong.Add("NewlyBlocked gives «" + string.Join(" ", added) + "» instead of «TX RY», the order of the test");
-                Segna(label, wrong.Count == 0, wrong.Count == 0 ? rows.Length + " pairs of readings as expected, the new directions in the order of the test" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? rows.Length + " pairs of readings as expected, the new directions in the order of the test" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(label, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── the words of the removal ─────────────────────────────────────────
@@ -841,9 +841,9 @@ namespace Oce.Solid.Agent.ContractTests
                     if (note.IndexOf(r.Rest.Item1, StringComparison.Ordinal) < 0) wrong.Add(r.Item1 + ": «" + note.Trim() + "»");
                     if (r.Item1 != "taken out, counts back" && note.Contains("I took out")) wrong.Add(r.Item1 + ": says «I took out»");
                 }
-                Segna(label, wrong.Count == 0, wrong.Count == 0 ? rows.Length + " outcomes, each with its words" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? rows.Length + " outcomes, each with its words" : string.Join("; ", wrong));
             }
-            catch (Exception ex) { Segna(label, false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
     }
 }

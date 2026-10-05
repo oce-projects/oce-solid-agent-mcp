@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -12,10 +12,10 @@ namespace Oce.Solid.Agent.ContractTests
     /// THE SKETCH JUST DRAWN IS THE ONE BORN SINCE ITS CALLER OPENED IT
     /// (Z-C21.5, scheme S7: the two sketch lookups library 0.146.0 left).
     ///
-    /// Until library 0.146.0 eight operations of OperazioniSw and engrave_text
+    /// Until library 0.146.0 eight operations of SwOperations and engrave_text
     /// selected «the sketch just made» as the LAST ProfileFeature of the tree
-    /// (SchizzoAppenaCreato), `extrude_profile` and `revolve` found the
-    /// sketch to lock after the feature the same way (BloccaSchizzo), and
+    /// (JustCreatedSketch), `extrude_profile` and `revolve` found the
+    /// sketch to lock after the feature the same way (LockSketch), and
     /// circular_sweep took its path as the last sketch of the tree, 2D or 3D
     /// (UltimoSchizzoFeature). Since then each caller takes the names of the
     /// tree (FeatureNamesNow) before it selects the plane or face and opens the
@@ -33,11 +33,11 @@ namespace Oce.Solid.Agent.ContractTests
     /// This group therefore pins the rule in the source, where it could go back
     /// without a sound, and checks the pure decision on the trees that tell the
     /// two rules apart:
-    ///  * the source: SchizzoAppenaCreato answers FeatureBorn of a
+    ///  * the source: JustCreatedSketch answers FeatureBorn of a
     ///    ProfileFeature on its own names parameter and walks nothing itself;
     ///    UltimoSchizzoFeature is gone; in the three sources a sketch type is
     ///    written only as the type of a FeatureBorn call; every call of
-    ///    SelezionaSchizzoAppenaCreato, BloccaSchizzo and SchizzoAppenaCreato in
+    ///    SelectJustCreatedSketch, LockSketch and JustCreatedSketch in
     ///    the library, and every FeatureBorn of a sketch, gets names assigned
     ///    from FeatureNamesNow in the same member, after the previous sketch
     ///    was opened and before the one it looks for. Each rule turns red on a
@@ -69,7 +69,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// already has, not new names.
         /// </summary>
         private static readonly string[] LibraryNames =
-            "SelezionaSchizzoAppenaCreato BloccaSchizzo SchizzoAppenaCreato UltimoSchizzoFeature".Split(' ');
+            "SelectJustCreatedSketch LockSketch JustCreatedSketch UltimoSchizzoFeature".Split(' ');
 
         /// <summary>Selects the sketch just drawn (the eight operations and the engraving).</summary>
         private static readonly string SelectLookup = LibraryNames[0];
@@ -113,13 +113,13 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("the sketch just drawn is the one born since its caller opened it (Z-C21.5 S7, sketch lookups)");
+            Group("the sketch just drawn is the one born since its caller opened it (Z-C21.5 S7, sketch lookups)");
 
             // ── THE SOURCE ───────────────────────────────────────────────
             var sources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                string root = Path.Combine(Radice(), Library);
+                string root = Path.Combine(Root(), Library);
                 foreach (var file in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories))
                 {
                     string relative = file.Substring(root.Length).TrimStart('\\', '/').Replace('\\', '/');
@@ -130,12 +130,12 @@ namespace Oce.Solid.Agent.ContractTests
             }
             catch (Exception ex)
             {
-                Segna("the library sources can be read", false, ex.GetType().Name + ": " + ex.Message);
+                Check("the library sources can be read", false, ex.GetType().Name + ": " + ex.Message);
                 return;
             }
 
             var problems = SourceProblems(sources);
-            Segna("S7: every sketch lookup gets the names its caller took before opening that sketch",
+            Check("S7: every sketch lookup gets the names its caller took before opening that sketch",
                   problems.Count == 0,
                   problems.Count == 0
                       ? "SchizzoAppenaCreato is FeatureBorn of a ProfileFeature; no UltimoSchizzoFeature; sketch types only as " +
@@ -157,8 +157,8 @@ namespace Oce.Solid.Agent.ContractTests
                        "\"3DProfileFeature\", out pathsBorn);",
                        "\"ProfileFeature\", out pathsBorn);"),
                 Change("SwOperations.cs", "a caller that passes no names",
-                       "sketchNamesBefore, out string erroreSel",
-                       "null, out string erroreSel"),
+                       "sketchNamesBefore, out string selError",
+                       "null, out string selError"),
                 Change("SwOperations.cs", "names taken again after the sketch was opened",
                        ".InsertSketch(true);",
                        ".InsertSketch(true); sketchNamesBefore = FeatureNamesNow(null);"),
@@ -166,14 +166,14 @@ namespace Oce.Solid.Agent.ContractTests
                        "sketchNamesBefore = FeatureNamesNow(",
                        "sketchNamesBefore = new HashSet<string>("),
                 Change("SwOperations.cs", "the sketch to lock found with no names",
-                       "sketchNamesBefore, out notaBlocco",
-                       "null, out notaBlocco"),
+                       "sketchNamesBefore, out noteBlock",
+                       "null, out noteBlock"),
                 Change("PathOperations.cs", "the second loft sketch with the names taken before the first",
                        "beforeSecondSketch, \"ProfileFeature\"",
                        "beforeFirstSketch, \"ProfileFeature\""),
             };
             var red = SeenRed(sources, changes);
-            Segna("the sketch lookup check turns red on each changed copy", red.Count == 0,
+            Check("the sketch lookup check turns red on each changed copy", red.Count == 0,
                   red.Count == 0 ? changes.Length + " changes, each one red" : string.Join(" | ", red));
 
             // ── NO LOOP KEEPS THE LAST NEW FEATURE OF A TYPE ─────────────
@@ -182,27 +182,27 @@ namespace Oce.Solid.Agent.ContractTests
             // feature of a type whose name was new, so two born gave one of them
             // without a word. Both now go through FeatureBorn.
             var loops = LastNewOfTypeLoops(sources);
-            Segna("no library loop keeps the last new feature of a type (the sketched bend, the rib)", loops.Count == 0,
+            Check("no library loop keeps the last new feature of a type (the sketched bend, the rib)", loops.Count == 0,
                   loops.Count == 0 ? "none in " + sources.Count + " files" : string.Join(" | ", loops));
             var oldLoop = new Dictionary<string, string>(sources, StringComparer.OrdinalIgnoreCase);
             oldLoop["SheetMetalOperations.cs"] = (oldLoop.ContainsKey("SheetMetalOperations.cs") ? oldLoop["SheetMetalOperations.cs"] : "") +
                 "\n// seeded: if (f.GetTypeName2() == \"ProfileFeature\" && !before.Contains(f.Name)) sketch = f;\n";
-            Segna("that check turns red on a copy with the old loop of the sketched bend", LastNewOfTypeLoops(oldLoop).Count == 1);
+            Check("that check turns red on a copy with the old loop of the sketched bend", LastNewOfTypeLoops(oldLoop).Count == 1);
 
             // ── THE BUILT LIBRARY ────────────────────────────────────────
-            var library = Path.Combine(Radice(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
+            var library = Path.Combine(Root(), Library, "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
                 string why = library + " is missing: build the library first (build.ps1)";
-                NonQui("S7: the refusal names none, many or an unreadable tree", why);
-                NonQui("S7: on sketch trees the sketch born is taken, not the last sketch", why);
+                NotHere("S7: the refusal names none, many or an unreadable tree", why);
+                NotHere("S7: on sketch trees the sketch born is taken, not the last sketch", why);
                 return;
             }
 
             Type sw;
             try
             {
-                var redist = DoveStaLInterop();
+                var redist = WhereTheInteropIs();
                 if (redist != null)
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
@@ -215,20 +215,20 @@ namespace Oce.Solid.Agent.ContractTests
                 }
                 // From the bytes, as Zc215IdentityContract: the repository may sit
                 // on a network drive, where LoadFrom is refused.
-                sw = Assembly.Load(File.ReadAllBytes(library)).GetType("Oce.Solid.Agent.Core.OperazioniSw", false);
+                sw = Assembly.Load(File.ReadAllBytes(library)).GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
             catch (Exception ex)
             {
-                Segna("S7: the refusal names none, many or an unreadable tree", false,
+                Check("S7: the refusal names none, many or an unreadable tree", false,
                       "the library does not load: " + ex.GetType().Name + ": " + ex.Message);
-                Segna("S7: on sketch trees the sketch born is taken, not the last sketch", false,
+                Check("S7: on sketch trees the sketch born is taken, not the last sketch", false,
                       "the library does not load: " + ex.GetType().Name + ": " + ex.Message);
                 return;
             }
             if (sw == null)
             {
-                Segna("S7: the refusal names none, many or an unreadable tree", false, "OperazioniSw is not in the library");
-                Segna("S7: on sketch trees the sketch born is taken, not the last sketch", false, "OperazioniSw is not in the library");
+                Check("S7: the refusal names none, many or an unreadable tree", false, "OperazioniSw is not in the library");
+                Check("S7: on sketch trees the sketch born is taken, not the last sketch", false, "OperazioniSw is not in the library");
                 return;
             }
 
@@ -259,12 +259,12 @@ namespace Oce.Solid.Agent.ContractTests
                           && unread.IndexOf("could not be read", StringComparison.Ordinal) >= 0
                           && two != null && two.StartsWith("2 sketches", StringComparison.Ordinal)
                           && two.IndexOf(mine, StringComparison.Ordinal) < 0;
-                Segna("S7: the refusal names none, many or an unreadable tree", ok,
+                Check("S7: the refusal names none, many or an unreadable tree", ok,
                       "none: «" + none + "» | unreadable: «" + unread + "» | two: «" + two + "»");
             }
             catch (Exception ex)
             {
-                Segna("S7: the refusal names none, many or an unreadable tree", false,
+                Check("S7: the refusal names none, many or an unreadable tree", false,
                       "OperazioniSw.SketchNotIdentified: " + ex.GetType().Name + ": " + ex.Message);
             }
         }
@@ -297,7 +297,7 @@ namespace Oce.Solid.Agent.ContractTests
                 i = Born(sw, names, types, new HashSet<string>(names), "ProfileFeature", out born);
                 if (i != -1 || born != 0) misses.Add("no sketch born: " + i + " born " + born + " (expected -1 born 0; the old rule took 1)");
 
-                // After the feature (BloccaSchizzo): the sketch and the extrusion
+                // After the feature (LockSketch): the sketch and the extrusion
                 // are both born, and the sketch is the one ProfileFeature.
                 names = new List<string> { "Origin", "Sketch1", "Extrude1", "Sketch2", "Extrude2" };
                 types = new List<string> { "OriginProfileFeature", "ProfileFeature", "Extrusion", "ProfileFeature", "Extrusion" };
@@ -314,14 +314,14 @@ namespace Oce.Solid.Agent.ContractTests
                     misses.Add("sweep path: " + i + " born " + born + ", as a 2D sketch " + flat + " born " + flatBorn +
                                " (expected 3 born 1, -1 born 0)");
 
-                Segna("S7: on sketch trees the sketch born is taken, not the last sketch", misses.Count == 0,
+                Check("S7: on sketch trees the sketch born is taken, not the last sketch", misses.Count == 0,
                       misses.Count == 0
                           ? "an older sketch after the new one, no sketch born, the sketch after its extrusion, the 3D path"
                           : string.Join(" | ", misses));
             }
             catch (Exception ex)
             {
-                Segna("S7: on sketch trees the sketch born is taken, not the last sketch", false,
+                Check("S7: on sketch trees the sketch born is taken, not the last sketch", false,
                       "OperazioniSw.BornFeatureIndex: " + ex.GetType().Name + ": " + ex.Message);
             }
         }
@@ -335,13 +335,13 @@ namespace Oce.Solid.Agent.ContractTests
             var code = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var kv in sources) code[kv.Key] = CodeOnly(kv.Value);
 
-            // 1. SchizzoAppenaCreato is FeatureBorn of a ProfileFeature on its own names.
+            // 1. JustCreatedSketch is FeatureBorn of a ProfileFeature on its own names.
             string sw;
             if (!code.TryGetValue("SwOperations.cs", out sw)) { problems.Add("SwOperations.cs is not among the sources"); return problems; }
             var header = Regex.Match(sw,
                 @"\bIFeature\s+" + SketchLookup + @"\(\s*IModelDoc2\s+(\w+)\s*,\s*HashSet<string>\s+(\w+)\s*,\s*out\s+int\s+(\w+)\s*\)");
             if (!header.Success)
-                problems.Add("SchizzoAppenaCreato(IModelDoc2, HashSet<string> names before the sketch, out int born) is not in SwOperations.cs");
+                problems.Add("JustCreatedSketch(IModelDoc2, HashSet<string> names before the sketch, out int born) is not in SwOperations.cs");
             else
             {
                 int start, end;

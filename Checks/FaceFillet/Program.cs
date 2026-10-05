@@ -5,7 +5,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  ProbeRaccordoFaccia — GP7, la parte «fillet_face» (face fillet)
+//  FaceFilletProbe — GP7, la parte «fillet_face» (face fillet)
 // =============================================================================
 //
 //  CONTESTO (letto da note-interne/TODO.md §GP7, CHANGELOG.md 0.47.0, e dalla
@@ -34,7 +34,7 @@ using SolidWorks.Interop.swconst;
 //     Face. E' verosimile che per questo torni sempre NULL qualunque
 //     combinazione di `Options`, mentre lo stesso metodo funziona per il
 //     raccordo SEMPLICE (Ftyp=Simple, gia' in produzione: vedi
-//     SwOperations.cs::EseguiRaccordo) — la stessa pagina elenca anche
+//     SwOperations.cs::RunFillet) — la stessa pagina elenca anche
 //     quello fra gli obsoleti, ma evidentemente tollerato per compatibilita'
 //     all'indietro sui casi comuni, mentre Face non lo e' in nessuna
 //     combinazione provata.
@@ -120,7 +120,7 @@ using SolidWorks.Interop.swconst;
 //  USO   Checks\FaceFillet\bin\FaceFillet.exe, con SOLIDWORKS aperto
 //        (costruita da Checks\build-checks.ps1 (e da build.ps1, passo 1c)).
 // =============================================================================
-internal static class ProbeRaccordoFaccia
+internal static class FaceFilletProbe
 {
     private static ISldWorks _sw;
 
@@ -128,10 +128,10 @@ internal static class ProbeRaccordoFaccia
     {
         _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");
 
-        Controllo_BugOriginale();
+        Check_OriginalBug();
         Ricetta_Guida();
-        Variante_H2_MarcheSbagliate();
-        Variante_H3_SenzaProfilo();
+        Variant_H2_WrongMarks();
+        Variant_H3_WithoutProfile();
         Bonus_SetFacesTipizzato();
         // REVISIONE 28/9/2026: H4 tolta dal giro. Le due facce del "gradino"
         // hanno la STESSA normale (+X) e stanno su piani paralleli sfalsati di
@@ -154,19 +154,19 @@ internal static class ProbeRaccordoFaccia
     // ------------------------------------------------------------------
     private static void Ricetta_SelectByID2()
     {
-        Esegui("5. RICETTA GUIDA con SelectByID2 per coordinate (marche 2/4)",
-            (doc, alto, fianco) =>
+        Run("5. RICETTA GUIDA con SelectByID2 per coordinate (marche 2/4)",
+            (doc, up, side) =>
             {
-                var dati = (SimpleFilletFeatureData2)doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
-                dati.Initialize((int)swSimpleFilletType_e.swFaceFillet);
+                var data = (SimpleFilletFeatureData2)doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
+                data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
                 // punti presi dal box reale delle due facce, non assunti
-                var ba = alto.GetBox() as double[]; var bf = fianco.GetBox() as double[];
+                var ba = up.GetBox() as double[]; var bf = side.GetBox() as double[];
                 bool s1 = doc.Extension.SelectByID2("", "FACE", (ba[0] + ba[3]) / 2, (ba[1] + ba[4]) / 2, (ba[2] + ba[5]) / 2, false, 2, null, 0);
                 bool s2 = doc.Extension.SelectByID2("", "FACE", (bf[0] + bf[3]) / 2, (bf[1] + bf[4]) / 2, (bf[2] + bf[5]) / 2, true, 4, null, 0);
                 Console.WriteLine("   SelectByID2: " + s1 + "/" + s2);
-                dati.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
-                dati.DefaultRadius = 0.005;
-                return doc.FeatureManager.CreateFeature(dati) as IFeature;
+                data.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
+                data.DefaultRadius = 0.005;
+                return doc.FeatureManager.CreateFeature(data) as IFeature;
             });
     }
 
@@ -175,18 +175,18 @@ internal static class ProbeRaccordoFaccia
     //    vecchia, marche 1/2), per avere nella stessa sonda il numero di
     //    partenza. Atteso: NULL, come nei 4 giri gia' registrati.
     // ------------------------------------------------------------------
-    private static void Controllo_BugOriginale()
+    private static void Check_OriginalBug()
     {
-        Esegui("0. CONTROLLO (bug originale: FeatureFillet3 + Ftyp=Face + marche 1/2)",
-            (doc, alto, fianco) =>
+        Run("0. CONTROLLO (bug originale: FeatureFillet3 + Ftyp=Face + marche 1/2)",
+            (doc, up, side) =>
             {
-                var gestore = (ISelectionMgr)doc.SelectionManager;
-                var d1 = gestore.CreateSelectData();
+                var handler = (ISelectionMgr)doc.SelectionManager;
+                var d1 = handler.CreateSelectData();
                 d1.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet1; // = 1 (SBAGLIATA come Mark)
-                (alto as IEntity).Select4(true, d1);
-                var d2 = gestore.CreateSelectData();
+                (up as IEntity).Select4(true, d1);
+                var d2 = handler.CreateSelectData();
                 d2.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet2; // = 2 (SBAGLIATA come Mark)
-                (fianco as IEntity).Select4(true, d2);
+                (side as IEntity).Select4(true, d2);
 
                 return doc.FeatureManager.FeatureFillet3(
                     Options: (int)(swFeatureFilletOptions_e.swFeatureFilletUniformRadius |
@@ -207,27 +207,27 @@ internal static class ProbeRaccordoFaccia
     // ------------------------------------------------------------------
     private static void Ricetta_Guida()
     {
-        Esegui("1. RICETTA GUIDA (CreateDefinition+Initialize(swFaceFillet)+marche 2/4+profilo)",
-            (doc, alto, fianco) =>
+        Run("1. RICETTA GUIDA (CreateDefinition+Initialize(swFaceFillet)+marche 2/4+profilo)",
+            (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
-                var dati = (SimpleFilletFeatureData2)dataObj;
-                if (!dati.Initialize((int)swSimpleFilletType_e.swFaceFillet))
+                var data = (SimpleFilletFeatureData2)dataObj;
+                if (!data.Initialize((int)swSimpleFilletType_e.swFaceFillet))
                 {
                     Console.WriteLine("   Initialize(swFaceFillet) ha risposto false.");
                     return null;
                 }
 
-                var gestore = (ISelectionMgr)doc.SelectionManager;
-                var d1 = gestore.CreateSelectData(); d1.Mark = 2; // Face Set 1 — dalla guida
-                (alto as IEntity).Select4(true, d1);
-                var d2 = gestore.CreateSelectData(); d2.Mark = 4; // Face Set 2 — dalla guida
-                (fianco as IEntity).Select4(true, d2);
+                var handler = (ISelectionMgr)doc.SelectionManager;
+                var d1 = handler.CreateSelectData(); d1.Mark = 2; // Face Set 1 — dalla guida
+                (up as IEntity).Select4(true, d1);
+                var d2 = handler.CreateSelectData(); d2.Mark = 4; // Face Set 2 — dalla guida
+                (side as IEntity).Select4(true, d2);
 
-                dati.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
-                dati.DefaultRadius = 0.005;
+                data.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
+                data.DefaultRadius = 0.005;
 
-                return doc.FeatureManager.CreateFeature(dati) as IFeature;
+                return doc.FeatureManager.CreateFeature(data) as IFeature;
             });
     }
 
@@ -236,27 +236,27 @@ internal static class ProbeRaccordoFaccia
     //    quelle riusate dall'enum WhichFaceList) per isolare se la marca da
     //    sola basta a far fallire anche l'API corretta.
     // ------------------------------------------------------------------
-    private static void Variante_H2_MarcheSbagliate()
+    private static void Variant_H2_WrongMarks()
     {
-        Esegui("2. VARIANTE H2 (API nuova, marche SBAGLIATE 1/2)",
-            (doc, alto, fianco) =>
+        Run("2. VARIANTE H2 (API nuova, marche SBAGLIATE 1/2)",
+            (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
-                var dati = (SimpleFilletFeatureData2)dataObj;
-                dati.Initialize((int)swSimpleFilletType_e.swFaceFillet);
+                var data = (SimpleFilletFeatureData2)dataObj;
+                data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
 
-                var gestore = (ISelectionMgr)doc.SelectionManager;
-                var d1 = gestore.CreateSelectData();
+                var handler = (ISelectionMgr)doc.SelectionManager;
+                var d1 = handler.CreateSelectData();
                 d1.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet1; // = 1, sbagliata
-                (alto as IEntity).Select4(true, d1);
-                var d2 = gestore.CreateSelectData();
+                (up as IEntity).Select4(true, d1);
+                var d2 = handler.CreateSelectData();
                 d2.Mark = (int)swSimpleFilletWhichFaces_e.swFaceFilletSet2; // = 2, sbagliata
-                (fianco as IEntity).Select4(true, d2);
+                (side as IEntity).Select4(true, d2);
 
-                dati.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
-                dati.DefaultRadius = 0.005;
+                data.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
+                data.DefaultRadius = 0.005;
 
-                return doc.FeatureManager.CreateFeature(dati) as IFeature;
+                return doc.FeatureManager.CreateFeature(data) as IFeature;
             });
     }
 
@@ -265,25 +265,25 @@ internal static class ProbeRaccordoFaccia
     //    ConicTypeForCrossSectionProfile, per vedere se e' davvero
     //    necessario o se CreateFeature si arrangia con un default.
     // ------------------------------------------------------------------
-    private static void Variante_H3_SenzaProfilo()
+    private static void Variant_H3_WithoutProfile()
     {
-        Esegui("3. VARIANTE H3 (API e marche corrette, SENZA ConicTypeForCrossSectionProfile)",
-            (doc, alto, fianco) =>
+        Run("3. VARIANTE H3 (API e marche corrette, SENZA ConicTypeForCrossSectionProfile)",
+            (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
-                var dati = (SimpleFilletFeatureData2)dataObj;
-                dati.Initialize((int)swSimpleFilletType_e.swFaceFillet);
+                var data = (SimpleFilletFeatureData2)dataObj;
+                data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
 
-                var gestore = (ISelectionMgr)doc.SelectionManager;
-                var d1 = gestore.CreateSelectData(); d1.Mark = 2;
-                (alto as IEntity).Select4(true, d1);
-                var d2 = gestore.CreateSelectData(); d2.Mark = 4;
-                (fianco as IEntity).Select4(true, d2);
+                var handler = (ISelectionMgr)doc.SelectionManager;
+                var d1 = handler.CreateSelectData(); d1.Mark = 2;
+                (up as IEntity).Select4(true, d1);
+                var d2 = handler.CreateSelectData(); d2.Mark = 4;
+                (side as IEntity).Select4(true, d2);
 
                 // Di proposito NON impostato: dati.ConicTypeForCrossSectionProfile
-                dati.DefaultRadius = 0.005;
+                data.DefaultRadius = 0.005;
 
-                return doc.FeatureManager.CreateFeature(dati) as IFeature;
+                return doc.FeatureManager.CreateFeature(data) as IFeature;
             });
     }
 
@@ -297,25 +297,25 @@ internal static class ProbeRaccordoFaccia
     // ------------------------------------------------------------------
     private static void Bonus_SetFacesTipizzato()
     {
-        Esegui("4. BONUS (SetFaces esplicito, Face2[] tipizzato, senza selezione)",
-            (doc, alto, fianco) =>
+        Run("4. BONUS (SetFaces esplicito, Face2[] tipizzato, senza selezione)",
+            (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
-                var dati = (SimpleFilletFeatureData2)dataObj;
-                dati.Initialize((int)swSimpleFilletType_e.swFaceFillet);
+                var data = (SimpleFilletFeatureData2)dataObj;
+                data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
 
                 doc.ClearSelection2(true); // qui NON si seleziona nulla: si passa via SetFaces
                 // Array TIPIZZATO Face2[], non object[] (vedi memoria
                 // api_sw_array_tipizzati.md): con object[] l'interop passa un
                 // SAFEARRAY di VARIANT e la chiamata puo' rispondere con una
                 // feature fantasma invece che con NULL o un errore vero.
-                dati.SetFaces((int)swSimpleFilletWhichFaces_e.swFaceFilletSet1, new Face2[] { (Face2)alto });
-                dati.SetFaces((int)swSimpleFilletWhichFaces_e.swFaceFilletSet2, new Face2[] { (Face2)fianco });
+                data.SetFaces((int)swSimpleFilletWhichFaces_e.swFaceFilletSet1, new Face2[] { (Face2)up });
+                data.SetFaces((int)swSimpleFilletWhichFaces_e.swFaceFilletSet2, new Face2[] { (Face2)side });
 
-                dati.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
-                dati.DefaultRadius = 0.005;
+                data.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
+                data.DefaultRadius = 0.005;
 
-                return doc.FeatureManager.CreateFeature(dati) as IFeature;
+                return doc.FeatureManager.CreateFeature(data) as IFeature;
             });
     }
 
@@ -330,29 +330,29 @@ internal static class ProbeRaccordoFaccia
     // sia il vero asse di "fianco", senza doverlo indovinare). API e
     // marche corrette (2/4).
     // ------------------------------------------------------------------
-    private static void Variante_H4_FacceNonAdiacenti()
+    private static void Variant_H4_FacesNotAdjacent()
     {
         IModelDoc2 doc = null;
         try
         {
-            doc = CuboConGradino();
-            var parte = (IPartDoc)doc;
-            double vPrima = Volume(parte);
-            int corpiPrima = ContaCorpi(parte);
-            if (corpiPrima != 1)
-                Console.WriteLine("5. VARIANTE H4 : ATTENZIONE, " + corpiPrima +
+            doc = CubeWithStep();
+            var partDoc = (IPartDoc)doc;
+            double vBefore = Volume(partDoc);
+            int bodiesBefore = CountBodies(partDoc);
+            if (bodiesBefore != 1)
+                Console.WriteLine("5. VARIANTE H4 : ATTENZIONE, " + bodiesBefore +
                                    " corpi invece di 1 — il secondo estruso non si e' fuso col cubo.");
 
-            var corpo = (parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
-            var facce = (corpo.GetFaces() as object[]).Cast<IFace2>().ToList();
+            var body = (partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
+            var faces = (body.GetFaces() as object[]).Cast<IFace2>().ToList();
 
             // Le due facce con normale +X: quella del blocco base (piu'
             // bassa lungo Y, l'asse di estrusione) e quella del blocco
             // rialzato, rientrata e piu' alta lungo Y — NON condividono
             // uno spigolo, sono separate dalla faccia orizzontale del
             // gradino (la vecchia "cima" del cubo, ora nel mezzo).
-            var candidate = facce.Where(x => Normale(x)[0] > 0.9)
-                                  .OrderByDescending(x => QuotaMedia(x, 1))
+            var candidate = faces.Where(x => Normal(x)[0] > 0.9)
+                                  .OrderByDescending(x => MeanDimension(x, 1))
                                   .ToList();
             if (candidate.Count < 2)
             {
@@ -360,35 +360,35 @@ internal static class ProbeRaccordoFaccia
                                    "(trovate " + candidate.Count + " facce a normale +X; atteso 2)");
                 return;
             }
-            var superiore = candidate[0];
-            var inferiore = candidate[candidate.Count - 1];
+            var top = candidate[0];
+            var lower = candidate[candidate.Count - 1];
 
             var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
-            var dati = (SimpleFilletFeatureData2)dataObj;
-            dati.Initialize((int)swSimpleFilletType_e.swFaceFillet);
+            var data = (SimpleFilletFeatureData2)dataObj;
+            data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
 
             doc.ClearSelection2(true);
-            var gestore = (ISelectionMgr)doc.SelectionManager;
-            var d1 = gestore.CreateSelectData(); d1.Mark = 2;
-            (superiore as IEntity).Select4(true, d1);
-            var d2 = gestore.CreateSelectData(); d2.Mark = 4;
-            (inferiore as IEntity).Select4(true, d2);
+            var handler = (ISelectionMgr)doc.SelectionManager;
+            var d1 = handler.CreateSelectData(); d1.Mark = 2;
+            (top as IEntity).Select4(true, d1);
+            var d2 = handler.CreateSelectData(); d2.Mark = 4;
+            (lower as IEntity).Select4(true, d2);
 
-            dati.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
-            dati.DefaultRadius = 0.005;
+            data.ConicTypeForCrossSectionProfile = (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
+            data.DefaultRadius = 0.005;
 
             IFeature f = null;
-            try { f = doc.FeatureManager.CreateFeature(dati) as IFeature; }
+            try { f = doc.FeatureManager.CreateFeature(data) as IFeature; }
             catch (Exception ex) { Console.WriteLine("5. VARIANTE H4 (facce non adiacenti, gradino) : eccezione " + ex.Message); return; }
 
             try { doc.EditRebuild3(); } catch { }
-            double tolto = vPrima - Volume(parte);
-            int corpiDopo = ContaCorpi(parte);
+            double removed = vBefore - Volume(partDoc);
+            int bodiesAfter = CountBodies(partDoc);
             Console.WriteLine("5. VARIANTE H4 (facce non adiacenti, gradino) : " +
                 (f == null ? "NULL" : "«" + f.Name + "» (" + f.GetTypeName2() + ")") +
-                "   volume " + vPrima.ToString("0.#") + " -> " + Volume(parte).ToString("0.#") +
-                " mm3 (tolti " + tolto.ToString("0.#") + ")" +
-                "   corpi " + corpiPrima + " -> " + corpiDopo);
+                "   volume " + vBefore.ToString("0.#") + " -> " + Volume(partDoc).ToString("0.#") +
+                " mm3 (tolti " + removed.ToString("0.#") + ")" +
+                "   corpi " + bodiesBefore + " -> " + bodiesAfter);
         }
         catch (Exception ex)
         {
@@ -407,49 +407,49 @@ internal static class ProbeRaccordoFaccia
     // `costruisci` riceve (doc, faccia_alto, faccia_fianco) e ritorna la
     // IFeature (o null) — tutta la parte che cambia fra le scene.
     // ------------------------------------------------------------------
-    private static void Esegui(string etichetta, Func<IModelDoc2, IFace2, IFace2, IFeature> costruisci)
+    private static void Run(string label, Func<IModelDoc2, IFace2, IFace2, IFeature> build)
     {
         IModelDoc2 doc = null;
         try
         {
-            doc = Cubo();
-            var parte = (IPartDoc)doc;
-            double vPrima = Volume(parte);
-            int corpiPrima = ContaCorpi(parte);
+            doc = Cube();
+            var partDoc = (IPartDoc)doc;
+            double vBefore = Volume(partDoc);
+            int bodiesBefore = CountBodies(partDoc);
 
-            var corpo = (parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
-            var facce = (corpo.GetFaces() as object[]).Cast<IFace2>().ToList();
-            var alto = facce.FirstOrDefault(x => Normale(x)[2] > 0.9);
-            var fianco = facce.FirstOrDefault(x => Normale(x)[0] > 0.9);
-            if (alto == null || fianco == null)
+            var body = (partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
+            var faces = (body.GetFaces() as object[]).Cast<IFace2>().ToList();
+            var up = faces.FirstOrDefault(x => Normal(x)[2] > 0.9);
+            var side = faces.FirstOrDefault(x => Normal(x)[0] > 0.9);
+            if (up == null || side == null)
             {
-                Console.WriteLine(etichetta + " : niente facce");
+                Console.WriteLine(label + " : niente facce");
                 return;
             }
 
             doc.ClearSelection2(true);
 
             IFeature f = null;
-            try { f = costruisci(doc, alto, fianco); }
-            catch (Exception ex) { Console.WriteLine(etichetta + " : eccezione " + ex.Message); return; }
+            try { f = build(doc, up, side); }
+            catch (Exception ex) { Console.WriteLine(label + " : eccezione " + ex.Message); return; }
 
             try { doc.EditRebuild3(); } catch { }
-            double vDopo = Volume(parte);
-            double tolto = vPrima - vDopo;
-            int corpiDopo = ContaCorpi(parte);
+            double vAfter = Volume(partDoc);
+            double removed = vBefore - vAfter;
+            int bodiesAfter = CountBodies(partDoc);
 
-            string tipo = "";
-            try { if (f != null) tipo = " (" + f.GetTypeName2() + ")"; } catch { }
+            string typ = "";
+            try { if (f != null) typ = " (" + f.GetTypeName2() + ")"; } catch { }
 
-            Console.WriteLine(etichetta + " : " +
-                (f == null ? "NULL" : "«" + f.Name + "»" + tipo) +
-                "   volume " + vPrima.ToString("0.#") + " -> " + vDopo.ToString("0.#") +
-                " mm3 (tolti " + tolto.ToString("0.#") + ", atteso 214,6)" +
-                "   corpi " + corpiPrima + " -> " + corpiDopo);
+            Console.WriteLine(label + " : " +
+                (f == null ? "NULL" : "«" + f.Name + "»" + typ) +
+                "   volume " + vBefore.ToString("0.#") + " -> " + vAfter.ToString("0.#") +
+                " mm3 (tolti " + removed.ToString("0.#") + ", atteso 214,6)" +
+                "   corpi " + bodiesBefore + " -> " + bodiesAfter);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(etichetta + " : " + ex.Message);
+            Console.WriteLine(label + " : " + ex.Message);
         }
         finally
         {
@@ -460,7 +460,7 @@ internal static class ProbeRaccordoFaccia
     // La normale di una faccia PIANA, dalla superficie sottostante, girata se
     // la faccia e' al contrario: la normale di `PlaneParams` e' quella del
     // piano, non quella della faccia. (Copiata identica da RaccordoProva.cs.)
-    private static double[] Normale(IFace2 f)
+    private static double[] Normal(IFace2 f)
     {
         try
         {
@@ -468,8 +468,8 @@ internal static class ProbeRaccordoFaccia
             if (s == null || !s.IsPlane()) return new double[] { 0, 0, 0 };
             var p = s.PlaneParams as double[];
             if (p == null || p.Length < 3) return new double[] { 0, 0, 0 };
-            double verso = f.FaceInSurfaceSense() ? 1 : -1;
-            return new[] { p[0] * verso, p[1] * verso, p[2] * verso };
+            double facing = f.FaceInSurfaceSense() ? 1 : -1;
+            return new[] { p[0] * facing, p[1] * facing, p[2] * facing };
         }
         catch { return new double[] { 0, 0, 0 }; }
     }
@@ -477,23 +477,23 @@ internal static class ProbeRaccordoFaccia
     // Quota media di una faccia piana lungo l'asse `indice` (0=X,1=Y,2=Z),
     // dal suo box di ingombro — basta per ORDINARE due facce parallele fra
     // loro, non per misurarle.
-    private static double QuotaMedia(IFace2 f, int indice)
+    private static double MeanDimension(IFace2 f, int index)
     {
         try
         {
             var box = f.GetBox() as double[]; // [xmin,ymin,zmin,xmax,ymax,zmax]
             if (box == null || box.Length < 6) return 0;
-            return (box[indice] + box[indice + 3]) / 2.0;
+            return (box[index] + box[index + 3]) / 2.0;
         }
         catch { return 0; }
     }
 
-    private static double Volume(IPartDoc parte)
+    private static double Volume(IPartDoc partDoc)
     {
         double v = 0;
-        var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-        if (corpi == null) return 0;
-        foreach (var c in corpi)
+        var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+        if (bodies == null) return 0;
+        foreach (var c in bodies)
         {
             var mp = (c as IBody2).GetMassProperties(1000.0) as double[];
             if (mp != null && mp.Length > 4) v += mp[3] * 1e9;
@@ -501,15 +501,15 @@ internal static class ProbeRaccordoFaccia
         return v;
     }
 
-    private static int ContaCorpi(IPartDoc parte)
+    private static int CountBodies(IPartDoc partDoc)
     {
-        var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-        return corpi == null ? 0 : corpi.Length;
+        var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+        return bodies == null ? 0 : bodies.Length;
     }
 
     // Lo stesso cubo 40x40x40 di RaccordoProva.cs::Cubo(), per confrontare
     // riga per riga con i 4 tentativi gia' registrati.
-    private static IModelDoc2 Cubo()
+    private static IModelDoc2 Cube()
     {
         string tpl = _sw.GetUserPreferenceStringValue(
             (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
@@ -545,17 +545,17 @@ internal static class ProbeRaccordoFaccia
     // e' dentro questa faccia perche' il cubo e' centrato su X e Z) resta
     // rientrato su tutti e quattro i lati, qualunque sia l'ordine reale
     // degli assi in quello schizzo.
-    private static IModelDoc2 CuboConGradino()
+    private static IModelDoc2 CubeWithStep()
     {
-        var doc = Cubo();
-        var parte = (IPartDoc)doc;
-        var corpo = (parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
-        var facce = (corpo.GetFaces() as object[]).Cast<IFace2>().ToList();
-        var cima = facce.FirstOrDefault(x => Normale(x)[1] > 0.9);
-        if (cima == null) throw new Exception("CuboConGradino: non trovo la faccia di normale +Y.");
+        var doc = Cube();
+        var partDoc = (IPartDoc)doc;
+        var body = (partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
+        var faces = (body.GetFaces() as object[]).Cast<IFace2>().ToList();
+        var top = faces.FirstOrDefault(x => Normal(x)[1] > 0.9);
+        if (top == null) throw new Exception("CuboConGradino: non trovo la faccia di normale +Y.");
 
         doc.ClearSelection2(true);
-        (cima as IEntity).Select4(true, null);
+        (top as IEntity).Select4(true, null);
         var sm = doc.SketchManager;
         sm.InsertSketch(true);
         // Rientrato di 0,005 su ogni lato rispetto al mezzo lato del cubo

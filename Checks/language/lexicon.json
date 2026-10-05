@@ -2762,10 +2762,10 @@
  "injection_samples": {
   "prose": "questa riga e stata aggiunta dal contratto del cancello",
   "transition": "vecchio nome ancora accettato dal cancello",
-  "identifier": "MisuraLaFaccia",
+  "identifier": "EsitoGruppo",
   "identifier_known_parts": [
-   "Misura",
-   "Faccia"
+   "Esito",
+   "Gruppo"
   ],
   "json_key": "chiave_nuova_del_cancello",
   "protocol": "operazione_nuova_del_cancello",

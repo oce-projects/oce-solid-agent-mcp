@@ -31,7 +31,7 @@ using System.Runtime.InteropServices;
 // 0.96.0: l'esploso nello stato dell'assieme, col millimetro accanto al booleano.
 // 0.97.0: `new_sheet` e `activate_sheet` (voce GT1), col diedro riletto.
 // 0.98.0: `title_block` (voce GT3) e `interference_check` (GA10); e
-//         `AncheSuAssiemi`, perche' l'esecutore rifiutava ogni assieme mentre
+//         `AlsoOnAssemblies`, perche' l'esecutore rifiutava ogni assieme mentre
 //         il catalogo ne prometteva quattro operazioni.
 // 0.98.1: il rifiuto di `model_dimensions` dice quante quote sono MARCATE,
 //         non solo quante ce ne sono: senza quel dato la diagnosi resta divisa
@@ -79,7 +79,7 @@ using System.Runtime.InteropServices;
 //          versione riscritta all'indietro e' una nota che mente — la si
 //          smentisce qui: **sotto**, come dice il codice e come ha sempre
 //          fatto.
-// 0.103.0: `MaxSpigoli` da 60 a 30 (voce K13). Il tetto dei 16 KB sullo stato
+// 0.103.0: `MaxEdges` da 60 a 30 (voce K13). Il tetto dei 16 KB sullo stato
 //          era gia' superato nella configurazione normale di chi lavora —
 //          16.089 caratteri con due documenti aperti — e la prova non lo
 //          vedeva perche' il banco gira su una scrivania pulita. Facce e
@@ -109,7 +109,7 @@ using System.Runtime.InteropServices;
 //          parte, e' salvato, non e' in sola lettura -- e il piano
 //          prendere il B. Nessun errore lo avrebbe detto, perche'
 //          tutt'e due le letture erano legittime: sbagliato era che
-//          fossero DUE. Restano cinque letture in EsecutorePiano, e adesso
+//          fossero DUE. Restano cinque letture in PlanExecutor, e adesso
 //          un controllo di contratto le conta a ogni giro.
 // 0.107.0: dodici operazioni dichiarano il limite che gia' rifiutavano
 //          (voce Z-G5). Ognuna aveva un caso di banco che pretende un
@@ -120,7 +120,7 @@ using System.Runtime.InteropServices;
 //          sono il messaggio del caso, girato al futuro. Il conto delle
 //          descrizioni mute e' un tetto in Tests/LimitsTests.cs, ed e'
 //          passato da 12 a ZERO.
-// 0.108.0: `DocumentoRichiesto` su ogni operazione del catalogo (voce
+// 0.108.0: `RequestedDocument` su ogni operazione del catalogo (voce
 //          Z-D0-ter): «part», «assembly», «drawing», o piu' d'uno. La
 //          famiglia era un'approssimazione, e `checks` lo dimostrava
 //          da sola -- `title_block` vuole una tavola, `interference_check`
@@ -128,7 +128,7 @@ using System.Runtime.InteropServices;
 //          testa di chi aveva scritto l'operazione e in una frase di prosa
 //          che nessun controllo legge. Adesso sta nel JSON, e un modello
 //          che lo legge NON prova un'operazione sul documento sbagliato.
-// 0.109.0: `Esempio` su 24 operazioni (voce Z-G1): una chiamata vera,
+// 0.109.0: `Example` su 24 operazioni (voce Z-G1): una chiamata vera,
 //          copiata da un passo che il banco ha ESEGUITO e misurato. Uno
 //          schema dice quali campi sono leciti, non quale combinazione
 //          costruisce un pezzo.
@@ -151,7 +151,7 @@ using System.Runtime.InteropServices;
 //          la versione era stata alzata e raccontata solo nel CHANGELOG
 //          del ponte (0.84.0). Scritta il 24/9/2026 con la 0.112.0.
 // 0.112.0: la cartella dei profili di saldatura non ha piu' un percorso
-//          predefinito. `CartellaDeiProfili()` torna null senza
+//          predefinito. `ProfilesFolder()` torna null senza
 //          PROFILI_SALDATURA, e `weldment_profiles` distingue «non so dove
 //          sia» da «li' non c'e'»: prima i due casi davano lo stesso
 //          messaggio, con un percorso vuoto fra virgolette. Il ripiego era
@@ -233,9 +233,9 @@ using System.Runtime.InteropServices;
 //          fianchi faceva saltare il foro in y gia' alla creazione.
 // 0.117.0: ZERO NON E' «NON LO SO» (voce Z-C8), e due guardie che guardavano
 //          altrove. Ogni conteggio letto dal CAD che rispondeva 0 da un catch
-//          ora risponde -1 o null: VolumeMm3 e' double?, ContaCorpiSolidi,
-//          FacceDellaFeature, ContaFogli, ContaViste, ContaQuote, ContaFeature,
-//          ContaPiani e gli altri tornano -1, e i chiamanti confrontano solo
+//          ora risponde -1 o null: VolumeMm3 e' double?, CountSolidBodies,
+//          FeatureFaces, CountSheets, CountViews, CountDimensions, CountFeature,
+//          CountPlanes e gli altri tornano -1, e i chiamanti confrontano solo
 //          numeri letti. Prima della modifica un volume illeggibile e' un
 //          rifiuto (non si e' toccato niente); dopo, niente rifiuto e niente
 //          numero: il campo e' null e c'e' la nota. Lo stato scrive null per un
@@ -265,14 +265,14 @@ using System.Runtime.InteropServices;
 //          raccordo variabile, filetto cosmetico, direzione di una ripetizione
 //          e ancora: se l'uid e' cambiato fra la lettura e adesso, si cerca lo
 //          spigolo con la stessa lunghezza nello stesso punto — uno solo, mai
-//          il piu' vicino — e si dice in `reanchors`. `LunghezzaMm` da' la
+//          il piu' vicino — e si dice in `reanchors`. `LengthMm` da' la
 //          lunghezza VERA (GetLength3), non la corda: il bordo di un foro era
-//          «lungo 0» nello stato. FirmaCombacia confronta anche la lunghezza.
+//          «lungo 0» nello stato. SignatureMatches confronta anche la lunghezza.
 // 0.121.0: LO SMUSSO CHE NON CI STA (caso r05, l'ultimo silenzio della
 //          regressione). set_dimension rifiuta, e rimette il valore, se una
 //          lavorazione che non e' un taglio perde facce e dopo di lei c'e' uno
 //          smusso o un raccordo: e' lui che si prende una faccia intera, e
-//          SOLIDWORKS non lo segnala. RimettiLaQuota estratto (due guardie).
+//          SOLIDWORKS non lo segnala. PutBackDimension estratto (due guardie).
 // 0.122.0: `edge_flange` (voce GP18, terza su sette). La flangia a spigolo
 //          nasce solo con un RETTANGOLO di profilo sul piano della flangia (la
 //          faccia di testa): dieci tentativi della sonda, i primi otto null, il
@@ -280,7 +280,7 @@ using System.Runtime.InteropServices;
 //          profilo + T; volume in piu' confrontato col conto a mano. E `hem`
 //          (quarta su sette): sullo spigolo selezionato, nessuno schizzo;
 //          l'aperto e' la piega a 180 gradi col raggio = meta' del gioco.
-//          `SpigoloDiBordo` estratto, per flangia e orlo.
+//          `BorderEdge` estratto, per flangia e orlo.
 // 0.123.0: `sketched_bend` (voce GP18, quinta su sette): la lamiera si
 //          piega lungo una linea tracciata su una faccia (InsertSheetMetal3dBend
 //          con lo schizzo selezionato, al primo colpo). Volume e sviluppo
@@ -293,7 +293,7 @@ using System.Runtime.InteropServices;
 //          vuota senza errore, quindi si pretende righe = fori + 1 e ogni
 //          posizione si rilegge contro il pezzo. `drawing_dimension` lascia i fori
 //          alla tabella quando c'e' (la tabella sta sul FOGLIO, non sulla vista).
-//          `RisolviVista` estratto da drawing_dimension. E `surface_finish`,
+//          `ResolveView` estratto da drawing_dimension. E `surface_finish`,
 //          `datum`, `geometric_tolerance` (voci GT6, GT8):
 //          attaccate allo spigolo di bordo del lato chiesto (selezionato nella
 //          vista), poi SPOSTATE fuori dal pezzo, oltre le quote gia' messe e fuori

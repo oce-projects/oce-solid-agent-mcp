@@ -89,29 +89,29 @@ namespace Oce.Solid.Agent.Core
     /// **Attiva subito la configurazione nuova**, senza che glielo si chieda:
     /// si dice nella risposta, perche' i passi dopo lavorano su quella.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private Esito ScriviProprieta(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome SetProperty(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string nome = Str(a, "name", null);
-            if (string.IsNullOrWhiteSpace(nome))
-                return Fallito(
+            string itemName = Str(a, "name", null);
+            if (string.IsNullOrWhiteSpace(itemName))
+                return Failed(
                     "Manca il «name» della proprieta', per esempio «Numero disegno» o " +
                     "«Revision».");
-            string valore = Str(a, "value_text", null);
-            if (valore == null)
-                return Fallito(
+            string val = Str(a, "value_text", null);
+            if (val == null)
+                return Failed(
                     "Manca il «value_text». Se vuoi svuotare la proprieta', passa una stringa " +
                     "vuota: cancellarla e' un'altra cosa, e non la faccio di nascosto.");
 
-            string configurazione = Str(a, "configuration", null);
-            bool sullaConfigurazione = !string.IsNullOrWhiteSpace(configurazione);
-            if (sullaConfigurazione)
+            string configuration = Str(a, "configuration", null);
+            bool onConfiguration = !string.IsNullOrWhiteSpace(configuration);
+            if (onConfiguration)
             {
-                string perche;
-                configurazione = NomeVeroDellaConfigurazione(modello, configurazione, out perche);
-                if (configurazione == null) return Fallito(perche);
+                string why;
+                configuration = TrueConfigurationName(model, configuration, out why);
+                if (configuration == null) return Failed(why);
             }
 
             // NO ACTIVATION AROUND THIS, ON PURPOSE (Z-C21.4, finding L8-5, NOT
@@ -130,34 +130,34 @@ namespace Oce.Solid.Agent.Core
             // here would change what the user sees and add a restore that can
             // fail, to fix nothing: do not add it without a probe that shows a
             // case the one above did not cover.
-            ICustomPropertyManager cassetto;
+            ICustomPropertyManager propertyManager;
             try
             {
-                cassetto = modello.Extension.get_CustomPropertyManager(
-                    sullaConfigurazione ? configurazione : "") as ICustomPropertyManager;
+                propertyManager = model.Extension.get_CustomPropertyManager(
+                    onConfiguration ? configuration : "") as ICustomPropertyManager;
             }
-            catch (Exception ex) { return Fallito("Non riesco ad arrivare alle proprieta': " + ex.Message); }
-            if (cassetto == null)
-                return Fallito("Questo documento non espone le proprieta' personalizzate.");
+            catch (Exception ex) { return Failed("Non riesco ad arrivare alle proprieta': " + ex.Message); }
+            if (propertyManager == null)
+                return Failed("Questo documento non espone le proprieta' personalizzate.");
 
-            int esito;
+            int outcome;
             try
             {
-                esito = cassetto.Add3(
-                    nome,
+                outcome = propertyManager.Add3(
+                    itemName,
                     (int)swCustomInfoType_e.swCustomInfoText,
-                    valore,
+                    val,
                     // SI SOSTITUISCE, e si dice: «solo se nuova» lascerebbe il
                     // valore vecchio e risponderebbe lo stesso, che e' il modo
                     // piu' comodo di credere di aver scritto una revisione.
                     (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
             }
-            catch (Exception ex) { return Fallito("La proprieta' non e' stata scritta: " + ex.Message); }
+            catch (Exception ex) { return Failed("La proprieta' non e' stata scritta: " + ex.Message); }
 
-            if (esito != (int)swCustomInfoAddResult_e.swCustomInfoAddResult_AddedOrChanged)
-                return Fallito(
-                    "SOLIDWORKS ha rifiutato la proprieta' «" + nome + "»: " +
-                    NomeEsitoProprieta(esito) + ".");
+            if (outcome != (int)swCustomInfoAddResult_e.swCustomInfoAddResult_AddedOrChanged)
+                return Failed(
+                    "SOLIDWORKS ha rifiutato la proprieta' «" + itemName + "»: " +
+                    PropertyOutcomeName(outcome) + ".");
 
             // SI RILEGGE SEMPRE. `Add3` risponde un codice, non il valore: il
             // valore lo dice solo chi lo rilegge.
@@ -171,12 +171,12 @@ namespace Oce.Solid.Agent.Core
             // ValOut the same text, ResolvedValOut «0.016». The text is compared
             // with ValOut (PropertyWrittenAsAsked); the evaluated value is
             // reported next to it when it differs («resolved_value»).
-            string letto, risolto;
-            bool presente = ReadPropertyBack(cassetto, nome, out letto, out risolto);
-            if (!PropertyWrittenAsAsked(valore, presente, letto))
-                return Fallito(
-                    "Ho scritto «" + valore + "» in «" + nome + "» e rileggendo trovo " +
-                    (letto == null ? "il vuoto" : "«" + letto + "»") + ". Non ti confermo " +
+            string read, resolved;
+            bool present = ReadPropertyBack(propertyManager, itemName, out read, out resolved);
+            if (!PropertyWrittenAsAsked(val, present, read))
+                return Failed(
+                    "Ho scritto «" + val + "» in «" + itemName + "» e rileggendo trovo " +
+                    (read == null ? "il vuoto" : "«" + read + "»") + ". Non ti confermo " +
                     "una scheda dati che non e' quella che credi.");
 
             // E SI GUARDA ANCHE NELL'ALTRO CASSETTO.
@@ -186,79 +186,79 @@ namespace Oce.Solid.Agent.Core
             // aver mai letto, e un numero misurato su questo pezzo adesso.
             // Ed e' l'unico modo perche' il banco possa vedere il giorno in
             // cui SOLIDWORKS cambiasse idea e cominciasse a ereditarle.
-            string altroCassetto = sullaConfigurazione
+            string otherList = onConfiguration
                 ? "the document"
                 : "la configurazione attiva";
-            bool siVedeDiLa = false;
+            bool seenOnTheOtherSide = false;
             try
             {
-                string doveGuardare = "";
-                if (!sullaConfigurazione)
+                string whereToLook = "";
+                if (!onConfiguration)
                 {
-                    var gestore = modello.ConfigurationManager as IConfigurationManager;
-                    doveGuardare = gestore == null ? null : gestore.ActiveConfiguration.Name;
-                    altroCassetto = "la configurazione «" + doveGuardare + "»";
+                    var handler = model.ConfigurationManager as IConfigurationManager;
+                    whereToLook = handler == null ? null : handler.ActiveConfiguration.Name;
+                    otherList = "la configurazione «" + whereToLook + "»";
                 }
-                if (doveGuardare != null)
+                if (whereToLook != null)
                 {
-                    var diLa = modello.Extension.get_CustomPropertyManager(doveGuardare)
+                    var overThere = model.Extension.get_CustomPropertyManager(whereToLook)
                                as ICustomPropertyManager;
-                    siVedeDiLa = diLa != null && LeggiProprieta(diLa, nome) != null;
+                    seenOnTheOtherSide = overThere != null && ReadProperty(overThere, itemName) != null;
                 }
             }
             catch { }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["property"] = nome,
-                ["value_text"] = letto,
-                ["location"] = sullaConfigurazione
-                    ? "la configurazione «" + configurazione + "»"
+                ["property"] = itemName,
+                ["value_text"] = read,
+                ["location"] = onConfiguration
+                    ? "la configurazione «" + configuration + "»"
                     : "the document",
-                ["visible_from_other_list"] = siVedeDiLa,
+                ["visible_from_other_list"] = seenOnTheOtherSide,
                 // I DUE CASSETTI SONO SEPARATI, e va detto ogni volta: e' la
                 // cosa che nessuno si aspetta.
                 ["two_lists"] =
                     "Le proprieta' del documento e quelle di una configurazione sono due " +
                     "elenchi separati: non si ereditano e non si vedono a vicenda. Ho " +
-                    "guardato: da " + altroCassetto + " questa proprieta' " +
-                    (siVedeDiLa ? "SI VEDE." : "NON si vede."),
+                    "guardato: da " + otherList + " questa proprieta' " +
+                    (seenOnTheOtherSide ? "SI VEDE." : "NON si vede."),
             };
-            if (sullaConfigurazione) misure["configuration"] = configurazione;
-            if (risolto != null && !string.Equals(risolto, letto, StringComparison.Ordinal))
-                misure["resolved_value"] = risolto;
+            if (onConfiguration) measurements["configuration"] = configuration;
+            if (resolved != null && !string.Equals(resolved, read, StringComparison.Ordinal))
+                measurements["resolved_value"] = resolved;
 
-            _log("[agente] proprieta' «" + nome + "» = «" + letto + "» su " +
-                 (sullaConfigurazione ? configurazione : "documento"));
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] proprieta' «" + itemName + "» = «" + read + "» su " +
+                 (onConfiguration ? configuration : "documento"));
+            return SucceededWithoutCreating(measurements);
         }
 
-        private Esito CreaConfigurazione(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome CreateConfiguration(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string nome = Str(a, "name", null);
-            if (string.IsNullOrWhiteSpace(nome))
-                return Fallito("Manca il «name» della configurazione, per esempio «Left».");
+            string itemName = Str(a, "name", null);
+            if (string.IsNullOrWhiteSpace(itemName))
+                return Failed("Manca il «name» della configurazione, per esempio «Left».");
 
-            var gestore = modello.ConfigurationManager as IConfigurationManager;
-            if (gestore == null)
-                return Fallito("Questo documento non espone le configurazioni.");
+            var handler = model.ConfigurationManager as IConfigurationManager;
+            if (handler == null)
+                return Failed("Questo documento non espone le configurazioni.");
 
-            var giaCi = NomiDelleConfigurazioni(modello);
-            if (giaCi.Any(n => string.Equals(n, nome, StringComparison.OrdinalIgnoreCase) ||
-                               n.StartsWith(nome + "<", StringComparison.OrdinalIgnoreCase)))
-                return Fallito(
-                    "Una configurazione «" + nome + "» c'e' gia'. Ci sono: " +
-                    string.Join(", ", giaCi.Select(n => "«" + n + "»")) + ".");
+            var alreadyThere = ConfigurationNames(model);
+            if (alreadyThere.Any(n => string.Equals(n, itemName, StringComparison.OrdinalIgnoreCase) ||
+                               n.StartsWith(itemName + "<", StringComparison.OrdinalIgnoreCase)))
+                return Failed(
+                    "Una configurazione «" + itemName + "» c'e' gia'. Ci sono: " +
+                    string.Join(", ", alreadyThere.Select(n => "«" + n + "»")) + ".");
 
-            IConfiguration nuova;
+            IConfiguration newOne;
             try
             {
                 // `IConfigurationManager.AddConfiguration2`, non una delle tre
                 // che si chiamano quasi uguale su `IModelDoc2`: solo questa
                 // torna l'oggetto configurazione. Vedi il commento in testa.
-                nuova = gestore.AddConfiguration2(
-                    nome,                              // Name
+                newOne = handler.AddConfiguration2(
+                    itemName,                              // Name
                     Str(a, "comment", "") ?? "",      // Comment
                     "",                                // AlternateName
                     0,                                 // Options
@@ -266,25 +266,25 @@ namespace Oce.Solid.Agent.Core
                     Str(a, "details", "") ?? "",   // Description
                     true) as IConfiguration;           // Rebuild
             }
-            catch (Exception ex) { return Fallito("La configurazione non e' stata creata: " + ex.Message); }
+            catch (Exception ex) { return Failed("La configurazione non e' stata creata: " + ex.Message); }
 
-            if (nuova == null)
-                return Fallito(
-                    "La configurazione «" + nome + "» non e' stata creata, e SOLIDWORKS non " +
+            if (newOne == null)
+                return Failed(
+                    "La configurazione «" + itemName + "» non e' stata creata, e SOLIDWORKS non " +
                     "dice perche'. Di solito e' il nome: certi caratteri non si possono usare.");
 
-            string attiva = "";
-            try { attiva = gestore.ActiveConfiguration.Name; } catch { }
+            string activate = "";
+            try { activate = handler.ActiveConfiguration.Name; } catch { }
 
-            return RiuscitoSenzaCreare(new Dictionary<string, object>
+            return SucceededWithoutCreating(new Dictionary<string, object>
             {
-                ["configuration"] = nuova.Name,
-                ["active_now"] = attiva,
-                ["configurations"] = NomiDelleConfigurazioni(modello).ToArray(),
+                ["configuration"] = newOne.Name,
+                ["active_now"] = activate,
+                ["configurations"] = ConfigurationNames(model).ToArray(),
                 // ATTIVA DA SOLA, e i passi dopo lavorano su quella.
                 ["note_activation"] =
                     "Creando una configurazione SOLIDWORKS la ATTIVA: adesso il documento e' " +
-                    "su «" + attiva + "», e i passi che seguono lavorano li'. Con " +
+                    "su «" + activate + "», e i passi che seguono lavorano li'. Con " +
                     "«activate_configuration» si torna a un'altra.",
                 ["note_name"] =
                     "Il nome buono per le altre operazioni e' quello scritto qui: puo' avere " +
@@ -293,26 +293,26 @@ namespace Oce.Solid.Agent.Core
             });
         }
 
-        private Esito AttivaConfigurazione(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome ActivateConfiguration(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            string chiesta = Str(a, "name", null);
-            if (string.IsNullOrWhiteSpace(chiesta))
-                return Fallito("Manca il «name» della configurazione da attivare.");
+            string requested = Str(a, "name", null);
+            if (string.IsNullOrWhiteSpace(requested))
+                return Failed("Manca il «name» della configurazione da attivare.");
 
-            string perche;
-            string nome = NomeVeroDellaConfigurazione(modello, chiesta, out perche);
-            if (nome == null) return Fallito(perche);
+            string why;
+            string itemName = TrueConfigurationName(model, requested, out why);
+            if (itemName == null) return Failed(why);
 
-            bool fatto;
-            try { fatto = modello.ShowConfiguration2(nome); }
-            catch (Exception ex) { return Fallito("Non sono riuscito ad attivarla: " + ex.Message); }
+            bool done;
+            try { done = model.ShowConfiguration2(itemName); }
+            catch (Exception ex) { return Failed("Non sono riuscito ad attivarla: " + ex.Message); }
 
-            string attiva = "";
+            string activate = "";
             try
             {
-                var gestore = modello.ConfigurationManager as IConfigurationManager;
-                if (gestore != null) attiva = gestore.ActiveConfiguration.Name;
+                var handler = model.ConfigurationManager as IConfigurationManager;
+                if (handler != null) activate = handler.ActiveConfiguration.Name;
             }
             catch { }
 
@@ -331,22 +331,22 @@ namespace Oce.Solid.Agent.Core
             //
             // Il booleano si tiene, ma come dettaglio nel messaggio: serve a
             // chi dovra' capire perche' il giorno in cui questo scattasse.
-            if (!string.Equals(attiva, nome, StringComparison.Ordinal))
-                return Fallito(
-                    "Ho chiesto di attivare «" + nome + "» e adesso e' attiva " +
-                    (string.IsNullOrEmpty(attiva) ? "non so quale" : "«" + attiva + "»") +
-                    " (SOLIDWORKS ha risposto " + (fatto ? "di si'" : "di no") + "). Non ti " +
+            if (!string.Equals(activate, itemName, StringComparison.Ordinal))
+                return Failed(
+                    "Ho chiesto di attivare «" + itemName + "» e adesso e' attiva " +
+                    (string.IsNullOrEmpty(activate) ? "non so quale" : "«" + activate + "»") +
+                    " (SOLIDWORKS ha risposto " + (done ? "di si'" : "di no") + "). Non ti " +
                     "confermo di lavorare su una configurazione diversa da quella che credi.");
 
-            return RiuscitoSenzaCreare(new Dictionary<string, object>
+            return SucceededWithoutCreating(new Dictionary<string, object>
             {
-                ["configuration"] = attiva,
-                ["configurations"] = NomiDelleConfigurazioni(modello).ToArray(),
+                ["configuration"] = activate,
+                ["configurations"] = ConfigurationNames(model).ToArray(),
                 // «era gia' questa»: chi legge deve poter distinguere uno
                 // spostamento da un non-spostamento, perche' SOLIDWORKS non lo
                 // distingue (vedi sopra) e la differenza conta quando il passo
                 // seguente da' per scontato di essere appena arrivato.
-                ["was_already_active"] = !fatto,
+                ["was_already_active"] = !done,
             });
         }
 
@@ -380,61 +380,61 @@ namespace Oce.Solid.Agent.Core
         /// perche' — che e' l'unica cosa che qui serve davvero, perche' chi
         /// chiama i nomi buoni ce li ha, nello stato del documento.
         /// </summary>
-        private static string NomeVeroDellaConfigurazione(
-            IModelDoc2 modello, string chiesta, out string perche)
+        private static string TrueConfigurationName(
+            IModelDoc2 model, string requested, out string why)
         {
-            perche = null;
-            var nomi = NomiDelleConfigurazioni(modello);
-            if (nomi.Count == 0)
+            why = null;
+            var names = ConfigurationNames(model);
+            if (names.Count == 0)
             {
-                perche = "Questo documento non dichiara nessuna configurazione.";
+                why = "Questo documento non dichiara nessuna configurazione.";
                 return null;
             }
-            foreach (var n in nomi)
-                if (string.Equals(n, chiesta, StringComparison.Ordinal)) return n;
+            foreach (var n in names)
+                if (string.Equals(n, requested, StringComparison.Ordinal)) return n;
 
             // Se il nome chiesto e' il prefisso di uno o piu' nomi veri, quasi
             // sempre chi chiama non sapeva del suffisso: glielo si dice, invece
             // di elencare e basta.
-            var somiglianti = nomi
-                .Where(n => n.StartsWith(chiesta + "<", StringComparison.OrdinalIgnoreCase))
+            var resembling = names
+                .Where(n => n.StartsWith(requested + "<", StringComparison.OrdinalIgnoreCase))
                 .ToList();
-            if (somiglianti.Count > 0)
+            if (resembling.Count > 0)
             {
-                perche =
-                    "«" + chiesta + "» non e' un nome intero. Il documento dichiara " +
-                    string.Join(" e ", somiglianti.Select(n => "«" + n + "»")) +
+                why =
+                    "«" + requested + "» non e' un nome intero. Il documento dichiara " +
+                    string.Join(" e ", resembling.Select(n => "«" + n + "»")) +
                     ": il pezzo fra parentesi angolari fa parte del nome, e va copiato. " +
                     "Chiesto cosi' com'e', SOLIDWORKS risponde di no in silenzio.";
                 return null;
             }
-            perche =
-                "Non trovo la configurazione «" + chiesta + "». Ci sono: " +
-                string.Join(", ", nomi.Select(n => "«" + n + "»")) + ".";
+            why =
+                "Non trovo la configurazione «" + requested + "». Ci sono: " +
+                string.Join(", ", names.Select(n => "«" + n + "»")) + ".";
             return null;
         }
 
-        private static List<string> NomiDelleConfigurazioni(IModelDoc2 modello)
+        private static List<string> ConfigurationNames(IModelDoc2 model)
         {
             try
             {
-                var nomi = modello.GetConfigurationNames() as string[];
-                return nomi == null ? new List<string>() : nomi.ToList();
+                var names = model.GetConfigurationNames() as string[];
+                return names == null ? new List<string>() : names.ToList();
             }
             catch { return new List<string>(); }
         }
 
-        private static string LeggiProprieta(ICustomPropertyManager cassetto, string nome)
+        private static string ReadProperty(ICustomPropertyManager propertyManager, string itemName)
         {
             try
             {
-                string valore, risolto;
-                bool eraRisolto, collegata;
-                int esito = cassetto.Get6(nome, false, out valore, out risolto,
-                                          out eraRisolto, out collegata);
-                if (esito == (int)swCustomInfoGetResult_e.swCustomInfoGetResult_NotPresent)
+                string val, resolved;
+                bool wasResolved, connected;
+                int outcome = propertyManager.Get6(itemName, false, out val, out resolved,
+                                          out wasResolved, out connected);
+                if (outcome == (int)swCustomInfoGetResult_e.swCustomInfoGetResult_NotPresent)
                     return null;
-                return risolto ?? valore;
+                return resolved ?? val;
             }
             catch { return null; }
         }
@@ -446,7 +446,7 @@ namespace Oce.Solid.Agent.Core
         /// False when Get6 answers NotPresent or cannot be asked.
         /// </summary>
         private static bool ReadPropertyBack(
-            ICustomPropertyManager cassetto, string nome, out string written, out string resolved)
+            ICustomPropertyManager propertyManager, string itemName, out string written, out string resolved)
         {
             written = null;
             resolved = null;
@@ -454,7 +454,7 @@ namespace Oce.Solid.Agent.Core
             {
                 string valOut, resolvedValOut;
                 bool wasResolved, linkToProperty;
-                int result = cassetto.Get6(nome, false, out valOut, out resolvedValOut,
+                int result = propertyManager.Get6(itemName, false, out valOut, out resolvedValOut,
                                            out wasResolved, out linkToProperty);
                 if (result == (int)swCustomInfoGetResult_e.swCustomInfoGetResult_NotPresent) return false;
                 written = valOut ?? "";
@@ -475,15 +475,15 @@ namespace Oce.Solid.Agent.Core
             return present && string.Equals(written ?? "", readBack ?? "", StringComparison.Ordinal);
         }
 
-        private static string NomeEsitoProprieta(int codice)
+        private static string PropertyOutcomeName(int code)
         {
             try
             {
-                if (Enum.IsDefined(typeof(swCustomInfoAddResult_e), codice))
-                    return ((swCustomInfoAddResult_e)codice).ToString();
+                if (Enum.IsDefined(typeof(swCustomInfoAddResult_e), code))
+                    return ((swCustomInfoAddResult_e)code).ToString();
             }
             catch { }
-            return "codice " + codice;
+            return "codice " + code;
         }
     }
 }

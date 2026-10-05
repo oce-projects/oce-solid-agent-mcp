@@ -5,28 +5,28 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// IL CATALOGO, che e' l'interfaccia vera verso il modello (voce C1/F7).
     ///
-    /// Si legge per RIFLESSIONE dal ponte gia' compilato — `Catalogo` e la sua
-    /// `Simili()` vivono li' — e il file `catalog.json` glielo si indica con
+    /// Si legge per RIFLESSIONE dal ponte gia' compilato — `Catalog` e la sua
+    /// `Similar()` vivono li' — e il file `catalog.json` glielo si indica con
     /// `OPENPDM_CATALOGO`, che e' la stessa variabile che userebbe chi installa
     /// il pacchetto altrove.
     ///
-    /// Niente di tutto questo tocca SOLIDWORKS: `Catalogo` legge un file JSON e
+    /// Niente di tutto questo tocca SOLIDWORKS: `Catalog` legge un file JSON e
     /// confronta stringhe.
     /// </summary>
-    internal static class ProveCatalogo
+    internal static class CatalogTests
     {
-        internal static void Tutte()
+        internal static void All()
         {
-            Gruppo("il catalogo");
+            Group("il catalogo");
 
-            var json = Path.Combine(Radice(), "bin", "catalog.json");
+            var json = Path.Combine(Root(), "bin", "catalog.json");
 
             // IL CONTENUTO DEL CATALOGO SI PUO' LEGGERE ANCHE QUI (voce F9-bis).
             //
@@ -39,76 +39,76 @@ namespace Oce.Solid.Agent.ContractTests
             // `Tools\\catalog.json` e' lo stesso file, sta in repository ed
             // e' quello che `build.ps1` COPIA in `bin\\`. Si ripiega li', e si dice.
             // Il confronto fra i due resta impossibile, e piu' sotto lo dichiara.
-            bool dalRepository = false;
-            if (!ProdottoDaBuild(json))
+            bool fromRepository = false;
+            if (!ProductFromBuild(json))
             {
-                var inRepository = Path.Combine(Radice(), "Tools", "catalog.json");
-                if (!IlPonteSiPotevaCompilare() && File.Exists(inRepository))
+                var inRepository = Path.Combine(Root(), "Tools", "catalog.json");
+                if (!TheBridgeCouldBeBuilt() && File.Exists(inRepository))
                 {
                     json = inRepository;
-                    dalRepository = true;
+                    fromRepository = true;
                 }
                 else
                 {
-                    Segna("il catalogo c'e'", false,
+                    Check("il catalogo c'e'", false,
                           "non trovo " + json + " — si produce con .\\build.ps1");
                     return;
                 }
             }
-            Segna("il catalogo c'e'", true,
-                  dalRepository
+            Check("il catalogo c'e'", true,
+                  fromRepository
                       ? json + " (quello in repository: qui SOLIDWORKS non c'e', " +
                         "quindi bin\\catalog.json non si poteva produrre)"
                       : json);
 
-            Dictionary<string, object> radice;
+            Dictionary<string, object> root;
             try
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                 s.MaxJsonLength = 40 * 1024 * 1024;
-                radice = s.DeserializeObject(File.ReadAllText(json)) as Dictionary<string, object>;
+                root = s.DeserializeObject(File.ReadAllText(json)) as Dictionary<string, object>;
             }
-            catch (Exception ex) { Segna("il catalogo si legge", false, ex.Message); return; }
+            catch (Exception ex) { Check("il catalogo si legge", false, ex.Message); return; }
 
-            var operazioni = (radice != null && radice.ContainsKey("operations")
-                ? radice["operations"] : null) as object[];
-            if (operazioni == null) { Segna("il catalogo ha «operations»", false, ""); return; }
-            Segna("il catalogo ha almeno trenta operazioni", operazioni.Length >= 30,
-                  operazioni.Length + " operazioni");
+            var operations = (root != null && root.ContainsKey("operations")
+                ? root["operations"] : null) as object[];
+            if (operations == null) { Check("il catalogo ha «operations»", false, ""); return; }
+            Check("il catalogo ha almeno trenta operazioni", operations.Length >= 30,
+                  operations.Length + " operazioni");
 
-            IlReadmeDiceIlNumeroGiusto(operazioni.Length);
+            TheReadmeStatesTheRightNumber(operations.Length);
 
             // ── OGNI OPERAZIONE HA I CAMPI CHE SERVONO ───────────────────
-            var senza = new List<string>();
-            var famiglie = new HashSet<string>(StringComparer.Ordinal);
-            var nomiCatalogo = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var o in operazioni)
+            var without = new List<string>();
+            var families = new HashSet<string>(StringComparer.Ordinal);
+            var catalogNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var o in operations)
             {
                 var v = o as Dictionary<string, object>;
-                if (v == null) { senza.Add("(una voce non e' un oggetto)"); continue; }
-                string nome = v.ContainsKey("name") ? Convert.ToString(v["name"]) : null;
-                if (nome != null) nomiCatalogo.Add(nome);
-                foreach (var campo in new[] { "name", "family", "summary", "details", "schema" })
-                    if (!v.ContainsKey(campo) || v[campo] == null)
-                        senza.Add((nome ?? "?") + " senza «" + campo + "»");
-                if (v.ContainsKey("family")) famiglie.Add(Convert.ToString(v["family"]));
+                if (v == null) { without.Add("(una voce non e' un oggetto)"); continue; }
+                string itemName = v.ContainsKey("name") ? Convert.ToString(v["name"]) : null;
+                if (itemName != null) catalogNames.Add(itemName);
+                foreach (var theField in new[] { "name", "family", "summary", "details", "schema" })
+                    if (!v.ContainsKey(theField) || v[theField] == null)
+                        without.Add((itemName ?? "?") + " senza «" + theField + "»");
+                if (v.ContainsKey("family")) families.Add(Convert.ToString(v["family"]));
             }
-            Segna("ogni operazione ha nome, famiglia, sommario, descrizione, schema",
-                  senza.Count == 0, string.Join("; ", senza.Take(4)));
+            Check("ogni operazione ha nome, famiglia, sommario, descrizione, schema",
+                  without.Count == 0, string.Join("; ", without.Take(4)));
 
             // ── LE FAMIGLIE DICHIARATE SONO QUELLE USATE ─────────────────
             //
             // Una famiglia usata e non dichiarata e' un'operazione che nel
             // menu non compare: il modello non la vede, e nessuno se ne
             // accorge finche' non la cerca per nome.
-            var dichiarate = (radice.ContainsKey("families") ? radice["families"] : null)
+            var declared = (root.ContainsKey("families") ? root["families"] : null)
                              as Dictionary<string, object>;
-            if (dichiarate == null) Segna("il catalogo dichiara le famiglie", false, "");
+            if (declared == null) Check("il catalogo dichiara le famiglie", false, "");
             else
             {
-                var orfane = famiglie.Where(f => !dichiarate.ContainsKey(f)).ToList();
-                Segna("ogni famiglia usata e' dichiarata", orfane.Count == 0,
-                      orfane.Count == 0 ? dichiarate.Count + " famiglie"
+                var orfane = families.Where(f => !declared.ContainsKey(f)).ToList();
+                Check("ogni famiglia usata e' dichiarata", orfane.Count == 0,
+                      orfane.Count == 0 ? declared.Count + " famiglie"
                                         : "usate e non dichiarate: " + string.Join(", ", orfane));
             }
 
@@ -127,21 +127,21 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // La lettera di unita' e' una lettera **non preceduta da un'altra
             // lettera**: cosi' «NO:\n» e «tipo:\n» non la sono, e «S:\PDM» si'.
-            var testo = File.ReadAllText(json);
-            var brutti = new List<string>();
+            var text = File.ReadAllText(json);
+            var bad = new List<string>();
             foreach (System.Text.RegularExpressions.Match m in
-                     System.Text.RegularExpressions.Regex.Matches(testo, @"(?<![A-Za-z])[A-Za-z]:\\"))
-                brutti.Add(testo.Substring(m.Index, Math.Min(40, testo.Length - m.Index)));
+                     System.Text.RegularExpressions.Regex.Matches(text, @"(?<![A-Za-z])[A-Za-z]:\\"))
+                bad.Add(text.Substring(m.Index, Math.Min(40, text.Length - m.Index)));
             foreach (var p in new[] { "scratchpad", "\\\\\\\\" })
-                if (testo.IndexOf(p, StringComparison.Ordinal) >= 0) brutti.Add(p);
-            Segna("nessun percorso di questa macchina nel catalogo",
-                  brutti.Count == 0,
-                  brutti.Count == 0 ? "" : "trovati: " + string.Join(" | ", brutti.Take(3)));
+                if (text.IndexOf(p, StringComparison.Ordinal) >= 0) bad.Add(p);
+            Check("nessun percorso di questa macchina nel catalogo",
+                  bad.Count == 0,
+                  bad.Count == 0 ? "" : "trovati: " + string.Join(" | ", bad.Take(3)));
 
-            OgniEseguibileEDichiarata(nomiCatalogo);
-            IlCatalogoNonERimastoIndietro();
+            EveryExecutableIsDeclared(catalogNames);
+            TheCatalogHasNotFallenBehind();
 
-            Simili();
+            Similar();
         }
 
         // ================================================================
@@ -161,7 +161,7 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// E `Tools/update.md` diceva: *«`build.ps1` rigenera il file a
         /// ogni pacchetto, quindi non puo' restare indietro senza che qualcuno
-        /// cancelli quel passo»*. **Non e' vero con `-SoloPonte`**, che e' il
+        /// cancelli quel passo»*. **Non e' vero con `-BridgeOnly`**, che e' il
         /// modo in cui si compila mentre si itera. Una garanzia scritta in un
         /// documento non e' una garanzia: e' una speranza con una fonte.
         ///
@@ -175,37 +175,37 @@ namespace Oce.Solid.Agent.ContractTests
         /// ponte carica ancora quello vecchio — ed e' esattamente il caso di
         /// oggi).
         /// </summary>
-        private static void IlCatalogoNonERimastoIndietro()
+        private static void TheCatalogHasNotFallenBehind()
         {
-            var strumento = Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Catalog.exe");
-            var sorgente = Path.Combine(Radice(), "Tools", "catalog.json");
-            var pacchetto = Path.Combine(Radice(), "bin", "catalog.json");
+            var tool = Path.Combine(Root(), "bin", "Oce.Solid.Agent.Catalog.exe");
+            var source = Path.Combine(Root(), "Tools", "catalog.json");
+            var package = Path.Combine(Root(), "bin", "catalog.json");
 
-            if (!ProdottoDaBuild(strumento))
+            if (!ProductFromBuild(tool))
             {
-                if (!IlPonteSiPotevaCompilare())
+                if (!TheBridgeCouldBeBuilt())
                 {
-                    NonQui("il catalogo esportato combacia col C#",
+                    NotHere("il catalogo esportato combacia col C#",
                            "qui SOLIDWORKS non c'e': Oce.Solid.Agent.Catalog.exe dipende da " +
                            "Oce.Solid.Agent.Core, che senza interop non si compila.");
                     return;
                 }
-                Segna("l'esportatore del catalogo c'e'", false,
-                      "non trovo " + strumento + " — si produce con .\\build.ps1");
+                Check("l'esportatore del catalogo c'e'", false,
+                      "non trovo " + tool + " — si produce con .\\build.ps1");
                 return;
             }
 
             // 1. IL C# CONTRO IL JSON ESPORTATO.
-            string detto = "";
-            int uscita = -1;
+            string said = "";
+            int output = -1;
             try
             {
                 var p = new System.Diagnostics.Process
                 {
-                    StartInfo = new System.Diagnostics.ProcessStartInfo(strumento,
-                        "--controlla \"" + sorgente + "\"")
+                    StartInfo = new System.Diagnostics.ProcessStartInfo(tool,
+                        "--controlla \"" + source + "\"")
                     {
-                        WorkingDirectory = Radice(),
+                        WorkingDirectory = Root(),
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -213,51 +213,51 @@ namespace Oce.Solid.Agent.ContractTests
                     },
                 };
                 p.Start();
-                detto = (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd()).Trim();
+                said = (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd()).Trim();
                 p.WaitForExit(30000);
-                uscita = p.ExitCode;
+                output = p.ExitCode;
             }
             catch (Exception ex)
             {
-                Segna("il catalogo esportato combacia col C#", false, ex.Message);
+                Check("il catalogo esportato combacia col C#", false, ex.Message);
                 return;
             }
 
             // La riga utile e' quella che dice DOVE differiscono: un «sono
             // diversi» su settantamila caratteri manda a cercare a occhio.
-            string riga = detto.Replace("\r", " ").Replace("\n", " ");
-            if (riga.Length > 160) riga = riga.Substring(0, 160) + "...";
+            string line = said.Replace("\r", " ").Replace("\n", " ");
+            if (line.Length > 160) line = line.Substring(0, 160) + "...";
 
-            Segna("il catalogo esportato combacia col C#", uscita == 0,
-                  uscita == 0 ? "Tools\\catalog.json e' aggiornato"
+            Check("il catalogo esportato combacia col C#", output == 0,
+                  output == 0 ? "Tools\\catalog.json e' aggiornato"
                               : "NON combacia: si rigenera con "
-                                + ".\\bin\\Oce.Solid.Agent.Catalog.exe Tools\\catalog.json — " + riga);
+                                + ".\\bin\\Oce.Solid.Agent.Catalog.exe Tools\\catalog.json — " + line);
 
             // 2. E QUELLO CHE CARICA IL PONTE E' LO STESSO?
-            if (!File.Exists(pacchetto))
+            if (!File.Exists(package))
             {
-                if (!IlPonteSiPotevaCompilare())
+                if (!TheBridgeCouldBeBuilt())
                 {
-                    NonQui("il ponte carica il catalogo di adesso",
+                    NotHere("il ponte carica il catalogo di adesso",
                            "qui SOLIDWORKS non c'e': bin\\catalog.json non esiste " +
                            "perche' build.ps1 non poteva girare, e un file si confronta " +
                            "con un altro file, non con la sua assenza.");
                     return;
                 }
-                Segna("il ponte carica il catalogo di adesso", false,
-                      "non trovo " + pacchetto + " — si produce con .\\build.ps1");
+                Check("il ponte carica il catalogo di adesso", false,
+                      "non trovo " + package + " — si produce con .\\build.ps1");
                 return;
             }
 
             string a = null, b = null;
-            try { a = Impronta(sorgente); b = Impronta(pacchetto); }
+            try { a = Fingerprint(source); b = Fingerprint(package); }
             catch (Exception ex)
             {
-                Segna("il ponte carica il catalogo di adesso", false, ex.Message);
+                Check("il ponte carica il catalogo di adesso", false, ex.Message);
                 return;
             }
 
-            Segna("il ponte carica il catalogo di adesso",
+            Check("il ponte carica il catalogo di adesso",
                   string.Equals(a, b, StringComparison.Ordinal),
                   string.Equals(a, b, StringComparison.Ordinal)
                       ? "Tools\\ e bin\\ sono lo stesso file"
@@ -266,10 +266,10 @@ namespace Oce.Solid.Agent.ContractTests
                         + "il ponte RIFIUTA le operazioni nuove dicendo che non esistono");
         }
 
-        private static string Impronta(string percorso)
+        private static string Fingerprint(string filePath)
         {
             using (var h = System.Security.Cryptography.MD5.Create())
-            using (var f = File.OpenRead(percorso))
+            using (var f = File.OpenRead(filePath))
                 return BitConverter.ToString(h.ComputeHash(f));
         }
 
@@ -282,7 +282,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// catalogo, o nell'elenco delle non provate. In nessun altro posto.
         ///
         /// IL BUCO CHE QUESTO CONTROLLO PRENDE, misurato il 22/9/2026.
-        /// `NomiEseguibili` ne contava **70**, `catalog.json` ne dichiarava
+        /// `ExecutableNames` ne contava **70**, `catalog.json` ne dichiarava
         /// **68**, e le due che mancavano — `center_marks` e
         /// `drawing_cut_list` — erano fuori **per una buona ragione**
         /// (`Provata=false`: le API dicono di si' e non creano niente, 0 -> 0).
@@ -291,43 +291,43 @@ namespace Oce.Solid.Agent.ContractTests
         /// differenza l'avrebbe prodotta un'operazione **dimenticata**:
         /// scritta, funzionante, mai aggiunta a `Operations.cs`. Quella non
         /// darebbe nessun errore da nessuna parte — il banco la proverebbe
-        /// (legge `NomiEseguibili`), il catalogo non la direbbe, e nessun
+        /// (legge `ExecutableNames`), il catalogo non la direbbe, e nessun
         /// modello potrebbe chiamarla. **Il difetto che non da' errore**,
         /// applicato all'unica cosa che il modello usa per sapere cosa esiste.
         ///
-        /// SI LEGGE `NomiEseguibili` DAL SORGENTE, e non per riflessione:
-        /// quella costante vive in `OperazioniSw`, che tocca l'interop di
+        /// SI LEGGE `ExecutableNames` DAL SORGENTE, e non per riflessione:
+        /// quella costante vive in `SwOperations`, che tocca l'interop di
         /// Dassault — caricarne il tipo qui dentro vorrebbe dire pretendere
         /// SOLIDWORKS in un giro che deve girare senza. Le non provate invece
-        /// si chiedono a `Esporta.NonProvate()`, che e' esattamente cio' che
+        /// si chiedono a `Export.NotTested()`, che e' esattamente cio' che
         /// l'esportatore usa per decidere: non una seconda copia della regola.
         ///
         /// Leggerne ZERO e' un fallimento, non un successo: un elenco vuoto
         /// farebbe passare ogni confronto.
         /// </summary>
-        private static void OgniEseguibileEDichiarata(HashSet<string> nelCatalogo)
+        private static void EveryExecutableIsDeclared(HashSet<string> inCatalog)
         {
-            var sorgente = Path.Combine(Radice(), "Oce.Solid.Agent.Core", "SwOperations.cs");
-            if (!File.Exists(sorgente))
+            var source = Path.Combine(Root(), "Oce.Solid.Agent.Core", "SwOperations.cs");
+            if (!File.Exists(source))
             {
-                Segna("il sorgente del dispatcher si legge", false, "non trovo " + sorgente);
+                Check("il sorgente del dispatcher si legge", false, "non trovo " + source);
                 return;
             }
 
-            var testo = File.ReadAllText(sorgente);
-            var blocco = System.Text.RegularExpressions.Regex.Match(
-                testo, @"NomiEseguibili\s*=\s*\{(.*?)\};",
+            var text = File.ReadAllText(source);
+            var block = System.Text.RegularExpressions.Regex.Match(
+                text, @"ExecutableNames\s*=\s*\{(.*?)\};",
                 System.Text.RegularExpressions.RegexOptions.Singleline);
-            var eseguibili = new HashSet<string>(StringComparer.Ordinal);
-            if (blocco.Success)
+            var executables = new HashSet<string>(StringComparer.Ordinal);
+            if (block.Success)
                 foreach (System.Text.RegularExpressions.Match m in
-                         System.Text.RegularExpressions.Regex.Matches(blocco.Groups[1].Value, "\"([a-z0-9_]+)\""))
-                    eseguibili.Add(m.Groups[1].Value);
+                         System.Text.RegularExpressions.Regex.Matches(block.Groups[1].Value, "\"([a-z0-9_]+)\""))
+                    executables.Add(m.Groups[1].Value);
 
-            Segna("l'elenco delle operazioni eseguibili si legge",
-                  eseguibili.Count >= 30,
-                  eseguibili.Count + " nomi in NomiEseguibili");
-            if (eseguibili.Count < 30) return;
+            Check("l'elenco delle operazioni eseguibili si legge",
+                  executables.Count >= 30,
+                  executables.Count + " nomi in NomiEseguibili");
+            if (executables.Count < 30) return;
 
             // Le non provate, chieste a chi decide chi resta fuori dal file.
             //
@@ -335,122 +335,122 @@ namespace Oce.Solid.Agent.ContractTests
             // interop non esiste nessuna DLL da interrogare. Il conto
             // «eseguibili = nel catalogo + non provate» non si puo' fare, e un
             // conto che non si puo' fare non si finge riuscito.
-            if (!ProdottoDaBuild(Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Core.dll")) &&
-                !IlPonteSiPotevaCompilare())
+            if (!ProductFromBuild(Path.Combine(Root(), "bin", "Oce.Solid.Agent.Core.dll")) &&
+                !TheBridgeCouldBeBuilt())
             {
-                NonQui("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
+                NotHere("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
                        "qui SOLIDWORKS non c'e': l'elenco delle non provate si chiede a " +
                        "Oce.Solid.Agent.Core.dll, che senza interop non si compila.");
                 return;
             }
 
-            List<string> nonProvate;
+            List<string> notTested;
             try
             {
-                var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
-                Carica.Ponte(ponte);   // installa il risolutore per bin\
-                var dll = Path.Combine(Radice(), "bin", "Oce.Solid.Agent.Core.dll");
-                var libreria = Assembly.Load(File.ReadAllBytes(dll));
-                var esporta = Carica.Classe(libreria, "Esporta");
-                if (esporta == null)
+                var bridge = Path.Combine(Root(), "bin", "oce-solid-agent-mcp.exe");
+                Load.Bridge(bridge);   // installa il risolutore per bin\
+                var dll = Path.Combine(Root(), "bin", "Oce.Solid.Agent.Core.dll");
+                var library = Assembly.Load(File.ReadAllBytes(dll));
+                var export = Load.Class(library, "Export");
+                if (export == null)
                 {
-                    Segna("l'elenco delle non provate si chiede all'esportatore", false,
+                    Check("l'elenco delle non provate si chiede all'esportatore", false,
                           "non trovo la classe Esporta");
                     return;
                 }
-                nonProvate = (esporta.GetMethod("NonProvate",
+                notTested = (export.GetMethod("NotTested",
                                   BindingFlags.Public | BindingFlags.Static)
                                   ?.Invoke(null, null) as System.Collections.IEnumerable)
                              ?.Cast<object>().Select(Convert.ToString).ToList();
-                if (nonProvate == null)
+                if (notTested == null)
                 {
-                    Segna("l'elenco delle non provate si chiede all'esportatore", false,
-                          "NonProvate() non ha risposto");
+                    Check("l'elenco delle non provate si chiede all'esportatore", false,
+                          "NotTested() non ha risposto");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Segna("l'elenco delle non provate si chiede all'esportatore", false, ex.Message);
+                Check("l'elenco delle non provate si chiede all'esportatore", false, ex.Message);
                 return;
             }
 
-            var fuori = new HashSet<string>(nonProvate, StringComparer.Ordinal);
+            var outside = new HashSet<string>(notTested, StringComparer.Ordinal);
 
             // 1. Eseguibile e invisibile: il difetto che questo controllo esiste per prendere.
-            var invisibili = eseguibili.Where(n => !nelCatalogo.Contains(n) && !fuori.Contains(n))
+            var invisible = executables.Where(n => !inCatalog.Contains(n) && !outside.Contains(n))
                                        .OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Segna("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
-                  invisibili.Count == 0,
-                  invisibili.Count == 0
-                      ? eseguibili.Count + " eseguibili = " + nelCatalogo.Count +
-                        " nel catalogo + " + fuori.Count + " non provate"
-                      : "eseguibili e invisibili al modello: " + string.Join(", ", invisibili));
+            Check("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
+                  invisible.Count == 0,
+                  invisible.Count == 0
+                      ? executables.Count + " eseguibili = " + inCatalog.Count +
+                        " nel catalogo + " + outside.Count + " non provate"
+                      : "eseguibili e invisibili al modello: " + string.Join(", ", invisible));
 
             // 2. Il verso opposto: una voce di catalogo che il dispatcher non sa eseguire
             //    e' una promessa che si scopre falsa solo chiamandola.
-            var promesse = nelCatalogo.Where(n => !eseguibili.Contains(n))
+            var promises = inCatalog.Where(n => !executables.Contains(n))
                                       .OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Segna("ogni operazione del catalogo e' davvero eseguibile",
-                  promesse.Count == 0,
-                  promesse.Count == 0 ? "" : "nel catalogo e non nel dispatcher: " +
-                                             string.Join(", ", promesse));
+            Check("ogni operazione del catalogo e' davvero eseguibile",
+                  promises.Count == 0,
+                  promises.Count == 0 ? "" : "nel catalogo e non nel dispatcher: " +
+                                             string.Join(", ", promises));
 
             // 3. E una non provata non deve essere finita nel file lo stesso.
-            var sfuggite = fuori.Where(nelCatalogo.Contains)
+            var escaped = outside.Where(inCatalog.Contains)
                                 .OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Segna("nessuna operazione non provata e' finita nel catalogo",
-                  sfuggite.Count == 0,
-                  sfuggite.Count == 0 ? fuori.Count + " fuori: " + string.Join(", ", fuori)
-                                      : "non provate ma esposte: " + string.Join(", ", sfuggite));
+            Check("nessuna operazione non provata e' finita nel catalogo",
+                  escaped.Count == 0,
+                  escaped.Count == 0 ? outside.Count + " fuori: " + string.Join(", ", outside)
+                                      : "non provate ma esposte: " + string.Join(", ", escaped));
         }
 
         /// <summary>
-        /// `Catalogo.Simili()`: il caso per cui la funzione e' stata riscritta.
+        /// `Catalog.Similar()`: il caso per cui la funzione e' stata riscritta.
         ///
         /// Il primo tentativo cercava la parola intera dentro il nome, e su
         /// «asole» **non trovava «slot»** — cioe' falliva proprio dove
         /// serviva: chi sbaglia un nome quasi sempre ne ha in mente uno vicino,
         /// e lo sbaglia di una lettera.
         /// </summary>
-        private static void Simili()
+        private static void Similar()
         {
             // «NON QUI» SE LA MACCHINA NON PUO' COMPILARE IL PONTE, ROSSO SE PUO'
             // E NESSUNO HA LANCIATO build.ps1: la regola sta in un posto solo.
             // Prima qui c'era un rosso secco, e in CI (dove il ponte non si
             // compila mai) teneva rossa la CI a ogni push.
-            var ponte = PonteOppureNonQui("Catalogo.Simili: i nomi vicini a quello sbagliato");
-            if (ponte == null) return;
+            var bridge = BridgeOrNotHere("Catalogo.Simili: i nomi vicini a quello sbagliato");
+            if (bridge == null) return;
 
-            object catalogo;
-            MethodInfo simili;
+            object catalog;
+            MethodInfo similar;
             try
             {
                 Environment.SetEnvironmentVariable(
-                    "OPENPDM_CATALOGO", Path.Combine(Radice(), "bin", "catalog.json"));
+                    "OPENPDM_CATALOGO", Path.Combine(Root(), "bin", "catalog.json"));
                 // SI CARICA DAI BYTE: `LoadFrom` su un'unita' di rete risponde
                 // NotSupportedException, e questo repository sta su S:.
-                var asm = Carica.Ponte(ponte);
-                var tipo = Carica.Classe(asm, "Catalogo");
-                if (tipo == null) { Segna("Catalogo.Simili: la classe c'e'", false, "Catalogo assente"); return; }
-                catalogo = Activator.CreateInstance(tipo, true);
-                simili = tipo.GetMethod("Simili");
-                if (simili == null) { Segna("Catalogo.Simili: il metodo c'e'", false, ""); return; }
+                var asm = Load.Bridge(bridge);
+                var typ = Load.Class(asm, "Catalog");
+                if (typ == null) { Check("Catalogo.Simili: la classe c'e'", false, "Catalogo assente"); return; }
+                catalog = Activator.CreateInstance(typ, true);
+                similar = typ.GetMethod("Similar");
+                if (similar == null) { Check("Catalogo.Simili: il metodo c'e'", false, ""); return; }
             }
-            catch (Exception ex) { Segna("Catalogo.Simili: si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("Catalogo.Simili: si carica", false, ex.ToString()); return; }
 
             Func<string, List<string>> di = n =>
-                (simili.Invoke(catalogo, new object[] { n }) as System.Collections.IEnumerable)
+                (similar.Invoke(catalog, new object[] { n }) as System.Collections.IEnumerable)
                     ?.Cast<object>().Select(Convert.ToString).ToList() ?? new List<string>();
 
-            Segna("«slots» trova «slot»", di("slots").Contains("slot"),
+            Check("«slots» trova «slot»", di("slots").Contains("slot"),
                   string.Join(", ", di("slots")));
-            Segna("«hole» trova «hole_wizard»", di("hole").Contains("hole_wizard"),
+            Check("«hole» trova «hole_wizard»", di("hole").Contains("hole_wizard"),
                   string.Join(", ", di("hole")));
-            Segna("un nome vuoto non esplode e non inventa", di("").Count == 0);
-            Segna("un nome che non somiglia a niente non inventa",
+            Check("un nome vuoto non esplode e non inventa", di("").Count == 0);
+            Check("un nome che non somiglia a niente non inventa",
                   di("qwertyuiop").Count == 0, string.Join(", ", di("qwertyuiop")));
-            Segna("non ne offre piu' di cinque", di("a_asola_foro_taglio_piano").Count <= 5,
+            Check("non ne offre piu' di cinque", di("a_asola_foro_taglio_piano").Count <= 5,
                   di("a_asola_foro_taglio_piano").Count + " offerti");
         }
 
@@ -472,18 +472,18 @@ namespace Oce.Solid.Agent.ContractTests
         // scattare: un controllo che grida su una frase giusta si impara a
         // ignorare, ed e' peggio di nessun controllo.
         // ================================================================
-        private static void IlReadmeDiceIlNumeroGiusto(int quante)
+        private static void TheReadmeStatesTheRightNumber(int howMany)
         {
-            var readme = Path.Combine(Radice(), "README.md");
+            var readme = Path.Combine(Root(), "README.md");
             if (!File.Exists(readme))
             {
-                Segna("the README exists", false, readme);
+                Check("the README exists", false, readme);
                 return;
             }
 
-            string testo;
-            try { testo = File.ReadAllText(readme); }
-            catch (Exception ex) { Segna("the README can be read", false, ex.Message); return; }
+            string text;
+            try { text = File.ReadAllText(readme); }
+            catch (Exception ex) { Check("the README can be read", false, ex.Message); return; }
 
             // BILINGUAL SINCE W3.1-bis.2 (30/9/2026). The README is going to be
             // translated, and a reader that knew only Italian number words
@@ -502,13 +502,13 @@ namespace Oce.Solid.Agent.ContractTests
             CountCheckSeenRed();
 
             int claims;
-            var findings = ReadmeCountFindings(testo, quante, out claims);
-            Segna("the README says how many operations there are, and they are the real ones",
+            var findings = ReadmeCountFindings(text, howMany, out claims);
+            Check("the README says how many operations there are, and they are the real ones",
                   findings.Count == 0,
                   findings.Count == 0
-                      ? "the catalogue has " + quante + ", the README says so " + claims + " times"
-                      : "the catalogue has " + quante + "; " + string.Join("; ", findings));
-            Segna("the README states the number of operations in a form this check reads",
+                      ? "the catalogue has " + howMany + ", the README says so " + claims + " times"
+                      : "the catalogue has " + howMany + "; " + string.Join("; ", findings));
+            Check("the README states the number of operations in a form this check reads",
                   claims > 0,
                   claims > 0 ? claims + " counts read"
                              : "no «N operations» and no «drawing operations are N» in README.md: if the " +
@@ -548,7 +548,7 @@ namespace Oce.Solid.Agent.ContractTests
                 for (int k = words.Count; k >= 1; k--)
                 {
                     var candidate = before ? words.Skip(words.Count - k) : words.Take(k);
-                    int n = Numero(string.Join(" ", candidate));
+                    int n = Number(string.Join(" ", candidate));
                     if (n < 0) continue;
                     read++;
                     if (n != actual) findings.Add("«" + Flat(m.Value) + "» says " + n);
@@ -612,9 +612,9 @@ namespace Oce.Solid.Agent.ContractTests
                 Tuple.Create("the", -1), Tuple.Create("drawing", -1), Tuple.Create("two ninety-nine", -1),
                 Tuple.Create("hundred and", -1), Tuple.Create("zero hundred", -1),
             };
-            var wrong = cases.Where(c => Numero(c.Item1) != c.Item2)
-                             .Select(c => c.Item1 + "=" + Numero(c.Item1) + " (expected " + c.Item2 + ")").ToList();
-            Segna("the number reader reads Italian and English number words, and nothing else",
+            var wrong = cases.Where(c => Number(c.Item1) != c.Item2)
+                             .Select(c => c.Item1 + "=" + Number(c.Item1) + " (expected " + c.Item2 + ")").ToList();
+            Check("the number reader reads Italian and English number words, and nothing else",
                   wrong.Count == 0,
                   wrong.Count == 0 ? cases.Length + " of " + cases.Length + " words read as expected" : string.Join("; ", wrong));
         }
@@ -656,7 +656,7 @@ namespace Oce.Solid.Agent.ContractTests
             int none;
             bool blind = ReadmeCountFindings("A README that never says how many there are.", 94, out none).Count == 0 && none == 0;
             if (!blind) wrong.Add("a README without any count was not seen as one");
-            Segna("the README count check turns red on fakes («ninety-six operations» against 94, a number it cannot read)",
+            Check("the README count check turns red on fakes («ninety-six operations» against 94, a number it cannot read)",
                   wrong.Count == 0,
                   wrong.Count == 0 ? (cases.Length + 1) + " fakes ended as expected" : string.Join("; ", wrong));
         }
@@ -698,10 +698,10 @@ namespace Oce.Solid.Agent.ContractTests
         /// Italian words is red below (it looks like a number and cannot be
         /// read), not silent.
         /// </summary>
-        private static int Numero(string parola)
+        private static int Number(string word)
         {
-            if (string.IsNullOrWhiteSpace(parola)) return -1;
-            var p = parola.Trim().ToLowerInvariant().Replace('’', '\'');
+            if (string.IsNullOrWhiteSpace(word)) return -1;
+            var p = word.Trim().ToLowerInvariant().Replace('’', '\'');
             if (Regex.IsMatch(p, @"^\d{1,4}$")) return int.Parse(p, CultureInfo.InvariantCulture);
             int n = ItalianNumber(p);
             return n >= 0 ? n : EnglishNumber(p);

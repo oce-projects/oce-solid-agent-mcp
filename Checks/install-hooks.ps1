@@ -13,32 +13,32 @@
 # Per spegnerli:  git config --unset core.hooksPath
 
 $ErrorActionPreference = 'Stop'
-$qui = Split-Path -Parent $MyInvocation.MyCommand.Path
-$radice = Split-Path -Parent $qui
-$ganci = Join-Path $qui 'hooks'
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = Split-Path -Parent $here
+$hooks = Join-Path $here 'hooks'
 
-if (-not (Test-Path (Join-Path $radice '.git'))) {
+if (-not (Test-Path (Join-Path $root '.git'))) {
     Write-Host "Qui non c'e' un repository git: niente da accendere." -ForegroundColor Yellow
     exit 1
 }
-if (-not (Test-Path $ganci)) { throw "non trovo $ganci" }
+if (-not (Test-Path $hooks)) { throw "non trovo $hooks" }
 
 # Il percorso si scrive RELATIVO alla radice e con le barre in avanti: git lo
 # risolve rispetto alla radice del lavoro, e un percorso assoluto di questa
 # macchina finirebbe nel `.git\config` di chi lo copia.
-$relativo = 'Checks/hooks'
+$relative = 'Checks/hooks'
 
-Push-Location $radice
+Push-Location $root
 try {
-    & git config core.hooksPath $relativo
+    & git config core.hooksPath $relative
     if ($LASTEXITCODE -ne 0) { throw "git config ha risposto $LASTEXITCODE" }
-    $letto = (& git config core.hooksPath)
+    $read = (& git config core.hooksPath)
 }
 finally { Pop-Location }
 
 Write-Host ""
-Write-Host "  core.hooksPath = $letto" -ForegroundColor Green
-Get-ChildItem $ganci -File | ForEach-Object {
+Write-Host "  core.hooksPath = $read" -ForegroundColor Green
+Get-ChildItem $hooks -File | ForEach-Object {
     Write-Host ("    " + $_.Name) -ForegroundColor DarkGray
 }
 Write-Host ""

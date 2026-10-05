@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SolidWorks.Interop.sldworks;
-// ALIAS E NON `using static`: il banco ha gia' un `Apri` e un `Chiudi` suoi,
+// ALIAS E NON `using static`: il banco ha gia' un `Open` e un `Close` suoi,
 // e i membri della classe vincono su quelli importati. Con l'alias si vede a
 // colpo d'occhio quali chiamate escono da questo processo e vanno al ponte.
-using Mcp = Shared.ClienteMcp;
+using Mcp = Shared.McpClient;
 
 namespace Oce.Solid.Agent.Bench
 {
@@ -17,7 +17,7 @@ namespace Oce.Solid.Agent.Bench
     /// Tutto il resto di questo banco chiama la LIBRERIA. Il 18/9/2026 il
     /// ponte rifiutava ogni assieme mentre il suo catalogo ne prometteva una
     /// famiglia intera, e il banco aveva 781 prove verdi — cinque delle quali
-    /// sugli assiemi — e **nessuna poteva vederlo**: `EsecutorePiano` non
+    /// sugli assiemi — e **nessuna poteva vederlo**: `PlanExecutor` non
     /// compare in nessun file di `Bench/`.
     ///
     /// *Due misure vere di due cose diverse, e chi legge il numero grande crede
@@ -46,12 +46,12 @@ namespace Oce.Solid.Agent.Bench
     /// </summary>
     internal static partial class Program
     {
-        private static void LaPortaDelCliente()
+        private static void TheClientPort()
         {
-            var eseguibile = IlPonte();
-            if (eseguibile == null)
+            var executable = TheBridge();
+            if (executable == null)
             {
-                ErroreDiBanco("la porta del cliente",
+                BenchError("la porta del cliente",
                               "non trovo bin\\oce-solid-agent-mcp.exe — si produce con .\\build.ps1");
                 return;
             }
@@ -60,28 +60,28 @@ namespace Oce.Solid.Agent.Bench
             // E' esattamente la differenza con `Oce.Solid.Agent.ContractTests`: li' non c'e'
             // niente aperto, e ogni piano muore sul primo controllo.
             IModelDoc2 doc = null;
-            Mcp.Ponte p = null;
-            string nuovoTitolo = null, salvato = null;
+            Mcp.Bridge p = null;
+            string newTitle = null, saved = null;
             try
             {
-                doc = NuovaParte();
-                string titolo = doc.GetTitle();
+                doc = NewPart();
+                string docTitle = doc.GetTitle();
 
-                p = Mcp.Apri(eseguibile);
+                p = Mcp.Open(executable);
                 if (p == null)
                 {
-                    ErroreDiBanco("la porta del cliente", "il ponte non e' partito");
+                    BenchError("la porta del cliente", "il ponte non e' partito");
                     return;
                 }
 
                 // ── initialize ───────────────────────────────────────────
-                var r = Mcp.Chiedi(p, 1,
+                var r = Mcp.Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"banco\",\"version\":\"1\"}}}");
-                Segna("porta: initialize risponde", r != null,
-                      r != null ? "" : "niente entro " + (Mcp.AttesaMs / 1000) + "s. Righe viste: " +
-                                       string.Join(" | ", p.Viste.ToArray()));
+                Check("porta: initialize risponde", r != null,
+                      r != null ? "" : "niente entro " + (Mcp.TimeoutMs / 1000) + "s. Righe viste: " +
+                                       string.Join(" | ", p.Views.ToArray()));
                 if (r == null) return;
 
                 // ── 1. inspect_part VEDE IL DOCUMENTO CHE HA APERTO IL BANCO ──
@@ -89,10 +89,10 @@ namespace Oce.Solid.Agent.Bench
                 // Non «risponde qualcosa»: risponde di QUESTO pezzo. E' la
                 // prova che il ponte e il banco stanno guardando la stessa
                 // sessione di SOLIDWORKS, ed e' la premessa di tutto il resto.
-                var testo = TestoDiRisposta(Mcp.Chiedi(p, 2, Chiamata(2, "inspect_part", "{}")));
-                Segna("porta: inspect_part nomina il documento del banco",
-                      testo.IndexOf(titolo, StringComparison.OrdinalIgnoreCase) >= 0,
-                      titolo + " — " + Corto(testo));
+                var text = ResponseText(Mcp.Ask(p, 2, Call(2, "inspect_part", "{}")));
+                Check("porta: inspect_part nomina il documento del banco",
+                      text.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0,
+                      docTitle + " — " + Short(text));
 
                 // ── 2. UN PIANO CHE RIESCE, E IL BANCO RILEGGE IL PEZZO ──
                 //
@@ -100,25 +100,25 @@ namespace Oce.Solid.Agent.Bench
                 // della parola: apre lo stesso documento con la COM e misura
                 // il volume. E' l'unica cosa che questo gruppo puo' fare e la
                 // suite di contratto no.
-                double volumePrima = VolumeDiProva(doc);
-                var fatto = TestoDiRisposta(Mcp.Chiedi(p, 3, Chiamata(3, "build",
+                double volumeBefore = TestVolume(doc);
+                var done = ResponseText(Mcp.Ask(p, 3, Call(3, "build",
                     "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                     "{\"length_mm\":120,\"width_mm\":80,\"thickness_mm\":10}}]}")));
-                double volumeDopo = VolumeDiProva(doc);
+                double volumeAfter = TestVolume(doc);
 
-                Segna("porta: il piano riesce", fatto.IndexOf("\"succeeded\":true",
+                Check("porta: il piano riesce", done.IndexOf("\"succeeded\":true",
                           StringComparison.OrdinalIgnoreCase) >= 0 ||
-                      fatto.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0,
-                      Corto(fatto));
+                      done.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0,
+                      Short(done));
 
                 // 120 x 80 x 10 = 96.000 mm3, e il pezzo partiva vuoto.
-                Segna("porta: e il pezzo e' cambiato davvero, misurato dal banco",
-                      Math.Abs(volumeDopo - volumePrima - 96000) < 1,
-                      volumePrima.ToString("0.#") + " -> " + volumeDopo.ToString("0.#") +
+                Check("porta: e il pezzo e' cambiato davvero, misurato dal banco",
+                      Math.Abs(volumeAfter - volumeBefore - 96000) < 1,
+                      volumeBefore.ToString("0.#") + " -> " + volumeAfter.ToString("0.#") +
                       " mm3 (atteso +96000)");
 
                 // ── 3. ROSSO PER COSTRUZIONE: un'operazione di assieme su una parte ──
-                var rifiuto = TestoDiRisposta(Mcp.Chiedi(p, 4, Chiamata(4, "build",
+                var refusal = ResponseText(Mcp.Ask(p, 4, Call(4, "build",
                     "{\"steps\":[{\"operation\":\"insert_component\",\"arguments\":" +
                     "{\"path\":\"C:\\\\non\\\\esiste.SLDPRT\"}}]}")));
 
@@ -127,12 +127,12 @@ namespace Oce.Solid.Agent.Bench
                 // parola «assembly» da qualche parte: sarebbe passata pure
                 // con un piano RIUSCITO che la nominasse. *Un `||` messo per
                 // sicurezza e' un `||` che un giorno regge da solo.*
-                bool rifiutato = rifiuto.IndexOf("\"succeeded\":false",
+                bool refused = refusal.IndexOf("\"succeeded\":false",
                                      StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                 rifiuto.IndexOf("\"succeeded\": false",
+                                 refusal.IndexOf("\"succeeded\": false",
                                      StringComparison.OrdinalIgnoreCase) >= 0;
-                Segna("porta: un'operazione di assieme su una PARTE e' rifiutata",
-                      rifiutato, Corto(rifiuto));
+                Check("porta: un'operazione di assieme su una PARTE e' rifiutata",
+                      refused, Short(refusal));
 
                 // E NON DEVE ESSERE RIUSCITA. Sembra la stessa cosa detta
                 // due volte e non lo e': `succeeded` potrebbe mancare del
@@ -140,12 +140,12 @@ namespace Oce.Solid.Agent.Bench
                 // e allora la riga qui sopra sarebbe rossa per il motivo
                 // giusto ma per la ragione sbagliata. Questa dice che la
                 // parola «true» accanto a «succeeded» non c'e'.
-                Segna("porta: e non e' riuscita per sbaglio",
-                      rifiuto.IndexOf("\"succeeded\":true",
+                Check("porta: e non e' riuscita per sbaglio",
+                      refusal.IndexOf("\"succeeded\":true",
                           StringComparison.OrdinalIgnoreCase) < 0 &&
-                      rifiuto.IndexOf("\"succeeded\": true",
+                      refusal.IndexOf("\"succeeded\": true",
                           StringComparison.OrdinalIgnoreCase) < 0,
-                      Corto(rifiuto));
+                      Short(refusal));
 
                 // E IL RIFIUTO DEVE DIRE SU COSA SI STA LAVORANDO.
                 //
@@ -157,9 +157,9 @@ namespace Oce.Solid.Agent.Bench
                 // frase fissa sui tipi di documento, e accettarla vorrebbe
                 // dire promuovere proprio la risposta che questa riga esiste
                 // per bocciare.
-                Segna("porta: e il rifiuto dice su cosa sta lavorando",
-                      rifiuto.IndexOf(titolo, StringComparison.OrdinalIgnoreCase) >= 0,
-                      "cerco «" + titolo + "» in: " + Corto(rifiuto));
+                Check("porta: e il rifiuto dice su cosa sta lavorando",
+                      refusal.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0,
+                      "cerco «" + docTitle + "» in: " + Short(refusal));
 
                 // ── LA TRAPPOLA: zero righe lette aspettando zero righe ──
                 //
@@ -168,37 +168,37 @@ namespace Oce.Solid.Agent.Bench
                 // e SUBITO DOPO una domanda vera: se la prima riga che torna e'
                 // la risposta a quella, la notifica non ha risposto E il ponte
                 // e' vivo.
-                Mcp.Scrivi(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
-                var dopoLaNotifica = Mcp.Chiedi(p, 5, Chiamata(5, "inspect_part", "{}"));
-                Segna("porta: il ponte e' ancora vivo dopo una notifica",
-                      dopoLaNotifica != null,
-                      dopoLaNotifica != null ? "" : "niente risposta alla domanda dopo la notifica");
+                Mcp.Write(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
+                var afterTheNotification = Mcp.Ask(p, 5, Call(5, "inspect_part", "{}"));
+                Check("porta: il ponte e' ancora vivo dopo una notifica",
+                      afterTheNotification != null,
+                      afterTheNotification != null ? "" : "niente risposta alla domanda dopo la notifica");
 
-                IlModale(p, doc);
-                IlCicloDelDocumento(p, titolo, ref nuovoTitolo, ref salvato);
-                UndoHonesty(p, eseguibile);
+                TheModal(p, doc);
+                DocumentCycle(p, docTitle, ref newTitle, ref saved);
+                UndoHonesty(p, executable);
             }
             catch (Exception ex)
             {
-                ErroreDiBanco("la porta del cliente", Perche(ex));
+                BenchError("la porta del cliente", Why(ex));
             }
             finally
             {
-                if (p != null) { Mcp.Chiudi(p); p.Dispose(); }
-                Chiudi(doc);
+                if (p != null) { Mcp.Close(p); p.Dispose(); }
+                Close(doc);
                 // Quello che il ciclo del documento ha aperto o creato si chiude
                 // qui, qualunque cosa sia successa: la scrivania del banco deve
                 // restare pulita (voce K12), o il giro dopo rifiuta di partire.
-                try { if (!string.IsNullOrEmpty(nuovoTitolo)) _sw.CloseDoc(nuovoTitolo); } catch { }
+                try { if (!string.IsNullOrEmpty(newTitle)) _sw.CloseDoc(newTitle); } catch { }
                 try
                 {
-                    if (!string.IsNullOrEmpty(salvato))
+                    if (!string.IsNullOrEmpty(saved))
                     {
-                        _sw.CloseDoc(Path.GetFileName(salvato));
-                        if (File.Exists(salvato))
+                        _sw.CloseDoc(Path.GetFileName(saved));
+                        if (File.Exists(saved))
                         {
-                            File.SetAttributes(salvato, FileAttributes.Normal);
-                            File.Delete(salvato);
+                            File.SetAttributes(saved, FileAttributes.Normal);
+                            File.Delete(saved);
                         }
                     }
                 }
@@ -217,92 +217,92 @@ namespace Oce.Solid.Agent.Bench
         /// esiste non cambia il documento davanti, e dopo un cambio di documento
         /// «build» si rifiuta finche' non si e' guardato di nuovo.
         /// </summary>
-        private static void IlCicloDelDocumento(Mcp.Ponte p, string titolo,
-                                                ref string nuovoTitolo, ref string salvato)
+        private static void DocumentCycle(Mcp.Bridge p, string docTitle,
+                                                ref string newTitle, ref string saved)
         {
-            Func<string> davanti = () =>
+            Func<string> front = () =>
             {
                 try { var d = _sw.IActiveDoc2; return d == null ? "(niente)" : d.GetTitle(); }
                 catch { return "(non leggibile)"; }
             };
 
             // ── elenca: c'e' il documento del banco, ed e' davanti ─────────
-            var elenco = TestoDiRisposta(Mcp.Chiedi(p, 6, Chiamata(6, "document", "{\"action\":\"list\"}")));
-            Segna("documento: «list» nomina il documento del banco",
-                  elenco.IndexOf(titolo, StringComparison.OrdinalIgnoreCase) >= 0, Corto(elenco));
+            var list = ResponseText(Mcp.Ask(p, 6, Call(6, "document", "{\"action\":\"list\"}")));
+            Check("documento: «list» nomina il documento del banco",
+                  list.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0, Short(list));
 
             // ── nuovo: una parte vuota, davanti, e il banco lo verifica ────
-            var nuovo = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 7, Chiamata(7, "document",
+            var newItem = Mcp.Obj(ResponseText(Mcp.Ask(p, 7, Call(7, "document",
                 "{\"action\":\"create\",\"variant\":\"part\"}"))));
-            nuovoTitolo = Convert.ToString(Mcp.Dentro(nuovo, "document_title"));
-            var attivo = _sw.IActiveDoc2;
-            Segna("documento: «create» crea una parte e la porta davanti, riletto dalla COM",
-                  !string.IsNullOrEmpty(nuovoTitolo) && attivo != null &&
-                  attivo.GetTitle() == nuovoTitolo &&
-                  attivo.GetType() == (int)SolidWorks.Interop.swconst.swDocumentTypes_e.swDocPART,
-                  "risposta «" + nuovoTitolo + "», davanti «" + davanti() + "»");
-            Segna("documento: e la parte nuova e' vuota",
-                  attivo != null && VolumeDiProva(attivo) < 0.001,
-                  attivo == null ? "(niente davanti)" : VolumeDiProva(attivo).ToString("0.###") + " mm3");
+            newTitle = Convert.ToString(Mcp.Inside(newItem, "document_title"));
+            var active = _sw.IActiveDoc2;
+            Check("documento: «create» crea una parte e la porta davanti, riletto dalla COM",
+                  !string.IsNullOrEmpty(newTitle) && active != null &&
+                  active.GetTitle() == newTitle &&
+                  active.GetType() == (int)SolidWorks.Interop.swconst.swDocumentTypes_e.swDocPART,
+                  "risposta «" + newTitle + "», davanti «" + front() + "»");
+            Check("documento: e la parte nuova e' vuota",
+                  active != null && TestVolume(active) < 0.001,
+                  active == null ? "(niente davanti)" : TestVolume(active).ToString("0.###") + " mm3");
 
             // ── ROSSO PER COSTRUZIONE: disegna subito dopo, senza guardare ─
             //
             // Il documento davanti e' cambiato per mano del ponte stesso. Quello
             // che era stato guardato non vale piu', e «build» deve dirlo invece
             // di scrivere in un pezzo che il modello non ha mai visto.
-            var subito = TestoDiRisposta(Mcp.Chiedi(p, 8, Chiamata(8, "build",
+            var immediately = ResponseText(Mcp.Ask(p, 8, Call(8, "build",
                 "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                 "{\"length_mm\":10,\"width_mm\":10,\"thickness_mm\":10}}]}")));
-            Segna("documento: dopo un cambio di documento «build» pretende di guardare prima",
-                  subito.IndexOf("non ho ancora guardato", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                  (attivo == null || VolumeDiProva(attivo) < 0.001),
-                  Corto(subito));
+            Check("documento: dopo un cambio di documento «build» pretende di guardare prima",
+                  immediately.IndexOf("non ho ancora guardato", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                  (active == null || TestVolume(active) < 0.001),
+                  Short(immediately));
 
             // ── attiva: si torna al documento del banco ───────────────────
-            var torna = TestoDiRisposta(Mcp.Chiedi(p, 9, Chiamata(9, "document",
-                "{\"action\":\"activate\",\"path\":\"" + titolo + "\"}")));
-            Segna("documento: «activate» riporta davanti il documento del banco",
-                  davanti() == titolo, "davanti «" + davanti() + "» — " + Corto(torna));
+            var returns = ResponseText(Mcp.Ask(p, 9, Call(9, "document",
+                "{\"action\":\"activate\",\"path\":\"" + docTitle + "\"}")));
+            Check("documento: «activate» riporta davanti il documento del banco",
+                  front() == docTitle, "davanti «" + front() + "» — " + Short(returns));
 
             // ── ROSSO: un file che non esiste non cambia niente ───────────
-            var inesistente = Path.Combine(Attese.Lavoro, "non-esiste-" + Guid.NewGuid().ToString("N") + ".sldprt");
-            var no = TestoDiRisposta(Mcp.Chiedi(p, 10, Chiamata(10, "document",
-                "{\"action\":\"open\",\"path\":\"" + inesistente.Replace("\\", "\\\\") + "\"}")));
-            Segna("documento: «open» su un file che non esiste rifiuta, e davanti resta quello di prima",
-                  no.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) >= 0 && davanti() == titolo,
-                  "davanti «" + davanti() + "» — " + Corto(no));
+            var nonexistent = Path.Combine(Expectations.Work, "non-esiste-" + Guid.NewGuid().ToString("N") + ".sldprt");
+            var no = ResponseText(Mcp.Ask(p, 10, Call(10, "document",
+                "{\"action\":\"open\",\"path\":\"" + nonexistent.Replace("\\", "\\\\") + "\"}")));
+            Check("documento: «open» su un file che non esiste rifiuta, e davanti resta quello di prima",
+                  no.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) >= 0 && front() == docTitle,
+                  "davanti «" + front() + "» — " + Short(no));
 
             // ── apri un file vero: si salva la parte nuova, la si chiude, la si
             //    riapre dal ponte, e il percorso deve essere quello chiesto ─
-            salvato = Path.Combine(Attese.Lavoro, "porta_documento.sldprt");
-            try { if (File.Exists(salvato)) { File.SetAttributes(salvato, FileAttributes.Normal); File.Delete(salvato); } } catch { }
+            saved = Path.Combine(Expectations.Work, "porta_documento.sldprt");
+            try { if (File.Exists(saved)) { File.SetAttributes(saved, FileAttributes.Normal); File.Delete(saved); } } catch { }
             // IL RIFERIMENTO PRESO DOPO «create», non una ricerca per nome.
             // `GetOpenDocumentByName` con il titolo di un documento MAI SALVATO
             // torna null — misurato: la prima stesura salvava cosi', riceveva
             // e=0 w=0 da una chiamata mai fatta, e il file non c'era.
-            var daSalvare = attivo;
+            var toSave = active;
             int e = 0, w = 0;
-            if (daSalvare != null) daSalvare.Extension.SaveAs(salvato, 0, 1, null, ref e, ref w);
-            if (daSalvare == null || !File.Exists(salvato))
+            if (toSave != null) toSave.Extension.SaveAs(saved, 0, 1, null, ref e, ref w);
+            if (toSave == null || !File.Exists(saved))
             {
-                ErroreDiBanco("documento: apri", "non sono riuscito a salvare «" + salvato + "» (e=" + e + ", w=" + w +
-                              (daSalvare == null ? ", nessun documento in mano" : "") + ")");
+                BenchError("documento: apri", "non sono riuscito a salvare «" + saved + "» (e=" + e + ", w=" + w +
+                              (toSave == null ? ", nessun documento in mano" : "") + ")");
                 return;
             }
-            _sw.CloseDoc(daSalvare.GetTitle());
-            nuovoTitolo = null;
+            _sw.CloseDoc(toSave.GetTitle());
+            newTitle = null;
 
-            var aperto = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 11, Chiamata(11, "document",
-                "{\"action\":\"open\",\"path\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
-            var percorsoAperto = Convert.ToString(Mcp.Dentro(aperto, "path"));
+            var open = Mcp.Obj(ResponseText(Mcp.Ask(p, 11, Call(11, "document",
+                "{\"action\":\"open\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
+            var openPath = Convert.ToString(Mcp.Inside(open, "path"));
             var att = _sw.IActiveDoc2;
-            Segna("documento: «open» apre il file chiesto e lo porta davanti, riletto dalla COM",
-                  string.Equals(percorsoAperto, salvato, StringComparison.OrdinalIgnoreCase) &&
-                  att != null && string.Equals(att.GetPathName(), salvato, StringComparison.OrdinalIgnoreCase),
-                  "risposta «" + percorsoAperto + "», davanti «" + (att == null ? "(niente)" : att.GetPathName()) + "»");
-            Segna("documento: e un file scrivibile non e' dichiarato in sola lettura",
-                  Convert.ToString(Mcp.Dentro(aperto, "read_only")).Equals("False", StringComparison.OrdinalIgnoreCase),
-                  Convert.ToString(Mcp.Dentro(aperto, "read_only")));
+            Check("documento: «open» apre il file chiesto e lo porta davanti, riletto dalla COM",
+                  string.Equals(openPath, saved, StringComparison.OrdinalIgnoreCase) &&
+                  att != null && string.Equals(att.GetPathName(), saved, StringComparison.OrdinalIgnoreCase),
+                  "risposta «" + openPath + "», davanti «" + (att == null ? "(niente)" : att.GetPathName()) + "»");
+            Check("documento: e un file scrivibile non e' dichiarato in sola lettura",
+                  Convert.ToString(Mcp.Inside(open, "read_only")).Equals("False", StringComparison.OrdinalIgnoreCase),
+                  Convert.ToString(Mcp.Inside(open, "read_only")));
 
             // ── Z-B2: lo stesso file con l'attributo di sola lettura ───────
             //
@@ -311,22 +311,22 @@ namespace Oce.Solid.Agent.Bench
             // rosso economico e' l'attributo del file: SOLIDWORKS lo apre lo
             // stesso, in sola lettura, SENZA chiedere niente — che e' esattamente
             // il silenzio che la voce vuole vedere detto.
-            _sw.CloseDoc(Path.GetFileName(salvato));
-            File.SetAttributes(salvato, FileAttributes.ReadOnly);
-            var soloLettura = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 12, Chiamata(12, "document",
-                "{\"action\":\"open\",\"path\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
-            Segna("documento: un file in sola lettura si apre e il ponte LO DICE",
-                  Convert.ToString(Mcp.Dentro(soloLettura, "read_only")).Equals("True", StringComparison.OrdinalIgnoreCase) &&
-                  Mcp.Dentro(soloLettura, "warning") != null,
-                  Corto(Convert.ToString(Mcp.Dentro(soloLettura, "warning")) + " | read_only=" +
-                        Convert.ToString(Mcp.Dentro(soloLettura, "read_only"))));
+            _sw.CloseDoc(Path.GetFileName(saved));
+            File.SetAttributes(saved, FileAttributes.ReadOnly);
+            var readOnlyMode = Mcp.Obj(ResponseText(Mcp.Ask(p, 12, Call(12, "document",
+                "{\"action\":\"open\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
+            Check("documento: un file in sola lettura si apre e il ponte LO DICE",
+                  Convert.ToString(Mcp.Inside(readOnlyMode, "read_only")).Equals("True", StringComparison.OrdinalIgnoreCase) &&
+                  Mcp.Inside(readOnlyMode, "warning") != null,
+                  Short(Convert.ToString(Mcp.Inside(readOnlyMode, "warning")) + " | read_only=" +
+                        Convert.ToString(Mcp.Inside(readOnlyMode, "read_only"))));
 
             // ── chiudi (voce Z-B1): il ROSSO prima, su un documento sporco ──
             //
             // Il documento del banco ha l'estrusione del passo 2 e non e' mai
             // stato salvato: chiuderlo butterebbe lavoro. Il ponte deve
             // rifiutare, e il banco rilegge dalla COM che sia ancora aperto.
-            Func<string, bool> aperto2 = t =>
+            Func<string, bool> open2 = t =>
             {
                 var d = _sw.GetFirstDocument() as IModelDoc2;
                 for (int i = 0; d != null && i < 500; i++)
@@ -336,23 +336,23 @@ namespace Oce.Solid.Agent.Bench
                 }
                 return false;
             };
-            var sporco = TestoDiRisposta(Mcp.Chiedi(p, 13, Chiamata(13, "document",
-                "{\"action\":\"close\",\"path\":\"" + titolo + "\"}")));
-            Segna("documento: «close» su un documento con modifiche non salvate rifiuta, e resta aperto",
-                  sporco.IndexOf("modifiche non salvate", StringComparison.OrdinalIgnoreCase) >= 0 && aperto2(titolo),
-                  "ancora aperto " + aperto2(titolo) + " — " + Corto(sporco));
+            var dirty = ResponseText(Mcp.Ask(p, 13, Call(13, "document",
+                "{\"action\":\"close\",\"path\":\"" + docTitle + "\"}")));
+            Check("documento: «close» su un documento con modifiche non salvate rifiuta, e resta aperto",
+                  dirty.IndexOf("modifiche non salvate", StringComparison.OrdinalIgnoreCase) >= 0 && open2(docTitle),
+                  "ancora aperto " + open2(docTitle) + " — " + Short(dirty));
 
             // ── e la GEMELLA: un documento appena aperto, senza modifiche ──
             // Il titolo porta l'estensione o no a seconda di come Windows mostra
             // i file: si confronta il gambo del nome.
-            string gambo = Path.GetFileNameWithoutExtension(salvato);
-            var chiuso = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 14, Chiamata(14, "document",
-                "{\"action\":\"close\",\"path\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
-            bool sparito = _sw.GetOpenDocumentByName(salvato) == null;
-            Segna("documento: «close» su un documento senza modifiche lo chiude, riletto dalla COM",
-                  sparito && Convert.ToString(Mcp.Dentro(chiuso, "closed"))
-                                 .StartsWith(gambo, StringComparison.OrdinalIgnoreCase),
-                  "sparito dalla COM " + sparito + " — chiuso «" + Convert.ToString(Mcp.Dentro(chiuso, "closed")) + "»");
+            string shank = Path.GetFileNameWithoutExtension(saved);
+            var closed = Mcp.Obj(ResponseText(Mcp.Ask(p, 14, Call(14, "document",
+                "{\"action\":\"close\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
+            bool disappeared = _sw.GetOpenDocumentByName(saved) == null;
+            Check("documento: «close» su un documento senza modifiche lo chiude, riletto dalla COM",
+                  disappeared && Convert.ToString(Mcp.Inside(closed, "closed"))
+                                 .StartsWith(shank, StringComparison.OrdinalIgnoreCase),
+                  "sparito dalla COM " + disappeared + " — chiuso «" + Convert.ToString(Mcp.Inside(closed, "closed")) + "»");
         }
 
         /// <summary>
@@ -372,7 +372,7 @@ namespace Oce.Solid.Agent.Bench
         ///     its own undo entry on top). Plan 2 is the last plan, so `undo`
         ///     must withdraw it: the reorder goes, every plan-1 feature stays.
         ///     RED ON BRIDGE 0.124.1, by the code path: plan 2 did not build, so
-        ///     the memory `_ultimoPiano` was set to null there (`haCostruito`
+        ///     the memory `_ultimoPiano` was set to null there (`hasBuilt`
         ///     false) and `undo` answered that it had no plan to withdraw;
         ///     the answer of plan 2 had no `undo_entry_recorded` either. (Red on
         ///     the first version of this lot too: it refused before pressing.)
@@ -381,11 +381,11 @@ namespace Oce.Solid.Agent.Bench
         ///     action `activate`; `undo` must withdraw the plan from the part.
         ///     RED ON BRIDGE 0.124.1, by the code path, for the reason the live
         ///     probe M19 measured in its phase N: the state after the plan was
-        ///     read on the window in front (McpTools.cs:2113, `_sessione.Stato`),
+        ///     read on the window in front (McpTools.cs:2113, `_sessione.State`),
         ///     the drawing, whose volume and feature count did not change, so
-        ///     `haCostruito` was false, no memory was written, and `undo`
+        ///     `hasBuilt` was false, no memory was written, and `undo`
         ///     answered that it had no plan to withdraw («NOTHING TO WITHDRAW
-        ///     (haCostruito false: no memory written)» in the probe); and the
+        ///     (hasBuilt false: no memory written)» in the probe); and the
         ///     answer of the plan named no document in front.
         ///  c. plan 1 builds a plate; a `measure` (`mass_properties`) follows;
         ///     `undo` must withdraw plan 1, since a measure is not a plan and
@@ -408,10 +408,10 @@ namespace Oce.Solid.Agent.Bench
         ///     first version of this lot too: it pressed, and answered «NOT as it
         ///     was».)
         /// </summary>
-        private static void UndoHonesty(Mcp.Ponte p, string bridgeExe)
+        private static void UndoHonesty(Mcp.Bridge p, string bridgeExe)
         {
             IModelDoc2 partA = null, partB = null, partC = null, partD = null;
-            Mcp.Ponte second = null;
+            Mcp.Bridge second = null;
             string drawingTitle = null, savedB = null;
             try
             {
@@ -422,18 +422,18 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                ErroreDiBanco("undo honesty", Perche(ex));
+                BenchError("undo honesty", Why(ex));
             }
             finally
             {
-                if (second != null) { try { Mcp.Chiudi(second); second.Dispose(); } catch { } }
+                if (second != null) { try { Mcp.Close(second); second.Dispose(); } catch { } }
                 // The drawing first: it holds a reference to the part.
                 try { if (!string.IsNullOrEmpty(drawingTitle)) _sw.CloseDoc(drawingTitle); } catch { }
-                Chiudi(partA);
-                try { if (!string.IsNullOrEmpty(savedB)) _sw.CloseDoc(savedB); else Chiudi(partB); } catch { }
+                Close(partA);
+                try { if (!string.IsNullOrEmpty(savedB)) _sw.CloseDoc(savedB); else Close(partB); } catch { }
                 RemoveQuietly(savedB);
-                Chiudi(partC);
-                Chiudi(partD);
+                Close(partC);
+                Close(partD);
             }
         }
 
@@ -479,106 +479,106 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>Case a of <see cref="UndoHonesty"/>.</summary>
-        private static void UndoWithdrawsTheLastPlanEvenIfItOnlyReordered(Mcp.Ponte p, ref IModelDoc2 part)
+        private static void UndoWithdrawsTheLastPlanEvenIfItOnlyReordered(Mcp.Bridge p, ref IModelDoc2 part)
         {
-            part = NuovaParte();
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 40, Chiamata(40, "inspect_part", "{}")));
-            if (Mcp.Ogg(look) == null)
+            part = NewPart();
+            var look = ResponseText(Mcp.Ask(p, 40, Call(40, "inspect_part", "{}")));
+            if (Mcp.Obj(look) == null)
             {
-                ErroreDiBanco("undo honesty, case a", "inspect_part gave no state: " + Corto(look));
+                BenchError("undo honesty, case a", "inspect_part gave no state: " + Short(look));
                 return;
             }
 
             var before = FeaturesOf(part);
-            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 41, Chiamata(41, "build", PlateWithTwoHoles)));
+            var plan1 = ResponseText(Mcp.Ask(p, 41, Call(41, "build", PlateWithTwoHoles)));
             var afterPlan1 = FeaturesOf(part);
             var cuts = NewCuts(before, afterPlan1);
-            Segna("undo case a: plan 1 builds a plate with two holes, read by the bench through COM",
-                  cuts.Count == 2 && VolumeDiProva(part) > 1, "holes «" + string.Join("», «", cuts) + "», volume " +
-                  VolumeDiProva(part).ToString("0.#") + " mm3 — " + Corto(plan1));
+            Check("undo case a: plan 1 builds a plate with two holes, read by the bench through COM",
+                  cuts.Count == 2 && TestVolume(part) > 1, "holes «" + string.Join("», «", cuts) + "», volume " +
+                  TestVolume(part).ToString("0.#") + " mm3 — " + Short(plan1));
             if (cuts.Count != 2) return;
 
             // Plan 2: the second hole before the first. Same volume, same count.
-            double volumeAfterPlan1 = VolumeDiProva(part);
-            var plan2Text = TestoDiRisposta(Mcp.Chiedi(p, 42, Chiamata(42, "build", ReorderPlan(cuts))));
-            var plan2 = Mcp.Ogg(plan2Text);
+            double volumeAfterPlan1 = TestVolume(part);
+            var plan2Text = ResponseText(Mcp.Ask(p, 42, Call(42, "build", ReorderPlan(cuts))));
+            var plan2 = Mcp.Obj(plan2Text);
             bool reordered = Before(FeaturesOf(part), cuts[1], cuts[0]);
-            Segna("undo case a: plan 2 reorders the two holes, read by the bench through COM",
-                  reordered && Math.Abs(VolumeDiProva(part) - volumeAfterPlan1) < 0.01, Corto(plan2Text));
+            Check("undo case a: plan 2 reorders the two holes, read by the bench through COM",
+                  reordered && Math.Abs(TestVolume(part) - volumeAfterPlan1) < 0.01, Short(plan2Text));
             if (!reordered) return;
 
             // Measured on the bench of 1/10/2026: a reorder does not land in the
             // undo entry the executor records (FinishRecordingUndoObject answers
             // False), so nobody knows what sits on top of the undo stack. The
             // safe answer is to refuse without pressing, and say why.
-            object recorded = Mcp.Dentro(plan2, "undo_entry_recorded");
-            Segna("undo case a: plan 2 says it left no undo entry of its own (undo_entry_recorded false)",
+            object recorded = Mcp.Inside(plan2, "undo_entry_recorded");
+            Check("undo case a: plan 2 says it left no undo entry of its own (undo_entry_recorded false)",
                   recorded is bool && !(bool)recorded,
                   "undo_entry_recorded = " + (recorded == null ? "(absent)" : Convert.ToString(recorded)));
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 43, Chiamata(43, "undo", "{}")));
-            var undo = Mcp.Ogg(undoText);
-            object done = Mcp.Dentro(undo, "undone");
-            Segna("undo case a: `undo` refuses without pressing: the top of the undo stack is unknown",
-                  !(done is bool && (bool)done), Corto(undoText));
+            var undoText = ResponseText(Mcp.Ask(p, 43, Call(43, "undo", "{}")));
+            var undo = Mcp.Obj(undoText);
+            object done = Mcp.Inside(undo, "undone");
+            Check("undo case a: `undo` refuses without pressing: the top of the undo stack is unknown",
+                  !(done is bool && (bool)done), Short(undoText));
 
             var afterUndo = FeaturesOf(part);
-            Segna("undo case a: and the reorder is still there, read by the bench through COM",
+            Check("undo case a: and the reorder is still there, read by the bench through COM",
                   Before(afterUndo, cuts[1], cuts[0]),
                   "positions " + IndexOf(afterUndo, cuts[0]) + " and " + IndexOf(afterUndo, cuts[1]));
             bool allThere = true;
             foreach (var f in afterPlan1) if (IndexOf(afterUndo, f.Item1) < 0) allThere = false;
-            Segna("undo case a: and every plan-1 feature is still there, with the same volume",
-                  allThere && Math.Abs(VolumeDiProva(part) - volumeAfterPlan1) < 0.01,
+            Check("undo case a: and every plan-1 feature is still there, with the same volume",
+                  allThere && Math.Abs(TestVolume(part) - volumeAfterPlan1) < 0.01,
                   afterUndo.Count + " features (" + afterPlan1.Count + " after plan 1), volume " +
-                  volumeAfterPlan1.ToString("0.#") + " -> " + VolumeDiProva(part).ToString("0.#") + " mm3");
+                  volumeAfterPlan1.ToString("0.#") + " -> " + TestVolume(part).ToString("0.#") + " mm3");
         }
 
         /// <summary>Case b of <see cref="UndoHonesty"/>.</summary>
         private static void UndoAfterAnotherWindowCameInFront(
-            Mcp.Ponte p, ref IModelDoc2 part, ref string saved, ref string drawingTitle)
+            Mcp.Bridge p, ref IModelDoc2 part, ref string saved, ref string drawingTitle)
         {
             // create_drawing wants a part saved on disk.
-            part = NuovaParte();
-            string path = Path.Combine(Attese.Lavoro, "client_door_undo_drawing.sldprt");
+            part = NewPart();
+            string path = Path.Combine(Expectations.Work, "client_door_undo_drawing.sldprt");
             RemoveQuietly(path);
             int e = 0, w = 0;
             // SaveAs3, not the obsolete SaveAs frozen for Z-C21.7 (review F13).
             part.Extension.SaveAs3(path, 0, 1, null, null, ref e, ref w);
             if (!File.Exists(path))
             {
-                ErroreDiBanco("undo honesty, case b", "could not save «" + path + "» (e=" + e + ", w=" + w + ")");
+                BenchError("undo honesty, case b", "could not save «" + path + "» (e=" + e + ", w=" + w + ")");
                 return;
             }
             saved = path;
             string json = path.Replace("\\", "\\\\");
 
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 50, Chiamata(50, "inspect_part", "{}")));
-            if (Mcp.Ogg(look) == null)
+            var look = ResponseText(Mcp.Ask(p, 50, Call(50, "inspect_part", "{}")));
+            if (Mcp.Obj(look) == null)
             {
-                ErroreDiBanco("undo honesty, case b", "inspect_part gave no state: " + Corto(look));
+                BenchError("undo honesty, case b", "inspect_part gave no state: " + Short(look));
                 return;
             }
 
-            var planText = TestoDiRisposta(Mcp.Chiedi(p, 51, Chiamata(51, "build",
+            var planText = ResponseText(Mcp.Ask(p, 51, Call(51, "build",
                 "{\"steps\":[" +
                 "{\"operation\":\"extrude_rectangle\",\"arguments\":{\"plane\":\"top\"," +
                 "\"length_mm\":100,\"width_mm\":60,\"thickness_mm\":10,\"centered\":true}}," +
                 "{\"operation\":\"create_drawing\",\"arguments\":{}}]}")));
-            var plan = Mcp.Ogg(planText);
+            var plan = Mcp.Obj(planText);
             IModelDoc2 front = _sw.IActiveDoc2;
             bool drawingInFront = front != null &&
                 front.GetType() == (int)SolidWorks.Interop.swconst.swDocumentTypes_e.swDocDRAWING;
             if (drawingInFront) drawingTitle = front.GetTitle();
-            Segna("undo case b: the plan ends with its drawing in front, read by the bench through COM",
-                  drawingInFront, "in front «" + (front == null ? "(nothing)" : front.GetTitle()) + "» — " + Corto(planText));
+            Check("undo case b: the plan ends with its drawing in front, read by the bench through COM",
+                  drawingInFront, "in front «" + (front == null ? "(nothing)" : front.GetTitle()) + "» — " + Short(planText));
             if (!drawingInFront) return;
 
-            string named = Convert.ToString(Mcp.Dentro(plan, "document_in_front")) ?? "";
-            Segna("undo case b: the answer of `build` says which document is in front",
+            string named = Convert.ToString(Mcp.Inside(plan, "document_in_front")) ?? "";
+            Check("undo case b: the answer of `build` says which document is in front",
                   named.Length > 0 && named.IndexOf(drawingTitle, StringComparison.OrdinalIgnoreCase) >= 0,
                   "document_in_front «" + named + "», the bench sees «" + drawingTitle + "»");
-            object volumeAfter = Mcp.Dentro(plan, "volume_after_mm3");
+            object volumeAfter = Mcp.Inside(plan, "volume_after_mm3");
             double volumeAnswered;
             bool readable = volumeAfter != null &&
                 double.TryParse(Convert.ToString(volumeAfter, System.Globalization.CultureInfo.InvariantCulture),
@@ -586,128 +586,128 @@ namespace Oce.Solid.Agent.Bench
                                 System.Globalization.CultureInfo.InvariantCulture, out volumeAnswered) &&
                 Math.Abs(volumeAnswered - 60000) < 1;
             // 100 x 60 x 10 = 60000 mm3, and the part started empty.
-            Segna("undo case b: and its volume_after_mm3 is the part's (60000 mm3), not the drawing's",
+            Check("undo case b: and its volume_after_mm3 is the part's (60000 mm3), not the drawing's",
                   readable, "volume_after_mm3 = " + (volumeAfter == null ? "(absent)" : Convert.ToString(volumeAfter)));
 
             string extrusion = null;
             foreach (var f in FeaturesOf(part)) if (f.Item2 == "Extrusion") extrusion = f.Item1;
 
-            var back = TestoDiRisposta(Mcp.Chiedi(p, 52, Chiamata(52, "document",
+            var back = ResponseText(Mcp.Ask(p, 52, Call(52, "document",
                 "{\"action\":\"activate\",\"path\":\"" + json + "\"}")));
             IModelDoc2 nowInFront = _sw.IActiveDoc2;
             bool partInFront = nowInFront != null &&
                 string.Equals(nowInFront.GetPathName(), path, StringComparison.OrdinalIgnoreCase);
-            Segna("undo case b: `document` with `activate` brings the part back to the front, read by the bench through COM",
-                  partInFront, "in front «" + (nowInFront == null ? "(nothing)" : nowInFront.GetPathName()) + "» — " + Corto(back));
+            Check("undo case b: `document` with `activate` brings the part back to the front, read by the bench through COM",
+                  partInFront, "in front «" + (nowInFront == null ? "(nothing)" : nowInFront.GetPathName()) + "» — " + Short(back));
             if (!partInFront) return;
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 53, Chiamata(53, "undo", "{}")));
-            var undo = Mcp.Ogg(undoText);
-            object done = Mcp.Dentro(undo, "undone");
-            Segna("undo case b: `undo` withdraws the plan from the part, the drawing having been in front",
-                  done is bool && (bool)done, Corto(undoText));
+            var undoText = ResponseText(Mcp.Ask(p, 53, Call(53, "undo", "{}")));
+            var undo = Mcp.Obj(undoText);
+            object done = Mcp.Inside(undo, "undone");
+            Check("undo case b: `undo` withdraws the plan from the part, the drawing having been in front",
+                  done is bool && (bool)done, Short(undoText));
             var left = FeaturesOf(part);
-            Segna("undo case b: and the bench reads the part empty again: the extrusion is gone",
-                  extrusion != null && IndexOf(left, extrusion) < 0 && VolumeDiProva(part) < 0.001,
+            Check("undo case b: and the bench reads the part empty again: the extrusion is gone",
+                  extrusion != null && IndexOf(left, extrusion) < 0 && TestVolume(part) < 0.001,
                   "extrusion «" + (extrusion ?? "(not found before)") + "» at position " +
                   (extrusion == null ? -1 : IndexOf(left, extrusion)) + ", volume " +
-                  VolumeDiProva(part).ToString("0.###") + " mm3");
+                  TestVolume(part).ToString("0.###") + " mm3");
         }
 
         /// <summary>Case c of <see cref="UndoHonesty"/>.</summary>
-        private static void UndoAfterAMeasure(Mcp.Ponte p, ref IModelDoc2 part)
+        private static void UndoAfterAMeasure(Mcp.Bridge p, ref IModelDoc2 part)
         {
-            part = NuovaParte();
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 70, Chiamata(70, "inspect_part", "{}")));
-            if (Mcp.Ogg(look) == null)
+            part = NewPart();
+            var look = ResponseText(Mcp.Ask(p, 70, Call(70, "inspect_part", "{}")));
+            if (Mcp.Obj(look) == null)
             {
-                ErroreDiBanco("undo honesty, case c", "inspect_part gave no state: " + Corto(look));
+                BenchError("undo honesty, case c", "inspect_part gave no state: " + Short(look));
                 return;
             }
 
-            var plan = TestoDiRisposta(Mcp.Chiedi(p, 71, Chiamata(71, "build",
+            var plan = ResponseText(Mcp.Ask(p, 71, Call(71, "build",
                 "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":{\"plane\":\"top\"," +
                 "\"length_mm\":80,\"width_mm\":50,\"thickness_mm\":10,\"centered\":true}}]}")));
             string extrusion = null;
             foreach (var f in FeaturesOf(part)) if (f.Item2 == "Extrusion") extrusion = f.Item1;
             // 80 x 50 x 10 = 40000 mm3, and the part started empty.
-            Segna("undo case c: the plan builds a plate, read by the bench through COM",
-                  extrusion != null && Math.Abs(VolumeDiProva(part) - 40000) < 1,
-                  "extrusion «" + (extrusion ?? "(none)") + "», volume " + VolumeDiProva(part).ToString("0.#") +
-                  " mm3 — " + Corto(plan));
+            Check("undo case c: the plan builds a plate, read by the bench through COM",
+                  extrusion != null && Math.Abs(TestVolume(part) - 40000) < 1,
+                  "extrusion «" + (extrusion ?? "(none)") + "», volume " + TestVolume(part).ToString("0.#") +
+                  " mm3 — " + Short(plan));
             if (extrusion == null) return;
 
-            var measureText = TestoDiRisposta(Mcp.Chiedi(p, 72, Chiamata(72, "measure",
+            var measureText = ResponseText(Mcp.Ask(p, 72, Call(72, "measure",
                 "{\"steps\":[{\"operation\":\"mass_properties\",\"arguments\":{}}]}")));
-            object measureEntry = Mcp.Dentro(Mcp.Ogg(measureText), "undo_entry_recorded");
+            object measureEntry = Mcp.Inside(Mcp.Obj(measureText), "undo_entry_recorded");
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 73, Chiamata(73, "undo", "{}")));
-            object done = Mcp.Dentro(Mcp.Ogg(undoText), "undone");
-            Segna("undo case c: after a measure, `undo` still withdraws the plan",
+            var undoText = ResponseText(Mcp.Ask(p, 73, Call(73, "undo", "{}")));
+            object done = Mcp.Inside(Mcp.Obj(undoText), "undone");
+            Check("undo case c: after a measure, `undo` still withdraws the plan",
                   done is bool && (bool)done,
                   "the measure answered undo_entry_recorded = " +
-                  (measureEntry == null ? "(absent)" : Convert.ToString(measureEntry)) + " — " + Corto(undoText));
-            Segna("undo case c: and the bench reads the part empty again: the extrusion is gone",
-                  IndexOf(FeaturesOf(part), extrusion) < 0 && VolumeDiProva(part) < 0.001,
+                  (measureEntry == null ? "(absent)" : Convert.ToString(measureEntry)) + " — " + Short(undoText));
+            Check("undo case c: and the bench reads the part empty again: the extrusion is gone",
+                  IndexOf(FeaturesOf(part), extrusion) < 0 && TestVolume(part) < 0.001,
                   "extrusion at position " + IndexOf(FeaturesOf(part), extrusion) + ", volume " +
-                  VolumeDiProva(part).ToString("0.###") + " mm3");
+                  TestVolume(part).ToString("0.###") + " mm3");
         }
 
         /// <summary>Case d of <see cref="UndoHonesty"/>.</summary>
         private static void UndoAfterAnotherBridgeReordered(
-            Mcp.Ponte p, string bridgeExe, ref IModelDoc2 part, ref Mcp.Ponte second)
+            Mcp.Bridge p, string bridgeExe, ref IModelDoc2 part, ref Mcp.Bridge second)
         {
-            part = NuovaParte();
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 60, Chiamata(60, "inspect_part", "{}")));
-            if (Mcp.Ogg(look) == null)
+            part = NewPart();
+            var look = ResponseText(Mcp.Ask(p, 60, Call(60, "inspect_part", "{}")));
+            if (Mcp.Obj(look) == null)
             {
-                ErroreDiBanco("undo honesty, case d", "inspect_part gave no state: " + Corto(look));
+                BenchError("undo honesty, case d", "inspect_part gave no state: " + Short(look));
                 return;
             }
             var before = FeaturesOf(part);
-            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 61, Chiamata(61, "build", PlateWithTwoHoles)));
+            var plan1 = ResponseText(Mcp.Ask(p, 61, Call(61, "build", PlateWithTwoHoles)));
             var afterPlan1 = FeaturesOf(part);
             var cuts = NewCuts(before, afterPlan1);
-            Segna("undo case d: bridge 1 builds a plate with two holes, read by the bench through COM",
-                  cuts.Count == 2, "holes «" + string.Join("», «", cuts) + "» — " + Corto(plan1));
+            Check("undo case d: bridge 1 builds a plate with two holes, read by the bench through COM",
+                  cuts.Count == 2, "holes «" + string.Join("», «", cuts) + "» — " + Short(plan1));
             if (cuts.Count != 2) return;
-            double volumeAfterPlan1 = VolumeDiProva(part);
+            double volumeAfterPlan1 = TestVolume(part);
 
             // A second bridge process, on the same SOLIDWORKS and the same part.
-            second = bridgeExe == null ? null : Mcp.Apri(bridgeExe);
-            var hello = second == null ? null : Mcp.Chiedi(second, 1,
+            second = bridgeExe == null ? null : Mcp.Open(bridgeExe);
+            var hello = second == null ? null : Mcp.Ask(second, 1,
                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                 "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
                 "\"clientInfo\":{\"name\":\"banco-2\",\"version\":\"1\"}}}");
             if (hello == null)
             {
-                ErroreDiBanco("undo honesty, case d", "the second bridge did not start or did not answer initialize");
+                BenchError("undo honesty, case d", "the second bridge did not start or did not answer initialize");
                 return;
             }
-            var look2 = TestoDiRisposta(Mcp.Chiedi(second, 2, Chiamata(2, "inspect_part", "{}")));
-            var reorderText = TestoDiRisposta(Mcp.Chiedi(second, 3, Chiamata(3, "build", ReorderPlan(cuts))));
+            var look2 = ResponseText(Mcp.Ask(second, 2, Call(2, "inspect_part", "{}")));
+            var reorderText = ResponseText(Mcp.Ask(second, 3, Call(3, "build", ReorderPlan(cuts))));
             bool reordered = Before(FeaturesOf(part), cuts[1], cuts[0]);
-            Segna("undo case d: bridge 2 reorders the two holes, read by the bench through COM",
-                  reordered, Corto(reorderText) + " (it looked: " + Corto(look2) + ")");
+            Check("undo case d: bridge 2 reorders the two holes, read by the bench through COM",
+                  reordered, Short(reorderText) + " (it looked: " + Short(look2) + ")");
             if (!reordered) return;
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 62, Chiamata(62, "undo", "{}")));
-            var undo = Mcp.Ogg(undoText);
-            object refused = Mcp.Dentro(undo, "refused_before_pressing");
-            object done = Mcp.Dentro(undo, "undone");
-            Segna("undo case d: bridge 1's `undo` refuses BEFORE pressing: the part is not as its plan left it",
+            var undoText = ResponseText(Mcp.Ask(p, 62, Call(62, "undo", "{}")));
+            var undo = Mcp.Obj(undoText);
+            object refused = Mcp.Inside(undo, "refused_before_pressing");
+            object done = Mcp.Inside(undo, "undone");
+            Check("undo case d: bridge 1's `undo` refuses BEFORE pressing: the part is not as its plan left it",
                   refused is bool && (bool)refused && done is bool && !(bool)done &&
-                  (Convert.ToString(Mcp.Dentro(undo, "reason")) ?? "").IndexOf("order", StringComparison.OrdinalIgnoreCase) >= 0,
-                  Corto(undoText));
+                  (Convert.ToString(Mcp.Inside(undo, "reason")) ?? "").IndexOf("order", StringComparison.OrdinalIgnoreCase) >= 0,
+                  Short(undoText));
 
             var afterUndo = FeaturesOf(part);
             bool allThere = true;
             foreach (var f in afterPlan1) if (IndexOf(afterUndo, f.Item1) < 0) allThere = false;
-            Segna("undo case d: and bridge 2's reorder and every plan-1 feature are still there, read by the bench through COM",
+            Check("undo case d: and bridge 2's reorder and every plan-1 feature are still there, read by the bench through COM",
                   Before(afterUndo, cuts[1], cuts[0]) && allThere &&
-                  Math.Abs(VolumeDiProva(part) - volumeAfterPlan1) < 0.01,
+                  Math.Abs(TestVolume(part) - volumeAfterPlan1) < 0.01,
                   "positions " + IndexOf(afterUndo, cuts[1]) + " and " + IndexOf(afterUndo, cuts[0]) + ", " +
-                  afterUndo.Count + " features, volume " + VolumeDiProva(part).ToString("0.#") + " mm3");
+                  afterUndo.Count + " features, volume " + TestVolume(part).ToString("0.#") + " mm3");
         }
 
         /// <summary>The features of a document as (name, type), in tree order.</summary>
@@ -764,51 +764,51 @@ namespace Oce.Solid.Agent.Bench
         /// chiude e LO STESSO ponte deve tornare a lavorare: e' la gemella, senza
         /// la quale una guardia che rifiuta sempre passerebbe questa prova.
         /// </summary>
-        private static void IlModale(Mcp.Ponte p, IModelDoc2 doc)
+        private static void TheModal(Mcp.Bridge p, IModelDoc2 doc)
         {
-            IntPtr cornice = IntPtr.Zero;
-            try { cornice = new IntPtr(((IFrame)_sw.Frame()).GetHWnd()); } catch { }
+            IntPtr frameBorder = IntPtr.Zero;
+            try { frameBorder = new IntPtr(((IFrame)_sw.Frame()).GetHWnd()); } catch { }
             uint pid = 0;
-            if (cornice != IntPtr.Zero) GetWindowThreadProcessId(cornice, out pid);
+            if (frameBorder != IntPtr.Zero) GetWindowThreadProcessId(frameBorder, out pid);
             if (pid == 0)
             {
-                ErroreDiBanco("il modale", "non leggo la finestra principale di SOLIDWORKS");
+                BenchError("il modale", "non leggo la finestra principale di SOLIDWORKS");
                 return;
             }
 
-            var filo = new System.Threading.Thread(() =>
+            var wire = new System.Threading.Thread(() =>
             {
                 try
                 {
-                    var suo = (ISldWorks)System.Runtime.InteropServices.Marshal.GetActiveObject("SldWorks.Application");
-                    suo.SendMsgToUser2("Banco, voce Z-C3: questa finestra si chiude da sola.",
+                    var its = (ISldWorks)System.Runtime.InteropServices.Marshal.GetActiveObject("SldWorks.Application");
+                    its.SendMsgToUser2("Banco, voce Z-C3: questa finestra si chiude da sola.",
                         (int)SolidWorks.Interop.swconst.swMessageBoxIcon_e.swMbInformation,
                         (int)SolidWorks.Interop.swconst.swMessageBoxBtn_e.swMbOk);
                 }
                 catch { }
             });
-            filo.SetApartmentState(System.Threading.ApartmentState.STA);
-            filo.IsBackground = true;
-            filo.Start();
+            wire.SetApartmentState(System.Threading.ApartmentState.STA);
+            wire.IsBackground = true;
+            wire.Start();
 
-            IntPtr dialogo = IntPtr.Zero;
+            IntPtr dialog = IntPtr.Zero;
             var t0 = System.Diagnostics.Stopwatch.StartNew();
-            while (dialogo == IntPtr.Zero && t0.ElapsedMilliseconds < 8000)
+            while (dialog == IntPtr.Zero && t0.ElapsedMilliseconds < 8000)
             {
                 System.Threading.Thread.Sleep(100);
-                dialogo = DialogoDi(pid);
+                dialog = DialogOf(pid);
             }
-            if (dialogo == IntPtr.Zero)
+            if (dialog == IntPtr.Zero)
             {
-                ErroreDiBanco("il modale", "la finestra di messaggio non si e' vista entro 8 s: la guardia non si puo' provare");
+                BenchError("il modale", "la finestra di messaggio non si e' vista entro 8 s: la guardia non si puo' provare");
                 return;
             }
 
-            string conModale;
-            double volumePrima = VolumeDiProva(doc), volumeDopo;
+            string withModal;
+            double volumeBefore = TestVolume(doc), volumeAfter;
             try
             {
-                conModale = TestoDiRisposta(Mcp.Chiedi(p, 30, Chiamata(30, "build",
+                withModal = ResponseText(Mcp.Ask(p, 30, Call(30, "build",
                     "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                     "{\"length_mm\":20,\"width_mm\":20,\"thickness_mm\":5}}]}")));
             }
@@ -816,30 +816,30 @@ namespace Oce.Solid.Agent.Bench
             {
                 // IL MODALE SI CHIUDE IN OGNI CASO: lasciato aperto, pianta il
                 // resto del giro e quello dopo.
-                PostMessage(dialogo, 0x0010, IntPtr.Zero, IntPtr.Zero);
-                filo.Join(8000);
+                PostMessage(dialog, 0x0010, IntPtr.Zero, IntPtr.Zero);
+                wire.Join(8000);
                 System.Threading.Thread.Sleep(300);
             }
-            volumeDopo = VolumeDiProva(doc);
+            volumeAfter = TestVolume(doc);
 
-            Segna("modale: con una finestra modale aperta il piano e' rifiutato con la frase della guardia",
-                  conModale.IndexOf("finestra aperta che aspetta una risposta", StringComparison.OrdinalIgnoreCase) >= 0,
-                  Corto(conModale));
-            Segna("modale: e il pezzo non e' cambiato",
-                  Math.Abs(volumeDopo - volumePrima) < 0.01,
-                  volumePrima.ToString("0.#") + " -> " + volumeDopo.ToString("0.#") + " mm3");
+            Check("modale: con una finestra modale aperta il piano e' rifiutato con la frase della guardia",
+                  withModal.IndexOf("finestra aperta che aspetta una risposta", StringComparison.OrdinalIgnoreCase) >= 0,
+                  Short(withModal));
+            Check("modale: e il pezzo non e' cambiato",
+                  Math.Abs(volumeAfter - volumeBefore) < 0.01,
+                  volumeBefore.ToString("0.#") + " -> " + volumeAfter.ToString("0.#") + " mm3");
 
             // LA GEMELLA: modale chiuso, finestra abilitata, e lo stesso ponte
             // lavora. Un'operazione che legge soltanto, per non cambiare il pezzo
             // su cui il resto del gruppo conta.
-            bool abilitata = IsWindowEnabled(cornice);
-            var senza = TestoDiRisposta(Mcp.Chiedi(p, 31, Chiamata(31, "build",
+            bool enabled = IsWindowEnabled(frameBorder);
+            var without = ResponseText(Mcp.Ask(p, 31, Call(31, "build",
                 "{\"steps\":[{\"operation\":\"mass_properties\",\"arguments\":{}}]}")));
-            Segna("modale: chiuso il modale, lo stesso ponte torna a lavorare",
-                  abilitata && senza.IndexOf("finestra aperta", StringComparison.OrdinalIgnoreCase) < 0 &&
-                  (senza.IndexOf("\"succeeded\":true", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   senza.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0),
-                  "finestra abilitata " + abilitata + " — " + Corto(senza));
+            Check("modale: chiuso il modale, lo stesso ponte torna a lavorare",
+                  enabled && without.IndexOf("finestra aperta", StringComparison.OrdinalIgnoreCase) < 0 &&
+                  (without.IndexOf("\"succeeded\":true", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   without.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0),
+                  "finestra abilitata " + enabled + " — " + Short(without));
         }
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -857,40 +857,40 @@ namespace Oce.Solid.Agent.Bench
         private static extern bool EnumWindows(EnumProc f, IntPtr l);
 
         /// <summary>Una finestra di dialogo (#32770) visibile del processo dato.</summary>
-        private static IntPtr DialogoDi(uint pid)
+        private static IntPtr DialogOf(uint pid)
         {
-            IntPtr trovato = IntPtr.Zero;
+            IntPtr found = IntPtr.Zero;
             EnumWindows((h, l) =>
             {
-                uint suo;
-                GetWindowThreadProcessId(h, out suo);
-                if (suo != pid || !IsWindowVisible(h)) return true;
-                var nome = new System.Text.StringBuilder(64);
-                GetClassName(h, nome, nome.Capacity);
-                if (nome.ToString() == "#32770") { trovato = h; return false; }
+                uint its;
+                GetWindowThreadProcessId(h, out its);
+                if (its != pid || !IsWindowVisible(h)) return true;
+                var itemName = new System.Text.StringBuilder(64);
+                GetClassName(h, itemName, itemName.Capacity);
+                if (itemName.ToString() == "#32770") { found = h; return false; }
                 return true;
             }, IntPtr.Zero);
-            return trovato;
+            return found;
         }
 
         /// <summary>L'eseguibile del ponte, o `null`.</summary>
-        private static string IlPonte()
+        private static string TheBridge()
         {
             try
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
-                var radice = Directory.GetParent(Directory.GetParent(bin).FullName).FullName;
-                var p = Path.Combine(radice, "bin", "oce-solid-agent-mcp.exe");
+                var root = Directory.GetParent(Directory.GetParent(bin).FullName).FullName;
+                var p = Path.Combine(root, "bin", "oce-solid-agent-mcp.exe");
                 return File.Exists(p) ? p : null;
             }
             catch { return null; }
         }
 
         /// <summary>Una riga `tools/call` bell'e pronta.</summary>
-        private static string Chiamata(int id, string nome, string argomenti)
+        private static string Call(int id, string itemName, string arguments)
         {
             return "{\"jsonrpc\":\"2.0\",\"id\":" + id + ",\"method\":\"tools/call\",\"params\":" +
-                   "{\"name\":\"" + nome + "\",\"arguments\":" + argomenti + "}}";
+                   "{\"name\":\"" + itemName + "\",\"arguments\":" + arguments + "}}";
         }
 
         /// <summary>
@@ -902,15 +902,15 @@ namespace Oce.Solid.Agent.Bench
         /// prova rossa. Una stringa vuota direbbe «non c'era niente», che e'
         /// un'altra cosa.
         /// </summary>
-        private static string TestoDiRisposta(string riga)
+        private static string ResponseText(string line)
         {
-            if (riga == null) return "(nessuna risposta)";
-            var o = Mcp.Ogg(riga);
-            var risultato = Mcp.Dentro(o, "result") as Dictionary<string, object>;
-            var contenuto = Mcp.Dentro(risultato, "content") as object[];
-            if (contenuto == null || contenuto.Length == 0) return riga;
-            var t = Convert.ToString(Mcp.Dentro(contenuto[0], "text"));
-            return string.IsNullOrEmpty(t) ? riga : t;
+            if (line == null) return "(nessuna risposta)";
+            var o = Mcp.Obj(line);
+            var result = Mcp.Inside(o, "result") as Dictionary<string, object>;
+            var content = Mcp.Inside(result, "content") as object[];
+            if (content == null || content.Length == 0) return line;
+            var t = Convert.ToString(Mcp.Inside(content[0], "text"));
+            return string.IsNullOrEmpty(t) ? line : t;
         }
 
         /// <summary>
@@ -926,7 +926,7 @@ namespace Oce.Solid.Agent.Bench
         /// M0). A part without solid bodies gives no object (the page: «a part
         /// with surface bodies only: Null»), hence 0 as before.
         /// </summary>
-        private static double VolumeDiProva(IModelDoc2 doc)
+        private static double TestVolume(IModelDoc2 doc)
         {
             try
             {

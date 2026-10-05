@@ -34,8 +34,8 @@ namespace Oce.Solid.Agent.Core
     ///
     /// Sono quattro, e ognuno dice di essere scattato:
     ///
-    ///   MaxFacce, MaxSpigoli  -> `truncated: true`
-    ///   MaxCorpi              -> `bodies_not_listed` + `bodies_total`
+    ///   MaxFaces, MaxEdges  -> `truncated: true`
+    ///   MaxBodies              -> `bodies_not_listed` + `bodies_total`
     ///   MaxFeature            -> `feature_not_listed` + `feature_total`
     ///                            + `truncated: true`
     ///
@@ -52,9 +52,9 @@ namespace Oce.Solid.Agent.Core
     /// UN TETTO CHE NON DICE DI ESSERE SCATTATO NON E' UN TETTO: e' una
     /// risposta sbagliata che si presenta come completa.
     /// </summary>
-    public partial class StatoDocumento
+    public partial class DocumentState
     {
-        public const int MaxFacce = 60;
+        public const int MaxFaces = 60;
 
         /// <summary>
         /// TRENTA, NON SESSANTA, E IL NUMERO VIENE DA UNA MISURA (voce K13).
@@ -98,16 +98,16 @@ namespace Oce.Solid.Agent.Core
         /// n'erano e `truncated` diventa vero. *Un tetto che non dice di essere
         /// scattato non e' un tetto.*
         /// </summary>
-        public const int MaxSpigoli = 30;
+        public const int MaxEdges = 30;
         public const int MaxFeature = 80;
-        public const int MaxCorpi = 24;
+        public const int MaxBodies = 24;
 
         /// <summary>
         /// I tipi di feature che il modello puo' davvero citare o su cui puo'
         /// lavorare. Sono i nomi di IFeature.GetTypeName2(), che NON sono
         /// localizzati (il nome nell'albero si', il tipo no).
         /// </summary>
-        private static readonly HashSet<string> FeatureCheContano =
+        private static readonly HashSet<string> FeaturesThatCount =
             new HashSet<string>(StringComparer.Ordinal)
         {
             // «ICE» E' UN'ESTRUSIONE, E NON SI CAPISCE DAL NOME.
@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.Core
         /// Le cartelle di servizio che non si contano nemmeno come «altre».
         /// Ci sono in ogni documento e non dicono niente di questo pezzo.
         /// </summary>
-        private static readonly HashSet<string> CartelleDiServizio =
+        private static readonly HashSet<string> ServiceFolders =
             new HashSet<string>(StringComparer.Ordinal)
         {
             "HistoryFolder", "SensorFolder", "DetailCabinet", "SolidBodyFolder",
@@ -154,10 +154,10 @@ namespace Oce.Solid.Agent.Core
         };
 
         /// <summary>uid -> firma, per ritrovare la stessa entita' al momento giusto.</summary>
-        public Dictionary<string, FirmaEntita> Firme { get; } =
-            new Dictionary<string, FirmaEntita>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, EntitySignature> Signatures { get; } =
+            new Dictionary<string, EntitySignature>(StringComparer.OrdinalIgnoreCase);
 
-        public Dictionary<string, object> Dati { get; private set; } =
+        public Dictionary<string, object> Data { get; private set; } =
             new Dictionary<string, object>();
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace Oce.Solid.Agent.Core
         /// delle firme di un metodo rompe chi lo chiama anche quando il
         /// compilatore tace.
         /// </summary>
-        public double[] ScatolaPezzoMm { get; private set; }
+        public double[] BoxPartMm { get; private set; }
 
         /// <summary>
         /// Il documento da cui questo stato e' stato letto.
@@ -178,15 +178,15 @@ namespace Oce.Solid.Agent.Core
         /// `GetObjectByPersistReference3` sta su `IModelDocExtension`, e chi
         /// ritrova una faccia ha in mano lo stato, non il documento.
         ///
-        /// E' una PROPRIETA' e non un parametro in piu' su `Leggi`: il banco
+        /// E' una PROPRIETA' e non un parametro in piu' su `Read`: il banco
         /// chiama questa classe per riflessione, e cambiare l'insieme delle
         /// firme di un metodo rompe chi lo chiama anche quando il compilatore
         /// tace. Una proprieta' nuova non la vede nessuno. E' la lezione di
-        /// `LeggiConAncora`, applicata prima di sbatterci di nuovo.
+        /// `ReadWithAnchor`, applicata prima di sbatterci di nuovo.
         ///
         /// Vale per QUESTA sessione: non si serializza e non si porta in giro.
         /// </summary>
-        public IModelDoc2 Modello { get; private set; }
+        public IModelDoc2 Model { get; private set; }
 
         /// <summary>
         /// Una lavorazione in attesa di sapere se entra nell'elenco.
@@ -196,20 +196,20 @@ namespace Oce.Solid.Agent.Core
         /// riferimento COM. Il dettaglio, che costa, si paga dopo e solo sulle
         /// sopravvissute.
         /// </summary>
-        private sealed class Candidata
+        private sealed class Candidate
         {
             public IFeature F;
-            public string Tipo;
-            public string Nome;
+            public string Type;
+            public string Name;
         }
 
-        public class FirmaEntita
+        public class EntitySignature
         {
-            public string Tipo;          // "FACE" | "EDGE"
-            public double Misura;        // area in mm2, oppure lunghezza in mm
-            public double[] PuntoMm;     // un punto sull'entita', in mm
-            public double[] Normale;     // solo per le facce piane
-            public object Entita;        // IFace2 / IEdge, valido in questa sessione
+            public string Type;          // "FACE" | "EDGE"
+            public double Measure;        // area in mm2, oppure lunghezza in mm
+            public double[] PointMm;     // un punto sull'entita', in mm
+            public double[] Normal;     // solo per le facce piane
+            public object Entity;        // IFace2 / IEdge, valido in questa sessione
 
             /// <summary>
             /// DA QUALE LAVORAZIONE VIENE QUESTA FACCIA, per identificativo e
@@ -230,8 +230,8 @@ namespace Oce.Solid.Agent.Core
             /// rimpicciolisce tre facce e tutte e tre continuano a dire
             /// «extrusion».
             /// </summary>
-            public int LavorazioneId = -1;
-            public string Lavorazione;
+            public int FeatureId = -1;
+            public string Feature;
 
             /// <summary>
             /// LA SCATOLA DEL PEZZO quando questa firma e' stata misurata, in
@@ -242,11 +242,11 @@ namespace Oce.Solid.Agent.Core
             /// cosa: scrivere in un messaggio dove stava la faccia rispetto al
             /// pezzo, quando il pezzo e' cambiato. La ragione per cui non puo'
             /// entrare nell'identita' sta per esteso in
-            /// <see cref="Frasi.DoveStavaEDoveSta"/>, che e' l'unico posto in
+            /// <see cref="Sentences.WhereItWasAndWhereItIs"/>, che e' l'unico posto in
             /// tutta la libreria dove questi numeri si dividono fra loro — e
             /// torna una FRASE, non un numero.
             /// </summary>
-            public double[] ScatolaPezzoMm;
+            public double[] BoxPartMm;
         }
 
         /// <summary>
@@ -272,61 +272,61 @@ namespace Oce.Solid.Agent.Core
         /// Il tipo si legge dall'OGGETTO e non dall'enum della selezione: un
         /// `as IFace2` non si puo' sbagliare, un numero di enum letto male si'.
         /// </summary>
-        private static List<Dictionary<string, object>> LaSelezione(
-            IModelDoc2 modello, Dictionary<string, FirmaEntita> firme)
+        private static List<Dictionary<string, object>> TheSelection(
+            IModelDoc2 model, Dictionary<string, EntitySignature> signatures)
         {
-            var fuori = new List<Dictionary<string, object>>();
+            var outside = new List<Dictionary<string, object>>();
             try
             {
-                var selezione = modello?.SelectionManager as ISelectionMgr;
-                if (selezione == null) return fuori;
-                int quante = selezione.GetSelectedObjectCount2(-1);
-                for (int i = 1; i <= quante && i <= 20; i++)
+                var selection = model?.SelectionManager as ISelectionMgr;
+                if (selection == null) return outside;
+                int howMany = selection.GetSelectedObjectCount2(-1);
+                for (int i = 1; i <= howMany && i <= 20; i++)
                 {
-                    object oggetto = null;
-                    try { oggetto = selezione.GetSelectedObject6(i, -1); } catch { }
-                    if (oggetto == null) continue;
+                    object obj = null;
+                    try { obj = selection.GetSelectedObject6(i, -1); } catch { }
+                    if (obj == null) continue;
 
-                    string cosa =
-                        oggetto is IFace2 ? "faccia" :
-                        oggetto is IEdge ? "spigolo" :
-                        oggetto is IBody2 ? "corpo" :
-                        oggetto is IVertex ? "vertice" :
-                        oggetto is IFeature ? "lavorazione" : null;
+                    string what =
+                        obj is IFace2 ? "faccia" :
+                        obj is IEdge ? "spigolo" :
+                        obj is IBody2 ? "corpo" :
+                        obj is IVertex ? "vertice" :
+                        obj is IFeature ? "lavorazione" : null;
 
-                    var voce = new Dictionary<string, object>();
-                    if (cosa != null) voce["kind"] = cosa;
+                    var entry = new Dictionary<string, object>();
+                    if (what != null) entry["kind"] = what;
 
                     // Il nome, se lo stato gliene ha dato uno.
-                    foreach (var f in firme)
+                    foreach (var f in signatures)
                     {
-                        if (f.Value.Entita == null) continue;
-                        if (!ReferenceEquals(f.Value.Entita, oggetto) &&
-                            !Equals(f.Value.Entita, oggetto)) continue;
-                        voce["uid"] = f.Key;
+                        if (f.Value.Entity == null) continue;
+                        if (!ReferenceEquals(f.Value.Entity, obj) &&
+                            !Equals(f.Value.Entity, obj)) continue;
+                        entry["uid"] = f.Key;
                         break;
                     }
 
-                    if (!voce.ContainsKey("uid"))
+                    if (!entry.ContainsKey("uid"))
                     {
                         // Una lavorazione si chiama col suo nome, che nello
                         // stato E' l'uid.
-                        var lavorazione = oggetto as IFeature;
-                        if (lavorazione != null)
+                        var featureItem = obj as IFeature;
+                        if (featureItem != null)
                         {
-                            try { voce["uid"] = lavorazione.Name; } catch { }
+                            try { entry["uid"] = featureItem.Name; } catch { }
                         }
                     }
-                    if (!voce.ContainsKey("uid"))
-                        voce["note"] =
+                    if (!entry.ContainsKey("uid"))
+                        entry["note"] =
                             "selezionata, ma non e' fra quelle che ho descritto: " +
                             "non posso nominarla.";
 
-                    if (voce.Count > 0) fuori.Add(voce);
+                    if (entry.Count > 0) outside.Add(entry);
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -373,7 +373,7 @@ namespace Oce.Solid.Agent.Core
         /// e non e' un nome — e' una struttura, e l'unico modo onesto di
         /// spedirla in un JSON e' base64.
         ///
-        /// PERCHE' ADESSO SI USANO. `StatoDocumento` dichiarava di non usarli:
+        /// PERCHE' ADESSO SI USANO. `DocumentState` dichiarava di non usarli:
         /// «non serve per un piano che dura minuti, e sarebbe una API in piu' da
         /// verificare per un problema che non abbiamo». Era giusto per il
         /// problema di allora. Il problema adesso c'e': una quota a monte sposta
@@ -382,21 +382,21 @@ namespace Oce.Solid.Agent.Core
         /// **8 facce su 8** in tutte e cinque le modifiche riuscite, comprese le
         /// tre in cui l'ancora sul punto si perde.
         /// </summary>
-        private static string PersistIdDi(IModelDoc2 modello, object entita)
+        private static string PersistIdOf(IModelDoc2 model, object entity)
         {
-            if (modello == null || entita == null) return null;
+            if (model == null || entity == null) return null;
             try
             {
-                var estensione = modello.Extension;
-                if (estensione == null) return null;
-                var blob = estensione.GetPersistReference3(entita) as byte[];
+                var ext = model.Extension;
+                if (ext == null) return null;
+                var blob = ext.GetPersistReference3(entity) as byte[];
                 if (blob == null || blob.Length == 0) return null;
                 return Convert.ToBase64String(blob);
             }
             catch { return null; }
         }
 
-        private static double[] AncoraDellaFaccia(IFace2 faccia)
+        private static double[] FaceAnchor(IFace2 face)
         {
             try
             {
@@ -407,9 +407,9 @@ namespace Oce.Solid.Agent.Core
                 // nessun errore da nessuna parte. E' la stessa famiglia
                 // dell'`as object[]` su una List<>, gia' costata un controllo
                 // spento per mezza giornata.
-                var grezzo = faccia?.GetTessTriangles(true);
-                double[] t = grezzo as double[];
-                if (t == null && grezzo is float[] f)
+                var raw = face?.GetTessTriangles(true);
+                double[] t = raw as double[];
+                if (t == null && raw is float[] f)
                 {
                     t = new double[f.Length];
                     for (int k = 0; k < f.Length; k++) t[k] = f[k];
@@ -420,7 +420,7 @@ namespace Oce.Solid.Agent.Core
                 // vertici: una faccia tassellata fitta da una parte e larga
                 // dall'altra tirerebbe la media dove i triangoli sono piu'
                 // numerosi, che non vuol dire niente.
-                double sx = 0, sy = 0, sz = 0, peso = 0;
+                double sx = 0, sy = 0, sz = 0, weight = 0;
                 for (int i = 0; i + 8 < t.Length; i += 9)
                 {
                     double ax = t[i], ay = t[i + 1], az = t[i + 2];
@@ -438,14 +438,14 @@ namespace Oce.Solid.Agent.Core
                     sx += area * (ax + bx + cx) / 3.0;
                     sy += area * (ay + by + cy) / 3.0;
                     sz += area * (az + bz + cz) / 3.0;
-                    peso += area;
+                    weight += area;
                 }
-                if (peso <= 0) return null;
+                if (weight <= 0) return null;
                 return new[]
                 {
-                    Math.Round(Unita.Mm(sx / peso), 3),
-                    Math.Round(Unita.Mm(sy / peso), 3),
-                    Math.Round(Unita.Mm(sz / peso), 3),
+                    Math.Round(Units.Mm(sx / weight), 3),
+                    Math.Round(Units.Mm(sy / weight), 3),
+                    Math.Round(Units.Mm(sz / weight), 3),
                 };
             }
             catch { return null; }
@@ -459,16 +459,16 @@ namespace Oce.Solid.Agent.Core
         /// senza. Meglio nessun dato che un dato inventato — un confronto fra
         /// due `-1` direbbe «stessa lavorazione» di due facce qualunque.
         /// </summary>
-        private static void LavorazioneDellaFaccia(
-            IFace2 faccia, out int id, out string nome)
+        private static void FeatureOfFace(
+            IFace2 face, out int id, out string itemName)
         {
             id = -1;
-            nome = null;
+            itemName = null;
             try
             {
-                var f = faccia?.GetFeature() as IFeature;
+                var f = face?.GetFeature() as IFeature;
                 if (f == null) return;
-                nome = f.Name;
+                itemName = f.Name;
                 id = f.GetID();
             }
             catch { id = -1; }
@@ -485,7 +485,7 @@ namespace Oce.Solid.Agent.Core
         /// un accesso all'applicazione — quindi o lo passa chi chiama o non
         /// si sa. Restava facoltativo per non rompere chi chiamava prima.
         /// </param>
-        /// <param name="conAncora">
+        /// <param name="withAnchor">
         /// Scrivere l'ancora di ogni faccia dentro lo stato.
         ///
         /// SPENTA DI SERIE, e non per prudenza generica. L'ancora e' il
@@ -505,48 +505,48 @@ namespace Oce.Solid.Agent.Core
         /// <remarks>
         /// QUESTA FIRMA NON SI TOCCA, E NON E' PRUDENZA GENERICA.
         ///
-        /// `Leggi` la chiama anche il banco, **per riflessione**, e li' due
+        /// `Read` la chiama anche il banco, **per riflessione**, e li' due
         /// cose che per un compilatore sono innocue non lo sono:
         ///
         ///   * aggiungere un parametro con valore predefinito → `Invoke` con
         ///     due argomenti su un metodo che ne vuole tre risponde «Mancata
         ///     corrispondenza nel numero dei parametri». Misurato il
         ///     14/9/2026: il banco da 88 prove e 0 fallite a **70 e 58**;
-        ///   * aggiungere un OVERLOAD → `GetMethod("Leggi")` ne trova due e
+        ///   * aggiungere un OVERLOAD → `GetMethod("Read")` ne trova due e
         ///     risponde «Trovata corrispondenza ambigua». Misurato mezz'ora
         ///     dopo, riparando il primo errore con il secondo.
         ///
         /// **Qualunque cambiamento all'insieme delle firme di un metodo rompe
         /// chi lo chiama per riflessione**, anche quello che il compilatore
         /// accetta senza dire niente. Cio' che serve in piu' si mette in un
-        /// metodo con un NOME diverso — vedi <see cref="LeggiConAncora"/>.
+        /// metodo con un NOME diverso — vedi <see cref="ReadWithAnchor"/>.
         /// </remarks>
-        public static StatoDocumento Leggi(IModelDoc2 modello, ISldWorks sw = null)
+        public static DocumentState Read(IModelDoc2 model, ISldWorks sw = null)
         {
-            return LeggiConAncora(modello, sw, false);
+            return ReadWithAnchor(model, sw, false);
         }
 
         /// <summary>
-        /// Come <see cref="Leggi"/>, dicendo se si vuole anche l'ancora di
+        /// Come <see cref="Read"/>, dicendo se si vuole anche l'ancora di
         /// ogni faccia.
         ///
-        /// Nome diverso e non un overload: vedi la nota su `Leggi`.
+        /// Nome diverso e non un overload: vedi la nota su `Read`.
         /// </summary>
-        public static StatoDocumento LeggiConAncora(
-            IModelDoc2 modello, ISldWorks sw, bool conAncora)
+        public static DocumentState ReadWithAnchor(
+            IModelDoc2 model, ISldWorks sw, bool withAnchor)
         {
-            var stato = new StatoDocumento();
-            if (modello == null) return stato;
-            stato.Modello = modello;
+            var docState = new DocumentState();
+            if (model == null) return docState;
+            docState.Model = model;
 
-            int tipoDoc = 0;
-            try { tipoDoc = modello.GetType(); } catch { }
+            int docType = 0;
+            try { docType = model.GetType(); } catch { }
 
-            var dati = new Dictionary<string, object>
+            var data = new Dictionary<string, object>
             {
-                ["path"] = modello.GetPathName() ?? "",
-                ["document_title"] = modello.GetTitle() ?? "",
-                ["kind"] = OperazioniSw.NomeTipoDocumento(tipoDoc),
+                ["path"] = model.GetPathName() ?? "",
+                ["document_title"] = model.GetTitle() ?? "",
+                ["kind"] = SwOperations.DocumentTypeName(docType),
             };
 
             // CHI ALTRO E' APERTO.
@@ -558,14 +558,14 @@ namespace Oce.Solid.Agent.Core
             // il PERCORSO DI UN DOCUMENTO APERTO. Senza questo elenco il
             // modello non ha modo di nominarlo, e una vista agganciata a un
             // documento chiuso esce vuota senza dare errore.
-            var altri = DocumentiAperti(sw, modello);
-            if (altri != null && altri.Count > 0) dati["documents_open"] = altri;
+            var others = OpenDocuments(sw, model);
+            if (others != null && others.Count > 0) data["documents_open"] = others;
 
-            if (tipoDoc == (int)swDocumentTypes_e.swDocDRAWING)
+            if (docType == (int)swDocumentTypes_e.swDocDRAWING)
             {
-                DescriviTavola(modello as IDrawingDoc, dati, sw);
-                stato.Dati = dati;
-                return stato;
+                DescribeDrawing(model as IDrawingDoc, data, sw);
+                docState.Data = data;
+                return docState;
             }
 
             // L'ASSIEME SI DESCRIVE, NON SI RIFIUTA (voce GA1).
@@ -581,26 +581,26 @@ namespace Oce.Solid.Agent.Core
             // fare si dice li' dentro, per esteso. Il ramo sta PRIMA del cast a
             // `IPartDoc` perche' un assieme non e' una parte e cadrebbe nel
             // `parte == null` qui sotto.
-            if (tipoDoc == (int)swDocumentTypes_e.swDocASSEMBLY)
+            if (docType == (int)swDocumentTypes_e.swDocASSEMBLY)
             {
-                DescriviAssieme(modello as IAssemblyDoc, dati);
-                stato.Dati = dati;
-                return stato;
+                DescribeAssembly(model as IAssemblyDoc, data);
+                docState.Data = data;
+                return docState;
             }
 
-            var parte = modello as IPartDoc;
-            if (parte == null)
+            var partDoc = model as IPartDoc;
+            if (partDoc == null)
             {
                 // Non e' ne' una parte, ne' una tavola, ne' un assieme: qui non
                 // si indovina. Dire «di assieme» come faceva la versione
                 // precedente sarebbe una diagnosi sbagliata su un documento che
                 // nessuno ha guardato.
-                dati["solid_body"] = false;
-                dati["note"] =
-                    "documento di tipo «" + OperazioniSw.NomeTipoDocumento(tipoDoc) +
+                data["solid_body"] = false;
+                data["note"] =
+                    "documento di tipo «" + SwOperations.DocumentTypeName(docType) +
                     "»: non lo so leggere.";
-                stato.Dati = dati;
-                return stato;
+                docState.Data = data;
+                return docState;
             }
 
             // ── feature dell'albero, e assi ────────────────────────────────
@@ -616,18 +616,18 @@ namespace Oce.Solid.Agent.Core
             // Adesso si dichiara cio' che si sa leggere; il resto si conta e
             // basta, cosi' il modello sa che c'e' dell'altro senza pagarlo.
             var feature = new List<Dictionary<string, object>>();
-            var assi = new List<Dictionary<string, object>>();
-            int nPiani = 0;
-            int altreFeature = 0;
-            // DUE CONTATORI, NON UNO. `altreFeature` conta le lavorazioni di un
+            var axes = new List<Dictionary<string, object>>();
+            int nPlanes = 0;
+            int otherFeatures = 0;
+            // DUE CONTATORI, NON UNO. `otherFeatures` conta le lavorazioni di un
             // TIPO che non entra nell'elenco — invisibili per scelta, e i tipi
-            // si dicono in `other_feature_kinds`. `featureNonElencate` conta
+            // si dicono in `other_feature_kinds`. `unlistedFeatures` conta
             // quelle che sarebbero entrate e non ci stanno per il tetto: sono
             // due cose diverse, e sommarle nascondeva la seconda.
-            int featureNonElencate = 0;
+            int unlistedFeatures = 0;
             // Le lavorazioni che POTREBBERO entrare nell'elenco, raccolte tutte
             // e scelte dopo. Vedi il commento su `candidate.Add` piu' sotto.
-            var candidate = new List<Candidata>();
+            var candidate = new List<Candidate>();
             // QUALI, non solo QUANTE.
             //
             // «other_feature: 7» dice che c'e' dell'altro e non dice cosa,
@@ -641,18 +641,18 @@ namespace Oce.Solid.Agent.Core
             // I nomi dei tipi sono corti e pochi: elencarli costa niente e
             // rende visibile un punto cieco invece di nasconderlo dietro un
             // numero.
-            var tipiIgnoti = new SortedSet<string>(StringComparer.Ordinal);
+            var unknownTypes = new SortedSet<string>(StringComparer.Ordinal);
             // I nomi delle lavorazioni citate dalle facce, una volta sola.
-            var nomiDelleLavorazioni = new SortedDictionary<int, string>();
-            int lavorazioniInErrore = 0;
-            IFeature f = parte.IFirstFeature();
+            var featureNames = new SortedDictionary<int, string>();
+            int featuresInError = 0;
+            IFeature f = partDoc.IFirstFeature();
             while (f != null)
             {
-                string tipo = "";
-                string nome = "";
-                try { tipo = f.GetTypeName2(); nome = f.Name; } catch { }
+                string typ = "";
+                string itemName = "";
+                try { typ = f.GetTypeName2(); itemName = f.Name; } catch { }
 
-                if (tipo == "RefPlane") nPiani++;
+                if (typ == "RefPlane") nPlanes++;
                 // SOLO GLI ASSI VERI.
                 //
                 // Qui dentro c'era anche "OriginProfileFeature", cioe' l'origine
@@ -663,7 +663,7 @@ namespace Oce.Solid.Agent.Core
                 // l'origine non e' un asse. Uno strumento offerto sempre e
                 // utilizzabile quasi mai: il modello ci prova, il piano cade al
                 // primo passo, e sembra colpa sua.
-                else if (tipo == "RefAxis")
+                else if (typ == "RefAxis")
                 {
                     // «uid» e «name» erano LA STESSA STRINGA, scritta due
                     // volte. Su ottanta lavorazioni con nomi da venti caratteri
@@ -671,7 +671,7 @@ namespace Oce.Solid.Agent.Core
                     // niente — e il posto che tolgono e' esattamente quello che
                     // serve ai parametri qui sotto. Resta «uid», che e' il nome
                     // con cui tutto il resto del sistema chiama le entita'.
-                    var voceAsse = new Dictionary<string, object> { ["uid"] = nome, ["kind"] = tipo };
+                    var axisEntry = new Dictionary<string, object> { ["uid"] = itemName, ["kind"] = typ };
 
                     // LA FIRMA DELL'ASSE (voce E4, la parte che mancava). Fino
                     // alla 0.113.0 lo stato di un asse era {uid, tipo} e basta:
@@ -685,26 +685,26 @@ namespace Oce.Solid.Agent.Core
                         if (par != null && par.Length >= 6)
                         {
                             double dx = par[3] - par[0], dy = par[4] - par[1], dz = par[5] - par[2];
-                            double lung = Math.Sqrt(dx * dx + dy * dy + dz * dz);
-                            if (lung > 1e-12)
+                            double len = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                            if (len > 1e-12)
                             {
-                                var punto = new[] { Math.Round(Unita.Mm(par[0]), 3), Math.Round(Unita.Mm(par[1]), 3), Math.Round(Unita.Mm(par[2]), 3) };
-                                var direzione = new[] { Math.Round(dx / lung, 5), Math.Round(dy / lung, 5), Math.Round(dz / lung, 5) };
-                                voceAsse["point_mm"] = punto;
-                                voceAsse["direction"] = direzione;
-                                stato.Firme[nome] = new FirmaEntita
+                                var point = new[] { Math.Round(Units.Mm(par[0]), 3), Math.Round(Units.Mm(par[1]), 3), Math.Round(Units.Mm(par[2]), 3) };
+                                var direction = new[] { Math.Round(dx / len, 5), Math.Round(dy / len, 5), Math.Round(dz / len, 5) };
+                                axisEntry["point_mm"] = point;
+                                axisEntry["direction"] = direction;
+                                docState.Signatures[itemName] = new EntitySignature
                                 {
-                                    Tipo = "AXIS", PuntoMm = punto, Normale = direzione, Entita = f,
-                                    Lavorazione = nome,
+                                    Type = "AXIS", PointMm = point, Normal = direction, Entity = f,
+                                    Feature = itemName,
                                 };
                             }
                         }
                     }
                     catch { }
-                    try { voceAsse["feature_id"] = f.GetID(); } catch { }
-                    assi.Add(voceAsse);
+                    try { axisEntry["feature_id"] = f.GetID(); } catch { }
+                    axes.Add(axisEntry);
                 }
-                else if (FeatureCheContano.Contains(tipo))
+                else if (FeaturesThatCount.Contains(typ))
                 {
                     // SI RACCOLGONO TUTTE, E SI SCEGLIE DOPO (voce E12).
                     //
@@ -725,12 +725,12 @@ namespace Oce.Solid.Agent.Core
                     // una lista. La parte cara — `GetID`, `IsSuppressed`,
                     // `GetErrorCode2`, i parametri, le quote — resta su ottanta
                     // lavorazioni esatte, solo che adesso sono le ULTIME.
-                    candidate.Add(new Candidata { F = f, Tipo = tipo, Nome = nome });
+                    candidate.Add(new Candidate { F = f, Type = typ, Name = itemName });
                 }
-                else if (!CartelleDiServizio.Contains(tipo))
+                else if (!ServiceFolders.Contains(typ))
                 {
-                    altreFeature++;
-                    if (!string.IsNullOrEmpty(tipo)) tipiIgnoti.Add(tipo);
+                    otherFeatures++;
+                    if (!string.IsNullOrEmpty(typ)) unknownTypes.Add(typ);
                 }
                 try { f = (IFeature)f.GetNextFeature(); } catch { f = null; }
             }
@@ -751,13 +751,13 @@ namespace Oce.Solid.Agent.Core
             // 0.25.2, con `truncated: false` su un elenco troncato.
             if (candidate.Count > MaxFeature)
             {
-                featureNonElencate = candidate.Count - MaxFeature;
-                candidate.RemoveRange(0, featureNonElencate);
+                unlistedFeatures = candidate.Count - MaxFeature;
+                candidate.RemoveRange(0, unlistedFeatures);
             }
             foreach (var c in candidate)
             {
-                var voceF = DettaglioFeature(c.F, c.Tipo, c.Nome, ref lavorazioniInErrore);
-                if (voceF != null) feature.Add(voceF);
+                var entryF = FeatureDetail(c.F, c.Type, c.Name, ref featuresInError);
+                if (entryF != null) feature.Add(entryF);
             }
 
             // ── corpi, facce, spigoli ─────────────────────────────────────
@@ -776,20 +776,20 @@ namespace Oce.Solid.Agent.Core
             // corpo nascosto per guardare dentro il pezzo spariva dallo stato
             // senza che niente lo dicesse, e le lavorazioni su di lui
             // diventavano impossibili senza una ragione leggibile.
-            var facce = new List<Dictionary<string, object>>();
-            var spigoli = new List<Dictionary<string, object>>();
-            var corpiDescritti = new List<Dictionary<string, object>>();
-            bool haCorpo = false;
-            bool troncato = false;
+            var faces = new List<Dictionary<string, object>>();
+            var edges = new List<Dictionary<string, object>>();
+            var describedBodies = new List<Dictionary<string, object>>();
+            bool hasBody = false;
+            bool truncated = false;
 
             // LA SCATOLA DEL PEZZO, non solo quanto e' grande: DOVE STA.
             // Serve fuori dal blocco dei corpi, quindi si dichiara qui. Vedi
             // il commento su `bounding_box_from_mm` piu' sotto.
-            double[] scatolaDelPezzo = null;
+            double[] partBox = null;
 
-            object corpiObj = null;
-            try { corpiObj = parte.GetBodies2((int)swBodyType_e.swSolidBody, false); } catch { }
-            var corpi = (corpiObj as object[] ?? new object[0])
+            object bodiesObj = null;
+            try { bodiesObj = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false); } catch { }
+            var bodies = (bodiesObj as object[] ?? new object[0])
                 .Select(o => o as IBody2).Where(b => b != null).ToList();
 
             // Il materiale: null ESPLICITO quando non c'e'.
@@ -799,20 +799,20 @@ namespace Oce.Solid.Agent.Core
             // dice che quel posto esiste ed e' vuoto — ed e' l'unico modo
             // perche' si accorga di doverlo riempire. Fino alla 0.29.1 la
             // cartella dei materiali era anzi esclusa apposta dall'albero.
-            string materiale = null;
+            string material = null;
             try
             {
-                string archivio;
+                string archive;
                 // "" IS THE ACTIVE CONFIGURATION (finding L17-1, NOT REAL). The
                 // Z-C21.3 probe of L17-1 and M10 (28/9/2026) read "" against each
                 // configuration name, activating each in turn: "" followed the
                 // active configuration four times out of four. So the material field is
                 // the material of the active configuration only.
-                var letto = parte.GetMaterialPropertyName2("", out archivio);
-                if (!string.IsNullOrWhiteSpace(letto)) materiale = letto;
+                var read = partDoc.GetMaterialPropertyName2("", out archive);
+                if (!string.IsNullOrWhiteSpace(read)) material = read;
             }
             catch { }
-            dati["material"] = materiale;
+            data["material"] = material;
 
             // LA CONFIGURAZIONE ATTIVA, E LE ALTRE.
             //
@@ -835,14 +835,14 @@ namespace Oce.Solid.Agent.Core
             // perche' e' quello che `activate_configuration` vuole indietro.
             try
             {
-                var gestoreConf = modello.ConfigurationManager as IConfigurationManager;
-                if (gestoreConf != null) dati["configuration"] = gestoreConf.ActiveConfiguration.Name;
+                var configHandler = model.ConfigurationManager as IConfigurationManager;
+                if (configHandler != null) data["configuration"] = configHandler.ActiveConfiguration.Name;
             }
             catch { }
             try
             {
-                var nomiConf = modello.GetConfigurationNames() as string[];
-                if (nomiConf != null && nomiConf.Length > 0) dati["configurations"] = nomiConf;
+                var configNames = model.GetConfigurationNames() as string[];
+                if (configNames != null && configNames.Length > 0) data["configurations"] = configNames;
             }
             catch { }
             // QUANTE NE DICHIARA LUI, che non e' per forza quante sono le
@@ -851,7 +851,7 @@ namespace Oce.Solid.Agent.Core
             // diverse. Si scrivono tutti e due, perche' il giorno in cui non
             // combaciano quello e' il fatto da sapere -- non un dettaglio da
             // nascondere scegliendo quale dei due mostrare.
-            try { dati["how_many_configurations"] = modello.GetConfigurationCount(); }
+            try { data["how_many_configurations"] = model.GetConfigurationCount(); }
             catch { }
 
             // LE PROPRIETA' PERSONALIZZATE, NEI DUE CASSETTI SEPARATI.
@@ -862,43 +862,43 @@ namespace Oce.Solid.Agent.Core
             // attiva non si ereditano e non si vedono a vicenda. Un campo
             // solo, «proprieta», sarebbe una fusione che nel file non esiste,
             // e chi rileggesse non avrebbe modo di sapere dove cercare.
-            var delDocumento = LeggiProprieta(modello, "");
-            if (delDocumento.Count > 0) dati["property"] = delDocumento;
+            var document = ReadProperty(model, "");
+            if (document.Count > 0) data["property"] = document;
             try
             {
-                object attiva;
-                if (dati.TryGetValue("configuration", out attiva))
+                object activate;
+                if (data.TryGetValue("configuration", out activate))
                 {
-                    var dellaConfig = LeggiProprieta(modello, Convert.ToString(attiva) ?? "");
-                    if (dellaConfig.Count > 0) dati["configuration_properties"] = dellaConfig;
+                    var config = ReadProperty(model, Convert.ToString(activate) ?? "");
+                    if (config.Count > 0) data["configuration_properties"] = config;
                 }
             }
             catch { }
 
-            if (corpi.Count > 0)
+            if (bodies.Count > 0)
             {
-                haCorpo = true;
+                hasBody = true;
 
                 // ── i corpi, uno per uno ──────────────────────────────────
-                for (int i = 0; i < corpi.Count && i < MaxCorpi; i++)
+                for (int i = 0; i < bodies.Count && i < MaxBodies; i++)
                 {
-                    var corpo = corpi[i];
-                    var voce = new Dictionary<string, object> { ["uid"] = "C" + (i + 1) };
-                    try { voce["name"] = corpo.Name; } catch { }
-                    var scatola = Ingombro(corpo);
-                    if (scatola != null)
+                    var body = bodies[i];
+                    var entry = new Dictionary<string, object> { ["uid"] = "C" + (i + 1) };
+                    try { entry["name"] = body.Name; } catch { }
+                    var box = BoundingBox(body);
+                    if (box != null)
                     {
-                        voce["bounding_box_mm"] = new[]
+                        entry["bounding_box_mm"] = new[]
                         {
-                            Math.Round(scatola[3] - scatola[0], 2),
-                            Math.Round(scatola[4] - scatola[1], 2),
-                            Math.Round(scatola[5] - scatola[2], 2),
+                            Math.Round(box[3] - box[0], 2),
+                            Math.Round(box[4] - box[1], 2),
+                            Math.Round(box[5] - box[2], 2),
                         };
-                        voce["center_mm"] = new[]
+                        entry["center_mm"] = new[]
                         {
-                            Math.Round((scatola[0] + scatola[3]) / 2, 2),
-                            Math.Round((scatola[1] + scatola[4]) / 2, 2),
-                            Math.Round((scatola[2] + scatola[5]) / 2, 2),
+                            Math.Round((box[0] + box[3]) / 2, 2),
+                            Math.Round((box[1] + box[4]) / 2, 2),
+                            Math.Round((box[2] + box[5]) / 2, 2),
                         };
                     }
                     // Il ponte fra un corpo e la lavorazione che lo ha fatto:
@@ -917,7 +917,7 @@ namespace Oce.Solid.Agent.Core
                     //
                     // 1. il risparmio era 192 caratteri su un telaio, non 840:
                     //    le barre sono QUATTRO, non ventiquattro (avevo usato
-                    //    il tetto `MaxCorpi` al posto del numero vero);
+                    //    il tetto `MaxBodies` al posto del numero vero);
                     // 2. e soprattutto: `name` e `created_by` condividono la
                     //    stringa ma NON sono la stessa cosa. Uno e' come si
                     //    chiama il corpo, l'altro e' da dove viene. Che oggi
@@ -931,9 +931,9 @@ namespace Oce.Solid.Agent.Core
                     // per i campi identici (`uid`/`name`) e per quelli che
                     // ripetono un altro campo (`from_feature` su un saldato).
                     // Non vale per due campi che dicono cose diverse.
-                    string lav = FeatureDelCorpo(corpo);
-                    if (lav != null) voce["created_by"] = lav;
-                    corpiDescritti.Add(voce);
+                    string feat = BodyFeature(body);
+                    if (feat != null) entry["created_by"] = feat;
+                    describedBodies.Add(entry);
 
                     // E il corpo si deve poter RITROVARE. Senza questa firma,
                     // «C1» nello stato sarebbe un'etichetta che il modello
@@ -944,41 +944,41 @@ namespace Oce.Solid.Agent.Core
                     // La firma di un corpo e' il suo centro piu' l'ingombro:
                     // sono i due numeri che cambiano se qualcuno modifica il
                     // pezzo fra la proposta e l'esecuzione.
-                    stato.Firme["C" + (i + 1)] = new FirmaEntita
+                    docState.Signatures["C" + (i + 1)] = new EntitySignature
                     {
-                        Tipo = "BODY",
-                        // ZERO-E-ZERO: chi legge `Misura` guarda sempre `> 0`, e
+                        Type = "BODY",
+                        // ZERO-E-ZERO: chi legge `Measure` guarda sempre `> 0`, e
                         // nessuno la legge per i corpi; zero qui e' «non misurata».
-                        Misura = scatola == null ? 0 : Math.Round(
-                            (scatola[3] - scatola[0]) * (scatola[4] - scatola[1]) *
-                            (scatola[5] - scatola[2]), 2),
-                        PuntoMm = voce.ContainsKey("center_mm")
-                            ? voce["center_mm"] as double[]
+                        Measure = box == null ? 0 : Math.Round(
+                            (box[3] - box[0]) * (box[4] - box[1]) *
+                            (box[5] - box[2]), 2),
+                        PointMm = entry.ContainsKey("center_mm")
+                            ? entry["center_mm"] as double[]
                             : null,
-                        Entita = corpo,
+                        Entity = body,
                     };
                 }
-                if (corpi.Count > MaxCorpi) dati["bodies_not_listed"] = corpi.Count - MaxCorpi;
-                dati["bodies_total"] = corpi.Count;
+                if (bodies.Count > MaxBodies) data["bodies_not_listed"] = bodies.Count - MaxBodies;
+                data["bodies_total"] = bodies.Count;
 
                 // ── l'ingombro di tutto il pezzo ──────────────────────────
-                double[] tutto = null;
-                foreach (var corpo in corpi)
+                double[] everything = null;
+                foreach (var body in bodies)
                 {
-                    var b = Ingombro(corpo);
+                    var b = BoundingBox(body);
                     if (b == null) continue;
-                    if (tutto == null) { tutto = (double[])b.Clone(); continue; }
-                    for (int k = 0; k < 3; k++) tutto[k] = Math.Min(tutto[k], b[k]);
-                    for (int k = 3; k < 6; k++) tutto[k] = Math.Max(tutto[k], b[k]);
+                    if (everything == null) { everything = (double[])b.Clone(); continue; }
+                    for (int k = 0; k < 3; k++) everything[k] = Math.Min(everything[k], b[k]);
+                    for (int k = 3; k < 6; k++) everything[k] = Math.Max(everything[k], b[k]);
                 }
-                if (tutto != null)
+                if (everything != null)
                 {
-                    scatolaDelPezzo = tutto;
-                    dati["bounding_box_mm"] = new[]
+                    partBox = everything;
+                    data["bounding_box_mm"] = new[]
                     {
-                        Math.Round(tutto[3] - tutto[0], 2),
-                        Math.Round(tutto[4] - tutto[1], 2),
-                        Math.Round(tutto[5] - tutto[2], 2),
+                        Math.Round(everything[3] - everything[0], 2),
+                        Math.Round(everything[4] - everything[1], 2),
+                        Math.Round(everything[5] - everything[2], 2),
                     };
 
                     // ── DOVE STA LA SCATOLA, e non solo quanto e' grande ──
@@ -994,11 +994,11 @@ namespace Oce.Solid.Agent.Core
                     // rispetto al pezzo — che senza l'angolo non si puo'
                     // nemmeno scrivere: 50 su un lato lungo 100 vuol dire meta'
                     // se la scatola parte da zero e tutto se parte da -50.
-                    dati["bounding_box_from_mm"] = new[]
+                    data["bounding_box_from_mm"] = new[]
                     {
-                        Math.Round(tutto[0], 2),
-                        Math.Round(tutto[1], 2),
-                        Math.Round(tutto[2], 2),
+                        Math.Round(everything[0], 2),
+                        Math.Round(everything[1], 2),
+                        Math.Round(everything[2], 2),
                     };
                 }
 
@@ -1009,10 +1009,10 @@ namespace Oce.Solid.Agent.Core
                 // falso e' il difetto peggiore che ci sia qui: chi legge «12,4
                 // kg» non ha modo di sapere che e' inventato. Quindi non si
                 // manda affatto.
-                if (materiale != null)
+                if (material != null)
                 {
-                    double? kg = Massa(modello, corpi);
-                    if (kg.HasValue) dati["mass_kg"] = Math.Round(kg.Value, 3);
+                    double? kg = Mass(model, bodies);
+                    if (kg.HasValue) data["mass_kg"] = Math.Round(kg.Value, 3);
                 }
 
                 // IL VOLUME: l'unica misura che si muove quando il pezzo cambia
@@ -1035,19 +1035,19 @@ namespace Oce.Solid.Agent.Core
                 // annullamento giusto. Adesso: chiave assente = nessun volume
                 // solido; chiave con null = non si e' potuto leggere.
                 double volume = 0;
-                bool volumeIlleggibile = false;
-                foreach (var c in corpi)
+                bool unreadableVolume = false;
+                foreach (var c in bodies)
                 {
                     try
                     {
                         var mp = c.GetMassProperties(1000.0) as double[];
-                        if (mp == null || mp.Length <= 4) { volumeIlleggibile = true; break; }
+                        if (mp == null || mp.Length <= 4) { unreadableVolume = true; break; }
                         if (mp[3] > 0) volume += mp[3] * 1e9;
                     }
-                    catch { volumeIlleggibile = true; break; }
+                    catch { unreadableVolume = true; break; }
                 }
-                if (volumeIlleggibile) dati["volume_mm3"] = null;
-                else if (volume > 0) dati["volume_mm3"] = Math.Round(volume, 1);
+                if (unreadableVolume) data["volume_mm3"] = null;
+                else if (volume > 0) data["volume_mm3"] = Math.Round(volume, 1);
 
                 // ── facce e spigoli, con il tetto sul TOTALE ──────────────
                 //
@@ -1057,28 +1057,28 @@ namespace Oce.Solid.Agent.Core
                 // Il payload cresceva con le barre: ~11 KB per quattro, oltre
                 // 50 KB per venti. Adesso si raccoglie tutto, si ordina una
                 // volta e si taglia una volta.
-                var tutteLeFacce = new List<Tuple<IFace2, int>>();
-                var tuttiGliSpigoli = new List<Tuple<IEdge, int>>();
+                var allFaces = new List<Tuple<IFace2, int>>();
+                var allEdges = new List<Tuple<IEdge, int>>();
                 // Da quale lavorazione nasce OGNI CORPO. Serve a non ripetere
                 // su ogni faccia una cosa che il campo «body» dice gia': vedi
                 // il commento su `from_feature` piu' sotto.
-                var lavorazioneDelCorpo = new string[corpi.Count];
-                for (int i = 0; i < corpi.Count; i++) lavorazioneDelCorpo[i] = FeatureDelCorpo(corpi[i]);
-                for (int i = 0; i < corpi.Count; i++)
+                var bodyFeature = new string[bodies.Count];
+                for (int i = 0; i < bodies.Count; i++) bodyFeature[i] = BodyFeature(bodies[i]);
+                for (int i = 0; i < bodies.Count; i++)
                 {
-                    var facceObj = corpi[i].GetFaces() as object[];
-                    if (facceObj != null)
-                        foreach (var o in facceObj)
+                    var facesObj = bodies[i].GetFaces() as object[];
+                    if (facesObj != null)
+                        foreach (var o in facesObj)
                         {
                             var x = o as IFace2;
-                            if (x != null) tutteLeFacce.Add(Tuple.Create(x, i));
+                            if (x != null) allFaces.Add(Tuple.Create(x, i));
                         }
-                    var spigoliObj = corpi[i].GetEdges() as object[];
-                    if (spigoliObj != null)
-                        foreach (var o in spigoliObj)
+                    var edgesObj = bodies[i].GetEdges() as object[];
+                    if (edgesObj != null)
+                        foreach (var o in edgesObj)
                         {
                             var x = o as IEdge;
-                            if (x != null) tuttiGliSpigoli.Add(Tuple.Create(x, i));
+                            if (x != null) allEdges.Add(Tuple.Create(x, i));
                         }
                 }
 
@@ -1086,39 +1086,39 @@ namespace Oce.Solid.Agent.Core
                 // lavora, e sono quelle che una descrizione corta deve avere.
                 // ZERO-E-ZERO: e' una chiave d'ordinamento, non un'affermazione —
                 // una faccia che non da' l'area finisce in fondo, e basta.
-                var ordinate = tutteLeFacce
+                var sorted = allFaces
                     .OrderByDescending(t => { try { return t.Item1.GetArea(); } catch { return 0.0; } })
                     .ToList();
-                if (ordinate.Count > MaxFacce)
+                if (sorted.Count > MaxFaces)
                 {
-                    troncato = true;
-                    dati["faces_total"] = ordinate.Count;
+                    truncated = true;
+                    data["faces_total"] = sorted.Count;
                 }
                 // Faccia -> uid, per poter dire su quali facce si appoggia
                 // uno spigolo. Si riempie qui perche' le facce si numerano
                 // prima degli spigoli, e serve li'.
-                var uidDellaFaccia = new Dictionary<IFace2, string>();
-                int iFaccia = 0;
-                foreach (var t in ordinate.Take(MaxFacce))
+                var faceUid = new Dictionary<IFace2, string>();
+                int faceIndex = 0;
+                foreach (var t in sorted.Take(MaxFaces))
                 {
-                    iFaccia++;
-                    var uid = "F" + iFaccia;
+                    faceIndex++;
+                    var uid = "F" + faceIndex;
                     // L'area che non si legge e' null nello stato, non 0 mm²
                     // (voce Z-C8). ZERO-E-ZERO: nella firma resta 0, perche' chi
-                    // legge `Misura` guarda sempre `> 0` e lo prende per «non
+                    // legge `Measure` guarda sempre `> 0` e lo prende per «non
                     // misurata».
-                    double? areaLetta = null;
-                    try { areaLetta = Unita.Mm2(t.Item1.GetArea()); } catch { }
-                    double areaMm2 = areaLetta ?? 0;
-                    var punto = PuntoSuFaccia(t.Item1);
-                    var normale = NormaleFaccia(t.Item1);
-                    var voce = new Dictionary<string, object>
+                    double? readArea = null;
+                    try { readArea = Units.Mm2(t.Item1.GetArea()); } catch { }
+                    double areaMm2 = readArea ?? 0;
+                    var point = PointOnFace(t.Item1);
+                    var normal = FaceNormalVector(t.Item1);
+                    var entry = new Dictionary<string, object>
                     {
                         ["uid"] = uid,
-                        ["area_mm2"] = areaLetta.HasValue ? (object)Math.Round(areaLetta.Value, 2) : null,
-                        ["point_mm"] = punto,
-                        ["normal"] = normale,
-                        ["planar"] = normale != null,
+                        ["area_mm2"] = readArea.HasValue ? (object)Math.Round(readArea.Value, 2) : null,
+                        ["point_mm"] = point,
+                        ["normal"] = normal,
+                        ["planar"] = normal != null,
                     };
                     // UN FORO DEVE VEDERSI COME UN FORO, NON COME «UNA FACCIA
                     // NON PIANA DI AREA 1256».
@@ -1133,21 +1133,21 @@ namespace Oce.Solid.Agent.Core
                     // vettore di sette numeri: punto (0-2), asse (3-5), raggio
                     // in metri (6). E' la stessa ricetta gia' in produzione
                     // per riconoscere i fori in `OperazioniFori`.
-                    double raggioMm;
-                    double[] asseCilindro;
-                    // `= null` e non e' pignoleria: `CilindroDi` lo assegna con
+                    double radiusMm;
+                    double[] cylinderAxis;
+                    // `= null` e non e' pignoleria: `CylinderOf` lo assegna con
                     // un `out`, ma la chiamata sta a destra di un `&&` e su una
                     // faccia piana non viene eseguita. Senza l'inizializzazione
                     // il compilatore rifiuta l'uso piu' in basso — ed e' un
                     // rifiuto giusto: quella variabile li' non avrebbe un
                     // valore.
-                    double[] centroCilindro = null;
-                    if (normale == null &&
-                        CilindroDi(t.Item1, out raggioMm, out asseCilindro, out centroCilindro))
+                    double[] cylinderCenter = null;
+                    if (normal == null &&
+                        CylinderOf(t.Item1, out radiusMm, out cylinderAxis, out cylinderCenter))
                     {
-                        voce["radius_mm"] = Math.Round(raggioMm, 3);
-                        voce["diameter_mm"] = Math.Round(raggioMm * 2, 3);
-                        voce["axis"] = asseCilindro;
+                        entry["radius_mm"] = Math.Round(radiusMm, 3);
+                        entry["diameter_mm"] = Math.Round(radiusMm * 2, 3);
+                        entry["axis"] = cylinderAxis;
                     }
                     // DA QUALE LAVORAZIONE VIENE — MA SOLO SE LO AGGIUNGE.
                     //
@@ -1168,12 +1168,12 @@ namespace Oce.Solid.Agent.Core
                     // foro, una tasca, un raccordo su un pezzo — ed e'
                     // esattamente il caso che serve per «quel foro portalo a
                     // M10».
-                    string daFeature = FeatureDellaFaccia(t.Item1);
-                    if (daFeature != null
-                        && (t.Item2 >= lavorazioneDelCorpo.Length
-                            || !string.Equals(daFeature, lavorazioneDelCorpo[t.Item2], StringComparison.Ordinal)))
+                    string fromFeature = FaceFeature(t.Item1);
+                    if (fromFeature != null
+                        && (t.Item2 >= bodyFeature.Length
+                            || !string.Equals(fromFeature, bodyFeature[t.Item2], StringComparison.Ordinal)))
                     {
-                        voce["from_feature"] = daFeature;
+                        entry["from_feature"] = fromFeature;
 
                         // ── DOVE STA IL FORO, e non e' `point_mm` ──────────
                         //
@@ -1219,7 +1219,7 @@ namespace Oce.Solid.Agent.Core
                         // non prende il centro. Se un giorno servira'
                         // misurarci qualcosa, e' una voce nuova, non una riga
                         // da aggiungere qui di nascosto.
-                        if (centroCilindro != null) voce["center_mm"] = centroCilindro;
+                        if (cylinderCenter != null) entry["center_mm"] = cylinderCenter;
                     }
                     // DA CHE PARTE GUARDA, DETTO IN ITALIANO.
                     //
@@ -1236,11 +1236,11 @@ namespace Oce.Solid.Agent.Core
                     // Sedici caratteri per faccia tolgono di mezzo una
                     // deduzione. Il verso e' quello del sistema di SolidWorks:
                     // +X destra, +Y alto, +Z davanti.
-                    string verso = Verso(normale);
-                    if (verso != null) voce["facing"] = verso;
+                    string facing = Facing(normal);
+                    if (facing != null) entry["facing"] = facing;
                     // A quale corpo appartiene. Su un saldato senza questo
                     // campo arrivano quaranta facce indistinguibili.
-                    if (corpi.Count > 1 && t.Item2 < MaxCorpi) voce["body"] = "C" + (t.Item2 + 1);
+                    if (bodies.Count > 1 && t.Item2 < MaxBodies) entry["body"] = "C" + (t.Item2 + 1);
 
                     // DA QUALE LAVORAZIONE VIENE. Serve a due cose diverse: a
                     // chi legge lo stato, per capire cos'e' quella faccia; e al
@@ -1259,13 +1259,13 @@ namespace Oce.Solid.Agent.Core
                     //
                     // Con la mappa in fondo i nomi lunghi sono quattro, e su
                     // ogni faccia resta il numero.
-                    int lavorazioneId;
-                    string lavorazione;
-                    LavorazioneDellaFaccia(t.Item1, out lavorazioneId, out lavorazione);
-                    if (lavorazione != null)
+                    int featureId;
+                    string featureItem;
+                    FeatureOfFace(t.Item1, out featureId, out featureItem);
+                    if (featureItem != null)
                     {
-                        voce["feature_id"] = lavorazioneId;
-                        nomiDelleLavorazioni[lavorazioneId] = lavorazione;
+                        entry["feature_id"] = featureId;
+                        featureNames[featureId] = featureItem;
                     }
 
                     // LE DUE ANCORE, tutt'e due dietro lo stesso interruttore e
@@ -1284,52 +1284,52 @@ namespace Oce.Solid.Agent.Core
                     // chi legge, e infatti il ponte lo toglie subito dopo aver
                     // costruito le firme — la stessa strada dell'ancora,
                     // moltiplicata per venti.
-                    if (conAncora)
+                    if (withAnchor)
                     {
-                        var ancora = AncoraDellaFaccia(t.Item1);
-                        if (ancora != null) voce["anchor"] = ancora;
+                        var anchor = FaceAnchor(t.Item1);
+                        if (anchor != null) entry["anchor"] = anchor;
 
-                        var persistId = PersistIdDi(modello, t.Item1);
-                        if (persistId != null) voce["persist_id"] = persistId;
+                        var persistId = PersistIdOf(model, t.Item1);
+                        if (persistId != null) entry["persist_id"] = persistId;
                     }
 
-                    facce.Add(voce);
-                    uidDellaFaccia[t.Item1] = uid;
+                    faces.Add(entry);
+                    faceUid[t.Item1] = uid;
 
-                    stato.Firme[uid] = new FirmaEntita
+                    docState.Signatures[uid] = new EntitySignature
                     {
-                        Tipo = "FACE",
-                        Misura = Math.Round(areaMm2, 2),
-                        PuntoMm = punto,
-                        Normale = normale,
-                        Entita = t.Item1,
-                        LavorazioneId = lavorazioneId,
-                        Lavorazione = lavorazione,
+                        Type = "FACE",
+                        Measure = Math.Round(areaMm2, 2),
+                        PointMm = point,
+                        Normal = normal,
+                        Entity = t.Item1,
+                        FeatureId = featureId,
+                        Feature = featureItem,
                     };
                 }
 
-                var ordinati = tuttiGliSpigoli
-                    .OrderByDescending(t => LunghezzaMm(t.Item1))
+                var sortedItems = allEdges
+                    .OrderByDescending(t => LengthMm(t.Item1))
                     .ToList();
-                if (ordinati.Count > MaxSpigoli)
+                if (sortedItems.Count > MaxEdges)
                 {
-                    troncato = true;
-                    dati["edges_total"] = ordinati.Count;
+                    truncated = true;
+                    data["edges_total"] = sortedItems.Count;
                 }
-                int iSpigolo = 0;
-                foreach (var t in ordinati.Take(MaxSpigoli))
+                int edgeIndex = 0;
+                foreach (var t in sortedItems.Take(MaxEdges))
                 {
-                    iSpigolo++;
-                    var uid = "E" + iSpigolo;
-                    double lung = LunghezzaMm(t.Item1);
-                    var punto = PuntoSuSpigolo(t.Item1);
-                    var voce = new Dictionary<string, object>
+                    edgeIndex++;
+                    var uid = "E" + edgeIndex;
+                    double len = LengthMm(t.Item1);
+                    var point = PointOnEdge(t.Item1);
+                    var entry = new Dictionary<string, object>
                     {
                         ["uid"] = uid,
                         // null quando non si e' potuta leggere: -1 e' il «non lo
                         // so» di chi la usa qui dentro, non una lunghezza.
-                        ["length_mm"] = lung >= 0 ? (object)Math.Round(lung, 2) : null,
-                        ["point_mm"] = punto,
+                        ["length_mm"] = len >= 0 ? (object)Math.Round(len, 2) : null,
+                        ["point_mm"] = point,
                     };
                     // UNO SPIGOLO SENZA RUOLO NON SI PUO' NOMINARE.
                     //
@@ -1344,37 +1344,37 @@ namespace Oce.Solid.Agent.Core
                     // «along: Y» costa quattordici caratteri e dice quello
                     // che direbbe un progettista: gli angoli di una piastra
                     // sono gli spigoli nella direzione dello spessore.
-                    string lungoAsse;
-                    double raggioSpigolo;
-                    if (DirezioneSpigolo(t.Item1, out lungoAsse, out raggioSpigolo))
+                    string axisLength;
+                    double edgeRadius;
+                    if (EdgeDirection(t.Item1, out axisLength, out edgeRadius))
                     {
-                        if (lungoAsse != null) voce["along"] = lungoAsse;
+                        if (axisLength != null) entry["along"] = axisLength;
                     }
                     else
                     {
                         // Non dritto: si dice, perche' come DIREZIONE non
                         // vale e la ripetizione lo rifiuterebbe.
-                        voce["curved"] = true;
-                        if (raggioSpigolo > 0) voce["radius_mm"] = Math.Round(raggioSpigolo, 2);
+                        entry["curved"] = true;
+                        if (edgeRadius > 0) entry["radius_mm"] = Math.Round(edgeRadius, 2);
                     }
                     // SU QUALI FACCE SI APPOGGIA: e' cosi' che si dice «il
                     // bordo della faccia in alto» senza contare i millimetri.
-                    var fra = FacceDelloSpigolo(t.Item1, uidDellaFaccia);
-                    if (fra != null) voce["between"] = fra;
-                    if (corpi.Count > 1 && t.Item2 < MaxCorpi) voce["body"] = "C" + (t.Item2 + 1);
-                    spigoli.Add(voce);
-                    stato.Firme[uid] = new FirmaEntita
+                    var fra = EdgeFaces(t.Item1, faceUid);
+                    if (fra != null) entry["between"] = fra;
+                    if (bodies.Count > 1 && t.Item2 < MaxBodies) entry["body"] = "C" + (t.Item2 + 1);
+                    edges.Add(entry);
+                    docState.Signatures[uid] = new EntitySignature
                     {
-                        Tipo = "EDGE",
-                        Misura = Math.Round(lung, 2),
-                        PuntoMm = punto,
-                        Entita = t.Item1,
+                        Type = "EDGE",
+                        Measure = Math.Round(len, 2),
+                        PointMm = point,
+                        Entity = t.Item1,
                     };
                 }
             }
 
-            dati["solid_body"] = haCorpo;
-            dati["planes_available"] = nPiani;
+            data["solid_body"] = hasBody;
+            data["planes_available"] = nPlanes;
 
             // L'ALBERO E' ROSSO? SI DICE IN TESTA, NON SOLO DENTRO.
             //
@@ -1388,32 +1388,32 @@ namespace Oce.Solid.Agent.Core
             // aveva codice 12. Le due domande sono diverse: «va ricostruito» e
             // «e' rotto» non sono la stessa cosa, e fidarsi della prima per
             // rispondere alla seconda avrebbe dato una guardia sempre verde.
-            if (lavorazioniInErrore > 0)
-                dati["features_in_error"] = lavorazioniInErrore;
+            if (featuresInError > 0)
+                data["features_in_error"] = featuresInError;
             try
             {
-                if (modello.Extension.NeedsRebuild2 != 0)
-                    dati["rebuild_needed"] = true;
+                if (model.Extension.NeedsRebuild2 != 0)
+                    data["rebuild_needed"] = true;
             }
             catch { }
 
-            dati["feature"] = feature;
-            if (altreFeature > 0) dati["other_feature"] = altreFeature;
+            data["feature"] = feature;
+            if (otherFeatures > 0) data["other_feature"] = otherFeatures;
             // Il tetto sulle lavorazioni, dichiarato come quelli su facce,
             // spigoli e corpi. `truncated` vale per tutto lo stato.
-            if (featureNonElencate > 0)
+            if (unlistedFeatures > 0)
             {
-                dati["feature_not_listed"] = featureNonElencate;
-                dati["feature_total"] = feature.Count + featureNonElencate;
-                troncato = true;
+                data["feature_not_listed"] = unlistedFeatures;
+                data["feature_total"] = feature.Count + unlistedFeatures;
+                truncated = true;
             }
             // I tipi si mandano SEMPRE quando ce ne sono: e' cio' che
             // permette di accorgersi che una lavorazione e' invisibile.
-            if (tipiIgnoti.Count > 0) dati["other_feature_kinds"] = tipiIgnoti.ToArray();
-            dati["axes"] = assi;
-            if (corpiDescritti.Count > 0) dati["bodies"] = corpiDescritti;
-            dati["faces"] = facce;
-            dati["edges"] = spigoli;
+            if (unknownTypes.Count > 0) data["other_feature_kinds"] = unknownTypes.ToArray();
+            data["axes"] = axes;
+            if (describedBodies.Count > 0) data["bodies"] = describedBodies;
+            data["faces"] = faces;
+            data["edges"] = edges;
             // COSA C'E' SELEZIONATO ADESSO, detto con gli stessi nomi.
             //
             // E' l'altra meta' della firma: invece di descrivere a parole quale
@@ -1422,37 +1422,37 @@ namespace Oce.Solid.Agent.Core
             // dell'operazione, non si scopre dopo.
             //
             // Non e' uno strumento nuovo, ed e' voluto: il ponte ne ha quattro
-            // e il motivo e' scritto in `Attrezzi`. Questa e' una riga in piu'
+            // e il motivo e' scritto in `McpTools`. Questa e' una riga in piu'
             // in una risposta che si legge gia', e si scrive **solo quando c'e'
             // qualcosa di selezionato** — su un documento senza selezione non
             // costa niente.
             // Il dizionario dei nomi, solo se qualcuno lo usa.
-            if (nomiDelleLavorazioni.Count > 0)
+            if (featureNames.Count > 0)
             {
-                var mappa = new Dictionary<string, object>();
-                foreach (var v in nomiDelleLavorazioni)
-                    mappa[v.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)] = v.Value;
-                dati["features"] = mappa;
+                var map = new Dictionary<string, object>();
+                foreach (var v in featureNames)
+                    map[v.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)] = v.Value;
+                data["features"] = map;
             }
 
-            var selezionate = LaSelezione(modello, stato.Firme);
-            if (selezionate != null && selezionate.Count > 0) dati["selection"] = selezionate;
+            var selected = TheSelection(model, docState.Signatures);
+            if (selected != null && selected.Count > 0) data["selection"] = selected;
 
-            dati["truncated"] = troncato;
-            dati["protocol_units"] = "mm";
+            data["truncated"] = truncated;
+            data["protocol_units"] = "mm";
 
             // LE EQUAZIONI E LE VARIABILI GLOBALI (voce Z-F1), se ce ne sono: chi
             // legge lo stato deve sapere che una quota e' guidata prima di provare
             // a cambiarla a mano.
-            int equazioniTotali;
-            var equazioni = OperazioniSw.EquazioniDelDocumento(modello, out equazioniTotali);
-            if (equazioni != null)
+            int totalEquations;
+            var equations = SwOperations.DocumentEquations(model, out totalEquations);
+            if (equations != null)
             {
-                dati["equations"] = equazioni;
-                if (equazioniTotali > equazioni.Length)
+                data["equations"] = equations;
+                if (totalEquations > equations.Length)
                 {
-                    dati["equations_total"] = equazioniTotali;
-                    dati["truncated"] = true;
+                    data["equations_total"] = totalEquations;
+                    data["truncated"] = true;
                 }
             }
 
@@ -1475,8 +1475,8 @@ namespace Oce.Solid.Agent.Core
             // cosa diversa da «non l'ho saputo dire».
             try
             {
-                string forma = FormaAParole.Descrivi(dati);
-                if (!string.IsNullOrEmpty(forma)) dati["shape"] = forma;
+                string shape = ShapeToWords.Describe(data);
+                if (!string.IsNullOrEmpty(shape)) data["shape"] = shape;
             }
             catch { }
 
@@ -1486,13 +1486,13 @@ namespace Oce.Solid.Agent.Core
             // letto i corpi mentre le firme delle facce si riempiono dopo. E'
             // lo STESSO oggetto in tutte: e' una proprieta' del pezzo, non
             // dell'entita', e copiarla non servirebbe a niente.
-            stato.ScatolaPezzoMm = scatolaDelPezzo;
-            if (scatolaDelPezzo != null)
-                foreach (var firmata in stato.Firme.Values)
-                    if (firmata != null) firmata.ScatolaPezzoMm = scatolaDelPezzo;
+            docState.BoxPartMm = partBox;
+            if (partBox != null)
+                foreach (var signed in docState.Signatures.Values)
+                    if (signed != null) signed.BoxPartMm = partBox;
 
-            stato.Dati = dati;
-            return stato;
+            docState.Data = data;
+            return docState;
         }
 
         /// <summary>
@@ -1504,40 +1504,40 @@ namespace Oce.Solid.Agent.Core
         /// quello che ne esce. Chi guarda la scheda vede il secondo, e questa
         /// e' una descrizione di cio' che si vede.
         /// </summary>
-        private static Dictionary<string, object> LeggiProprieta(
-            IModelDoc2 modello, string configurazione)
+        private static Dictionary<string, object> ReadProperty(
+            IModelDoc2 model, string configuration)
         {
-            var fuori = new Dictionary<string, object>(StringComparer.Ordinal);
+            var outside = new Dictionary<string, object>(StringComparer.Ordinal);
             try
             {
-                var cassetto = modello.Extension.get_CustomPropertyManager(configurazione)
+                var propertyManager = model.Extension.get_CustomPropertyManager(configuration)
                                as ICustomPropertyManager;
-                if (cassetto == null) return fuori;
-                var nomi = cassetto.GetNames() as string[];
-                if (nomi == null) return fuori;
-                foreach (var nome in nomi)
+                if (propertyManager == null) return outside;
+                var names = propertyManager.GetNames() as string[];
+                if (names == null) return outside;
+                foreach (var itemName in names)
                 {
-                    if (string.IsNullOrEmpty(nome)) continue;
+                    if (string.IsNullOrEmpty(itemName)) continue;
                     try
                     {
-                        string valore, risolto;
-                        bool eraRisolto, collegata;
+                        string val, resolved;
+                        bool wasResolved, connected;
                         // THE RESULT CODE IS READ (Z-C21.8, finding L17-8).
                         // ICustomPropertyManager~Get6.html: «Result code as
                         // defined in swCustomInfoGetResult_e». The names come
                         // from GetNames, so NotPresent should not happen (the
                         // audit said so, L9-7); if it does, the name is left out
                         // instead of being written as an empty property.
-                        int esito = cassetto.Get6(nome, false, out valore, out risolto,
-                                                  out eraRisolto, out collegata);
-                        if (esito == (int)swCustomInfoGetResult_e.swCustomInfoGetResult_NotPresent) continue;
-                        fuori[nome] = risolto ?? valore ?? "";
+                        int outcome = propertyManager.Get6(itemName, false, out val, out resolved,
+                                                  out wasResolved, out connected);
+                        if (outcome == (int)swCustomInfoGetResult_e.swCustomInfoGetResult_NotPresent) continue;
+                        outside[itemName] = resolved ?? val ?? "";
                     }
                     catch { }
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>
@@ -1550,29 +1550,29 @@ namespace Oce.Solid.Agent.Core
         /// intorno. GetExtremePoint restituisce il punto vero del corpo piu'
         /// lontano in una direzione.
         /// </summary>
-        private static double[] Ingombro(IBody2 corpo)
+        private static double[] BoundingBox(IBody2 body)
         {
             try
             {
-                var box = ApiHelpers.TrueBoundingBox(corpo);
-                if (box == null) return ScatolaApprossimata(corpo);
-                var fuori = new double[6];
-                for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(box[i]);
-                return fuori;
+                var box = ApiHelpers.TrueBoundingBox(body);
+                if (box == null) return ApproximateBox(body);
+                var outside = new double[6];
+                for (int i = 0; i < 6; i++) outside[i] = Units.Mm(box[i]);
+                return outside;
             }
-            catch { return ScatolaApprossimata(corpo); }
+            catch { return ApproximateBox(body); }
         }
 
-        private static double[] ScatolaApprossimata(IBody2 corpo)
+        private static double[] ApproximateBox(IBody2 body)
         {
             try
             {
                 // Only the fallback when GetExtremePoint does not answer (Ingombro).
-                var b = ApiHelpers.ApproximateBoundingBox(corpo);
+                var b = ApiHelpers.ApproximateBoundingBox(body);
                 if (b == null || b.Length < 6) return null;
-                var fuori = new double[6];
-                for (int i = 0; i < 6; i++) fuori[i] = b[i] * 1000.0;
-                return fuori;
+                var outside = new double[6];
+                for (int i = 0; i < 6; i++) outside[i] = b[i] * 1000.0;
+                return outside;
             }
             catch { return null; }
         }
@@ -1584,16 +1584,16 @@ namespace Oce.Solid.Agent.Core
         /// parola: una faccia «quasi in alto» descritta come «in alto» farebbe
         /// scegliere quella sbagliata.
         /// </summary>
-        private static string Verso(double[] normale)
+        private static string Facing(double[] normal)
         {
-            if (normale == null || normale.Length < 3) return null;
-            const double quasiUno = 0.99;
-            if (normale[0] > quasiUno) return "right";
-            if (normale[0] < -quasiUno) return "left";
-            if (normale[1] > quasiUno) return "up";
-            if (normale[1] < -quasiUno) return "down";
-            if (normale[2] > quasiUno) return "front";
-            if (normale[2] < -quasiUno) return "back";
+            if (normal == null || normal.Length < 3) return null;
+            const double almostOne = 0.99;
+            if (normal[0] > almostOne) return "right";
+            if (normal[0] < -almostOne) return "left";
+            if (normal[1] > almostOne) return "up";
+            if (normal[1] < -almostOne) return "down";
+            if (normal[2] > almostOne) return "front";
+            if (normal[2] < -almostOne) return "back";
             return null;
         }
 
@@ -1633,25 +1633,25 @@ namespace Oce.Solid.Agent.Core
         ///       EdgeChamferAngle, GetVertexChamferDistance(Int32), GetEdgeCount()
         ///   IFeature.GetFaceCount()
         /// </summary>
-        private static void ParametriDellaFeature(
-            IFeature f, string tipo, Dictionary<string, object> voce)
+        private static void FeatureParameters(
+            IFeature f, string typ, Dictionary<string, object> entry)
         {
-            object definizione;
-            try { definizione = f.GetDefinition(); }
+            object definition;
+            try { definition = f.GetDefinition(); }
             catch { return; }
-            if (definizione == null) return;
+            if (definition == null) return;
 
             try
             {
-                if (tipo == "HoleWzd")
+                if (typ == "HoleWzd")
                 {
-                    var d = definizione as IWizardHoleFeatureData2;
+                    var d = definition as IWizardHoleFeatureData2;
                     if (d == null) return;
                     // LA NORMA E LA TAGLIA SONO STRINGHE, e sono quelle che un
                     // progettista dice a voce: «un M8 ISO passante».
-                    Metti(voce, "norma", Testo(() => d.Standard));
-                    Metti(voce, "tipo_foro", Testo(() => d.FastenerType));
-                    Metti(voce, "size", Testo(() => d.FastenerSize));
+                    Put(entry, "norma", Text(() => d.Standard));
+                    Put(entry, "tipo_foro", Text(() => d.FastenerType));
+                    Put(entry, "size", Text(() => d.FastenerSize));
                     // IL DIAMETRO LAVORATO, con la ricetta a quattro famiglie
                     // gia' in produzione in `OperazioniFori`: quale dei quattro
                     // campi sia valorizzato dipende dal tipo di foro, e
@@ -1659,56 +1659,56 @@ namespace Oce.Solid.Agent.Core
                     double diam = Math.Max(
                         Math.Max(d.ThruTapDrillDiameter, d.TapDrillDiameter),
                         Math.Max(d.ThruHoleDiameter, d.HoleDiameter)) * 1000.0;
-                    if (diam > 0) voce["diameter_mm"] = Math.Round(diam, 2);
+                    if (diam > 0) entry["diameter_mm"] = Math.Round(diam, 2);
                     if (d.ThreadDiameter > 0)
-                        voce["thread_mm"] = Math.Round(d.ThreadDiameter * 1000.0, 2);
+                        entry["thread_mm"] = Math.Round(d.ThreadDiameter * 1000.0, 2);
                     double prof = Math.Max(d.HoleDepth, d.Depth) * 1000.0;
-                    if (prof > 0) voce["depth_mm"] = Math.Round(prof, 2);
+                    if (prof > 0) entry["depth_mm"] = Math.Round(prof, 2);
                 }
-                else if (tipo == "Extrusion" || tipo == "Cut")
+                else if (typ == "Extrusion" || typ == "Cut")
                 {
-                    var d = definizione as IExtrudeFeatureData2;
+                    var d = definition as IExtrudeFeatureData2;
                     if (d == null) return;
                     double prof = d.GetDepth(true) * 1000.0;
-                    if (prof > 0) voce["depth_mm"] = Math.Round(prof, 2);
+                    if (prof > 0) entry["depth_mm"] = Math.Round(prof, 2);
                     if (d.BothDirections)
                     {
-                        voce["two_directions"] = true;
+                        entry["two_directions"] = true;
                         double prof2 = d.GetDepth(false) * 1000.0;
-                        if (prof2 > 0) voce["depth2_mm"] = Math.Round(prof2, 2);
+                        if (prof2 > 0) entry["depth2_mm"] = Math.Round(prof2, 2);
                     }
                     // «Fino in fondo» e «profondo 12» sono due pezzi diversi, e
                     // la profondita' da sola non li distingue: su un passante
                     // resta scritto un numero che non comanda niente.
-                    voce["end_condition"] = CondizioneFine(d.GetEndCondition(true));
+                    entry["end_condition"] = EndCondition(d.GetEndCondition(true));
                 }
-                else if (tipo == "Fillet")
+                else if (typ == "Fillet")
                 {
-                    var d = definizione as ISimpleFilletFeatureData2;
+                    var d = definition as ISimpleFilletFeatureData2;
                     if (d == null) return;
                     if (d.DefaultRadius > 0)
-                        voce["radius_mm"] = Math.Round(d.DefaultRadius * 1000.0, 2);
-                    if (d.IsMultipleRadius) voce["radius_variable"] = true;
+                        entry["radius_mm"] = Math.Round(d.DefaultRadius * 1000.0, 2);
+                    if (d.IsMultipleRadius) entry["radius_variable"] = true;
                     // NOT FilletItemsCount (C7-2): «This method returns -1 if
                     // this simple fillet feature is not multiple radius»
                     // (ISimpleFilletFeatureData2~FilletItemsCount.html,
                     // Remarks), and the bridge only makes uniform fillets, so
                     // the edge count it guarded never came out (-1 on every
                     // fillet of the Z-C21.3 edge-count probe, 28/9/2026).
-                    EdgeAndFaceCounts(f, () => d.GetEdgeCount(), voce);
+                    EdgeAndFaceCounts(f, () => d.GetEdgeCount(), entry);
                 }
-                else if (tipo == "Chamfer")
+                else if (typ == "Chamfer")
                 {
                     // IChamferFeatureData2, not the obsolete IChamferFeatureData:
                     // the type that decides how to read the sizes is
                     // IChamferFeatureData2::Type (IChamferFeatureData~Type.html:
                     // «Obsolete. Superseded by IChamferFeatureData2::Type»).
-                    var d = definizione as IChamferFeatureData2;
+                    var d = definition as IChamferFeatureData2;
                     if (d == null) return;
                     ChamferSizes(d.Type, side => d.GetEdgeChamferDistance(side),
                                  () => d.EdgeChamferAngle,
-                                 side => d.GetVertexChamferDistance(side), voce);
-                    EdgeAndFaceCounts(f, () => d.GetEdgeCount(), voce);
+                                 side => d.GetVertexChamferDistance(side), entry);
+                    EdgeAndFaceCounts(f, () => d.GetEdgeCount(), entry);
                 }
             }
             catch { }
@@ -1820,18 +1820,18 @@ namespace Oce.Solid.Agent.Core
             if (type != distanceDistance)
             {
                 double radians = angle();
-                if (radians > 0) entry["angle_deg"] = Math.Round(Unita.Gradi(radians), 1);
+                if (radians > 0) entry["angle_deg"] = Math.Round(Units.Degrees(radians), 1);
             }
         }
 
-        private static void Metti(Dictionary<string, object> voce, string chiave, string valore)
+        private static void Put(Dictionary<string, object> entry, string key, string val)
         {
-            if (!string.IsNullOrWhiteSpace(valore)) voce[chiave] = valore.Trim();
+            if (!string.IsNullOrWhiteSpace(val)) entry[key] = val.Trim();
         }
 
-        private static string Testo(Func<string> leggi)
+        private static string Text(Func<string> read)
         {
-            try { return leggi(); }
+            try { return read(); }
             catch { return null; }
         }
 
@@ -1840,9 +1840,9 @@ namespace Oce.Solid.Agent.Core
         /// non vogliono dire niente per chi legge il piano, e sono proprio la
         /// cosa che distingue «fino in fondo» da «profondo 12».
         /// </summary>
-        private static string CondizioneFine(int codice)
+        private static string EndCondition(int code)
         {
-            switch (codice)
+            switch (code)
             {
                 case (int)swEndConditions_e.swEndCondBlind: return "profondita' data";
                 case (int)swEndConditions_e.swEndCondThroughAll: return "through_all";
@@ -1853,7 +1853,7 @@ namespace Oce.Solid.Agent.Core
                 case (int)swEndConditions_e.swEndCondOffsetFromSurface: return "sfalsata da una superficie";
                 case (int)swEndConditions_e.swEndCondUpToBody: return "fino a un corpo";
                 case (int)swEndConditions_e.swEndCondUpToNext: return "fino al successivo";
-                default: return "condizione " + codice;
+                default: return "condizione " + code;
             }
         }
 
@@ -1877,7 +1877,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// **Cosa restava a chi legge.** Di una faccia cilindrica lo stato
         /// diceva `point_mm`, `radius_mm`, `diameter_mm` e `axis`. Ma
-        /// `point_mm` viene da `PuntoSuFaccia`, ed e' un punto **sulla
+        /// `point_mm` viene da `PointOnFace`, ed e' un punto **sulla
         /// superficie**, garantito a un raggio dall'asse in una direzione
         /// qualunque: serve a SELEZIONARE, non a dire dove sia il foro. E
         /// `axis` e' una direzione, non una posizione. Il centro non era
@@ -1902,36 +1902,36 @@ namespace Oce.Solid.Agent.Core
         /// La regola del progetto e' che cambiare l'insieme delle firme di un
         /// metodo rompe chi lo chiama per riflessione anche quando il
         /// compilatore tace. Vale per cio' che il banco invoca per nome —
-        /// `Leggi`, `LeggiConAncora`, `OperazioniSw.Esegui`. Questo e'
+        /// `Read`, `ReadWithAnchor`, `SwOperations.Run`. Questo e'
         /// `private static` dentro il file che lo usa, con un solo punto di
         /// chiamata: fuori di qui non lo puo' invocare nessuno.
         /// </summary>
-        private static bool CilindroDi(
-            IFace2 faccia, out double raggioMm, out double[] asse, out double[] centro)
+        private static bool CylinderOf(
+            IFace2 face, out double radiusMm, out double[] axis, out double[] center)
         {
-            raggioMm = 0;
-            asse = null;
-            centro = null;
+            radiusMm = 0;
+            axis = null;
+            center = null;
             try
             {
-                var superficie = faccia.IGetSurface();
-                if (superficie == null || !superficie.IsCylinder()) return false;
-                var par = superficie.CylinderParams as double[];
+                var surface = face.IGetSurface();
+                if (surface == null || !surface.IsCylinder()) return false;
+                var par = surface.CylinderParams as double[];
                 if (par == null || par.Length < 7) return false;
-                raggioMm = Unita.Mm(par[6]);
-                asse = new[]
+                radiusMm = Units.Mm(par[6]);
+                axis = new[]
                 {
                     Math.Round(par[3], 4),
                     Math.Round(par[4], 4),
                     Math.Round(par[5], 4),
                 };
-                centro = new[]
+                center = new[]
                 {
-                    Math.Round(Unita.Mm(par[0]), 3),
-                    Math.Round(Unita.Mm(par[1]), 3),
-                    Math.Round(Unita.Mm(par[2]), 3),
+                    Math.Round(Units.Mm(par[0]), 3),
+                    Math.Round(Units.Mm(par[1]), 3),
+                    Math.Round(Units.Mm(par[2]), 3),
                 };
-                return raggioMm > 0;
+                return radiusMm > 0;
             }
             catch { return false; }
         }
@@ -1949,20 +1949,20 @@ namespace Oce.Solid.Agent.Core
         /// Torna false se lo spigolo NON e' dritto; in quel caso `raggio` e'
         /// il raggio del cerchio, quando e' un cerchio.
         /// </summary>
-        private static bool DirezioneSpigolo(IEdge spigolo, out string lungo, out double raggio)
+        private static bool EdgeDirection(IEdge edge, out string along, out double radius)
         {
-            lungo = null;
-            raggio = 0;
+            along = null;
+            radius = 0;
             try
             {
-                var curva = spigolo.IGetCurve();
+                var curva = edge.IGetCurve();
                 if (curva == null) return false;
                 if (!curva.IsLine())
                 {
                     if (curva.IsCircle())
                     {
                         var c = curva.CircleParams as double[];
-                        if (c != null && c.Length >= 7) raggio = Unita.Mm(c[6]);
+                        if (c != null && c.Length >= 7) radius = Units.Mm(c[6]);
                     }
                     return false;
                 }
@@ -1972,33 +1972,33 @@ namespace Oce.Solid.Agent.Core
                 // diagonale non ha un asse, e chiamarla «lungo X» sarebbe
                 // una bugia comoda — di quelle che non danno errore.
                 double[] d = { Math.Abs(par[3]), Math.Abs(par[4]), Math.Abs(par[5]) };
-                const double quasiUno = 0.99;
-                if (d[0] > quasiUno) lungo = "X";
-                else if (d[1] > quasiUno) lungo = "Y";
-                else if (d[2] > quasiUno) lungo = "Z";
+                const double almostOne = 0.99;
+                if (d[0] > almostOne) along = "X";
+                else if (d[1] > almostOne) along = "Y";
+                else if (d[2] > almostOne) along = "Z";
                 return true;
             }
             catch { return true; }
         }
 
         /// <summary>Le due facce che si toccano su questo spigolo, per uid.</summary>
-        private static string[] FacceDelloSpigolo(
-            IEdge spigolo, Dictionary<IFace2, string> uidDellaFaccia)
+        private static string[] EdgeFaces(
+            IEdge edge, Dictionary<IFace2, string> faceUid)
         {
             try
             {
-                var due = spigolo.GetTwoAdjacentFaces2() as object[];
+                var due = edge.GetTwoAdjacentFaces2() as object[];
                 if (due == null) return null;
-                var nomi = new List<string>();
+                var names = new List<string>();
                 foreach (var o in due)
                 {
                     var f = o as IFace2;
                     string u;
-                    if (f != null && uidDellaFaccia.TryGetValue(f, out u)) nomi.Add(u);
+                    if (f != null && faceUid.TryGetValue(f, out u)) names.Add(u);
                 }
                 // Se una delle due e' fuori dal tetto delle facce, meglio
                 // niente che una coppia monca che sembra completa.
-                return nomi.Count == 2 ? nomi.ToArray() : null;
+                return names.Count == 2 ? names.ToArray() : null;
             }
             catch { return null; }
         }
@@ -2023,12 +2023,12 @@ namespace Oce.Solid.Agent.Core
         /// qualcuno tocca l'albero; «D1@Schizzo1» no, ed e' quello che si
         /// scrive per cambiarla.
         /// </summary>
-        private static void QuoteDellaFeature(IFeature f, Dictionary<string, object> voce)
+        private static void FeatureDimensions(IFeature f, Dictionary<string, object> entry)
         {
             try
             {
                 var quote = new List<Dictionary<string, object>>();
-                int altre = 0;
+                int other = 0;
                 object display = f.GetFirstDisplayDimension();
                 while (display != null)
                 {
@@ -2038,22 +2038,22 @@ namespace Oce.Solid.Agent.Core
                     {
                         if (quote.Count < 4)
                         {
-                            string nome = null;
-                            try { nome = d.FullName; } catch { }
-                            if (string.IsNullOrEmpty(nome)) { try { nome = d.Name; } catch { } }
-                            if (!string.IsNullOrEmpty(nome))
+                            string itemName = null;
+                            try { itemName = d.FullName; } catch { }
+                            if (string.IsNullOrEmpty(itemName)) { try { itemName = d.Name; } catch { } }
+                            if (!string.IsNullOrEmpty(itemName))
                             {
-                                quote.Add(Quota(d, nome));
+                                quote.Add(Dimension(d, itemName));
                             }
                         }
-                        else altre++;
+                        else other++;
                     }
-                    object prossimo = null;
-                    try { prossimo = f.GetNextDisplayDimension(display); } catch { }
-                    display = prossimo;
+                    object next = null;
+                    try { next = f.GetNextDisplayDimension(display); } catch { }
+                    display = next;
                 }
-                if (quote.Count > 0) voce["dimensions"] = quote;
-                if (altre > 0) voce["other_dimensions"] = altre;
+                if (quote.Count > 0) entry["dimensions"] = quote;
+                if (other > 0) entry["other_dimensions"] = other;
             }
             catch { }
         }
@@ -2091,7 +2091,7 @@ namespace Oce.Solid.Agent.Core
         /// `mm`: e' il comportamento di prima, ed e' giusto per la
         /// stragrande maggioranza delle quote.
         /// </summary>
-        private static Dictionary<string, object> Quota(IDimension d, string nome)
+        private static Dictionary<string, object> Dimension(IDimension d, string itemName)
         {
             // ── E L'ENUM GIUSTO NON E' QUELLO CHE SEMBRA ─────────────────
             //
@@ -2116,9 +2116,9 @@ namespace Oce.Solid.Agent.Core
             // Due enum quasi omonimi per due cose diverse, e il compilatore non
             // puo' dire niente perche' tutti e due sono `int`. L'unico modo di
             // saperlo era chiederlo al pezzo.
-            const int Angolare = 1;   // swDimensionParamType_e.swDimensionParamTypeDoubleAngular
-            int tipo = 0;
-            try { tipo = d.GetType(); } catch { }
+            const int Angular = 1;   // swDimensionParamType_e.swDimensionParamTypeDoubleAngular
+            int typ = 0;
+            try { typ = d.GetType(); } catch { }
 
             // A VALUE THAT CANNOT BE READ IS NULL, NOT ZERO (Z-C21.13 follow-up,
             // S1 in parts). ApiHelpers.ReadDimension moved to GetSystemValue3,
@@ -2127,40 +2127,40 @@ namespace Oce.Solid.Agent.Core
             // library 0.145.0 the angle stayed at the 0 it was initialised to,
             // «0 degrees», a plausible wrong number, and a linear dimension that
             // threw dropped the dimensions of the whole feature, because the only
-            // catch was the one around the walk in QuoteDellaFeature. Now the
+            // catch was the one around the walk in FeatureDimensions. Now the
             // row stays, with its name and a null value: not read, not zero.
             object readValue = null;
-            if (tipo == Angolare)
+            if (typ == Angular)
             {
                 try { readValue = Math.Round(ApiHelpers.ReadDimension(d) * 180.0 / Math.PI, 3); } catch { }
                 return new Dictionary<string, object>
                 {
-                    ["name"] = nome,
+                    ["name"] = itemName,
                     ["deg"] = readValue,
                 };
             }
 
-            try { readValue = Math.Round(Unita.Mm(ApiHelpers.ReadDimension(d)), 3); } catch { }
+            try { readValue = Math.Round(Units.Mm(ApiHelpers.ReadDimension(d)), 3); } catch { }
             return new Dictionary<string, object>
             {
-                ["name"] = nome,
+                ["name"] = itemName,
                 ["mm"] = readValue,
             };
         }
 
         /// <summary>Il nome della lavorazione che ha generato questa faccia.</summary>
-        private static string FeatureDellaFaccia(IFace2 faccia)
+        private static string FaceFeature(IFace2 face)
         {
-            try { return (faccia.GetFeature() as IFeature)?.Name; }
+            try { return (face.GetFeature() as IFeature)?.Name; }
             catch { return null; }
         }
 
-        private static string FeatureDelCorpo(IBody2 corpo)
+        private static string BodyFeature(IBody2 body)
         {
             try
             {
-                var faccia = corpo.GetFirstFace() as IFace2;
-                var feature = faccia?.GetFeature() as IFeature;
+                var face = body.GetFirstFace() as IFace2;
+                var feature = face?.GetFeature() as IFeature;
                 return feature?.Name;
             }
             catch { return null; }
@@ -2175,15 +2175,15 @@ namespace Oce.Solid.Agent.Core
         /// kilograms) are used» (Z-C21.9, finding N74; until library 0.144.0
         /// this comment said the value would otherwise come in document units).
         /// </summary>
-        private static double? Massa(IModelDoc2 modello, List<IBody2> corpi)
+        private static double? Mass(IModelDoc2 model, List<IBody2> bodies)
         {
             try
             {
                 // S2 (ApiHelpers.NewMassProperty). As before, a refused
                 // AddBodies is not checked here.
-                var proprieta = ApiHelpers.NewMassProperty(modello, corpi?.Cast<object>(), out _);
-                if (proprieta == null) return null;
-                double kg = proprieta.Mass;
+                var property = ApiHelpers.NewMassProperty(model, bodies?.Cast<object>(), out _);
+                if (property == null) return null;
+                double kg = property.Mass;
                 return kg > 0 ? (double?)kg : null;
             }
             catch { return null; }
@@ -2198,17 +2198,17 @@ namespace Oce.Solid.Agent.Core
         /// 29.5.1.1 (SOLIDWORKS 2021), non ricordato: la firma sbagliata qui
         /// avrebbe dato una InvalidCastException al primo spigolo letto.
         /// </summary>
-        private static bool Estremi(IEdge spigolo, out double[] inizio, out double[] fine)
+        private static bool Ends(IEdge edge, out double[] start, out double[] fine)
         {
-            inizio = null;
+            start = null;
             fine = null;
             try
             {
-                var dati = ApiHelpers.EdgeParameters(spigolo);
-                if (dati == null) return false;
-                inizio = dati.StartPoint as double[];
-                fine = dati.EndPoint as double[];
-                return inizio != null && fine != null && inizio.Length >= 3 && fine.Length >= 3;
+                var data = ApiHelpers.EdgeParameters(edge);
+                if (data == null) return false;
+                start = data.StartPoint as double[];
+                fine = data.EndPoint as double[];
+                return start != null && fine != null && start.Length >= 3 && fine.Length >= 3;
             }
             catch { return false; }
         }
@@ -2216,15 +2216,15 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Lunghezza approssimata di uno spigolo, in mm. Zero se non si legge.
         ///
-        /// `internal` e non `private` perche' la usa anche `SelezionaSpigoli`
+        /// `internal` e non `private` perche' la usa anche `SelectEdges`
         /// quando gli spigoli arrivano per riferimento a un passo e non per
         /// uid: li' non c'e' una firma da cui leggere la misura, e senza questa
         /// il controllo «il raggio ci sta sullo spigolo» veniva saltato.
         /// Copiarla sarebbe stato il modo di farle divergere.
         /// </summary>
-        internal static double LunghezzaMm(IEdge spigolo)
+        internal static double LengthMm(IEdge edge)
         {
-            if (spigolo == null) return -1;
+            if (edge == null) return -1;
             // LA LUNGHEZZA VERA, NON LA CORDA (voce E19, 25/9/2026).
             //
             // Fino alla libreria 0.119.0 qui c'era la distanza fra gli estremi,
@@ -2246,29 +2246,29 @@ namespace Oce.Solid.Agent.Core
             // «lungo zero» (voce Z-C8).
             try
             {
-                var parametri = ApiHelpers.EdgeParameters(spigolo, out ICurve curva);
-                if (curva != null && parametri != null)
+                var parameters = ApiHelpers.EdgeParameters(edge, out ICurve curva);
+                if (curva != null && parameters != null)
                 {
-                    double vera = curva.GetLength3(parametri.UMinValue, parametri.UMaxValue);
-                    if (vera > 0) return Unita.Mm(vera);
+                    double real = curva.GetLength3(parameters.UMinValue, parameters.UMaxValue);
+                    if (real > 0) return Units.Mm(real);
                 }
             }
             catch { }
             double[] a, b;
-            if (!Estremi(spigolo, out a, out b)) return -1;
+            if (!Ends(edge, out a, out b)) return -1;
             double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
-            return Unita.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
+            return Units.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
         }
 
-        private static double[] PuntoSuSpigolo(IEdge spigolo)
+        private static double[] PointOnEdge(IEdge edge)
         {
             double[] a, b;
-            if (!Estremi(spigolo, out a, out b)) return null;
+            if (!Ends(edge, out a, out b)) return null;
             return new[]
             {
-                Math.Round(Unita.Mm((a[0] + b[0]) / 2), 3),
-                Math.Round(Unita.Mm((a[1] + b[1]) / 2), 3),
-                Math.Round(Unita.Mm((a[2] + b[2]) / 2), 3),
+                Math.Round(Units.Mm((a[0] + b[0]) / 2), 3),
+                Math.Round(Units.Mm((a[1] + b[1]) / 2), 3),
+                Math.Round(Units.Mm((a[2] + b[2]) / 2), 3),
             };
         }
 
@@ -2284,29 +2284,29 @@ namespace Oce.Solid.Agent.Core
         /// Niente uid: un uid e' una posizione in una classifica, e qui non
         /// c'e' nessuna classifica. Chi la usa ha gia' l'uid che cercava.
         /// </summary>
-        internal static FirmaEntita FirmaDiUnaFaccia(IFace2 faccia)
+        internal static EntitySignature FaceSignature(IFace2 face)
         {
-            if (faccia == null) return null;
+            if (face == null) return null;
             try
             {
-                // ZERO-E-ZERO: 0 in `Misura` vuol dire «non misurata» per tutti
+                // ZERO-E-ZERO: 0 in `Measure` vuol dire «non misurata» per tutti
                 // quelli che la leggono (guardano `> 0`).
                 double areaMm2 = 0;
-                try { areaMm2 = Unita.Mm2(faccia.GetArea()); } catch { }
+                try { areaMm2 = Units.Mm2(face.GetArea()); } catch { }
 
-                int lavorazioneId;
-                string lavorazione;
-                LavorazioneDellaFaccia(faccia, out lavorazioneId, out lavorazione);
+                int featureId;
+                string featureItem;
+                FeatureOfFace(face, out featureId, out featureItem);
 
-                return new FirmaEntita
+                return new EntitySignature
                 {
-                    Tipo = "FACE",
-                    Misura = Math.Round(areaMm2, 2),
-                    PuntoMm = PuntoSuFaccia(faccia),
-                    Normale = NormaleFaccia(faccia),
-                    Entita = faccia,
-                    LavorazioneId = lavorazioneId,
-                    Lavorazione = lavorazione,
+                    Type = "FACE",
+                    Measure = Math.Round(areaMm2, 2),
+                    PointMm = PointOnFace(face),
+                    Normal = FaceNormalVector(face),
+                    Entity = face,
+                    FeatureId = featureId,
+                    Feature = featureItem,
                 };
             }
             catch { return null; }
@@ -2322,17 +2322,17 @@ namespace Oce.Solid.Agent.Core
         /// gia' letti comunque — e mette da parte un riferimento; il dettaglio
         /// si paga solo sulle ottanta che restano.
         /// </summary>
-        /// <param name="inErrore">
+        /// <param name="inError">
         /// Si incrementa per ogni lavorazione che porta un errore. E' un
         /// contatore di chi chiama, e passa per riferimento perche' il
         /// conteggio finisce in `features_in_error` sullo stato intero:
         /// tenerlo qui dentro vorrebbe dire perderlo.
         /// </param>
-        private static Dictionary<string, object> DettaglioFeature(
-            IFeature f, string tipo, string nome, ref int inErrore)
+        private static Dictionary<string, object> FeatureDetail(
+            IFeature f, string typ, string itemName, ref int inError)
         {
-            var voceF = new Dictionary<string, object>
-            { ["uid"] = nome, ["kind"] = tipo };
+            var entryF = new Dictionary<string, object>
+            { ["uid"] = itemName, ["kind"] = typ };
 
             // L'UID DI UNA LAVORAZIONE E' IL SUO NOME, e un nome
             // si rinomina. Chi rinomina «Taglio1» in «Foro cavo» e
@@ -2343,7 +2343,7 @@ namespace Oce.Solid.Agent.Core
             // `GetID()` non si rinomina. Non sostituisce l'uid —
             // il nome serve a chi legge — ma permette di
             // controllare che il nome indichi ancora quella.
-            try { voceF["feature_id"] = f.GetID(); } catch { }
+            try { entryF["feature_id"] = f.GetID(); } catch { }
 
             // UNA LAVORAZIONE SOPPRESSA E UNA VIVA ERANO
             // INDISTINGUIBILI. Il modello proponeva di raccordare
@@ -2353,7 +2353,7 @@ namespace Oce.Solid.Agent.Core
             // normale» ottanta volte.
             // Read in the active configuration with IsSuppressed2 since Z-C21.7
             // (S3, M44; ApiHelpers.IsSuppressedHere has the probe numbers).
-            try { if (ApiHelpers.IsSuppressedHere(f)) voceF["suppressed"] = true; } catch { }
+            try { if (ApiHelpers.IsSuppressedHere(f)) entryF["suppressed"] = true; } catch { }
 
             // UNA LAVORAZIONE IN ERRORE E UNA SANA ERANO
             // INDISTINGUIBILI, ed e' peggio della soppressa.
@@ -2372,21 +2372,21 @@ namespace Oce.Solid.Agent.Core
             // e' il caso raro.
             try
             {
-                bool soloAvviso;
-                int codice = f.GetErrorCode2(out soloAvviso);
-                if (codice != 0)
+                bool warningOnly;
+                int code = f.GetErrorCode2(out warningOnly);
+                if (code != 0)
                 {
-                    voceF["error"] = ErroriFeature.Frase(codice);
-                    voceF["error_code"] = codice;
-                    if (soloAvviso) voceF["warning_only"] = true;
-                    inErrore++;
+                    entryF["error"] = FeatureErrors.Sentence(code);
+                    entryF["error_code"] = code;
+                    if (warningOnly) entryF["warning_only"] = true;
+                    inError++;
                 }
             }
             catch { }
 
             // I PARAMETRI: quello che rende un foro «un M8» invece
             // che «una lavorazione di nome Foro1».
-            ParametriDellaFeature(f, tipo, voceF);
+            FeatureParameters(f, typ, entryF);
 
             // LE QUOTE: senza queste non si modifica niente.
             //
@@ -2400,11 +2400,11 @@ namespace Oce.Solid.Agent.Core
             // Una quota ha un NOME che si puo' citare
             // («D1@Schizzo1») e un valore. Metterli qui e' cio'
             // che rende possibile `set_dimension`.
-            QuoteDellaFeature(f, voceF);
-            return voceF;
+            FeatureDimensions(f, entryF);
+            return entryF;
         }
 
-        private static double[] PuntoSuFaccia(IFace2 faccia)
+        private static double[] PointOnFace(IFace2 face)
         {
             try
             {
@@ -2412,13 +2412,13 @@ namespace Oce.Solid.Agent.Core
                 // il centro di una faccia con un foro in mezzo puo' cadere nel
                 // vuoto, e SelectByID2 su un punto che non sta sulla faccia
                 // risponde False in silenzio.
-                var p = faccia.GetClosestPointOn(0, 0, 0) as double[];
+                var p = face.GetClosestPointOn(0, 0, 0) as double[];
                 if (p == null) return null;
                 return new[]
                 {
-                    Math.Round(Unita.Mm(p[0]), 3),
-                    Math.Round(Unita.Mm(p[1]), 3),
-                    Math.Round(Unita.Mm(p[2]), 3),
+                    Math.Round(Units.Mm(p[0]), 3),
+                    Math.Round(Units.Mm(p[1]), 3),
+                    Math.Round(Units.Mm(p[2]), 3),
                 };
             }
             catch { return null; }
@@ -2449,20 +2449,20 @@ namespace Oce.Solid.Agent.Core
         /// faccia e' orientata al contrario della sua superficie. Verificata
         /// per riflessione sull'interop 29.5.1.1.
         /// </summary>
-        private static double[] NormaleFaccia(IFace2 faccia)
+        private static double[] FaceNormalVector(IFace2 face)
         {
             try
             {
-                var superficie = faccia.IGetSurface();
-                if (superficie == null || !superficie.IsPlane()) return null;
-                var piano = superficie.PlaneParams as double[];
-                if (piano == null || piano.Length < 3) return null;
-                double segno = faccia.FaceInSurfaceSense() ? -1.0 : 1.0;
+                var surface = face.IGetSurface();
+                if (surface == null || !surface.IsPlane()) return null;
+                var plane = surface.PlaneParams as double[];
+                if (plane == null || plane.Length < 3) return null;
+                double sign = face.FaceInSurfaceSense() ? -1.0 : 1.0;
                 return new[]
                 {
-                    Math.Round(piano[0] * segno, 4),
-                    Math.Round(piano[1] * segno, 4),
-                    Math.Round(piano[2] * segno, 4),
+                    Math.Round(plane[0] * sign, 4),
+                    Math.Round(plane[1] * sign, 4),
+                    Math.Round(plane[2] * sign, 4),
                 };
             }
             catch { return null; }

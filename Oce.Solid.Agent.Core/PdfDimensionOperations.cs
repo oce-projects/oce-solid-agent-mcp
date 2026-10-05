@@ -15,29 +15,29 @@ namespace Oce.Solid.Agent.Core
     ///
     /// La misura: i NUMERI che le quote stampano (il testo di ogni quota, da
     /// `IDisplayData`, spezzato nei suoi numeri: «10 H7 +0,015 0» da' 10, 0,015,
-    /// 0) contati per valore; nel testo del PDF (`TestoDelPdf`) ogni valore deve
+    /// 0) contati per valore; nel testo del PDF (`PdfText`) ogni valore deve
     /// comparire ALMENO tante volte quante lo stampano le quote. Il PDF ha anche
     /// altri numeri (il cartiglio, le tolleranze generali): per questo «almeno»
     /// e non «uguale» — un numero in piu' non dice niente, uno in meno e' una
     /// quota che non e' arrivata.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
-        private static readonly Regex NumeroInTesto = new Regex(@"\d+(?:[.,]\d+)?", RegexOptions.Compiled);
+        private static readonly Regex NumberInText = new Regex(@"\d+(?:[.,]\d+)?", RegexOptions.Compiled);
 
         /// <summary>
         /// I numeri stampati dalle quote della tavola, per valore -> quante volte.
-        /// `senzaTesto`: le quote di cui il testo non si legge — NON controllate,
+        /// `withoutText`: le quote di cui il testo non si legge — NON controllate,
         /// e si dice (un controllo che salta in silenzio sembra un controllo passato).
         /// </summary>
-        private static Dictionary<string, int> NumeriDelleQuote(IDrawingDoc disegno, out int quote, out int senzaTesto)
+        private static Dictionary<string, int> DimensionNumbers(IDrawingDoc drawing, out int quote, out int withoutText)
         {
             quote = 0;
-            senzaTesto = 0;
-            var fuori = new Dictionary<string, int>(StringComparer.Ordinal);
+            withoutText = 0;
+            var outside = new Dictionary<string, int>(StringComparer.Ordinal);
             try
             {
-                var v = disegno.GetFirstView() as IView;
+                var v = drawing.GetFirstView() as IView;
                 while (v != null)
                 {
                     var dd = v.GetFirstDisplayDimension5() as IDisplayDimension;
@@ -46,31 +46,31 @@ namespace Oce.Solid.Agent.Core
                         quote++;
                         try
                         {
-                            var dati = dd.GetDisplayData() as IDisplayData;
+                            var data = dd.GetDisplayData() as IDisplayData;
                             // ZERO-E-ZERO: senza IDisplayData la quota non ha testi da
                             // cercare nel PDF — zero testi e' il limite del ciclo, non una
                             // misura. Quella quota resta NON controllata, e si conta.
-                            int n = dati == null ? 0 : dati.GetTextCount();
-                            if (n <= 0) senzaTesto++;
+                            int n = data == null ? 0 : data.GetTextCount();
+                            if (n <= 0) withoutText++;
                             for (int i = 0; i < n; i++)
-                                foreach (Match m in NumeroInTesto.Matches(dati.GetTextAtIndex(i) ?? ""))
+                                foreach (Match m in NumberInText.Matches(data.GetTextAtIndex(i) ?? ""))
                                 {
-                                    string k = Normalizza(m.Value);
-                                    fuori[k] = fuori.TryGetValue(k, out int c) ? c + 1 : 1;
+                                    string k = Normalize(m.Value);
+                                    outside[k] = outside.TryGetValue(k, out int c) ? c + 1 : 1;
                                 }
                         }
-                        catch { senzaTesto++; }
+                        catch { withoutText++; }
                         dd = dd.GetNext5() as IDisplayDimension;
                     }
                     v = v.GetNextView() as IView;
                 }
             }
             catch { }
-            return fuori;
+            return outside;
         }
 
         /// <summary>Un numero scritto con la virgola o col punto, e senza zeri inutili.</summary>
-        private static string Normalizza(string s)
+        private static string Normalize(string s)
         {
             s = s.Replace(',', '.');
             double d;
@@ -82,21 +82,21 @@ namespace Oce.Solid.Agent.Core
         /// Il confronto: per ogni numero delle quote, quante volte nel PDF.
         /// Torna i numeri che nel PDF compaiono meno volte che sulla tavola.
         /// </summary>
-        private static List<string> QuoteCheMancanoNelPdf(Dictionary<string, int> attesi, string testoPdf)
+        private static List<string> DimensionsMissingInPdf(Dictionary<string, int> expectedValues, string pdfText)
         {
-            var nelPdf = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (Match m in NumeroInTesto.Matches(testoPdf ?? ""))
+            var inPdf = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (Match m in NumberInText.Matches(pdfText ?? ""))
             {
-                string k = Normalizza(m.Value);
-                nelPdf[k] = nelPdf.TryGetValue(k, out int c) ? c + 1 : 1;
+                string k = Normalize(m.Value);
+                inPdf[k] = inPdf.TryGetValue(k, out int c) ? c + 1 : 1;
             }
-            var mancano = new List<string>();
-            foreach (var kv in attesi)
+            var areMissing = new List<string>();
+            foreach (var kv in expectedValues)
             {
-                int trovati = nelPdf.TryGetValue(kv.Key, out int t) ? t : 0;
-                if (trovati < kv.Value) mancano.Add(kv.Key + " (sulla tavola " + kv.Value + ", nel PDF " + trovati + ")");
+                int foundItems = inPdf.TryGetValue(kv.Key, out int t) ? t : 0;
+                if (foundItems < kv.Value) areMissing.Add(kv.Key + " (sulla tavola " + kv.Value + ", nel PDF " + foundItems + ")");
             }
-            return mancano;
+            return areMissing;
         }
     }
 }

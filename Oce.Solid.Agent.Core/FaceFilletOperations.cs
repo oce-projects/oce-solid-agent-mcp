@@ -69,39 +69,39 @@ namespace Oce.Solid.Agent.Core
     /// (DeleteSelection2, mai la chiamata con la finestra di conferma) e si
     /// ricontrolla che il pezzo sia com'era.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>Due normali con |coseno| oltre questo sono parallele.</summary>
-        private const double RaccordoFacciaQuasiParallele = 0.9999;
+        private const double FaceFilletAlmostParallel = 0.9999;
 
-        private Esito RaccordoFaccia(
-            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        private Outcome FaceFillet(
+            IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            if (!(modello is IPartDoc))
-                return Fallito("Il raccordo di faccia si fa su un pezzo: apri il pezzo e chiedimelo li'.");
+            if (!(model is IPartDoc))
+                return Failed("Il raccordo di faccia si fa su un pezzo: apri il pezzo e chiedimelo li'.");
 
-            // DUE FACCE, E «face_ref» NE NOMINA UNA SOLA. `RisolviFaccia`
+            // DUE FACCE, E «face_ref» NE NOMINA UNA SOLA. `ResolveFace`
             // guarda «face_ref» prima dell'uid: con due facce da risolvere lo
             // stesso riferimento vincerebbe tutte e due le volte, e il raccordo
             // si chiederebbe fra una faccia e se stessa.
-            if (HaRiferimento(a, "face_ref"))
-                return Fallito(
+            if (HasReference(a, "face_ref"))
+                return Failed(
                     "Qui servono due facce diverse, e «face_ref» ne nomina una sola: usa " +
                     "«face_1_uid» e «face_2_uid» con gli identificativi dello stato. Se una " +
                     "delle due la crea un passo di questo piano, rileggi lo stato dopo quel passo.");
 
-            double raggio;
-            string errore;
-            if (!NumObbligatorio(a, "radius_mm", out raggio, out errore)) return Fallito(errore);
-            if (raggio <= 0)
-                return Fallito(
+            double radius;
+            string error;
+            if (!RequiredNum(a, "radius_mm", out radius, out error)) return Failed(error);
+            if (radius <= 0)
+                return Failed(
                     "«radius_mm» deve essere maggiore di zero: hai chiesto " +
-                    raggio.ToString("0.##", CultureInfo.InvariantCulture) + ". Per esempio 5.");
+                    radius.ToString("0.##", CultureInfo.InvariantCulture) + ". Per esempio 5.");
 
             string uid1 = (Str(a, "face_1_uid", "") ?? "").Trim();
             string uid2 = (Str(a, "face_2_uid", "") ?? "").Trim();
             if (uid1.Length == 0 || uid2.Length == 0)
-                return Fallito(
+                return Failed(
                     "Dimmi le due facce: «face_1_uid» e «face_2_uid», con gli identificativi " +
                     "dello stato del documento (per esempio «F1» e «F3»). Il raccordo si appoggia " +
                     "a tutte e due.");
@@ -110,29 +110,29 @@ namespace Oce.Solid.Agent.Core
             // confusione di chi voleva arrotondare i bordi di UNA faccia, e per
             // quello c'e' un'altra operazione.
             if (string.Equals(uid1, uid2, StringComparison.OrdinalIgnoreCase))
-                return Fallito(
+                return Failed(
                     "«" + uid1 + "» e' in tutti e due gli insiemi: un raccordo di faccia unisce DUE " +
                     "facce diverse, appoggiandosi a tutte e due. Per arrotondare i bordi di una " +
                     "faccia sola usa «fillet_edges» sui suoi spigoli.");
 
-            string motivo;
-            var faccia1 = RisolviFaccia(stato, a, uid1, out motivo);
-            if (faccia1 == null) return Fallito("Faccia «" + uid1 + "»: " + motivo);
-            var faccia2 = RisolviFaccia(stato, a, uid2, out motivo);
-            if (faccia2 == null) return Fallito("Faccia «" + uid2 + "»: " + motivo);
+            string reason;
+            var face1 = ResolveFace(docState, a, uid1, out reason);
+            if (face1 == null) return Failed("Faccia «" + uid1 + "»: " + reason);
+            var face2 = ResolveFace(docState, a, uid2, out reason);
+            if (face2 == null) return Failed("Faccia «" + uid2 + "»: " + reason);
 
             // DUE UID, UNA FACCIA. Dopo un ritrovamento per firma due nomi
             // diversi possono essere finiti sulla stessa faccia: lo si chiede a
             // SOLIDWORKS (ISldWorks~IsSame.html, «Gets whether the two specified
             // objects are the same object»), come in OperazioniCorpi.
-            bool stessa = ReferenceEquals(faccia1, faccia2);
-            if (!stessa)
+            bool same = ReferenceEquals(face1, face2);
+            if (!same)
             {
-                try { stessa = _sw.IsSame(faccia1, faccia2) == (int)swObjectEquality.swObjectSame; }
+                try { same = _sw.IsSame(face1, face2) == (int)swObjectEquality.swObjectSame; }
                 catch { }
             }
-            if (stessa)
-                return Fallito(
+            if (same)
+                return Failed(
                     "«" + uid1 + "» e «" + uid2 + "» adesso sono la stessa faccia: una delle due si e' " +
                     "spostata ed e' stata ritrovata sull'altra. Rileggi lo stato e indica di nuovo " +
                     "le due facce.");
@@ -150,8 +150,8 @@ namespace Oce.Solid.Agent.Core
             // La sonda ha tolto dal giro la variante «facce parallele»
             // (Checks\FaceFillet, REVISIONE 28/9/2026) proprio perche' un
             // NULL li' non avrebbe misurato l'API ma la geometria.
-            string parallele = FaccePianeParallele(faccia1, faccia2, uid1, uid2, raggio);
-            if (parallele != null) return Fallito(parallele);
+            string parallel = ParallelPlanarFaces(face1, face2, uid1, uid2, radius);
+            if (parallel != null) return Failed(parallel);
 
             // ── IL CONTO A MANO, LETTO PRIMA DI TOCCARE IL PEZZO ─────────
             //
@@ -164,121 +164,121 @@ namespace Oce.Solid.Agent.Core
             // PRIMA e non dopo: dopo il raccordo le due facce NON si toccano
             // piu' (fra loro c'e' la faccia del raccordo), e lo spigolo comune
             // letto li' sarebbe zero — il conto non ci sarebbe mai stato.
-            double spigolo = -1;
-            try { spigolo = LunghezzaCheStaSu(faccia1, faccia2); } catch { }
-            double? atteso = null;
-            var n1 = NormaleDellaFaccia(faccia1);
-            var n2 = NormaleDellaFaccia(faccia2);
-            if (spigolo > 0 && n1 != null && n2 != null && n1.Length >= 3 && n2.Length >= 3 &&
+            double edge = -1;
+            try { edge = LengthThatLiesOn(face1, face2); } catch { }
+            double? expected = null;
+            var n1 = FaceNormal(face1);
+            var n2 = FaceNormal(face2);
+            if (edge > 0 && n1 != null && n2 != null && n1.Length >= 3 && n2.Length >= 3 &&
                 Math.Abs(n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2]) < 1e-6)
-                atteso = Math.Round(spigolo * raggio * raggio * (1 - Math.PI / 4), 2);
+                expected = Math.Round(edge * radius * radius * (1 - Math.PI / 4), 2);
 
             // ── LA FOTOGRAFIA PRIMA (GuardOperations.cs) ───────────────
-            var foto = FotografaIlPezzo(modello);
-            if (foto.Volume == null) return Fallito(VolumeNonLettoPrima("fare il raccordo di faccia"));
-            int featurePrima = ContaFeature(modello);
-            if (featurePrima < 0 || foto.Corpi < 0)
-                return Fallito(VolumeNonLettoPrima("fare il raccordo di faccia")
+            var photo = SnapshotPart(model);
+            if (photo.Volume == null) return Failed(VolumeNotReadBefore("fare il raccordo di faccia"));
+            int featureBefore = CountFeature(model);
+            if (featureBefore < 0 || photo.Bodies < 0)
+                return Failed(VolumeNotReadBefore("fare il raccordo di faccia")
                     .Replace("il volume del pezzo", "l'albero e i corpi del pezzo"));
 
             // ── LA RICETTA DELLA GUIDA, NELL'ORDINE MISURATO ─────────────
             IFeature feature;
             try
             {
-                modello.ClearSelection2(true);
-                var dati = modello.FeatureManager.CreateDefinition(
+                model.ClearSelection2(true);
+                var data = model.FeatureManager.CreateDefinition(
                     (int)swFeatureNameID_e.swFmFillet) as SimpleFilletFeatureData2;
-                if (dati == null)
-                    return Fallito(
+                if (data == null)
+                    return Failed(
                         "SOLIDWORKS non mi ha dato la definizione di un raccordo (CreateDefinition). " +
                         "Non ho toccato niente: prova «fillet_edges» sullo spigolo fra le due facce.");
-                if (!dati.Initialize((int)swSimpleFilletType_e.swFaceFillet))
-                    return Fallito(
+                if (!data.Initialize((int)swSimpleFilletType_e.swFaceFillet))
+                    return Failed(
                         "SOLIDWORKS non accetta un raccordo di faccia su questa definizione " +
                         "(Initialize ha risposto false). Non ho toccato niente: prova «fillet_edges» " +
                         "sullo spigolo fra le due facce.");
 
-                var gestore = modello.SelectionManager as ISelectionMgr;
-                if (gestore == null)
-                    return Fallito("Non riesco a usare il gestore di selezione. Non ho toccato niente.");
+                var handler = model.SelectionManager as ISelectionMgr;
+                if (handler == null)
+                    return Failed("Non riesco a usare il gestore di selezione. Non ho toccato niente.");
                 // INSIEME 1 MARCA 2, INSIEME 2 MARCA 4 (vedi le costanti).
-                if (!Seleziona(gestore, faccia1, SelectionMarks.FaceFilletFaceSet1))
-                    return Fallito("Non sono riuscito a selezionare la faccia «" + uid1 + "». Non ho toccato " +
+                if (!Select(handler, face1, SelectionMarks.FaceFilletFaceSet1))
+                    return Failed("Non sono riuscito a selezionare la faccia «" + uid1 + "». Non ho toccato " +
                                    "niente: rileggi lo stato e indica di nuovo le due facce.");
-                if (!Seleziona(gestore, faccia2, SelectionMarks.FaceFilletFaceSet2))
-                    return Fallito("Non sono riuscito a selezionare la faccia «" + uid2 + "». Non ho toccato " +
+                if (!Select(handler, face2, SelectionMarks.FaceFilletFaceSet2))
+                    return Failed("Non sono riuscito a selezionare la faccia «" + uid2 + "». Non ho toccato " +
                                    "niente: rileggi lo stato e indica di nuovo le due facce.");
 
                 // Il profilo circolare: la guida lo chiede per «completare il tipo»
                 // (misurato: senza, nasce lo stesso raccordo; si mette perche' la
                 // ricetta lo dice e non costa niente).
-                dati.ConicTypeForCrossSectionProfile =
+                data.ConicTypeForCrossSectionProfile =
                     (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
-                dati.DefaultRadius = Unita.M(raggio);
+                data.DefaultRadius = Units.M(radius);
 
-                feature = modello.FeatureManager.CreateFeature(dati) as IFeature;
+                feature = model.FeatureManager.CreateFeature(data) as IFeature;
             }
             catch (Exception ex)
             {
-                return Fallito("Il raccordo di faccia non e' riuscito: " + ex.Message +
+                return Failed("Il raccordo di faccia non e' riuscito: " + ex.Message +
                                ". Prova «fillet_edges» sullo spigolo fra le due facce.");
             }
-            finally { try { modello.ClearSelection2(true); } catch { } }
+            finally { try { model.ClearSelection2(true); } catch { } }
 
             if (feature == null)
             {
-                int ora = ContaFeature(modello);
-                string coda = ora > featurePrima
-                    ? " Eppure l'albero e' cresciuto (" + featurePrima + " -> " + ora + "): guardalo e " +
-                      "ritira quello che c'e' in piu' — " + Frasi.CosiSiRitira + "."
+                int now = CountFeature(model);
+                string queue = now > featureBefore
+                    ? " Eppure l'albero e' cresciuto (" + featureBefore + " -> " + now + "): guardalo e " +
+                      "ritira quello che c'e' in piu' — " + Sentences.HowToWithdrawIt + "."
                     : " Non ho toccato niente.";
-                return Fallito(
+                return Failed(
                     "Il raccordo di faccia non e' stato creato, e SOLIDWORKS non dice perche'. Di " +
                     "solito e' il raggio: la palla deve appoggiarsi a tutte e due le facce senza " +
                     "uscirne. Prova un raggio piu' piccolo; se le due facce si toccano su uno " +
-                    "spigolo, lo stesso raccordo si fa con «fillet_edges» su quello spigolo." + coda);
+                    "spigolo, lo stesso raccordo si fa con «fillet_edges» su quello spigolo." + queue);
             }
 
             // ── E ADESSO SI MISURA IL PEZZO ──────────────────────────────
             //
             // ForceRebuild3 e non la ricostruzione semplice: e' quella di
-            // `edit_extrusion`, la cui risposta `CosaSiERotto` sa gia'
+            // `edit_extrusion`, la cui risposta `WhatBroke` sa gia'
             // leggere su un pezzo sano (caso blind_becomes_through).
-            bool ricostruito = false;
-            try { ricostruito = modello.ForceRebuild3(false); } catch { }
+            bool rebuilt = false;
+            try { rebuilt = model.ForceRebuild3(false); } catch { }
 
-            string nome = "";
-            string tipo = "";
-            try { nome = feature.Name; } catch { }
-            try { tipo = feature.GetTypeName2(); } catch { }
+            string itemName = "";
+            string typ = "";
+            try { itemName = feature.Name; } catch { }
+            try { typ = feature.GetTypeName2(); } catch { }
 
             // LA FEATURE NUOVA PER TIPO: la sonda l'ha vista nascere «Fillet».
-            if (!string.Equals(tipo, "Fillet", StringComparison.Ordinal))
-                return Fallito(
-                    "E' nata una lavorazione «" + nome + "» di tipo «" + tipo + "», non un raccordo " +
+            if (!string.Equals(typ, "Fillet", StringComparison.Ordinal))
+                return Failed(
+                    "E' nata una lavorazione «" + itemName + "» di tipo «" + typ + "», non un raccordo " +
                     "(«Fillet»): non e' quello che ho chiesto." +
-                    TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima) +
+                    RemoveFaceFillet(model, feature, photo, featureBefore) +
                     " Prova «fillet_edges» sullo spigolo fra le due facce.");
 
-            string rotto = CosaSiERotto(modello, foto, ricostruito, false);
-            if (rotto != null)
-                return Fallito(
-                    "Il raccordo di faccia «" + nome + "» e' nato, ma " + rotto + "." +
-                    TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima) +
+            string broken = WhatBroke(model, photo, rebuilt, false);
+            if (broken != null)
+                return Failed(
+                    "Il raccordo di faccia «" + itemName + "» e' nato, ma " + broken + "." +
+                    RemoveFaceFillet(model, feature, photo, featureBefore) +
                     " Prova un raggio piu' piccolo, oppure «fillet_edges» sullo spigolo fra le due facce.");
 
-            double? volumeDopo = VolumeMm3(modello);
-            double? cambio = volumeDopo - foto.Volume;
+            double? volumeAfter = VolumeMm3(model);
+            double? cambio = volumeAfter - photo.Volume;
 
             // UN RACCORDO CHE NON CAMBIA IL VOLUME NON HA FATTO NIENTE. Toglie
             // materiale su uno spigolo esterno, ne aggiunge in un angolo interno:
             // zero vuol dire nessuno dei due. Si dice solo di un volume riletto
             // (voce Z-C8).
             if (cambio.HasValue && Math.Abs(cambio.Value) < 0.01)
-                return Fallito(
-                    "Il raccordo di faccia «" + nome + "» e' nato ma il volume e' rimasto " +
-                    foto.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3: non ha " +
-                    "arrotondato niente." + TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima) +
+                return Failed(
+                    "Il raccordo di faccia «" + itemName + "» e' nato ma il volume e' rimasto " +
+                    photo.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3: non ha " +
+                    "arrotondato niente." + RemoveFaceFillet(model, feature, photo, featureBefore) +
                     " Prova «fillet_edges» sullo spigolo fra le due facce.");
 
             // IL CONTO A MANO, CONFRONTATO. Dove c'e' (vedi sopra), un raccordo
@@ -286,46 +286,46 @@ namespace Oce.Solid.Agent.Core
             // appoggiato altrove. Lo scarto ammesso e' il mezzo decimo, o un
             // decimillesimo del conto se e' piu' grande: il numero misurato
             // dalla sonda (214,6) e il conto (214,602) stanno nel centesimo.
-            if (atteso.HasValue && cambio.HasValue &&
-                Math.Abs(Math.Abs(cambio.Value) - atteso.Value) > Math.Max(0.05, atteso.Value * 1e-4))
-                return Fallito(string.Format(CultureInfo.InvariantCulture,
+            if (expected.HasValue && cambio.HasValue &&
+                Math.Abs(Math.Abs(cambio.Value) - expected.Value) > Math.Max(0.05, expected.Value * 1e-4))
+                return Failed(string.Format(CultureInfo.InvariantCulture,
                     "Il raccordo di faccia «{0}» e' nato, ma ha cambiato il volume di {1:0.##} mm3 e il " +
                     "conto a mano ne vuole {2:0.##} (spigolo comune {3:0.##} mm x r² x (1 − π/4)): non " +
                     "si e' appoggiato come chiesto sulle due facce.{4} Per lo stesso raccordo sullo " +
                     "spigolo fra le due facce usa «fillet_edges».",
-                    nome, Math.Abs(cambio.Value), atteso.Value, spigolo,
-                    TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima)));
+                    itemName, Math.Abs(cambio.Value), expected.Value, edge,
+                    RemoveFaceFillet(model, feature, photo, featureBefore)));
 
             // IL RAGGIO CHE LA FEATURE DICHIARA (ISimpleFilletFeatureData2~
             // DefaultRadius.html: «Default radius of the symmetric fillet»),
             // riletto con IFeature::GetDefinition — non l'argomento ripetuto.
             // Non decide niente: decide il volume. Null se non si rilegge.
-            object raggioDichiarato = null;
+            object declaredRadius = null;
             try
             {
-                var letti = feature.GetDefinition() as ISimpleFilletFeatureData2;
-                if (letti != null) raggioDichiarato = Math.Round(Unita.Mm(letti.DefaultRadius), 3);
+                var read = feature.GetDefinition() as ISimpleFilletFeatureData2;
+                if (read != null) declaredRadius = Math.Round(Units.Mm(read.DefaultRadius), 3);
             }
             catch { }
 
-            int corpiDopo = ContaCorpiSolidi(modello);
-            int inErroreDopo = LavorazioniInErrore(modello);
+            int bodiesAfter = CountSolidBodies(model);
+            int inErrorAfter = FeaturesInError(model);
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
                 // I CAMPI NUOVI SONO IN INGLESE (decisione della lingua, W3.1).
                 // Niente argomenti ripetuti come fossero misure: il raggio e'
                 // quello che la feature DICHIARA, il resto e' letto dal pezzo.
-                ["declared_radius_mm"] = raggioDichiarato,
-                ["feature_type"] = tipo,
-                ["volume_before_mm3"] = NumeroOppureNull(foto.Volume, 2),
-                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["volume_change_mm3"] = NumeroOppureNull(cambio, 2),
+                ["declared_radius_mm"] = declaredRadius,
+                ["feature_type"] = typ,
+                ["volume_before_mm3"] = NumberOrNull(photo.Volume, 2),
+                ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["volume_change_mm3"] = NumberOrNull(cambio, 2),
                 ["material_removed"] = cambio.HasValue ? (object)(cambio.Value < 0) : null,
-                ["bodies"] = NumeroOppureNull(corpiDopo),
-                ["features_in_error"] = NumeroOppureNull(inErroreDopo),
-                ["shared_edge_mm"] = spigolo >= 0 ? (object)Math.Round(spigolo, 2) : null,
-                ["expected_change_abs_mm3"] = NumeroOppureNull(atteso, 2),
+                ["bodies"] = NumberOrNull(bodiesAfter),
+                ["features_in_error"] = NumberOrNull(inErrorAfter),
+                ["shared_edge_mm"] = edge >= 0 ? (object)Math.Round(edge, 2) : null,
+                ["expected_change_abs_mm3"] = NumberOrNull(expected, 2),
                 ["how_expected_is_counted"] =
                     "shared edge length x r^2 x (1 - pi/4): exact for two flat faces at 90 degrees " +
                     "that touch along an edge (material removed on an outside edge, added in an " +
@@ -333,12 +333,12 @@ namespace Oce.Solid.Agent.Core
                     "and compared with the volume change. Null when the two faces are not like that: " +
                     "no number is made up.",
             };
-            if (!cambio.HasValue) misure["volume_not_read_again"] = NotaVolumeNonRiletto;
+            if (!cambio.HasValue) measurements["volume_not_read_again"] = NoteVolumeNotReread;
 
-            _log("[agente] raccordo di faccia r=" + raggio.ToString("0.##", CultureInfo.InvariantCulture) +
-                 " fra " + uid1 + " e " + uid2 + ": «" + nome + "», volume " + Letto(foto.Volume) +
-                 " -> " + Letto(volumeDopo));
-            return Riuscito(feature, misure);
+            _log("[agente] raccordo di faccia r=" + radius.ToString("0.##", CultureInfo.InvariantCulture) +
+                 " fra " + uid1 + " e " + uid2 + ": «" + itemName + "», volume " + ReadValue(photo.Volume) +
+                 " -> " + ReadValue(volumeAfter));
+            return Succeeded(feature, measurements);
         }
 
         /// <summary>
@@ -346,15 +346,15 @@ namespace Oce.Solid.Agent.Core
         /// raccordo e' impossibile per geometria; null se si puo' provare (facce
         /// non piane, non parallele, o due pareti che si guardano a distanza 2r).
         /// </summary>
-        private static string FaccePianeParallele(IFace2 f1, IFace2 f2, string uid1, string uid2, double raggioMm)
+        private static string ParallelPlanarFaces(IFace2 f1, IFace2 f2, string uid1, string uid2, double radiusMm)
         {
-            var n1 = NormaleDellaFaccia(f1);
-            var n2 = NormaleDellaFaccia(f2);
+            var n1 = FaceNormal(f1);
+            var n2 = FaceNormal(f2);
             if (n1 == null || n2 == null || n1.Length < 3 || n2.Length < 3) return null;
-            double coseno = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
-            if (Math.Abs(coseno) < RaccordoFacciaQuasiParallele) return null;
+            double cosine = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
+            if (Math.Abs(cosine) < FaceFilletAlmostParallel) return null;
 
-            if (coseno > 0)
+            if (cosine > 0)
                 return "«" + uid1 + "» e «" + uid2 + "» sono piane, parallele e guardano dalla stessa " +
                        "parte (complanari, o separate da un gradino): nessuna palla le tocca tutte e due " +
                        "dal lato dell'aria, e il raccordo non puo' nascere. Se c'e' un gradino fra loro, " +
@@ -362,40 +362,40 @@ namespace Oce.Solid.Agent.Core
 
             // Normali opposte: si guardano o si danno le spalle? Il punto del
             // piano della seconda, visto dalla normale della prima.
-            var p1 = PuntoSulPianoDellaFaccia(f1);
-            var p2 = PuntoSulPianoDellaFaccia(f2);
+            var p1 = PointOnFacePlane(f1);
+            var p2 = PointOnFacePlane(f2);
             if (p1 == null || p2 == null) return null;   // non si legge: decide SOLIDWORKS, e le guardie dopo
-            double distanzaMm = Unita.Mm(
+            double distanceMm = Units.Mm(
                 (p2[0] - p1[0]) * n1[0] + (p2[1] - p1[1]) * n1[1] + (p2[2] - p1[2]) * n1[2]);
-            if (distanzaMm <= 0)
+            if (distanceMm <= 0)
                 return "«" + uid1 + "» e «" + uid2 + "» sono piane, parallele e si danno le spalle " +
                        "(come il davanti e il dietro di un blocco): nessuna palla le tocca tutte e due " +
                        "dal lato dell'aria, e il raccordo non puo' nascere. Per arrotondare gli spigoli " +
                        "di una delle due usa «fillet_edges».";
-            if (Math.Abs(distanzaMm - 2 * raggioMm) > 0.01)
+            if (Math.Abs(distanceMm - 2 * radiusMm) > 0.01)
                 return string.Format(CultureInfo.InvariantCulture,
                     "«{0}» e «{1}» sono piane, parallele e si guardano a {2:0.##} mm: un raccordo di " +
                     "raggio costante le tocca tutte e due solo se il raggio e' la meta' della distanza, " +
                     "{3:0.##} mm, e hai chiesto {4:0.##}. Se vuoi arrotondare il fondo fra le due, " +
                     "prova con «radius_mm»: {3:0.##}.",
-                    uid1, uid2, distanzaMm, distanzaMm / 2, raggioMm);
+                    uid1, uid2, distanceMm, distanceMm / 2, radiusMm);
             return null;
         }
 
         /// <summary>
         /// Un punto del piano della faccia, in metri, da `ISurface.PlaneParams`
-        /// (i sei numeri: normale e punto, come in `AssiDellaFaccia`); null se la
+        /// (i sei numeri: normale e punto, come in `FaceAxes`); null se la
         /// faccia non e' piana o non si legge.
         /// </summary>
-        private static double[] PuntoSulPianoDellaFaccia(IFace2 faccia)
+        private static double[] PointOnFacePlane(IFace2 face)
         {
             try
             {
-                var superficie = faccia?.IGetSurface();
-                if (superficie == null || !superficie.IsPlane()) return null;
-                var piano = superficie.PlaneParams as double[];
-                if (piano == null || piano.Length < 6) return null;
-                return new[] { piano[3], piano[4], piano[5] };
+                var surface = face?.IGetSurface();
+                if (surface == null || !surface.IsPlane()) return null;
+                var plane = surface.PlaneParams as double[];
+                if (plane == null || plane.Length < 6) return null;
+                return new[] { plane[3], plane[4], plane[5] };
             }
             catch { return null; }
         }
@@ -403,41 +403,41 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Toglie il raccordo appena nato quando una guardia lo boccia, e dice
         /// com'e' andata: la coda del messaggio di rifiuto. Stessa strada di
-        /// `TogliIlTaglio` (AnchorOperations.cs): DeleteSelection2 con
+        /// `RemoveCut` (AnchorOperations.cs): DeleteSelection2 con
         /// swDelete_Absorbed, che non chiede conferma a nessuno. «Ha detto di
         /// averlo tolto» non basta: si ricontano le lavorazioni e si rimisura il
         /// volume.
         /// </summary>
-        private string TogliIlRaccordoDiFaccia(
-            IModelDoc2 modello, IFeature raccordo, FotoDelPezzo prima, int featurePrima)
+        private string RemoveFaceFillet(
+            IModelDoc2 model, IFeature fillet, PartPhoto before, int featureBefore)
         {
-            bool tolto = false;
+            bool removed = false;
             try
             {
-                modello.ClearSelection2(true);
-                if (raccordo.Select2(false, 0))
-                    tolto = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+                if (fillet.Select2(false, 0))
+                    removed = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
             catch { }
-            finally { try { modello.ClearSelection2(true); } catch { } }
-            if (!tolto)
-                return " E non sono riuscito a toglierlo: e' ancora nel pezzo, ritiralo — " + Frasi.CosiSiRitira + ".";
-            try { modello.ForceRebuild3(false); } catch { }
-            int lavorazioni = ContaFeature(modello);
-            if (lavorazioni < 0)
+            finally { try { model.ClearSelection2(true); } catch { } }
+            if (!removed)
+                return " E non sono riuscito a toglierlo: e' ancora nel pezzo, ritiralo — " + Sentences.HowToWithdrawIt + ".";
+            try { model.ForceRebuild3(false); } catch { }
+            int features = CountFeature(model);
+            if (features < 0)
                 return " L'ho tolto, ma non ho potuto ricontare l'albero per controllare che il pezzo sia " +
                        "com'era: guardalo.";
-            if (lavorazioni > featurePrima)
-                return " Ho provato a toglierlo, ma l'albero ha ancora " + (lavorazioni - featurePrima) +
-                       " lavorazioni in piu': ritirale — " + Frasi.CosiSiRitira + ".";
-            double? adesso = VolumeMm3(modello);
-            if (adesso == null || prima.Volume == null)
+            if (features > featureBefore)
+                return " Ho provato a toglierlo, ma l'albero ha ancora " + (features - featureBefore) +
+                       " lavorazioni in piu': ritirale — " + Sentences.HowToWithdrawIt + ".";
+            double? now = VolumeMm3(model);
+            if (now == null || before.Volume == null)
                 return " L'ho tolto, ma non ho potuto rimisurare il volume per controllare che il pezzo sia " +
                        "com'era: guardalo.";
-            if (Math.Abs(adesso.Value - prima.Volume.Value) > 0.01)
+            if (Math.Abs(now.Value - before.Volume.Value) > 0.01)
                 return " L'ho tolto, ma il volume adesso e' " +
-                       adesso.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3 invece di " +
-                       prima.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) +
+                       now.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3 invece di " +
+                       before.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) +
                        ": guarda il pezzo prima di andare avanti.";
             return " Non l'ho lasciato: l'ho tolto e il pezzo e' com'era prima di questo passo.";
         }

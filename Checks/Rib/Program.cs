@@ -253,7 +253,7 @@ internal static class Program
         return f != null;
     }
 
-    // Base planes are the first three RefPlane features, whatever the language (OperazioniSw.SelezionaPiano).
+    // Base planes are the first three RefPlane features, whatever the language (SwOperations.SelectPlane).
     private static bool SelectBasePlane(IModelDoc2 doc, int which)
     {
         int seen = 0;

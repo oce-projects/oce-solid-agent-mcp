@@ -24,8 +24,8 @@
 #  sono per definizione della versione giusta.
 #
 #      .\build.ps1              compila e impacchetta
-#      .\build.ps1 -Pulisci     cancella prima bin, obj e dist
-#      .\build.ps1 -SoloPonte   solo il ponte, senza installatore
+#      .\build.ps1 -Clean     cancella prima bin, obj e dist
+#      .\build.ps1 -BridgeOnly   solo il ponte, senza installatore
 #
 #      .\build.ps1 -SwInstallPath 'D:\...\SOLIDWORKS'
 #      $env:SW_INSTALL_PATH = 'D:\...\SOLIDWORKS'
@@ -35,8 +35,8 @@
 
 [CmdletBinding()]
 param(
-    [switch] $Pulisci,
-    [switch] $SoloPonte,
+    [switch] $Clean,
+    [switch] $BridgeOnly,
 
     # DOVE STA SOLIDWORKS. I .csproj lo leggono gia' da /p:SwInstallPath, ma
     # questo script non lo passava: chi ha SOLIDWORKS in un posto non standard
@@ -48,26 +48,26 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$radice = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$root = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
 # Anche da variabile d'ambiente, cosi' non va ripetuto a ogni chiamata.
 if (-not $SwInstallPath -and $env:SW_INSTALL_PATH) { $SwInstallPath = $env:SW_INSTALL_PATH }
-$dove = @()
+$location = @()
 if ($SwInstallPath) {
     if (-not (Test-Path $SwInstallPath)) {
         Write-Host "  -SwInstallPath punta a una cartella che non c'e': $SwInstallPath" -ForegroundColor Red
         exit 1
     }
-    $dove = @("-p:SwInstallPath=$SwInstallPath")
+    $location = @("-p:SwInstallPath=$SwInstallPath")
 }
 
-function Passo($t) { Write-Host ""; Write-Host "=== $t" -ForegroundColor Cyan }
+function Step($t) { Write-Host ""; Write-Host "=== $t" -ForegroundColor Cyan }
 function Ok($t)    { Write-Host "  $t" -ForegroundColor Green }
-function Nota($t)  { Write-Host "  $t" -ForegroundColor DarkGray }
-function Muori($t) { Write-Host "  $t" -ForegroundColor Red; exit 1 }
+function Note($t)  { Write-Host "  $t" -ForegroundColor DarkGray }
+function Die($t) { Write-Host "  $t" -ForegroundColor Red; exit 1 }
 
 # -----------------------------------------------------------------------------
-Passo "MSBuild"
+Step "MSBuild"
 # -----------------------------------------------------------------------------
 # NON si usa quello dentro C:\Windows\Microsoft.NET: e' la versione del
 # framework, non sa leggere questi csproj e fallisce con «OutputPath non
@@ -76,9 +76,9 @@ $msbuild = $null
 $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
 if (Test-Path $vswhere) {
     try {
-        $trovato = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild `
+        $found = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild `
             -find "MSBuild\**\Bin\MSBuild.exe" 2>$null
-        if ($trovato) { $msbuild = @($trovato)[0] }
+        if ($found) { $msbuild = @($found)[0] }
     } catch { }
 }
 if (-not $msbuild) {
@@ -90,37 +90,37 @@ if (-not $msbuild) {
     )) { if (Test-Path $c) { $msbuild = $c; break } }
 }
 if (-not $msbuild) {
-    Muori ("MSBuild non trovato. Installa 'Build Tools for Visual Studio 2022' " +
+    Die ("MSBuild non trovato. Installa 'Build Tools for Visual Studio 2022' " +
            "(gratis) da https://visualstudio.microsoft.com/downloads/ scegliendo " +
            "'Sviluppo di applicazioni desktop .NET'.")
 }
 Ok "trovato"
-Nota $msbuild
+Note $msbuild
 
 # -----------------------------------------------------------------------------
-if ($Pulisci) {
-    Passo "Pulizia"
+if ($Clean) {
+    Step "Pulizia"
     foreach ($d in @("bin", "obj", "dist", "Installer\obj", "Installer\Payload")) {
-        $p = Join-Path $radice $d
-        if (Test-Path $p) { Remove-Item $p -Recurse -Force; Nota "tolto $d" }
+        $p = Join-Path $root $d
+        if (Test-Path $p) { Remove-Item $p -Recurse -Force; Note "tolto $d" }
     }
     Ok "pulito"
 }
 
 # -----------------------------------------------------------------------------
-Passo "1. Il ponte"
+Step "1. Il ponte"
 # -----------------------------------------------------------------------------
-& $msbuild (Join-Path $radice "Oce.Solid.Agent.csproj") -p:Configuration=Release -v:m -nologo @dove
-if ($LASTEXITCODE -ne 0) { Muori "compilazione del ponte fallita" }
+& $msbuild (Join-Path $root "Oce.Solid.Agent.csproj") -p:Configuration=Release -v:m -nologo @location
+if ($LASTEXITCODE -ne 0) { Die "compilazione del ponte fallita" }
 
-$ponte = Join-Path $radice "bin\oce-solid-agent-mcp.exe"
-if (-not (Test-Path $ponte)) { Muori "compilato senza errori ma oce-solid-agent-mcp.exe non c'e'" }
-Ok ("oce-solid-agent-mcp.exe  " + [math]::Round((Get-Item $ponte).Length / 1KB) + " kB")
+$bridge = Join-Path $root "bin\oce-solid-agent-mcp.exe"
+if (-not (Test-Path $bridge)) { Die "compilato senza errori ma oce-solid-agent-mcp.exe non c'e'" }
+Ok ("oce-solid-agent-mcp.exe  " + [math]::Round((Get-Item $bridge).Length / 1KB) + " kB")
 
-if ($SoloPonte) { Passo "Fatto"; Ok $ponte; exit 0 }
+if ($BridgeOnly) { Step "Fatto"; Ok $bridge; exit 0 }
 
 # -----------------------------------------------------------------------------
-Passo "1b. Il catalogo"
+Step "1b. Il catalogo"
 # -----------------------------------------------------------------------------
 # SI RIGENERA, NON SI SPERA.
 #
@@ -132,13 +132,13 @@ Passo "1b. Il catalogo"
 # Qui si riscrive a ogni pacchetto, e se cambia lo si dice: un file che cambia
 # durante una build e' una cosa che chi guarda deve vedere, non una sorpresa
 # nel prossimo `git status`.
-& $msbuild (Join-Path $radice "Oce.Solid.Agent.Catalog\Oce.Solid.Agent.Catalog.csproj") -p:Configuration=Release -v:m -nologo @dove
-if ($LASTEXITCODE -ne 0) { Muori "compilazione dell'esportatore del catalogo fallita" }
+& $msbuild (Join-Path $root "Oce.Solid.Agent.Catalog\Oce.Solid.Agent.Catalog.csproj") -p:Configuration=Release -v:m -nologo @location
+if ($LASTEXITCODE -ne 0) { Die "compilazione dell'esportatore del catalogo fallita" }
 
-$esportatore = Join-Path $radice "bin\Oce.Solid.Agent.Catalog.exe"
-$catalogo = Join-Path $radice "Tools\catalog.json"
-$primaDi = $null
-if (Test-Path $catalogo) { $primaDi = [IO.File]::ReadAllBytes($catalogo) }
+$exporter = Join-Path $root "bin\Oce.Solid.Agent.Catalog.exe"
+$catalog = Join-Path $root "Tools\catalog.json"
+$beforeBytes = $null
+if (Test-Path $catalog) { $beforeBytes = [IO.File]::ReadAllBytes($catalog) }
 
 # UN ESEGUIBILE CHE SCRIVE SU stderr NON E' UN ESEGUIBILE CHE FALLISCE.
 #
@@ -151,28 +151,28 @@ if (Test-Path $catalogo) { $primaDi = [IO.File]::ReadAllBytes($catalogo) }
 #
 # Si abbassa la preferenza SOLO intorno alla chiamata nativa, e si continua a
 # guardare $LASTEXITCODE, che e' l'unica cosa che dice davvero com'e' andata.
-$vecchiaPreferenza = $ErrorActionPreference
+$oldPreference = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
-& $esportatore $catalogo
-$esitoCatalogo = $LASTEXITCODE
-$ErrorActionPreference = $vecchiaPreferenza
-if ($esitoCatalogo -ne 0) { Muori "il catalogo non si e' scritto" }
+& $exporter $catalog
+$catalogOutcome = $LASTEXITCODE
+$ErrorActionPreference = $oldPreference
+if ($catalogOutcome -ne 0) { Die "il catalogo non si e' scritto" }
 
-$dopoDi = [IO.File]::ReadAllBytes($catalogo)
-if ($null -eq $primaDi) {
-    Ok "catalog.json scritto ($($dopoDi.Length) byte)"
-} elseif ([Convert]::ToBase64String($primaDi) -eq [Convert]::ToBase64String($dopoDi)) {
-    Ok "catalog.json invariato ($($dopoDi.Length) byte)"
+$afterBytes = [IO.File]::ReadAllBytes($catalog)
+if ($null -eq $beforeBytes) {
+    Ok "catalog.json scritto ($($afterBytes.Length) byte)"
+} elseif ([Convert]::ToBase64String($beforeBytes) -eq [Convert]::ToBase64String($afterBytes)) {
+    Ok "catalog.json invariato ($($afterBytes.Length) byte)"
 } else {
-    Ok "catalog.json RIGENERATO: $($primaDi.Length) -> $($dopoDi.Length) byte"
-    Nota "era indietro rispetto al C#. Guarda il diff prima di committare."
+    Ok "catalog.json RIGENERATO: $($beforeBytes.Length) -> $($afterBytes.Length) byte"
+    Note "era indietro rispetto al C#. Guarda il diff prima di committare."
 }
 
 # Il ponte legge quello che sta accanto a lui, non quello in Tools\.
-Copy-Item $catalogo (Join-Path $radice "bin\catalog.json") -Force
+Copy-Item $catalog (Join-Path $root "bin\catalog.json") -Force
 
 # -----------------------------------------------------------------------------
-Passo "1c. Le sonde"
+Step "1c. Le sonde"
 # -----------------------------------------------------------------------------
 # LE SONDE SI COMPILANO A OGNI PACCHETTO, e non per scrupolo.
 #
@@ -182,18 +182,18 @@ Passo "1c. Le sonde"
 # `build-checks.ps1` si lancia a mano e nessuno lo lanciava. Una sonda
 # che non compila e' una misura che non si puo' rifare il giorno che serve.
 # Costa tredici secondi.
-$vecchiaPreferenza = $ErrorActionPreference
+$oldPreference = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $radice "Checks\build-checks.ps1") *> $null
-$esitoSonde = $LASTEXITCODE
-$ErrorActionPreference = $vecchiaPreferenza
-if ($esitoSonde -ne 0) { Muori "una sonda non compila: lancia .\Checks\build-checks.ps1 per vedere quale" }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "Checks\build-checks.ps1") *> $null
+$probesOutcome = $LASTEXITCODE
+$ErrorActionPreference = $oldPreference
+if ($probesOutcome -ne 0) { Die "una sonda non compila: lancia .\Checks\build-checks.ps1 per vedere quale" }
 Ok "tutte le sonde compilano"
 
 # -----------------------------------------------------------------------------
-Passo "2. Il carico da incorporare"
+Step "2. Il carico da incorporare"
 # -----------------------------------------------------------------------------
-$payload = Join-Path $radice "Installer\Payload"
+$payload = Join-Path $root "Installer\Payload"
 if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $payload | Out-Null
 
@@ -203,7 +203,7 @@ New-Item -ItemType Directory -Force -Path $payload | Out-Null
 # `Oce.Solid.Agent.Core.dll` E' OBBLIGATORIO, non facoltativo: senza, il ponte
 # si installa e poi non disegna. Un pacchetto che si monta e non funziona e'
 # peggio di uno che rifiuta di montarsi.
-$daPortare = @(
+$toBring = @(
     @{ da = "bin\oce-solid-agent-mcp.exe";        a = "oce-solid-agent-mcp.exe";        obbligatorio = $true  },
     @{ da = "bin\Oce.Solid.Agent.Core.dll";    a = "Oce.Solid.Agent.Core.dll";    obbligatorio = $true  },
     @{ da = "bin\catalog.json";            a = "catalog.json";            obbligatorio = $true  },
@@ -212,49 +212,49 @@ $daPortare = @(
     @{ da = "NOTICE";                       a = "NOTICE";                   obbligatorio = $false }
 )
 
-foreach ($f in $daPortare) {
-    $sorgente = Join-Path $radice $f.da
-    if (Test-Path $sorgente) {
-        Copy-Item $sorgente (Join-Path $payload $f.a) -Force
-        Nota ("+ " + $f.a)
+foreach ($f in $toBring) {
+    $source = Join-Path $root $f.da
+    if (Test-Path $source) {
+        Copy-Item $source (Join-Path $payload $f.a) -Force
+        Note ("+ " + $f.a)
     } elseif ($f.obbligatorio) {
-        Muori ("manca " + $f.da + ", che deve finire dentro l'installatore")
+        Die ("manca " + $f.da + ", che deve finire dentro l'installatore")
     } else {
-        Nota ("- " + $f.a + " (non c'e', si prosegue)")
+        Note ("- " + $f.a + " (non c'e', si prosegue)")
     }
 }
 Ok ((Get-ChildItem $payload).Count.ToString() + " file da incorporare")
 
 # -----------------------------------------------------------------------------
-Passo "3. L'installatore"
+Step "3. L'installatore"
 # -----------------------------------------------------------------------------
-& $msbuild (Join-Path $radice "Installer\Installer.csproj") -p:Configuration=Release -v:m -nologo @dove
-if ($LASTEXITCODE -ne 0) { Muori "compilazione dell'installatore fallita" }
+& $msbuild (Join-Path $root "Installer\Installer.csproj") -p:Configuration=Release -v:m -nologo @location
+if ($LASTEXITCODE -ne 0) { Die "compilazione dell'installatore fallita" }
 
-$exe = Join-Path $radice "bin\Installer.exe"
-if (-not (Test-Path $exe)) { Muori "compilato senza errori ma Installer.exe non c'e'" }
+$exe = Join-Path $root "bin\Installer.exe"
+if (-not (Test-Path $exe)) { Die "compilato senza errori ma Installer.exe non c'e'" }
 
-$dist = Join-Path $radice "dist"
+$dist = Join-Path $root "dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
-$finale = Join-Path $dist "Installer.exe"
-Copy-Item $exe $finale -Force
+$final = Join-Path $dist "Installer.exe"
+Copy-Item $exe $final -Force
 
 # -----------------------------------------------------------------------------
-Passo "Verifica"
+Step "Verifica"
 # -----------------------------------------------------------------------------
 # Un pacchetto piu' piccolo del ponte che dovrebbe contenere e' un pacchetto
 # che non lo contiene. E' un controllo grossolano e prende il caso che conta:
 # la cartella Payload dimenticata o vuota.
-$grandePonte = (Get-Item $ponte).Length
-$grandeExe = (Get-Item $finale).Length
-if ($grandeExe -le $grandePonte) {
-    Muori ("Installer.exe e' " + [math]::Round($grandeExe / 1KB) + " kB ma il ponte da " +
-           "solo ne occupa " + [math]::Round($grandePonte / 1KB) + ": il carico non e' " +
+$bigBridge = (Get-Item $bridge).Length
+$bigExe = (Get-Item $final).Length
+if ($bigExe -le $bigBridge) {
+    Die ("Installer.exe e' " + [math]::Round($bigExe / 1KB) + " kB ma il ponte da " +
+           "solo ne occupa " + [math]::Round($bigBridge / 1KB) + ": il carico non e' " +
            "stato incorporato. Controlla Installer\Payload\ e l'elemento " +
            "EmbeddedResource nel csproj.")
 }
-Ok ("Installer.exe  " + [math]::Round($grandeExe / 1KB) + " kB  (ponte incorporato)")
-Nota $finale
+Ok ("Installer.exe  " + [math]::Round($bigExe / 1KB) + " kB  (ponte incorporato)")
+Note $final
 
 # IL CHECKSUM ACCANTO AL FILE, SEMPRE.
 #
@@ -266,12 +266,12 @@ Nota $finale
 #
 # Il formato e' quello di `sha256sum`: "<hash minuscolo>  <nome file>". Due
 # spazi, e il solo NOME e non il percorso, cosi' vale su qualunque macchina.
-$impronta = (Get-FileHash $finale -Algorithm SHA256).Hash.ToLowerInvariant()
-$fileImpronta = $finale + ".sha256"
-Set-Content -Path $fileImpronta -Encoding ascii -NoNewline `
-    -Value ($impronta + "  Installer.exe`n")
-Ok ("Installer.exe.sha256  " + $impronta.Substring(0, 16) + "...")
-Nota $fileImpronta
+$fingerprint = (Get-FileHash $final -Algorithm SHA256).Hash.ToLowerInvariant()
+$fingerprintFile = $final + ".sha256"
+Set-Content -Path $fingerprintFile -Encoding ascii -NoNewline `
+    -Value ($fingerprint + "  Installer.exe`n")
+Ok ("Installer.exe.sha256  " + $fingerprint.Substring(0, 16) + "...")
+Note $fingerprintFile
 
 Write-Host ""
 # ADESSO SI PUO' DIRE, PERCHE' E' VERO.

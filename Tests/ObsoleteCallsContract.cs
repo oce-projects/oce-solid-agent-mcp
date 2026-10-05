@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using static Oce.Solid.Agent.ContractTests.Programma;
+using static Oce.Solid.Agent.ContractTests.Program;
 
 namespace Oce.Solid.Agent.ContractTests
 {
@@ -191,12 +191,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void RunAll()
         {
-            Gruppo("no new call to an obsolete SOLIDWORKS API (Z-C21.6)");
+            Group("no new call to an obsolete SOLIDWORKS API (Z-C21.6)");
 
-            var listPath = Path.Combine(Radice(), "Tests", "data", "obsolete-api-members.tsv");
+            var listPath = Path.Combine(Root(), "Tests", "data", "obsolete-api-members.tsv");
             if (!File.Exists(listPath))
             {
-                Segna("the refined obsolete list is there", false, listPath + " is missing: regenerate it with Checks/obsolete-api-list.js");
+                Check("the refined obsolete list is there", false, listPath + " is missing: regenerate it with Checks/obsolete-api-list.js");
                 return;
             }
             var list = ObsoleteApiList.Load(listPath);
@@ -215,7 +215,7 @@ namespace Oce.Solid.Agent.ContractTests
                            list.Members.Contains("ICurve.Length2") &&
                            !list.Members.Contains("IFeatureManager.FeatureExtrusion3") &&
                            !list.Members.Contains("IModelDocExtension.SaveAs3");
-            Segna("the obsolete list is the refined one", refined,
+            Check("the obsolete list is the refined one", refined,
                   list.Members.Count + " members (" + list.Partial + " obsolete only for some uses); " +
                   "GetSystemValue2, GraphicsRedraw2, GetDimensionCount, GetActiveConfiguration, ICurve.Length2 in; " +
                   "FeatureExtrusion3 and IModelDocExtension.SaveAs3 (current) out");
@@ -225,37 +225,37 @@ namespace Oce.Solid.Agent.ContractTests
             // Snippets are whole files; "\n" separates lines.
             var mustFlag = new[]
             {
-                "IDimension quota = null; double v = quota.SystemValue;",
-                "IModelDoc2 modello = null; var mp = modello.Extension.CreateMassProperty();",
+                "IDimension dimension = null; double v = dimension.SystemValue;",
+                "IModelDoc2 model = null; var mp = model.Extension.CreateMassProperty();",
                 "IModelDoc2 d = null; var c = d.GetActiveConfiguration();",
                 "object o = null; var t = (o as IView).GetDimensionCount();",
                 "IFeatureManager fm = null; fm.FeatureFillet3(0, 0, 0, 0, 0, 0, 0, null, null, null, null, null, null, null);",
                 // the code in the holes of an interpolated string is code
-                "IModelDoc2 modello = null; var s = $\"{modello.GetActiveConfiguration()}\";",
-                "IModelDoc2 modello = null; var s = $@\"a {{b}} {modello.GetActiveConfiguration():X} c\";",
+                "IModelDoc2 model = null; var s = $\"{model.GetActiveConfiguration()}\";",
+                "IModelDoc2 model = null; var s = $@\"a {{b}} {model.GetActiveConfiguration():X} c\";",
                 // the type of a var from the return type of a method in the source
-                "class C {\n IView RisolviVista(int a) { return null; }\n void M() {\n var vista = RisolviVista(1);\n var n = vista.Name;\n }\n}",
+                "class C {\n IView ResolveView(int a) { return null; }\n void M() {\n var view = ResolveView(1);\n var n = view.Name;\n }\n}",
                 // an element of a typed array
-                "class C { void M() { IView[] viste = null; var n = viste[0].Name; } }",
+                "class C { void M() { IView[] views = null; var n = views[0].Name; } }",
                 // a field of the same partial class declared in another part
-                "partial class C { IView _vista; }\npartial class D { }\npartial class C { void M() { var n = _vista.Name; } }",
+                "partial class C { IView _view; }\npartial class D { }\npartial class C { void M() { var n = _view.Name; } }",
             };
             var mustPass = new[]
             {
                 "IFeatureManager fm = null; fm.FeatureExtrusion3(true);",
-                "IModelDoc2 modello = null; modello.Extension.SaveAs3(p, 0, 1, null, null, ref e, ref w);",
+                "IModelDoc2 model = null; model.Extension.SaveAs3(p, 0, 1, null, null, ref e, ref w);",
                 "IFeature f = null; f.Select2(false, 0);",
                 "var list = new List<int>(); list.Add(1);",
                 "// quota.SystemValue is obsolete, see the guide",
                 "var s = \"dimension.SystemValue\";",
-                "var s = $\"quota.SystemValue {x}\";",
-                "IPartDoc parte = null; var b = parte.GetBodies2(0, false);",
+                "var s = $\"dimension.SystemValue {x}\";",
+                "IPartDoc partDoc = null; var b = partDoc.GetBodies2(0, false);",
             };
             // A type declared OUTSIDE the scope of the call must not be used: the
             // call is undecided (counted and frozen), not current, not typed.
             var mustBeUndecided = new[]
             {
-                "class C {\n void A() { IConfigurationManager g = null; }\n void B() { var g = Trova(); var n = g.Name; }\n}",
+                "class C {\n void A() { IConfigurationManager g = null; }\n void B() { var g = Find(); var n = g.Name; }\n}",
                 "class C {\n void A(IFeature f) { }\n void B() { var n = f.Select2(false, 0); }\n}",
             };
             var missed = mustFlag.Where(l => ScanSnippet(list, l).Count != 1).ToList();
@@ -266,13 +266,13 @@ namespace Oce.Solid.Agent.ContractTests
                 s.Add("snippet.cs", l.Split('\n'));
                 return s.Scan().Count != 0 || s.Undecided != 1;
             }).ToList();
-            Segna("the scanner catches obsolete calls on typed receivers", missed.Count == 0,
+            Check("the scanner catches obsolete calls on typed receivers", missed.Count == 0,
                   (mustFlag.Length - missed.Count) + " of " + mustFlag.Length + " (declared, accessor, cast, interpolated string, " +
                   "method return type, array element, field of a partial class)" +
                   (missed.Count == 0 ? "" : "; missed: " + string.Join(" | ", missed)));
-            Segna("and does not flag current members, comments or strings", wrong.Count == 0,
+            Check("and does not flag current members, comments or strings", wrong.Count == 0,
                   wrong.Count == 0 ? mustPass.Length + " lines, no false alarm" : string.Join(" | ", wrong));
-            Segna("a type declared out of scope leaves the call undecided", notUndecided.Count == 0,
+            Check("a type declared out of scope leaves the call undecided", notUndecided.Count == 0,
                   notUndecided.Count == 0 ? mustBeUndecided.Length + " snippets: the other method's variable is not used"
                                           : string.Join(" | ", notUndecided));
 
@@ -283,11 +283,11 @@ namespace Oce.Solid.Agent.ContractTests
             var sources = new Dictionary<string, string[]>(StringComparer.Ordinal);
             foreach (var folder in Folders)
             {
-                var dir = Path.Combine(Radice(), folder);
+                var dir = Path.Combine(Root(), folder);
                 if (!Directory.Exists(dir)) continue;
                 foreach (var f in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
                 {
-                    var rel = f.Substring(Radice().Length).TrimStart('\\', '/').Replace('\\', '/');
+                    var rel = f.Substring(Root().Length).TrimStart('\\', '/').Replace('\\', '/');
                     if (rel.Contains("/bin/") || rel.Contains("/obj/")) continue;
                     var lines = File.ReadAllLines(f);
                     sources[rel] = lines;
@@ -296,16 +296,16 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
             var hits = scanner.Scan();
-            var undecidedPath = Path.Combine(Radice(), "Tests", "data", UndecidedFile);
+            var undecidedPath = Path.Combine(Root(), "Tests", "data", UndecidedFile);
             var frozenUndecided = LoadUndecided(undecidedPath);
             var v = Evaluate(hits, scanner.UndecidedCalls, cases, frozenUndecided, null);
-            Segna("every obsolete call is measured or frozen", v.Violations.Count == 0,
+            Check("every obsolete call is measured or frozen", v.Violations.Count == 0,
                   v.Violations.Count == 0
                       ? hits.Count + " obsolete calls in " + files + " files: " + v.Measured +
                         " OBSOLETE-MEASURED, " + v.FrozenUsed + " frozen for Z-C21.7"
                       : v.Violations.Count + " not allowed: " + string.Join(" | ", v.Violations));
 
-            Segna("the measured and frozen lists only go down (no stale room left)", v.Stale.Count == 0,
+            Check("the measured and frozen lists only go down (no stale room left)", v.Stale.Count == 0,
                   v.Stale.Count == 0 ? Measured.Count + " measured and " + Frozen.Count + " frozen entries, each one exact"
                                      : "lower these counts: " + string.Join(" | ", v.Stale));
 
@@ -316,7 +316,7 @@ namespace Oce.Solid.Agent.ContractTests
                                                      kv.Value.Replacement.StartsWith("not measured", StringComparison.Ordinal)) ||
                                                    !cases.Contains(kv.Key.Substring(kv.Key.LastIndexOf('|') + 1)))
                                       .Select(kv => kv.Key).ToList();
-            Segna("every frozen member says why, every measured one what is known of its replacement",
+            Check("every frozen member says why, every measured one what is known of its replacement",
                   noReason.Count == 0 && badMeasured.Count == 0,
                   noReason.Count == 0 && badMeasured.Count == 0
                       ? WhyFrozen.Count + " reasons, " + Measured.Count + " measured entries with an existing case"
@@ -326,7 +326,7 @@ namespace Oce.Solid.Agent.ContractTests
             // The undecided calls: counted, and frozen with the same ratchet.
             bool undecidedOk = frozenUndecided != null && v.UndecidedRaised.Count == 0 && v.UndecidedStale.Count == 0;
             string dump = undecidedOk ? null : DumpUndecided(scanner.UndecidedCalls);
-            Segna("undecided calls (receiver type not in the source) do not grow", undecidedOk,
+            Check("undecided calls (receiver type not in the source) do not grow", undecidedOk,
                   undecidedOk
                       ? scanner.Undecided + " undecided calls in " + frozenUndecided.Count + " file|name entries, each one exact " +
                         "(most frequent: " + string.Join(", ", scanner.UndecidedCalls.GroupBy(u => u.Name)
@@ -364,12 +364,12 @@ namespace Oce.Solid.Agent.ContractTests
 
             // 1. A new obsolete call on a typed receiver, in a file with no entry for it.
             Inject(list, sources, cases, frozenUndecided, baseHits, baseUndecided, equations, "a new obsolete call",
-                   "IModelDoc2 modello", true, "            var injected = modello.GetActiveConfiguration();",
+                   "IModelDoc2 model", true, "            var injected = model.GetActiveConfiguration();",
                    (before, after, line) => after.Violations.Count == 1 && Names(after.Violations[0], "GetActiveConfiguration", equations, line));
 
             // 2. The ratchet up: a SECOND GetActiveConfiguration where one is frozen.
             Inject(list, sources, cases, frozenUndecided, baseHits, baseUndecided, assemblyMass, "a second call where one is frozen",
-                   "GetActiveConfiguration()", false, "            var injected = modello.GetActiveConfiguration();",
+                   "GetActiveConfiguration()", false, "            var injected = model.GetActiveConfiguration();",
                    (before, after, line) => after.Violations.Count == 1 && after.Violations[0].Contains("2 calls, frozen allows 1") &&
                                             after.Violations[0].Contains(assemblyMass + ":" + line));
 
@@ -381,14 +381,14 @@ namespace Oce.Solid.Agent.ContractTests
 
             // 4. A new call under an OBSOLETE-MEASURED comment citing an existing case.
             Inject(list, sources, cases, frozenUndecided, baseHits, baseUndecided, equations, "a new call under a marker citing a real case",
-                   "IModelDoc2 modello", true,
-                   "            // OBSOLETE-MEASURED: three_holes_pitch_40\n            var injected = modello.GetActiveConfiguration();",
+                   "IModelDoc2 model", true,
+                   "            // OBSOLETE-MEASURED: three_holes_pitch_40\n            var injected = model.GetActiveConfiguration();",
                    (before, after, line) => after.Violations.Count == 1 && after.Violations[0].Contains("not in the Measured list") &&
                                             Names(after.Violations[0], "GetActiveConfiguration", equations, line));
 
             // 5. A new undecided call (receiver type not in the source).
             Inject(list, sources, cases, frozenUndecided, baseHits, baseUndecided, equations, "a new undecided call",
-                   "IModelDoc2 modello", true, "            var injected = sconosciuto.Select2(false, 0);",
+                   "IModelDoc2 model", true, "            var injected = unknown.Select2(false, 0);",
                    (before, after, line) => after.UndecidedRaised.Count == 1 && after.UndecidedRaised[0].Contains("|Select2") &&
                                             after.UndecidedRaised[0].Contains(equations + ":" + line));
         }
@@ -413,9 +413,9 @@ namespace Oce.Solid.Agent.ContractTests
         {
             var name = "seen red: " + what + " (" + Path.GetFileName(target) + ")";
             string[] original;
-            if (!sources.TryGetValue(target, out original)) { Segna(name, false, target + " not found"); return; }
+            if (!sources.TryGetValue(target, out original)) { Check(name, false, target + " not found"); return; }
             int anchor = Array.FindIndex(original, l => l.Contains(anchorText) && !l.TrimStart().StartsWith("//", StringComparison.Ordinal));
-            if (anchor < 0) { Segna(name, false, "no «" + anchorText + "» in " + target); return; }
+            if (anchor < 0) { Check(name, false, "no «" + anchorText + "» in " + target); return; }
             string temp = Path.Combine(Path.GetTempPath(), "obsolete-seen-red-" + Guid.NewGuid().ToString("N") + ".cs");
             try
             {
@@ -448,7 +448,7 @@ namespace Oce.Solid.Agent.ContractTests
                              before.UndecidedRaised.Count == 0 && before.UndecidedStale.Count == 0;
                 bool red = clean && expected(before, after, line);
                 var all = after.Violations.Concat(after.Stale).Concat(after.UndecidedRaised).Concat(after.UndecidedStale).ToList();
-                Segna(name, red,
+                Check(name, red,
                       red ? "red: " + Short(all[0])
                           : (clean ? "" : "the untouched file is not green; ") + "got: " + string.Join(" | ", all));
             }
@@ -463,7 +463,7 @@ namespace Oce.Solid.Agent.ContractTests
         private static HashSet<string> BankCases()
         {
             var cases = new HashSet<string>(StringComparer.Ordinal);
-            var dir = Path.Combine(Radice(), "Bench", "cases");
+            var dir = Path.Combine(Root(), "Bench", "cases");
             if (Directory.Exists(dir))
                 foreach (var f in Directory.GetFiles(dir, "*.json", SearchOption.AllDirectories))
                     cases.Add(Path.GetFileNameWithoutExtension(f));

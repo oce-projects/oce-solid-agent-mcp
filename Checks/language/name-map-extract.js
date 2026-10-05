@@ -125,6 +125,7 @@
 //  USAGE
 //    node Checks/language/name-map-extract.js            extract and rewrite the map
 //    node Checks/language/name-map-extract.js --counts   extract, print the counts, write nothing
+//    node Checks/language/name-map-extract.js --found    extract, print each Italian name found (found TAB type TAB name), write nothing
 //    node Checks/language/name-map-extract.js --check    the checks above, on the map as it is
 //    node Checks/language/name-map-extract.js --self-test
 //        fake rows, one per way of failing the check: every check seen red,
@@ -1769,6 +1770,7 @@ function parseArgs(argv) {
     else if (x === '--map') a.map = argv[++i];
     else if (x === '--check') a.check = true;
     else if (x === '--counts') a.counts = true;
+    else if (x === '--found') a.found = true;
     else if (x === '--self-test') a.selfTest = true;
     else if (x === '--coverage') a.coverage = true;
     else if (x === '--ledger') a.ledgers.push(argv[++i]);
@@ -1793,6 +1795,11 @@ function main() {
   const mapFile = path.resolve(root, args.map || MAP_REL);
 
   const found = extract(root, { ledgers: args.ledgers });
+  if (args.found) {
+    // the Italian names the tree has now, one per line (the contracts pick a name that is still there)
+    for (const r of found.rows.values()) console.log('found\t' + r.type + '\t' + r.it);
+    return 0;
+  }
   printCounts(found);
   if (args.coverage) coverage(root, found, args.show, true);
 

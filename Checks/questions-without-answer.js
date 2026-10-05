@@ -37,23 +37,23 @@
 const fs = require('fs');
 const path = require('path');
 
-const radice = path.join(__dirname, '..');
-const NOME = 'domande-senza-risposta.jsonl';
+const root = path.join(__dirname, '..');
+const NAME = 'domande-senza-risposta.jsonl';
 
-const perRighe = process.argv.includes('--righe');
-const dato = process.argv.slice(2).find(a => !a.startsWith('--'));
+const perLines = process.argv.includes('--righe');
+const given = process.argv.slice(2).find(a => !a.startsWith('--'));
 
 // Gli stessi posti in cui il ponte lo scriverebbe: la variabile, poi accanto
 // all'eseguibile. Se un domani cambiasse l'ordine la' e non qui, questo
 // attrezzo leggerebbe un file vecchio senza dirlo -- quindi si stampa QUALE.
-function dove() {
-  if (dato) return dato;
-  const dalla = process.env.RISCONTRO_REGISTRO;
-  if (dalla !== undefined) return dalla === '' ? null : dalla;
-  return path.join(radice, 'bin', NOME);
+function location() {
+  if (given) return given;
+  const fromEnv = process.env.RISCONTRO_REGISTRO;
+  if (fromEnv !== undefined) return fromEnv === '' ? null : fromEnv;
+  return path.join(root, 'bin', NAME);
 }
 
-const file = dove();
+const file = location();
 
 if (file === null) {
   console.log('RISCONTRO_REGISTRO e\' impostata a stringa vuota: il ponte non');
@@ -74,13 +74,13 @@ if (!fs.existsSync(file)) {
   process.exit(0);
 }
 
-const righe = fs.readFileSync(file, 'utf8').split(/\r?\n/).filter(r => r.trim());
-const voci = [];
-let illeggibili = 0;
+const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/).filter(r => r.trim());
+const entries = [];
+let unreadable = 0;
 
-for (const r of righe) {
-  try { voci.push(JSON.parse(r)); }
-  catch { illeggibili++; }
+for (const r of lines) {
+  try { entries.push(JSON.parse(r)); }
+  catch { unreadable++; }
 }
 
 // EXPECTED KEYS (W3.1-bis.2, item 5). Every record is written by
@@ -88,19 +88,19 @@ for (const r of righe) {
 // (`similar` only when there are neighbours). A record without one of them is
 // a producer that renamed its keys: read with a fallback, every question
 // would count as "?" with an empty name, and the report would look like one.
-const withoutKeys = voci.filter(v => v === null || typeof v !== 'object' || Array.isArray(v) ||
+const withoutKeys = entries.filter(v => v === null || typeof v !== 'object' || Array.isArray(v) ||
   ['timestamp', 'kind', 'name'].some(k => typeof v[k] !== 'string') ||
   (v.similar !== undefined && !Array.isArray(v.similar)));
 if (withoutKeys.length) {
-  console.log('EXPECTED KEYS MISSING: ' + withoutKeys.length + ' of ' + voci.length +
+  console.log('EXPECTED KEYS MISSING: ' + withoutKeys.length + ' of ' + entries.length +
               ' records lack "timestamp", "kind" or "name" (strings). The first:');
   console.log('    ' + JSON.stringify(withoutKeys[0]).slice(0, 200));
   console.log('If the bridge renamed them, this reader is renamed in the same commit.');
   process.exit(1);
 }
 
-if (perRighe) {
-  for (const v of voci) {
+if (perLines) {
+  for (const v of entries) {
     console.log('  ' + (v.timestamp || '?') + '  ' + (v.kind || '?') + '  ' +
                 JSON.stringify(v.name) +
                 (v.similar ? '   vicini: ' + v.similar.join(', ') : ''));
@@ -108,14 +108,14 @@ if (perRighe) {
   console.log('');
 }
 
-const conti = new Map();
-for (const v of voci) {
-  const chiave = (v.kind || '?') + '\u0000' + (v.name || '');
-  let c = conti.get(chiave);
+const counts = new Map();
+for (const v of entries) {
+  const key = (v.kind || '?') + '\u0000' + (v.name || '');
+  let c = counts.get(key);
   if (!c) {
     c = { kind: v.kind || '?', name: v.name || '', quante: 0,
           prima: v.timestamp, ultima: v.timestamp, vicini: new Set() };
-    conti.set(chiave, c);
+    counts.set(key, c);
   }
   c.quante++;
   if (v.timestamp) {
@@ -125,40 +125,40 @@ for (const v of voci) {
   for (const s of (v.similar || [])) c.vicini.add(s);
 }
 
-const tutte = [...conti.values()].sort((a, b) => b.quante - a.quante ||
+const all = [...counts.values()].sort((a, b) => b.quante - a.quante ||
                                                  a.name.localeCompare(b.name));
 
-console.log('domande registrate:        ' + voci.length);
-console.log('nomi distinti:             ' + tutte.length);
-if (illeggibili) console.log('righe illeggibili:         ' + illeggibili);
+console.log('domande registrate:        ' + entries.length);
+console.log('nomi distinti:             ' + all.length);
+if (unreadable) console.log('righe illeggibili:         ' + unreadable);
 console.log('');
 
-if (tutte.length === 0) {
+if (all.length === 0) {
   console.log('Nessuno ha chiesto niente che non ci fosse.');
   process.exit(0);
 }
 
-function stampa(titolo, elenco, coda) {
-  if (elenco.length === 0) return;
-  console.log(titolo);
-  for (const c of elenco) {
+function print(docTitle, list, queue) {
+  if (list.length === 0) return;
+  console.log(docTitle);
+  for (const c of list) {
     const v = c.vicini.size ? '   vicini: ' + [...c.vicini].join(', ') : '';
     console.log('  ' + String(c.quante).padStart(4) + '  [' + c.kind + '] ' +
                 c.name + v);
     console.log('        dal ' + (c.prima || '?') + ' al ' + (c.ultima || '?'));
   }
   console.log('');
-  console.log('  ' + coda);
+  console.log('  ' + queue);
   console.log('');
 }
 
-stampa('DA COSTRUIRE — nessun nome vicino nel catalogo:',
-       tutte.filter(c => c.vicini.size === 0),
+print('DA COSTRUIRE — nessun nome vicino nel catalogo:',
+       all.filter(c => c.vicini.size === 0),
        'Il catalogo non aveva niente da proporre: chi ha chiesto voleva una ' +
        'cosa che non c\'e\'.');
 
-stampa('FORSE SOLO UN SINONIMO — il catalogo aveva qualcosa di vicino:',
-       tutte.filter(c => c.vicini.size > 0),
+print('FORSE SOLO UN SINONIMO — il catalogo aveva qualcosa di vicino:',
+       all.filter(c => c.vicini.size > 0),
        'Se il nome vicino e\' davvero la stessa cosa, costa una riga di ' +
        'sinonimo invece di un\'operazione nuova.');
 

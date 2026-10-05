@@ -48,64 +48,64 @@ namespace Oce.Solid.Agent.Core
     /// qualcosa non ha funzionato, non quale campo ne' perche'. Questa lettura
     /// e' a monte, per campo, e costa una chiamata.
     /// </summary>
-    public partial class OperazioniSw
+    public partial class SwOperations
     {
         /// <summary>
         /// I collegamenti che un cartiglio puo' portare. `$PRPSHEET` prende la
         /// proprieta' dal MODELLO mostrato nella vista, non dal disegno: e' la
         /// distinzione che fa scrivere la proprieta' sul documento sbagliato.
         /// </summary>
-        private static readonly Regex Collegamento =
+        private static readonly Regex Connection =
             new Regex("\\$PRP(SHEET)?:\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
 
-        private Esito Cartiglio(IModelDoc2 modello, Dictionary<string, object> a)
+        private Outcome TitleBlock(IModelDoc2 model, Dictionary<string, object> a)
         {
-            var disegno = modello as IDrawingDoc;
-            if (disegno == null)
-                return Fallito(
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed(
                     "Il documento attivo non e' una tavola: il cartiglio sta su un " +
                     "foglio di disegno.");
 
-            ISheet foglio;
-            try { foglio = disegno.GetCurrentSheet() as ISheet; }
-            catch (Exception ex) { return Fallito("Non riesco a leggere il foglio: " + ex.Message); }
-            if (foglio == null) return Fallito("La tavola non ha un foglio attivo.");
+            ISheet sheet;
+            try { sheet = drawing.GetCurrentSheet() as ISheet; }
+            catch (Exception ex) { return Failed("Non riesco a leggere il foglio: " + ex.Message); }
+            if (sheet == null) return Failed("La tavola non ha un foglio attivo.");
 
-            var note = NoteDelCartiglio(disegno, foglio, out string daDove);
+            var note = TitleBlockNotes(drawing, sheet, out string fromWhere);
             if (note.Count == 0)
-                return Fallito(
+                return Failed(
                     "Non trovo nessuna nota nel cartiglio di questo foglio" +
-                    (daDove == null ? "" : " (cercate " + daDove + ")") +
+                    (fromWhere == null ? "" : " (cercate " + fromWhere + ")") +
                     ". O il modello di tavola non ha un cartiglio, o e' fatto di " +
                     "disegno invece che di note: nel secondo caso non c'e' niente da " +
                     "alimentare, il testo e' dipinto dentro il formato.");
 
             // ── COSA CHIEDE E COSA MOSTRA, campo per campo ──────────────
-            var campi = new List<object>();
-            var chieste = new List<string>();
-            var vuote = new List<string>();
-            var mostrate = new List<string>();
-            int collegati = 0;
+            var fields = new List<object>();
+            var requestedItems = new List<string>();
+            var empty = new List<string>();
+            var shown = new List<string>();
+            int connected = 0;
 
             foreach (var n in note)
             {
-                string chiede = null, mostra = null;
-                try { chiede = n.PropertyLinkedText; } catch { }
-                try { mostra = n.GetText(); } catch { }
+                string asks = null, show = null;
+                try { asks = n.PropertyLinkedText; } catch { }
+                try { show = n.GetText(); } catch { }
 
-                var nomi = NomiCollegati(chiede);
-                if (nomi.Count > 0) collegati++;
+                var names = ConnectedNames(asks);
+                if (names.Count > 0) connected++;
 
-                foreach (var x in nomi)
-                    if (!chieste.Contains(x, StringComparer.Ordinal)) chieste.Add(x);
+                foreach (var x in names)
+                    if (!requestedItems.Contains(x, StringComparer.Ordinal)) requestedItems.Add(x);
 
                 // UN CAMPO COLLEGATO CHE NON MOSTRA NIENTE E' IL DIFETTO.
                 // Non e' «vuoto per scelta»: e' un collegamento che non ha
                 // trovato la sua proprieta'.
-                bool mostraNiente = string.IsNullOrWhiteSpace(mostra);
-                if (nomi.Count > 0 && mostraNiente)
-                    foreach (var x in nomi)
-                        if (!vuote.Contains(x, StringComparer.Ordinal)) vuote.Add(x);
+                bool showNothing = string.IsNullOrWhiteSpace(show);
+                if (names.Count > 0 && showNothing)
+                    foreach (var x in names)
+                        if (!empty.Contains(x, StringComparer.Ordinal)) empty.Add(x);
 
                 // E QUELLE CHE ARRIVANO DAVVERO IN FONDO.
                 //
@@ -115,37 +115,37 @@ namespace Oce.Solid.Agent.Core
                 // dimostrare che una scrittura e' arrivata: si potrebbe solo
                 // dire che non e' nell'elenco dei guasti, e «non e' fra i
                 // rotti» non e' «funziona».
-                if (nomi.Count > 0 && !mostraNiente)
-                    foreach (var x in nomi)
-                        if (!mostrate.Contains(x, StringComparer.Ordinal)) mostrate.Add(x);
+                if (names.Count > 0 && !showNothing)
+                    foreach (var x in names)
+                        if (!shown.Contains(x, StringComparer.Ordinal)) shown.Add(x);
 
-                var voce = new Dictionary<string, object>
+                var entry = new Dictionary<string, object>
                 {
-                    ["asks"] = string.IsNullOrWhiteSpace(chiede) ? null : chiede,
-                    ["shows"] = mostra ?? "",
+                    ["asks"] = string.IsNullOrWhiteSpace(asks) ? null : asks,
+                    ["shows"] = show ?? "",
                 };
-                if (nomi.Count > 0) voce["property"] = nomi.ToArray();
-                campi.Add(voce);
+                if (names.Count > 0) entry["property"] = names.ToArray();
+                fields.Add(entry);
             }
 
-            var misure = new Dictionary<string, object>
+            var measurements = new Dictionary<string, object>
             {
-                ["sheet"] = NomeDelFoglio(foglio) ?? "",
-                ["sheet_format"] = ProvaTesto(() => foglio.GetSheetFormatName()),
+                ["sheet"] = SheetName(sheet) ?? "",
+                ["sheet_format"] = TestText(() => sheet.GetSheetFormatName()),
                 ["notes_in_title_block"] = note.Count,
-                ["notes_linked"] = collegati,
-                ["searched_in"] = daDove,
-                ["fields"] = campi.ToArray(),
+                ["notes_linked"] = connected,
+                ["searched_in"] = fromWhere,
+                ["fields"] = fields.ToArray(),
             };
 
             // ── L'ELENCO CHE TOGLIE L'INVENZIONE ────────────────────────
             //
             // E' il pezzo che vale: i nomi ESATTI che questo cartiglio vuole,
             // copiabili alla lettera dentro `set_property`.
-            if (chieste.Count > 0)
+            if (requestedItems.Count > 0)
             {
-                misure["properties_wanted_by_title_block"] = chieste.ToArray();
-                misure["how_to_use_it"] =
+                measurements["properties_wanted_by_title_block"] = requestedItems.ToArray();
+                measurements["how_to_use_it"] =
                     "Copia questi nomi ALLA LETTERA dentro «set_property». Una " +
                     "maiuscola o uno spazio diversi non danno nessun errore: la " +
                     "proprieta' viene scritta, il cartiglio non la mostra, e il PDF " +
@@ -154,7 +154,7 @@ namespace Oce.Solid.Agent.Core
             // Anche questo sempre, per la stessa ragione: e' l'affermazione
             // positiva, e un'affermazione che sparisce quando e' falsa non e'
             // un'affermazione.
-            misure["requested_and_shown"] = mostrate.ToArray();
+            measurements["requested_and_shown"] = shown.ToArray();
 
             // ── VUOTE PERCHE' NON SCRITTE, O VUOTE PERCHE' NON RISOLTE? ──
             //
@@ -186,7 +186,7 @@ namespace Oce.Solid.Agent.Core
             // perche' documento e configurazione sono elenchi separati.
             // E PRIMA DI TUTTO: HO POTUTO GUARDARE?
             //
-            // `ProprietaDelModelloInVista` torna `null` quando non ci arriva.
+            // `ViewModelProperty` torna `null` quando non ci arriva.
             // Senza dirlo, l'elenco qui sotto resterebbe vuoto **per ignoranza**
             // e non per misura — e un elenco vuoto per ignoranza passa
             // qualunque controllo che chieda «non c'e' dentro X».
@@ -196,19 +196,19 @@ namespace Oce.Solid.Agent.Core
             // funzione e **non era visibile a chi legge la risposta**.
             // *Una distinzione che vive solo in un commento non e' una
             // distinzione: e' un'intenzione.*
-            string chiGuardato;
-            var suDisco = ProprietaDelModelloInVista(disegno, out chiGuardato);
-            misure["model_checked_for_properties"] = chiGuardato ??
+            string whoWasChecked;
+            var onDisk = ViewModelProperty(drawing, out whoWasChecked);
+            measurements["model_checked_for_properties"] = whoWasChecked ??
                 "NON SONO ARRIVATO AL MODELLO: i due elenchi qui sotto sono vuoti " +
                 "perche' non ho potuto guardare, non perche' non ci fosse niente.";
 
-            var presentiMaMute = new List<string>();
-            if (suDisco != null)
-                foreach (var x in vuote)
-                    if (suDisco.Contains(NomeNudo(x), StringComparer.OrdinalIgnoreCase))
-                        presentiMaMute.Add(x);
+            var presentButMute = new List<string>();
+            if (onDisk != null)
+                foreach (var x in empty)
+                    if (onDisk.Contains(BareName(x), StringComparer.OrdinalIgnoreCase))
+                        presentButMute.Add(x);
 
-            misure["requested_but_empty"] = vuote.ToArray();
+            measurements["requested_but_empty"] = empty.ToArray();
 
             // SEMPRE, ANCHE VUOTO, e non e' pignoleria: il banco tratta un
             // campo ASSENTE come prova rossa (voce F4), quindi un campo che
@@ -216,41 +216,41 @@ namespace Oce.Solid.Agent.Core
             // pretendere vuoto**. E chi legge la risposta, non trovandolo,
             // conclude che l'operazione non sappia rispondere invece che
             // l'elenco sia vuoto.
-            misure["requested_present_on_model_but_shown_empty"] = presentiMaMute.ToArray();
-            if (presentiMaMute.Count > 0)
-                misure["not_the_drafters_fault"] =
+            measurements["requested_present_on_model_but_shown_empty"] = presentButMute.ToArray();
+            if (presentButMute.Count > 0)
+                measurements["not_the_drafters_fault"] =
                     "Queste proprieta' CI SONO sul modello mostrato nella vista, e il " +
                     "cartiglio le mostra vuote lo stesso: il collegamento non ha " +
                     "risolto. Riscriverle non cambia niente. Prova a ricostruire la " +
                     "tavola e a rileggere; se restano vuote, il collegamento e' rotto.";
 
-            string vistaPerProprieta = ProvaTesto(() => foglio.CustomPropertyView);
-            if (!string.IsNullOrWhiteSpace(vistaPerProprieta))
-                misure["sheet_properties_source_view"] = vistaPerProprieta;
+            string viewByProperty = TestText(() => sheet.CustomPropertyView);
+            if (!string.IsNullOrWhiteSpace(viewByProperty))
+                measurements["sheet_properties_source_view"] = viewByProperty;
 
-            if (chieste.Count == 0)
-                misure["verdict"] =
+            if (requestedItems.Count == 0)
+                measurements["verdict"] =
                     "Il cartiglio ha " + note.Count + (note.Count == 1 ? " nota" : " note") +
                     " ma **nessuna collegata a una proprieta'**: il testo e' scritto " +
                     "fisso dentro il formato. Riempirlo con «set_property» non " +
                     "cambierebbe niente, e non te lo lascio credere.";
-            else if (vuote.Count == 0)
-                misure["verdict"] =
-                    "Il cartiglio vuole " + chieste.Count +
-                    (chieste.Count == 1 ? " proprieta'" : " proprieta'") + " (" +
-                    string.Join(", ", chieste) + ") e le mostra tutte: nessuna casella " +
+            else if (empty.Count == 0)
+                measurements["verdict"] =
+                    "Il cartiglio vuole " + requestedItems.Count +
+                    (requestedItems.Count == 1 ? " proprieta'" : " proprieta'") + " (" +
+                    string.Join(", ", requestedItems) + ") e le mostra tutte: nessuna casella " +
                     "vuota.";
             else
-                misure["verdict"] =
-                    "ATTENZIONE: il cartiglio chiede " + chieste.Count + " proprieta' e " +
-                    vuote.Count + " NON mostrano niente (" + string.Join(", ", vuote) +
+                measurements["verdict"] =
+                    "ATTENZIONE: il cartiglio chiede " + requestedItems.Count + " proprieta' e " +
+                    empty.Count + " NON mostrano niente (" + string.Join(", ", empty) +
                     "). O non sono ancora state scritte, o sono scritte con una grafia " +
                     "diversa da quella che il cartiglio referenzia — e quel caso non da' " +
                     "nessun errore: la tavola esce con le caselle vuote. I nomi qui " +
                     "sopra sono quelli giusti, copiali alla lettera.";
 
-            _log("[agente] " + misure["verdict"]);
-            return RiuscitoSenzaCreare(misure);
+            _log("[agente] " + measurements["verdict"]);
+            return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
@@ -259,34 +259,34 @@ namespace Oce.Solid.Agent.Core
         /// mancanza, le annotazioni del FOGLIO — che nell'API e' la prima
         /// «view», quella che porta il formato.
         /// </summary>
-        private static List<INote> NoteDelCartiglio(
-            IDrawingDoc disegno, ISheet foglio, out string daDove)
+        private static List<INote> TitleBlockNotes(
+            IDrawingDoc drawing, ISheet sheet, out string fromWhere)
         {
-            daDove = null;
-            var fuori = new List<INote>();
+            fromWhere = null;
+            var outside = new List<INote>();
 
             try
             {
-                var blocco = foglio.TitleBlock as ITitleBlock;
-                if (blocco != null)
+                var block = sheet.TitleBlock as ITitleBlock;
+                if (block != null)
                 {
-                    var n = blocco.GetNotes() as object[];
+                    var n = block.GetNotes() as object[];
                     if (n != null)
-                        foreach (var o in n) { var nota = o as INote; if (nota != null) fuori.Add(nota); }
-                    if (fuori.Count > 0) { daDove = "nel blocco cartiglio del foglio"; return fuori; }
+                        foreach (var o in n) { var note = o as INote; if (note != null) outside.Add(note); }
+                    if (outside.Count > 0) { fromWhere = "nel blocco cartiglio del foglio"; return outside; }
                 }
             }
             catch { }
 
             // LA PRIMA «VISTA» DI UNA TAVOLA E' IL FOGLIO, non una vista del
-            // pezzo: e' la stessa cosa che `ContaViste` salta per contare le
+            // pezzo: e' la stessa cosa che `CountViews` salta per contare le
             // viste vere, e qui invece e' proprio quella che serve.
             try
             {
-                var vistaFoglio = disegno.GetFirstView() as IView;
-                if (vistaFoglio != null)
+                var sheetView = drawing.GetFirstView() as IView;
+                if (sheetView != null)
                 {
-                    var ann = vistaFoglio.GetFirstAnnotation3() as IAnnotation;
+                    var ann = sheetView.GetFirstAnnotation3() as IAnnotation;
                     while (ann != null)
                     {
                         // NON SI CHIEDE IL TIPO, SI PROVA IL CAST.
@@ -299,19 +299,19 @@ namespace Oce.Solid.Agent.Core
                         // senza la collisione.
                         try
                         {
-                            var nota = ann.GetSpecificAnnotation() as INote;
-                            if (nota != null) fuori.Add(nota);
+                            var note = ann.GetSpecificAnnotation() as INote;
+                            if (note != null) outside.Add(note);
                         }
                         catch { }
                         ann = ann.GetNext3() as IAnnotation;
                     }
-                    if (fuori.Count > 0) daDove = "fra le note del formato del foglio";
+                    if (outside.Count > 0) fromWhere = "fra le note del formato del foglio";
                 }
             }
             catch { }
 
-            if (daDove == null) daDove = "nel blocco cartiglio e fra le note del formato";
-            return fuori;
+            if (fromWhere == null) fromWhere = "nel blocco cartiglio e fra le note del formato";
+            return outside;
         }
 
         /// <summary>
@@ -329,11 +329,11 @@ namespace Oce.Solid.Agent.Core
         /// di presentazione, e chi confronta due elenchi deve confrontare i
         /// nomi veri — non quelli vestiti per essere letti.
         /// </summary>
-        private static string NomeNudo(string nome)
+        private static string BareName(string itemName)
         {
-            if (string.IsNullOrEmpty(nome)) return nome;
-            int i = nome.IndexOf("  (", StringComparison.Ordinal);
-            return i < 0 ? nome.Trim() : nome.Substring(0, i).Trim();
+            if (string.IsNullOrEmpty(itemName)) return itemName;
+            int i = itemName.IndexOf("  (", StringComparison.Ordinal);
+            return i < 0 ? itemName.Trim() : itemName.Substring(0, i).Trim();
         }
 
         /// <summary>
@@ -351,74 +351,74 @@ namespace Oce.Solid.Agent.Core
         /// guardare: «non ho trovato niente» e «non ho potuto guardare» sono
         /// due risposte diverse, e chi legge deve poterle distinguere.
         /// </summary>
-        private static List<string> ProprietaDelModelloInVista(
-            IDrawingDoc disegno, out string chiHoGuardato)
+        private static List<string> ViewModelProperty(
+            IDrawingDoc drawing, out string whomIChecked)
         {
-            chiHoGuardato = null;
+            whomIChecked = null;
             try
             {
                 // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
-                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
-                IModelDoc2 rif = null;
-                while (v != null && rif == null)
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
+                IModelDoc2 refObj = null;
+                while (v != null && refObj == null)
                 {
-                    try { rif = v.ReferencedDocument as IModelDoc2; } catch { }
+                    try { refObj = v.ReferencedDocument as IModelDoc2; } catch { }
                     v = v.GetNextView() as IView;
                 }
-                if (rif == null) return null;
+                if (refObj == null) return null;
 
                 // IL PERCORSO, non il titolo: e' l'unico indirizzo che non
                 // mente quando due documenti si chiamano uguale.
-                try { chiHoGuardato = rif.GetPathName(); } catch { }
-                if (string.IsNullOrWhiteSpace(chiHoGuardato))
-                    try { chiHoGuardato = "senza percorso, titolo «" + rif.GetTitle() + "»"; } catch { }
+                try { whomIChecked = refObj.GetPathName(); } catch { }
+                if (string.IsNullOrWhiteSpace(whomIChecked))
+                    try { whomIChecked = "senza percorso, titolo «" + refObj.GetTitle() + "»"; } catch { }
 
-                var fuori = new List<string>();
-                var dove = new List<string> { "" };
+                var outside = new List<string>();
+                var location = new List<string> { "" };
                 try
                 {
-                    var g = rif.ConfigurationManager as IConfigurationManager;
+                    var g = refObj.ConfigurationManager as IConfigurationManager;
                     var att = g?.ActiveConfiguration?.Name;
-                    if (!string.IsNullOrWhiteSpace(att)) dove.Add(att);
+                    if (!string.IsNullOrWhiteSpace(att)) location.Add(att);
                 }
                 catch { }
 
-                foreach (var cassetto in dove)
+                foreach (var propertyManager in location)
                 {
                     try
                     {
-                        var gp = rif.Extension.get_CustomPropertyManager(cassetto)
+                        var gp = refObj.Extension.get_CustomPropertyManager(propertyManager)
                                  as ICustomPropertyManager;
-                        var nomi = gp?.GetNames() as string[];
-                        if (nomi != null)
-                            foreach (var n in nomi)
-                                if (!fuori.Contains(n, StringComparer.OrdinalIgnoreCase))
-                                    fuori.Add(n);
+                        var names = gp?.GetNames() as string[];
+                        if (names != null)
+                            foreach (var n in names)
+                                if (!outside.Contains(n, StringComparer.OrdinalIgnoreCase))
+                                    outside.Add(n);
                     }
                     catch { }
                 }
-                return fuori;
+                return outside;
             }
             catch { return null; }
         }
 
-        private static List<string> NomiCollegati(string testo)
+        private static List<string> ConnectedNames(string text)
         {
-            var fuori = new List<string>();
-            if (string.IsNullOrWhiteSpace(testo)) return fuori;
-            foreach (Match m in Collegamento.Matches(testo))
+            var outside = new List<string>();
+            if (string.IsNullOrWhiteSpace(text)) return outside;
+            foreach (Match m in Connection.Matches(text))
             {
-                var nome = m.Groups[2].Value;
+                var itemName = m.Groups[2].Value;
                 // `$PRPSHEET` prende la proprieta' dal MODELLO in vista, non
                 // dal disegno: e' un cassetto diverso, e confonderli fa
                 // scrivere sul documento sbagliato.
-                if (m.Groups[1].Success) nome = nome + "  (dal pezzo, non dal disegno)";
-                if (!fuori.Contains(nome, StringComparer.Ordinal)) fuori.Add(nome);
+                if (m.Groups[1].Success) itemName = itemName + "  (dal pezzo, non dal disegno)";
+                if (!outside.Contains(itemName, StringComparer.Ordinal)) outside.Add(itemName);
             }
-            return fuori;
+            return outside;
         }
 
-        private static string ProvaTesto(Func<string> f)
+        private static string TestText(Func<string> f)
         {
             try { return f() ?? ""; } catch { return ""; }
         }
