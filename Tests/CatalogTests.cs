@@ -326,7 +326,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             Check("l'elenco delle operazioni eseguibili si legge",
                   executables.Count >= 30,
-                  executables.Count + " nomi in NomiEseguibili");
+                  executables.Count + " nomi in ExecutableNames");
             if (executables.Count < 30) return;
 
             // Le non provate, chieste a chi decide chi resta fuori dal file.
@@ -355,7 +355,7 @@ namespace Oce.Solid.Agent.ContractTests
                 if (export == null)
                 {
                     Check("l'elenco delle non provate si chiede all'esportatore", false,
-                          "non trovo la classe Esporta");
+                          "non trovo la classe Export");
                     return;
                 }
                 notTested = (export.GetMethod("NotTested",
@@ -419,7 +419,7 @@ namespace Oce.Solid.Agent.ContractTests
             // E NESSUNO HA LANCIATO build.ps1: la regola sta in un posto solo.
             // Prima qui c'era un rosso secco, e in CI (dove il ponte non si
             // compila mai) teneva rossa la CI a ogni push.
-            var bridge = BridgeOrNotHere("Catalogo.Simili: i nomi vicini a quello sbagliato");
+            var bridge = BridgeOrNotHere("Catalog.Similar: i nomi vicini a quello sbagliato");
             if (bridge == null) return;
 
             object catalog;
@@ -432,12 +432,12 @@ namespace Oce.Solid.Agent.ContractTests
                 // NotSupportedException, e questo repository sta su S:.
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "Catalog");
-                if (typ == null) { Check("Catalogo.Simili: la classe c'e'", false, "Catalogo assente"); return; }
+                if (typ == null) { Check("Catalog.Similar: la classe c'e'", false, "Catalog assente"); return; }
                 catalog = Activator.CreateInstance(typ, true);
                 similar = typ.GetMethod("Similar");
-                if (similar == null) { Check("Catalogo.Simili: il metodo c'e'", false, ""); return; }
+                if (similar == null) { Check("Catalog.Similar: il metodo c'e'", false, ""); return; }
             }
-            catch (Exception ex) { Check("Catalogo.Simili: si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("Catalog.Similar: si carica", false, ex.ToString()); return; }
 
             Func<string, List<string>> di = n =>
                 (similar.Invoke(catalog, new object[] { n }) as System.Collections.IEnumerable)

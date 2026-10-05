@@ -68,7 +68,7 @@ namespace Oce.Solid.Agent.ContractTests
                 sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
             catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
+            if (sw == null) { Check("SwOperations is in the library", false, "type not found"); return; }
 
             try
             {
@@ -138,7 +138,7 @@ namespace Oce.Solid.Agent.ContractTests
             // Up to the closing brace of the method, the first one at the
             // indentation of a class member (eight spaces).
             int end = text.IndexOf("\n        }", start, StringComparison.Ordinal);
-            if (end < 0) { Check("QuoteDalModello ends in DrawingOperations.cs", false, "closing brace not found"); return; }
+            if (end < 0) { Check("ModelDimensions ends in DrawingOperations.cs", false, "closing brace not found"); return; }
             string body = text.Substring(start, end - start);
 
             var missing = new[]
@@ -156,7 +156,7 @@ namespace Oce.Solid.Agent.ContractTests
             // The NOT-MARKED bit may appear only inside the ModelImport members.
             bool notMarkedLiteral = body.IndexOf("NotMarkedForDrawing", StringComparison.Ordinal) >= 0
                                     || body.IndexOf("524288", StringComparison.Ordinal) >= 0;
-            Check("N9, M2: QuoteDalModello takes masks, AllTypes, fallbacks and DuplicateDims from the ModelImport members, and refuses with the way out",
+            Check("N9, M2: ModelDimensions takes masks, AllTypes, fallbacks and DuplicateDims from the ModelImport members, and refuses with the way out",
                   missing.Count == 0 && v3Calls > 0 && duplicates == v3Calls && !notMarkedLiteral,
                   (missing.Count == 0 ? "every member called, the refusal there" : "missing: " + string.Join(", ", missing)) +
                   "; InsertModelAnnotations3 calls " + v3Calls + ", with ModelImportV3DuplicateDims " + duplicates +

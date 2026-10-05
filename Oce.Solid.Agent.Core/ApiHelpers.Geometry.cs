@@ -174,7 +174,7 @@ namespace Oce.Solid.Agent.Core
         /// planar. This helper does not re-normalise it: SOLIDWORKS gives it
         /// already of length 1, IFace2~Normal.html, «Gets the unit normal vector
         /// for any planar face» (Z-C21.9, finding N71: this line said «not
-        /// normalised» until library 0.144.0). Riferimenti.Normale normalises it
+        /// normalised» until library 0.144.0). References.Normal normalises it
         /// again, a harmless no-op kept as a defence.
         ///
         /// Guide: IFace2~Normal.html, Remarks: «If the face is not a planar
@@ -189,7 +189,7 @@ namespace Oce.Solid.Agent.Core
         /// toward or away from the body material. The normal vector of faces,
         /// however, are directed away from the body material». So IFace2.Normal
         /// is the OUTWARD normal of the face, while the surface's own PlaneParams
-        /// would point inwards for half the faces of a solid (Riferimenti.Normale,
+        /// would point inwards for half the faces of a solid (References.Normal,
         /// where this helper comes from; OperazioniSporgenze measured IFace2.Normal
         /// leaving the material on six faces out of six, 16/9/2026).
         /// </summary>

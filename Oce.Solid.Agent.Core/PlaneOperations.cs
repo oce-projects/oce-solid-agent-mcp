@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.Core
         /// girato. Vedi la nota in testa alla classe.
         ///
         /// One reading for the whole library since Z-C21.5:
-        /// Riferimenti.PlaneFrame, which the base planes are recognised by too
+        /// References.PlaneFrame, which the base planes are recognised by too
         /// (scheme S19).
         /// </summary>
         private static double[] PlaneNormal(IRefPlane plane)

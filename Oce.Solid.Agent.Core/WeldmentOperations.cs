@@ -1408,7 +1408,7 @@ namespace Oce.Solid.Agent.Core
                 // N7: planar faces with an inner loop made by another feature
                 // (a drilled wall counts twice, outer and inner face), looked
                 // at and NOT capped. A true zero: every face was read, or the
-                // step stopped (Riferimenti.OpenEndsOnly).
+                // step stopped (References.OpenEndsOnly).
                 ["machined_faces_skipped"] = machinedFaces,
             });
         }
@@ -3022,7 +3022,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// <paramref name="machinedFaces"/>: the planar faces with an inner loop made
         /// by another feature that were not taken for open ends (finding N7,
-        /// Riferimenti.InnerLoopsAreTheProfileVoid). Counted over faces that were
+        /// References.InnerLoopsAreTheProfileVoid). Counted over faces that were
         /// all read: a face that could not be told apart stops the step instead.
         /// </summary>
         private IFace2[] FacesFromReference(

@@ -59,7 +59,7 @@ namespace Shared
         {
             if (expiryMs < 1000)
                 throw new ArgumentOutOfRangeException(
-                    "scadenzaMs",
+                    "expiryMs",
                     "sotto il secondo non e' un guinzaglio, e' un cronometro: "
                     + "qualunque prova vera lo farebbe scattare.");
             ExpiryMs = expiryMs;

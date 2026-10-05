@@ -139,7 +139,7 @@ namespace Checks.DrawingDimensions
             // I valori veri delle costanti, perche' un enum sbagliato da' zero
             // senza dire niente.
             Console.WriteLine("  (fonte=" + fromModel + " marcate=" + marked +
-                " nonMarcate=" + notMarked + " generico=" + generic + ")");
+                " notMarked=" + notMarked + " generico=" + generic + ")");
 
             // LE VERSIONI VECCHIE, che hanno il parametro `AllTypes`: quello
             // che la 3 ha tolto. Con AllTypes a vero la maschera dei tipi non

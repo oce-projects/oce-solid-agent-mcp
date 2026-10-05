@@ -357,11 +357,11 @@ namespace Oce.Solid.Agent.ContractTests
             var shapes = new[]
             {
                 Tuple.Create("/// { " + Q + "fake_key" + Q + ": a path }", false),
-                Tuple.Create("// Testo(x, " + Q + "fake_key" + Q + ")", false),
-                Tuple.Create("/* Testo(x, " + Q + "fake_key" + Q + ") */", false),
+                Tuple.Create("// Text(x, " + Q + "fake_key" + Q + ")", false),
+                Tuple.Create("/* Text(x, " + Q + "fake_key" + Q + ") */", false),
                 Tuple.Create("var c = new Dictionary<string, object> { [" + Q + "fake_key" + Q + "] = 5.0 };", false),
                 Tuple.Create("var c = new Dictionary<string, object> { { " + Q + "fake_key" + Q + ", 5.0 } };", false),
-                Tuple.Create("string v = Testo(x, " + Q + "fake_key" + Q + ");", true),
+                Tuple.Create("string v = Text(x, " + Q + "fake_key" + Q + ");", true),
                 Tuple.Create("if (x.ContainsKey(" + Q + "fake_key" + Q + ")) y = x[" + Q + "fake_key" + Q + "];", true),
                 Tuple.Create("bool same = x[" + Q + "fake_key" + Q + "] == null;", true),
                 Tuple.Create("internal const string Field = " + Q + "fake_key" + Q + ";", true),

@@ -32,7 +32,7 @@ namespace Oce.Solid.Agent.Core
     /// value the schema lists.
     ///
     /// REMOVED IN W3.1-bis.11, before the tag: this file, the embedded map in
-    /// Oce.Solid.Agent.Core.csproj, the calls in SwOperations.Esegui,
+    /// Oce.Solid.Agent.Core.csproj, the calls in SwOperations.Run,
     /// Tools/McpTools.cs and Bench/Expectations.cs, the cases of
     /// Bench/cases/aliases and the contract AliasLayerContract.
     /// </summary>

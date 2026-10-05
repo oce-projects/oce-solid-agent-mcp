@@ -759,7 +759,7 @@ function Read-NameMap([string] $file) {
 }
 
 # ildasm text of one assembly, normalized, plus one line per resource.
-function Get-TheText([string] $assembly, [string] $ildasmExe) {
+function Get-Disassembly([string] $assembly, [string] $ildasmExe) {
     if (-not (Test-Path -LiteralPath $assembly)) { Stop-Cannot "no assembly at $assembly" }
     $work = New-TempFolder 'same-il'
     try {
@@ -798,8 +798,8 @@ function Get-TheText([string] $assembly, [string] $ildasmExe) {
 
 # Compares two assemblies; returns a SameIlResult.
 function Compare-Assembly([string] $a, [string] $b, [string] $mode, $nameMap, [string] $ildasmExe, [int] $show) {
-    $ta = Get-TheText $a $ildasmExe
-    $tb = Get-TheText $b $ildasmExe
+    $ta = Get-Disassembly $a $ildasmExe
+    $tb = Get-Disassembly $b $ildasmExe
     $rewritten = 0
     $original = $ta
     if ($mode -eq 'Renames') {
@@ -1052,7 +1052,7 @@ function Invoke-ProjectProof {
             # (a message first; else any plain literal passed to a call, never
             # to an attribute, whose argument is not an instruction)
             $literal = $null
-            $messageCalls = @('WriteLine', 'Fallito', 'Exception') -join '|'
+            $messageCalls = @('WriteLine', 'Failed', 'Exception') -join '|'
             foreach ($pattern in ('\b(?:' + $messageCalls + ')\s*\(\s*"([A-Za-z][A-Za-z0-9 ,.:;()-]{5,})"'),
                                  '(?<![\[\w])[A-Za-z_]\w*\s*\(\s*"([A-Za-z][A-Za-z0-9 ,.:;()-]{5,})"') {
                 foreach ($s in $sources) {

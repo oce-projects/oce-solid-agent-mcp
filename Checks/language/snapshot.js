@@ -139,7 +139,7 @@ const LAYOUT = {
 };
 
 // The methods whose calls are the refusals of the library.
-const CALLEES = ['Fallito'];
+const CALLEES = ['Failed'];
 
 // The keys of the catalogue this tool reads (renamed in W3.1-bis.5).
 const CATALOGUE_KEYS = { operations: 'operations', families: 'families', name: 'name' };

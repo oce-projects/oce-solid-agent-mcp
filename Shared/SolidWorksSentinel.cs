@@ -91,7 +91,7 @@ namespace Shared
         {
             if (threshold < 1)
                 throw new ArgumentOutOfRangeException(
-                    "soglia",
+                    "threshold",
                     "una sentinella che scatta dopo zero fallimenti scatta prima "
                     + "di guardare: la soglia e' almeno 1.");
             _threshold = threshold;

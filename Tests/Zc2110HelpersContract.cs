@@ -65,8 +65,8 @@ namespace Oce.Solid.Agent.ContractTests
             if (sw == null || helpers == null || section == null)
             {
                 Check("the three library types are there", false,
-                      "OperazioniSw " + (sw != null) + ", ApiHelpers " + (helpers != null) +
-                      ", SezioneProfilo " + (section != null));
+                      "SwOperations " + (sw != null) + ", ApiHelpers " + (helpers != null) +
+                      ", SectionProfile " + (section != null));
                 return;
             }
 
@@ -259,7 +259,7 @@ namespace Oce.Solid.Agent.ContractTests
             try
             {
                 var folderProp = section.GetProperty("ArchiveFolder", Any);
-                if (folderProp == null) { Check("N36: SezioneProfilo.CartellaArchivio is there", false, ""); return; }
+                if (folderProp == null) { Check("N36: SectionProfile.ArchiveFolder is there", false, ""); return; }
                 folderProp.SetValue(null, folderName);
 
                 // (a) THE KEY CHANGES WITH THE FILE.

@@ -4904,7 +4904,7 @@ namespace Oce.Solid.Agent.Core
             // front plane (a final `: 1` did that until the measure of 10
             // September 2026, «mirror on a plane that does not exist»).
             // BY GEOMETRY, NOT BY POSITION (Z-C21.5, scheme S19): the plane with
-            // the canonical normal through the origin, Riferimenti.BasePlane.
+            // the canonical normal through the origin, References.BasePlane.
             // The callers keep their own refusal, which names the plane.
             return References.BasePlane(model, which, out _);
         }
@@ -7078,7 +7078,7 @@ namespace Oce.Solid.Agent.Core
         /// feature downstream is built on an empty selection. Until Z-C21.5 the
         /// base planes were taken as the first three RefPlane features of the
         /// tree; since then they are recognised by their geometry, the canonical
-        /// normal through the origin (Riferimenti.BasePlane, scheme S19), which
+        /// normal through the origin (References.BasePlane, scheme S19), which
         /// no plane added before them can take.
         /// </summary>
         private bool SelectPlane(IModelDoc2 model, string which)
@@ -7095,7 +7095,7 @@ namespace Oce.Solid.Agent.Core
             // (IFeature~Select2.html: «True if the feature was selected,
             // false if not»). The comparison stays Ordinal on purpose: the
             // Forma now rewrites every enum value in the catalogue's spelling
-            // (Bridge/Shape.cs, pattern S20); Riferimenti.BasePlane compares
+            // (Bridge/Shape.cs, pattern S20); References.BasePlane compares
             // Ordinal too.
             IFeature f = References.BasePlane(model, which, out _);
             if (f == null) return false;
@@ -7777,7 +7777,7 @@ namespace Oce.Solid.Agent.Core
                     // e' gia' preso: sopra, sui millimetri. Quello che segue e'
                     // una frase — non un numero, non un `bool` — e non puo'
                     // cambiare l'esito nemmeno se qualcuno lo volesse. Vedi
-                    // Frasi.WhereItWasAndWhereItIs (voce E10).
+                    // Sentences.WhereItWasAndWhereItIs (voce E10).
                     reason =
                         $"«{uid}» adesso indica un'altra parte del pezzo (spostato di " +
                         $"{deviation:0.##} mm). Il pezzo e' cambiato da quando hai " +

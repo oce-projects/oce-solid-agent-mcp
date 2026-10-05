@@ -105,7 +105,7 @@ namespace Oce.Solid.Agent.ContractTests
             string body = start < 0 ? "" : text.Substring(start);
             Check("e dentro non se lo ripesca",
                   start >= 0 && !BodyReads(body),
-                  "nessun `_sw.IActiveDoc2` nel corpo di ControlliPreliminari");
+                  "nessun `_sw.IActiveDoc2` nel corpo di PreliminaryChecks");
 
             UndoOnTheDocumentHeld(lines);
         }
@@ -160,7 +160,7 @@ namespace Oce.Solid.Agent.ContractTests
                   move > block &&
                   between.Contains("FinishUndoRecording(undoRecordedOn)") &&
                   between.Contains("undoRecordedOn = StartUndoRecording(e.NewDocument)"),
-                  move < 0 ? "the DocumentoNuovo block or its reassignment is missing"
+                  move < 0 ? "the NewDocument block or its reassignment is missing"
                            : "FinishUndoRecording, then StartUndoRecording on the new document, before the reassignment");
 
             // The only finish call sits in FinishUndoRecording (checked above),

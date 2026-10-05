@@ -193,7 +193,7 @@ namespace Oce.Solid.Agent.Core
                     "still have no material.";
 
             // Non c'e' nessuna feature: il materiale e' una proprieta' del
-            // documento. Riuscito() regge un riferimento nullo, e i passi
+            // documento. Succeeded() regge un riferimento nullo, e i passi
             // successivi non hanno niente da citare qui.
             return Succeeded(null, measurements);
         }

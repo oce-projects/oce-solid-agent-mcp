@@ -258,6 +258,54 @@ member names of the objects the scripts build, words inside regular expressions
 and two members of an anonymous type. A key may be the key of a JSON, and the
 rule of the window is that keys are not renamed; the owner judges them.
 
+### The review of the identifiers commit
+
+An adversarial review, by script and not by eye, of what the renamer left
+behind outside the lines it changed:
+
+- **three checks that had gone quiet are back.** The README contract looked for
+  the environment variables through `Variabile("X")`, the old name of the
+  shortcut of `Bridge/Paths.cs`: it found 9 of 11 and stayed green; it looks for
+  `Variable(` now (11 of 11 again). The bench's F13 sieve took its families by
+  the prefix `Prova`, so after the rename it would have found no method at all;
+  the prefix is `Test` (the same 14 methods). The contract that looks for the
+  commit that moved the bench report listed the report's new path and its first
+  one but not the one in between (W3.1-bis.4 to this window): git found no
+  rename and the check passed on nothing; with the three paths it finds
+  1e3a623 and judges it, and the history between the two renames carries its
+  reports again.
+- the strings that follow a renamed symbol: the parameter names of two
+  `ArgumentOutOfRangeException` (`expiryMs`, `threshold`), the fallback of
+  `check-catalog.ps1` (`public Outcome Run(`), the message calls of the
+  self-test of `same-il.ps1` and the refusal callee of `snapshot.js` (`Failed`).
+- Italian prose the renamer had turned into names, put back as it was before
+  the window: a relative pronoun had become `whichOne` in a message of the
+  forbidden-signatures contract, a word of a message of the examples contract
+  `nothing`, a word of the header of the bench diary `summary`, and two case
+  keys of a sample of the gate's contract `itemName` and `expectations`. The
+  baseline of those three files goes back up by the words put back (the
+  commit carries `Language-Baseline-Raise`).
+- two English names the map had read as Italian: `faUpper` (the false-alarm
+  bound of the gate's measure) is `falseAlarmUpper`, not `doesUpper`;
+  `Get-IlText` (the IL of ildasm) is `Get-Disassembly`, not `Get-TheText`. The
+  English column of the two rows says why.
+- 188 mentions of renamed symbols in the labels and messages of the contracts,
+  the bench and the probes and in comments (`OperazioniSw is in the library`,
+  `Sessione.StessoDocumento`, `Riferimenti.BasePlane`...) and a few more by hand
+  (`Fallito(`, `Esegui`, `Riuscito()`, the variables a comment of
+  `check-publishability.ps1` names).
+
+Rejected after a check: the raised undecided calls (by script, on both trees:
+the 593 calls before the window are all there at the same lines, and each of
+the 91 more sits where the old line had `.Nome`, `.Spigolo`, `.Tipo`... that
+the map renames into a name the SOLIDWORKS list holds); the refusal floor (216
+of 937 on the literals, on both trees); serialized types (every serializer of
+the repository is given dictionaries, none a named type). Left as they are:
+`Tools/api_knowledge.json` and the pending cases quote three old names in their
+prose (data the bridge serves, not code). Proofs after the review: contracts 821,
+the three bench-freshness checks red; reverse proof 0 not explained;
+`same-il -Mode Renames` as above; `name-map-extract.js --check` passes.
+
 ## Unreleased — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
 
 **Lots L1 and L2 of TODO entry H19** (the installer finished for v0.1.0; the

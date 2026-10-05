@@ -216,12 +216,12 @@ namespace Checks.OutlineTest
             foreach (var p in onRight) if (ClosedShape.Inside(p, plate)) rightInside++;
             foreach (var p in onLeft) if (ClosedShape.Inside(p, plate)) leftInside++;
             if (rightInside != leftInside)
-                Console.WriteLine("  ok  `Dentro` da solo e' asimmetrico (a destra " +
+                Console.WriteLine("  ok  `Inside` da solo e' asimmetrico (a destra " +
                     rightInside + " dentro su 4, a sinistra " + leftInside +
-                    "): e' il motivo per cui c'e' `DoveSta`");
+                    "): e' il motivo per cui c'e' `WhereItIs`");
             else
-                Male("`Dentro` da solo non e' piu' asimmetrico (" + rightInside +
-                     " e " + leftInside + "): rileggere se `DoveSta` serve ancora");
+                Male("`Inside` da solo non e' piu' asimmetrico (" + rightInside +
+                     " e " + leftInside + "): rileggere se `WhereItIs` serve ancora");
 
             // E una che sta DAVVERO a cavallo deve restare a cavallo.
             var straddling = P(new[] { 8.0, 2 }, new[] { 12.0, 2 },

@@ -17,7 +17,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// before the three default ones refused, so on the bench template the old
     /// rule and the new one pick the same plane: only a part TEMPLATE made by hand
     /// with an extra plane first tells them apart, and the bench has none. The
-    /// decision is therefore kept in Riferimenti.BasePlaneIndex, with no interop
+    /// decision is therefore kept in References.BasePlaneIndex, with no interop
     /// in its signature, and checked here on the plane lists such a template
     /// would give, with the normals and origins the probe read on the real one.
     ///
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (references == null || sw == null)
             {
                 Check("the two library types are there", false,
-                      "Riferimenti " + (references != null) + ", OperazioniSw " + (sw != null));
+                      "References " + (references != null) + ", SwOperations " + (sw != null));
                 return;
             }
 
@@ -173,7 +173,7 @@ namespace Oce.Solid.Agent.ContractTests
                       r == -1 && wrongCase == -1 && unknown == -1,
                       r + ", " + wrongCase + ", " + unknown + " (expected -1, -1, -1)");
             }
-            catch (Exception ex) { Check("S19: Riferimenti.BasePlaneIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("S19: References.BasePlaneIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── S7: the feature born, not the last feature of the tree ────────────
@@ -225,7 +225,7 @@ namespace Oce.Solid.Agent.ContractTests
                       shell == 2 && both == -1 && (int)args2[4] == 2,
                       shell + ", " + both + " born " + args2[4] + " (expected 2, -1 born 2)");
             }
-            catch (Exception ex) { Check("S7: OperazioniSw.BornFeatureIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Check("S7: SwOperations.BornFeatureIndex can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
     }
 }

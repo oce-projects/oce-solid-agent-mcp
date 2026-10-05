@@ -708,7 +708,7 @@ namespace Oce.Solid.Agent.Bench
 
 
         // ==================================================================
-        // riflessione: come Esegui, ma dice anche come si chiama la feature
+        // riflessione: come Run, ma dice anche come si chiama la feature
         // ==================================================================
         private static Dictionary<string, object> RunWithName(
             IModelDoc2 doc, string operation, Dictionary<string, object> arguments,

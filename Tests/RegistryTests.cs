@@ -69,10 +69,10 @@ namespace Oce.Solid.Agent.ContractTests
                 var asm = Load.Bridge(bridge);
                 typ = Load.Class(asm, "QuestionRegistry");
                 if (typ == null)
-                { Check("la classe RegistroDelleDomande c'e'", false, ""); return; }
+                { Check("la classe QuestionRegistry c'e'", false, ""); return; }
                 line = typ.GetMethod("Line",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (line == null) { Check("Riga() c'e'", false, ""); return; }
+                if (line == null) { Check("Line() c'e'", false, ""); return; }
             }
             catch (Exception ex)
             { Check("il ponte si carica", false, ex.ToString()); return; }
@@ -209,7 +209,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Check("e dice di averle scritte",
                       Convert.ToInt32(read(good, "Written")) == 2 &&
                       read(good, "WhyItWasSilent") == null,
-                      "Scritte=2, nessun motivo di silenzio");
+                      "Written=2, nessun motivo di silenzio");
             }
             finally { try { File.Delete(file); } catch { } }
 
@@ -302,7 +302,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("e lo strumento che non esiste finisce nel registro",
                   everything.IndexOf("_registry.ToolThatDoesNotExist",
                                 StringComparison.Ordinal) >= 0,
-                  "e' il punto che sapeva e taceva: il `default` di Chiama");
+                  "e' il punto che sapeva e taceva: il `default` di Invoke");
 
             // ── LA REGOLA SI FA FALLIRE APPOSTA ───────────────────────────
             //

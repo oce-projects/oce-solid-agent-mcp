@@ -85,7 +85,7 @@ namespace Oce.Solid.Agent.ContractTests
             // NON «contiene un 3»: contiene «3 tentativi». La prima versione
             // di questa riga cercava la cifra e passava mentre il referto
             // diceva «0 tentativi di fila andati a vuoto» — il 3 che trovava
-            // era la soglia, nella stessa frase. Vedi `_quandoScatto`.
+            // era la soglia, nella stessa frase. Vedi `_whenItFires`.
             string report = s1.Report();
             Check("il referto dice quanti tentativi", report.Contains("3 tentativi"), report);
             Check("il referto dice che NON sono rosse",
@@ -126,7 +126,7 @@ namespace Oce.Solid.Agent.ContractTests
             // I TRE PUNTI CHE CREANO DOCUMENTI, uno per uno. Un punto che non
             // ci passa e' una strada per cui il banco continua a provare
             // contro un programma morto — cioe' il difetto, intatto.
-            Check("NuovaParte consulta la sentinella",
+            Check("NewPart consulta la sentinella",
                   p.Contains("if (Sentinel.HasGone)") &&
                   p.Contains("Sentinel.Failed()") &&
                   p.Contains("Sentinel.Succeeded()"),
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.ContractTests
             // in cui qualcuno riscrive la frase — senza che niente lo dica.
             Check("la preparazione si riconosce dal TIPO, non dal messaggio",
                   p.Contains("throw new Shared.PreparationFailed("),
-                  "Bench/Program.cs: OppureDillo e la sentinella alzano lo stesso tipo");
+                  "Bench/Program.cs: OrSayIt e la sentinella alzano lo stesso tipo");
 
             // ── L'USCITA 4, E CHE VENGA PRIMA DELLE ALTRE ────────────────
             //

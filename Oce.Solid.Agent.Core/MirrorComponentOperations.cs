@@ -242,7 +242,7 @@ namespace Oce.Solid.Agent.Core
 
             // THE ASSEMBLY PLANE BY ITS GEOMETRY, NOT AS THE N-TH RefPlane OF THE
             // TREE (Z-C21.5, finding C3-6 extended, scheme S19): the plane with the
-            // canonical normal through the origin, Riferimenti.BasePlane. Counting
+            // canonical normal through the origin, References.BasePlane. Counting
             // the RefPlanes («the third in order») mirrored on another plane as
             // soon as a plane sat before the default ones. Not N26, the
             // orientation of the instance, fixed in Z-C21.2-ter.

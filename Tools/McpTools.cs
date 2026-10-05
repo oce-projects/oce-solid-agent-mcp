@@ -1940,8 +1940,8 @@ namespace Oce.Solid.Agent.Tools
 
             // ── TRE CAMPI CHE DEVONO PARLARE DELLO STESSO PEZZO (Z-A1) ──
             //
-            // `_guardato` dice QUALE documento, `_firmaGuardata` e
-            // `_firmeViste` dicono COM'ERA. Finche' questa riga spostava
+            // `_seen` dice QUALE documento, `_signatureSeen` e
+            // `_seenSignatures` dicono COM'ERA. Finche' questa riga spostava
             // solo il primo, bastava un piano che nominasse un altro
             // documento — `document: "..."`, la strada legittima — perche'
             // da quel momento `_guardato` indicasse il pezzo nuovo e le

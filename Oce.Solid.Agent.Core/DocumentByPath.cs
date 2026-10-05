@@ -682,7 +682,7 @@ namespace Oce.Solid.Agent.Core
         /// document using IModelDoc2::EditRebuild3.» -1 means ActivateDoc3 was not
         /// called (<see cref="ActivateAndReadBack"/> skips it when the document is
         /// already in front): nothing was skipped. The same rule as the bridge's
-        /// Sessione.NeedsRebuildAfterActivation (Bridge/Documents.cs).
+        /// Session.NeedsRebuildAfterActivation (Bridge/Documents.cs).
         /// </summary>
         public static bool NeedsRebuildAfterActivation(int activationErrors)
         {

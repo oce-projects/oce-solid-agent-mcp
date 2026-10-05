@@ -28,7 +28,7 @@ using SolidWorks.Interop.swconst;
 //  Insert_Weldment_Features_Example_CSharp.htm, IFeatureManager~
 //  InsertGussetFeature3) mostra SEMPRE quel terzo valore diverso da zero
 //  (45 gradi, oppure 15 mm) nei DUE unici esempi funzionanti conosciuti. Il
-//  codice spedito nel ponte (WeldmentOperations.cs, Fazzoletto) passa
+//  codice spedito nel ponte (WeldmentOperations.cs, Gusset) passa
 //  ProfileD3=0, ProfileAngle=0, ProfileD4=0 SEMPRE: un profilo con angolo o
 //  lato zero e' degenere (si chiude su se stesso), e SOLIDWORKS lo rifiuta
 //  in silenzio — lo stesso difetto "null senza errore su geometria non
@@ -39,7 +39,7 @@ using SolidWorks.Interop.swconst;
 //  (prova0089, Gusset(), variante "polygonal", mai entrata nel repo): un
 //  TRIANGOLO non degenere (BIsProfile=false, D1=D2=60) e' GIA' stato provato,
 //  ma SENZA marca, e ha dato null; la marca 1/1 e' stata provata solo col
-//  poligono degenere (Fazzoletto(), "marca1"). La combinazione mai provata e'
+//  poligono degenere (Gusset(), "marca1"). La combinazione mai provata e'
 //  quindi profilo valido + marca 1 su entrambe le facce: e' la variante 1.
 //
 //  Questa e' l'IPOTESI 1, la piu' probabile. Le altre due sonde isolano le

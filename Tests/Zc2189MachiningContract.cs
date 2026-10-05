@@ -95,7 +95,7 @@ namespace Oce.Solid.Agent.ContractTests
                 sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
             catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
+            if (sw == null) { Check("SwOperations is in the library", false, "type not found"); return; }
 
             ExtrusionReadBack(sw);
             ToleranceDecimals(sw);
@@ -278,7 +278,7 @@ namespace Oce.Solid.Agent.ContractTests
             try
             {
                 var m = sw.GetMethod("MassOfBodies", Any);
-                if (m == null) throw new MissingMethodException("OperazioniSw.MassOfBodies is missing on this library");
+                if (m == null) throw new MissingMethodException("SwOperations.MassOfBodies is missing on this library");
                 // GetMassProperties: centre in metres (0-2), volume in cubic metres (3).
                 var two = new List<double[]> { new[] { 0.0, 0.0, 0.0, 1e-6 }, new[] { 0.01, 0.0, 0.0, 1e-6 } };
                 var argsTwo = new object[] { two, 0.0, null };
@@ -485,7 +485,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool fillet = Regex.IsMatch(main, @"EdgeFeatureVolumeCheck\(\w+, ""fillet""");
                 bool chamfer = Regex.IsMatch(main, @"EdgeFeatureVolumeCheck\(\w+, ""chamfer""");
                 bool mass = Regex.IsMatch(main, @"return MassOfBodies\(readings, out \w+, out \w+\);");
-                Check("M37/M43: fillet and chamfer check the volume, and MassaDi goes through MassOfBodies",
+                Check("M37/M43: fillet and chamfer check the volume, and MassOf goes through MassOfBodies",
                       fillet && chamfer && mass, "fillet " + fillet + ", chamfer " + chamfer + ", MassOfBodies " + mass);
                 bool byStatus = Regex.IsMatch(main, @"SetValueRefusalCause\(\w+\)\);");
                 Check("L5-6: set_dimension words its refusal by the status of SetSystemValue3", byStatus,

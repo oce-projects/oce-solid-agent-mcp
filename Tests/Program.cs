@@ -646,7 +646,7 @@ namespace Oce.Solid.Agent.ContractTests
             // `RISCONTRO_RADICE` e `RISCONTRO_SOLA_LETTURA` a un grep fatto sul
             // nome lungo: **cercare una sola forma vuol dire trovarne una sola.**
             var shape = new System.Text.RegularExpressions.Regex(
-                @"(?:GetEnvironmentVariable|Variabile)\(""([A-Z][A-Z_0-9]+)""\)");
+                @"(?:GetEnvironmentVariable|Variable)\(""([A-Z][A-Z_0-9]+)""\)");
 
             var foundOnes = new SortedSet<string>(StringComparer.Ordinal);
             foreach (var folder in new[] { "Bridge", "Tools", "Mcp", "Oce.Solid.Agent.Core" })

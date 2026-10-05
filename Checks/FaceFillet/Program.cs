@@ -139,7 +139,7 @@ internal static class FaceFilletProbe
         // dell'aria, quindi quel raccordo e' impossibile per geometria e un
         // NULL non direbbe niente sull'API. Al suo posto la ricetta con la
         // selezione ESATTA delle Remarks (SelectByID2 per coordinate).
-        // Variante_H4_FacceNonAdiacenti();
+        // Variant_H4_FacesNotAdjacent();
         Ricetta_SelectByID2();
 
         return 0;
@@ -528,7 +528,7 @@ internal static class FaceFilletProbe
         return doc;
     }
 
-    // Un blocco base 40x40x40 (Cubo()) con sopra un secondo blocco piu'
+    // Un blocco base 40x40x40 (Cube()) con sopra un secondo blocco piu'
     // piccolo, rientrato SIMMETRICAMENTE su tutti i lati rispetto alla
     // faccia su cui nasce — cosi' il gradino si forma su qualunque coppia
     // di assi sia davvero il piano di quella faccia, SENZA dover indovinare
@@ -552,7 +552,7 @@ internal static class FaceFilletProbe
         var body = (partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
         var faces = (body.GetFaces() as object[]).Cast<IFace2>().ToList();
         var top = faces.FirstOrDefault(x => Normal(x)[1] > 0.9);
-        if (top == null) throw new Exception("CuboConGradino: non trovo la faccia di normale +Y.");
+        if (top == null) throw new Exception("CubeWithStep: non trovo la faccia di normale +Y.");
 
         doc.ClearSelection2(true);
         (top as IEntity).Select4(true, null);

@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.ContractTests
                     @"\bmodel\s*\.\s*AddDimension\s*\(",
                     "IModelDoc2.AddDimension (3 param) ritorna Boolean: la quota, " +
                     "se nasce, NON E' RAGGIUNGIBILE. Si usa " +
-                    "`model.Extension.AddDimension(x, y, z, direction)`, whichOne " +
+                    "`model.Extension.AddDimension(x, y, z, direction)`, che " +
                     "torna l'oggetto (voce GP6)"
                 },
                 {

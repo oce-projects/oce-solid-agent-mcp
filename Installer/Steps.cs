@@ -75,7 +75,7 @@ namespace Oce.Solid.Agent.Installer
         public static readonly string[] BridgeOwnFiles = { "domande-senza-risposta.jsonl" };
 
         // ── THE EXIT CODES OF THE BRIDGE'S --prova (entry H19, B3) ─────────
-        // The same numbers as Programma.SelfTest* in the bridge, which this
+        // The same numbers as Program.SelfTest* in the bridge, which this
         // assembly cannot reference; Oce.Solid.Agent.ContractTests reads both and compares.
         public const int SelfTestAttached = 0;
         public const int SelfTestOther = 1;

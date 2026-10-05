@@ -2724,7 +2724,7 @@ identifier	GenereDi	KindOf	4	Riscontro.Disegno/OperazioniSw.cs:8133	C#: method
 identifier	GenereDiForo	HoleKind	9	Riscontro.Disegno/OperazioniFori.cs:71	C#: type
 identifier	GeneriDiForo	HoleKinds	2	Riscontro.Disegno/OperazioniFori.cs:80	C#: field
 identifier	Generico	Generic	8	Riscontro.Disegno/OperazioniFori.cs:73	C#: field
-identifier	Get-IlText	Get-TheText	3	Controlli/lingua/same-il.ps1:639	PowerShell: function
+identifier	Get-IlText	Get-Disassembly	3	Controlli/lingua/same-il.ps1:639	PowerShell: function; window 3 review: the prefix is the Intermediate Language of ildasm, not the Italian article (not Get-TheText; Get-Disassembly, since the gate reads the prefix as the article)
 identifier	Gettone	Token	2	Mcp/Avanzamento.cs:47	C#: method
 identifier	Gira	Turn	3	Controlli/ProvaVista/Programma.cs:273	C#: method
 identifier	Giro	BenchRun	7	Controlli/Spessore/Programma.cs:246	C#: field
@@ -4585,7 +4585,7 @@ identifier	estratto	extracted	9	Controlli/TestoNelPdf/Programma.cs:110	C#: local
 identifier	estremo	end	7	Riscontro.Disegno/OperazioniSporgenze.cs:100	C#: local
 identifier	etichetta	label	66	Riscontro.Disegno/OperazioniDettaglioTavola.cs:149 Riscontro.Disegno/OperazioniSezioneTavola.cs:143 Riscontro.Disegno/OperazioniSw.cs:1597	C#: local, parameter; PowerShell: variable
 identifier	etichettato	labeled	3	Riscontro.Disegno/OperazioniAnnotazioniTavola.cs:455	C#: local
-identifier	faUpper	doesUpper	4	Controlli/lingua/measure.js:207	JavaScript: variable
+identifier	faUpper	falseAlarmUpper	4	Controlli/lingua/measure.js:207	JavaScript: variable; window 3 review: the prefix is the false alarm of the measure, not the Italian verb (not doesUpper)
 identifier	facce	faces	183	Riscontro.Disegno/OperazioniAncora.cs:346 Riscontro.Disegno/OperazioniDimXpert.cs:42 Riscontro.Disegno/OperazioniEsporta.cs:514	C#: local, parameter
 identifier	facceCurve	curvedFaces	3	Riscontro.Disegno/OperazioniSporgenze.cs:113	C#: local
 identifier	facceDelSeme	seedFaces	10	Riscontro.Disegno/OperazioniIstanze.cs:131	C#: local

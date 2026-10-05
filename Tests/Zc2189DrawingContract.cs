@@ -80,7 +80,7 @@ namespace Oce.Solid.Agent.ContractTests
                 sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
             catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
+            if (sw == null) { Check("SwOperations is in the library", false, "type not found"); return; }
 
             PdfPages(sw);
             WeldSymbolTexts(sw);
@@ -187,7 +187,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bool kept = Regex.IsMatch(pdf, @"\w+\s*=\s*pdf\.SetSheets\(");
                 bool bare = Regex.IsMatch(pdf, @"(?m)^\s*pdf\.SetSheets\(");
                 int refusals = Count(pdf, "PdfPageCountRefusal(");
-                Check("L13-6: EsportaPdf keeps the answer of SetSheets and asks PdfPageCountRefusal",
+                Check("L13-6: ExportPdf keeps the answer of SetSheets and asks PdfPageCountRefusal",
                       kept && !bare && refusals >= 2,
                       "answer kept " + kept + ", bare call " + bare + ", PdfPageCountRefusal " + refusals + " (with the definition)");
             }
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (weld != null)
             {
                 bool called = Regex.IsMatch(weld, @"= WeldSymbolTextsWrong\(\w+\);");
-                Check("L16-1: SaldaturaInTavola checks the text count with WeldSymbolTextsWrong",
+                Check("L16-1: DrawingWeldSymbol checks the text count with WeldSymbolTextsWrong",
                       called, called ? "called" : "not called");
             }
 
@@ -307,7 +307,7 @@ namespace Oce.Solid.Agent.ContractTests
                 int asked = Count(turned, "out bornWithoutObject);");
                 int notBornOnly = Count(turned, "if (q == null && !bornWithoutObject)");
                 int described = Count(turned, "RecordBornWithoutObject(");
-                Check("N80 in the turned view: QuotaFraDue asks the count first, and its three callers describe a dimension born without its object",
+                Check("N80 in the turned view: DimensionBetweenTwo asks the count first, and its three callers describe a dimension born without its object",
                       objectFirst == 0 && countFirst && asked == 3 && notBornOnly == 2 && described == 3,
                       objectFirst + " sites asking the object first, count first and outcome told " + countFirst +
                       ", callers reading the outcome " + asked + " (3 expected), «not born» only when not grown " +

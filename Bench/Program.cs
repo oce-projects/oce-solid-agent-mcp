@@ -589,7 +589,7 @@ namespace Oce.Solid.Agent.Bench
                     // esercitando apposta la guardia. *Una guardia che non si
                     // e' mai vista scattare FINO IN FONDO e' provata a meta',
                     // e la meta' che manca e' sempre quella che serve.*
-                    Skipped(theGroup.What, "PreparazioneFallita: " + ex.Message);
+                    Skipped(theGroup.What, "PreparationFailed: " + ex.Message);
                     _groupInProgress = null;
 
                     // Il resto non si prova nemmeno: SOLIDWORKS non produce
@@ -755,13 +755,13 @@ namespace Oce.Solid.Agent.Bench
             Func<Action, Action[]> one = a => new[] { a };
             return new List<Group>
             {
-                new Group { Name = "sezioni",   What = "Services.SezioneProfilo",      Actions = one(Sections) },
-                new Group { Name = "archivio",  What = "Services.MaterialiSolidWorks", Actions = one(Materials) },
+                new Group { Name = "sezioni",   What = "Services.SectionProfile",      Actions = one(Sections) },
+                new Group { Name = "archivio",  What = "Services.SolidWorksMaterials", Actions = one(Materials) },
                 new Group { Name = "telai",     What = "rectangular_frame",          Actions = one(Frames) },
                 new Group { Name = "fori",      What = "hole_wizard",                 Actions = one(Holes) },
                 new Group { Name = "materiale", What = "apply_material",            Actions = one(Material) },
                 new Group { Name = "stato",     What = "DocumentState",               Actions = one(State) },
-                new Group { Name = "viste",     What = "VistaDelPezzo (V1)",           Actions = one(TestSnapshot) },
+                new Group { Name = "viste",     What = "PartView (V1)",           Actions = one(TestSnapshot) },
                 new Group { Name = "tetto",     What = "il tetto sulle lavorazioni (E12)",
                              Actions = one(TestFeatureCap), SlowOnly = true,
                              WhyItWeighs = "85 lavorazioni, circa mezz'ora: si lancia con --lento" },
@@ -873,7 +873,7 @@ namespace Oce.Solid.Agent.Bench
 
             var families = typeof(Program)
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
-                .Where(m => m.Name.StartsWith("Prova", StringComparison.Ordinal) &&
+                .Where(m => m.Name.StartsWith("Test", StringComparison.Ordinal) &&
                             m.ReturnType == typeof(void) &&
                             m.GetParameters().Length == 0)
                 .ToList();
@@ -963,7 +963,7 @@ namespace Oce.Solid.Agent.Bench
 
             // ── CON O SENZA UN'ATTESA DICHIARATA (voce K3) ───────────────
             //
-            // `_attesaInCorso` lo alza chi ha appena MISURATO E CONFRONTATO
+            // `_waitInProgress` lo alza chi ha appena MISURATO E CONFRONTATO
             // una grandezza dichiarata in un caso: il valutatore delle attese
             // e quello della regressione. Tutte le altre prove — quelle
             // scritte in C# — passano di qui con il segno abbassato.
@@ -1263,7 +1263,7 @@ namespace Oce.Solid.Agent.Bench
                                   "Il numero fra parentesi e' quanti secondi " +
                                   "sono passati dall'avvio.");
                 _log.WriteLine("# l'ultima riga di un giro arrivato in fondo " +
-                                  "porta il summary; se non c'e', il giro si e' " +
+                                  "porta il riepilogo; se non c'e', il giro si e' " +
                                   "fermato prima.");
                 _log.WriteLine("# se il tempo dell'ultima riga non cresce fra " +
                                   "due letture, e' piantato.");
@@ -1697,7 +1697,7 @@ namespace Oce.Solid.Agent.Bench
         private static void Sections()
         {
             Console.WriteLine();
-            Console.WriteLine("=== Services.SezioneProfilo ===");
+            Console.WriteLine("=== Services.SectionProfile ===");
             var t = _addin.GetType(NS + "SectionProfile", true);
             var m = t.GetMethod("FrameOverhangs",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
@@ -1731,7 +1731,7 @@ namespace Oce.Solid.Agent.Bench
         private static void Materials()
         {
             Console.WriteLine();
-            Console.WriteLine("=== Services.MaterialiSolidWorks ===");
+            Console.WriteLine("=== Services.SolidWorksMaterials ===");
             var t = _addin.GetType(NS + "SolidWorksMaterials", true);
             var all = t.GetMethod("All",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
@@ -1982,7 +1982,7 @@ namespace Oce.Solid.Agent.Bench
         private static void State()
         {
             Console.WriteLine();
-            Console.WriteLine("=== StatoDocumento ===");
+            Console.WriteLine("=== DocumentState ===");
             IModelDoc2 doc = null;
             try
             {
@@ -2191,19 +2191,19 @@ namespace Oce.Solid.Agent.Bench
         private static void TestSnapshot()
         {
             Console.WriteLine();
-            Console.WriteLine("=== VistaDelPezzo (V1) ===");
+            Console.WriteLine("=== PartView (V1) ===");
 
             var t = _addin.GetType(NS + "PartView", false);
             if (t == null)
             {
                 Check("fotografia: la classe c'e'", false,
-                      "VistaDelPezzo non e' nella libreria caricata");
+                      "PartView non e' nella libreria caricata");
                 return;
             }
             var fire = t.GetMethod("Fire", BindingFlags.Public | BindingFlags.Static);
             if (fire == null)
             {
-                Check("fotografia: Scatta c'e'", false, "il metodo non esiste");
+                Check("fotografia: Fire c'e'", false, "il metodo non esiste");
                 return;
             }
 

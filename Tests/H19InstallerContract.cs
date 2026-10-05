@@ -14,8 +14,8 @@ namespace Oce.Solid.Agent.ContractTests
     /// Until 0.125.0 the installer decided whether an install had worked by
     /// looking for two sentences in the output of the bridge's --prova. Now
     /// --prova exits 0, 1, 3, 4, 5 or 6, and the installer reads the number. The
-    /// numbers are written twice, in the bridge (Programma.SelfTest*) and in
-    /// the installer (Passi.SelfTest*), because the installer cannot reference
+    /// numbers are written twice, in the bridge (Program.SelfTest*) and in
+    /// the installer (Steps.SelfTest*), because the installer cannot reference
     /// the bridge's assembly: two lists of the same thing are two things that
     /// drift apart the day one is touched, so this reads both sources and
     /// compares them. And it checks, by reflection on the bridge, that each
@@ -58,7 +58,7 @@ namespace Oce.Solid.Agent.ContractTests
                 exitCode = program?.GetMethod("SelfTestExitCode", BindingFlags.NonPublic | BindingFlags.Static);
                 if (failureOf == null || exitCode == null)
                 {
-                    Check("Sessione.FailureOf and Programma.SelfTestExitCode exist", false,
+                    Check("Session.FailureOf and Program.SelfTestExitCode exist", false,
                           (failureOf == null ? "FailureOf missing " : "") + (exitCode == null ? "SelfTestExitCode missing" : ""));
                     return;
                 }
@@ -97,7 +97,7 @@ namespace Oce.Solid.Agent.ContractTests
             // administrator said "Installato" and exit 0.
             var seen = Load.Class(Load.Bridge(bridgeExe), "Program")
                 ?.GetMethod("SelfTestCodeSeen", BindingFlags.NonPublic | BindingFlags.Static);
-            if (seen == null) { Check("Programma.SelfTestCodeSeen exists (not running + a SLDWORKS process = 6)", false, "missing"); return; }
+            if (seen == null) { Check("Program.SelfTestCodeSeen exists (not running + a SLDWORKS process = 6)", false, "missing"); return; }
             Func<string, bool, int> codeSeen = (f, process) =>
                 (int)seen.Invoke(null, new object[] { Enum.Parse(enumType, f), process });
             var rows = new[]
@@ -167,7 +167,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // 2. Which self-test codes mean "installed".
             var accepted = steps.GetMethod("SelfTestAccepted", all);
-            if (accepted == null) Check("Passi.SelfTestAccepted exists", false, "");
+            if (accepted == null) Check("Steps.SelfTestAccepted exists", false, "");
             else
             {
                 var yes = new[] { 0, 1, 3, 4, 5, 6, -1 }.Where(c => (bool)accepted.Invoke(null, new object[] { c })).ToList();
@@ -177,7 +177,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // 3. What a reinstall keeps of the entry's env.
             var merged = conf.GetMethod("MergedEnv", all);
-            if (merged == null) Check("Configurazione.MergedEnv exists (a reinstall keeps the entry's own variables)", false, "missing");
+            if (merged == null) Check("Configuration.MergedEnv exists (a reinstall keeps the entry's own variables)", false, "missing");
             else
             {
                 var existing = new Dictionary<string, string>
@@ -199,7 +199,7 @@ namespace Oce.Solid.Agent.ContractTests
             var present = conf.GetMethod("ClaudeCodePresent", all);
             if (file == null || present == null)
             {
-                Check("Configurazione.ClaudeCodeFile and ClaudeCodePresent exist (Claude Code is not 'installed' everywhere)", false,
+                Check("Configuration.ClaudeCodeFile and ClaudeCodePresent exist (Claude Code is not 'installed' everywhere)", false,
                       (file == null ? "ClaudeCodeFile missing " : "") + (present == null ? "ClaudeCodePresent missing" : ""));
                 return;
             }

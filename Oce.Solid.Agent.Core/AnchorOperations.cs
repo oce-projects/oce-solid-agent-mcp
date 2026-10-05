@@ -142,7 +142,7 @@ namespace Oce.Solid.Agent.Core
             // this property returns 0,0,0». Con (0,0,0) il controllo del bordo
             // di smusso qui sotto dava coseno 0 per OGNI faccia adiacente, e
             // lasciava passare tutto. FaceNormal chiede IsPlane() prima,
-            // come Riferimenti.Normale; senza una faccia piana l'ancora si rifiuta.
+            // come References.Normal; senza una faccia piana l'ancora si rifiuta.
             double[] normal = FaceNormal(face);
             if (normal == null || normal.Length < 3)
             {
@@ -332,7 +332,7 @@ namespace Oce.Solid.Agent.Core
             // vera, e lo spigolo tangente del raccordo passava per spigolo vivo.
             // Il controllo funzionava solo per lo smusso (faccia piana obliqua).
             // Adesso IsPlane() viene prima di Normal, come in
-            // Riferimenti.Normale e FaceNormal; una faccia non piana si
+            // References.Normal e FaceNormal; una faccia non piana si
             // rifiuta con lo stesso messaggio.
             //
             // E SE NON RIESCE A GUARDARE, NON ACCETTA (rilievo N6). Prima un

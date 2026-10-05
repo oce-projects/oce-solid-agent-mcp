@@ -688,7 +688,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static object Call(Type t, string method, params object[] args)
         {
-            if (t == null) throw new MissingMethodException("OperazioniSw is not in this library");
+            if (t == null) throw new MissingMethodException("SwOperations is not in this library");
             var m = t.GetMethod(method, Any);
             if (m == null) throw new MissingMethodException(t.Name + "." + method + " is not in this library (0.147.0 or older)");
             try { return m.Invoke(null, args); }
@@ -706,7 +706,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var wrong = new List<string>();
                 var start = Start();
                 var field = sw == null ? null : sw.GetField("DirectionNames", Any);
-                if (field == null) throw new MissingFieldException("OperazioniSw.DirectionNames is not in this library (0.147.0 or older)");
+                if (field == null) throw new MissingFieldException("SwOperations.DirectionNames is not in this library (0.147.0 or older)");
                 var names = (string[])field.GetValue(null);
                 if (string.Join(" ", names) != "TX TY TZ RX RY RZ") wrong.Add("the directions are " + string.Join(" ", names));
                 for (int k = 0; k < 6; k++)

@@ -138,7 +138,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("S7: every sketch lookup gets the names its caller took before opening that sketch",
                   problems.Count == 0,
                   problems.Count == 0
-                      ? "SchizzoAppenaCreato is FeatureBorn of a ProfileFeature; no UltimoSchizzoFeature; sketch types only as " +
+                      ? "JustCreatedSketch is FeatureBorn of a ProfileFeature; no UltimoSchizzoFeature; sketch types only as " +
                         "FeatureBorn types; " + Summary(sources)
                       : string.Join(" | ", problems));
 
@@ -227,8 +227,8 @@ namespace Oce.Solid.Agent.ContractTests
             }
             if (sw == null)
             {
-                Check("S7: the refusal names none, many or an unreadable tree", false, "OperazioniSw is not in the library");
-                Check("S7: on sketch trees the sketch born is taken, not the last sketch", false, "OperazioniSw is not in the library");
+                Check("S7: the refusal names none, many or an unreadable tree", false, "SwOperations is not in the library");
+                Check("S7: on sketch trees the sketch born is taken, not the last sketch", false, "SwOperations is not in the library");
                 return;
             }
 
@@ -265,7 +265,7 @@ namespace Oce.Solid.Agent.ContractTests
             catch (Exception ex)
             {
                 Check("S7: the refusal names none, many or an unreadable tree", false,
-                      "OperazioniSw.SketchNotIdentified: " + ex.GetType().Name + ": " + ex.Message);
+                      "SwOperations.SketchNotIdentified: " + ex.GetType().Name + ": " + ex.Message);
             }
         }
 
@@ -322,7 +322,7 @@ namespace Oce.Solid.Agent.ContractTests
             catch (Exception ex)
             {
                 Check("S7: on sketch trees the sketch born is taken, not the last sketch", false,
-                      "OperazioniSw.BornFeatureIndex: " + ex.GetType().Name + ": " + ex.Message);
+                      "SwOperations.BornFeatureIndex: " + ex.GetType().Name + ": " + ex.Message);
             }
         }
 
@@ -350,9 +350,9 @@ namespace Oce.Solid.Agent.ContractTests
                 string answer = @"\bFeatureBorn\(\s*" + header.Groups[1].Value + @"\s*,\s*" + header.Groups[2].Value +
                                 @"\s*,\s*""ProfileFeature""\s*,\s*out\s+" + header.Groups[3].Value + @"\s*\)";
                 if (!Regex.IsMatch(body, answer))
-                    problems.Add("SchizzoAppenaCreato does not answer FeatureBorn(model, its names, \"ProfileFeature\", out born)");
+                    problems.Add("JustCreatedSketch does not answer FeatureBorn(model, its names, \"ProfileFeature\", out born)");
                 if (Regex.IsMatch(body, @"\bI?FirstFeature\(|\bI?GetNextFeature\(|\bFeatureByPosition"))
-                    problems.Add("SchizzoAppenaCreato walks the tree itself: the last sketch of the tree again");
+                    problems.Add("JustCreatedSketch walks the tree itself: the last sketch of the tree again");
             }
 
             // 2. The old sweep lookup is gone, from every source.
@@ -421,7 +421,7 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
             if (wrapperCalls == 0)
-                problems.Add("no call of SelezionaSchizzoAppenaCreato or BloccaSchizzo found: the check would prove nothing");
+                problems.Add("no call of SelectJustCreatedSketch or LockSketch found: the check would prove nothing");
             if (sweepPaths == 0)
                 problems.Add("PathOperations.cs: the sweep path is not FeatureBorn of a 3DProfileFeature");
             return problems;

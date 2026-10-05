@@ -75,8 +75,8 @@ namespace Oce.Solid.Agent.ContractTests
             var method = sw == null ? null : sw.GetMethod("EmptyProfileSizeRefusal", Any);
             if (method == null)
             {
-                Check("N25: OperazioniSw.EmptyProfileSizeRefusal is there", false,
-                      sw == null ? "no Oce.Solid.Agent.Core.OperazioniSw in the library"
+                Check("N25: SwOperations.EmptyProfileSizeRefusal is there", false,
+                      sw == null ? "no Oce.Solid.Agent.Core.SwOperations in the library"
                                  : "missing on this library: it is older than the fix");
                 return;
             }

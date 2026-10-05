@@ -72,8 +72,8 @@ namespace Oce.Solid.Agent.ContractTests
             var method = state == null ? null : state.GetMethod("ChamferSizes", Any);
             if (method == null)
             {
-                Check("N29: StatoDocumento.ChamferSizes is there", false,
-                      state == null ? "no Oce.Solid.Agent.Core.StatoDocumento in the library"
+                Check("N29: DocumentState.ChamferSizes is there", false,
+                      state == null ? "no Oce.Solid.Agent.Core.DocumentState in the library"
                                     : "missing on this library: it is older than the fix");
                 return;
             }

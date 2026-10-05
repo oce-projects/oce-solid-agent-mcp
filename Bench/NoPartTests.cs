@@ -81,7 +81,7 @@ namespace Oce.Solid.Agent.Bench
             // continua a catturarlo.
             Check("F12: il racconto dell'eccezione porta tipo e passo",
                   told != null &&
-                  told.StartsWith("PreparazioneFallita:", StringComparison.Ordinal) &&
+                  told.StartsWith("PreparationFailed:", StringComparison.Ordinal) &&
                   told.Contains("la parte nuova"),
                   Short(told));
 
@@ -110,11 +110,11 @@ namespace Oce.Solid.Agent.Bench
             Console.WriteLine("=== dove stava, in frazione dell'ingombro (E10) ===");
 
             var typ = _addin.GetType("Oce.Solid.Agent.Core.Sentences", false);
-            if (typ == null) { Check("E10: la classe c'e'", false, "Frasi assente"); return; }
+            if (typ == null) { Check("E10: la classe c'e'", false, "Sentences assente"); return; }
             var method = typ.GetMethod("WhereItWasAndWhereItIs");
             if (method == null)
             {
-                Check("E10: il metodo c'e'", false, "DoveStavaEDoveSta assente");
+                Check("E10: il metodo c'e'", false, "WhereItWasAndWhereItIs assente");
                 return;
             }
 
@@ -230,9 +230,9 @@ namespace Oce.Solid.Agent.Bench
             string text = File.ReadAllText(operations);
 
             int a = text.IndexOf("private static bool SignatureMatches(", StringComparison.Ordinal);
-            Check("E10: FirmaCombacia non parla di frazioni",
+            Check("E10: SignatureMatches non parla di frazioni",
                   a >= 0 && !Pick(text, a, MethodEnd(text, a)),
-                  a < 0 ? "FirmaCombacia non trovata" : "");
+                  a < 0 ? "SignatureMatches non trovata" : "");
 
             int b = text.IndexOf("IFace2 foundAgain = null;", StringComparison.Ordinal);
             Check("E10: il ciclo di ritrovamento non parla di frazioni",

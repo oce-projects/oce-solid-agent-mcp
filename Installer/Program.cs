@@ -102,7 +102,7 @@ namespace Oce.Solid.Agent.Installer
         //      command and the file both failed), or no client was found;
         //      the block to paste by hand is printed
         //   2  installed and wired, but the bridge's self-test did not
-        //      confirm (its code is not 0, 3 or 5; see Passi.SelfTestAccepted)
+        //      confirm (its code is not 0, 3 or 5; see Steps.SelfTestAccepted)
         //   0  installed, every client asked for is wired (or --senza-client),
         //      and the self-test confirmed
         //
@@ -137,7 +137,7 @@ namespace Oce.Solid.Agent.Installer
         /// removed it from every client: two behaviours for one gesture. An
         /// entry left behind points at an exe that is gone, and the client
         /// shows a server that fails to start. Only an entry that runs the
-        /// bridge in THIS folder is removed (Configurazione.Scollega). With
+        /// bridge in THIS folder is removed (Configuration.Disconnect). With
         /// --config only that file is looked at.
         /// </summary>
         private static int Remove(string[] arguments)
@@ -214,7 +214,7 @@ namespace Oce.Solid.Agent.Installer
                 {
                     // The same two promises as the file route (H19 review): a
                     // backup before the file changes, and the variables
-                    // already in the entry kept (Configurazione.MergedEnv).
+                    // already in the entry kept (Configuration.MergedEnv).
                     // `remove` + `add` rewrite .claude.json and drop the old
                     // entry whole, so both are done here, before them.
                     Configuration.Backup(client.File, tell);
@@ -276,7 +276,7 @@ namespace Oce.Solid.Agent.Installer
             // THE WELDMENT PROFILES (entry H19, A6). Asked for: it must be a
             // folder that exists, checked BEFORE anything is installed, so a
             // typo costs nothing. Not asked for: the folder SOLIDWORKS uses,
-            // or the one it installs, when one exists (Passi.FindWeldmentProfiles).
+            // or the one it installs, when one exists (Steps.FindWeldmentProfiles).
             string weldmentProfiles;
             if (!string.IsNullOrWhiteSpace(weldmentProfilesAsked))
             {

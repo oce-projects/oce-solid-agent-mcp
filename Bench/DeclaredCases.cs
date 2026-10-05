@@ -1603,7 +1603,7 @@ namespace Oce.Solid.Agent.Bench
                     string error;
                     IModelDoc2 born;
                     var measurements = Run(current, operation, arguments, out error, out born, docState);
-                    // The Italian selectors this step was written with (Attese.SelectorAlias):
+                    // The Italian selectors this step was written with (Expectations.SelectorAlias):
                     // the bench resolves selectors before the library sees the step, so it adds
                     // them to the library's own `deprecated` lines. Removed in W3.1-bis.11.
                     if (measurements != null && DeprecatedSelectors.Count > 0)

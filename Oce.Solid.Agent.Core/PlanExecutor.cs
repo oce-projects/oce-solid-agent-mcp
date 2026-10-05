@@ -203,7 +203,7 @@ namespace Oce.Solid.Agent.Core
 
         // `pianoId` non c'e' piu' nella firma: e' un numero del server, e
         // chi esegue non deve sapere che esista un server. Lo conosce
-        // l'adattatore che implementa IFontePiano.
+        // l'adattatore che implementa IPlanSource.
         public async Task<Result> RunAsync(
             string expectedPath,
             CancellationToken undo = default(CancellationToken))

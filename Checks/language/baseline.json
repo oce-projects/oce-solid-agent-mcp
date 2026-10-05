@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 144882,
-  "strings": 54079,
+  "comments": 144880,
+  "strings": 54069,
   "markdown": 33914,
   "json_values": 54655,
-  "identifiers": 1873,
+  "identifiers": 1848,
   "json_keys": 14,
-  "protocol": 851,
+  "protocol": 839,
   "paths": 0,
   "transition": 2192
  },
@@ -55,12 +55,12 @@
    "strings": 275
   },
   "Bench/NewOperationsTests.cs": {
-   "comments": 1634,
+   "comments": 1633,
    "strings": 158
   },
   "Bench/NoPartTests.cs": {
    "comments": 625,
-   "strings": 140
+   "strings": 139
   },
   "Bench/Oce.Solid.Agent.Bench.csproj": {
    "comments": 84
@@ -1088,7 +1088,7 @@
    "strings": 72
   },
   "Checks/Gusset/Program.cs": {
-   "comments": 924,
+   "comments": 923,
    "strings": 257
   },
   "Checks/HoleOrFillet/Program.cs": {
@@ -1173,7 +1173,7 @@
   },
   "Checks/check-catalog.ps1": {
    "comments": 389,
-   "strings": 174
+   "strings": 173
   },
   "Checks/check-documents-without-file.ps1": {
    "comments": 348,
@@ -1683,7 +1683,6 @@
    "strings": 34
   },
   "Tests/AliasLayerContract.cs": {
-   "strings": 1,
    "transition": 4
   },
   "Tests/BenchTests.cs": {
@@ -1692,7 +1691,7 @@
   },
   "Tests/CatalogTests.cs": {
    "comments": 778,
-   "strings": 316
+   "strings": 314
   },
   "Tests/ConfirmationTests.cs": {
    "comments": 196,
@@ -1724,7 +1723,7 @@
   },
   "Tests/ExamplesTests.cs": {
    "comments": 246,
-   "strings": 74
+   "strings": 75
   },
   "Tests/ExpectationsTests.cs": {
    "comments": 640,
@@ -1732,7 +1731,7 @@
   },
   "Tests/ForbiddenSignaturesTests.cs": {
    "comments": 231,
-   "strings": 86
+   "strings": 87
   },
   "Tests/ImagesTests.cs": {
    "comments": 186,
@@ -1740,7 +1739,7 @@
   },
   "Tests/LanguageGateTests.cs": {
    "comments": 1,
-   "strings": 2
+   "strings": 4
   },
   "Tests/LeashTests.cs": {
    "comments": 299,
@@ -1765,7 +1764,7 @@
   },
   "Tests/ProgressTests.cs": {
    "comments": 587,
-   "strings": 488
+   "strings": 485
   },
   "Tests/ProtocolTests.cs": {
    "comments": 960,
@@ -1780,7 +1779,7 @@
   },
   "Tests/RegistryTests.cs": {
    "comments": 418,
-   "strings": 309
+   "strings": 308
   },
   "Tests/RequestedDocumentTests.cs": {
    "comments": 199,
@@ -1799,7 +1798,7 @@
   },
   "Tests/SessionTests.cs": {
    "comments": 688,
-   "strings": 358
+   "strings": 353
   },
   "Tests/ShapeSpellingContract.cs": {
    "comments": 1,
@@ -1850,7 +1849,6 @@
    "AncoraIFori",
    "Anello",
    "Annulla",
-   "AnnullamentoNonPossibile",
    "ApertaSporca",
    "Assieme",
    "AssiemeDiProva",
@@ -1871,17 +1869,14 @@
    "Candidata",
    "Carica",
    "Cartella",
-   "CartellaArchivio",
    "CasiDichiarati",
    "Catalogo",
    "CaveLinguetta",
    "Centrata",
    "Chiama",
-   "ChiaveDi",
    "ChiaviGiaQuotate",
    "ChiudiScarti",
    "CilindroDi",
-   "Classe",
    "ClienteMcp",
    "Collega",
    "Combacia",
@@ -1898,7 +1893,6 @@
    "ContaViste",
    "ContenutoConImmagini",
    "Contratti",
-   "Controlla",
    "Controlli",
    "ControlliApiQuote",
    "ControlliPreliminari",
@@ -1917,9 +1911,7 @@
    "CreateOrdinateDim",
    "CreateOrdinateDim2",
    "CreateOrdinateDim3",
-   "CuboConGradino",
    "DATI",
-   "DatiDellaLamiera",
    "Dentro",
    "Descrizione",
    "Destra",
@@ -1938,7 +1930,6 @@
    "DoveSta",
    "DoveStavaEDoveSta",
    "E2-i-due-casi",
-   "ETornatoComEra",
    "EditOrdinate",
    "Elicitazione",
    "Elle",
@@ -1954,7 +1945,6 @@
    "Esiti",
    "Esito",
    "Esporta",
-   "EsportaPdf",
    "Estremi",
    "Estrudi_Rettangolo",
    "FacceDellaFeature",
@@ -2023,14 +2013,12 @@
    "MUTAZIONI",
    "Massa",
    "MassaDelPezzo",
-   "MassaDi",
    "Materiale",
    "MaterialiSolidWorks",
    "MaxSpigoli",
    "Membro",
    "MembroStrutturale",
    "Mensola",
-   "MessaggioDiAggancio",
    "Metodo",
    "Misure",
    "MmPerUnitaDelDocumento",
@@ -2050,7 +2038,6 @@
    "NomiEseguibili",
    "NonCresciuta",
    "NonVerificabile",
-   "Normale",
    "Nota",
    "NotaSulVolume",
    "NumeriDelleQuote",
@@ -2116,7 +2103,6 @@
    "OperazioniTolleranzaQuota",
    "OperazioniTondoTavola",
    "OperazioniVerifica",
-   "OppureDillo",
    "Opzione",
    "Orfana",
    "PIU",
@@ -2203,7 +2189,6 @@
    "QuotaFraDue",
    "QuotaIFori",
    "QuotaSegmenti",
-   "QuoteDalModello",
    "QuoteDellaFeature",
    "QuoteInTavola",
    "RACCORDO_NON_E_FORO",
@@ -2237,7 +2222,6 @@
    "SALTATA",
    "SEZIONE",
    "Saldato",
-   "SaldaturaInTavola",
    "Saltata",
    "Sammarone",
    "Sbagliate",
@@ -2248,7 +2232,6 @@
    "ScavalcaColRaggio",
    "SchizzoAppenaCreato",
    "SchizzoSulFoglio",
-   "Scollega",
    "SegmentiDa",
    "Segna",
    "SegnaAttesa",
@@ -2290,7 +2273,6 @@
    "TipoDellEstrusione",
    "TitoloUmano",
    "TogliIlTaglio",
-   "Trascorso",
    "TrovaPianoBase",
    "TrovaRedist",
    "TurnoSulDocumento",
@@ -2303,7 +2285,6 @@
    "VOCE",
    "Valore",
    "Variabile",
-   "Variante_H4_FacceNonAdiacenti",
    "Verificate",
    "Versione",
    "VersionePonte",
@@ -2313,7 +2294,6 @@
    "_LIBRERIE",
    "_Stato",
    "_albero_a_gradini",
-   "_attesaInCorso",
    "_catalogo",
    "_controlla_contorni",
    "_firmaGuardata",
@@ -2325,13 +2305,11 @@
    "_guscio_aperto",
    "_piastra_forata",
    "_pulisci_contorni",
-   "_quandoScatto",
    "_registro",
    "_rif",
    "_segmenti_telaio",
    "_sessione",
    "_staffa_a_L",
-   "_ultimoPiano",
    "_verita",
    "a_catalogo",
    "a_faccia_uid",
@@ -2729,7 +2707,6 @@
    "e_sottoassieme",
    "e_un_dettaglio",
    "e_una_sezione",
-   "eccetto",
    "elenca",
    "elenco_operazioni",
    "elimina",
@@ -3244,7 +3221,6 @@
    "parete_mm",
    "pareti_a_sessanta_gradi_non_si_stampano",
    "pareti_forate",
-   "parlanoDeiDischi",
    "parte",
    "passa",
    "passaggio",
@@ -3495,8 +3471,6 @@
    "solidi",
    "solido",
    "solidworks_documento_attivo",
-   "soloIlNome",
-   "soloLaSessione",
    "solo_parti",
    "sommario",
    "sonda",
@@ -3739,7 +3713,6 @@
    "Anteriore",
    "Assistente",
    "Attese",
-   "Attrezzi",
    "Avvisi",
    "BANCO",
    "Banco",
@@ -3751,7 +3724,6 @@
    "Che",
    "Classe",
    "Controlli",
-   "CosaECambiato",
    "DATI",
    "DESCRIZIONE",
    "Descrizione",
@@ -3777,7 +3749,6 @@
    "FINTO-nudo",
    "FINTO-rotto",
    "FINTO-sano",
-   "Fallito",
    "Famiglia",
    "Fatto",
    "Fermato",
@@ -3797,7 +3768,6 @@
    "MINORE",
    "MODELLI_SOLIDWORKS",
    "Materiale",
-   "MaterialiSolidWorks",
    "Messe",
    "Metti",
    "NATA",
@@ -3812,7 +3782,6 @@
    "OperazioniFori",
    "OperazioniMateriale",
    "OperazioniSaldatura",
-   "OperazioniSw",
    "OperazioniTavola",
    "PASSANTE",
    "PRIMO",
@@ -3824,10 +3793,8 @@
    "PareteStaDentro",
    "Ponte",
    "Precondizione",
-   "PreparazioneFallita",
    "Programma",
    "Pronto",
-   "Prova",
    "Prove",
    "Pulito",
    "Pulizia",
@@ -3842,7 +3809,6 @@
    "RISCONTRO_REGISTRO",
    "RISCONTRO_SOLA_LETTURA",
    "Ricontrolla",
-   "Riferimenti",
    "Rifiuta",
    "Riga",
    "Riscontro",
@@ -3855,13 +3821,11 @@
    "Scrivi",
    "Sentinella",
    "Sessione",
-   "SezioneProfilo",
    "Sfoglia",
    "Sommario",
    "Sono",
    "Spigolo",
    "Spostata",
-   "StessoDocumento",
    "Strumenti",
    "Superiore",
    "TERZO",
@@ -3875,7 +3839,6 @@
    "Toglila",
    "VERDE",
    "VERDETTO",
-   "Variabile",
    "Verifica",
    "VersioneDaFile",
    "VersionePonte",
@@ -4250,7 +4213,6 @@
    "niente",
    "nome",
    "non-esiste",
-   "nonMarcate",
    "non_esiste",
    "nonna",
    "norma",

@@ -197,7 +197,7 @@ namespace Oce.Solid.Agent.ContractTests
             var ops = alias.Assembly.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             var outcomeType = alias.Assembly.GetType("Oce.Solid.Agent.Core.SwOperations+Outcome", false);
             var attach = ops == null ? null : ops.GetMethod("AttachDeprecated");
-            if (attach == null || outcomeType == null) { Check("the library attaches the deprecated lines to an outcome", false, "OperazioniSw.AttachDeprecated or Esito not found"); return; }
+            if (attach == null || outcomeType == null) { Check("the library attaches the deprecated lines to an outcome", false, "SwOperations.AttachDeprecated or Outcome not found"); return; }
             var outcome = Activator.CreateInstance(outcomeType);
             outcomeType.GetField("Succeeded").SetValue(outcome, true);
             outcomeType.GetField("Measurements").SetValue(outcome, null);

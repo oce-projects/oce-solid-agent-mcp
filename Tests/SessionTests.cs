@@ -22,9 +22,9 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("Sessione.StessoDocumento");
+            Group("Session.SameDocument");
 
-            var bridge = BridgeOrNotHere("Sessione.StessoDocumento, per intero");
+            var bridge = BridgeOrNotHere("Session.SameDocument, per intero");
             if (bridge == null) return;
 
             MethodInfo same;
@@ -32,10 +32,10 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "Session");
-                if (typ == null) { Check("la classe Sessione c'e'", false, ""); return; }
+                if (typ == null) { Check("la classe Session c'e'", false, ""); return; }
                 same = typ.GetMethod("SameDocument",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (same == null) { Check("StessoDocumento c'e'", false, ""); return; }
+                if (same == null) { Check("SameDocument c'e'", false, ""); return; }
             }
             catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
 
@@ -137,13 +137,13 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void NotInstalledOrNotOpen(string bridge)
         {
-            Group("Sessione.MessaggioDiAggancio: non installato o non aperto (H16)");
+            Group("Session.AttachMessage: non installato o non aperto (H16)");
             MethodInfo m;
             try
             {
                 var typ = Load.Class(Load.Bridge(bridge), "Session");
                 m = typ?.GetMethod("AttachMessage", BindingFlags.NonPublic | BindingFlags.Static);
-                if (m == null) { Check("MessaggioDiAggancio c'e'", false, ""); return; }
+                if (m == null) { Check("AttachMessage c'e'", false, ""); return; }
             }
             catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
 
@@ -185,19 +185,19 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void TheTurnFires(string bridge)
         {
-            Group("TurnoSulDocumento: il lucchetto scatta fra due processi (W2.9)");
+            Group("DocumentTurn: il lucchetto scatta fra due processi (W2.9)");
 
             MethodInfo take, keyOf;
             try
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "DocumentTurn");
-                if (typ == null) { Check("la classe TurnoSulDocumento c'e'", false, ""); return; }
+                if (typ == null) { Check("la classe DocumentTurn c'e'", false, ""); return; }
                 take = typ.GetMethod("Take", BindingFlags.Public | BindingFlags.Static);
                 keyOf = typ.GetMethod("KeyOf", BindingFlags.NonPublic | BindingFlags.Static);
-                if (take == null || keyOf == null) { Check("Prendi e ChiaveDi ci sono", false, ""); return; }
+                if (take == null || keyOf == null) { Check("Take e KeyOf ci sono", false, ""); return; }
             }
-            catch (Exception ex) { Check("TurnoSulDocumento si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("DocumentTurn si carica", false, ex.ToString()); return; }
 
             // Un percorso che non esiste e che nessun ponte vero sta usando:
             // il lucchetto e' suo e basta.
@@ -245,8 +245,8 @@ namespace Oce.Solid.Agent.ContractTests
 
                 var t2 = test();
                 Check("lo tiene un ALTRO processo: il ponte rifiuta", t2 == null,
-                      t2 == null ? "Prendi -> null, cioe' «il documento e' in uso da un altro ponte»"
-                                 : "Prendi ha dato il turno anche se un altro processo lo teneva");
+                      t2 == null ? "Take -> null, cioe' «il documento e' in uso da un altro ponte»"
+                                 : "Take ha dato il turno anche se un altro processo lo teneva");
                 if (t2 != null) t2.Dispose();
 
                 // 3. il processo MUORE senza rilasciare: il turno torna libero.
@@ -288,17 +288,17 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void ThePartHasChanged(string bridge)
         {
-            Group("Attrezzi.CosaECambiato");
+            Group("McpTools.WhatChanged");
 
             MethodInfo changed;
             try
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "McpTools");
-                if (typ == null) { Check("la classe Attrezzi c'e'", false, ""); return; }
+                if (typ == null) { Check("la classe McpTools c'e'", false, ""); return; }
                 changed = typ.GetMethod("WhatChanged",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (changed == null) { Check("CosaECambiato c'e'", false, ""); return; }
+                if (changed == null) { Check("WhatChanged c'e'", false, ""); return; }
             }
             catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
 
@@ -400,19 +400,19 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void TheTurnKey(string bridge)
         {
-            Group("TurnoSulDocumento: la chiave");
+            Group("DocumentTurn: la chiave");
 
             MethodInfo keyOf;
             try
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "DocumentTurn");
-                if (typ == null) { Check("la classe TurnoSulDocumento c'e'", false, ""); return; }
+                if (typ == null) { Check("la classe DocumentTurn c'e'", false, ""); return; }
                 keyOf = typ.GetMethod("KeyOf",
                     BindingFlags.NonPublic | BindingFlags.Static);
-                if (keyOf == null) { Check("ChiaveDi c'e'", false, ""); return; }
+                if (keyOf == null) { Check("KeyOf c'e'", false, ""); return; }
             }
-            catch (Exception ex) { Check("TurnoSulDocumento si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("DocumentTurn si carica", false, ex.ToString()); return; }
 
             Func<string, string, string> key = (filePath, docTitle) =>
             {

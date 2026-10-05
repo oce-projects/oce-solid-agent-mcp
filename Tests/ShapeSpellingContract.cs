@@ -33,19 +33,19 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void RunAll()
         {
-            Group("the Forma rewrites enum values in the catalogue's spelling (Z-C21.10, S20)");
+            Group("the Shape rewrites enum values in the catalogue's spelling (Z-C21.10, S20)");
 
-            var bridge = BridgeOrNotHere("the Forma rewrites enum values in the catalogue's spelling, in full");
+            var bridge = BridgeOrNotHere("the Shape rewrites enum values in the catalogue's spelling, in full");
             if (bridge == null) return;
 
             MethodInfo check;
             try
             {
                 var type = Load.Class(Load.Bridge(bridge), "Shape");
-                if (type == null) { Check("the Forma class is there", false, ""); return; }
+                if (type == null) { Check("the Shape class is there", false, ""); return; }
                 check = type.GetMethod("Check",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (check == null) { Check("Forma.Controlla is there", false, ""); return; }
+                if (check == null) { Check("Shape.Check is there", false, ""); return; }
             }
             catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
@@ -72,7 +72,7 @@ namespace Oce.Solid.Agent.ContractTests
             // ── THE CASE OF THE FINDING: «Top» ────────────────────────
             var plate = Plate("Top");
             var refusal = onCatalogue("extrude_rectangle", plate);
-            Check("extrude_rectangle: «Top» passes the Forma, as it always did",
+            Check("extrude_rectangle: «Top» passes the Shape, as it always did",
                   refusal == null, refusal ?? "accepted");
             Check("and reaches the library as «top», not «Top» (N33)",
                   Same(plate["plane"], "top"), "piano = " + Show(plate["plane"]));

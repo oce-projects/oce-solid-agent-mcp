@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// La voce Z-G4 diceva «~162 punti di rifiuto, ~39 (24%) dicono anche cosa
     /// fare». Contati il 23/9/2026 su tutti i `.cs` della libreria: i punti
-    /// sono **576** — `grep -c "Fallito("` ne trova 577, meno la definizione —
+    /// sono **576** — `grep -c "Failed("` ne trova 577, meno la definizione —
     /// e quelli che offrono una strada sono **66**, cioe' l'**11%**.
     ///
     /// Il numero della voce era una stima su un sottoinsieme; questo e' il
@@ -575,7 +575,7 @@ namespace Oce.Solid.Agent.ContractTests
 
                     // ── TRE SPECIE, NON DUE ──────────────────────────────
                     //
-                    // `return Fallito(errore)` non e' un rifiuto muto: e' un
+                    // `return Failed(error)` non e' un rifiuto muto: e' un
                     // rifiuto che **inoltra** un messaggio scritto altrove.
                     // Giudicarlo qui vorrebbe dire contarlo due volte — una
                     // dove il testo c'e' e una dove passa — e gonfiare il

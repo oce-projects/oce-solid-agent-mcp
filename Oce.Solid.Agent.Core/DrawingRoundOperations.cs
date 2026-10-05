@@ -101,7 +101,7 @@ namespace Oce.Solid.Agent.Core
             // cono-piano e cono-cilindro, e un raccordo con gli spigoli tangenti
             // visibili fa lo stesso: contati come facce, su un Ø30x40 smussato 1x45°
             // nascevano 1, 39 e 40 — le «gambe» dello smusso che il resto della
-            // tavola scarta come quote in piu' (EGambaDiSmusso). Un cerchio e' una
+            // tavola scarta come quote in piu' (IsChamferLeg). Un cerchio e' una
             // faccia del tondo se borda una faccia PIANA perpendicolare all'asse;
             // gli altri si dicono, non si quotano.
             var faces = new List<Tuple<double, Circle>>();

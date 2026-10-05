@@ -14,8 +14,8 @@ namespace Oce.Solid.Agent.ContractTests
     /// Il ponte tiene tre cose sul documento che ha guardato:
     ///
     ///     _guardato        QUALE documento
-    ///     _firmaGuardata   com'era, in breve (volume, lavorazioni, file)
-    ///     _firmeViste      le firme delle singole facce
+    ///     _signatureSeen   com'era, in breve (volume, lavorazioni, file)
+    ///     _seenSignatures      le firme delle singole facce
     ///
     /// In `RunPlan` c'era una riga che spostava **solo la prima**:
     /// `_guardato = adesso;`. Bastava un piano che nominasse un altro documento
@@ -80,9 +80,9 @@ namespace Oce.Solid.Agent.ContractTests
                 bool seenSignatures = Regex.IsMatch(around, @"_seenSignatures\s*=");
                 bool lightSignature = Regex.IsMatch(around, @"_signatureSeen\s*=");
                 if (!seenSignatures || !lightSignature)
-                    outside.Add("riga " + (i + 1) + ": _guardato cambia da solo" +
-                              (seenSignatures ? "" : " (manca _firmeViste)") +
-                              (lightSignature ? "" : " (manca _firmaGuardata)"));
+                    outside.Add("riga " + (i + 1) + ": _seen cambia da solo" +
+                              (seenSignatures ? "" : " (manca _seenSignatures)") +
+                              (lightSignature ? "" : " (manca _signatureSeen)"));
             }
             return outside;
         }
@@ -130,7 +130,7 @@ namespace Oce.Solid.Agent.ContractTests
             var lines = File.ReadAllLines(file);
             var sole = Sole(lines);
 
-            Check("nessun `_guardato =` viaggia da solo", sole.Count == 0,
+            Check("nessun `_seen =` viaggia da solo", sole.Count == 0,
                   sole.Count == 0
                       ? "ogni cambio di documento rifa' o butta le firme"
                       : string.Join(" | ", sole));

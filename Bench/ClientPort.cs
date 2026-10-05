@@ -372,7 +372,7 @@ namespace Oce.Solid.Agent.Bench
         ///     its own undo entry on top). Plan 2 is the last plan, so `undo`
         ///     must withdraw it: the reorder goes, every plan-1 feature stays.
         ///     RED ON BRIDGE 0.124.1, by the code path: plan 2 did not build, so
-        ///     the memory `_ultimoPiano` was set to null there (`hasBuilt`
+        ///     the memory `_lastPlan` was set to null there (`hasBuilt`
         ///     false) and `undo` answered that it had no plan to withdraw;
         ///     the answer of plan 2 had no `undo_entry_recorded` either. (Red on
         ///     the first version of this lot too: it refused before pressing.)

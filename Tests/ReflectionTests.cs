@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// pattern that stopped matching reads as «nothing to check»).
         /// Measured on 30/9/2026: 331 names in 27 files, of which 124 handed
         /// straight to GetType, GetMethod, GetField, GetProperty,
-        /// GetNestedType or Carica.Classe, and 207 handed to a helper.
+        /// GetNestedType or Load.Class, and 207 handed to a helper.
         /// </summary>
         private const int LiteralFloor = 250;
 

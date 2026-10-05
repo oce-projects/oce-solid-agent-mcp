@@ -430,7 +430,7 @@ namespace Oce.Solid.Agent.Core
         /// sketch before the three base planes answered false: only a part
         /// TEMPLATE built with an extra plane first breaks the position rule.
         /// The plane is now the one with the canonical normal through the
-        /// origin (Riferimenti.BasePlane); <paramref name="reason"/> says why
+        /// origin (References.BasePlane); <paramref name="reason"/> says why
         /// when there is none.
         /// </summary>
         private static IFeature ReferencePlane(IModelDoc2 model, string which, out string reason)

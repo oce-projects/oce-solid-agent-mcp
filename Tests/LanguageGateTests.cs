@@ -271,7 +271,7 @@ namespace Oce.Solid.Agent.ContractTests
                 "{\"class\": \"quote\", \"file\": \"^README\\\\.md$\"}", "never a whole file",
                 "an exception that covers a whole file is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
-                "{\"class\": \"detector-lexicon\", \"file\": \"^Bench/cases/\", \"json_path\": \"^(itemName|passi|expectations)\"}", "exactly one file of Checks/language",
+                "{\"class\": \"detector-lexicon\", \"file\": \"^Bench/cases/\", \"json_path\": \"^(nome|passi|attese)\"}", "exactly one file of Checks/language",
                 "a json_path over a folder of cases is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
                 "{\"class\": \"quote\", \"file\": \"^Bench/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",

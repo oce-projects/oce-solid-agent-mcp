@@ -75,7 +75,7 @@ namespace Checks.FramingTest
             _view = _library.GetType("Oce.Solid.Agent.Core.PartView", false);
             if (_view == null)
             {
-                Console.Error.WriteLine("VistaDelPezzo non c'e' in " + libraryPath);
+                Console.Error.WriteLine("PartView non c'e' in " + libraryPath);
                 return 2;
             }
 

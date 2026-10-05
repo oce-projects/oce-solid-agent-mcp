@@ -214,7 +214,7 @@ if (Test-Path -LiteralPath $Source) {
     # (W3.1-bis.11 removes the aliases).
     $body = $text
     $start = $text.LastIndexOf(" ExecuteWithCurrentNames(")   # the declaration, after the call
-    if ($start -lt 0) { $start = $text.IndexOf("public Esito Esegui(") }
+    if ($start -lt 0) { $start = $text.IndexOf("public Outcome Run(") }
     if ($start -ge 0) {
         $fine = $text.IndexOf("`n        }", $start)
         if ($fine -gt $start) { $body = $text.Substring($start, $fine - $start) }

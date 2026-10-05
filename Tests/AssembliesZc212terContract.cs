@@ -74,7 +74,7 @@ namespace Oce.Solid.Agent.ContractTests
                 sw = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
             catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (sw == null) { Check("OperazioniSw is in the library", false, "type not found"); return; }
+            if (sw == null) { Check("SwOperations is in the library", false, "type not found"); return; }
 
             MirrorAxes(sw);
             StepSolids(sw);

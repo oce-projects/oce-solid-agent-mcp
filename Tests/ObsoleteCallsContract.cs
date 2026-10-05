@@ -172,7 +172,7 @@ namespace Oce.Solid.Agent.ContractTests
             ["IModelDocExtension.CreateMassProperty"] = "S2/L17-3: only in ApiHelpers.NewMassProperty, for two callers the Z-C21.3 probe did not cover. The ASSEMBLY " +
                                                         "(OperazioniMisuraAssieme): probe_mass_property2 measured CreateMassProperty2 on a part only, and on an " +
                                                         "assembly it works on components (hidden ones: IncludeHiddenBodiesOrComponents, not measured). The DOCUMENT " +
-                                                        "STATE (StatoDocumento.Massa): CreateMassProperty2 measures what is selected, the probe cleared the selection " +
+                                                        "STATE (DocumentState.Mass): CreateMassProperty2 measures what is selected, the probe cleared the selection " +
                                                         "first, and the state reads the designer's selection afterwards; left in place, a pre-selected body is " +
                                                         "measured alone (N2/N3: 16000 mm3 instead of 21000), and whether SelectedItems replaces a pre-selection " +
                                                         "was not probed. The other part readings moved to CreateMassProperty2 in Z-C21.7 (N1 = M0, N5 = M1, N8 = M3)",
@@ -180,7 +180,7 @@ namespace Oce.Solid.Agent.ContractTests
             ["IModelDocExtension.SaveAs"] = "L13-4/L13-8: superseded by SaveAs2/SaveAs3 (drawing export and bank harness)",
             ["INote.GetTextPoint"] = "superseded by INote::GetTextPoint2",
             ["ISketchManager.AutoInference"] = "superseded by the user preference swSketchInference; read and restored around the hole sketches",
-            ["ISheetMetalFeatureData.KFactor"] = "superseded by ISheetMetalFeatureData::GetCustomBendAllowance/SetCustomBendAllowance (ICustomBendAllowance); read-only, the K-factor of the flat length. Found once the scanner followed the return type of DatiDellaLamiera",
+            ["ISheetMetalFeatureData.KFactor"] = "superseded by ISheetMetalFeatureData::GetCustomBendAllowance/SetCustomBendAllowance (ICustomBendAllowance); read-only, the K-factor of the flat length. Found once the scanner followed the return type of SheetMetalData",
             ["ISketchText.GetEdges"] = "superseded by ISketchText::GetEdges2 (stick-font text)",
             ["ITableAnnotation.GetColumnType2"] = "superseded by ITableAnnotation::GetColumnType3 (bill of materials)",
             ["ITableAnnotation.Text"] = "superseded by ITableAnnotation::Text2 (bill of materials)",

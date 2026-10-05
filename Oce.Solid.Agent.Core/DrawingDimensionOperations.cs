@@ -774,7 +774,7 @@ namespace Oce.Solid.Agent.Core
                 // i «fori il cui richiamo non e' nato». Un foro guarda chi legge
                 // (l'asse, portato sul foglio, e' perpendicolare al foglio) ED e'
                 // un anello interno di una faccia piana — il criterio delle croci
-                // di centro (EUnForoCheSiVede).
+                // di centro (IsAVisibleHole).
                 string typ;
                 var axis = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
                 // ZERO-E-ZERO: un asse che non si porta sul foglio vale lunghezza zero

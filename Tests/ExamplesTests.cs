@@ -143,7 +143,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("nessun esempio usa qualcosa che vive solo nel banco",
                   contaminated.Count == 0,
                   contaminated.Count == 0
-                      ? "niente selettori @, nothing segnaposto {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
+                      ? "niente selettori @, niente segnaposto {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
                       : string.Join(" | ", contaminated));
 
             Check("e ogni campo dell'esempio esiste nello schema",

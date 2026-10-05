@@ -84,12 +84,12 @@ namespace Oce.Solid.Agent.ContractTests
                 // Senza ponte: «non qui» in CI, rosso dove SOLIDWORKS c'e' (e
                 // allora manca build.ps1). Col ponte e senza la classe: rosso.
                 if (BridgeOrNotHere("l'avanzamento: il gettone, la notifica, il filo") == null) return;
-                Check("la classe Avanzamento c'e'", false, "il ponte c'e' ma la classe non si carica");
+                Check("la classe Progress c'e'", false, "il ponte c'e' ma la classe non si carica");
                 return;
             }
 
             var method = typ.GetMethod("Token", Everywhere);
-            if (method == null) { Check("Gettone() c'e'", false, ""); return; }
+            if (method == null) { Check("Token() c'e'", false, ""); return; }
 
             Func<Dictionary<string, object>, object> read =
                 p => method.Invoke(null, new object[] { p });
@@ -144,7 +144,7 @@ namespace Oce.Solid.Agent.ContractTests
             var typ = Progress();
             if (typ == null) return;
             var method = typ.GetMethod("Notify", Everywhere);
-            if (method == null) { Check("Notifica() c'e'", false, ""); return; }
+            if (method == null) { Check("Notify() c'e'", false, ""); return; }
 
             Func<object, double, double, string, Dictionary<string, object>> doIt =
                 (g, f, t, m) => (Dictionary<string, object>)
@@ -193,7 +193,7 @@ namespace Oce.Solid.Agent.ContractTests
             var typ = Progress();
             if (typ == null) return;
             var wireT = typ.GetNestedType("Wire", BindingFlags.Public | BindingFlags.NonPublic);
-            if (wireT == null) { Check("la classe Filo c'e'", false, ""); return; }
+            if (wireT == null) { Check("la classe Wire c'e'", false, ""); return; }
 
             Func<object, object> newItem = g => Activator.CreateInstance(wireT, new object[] { g });
             Action<object, double, string> planStep = (f, n, m) =>
@@ -307,7 +307,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("senza messaggio resta solo il tempo",
                   write(null) == "11m14s", write(null));
 
-            Check("e `Trascorso` dice la stessa cosa in numeri",
+            Check("e `Elapsed` dice la stessa cosa in numeri",
                   Math.Abs(((TimeSpan)wireT.GetProperty("Elapsed", Everywhere)
                       .GetValue(wire)).TotalSeconds - 674) < 0.001,
                   "674 secondi");
@@ -337,12 +337,12 @@ namespace Oce.Solid.Agent.ContractTests
             var wireT = typ.GetNestedType("Wire", BindingFlags.Public | BindingFlags.NonPublic);
             var planeT = Load.Class(asm, "PlanInMemory");
             if (planeT == null || wireT == null)
-            { Check("PianoInMemoria c'e'", false, ""); return; }
+            { Check("PlanInMemory c'e'", false, ""); return; }
 
             var constructor = planeT.GetConstructors(Everywhere)
                 .FirstOrDefault(c => c.GetParameters().Length == 2);
             if (constructor == null)
-            { Check("PianoInMemoria accetta un filo", false, "nessun costruttore a due"); return; }
+            { Check("PlanInMemory accetta un filo", false, "nessun costruttore a due"); return; }
 
             // `PlanStep` STA NELLA LIBRERIA, NON NEL PONTE, e cercarlo
             // fra i tipi del ponte non poteva funzionare -- ci ho provato, ed
@@ -406,11 +406,11 @@ namespace Oce.Solid.Agent.ContractTests
             Type prog;
             try { prog = Load.Class(Load.Bridge(bridge), "Program"); }
             catch { prog = null; }
-            if (prog == null) { Check("la classe Programma c'e'", false, ""); return; }
+            if (prog == null) { Check("la classe Program c'e'", false, ""); return; }
 
             var method = prog.GetMethod("UndoNotPossible", Everywhere);
             if (method == null)
-            { Check("AnnullamentoNonPossibile() c'e'", false, ""); return; }
+            { Check("UndoNotPossible() c'e'", false, ""); return; }
 
             Func<Dictionary<string, object>, string> sentence =
                 p => (string)method.Invoke(null, new object[] { p });

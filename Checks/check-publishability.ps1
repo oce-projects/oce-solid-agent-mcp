@@ -84,11 +84,11 @@ $binary = @(
 # Adesso ogni pattern porta il PROPRIO elenco, e ogni nome in un elenco deve
 # avere un motivo che si legge accanto:
 #
-#   $soloIlNome        chi deve scrivere «oscar» perche' lo cerca (i due
+#   $nameOnly        chi deve scrivere «oscar» perche' lo cerca (i due
 #                      controlli) o perche' lo attribuisce (LICENSE, NOTICE).
-#   $soloLaSessione    chi deve scrivere il percorso di scratchpad perche' lo
+#   $sessionOnly    chi deve scrivere il percorso di scratchpad perche' lo
 #                      sostituisce.
-#   $parlanoDeiDischi  chi deve scrivere `O:` e `W:` perche' li elenca.
+#   $talkAboutDisks  chi deve scrivere `O:` e `W:` perche' li elenca.
 #   l'indirizzo        NESSUNO. Il pattern non nomina se stesso, quindi non
 #                      serve a nessuno un lasciapassare - e chi ne avesse
 #                      bisogno starebbe scrivendo un indirizzo vero.
@@ -133,7 +133,7 @@ $twoChecks = @('check-catalog.ps1', 'check-publishability.ps1')
 # punto, un elenco di regole scrive il jolly. `192.168.*` passa ovunque, un
 # indirizzo con le cifre e' vietato ovunque, TODO compreso. NESSUN FILE HA PIU'
 # UN LASCIAPASSARE SU QUESTO PATTERN - nemmeno questo, e il motivo sta qui
-# sotto, in `$soloIlNome`.
+# sotto, in `$nameOnly`.
 #
 # Nota che il pattern non nomina se stesso: `192\.168\.\d` come TESTO non
 # combacia con `192\.168\.\d` come REGOLA, perche' dopo il «192» la regola
@@ -294,7 +294,7 @@ Look 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $talkA
 # stood `git grep -I`, which skips every blob git takes for binary: a text file
 # with one NUL byte inside is one. Checks/questions-without-answer.js had a real
 # NUL (offset 3899) and was never looked at, in the tree or in the history. Now
-# `--text` reads every blob, and the paths whose extension is in `$binari`
+# `--text` reads every blob, and the paths whose extension is in `$binary`
 # (the same list the working-tree pass uses) are dropped afterwards — the rule
 # of the language detector: `git ls-files` minus the binaries by extension.
 
@@ -367,7 +367,7 @@ if ($toPush.Count -eq 0) {
         $gaps = @($foundItems | Where-Object {
             if ($_ -notmatch '^([0-9a-f]{7,40}):([^:]+):(\d+):') { return $false }
             $filePath = $Matches[2] -replace '/', '\'
-            # Solo `$eccetto`, cioe' l'eccezione DEL PATTERN. Qui stava anche
+            # Solo `$except`, cioe' l'eccezione DEL PATTERN. Qui stava anche
             # `PuoNominarli`, la lista valida per tutti i pattern insieme: e'
             # sparita, e con lei il lasciapassare che i due controlli avevano
             # sull'indirizzo interno.

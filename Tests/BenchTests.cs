@@ -515,10 +515,13 @@ namespace Oce.Solid.Agent.ContractTests
             return null;
         }
 
-        // Both paths, on purpose: the marker keeps window-1-cases.js from
-        // rewriting the old one into the new one on a rerun.
+        // Every path the report has had, the newest first, on purpose: the
+        // markers keep window-1-cases.js and window-3-identifiers.js from
+        // rewriting the old ones into the new one on a rerun. Without the
+        // middle one (the path from W3.1-bis.4 to rename window 3) the history
+        // between the two renames carries no report, and no rename is found.
         private static readonly string[] ReportPaths =
-            { "Bench/report/last.json", "Banco/resoconto/ultimo.json" }; // window-1: keep
+            { "Bench/report/last.json", "Banco/report/last.json", "Banco/resoconto/ultimo.json" }; // window-1: keep // window-3: keep
 
         /// <summary>
         /// The verdict, apart from git so it can be made to fail on purpose:

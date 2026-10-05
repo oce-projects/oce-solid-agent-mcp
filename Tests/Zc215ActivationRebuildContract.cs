@@ -51,17 +51,17 @@ namespace Oce.Solid.Agent.ContractTests
             SourceWiring();
             LibraryWiring();
 
-            var bridge = BridgeOrNotHere("Sessione.NeedsRebuildAfterActivation, in full");
+            var bridge = BridgeOrNotHere("Session.NeedsRebuildAfterActivation, in full");
             if (bridge == null) return;
 
             MethodInfo needsRebuild;
             try
             {
                 var type = Load.Class(Load.Bridge(bridge), "Session");
-                if (type == null) { Check("Sessione.NeedsRebuildAfterActivation is there", false, "no such type"); return; }
+                if (type == null) { Check("Session.NeedsRebuildAfterActivation is there", false, "no such type"); return; }
                 needsRebuild = type.GetMethod("NeedsRebuildAfterActivation",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (needsRebuild == null) { Check("Sessione.NeedsRebuildAfterActivation is there", false, "no such method"); return; }
+                if (needsRebuild == null) { Check("Session.NeedsRebuildAfterActivation is there", false, "no such method"); return; }
             }
             catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
@@ -163,16 +163,16 @@ namespace Oce.Solid.Agent.ContractTests
             var method = Regex.Match(source,
                 @"private\s+Dictionary<string,\s*object>\s+BringToFront\s*\([^)]*\)\s*\{(.*?)\n        \}",
                 RegexOptions.Singleline);
-            Check("PortaDavanti is found in the source", method.Success,
+            Check("BringToFront is found in the source", method.Success,
                   method.Success ? "" : "the method does not match the pattern: renamed or moved");
             if (!method.Success) return;
             string body = method.Groups[1].Value;
 
             bool testsTheBit = Regex.IsMatch(body, @"NeedsRebuildAfterActivation\s*\(\s*activationErrors\s*\)");
-            Check("PortaDavanti tests NeedsRebuildAfterActivation(activationErrors)", testsTheBit);
+            Check("BringToFront tests NeedsRebuildAfterActivation(activationErrors)", testsTheBit);
 
             bool callsRebuild = Regex.IsMatch(body, @"doc\.EditRebuild3\s*\(\s*\)");
-            Check("PortaDavanti calls doc.EditRebuild3() (not a different document reference)", callsRebuild);
+            Check("BringToFront calls doc.EditRebuild3() (not a different document reference)", callsRebuild);
 
             // THE CALL IS GUARDED BY THE TEST, not unconditional: an
             // unconditional EditRebuild3 on every activation would rebuild a

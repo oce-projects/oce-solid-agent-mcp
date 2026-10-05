@@ -36,7 +36,7 @@ namespace Oce.Solid.Agent.ContractTests
             var library = Path.Combine(Root(), "Oce.Solid.Agent.Core", "bin", "Release", "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(library))
             {
-                NotHere("OperazioniSw.SameHolePoint", library + " is missing: build the library first (build.ps1)");
+                NotHere("SwOperations.SameHolePoint", library + " is missing: build the library first (build.ps1)");
                 return;
             }
 
@@ -60,11 +60,11 @@ namespace Oce.Solid.Agent.ContractTests
                 owner = asm.GetType("Oce.Solid.Agent.Core.SwOperations", false);
             }
             catch (Exception ex) { Check("the library loads", false, ex.GetType().Name + ": " + ex.Message); return; }
-            if (owner == null) { Check("Oce.Solid.Agent.Core.OperazioniSw is in the library", false, ""); return; }
+            if (owner == null) { Check("Oce.Solid.Agent.Core.SwOperations is in the library", false, ""); return; }
 
             var method = owner.GetMethod("SameHolePoint",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            if (method == null) { Check("OperazioniSw.SameHolePoint is there", false, ""); return; }
+            if (method == null) { Check("SwOperations.SameHolePoint is there", false, ""); return; }
 
             Func<double[][], long[][], object[]> call = (candidates, ids) =>
             {

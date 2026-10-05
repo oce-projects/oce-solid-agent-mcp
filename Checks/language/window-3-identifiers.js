@@ -773,6 +773,9 @@ const HAND_EDITS = [
   // change of that contract names its line by the indentation only the helper has
   ['Tests/Zc2113SplineCentreMarksContract.cs', '"sketches.AddToDB = addToDbBefore;", ""',
     '"                    try { sketches.AddToDB = addToDbBefore;", "                    try {"'],
+  // review of the identifiers commit: the report had a path between W3.1-bis.4 and this window too; without it the
+  // contract that looks for the commit that moved the report found none (and passed on nothing)
+  ['Tests/BenchTests.cs', '{ "Banco/report/last.json", ', '{ "Bench/report/last.json", "Banco/report/last.json", '],
   // same-il.ps1: the addresses of static data blobs are not compared (the hunk is the one of HAND_HUNKS below)
   ['Checks/language/same-il.ps1', 'lines[i] = Literal(lines[i]);', 'lines[i] = DataLabel.Replace(Literal(lines[i]), "I_<data>");'],
 ];
@@ -796,6 +799,7 @@ const HAND_HUNKS = [
   ['Checks/language/name-map-extract.js', 'extract, print each Italian name found', 'name-map-extract.js --found: the Italian names the tree has now'],
   ['Checks/language/name-map-extract.js', "else if (x === '--found') a.found = true;", 'name-map-extract.js --found: the Italian names the tree has now'],
   ['Checks/language/name-map-extract.js', 'if (args.found) {', 'name-map-extract.js --found: the Italian names the tree has now'],
+  ['Tests/BenchTests.cs', 'Every path the report has had, the newest first', 'review: the comment of the three report paths'],
 ];
 // same-il.ps1 learns what the identifiers need (the identifiers commit): a changed line is judged on the original
 // text of the before side, the rewrite leaves the string literals alone, an accessor is a prefix and a name, a

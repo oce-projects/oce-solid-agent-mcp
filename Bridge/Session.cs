@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.Bridge
         /// B3). The installer used to decide whether an install had worked by
         /// looking for a phrase in the output of `--prova`; that phrase is
         /// for a person, and it was about to be translated. `--prova` now
-        /// turns this value into its exit code (Programma.SelfTestExitCode),
+        /// turns this value into its exit code (Program.SelfTestExitCode),
         /// and the sentence stays for whoever reads it.
         /// </summary>
         public AttachFailure Failure { get; private set; } = AttachFailure.None;

@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Core
     /// nervatura nata storta si tolgono con `DeleteSelection2` (non con
     /// EditDelete, che apre una finestra di conferma e la chiamata COM non
     /// torna: vedi `DeleteFeature`), dal piu' giovane al piu' vecchio, e
-    /// si rilegge il volume (`ETornatoComEra` in OperazioniGuardie).
+    /// si rilegge il volume (`IsBackAsItWas` in OperazioniGuardie).
     /// </summary>
     public partial class SwOperations
     {
