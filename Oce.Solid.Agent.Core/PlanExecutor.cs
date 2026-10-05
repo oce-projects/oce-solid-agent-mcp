@@ -9,33 +9,33 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Esegue un piano confermato, un passo alla volta.
+    /// Executes a confirmed plan, one step at a time.
     ///
-    /// COME SI PARLANO SERVER E ADD-IN
-    ///   1. l'add-in chiede al server QUAL E' il prossimo passo, mandando lo
-    ///      stato del documento in quel momento;
-    ///   2. il server ricontrolla tutto (piano confermato, stessa macchina,
-    ///      stesso documento) e risponde con UN passo, oppure "finito";
-    ///   3. l'add-in lo esegue dentro SOLIDWORKS e racconta com'e' andata;
-    ///   4. si ricomincia.
+    /// HOW SERVER AND ADD-IN TALK TO EACH OTHER
+    ///   1. the add-in asks the server WHICH STEP IS NEXT, sending the
+    ///      document state at that moment;
+    ///   2. the server checks everything again (confirmed plan, same machine,
+    ///      same document) and answers with ONE step, or "finished";
+    ///   3. the add-in executes it inside SOLIDWORKS and tells how it went;
+    ///   4. start again.
     ///
-    /// PERCHE' SI CHIEDE OGNI VOLTA INVECE DI SCARICARE TUTTO IL PIANO
-    /// Perche' il controllo va rifatto: fra il primo passo e l'ultimo possono
-    /// passare minuti, e in mezzo l'utente puo' aver cambiato documento. Un
-    /// piano scaricato in blocco e' un piano che si fida di un controllo fatto
-    /// prima.
+    /// WHY IT ASKS EVERY TIME INSTEAD OF DOWNLOADING THE WHOLE PLAN
+    /// Because the check has to be redone: between the first step and the last
+    /// minutes can pass, and in between the user may have changed document. A
+    /// plan downloaded in one block is a plan that trusts a check made
+    /// earlier.
     ///
-    /// PERCHE' NON SI CHIAMA IL MODELLO FRA UN PASSO E L'ALTRO
-    /// Perche' l'utente ha confermato un ELENCO. Se il modello potesse
-    /// aggiungere un passo durante l'esecuzione, verrebbe eseguita una cosa
-    /// diversa da quella approvata. Il modello torna a parlare alla fine.
+    /// WHY THE MODEL IS NOT CALLED BETWEEN ONE STEP AND THE NEXT
+    /// Because the user confirmed a LIST. If the model could
+    /// add a step during execution, something different from what was
+    /// approved would be executed. The model speaks again at the end.
     ///
-    /// COSA SUCCEDE SE UN PASSO FALLISCE
-    /// Ci si ferma. Non si prosegue con i successivi "tanto sono indipendenti":
-    /// quasi mai lo sono — il foro va sulla piastra che il passo prima non ha
-    /// creato — e proseguire vuol dire costruire su un presupposto falso. Cio'
-    /// che era gia' stato creato resta, ed e' scritto nel piano quale passo e'
-    /// arrivato dove: chi guarda sa cosa c'e' nel documento e perche'.
+    /// WHAT HAPPENS IF A STEP FAILS
+    /// It stops. It does not go on with the following ones "since they are independent":
+    /// almost never are they — the hole goes on the plate that the step before did not
+    /// create — and going on means building on a false assumption. What
+    /// had already been created stays, and the plan records which step got
+    /// where: whoever looks knows what is in the document and why.
     /// </summary>
     public class PlanExecutor
     {
@@ -45,10 +45,10 @@ namespace Oce.Solid.Agent.Core
         private readonly Func<Func<object>, Task<object>> _onSwThread;
 
         /// <summary>
-        /// Come si chiama la voce di annullamento che raccoglie tutto il
-        /// piano. Diceva «OpenPDM assistente»: e' il nome che l'utente legge
-        /// nel menu di SOLIDWORKS, e in una libreria che non presuppone
-        /// OpenPDM non puo' essere scritto qui dentro.
+        /// What the undo entry that gathers the whole
+        /// plan is called. It used to say «OpenPDM assistant»: that is the name the user reads
+        /// in the SOLIDWORKS menu, and in a library that does not presuppose
+        /// OpenPDM it cannot be written in here.
         /// </summary>
         public string UndoName
         {
@@ -58,86 +58,86 @@ namespace Oce.Solid.Agent.Core
         private string _undoName = "Assistente";
 
         /// <summary>
-        /// Lascia lavorare su un documento MAI SALVATO su disco.
+        /// Lets it work on a document NEVER SAVED to disk.
         ///
-        /// **Va acceso solo dal ponte MCP, mai dall'add-in.** Sono due mestieri
-        /// diversi che usano lo stesso esecutore:
+        /// **To be switched on only by the MCP bridge, never by the add-in.** They are two
+        /// different trades that use the same executor:
         ///
-        ///   * l'add-in lavora dentro un PDM. Un file non salvato non e' in
-        ///     check-out, e scriverci dentro produce modifiche che al
-        ///     salvataggio falliscono o finiscono in una copia. Li' il rifiuto
-        ///     «salvalo su disco prima» e' la cosa giusta;
-        ///   * il ponte MCP lavora apposta su `Parte1` appena aperta. Li' quel
-        ///     rifiuto renderebbe il ponte inutile per il suo caso normale.
+        ///   * the add-in works inside a PDM. An unsaved file is not
+        ///     checked out, and writing into it produces changes that at
+        ///     save time fail or end up in a copy. There the refusal
+        ///     «salvalo su disco prima» is the right thing;
+        ///   * the MCP bridge works on purpose on a freshly opened `Parte1`. There that
+        ///     refusal would make the bridge useless for its normal case.
         ///
-        /// PERCHE' NON E' UN BOOLEANO QUALUNQUE. Il pericolo scritto nella voce
-        /// B8 e' che qualcuno lo metta a vero anche nell'add-in «perche' dava
-        /// fastidio», e si torni a scrivere in file non in check-out senza che
-        /// niente fallisca. Per questo:
+        /// WHY IT IS NOT JUST ANY BOOLEAN. The danger written in entry
+        /// B8 is that someone sets it to true in the add-in too «because it was
+        /// annoying», and writing into files not checked out starts again with
+        /// nothing failing. That is why:
         ///
-        ///   * il nome dice cosa PERMETTE, non cosa disattiva;
-        ///   * il valore predefinito e' falso, quindi chi non ne sa niente e'
-        ///     protetto;
-        ///   * e c'e' un controllo che lo sorveglia —
-        ///     `Checks\check-documents-without-file.ps1` fallisce se questa
-        ///     proprieta' compare nei sorgenti dell'add-in.
+        ///   * the name says what it ALLOWS, not what it turns off;
+        ///   * the default value is false, so whoever knows nothing about it is
+        ///     protected;
+        ///   * and there is a check that watches over it —
+        ///     `Checks\check-documents-without-file.ps1` fails if this
+        ///     property appears in the add-in sources.
         ///
-        /// Non tocca il controllo sulla SOLA LETTURA: quello vale in tutti e due
-        /// i mestieri, e un file di sola lettura non si scrive comunque.
+        /// It does not touch the check on READ-ONLY: that one holds in both
+        /// trades, and a read-only file cannot be written anyway.
         /// </summary>
         public bool DocumentWithoutFile { get; set; }
 
         /// <summary>
-        /// Lascia lavorare anche su una TAVOLA, non solo su una parte.
+        /// Lets it work on a DRAWING too, not only on a part.
         ///
-        /// Stessa storia di <see cref="DocumentWithoutFile"/>, altro mestiere:
+        /// Same story as <see cref="DocumentWithoutFile"/>, another trade:
         ///
-        ///   * l'assistente dell'add-in disegna PEZZI. Un piano che arriva su
-        ///     una tavola li' e' quasi sempre un errore di chi ha cambiato
-        ///     finestra, e fermarsi e' giusto;
-        ///   * il ponte MCP ha cinque operazioni di tavola in catalogo
+        ///   * the add-in's assistant draws PARTS. A plan that arrives on
+        ///     a drawing there is almost always the mistake of someone who changed
+        ///     window, and stopping is right;
+        ///   * the MCP bridge has five drawing operations in the catalogue
         ///     (`create_drawing`, `standard_views`, `set_sheet`,
-        ///     `model_dimensions`, `export_pdf`). Rifiutare le tavole
-        ///     renderebbe inutili proprio quelle.
+        ///     `model_dimensions`, `export_pdf`). Refusing drawings
+        ///     would make precisely those useless.
         ///
-        /// Sorvegliata da `Checks\check-documents-without-file.ps1`
-        /// insieme all'altra.
+        /// Watched over by `Checks\check-documents-without-file.ps1`
+        /// together with the other one.
         ///
-        /// QUI C'ERA SCRITTO CHE GLI ASSIEMI RESTAVANO FUORI «non per
-        /// dimenticanza: nessuna operazione della libreria sa lavorare su un
-        /// assieme». Era vero fino al 16/9/2026. Il 17 sono nate le voci
-        /// GA0-GA10 e adesso di operazioni di assieme ce ne sono quattro:
-        /// vedi <see cref="AlsoOnAssemblies"/>, e la lezione scritta li'.
+        /// HERE IT USED TO SAY THAT ASSEMBLIES STAYED OUT «not by
+        /// oversight: no operation of the library can work on an
+        /// assembly». It was true until 16/9/2026. On the 17th the entries
+        /// GA0-GA10 were born and now there are four assembly operations:
+        /// see <see cref="AlsoOnAssemblies"/>, and the lesson written there.
         /// </summary>
         public bool AlsoOnDrawings { get; set; }
 
         /// <summary>
-        /// Lascia lavorare anche su un ASSIEME.
+        /// Lets it work on an ASSEMBLY too.
         ///
-        /// Terzo interruttore, stessa forma dei due sopra: **acceso solo dal
-        /// ponte MCP, spento nell'add-in**, dove l'assistente disegna pezzi e
-        /// un assieme e' quasi sempre la finestra sbagliata.
+        /// Third switch, same shape as the two above: **switched on only by the
+        /// MCP bridge, off in the add-in**, where the assistant draws parts and
+        /// an assembly is almost always the wrong window.
         ///
-        /// ── PERCHE' ESISTE, E PERCHE' NON C'ERA ──────────────────────────
+        /// ── WHY IT EXISTS, AND WHY IT WAS NOT THERE ──────────────────────
         ///
-        /// Fino al 18/9/2026 `PreliminaryChecks` rifiutava **ogni** assieme,
-        /// e la riga di commento che difendeva quella scelta diceva: *«nessuna
-        /// operazione della libreria sa lavorare su un assieme»*. Era vero
-        /// quando fu scritta. Il 17/9 sono arrivate `insert_component`,
-        /// `mate`, `replace_component` e `interference_check` — e
-        /// **il catalogo servito ai client le elencava tutte e quattro**.
+        /// Until 18/9/2026 `PreliminaryChecks` refused **every** assembly,
+        /// and the comment line that defended that choice said: *«no
+        /// operation of the library can work on an assembly»*. It was true
+        /// when it was written. On 17/9 `insert_component`,
+        /// `mate`, `replace_component` and `interference_check` arrived — and
+        /// **the catalogue served to the clients listed all four of them**.
         ///
-        /// Il ponte prometteva quattro operazioni che avrebbe rifiutato prima
-        /// del primo passo. Nessuna delle 781 prove del banco poteva vederlo:
-        /// il banco chiama la LIBRERIA, non il ponte.
+        /// The bridge promised four operations that it would have refused before the
+        /// first step. None of the bench's 781 checks could see it:
+        /// the bench calls the LIBRARY, not the bridge.
         ///
-        /// **Un commento che spiega una scelta e' anche cio' che impedisce di
-        /// rivederla**: chi lo legge trova una ragione, e trovare una ragione
-        /// e' come smettere di cercare. Per questo la difesa adesso non e' una
-        /// frase ma un controllo —
+        /// **A comment that explains a choice is also what stops it from being
+        /// reviewed**: whoever reads it finds a reason, and finding a reason
+        /// is like ceasing to look. That is why the defense is now not
+        /// a sentence but a check —
         /// `Tests\Program.cs` → `EveryCatalogFamilyHasAnAllowedDocument`
-        /// confronta le famiglie del catalogo coi tipi ammessi qui sotto, gira
-        /// senza SOLIDWORKS, ed e' nata rossa su questo difetto.
+        /// compares the catalogue's families with the types allowed below, runs
+        /// without SOLIDWORKS, and was born red on this defect.
         /// </summary>
         public bool AlsoOnAssemblies { get; set; }
 
@@ -201,63 +201,63 @@ namespace Oce.Solid.Agent.Core
             public bool StoppedBeforeWriting;
         }
 
-        // `pianoId` non c'e' piu' nella firma: e' un numero del server, e
-        // chi esegue non deve sapere che esista un server. Lo conosce
-        // l'adattatore che implementa IPlanSource.
+        // `pianoId` is no longer in the signature: it is a server number, and
+        // whoever executes must not know that a server exists. The adapter
+        // that implements IPlanSource knows it.
         public async Task<Result> RunAsync(
             string expectedPath,
             CancellationToken undo = default(CancellationToken))
         {
             var result = new Result();
 
-            // Se il piano non dice su quale documento vale, si prende quello
-            // attivo adesso — ma UNA volta sola, e da qui in poi e' quello.
-            // Prima non si confrontava mai niente: fra la lettura dello stato e
-            // l'esecuzione c'e' un giro di rete, e in quella finestra l'utente
-            // puo' avere cambiato finestra. La lavorazione finiva nell'altro
-            // documento, in check-out, dentro una sola voce di annullamento che
-            // nessuno sa di dover premere.
-            // IL DOCUMENTO SI TIENE PER MANO, NON PER NOME.
+            // If the plan does not say which document it applies to, the active
+            // one now is taken — but ONCE only, and from here on that is the one.
+            // Before, nothing was ever compared: between reading the state and
+            // executing there is a network round trip, and in that window the user
+            // may have changed window. The feature ended up in the other
+            // document, checked out, inside a single undo entry that
+            // nobody knows they have to press.
+            // THE DOCUMENT IS HELD BY HAND, NOT BY NAME.
             //
-            // Qui si prende UNA volta l'oggetto su cui si lavora, e da qui in
-            // poi «e' ancora quello?» si chiede confrontando l'oggetto, non una
-            // stringa.
+            // Here the object being worked on is taken ONCE, and from here on
+            // «is it still the same one?» is asked by comparing the object, not a
+            // string.
             //
-            // Le stringhe non reggono, ed e' stato misurato: un piano che
-            // SALVA il pezzo a meta' strada cambia sia il percorso (da vuoto a
-            // un file) sia il titolo (da «Parte131» a «z06»). Un confronto per
-            // nome vedeva cambiare il nome e si fermava dicendo «il documento
-            // attivo e' cambiato mentre eseguivo» — su un documento che non
-            // era cambiato affatto, si era solo salvato. Rifiutare cio' che e'
-            // corretto e' il peggiore dei due modi di sbagliare.
+            // Strings do not hold, and it was measured: a plan that
+            // SAVES the part halfway changes both the path (from empty to
+            // a file) and the title (from «Parte131» to «z06»). A comparison by
+            // name saw the name change and stopped saying «il documento
+            // attivo e' cambiato mentre eseguivo» — on a document that had
+            // not changed at all, it had only been saved. Refusing what is
+            // correct is the worse of the two ways of being wrong.
             //
-            // Il nome resta, ma solo per i MESSAGGI: chi legge vuole sapere
-            // come si chiama il pezzo, non il suo puntatore.
+            // The name stays, but only for the MESSAGES: whoever reads wants to know
+            // what the part is called, not its pointer.
             var expectedDocument = (IModelDoc2)await _onSwThread(() => _sw.IActiveDoc2);
             // Z-C21.14: the plan document, kept for whoever reads the result.
             var planDocument = expectedDocument;
             result.PlanDocument = planDocument;
             result.FinalDocument = planDocument;
 
-            // ── E I CONTROLLI GUARDANO **QUESTO**, NON QUELLO DI ADESSO ──
+            // ── AND THE CHECKS LOOK AT **THIS ONE**, NOT AT THE ONE OF NOW ──
             //
-            // Fino al 23/9/2026 `PreliminaryChecks()` girava PRIMA di
-            // questa riga e si ripescava `_sw.IActiveDoc2` da solo: due
-            // letture diverse dello stesso globale, con una finestra in
-            // mezzo. I controlli potevano dire «va bene» del documento A —
-            // e' una parte, e' salvato, non e' in sola lettura — e il piano
-            // prendere il documento B, che magari e' un assieme in sola
-            // lettura. **Nessun errore lo avrebbe detto**: tutt'e due le
-            // letture erano legittime, ed e' il fatto che fossero DUE a
-            // essere sbagliato (voce Z-C5).
+            // Until 23/9/2026 `PreliminaryChecks()` ran BEFORE
+            // this line and fished `_sw.IActiveDoc2` out by itself: two different
+            // reads of the same global, with a window in
+            // between. The checks could say «all fine» of document A —
+            // it is a part, it is saved, it is not read-only — and the plan
+            // take document B, which may be a read-only
+            // assembly. **No error would have said so**: both
+            // reads were legitimate, and it is the fact that there were TWO that
+            // was wrong (entry Z-C5).
             //
-            // Il documento si tiene per mano, non per nome — e nemmeno
-            // chiedendolo due volte.
+            // The document is held by hand, not by name — and not even
+            // by asking for it twice.
             //
-            // Il caso «nessun documento aperto» lo dice `PreliminaryChecks`
-            // con la sua frase, come prima: il controllo del null che stava
-            // qui era il SECONDO, e diceva la stessa cosa con parole
-            // leggermente diverse a seconda di quale scattava per primo.
+            // The case «no document open» is told by `PreliminaryChecks`
+            // with its own sentence, as before: the null check that was
+            // here was the SECOND one, and said the same thing in slightly
+            // different words depending on which fired first.
             var check = (string)await _onSwThread(
                 () => PreliminaryChecks(expectedDocument));
             if (check != null)
@@ -267,8 +267,8 @@ namespace Oce.Solid.Agent.Core
                 return result;
             }
 
-            // Se il chiamante ha detto su quale documento vale il piano, lo si
-            // verifica UNA volta, adesso. Dopo di che comanda l'oggetto.
+            // If the caller said which document the plan applies to, it is
+            // verified ONCE, now. After that the object commands.
             if (!string.IsNullOrEmpty(expectedPath))
             {
                 var here = (string)await _onSwThread(() => Identity(expectedDocument));
@@ -286,16 +286,16 @@ namespace Oce.Solid.Agent.Core
                 expectedPath = (string)await _onSwThread(() => Identity(expectedDocument));
             }
 
-            // LA FINESTRA DEGLI ERRORI SI SPEGNE, e si rimette com'era.
+            // THE ERROR WINDOW IS TURNED OFF, and put back as it was.
             //
-            // Ogni passo ricostruisce, e una ricostruzione con un errore apre
-            // «Cosa c'e' che non va»: un modale. La chiamata COM che l'ha
-            // scatenato **non torna piu'**, e un piano lanciato da un banco non
-            // sorvegliato resta li' tutta la notte. E' esattamente la lezione
-            // gia' pagata con `swInputDimValOnCreate` sulla quotatura.
+            // Every step rebuilds, and a rebuild with an error opens
+            // «Cosa c'e' che non va»: a modal. The COM call that triggered it
+            // **never returns**, and a plan launched from an unattended bench
+            // stays there all night. It is exactly the lesson
+            // already paid for with `swInputDimValOnCreate` on dimensioning.
             //
-            // Non si perde niente: gli errori si leggono dallo stato, che
-            // adesso li riporta lavorazione per lavorazione.
+            // Nothing is lost: the errors are read from the state, which
+            // now reports them feature by feature.
             bool showedTheErrors = false;
             bool knewHowToShowThem = false;
             await _onSwThread(() =>
@@ -312,10 +312,10 @@ namespace Oce.Solid.Agent.Core
                 return null;
             });
 
-            // Tutto il piano dentro UNA voce di annullamento: se l'utente
-            // preme Ctrl+Z subito dopo, torna com'era prima, non a meta'.
-            // (StartRecordingUndoObject/FinishRecordingUndoObject esistono
-            // nella 2021: verificato per riflessione sull'interop 29.5.1.1.)
+            // The whole plan inside ONE undo entry: if the user
+            // presses Ctrl+Z right after, it goes back to how it was before, not to halfway.
+            // (StartRecordingUndoObject/FinishRecordingUndoObject exist
+            // in 2021: verified by reflection on the interop 29.5.1.1.)
             //
             // ON THE DOCUMENT HELD, AND WRITTEN DOWN (finding M19, lot
             // Z-C21.5). Up to library 0.145.0 the recording was started on a
@@ -334,10 +334,10 @@ namespace Oce.Solid.Agent.Core
                 return null;
             });
 
-            // La geometria lasciata da ogni passo, per numero d'ordine. Vive
-            // quanto l'esecuzione del piano e non un istante di piu': sono
-            // oggetti di SolidWorks, validi solo finche' il documento resta
-            // aperto e non viene ricostruito da capo.
+            // The geometry left by each step, by order number. It lives as
+            // long as the execution of the plan and not an instant longer: they are
+            // SolidWorks objects, valid only as long as the document stays
+            // open and is not rebuilt from scratch.
             var stepsDone = new Dictionary<int, References.Step>();
 
             try
@@ -358,10 +358,10 @@ namespace Oce.Solid.Agent.Core
 
                     var next = await _source.NextAsync(docState);
 
-                    // UNA FONTE CHE NON RISPONDE NON E' UN PIANO FINITO.
-                    // Un null qui vorrebbe dire che l'adattatore ha
-                    // inghiottito qualcosa: si dice, non si scambia per la
-                    // fine. Vedi la nota su NextStep.
+                    // A SOURCE THAT DOES NOT ANSWER IS NOT A FINISHED PLAN.
+                    // A null here would mean that the adapter
+                    // swallowed something: it is said, not mistaken for
+                    // the end. See the note on NextStep.
                     if (next == null)
                     {
                         result.Error =
@@ -395,10 +395,10 @@ namespace Oce.Solid.Agent.Core
                     {
                         var model = _sw.IActiveDoc2;
 
-                        // IL CONTROLLO CHE MANCAVA, ED E' QUI CHE VA FATTO.
-                        // Lo stato mandato al server e' stato letto PRIMA della
-                        // chiamata di rete; questo e' il documento su cui si
-                        // scrive DOPO. Fra i due c'e' tutto il giro HTTP.
+                        // THE CHECK THAT WAS MISSING, AND THIS IS WHERE IT GOES.
+                        // The state sent to the server was read BEFORE the
+                        // network call; this is the document that is written
+                        // to AFTER. Between the two there is the whole HTTP round trip.
                         if (!SameObject(model, expectedDocument))
                         {
                             return new SwOperations.Outcome
@@ -415,15 +415,15 @@ namespace Oce.Solid.Agent.Core
                         var reading = DocumentState.Read(model);
                         var operations = new SwOperations(_sw, _log);
 
-                        // Voce Z-C4: si annuncia cosa si sta per fare. Il
-                        // `finally` e' obbligatorio -- senza, un passo che
-                        // alza lascerebbe il guinzaglio teso e il guardiano
-                        // segnalerebbe appesa una chiamata gia' finita.
+                        // Entry Z-C4: it announces what it is about to do. The
+                        // `finally` is mandatory -- without it, a step that
+                        // raises would leave the leash taut and the guardian
+                        // would report a call that has already finished as hung.
                         TurnOnGuardian();
                         _leash.Begin(planStep.Operation, DateTime.Now);
-                        // `SwOperations.Outcome` col nome intero: `Outcome` e' una
-                        // classe annidata, e senza il prefisso il compilatore
-                        // non la trova.
+                        // `SwOperations.Outcome` with the full name: `Outcome` is a
+                        // nested class, and without the prefix the compiler
+                        // does not find it.
                         SwOperations.Outcome e;
                         try
                         {
@@ -433,13 +433,13 @@ namespace Oce.Solid.Agent.Core
                         finally { _leash.Finished(); }
                         if (e.Succeeded)
                         {
-                            // Cio' che questo passo ha creato resta a
-                            // disposizione dei successivi: e' l'unico modo per
-                            // cui «fai un foro sulla piastra del passo 1»
-                            // possa trovare quella piastra. Sta in memoria e
-                            // non nel piano perche' una faccia di SolidWorks
-                            // non si serializza: esiste solo qui, solo adesso,
-                            // e solo dentro questa sessione.
+                            // What this step created stays at the
+                            // disposal of the following ones: it is the only way
+                            // for «make a hole on the plate of step 1»
+                            // to find that plate. It lives in memory and
+                            // not in the plan because a SolidWorks face
+                            // cannot be serialized: it exists only here, only now,
+                            // and only inside this session.
                             stepsDone[planStep.Order] = new References.Step
                             {
                                 Feature = e.Feature,
@@ -447,15 +447,15 @@ namespace Oce.Solid.Agent.Core
                                 Operation = planStep.Operation,
                             };
 
-                            // Un rebuild dopo ogni passo: cosi' un errore si
-                            // vede subito e non alla fine, quando non si sa
-                            // piu' quale passo lo ha causato.
+                            // A rebuild after every step: that way an error is
+                            // seen at once and not at the end, when it is no
+                            // longer known which step caused it.
                             try { model.EditRebuild3(); } catch { }
 
-                            // SE IL PASSO HA DICHIARATO DI AVER CAMBIATO
-                            // DOCUMENTO, si va dietro. Solo se lo dichiara:
-                            // un documento che cambia senza che nessuno lo dica
-                            // resta un motivo per fermarsi.
+                            // IF THE STEP DECLARED THAT IT CHANGED
+                            // DOCUMENT, we follow it. Only if it declares it:
+                            // a document that changes without anyone saying so
+                            // remains a reason to stop.
                             if (e.NewDocument != null)
                             {
                                 // THE UNDO RECORDING FOLLOWS, EXPLICITLY (M19):
@@ -511,10 +511,10 @@ namespace Oce.Solid.Agent.Core
             {
                 await _onSwThread(() =>
                 {
-                    // La finestra degli errori torna com'era: e'
-                    // un'impostazione di chi lavora, non nostra. Si rimette
-                    // solo se si e' riusciti a leggerla — scriverci sopra un
-                    // valore inventato sarebbe peggio che lasciarla spenta.
+                    // The error window goes back to how it was: it is
+                    // a setting of whoever is working, not ours. It is put back
+                    // only if it could be read — writing an invented
+                    // value over it would be worse than leaving it off.
                     if (knewHowToShowThem)
                     {
                         try
@@ -610,33 +610,33 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// COME SI CHIAMA UN DOCUMENTO, per sapere se e' ancora quello di prima.
+        /// WHAT A DOCUMENT IS CALLED, to know whether it is still the one from before.
         ///
-        /// Il percorso su disco, quando c'e'. Quando non c'e' — un pezzo appena
-        /// aperto e mai salvato — il titolo, con un prefisso che lo distingue:
-        /// un file che si chiamasse per davvero «Parte1» non deve poter essere
-        /// scambiato per la «Parte1» in memoria.
+        /// The path on disk, when there is one. When there is not — a part just
+        /// opened and never saved — the title, with a prefix that tells it apart:
+        /// a file that was really called «Parte1» must not be mistaken
+        /// for the in-memory «Parte1».
         ///
-        /// Prima si confrontavano i percorsi nudi. Senza il titolo, DUE
-        /// documenti mai salvati hanno tutti e due percorso vuoto, e si
-        /// sarebbero detti lo stesso documento: il controllo che esiste per non
-        /// scrivere nel pezzo di qualcun altro avrebbe detto di si' proprio nel
-        /// caso in cui il ponte lavora sempre.
+        /// Before, the bare paths were compared. Without the title, TWO
+        /// never-saved documents both have an empty path, and would have
+        /// been called the same document: the check that exists so as not to
+        /// write into someone else's part would have said yes in exactly the
+        /// case in which the bridge always works.
         /// </summary>
         /// <summary>
-        /// DUE RIFERIMENTI SONO LO STESSO DOCUMENTO?
+        /// ARE TWO REFERENCES THE SAME DOCUMENT?
         ///
-        /// Non si confrontano i nomi: un documento che si salva a meta' piano
-        /// cambia percorso E titolo, e resta lo stesso documento. Si
-        /// confrontano gli oggetti COM, cioe' i puntatori a `IUnknown`, che
-        /// sono l'identita' vera e non cambiano finche' il documento e' aperto.
+        /// Names are not compared: a document that is saved halfway through a plan
+        /// changes path AND title, and stays the same document. The
+        /// COM objects are compared, that is the pointers to `IUnknown`, which
+        /// are the true identity and do not change while the document is open.
         ///
-        /// `ReferenceEquals` prima, perche' quasi sempre .NET riusa lo stesso
-        /// involucro per lo stesso oggetto COM e si risparmia il giro; ma non
-        /// e' garantito, quindi quando non basta si chiede a `IUnknown`. Le due
-        /// `Release` non sono opzionali: `GetIUnknownForObject` incrementa il
-        /// conteggio, e un conteggio che non torna a zero e' un documento che
-        /// SOLIDWORKS non chiude piu'.
+        /// `ReferenceEquals` first, because almost always .NET reuses the same
+        /// wrapper for the same COM object and the round trip is saved; but it
+        /// is not guaranteed, so when it is not enough `IUnknown` is asked. The two
+        /// `Release` calls are not optional: `GetIUnknownForObject` increments the
+        /// count, and a count that does not return to zero is a document that
+        /// SOLIDWORKS no longer closes.
         /// </summary>
         private static bool SameObject(object a, object b)
         {
@@ -671,48 +671,48 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I controlli che vanno fatti PRIMA di scrivere nel documento.
-        /// Ritorna null se e' tutto a posto, altrimenti il motivo del rifiuto.
+        /// The checks to be made BEFORE writing into the document.
+        /// Returns null if all is well, otherwise the reason for the refusal.
         ///
-        /// ── IL DOCUMENTO ARRIVA, NON SI RIPESCA (voce Z-C5) ─────────────
+        /// ── THE DOCUMENT ARRIVES, IT IS NOT FISHED OUT AGAIN (entry Z-C5) ─────────────
         ///
-        /// Prima questo metodo leggeva `_sw.IActiveDoc2` per conto suo, e il
-        /// piano lo rileggeva subito dopo: due letture dello stesso globale
-        /// con una finestra in mezzo, cioe' la possibilita' di approvare un
-        /// documento e lavorarne un altro **senza che niente lo dica**.
+        /// Before, this method read `_sw.IActiveDoc2` on its own, and the plan
+        /// re-read it right after: two reads of the same global
+        /// with a window in between, that is the possibility of approving one
+        /// document and working on another **without anything saying so**.
         ///
-        /// Un metodo che si ripesca da solo cio' su cui deve decidere e' un
-        /// metodo che decide su qualcos'altro, prima o poi. Adesso lo
-        /// riceve: se e' `null`, il chiamante non aveva niente da darci.
+        /// A method that fishes out by itself what it has to decide on is
+        /// a method that decides on something else, sooner or later. Now it
+        /// receives it: if it is `null`, the caller had nothing to give us.
         /// </summary>
         // ══════════════════════════════════════════════════════════════
-        // IL GUINZAGLIO, PER CHI USA IL PONTE (voce Z-C4)
+        // THE LEASH, FOR WHOEVER USES THE BRIDGE (entry Z-C4)
         //
-        // Il gemello di K18: quella protegge il GIRO del banco, questa
-        // protegge il CLIENTE. Stessa classe, `Shared/Leash.cs`,
-        // perche' due meccanismi di scadenza che si comportano diversamente
-        // sono peggio di uno solo.
+        // The twin of K18: that one protects the bench RUN, this one
+        // protects the CLIENT. Same class, `Shared/Leash.cs`,
+        // because two expiry mechanisms that behave differently
+        // are worse than a single one.
         //
-        // ── E LA PREMESSA DELLA VOCE ERA PIU' STRETTA DEL VERO ────────
+        // ── AND THE PREMISE OF THE ENTRY WAS NARROWER THAN THE TRUTH ────────
         //
-        // Z-C4 diceva «chiamate a rischio MODALE». Il 23/9/2026 la chiamata
-        // che non e' tornata non aveva nessun modale: era `NewDocument`
-        // ferma dentro SMB su un file tenuto da una presa. Una scadenza non
-        // deve presumere che ci sia una finestra da chiudere: deve solo
-        // **smettere di aspettare e dire su cosa**.
+        // Z-C4 said «calls at MODAL risk». On 23/9/2026 the call
+        // that did not return had no modal at all: it was `NewDocument`
+        // stopped inside SMB on a file held by a socket. An expiry must
+        // not presume that there is a window to close: it must only
+        // **stop waiting and say on what**.
         //
-        // ── DOVE SCRIVE, E PERCHE' NON E' UN DETTAGLIO ───────────────
+        // ── WHERE IT WRITES, AND WHY IT IS NOT A DETAIL ───────────────
         //
-        // **MAI SU STDOUT.** Su stdio, stdout e' il canale JSON-RPC: una
-        // riga che non sia JSON lo rompe, e il client risponde -32700 a una
-        // richiesta che non c'entra niente. Il referto va su **stderr**,
-        // che i client MCP raccolgono nei loro log.
+        // **NEVER ON STDOUT.** On stdio, stdout is the JSON-RPC channel: a
+        // line that is not JSON breaks it, and the client answers -32700 to a
+        // request that has nothing to do with it. The report goes on **stderr**,
+        // which the MCP clients collect in their logs.
         //
-        // E NON UCCIDE IL PROCESSO, al contrario del banco: il banco e' un
-        // giro che o finisce o non serve, il ponte e' un servizio di
-        // qualcun altro. Quello che puo' fare e' **dire** che una chiamata
-        // e' appesa e quale — cosi' chi legge i log sa cosa e' successo
-        // invece di vedere un ponte che non risponde piu'.
+        // AND IT DOES NOT KILL THE PROCESS, unlike the bench: the bench is a
+        // run that either finishes or is not needed, the bridge is someone
+        // else's service. What it can do is **say** that a call
+        // is hung and which one — so whoever reads the logs knows what happened
+        // instead of seeing a bridge that no longer answers.
         // ══════════════════════════════════════════════════════════════
         private static readonly Shared.Leash _leash =
             new Shared.Leash(120000);
@@ -733,10 +733,10 @@ namespace Oce.Solid.Agent.Core
                         System.Threading.Thread.Sleep(10000);
                         var report = _leash.Hanging(DateTime.Now);
                         if (report == null) { said = null; continue; }
-                        // UNA VOLTA SOLA PER CHIAMATA: un guardiano che
-                        // ripete la stessa riga ogni dieci secondi riempie
-                        // il log di chi ci lavora, e un log pieno non si
-                        // legge piu'.
+                        // ONCE ONLY PER CALL: a guardian that
+                        // repeats the same line every ten seconds fills
+                        // the log of whoever works with it, and a full log is not
+                        // read any more.
                         if (report == said) continue;
                         said = report;
                         try { Console.Error.WriteLine("[ponte] " + report); }
@@ -756,11 +756,11 @@ namespace Oce.Solid.Agent.Core
                 || (AlsoOnAssemblies && typ == (int)swDocumentTypes_e.swDocASSEMBLY);
             if (!allowed)
             {
-                // IL RIFIUTO DICE COSA E' AMMESSO ADESSO, non una frase fissa.
-                // La vecchia diceva «una parte o una tavola, non un assieme»
-                // anche quando gli assiemi erano ammessi e il documento era
-                // qualcos'altro: un messaggio che elenca il mondo di ieri manda
-                // chi legge a cercare il problema dove non e'.
+                // THE REFUSAL SAYS WHAT IS ALLOWED NOW, not a fixed sentence.
+                // The old one said «a part or a drawing, not an assembly»
+                // even when assemblies were allowed and the document was
+                // something else: a message that lists yesterday's world sends
+                // the reader to look for the problem where it is not.
                 var go = new System.Collections.Generic.List<string> { "una parte" };
                 if (AlsoOnDrawings) go.Add("una tavola");
                 if (AlsoOnAssemblies) go.Add("un assieme");
@@ -772,30 +772,30 @@ namespace Oce.Solid.Agent.Core
             if (string.IsNullOrEmpty(filePath) && !DocumentWithoutFile)
                 return "Il documento non e' mai stato salvato: salvalo su disco prima.";
 
-            // UN FILE IN SOLA LETTURA NON SI TOCCA, e non e' un dettaglio.
-            // Le API di SOLIDWORKS lo modificano in memoria lo stesso: il
-            // pezzo cambia sullo schermo e il salvataggio poi fallisce, o
-            // peggio finisce in una copia. Chi usa un PDM ha in piu' la
-            // ragione sua — il file non e' in check-out — ma il controllo
-            // vale anche senza.
+            // A READ-ONLY FILE IS NOT TOUCHED, and it is not a detail.
+            // The SOLIDWORKS APIs modify it in memory all the same: the
+            // part changes on screen and the save then fails, or
+            // worse ends up in a copy. Whoever uses a PDM has one more
+            // reason — the file is not checked out — but the check
+            // holds without it too.
             try
             {
                 var info = new System.IO.FileInfo(filePath);
                 if (info.Exists && info.IsReadOnly)
                     return "Il file e' in sola lettura: toglila (o fai il check-out) prima di chiedere modifiche.";
             }
-            catch { /* se non riusciamo a leggerlo, lo diranno le API dopo */ }
+            catch { /* if we cannot read it, the APIs will say so afterwards*/ }
 
-            // IL MODALE SI VEDE DALLA FINESTRA, NON DA SOLIDWORKS (voce Z-C3).
+            // THE MODAL IS SEEN FROM THE WINDOW, NOT FROM SOLIDWORKS (entry Z-C3).
             //
-            // Misurato il 24/9/2026 con `Checks/Modal`: con una finestra
-            // modale di SOLIDWORKS aperta, `CommandInProgress` resta FALSO in
-            // tre giri su tre. La guardia qui sotto non era mai scattata perche'
-            // non poteva. La finestra principale invece e' DISABILITATA — un
-            // proprietario con un modale aperto lo e' sempre — e
-            // `IsWindowEnabled` lo dice in zero millisecondi, da User32, senza
-            // passare da una chiamata COM che col modale aperto potrebbe anche
-            // non tornare.
+            // Measured on 24/9/2026 with `Checks/Modal`: with a SOLIDWORKS modal
+            // window open, `CommandInProgress` stays FALSE in
+            // three runs out of three. The guard below had never fired because
+            // it could not. The main window instead is DISABLED — an
+            // owner with a modal open always is — and
+            // `IsWindowEnabled` says so in zero milliseconds, from User32, without
+            // going through a COM call that with the modal open might not
+            // return at all.
             //
             // `CommandInProgress` stays next to it, but it is NOT a guard
             // against an interactive command (audit finding L17-5, real; the
@@ -831,9 +831,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La frase del rifiuto quando SOLIDWORKS ha una finestra aperta che
-        /// aspetta una risposta. Pubblica perche' il banco la pretende parola
-        /// per parola: una frase scritta in due posti diverge.
+        /// The refusal sentence when SOLIDWORKS has an open window that
+        /// is waiting for an answer. Public because the bench demands it word
+        /// for word: a sentence written in two places diverges.
         /// </summary>
         public const string ModalSentence =
             "SOLIDWORKS ha una finestra aperta che aspetta una risposta (la sua finestra " +

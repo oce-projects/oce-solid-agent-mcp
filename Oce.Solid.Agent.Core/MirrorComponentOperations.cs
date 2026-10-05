@@ -7,28 +7,28 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// SPECCHIARE UN COMPONENTE (voce GA11): la staffa destra e la sinistra, il
-    /// caso piu' comune di carpenteria.
+    /// MIRRORING A COMPONENT (entry GA11): the right and the left bracket, the
+    /// most common case of metalwork.
     ///
-    /// Misurato il 27/9/2026 (`prova0089 ga11`, base 120x80x10 + staffa
-    /// 20x40x10 a x = +40, piano destro dell'assieme) con la via moderna,
+    /// Measured on 27/9/2026 (`prova0089 ga11`, base 120x80x10 + bracket
+    /// 20x40x10 at x = +40, assembly right plane) with the modern way,
     /// `FeatureManager.CreateDefinition(swFmMirrorComponent)` →
     /// `IMirrorComponentFeatureData` → `CreateFeature` («SpecchiaComponente1»,
-    /// `MirrorCompFeat`), array TIPIZZATI (`Component2[]`):
+    /// `MirrorCompFeat`), TYPED arrays (`Component2[]`):
     ///
-    ///  * ISTANZA (`ComponentsToInstanceAlignToComponentOrigin`): un componente
-    ///    in piu' dello STESSO file, a x = -40, orientamento rovesciato.
-    ///  * OPPOSTO LEGATO (`OppositeHandComponents`, `BreakLinksToOriginalPart`
-    ///    false): un FILE NUOVO («…_spec»), il cui albero e' una lavorazione
-    ///    sola, `MirrorStock`: cambi la destra e cambia la sinistra.
-    ///  * OPPOSTO SLEGATO (lo stesso con `BreakLinksToOriginalPart` true): file
-    ///    nuovo con le lavorazioni COPIATE (schizzo, estrusione, sposta/copia
-    ///    corpo): correggi la destra e la sinistra resta com'era, senza dirlo.
+    ///  * INSTANCE (`ComponentsToInstanceAlignToComponentOrigin`): one more
+    ///    component of the SAME file, at x = -40, orientation reversed.
+    ///  * LINKED OPPOSITE (`OppositeHandComponents`, `BreakLinksToOriginalPart`
+    ///    false): a NEW FILE («…_spec»), whose tree is a single
+    ///    feature, `MirrorStock`: change the right one and the left one changes.
+    ///  * UNLINKED OPPOSITE (the same with `BreakLinksToOriginalPart` true): new
+    ///    file with the features COPIED (sketch, extrusion, move/copy
+    ///    body): correct the right one and the left one stays as it was, without saying so.
     ///
-    /// La scelta si chiede sempre (nessun verso d'ufficio) e dopo si VERIFICA:
-    /// il centro del pezzo nuovo contro lo specchio del centro dell'originale,
-    /// e — per gli opposti — l'albero del file nuovo (c'e' `MirrorStock` = e'
-    /// legato).
+    /// The choice is always asked for (no direction by default) and afterwards it is VERIFIED:
+    /// the centre of the new part against the mirror of the centre of the original,
+    /// and — for the opposites — the tree of the new file (`MirrorStock` is there = it is
+    /// linked).
     ///
     /// THE ORIENTATION OF AN INSTANCE (finding N26, measured on 28/9/2026 by
     /// the Z-C21.3 probe of the mirrored instance's axes: bracket 20 x 40 x 10
@@ -53,7 +53,7 @@ namespace Oce.Solid.Agent.Core
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>Il centro della scatola vera di un componente, nell'assieme, in MILLIMETRI; null se non si legge.</summary>
+        /// <summary>The centre of the true box of a component, in the assembly, in MILLIMETRES; null if it cannot be read.</summary>
         private static double[] ComponentCenter(IComponent2 c)
         {
             try
@@ -273,7 +273,7 @@ namespace Oce.Solid.Agent.Core
                     model.FeatureManager, (int)swFeatureNameID_e.swFmMirrorComponent, data =>
                 {
                     data.MirrorPlane = planeF;
-                    var whichOnes = new Component2[] { (Component2)c };   // array TIPIZZATO (object[] fa feature fantasma)
+                    var whichOnes = new Component2[] { (Component2)c };   // TYPED array (object[] makes phantom features)
                     if (mode == "instance")
                     {
                         data.ComponentsToInstanceAlignToComponentOrigin = whichOnes;
@@ -326,7 +326,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed("The component mirror «" + SafeName(newOne) + "» was born in error: " + mirrorError +
                                "." + RemoveMirror(model, newOne, null));
 
-            // IL COMPONENTE NUOVO: quello che prima non c'era.
+            // THE NEW COMPONENT: the one that was not there before.
             object[] after = null;
             try { after = assemblyDoc.GetComponents(false) as object[]; } catch { }
             IComponent2 newItem = null;
@@ -344,7 +344,7 @@ namespace Oce.Solid.Agent.Core
             if (mode != "instance" && sameFile)
                 return Failed("Ho chiesto un file opposto e il componente nuovo usa ancora «" + Path.GetFileName(originalFile) + "»." +
                                RemoveMirror(model, newOne, null));
-            // IL LEGAME, LETTO DALL'ALBERO DEL FILE NUOVO: MirrorStock = legato.
+            // THE LINK, READ FROM THE TREE OF THE NEW FILE: MirrorStock = linked.
             bool? linked = null;
             if (mode != "instance")
             {
@@ -366,12 +366,12 @@ namespace Oce.Solid.Agent.Core
                                    Path.GetFileName(newFile) + "» e' " + (linked.Value ? "legato" : "slegato") + "." +
                                    RemoveMirror(model, newOne, newFile));
             }
-            // IL POSTO: il centro del nuovo e lo specchio del centro dell'originale.
+            // THE PLACE: the centre of the new one and the mirror of the centre of the original.
             var newCenter = ComponentCenter(newItem);
             var expected = (double[])centerBefore.Clone();
-            expected[which == 1 ? 2 : which == 2 ? 1 : 0] *= -1;   // frontale XY -> z, superiore XZ -> y, destro YZ -> x
+            expected[which == 1 ? 2 : which == 2 ? 1 : 0] *= -1;   // front XY -> z, top XZ -> y, right YZ -> x
             double deviation = newCenter == null ? double.NaN :
-                Math.Sqrt(Math.Pow(newCenter[0] - expected[0], 2) + Math.Pow(newCenter[1] - expected[1], 2) + Math.Pow(newCenter[2] - expected[2], 2));   // BodyBox da' gia' mm
+                Math.Sqrt(Math.Pow(newCenter[0] - expected[0], 2) + Math.Pow(newCenter[1] - expected[1], 2) + Math.Pow(newCenter[2] - expected[2], 2));   // BodyBox already gives mm
             if (double.IsNaN(deviation) || deviation > 0.01)
                 return Failed("«" + NameOf(newItem) + "» e' nato, ma il suo centro " + (newCenter == null ? "non si legge" :
                                "sta a " + deviation.ToString("0.###") + " mm dallo specchio dell'originale") + ": non e' lo specchio che volevi." +
@@ -420,11 +420,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie lo specchio appena nato quando la verifica lo rifiuta (revisione del
-        /// 27/9/2026): prima restava nell'assieme un componente che nessuno aveva
-        /// accettato. Il FILE nuovo, se c'e', non lo cancello — un file sul disco non
-        /// lo tolgo per conto di nessuno — ma lo dico, perche' con lo stesso suffisso
-        /// lo specchio non rinasce. La coda della frase di rifiuto.
+        /// Removes the mirror just born when the verification refuses it (review of
+        /// 27/9/2026): before, a component that nobody had accepted stayed in the assembly. The new
+        /// FILE, if there is one, I do not delete — a file on disk I do not
+        /// remove on anybody's behalf — but I say so, because with the same suffix
+        /// the mirror cannot be reborn. The tail of the refusal sentence.
         /// </summary>
         /// <summary>
         /// Removes the mirror this step made and returns the tail of the

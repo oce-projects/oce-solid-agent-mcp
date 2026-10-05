@@ -6,31 +6,31 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// UN POSTO LIBERO SUL FOGLIO, per una tabella o una vista messa dopo le altre.
+    /// A FREE PLACE ON THE SHEET, for a table or a view placed after the others.
     ///
-    /// ── NATO GUARDANDO DUE PNG, 26/9/2026, col banco verde tutte e due le volte ──
+    /// ── BORN LOOKING AT TWO PNGs, 26/9/2026, with the bench green both times ──
     ///
-    /// La distinta di taglio a 250/200 mm usciva dal foglio a destra dopo la
-    /// quarta delle sue 17 colonne; la vista dello sviluppo a 300/90 mm, a scala
-    /// 2:1, scendeva dentro il cartiglio. Le misure erano giuste — righe, quantita',
-    /// ingombro dello sviluppo — e il foglio era sbagliato.
+    /// The cut list at 250/200 mm came out of the sheet on the right after the
+    /// fourth of its 17 columns; the flat pattern view at 300/90 mm, at scale
+    /// 2:1, went down into the title block. The measures were right — rows, quantities,
+    /// bounding box of the flat pattern — and the sheet was wrong.
     ///
-    /// Il posto: dentro la cornice (12 mm dal bordo), fuori dalle altre viste
-    /// (`GetOutline`, 4 mm di stacco) e fuori dal cartiglio — letto dal formato con
-    /// `ITitleBlock.GetExtents` quando il formato lo dichiara, se no stimato
-    /// nell'angolo in basso a destra (meta' foglio x 65 mm), e lo si dice.
+    /// The place: inside the frame (12 mm from the edge), outside the other views
+    /// (`GetOutline`, 4 mm clearance) and outside the title block — read from the format with
+    /// `ITitleBlock.GetExtents` when the format declares it, otherwise estimated
+    /// in the bottom-right corner (half the sheet x 65 mm), and it is said.
     /// </summary>
     public partial class SwOperations
     {
         private sealed class FreeSheet
         {
             public double Width = 0.42, Height = 0.297;
-            public double[] TitleBlock;             // x0, y0, x1, y1 in metri
+            public double[] TitleBlock;             // x0, y0, x1, y1 in metres
             public bool EstimatedTitleBlock;
             public List<double[]> BoundingBoxes = new List<double[]>();
             public const double FrameBorder = 0.012, Detachment = 0.004;
 
-            /// <summary>Null se il rettangolo e' libero, se no cosa tocca.</summary>
+            /// <summary>Null if the rectangle is free, otherwise what it touches.</summary>
             public string Touches(double x0, double y0, double x1, double y1)
             {
                 if (x0 < FrameBorder - 1e-6 || x1 > Width - FrameBorder + 1e-6 || y0 < FrameBorder - 1e-6 || y1 > Height - FrameBorder + 1e-6)
@@ -43,8 +43,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il foglio corrente con cio' che lo occupa: il cartiglio e le viste,
-        /// tranne `esclusa` (la vista che si sta per spostare).
+        /// The current sheet with what occupies it: the title block and the views,
+        /// except `esclusa` (the view that is about to be moved).
         /// </summary>
         private static FreeSheet ReadSheet(IDrawingDoc drawing, IView excluded, string excludedTable = null)
         {
@@ -91,9 +91,9 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { }
-            // ANCHE TABELLE E NOTE GIA' SUL FOGLIO (revisione del 26/9/2026): una
-            // tabella fori a 15/(H-15) e una tabella di taglio «in alto a sinistra»
-            // finivano una sopra l'altra. Si guardano il foglio e ogni vista.
+            // TABLES AND NOTES ALREADY ON THE SHEET TOO (review of 26/9/2026): a
+            // hole table at 15/(H-15) and a cut table «top left»
+            // ended up one on top of the other. The sheet and every view are looked at.
             try
             {
                 var v = drawing.GetFirstView() as IView;
@@ -114,7 +114,7 @@ namespace Oce.Solid.Agent.Core
                             if (e != null && e.Length >= 6)
                             {
                                 double x0 = Math.Min(e[0], e[3]), y0 = Math.Min(e[1], e[4]), x1 = Math.Max(e[0], e[3]), y1 = Math.Max(e[1], e[4]);
-                                // una «note» grande mezzo foglio e' una cornice del formato, non un ingombro
+                                // a «note» as big as half the sheet is a frame of the format, not an obstruction
                                 if ((x1 - x0) * (y1 - y0) < 0.5 * f.Width * f.Height && x1 > x0 && y1 > y0)
                                     f.BoundingBoxes.Add(new[] { x0, y0, x1, y1 });
                             }
@@ -130,9 +130,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il rettangolo di una tabella sul foglio (x0, y0, x1, y1), dall'ancora e
-        /// dalla somma di colonne e righe; null se e' quella da escludere o non si
-        /// legge.
+        /// The rectangle of a table on the sheet (x0, y0, x1, y1), from the anchor and
+        /// from the sum of columns and rows; null if it is the one to exclude or it cannot
+        /// be read.
         /// </summary>
         private static double[] TableBoundingBox(ITableAnnotation t, string excluded)
         {
@@ -161,10 +161,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il primo posto libero per un rettangolo w x h (metri), fra: sopra il
-        /// cartiglio a destra, in alto a destra, in alto a sinistra, in basso a
-        /// sinistra, poi una griglia a passi di 10 mm. Torna l'angolo in basso a
-        /// sinistra e dove, o null.
+        /// The first free place for a rectangle w x h (metres), among: above the
+        /// title block on the right, top right, top left, bottom
+        /// left, then a grid at 10 mm steps. It returns the bottom-left
+        /// corner and where, or null.
         /// </summary>
         private static double[] FreePlace(FreeSheet f, double w, double h, out string location)
         {
@@ -182,7 +182,7 @@ namespace Oce.Solid.Agent.Core
                     location = k.Item3;
                     return new[] { k.Item1, k.Item2 };
                 }
-            // La griglia: da destra a sinistra, dall'alto in basso.
+            // The grid: from right to left, from top to bottom.
             for (double y = f.Height - c - h; y >= c - 1e-9; y -= 0.01)
                 for (double x = f.Width - c - w; x >= c - 1e-9; x -= 0.01)
                     if (f.Touches(x, y, x + w, y + h) == null)

@@ -7,41 +7,41 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// UN PIANO PER TRE PUNTI. (voce GP9)
+    /// A PLANE FROM THREE POINTS. (entry GP9)
     ///
-    /// `create_plane` sa fare solo il piano SFALSATO da uno dei tre standard:
-    /// serve a tutto cio' che e' allineato agli assi, e a niente altro. Un foro
-    /// inclinato, una faccia obliqua, una staffa a 30 gradi non hanno nessun
-    /// piano su cui disegnare.
+    /// `create_plane` could only make the plane OFFSET from one of the three
+    /// standard ones: that serves everything aligned with the axes, and nothing
+    /// else. A slanted hole, an oblique face, a bracket at 30 degrees have no
+    /// plane to draw on.
     ///
-    /// ── PERCHE' TRE COORDINATE E NON TRE VERTICI ──────────────────────
+    /// ── WHY THREE COORDINATES AND NOT THREE VERTICES ──────────────────
     ///
-    ///   IModelDoc2.CreatePlaneThru3Points3(AutoSize)  -> tre VERTICI selezionati
-    ///   IModelDoc2.CreatePlaneFixed2(P1,P2,P3,UseGlobal) -> tre COORDINATE
+    ///   IModelDoc2.CreatePlaneThru3Points3(AutoSize)  -> three selected VERTICES
+    ///   IModelDoc2.CreatePlaneFixed2(P1,P2,P3,UseGlobal) -> three COORDINATES
     ///
-    /// Si usa la seconda, e non e' una preferenza: **lo stato del documento non
-    /// elenca i vertici**. Facce e spigoli hanno un identificativo, i vertici
-    /// no — quindi «tre vertici selezionati» e' una cosa che il modello
-    /// linguistico non ha modo di chiedere, mentre tre terne di numeri si'.
+    /// The second is used, and it is not a preference: **the document state does
+    /// not list the vertices**. Faces and edges have an identifier, vertices
+    /// do not — so «three selected vertices» is something the language
+    /// model has no way to ask for, while three triples of numbers it does.
     ///
-    /// ── LA NORMALE STA NELLA TERZA RIGA, E SI SAREBBE POTUTO SBAGLIARE ──
+    /// ── THE NORMAL IS IN THE THIRD ROW, AND IT COULD HAVE BEEN GOT WRONG ──
     ///
-    /// La normale del piano si legge da `IRefPlane.Transform.ArrayData`, che ha
-    /// sedici numeri: i primi nove sono la rotazione. **La normale e' la terza
-    /// RIGA** (indici 6,7,8), non la terza colonna. Misurato il 16/9/2026 su
-    /// tre piani di normale nota:
+    /// The plane's normal is read from `IRefPlane.Transform.ArrayData`, which has
+    /// sixteen numbers: the first nine are the rotation. **The normal is the third
+    /// ROW** (indices 6,7,8), not the third column. Measured on 16/9/2026 on
+    /// three planes of known normal:
     ///
-    ///   punti                                normale attesa      terza riga
+    ///   points                               expected normal     third row
     ///   (0,0,20) (100,0,20) (0,100,20)       (0, 0, 1)           (0, 0, 1)
     ///   (0,0,0)  (100,0,0)  (0,0,100)        (0, -1, 0)          (0, -1, 0)
     ///   (0,0,0)  (100,0,0)  (0,100,100)      (0, -.7071, .7071)  (0, -.7071, .7071)
     ///
-    /// Sui primi due la terza riga e la terza colonna **danno lo stesso
-    /// risultato**, e una sonda fatta solo con quelli avrebbe scelto a caso fra
-    /// le due con una probabilita' su due di sbagliare per sempre. Sul terzo la
-    /// colonna da' `(0, 0.7071, 0.7071)` — girata. *Un caso in cui due valori
-    /// sbagliati danno lo stesso risultato non tabella niente*: il piano
-    /// obliquo sta nella sonda apposta.
+    /// On the first two the third row and the third column **give the same
+    /// result**, and a probe made only with those would have chosen at random between
+    /// the two, with one chance in two of being wrong forever. On the third the
+    /// column gives `(0, 0.7071, 0.7071)` — turned. *A case in which two wrong
+    /// values give the same result proves nothing*: the oblique plane
+    /// is in the probe on purpose.
     ///
     /// ── `UseGlobal` DOES NOT MOVE THE NORMAL; IT TURNS THE PLANE'S X AXIS ──
     ///
@@ -77,10 +77,10 @@ namespace Oce.Solid.Agent.Core
                 points.Add(p);
             }
 
-            // ── TRE PUNTI IN FILA NON FANNO UN PIANO ────────────────────
+            // ── THREE POINTS IN A ROW DO NOT MAKE A PLANE ────────────────
             //
-            // SOLIDWORKS risponde null e non dice perche'. Qui si guarda prima,
-            // perche' il perche' si sa: il prodotto vettoriale e' zero.
+            // SOLIDWORKS answers null and does not say why. Here we look first,
+            // because the why is known: the cross product is zero.
             var u = Less(points[1], points[0]);
             var v = Less(points[2], points[0]);
             var n = VectorProduct(u, v);
@@ -115,8 +115,8 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex) { return Failed("Il piano non e' stato creato: " + ex.Message); }
 
             int planesAfter = CountPlanes(model);
-            // «Non e' comparso nessun piano» si dice di due conteggi letti; con
-            // uno illeggibile resta l'oggetto restituito (voce Z-C8).
+            // «No plane appeared» is said of two counts that were read; with
+            // one unreadable, the returned object stays (entry Z-C8).
             if ((planesBefore >= 0 && planesAfter >= 0 && planesAfter == planesBefore) ||
                 ((planesBefore < 0 || planesAfter < 0) && raw == null))
                 return Failed(
@@ -135,13 +135,13 @@ namespace Oce.Solid.Agent.Core
             if (plane == null && feature != null)
                 try { plane = feature.GetSpecificFeature2() as IRefPlane; } catch { }
 
-            // ── E ADESSO SI RILEGGE LA NORMALE ──────────────────────────
+            // ── AND NOW THE NORMAL IS READ BACK ──────────────────────────
             //
-            // Il conto a mano l'abbiamo gia' fatto qui sopra, e serviva
-            // comunque per rifiutare i punti in fila. Confrontarlo con quello
-            // che il piano dice di essere e' l'unica prova che il piano sia
-            // QUELLO: «una feature in piu' nell'albero» lo direbbe anche di un
-            // piano sbagliato.
+            // We already did the hand calculation above, and it was needed
+            // anyway to refuse the points in a row. Comparing it with what
+            // the plane says it is is the only proof that the plane is
+            // THE ONE: «one more feature in the tree» would say it of a wrong
+            // plane too.
             double[] read = PlaneNormal(plane);
             var measurements = new Dictionary<string, object>
             {
@@ -160,8 +160,8 @@ namespace Oce.Solid.Agent.Core
             }
             else
             {
-                // Il verso puo' essere l'uno o l'altro: un piano non ha un
-                // sopra e un sotto. Si confronta la DIREZIONE.
+                // The direction may be one or the other: a plane has no
+                // up and down. The DIRECTION is compared.
                 double cosine = Math.Abs(
                     read[0] * expectation[0] + read[1] * expectation[1] + read[2] * expectation[2]);
                 if (cosine > 1) cosine = 1;
@@ -188,12 +188,12 @@ namespace Oce.Solid.Agent.Core
         // =================================================================
 
         /// <summary>
-        /// La normale di un piano di riferimento.
+        /// The normal of a reference plane.
         ///
-        /// `IRefPlane.Transform.ArrayData` ha sedici numeri; i primi nove sono
-        /// la rotazione. **La normale e' la terza RIGA**, indici 6, 7 e 8 —
-        /// misurato, e la terza colonna su un piano obliquo da' un vettore
-        /// girato. Vedi la nota in testa alla classe.
+        /// `IRefPlane.Transform.ArrayData` has sixteen numbers; the first nine are
+        /// the rotation. **The normal is the third ROW**, indices 6, 7 and 8 —
+        /// measured, and the third column on an oblique plane gives a turned
+        /// vector. See the note at the top of the class.
         ///
         /// One reading for the whole library since Z-C21.5:
         /// References.PlaneFrame, which the base planes are recognised by too

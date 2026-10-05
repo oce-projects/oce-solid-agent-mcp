@@ -6,25 +6,25 @@ using static Oce.Solid.Agent.Core.Catalog.Node;
 namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>
-    /// Da catalogo C# a `catalog.json`.
+    /// From the C# catalog to `catalog.json`.
     ///
-    /// Il JSON e' un PRODOTTO, non una fonte: si rigenera, non si modifica. Chi
-    /// vuole cambiare una descrizione tocca `Operations.cs` e riesporta.
+    /// The JSON is a PRODUCT, not a source: it is regenerated, not edited. Whoever
+    /// wants to change a description touches `Operations.cs` and exports again.
     /// </summary>
     public static class Export
     {
         /// <summary>
-        /// Il catalogo come lo legge il ponte.
+        /// The catalog as the bridge reads it.
         ///
-        /// **Solo le operazioni provate.** Un'operazione che compila ma non e'
-        /// mai stata eseguita su un pezzo vero non esiste, per il modello: se
-        /// entrasse in catalogo, il modello la chiederebbe e si prenderebbe un
-        /// errore per una cosa che gli era stata promessa.
+        /// **Only the proven operations.** An operation that compiles but has
+        /// never been run on a real part does not exist, for the model: if
+        /// it entered the catalog, the model would ask for it and would take an
+        /// error for something that had been promised to it.
         ///
-        /// **Solo le famiglie che hanno almeno un'operazione.** Una famiglia
-        /// dichiarata e vuota arriva al modello come una porta che non apre su
-        /// niente — ed e' un difetto gia' successo una volta, nell'esportatore
-        /// Python di prima.
+        /// **Only the families that have at least one operation.** A family
+        /// declared and empty reaches the model as a door that opens onto
+        /// nothing — and it is a defect that already happened once, in the
+        /// previous Python exporter.
         /// </summary>
         public static Node Catalog()
         {
@@ -58,17 +58,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                 "operations", A(list.ToArray()));
         }
 
-        /// <summary>Il catalogo scritto, pronto da salvare.</summary>
+        /// <summary>The catalog written, ready to be saved.</summary>
         public static string Json()
         {
             return Node.Json(Catalog());
         }
 
         /// <summary>
-        /// Le famiglie dichiarate che NON hanno nemmeno un'operazione provata.
-        /// Non e' un errore — un'operazione puo' essere in lavorazione — ma chi
-        /// esporta deve saperlo, perche' il caso normale e' che sia una
-        /// dimenticanza.
+        /// The declared families that do NOT have even one proven operation.
+        /// It is not an error — an operation may be in progress — but whoever
+        /// exports must know it, because the normal case is that it is an
+        /// oversight.
         /// </summary>
         public static List<string> FamiliesWithoutOperations()
         {
@@ -81,9 +81,9 @@ namespace Oce.Solid.Agent.Core.Catalog
         }
 
         /// <summary>
-        /// Le operazioni che il catalogo conosce ma che non sono provate.
-        /// Restano fuori dal JSON, e si dicono: un elenco che si accorcia in
-        /// silenzio non si nota.
+        /// The operations that the catalog knows but that are not proven.
+        /// They stay out of the JSON, and are reported: a list that shortens
+        /// silently goes unnoticed.
         /// </summary>
         public static List<string> NotTested()
         {

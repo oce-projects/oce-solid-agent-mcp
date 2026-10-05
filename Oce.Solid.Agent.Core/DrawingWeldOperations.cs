@@ -7,28 +7,28 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// IL SIMBOLO DI SALDATURA IN TAVOLA (voce GT7).
+    /// THE WELD SYMBOL ON THE DRAWING (entry GT7).
     ///
-    /// ── MISURATO PRIMA DI SCRIVERLO, 26/9/2026 (`prova0089 saldtav`) ────────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 saldtav`) ────────
     ///
     /// `IDrawingDoc.InsertWeldSymbol(Dim1, Symbol, Dim2, Symmetric, FieldWeld,
-    /// ShowOtherSide, DashOnTop, Peripheral, HasProcess, ProcessValue)` torna
-    /// `Void` e lavora sullo spigolo SELEZIONATO nella vista: il simbolo nasce
-    /// con la freccia sullo spigolo e la linea tratteggiata ISO sotto.
+    /// ShowOtherSide, DashOnTop, Peripheral, HasProcess, ProcessValue)` returns
+    /// `Void` and works on the edge SELECTED in the view: the symbol is born
+    /// with the arrow on the edge and the ISO dashed line below.
     ///
-    /// **Il codice del simbolo e' quello della libreria `gtol.sym`**,
-    /// `<SEZIONE-VOCE>`: il cordone d'angolo ISO e' `<WELD-FILL>` (sezione
-    /// `#WELD`, voce `*FILL`). La prima sonda aveva provato `<IGWS-FILLET>`,
-    /// `<GWS-FILLET>` e «Fillet»: il simbolo NASCEVA lo stesso, con quel testo
-    /// riletto uguale — e senza triangolo. Solo il PNG lo diceva. Con
-    /// `<WELD-FILL>` il triangolo c'e', e `GetTextCount` passa da 1 a 2: il
-    /// codice riconosciuto e' un testo in piu' (il simbolo disegnato).
+    /// **The symbol code is the one of the `gtol.sym` library**,
+    /// `<SEZIONE-VOCE>`: the ISO fillet weld is `<WELD-FILL>` (section
+    /// `#WELD`, entry `*FILL`). The first probe had tried `<IGWS-FILLET>`,
+    /// `<GWS-FILLET>` and «Fillet»: the symbol WAS BORN all the same, with that text
+    /// read back equal — and without a triangle. Only the PNG said so. With
+    /// `<WELD-FILL>` the triangle is there, and `GetTextCount` goes from 1 to 2: the
+    /// recognised code is one more text (the drawn symbol).
     ///
-    /// Lo spigolo non lo sceglie chi chiama: e' quello, fra gli spigoli visibili
-    /// della vista, in cui un corpo tocca l'altro — uno spigolo di un corpo i cui
-    /// estremi e punto medio stanno su una faccia di un ALTRO corpo. Il piu'
-    /// lungo. Una vista senza giunti visibili si rifiuta: un simbolo attaccato a
-    /// uno spigolo qualunque manderebbe il saldatore nel posto sbagliato.
+    /// The edge is not chosen by the caller: it is the one, among the visible edges
+    /// of the view, where one body touches the other — an edge of a body whose
+    /// ends and midpoint lie on a face of ANOTHER body. The longest.
+    /// A view without visible joints is refused: a symbol attached to
+    /// any edge would send the welder to the wrong place.
     /// </summary>
     public partial class SwOperations
     {
@@ -63,7 +63,7 @@ namespace Oce.Solid.Agent.Core
             bool twoSides = Bool(a, "both_sides", false);
             string annotationSide = Str(a, "side", "top");
 
-            // ── IL GIUNTO VISIBILE ──────────────────────────────────────────
+            // ── THE VISIBLE JOINT ───────────────────────────────────────────
             var part = view.ReferencedDocument as IModelDoc2;
             var partDoc = part as IPartDoc;
             if (partDoc == null)
@@ -97,9 +97,9 @@ namespace Oce.Solid.Agent.Core
             model.ClearSelection2(true);
             int after = DrawingWeldSymbols(drawing);
             IWeldSymbol ws = LastWeldSymbol(drawing, view);
-            // IL SIMBOLO NUOVO SI CONTA: senza i due conteggi letti, l'ultimo
-            // simbolo della vista potrebbe essere uno che c'era gia' (e il ramo
-            // «sbagliato» lo toglierebbe). Revisione del 26/9/2026.
+            // THE NEW SYMBOL IS COUNTED: without the two counts read, the last
+            // symbol of the view could be one that was already there (and the «wrong»
+            // branch would remove it). Review of 26/9/2026.
             if (before < 0 || after < 0)
                 return Failed("Non riesco a contare i simboli di saldatura della tavola (prima " + before + ", dopo " +
                                after + "): senza, non so se e' nato quello chiesto. Guarda la tavola.");
@@ -107,7 +107,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed("SOLIDWORKS non ha creato il simbolo di saldatura e non ha detto perche' (simboli in " +
                                "tavola: " + before + " prima, " + after + " dopo).");
 
-            // ── RILETTO ─────────────────────────────────────────────────────
+            // ── READ BACK ───────────────────────────────────────────────────
             string readSymbol = null, readLeft = null, readRight = null;
             int texts = -1, arrows = -1, attached = -1;
             bool readPerimeter = false; int readField = -1, readSymmetric = -1;
@@ -142,8 +142,8 @@ namespace Oce.Solid.Agent.Core
             if (textsWrong != null) wrong.Add(textsWrong);
             if (wrong.Count > 0)
             {
-                // UN SIMBOLO SBAGLIATO NON SI LASCIA IN TAVOLA: si stampa e manda il
-                // saldatore a fare un'altra saldatura. Removed through
+                // A WRONG SYMBOL IS NOT LEFT ON THE DRAWING: it gets printed and sends the
+                // welder to make another weld. Removed through
                 // RemoveNewAnnotation, next to the tolerance frame: «removed» is
                 // said only when the weld symbols of the drawing, counted again,
                 // are back to the count before the insertion (Z-C21.8, M38).
@@ -199,8 +199,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Lo spigolo visibile piu' lungo in cui un corpo tocca l'altro: inizio,
-        /// meta' e fine su una faccia di un ALTRO corpo, entro un millesimo di mm.
+        /// The longest visible edge where one body touches the other: start,
+        /// midpoint and end on a face of ANOTHER body, within a thousandth of a mm.
         /// </summary>
         private static bool VisibleJoint(IView view, object[] bodies, out IEdge joint, out double lengthMm)
         {
@@ -251,7 +251,7 @@ namespace Oce.Solid.Agent.Core
             return joint != null;
         }
 
-        /// <summary>Quanti simboli di saldatura ha la tavola, vista per vista; -1 se non si legge.</summary>
+        /// <summary>How many weld symbols the drawing has, view by view; -1 if it cannot be read.</summary>
         private static int DrawingWeldSymbols(IDrawingDoc drawing)
         {
             try
@@ -265,10 +265,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ultimo simbolo di saldatura della vista (quello appena messo); se la
-        /// vista non ne ha, l'ultimo di tutta la tavola, foglio compreso — la
-        /// sonda li ha trovati cercando in tutte le viste, e dove SOLIDWORKS lo
-        /// registri non e' misurato caso per caso. Null se non ce n'e'.
+        /// The last weld symbol of the view (the one just put); if the
+        /// view has none, the last of the whole drawing, sheet included — the
+        /// probe found them by searching all the views, and where SOLIDWORKS
+        /// registers it is not measured case by case. Null if there is none.
         /// </summary>
         private static IWeldSymbol LastWeldSymbol(IDrawingDoc drawing, IView view)
         {

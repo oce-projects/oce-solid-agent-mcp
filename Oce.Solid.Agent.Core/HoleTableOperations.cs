@@ -8,9 +8,9 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA TABELLA FORI IN TAVOLA (voce GT5).
+    /// THE HOLE TABLE ON THE DRAWING (entry GT5).
     ///
-    /// ── MISURATA PRIMA DI SCRIVERLA, 26/9/2026 (`prova0089 tabellafori`) ────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 tabellafori`) ────
     ///
     /// `IView.InsertHoleTable2(UseAnchorPoint, X, Y, AnchorType, StartValue,
     /// TableTemplate)`, and `InsertHoleTable3` that replaces it since Z-C21.7,
@@ -30,14 +30,14 @@ namespace Oce.Solid.Agent.Core
     /// reads every row back against the model: the position of each hole from
     /// the origin, measured on the view, must be in the table.
     ///
-    /// Il 17/9 nessuna tabella nasceva su questa installazione (GT2): il 26/9
-    /// nascono tutte tranne la distinta di taglio. Vedi la voce GT2 del TODO.
+    /// On 17/9 no table was born on this installation (GT2): on 26/9 they
+    /// are all born except the cut list. See entry GT2 of the TODO.
     /// </summary>
     public partial class SwOperations
     {
         private sealed class HoleInView
         {
-            public double X, Y;          // centro sul foglio, metri
+            public double X, Y;          // centre on the sheet, metres
             public double DiameterMm;
         }
 
@@ -81,11 +81,11 @@ namespace Oce.Solid.Agent.Core
             try { scale = view.ScaleDecimal; } catch { }
             if (scale <= 0) scale = 1;
 
-            // ── LA FACCIA FORATA CHE GUARDA CHI LEGGE ───────────────────────
+            // ── THE DRILLED FACE THAT FACES WHOEVER READS ───────────────────
             //
-            // Fra le facce piane del pezzo dietro la vista, quelle la cui normale,
-            // portata sul foglio, esce verso chi guarda (z > 0,99); di queste, quella
-            // con piu' anelli interni fatti di cerchi — i fori.
+            // Among the planar faces of the part behind the view, those whose normal,
+            // brought onto the sheet, points towards the viewer (z > 0.99); of these, the one
+            // with the most inner rings made of circles — the holes.
             var part = view.ReferencedDocument as IModelDoc2;
             var partDoc = part as IPartDoc;
             if (partDoc == null)
@@ -122,7 +122,7 @@ namespace Oce.Solid.Agent.Core
                                "la tabella fori si fa sulla vista in cui i fori si vedono come cerchi (di solito " +
                                "quella dall'alto, V2).");
 
-            // ── L'ORIGINE: il vertice del contorno esterno piu' nell'angolo chiesto ──
+            // ── THE ORIGIN: the vertex of the outer outline nearest the corner asked for ──
             IVertex vertex = null;
             double vx = 0, vy = 0, better = double.MinValue;
             try
@@ -144,7 +144,7 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (vertex == null) return Failed("Non trovo un vertice d'angolo sulla faccia forata.");
 
-            // ── DOVE VA LA TABELLA: in alto a sinistra del foglio, se non si dice ──
+            // ── WHERE THE TABLE GOES: top left of the sheet, if not told otherwise ──
             double sheetWidth = 0.420, sheetHeight = 0.297;
             try
             {
@@ -201,8 +201,8 @@ namespace Oce.Solid.Agent.Core
 
             int lines = -1;
             try { lines = table.RowCount; } catch { }
-            // NATA VUOTA: e' cio' che succede coi marchi sbagliati, misurato. Una
-            // tabella di sola intestazione si stampa e sembra che il pezzo non abbia fori.
+            // BORN EMPTY: it is what happens with the wrong marks, measured. A
+            // table with only the header gets printed and makes it look as if the part has no holes.
             if (lines != holes.Count + 1)
             {
                 string removed = RemoveTable(model, drawing, table, tablesBefore);
@@ -211,7 +211,7 @@ namespace Oce.Solid.Agent.Core
                     "(l'intestazione piu' un foro per riga).{3}", lines, holes.Count, holes.Count + 1, removed));
             }
 
-            // ── LA RILETTURA: ogni riga contro il modello ───────────────────
+            // ── THE REREAD: every row against the model ─────────────────────
             var entries = new List<object>();
             int match = 0;
             for (int r = 1; r < lines; r++)
@@ -259,11 +259,11 @@ namespace Oce.Solid.Agent.Core
                 ["tables_in_drawing"] = DrawingTables(drawing),
             };
             if (!string.IsNullOrEmpty(tableModel)) measurements["table_template"] = tableModel;
-            // I FORI DUE VOLTE (26/9/2026, la prima tavola guardata con la tabella):
-            // se la vista aveva gia' i richiami dei fori, la tabella li ripete.
-            // «Ciascun elemento si quota una volta sola»: lo si dice. Nell'ordine
-            // giusto — tabella prima, poi drawing_dimension — non succede, perche'
-            // drawing_dimension lascia i fori alla tabella.
+            // THE HOLES TWICE (26/9/2026, the first drawing looked at with the table):
+            // if the view already had the hole callouts, the table repeats them.
+            // «Each element is dimensioned only once»: it is stated. In the right
+            // order — table first, then drawing_dimension — it does not happen, because
+            // drawing_dimension leaves the holes to the table.
             if (calloutsBefore > 0)
                 measurements["warning"] = "Nella vista c'erano gia' " + calloutsBefore + " richiami di foro (e di solito le " +
                                        "quote di posizione dei fori): con la tabella i fori sono quotati due volte. " +
@@ -272,8 +272,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I fori di una faccia: gli anelli interni fatti di un cerchio intero,
-        /// col centro portato sul foglio.
+        /// The holes of a face: the inner rings made of a whole circle,
+        /// with the centre brought onto the sheet.
         /// </summary>
         private static List<HoleInView> FaceHoles(IFace2 f, Func<double[], double[]> onSheet)
         {
@@ -288,7 +288,7 @@ namespace Oce.Solid.Agent.Core
                     if (edges == null || edges.Length == 0) continue;
                     var curva = (edges[0] as IEdge)?.GetCurve() as ICurve;
                     if (curva == null || !curva.IsCircle()) continue;
-                    var cp = curva.CircleParams as double[];   // centro x,y,z, asse, raggio
+                    var cp = curva.CircleParams as double[];   // centre x,y,z, axis, radius
                     if (cp == null || cp.Length < 7) continue;
                     var c = onSheet(new[] { cp[0], cp[1], cp[2] });
                     outside.Add(new HoleInView { X = c[0], Y = c[1], DiameterMm = cp[6] * 2000.0 });
@@ -299,15 +299,15 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti fori elencano le tabelle fori del foglio corrente (righe meno
-        /// l'intestazione); 0 se non ce ne sono, -1 se non si legge.
+        /// How many holes the hole tables of the current sheet list (rows minus
+        /// the header); 0 if there are none, -1 if it cannot be read.
         ///
-        /// SI GUARDA TUTTO IL FOGLIO, NON LA VISTA. Misurato il 26/9/2026: la
-        /// tabella fori messa sulla vista dall'alto appartiene al FOGLIO (la
-        /// «view» zero di `GetFirstView`), non alla vista — cercandola nella
-        /// vista, `drawing_dimension` non la vedeva e quotava i fori una seconda
-        /// volta. Una tavola e' di un pezzo: una tabella fori sul foglio copre i
-        /// fori delle sue viste.
+        /// THE WHOLE SHEET IS LOOKED AT, NOT THE VIEW. Measured on 26/9/2026: the
+        /// hole table put on the top view belongs to the SHEET (the
+        /// «view» zero of `GetFirstView`), not to the view — looking for it in the
+        /// view, `drawing_dimension` did not see it and dimensioned the holes a second
+        /// time. A drawing is of one part: a hole table on the sheet covers the
+        /// holes of its views.
         /// </summary>
         private static int HolesInHoleTable(IDrawingDoc drawing)
         {
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.Core
             catch { return -1; }
         }
 
-        /// <summary>Quanti richiami di foro ha gia' una vista; -1 se non si legge.</summary>
+        /// <summary>How many hole callouts a view already has; -1 if it cannot be read.</summary>
         private static int HoleCalloutsInView(IView view)
         {
             try
@@ -347,7 +347,7 @@ namespace Oce.Solid.Agent.Core
             catch { return -1; }
         }
 
-        /// <summary>Quante tabelle ha la tavola, contate vista per vista; -1 se non si legge.</summary>
+        /// <summary>How many tables the drawing has, counted view by view; -1 if it cannot be read.</summary>
         private static int DrawingTables(IDrawingDoc drawing)
         {
             try
@@ -361,9 +361,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie una tabella nata sbagliata e dice come e' andata: la coda della
-        /// frase di rifiuto. Si conta prima e dopo, perche' «ho cancellato» detto
-        /// senza rileggere non e' una misura.
+        /// Removes a table born wrong and says how it went: the tail of the
+        /// refusal sentence. It is counted before and after, because «I deleted it» said
+        /// without rereading is not a measurement.
         /// </summary>
         private static string RemoveTable(IModelDoc2 model, IDrawingDoc drawing, ITableAnnotation table, int before)
         {
@@ -371,10 +371,10 @@ namespace Oce.Solid.Agent.Core
             {
                 var ann = table.GetAnnotation() as IAnnotation;
                 model.ClearSelection2(true);
-                // DeleteSelection2 E NON EditDelete: EditDelete chiede conferma con
-                // una finestra, e la chiamata COM non torna (vedi SwOperations,
-                // WithoutSketch). Era l'unica rimasta, trovata dal workflow W-S il
-                // 27/9/2026; adesso il divieto e' in Tests/ForbiddenSignaturesTests.
+                // DeleteSelection2 AND NOT EditDelete: EditDelete asks for confirmation with
+                // a window, and the COM call does not return (see SwOperations,
+                // WithoutSketch). It was the only one left, found by workflow W-S on
+                // 27/9/2026; now the ban is in Tests/ForbiddenSignaturesTests.
                 if (ann != null && ann.Select3(false, null))
                     model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                 model.ClearSelection2(true);
@@ -390,7 +390,7 @@ namespace Oce.Solid.Agent.Core
             try { return t.get_Text(r, c) ?? ""; } catch { return ""; }
         }
 
-        /// <summary>Il testo di una cella senza i codici di formato: «&lt;MOD-DIAM&gt;» diventa «Ø».</summary>
+        /// <summary>The text of a cell without the format codes: «&lt;MOD-DIAM&gt;» becomes «Ø».</summary>
         private static string CleanCell(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
@@ -400,9 +400,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il primo modello di tabella nelle cartelle che SOLIDWORKS dichiara per
-        /// quel tipo; vuoto se non ce n'e'. Si chiede, non si scrive a mano (voce
-        /// GT5: la costante giusta serve a fare la domanda, non a saltarla).
+        /// The first table template in the folders SOLIDWORKS declares for
+        /// that type; empty if there is none. It is asked for, not written by hand (entry
+        /// GT5: the right constant serves to ask the question, not to skip it).
         /// </summary>
         private string FirstTableModel(int preference, string ext)
         {

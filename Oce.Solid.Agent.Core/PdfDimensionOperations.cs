@@ -7,28 +7,28 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE QUOTE DELLA TAVOLA ARRIVANO NEL PDF? (voce Z-C9, la meta' «oggetti»).
+    /// DO THE DIMENSIONS OF THE DRAWING REACH THE PDF? (entry Z-C9, the «objects» half).
     ///
-    /// I contatori contano NEL DOCUMENTO: una quota su un livello che non si
-    /// stampa, o in una vista nascosta, conta e in officina non arriva. Il PDF e'
-    /// l'unico punto in cui si misura cio' che l'officina riceve davvero.
+    /// The counters count IN THE DOCUMENT: a dimension on a layer that is not
+    /// printed, or in a hidden view, counts and does not reach the workshop. The PDF is
+    /// the only point where what the workshop really receives is measured.
     ///
-    /// La misura: i NUMERI che le quote stampano (il testo di ogni quota, da
-    /// `IDisplayData`, spezzato nei suoi numeri: «10 H7 +0,015 0» da' 10, 0,015,
-    /// 0) contati per valore; nel testo del PDF (`PdfText`) ogni valore deve
-    /// comparire ALMENO tante volte quante lo stampano le quote. Il PDF ha anche
-    /// altri numeri (il cartiglio, le tolleranze generali): per questo «almeno»
-    /// e non «uguale» — un numero in piu' non dice niente, uno in meno e' una
-    /// quota che non e' arrivata.
+    /// The measurement: the NUMBERS the dimensions print (the text of every dimension, from
+    /// `IDisplayData`, split into its numbers: «10 H7 +0,015 0» gives 10, 0,015,
+    /// 0) counted by value; in the text of the PDF (`PdfText`) each value must
+    /// appear AT LEAST as many times as the dimensions print it. The PDF has also
+    /// other numbers (the title block, the general tolerances): that is why «at least»
+    /// and not «equal» — one number more says nothing, one less is a
+    /// dimension that did not arrive.
     /// </summary>
     public partial class SwOperations
     {
         private static readonly Regex NumberInText = new Regex(@"\d+(?:[.,]\d+)?", RegexOptions.Compiled);
 
         /// <summary>
-        /// I numeri stampati dalle quote della tavola, per valore -> quante volte.
-        /// `withoutText`: le quote di cui il testo non si legge — NON controllate,
-        /// e si dice (un controllo che salta in silenzio sembra un controllo passato).
+        /// The numbers printed by the dimensions of the drawing, by value -> how many times.
+        /// `withoutText`: the dimensions whose text cannot be read — NOT checked,
+        /// and it is stated (a check that skips silently looks like a check passed).
         /// </summary>
         private static Dictionary<string, int> DimensionNumbers(IDrawingDoc drawing, out int quote, out int withoutText)
         {
@@ -47,9 +47,9 @@ namespace Oce.Solid.Agent.Core
                         try
                         {
                             var data = dd.GetDisplayData() as IDisplayData;
-                            // ZERO-E-ZERO: senza IDisplayData la quota non ha testi da
-                            // cercare nel PDF — zero testi e' il limite del ciclo, non una
-                            // misura. Quella quota resta NON controllata, e si conta.
+                            // ZERO-E-ZERO: without IDisplayData the dimension has no texts to
+                            // look for in the PDF — zero texts is the limit of the loop, not a
+                            // measurement. That dimension stays NOT checked, and is counted.
                             int n = data == null ? 0 : data.GetTextCount();
                             if (n <= 0) withoutText++;
                             for (int i = 0; i < n; i++)
@@ -69,7 +69,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>Un numero scritto con la virgola o col punto, e senza zeri inutili.</summary>
+        /// <summary>A number written with a comma or a point, and without useless zeros.</summary>
         private static string Normalize(string s)
         {
             s = s.Replace(',', '.');
@@ -79,8 +79,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il confronto: per ogni numero delle quote, quante volte nel PDF.
-        /// Torna i numeri che nel PDF compaiono meno volte che sulla tavola.
+        /// The comparison: for every number of the dimensions, how many times in the PDF.
+        /// Returns the numbers that appear fewer times in the PDF than on the drawing.
         /// </summary>
         private static List<string> DimensionsMissingInPdf(Dictionary<string, int> expectedValues, string pdfText)
         {

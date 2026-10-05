@@ -8,48 +8,48 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA DISTINTA DI TAGLIO IN TAVOLA (voce GT2).
+    /// THE CUT LIST IN THE DRAWING (entry GT2).
     ///
-    /// ── PERCHE' E' LA VOCE COL RAPPORTO MIGLIORE ────────────────────────
+    /// ── WHY IT IS THE ENTRY WITH THE BEST RATIO ─────────────────────────
     ///
-    /// Il calcolo difficile — lunghezze e quantita' dei profili di una
-    /// carpenteria — **e' gia' fatto e misurato** da `cut_list`. Qui si
-    /// porta quel dato in tavola. E soprattutto: **la fonte di verita'
-    /// indipendente esiste gia'**, quindi la tabella non si dichiara inserita,
-    /// si CONFRONTA.
+    /// The hard calculation — lengths and quantities of the profiles of a
+    /// steelwork — **is already done and measured** by `cut_list`. Here that datum is
+    /// brought into the drawing. And above all: **the independent source of
+    /// truth already exists**, so the table is not declared inserted,
+    /// it is COMPARED.
     ///
-    /// ── LA FIRMA CHE LA VOCE CHIEDEVA DI TROVARE ────────────────────────
+    /// ── THE SIGNATURE THAT THE ENTRY ASKED TO FIND ──────────────────────
     ///
-    /// La voce diceva: *«`InsertTableAnnotation2` con TableTemplate di tipo
-    /// WeldmentCutList, **oppure** `IWeldmentCutListAnnotation` se espone un
-    /// inserimento diretto — da verificare quale»*. **Nessuna delle due.**
+    /// The entry said: *«`InsertTableAnnotation2` with a TableTemplate of type
+    /// WeldmentCutList, **or** `IWeldmentCutListAnnotation` if it exposes a
+    /// direct insertion — to be verified which»*. **Neither of the two.**
     ///
     ///     IView :: WeldmentCutListAnnotation InsertWeldmentTable(
     ///         Boolean UseAnchorPoint, Double X, Double Y, Int32 AnchorType,
     ///         String Configuration, String TableTemplate)
     ///
-    /// Sta su `IView` — quarta volta in due giorni che una tabella sta su
-    /// un'interfaccia diversa da quella che il nome suggerisce (distinta su
-    /// `IView`, tabella fori su `IView`, tabella revisioni su `ISheet`).
-    /// `IWeldmentCutListAnnotation` ha **sette metodi e nessuno tocca le
-    /// celle**: per leggere il contenuto si passa da `ITableAnnotation`, che lo
-    /// stesso oggetto implementa.
+    /// It is on `IView` — the fourth time in two days that a table is on
+    /// an interface different from the one the name suggests (bill of materials on
+    /// `IView`, hole table on `IView`, revision table on `ISheet`).
+    /// `IWeldmentCutListAnnotation` has **seven methods and none touches the
+    /// cells**: to read the content one goes through `ITableAnnotation`, which the
+    /// same object implements.
     ///
-    /// ── LA COLONNA DELLE QUANTITA' NON SI INDOVINA ──────────────────────
+    /// ── THE QUANTITY COLUMN IS NOT GUESSED ──────────────────────────────
     ///
-    /// `GetColumnCustomProperty(i)` dice **quale proprieta' sta dietro a ogni
-    /// colonna**. Cercare la colonna «QTY» per posizione, o per intestazione,
-    /// vorrebbe dire sommare la colonna sbagliata su un modello di tabella
-    /// diverso da quello di casa — e una distinta con le quantita' della
-    /// colonna «lunghezza» e' plausibile, si stampa, e in officina si taglia
-    /// il numero sbagliato di barre.
+    /// `GetColumnCustomProperty(i)` says **which property is behind each
+    /// column**. Looking for the column «QTY» by position, or by header,
+    /// would mean summing the wrong column on a table template
+    /// different from the house one — and a cut list with the quantities of the
+    /// column «lunghezza» is plausible, gets printed, and in the workshop the
+    /// wrong number of bars is cut.
     ///
-    /// ── E IL CONFRONTO, CHE E' IL PUNTO ────────────────────────────────
+    /// ── AND THE COMPARISON, WHICH IS THE POINT ──────────────────────────
     ///
-    /// La tabella dice quante barre ci sono. Il pezzo lo sa gia', per conto
-    /// suo, dalle cartelle di distinta (`GetBodyCount`). **Due letture
-    /// indipendenti dello stesso fatto**: se divergono, una delle due mente e
-    /// non si sa quale — e lo si dice invece di scegliere la piu' comoda.
+    /// The table says how many bars there are. The part already knows, on its
+    /// own, from the cut list folders (`GetBodyCount`). **Two independent
+    /// readings of the same fact**: if they diverge, one of the two lies and
+    /// it is not known which — and this is said instead of choosing the more convenient.
     /// </summary>
     public partial class SwOperations
     {
@@ -67,10 +67,10 @@ namespace Oce.Solid.Agent.Core
                     "La tavola non ha viste: una distinta di taglio si aggancia a una " +
                     "vista del pezzo. Mettine una con «standard_views».");
 
-            // LA VISTA COME LE ALTRE OPERAZIONI DI TAVOLA: per uid (V1, V2...) o
-            // per nome. Fino alla 0.124.0 solo per nome — «V1», come la chiama lo
-            // stato, rispondeva «non c'e'» (visto dal primo caso di banco che
-            // l'ha chiamata, 26/9/2026).
+            // THE VIEW LIKE THE OTHER DRAWING OPERATIONS: by uid (V1, V2...) or
+            // by name. Up to 0.124.0 only by name — «V1», as the state calls it,
+            // answered «non c'e'» (seen by the first bench case that
+            // called it, 26/9/2026).
             string reason;
             var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
             if (reason != null) return Failed(reason);
@@ -80,11 +80,11 @@ namespace Oce.Solid.Agent.Core
             string viewName = null;
             try { viewName = view.Name; } catch { }
 
-            // ── IL PEZZO DIETRO LA VISTA, E LA SUA DISTINTA ─────────────
+            // ── THE PART BEHIND THE VIEW, AND ITS CUT LIST ──────────────
             //
-            // Si legge PRIMA di inserire: e' il numero con cui si confrontera'
-            // la tabella, e prenderlo dopo vorrebbe dire prenderlo da un
-            // documento che l'inserimento potrebbe aver toccato.
+            // It is read BEFORE inserting: it is the number against which the table will be
+            // compared, and taking it afterwards would mean taking it from a
+            // document that the insertion might have touched.
             int bodiesInPart = -1;
             string partPath = null;
             try
@@ -126,7 +126,7 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 raw = view.InsertWeldmentTable(
-                    false,              // UseAnchorPoint: si mette dove si dice
+                    false,              // UseAnchorPoint: it is placed where it is said
                     x, y,
                     (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft,
                     configuration ?? "",
@@ -142,9 +142,9 @@ namespace Oce.Solid.Agent.Core
                     "Di solito vuol dire che il pezzo dietro la vista non e' un saldato " +
                     "con una distinta di taglio.");
 
-            // Lo stesso oggetto COM implementa tutt'e due le interfacce: quella
-            // della distinta (sette metodi, nessuno sulle celle) e quella della
-            // tabella (le celle). Si prendono tutt'e due.
+            // The same COM object implements both interfaces: that
+            // of the cut list (seven methods, none on the cells) and that of the
+            // table (the cells). Both are taken.
             var cutList = raw as IWeldmentCutListAnnotation;
             var table = raw as ITableAnnotation;
             if (table == null)
@@ -162,21 +162,21 @@ namespace Oce.Solid.Agent.Core
                     "distinta, perche' si stampa e sembra che la carpenteria non abbia " +
                     "bars.");
 
-            // ── LA COLONNA DELLE QUANTITA', CHIESTA E NON INDOVINATA ────
+            // ── THE QUANTITY COLUMN, ASKED FOR AND NOT GUESSED ──────────
             //
-            // PRIMA PER TIPO, POI PER NOME (voce Z-C21.2, rilievo L16-8).
+            // FIRST BY TYPE, THEN BY NAME (entry Z-C21.2, finding L16-8).
             // IWeldmentCutListAnnotation~GetColumnCustomProperty.html, Remarks:
             // «This method returns an empty string if the column is not a
-            // user-defined column». La QTY del modello di tabella predefinito
-            // (template "", cioe' «cut list.sldwldtbt») puo' essere una colonna di
-            // TIPO quantita', non definita dall'utente: cercandola solo per nome
-            // della proprieta' restava -1, il confronto con la distinta del pezzo
-            // — la ragione per cui l'operazione esiste — saltava, e la risposta
-            // era un successo con una nota in fondo. Il tipo si legge con
+            // user-defined column». The QTY of the default table template
+            // (template "", that is «cut list.sldwldtbt») can be a column of
+            // quantity TYPE, not user-defined: looked for only by property
+            // name it stayed -1, the comparison with the cut list of the part
+            // — the reason why the operation exists — was skipped, and the answer
+            // was a success with a note at the bottom. The type is read with
             // ITableAnnotation~GetColumnType2.html («Type of column as defined by
-            // swTableColumnTypes_e»; swWeldTableColumnType_Quantity = 402), come
-            // fa gia' ColumnsAndPosition qui sotto. Il nome «QUANTITY» resta il
-            // ripiego: il modello dell'officina ha le QTY come proprieta'.
+            // swTableColumnTypes_e»; swWeldTableColumnType_Quantity = 402), as
+            // ColumnsAndPosition already does below. The name «QUANTITY» stays the
+            // fallback: the workshop template has the QTY as properties.
             int quantityColumn = -1;
             string asFound = null;
             var columnProperty = new List<string>();
@@ -209,8 +209,8 @@ namespace Oce.Solid.Agent.Core
             var headers = new List<string>();
             for (int c = 0; c < columns; c++) headers.Add(Cell(table, 0, c));
 
-            // Le righe, come testo. Non si interpreta niente: si riporta cosa
-            // c'e' scritto, che e' quello che finisce sul foglio.
+            // The rows, as text. Nothing is interpreted: what is written is
+            // reported, which is what ends up on the sheet.
             var entries = new List<object>();
             int totalQuantity = 0;
             bool quantityRead = quantityColumn >= 0;
@@ -243,23 +243,23 @@ namespace Oce.Solid.Agent.Core
             if (!string.IsNullOrWhiteSpace(partPath)) measurements["part"] = partPath;
             if (bodiesInPart >= 0) measurements["bodies_in_part_cut_list"] = bodiesInPart;
             if (quantityRead) measurements["quantity_in_table"] = totalQuantity;
-            // CAMPI DEDICATI, non una frase in fondo (rilievo L16-8). Nomi nuovi,
-            // in inglese come i prossimi del ponte: come si e' trovata la colonna
-            // delle quantita' («type», «name» o null) e se il confronto con la
-            // distinta del pezzo e' stato fatto.
+            // DEDICATED FIELDS, not a sentence at the end (finding L16-8). New names,
+            // in English like the next ones of the bridge: how the quantity column
+            // was found («type», «name» or null) and whether the comparison with the
+            // cut list of the part was made.
             measurements["quantity_column_found_by"] = asFound == "tipo" ? "type" : asFound == "nome" ? "name" : null;
             measurements["comparison_done"] = quantityRead && bodiesInPart > 0;
 
-            // ── LE COLONNE CHE SERVONO, E UN POSTO SUL FOGLIO ───────────
+            // ── THE COLUMNS THAT ARE NEEDED, AND A PLACE ON THE SHEET ───
             //
-            // VISTO NEL PNG il 26/9/2026, col banco verde: il modello di tabella
-            // dell'officina ha 17 colonne (autore, codice, trattamento, stato di
-            // fornitura, QUANTITY e TOTAL LENGTH doppioni...), e la tabella messa
-            // a 250/200 usciva dal foglio dopo la quarta. Le righe si leggevano
-            // tutte — il controllo guardava le celle, non dove cadevano.
-            // Si leggono prima (sopra) con tutte le colonne; poi si nascondono
-            // quelle che in officina non servono, si misura la tabella e la si
-            // mette in un posto libero dentro la cornice.
+            // SEEN IN THE PNG on 26/9/2026, with the bench green: the workshop's
+            // table template has 17 columns (author, code, treatment, supply
+            // state, QUANTITY and TOTAL LENGTH duplicates...), and the table put
+            // at 250/200 ran off the sheet after the fourth. The rows could all be
+            // read — the check looked at the cells, not at where they fell.
+            // They are read first (above) with all the columns; then those that
+            // are not needed in the workshop are hidden, the table is measured and it is
+            // put in a free place inside the frame.
             string placeReason;
             if (!ColumnsAndPosition(drawing, table, columns, columnProperty, headers, a, measurements, out placeReason))
             {
@@ -267,11 +267,11 @@ namespace Oce.Solid.Agent.Core
                 return Failed(placeReason + (removed ? " Ho tolto la tabella." : " Togli la tabella: " + Sentences.HowToWithdrawIt + "."));
             }
 
-            // ── IL CONFRONTO ───────────────────────────────────────────
+            // ── THE COMPARISON ─────────────────────────────────────────
             //
-            // E' la ragione per cui questa voce valeva la pena: la seconda
-            // lettura esisteva gia'. Non si sceglie quale delle due credere —
-            // si dice che non combaciano.
+            // It is the reason why this entry was worth it: the second
+            // reading already existed. It is not chosen which of the two to believe —
+            // it is said that they do not match.
             if (quantityRead && bodiesInPart > 0)
             {
                 measurements["match"] = totalQuantity == bodiesInPart;
@@ -311,9 +311,9 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Una cella come testo. `get_Text` puo' alzare su una cella unita o
-        /// fuori misura: vuoto, e chi legge vede una cella vuota invece di
-        /// perdere tutta la tabella.
+        /// A cell as text. `get_Text` can raise on a merged or
+        /// out-of-range cell: empty, and whoever reads sees an empty cell instead of
+        /// losing the whole table.
         /// </summary>
         private static string Cell(ITableAnnotation t, int line, int column)
         {
@@ -322,9 +322,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le proprieta' di colonna che in officina servono per tagliare: la
-        /// lunghezza, i due angoli, la descrizione (il profilo). Col numero di voce
-        /// e la quantita', che sono colonne di TIPO (`swWeldTableColumnType_*`).
+        /// The column properties that are needed in the workshop to cut: the
+        /// length, the two angles, the description (the profile). With the item number
+        /// and the quantity, which are columns of TYPE (`swWeldTableColumnType_*`).
         /// </summary>
         private static readonly HashSet<string> WorkshopColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -332,17 +332,17 @@ namespace Oce.Solid.Agent.Core
         };
 
         /// <summary>
-        /// Nasconde le colonne che non servono (o tiene quelle chieste con
-        /// «columns»), misura la tabella e la mette in un posto libero del
-        /// foglio: dentro la cornice, fuori dalle viste e dal cartiglio. False
-        /// col motivo se il posto non c'e' o se una colonna chiesta non esiste.
+        /// Hides the columns that are not needed (or keeps those asked for with
+        /// «columns»), measures the table and puts it in a free place of the
+        /// sheet: inside the frame, outside the views and the title block. False
+        /// with the reason if the place is not there or if a column asked for does not exist.
         /// </summary>
         private static bool ColumnsAndPosition(IDrawingDoc drawing, ITableAnnotation table, int columns,
                                           List<string> property, List<string> headers,
                                           Dictionary<string, object> a, Dictionary<string, object> measurements, out string reason)
         {
             reason = null;
-            // ── 1. QUALI COLONNE ────────────────────────────────────────────
+            // ── 1. WHICH COLUMNS ────────────────────────────────────────────
             var requestedItems = StringList(a, "columns");
             bool all = requestedItems.Any(c => string.Equals((c ?? "").Trim(), "all", StringComparison.OrdinalIgnoreCase));
             var keep = new bool[columns];
@@ -374,20 +374,20 @@ namespace Oce.Solid.Agent.Core
                                 WorkshopColumns.Contains((property[c] ?? "").Trim());
                     if (keep[c]) held++;
                 }
-                // Un modello di tabella che non si riconosce resta com'e': meglio
-                // tutte le colonne che una tabella senza lunghezze.
+                // A table template that is not recognised stays as it is: better
+                // all the columns than a table without lengths.
                 if (held < 3) for (int c = 0; c < columns; c++) keep[c] = true;
             }
             var visible = new List<string>();
             var hiddenOnes = new List<string>();
-            for (int c = columns - 1; c >= 0; c--)   // dall'ultima: nascondere non sposta quelle prima
+            for (int c = columns - 1; c >= 0; c--)   // from the last one: hiding does not move those before
             {
                 if (keep[c]) continue;
                 try { table.ColumnHidden[c] = true; } catch { }
             }
-            // SI RILEGGONO (revisione del 26/9/2026): un'assegnazione ignorata
-            // lascerebbe in tavola tutte e 17 le colonne con la risposta che dice
-            // il contrario.
+            // THEY ARE READ BACK (review of 26/9/2026): an ignored assignment
+            // would leave all 17 columns in the drawing with the answer saying
+            // the opposite.
             for (int c = 0; c < columns; c++)
             {
                 bool hidden = false;
@@ -403,7 +403,7 @@ namespace Oce.Solid.Agent.Core
             measurements["columns_visible"] = visible.ToArray();
             measurements["columns_hidden"] = hiddenOnes.ToArray();
 
-            // ── 2. QUANTO E' GRANDE ─────────────────────────────────────────
+            // ── 2. HOW BIG IT IS ────────────────────────────────────────────
             double w = 0, h = 0;
             try
             {
@@ -428,7 +428,7 @@ namespace Oce.Solid.Agent.Core
             double px, py; string location;
             if (requested)
             {
-                // x_mm/y_mm sono l'angolo in ALTO a sinistra della tabella.
+                // x_mm/y_mm are the TOP left corner of the table.
                 px = Units.M(Num(a, "x_mm", 250)); py = Units.M(Num(a, "y_mm", 200));
                 string why = sheet.Touches(px, py - h, px + w, py);
                 if (why != null)
@@ -450,7 +450,7 @@ namespace Oce.Solid.Agent.Core
                         "cartiglio. Nascondi colonne con «columns», oppure usa un foglio piu' grande.", w * 1000, h * 1000);
                     return false;
                 }
-                px = down[0]; py = down[1] + h;   // l'ancora e' in alto a sinistra
+                px = down[0]; py = down[1] + h;   // the anchor is at the top left
             }
             double[] read = null;
             try
@@ -473,8 +473,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie la tabella appena messa. `DeleteSelection2` e non `EditDelete`
-        /// (la seconda puo' aprire una finestra di conferma).
+        /// Removes the table just put. `DeleteSelection2` and not `EditDelete`
+        /// (the second can open a confirmation window).
         /// </summary>
         private static bool RemoveCutTable(IModelDoc2 model, ITableAnnotation table)
         {
@@ -491,8 +491,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti corpi stanno nelle cartelle di distinta di taglio del pezzo.
-        /// `-1` quando non si e' potuto leggere — che non e' zero.
+        /// How many bodies are in the cut list folders of the part.
+        /// `-1` when it could not be read — which is not zero.
         ///
         /// ONE WELDMENT ONLY (Z-C21.4, finding M32, open). The walk is
         /// FirstFeature / GetNextFeature, the top of the tree: the cut-list

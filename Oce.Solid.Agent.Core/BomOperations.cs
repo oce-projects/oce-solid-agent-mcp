@@ -8,29 +8,29 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA DISTINTA BASE E LA BOLLATURA IN TAVOLA (voce GT9).
+    /// THE BILL OF MATERIALS AND THE BALLOONING IN THE DRAWING (entry GT9).
     ///
-    /// «Bollatura» e' il nome d'officina dei palloncini coi numeri di voce
-    /// (deciso il 26/9/2026): l'operazione si chiama cosi'.
+    /// «Bollatura» is the workshop name for the balloons with the item numbers
+    /// (decided on 26/9/2026): the operation is named after it.
     ///
     /// `IView.InsertBomTable4(UseAnchorPoint, X, Y, AnchorType, BomType,
     /// Configuration, TableTemplate, Hidden, IndentedNumberingType,
-    /// DetailedCutList)` sta sulla VISTA; `IDrawingDoc.AutoBalloon5` prende un
-    /// `AutoBalloonOptions` costruito con `CreateAutoBalloonOptions` (la forma con
-    /// l'oggetto: un errore di posizione fra nove argomenti non da' eccezione, da'
-    /// un disegno diverso).
+    /// DetailedCutList)` lives on the VIEW; `IDrawingDoc.AutoBalloon5` takes an
+    /// `AutoBalloonOptions` built with `CreateAutoBalloonOptions` (the form with
+    /// the object: a position error among nine arguments gives no exception, it gives
+    /// a different drawing).
     ///
-    /// ── IL CONFRONTO ────────────────────────────────────────────────────
+    /// ── THE COMPARISON ──────────────────────────────────────────────────
     ///
-    /// La distinta dice quali componenti e quanti. L'assieme lo sa per conto suo
-    /// (`IAssemblyDoc.GetComponents(true)`, il primo livello, raggruppato per file
-    /// e configurazione): **due letture dello stesso fatto**, e se non combaciano
-    /// lo si dice. I palloncini si contano DOPO, sulla vista.
+    /// The bill of materials says which components and how many. The assembly knows it on its own
+    /// (`IAssemblyDoc.GetComponents(true)`, the first level, grouped by file
+    /// and configuration): **two readings of the same fact**, and if they do not match
+    /// it is said. The balloons are counted AFTER, on the view.
     ///
-    /// Tipi di distinta (swBomType_e parte da 1, a differenza di altri enum):
-    /// «top_level» (TopLevelOnly = 2, predefinito), «parts_only» (1),
-    /// «indented» (3). Si scelgono per nome: un intero passato da fuori e' il
-    /// modo perfetto di mettere il tipo sbagliato senza errore.
+    /// Types of bill of materials (swBomType_e starts from 1, unlike other enums):
+    /// «top_level» (TopLevelOnly = 2, default), «parts_only» (1),
+    /// «indented» (3). They are chosen by name: an integer passed from outside is the
+    /// perfect way to put the wrong type without an error.
     /// </summary>
     public partial class SwOperations
     {
@@ -126,7 +126,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed("SOLIDWORKS non ha creato la distinta base e non ha detto perche' (modello di tabella «" +
                                (tableModel ?? "") + "»).");
 
-            // ── LE RIGHE, LETTE ─────────────────────────────────────────────
+            // ── THE ROWS, READ ──────────────────────────────────────────────
             int lines = 0, columns = 0;
             try { lines = table.RowCount; columns = table.ColumnCount; } catch { }
             int withQuantity = -1, withNumber = -1;
@@ -191,7 +191,7 @@ namespace Oce.Solid.Agent.Core
             }
             measurements["match"] = true;
 
-            // ── IL POSTO ────────────────────────────────────────────────────
+            // ── THE PLACE ───────────────────────────────────────────────────
             double w = 0, h = 0;
             try
             {
@@ -685,7 +685,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ──────────────────────────────────────────────────────────────────
-        // bollatura (i palloncini coi numeri di voce)
+        // ballooning (the balloons with the item numbers)
         // ──────────────────────────────────────────────────────────────────
         private Outcome Balloons(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -772,9 +772,9 @@ namespace Oce.Solid.Agent.Core
                 return Failed("Non riesco a contare i palloncini della vista: non so se la bollatura e' nata. Guarda la tavola.");
             if (after <= before)
             {
-                // NIENTE DI NUOVO NON E' SEMPRE UN ERRORE: se ogni voce della
-                // distinta ha gia' il suo palloncino in un'altra vista, SOLIDWORKS
-                // giustamente non ne mette (visto sullo Starlink, 26/9/2026).
+                // NOTHING NEW IS NOT ALWAYS AN ERROR: if every entry of the
+                // bill of materials already has its balloon in another view, SOLIDWORKS
+                // rightly puts none (seen on the Starlink, 26/9/2026).
                 var already = BomItemNumbers(drawing);
                 var alreadyBallooned = BalloonedNumbersInDrawing(drawing);
                 if (already != null && already.Count > 0 && already.All(alreadyBallooned.Contains))
@@ -788,11 +788,11 @@ namespace Oce.Solid.Agent.Core
                 return Failed("SOLIDWORKS non ha messo nessun palloncino (erano " + before + ", sono " + after + ").");
             }
 
-            // OGNI VOCE DELLA DISTINTA HA IL SUO PALLONCINO? (visto sull'assieme
-            // Starlink, 26/9/2026: il disco coperto nell'isometrica restava senza,
-            // e la risposta diceva «fatto»). Si confrontano i numeri di voce della
-            // distinta con i palloncini di TUTTA la tavola, e si dice quali mancano:
-            // si bolla un'altra vista, dove quel componente si vede.
+            // DOES EVERY ENTRY OF THE BILL OF MATERIALS HAVE ITS BALLOON? (seen on the
+            // Starlink assembly, 26/9/2026: the disc covered in the isometric stayed without,
+            // and the answer said «fatto»). The item numbers of the
+            // bill of materials are compared with the balloons of the WHOLE drawing, and it is said which are missing:
+            // another view is ballooned, where that component can be seen.
             var entries = BomItemNumbers(drawing);
             if (entries != null)
             {
@@ -808,11 +808,11 @@ namespace Oce.Solid.Agent.Core
                         : "Le voci " + string.Join(", ", without) + " della distinta non hanno palloncino in tavola: in questa " +
                           "vista quei componenti non si vedono. Fai la bollatura anche su un'altra vista, dove si vedono.");
             }
-            else measurements["how_many_entries_without_balloon"] = null;   // la colonna dei numeri di voce non si legge
+            else measurements["how_many_entries_without_balloon"] = null;   // the column of the item numbers cannot be read
             return SucceededWithoutCreating(measurements);
         }
 
-        /// <summary>I numeri di voce che hanno un palloncino in una qualunque vista della tavola.</summary>
+        /// <summary>The item numbers that have a balloon in any view of the drawing.</summary>
         private static HashSet<string> BalloonedNumbersInDrawing(IDrawingDoc drawing)
         {
             var ballooned = new HashSet<string>(StringComparer.Ordinal);
@@ -825,7 +825,7 @@ namespace Oce.Solid.Agent.Core
             return ballooned;
         }
 
-        /// <summary>I numeri di voce della prima distinta base della tavola; null se non si leggono.</summary>
+        /// <summary>The item numbers of the first bill of materials of the drawing; null if they cannot be read.</summary>
         private static List<string> BomItemNumbers(IDrawingDoc drawing)
         {
             try
@@ -872,7 +872,7 @@ namespace Oce.Solid.Agent.Core
             return false;
         }
 
-        /// <summary>I palloncini della vista: le note che sono palloncini di distinta; -1 se non si legge.</summary>
+        /// <summary>The balloons of the view: the notes that are balloons of the bill of materials; -1 if it cannot be read.</summary>
         private static int ViewBalloons(IView view)
         {
             try

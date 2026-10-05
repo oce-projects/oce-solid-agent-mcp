@@ -9,68 +9,68 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// L'ANCORA: un foro o una tasca su una faccia che seguono il bordo quando
-    /// il pezzo cambia (voce E18, pezzi a e b).
+    /// THE ANCHOR: a hole or a pocket on a face that follow the edge when
+    /// the part changes (entry E18, parts a and b).
     ///
-    /// ── IL DIFETTO ────────────────────────────────────────────────────────
+    /// ── THE DEFECT ────────────────────────────────────────────────────────
     ///
-    /// `x_mm`/`y_mm` sono coordinate ASSOLUTE del modello. Quattro fori «a 20
-    /// mm dagli angoli» di una piastra che si allarga restano dov'erano, e una
-    /// tasca «al centro» resta a x = 0 quando la piastra cresce da un lato solo
-    /// (cresce da UNA parte anche se lo schizzo e' centrato: voce E2).
-    /// Ricostruzione pulita, nessun errore, pezzo sbagliato: tre dei quattro
-    /// silenzi di `--regressione` (K5).
+    /// `x_mm`/`y_mm` are ABSOLUTE coordinates of the model. Four holes «20
+    /// mm from the corners» of a plate that gets wider stay where they were, and a
+    /// pocket «in the middle» stays at x = 0 when the plate grows on one side only
+    /// (it grows on ONE side even if the sketch is centred: entry E2).
+    /// Clean rebuild, no error, wrong part: three of the four
+    /// silences of `--regressione` (K5).
     ///
-    /// ── LA FORMA: UN'ANCORA PER ASSE, E TUTTI E DUE GLI ASSI ─────────────
+    /// ── THE SHAPE: ONE ANCHOR PER AXIS, AND BOTH AXES ─────────────────────
     ///
     ///   "anchor": { "x": {"edge_uid": "E7", "distance_mm": 20},
     ///               "y": {"centered_between": ["E3", "E5"]} }
     ///
-    /// Per ogni asse una di due cose: una QUOTA dal centro del profilo a uno
-    /// spigolo, oppure il centro A META' fra due spigoli opposti. Tutti e due
-    /// gli assi, sempre: un asse senza ancora lascerebbe il punto libero, e il
-    /// risolutore di SOLIDWORKS lo sposterebbe dove gli pare alla prima
-    /// modifica (rischio 8 del critico avversariale, 25/9/2026).
+    /// For each axis one of two things: a DIMENSION from the centre of the profile to
+    /// an edge, or the centre HALFWAY between two opposite edges. Both
+    /// axes, always: an axis without an anchor would leave the point free, and the
+    /// SOLIDWORKS solver would move it wherever it likes at the first
+    /// edit (risk 8 of the adversarial critic, 25/9/2026).
     ///
-    /// ── PERCHE' «CENTRATA» E' PER ASSE, E NON PER PUNTO ──────────────────
+    /// ── WHY «CENTRED» IS PER AXIS, AND NOT PER POINT ──────────────────────
     ///
-    /// Misurato il 25/9/2026, piastra 200 x 120 allungata e poi alzata:
+    /// Measured on 25/9/2026, 200 x 120 plate lengthened and then raised:
     ///
-    ///   mezzeria fra i PUNTI MEDI dei due fianchi -> il foro a y = -20 salta
-    ///                                               a y = 0 GIA' ALLA CREAZIONE,
-    ///                                               e ignora la quota in y
-    ///   mezzeria con gli estremi sulla RETTA dei  -> (0,-20) -> (30,-20) ->
-    ///   fianchi, perpendicolare, centro a meta'      (30,-20): centrato in x,
-    ///   + quota di 40 dal fondo per la y             a 40 dal fondo in y; esatto,
-    ///                                               zero errori, schizzo
-    ///                                               completamente definito
+    ///   midline between the MIDPOINTS of the two sides -> the hole at y = -20 jumps
+    ///                                               to y = 0 ALREADY AT CREATION,
+    ///                                               and ignores the dimension in y
+    ///   midline with its ends on the LINE of the   -> (0,-20) -> (30,-20) ->
+    ///   sides, perpendicular, centre halfway         (30,-20): centred in x,
+    ///   + dimension of 40 from the bottom for y      40 from the bottom in y; exact,
+    ///                                               zero errors, sketch
+    ///                                               fully defined
     ///
-    /// La prima centrava in DUE dimensioni e dipendeva dalla lunghezza dei
-    /// fianchi (uno smusso su un angolo l'avrebbe spostata); la seconda centra
-    /// in una sola, e l'altra la decide l'altro asse.
+    /// The first one centred in TWO dimensions and depended on the length of the
+    /// sides (a chamfer on a corner would have moved it); the second centres
+    /// in one only, and the other is decided by the other axis.
     ///
-    /// ── LE REGOLE CHE LA MISURA E IL CRITICO HANNO IMPOSTO ───────────────
+    /// ── THE RULES THAT THE MEASUREMENT AND THE CRITIC IMPOSED ─────────────
     ///
-    ///   1. si disegna con `AddToDB` a vero, ma SOLO attorno a ogni creazione:
-    ///      le relazioni che SOLIDWORKS indovina sovravincolano lo schizzo alla
-    ///      prima modifica (codice 51), e un `AddToDB` lasciato acceso toglierebbe
-    ///      le inferenze a chi disegna dopo;
-    ///   2. il centro della tasca si COSTRUISCE (diagonale + punto a meta'):
-    ///      quello di `CreateCenterRectangle` non e' fra i punti dello schizzo;
-    ///   3. lo schizzo, prima di uscire, dev'essere COMPLETAMENTE DEFINITO
-    ///      (`GetConstrainedStatus` = 3): uno schizzo sottovincolato va dove
-    ///      vuole il risolutore, uno sovravincolato si rompe alla modifica;
-    ///   4. dopo il taglio, una PROVA DI MOVIMENTO: ogni quota d'ancora +0,1 mm,
-    ///      ricostruzione, nessuna lavorazione nuova in errore, valore rimesso.
-    ///      Il conteggio degli errori subito dopo il taglio non basta: la
-    ///      seconda stesura della sonda si e' rotta solo ALLA MODIFICA;
-    ///   5. se qualcosa non regge dopo il taglio, il taglio si toglie.
+    ///   1. it is drawn with `AddToDB` set to true, but ONLY around each creation:
+    ///      the relations that SOLIDWORKS guesses overconstrain the sketch at the
+    ///      first edit (code 51), and an `AddToDB` left on would take the
+    ///      inferences away from whoever draws afterwards;
+    ///   2. the centre of the pocket is BUILT (diagonal + midpoint):
+    ///      the one of `CreateCenterRectangle` is not among the points of the sketch;
+    ///   3. the sketch, before it leaves, must be FULLY DEFINED
+    ///      (`GetConstrainedStatus` = 3): an underconstrained sketch goes wherever
+    ///      the solver wants, an overconstrained one breaks at the edit;
+    ///   4. after the cut, a MOVEMENT TEST: every anchor dimension +0.1 mm,
+    ///      rebuild, no new feature in error, value put back.
+    ///      The count of errors right after the cut is not enough: the
+    ///      second draft of the probe broke only AT THE EDIT;
+    ///   5. if anything does not hold after the cut, the cut is removed.
     ///
-    /// ── `x_mm`/`y_mm` RESTANO OBBLIGATORI ─────────────────────────────────
+    /// ── `x_mm`/`y_mm` STAY MANDATORY ──────────────────────────────────────
     ///
-    /// Dicono DOVE il punto sta adesso; l'ancora dice COSA lo tiene li'. Devono
-    /// dire lo stesso punto, e se non lo dicono si rifiuta: una quota da 20 su
-    /// un punto che sta a 25 sposterebbe il profilo di 5 mm senza errore.
+    /// They say WHERE the point is now; the anchor says WHAT holds it there. They must
+    /// say the same point, and if they do not it is refused: a dimension of 20 on
+    /// a point that sits at 25 would move the profile by 5 mm with no error.
     /// </summary>
     public partial class SwOperations
     {
@@ -78,18 +78,18 @@ namespace Oce.Solid.Agent.Core
         {
             public string Uid;
             public IEdge Edge;
-            public double[] StartMm, FineMm;   // nel sistema del MODELLO
+            public double[] StartMm, FineMm;   // in the system of the MODEL
         }
 
         private sealed class AnchorAxis
         {
             public string Name;                 // «x» o «y»
-            public int Index;                  // 0 = x, 1 = y (lungo assi[Indice])
-            public AnchorEdge Edge;     // quota da uno spigolo
+            public int Index;                  // 0 = x, 1 = y (along axes[Index])
+            public AnchorEdge Edge;     // dimension from an edge
             public double DistanceMm;
-            public AnchorEdge Fra1, Fra2;  // oppure centrata fra due
+            public AnchorEdge Fra1, Fra2;  // or centred between two
             public bool Centered { get { return Fra1 != null; } }
-            public IDimension CreatedDimension;        // per la prova di movimento
+            public IDimension CreatedDimension;        // for the movement test
         }
 
         private sealed class Anchoring
@@ -100,11 +100,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Legge `anchor` e la confronta con la faccia, con `x_mm`/`y_mm` e con
-        /// l'ingombro del profilo (`halfU`, `halfV`: meta' della larghezza del
-        /// profilo lungo x e lungo y — il raggio per un foro). Torna un
-        /// ancoraggio VUOTO se l'argomento non c'e' (il vecchio modo, coordinate
-        /// assolute, resta com'e'); null con il motivo se l'ancora e' sbagliata.
+        /// Reads `anchor` and checks it against the face, against `x_mm`/`y_mm` and
+        /// against the extent of the profile (`halfU`, `halfV`: half of the width of the
+        /// profile along x and along y — the radius for a hole). Returns an EMPTY
+        /// anchoring if the argument is not there (the old way, absolute
+        /// coordinates, stays as it is); null with the reason if the anchor is wrong.
         /// </summary>
         private Anchoring ReadAnchor(
             Dictionary<string, object> a, DocumentState docState, IFace2 face,
@@ -137,12 +137,12 @@ namespace Oce.Solid.Agent.Core
                 return null;
             }
 
-            // LA NORMALE SOLO DI UNA FACCIA PIANA (voce Z-C21.2, rilievo N24).
+            // THE NORMAL OF A PLANAR FACE ONLY (entry Z-C21.2, finding N24).
             // IFace2~Normal.html, Remarks: «If the face is not a planar face, then
-            // this property returns 0,0,0». Con (0,0,0) il controllo del bordo
-            // di smusso qui sotto dava coseno 0 per OGNI faccia adiacente, e
-            // lasciava passare tutto. FaceNormal chiede IsPlane() prima,
-            // come References.Normal; senza una faccia piana l'ancora si rifiuta.
+            // this property returns 0,0,0». With (0,0,0) the check of the chamfer
+            // edge below gave cosine 0 for EVERY adjacent face, and
+            // let everything through. FaceNormal asks IsPlane() first,
+            // like References.Normal; without a planar face the anchor is refused.
             double[] normal = FaceNormal(face);
             if (normal == null || normal.Length < 3)
             {
@@ -182,7 +182,7 @@ namespace Oce.Solid.Agent.Core
                     if (axis.Fra1 == null) return null;
                     axis.Fra2 = EdgeForAnchor(a, docState, uid[1], offsetM, axes, normal, out reason);
                     if (axis.Fra2 == null) return null;
-                    // PER CENTRARE LUNGO x i due spigoli corrono lungo y.
+                    // TO CENTRE ALONG x the two edges run along y.
                     if (EdgeAxis(axis.Fra1, axes) != 1 - k || EdgeAxis(axis.Fra2, axes) != 1 - k)
                     {
                         reason = "Per centrare lungo «" + itemName + "» i due spigoli devono correre lungo «" +
@@ -227,10 +227,10 @@ namespace Oce.Solid.Agent.Core
                                  "oppure {\"centered_between\": [\"E3\", \"E5\"]}.";
                         return null;
                     }
-                    // LA DISTANZA E' DAL CENTRO del foro o della tasca, e non
-                    // puo' essere meno di meta' della sua larghezza: il profilo
-                    // scavalcherebbe lo spigolo (rischio 5 del critico). Uguale
-                    // e' ammesso: e' una battuta.
+                    // THE DISTANCE IS FROM THE CENTRE of the hole or pocket, and it
+                    // cannot be less than half of its width: the profile
+                    // would run over the edge (risk 5 of the critic). Equal
+                    // is allowed: it is a stop.
                     if (distance + 1e-9 < half)
                     {
                         reason = string.Format(CultureInfo.InvariantCulture,
@@ -266,28 +266,28 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Lo spigolo per uid: con la firma, dritto, nel piano della faccia, e
-        /// non sul bordo di uno smusso o di un raccordo.
+        /// The edge by uid: with the signature, straight, in the plane of the face, and
+        /// not on the border of a chamfer or a fillet.
         /// </summary>
         private AnchorEdge EdgeForAnchor(
             Dictionary<string, object> a, DocumentState docState, string uid,
             double offsetM, double[] axes, double[] faceNormal, out string reason)
         {
             reason = null;
-            // LA FIRMA E' OBBLIGATORIA QUANDO IL PIANO NE PORTA (rischio 2 del
-            // critico): `SignatureMatches` senza firma risponde si', e fra spigoli
-            // uguali l'ordine dello stato non e' garantito — un foro a meta'
-            // altezza passerebbe la coerenza anche legato al lato sbagliato. Un
-            // piano che porta `_signatures` ma non quella di questo spigolo e' un piano
-            // che non sa quale spigolo intendeva.
+            // THE SIGNATURE IS MANDATORY WHEN THE PLAN CARRIES ONE (risk 2 of the
+            // critic): `SignatureMatches` without a signature answers yes, and among equal
+            // edges the order of the state is not guaranteed — a hole at half
+            // height would pass the consistency check even tied to the wrong side. A
+            // plan that carries `_signatures` but not the one of this edge is a plan
+            // that does not know which edge it meant.
             if (a != null && a.ContainsKey("_signatures") && ExpectedSignature(a, uid) == null)
             {
                 reason = "Il piano porta le firme delle entita' ma non quella dello spigolo «" + uid + "»: " +
                          "senza, non so se «" + uid + "» e' ancora lo spigolo che avevi visto.";
                 return null;
             }
-            // Se l'uid e' cambiato fra la lettura e adesso, lo spigolo si
-            // ritrova per firma (voce E19): stessa lunghezza, stesso punto.
+            // If the uid changed between the reading and now, the edge
+            // is found again by signature (entry E19): same length, same point.
             var signature = EdgeSignature(
                 a, docState, uid,
                 "Lo spigolo «" + uid + "» non c'e' in questo documento: gli spigoli dell'ancora si " +
@@ -318,28 +318,28 @@ namespace Oce.Solid.Agent.Core
                     uid, Math.Max(Math.Abs(p0[n] - offsetM), Math.Abs(p1[n] - offsetM)) * 1000.0);
                 return null;
             }
-            // IL BORDO DI UNO SMUSSO O DI UN RACCORDO (rischio 9 del critico):
-            // lo spigolo fra la faccia e uno smusso sta nel piano, e' dritto, e'
-            // parallelo — e se lo smusso passa da 2 a 5 il foro si sposta di 3
-            // senza che nessuno lo sappia. L'altra faccia dello spigolo dev'essere
-            // piana e perpendicolare a quella su cui si lavora.
+            // THE BORDER OF A CHAMFER OR A FILLET (risk 9 of the critic):
+            // the edge between the face and a chamfer lies in the plane, is straight, is
+            // parallel — and if the chamfer goes from 2 to 5 the hole moves by 3
+            // without anyone knowing. The other face of the edge must be
+            // planar and perpendicular to the one being worked on.
             //
-            // «PIANA» NON SI CONTROLLAVA (voce Z-C21.2, rilievo C2-1).
+            // «PLANAR» WAS NOT CHECKED (entry Z-C21.2, finding C2-1).
             // IFace2~Normal.html: «Gets the unit normal vector for any planar
-            // face» e, nelle Remarks, «If the face is not a planar face, then
-            // this property returns 0,0,0». Il raccordo e' un cilindro: Normal
-            // dava (0,0,0), il coseno veniva 0 come per una parete perpendicolare
-            // vera, e lo spigolo tangente del raccordo passava per spigolo vivo.
-            // Il controllo funzionava solo per lo smusso (faccia piana obliqua).
-            // Adesso IsPlane() viene prima di Normal, come in
-            // References.Normal e FaceNormal; una faccia non piana si
-            // rifiuta con lo stesso messaggio.
+            // face» and, in the Remarks, «If the face is not a planar face, then
+            // this property returns 0,0,0». The fillet is a cylinder: Normal
+            // gave (0,0,0), the cosine came out 0 as for a true perpendicular
+            // wall, and the tangent edge of the fillet passed for a sharp edge.
+            // The check worked only for the chamfer (oblique planar face).
+            // Now IsPlane() comes before Normal, as in
+            // References.Normal and FaceNormal; a non-planar face is
+            // refused with the same message.
             //
-            // E SE NON RIESCE A GUARDARE, NON ACCETTA (rilievo N6). Prima un
-            // `catch { }` e un `if` che saltava con le facce o la normale
-            // mancanti lasciavano passare lo spigolo senza averlo guardato: un
-            // controllo che non guarda e dice si' e' peggio di nessun controllo
-            // (memoria «controllo mai visto scattare»).
+            // AND IF IT CANNOT LOOK, IT DOES NOT ACCEPT (finding N6). Before, a
+            // `catch { }` and an `if` that skipped when the faces or the normal were
+            // missing let the edge through without having looked at it: a
+            // check that does not look and says yes is worse than no check
+            // (memory «check never seen to fire»).
             string notChecked = null;
             try
             {
@@ -352,23 +352,23 @@ namespace Oce.Solid.Agent.Core
                     foreach (var o in faces)
                     {
                         var f = o as IFace2;
-                        if (f == null) continue;   // uno spigolo di bordo ha una faccia sola e un NULL (GetTwoAdjacentFaces2.html)
+                        if (f == null) continue;   // a border edge has one face only and a NULL (GetTwoAdjacentFaces2.html)
                         bool planar = false;
                         ISurface surface = null;
                         try { surface = f.GetSurface() as ISurface; planar = surface?.IsPlane() == true; } catch { }
-                        // LA NORMALE: di una faccia piana da Normal; di una curva
-                        // nel punto medio dello spigolo, da EvaluateAtPoint
-                        // (revisione di Z-C21.2, difetto 8). ISurface~EvaluateAtPoint.html:
+                        // THE NORMAL: of a planar face from Normal; of a curved one
+                        // at the midpoint of the edge, from EvaluateAtPoint
+                        // (review of Z-C21.2, defect 8). ISurface~EvaluateAtPoint.html:
                         // «This method calculates the normal, the principal
                         // directions, and the principal curvatures, of the surface
-                        // at the specified point», e il ritorno comincia con
-                        // «surfNorm[i, j, k]». Il verso non conta: si usa il valore
-                        // assoluto del coseno. La prima stesura rifiutava OGNI faccia
-                        // non piana, anche un cilindro che incontra la faccia a 90
-                        // gradi lungo una retta (un mezzo tondo appoggiato): uno
-                        // spigolo vivo, e il messaggio «bordo di un raccordo» li'
-                        // era falso. Il raccordo si riconosce perche' e' TANGENTE:
-                        // la sua normale sullo spigolo e' quella della faccia.
+                        // at the specified point», and the return begins with
+                        // «surfNorm[i, j, k]». The direction does not matter: the absolute
+                        // value of the cosine is used. The first draft refused EVERY
+                        // non-planar face, even a cylinder that meets the face at 90
+                        // degrees along a line (a half-round resting on it): a
+                        // sharp edge, and the message «bordo di un raccordo» there
+                        // was false. The fillet is recognised because it is TANGENT:
+                        // its normal on the edge is that of the face.
                         double[] nf = null;
                         if (planar) nf = ApiHelpers.NormalIfPlanar(f);
                         else if (surface != null)
@@ -391,7 +391,7 @@ namespace Oce.Solid.Agent.Core
                         }
                         double cosine = Math.Abs(nf[0] * faceNormal[0] + nf[1] * faceNormal[1] +
                                                  nf[2] * faceNormal[2]) / length;
-                        if (planar && cosine > 0.999) continue;          // la faccia stessa, o complanare
+                        if (planar && cosine > 0.999) continue;          // the face itself, or a coplanar one
                         if (!planar && cosine > 0.999)
                         {
                             reason = "Lo spigolo «" + uid + "» sta sul bordo di un raccordo (la sua altra faccia e' " +
@@ -426,7 +426,7 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
-        /// <summary>Lungo quale asse della faccia corre lo spigolo: 0 = x, 1 = y, -1 = obliquo.</summary>
+        /// <summary>Along which axis of the face the edge runs: 0 = x, 1 = y, -1 = oblique.</summary>
         private static int EdgeAxis(AnchorEdge s, double[] axes)
         {
             double du = Math.Abs(Coord(s.FineMm, axes, 0) - Coord(s.StartMm, axes, 0));
@@ -442,9 +442,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Mette nello schizzo APERTO cio' che tiene il punto dove l'ancora dice,
-        /// asse per asse, rilegge tutto, e pretende lo schizzo COMPLETAMENTE
-        /// DEFINITO. Torna false con il motivo se qualcosa non torna.
+        /// Puts in the OPEN sketch what holds the point where the anchor says,
+        /// axis by axis, reads everything back, and demands the sketch FULLY
+        /// DEFINED. Returns false with the reason if something does not add up.
         /// </summary>
         private bool ApplyAnchor(
             IModelDoc2 model, Anchoring anc, ISketchPoint point,
@@ -467,11 +467,11 @@ namespace Oce.Solid.Agent.Core
                 string error;
                 if (axis.Centered)
                 {
-                    // LA MEZZERIA: lungo l'asse k, all'altezza del punto
-                    // sull'altro asse, con gli estremi sulla RETTA dei due
-                    // spigoli (coincidenza), perpendicolare a loro, e il punto a
-                    // meta'. Misurato il 25/9/2026: centra lungo k e lascia
-                    // l'altro asse all'altra ancora.
+                    // THE MIDLINE: along axis k, at the height of the point
+                    // on the other axis, with its ends on the LINE of the two
+                    // edges (coincidence), perpendicular to them, and the point at
+                    // the middle. Measured on 25/9/2026: it centres along k and leaves
+                    // the other axis to the other anchor.
                     double other = k == 0 ? y : x;
                     double c1 = Coord(axis.Fra1.StartMm, axes, k), c2 = Coord(axis.Fra2.StartMm, axes, k);
                     var m1 = PointInSketch(model, axes, offsetM, k == 0 ? c1 : other, k == 0 ? other : c1, out error);
@@ -509,8 +509,8 @@ namespace Oce.Solid.Agent.Core
                     bool r3 = Relation(model, centerline, axis.Fra1.Edge, "sgPERPENDICULAR");
                     bool r4 = Relation(model, point, centerline, "sgATMIDDLE");
                     int relAfter = SketchRelations(sketches);
-                    // QUATTRO RELAZIONI, CONTATE: `SketchAddConstraints` e' Void,
-                    // e una relazione che non nasce non lo dice nessuno.
+                    // FOUR RELATIONS, COUNTED: `SketchAddConstraints` is Void,
+                    // and a relation that is not born is not reported by anyone.
                     if (!r1 || !r2 || !r3 || !r4 || (relBefore >= 0 && relAfter - relBefore < 4))
                     {
                         reason = "Non sono riuscito a centrare lungo «" + axis.Name + "» fra «" + axis.Fra1.Uid + "» e «" +
@@ -526,17 +526,17 @@ namespace Oce.Solid.Agent.Core
                 else
                 {
                     double its = Coord(axis.Edge.StartMm, axes, k);
-                    // Il numero a meta' strada fra punto e spigolo, un po' di lato:
-                    // solo DOVE si scrive, non cosa misura.
+                    // The number halfway between point and edge, a little to the side:
+                    // only WHERE it is written, not what it measures.
                     double tu = k == 0 ? (x + its) / 2 : x + 6;
                     double tv = k == 0 ? y + 6 : (y + its) / 2;
                     var text = PointInSketch(model, axes, offsetM, tu, tv, out error);
                     if (text == null) { reason = error; return false; }
-                    // LA DIREZIONE SI LEGGE NELLO SCHIZZO, non nel modello: lo
-                    // spigolo corre lungo l'altro asse della faccia, e nello
-                    // schizzo quell'asse puo' essere la X o la Y (sulla faccia
-                    // di destra x_mm e' la Y del modello). Si portano i due
-                    // estremi nello schizzo e si guarda dove corre.
+                    // THE DIRECTION IS READ IN THE SKETCH, not in the model: the
+                    // edge runs along the other axis of the face, and in the
+                    // sketch that axis can be X or Y (on the right
+                    // face x_mm is the Y of the model). The two ends are brought
+                    // into the sketch and we look at where it runs.
                     double other1 = Coord(axis.Edge.StartMm, axes, 1 - k), other2 = Coord(axis.Edge.FineMm, axes, 1 - k);
                     var e1 = PointInSketch(model, axes, offsetM, k == 0 ? its : other1, k == 0 ? other1 : its, out error);
                     var e2 = e1 == null ? null
@@ -567,15 +567,15 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            // COMPLETAMENTE DEFINITO, O NIENTE — ma con piu' punti nello stesso
-            // schizzo (i fori di `hole_wizard`) lo si guarda dopo l'ultimo.
+            // FULLY DEFINED, OR NOTHING — but with more points in the same
+            // sketch (the holes of `hole_wizard`) it is looked at after the last one.
             if (expectDefined)
             {
                 if (!SketchDefinedAndHealthy(sketches, out reason)) return false;
                 said["sketch"] = "fully defined";
             }
-            // LA TAVOLA (rischio 15): un asse centrato lo tiene una relazione,
-            // non una quota, e `model_dimensions` non ha niente da riportare.
+            // THE DRAWING (risk 15): a centred axis is held by a relation,
+            // not by a dimension, and `model_dimensions` has nothing to report.
             if ((anc.X != null && anc.X.Centered) || (anc.Y != null && anc.Y.Centered))
                 said["note_drawing"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
                                        "model_dimensions non la riporta, drawing_dimension la misura dai bordi.";
@@ -584,10 +584,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Lo schizzo aperto e' completamente definito e senza relazioni malate?
-        /// Sottovincolato, il profilo va dove vuole il risolutore; sovravincolato,
-        /// si rompe alla modifica; una relazione penzolante, sovravincolante o
-        /// rotta (rischio 1 del critico) non la esclude lo stato «definito».
+        /// Is the open sketch fully defined and free of sick relations?
+        /// Underconstrained, the profile goes where the solver wants; overconstrained,
+        /// it breaks at the edit; a dangling, overconstraining or broken relation
+        /// (risk 1 of the critic) is not ruled out by the «defined» state.
         /// </summary>
         private static bool SketchDefinedAndHealthy(ISketchManager sketches, out string reason)
         {
@@ -616,17 +616,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ANCORA DI `hole_wizard` (voce E18, l'ultimo pezzo). Lo schizzo dei
-        /// punti lo fa HoleWizard, e `PositionHoles` ci mette i punti: qui ci si
-        /// rientra, e ogni punto riceve la sua ancora. Misurato il 25/9/2026
-        /// (`prova0089 guidato`, il caso r01): lo schizzo di posizionamento e'
-        /// il sotto-schizzo con i punti e senza segmenti, si apre con
-        /// `EditSketch`, otto quote orizzontali/verticali verso gli spigoli lo
-        /// rendono completamente definito, e dopo la modifica i fori stanno a
-        /// y -40 -40 100 100 e x -80 -80 140 140: esattamente l'attesa di r01.
+        /// THE ANCHOR OF `hole_wizard` (entry E18, the last piece). The sketch of the
+        /// points is made by HoleWizard, and `PositionHoles` puts the points in it: here
+        /// we re-enter it, and each point receives its anchor. Measured on 25/9/2026
+        /// (`prova0089 guidato`, case r01): the positioning sketch is
+        /// the sub-sketch with the points and without segments, it is opened with
+        /// `EditSketch`, eight horizontal/vertical dimensions to the edges make it
+        /// fully defined, and after the edit the holes stand at
+        /// y -40 -40 100 100 and x -80 -80 140 140: exactly the expectation of r01.
         ///
-        /// Lo stato di definizione si guarda DOPO l'ultimo punto: un punto non
-        /// ancora ancorato lascia lo schizzo sottovincolato per costruzione.
+        /// The definition state is looked at AFTER the last point: a point not
+        /// yet anchored leaves the sketch underconstrained by construction.
         /// </summary>
         private bool AnchorHoles(
             IModelDoc2 model, IFeature hole, double[] axes, double offsetM,
@@ -913,10 +913,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// LA PROVA DI MOVIMENTO (rischio 1 del critico): ogni quota d'ancora +0,1
-        /// mm, ricostruzione, e la lavorazione nuova e il suo schizzo non devono
-        /// andare in errore; poi il valore si rimette e si rilegge. Torna null se
-        /// regge, il motivo se no.
+        /// THE MOVEMENT TEST (risk 1 of the critic): every anchor dimension +0.1
+        /// mm, rebuild, and the new feature and its sketch must not
+        /// go into error; then the value is put back and read again. Returns null if
+        /// it holds, the reason if not.
         /// </summary>
         private string MovementTest(IModelDoc2 model, Anchoring anc, IFeature cut)
         {
@@ -945,15 +945,15 @@ namespace Oce.Solid.Agent.Core
                 string notVerified = null;
                 try
                 {
-                    // IL RITORNO SI LEGGE (voce Z-C21.2, rilievo M12).
+                    // THE RETURN IS READ (entry Z-C21.2, finding M12).
                     // IDimension~SetSystemValue3.html: «Return Value Success
                     // indicator value as defined in swSetValueReturnStatus_e»
                     // (Successful = 0; Failure = 1, InvalidValue = 2,
                     // DrivenDimension = 3, ModelNotLoaded = 4, FrozenFeatureOwner
-                    // = 5, inventario swconst). Si scartava: se la quota non si
-                    // muoveva, la ricostruzione non trovava errori perche' non era
-                    // cambiato niente, e la prova «passava» senza aver provato.
-                    // Si rilegge anche il valore: mosso vuol dire mosso.
+                    // = 5, swconst inventory). It was discarded: if the dimension did not
+                    // move, the rebuild found no errors because nothing had
+                    // changed, and the test «passed» without having tested.
+                    // The value is read back too: moved means moved.
                     int moveOutcome = q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
                     if (moveOutcome != (int)swSetValueReturnStatus_e.swSetValue_Successful)
                         stop = "SOLIDWORKS ha risposto " + moveOutcome.ToString(CultureInfo.InvariantCulture) +
@@ -1057,13 +1057,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie un taglio appena fatto e il suo schizzo, quando l'ancora non
-        /// regge (rischio 11 del critico): una lavorazione che non regge una
-        /// modifica non si lascia nel pezzo con «ritirala tu». Torna la coda
-        /// del messaggio: tolto e pezzo com'era, oppure cosa e' rimasto.
+        /// Removes a cut just made and its sketch, when the anchor does not
+        /// hold (risk 11 of the critic): a feature that does not survive an
+        /// edit is not left in the part with «you take it back». Returns the tail
+        /// of the message: removed and part as it was, or what was left.
         ///
-        /// «Ha detto di averlo tolto» non basta, come in `DeleteFeature`:
-        /// si ricontano le lavorazioni e si rimisura il volume.
+        /// «It said it removed it» is not enough, as in `DeleteFeature`:
+        /// the features are recounted and the volume is measured again.
         /// </summary>
         private string RemoveCut(IModelDoc2 model, IFeature cut, double? volumeBefore)
         {
@@ -1128,19 +1128,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Una quota fra un punto dello schizzo e uno spigolo del MODELLO, col
-        /// testo in `text` (coordinate di schizzo). Torna il valore riletto in
-        /// mm, o -1. La finestrella del valore si spegne e si rimette com'era.
+        /// A dimension between a point of the sketch and an edge of the MODEL, with the
+        /// text in `text` (sketch coordinates). Returns the value read back in
+        /// mm, or -1. The little value window is turned off and put back as it was.
         ///
-        /// ORIZZONTALE O VERTICALE, e non `Extension.AddDimension`. Misurato il
-        /// 25/9/2026 sulle facce davanti, dietro e destra: con un punto dello
-        /// schizzo e uno spigolo del modello selezionati, `Extension.
-        /// AddDimension` torna null in tutte e quattro le direzioni — la
-        /// chiamata che la voce GP6 raccomanda per i segmenti qui non crea
-        /// niente. `AddHorizontalDimension2` e `AddVerticalDimension2` danno
-        /// 20 e 30 esatti; `AddDimension2` anche, ma e' vietata per contratto
-        /// (niente direzione). Si sceglie dalla direzione dello spigolo NELLO
-        /// SCHIZZO: spigolo verticale, quota orizzontale.
+        /// HORIZONTAL OR VERTICAL, and not `Extension.AddDimension`. Measured on
+        /// 25/9/2026 on the front, back and right faces: with a sketch point
+        /// and a model edge selected, `Extension.
+        /// AddDimension` returns null in all four directions — the
+        /// call that entry GP6 recommends for segments creates nothing
+        /// here. `AddHorizontalDimension2` and `AddVerticalDimension2` give
+        /// exactly 20 and 30; `AddDimension2` too, but it is forbidden by contract
+        /// (no direction). The choice is made from the direction of the edge IN THE
+        /// SKETCH: vertical edge, horizontal dimension.
         /// </summary>
         private double DimensionPointEdge(
             IModelDoc2 model, ISketchPoint point, IEdge edge, double[] text, bool verticalEdge,
@@ -1176,34 +1176,34 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// LO STADIO DELL'ASOLA, DEFINITO (voce E18). `DrawStadium` lo
-        /// disegna con quattro entita' sotto `AddToDB` e basta: niente relazioni,
-        /// niente quote. Qui si aggiunge cio' che lo rende un'asola anche dopo
-        /// una modifica, e — se c'e' — l'ancora. Torna quante quote ha messo;
-        /// `error` non nullo vuol dire che lo schizzo non e' come serve (con
-        /// l'ancora e' un rifiuto, senza e' solo una quota in meno).
+        /// THE STADIUM OF THE SLOT, DEFINED (entry E18). `DrawStadium` draws
+        /// it with four entities under `AddToDB` and that is all: no relations,
+        /// no dimensions. Here is added what makes it a slot even after
+        /// an edit, and — if there is one — the anchor. Returns how many dimensions it put;
+        /// `error` not null means the sketch is not as needed (with
+        /// the anchor it is a refusal, without it it is only one dimension fewer).
         ///
-        /// MISURATO il 25/9/2026 (`prova0089 stadio`, `stadio2`), piastra 200 x
-        /// 120, asola 60 x 20 a 0 e a 30 gradi:
+        /// MEASURED on 25/9/2026 (`prova0089 stadio`, `stadio2`), plate 200 x
+        /// 120, slot 60 x 20 at 0 and at 30 degrees:
         ///
-        ///   gli estremi disegnati con AddToDB   gia' fusi: 6 punti (4 raccordi e
-        ///                                       2 centri), le coincidenze non
-        ///                                       servono
-        ///   4 tangenze + raggi uguali           +5 relazioni
-        ///   quota sull'arco                     il RAGGIO (10)
-        ///   quota fra i due centri              null, con tutte e due le chiamate:
-        ///                                       serve una mezzeria di costruzione
-        ///                                       legata ai centri, e si quota lei (40)
-        ///   orientamento a 0 gradi              orizzontale sulla mezzeria
-        ///   orientamento a 30 gradi             Extension.AddDimension null,
-        ///                                       AddDimension2 30 (vietata, GP6),
-        ///                                       AddSpecificDimension ANGOLARE 30
-        ///   raggio 15 e centri a 60 dopo        volume atteso al centesimo, zero
-        ///                                       errori: resta un'asola
+        ///   the ends drawn with AddToDB         already merged: 6 points (4 fillets and
+        ///                                       2 centres), the coincidences are not
+        ///                                       needed
+        ///   4 tangencies + equal radii          +5 relations
+        ///   dimension on the arc                the RADIUS (10)
+        ///   dimension between the two centres   null, with both calls:
+        ///                                       a construction midline tied to the
+        ///                                       centres is needed, and it is dimensioned (40)
+        ///   orientation at 0 degrees            horizontal on the midline
+        ///   orientation at 30 degrees           Extension.AddDimension null,
+        ///                                       AddDimension2 30 (forbidden, GP6),
+        ///                                       AddSpecificDimension ANGULAR 30
+        ///   radius 15 and centres at 60 after   volume expected to the hundredth, zero
+        ///                                       errors: it stays a slot
         ///
-        /// Senza ancora l'asola obliqua resta libera di ruotare (nessuno spigolo
-        /// da cui misurare l'angolo): si dice nelle misure. Con l'ancora l'angolo
-        /// si quota contro il suo primo spigolo.
+        /// Without an anchor the oblique slot stays free to rotate (no edge
+        /// to measure the angle from): this is said in the measurements. With the anchor the angle
+        /// is dimensioned against its first edge.
         /// </summary>
         private int DefineStadium(
             IModelDoc2 model, ISketchSegment[] stadium, double[] axes, double offsetM,
@@ -1217,7 +1217,7 @@ namespace Oce.Solid.Agent.Core
                 return 0;
             }
             ISketchSegment l1 = stadium[0], l2 = stadium[1], a1 = stadium[2], a2 = stadium[3];
-            var arcB = a1 as ISketchArc;   // a1 e' l'estremita' dalla parte +corsa
+            var arcB = a1 as ISketchArc;   // a1 is the end on the +stroke side
             var arcA = a2 as ISketchArc;
             if (arcA == null || arcB == null)
             {
@@ -1226,7 +1226,7 @@ namespace Oce.Solid.Agent.Core
             }
             var sketches = model.SketchManager;
 
-            // TANGENZE E RAGGI UGUALI: quattro linee-arco, e i due archi uguali.
+            // TANGENCIES AND EQUAL RADII: four line-arcs, and the two equal arcs.
             int relBefore = SketchRelations(sketches);
             foreach (var pair in new[] { new[] { l1, a1 }, new[] { l1, a2 }, new[] { l2, a1 }, new[] { l2, a2 } })
                 Relation(model, pair[0], pair[1], "sgTANGENT");
@@ -1256,7 +1256,7 @@ namespace Oce.Solid.Agent.Core
                                            "slot may lose its shape";
             }
 
-            // LA MEZZERIA FRA I CENTRI, di costruzione e legata a tutti e due.
+            // THE MIDLINE BETWEEN THE CENTRES, construction and tied to both.
             double rad = angleDeg * Math.PI / 180.0, cos = Math.Cos(rad), sin = Math.Sin(rad);
             string e1;
             var cA = PointInSketch(model, axes, offsetM, x - travel * cos, y - travel * sin, out e1);
@@ -1272,17 +1272,17 @@ namespace Oce.Solid.Agent.Core
             finally { sketches.AddToDB = addBefore; }
             var line = centerline as ISketchLine;
             if (line == null) { error = "La mezzeria fra i centri dell'asola non e' nata."; return 0; }
-            // Disegnata sotto AddToDB esattamente sui centri, la mezzeria vi si
-            // FONDE (misurato: le coincidenze non aggiungono relazioni). Si
-            // chiedono lo stesso, per il caso in cui un arrotondamento le
-            // lasciasse a parte; il conto che vale e' quello delle altre cinque.
+            // Drawn under AddToDB exactly on the centres, the midline
+            // MERGES with them (measured: the coincidences add no relations). They are
+            // asked for all the same, in case a rounding left them apart; the count that counts
+            // is that of the other five.
             // The points go in with `as` (Z-C21.8, finding N49): a null point
             // makes `Relation` answer false without an exception, and these two
             // relations are optional by design, so their answer is not needed.
             Relation(model, line.GetStartPoint2() as ISketchPoint, arcA.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
             Relation(model, line.GetEndPoint2() as ISketchPoint, arcB.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
 
-            // LE QUOTE: il raggio e la mezzeria (la lunghezza fra i centri).
+            // THE DIMENSIONS: the radius and the midline (the length between the centres).
             string e2;
             var textR = PointInSketch(model, axes, offsetM,
                 x + (travel + radius + 6) * cos, y + (travel + radius + 6) * sin + 6, out e2);
@@ -1294,9 +1294,9 @@ namespace Oce.Solid.Agent.Core
             int quote = DimensionSegments(model, toDimension);
             if (quote < 2 && error == null) error = "Le quote dell'asola non sono nate tutte (" + quote + " su 2).";
 
-            // L'ORIENTAMENTO. Mezzeria orizzontale o verticale NELLO SCHIZZO:
-            // una relazione. Obliqua: un angolo contro il primo spigolo
-            // dell'ancora, se c'e'; altrimenti resta libera, e lo si dice.
+            // THE ORIENTATION. Horizontal or vertical midline IN THE SKETCH:
+            // a relation. Oblique: an angle against the first edge of
+            // the anchor, if there is one; otherwise it stays free, and this is said.
             bool horizontal = Math.Abs(cB[1] - cA[1]) < 1e-9, vertical = Math.Abs(cB[0] - cA[0]) < 1e-9;
             if (horizontal || vertical)
                 SingleRelation(model, centerline, horizontal ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
@@ -1330,7 +1330,7 @@ namespace Oce.Solid.Agent.Core
                 measurements["orientation"] = "libero: un'asola obliqua senza ancora non ha uno spigolo da cui " +
                                          "misurare l'angolo, e dopo una modifica puo' ruotare.";
 
-            // L'ANCORA, sul punto a meta' della mezzeria.
+            // THE ANCHOR, on the point halfway along the midline.
             if (!anchor.Empty)
             {
                 if (error != null) return quote;
@@ -1357,13 +1357,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il centro del contorno di `extrude_on_face` a cui si attacca l'ancora
-        /// (voce E18), e il mezzo ingombro per asse. Vale per UN contorno solo:
-        /// un cerchio, o una spezzata di quattro vertici allineata agli assi
-        /// della faccia (un rettangolo). Per tutto il resto un rifiuto che dice
-        /// perche': quale sia «il centro» di un poligono qualunque lo decide chi
-        /// disegna, e indovinarlo vorrebbe dire ancorare un punto che non ha
-        /// scelto nessuno.
+        /// The centre of the contour of `extrude_on_face` to which the anchor is attached
+        /// (entry E18), and the half extent per axis. It holds for ONE contour only:
+        /// a circle, or a polyline of four vertices aligned with the axes
+        /// of the face (a rectangle). For everything else a refusal that says
+        /// why: which one is «the centre» of any polygon is decided by whoever
+        /// draws it, and guessing it would mean anchoring a point that nobody
+        /// chose.
         /// </summary>
         private static bool ContourCenterOnly(
             List<Contour> contours, out double cx, out double cy, out double halfU, out double halfV,
@@ -1413,11 +1413,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Definisce il contorno del rialzo e ci attacca l'ancora, a schizzo
-        /// aperto (voce E18). Cerchio: il diametro, e l'ancora sul centro.
-        /// Rettangolo di quattro linee (gli angoli, disegnati sotto AddToDB, sono
-        /// gia' fusi — misurato sull'asola): orizzontali e verticali, due quote,
-        /// e l'ancora sul centro costruito con la diagonale, come la tasca.
+        /// Defines the contour of the boss and attaches the anchor to it, with the sketch
+        /// open (entry E18). Circle: the diameter, and the anchor on the centre.
+        /// Rectangle of four lines (the corners, drawn under AddToDB, are
+        /// already merged — measured on the slot): horizontals and verticals, two dimensions,
+        /// and the anchor on the centre built with the diagonal, like the pocket.
         /// </summary>
         private bool AnchorContour(
             IModelDoc2 model, Contour contour, List<ISketchSegment> created, double[] axes, double offsetM,
@@ -1463,7 +1463,7 @@ namespace Oce.Solid.Agent.Core
                     SingleRelation(model, s, horizontal ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
                     angles.Add(new[] { a0.X, a0.Y, a0.Z });
                 }
-                // Le due quote: un lato per verso, col testo fuori dal rettangolo.
+                // The two dimensions: one side per direction, with the text outside the rectangle.
                 var p0 = ((ISketchLine)created[0]).GetStartPoint2() as ISketchPoint;
                 var p1 = ((ISketchLine)created[0]).GetEndPoint2() as ISketchPoint;
                 var q1 = ((ISketchLine)created[1]).GetEndPoint2() as ISketchPoint;
@@ -1489,10 +1489,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Una quota ANGOLARE fra una linea dello schizzo e uno spigolo del
-        /// modello. `AddSpecificDimension` col tipo esplicito: `Extension.
-        /// AddDimension` torna null su questa coppia, e `AddDimension2` e'
-        /// vietata (GP6). Misurato il 25/9/2026: 30 gradi su 30.
+        /// An ANGULAR dimension between a line of the sketch and an edge of the
+        /// model. `AddSpecificDimension` with the explicit type: `Extension.
+        /// AddDimension` returns null on this pair, and `AddDimension2` is
+        /// forbidden (GP6). Measured on 25/9/2026: 30 degrees out of 30.
         ///
         /// THE STATUS AND THE VALUE ARE READ (Z-C21.2, finding N55).
         /// IModelDocExtension~AddSpecificDimension.html: «Error Result status as
@@ -1570,11 +1570,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Una relazione fra due cose dello schizzo o del modello. Si passano
-        /// come `object` perche' si selezionano ognuna col SUO `Select4`:
-        /// misurato il 25/9/2026, un punto o un segmento di schizzo NON sono
-        /// `IEntity` — «as IEntity» torna null in silenzio, e la prima stesura
-        /// della mezzeria faceva nascere due relazioni su quattro.
+        /// A relation between two things of the sketch or of the model. They are passed
+        /// as `object` because each is selected with ITS OWN `Select4`:
+        /// measured on 25/9/2026, a sketch point or segment is NOT an
+        /// `IEntity` — «as IEntity» returns null silently, and the first draft of the
+        /// midline made two relations out of four be born.
         /// </summary>
         private static bool Relation(IModelDoc2 model, object one, object due, string which)
         {
@@ -1589,7 +1589,7 @@ namespace Oce.Solid.Agent.Core
             finally { try { model.ClearSelection2(true); } catch { } }
         }
 
-        /// <summary>Una relazione su una cosa sola (orizzontale, verticale).</summary>
+        /// <summary>A relation on a single thing (horizontal, vertical).</summary>
         private static bool SingleRelation(IModelDoc2 model, object what, string which)
         {
             try
@@ -1675,10 +1675,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il punto al centro della tasca, costruito: una diagonale di
-        /// costruzione legata a due angoli opposti, e un punto a meta'. Misurato
-        /// il 25/9/2026: cosi' la tasca segue la mezzeria; col centro di
-        /// `CreateCenterRectangle` no. Null se qualcosa non e' nato.
+        /// The point at the centre of the pocket, built: a construction
+        /// diagonal tied to two opposite corners, and a midpoint. Measured
+        /// on 25/9/2026: this way the pocket follows the midline; with the centre of
+        /// `CreateCenterRectangle` it does not. Null if something was not born.
         /// </summary>
         private static ISketchPoint RectangleCenter(IModelDoc2 model, object[] sides, double[] p1, double[] p2)
         {

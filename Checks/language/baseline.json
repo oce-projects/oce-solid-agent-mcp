@@ -2,11 +2,11 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 133068,
+  "comments": 61844,
   "strings": 54069,
   "markdown": 11388,
   "json_values": 54655,
-  "identifiers": 1726,
+  "identifiers": 1715,
   "json_keys": 14,
   "protocol": 845,
   "paths": 0,
@@ -1302,318 +1302,277 @@
    "comments": 1
   },
   "Oce.Solid.Agent.Core/AnchorOperations.cs": {
-   "comments": 1637,
-   "strings": 808
+   "strings": 808,
+   "comments": 7
   },
   "Oce.Solid.Agent.Core/ApiHelpers.Drawing.cs": {
    "comments": 1
   },
   "Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs": {
-   "comments": 371,
+   "comments": 3,
    "strings": 167
   },
   "Oce.Solid.Agent.Core/AssemblyOperations.cs": {
-   "comments": 1176,
-   "strings": 198
+   "strings": 198,
+   "comments": 3
   },
   "Oce.Solid.Agent.Core/AssemblyState.cs": {
-   "comments": 1687,
+   "comments": 16,
    "strings": 140
   },
   "Oce.Solid.Agent.Core/BodyOperations.cs": {
-   "comments": 1266,
+   "comments": 7,
    "strings": 690
   },
   "Oce.Solid.Agent.Core/BomOperations.cs": {
-   "comments": 224,
+   "comments": 2,
    "strings": 286
   },
-  "Oce.Solid.Agent.Core/Catalog/Export.cs": {
-   "comments": 155
-  },
   "Oce.Solid.Agent.Core/Catalog/Node.cs": {
-   "comments": 197,
    "strings": 22
   },
-  "Oce.Solid.Agent.Core/Catalog/OperationSpec.cs": {
-   "comments": 341
-  },
   "Oce.Solid.Agent.Core/Catalog/Operations.cs": {
-   "comments": 868,
-   "strings": 17174
+   "strings": 17174,
+   "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
-   "comments": 486,
-   "strings": 219
+   "strings": 219,
+   "comments": 14
   },
   "Oce.Solid.Agent.Core/CheckOperations.cs": {
-   "comments": 461,
+   "comments": 10,
    "strings": 123
   },
   "Oce.Solid.Agent.Core/ClosedShape.cs": {
-   "comments": 731
+   "comments": 12
   },
   "Oce.Solid.Agent.Core/DependencyOperations.cs": {
-   "comments": 84,
    "strings": 37
   },
   "Oce.Solid.Agent.Core/DimXpertOperations.cs": {
-   "comments": 101,
    "strings": 49
   },
   "Oce.Solid.Agent.Core/DimensionTextOperations.cs": {
-   "comments": 243,
    "strings": 6
   },
   "Oce.Solid.Agent.Core/DimensionToleranceOperations.cs": {
-   "comments": 190,
    "strings": 110
   },
   "Oce.Solid.Agent.Core/DocumentState.cs": {
-   "comments": 6154,
+   "comments": 32,
    "strings": 37
   },
   "Oce.Solid.Agent.Core/DraftOperations.cs": {
-   "comments": 343,
    "strings": 289
   },
   "Oce.Solid.Agent.Core/DrawingAnnotationOperations.cs": {
-   "comments": 442,
    "strings": 260
   },
   "Oce.Solid.Agent.Core/DrawingCutListOperations.cs": {
-   "comments": 655,
+   "comments": 3,
    "strings": 328
   },
   "Oce.Solid.Agent.Core/DrawingDetailOperations.cs": {
-   "comments": 383,
    "strings": 195
   },
   "Oce.Solid.Agent.Core/DrawingDimensionOperations.cs": {
-   "comments": 3266,
-   "strings": 668
+   "strings": 668,
+   "comments": 13
   },
   "Oce.Solid.Agent.Core/DrawingFlatPatternOperations.cs": {
-   "comments": 233,
+   "comments": 2,
    "strings": 158
   },
   "Oce.Solid.Agent.Core/DrawingLabelOperations.cs": {
-   "comments": 140,
    "strings": 26
   },
   "Oce.Solid.Agent.Core/DrawingNoteOperations.cs": {
-   "comments": 581,
-   "strings": 215
+   "strings": 215,
+   "comments": 4
   },
   "Oce.Solid.Agent.Core/DrawingOperations.cs": {
-   "comments": 2018,
-   "strings": 756
+   "strings": 756,
+   "comments": 12
   },
   "Oce.Solid.Agent.Core/DrawingRoundOperations.cs": {
-   "comments": 860,
-   "strings": 98
+   "strings": 98,
+   "comments": 3
   },
   "Oce.Solid.Agent.Core/DrawingSectionOperations.cs": {
-   "comments": 623,
+   "comments": 2,
    "strings": 291
   },
   "Oce.Solid.Agent.Core/DrawingState.cs": {
-   "comments": 974,
    "strings": 130
   },
   "Oce.Solid.Agent.Core/DrawingWeldOperations.cs": {
-   "comments": 240,
    "strings": 203
   },
   "Oce.Solid.Agent.Core/EditExtrusionOperations.cs": {
-   "comments": 361,
    "strings": 173
   },
   "Oce.Solid.Agent.Core/EquationOperations.cs": {
-   "comments": 333,
+   "comments": 2,
    "strings": 266
   },
   "Oce.Solid.Agent.Core/ExportOperations.cs": {
-   "comments": 1115,
    "strings": 514
   },
   "Oce.Solid.Agent.Core/FaceFilletOperations.cs": {
-   "comments": 743,
-   "strings": 530
+   "strings": 530,
+   "comments": 2
   },
   "Oce.Solid.Agent.Core/FeatureErrors.cs": {
-   "comments": 164,
+   "comments": 9,
    "strings": 200
   },
   "Oce.Solid.Agent.Core/FillPatternOperations.cs": {
-   "comments": 656,
+   "comments": 6,
    "strings": 418
   },
   "Oce.Solid.Agent.Core/FixComponentOperations.cs": {
-   "comments": 69,
    "strings": 68
   },
   "Oce.Solid.Agent.Core/GuardOperations.cs": {
-   "comments": 313,
+   "comments": 3,
    "strings": 99
   },
   "Oce.Solid.Agent.Core/HoleOperations.cs": {
-   "comments": 878,
+   "comments": 5,
    "strings": 306
   },
   "Oce.Solid.Agent.Core/HoleTableOperations.cs": {
-   "comments": 340,
+   "comments": 1,
    "strings": 222
   },
   "Oce.Solid.Agent.Core/InstanceOperations.cs": {
-   "comments": 920,
+   "comments": 4,
    "strings": 274
   },
   "Oce.Solid.Agent.Core/InterferenceOperations.cs": {
-   "comments": 332,
-   "strings": 153
+   "strings": 153,
+   "comments": 6
   },
   "Oce.Solid.Agent.Core/MateOperations.cs": {
-   "comments": 360,
-   "strings": 217
+   "strings": 217,
+   "comments": 2
   },
   "Oce.Solid.Agent.Core/MaterialOperations.cs": {
-   "comments": 310,
    "strings": 29
   },
   "Oce.Solid.Agent.Core/MeasureOperations.cs": {
-   "comments": 1031,
+   "comments": 8,
    "strings": 416
   },
   "Oce.Solid.Agent.Core/MirrorComponentOperations.cs": {
-   "comments": 196,
    "strings": 207
   },
-  "Oce.Solid.Agent.Core/Oce.Solid.Agent.Core.csproj": {
-   "comments": 185
-  },
   "Oce.Solid.Agent.Core/OverhangOperations.cs": {
-   "comments": 625,
-   "strings": 227
+   "strings": 227,
+   "comments": 1
   },
   "Oce.Solid.Agent.Core/PartView.cs": {
-   "comments": 1508,
    "strings": 57
   },
   "Oce.Solid.Agent.Core/PathOperations.cs": {
-   "comments": 347,
    "strings": 364
   },
   "Oce.Solid.Agent.Core/PdfDimensionOperations.cs": {
-   "comments": 169,
    "strings": 3
   },
-  "Oce.Solid.Agent.Core/PdfText.cs": {
-   "comments": 97
-  },
   "Oce.Solid.Agent.Core/PlanExecutor.cs": {
-   "comments": 1736,
+   "comments": 14,
    "strings": 132
   },
-  "Oce.Solid.Agent.Core/PlanSource.cs": {
-   "comments": 254
-  },
   "Oce.Solid.Agent.Core/PlaneOperations.cs": {
-   "comments": 309,
+   "comments": 3,
    "strings": 110
   },
   "Oce.Solid.Agent.Core/PositionsVerdict.cs": {
-   "comments": 430,
+   "comments": 5,
    "strings": 42
   },
   "Oce.Solid.Agent.Core/ProfileOperations.cs": {
-   "comments": 358,
+   "comments": 5,
    "strings": 142
   },
   "Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs": {
-   "comments": 2813,
-   "strings": 9
+   "strings": 9,
+   "comments": 11
   },
   "Oce.Solid.Agent.Core/PropertyOperations.cs": {
-   "comments": 719,
+   "comments": 13,
    "strings": 243
   },
   "Oce.Solid.Agent.Core/References.cs": {
-   "comments": 1002,
+   "comments": 5,
    "strings": 247
   },
   "Oce.Solid.Agent.Core/ReorderOperations.cs": {
-   "comments": 165,
    "strings": 142
   },
   "Oce.Solid.Agent.Core/ReplaceOperations.cs": {
-   "comments": 594,
-   "strings": 162
+   "strings": 162,
+   "comments": 4
   },
   "Oce.Solid.Agent.Core/RetraceOperations.cs": {
-   "comments": 131,
+   "comments": 1,
    "strings": 124
   },
   "Oce.Solid.Agent.Core/RibOperations.cs": {
-   "comments": 767,
    "strings": 492
   },
   "Oce.Solid.Agent.Core/SectionProfile.cs": {
-   "comments": 556,
+   "comments": 1,
    "strings": 65
   },
   "Oce.Solid.Agent.Core/Sections.cs": {
-   "comments": 391,
+   "comments": 3,
    "strings": 85
   },
   "Oce.Solid.Agent.Core/SelectionMarks.cs": {
-   "comments": 4
+   "comments": 1
   },
   "Oce.Solid.Agent.Core/Sentences.cs": {
-   "comments": 428,
-   "strings": 50
+   "strings": 50,
+   "comments": 6
   },
   "Oce.Solid.Agent.Core/ShapeToWords.cs": {
-   "comments": 967,
+   "comments": 17,
    "strings": 34
   },
   "Oce.Solid.Agent.Core/SheetMetalOperations.cs": {
-   "comments": 865,
-   "strings": 716
+   "strings": 716,
+   "comments": 4
   },
   "Oce.Solid.Agent.Core/SheetOperations.cs": {
-   "comments": 348,
    "strings": 214
   },
   "Oce.Solid.Agent.Core/SheetPlacementOperations.cs": {
-   "comments": 206,
    "strings": 27
   },
   "Oce.Solid.Agent.Core/SolidWorksMaterials.cs": {
-   "comments": 319,
+   "comments": 5,
    "strings": 59
   },
   "Oce.Solid.Agent.Core/SpurGear.cs": {
-   "comments": 825,
+   "comments": 8,
    "strings": 130
   },
   "Oce.Solid.Agent.Core/SwOperations.cs": {
-   "comments": 14814,
+   "comments": 158,
    "strings": 3288
   },
   "Oce.Solid.Agent.Core/TextOperations.cs": {
-   "comments": 456,
+   "comments": 5,
    "strings": 265
   },
   "Oce.Solid.Agent.Core/TitleBlockOperations.cs": {
-   "comments": 900,
+   "comments": 11,
    "strings": 233
   },
-  "Oce.Solid.Agent.Core/Units.cs": {
-   "comments": 167
-  },
   "Oce.Solid.Agent.Core/WeldmentOperations.cs": {
-   "comments": 3048,
+   "comments": 55,
    "strings": 1402
   },
   "Program.cs": {
@@ -2039,7 +1998,6 @@
    "PROVE_SENZA_INTEROP",
    "Parte",
    "ParteNN",
-   "Passante",
    "Passi",
    "Pavimento",
    "PercheHaTaciuto",
@@ -2189,7 +2147,6 @@
    "UltimoSchizzoFeature",
    "Una",
    "Unita",
-   "VISTA",
    "VOCE",
    "Valore",
    "Variabile",
@@ -2433,7 +2390,6 @@
    "copie_fatte",
    "copie_fattemisure",
    "copie_per_giro",
-   "coppia",
    "coppie",
    "cordone_saldatura",
    "corpi",
@@ -2453,7 +2409,6 @@
    "corpo_solido_e_spigolo",
    "corpo_uid",
    "corri_piani",
-   "corsa",
    "corso",
    "corto",
    "cosa",
@@ -2657,7 +2612,6 @@
    "faccia_superiore",
    "faccia_uid",
    "falliti",
-   "falso",
    "famiglia",
    "famiglie",
    "fatto",
@@ -2844,7 +2798,6 @@
    "la_variabile_non_scavalca_lo_smusso",
    "lamato",
    "lamiera",
-   "larghezza",
    "larghezza_mm",
    "lato",
    "lato3_mm",
@@ -3151,7 +3104,6 @@
    "profilo_linea",
    "profilo_sezione",
    "profilo_superficie",
-   "profondita",
    "profondita_mm",
    "programma",
    "proprieta",
@@ -3186,7 +3138,6 @@
    "quanto",
    "quanto-non-ha-girato",
    "quartabuono",
-   "questa",
    "qui",
    "quota",
    "quota_in_tavola",
@@ -3344,7 +3295,6 @@
    "spigolo_uid",
    "sporgenzaU",
    "sporgenzaV",
-   "sposta",
    "sposta_corpi",
    "stadio",
    "stadio2",
@@ -3359,7 +3309,6 @@
    "storia",
    "storico",
    "suffisso",
-   "sulla",
    "sullaConfigurazione",
    "suoi",
    "superfici",
@@ -3418,7 +3367,6 @@
    "tondo",
    "tondo_diametri_non_raggiunti",
    "tondo_note",
-   "torna",
    "tornito",
    "tornito8",
    "trasparente",

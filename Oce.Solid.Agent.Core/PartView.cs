@@ -9,48 +9,48 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// UNA FOTOGRAFIA DEL PEZZO, per chi non ha occhi.
+    /// A PHOTOGRAPH OF THE PART, for whoever has no eyes.
     ///
-    /// PERCHE' ESISTE. Fino alla 0.31.0 il modello non vedeva il pezzo e non
-    /// l'aveva mai visto: riceveva un elenco di sessanta facce con area,
-    /// normale e verso. Per una piastra forata basta; per capire che FORMA ha
-    /// un guscio con le alette, no — sessanta facce con un'area non sono una
-    /// forma, sono un elenco.
+    /// WHY IT EXISTS. Until 0.31.0 the model did not see the part and had
+    /// never seen it: it received a list of sixty faces with area,
+    /// normal and direction. For a drilled plate it is enough; to understand what SHAPE
+    /// a shell with fins has, it is not — sixty faces with an area are not a
+    /// shape, they are a list.
     ///
-    /// La capacita' c'era ed era provata: il banco salva quattro viste su
-    /// quattro con `SaveBMP`. Ma viveva nel banco di prova e non arrivava mai a
-    /// chi legge. E' la stessa forma del difetto della voce E8 — misurato e
-    /// buttato via — con l'aggravante che qui non era mai stato collegato.
+    /// The capability was there and was proven: the bench saves four views out of
+    /// four with `SaveBMP`. But it lived in the test bench and never reached
+    /// whoever reads. It is the same shape as the defect of entry E8 — measured and
+    /// thrown away — with the aggravating factor that here it had never been connected.
     ///
-    /// ── DUE REGOLE CHE NON SI NEGOZIANO ───────────────────────────────────
+    /// ── TWO RULES THAT ARE NOT NEGOTIABLE ─────────────────────────────────
     ///
-    /// **NON SI TOCCA LA VISTA DI CHI LAVORA.** Questo ponte si aggancia al
-    /// documento che un progettista ha davanti, sul suo schermo. Girare il
-    /// pezzo per fotografarlo e lasciarlo girato vuol dire spostargli la roba
-    /// sotto le mani mentre lavora. L'orientamento si salva prima e si rimette
-    /// dopo, **anche quando la fotografia fallisce**.
+    /// **THE VIEW OF WHOEVER IS WORKING IS NOT TOUCHED.** This bridge attaches to the
+    /// document that a designer has in front of them, on their screen. Turning the
+    /// part to photograph it and leaving it turned means moving their stuff
+    /// from under their hands while they work. The orientation is saved first and put back
+    /// afterwards, **even when the photograph fails**.
     ///
-    /// **SU RICHIESTA, MAI DI SERIE.** Un'immagine 1024x768 costa piu' di mille
-    /// token: piu' di dieci volte l'intero stato del documento, che sta sotto i
-    /// 16.000 CARATTERI. Se ogni `inspect_part` portasse tre viste, il costo
-    /// del ponte cambierebbe di un ordine di grandezza — e lo pagherebbe anche
-    /// chi voleva solo sapere quanti corpi ci sono.
+    /// **ON REQUEST, NEVER BY DEFAULT.** A 1024x768 image costs more than a thousand
+    /// tokens: more than ten times the whole state of the document, which fits under
+    /// 16,000 CHARACTERS. If every `inspect_part` carried three views, the cost
+    /// of the bridge would change by an order of magnitude — and it would be paid also by
+    /// whoever only wanted to know how many bodies there are.
     ///
-    /// ── PERCHE' PNG E NON IL BMP CHE SOLIDWORKS DA' ───────────────────────
+    /// ── WHY PNG AND NOT THE BMP THAT SOLIDWORKS GIVES ─────────────────────
     ///
-    /// `SaveBMP` scrive un BMP non compresso: 1024x768 sono **2,3 MB**, che in
-    /// base64 diventano 3. Lo stesso fotogramma in PNG sta in poche decine di
-    /// KB, e i pixel sono identici — un BMP mandato cosi' com'e' sarebbe
-    /// cinquanta volte il peso per la stessa immagine.
+    /// `SaveBMP` writes an uncompressed BMP: 1024x768 is **2.3 MB**, which in
+    /// base64 becomes 3. The same frame in PNG fits in a few tens of
+    /// KB, and the pixels are identical — a BMP sent as it is would be
+    /// fifty times the weight for the same image.
     /// </summary>
     public static class PartView
     {
         /// <summary>
-        /// Le viste che si possono chiedere, col nome che usa chi disegna.
+        /// The views that can be asked for, with the name used by whoever draws.
         ///
-        /// L'isometrica e' la prima perche' e' l'unica che, da sola, dice una
-        /// forma: le tre standard dicono tre sagome e lasciano indovinare il
-        /// resto.
+        /// The isometric is first because it is the only one that, alone, tells a
+        /// shape: the three standard ones tell three silhouettes and leave the
+        /// rest to be guessed.
         /// </summary>
         private static readonly Dictionary<string, int> Views =
             new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -68,19 +68,19 @@ namespace Oce.Solid.Agent.Core
 
         public static IEnumerable<string> ViewNames { get { return Views.Keys; } }
 
-        /// <summary>Una vista esiste con questo nome?</summary>
+        /// <summary>Does a view exist with this name?</summary>
         public static bool Conosciuta(string itemName)
         {
             return !string.IsNullOrWhiteSpace(itemName) && Views.ContainsKey(itemName);
         }
 
         /// <summary>
-        /// Fotografa il documento e restituisce i byte di un PNG.
-        /// Null col motivo se non si e' potuto.
+        /// Photographs the document and returns the bytes of a PNG.
+        /// Null with the reason if it could not be done.
         ///
         /// <param name="which">
-        /// Il nome di una vista, oppure null per fotografare l'orientamento
-        /// che c'e' adesso — che e' l'unico modo di NON toccare niente.
+        /// The name of a view, or null to photograph the orientation
+        /// that is there now — which is the only way to touch NOTHING.
         /// </param>
         /// </summary>
         public static byte[] Fire(
@@ -96,38 +96,38 @@ namespace Oce.Solid.Agent.Core
                 return null;
             }
 
-            // L'ORIENTAMENTO DI ADESSO, PER RIMETTERLO DOPO.
-            // Si prende PRIMA di toccare qualunque cosa, e si rimette nel
-            // `finally`: se la fotografia fallisce a meta', il pezzo resta
-            // girato sullo schermo di chi stava lavorando, e quello e' un
-            // danno vero fatto da un'operazione di sola lettura.
+            // THE ORIENTATION OF NOW, TO PUT IT BACK AFTERWARDS.
+            // It is taken BEFORE touching anything, and put back in the
+            // `finally`: if the photograph fails halfway, the part stays
+            // turned on the screen of whoever was working, and that is a
+            // real damage done by a read-only operation.
             //
-            // ── E NON BASTA `Transform`: LA VISTA E' UNA TERNA ───────────
+            // ── AND `Transform` IS NOT ENOUGH: THE VIEW IS A TRIPLE ──────
             //
-            // Tre tentativi, e i primi due li ha bocciati il banco:
+            // Three attempts, and the first two were rejected by the bench:
             //
-            //   1. tenere `IModelView.Transform` e riassegnarlo. **Non
-            //      rimette niente**, misurato.
-            //   2. `IModelDoc2.ViewOrientationUndo()`, che sembra fatto
-            //      apposta. **Nemmeno quello**, misurato.
-            //   3. la terna `Orientation3` + `Translation3` + `Scale2`.
+            //   1. keeping `IModelView.Transform` and reassigning it. **It puts
+            //      nothing back**, measured.
+            //   2. `IModelDoc2.ViewOrientationUndo()`, which looks made
+            //      for it. **Not that one either**, measured.
+            //   3. the triple `Orientation3` + `Translation3` + `Scale2`.
             //
-            // La prima spiegazione che mi ero dato del rosso — «`Transform`
-            // torna l'oggetto vivo, quindi salvarlo non salva niente» — era
-            // **falsa**, e l'ha smentita una misura scritta apposta: i sedici
-            // numeri dello stesso riferimento NON cambiano dopo
-            // `ShowNamedView2`. E' una copia, ed e' una copia inutile.
+            // The first explanation I had given myself for the red — «`Transform`
+            // returns the live object, so saving it saves nothing» — was
+            // **false**, and it was refuted by a measurement written on purpose: the sixteen
+            // numbers of the same reference do NOT change after
+            // `ShowNamedView2`. It is a copy, and a useless copy.
             //
-            // `Transform` DESCRIVE come si vede il pezzo; non e' lo stato da
-            // cui la vista si ricostruisce. Quello e' la terna: da dove guardi
-            // (`Orientation3`), dove sei centrato (`Translation3`), quanto sei
-            // vicino (`Scale2`). `ViewZoomtofit2` cambia gli ultimi due, e
-            // rimettere il solo orientamento lascerebbe il pezzo giusto ma
-            // inquadrato da un'altra parte.
+            // `Transform` DESCRIBES how the part is seen; it is not the state
+            // the view is rebuilt from. That is the triple: where you look from
+            // (`Orientation3`), where you are centred (`Translation3`), how close you
+            // are (`Scale2`). `ViewZoomtofit2` changes the last two, and
+            // putting back the orientation alone would leave the part right but
+            // framed somewhere else.
             //
-            // > Il verso di una riparazione non si ricava ragionando
-            // > sull'officina: si chiede al pezzo. Qui il pezzo ha detto no
-            // > due volte.
+            // > The direction of a repair is not worked out by reasoning
+            // > about the workshop: the part is asked. Here the part said no
+            // > twice.
             MathTransform orientationBefore = null;
             MathVector translationBefore = null;
             double scaleBefore = 0;
@@ -137,19 +137,19 @@ namespace Oce.Solid.Agent.Core
                 view = model.ActiveView as IModelView;
                 if (view != null)
                 {
-                    // COPIE, NON I RIFERIMENTI CHE LA VISTA DA'.
+                    // COPIES, NOT THE REFERENCES THAT THE VIEW GIVES.
                     //
-                    // `Transform` e' una copia — misurato. Di `Orientation3` e
-                    // `Translation3` non si sa niente, e il terzo tentativo di
-                    // rimessa a posto e' fallito **esattamente come farebbe un
-                    // oggetto vivo**: tienilo, gira la vista, riassegnalo, e
-                    // hai riassegnato l'orientamento nuovo.
+                    // `Transform` is a copy — measured. Of `Orientation3` and
+                    // `Translation3` nothing is known, and the third attempt at
+                    // putting back failed **exactly as a live
+                    // object would**: keep it, turn the view, reassign it, and
+                    // you have reassigned the new orientation.
                     //
-                    // Non si assume: si copia comunque. `IInverse()` due volte
-                    // da' un `MathTransform` nuovo con la stessa matrice;
-                    // `IScale(1.0)` da' un `MathVector` nuovo con le stesse
-                    // componenti. Costano due chiamate COM e tolgono di mezzo
-                    // una domanda.
+                    // It is not assumed: it is copied anyway. `IInverse()` twice
+                    // gives a new `MathTransform` with the same matrix;
+                    // `IScale(1.0)` gives a new `MathVector` with the same
+                    // components. They cost two COM calls and remove a
+                    // question from the way.
                     var o = view.Orientation3 as IMathTransform;
                     var reverse = o == null ? null : o.IInverse() as IMathTransform;
                     orientationBefore = reverse == null ? null : reverse.IInverse();
@@ -169,73 +169,73 @@ namespace Oce.Solid.Agent.Core
                 {
                     int code = Views[which];
 
-                    // `ShowNamedView2` NON RISPONDE: torna `void`. Non c'e'
-                    // nessun modo di chiederle se ha girato il pezzo, e la
-                    // prima scrittura di questo metodo la trattava come se
-                    // tornasse un `bool` — un controllo che non poteva
-                    // scattare, scritto per un valore che non esiste.
+                    // `ShowNamedView2` DOES NOT ANSWER: it returns `void`. There is
+                    // no way to ask it whether it turned the part, and the
+                    // first writing of this method treated it as if
+                    // it returned a `bool` — a check that could not
+                    // fire, written for a value that does not exist.
                     //
-                    // L'unica prova che resta e' il fotogramma: se
-                    // l'orientamento non e' cambiato, la fotografia esce
-                    // lo stesso, solo da un'altra parte. Il nome della vista
-                    // e' gia' validato qui sopra contro `Views`, quindi il
-                    // caso «nome sbagliato» e' escluso prima di arrivarci.
+                    // The only proof that remains is the frame: if the
+                    // orientation did not change, the photograph comes out
+                    // all the same, only from somewhere else. The name of the view
+                    // is already validated above against `Views`, so the
+                    // case «wrong name» is excluded before getting there.
                     model.ShowNamedView2("", code);
 
-                    // LO ZOOM VA DOPO IL RIDISEGNO, E SI RIDISEGNA ANCORA.
-                    // Misurato nel banco: al primo giro il pezzo usciva tagliato
-                    // sul bordo destro, perche' l'adattamento lavorava sulla
-                    // vista vecchia.
+                    // THE ZOOM GOES AFTER THE REDRAW, AND IT IS REDRAWN AGAIN.
+                    // Measured in the bench: on the first pass the part came out cut off
+                    // on the right edge, because the fit worked on the
+                    // old view.
                     model.GraphicsRedraw2();
                     model.ViewZoomtofit2();
                     model.GraphicsRedraw2();
 
-                    // ── E POI SI STRINGE ────────────────────────────────
+                    // ── AND THEN IT IS TIGHTENED ────────────────────────
                     //
-                    // `ViewZoomtofit2` lascia un margine largo: misurato, il
-                    // pezzo occupava **meta'** della larghezza del fotogramma.
-                    // Meta' dei pixel di un'immagine che costa piu' di mille
-                    // token non mostra niente.
+                    // `ViewZoomtofit2` leaves a wide margin: measured, the
+                    // part occupied **half** the width of the frame.
+                    // Half the pixels of an image that costs more than a thousand
+                    // tokens show nothing.
                     //
-                    // Il fattore e' prudente apposta. Il criterio della voce V5
-                    // e' asimmetrico: **tagliare e' un difetto, sprecare e' uno
-                    // spreco**, e fra i due non c'e' partita. Un numero che
-                    // riempie di piu' ma ogni tanto taglia sarebbe peggio di
-                    // adesso.
+                    // The factor is cautious on purpose. The criterion of entry V5
+                    // is asymmetric: **cutting is a defect, wasting is a
+                    // waste**, and between the two there is no contest. A number that
+                    // fills more but now and then cuts would be worse than
+                    // now.
                     try { NarrowIfYouCan(view); model.GraphicsRedraw2(); } catch { }
                 }
 
-                // `SaveBMP` vuole un percorso: non sa restituire byte.
+                // `SaveBMP` wants a path: it cannot return bytes.
                 temporary = Path.Combine(
                     Path.GetTempPath(), "oce-vista-" + Guid.NewGuid().ToString("N") + ".bmp");
 
-                // ── IL FOTOGRAMMA PRENDE LA FORMA DELL'AREA GRAFICA ─────
+                // ── THE FRAME TAKES THE SHAPE OF THE GRAPHICS AREA ─────
                 //
-                // **Il difetto (voce V5).** `ViewZoomtofit2` inquadra dentro
-                // l'area grafica di SOLIDWORKS; `SaveBMP` rende poi nel
-                // fotogramma che gli si chiede. Se le due forme non
-                // coincidono, quello che avanza **viene tagliato via**, e non
-                // lo dice nessuno.
+                // **The defect (entry V5).** `ViewZoomtofit2` frames inside
+                // the graphics area of SOLIDWORKS; `SaveBMP` then renders into the
+                // frame it is asked for. If the two shapes do not
+                // coincide, what is left over **is cut away**, and
+                // nobody says so.
                 //
-                // Misurato il 15/9/2026 da `Checks\FramingTest`:
+                // Measured on 15/9/2026 by `Checks\FramingTest`:
                 //
-                //     area grafica  1845 x 924  ->  1,997
-                //     chiesto       1024 x 768  ->  1,333
+                //     graphics area  1845 x 924  ->  1.997
+                //     asked for      1024 x 768  ->  1.333
                 //
-                // Su sette viste su dodici il pezzo usciva dal bordo DESTRO —
-                // sempre a destra, mai in verticale. Due modelli se ne erano
-                // accorti da soli durante la misura di V2: «la terza dimensione
-                // non e' determinabile perche' esce dall'inquadratura».
+                // On seven views out of twelve the part came out of the RIGHT edge —
+                // always on the right, never vertically. Two models had
+                // noticed it by themselves during the V2 measurement: «the third dimension
+                // cannot be determined because it comes out of the frame».
                 //
-                // **Un pezzo tagliato e' un pezzo diverso**, e un'immagine che
-                // ne nasconde meta' e' peggio di nessuna immagine: chi la
-                // guarda ci ragiona sopra lo stesso.
+                // **A cut part is a different part**, and an image that
+                // hides half of it is worse than no image: whoever looks
+                // at it reasons on it all the same.
                 //
-                // Quindi il fotogramma non impone piu' la sua forma: prende
-                // quella dell'area grafica, dentro le misure massime chieste.
-                // Con 1024x768 chiesti e un'area 2:1 escono 1024x513 — piu'
-                // piccolo, e **intero**. La larghezza e l'altezza passate
-                // restano un TETTO, non una pretesa.
+                // So the frame no longer imposes its shape: it takes
+                // that of the graphics area, within the maximum sizes asked for.
+                // With 1024x768 asked for and a 2:1 area, 1024x513 comes out — smaller,
+                // and **whole**. The width and height passed
+                // stay a CEILING, not a demand.
                 int lw = width, lh = height;
                 FrameView(view, width, height, out lw, out lh);
 
@@ -254,28 +254,28 @@ namespace Oce.Solid.Agent.Core
             }
             finally
             {
-                // ── TUTTI E TRE, E L'ORDINE E' ORIENTAMENTO, SCALA, POSIZIONE
+                // ── ALL THREE, AND THE ORDER IS ORIENTATION, SCALE, POSITION
                 //
-                // **L'ordine non e' uno stile: e' la differenza fra rimettere e
-                // non rimettere.** Misurato da `Checks\ViewTest`, che prova
-                // nove strade in tre secondi:
+                // **The order is not a style: it is the difference between putting back and
+                // not putting back.** Measured by `Checks\ViewTest`, which tries
+                // nine routes in three seconds:
                 //
-                //   riassegnare Transform                 scarto 2598 sull'indice 12 (la scala)
-                //   Transform copiato                     idem
-                //   ViewOrientationUndo()                 scarto 212 sull'indice 9
-                //   terna, ordine O -> T -> S             scarto 4,77 sull'indice 9
-                //   terna, ordine O -> S -> T             **torna**
+                //   reassign Transform                    deviation 2598 on index 12 (the scale)
+                //   Transform copied                      same
+                //   ViewOrientationUndo()                 deviation 212 on index 9
+                //   triple, order O -> T -> S             deviation 4.77 on index 9
+                //   triple, order O -> S -> T             **comes back**
                 //
-                // Con l'ordine sbagliato la ROTAZIONE torna esatta (indici 0-8
-                // della matrice) e sbaglia solo la traslazione: `Translation3`
-                // vale per la scala che c'e' **in quel momento**, quindi
-                // rimetterla prima di `Scale2` vuol dire rimettere una
-                // posizione buona per un'altra inquadratura. Il pezzo usciva
-                // dritto e spostato — che e' peggio di uscire storto, perche'
-                // sembra giusto.
+                // With the wrong order the ROTATION comes back exact (indices 0-8
+                // of the matrix) and only the translation is wrong: `Translation3`
+                // holds for the scale that is there **at that moment**, so
+                // putting it back before `Scale2` means putting back a position that
+                // is good for another framing. The part came out straight and
+                // shifted — which is worse than coming out crooked, because it
+                // looks right.
                 //
-                // Ognuno nel suo `try`: se uno dei tre non si lascia rimettere,
-                // gli altri vanno rimessi lo stesso.
+                // Each one in its own `try`: if one of the three cannot be put back,
+                // the others must be put back all the same.
                 if (view != null)
                 {
                     try { if (orientationBefore != null) view.Orientation3 = orientationBefore; }
@@ -294,33 +294,33 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// LO SPACCATO: il pezzo tagliato da un piano, fotografato (voce V4).
+        /// THE CUTAWAY: the part cut by a plane, photographed (entry V4).
         ///
-        /// ── PERCHE' UNA SEZIONE E NON UN'ALTRA VISTA ──────────────────────
+        /// ── WHY A SECTION AND NOT ANOTHER VIEW ────────────────────────────
         ///
-        /// Uno spaccato dice di un guscio piu' di dieci viste esterne: e'
-        /// esattamente il gesto che fa un progettista per capire uno spessore.
-        /// Dall'esterno una scatola svuotata e una scatola piena sono lo stesso
-        /// parallelepipedo.
+        /// A cutaway tells more about a shell than ten external views: it is
+        /// exactly the gesture a designer makes to understand a thickness.
+        /// From the outside a hollowed-out box and a solid box are the same
+        /// parallelepiped.
         ///
-        /// ── NON TOCCA IL PEZZO, E NON LO TOCCA DAVVERO ────────────────────
+        /// ── IT DOES NOT TOUCH THE PART, AND IT REALLY DOES NOT ────────────
         ///
-        /// `GraphicsOnlySection = true`: taglia **il disegno a schermo**, non la
-        /// geometria. Nessuna feature nell'albero, nessun corpo diviso, niente
-        /// da annullare. E' la differenza fra guardare e modificare, e questo
-        /// ponte sta dalla parte del guardare.
+        /// `GraphicsOnlySection = true`: it cuts **the drawing on screen**, not the
+        /// geometry. No feature in the tree, no body split, nothing
+        /// to undo. It is the difference between looking and modifying, and this
+        /// bridge stands on the side of looking.
         ///
-        /// E la sezione **si toglie nel `finally`**, insieme all'orientamento:
-        /// lasciarla accesa cambierebbe cio' che il progettista vede sul suo
-        /// schermo, che e' il rischio scritto nella voce.
+        /// And the section **is removed in the `finally`**, together with the orientation:
+        /// leaving it on would change what the designer sees on their
+        /// screen, which is the risk written in the entry.
         ///
-        /// ── E NON PASSA DA `RunCommand` ──────────────────────────────────
+        /// ── AND IT DOES NOT GO THROUGH `RunCommand` ──────────────────────
         ///
-        /// Il comando di menu «Vista in sezione» apre un pannello e resta li' ad
-        /// aspettare: una chiamata COM che apre un modale **non torna** — la
-        /// trappola di `AddDimension`, gia' pagata una volta.
-        /// `IModelViewManager.CreateSectionView` risponde un bool e non chiede
-        /// niente a nessuno.
+        /// The menu command «Section View» opens a panel and stays there
+        /// waiting: a COM call that opens a modal **does not return** — the
+        /// trap of `AddDimension`, already paid for once.
+        /// `IModelViewManager.CreateSectionView` answers a bool and asks
+        /// nobody for anything.
         /// </summary>
         public static byte[] CaptureInSection(
             IModelDoc2 model, string which, string plane, double offsetMm,
@@ -377,8 +377,8 @@ namespace Oce.Solid.Agent.Core
                 }
                 data.FirstPlane = onWhich;
                 data.FirstOffset = Units.M(offsetMm);
-                // SOLO GRAFICA: e' la riga che rende questa operazione di sola
-                // lettura. Senza, SOLIDWORKS taglia il modello per davvero.
+                // GRAPHICS ONLY: it is the line that makes this operation
+                // read-only. Without it, SOLIDWORKS really cuts the model.
                 data.GraphicsOnlySection = true;
                 data.Redraw = true;
 
@@ -399,11 +399,11 @@ namespace Oce.Solid.Agent.Core
             }
             finally
             {
-                // SI TOGLIE SEMPRE, anche se la fotografia e' fallita a meta'.
-                // Una sezione lasciata accesa sullo schermo di chi lavora e' lo
-                // stesso danno dell'orientamento lasciato girato, e per la
-                // stessa ragione: l'ha fatto un'operazione che doveva solo
-                // guardare.
+                // IT IS ALWAYS REMOVED, even if the photograph failed halfway.
+                // A section left on the screen of whoever is working is the
+                // same damage as the orientation left turned, and for the
+                // same reason: it was done by an operation that was only supposed to
+                // look.
                 if (sectionOn)
                 {
                     try { handler.RemoveSectionView(); } catch { }
@@ -440,33 +440,33 @@ namespace Oce.Solid.Agent.Core
             return References.BasePlane(model, which, out reason);
         }
 
-        /// <summary>I nomi dei piani su cui si puo' sezionare.</summary>
+        /// <summary>The names of the planes on which one can section.</summary>
         public static IEnumerable<string> PlaneNames
         {
             get { return new[] { "front", "top", "right" }; }
         }
 
         /// <summary>
-        /// Di quanto si stringe dopo l'adattamento automatico.
+        /// By how much it is tightened after the automatic fit.
         ///
-        /// **1,15, e il tetto lo detta la direzione GIA' PIENA.** Dopo
-        /// l'adattamento il pezzo riempiva ~50% in larghezza ma gia' **78% in
-        /// altezza**: il margine che sembra sprecato guardando la larghezza non
-        /// c'e' in verticale. Provato 1,35 e misurato — la staffa a L e la
-        /// piastra uscivano dal bordo di SOPRA e di SOTTO (scatola y 0-512 su
-        /// 513), cioe' si guadagnava larghezza tagliando altezza.
+        /// **1.15, and the ceiling is dictated by the direction ALREADY FULL.** After
+        /// the fit the part filled ~50% in width but already **78% in
+        /// height**: the margin that looks wasted when looking at the width is not
+        /// there vertically. 1.35 was tried and measured — the L bracket and the
+        /// plate came out of the TOP and BOTTOM edges (box y 0-512 out of
+        /// 513), that is width was gained by cutting height.
         ///
-        /// 0,78 x 1,15 = 0,90: resta un decimo di margine per l'antialiasing e
-        /// per i pezzi che l'adattamento inquadra un po' piu' stretto.
+        /// 0.78 x 1.15 = 0.90: a tenth of margin remains for the antialiasing and
+        /// for the parts that the fit frames a little tighter.
         ///
-        /// **Uno zoom uniforme non puo' fare di meglio**, perche' i due margini
-        /// sono diversi e il fattore e' uno solo. Inquadrare bene per davvero
-        /// vuol dire calcolare l'ingombro del pezzo PROIETTATO nella vista e
-        /// adattare le due direzioni per conto loro: e' un'altra voce, non una
-        /// costante da alzare.
+        /// **A uniform zoom cannot do better**, because the two margins
+        /// are different and the factor is a single one. Framing really well
+        /// means computing the extent of the part PROJECTED into the view and
+        /// fitting the two directions on their own: it is another entry, not
+        /// a constant to raise.
         ///
-        /// Si cambia solo rimisurando con `Checks\FramingTest`, che
-        /// costa secondi.
+        /// It is changed only by measuring again with `Checks\FramingTest`, which
+        /// costs seconds.
         /// </summary>
         private const double HowMuchItNarrows = 1.15;
 
@@ -477,12 +477,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il fotogramma piu' grande che sta dentro le misure chieste E ha la
-        /// stessa forma dell'area grafica.
+        /// The largest frame that fits inside the sizes asked for AND has the
+        /// same shape as the graphics area.
         ///
-        /// Se l'area grafica non si lascia leggere, si tengono le misure
-        /// chieste: e' il comportamento di prima, che taglia — ma **tagliare e'
-        /// meglio che non scattare**, e il caso non si e' mai visto.
+        /// If the graphics area cannot be read, the sizes asked for are kept:
+        /// it is the behaviour from before, which cuts — but **cutting is
+        /// better than not shooting**, and the case has never been seen.
         /// </summary>
         private static void FrameView(
             IModelView view, int width, int height, out int lw, out int lh)
@@ -496,10 +496,10 @@ namespace Oce.Solid.Agent.Core
                 if (w <= 0 || h <= 0) return;
 
                 double shape = w / h;
-                // Si parte dalla larghezza piena e si ricava l'altezza; se
-                // l'altezza sfora, si fa il contrario. Cosi' il risultato tocca
-                // sempre uno dei due tetti e non e' mai piu' piccolo del
-                // necessario.
+                // It starts from the full width and derives the height; if
+                // the height overflows, the opposite is done. That way the result always touches
+                // one of the two ceilings and is never smaller than
+                // necessary.
                 int testHeight = (int)Math.Round(width / shape);
                 if (testHeight <= height && testHeight > 0)
                 {
@@ -518,52 +518,52 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il BMP di SOLIDWORKS diventa un PNG. Null col motivo se non si puo'.
+        /// The SOLIDWORKS BMP becomes a PNG. Null with the reason if it cannot.
         ///
-        /// Il file temporaneo si legge TUTTO in memoria prima di chiudere, e il
-        /// `Bitmap` si costruisce da un `MemoryStream`: costruirlo dal file lo
-        /// tiene aperto finche' il Bitmap vive, e la cancellazione nel
-        /// `finally` fallirebbe lasciando spazzatura nella cartella temporanea
-        /// a ogni scatto.
+        /// The temporary file is read ENTIRELY into memory before closing, and the
+        /// `Bitmap` is built from a `MemoryStream`: building it from the file
+        /// keeps it open as long as the Bitmap lives, and the deletion in the
+        /// `finally` would fail leaving garbage in the temporary folder
+        /// at every shot.
         /// </summary>
         /// <summary>
-        /// Quanto sfondo si lascia attorno al pezzo, ritagliando.
+        /// How much background is left around the part, when cropping.
         ///
-        /// Il 4% del lato maggiore, e **mai meno di dodici pixel**. Il minimo
-        /// non e' un vezzo: la prova `FramingTest` considera «tagliato»
-        /// un pezzo che arriva a tre pixel dal bordo, e un margine piu' stretto
-        /// della sua franchigia farebbe fallire la prova su un'immagine
-        /// perfetta.
+        /// 4% of the longer side, and **never less than twelve pixels**. The minimum
+        /// is not a whim: the `FramingTest` check considers «cut»
+        /// a part that comes within three pixels of the edge, and a margin narrower
+        /// than its allowance would make the check fail on a
+        /// perfect image.
         /// </summary>
         private const double CutoutMargin = 0.04;
         private const int MinimumMargin = 12;
 
         /// <summary>
-        /// Il fotogramma **ritagliato attorno al pezzo** (voce V6). Null quando
-        /// non conviene o non si puo', e allora si tiene quello intero.
+        /// The frame **cropped around the part** (entry V6). Null when
+        /// it is not worthwhile or not possible, and then the whole one is kept.
         ///
-        /// ── PERCHE' SI RITAGLIA INVECE DI ZOOMARE ─────────────────────────
+        /// ── WHY IT IS CROPPED INSTEAD OF ZOOMED ───────────────────────────
         ///
-        /// Dopo l'adattamento, misurato, il pezzo riempiva il **58% in
-        /// larghezza e l'89% in altezza**. Sembra un'inquadratura da stringere,
-        /// e non lo e': **il verticale e' il vincolo**. `ViewZoomtofit2` scala
-        /// finche' il pezzo ci sta in tutte e due le direzioni, e quella che
-        /// tocca per prima finisce a ~90%; l'altra resta indietro di quanto la
-        /// forma del pezzo differisce dalla forma del fotogramma.
+        /// After the fit, measured, the part filled **58% in
+        /// width and 89% in height**. It looks like a framing to tighten,
+        /// and it is not: **the vertical is the constraint**. `ViewZoomtofit2` scales
+        /// until the part fits in both directions, and the one that
+        /// touches first ends at ~90%; the other stays behind by as much as the
+        /// shape of the part differs from the shape of the frame.
         ///
-        /// Uno zoom non puo' riparare questo, perche' agisce sulle due
-        /// direzioni insieme: provato con 1,35 e il pezzo usciva dal bordo di
-        /// sopra e di sotto per guadagnare larghezza. **Non si adatta il pezzo
-        /// al fotogramma: si adatta il fotogramma al pezzo.**
+        /// A zoom cannot repair this, because it acts on the two
+        /// directions together: tried with 1.35 and the part came out of the top and bottom
+        /// edge to gain width. **The part is not fitted
+        /// to the frame: the frame is fitted to the part.**
         ///
-        /// ── E NON PUO' TAGLIARE IL PEZZO, PER COSTRUZIONE ─────────────────
+        /// ── AND IT CANNOT CUT THE PART, BY CONSTRUCTION ───────────────────
         ///
-        /// Il ritaglio si fa sulla scatola dei pixel che NON sono sfondo, piu'
-        /// un margine. Tagliare via un pezzo di pezzo vorrebbe dire che quei
-        /// pixel non erano pezzo — cioe' che la soglia mente, ed e' la stessa
-        /// soglia che `FramingTest` prova su un documento vuoto.
+        /// The crop is made on the box of the pixels that are NOT background, plus
+        /// a margin. Cutting away a piece of the part would mean that those
+        /// pixels were not part — that is that the threshold lies, and it is the same
+        /// threshold that `FramingTest` tests on an empty document.
         ///
-        /// Costa anche MENO: meno pixel, quindi meno token, per piu' pezzo.
+        /// It also costs LESS: fewer pixels, hence fewer tokens, for more part.
         /// </summary>
         private static Bitmap AroundPart(Bitmap whole)
         {
@@ -572,15 +572,15 @@ namespace Oce.Solid.Agent.Core
                 int width = whole.Width, height = whole.Height;
                 int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
 
-                // LockBits E UNA RIGA PER VOLTA, non GetPixel: su 1024x513 sono
-                // mezzo milione di letture, e `GetPixel` le paga una chiamata
-                // l'una.
+                // LockBits AND ONE ROW AT A TIME, not GetPixel: on 1024x513 that is
+                // half a million reads, and `GetPixel` pays a call
+                // for each.
                 //
-                // E `Marshal.Copy` invece di un blocco `unsafe`: accendere
-                // `AllowUnsafeBlocks` cambia il modo in cui si compila **tutta
-                // la libreria**, ed e' un impegno piu' grosso di quanto valga
-                // un ritaglio. La copia per riga costa una allocazione sola e
-                // la stessa velocita'.
+                // And `Marshal.Copy` instead of an `unsafe` block: turning on
+                // `AllowUnsafeBlocks` changes the way **the whole library** is compiled,
+                // and it is a bigger commitment than a crop is
+                // worth. The copy per row costs a single allocation and the
+                // same speed.
                 var data = whole.LockBits(
                     new Rectangle(0, 0, width, height),
                     ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
@@ -593,11 +593,11 @@ namespace Oce.Solid.Agent.Core
                             data.Scan0 + y * data.Stride, line, 0, line.Length);
                         for (int x = 0; x < width; x++)
                         {
-                            // SFONDO = CHIARO SU TUTTI E TRE I CANALI.
-                            // Il grigio del pezzo sta sui 128-150, la sfumatura
-                            // di SOLIDWORKS non scende sotto ~215. Si guardano i
-                            // canali e non la somma: un grigio medio e un
-                            // azzurro chiaro possono avere la stessa somma.
+                            // BACKGROUND = LIGHT ON ALL THREE CHANNELS.
+                            // The grey of the part sits around 128-150, the gradient
+                            // of SOLIDWORKS does not go below ~215. The channels are looked at and
+                            // not the sum: a medium grey and a
+                            // light blue can have the same sum.
                             int i = x * 3;
                             if (line[i] >= 200 && line[i + 1] >= 200 && line[i + 2] >= 200)
                                 continue;
@@ -610,7 +610,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 finally { whole.UnlockBits(data); }
 
-                if (maxX < 0) return null;   // fotogramma vuoto: si tiene intero
+                if (maxX < 0) return null;   // empty frame: it is kept whole
 
                 int margin = Math.Max(
                     MinimumMargin,
@@ -623,9 +623,9 @@ namespace Oce.Solid.Agent.Core
                 int w = x1 - x0 + 1, h = y1 - y0 + 1;
                 if (w <= 0 || h <= 0) return null;
 
-                // SE NON GUADAGNA, NON SI FA. Ritagliare il 2% costa una copia
-                // del fotogramma per non cambiare niente, e in cambio toglie
-                // margine a chi guarda.
+                // IF IT DOES NOT GAIN, IT IS NOT DONE. Cropping 2% costs a copy
+                // of the frame to change nothing, and in exchange takes away
+                // margin from whoever looks.
                 if (w > width * 0.95 && h > height * 0.95) return null;
 
                 return whole.Clone(new Rectangle(x0, y0, w, h), whole.PixelFormat);

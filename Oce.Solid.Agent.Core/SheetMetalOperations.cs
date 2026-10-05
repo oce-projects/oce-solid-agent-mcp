@@ -8,23 +8,23 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA LAMIERA (voce GP18): la flangia base e lo sviluppo per il taglio.
+    /// SHEET METAL (entry GP18): the base flange and the flat pattern for cutting.
     ///
-    /// ── LA MISURA CHE L'HA RESA COSTRUIBILE, 24/9/2026 ─────────────────────
+    /// ── THE MEASURE THAT MADE IT BUILDABLE, 24/9/2026 ──────────────────────
     ///
-    /// `Checks/SheetMetal`: una L da 50 + 30, profonda 40, T 2, R 2, K 0,5
-    /// riletti dalla lamiera. Lo sviluppo esce 80,712 mm, e il conto a mano con
-    /// lo schizzo sulle facce INTERNE da' 80,712 — scarto zero; con le facce
-    /// esterne 76,712. Volume piegato e sviluppato uguali. **La convenzione e'
-    /// misurata, non letta**: i punti dati qui sono le facce interne, e lo
-    /// spessore va fuori.
+    /// `Checks/SheetMetal`: an L of 50 + 30, 40 deep, T 2, R 2, K 0.5
+    /// re-read from the sheet metal. The flat pattern comes out 80.712 mm, and the hand calculation with
+    /// the sketch on the INNER faces gives 80.712 — zero deviation; with the
+    /// outer faces 76.712. Bent and flattened volume equal. **The convention is
+    /// measured, not read**: the points given here are the inner faces, and the
+    /// thickness goes outside.
     ///
-    /// ── TRE TRAPPOLE, tutte senza errore ──────────────────────────────────
+    /// ── THREE TRAPS, all without an error ─────────────────────────────────
     ///
-    ///  1. `SetBendState(sviluppata)` risponde 0 e `GetBendState` dice
-    ///     «sviluppata», e il corpo resta PIEGATO. Lo sviluppo si legge togliendo
-    ///     la soppressione alla lavorazione «FlatPattern» in fondo all'albero, e
-    ///     rimettendola.
+    ///  1. `SetBendState(sviluppata)` answers 0 and `GetBendState` says
+    ///     «flattened», and the body stays BENT. The flat pattern is read by removing
+    ///     the suppression from the «FlatPattern» feature at the bottom of the tree, and
+    ///     putting it back.
     ///  2. The export of the flat pattern on a part NEVER SAVED: the obsolete
     ///     `ExportFlatPatternView` (used until Z-C21.7) opened "Save As" and the
     ///     COM call did not return. `ExportToDWG2`, used since then, takes the
@@ -32,9 +32,9 @@ namespace Oce.Solid.Agent.Core
     ///     measured (the Z-C21.3 probe left that case to a run with someone at
     ///     the screen). `flat_pattern_dxf` still refuses a part without a file,
     ///     before calling.
-    ///  3. Lo schizzo si disegna con `AddToDB` a vero: le relazioni che
-    ///     SOLIDWORKS indovina da solo sovravincolano alla prima modifica
-    ///     (misurato con `Checks/FollowTheEdge`).
+    ///  3. The sketch is drawn with `AddToDB` true: the relations that
+    ///     SOLIDWORKS guesses by itself overconstrain at the first modification
+    ///     (measured with `Checks/FollowTheEdge`).
     /// </summary>
     public partial class SwOperations
     {
@@ -53,9 +53,9 @@ namespace Oce.Solid.Agent.Core
             var points = ProfilePoints(a, out error);
             if (points == null) return Failed(error);
 
-            // UN TRATTO PIU' CORTO DEL RAGGIO NON SI PIEGA: la piega mangia R da
-            // ogni lato interno. Il limite si dichiara prima di chiamare, perche'
-            // dopo SOLIDWORKS darebbe una lavorazione rossa senza dire quale lato.
+            // A STRETCH SHORTER THAN THE RADIUS DOES NOT BEND: the bend eats R from
+            // every inner side. The limit is declared before calling, because
+            // afterwards SOLIDWORKS would give a red feature without saying which side.
             for (int i = 0; i < points.Count - 1; i++)
             {
                 double l = Math.Sqrt(Math.Pow(points[i + 1][0] - points[i][0], 2) +
@@ -103,20 +103,20 @@ namespace Oce.Solid.Agent.Core
                 return Failed("La flangia base non e' nata, e SOLIDWORKS non dice perche'." + LeftSketchBehind);
             model.EditRebuild3();
 
-            // ── NATA IN ERRORE? (voce Z-C21.2, rilievo L10-4) ─────────────
+            // ── BORN IN ERROR? (entry Z-C21.2, finding L10-4) ─────────────
             //
             // IFeature~GetErrorCode2.html: «This method returns many of the
             // errors indicated by the What's Wrong icon seen with an invalid
-            // feature in the FeatureManager design tree». Le tre sorelle
-            // (edge_flange, orlo, sketched_bend) lo leggevano, questa no:
-            // la rilettura di T e R qui sotto viene dalla lavorazione «SheetMetal»,
-            // che c'e' anche con la flangia rossa, e non prova niente sulla flangia.
+            // feature in the FeatureManager design tree». The three sisters
+            // (edge_flange, hem, sketched_bend) read it, this one did not:
+            // the re-read of T and R below comes from the «SheetMetal» feature,
+            // which exists even with the flange red, and proves nothing about the flange.
             var flangeError = ApiHelpers.RebuildError(flange);   // S11: GetErrorCode2, warnings excluded
             if (flangeError != null)
                 return Failed("La flangia base «" + flange.Name + "» e' nata in errore (" +
                                flangeError + "): ritirala — " + Sentences.HowToWithdrawIt + ".");
 
-            // ── T, R, K RILETTI dalla lamiera, non ripetuti dagli argomenti ──
+            // ── T, R, K RE-READ from the sheet metal, not repeated from the arguments ──
             var data = SheetMetalData(model);
             if (data == null)
                 return Failed("La flangia c'e' ma non trovo la lavorazione «SheetMetal»: non so " +
@@ -130,12 +130,12 @@ namespace Oce.Solid.Agent.Core
             double? bentVolume = VolumeMm3(model);
             double flatPattern = FlattenedLength(model, out double flattenedVolume, out string flatPatternProblem);
 
-            // IL CONTO A MANO, nelle due convenzioni. Misurato: con la L data
-            // dall'alto verso destra lo spessore va a DESTRA del verso di
-            // percorrenza e i punti sono le facce interne. Dato al contrario,
-            // lo spessore va dall'altra parte e i punti diventano le facce
-            // ESTERNE — lo sviluppo cambia di 2T per piega. Non si indovina: si
-            // calcolano tutte e due e si dice quale combacia con SOLIDWORKS.
+            // THE HAND CALCULATION, in the two conventions. Measured: with the L given
+            // from top to right the thickness goes to the RIGHT of the direction
+            // of travel and the points are the inner faces. Given the other way round,
+            // the thickness goes the other way and the points become the OUTER
+            // faces — the flat pattern changes by 2T per bend. It is not guessed: both are
+            // calculated and it is said which one matches SOLIDWORKS.
             double sum = 0;
             for (int i = 0; i < points.Count - 1; i++)
                 sum += Math.Sqrt(Math.Pow(points[i + 1][0] - points[i][0], 2) +
@@ -150,12 +150,12 @@ namespace Oce.Solid.Agent.Core
                 : Math.Abs(flatPattern - outer) <= 0.5 ? "outer" : "nessuna delle due";
             double expected = convention == "outer" ? outer : inner;
 
-            // ── E HA AGGIUNTO MATERIALE? (rilievo L10-4, come orlo e flangia a
-            // spigolo). Il volume di una lamiera piegata e' lo sviluppo per lo
-            // spessore per la profondita', a meno di dove si prende la fibra
-            // neutra: meta' del conto piu' corto delle due convenzioni e' una
-            // soglia che nessuna flangia vera manca, e una flangia vuota si'.
-            // Prima questo numero si riportava soltanto.
+            // ── AND DID IT ADD MATERIAL? (finding L10-4, like hem and edge
+            // flange). The volume of a bent sheet is the flat pattern times the
+            // thickness times the depth, give or take where the neutral
+            // fibre is taken: half of the shorter calculation of the two conventions is a
+            // threshold that no real flange misses, and an empty flange does.
+            // Before, this number was only reported.
             double? addedFlange = bentVolume - volumeBefore;
             double flangeThreshold = 0.5 * Math.Min(inner, outer) * t * depth;
             if (addedFlange.HasValue && addedFlange.Value < flangeThreshold)
@@ -180,9 +180,9 @@ namespace Oce.Solid.Agent.Core
             // unsuppress, or did not suppress again, is said in the answer.
             if (flatPatternProblem != null) measurements["flat_pattern_problem"] = flatPatternProblem;
 
-            // IL CONTROLLO CHE DA' SENSO ALLA FAMIGLIA: lo sviluppo di SOLIDWORKS
-            // contro il conto a mano. Se divergono, il DXF che andra' al laser
-            // non e' quello che uno si aspetta, e lo si dice adesso.
+            // THE CHECK THAT GIVES THE FAMILY ITS MEANING: the SOLIDWORKS flat pattern
+            // against the hand calculation. If they diverge, the DXF that will go to the laser
+            // is not what one expects, and it is said now.
             if (convention == "nessuna delle due")
                 measurements["warning"] = string.Format(CultureInfo.InvariantCulture,
                     "Lo sviluppo di SOLIDWORKS e' {0:0.###} mm e il conto a mano ne da' {1:0.###}: " +
@@ -196,9 +196,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// LA FLANGIA A SPIGOLO (voce GP18): una piega nuova su uno spigolo di
-        /// bordo di una lamiera che c'e' gia'. Serve alle scatole — pieghe su
-        /// spigoli di direzioni diverse, che `base_flange` da un profilo solo non fa.
+        /// THE EDGE FLANGE (entry GP18): a new bend on a border edge of a
+        /// sheet metal that already exists. It serves boxes — bends on
+        /// edges of different directions, which `base_flange` from a single profile does not make.
         ///
         /// ── HOW IT IS MADE (Z-C21.7, L10-1) ─────────────────────────────────
         ///
@@ -231,8 +231,8 @@ namespace Oce.Solid.Agent.Core
                                "lamiera che c'e' gia' (fatta con «base_flange»).");
             double t = Units.Mm(data.Thickness), r = Units.Mm(data.BendRadius), k = data.KFactor;
 
-            // NIENTE DI DRITTO: la piega consuma R + T dalla lunghezza misurata allo
-            // spigolo esterno. Si dice prima di toccare il pezzo.
+            // NOTHING STRAIGHT: the bend consumes R + T from the length measured at the
+            // outer edge. It is said before touching the part.
             if (length <= r + t + 0.001)
                 return Failed(string.Format(CultureInfo.InvariantCulture,
                     "Una flangia lunga {0:0.###} mm allo spigolo esterno non ha niente di dritto: " +
@@ -341,9 +341,9 @@ namespace Oce.Solid.Agent.Core
             double expectedVolume = extraFlatPattern * t * Units.Mm(along);
             double? added = volumeAfter - volumeBefore;
 
-            // NATA VUOTA: e' il tentativo 9 della sonda — una «Bordo-Flangia»
-            // nell'albero che non aggiunge niente. Non si conferma un pezzo
-            // uguale a prima.
+            // BORN EMPTY: it is attempt 9 of the probe — a «Bordo-Flangia»
+            // in the tree that adds nothing. A part equal to before is not
+            // confirmed.
             if (added.HasValue && added.Value < 0.5 * expectedVolume)
                 return Failed(string.Format(CultureInfo.InvariantCulture,
                     "La flangia «{0}» e' nell'albero ma ha aggiunto {1:0.##} mm3 invece dei {2:0.##} del " +
@@ -430,7 +430,7 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        /// <summary>Uno spigolo di bordo di una lamiera, con le sue due facce.</summary>
+        /// <summary>A border edge of a sheet metal, with its two faces.</summary>
         private sealed class SheetMetalEdge
         {
             public IEdge Edge;
@@ -448,16 +448,16 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Lo spigolo di bordo su cui si piega (flangia a spigolo, orlo): preso
-        /// per firma (voce E19), dritto, fra la faccia LARGA della lamiera e una
-        /// faccia di TESTA piana, larga quanto lo spessore (area = T x lunghezza).
-        /// Null col motivo, che dice quale spigolo serve.
+        /// The border edge on which it bends (edge flange, hem): taken
+        /// by signature (entry E19), straight, between the WIDE face of the sheet metal and a
+        /// flat END face, as wide as the thickness (area = T x length).
+        /// Null with the reason, which says which edge is needed.
         ///
-        /// IL FIANCO DI UNA LAMIERA NON E' UNA FACCIA SOLA (`prova0089 elle`,
-        /// 26/9/2026): e' spezzato per tratti, e ogni tratto e' largo proprio lo
-        /// spessore. Quindi anche gli spigoli lungo i fianchi sono di bordo, e lo
-        /// sono davvero; non lo e' lo spigolo di tangenza di una piega, dove una
-        /// faccia e' il cilindro della piega.
+        /// THE SIDE OF A SHEET METAL IS NOT A SINGLE FACE (`prova0089 elle`,
+        /// 26/9/2026): it is broken into stretches, and every stretch is exactly as wide as the
+        /// thickness. So the edges along the sides are border edges too, and they
+        /// really are; the tangent edge of a bend is not, where one
+        /// face is the cylinder of the bend.
         /// </summary>
         private SheetMetalEdge BorderEdge(
             Dictionary<string, object> a, DocumentState docState, string uid, double t,
@@ -516,7 +516,7 @@ namespace Oce.Solid.Agent.Core
                 return null;
             }
             var n = ApiHelpers.NormalIfPlanar(b.Wide);
-            // -1 e' «non letta» (voce Z-C8), e si rifiuta subito sotto.
+            // -1 is «not read» (entry Z-C8), and it is refused right below.
             double nn = n == null || n.Length < 3 ? -1 : Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
             if (nn <= 1e-9)
             {
@@ -528,25 +528,25 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ORLO (voce GP18): il bordo ripiegato su se stesso, chiuso o aperto.
+        /// THE HEM (entry GP18): the edge folded back on itself, closed or open.
         ///
-        /// ── MISURATO PRIMA DI SCRIVERLO, 26/9/2026 (`prova0089 orlo`) ────────
+        /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 orlo`) ────────
         ///
-        /// `InsertSheetMetalHem2` lavora sullo spigolo SELEZIONATO e nasce al
-        /// primo colpo — nessuno schizzo, a differenza della flangia a spigolo.
-        /// Sulla L (T 2, K 0,5), «dentro»:
+        /// `InsertSheetMetalHem2` works on the SELECTED edge and is born at the
+        /// first try — no sketch, unlike the edge flange.
+        /// On the L (T 2, K 0.5), «inside»:
         ///
-        ///   aperto, gioco 1, lungo 10:  +9,712 di sviluppo
-        ///   aperto, gioco 2, lungo 10:  +10,283
-        ///   aperto, gioco 1, lungo 15:  +14,712
-        ///   chiuso, lungo 10 / 15:      +9,199 / +14,199
+        ///   open, gap 1, length 10:  +9.712 of flat pattern
+        ///   open, gap 2, length 10:  +10.283
+        ///   open, gap 1, length 15:  +14.712
+        ///   closed, length 10 / 15:  +9.199 / +14.199
         ///
-        /// L'APERTO e' la formula della flangia con la piega a 180 gradi e il
-        /// raggio interno pari a meta' del gioco: (L - R - T) + pi (R + K T) -
-        /// (R + T), R = G/2 — tre misure su tre, al millesimo. Il CHIUSO sta
-        /// 0,057 sopra la stessa formula con R = 0: come un raggio interno di 0,05
-        /// mm, misurato con T 2 soltanto. Per questo il conto del chiuso si dice
-        /// accanto alla misura, e non decide niente.
+        /// THE OPEN ONE is the formula of the flange with the bend at 180 degrees and the
+        /// inner radius equal to half the gap: (L - R - T) + pi (R + K T) -
+        /// (R + T), R = G/2 — three measures out of three, to the thousandth. The CLOSED one is
+        /// 0.057 above the same formula with R = 0: like an inner radius of 0.05
+        /// mm, measured with T 2 only. That is why the calculation for the closed one is stated
+        /// next to the measure, and decides nothing.
         /// </summary>
         private Outcome Hem(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
@@ -632,28 +632,28 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// LA PIEGA DA SCHIZZO (voce GP18): la lamiera si piega lungo una linea
-        /// tracciata su una sua faccia.
+        /// THE SKETCHED BEND (entry GP18): the sheet metal bends along a line
+        /// drawn on one of its faces.
         ///
-        /// ── MISURATA PRIMA DI SCRIVERLA, 26/9/2026 (`prova0089 piega`) ────────
+        /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 piega`) ────────
         ///
         /// `InsertSheetMetal3dBend(Angle, UseDefaultRadius, Radius, FlipDir,
-        /// BendPos, PCBA)` con lo SCHIZZO della linea selezionato nasce al primo
-        /// colpo; la faccia fissa non serve (con o senza, stesso pezzo). Su una
-        /// lamiera piatta 100 x 40 x 2 (R 2, K 0,5), linea di traverso a x = 50
-        /// sulla faccia alta, 90 gradi, «materiale dentro»: volume invariato
-        /// (8000), ingombro 50 x 53,288 x 40 — 46 di piano (50 - R - T), la piega
-        /// da 4,712, e 49,288 di lato che sale da y = 2. Lo sviluppo non cambia:
-        /// una piega non aggiunge lamiera, la sposta.
+        /// BendPos, PCBA)` with the SKETCH of the line selected is born at the first
+        /// try; the fixed face is not needed (with or without, same part). On a
+        /// flat sheet 100 x 40 x 2 (R 2, K 0.5), line across at x = 50
+        /// on the top face, 90 degrees, «material inside»: volume unchanged
+        /// (8000), bounding box 50 x 53.288 x 40 — 46 of flat (50 - R - T), the bend
+        /// of 4.712, and 49.288 of side rising from y = 2. The flat pattern does not change:
+        /// a bend does not add sheet, it moves it.
         ///
-        /// La lamiera si piega verso la parte a cui GUARDA la faccia su cui sta
-        /// la linea: per piegare dall'altra parte si traccia la linea sull'altra
-        /// faccia. Il lato che resta fermo lo sceglie SOLIDWORKS: la risposta
-        /// porta l'ingombro prima e dopo, che lo dice.
+        /// The sheet bends toward the side that the face the line lies on
+        /// LOOKS to: to bend the other way the line is drawn on the other
+        /// face. The side that stays still is chosen by SOLIDWORKS: the answer
+        /// carries the bounding box before and after, which says it.
         ///
-        /// IL JOG no: `IModelDoc2.InsertSheetMetalJog` (Void) non ha fatto
-        /// nascere niente in sette varianti di selezione, e fra le definizioni di
-        /// lavorazione non c'e' un jog. E' nel TODO, voce GP18.
+        /// THE JOG no: `IModelDoc2.InsertSheetMetalJog` (Void) gave birth to
+        /// nothing in seven variants of selection, and among the feature
+        /// definitions there is no jog. It is in the TODO, entry GP18.
         /// </summary>
         private Outcome SketchedBend(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
@@ -685,7 +685,7 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (plane == null || plane.Length < 6)
                 return Failed("La faccia «" + uidFace + "» non e' piana: la linea di piega si traccia su una faccia piana.");
-            // I DUE PUNTI STANNO SULLA FACCIA: distanza dal suo piano entro 5 centesimi.
+            // THE TWO POINTS LIE ON THE FACE: distance from its plane within 5 hundredths.
             Func<double[], double> fromPlane = p =>
                 Math.Abs((Units.M(p[0]) - plane[3]) * plane[0] + (Units.M(p[1]) - plane[4]) * plane[1] +
                          (Units.M(p[2]) - plane[5]) * plane[2]) * 1000.0;
@@ -783,8 +783,8 @@ namespace Oce.Solid.Agent.Core
                 ["flat_pattern_length_mm"] = double.IsNaN(flatPatternAfter) ? null : (object)Math.Round(flatPatternAfter, 3),
             };
             if (flatPatternProblem != null) measurements["flat_pattern_problem"] = flatPatternProblem;   // M24
-            // UNA PIEGA NON AGGIUNGE LAMIERA: volume e sviluppo restano quelli di
-            // prima. Se cambiano, il pezzo non e' quello che si crede.
+            // A BEND DOES NOT ADD SHEET: volume and flat pattern stay as they were
+            // before. If they change, the part is not what is believed.
             if (!volumeAfter.HasValue || !volumeBefore.HasValue) measurements["volume_not_reread"] = NoteVolumeNotReread;
             else if (Math.Abs(volumeAfter.Value - volumeBefore.Value) > 0.001 * volumeBefore.Value)
                 measurements["warning"] = string.Format(CultureInfo.InvariantCulture,
@@ -804,8 +804,8 @@ namespace Oce.Solid.Agent.Core
             if (SheetMetalData(model) == null)
                 return Failed("Questo pezzo non e' di lamiera: non ha una lavorazione «SheetMetal» da sviluppare.");
 
-            // TRAPPOLA 2 della nota in testa: senza file, «Salva con nome» e una
-            // chiamata che non torna.
+            // TRAP 2 of the note at the top: without a file, «Save As» is a
+            // call that does not return.
             string its = model.GetPathName() ?? "";
             if (string.IsNullOrWhiteSpace(its))
                 return Failed("Il pezzo non e' mai stato salvato, e su un pezzo senza file " +
@@ -868,8 +868,8 @@ namespace Oce.Solid.Agent.Core
                 return Failed("SOLIDWORKS dice di aver esportato lo sviluppo, ma il file «" + location +
                                "» " + (File.Exists(location) ? "e' vuoto." : "non c'e'."));
 
-            // SI RILEGGE IL DXF: l'ingombro scritto nel file contro lo sviluppo
-            // misurato sul pezzo. Un DXF di un'altra cosa si apre uguale.
+            // THE DXF IS RE-READ: the bounding box written in the file against the flat pattern
+            // measured on the part. A DXF of something else opens just the same.
             double flatPattern = FlattenedLength(model, out double _, out string flatPatternProblem);
             var boundingBox = DxfBoundingBox(location);
             var measurements = new Dictionary<string, object>
@@ -932,8 +932,8 @@ namespace Oce.Solid.Agent.Core
         // =================================================================
 
         /// <summary>
-        /// Lo spessore, il raggio e il fattore K della lamiera del pezzo, dalla
-        /// lavorazione «SheetMetal». Null se il pezzo non e' di lamiera.
+        /// The thickness, the radius and the K factor of the sheet metal of the part, from the
+        /// «SheetMetal» feature. Null if the part is not sheet metal.
         /// </summary>
         private static ISheetMetalFeatureData SheetMetalData(IModelDoc2 model)
         {
@@ -951,10 +951,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il lato lungo del pezzo SVILUPPATO, in mm, e il suo volume. NaN se non
-        /// si riesce. Si toglie la soppressione alla lavorazione «FlatPattern»,
-        /// si misura, e la si rimette — `SetBendState` non fa niente (nota in
-        /// testa, trappola 1).
+        /// The long side of the FLATTENED part, in mm, and its volume. NaN if it
+        /// cannot be done. The suppression is removed from the «FlatPattern» feature,
+        /// it is measured, and it is put back — `SetBendState` does nothing (note at
+        /// the top, trap 1).
         ///
         /// <paramref name="flatPatternProblem"/> is null when the flat pattern
         /// was unsuppressed and suppressed again as asked, otherwise the reason.
@@ -1002,7 +1002,7 @@ namespace Oce.Solid.Agent.Core
                     return double.NaN;
                 }
                 model.EditRebuild3();
-                volume = VolumeMm3(model) ?? double.NaN;   // NaN qui vuol gia' dire «non lo so»
+                volume = VolumeMm3(model) ?? double.NaN;   // NaN here already means «I do not know»
                 var bodies = (model as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
                 // S6: the flat length is a measure, so the TRUE box
                 // (ApiHelpers.TrueBoundingBox), not GetBodyBox, which the guide
@@ -1033,16 +1033,16 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ingombro in pianta del DXF, in mm, calcolato dalle ENTITA' — non
-        /// dall'intestazione. Null se il file non ha entita' leggibili.
+        /// The plan bounding box of the DXF, in mm, calculated from the ENTITIES — not
+        /// from the header. Null if the file has no readable entities.
         ///
-        /// MISURATO il 25/9/2026, alla prima prova: `$EXTMIN/$EXTMAX`
-        /// dell'intestazione dicevano 279,4 mm per uno sviluppo di 80,712 —
-        /// 279,4 sono 11 pollici, il foglio del modello DXF, non il pezzo. Un
-        /// controllo costruito sull'intestazione avrebbe rifiutato ogni DXF
-        /// giusto, o peggio accettato quelli sbagliati del formato giusto.
-        /// Qui si leggono le coppie (codice, valore) della sezione ENTITIES:
-        /// punti 10/20 e 11/21, e per archi e cerchi il centro piu' il raggio.
+        /// MEASURED on 25/9/2026, at the first test: `$EXTMIN/$EXTMAX`
+        /// of the header said 279.4 mm for a flat pattern of 80.712 —
+        /// 279.4 is 11 inches, the sheet of the DXF template, not the part. A
+        /// check built on the header would have refused every right DXF,
+        /// or worse accepted the wrong ones of the right format.
+        /// Here the (code, value) pairs of the ENTITIES section are read:
+        /// points 10/20 and 11/21, and for arcs and circles the centre plus the radius.
         /// </summary>
         private static double[] DxfBoundingBox(string filePath)
         {
@@ -1088,11 +1088,11 @@ namespace Oce.Solid.Agent.Core
             const string howItIsWritten =
                 "«points» vuole almeno due punti [x, y] in mm sul piano: il profilo APERTO " +
                 "della lamiera. Una L: [[0,30],[0,0],[50,0]].";
-            // UN ELENCO E' UN IEnumerable, non un `object[]`. Misurato al primo
-            // giro di banco (25/9/2026): gli argomenti arrivano come elenchi del
-            // serializzatore di chi chiama, e un `as object[]` dava null su una L
-            // scritta giusta — rifiutata con «vuole almeno due punti». E' la
-            // stessa regola di `HasList`, che c'era gia'.
+            // A LIST IS AN IEnumerable, not an `object[]`. Measured at the first
+            // bench run (25/9/2026): the arguments arrive as lists of the
+            // serializer of whoever calls, and an `as object[]` gave null on an L
+            // written correctly — refused with «vuole almeno due punti». It is the
+            // same rule as `HasList`, which was already there.
             object raw;
             var list = a != null && a.TryGetValue("points", out raw) && !(raw is string)
                 ? raw as System.Collections.IEnumerable : null;
@@ -1115,7 +1115,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>L'angolo di piega al punto b, in radianti (0 = dritto).</summary>
+        /// <summary>The bend angle at point b, in radians (0 = straight).</summary>
         private static double BendAngle(double[] a, double[] b, double[] c)
         {
             double ux = b[0] - a[0], uy = b[1] - a[1], vx = c[0] - b[0], vy = c[1] - b[1];

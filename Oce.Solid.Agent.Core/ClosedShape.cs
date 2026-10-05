@@ -4,52 +4,52 @@ using System.Collections.Generic;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Dove sta un punto rispetto al bordo di una sagoma.
+    /// Where a point is with respect to the border of a shape.
     ///
-    /// Il bordo e' una risposta a se': un punto che ci sta sopra non e' ne'
-    /// dentro ne' fuori, e costringerlo a essere uno dei due fa dipendere il
-    /// verdetto dal lato del poligono su cui capita. Vedi
+    /// The border is an answer of its own: a point lying on it is neither
+    /// inside nor outside, and forcing it to be one of the two makes the
+    /// verdict depend on the side of the polygon it happens to fall on. See
     /// <see cref="ClosedShape.WhereItIs"/>.
     /// </summary>
     public enum WhereItIsFound
     {
-        /// <summary>Dentro il materiale, bordo escluso.</summary>
+        /// <summary>Inside the material, border excluded.</summary>
         Inside,
 
-        /// <summary>Fuori dal materiale, bordo escluso.</summary>
+        /// <summary>Outside the material, border excluded.</summary>
         Outside,
 
-        /// <summary>Sul bordo, entro <see cref="ClosedShape.OnBorderMm"/>.</summary>
+        /// <summary>On the border, within <see cref="ClosedShape.OnBorderMm"/>.</summary>
         OnBorder
     }
 
     /// <summary>
-    /// LA GEOMETRIA DI UNA SAGOMA PIANA, senza SOLIDWORKS di mezzo.
+    /// THE GEOMETRY OF A PLANAR SHAPE, with no SOLIDWORKS in between.
     ///
-    /// Serve a rispondere a due domande che SOLIDWORKS **non** fa:
+    /// It serves to answer two questions that SOLIDWORKS does **not** ask:
     ///
-    ///   * questo contorno si incrocia da solo?
-    ///   * questo vuoto sta dentro il bordo esterno?
+    ///   * does this contour cross itself?
+    ///   * does this void lie inside the outer border?
     ///
-    /// Nessuna delle due da' errore. Un contorno che si incrocia viene
-    /// costruito lo stesso: SOLIDWORKS estrude le regioni che riesce a
-    /// chiudere e tira fuori un pezzo plausibile e sbagliato. Un vuoto che
-    /// sborda **taglia** il pezzo invece di forarlo, e il risultato e' un
-    /// solido perfettamente valido che non e' quello che si e' chiesto.
+    /// Neither of the two gives an error. A contour that crosses itself is
+    /// built just the same: SOLIDWORKS extrudes the regions it manages to
+    /// close and produces a plausible and wrong part. A void that
+    /// overruns **cuts** the part instead of drilling it, and the result is a
+    /// perfectly valid solid that is not what was asked for.
     ///
-    /// Sta in un file suo, e non dentro l'esecutore, per un motivo pratico:
-    /// cosi' si prova senza aprire SOLIDWORKS. Un controllo geometrico che si
-    /// puo' provare solo a CAD aperto viene provato poco.
+    /// It lives in a file of its own, and not inside the executor, for a practical reason:
+    /// so it can be tested without opening SOLIDWORKS. A geometric check that
+    /// can be tested only with the CAD open gets tested little.
     ///
-    /// CONVENZIONE SUI PUNTI. Un anello si passa **senza ripetere il primo
-    /// punto in coda**: l'ultimo lato e' sempre da `punti[n-1]` a `punti[0]`.
-    /// Ripeterlo aggiungerebbe un lato di lunghezza zero, che manda in
-    /// confusione sia il conto dell'area sia quello degli incroci. Da qui
-    /// <see cref="Ring"/>, che lo toglie se c'e'.
+    /// CONVENTION ON THE POINTS. A ring is passed **without repeating the first
+    /// point at the end**: the last side is always from `punti[n-1]` to `punti[0]`.
+    /// Repeating it would add a side of length zero, which confuses
+    /// both the count of the area and that of the crossings. Hence
+    /// <see cref="Ring"/>, which removes it if it is there.
     /// </summary>
     public static class ClosedShape
     {
-        /// <summary>Due punti coincidono, entro la tolleranza data in mm.</summary>
+        /// <summary>Two points coincide, within the tolerance given in mm.</summary>
         public static bool Neighbors(double[] a, double[] b, double tolerance = 1e-6)
         {
             return Math.Abs(a[0] - b[0]) < tolerance
@@ -57,14 +57,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'anello pulito: via i punti ripetuti di fila e via il primo
-        /// ripetuto in coda.
+        /// The clean ring: with the repeated points in a row removed and the first
+        /// one repeated at the end removed.
         ///
-        /// I doppioni non sono un caso di scuola. I contorni compositi si
-        /// scrivono tratto per tratto e la fine di un tratto **e'** l'inizio
-        /// del successivo, quindi ogni giunzione porta un punto doppio; e chi
-        /// scrive una spezzata a mano ripete spesso il primo vertice in fondo
-        /// per «chiuderla».
+        /// The duplicates are not a textbook case. Composite contours are
+        /// written stroke by stroke and the end of a stroke **is** the start
+        /// of the next one, so every joint carries a double point; and whoever
+        /// writes a polyline by hand often repeats the first vertex at the end
+        /// to «close it».
         /// </summary>
         public static List<double[]> Ring(IEnumerable<double[]> points, double tolerance = 1e-6)
         {
@@ -80,7 +80,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'area con segno secondo Gauss, in valore assoluto. In mm quadri.
+        /// The signed area according to Gauss, in absolute value. In square mm.
         /// </summary>
         public static double Area(IList<double[]> ring)
         {
@@ -96,51 +96,51 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Dove sta un punto rispetto a un poligono: dentro, fuori, o sul suo
-        /// bordo.
+        /// Where a point is with respect to a polygon: inside, outside, or on its
+        /// border.
         ///
-        /// PERCHE' TRE RISPOSTE E NON DUE.
+        /// WHY THREE ANSWERS AND NOT TWO.
         ///
-        /// La parita' degli attraversamenti non sa rispondere sul bordo, e la
-        /// risposta che da' DIPENDE DAL LATO: col confronto `x &lt; taglio` un
-        /// vertice sul bordo destro risulta fuori, e lo stesso vertice sul
-        /// bordo sinistro risulta dentro.
+        /// The parity of the crossings cannot answer on the border, and the
+        /// answer it gives DEPENDS ON THE SIDE: with the comparison `x &lt; taglio` a
+        /// vertex on the right border comes out outside, and the same vertex on the
+        /// left border comes out inside.
         ///
-        /// Sarebbe un dettaglio se restasse un punto solo. Ma il controllo dei
-        /// contorni classifica TUTTI i vertici e decide da quelli. Misurato il
-        /// 14/9/2026 su una piastra 100x100: una cava a filo del bordo DESTRO —
-        /// (30,-10)(50,-10)(50,10)(30,10) — ha due vertici «fuori» e due
-        /// «dentro», e veniva rifiutata come «a cavallo del bordo esterno». La
-        /// stessa cava specchiata a SINISTRA ha tutti e quattro i vertici
-        /// «dentro», e passava.
+        /// It would be a detail if only one point were left. But the check of the
+        /// contours classifies ALL the vertices and decides from those. Measured on
+        /// 14/9/2026 on a 100x100 plate: a pocket flush with the RIGHT border —
+        /// (30,-10)(50,-10)(50,10)(30,10) — has two vertices «outside» and two
+        /// «inside», and was refused as «a cavallo del bordo esterno». The
+        /// same pocket mirrored to the LEFT has all four vertices
+        /// «inside», and passed.
         ///
-        /// Stessa geometria, verdetto opposto secondo il lato. Uno dei due era
-        /// sbagliato — e SOLIDWORKS ha detto quale.
+        /// Same geometry, opposite verdict depending on the side. One of the two was
+        /// wrong — and SOLIDWORKS said which.
         ///
-        /// LA PRIMA RIPARAZIONE ANDAVA NEL VERSO SBAGLIATO, e vale la pena
-        /// scriverlo. Il ragionamento era «una cava a filo del bordo e'
-        /// un'asola aperta, si fa tutti i giorni, quindi vanno accettate tutte
-        /// e due». E' vero del PEZZO e falso dello SCHIZZO: due contorni che
-        /// condividono un tratto di bordo non delimitano una regione, e
-        /// l'asola aperta si disegna come UN contorno solo con otto punti, non
-        /// come due che si toccano.
+        /// THE FIRST REPAIR WENT THE WRONG WAY, and it is worth
+        /// writing down. The reasoning was «a pocket flush with the border is
+        /// an open slot, it is done every day, so both must be accepted».
+        /// It is true of the PART and false of the SKETCH: two contours that
+        /// share a stretch of border do not delimit a region, and
+        /// the open slot is drawn as ONE contour only with eight points, not
+        /// as two that touch.
         ///
-        /// Misurato, tre geometrie, un solo risultato — «L'estrusione non e'
+        /// Measured, three geometries, one single result — «L'estrusione non e'
         /// stata creata»:
         ///
-        ///   * cava a filo del bordo destro;
-        ///   * la stessa specchiata a sinistra;
-        ///   * un rombo che tocca il bordo in UN SOLO VERTICE.
+        ///   * pocket flush with the right border;
+        ///   * the same mirrored to the left;
+        ///   * a rhombus that touches the border in ONE SINGLE VERTEX.
         ///
-        /// Quindi il verdetto giusto per tutt'e due i lati e' RIFIUTARE, e
-        /// quello che era sbagliato era l'accettazione a sinistra. Il valore di
-        /// «sul bordo» non e' far passare di piu': e' far dare **la stessa
-        /// risposta** ai due lati, e dare un motivo migliore di quello che da'
-        /// SOLIDWORKS.
+        /// So the right verdict for both sides is to REFUSE, and
+        /// what was wrong was the acceptance on the left. The value of
+        /// «on the border» is not to let more through: it is to give **the same
+        /// answer** on both sides, and to give a better reason than the one SOLIDWORKS
+        /// gives.
         ///
-        /// > Il verso di una riparazione non si ricava dal ragionamento
-        /// > sull'officina: si chiede al pezzo. «E' lavoro legittimo» diceva
-        /// > come DEVE andare, non come VA.
+        /// > The direction of a repair is not derived from reasoning
+        /// > about the workshop: the part is asked. «It is legitimate work» said
+        /// > how it MUST go, not how it GOES.
         /// </summary>
         public static WhereItIsFound WhereItIs(double[] point, IList<double[]> polygon)
         {
@@ -152,19 +152,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanto un punto puo' distare dal bordo e contare ancora come «sul
-        /// bordo», in millimetri.
+        /// How far a point may be from the border and still count as «on the
+        /// border», in millimetres.
         ///
-        /// Un micrometro. Misurato il divario da tutt'e due le parti: il rumore
-        /// del calcolo su coordinate in millimetri e' dell'ordine di 1e-13,
-        /// dieci milioni di volte sotto; la piu' piccola quota che abbia senso
-        /// su un pezzo e' un centesimo di millimetro, diecimila volte sopra.
-        /// Nessuno dei due puo' essere confuso con l'altro.
+        /// One micrometre. The gap was measured on both sides: the noise
+        /// of the calculation on coordinates in millimetres is of the order of 1e-13,
+        /// ten million times below; the smallest dimension that makes sense
+        /// on a part is a hundredth of a millimetre, ten thousand times above.
+        /// Neither of the two can be confused with the other.
         /// </summary>
         public const double OnBorderMm = 1e-6;
 
         /// <summary>
-        /// La distanza minima fra un punto e il bordo del poligono, in mm.
+        /// The minimum distance between a point and the border of the polygon, in mm.
         /// </summary>
         public static double DistanceFromBorder(double[] point, IList<double[]> polygon)
         {
@@ -178,13 +178,13 @@ namespace Oce.Solid.Agent.Core
             return minValue;
         }
 
-        /// <summary>Distanza fra un punto e un segmento, estremi compresi.</summary>
+        /// <summary>Distance between a point and a segment, ends included.</summary>
         private static double DistanceFromSegment(double[] p, double[] a, double[] b)
         {
             double vx = b[0] - a[0], vy = b[1] - a[1];
             double wx = p[0] - a[0], wy = p[1] - a[1];
             double length2 = vx * vx + vy * vy;
-            // Segmento degenere: e' un punto, e la distanza e' da quel punto.
+            // Degenerate segment: it is a point, and the distance is from that point.
             if (length2 < 1e-24) return Math.Sqrt(wx * wx + wy * wy);
             double t = (wx * vx + wy * vy) / length2;
             if (t < 0) t = 0; else if (t > 1) t = 1;
@@ -193,11 +193,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il punto sta dentro il poligono? Parita' degli attraversamenti.
+        /// Is the point inside the polygon? Parity of the crossings.
         ///
-        /// NON RISPONDE SUL BORDO, e la risposta che da' li' dipende dal lato:
-        /// usare <see cref="WhereItIs"/> ogni volta che un punto puo' trovarcisi.
-        /// Questa resta per i casi in cui il bordo e' escluso per costruzione.
+        /// IT DOES NOT ANSWER ON THE BORDER, and the answer it gives there depends on the side:
+        /// use <see cref="WhereItIs"/> whenever a point may be on it.
+        /// This one stays for the cases in which the border is excluded by construction.
         /// </summary>
         public static bool Inside(double[] point, IList<double[]> polygon)
         {
@@ -218,9 +218,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Due segmenti si incrociano DAVVERO, cioe' si attraversano. Toccarsi
-        /// a un estremo non conta: e' quello che fanno due lati consecutivi, ed
-        /// e' normale.
+        /// Two segments REALLY cross, that is, they go through each other. Touching
+        /// at an end does not count: it is what two consecutive sides do, and
+        /// it is normal.
         /// </summary>
         public static bool Intersect(double[] p1, double[] p2, double[] p3, double[] p4)
         {
@@ -235,17 +235,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'anello si incrocia da solo? Se si', torna l'indice del primo lato
-        /// coinvolto; -1 se e' pulito.
+        /// Does the ring cross itself? If so, the index of the first side
+        /// involved is returned; -1 if it is clean.
         ///
-        /// Si torna l'indice e non un booleano perche' il messaggio deve poter
-        /// dire DOVE: «si incrocia» su una sagoma da duecento vertici non aiuta
-        /// nessuno a ripararla.
+        /// The index is returned and not a boolean because the message must be able to
+        /// say WHERE: «si incrocia» on a shape of two hundred vertices helps
+        /// nobody to repair it.
         ///
-        /// COSTO. E' un confronto di tutti i lati con tutti: n²/2. Su una ruota
-        /// da 127 denti sono circa 3.300 punti e 5,4 milioni di confronti, che
-        /// in C# sono meno di un secondo. Sopra <see cref="TooManyToCheck"/>
-        /// punti si rinuncia e lo si dice, invece di far aspettare in silenzio.
+        /// COST. It is a comparison of all the sides with all: n²/2. On a wheel
+        /// of 127 teeth that is about 3,300 points and 5.4 million comparisons, which
+        /// in C# is under a second. Above <see cref="TooManyToCheck"/>
+        /// points it gives up and says so, instead of making you wait in silence.
         /// </summary>
         public static int WhereItCrosses(IList<double[]> ring)
         {
@@ -257,7 +257,7 @@ namespace Oce.Solid.Agent.Core
                 var a2 = ring[(i + 1) % n];
                 for (int j = i + 2; j < n; j++)
                 {
-                    // Il primo e l'ultimo lato condividono un vertice.
+                    // The first and the last side share a vertex.
                     if (i == 0 && j == n - 1) continue;
                     if (Intersect(a1, a2, ring[j], ring[(j + 1) % n])) return i;
                 }
@@ -266,12 +266,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Oltre questi punti il controllo degli incroci si salta.
+        /// Beyond these points the check of the crossings is skipped.
         ///
-        /// 6.000 punti sono 18 milioni di confronti, ancora sotto il secondo.
-        /// Il tetto sta piu' in alto di qualunque sagoma che il ponte accetti
-        /// (4.000 punti per i contorni generati dalle ricette), quindi in
-        /// pratica non si salta mai: e' una rete, non una scorciatoia.
+        /// 6,000 points are 18 million comparisons, still under a second.
+        /// The ceiling is higher than any shape that the bridge accepts
+        /// (4,000 points for the contours generated by the recipes), so in
+        /// practice it is never skipped: it is a net, not a shortcut.
         /// </summary>
         public const int TooManyToCheck = 6000;
     }

@@ -7,32 +7,32 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// IL TESTO DELLE QUOTE, E DOVE CADE (voce GT12, punto 3).
+    /// THE TEXT OF THE DIMENSIONS, AND WHERE IT FALLS (entry GT12, point 3).
     ///
-    /// ── L'INGOMBRO SI LEGGE, NON SI STIMA (26/9/2026, `prova0089 ciecotav`) ──
+    /// ── THE EXTENT IS READ, NOT ESTIMATED (26/9/2026, `prova0089 ciecotav`) ──
     ///
-    /// GT11 aveva scritto «l'ingombro del testo di una quota non si legge da
-    /// nessuna parte». Per riflessione sull'interop non c'e' un `GetExtent` sulle
-    /// quote (c'e' solo su `INote`); ma `IDisplayDimension.GetDisplayData()`
-    /// torna un `IDisplayData` che per ogni testo dice posizione, altezza,
-    /// angolo, punto di riferimento e — `GetTextInBoxWidthAtIndex` — la
-    /// LARGHEZZA, anche senza riquadro. Misurato: « 10 » 7,76 mm, « 120 »
-    /// 10,34 mm, altezza 3,5; riferimento 1 = `swLOWER_LEFT` (la posizione e'
-    /// l'angolo in basso a sinistra del testo, nel suo verso).
+    /// GT11 had written «the extent of the text of a dimension cannot be read from
+    /// anywhere». By reflection on the interop there is no `GetExtent` on
+    /// dimensions (there is only on `INote`); but `IDisplayDimension.GetDisplayData()`
+    /// returns an `IDisplayData` that for each text gives position, height,
+    /// angle, reference point and — `GetTextInBoxWidthAtIndex` — the
+    /// WIDTH, even without a box. Measured: « 10 » 7.76 mm, « 120 »
+    /// 10.34 mm, height 3.5; reference 1 = `swLOWER_LEFT` (the position is
+    /// the lower left corner of the text, in its direction).
     ///
-    /// Con quelli, il rettangolo vero di ogni testo sul foglio: si guarda se
-    /// cade su un altro testo, o sugli spigoli della propria vista.
+    /// With those, the true rectangle of every text on the sheet: it is looked at whether it
+    /// falls on another text, or on the edges of its own view.
     /// </summary>
     public partial class SwOperations
     {
         private sealed class DimensionText
         {
             public string View, Name, Text;
-            public double[][] Angles;    // quattro punti sul foglio, metri
+            public double[][] Angles;    // four points on the sheet, metres
         }
 
         /// <summary>
-        /// I testi di tutte le quote della tavola, col loro rettangolo; null
+        /// The texts of all the dimensions of the drawing, with their rectangle; null
         /// when the walk over views and dimensions broke off (Z-C21.8, finding
         /// N47). GetFirstView, GetNextView, GetFirstDisplayDimension5 and
         /// GetNext5 sit outside the try of each dimension: an exception there
@@ -57,9 +57,9 @@ namespace Oce.Solid.Agent.Core
                         try
                         {
                             var data = dd.GetDisplayData() as IDisplayData;
-                            // ZERO-E-ZERO: una quota senza dati di visualizzazione non ha testi da
-                            // confrontare, e non si inventano; se non se ne legge nessuno,
-                            // drawing_dimension dice null («non lo so»), non «nessuno si accavalla».
+                            // ZERO-E-ZERO: a dimension without display data has no texts to
+                            // compare, and none is invented; if none can be read,
+                            // drawing_dimension says null («I do not know»), not «nobody overlaps».
                             int n = data == null ? 0 : data.GetTextCount();
                             // A POINT ON THE SHEET, NOT AN OFFSET (Z-C21.3, finding C3-1,
                             // NOT REAL). Every GetTextPositionAtIndex page says «Gets the
@@ -78,8 +78,8 @@ namespace Oce.Solid.Agent.Core
                                 double angle = data.GetTextAngleAtIndex(i);
                                 string t = data.GetTextAtIndex(i) ?? "";
                                 if (p == null || w <= 0 || h <= 0 || t.Trim().Length == 0) continue;
-                                // Il riferimento: in basso a sinistra (1), che e' l'unico visto.
-                                // Gli altri si portano all'angolo in basso a sinistra.
+                                // The reference: lower left (1), which is the only one seen.
+                                // The others are brought to the lower left corner.
                                 double ux = Math.Cos(angle), uy = Math.Sin(angle), vx = -uy, vy = ux;
                                 double x0 = p[0], y0 = p[1];
                                 switch (data.GetTextRefPositionAtIndex(i))
@@ -121,9 +121,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Chi si accavalla con chi: testo su testo (tutta la tavola), e testo su
-        /// uno spigolo della propria vista. Le righe dicono i due nomi e i testi.
-        /// Un margine di 0,3 mm: due testi che si sfiorano non si leggono male.
+        /// Who overlaps whom: text on text (the whole drawing), and text on
+        /// an edge of its own view. The rows say the two names and the texts.
+        /// A margin of 0.3 mm: two texts that graze each other are not read badly.
         /// </summary>
         private List<string> TextsThatOverlap(IDrawingDoc drawing, IView view, List<DimensionText> texts)
         {
@@ -132,17 +132,17 @@ namespace Oce.Solid.Agent.Core
             if (texts == null) return null;
             var outside = new List<string>();
             const double margin = 0.0003;
-            // I PEZZI DI UNA STESSA QUOTA NON SI CONFRONTANO FRA LORO (visto al
-            // primo banco, 26/9/2026): il richiamo «Ø8 ↧5» sono quattro testi
-            // attaccati — <MOD-DIAM>, 8, <HOLE-DEPTH>, 5 — e il controllo ne
-            // contava quattro sovrapposizioni che sul foglio sono una scritta sola.
+            // THE PIECES OF THE SAME DIMENSION ARE NOT COMPARED WITH EACH OTHER (seen at the
+            // first bench, 26/9/2026): the callout «Ø8 ↧5» is four texts
+            // stuck together — <MOD-DIAM>, 8, <HOLE-DEPTH>, 5 — and the check
+            // counted four overlaps that on the sheet are one single inscription.
             for (int i = 0; i < texts.Count; i++)
                 for (int j = i + 1; j < texts.Count; j++)
                     if (!(texts[i].View == texts[j].View && texts[i].Name == texts[j].Name && texts[i].Name.Length > 0) &&
                         TheyTouch(texts[i].Angles, texts[j].Angles, margin))
                         outside.Add("«" + texts[i].Text + "» (" + texts[i].View + ") sopra «" + texts[j].Text + "» (" + texts[j].View + ")");
 
-            // Gli spigoli della vista, portati sul foglio come segmenti (le curve a tratti).
+            // The edges of the view, brought onto the sheet as segments (the curves piecewise).
             string viewName = "";
             try { viewName = view.GetName2() ?? ""; } catch { }
             var segments = ViewSegments(view);
@@ -190,11 +190,11 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        // ── Geometria piana: rettangoli orientati come poligoni convessi ─────
+        // ── Planar geometry: oriented rectangles as convex polygons ──────────
 
         private static bool TheyTouch(double[][] a, double[][] b, double margin)
         {
-            // Assi separatori (SAT) sui lati dei due rettangoli.
+            // Separating axes (SAT) on the sides of the two rectangles.
             foreach (var poli in new[] { a, b })
                 for (int i = 0; i < 4; i++)
                 {
@@ -212,20 +212,20 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il segmento passa DENTRO il rettangolo (ristretto di `-margine` se
-        /// negativo: una linea che sfiora il bordo del testo non lo copre).
+        /// The segment passes INSIDE the rectangle (shrunk by `-margine` if
+        /// negative: a line that grazes the border of the text does not cover it).
         /// </summary>
         private static bool SegmentInRectangle(double[] s, double[][] r, double margin)
         {
-            // Sistema del rettangolo: origine r[0], assi u (r0->r1), v (r0->r3).
+            // Frame of the rectangle: origin r[0], axes u (r0->r1), v (r0->r3).
             double ux = r[1][0] - r[0][0], uy = r[1][1] - r[0][1], vx = r[3][0] - r[0][0], vy = r[3][1] - r[0][1];
             double lu = Math.Sqrt(ux * ux + uy * uy), lv = Math.Sqrt(vx * vx + vy * vy);
             if (lu < 1e-12 || lv < 1e-12) return false;
             ux /= lu; uy /= lu; vx /= lv; vy /= lv;
-            double m = -margin;   // positivo: quanto si restringe
+            double m = -margin;   // positive: how much it shrinks
             Func<double, double, double[]> loc = (x, y) => new[] { (x - r[0][0]) * ux + (y - r[0][1]) * uy, (x - r[0][0]) * vx + (y - r[0][1]) * vy };
             var a = loc(s[0], s[1]); var b = loc(s[2], s[3]);
-            // Clipping di Liang-Barsky sul rettangolo [m, lu-m] x [m, lv-m].
+            // Liang-Barsky clipping on the rectangle [m, lu-m] x [m, lv-m].
             double t0 = 0, t1 = 1, dx = b[0] - a[0], dy = b[1] - a[1];
             double[] pp = { -dx, dx, -dy, dy };
             double[] qq = { a[0] - m, (lu - m) - a[0], a[1] - m, (lv - m) - a[1] };

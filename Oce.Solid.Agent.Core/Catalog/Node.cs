@@ -6,15 +6,15 @@ using System.Text;
 namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>
-    /// Un pezzo di catalogo: un valore, un oggetto con le chiavi IN ORDINE, o
-    /// un elenco.
+    /// A piece of catalog: a value, an object with the keys IN ORDER, or
+    /// a list.
     ///
-    /// PERCHE' NON `Dictionary<string, object>`.
-    /// Perche' un dizionario non promette l'ordine delle chiavi, e qui l'ordine
-    /// e' contenuto: `catalog.json` e' un file che si legge, si confronta con
-    /// `diff` e si versiona. Se le chiavi ballano a ogni compilazione, ogni
-    /// commit mostra un file intero cambiato e nessuno vede piu' la riga che e'
-    /// cambiata davvero.
+    /// WHY NOT `Dictionary<string, object>`.
+    /// Because a dictionary does not promise the order of the keys, and here the order
+    /// is content: `catalog.json` is a file that is read, compared with
+    /// `diff` and versioned. If the keys dance at every compilation, every
+    /// commit shows a whole file changed and nobody sees any more the line that
+    /// really changed.
     /// </summary>
     public sealed class Node
     {
@@ -43,15 +43,15 @@ namespace Oce.Solid.Agent.Core.Catalog
             _elements = elements;
         }
 
-        /// <summary>Un valore: testo, numero, vero/falso, o niente.</summary>
+        /// <summary>A value: text, number, true/false, or nothing.</summary>
         public static Node V(object val)
         {
             return val is Node ? (Node)val : new Node(val);
         }
 
         /// <summary>
-        /// Un oggetto, scritto chiave-valore-chiave-valore. Le chiavi restano
-        /// nell'ordine in cui sono scritte.
+        /// An object, written key-value-key-value. The keys stay
+        /// in the order in which they are written.
         /// </summary>
         public static Node O(params object[] pairs)
         {
@@ -72,7 +72,7 @@ namespace Oce.Solid.Agent.Core.Catalog
             return new Node(fields);
         }
 
-        /// <summary>Un elenco.</summary>
+        /// <summary>A list.</summary>
         public static Node A(params object[] elements)
         {
             var inside = new List<Node>(elements.Length);
@@ -81,24 +81,24 @@ namespace Oce.Solid.Agent.Core.Catalog
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  Scrivere il JSON
+        //  Writing the JSON
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Il JSON, scritto **esattamente** come lo scriveva il generatore
-        /// Python di prima: rientro di UNO spazio, `": "` fra chiave e valore,
-        /// caratteri accentati per esteso e non in `\u`, terminatori a solo
-        /// avanzamento riga, e nessun a capo finale.
+        /// The JSON, written **exactly** as the previous Python generator
+        /// wrote it: indentation of ONE space, `": "` between key and value,
+        /// accented characters in full and not in `\u`, line-feed-only
+        /// terminators, and no final newline.
         ///
-        /// SEMBRA PIGNOLERIA E NON LO E'. Il criterio con cui si e' verificata
-        /// questa traduzione e' che il file uscito dal C# fosse **identico byte
-        /// per byte** a quello che c'era. Un criterio piu' morbido —
-        /// «equivalente una volta riletto» — avrebbe lasciato passare una
-        /// descrizione accorciata, e le descrizioni sono l'interfaccia vera
-        /// verso il modello, molto piu' degli schemi.
+        /// IT LOOKS LIKE PEDANTRY AND IT IS NOT. The criterion with which this translation
+        /// was verified is that the file coming out of the C# was **identical byte
+        /// for byte** to the one that was there. A softer criterion —
+        /// «equivalent once read back» — would have let through a shortened
+        /// description, and the descriptions are the real interface
+        /// towards the model, much more than the schemas.
         ///
-        /// Da qui in avanti la stessa forma serve a un'altra cosa: tenere il
-        /// `diff` di `catalog.json` leggibile quando cambia una riga sola.
+        /// From here on the same form serves another purpose: keeping the
+        /// `diff` of `catalog.json` readable when a single line changes.
         /// </summary>
         public static string Json(Node root)
         {
@@ -151,9 +151,9 @@ namespace Oce.Solid.Agent.Core.Catalog
 
             if (v is double || v is float || v is decimal)
             {
-                // `R` e non `G`: un numero che va e torna deve dare lo stesso
-                // numero, e con la virgola inglese sempre, che qui la macchina
-                // e' italiana.
+                // `R` and not `G`: a number that goes and comes back must give the same
+                // number, and with the English decimal point always, since here the machine
+                // is Italian.
                 b.Append(Convert.ToDouble(v).ToString("R", CultureInfo.InvariantCulture));
                 return;
             }
@@ -175,10 +175,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                     case '\b': b.Append("\\b"); break;
                     case '\f': b.Append("\\f"); break;
                     default:
-                        // GLI ACCENTI RESTANO ACCENTI. Il generatore di prima
-                        // scriveva UTF-8 per esteso, e riscriverli in `à`
-                        // renderebbe il file illeggibile a chi lo apre — che e'
-                        // il motivo per cui esiste.
+                        // ACCENTS STAY ACCENTS. The previous generator
+                        // wrote UTF-8 in full, and rewriting them as `à`
+                        // would make the file unreadable to whoever opens it — which is
+                        // the reason why it exists.
                         if (c < 0x20) b.Append("\\u").Append(((int)c).ToString("x4"));
                         else b.Append(c);
                         break;

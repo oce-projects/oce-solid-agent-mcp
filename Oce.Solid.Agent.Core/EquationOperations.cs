@@ -7,34 +7,34 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// VARIABILI GLOBALI ED EQUAZIONI (voce Z-F1): non ripetere un numero,
-    /// dargli un nome. `parete = 3mm`, e la quota guidata da `parete` sopravvive a
-    /// una modifica a monte per costruzione — e' il sistema di identita' che
-    /// SOLIDWORKS ha gia', e un modello parametrico e' l'unico che chi non
-    /// progetta puo' cambiare senza rompere niente.
+    /// GLOBAL VARIABLES AND EQUATIONS (entry Z-F1): not repeating a number,
+    /// giving it a name. `parete = 3mm`, and the dimension driven by `parete` survives
+    /// an upstream change by construction — it is the identity system that
+    /// SOLIDWORKS already has, and a parametric model is the only kind that someone who does not
+    /// design can change without breaking anything.
     ///
-    /// Misurato il 27/9/2026 (`prova0089 zf1`, `zf1b`, piastra 120x80x10):
+    /// Measured on 27/9/2026 (`prova0089 zf1`, `zf1b`, plate 120x80x10):
     ///
     ///  * `IEquationMgr.Add3(-1, "\"parete\" = 12mm", true, swAllConfiguration,
-    ///    null)` torna l'indice (0); `"\"D1@Estrusione-Estrusione1\" = \"parete\""`
-    ///    lega lo spessore: volume 96000 -> 115200. `set_Equation` a 15mm, poi
-    ///    `EvaluateAll` e ricostruzione: 144000, e la quota dice 15.
-    ///  * Le espressioni vanno: `"doppio" = 2 * "parete" + 1mm` vale 31.
-    ///  * **«spessore» e «Spessore» sono RIFIUTATI** (Add3 -1) anche col pezzo
-    ///    senza proprieta': per il SOLIDWORKS in italiano e' un nome gia' preso, e
-    ///    un'equazione che lo usa vale 3. Un nome rifiutato si dice, e si propone
-    ///    un altro nome.
-    ///  * `get_Status` NON e' affidabile: -1 anche dopo un EvaluateAll riuscito,
-    ///    1 dopo un set_Equation riuscito. L'esito si legge dai VALORI: quello
-    ///    dell'equazione e quello della quota, riletti.
-    ///  * Il nome di una quota per l'equazione e' «D1@Estrusione-Estrusione1»:
-    ///    il `FullName` senza il pezzo in coda (`@Parte1089.Part`).
+    ///    null)` returns the index (0); `"\"D1@Estrusione-Estrusione1\" = \"parete\""`
+    ///    links the thickness: volume 96000 -> 115200. `set_Equation` to 15mm, then
+    ///    `EvaluateAll` and rebuild: 144000, and the dimension says 15.
+    ///  * Expressions work: `"doppio" = 2 * "parete" + 1mm` is worth 31.
+    ///  * **«spessore» and «Spessore» are REFUSED** (Add3 -1) even with the part
+    ///    without properties: for the Italian SOLIDWORKS it is a name already taken, and
+    ///    an equation that uses it is worth 3. A refused name is stated, and
+    ///    another name is proposed.
+    ///  * `get_Status` is NOT reliable: -1 even after a successful EvaluateAll,
+    ///    1 after a successful set_Equation. The outcome is read from the VALUES: that
+    ///    of the equation and that of the dimension, read back.
+    ///  * The name of a dimension for the equation is «D1@Estrusione-Estrusione1»:
+    ///    the `FullName` without the part at the tail (`@Parte1089.Part`).
     /// </summary>
     public partial class SwOperations
     {
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-        /// <summary>L'indice dell'equazione che assegna «name», o -1.</summary>
+        /// <summary>The index of the equation that assigns «name», or -1.</summary>
         private static int EquationOf(IEquationMgr em, string itemName)
         {
             string head = "\"" + itemName + "\"";
@@ -48,7 +48,7 @@ namespace Oce.Solid.Agent.Core
             return -1;
         }
 
-        /// <summary>Scrive (o riscrive) l'equazione «name» = destra; l'indice, o -1 se SOLIDWORKS la rifiuta.</summary>
+        /// <summary>Writes (or rewrites) the equation «name» = right-hand side; the index, or -1 if SOLIDWORKS refuses it.</summary>
         private static int WriteEquation(IEquationMgr em, string itemName, string right)
         {
             string eq = "\"" + itemName + "\" = " + right;
@@ -57,7 +57,7 @@ namespace Oce.Solid.Agent.Core
             {
                 string old = em.get_Equation(i);
                 try { em.set_Equation(i, eq); } catch { return -1; }
-                // SI RILEGGE: set_Equation non risponde, e Status non si legge.
+                // IT IS READ BACK: set_Equation does not answer, and Status cannot be read.
                 if (!string.Equals(em.get_Equation(i), eq, StringComparison.Ordinal))
                 {
                     try { em.set_Equation(i, old); } catch { }
@@ -77,7 +77,7 @@ namespace Oce.Solid.Agent.Core
             return true;
         }
 
-        /// <summary>Z-F1: crea o cambia una variabile globale, e rilegge cosa guida.</summary>
+        /// <summary>Z-F1: creates or changes a global variable, and reads back what it drives.</summary>
         private Outcome GlobalVariable(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             if (!(model is IPartDoc))
@@ -102,9 +102,9 @@ namespace Oce.Solid.Agent.Core
 
             var em = model.GetEquationMgr() as IEquationMgr;
             if (em == null) return Failed("Non leggo le equazioni di questo pezzo (GetEquationMgr non risponde).");
-            // LE GUARDIE DI set_dimension (revisione avversariale del 27/9/2026):
-            // una variabile che guida delle quote cambia la geometria come una
-            // quota, e una quota legata set_dimension non la cambia piu'.
+            // THE GUARDS OF set_dimension (adversarial review of 27/9/2026):
+            // a variable that drives dimensions changes the geometry like a
+            // dimension, and a linked dimension set_dimension no longer changes.
             var photo = SnapshotPart(model);
             if (photo.Bodies < 0)
                 return Failed("Non riesco a contare i corpi del pezzo prima di cambiare la variabile: senza, non " +
@@ -130,7 +130,7 @@ namespace Oce.Solid.Agent.Core
             if (i < 0 || double.IsNaN(read))
                 return Failed("La variabile «" + itemName + "» non si rilegge dopo averla scritta: non so che valore ha." +
                                IsBackAsItWas(model, photo, PutBackEquation(model, em, itemName, old, null), what));
-            // IL VALORE E' NELLE UNITA' DEL DOCUMENTO: in millimetri si confronta.
+            // THE VALUE IS IN THE UNITS OF THE DOCUMENT: it is compared in millimetres.
             double factor = MmPerDocumentUnit(model);
             double readMm = double.IsNaN(factor) ? double.NaN : read * factor;
             if (number && !double.IsNaN(readMm) && Math.Abs(readMm - val) > 1e-6)
@@ -160,7 +160,7 @@ namespace Oce.Solid.Agent.Core
             return SucceededWithoutCreating(measurements);
         }
 
-        /// <summary>Z-F1: lega una quota a un'espressione (una variabile, un conto), e la rilegge.</summary>
+        /// <summary>Z-F1: links a dimension to an expression (a variable, a calculation), and reads it back.</summary>
         private Outcome LinkDimension(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             if (!(model is IPartDoc))
@@ -174,7 +174,7 @@ namespace Oce.Solid.Agent.Core
             var dimension = FindDimension(model, dimensionName, out string location);
             if (dimension == null)
                 return Failed("Non trovo la quota «" + dimensionName + "» in questo documento." + (location == null ? "" : " Ci sono: " + location + "."));
-            // IL NOME PER L'EQUAZIONE: il FullName senza il pezzo in coda.
+            // THE NAME FOR THE EQUATION: the FullName without the part at the tail.
             string complete = "";
             try { complete = dimension.FullName ?? ""; } catch { }
             var parts = complete.Split('@');
@@ -184,9 +184,9 @@ namespace Oce.Solid.Agent.Core
             string eqName = parts[0] + "@" + parts[1];
             var em = model.GetEquationMgr() as IEquationMgr;
             if (em == null) return Failed("Non leggo le equazioni di questo pezzo (GetEquationMgr non risponde).");
-            // UNA QUOTA ANGOLARE si legge in gradi, una lineare in mm: SystemValue e'
-            // in radianti o in metri, e il confronto con l'equazione (nelle unita'
-            // del documento) si fa con GetValue3, che e' nelle stesse unita'.
+            // AN ANGULAR DIMENSION is read in degrees, a linear one in mm: SystemValue is
+            // in radians or metres, and the comparison with the equation (in the units
+            // of the document) is made with GetValue3, which is in the same units.
             int dimensionType = -1;
             try { dimensionType = dimension.GetType(); } catch { }
             bool angular = dimensionType == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular;
@@ -211,8 +211,8 @@ namespace Oce.Solid.Agent.Core
             try { if (i >= 0) expected = em.get_Value(i); } catch { }
             double afterDoc = double.NaN;
             try { afterDoc = ((double[])dimension.GetValue3((int)swInConfigurationOpts_e.swThisConfiguration, null))[0]; } catch { }
-            // Rimettere: l'equazione di prima, o nessuna — e allora anche il valore di
-            // prima, perche' una quota slegata tiene l'ultimo valore che l'equazione le ha dato.
+            // Putting back: the previous equation, or none — and then the previous value too,
+            // because an unlinked dimension keeps the last value the equation gave it.
             Func<bool> putBack = () => PutBackEquation(model, em, eqName, old,
                 old != null ? null : new Action(() => dimension.SetSystemValue3(systemBefore, 2, null)));
             string what = old != null ? "«" + old + "»" : "la quota slegata, col suo valore di prima";
@@ -247,17 +247,17 @@ namespace Oce.Solid.Agent.Core
                 measurements["value_before_mm"] = Math.Round(Units.Mm(systemBefore), 4);
                 measurements["value_after_mm"] = Math.Round(Units.Mm(afterSystem), 4);
             }
-            // UN LEGAME CHE NE SOSTITUISCE UN ALTRO SI DICE (revisione del 27/9/2026):
-            // prima si riscriveva in silenzio.
+            // A LINK THAT REPLACES ANOTHER IS STATED (review of 27/9/2026):
+            // before it was rewritten silently.
             if (old != null) measurements["link_replaced"] = old;
             return SucceededWithoutCreating(measurements);
         }
 
         /// <summary>
-        /// Rimette le equazioni com'erano: la vecchia riscritta, o la nuova tolta
-        /// (con «after», per rimettere il valore di una quota slegata); poi ricalcola
-        /// e ricostruisce. Vero se RILEGGENDO le equazioni sono quelle di prima —
-        /// il numero che Delete risponde non si crede.
+        /// Puts the equations back as they were: the old one rewritten, or the new one removed
+        /// (with «after», to put back the value of an unlinked dimension); then recalculates
+        /// and rebuilds. True if, READING the equations back, they are those from before —
+        /// the number that Delete answers is not believed.
         /// </summary>
         private static bool PutBackEquation(IModelDoc2 model, IEquationMgr em, string itemName, string old, Action after)
         {
@@ -286,7 +286,7 @@ namespace Oce.Solid.Agent.Core
             return done;
         }
 
-        /// <summary>Le equazioni che usano «name» a destra, con la quota che guidano e il suo valore.</summary>
+        /// <summary>The equations that use «name» on the right, with the dimension they drive and its value.</summary>
         private static object[] DimensionsDrivenBy(IEquationMgr em, string itemName)
         {
             var outside = new List<object>();
@@ -312,10 +312,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Per lo stato: le equazioni del documento (le prime venti), o null se non ce
-        /// ne sono; in «total» quante sono davvero, perche' chi legge sappia che
-        /// l'elenco e' tagliato (revisione del 27/9/2026: le ultime quote guidate
-        /// sparivano senza dirlo). Il «value_text» e' nelle unita' del documento.
+        /// For the state: the equations of the document (the first twenty), or null if there
+        /// are none; in «total» how many there really are, so that whoever reads knows that
+        /// the list is cut (review of 27/9/2026: the last driven dimensions
+        /// vanished without saying so). The «value_text» is in the units of the document.
         /// </summary>
         internal static object[] DocumentEquations(IModelDoc2 model, out int total)
         {

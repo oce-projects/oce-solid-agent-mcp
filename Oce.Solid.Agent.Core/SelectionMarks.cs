@@ -152,7 +152,7 @@ namespace Oce.Solid.Agent.Core
         /// it makes no plane at all, which is what ruled it out on 10/9/2026.
         public const int OffsetPlaneReference = 0;
 
-        // ── IFeatureManager.InsertMultiFaceDraft (sformo) ───────────────────
+        // ── IFeatureManager.InsertMultiFaceDraft (draft) ────────────────────
 
         /// <summary>The neutral plane or face of a draft.</summary>
         /// Guide: IFeatureManager~InsertMultiFaceDraft.html, «then these items have a selection mark of 1».
@@ -167,7 +167,7 @@ namespace Oce.Solid.Agent.Core
         /// Guide: IFeatureManager~InsertMultiFaceDraft.html, «the faces to draft have a selection mark of 2».
         public const int DraftFaces = 2;
 
-        // ── IFeatureManager.InsertGussetFeature3 (fazzoletto) ───────────────
+        // ── IFeatureManager.InsertGussetFeature3 (gusset) ───────────────────
 
         /// <summary>The two faces that carry a weldment gusset.</summary>
         /// Guide: IFeatureManager~InsertGussetFeature3.html, «select two faces that are the supporting legs of this gusset with a Mark of 1».
@@ -190,7 +190,7 @@ namespace Oce.Solid.Agent.Core
         /// FeatureFillet3 (Z-C21.7). Not used by the code yet.
         public const int VariableFilletEdges = 1;
 
-        // ── IFeatureManager.InsertCosmeticWeldBead2 (cordone) ───────────────
+        // ── IFeatureManager.InsertCosmeticWeldBead2 (bead) ──────────────────
 
         /// <summary>Each weld-from face or edge of a cosmetic weld bead (weld geometry mode).</summary>
         /// Guide: IFeatureManager~InsertCosmeticWeldBead2.html, «4 for each weld-from entity in WeldFromFaceOrEdgeSet».

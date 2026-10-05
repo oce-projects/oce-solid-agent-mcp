@@ -1,29 +1,29 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
-  Oce.Solid.Agent.Core — le operazioni di disegno, senza il PDM.
+  Oce.Solid.Agent.Core — the drawing operations, without the PDM.
 
-  E' la libreria che esiste perche' il motore di disegno si possa provare, e
-  usare, SENZA OpenPDM. Non e' un ripiego per pubblicare: separare le due cose
-  e' l'unico modo di mettere le operazioni su un banco che non abbia bisogno di
-  un server, di un vault e di una rete.
+  It is the library that exists so that the drawing engine can be tried, and
+  used, WITHOUT OpenPDM. It is not a fallback for publishing: separating the two
+  is the only way to put the operations on a bench that needs no
+  server, no vault and no network.
 
-  TRE COSE CHE NON DEVONO ENTRARE QUI, E IL PERCHE'.
+  THREE THINGS THAT MUST NOT ENTER HERE, AND WHY.
 
-  1. Le DLL di Dassault. `Private=False` e `EmbedInteropTypes=False` con
-     l'HintPath sull'installazione: le interop restano dove le ha messe
-     SOLIDWORKS e non finiscono in nessun repository. E' la condizione perche'
-     questa libreria si possa pubblicare.
+  1. The Dassault DLLs. `Private=False` and `EmbedInteropTypes=False` with
+     the HintPath on the installation: the interops stay where
+     SOLIDWORKS put them and do not end up in any repository. It is the condition for
+     this library to be publishable.
 
-  2. WPF, WebView2, System.Net.Http, System.Web.Extensions. Sono l'interfaccia
-     e il trasporto dell'add-in, non il disegno. Se uno di questi ricompare fra
-     i riferimenti, vuol dire che e' rientrato del codice che qui non va.
+  2. WPF, WebView2, System.Net.Http, System.Web.Extensions. They are the interface
+     and the transport of the add-in, not the drawing. If one of these reappears among
+     the references, it means code that does not belong here has come back in.
 
-  3. `PlanExecutor.cs`. E' l'unico file dello strato che dipende da OpenPDM
-     (`ApiClient`), ed entra solo dietro l'interfaccia `IFontePiano` — voce B3
-     del TODO. Finche' non c'e' quella, sta fuori.
+  3. `PlanExecutor.cs`. It is the only file of the layer that depends on OpenPDM
+     (`ApiClient`), and it enters only behind the `IFontePiano` interface — entry B3
+     of the TODO. Until that exists, it stays out.
 
-  LangVersion 9.0 e non 7.3: l'add-in compila a 9.0 e il codice lo usa. Il
-  ponte MCP e' a 7.3, ma il ponte non compila questi file — li carica.
+  LangVersion 9.0 and not 7.3: the add-in compiles at 9.0 and the code uses it. The
+  MCP bridge is at 7.3, but the bridge does not compile these files — it loads them.
 -->
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
@@ -40,8 +40,8 @@
     <FileAlignment>512</FileAlignment>
     <LangVersion>9.0</LangVersion>
     <Deterministic>true</Deterministic>
-    <!-- Dove sta SOLIDWORKS. Si puo' scavalcare da riga di comando:
-         msbuild /p:SwInstallPath="D:\...\SOLIDWORKS" -->
+    <!-- Where SOLIDWORKS is. It can be overridden from the command line:
+         msbuild /p:SwInstallPath="D:\...\SOLIDWORKS"-->
     <SwInstallPath Condition="'$(SwInstallPath)' == ''">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS</SwInstallPath>
   </PropertyGroup>
 
@@ -63,14 +63,14 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <!-- Serve a `PartView` per trasformare in PNG il BMP che SOLIDWORKS
-         scrive: un BMP 1024x768 non compresso e' 2,3 MB, lo stesso fotogramma
-         in PNG sta in poche decine di KB. -->
+    <!-- It serves `PartView` to turn into PNG the BMP that SOLIDWORKS
+         writes: an uncompressed 1024x768 BMP is 2.3 MB, the same frame
+         in PNG fits in a few tens of KB.-->
     <Reference Include="System.Drawing" />
-    <!-- Servono SOLO a SolidWorksMaterials.cs, che legge l'elenco materiali.
-         System.Xml non era nell'elenco previsto e serve lo stesso: XDocument
-         sta in System.Xml.Linq ma la sua Load() ha XmlReader nella firma, che
-         sta in System.Xml. Senza, CS0012 su SolidWorksMaterials.cs:82. -->
+    <!-- They serve ONLY SolidWorksMaterials.cs, which reads the list of materials.
+         System.Xml was not in the planned list and is needed all the same: XDocument
+         is in System.Xml.Linq but its Load() has XmlReader in the signature, which
+         is in System.Xml. Without it, CS0012 on SolidWorksMaterials.cs:82.-->
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <!-- Api\ApiCatalog.cs reads api_knowledge.json (entry U1.1). -->
@@ -78,7 +78,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- SOLIDWORKS Interop: restano dove le ha messe l'installazione. -->
+    <!-- SOLIDWORKS Interop: they stay where the installation put them.-->
     <Reference Include="SolidWorks.Interop.sldworks">
       <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.sldworks.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
@@ -89,9 +89,9 @@
       <EmbedInteropTypes>False</EmbedInteropTypes>
       <Private>False</Private>
     </Reference>
-    <!-- DimXpert (voce Z-H3): sta nello stesso api\redist del nucleo e c'e' su
-         ogni installazione. `IModelDocExtension.get_DimXpertManager` la
-         restituisce, quindi l'interop del nucleo la richiede gia'. -->
+    <!-- DimXpert (entry Z-H3): it is in the same api\redist as the core and is there on
+         every installation. `IModelDocExtension.get_DimXpertManager` returns
+         it, so the interop of the core already requires it.-->
     <Reference Include="SolidWorks.Interop.swdimxpert">
       <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.swdimxpert.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>

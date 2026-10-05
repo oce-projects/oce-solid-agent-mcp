@@ -8,98 +8,98 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE BOOLEANE FRA CORPI: unisci, sottrai, interseca. (voce GP8)
+    /// THE BOOLEANS BETWEEN BODIES: unite, subtract, intersect. (entry GP8)
     ///
-    /// Servono agli stampi e alle dime, ai pezzi compositi disegnati come piu'
-    /// corpi e poi uniti, e ai pezzi da dividere per la stampa 3D quando non
-    /// stanno nel piatto.
+    /// They are needed for moulds and jigs, for composite parts drawn as several
+    /// bodies and then united, and for parts to be split for 3D printing when they do not
+    /// fit on the bed.
     ///
-    /// ── DUE `InsertCombineFeature`, E UNA SOLA E' QUELLA GIUSTA ─────────
+    /// ── TWO `InsertCombineFeature`, AND ONLY ONE IS THE RIGHT ONE ───────
     ///
-    /// Lette per riflessione dall'interop 29.5.1.1:
+    /// Read by reflection from the interop 29.5.1.1:
     ///
     ///   IFeatureManager.InsertCombineFeature(int, Body2, object) -> Feature
     ///   IPartDoc       .InsertCombineFeature(int, object, object) -> Boolean
     ///
-    /// Stessa arita', stesso nome, tipi e ritorno diversi, e **non sono l'una
-    /// l'evoluzione dell'altra**. Quella su `IPartDoc` torna un booleano: la
-    /// feature, se nasce, non e' raggiungibile — e un passo successivo che
-    /// volesse citarla non avrebbe niente da citare. Qui si usa quella del
-    /// FeatureManager.
+    /// Same arity, same name, different types and return, and **they are not the one
+    /// the evolution of the other**. The one on `IPartDoc` returns a boolean: the
+    /// feature, if it is born, cannot be reached — and a later step that
+    /// wanted to cite it would have nothing to cite. Here the one of the
+    /// FeatureManager is used.
     ///
-    /// ── L'ENUM COL NOME GIUSTO E' QUELLO SBAGLIATO ──────────────────────
+    /// ── THE ENUM WITH THE RIGHT NAME IS THE WRONG ONE ───────────────────
     ///
-    /// In `swconst` c'e' `swCombineBodiesOperationType_e`, e i suoi tre valori
-    /// si chiamano **Add = 0, Subtract = 1, Common = 2**: i nomi esatti delle
-    /// tre booleane. Passati a `InsertCombineFeature` **tornano `null` tutti e
-    /// tre**, senza un'eccezione e senza un codice.
+    /// In `swconst` there is `swCombineBodiesOperationType_e`, and its three values
+    /// are called **Add = 0, Subtract = 1, Common = 2**: the exact names of the
+    /// three booleans. Passed to `InsertCombineFeature` they **all three return
+    /// `null`**, without an exception and without a code.
     ///
-    /// Quello che il metodo vuole e' `swBodyOperationType_e`:
+    /// What the method wants is `swBodyOperationType_e`:
     ///
-    ///     SWBODYADD       = 15903     unisci
-    ///     SWBODYCUT       = 15902     sottrai
-    ///     SWBODYINTERSECT = 15901     interseca
+    ///     SWBODYADD       = 15903     unite
+    ///     SWBODYCUT       = 15902     subtract
+    ///     SWBODYINTERSECT = 15901     intersect
     ///
-    /// **Un nome dice come si chiama una costante, non a quale funzione
-    /// appartiene.** Era il rischio scritto nella voce — «un valore sbagliato
-    /// consuma il corpo sbagliato senza errore» — e la realta' e' stata piu'
-    /// mite di cosi': non consuma niente, non fa niente, e non lo dice.
+    /// **A name says what a constant is called, not which function it
+    /// belongs to.** It was the risk written in the entry — «a wrong value
+    /// consumes the wrong body without an error» — and reality was milder
+    /// than that: it consumes nothing, does nothing, and does not say so.
     ///
-    /// ── E L'ARRAY VA AVVOLTO, E CONTIENE ANCHE IL PRINCIPALE ────────────
+    /// ── AND THE ARRAY MUST BE WRAPPED, AND ALSO CONTAINS THE MAIN ONE ───
     ///
-    /// Misurato su pezzi nuovi, una variante per pezzo (provarle di fila sullo
-    /// stesso documento dava risultati incoerenti):
+    /// Measured on new parts, one variant per part (trying them in a row on the
+    /// same document gave inconsistent results):
     ///
     ///                              ADD 15903   CUT 15902   INTERSECT 15901
-    ///   object[] col solo utensile    NULL        NULL          NULL
-    ///   Body2[] tipizzato             NULL      «Abbina1»       NULL
-    ///   DispatchWrapper[] utensile    NULL      «Abbina1»       NULL
-    ///   DispatchWrapper[] TUTTI E DUE «Abbina1» «Abbina1»     «Abbina1»
+    ///   object[] with the tool only   NULL        NULL          NULL
+    ///   typed Body2[]                 NULL      «Abbina1»       NULL
+    ///   DispatchWrapper[] tool only   NULL      «Abbina1»       NULL
+    ///   DispatchWrapper[] BOTH     «Abbina1» «Abbina1»     «Abbina1»
     ///
-    /// Due cose insieme, e nessuna delle due protesta quando manca:
+    /// Two things together, and neither of them complains when missing:
     ///
-    /// 1. **`object[]` di RCW non arriva mai.** Il parametro e' un `VARIANT`
-    ///    che vuole un SAFEARRAY di `IDispatch*`, e un `object[]` di oggetti
-    ///    COM non lo diventa da solo: ci vuole `DispatchWrapper`.
-    /// 2. **L'array deve contenere anche il corpo principale**, non solo gli
-    ///    utensili — per `union` e `intersect` senza di lui non succede
-    ///    niente. Per `subtract` basterebbe l'utensile, ma metterlo dentro non
-    ///    cambia il risultato (600 mm³ in tutti e due i modi), e una regola
-    ///    sola vale piu' di tre.
+    /// 1. **An `object[]` of RCW never arrives.** The parameter is a `VARIANT`
+    ///    that wants a SAFEARRAY of `IDispatch*`, and an `object[]` of COM
+    ///    objects does not become one by itself: `DispatchWrapper` is needed.
+    /// 2. **The array must also contain the main body**, not only the
+    ///    tools — for `union` and `intersect` without it nothing
+    ///    happens. For `subtract` the tool would be enough, but putting it in does not
+    ///    change the result (600 mm³ both ways), and a single rule
+    ///    is worth more than three.
     ///
-    /// ── I TRE NUMERI, SU UN CASO CHE LI DISTINGUE ───────────────────────
+    /// ── THE THREE NUMBERS, ON A CASE THAT TELLS THEM APART ──────────────
     ///
-    /// Due cubi da 10 sfalsati di 2 in X e 5 in Z, sovrapposti per
+    /// Two cubes of 10 offset by 2 in X and 5 in Z, overlapping by
     /// 8 x 10 x 5 = 400 mm³:
     ///
-    ///     unisci      1000 + 1000 - 400 = 1600 mm³
-    ///     sottrai     1000 - 400        =  600 mm³
-    ///     interseca                        400 mm³
+    ///     unite       1000 + 1000 - 400 = 1600 mm³
+    ///     subtract    1000 - 400        =  600 mm³
+    ///     intersect                        400 mm³
     ///
-    /// Con due cubi uguali e centrati i tre numeri sarebbero stati 1500, 500 e
-    /// 500 — e «subtract» e «intersect» non si sarebbero distinti. Un caso in
-    /// cui due valori sbagliati danno lo stesso risultato non tabella niente.
+    /// With two equal and centred cubes the three numbers would have been 1500, 500 and
+    /// 500 — and «subtract» and «intersect» could not have been told apart. A case in
+    /// which two wrong values give the same result tabulates nothing.
     ///
-    /// ── E SI CONTANO I CORPI ────────────────────────────────────────────
+    /// ── AND THE BODIES ARE COUNTED ──────────────────────────────────────
     ///
-    /// Un'unione che fallisce in silenzio lascia **due corpi** dove ne serviva
-    /// uno: l'albero cresce uguale, la forma sembra la stessa, e la differenza
-    /// si vede solo contando. E' lo stesso controllo che `extrude_on_face`
-    /// fa gia' sul suo `Merge`.
+    /// A union that fails silently leaves **two bodies** where one was needed:
+    /// the tree grows just the same, the shape looks the same, and the difference
+    /// shows only by counting. It is the same check that `extrude_on_face`
+    /// already does on its `Merge`.
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>
-        /// La booleana che si fa salvo avviso contrario (voce Z-G3).
-        /// Stesso ragionamento di `DefaultMaterial`: lo schema lo
-        /// annuncia, questo lo applica, e il valore sta in un posto solo.
+        /// The boolean that is done unless told otherwise (entry Z-G3).
+        /// Same reasoning as `DefaultMaterial`: the schema
+        /// announces it, this applies it, and the value lives in one place only.
         /// </summary>
         private const string DefaultOperation = "union";
 
         /// <summary>
-        /// Coda del messaggio quando il principale e' il predefinito (il primo
-        /// corpo, per posizione) e coincide con un utensile nominato: senza,
-        /// «e' anche il corpo principale» suonerebbe come una scelta di chi chiede.
+        /// Tail of the message when the main body is the default (the first
+        /// body, by position) and it coincides with a named tool: without it,
+        /// «e' anche il corpo principale» would sound like a choice of whoever asks.
         /// </summary>
         private const string DefaultMain =
             ", il predefinito: il primo corpo, preso per posizione perche' non l'hai " +
@@ -112,22 +112,22 @@ namespace Oce.Solid.Agent.Core
             if (partDoc == null)
                 return Failed("Questo documento non e' un pezzo: le booleane si fanno fra corpi.");
 
-            // ── IL PREDEFINITO (voce Z-G3) ───────────────────────────────
+            // ── THE DEFAULT (entry Z-G3) ─────────────────────────────────
             //
-            // «union» e' di gran lunga il caso piu' comune: «subtract» e
-            // «intersect» si chiedono apposta. Qui il predefinito e' piu'
-            // pericoloso che altrove — sbagliare verso non lascia un pezzo
-            // del materiale sbagliato, lascia **un pezzo con dentro un buco
-            // che nessuno ha chiesto** — e per questo si dichiara, e per
-            // questo il caso di banco misura il VOLUME invece di guardare
-            // che sia riuscito: fra le tre booleane i tre volumi sono
-            // inconfondibili, e «succeeded: true» li darebbe tutti e tre.
+            // «union» is by far the most common case: «subtract» and
+            // «intersect» are asked for on purpose. Here the default is more
+            // dangerous than elsewhere — getting the direction wrong does not leave a part
+            // of the wrong material, it leaves **a part with a hole in it
+            // that nobody asked for** — and for this it is declared, and
+            // for this the bench case measures the VOLUME instead of looking
+            // whether it succeeded: among the three booleans the three volumes are
+            // unmistakable, and «succeeded: true» would give all three.
             string asRequested = (Str(a, "operation", "") ?? "").Trim().ToLowerInvariant();
             bool assumed = asRequested.Length == 0;
             if (assumed) asRequested = DefaultOperation;
             int typ;
-            // `swBodyOperationType_e`, NON `swCombineBodiesOperationType_e`:
-            // vedi il commento in testa al file.
+            // `swBodyOperationType_e`, NOT `swCombineBodiesOperationType_e`:
+            // see the comment at the head of the file.
             if (asRequested == "union") typ = (int)swBodyOperationType_e.SWBODYADD;
             else if (asRequested == "subtract") typ = (int)swBodyOperationType_e.SWBODYCUT;
             else if (asRequested == "intersect") typ = (int)swBodyOperationType_e.SWBODYINTERSECT;
@@ -136,48 +136,48 @@ namespace Oce.Solid.Agent.Core
                 "». Ci sono «union», «subtract» e «intersect».");
 
             var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-            // ZERO-E-ZERO: `GetBodies2` qui sopra non e' in un try — una maniglia
-            // morta solleva e non arriva fin qui — quindi null e' «nessun corpo».
+            // ZERO-E-ZERO: `GetBodies2` above is not in a try — a dead
+            // handle raises and does not get this far — so null is «no body».
             if (rawItems == null || rawItems.Length < 2)
                 return Failed(
                     "Per una booleana ci vogliono almeno due corpi, e questo pezzo ne ha " +
                     (rawItems == null ? 0 : rawItems.Length) + ". I corpi separati nascono con " +
                     "«move_bodies» e la copia, o con un'estrusione che non si fonde.");
 
-            // ── CHI E' IL PRINCIPALE, E CHI GLI VA ADDOSSO ───────────────
+            // ── WHO IS THE MAIN ONE, AND WHO GOES ON TOP OF IT ───────────
             //
-            // Nella sottrazione l'ordine CAMBIA IL PEZZO: A meno B non e' B
-            // meno A. Il principale si dice, e se non si dice e' il primo —
-            // ma allora si scrive nella risposta, perche' chi legge deve
-            // sapere quale dei due e' rimasto.
-            // ── GLI IDENTIFICATIVI SI RISOLVONO PER FIRMA, NON PER POSIZIONE ──
+            // In subtraction the order CHANGES THE PART: A minus B is not B
+            // minus A. The main one is said, and if it is not said it is the first —
+            // but then it is written in the answer, because whoever reads must
+            // know which of the two was left.
+            // ── IDENTIFIERS ARE RESOLVED BY SIGNATURE, NOT BY POSITION ──
             //
-            // (voce Z-C21.2, rilievo L6-1.) Fino alla libreria 0.136.0 «C2»
-            // voleva dire «il secondo di un GetBodies2 fatto adesso», e il
-            // parametro `state` non era nemmeno letto.
+            // (entry Z-C21.2, finding L6-1.) Up to library 0.136.0 «C2»
+            // meant «the second of a GetBodies2 made now», and the
+            // `state` parameter was not even read.
             // IPartDoc~GetBodies2.html, Remarks: «May vary the order in which
-            // bodies are returned». Un taglio fra la lettura dello stato e la
-            // booleana rinumera i corpi, e si combinava il corpo sbagliato con
-            // `succeeded: true`: e' la voce E4, misurata il 14/9/2026 sulla
-            // gemella `move_bodies` e corretta li' con `BodiesFromUid`, che
-            // confronta la firma (centro e scatola) letta dal piano con quella di
-            // adesso. Qui adesso passa dallo stesso punto.
+            // bodies are returned». A cut between the reading of the state and the
+            // boolean renumbers the bodies, and the wrong body was combined with
+            // `succeeded: true`: it is entry E4, measured on 14/9/2026 on the
+            // twin `move_bodies` and corrected there with `BodiesFromUid`, which
+            // compares the signature (centre and box) read from the plan with the one of
+            // now. Here it now goes through the same point.
             //
-            // E I CORPI TROVATI SI PASSANO COSI' COME SONO, come fa move_bodies
-            // con `firma.Entity`. La prima stesura li ricercava dentro il
-            // GetBodies2 qui sopra con ReferenceEquals/Equals: regge solo se
-            // SOLIDWORKS da' lo stesso oggetto COM per lo stesso corpo in due
-            // chiamate, e non e' misurato (revisione di Z-C21.2). Dove serve
-            // sapere se due corpi sono lo stesso — il principale fra gli
-            // utensili — si chiede a SOLIDWORKS: ISldWorks~IsSame.html, «Gets
+            // AND THE BODIES FOUND ARE PASSED AS THEY ARE, as move_bodies does
+            // with `firma.Entity`. The first draft searched for them again inside the
+            // GetBodies2 above with ReferenceEquals/Equals: it holds only if
+            // SOLIDWORKS gives the same COM object for the same body in two
+            // calls, and this is not measured (review of Z-C21.2). Where it is needed
+            // to know whether two bodies are the same — the main one among the
+            // tools — SOLIDWORKS is asked: ISldWorks~IsSame.html, «Gets
             // whether the two specified objects are the same object», «Return
-            // Value Object equality as defined by swObjectEquality», come in
+            // Value Object equality as defined by swObjectEquality», as in
             // StatoTavola.
             //
-            // I `_ref` (tabella L6-1): senza, un piano «taglio, poi booleana»
-            // non ha nessun modo valido di nominare i corpi — gli uid letti
-            // prima del taglio ora si rifiutano per firma, e quelli nuovi il
-            // piano non li conosce. Stessa strada di move_bodies:
+            // The `_ref` (table L6-1): without them, a plan «cut, then boolean»
+            // has no valid way to name the bodies — the uids read
+            // before the cut are now refused by signature, and the new ones the
+            // plan does not know. Same path as move_bodies:
             // BodiesFromReference.
             string bodyReason;
             Func<object, object, bool> same = (x, y) =>
@@ -187,9 +187,9 @@ namespace Oce.Solid.Agent.Core
                 try { return _sw.IsSame(x, y) == (int)swObjectEquality.swObjectSame; }
                 catch { return false; }
             };
-            // Il nome da riportare: l'uid dello STATO se il corpo c'e', altrimenti
-            // la posizione, detta come tale — i numeri del GetBodies2 di adesso
-            // non sono quelli dello stato (GetBodies2.html, stessa frase).
+            // The name to report: the uid of the STATE if the body is there, otherwise
+            // the position, said as such — the numbers of the GetBodies2 of now
+            // are not those of the state (GetBodies2.html, same sentence).
             Func<object, int, string> nameOf = (body, position) =>
             {
                 if (docState != null && docState.Signatures != null)
@@ -236,7 +236,7 @@ namespace Oce.Solid.Agent.Core
             }
             else
             {
-                // Il PREDEFINITO resta «il primo», ed e' per posizione: si dice.
+                // The DEFAULT stays «the first», and it is by position: it is said.
                 main = rawItems[0];
                 mainName = nameOf(rawItems[0], 0);
                 mainByPosition = true;
@@ -296,10 +296,10 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 model.ClearSelection2(true);
-                // AVVOLTI, E COL PRINCIPALE DENTRO: vedi il commento in testa.
-                // Un `object[]` di oggetti COM non diventa un SAFEARRAY di
-                // IDispatch*, e senza il principale nell'elenco «union» e
-                // «intersect» non fanno niente — senza dirlo.
+                // WRAPPED, AND WITH THE MAIN ONE INSIDE: see the comment at the head.
+                // An `object[]` of COM objects does not become a SAFEARRAY of
+                // IDispatch*, and without the main one in the list «union» and
+                // «intersect» do nothing — without saying so.
                 var toPass = new List<DispatchWrapper>();
                 toPass.Add(new DispatchWrapper(main));
                 foreach (var u in toolBodies) toPass.Add(new DispatchWrapper(u));
@@ -312,11 +312,11 @@ namespace Oce.Solid.Agent.Core
                 return Failed("La booleana non e' riuscita: " + ex.Message);
             }
 
-            // NULL SENZA UN'ECCEZIONE E SENZA UN CODICE: e' tutto quello che
-            // questa API dice quando non le va bene qualcosa. Il motivo piu'
-            // frequente e' geometrico — i corpi non si toccano davvero — ma
-            // non e' l'unico, e la frase lo dice invece di far credere che sia
-            // certa.
+            // NULL WITHOUT AN EXCEPTION AND WITHOUT A CODE: it is all that
+            // this API says when it does not like something. The most
+            // frequent reason is geometric — the bodies do not really touch —
+            // but it is not the only one, and the sentence says so instead of making it believed
+            // certain.
             if (feature == null)
                 return Failed(
                     "La booleana «" + asRequested + "» non ha creato niente, e SOLIDWORKS " +
@@ -331,17 +331,17 @@ namespace Oce.Solid.Agent.Core
             int bodiesAfter = CountSolidBodies(model);
             bool reread = volumeAfter.HasValue && bodiesAfter >= 0;
 
-            // UN'UNIONE CHE LASCIA DUE CORPI E' FALLITA IN SILENZIO. La
-            // feature c'e', l'albero e' cresciuto, e il pezzo e' un altro.
+            // A UNION THAT LEAVES TWO BODIES HAS FAILED SILENTLY. The
+            // feature is there, the tree has grown, and the part is another.
             //
-            // `SWBODYADD`, E FINO ALLA 0.116.0 NO (voce Z-C18). Il confronto era
-            // con `swCombineBodiesOperationAdd` (= 0), mentre `tipo` vale 15903:
-            // due enum diversi — proprio quelli che il commento in testa a
-            // questo file distingue — e la guardia non poteva scattare.
-            // Misurato il 25/9/2026: con due corpi lontani SOLIDWORKS non crea
-            // la feature affatto (il rifiuto qui sopra), quindi dal banco questa
-            // guardia non si fa scattare; resta per la feature che nasce e non
-            // fonde, e adesso guarda la cosa giusta.
+            // `SWBODYADD`, AND UP TO 0.116.0 NO (entry Z-C18). The comparison was
+            // with `swCombineBodiesOperationAdd` (= 0), while `tipo` is 15903:
+            // two different enums — exactly the ones that the comment at the head of
+            // this file tells apart — and the guard could not fire.
+            // Measured on 25/9/2026: with two distant bodies SOLIDWORKS does not create
+            // the feature at all (the refusal above), so from the bench this
+            // guard cannot be made to fire; it stays for the feature that is born and does not
+            // merge, and now it looks at the right thing.
             if (reread && typ == (int)swBodyOperationType_e.SWBODYADD &&
                 bodiesAfter >= bodiesBefore)
                 return Failed(
@@ -371,8 +371,8 @@ namespace Oce.Solid.Agent.Core
                 ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
                 ["volume_mm3"] = NumberOrNull(volumeAfter, 2),
                 ["volume_changed_mm3"] = NumberOrNull(volumeAfter - volumeBefore, 2),
-                // GLI IDENTIFICATIVI NON VALGONO PIU', e si dice sempre: una
-                // booleana rifa' le facce da capo.
+                // THE IDENTIFIERS NO LONGER HOLD, and this is always said: a
+                // boolean redoes the faces from scratch.
                 ["note_identifiers"] =
                     "I corpi e le facce sono cambiati: gli identificativi (C2, F1, E4) di " +
                     "prima non valgono piu'. Rileggi il pezzo prima del passo seguente.",
@@ -384,39 +384,39 @@ namespace Oce.Solid.Agent.Core
         }
 
         // =================================================================
-        // IL RACCORDO A RAGGIO VARIABILE  (voce GP7)
+        // THE VARIABLE-RADIUS FILLET  (entry GP7)
         // =================================================================
         //
-        // Serve a smussare gradualmente uno spigolo lungo: grande dove il
-        // pezzo deve incassare un carico, piccolo dove non c'e' posto.
+        // It is used to round a long edge gradually: large where the
+        // part must take a load, small where there is no room.
         //
-        // ── LA RICETTA, MISURATA E NON DEDOTTA ──────────────────────────
+        // ── THE RECIPE, MEASURED AND NOT DEDUCED ────────────────────────
         //
-        // La voce avvisava che «il popolamento di Radii / PointRadiusArray /
-        // PointRhoArray (ordine, quanti valori per vertice) non e' verificato:
-        // un passo sbagliato da' raggi plausibili e sbagliati». Provato su un
-        // cubo 40x40x40, spigolo verticale, raggi 3 e 8:
+        // The entry warned that «the population of Radii / PointRadiusArray /
+        // PointRhoArray (order, how many values per vertex) is not verified:
+        // a wrong step gives plausible and wrong radii». Tried on a
+        // 40x40x40 cube, vertical edge, radii 3 and 8:
         //
-        //   spigolo + i suoi 2 vertici selezionati, Radii = {3, 8}   277,7 mm³
-        //   SOLO i due vertici (senza lo spigolo)                      NULL
-        //   con le marche 1/1/1 invece che senza marca               277,7 mm³
-        //   aggiungendo PointRadiusArray = {3, 8}                    277,7 mm³
+        //   edge + its 2 vertices selected, Radii = {3, 8}   277.7 mm³
+        //   ONLY the two vertices (without the edge)           NULL
+        //   with the marks 1/1/1 instead of no mark          277.7 mm³
+        //   adding PointRadiusArray = {3, 8}                 277.7 mm³
         //
-        // Quindi: **lo spigolo va selezionato**, i vertici pure, le marche non
-        // contano e `PointRadiusArray` non serve — quello e' per i punti
-        // INTERMEDI, che qui non ci sono.
+        // So: **the edge must be selected**, the vertices too, the marks do not
+        // count and `PointRadiusArray` is not needed — that one is for the
+        // INTERMEDIATE points, which are not here.
         //
-        // ── E IL NUMERO CHE DISTINGUE IL VARIABILE DAL COSTANTE ─────────
+        // ── AND THE NUMBER THAT TELLS THE VARIABLE FROM THE CONSTANT ────
         //
-        // Il volume tolto da un raccordo di raggio r su uno spigolo lungo L e'
-        // L·r²·(1 − π/4). Per un raggio che va da 3 a 8, la media di r² e'
-        // (9 + 24 + 64)/3 = 32,33, e il conto da' **277,5 mm³** — misurato
-        // 277,7, cioe' il blend non e' esattamente una spazzata lineare del
-        // raggio ma ci sta dentro per lo 0,07%.
+        // The volume removed by a fillet of radius r on an edge of length L is
+        // L·r²·(1 − π/4). For a radius going from 3 to 8, the mean of r² is
+        // (9 + 24 + 64)/3 = 32.33, and the calculation gives **277.5 mm³** — measured
+        // 277.7, that is, the blend is not exactly a linear sweep of the
+        // radius but it fits within it to 0.07%.
         //
-        // I due numeri sbagliati sono lontani: un raccordo costante da 3 ne
-        // toglierebbe **77,3**, uno costante da 8 **549,4**. E' cosi' che si
-        // vede se ha fatto il variabile o se ha preso solo il primo raggio.
+        // The two wrong numbers are far away: a constant fillet of 3 would
+        // remove **77.3**, a constant one of 8 **549.4**. This is how one
+        // sees whether it did the variable or took only the first radius.
         // =================================================================
 
         private Outcome VariableFillet(
@@ -446,9 +446,9 @@ namespace Oce.Solid.Agent.Core
             if (edge == null)
                 return Failed("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
 
-            // IL RAGGIO PIU' GRANDE DEVE STARCI, e si misura adesso: fra la
-            // proposta e l'esecuzione il pezzo puo' essere cambiato. E' lo
-            // stesso controllo del raccordo costante, sul piu' grande dei due.
+            // THE LARGEST RADIUS MUST FIT, and it is measured now: between the
+            // proposal and the execution the part may have changed. It is the
+            // same check as for the constant fillet, on the larger of the two.
             double maxValue = Math.Max(r1, r2);
             if (signature.Measure > 0 && maxValue > signature.Measure / 2)
                 return Failed(string.Format(
@@ -470,8 +470,8 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 model.ClearSelection2(true);
-                // LO SPIGOLO PRIMA, POI I DUE VERTICI. Senza lo spigolo la
-                // chiamata torna null: misurato.
+                // THE EDGE FIRST, THEN THE TWO VERTICES. Without the edge the
+                // call returns null: measured.
                 if (!(edge as IEntity).Select4(true, null))
                     return Failed("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
                 if (!v1.Select4(true, null) || !v2.Select4(true, null))
@@ -496,16 +496,16 @@ namespace Oce.Solid.Agent.Core
                     Ftyp: (int)swFeatureFilletType_e.swFeatureFilletType_VariableRadius,
                     OverflowType: (int)swFilletOverFlowType_e.swFilletOverFlowType_Default,
                     ConicRhoType: (int)swFeatureFilletProfileType_e.swFeatureFilletCircular,
-                    // UNO PER VERTICE, nell'ordine in cui sono stati
-                    // selezionati: inizio e fine.
+                    // ONE PER VERTEX, in the order in which they were
+                    // selected: start and end.
                     Radii: new double[] { Units.M(r1), Units.M(r2) },
                     Dist2Arr: null,
                     RhoArr: null,
                     SetBackDistances: null,
-                    // I PUNTI INTERMEDI NON CI SONO, e `PointRadiusArray` e'
-                    // per quelli: passarlo non cambia niente (misurato), e
-                    // passarlo per abitudine sarebbe un argomento che non si
-                    // sa cosa fa.
+                    // THERE ARE NO INTERMEDIATE POINTS, and `PointRadiusArray` is
+                    // for those: passing it changes nothing (measured), and
+                    // passing it out of habit would be an argument that nobody
+                    // knows what it does.
                     PointRadiusArray: null,
                     PointDist2Array: null,
                     PointRhoArray: null) as IFeature;
@@ -522,9 +522,9 @@ namespace Oce.Solid.Agent.Core
             double? volumeAfter = VolumeMm3(model);
             double? removed = volumeBefore - volumeAfter;
 
-            // UN RACCORDO CHE NON TOGLIE NIENTE NON E' UN RACCORDO. La feature
-            // c'e', l'albero e' cresciuto, e lo spigolo e' ancora vivo. Si dice
-            // solo di un volume riletto (voce Z-C8).
+            // A FILLET THAT REMOVES NOTHING IS NOT A FILLET. The feature
+            // is there, the tree has grown, and the edge is still alive. It is said
+            // only from a volume read back (entry Z-C8).
             if (removed <= 0)
                 return Failed(
                     "Il raccordo e' stato creato ma non ha tolto niente (volume " +
@@ -539,10 +539,10 @@ namespace Oce.Solid.Agent.Core
                 ["radius_end_mm"] = r2,
                 ["material_removed_mm3"] = NumberOrNull(removed, 2),
                 ["volume_not_reread"] = removed.HasValue ? null : NoteVolumeNotReread,
-                // IL CONTO A MANO ACCANTO, e non e' ridondanza: distingue «ha
-                // fatto il variabile» da «ha preso solo il primo raggio».
-                // Il blend non e' esattamente una spazzata lineare, quindi e'
-                // un ORDINE DI GRANDEZZA, ed e' scritto che lo e'.
+                // THE HAND CALCULATION ALONGSIDE, and it is not redundancy: it tells «it did
+                // the variable» from «it took only the first radius».
+                // The blend is not exactly a linear sweep, so it is
+                // an ORDER OF MAGNITUDE, and it is written that it is.
                 ["expected_removed_mm3"] = signature.Measure > 0
                     ? (object)Math.Round(
                         signature.Measure * ((r1 * r1 + r1 * r2 + r2 * r2) / 3.0) * (1 - Math.PI / 4), 2)
@@ -555,41 +555,41 @@ namespace Oce.Solid.Agent.Core
         }
 
         // =================================================================
-        // LA FILETTATURA COSMETICA  (voce GP11)
+        // THE COSMETIC THREAD  (entry GP11)
         // =================================================================
         //
-        // NON TAGLIA NIENTE: e' un'annotazione. Dice «qui c'e' un filetto» a
-        // chi legge il pezzo e alla tavola, e il volume resta quello di prima.
-        // Se il volume cambia si e' chiamata la cosa sbagliata, e questa
-        // operazione lo controlla.
+        // IT CUTS NOTHING: it is an annotation. It says «there is a thread here» to
+        // whoever reads the part and to the drawing, and the volume stays what it was.
+        // If the volume changes the wrong thing was called, and this
+        // operation checks it.
         //
-        // ── SI ATTACCA A UNO SPIGOLO, NON A UNA FACCIA ──────────────────
+        // ── IT ATTACHES TO AN EDGE, NOT TO A FACE ───────────────────────
         //
-        // Sulla faccia cilindrica `InsertCosmeticThread3` torna **null** in
-        // tutte le combinazioni provate. A dirlo e' stato il modello dei dati:
-        // `ICosmeticThreadFeatureData` ha una proprieta' **`Edge`**. Con lo
-        // spigolo CIRCOLARE selezionato funziona al primo colpo.
+        // On the cylindrical face `InsertCosmeticThread3` returns **null** in
+        // all the combinations tried. What said so was the data model:
+        // `ICosmeticThreadFeatureData` has an **`Edge`** property. With the
+        // CIRCULAR edge selected it works at the first try.
         //
-        // ── E IL CALLOUT NON E' GENERATO: E' RICOPIATO ──────────────────
+        // ── AND THE CALLOUT IS NOT GENERATED: IT IS COPIED ──────────────
         //
-        // La voce GP11 diceva: «la nota generata, riletta, dice M6x1 — e' il
-        // solo modo di sapere se `Standard` era il numero giusto». Misurato il
-        // 16/9/2026, la risposta e' che **`Standard` non e' nessun numero**:
+        // Entry GP11 said: «the generated note, read back, says M6x1 — it is the
+        // only way to know whether `Standard` was the right number». Measured on
+        // 16/9/2026, the answer is that **`Standard` is no number at all**:
         //
-        //   Standard = 0, 1, 2, 3, 8 (ISO), con StandardType «Tapped hole»,
-        //   «Machine Threads», «Maschiatura», «Filettature macchina», e Size
+        //   Standard = 0, 1, 2, 3, 8 (ISO), with StandardType «Tapped hole»,
+        //   «Machine Threads», «Maschiatura», «Filettature macchina», and Size
         //   «M6x1.0», «M6», «M6x1»:
-        //       la feature nasce sempre, e rileggendola
+        //       the feature is always born, and reading it back
         //       Standard = -2,  StandardType = «»,  Size = «»,  callout = «»
         //
-        //   passando invece la NOTA:
-        //       callout = «M6x1»   — anche con Standard = -2 e i due nomi vuoti
+        //   passing the NOTE instead:
+        //       callout = «M6x1»   — even with Standard = -2 and the two names empty
         //
-        // Cioe': lo standard e la taglia **vengono ignorati**, e il callout e'
-        // esattamente il testo che gli si da'. Quindi l'operazione chiede una
-        // denominazione e la scrive, e **non finge** che venga da una tabella:
-        // «generata» e «ricopiata» non sono la stessa cosa, e chi legge una
-        // tavola ha diritto di sapere quale delle due sta guardando.
+        // That is: the standard and the size **are ignored**, and the callout is
+        // exactly the text that is given to it. So the operation asks for a
+        // designation and writes it, and **does not pretend** that it comes from a table:
+        // «generated» and «copied» are not the same thing, and whoever reads a
+        // drawing has the right to know which of the two they are looking at.
         // =================================================================
 
         private Outcome CosmeticThread(
@@ -641,9 +641,9 @@ namespace Oce.Solid.Agent.Core
                     "attacca al bordo tondo di un cilindro o di un foro. Su uno spigolo " +
                     "dritto non c'e' niente da filettare.");
 
-            // IL DIAMETRO LO DICE LO SPIGOLO, non chi chiama: e' il bordo su
-            // cui il filetto si attacca, e un diametro diverso da quello
-            // disegnerebbe un filetto che non sta sul pezzo.
+            // THE DIAMETER IS SAID BY THE EDGE, not by the caller: it is the border on
+            // which the thread attaches, and a diameter different from that one
+            // would draw a thread that is not on the part.
             double requestedDiameter = Num(a, "diameter_mm", 0);
             if (requestedDiameter > 0 && diameter > 0 &&
                 Math.Abs(requestedDiameter - diameter) > 0.01)
@@ -673,9 +673,9 @@ namespace Oce.Solid.Agent.Core
                     return Failed("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
 
                 feature = model.FeatureManager.InsertCosmeticThread3(
-                    // Standard e taglia SONO IGNORATI da questa chiamata
-                    // (misurato): si passa «nessuno standard» invece di
-                    // fingere che un numero serva a qualcosa.
+                    // Standard and size ARE IGNORED by this call
+                    // (measured): «no standard» is passed instead of
+                    // pretending that a number serves any purpose.
                     Standard: -2,
                     StandardType: "",
                     Size: "",
@@ -696,7 +696,7 @@ namespace Oce.Solid.Agent.Core
 
             try { model.EditRebuild3(); } catch { }
 
-            // E' COSMETICA: se il volume e' cambiato, si e' tagliato davvero.
+            // IT IS COSMETIC: if the volume changed, something was really cut.
             double? volumeAfter = VolumeMm3(model);
             if (volumeAfter.HasValue && Math.Abs(volumeAfter.Value - volumeBefore.Value) > 0.01)
                 return Failed(string.Format(
@@ -715,8 +715,8 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // UN'ANNOTAZIONE CHE NON DICE NIENTE non e' un'annotazione: la
-            // feature ci sarebbe, la tavola mostrerebbe un filetto muto.
+            // AN ANNOTATION THAT SAYS NOTHING is not an annotation: the
+            // feature would be there, the drawing would show a mute thread.
             if (string.IsNullOrEmpty(callout))
                 return Failed(
                     "Il filetto e' stato creato ma la sua denominazione e' rimasta vuota: " +
@@ -736,7 +736,7 @@ namespace Oce.Solid.Agent.Core
                     ? "E' un'annotazione: il volume del pezzo e' lo stesso di prima. Se ti " +
                       "serve il filetto VERO, tagliato, questa non e' l'operazione."
                     : NoteVolumeNotReread,
-                // SI DICHIARA DA DOVE VIENE IL TESTO. Vedi il commento in testa.
+                // THE ORIGIN OF THE TEXT IS DECLARED. See the comment at the head.
                 ["designation_is_yours"] =
                     "«" + callout + "» e' il testo che mi hai dato, non uno ricavato da una " +
                     "tabella di filettature: questa chiamata ignora lo standard e la taglia. " +
@@ -744,9 +744,9 @@ namespace Oce.Solid.Agent.Core
             });
         }
 
-        // `IndiceDelCorpo` («C2» -> indice 1 di un GetBodies2 nuovo) e' stato
-        // tolto con la voce Z-C21.2: era la risoluzione per posizione che il
-        // rilievo L6-1 ha trovato sbagliata. Gli uid dei corpi passano da
-        // `BodiesFromUid` (WeldmentOperations.cs), che guarda la firma.
+        // `IndiceDelCorpo` («C2» -> index 1 of a new GetBodies2) was
+        // removed with entry Z-C21.2: it was the resolution by position that
+        // finding L6-1 found wrong. The uids of the bodies go through
+        // `BodiesFromUid` (WeldmentOperations.cs), which looks at the signature.
     }
 }

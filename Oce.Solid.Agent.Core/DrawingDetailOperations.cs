@@ -6,53 +6,53 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// UNA VISTA DI DETTAGLIO SU UNA TAVOLA (voce GT4, seconda meta').
+    /// A DETAIL VIEW ON A DRAWING (entry GT4, second half).
     ///
-    /// ── PERCHE' ESISTE ──────────────────────────────────────────────────
+    /// ── WHY IT EXISTS ───────────────────────────────────────────────────
     ///
-    /// L'altra meta' di cio' che manca a una tavola d'officina vera. La
-    /// sezione fa vedere cosa c'e' dentro; il dettaglio fa vedere cio' che e'
-    /// **troppo piccolo per leggersi alla scala del disegno** — una gola, uno
-    /// smusso, un raccordo con la sua quota.
+    /// The other half of what a real workshop drawing lacks. The
+    /// section shows what is inside; the detail shows what is
+    /// **too small to be read at the scale of the drawing** — a groove, a
+    /// chamfer, a fillet with its dimension.
     ///
-    /// ── «PER ANALOGIA» NON E' BASTATO, E ERA SCRITTO ────────────────────
+    /// ── «BY ANALOGY» WAS NOT ENOUGH, AND IT WAS WRITTEN ─────────────────
     ///
-    /// La misura 0.6 aveva chiuso la sezione e lasciato fuori il dettaglio con
-    /// una nota onesta: *«per analogia dovrebbe funzionare uguale — ma "per
-    /// analogia" e' proprio il salto che qui e' gia' costato una correzione»*.
+    /// Measurement 0.6 had closed the section and left the detail out with
+    /// an honest note: *«by analogy it should work the same — but "by
+    /// analogy" is exactly the leap that here has already cost a correction»*.
     ///
-    /// Quella prudenza si e' guadagnata la paga due volte nello stesso
-    /// pomeriggio. Sulla sezione, l'analogia col contatore del tratteggio era
-    /// **sbagliata**. E qui, delle tre cose che si sarebbero date per scontate,
-    /// due erano diverse:
+    /// That prudence paid off twice in the same
+    /// afternoon. On the section, the analogy with the hatch counter was
+    /// **wrong**. And here, of the three things that would have been taken for granted,
+    /// two were different:
     ///
-    ///   - `Showtype` non vuole l'enum delle viste di dettaglio: vuole
-    ///     `swDetCircleShowType_e`. L'altro nome non esiste in questa interop.
-    ///   - `GetDetailCircleCount2(out int Size)` ha due uscite, e **quella
-    ///     giusta e' il valore di ritorno**. Misurato il 23/9/2026:
+    ///   - `Showtype` does not want the enum of the detail views: it wants
+    ///     `swDetCircleShowType_e`. The other name does not exist in this interop.
+    ///   - `GetDetailCircleCount2(out int Size)` has two outputs, and **the
+    ///     right one is the return value**. Measured on 23/9/2026:
     ///
-    ///         circonferenze PRIMA: ritorno=0  out=1
-    ///         circonferenze DOPO : ritorno=1  out=35
+    ///         circles BEFORE: return=0  out=1
+    ///         circles AFTER : return=1  out=35
     ///
-    ///     L'`out` e' la misura di un array, e passa da 1 a 35 per UNA
-    ///     circonferenza. Chi lo leggesse come un conto direbbe che la vista
-    ///     ne aveva gia' una prima di averne.
+    ///     The `out` is the size of an array, and goes from 1 to 35 for ONE
+    ///     circle. Whoever read it as a count would say that the view
+    ///     had one already before having one.
     ///
-    /// Una cosa invece era davvero uguale: il cerchio e' un `ISketchSegment`
-    /// come la linea, e `Select4(false, null)` basta.
+    /// One thing instead really was the same: the circle is an `ISketchSegment`
+    /// like the line, and `Select4(false, null)` is enough.
     ///
-    /// ── IL CONTROLLO NON E' IL TRATTEGGIO ───────────────────────────────
+    /// ── THE CHECK IS NOT THE HATCHING ───────────────────────────────────
     ///
-    /// Sulla sezione la campitura dice che il taglio ha incontrato materiale.
-    /// Un dettaglio non taglia niente: mostra la stessa geometria ingrandita, e
-    /// infatti `GetFaceHatchCount` sul dettaglio risponde **0**. Copiare il
-    /// controllo della sezione avrebbe prodotto un'operazione che rifiuta
-    /// sempre — che e' esattamente il difetto che la sezione ha avuto al primo
-    /// uso, ripetuto per analogia.
+    /// On the section the hatch says that the cut met material.
+    /// A detail cuts nothing: it shows the same geometry enlarged, and
+    /// indeed `GetFaceHatchCount` on the detail answers **0**. Copying the
+    /// check of the section would have produced an operation that always
+    /// refuses — which is exactly the defect that the section had at first
+    /// use, repeated by analogy.
     ///
-    /// Qui la prova che il cerchio e' **diventato** un dettaglio e' che la
-    /// vista di partenza ha una circonferenza di dettaglio in piu': 0 -> 1.
-    /// Senza, sul foglio resterebbe un cerchio disegnato a mano.
+    /// Here the proof that the circle has **become** a detail is that the
+    /// starting view has one more detail circle: 0 -> 1.
+    /// Without it, a hand-drawn circle would stay on the sheet.
     /// </summary>
     public partial class SwOperations
     {
@@ -64,9 +64,9 @@ namespace Oce.Solid.Agent.Core
                     "Il documento attivo non e' una tavola: una vista di dettaglio sta " +
                     "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
 
-            // ── LA VISTA DA DETTAGLIARE ─────────────────────────────────
+            // ── THE VIEW TO DETAIL ──────────────────────────────────────
             //
-            // La PRIMA «view» del foglio e' il foglio stesso, e si salta.
+            // The FIRST «view» of the sheet is the sheet itself, and it is skipped.
             string requested = ViewRequestedByName(drawing, Str(a, "view", null));
             IView target = null;
             var viewNames = new List<string>();
@@ -114,12 +114,12 @@ namespace Oce.Solid.Agent.Core
             double xMin = outline[0], yMin = outline[1], xMax = outline[2], yMax = outline[3];
             double wide = xMax - xMin, up = yMax - yMin;
 
-            // ── DOVE, E QUANTO GRANDE ───────────────────────────────────
+            // ── WHERE, AND HOW BIG ──────────────────────────────────────
             //
-            // In millimetri di FOGLIO, come per la sezione: sul foglio la vista
-            // e' in scala, e mescolare le due misure e' il modo piu' rapido di
-            // ingrandire il posto sbagliato. Di serie al centro, raggio un
-            // quarto del lato minore.
+            // In millimetres of SHEET, as for the section: on the sheet the view
+            // is scaled, and mixing the two measures is the quickest way to
+            // enlarge the wrong place. By default at the centre, radius a
+            // quarter of the shorter side.
             double xM = Num(a, "x_mm", double.NaN);
             double yM = Num(a, "y_mm", double.NaN);
             double cx = double.IsNaN(xM) ? (xMin + xMax) / 2.0 : (xMin + xMax) / 2.0 + xM / 1000.0;
@@ -130,8 +130,8 @@ namespace Oce.Solid.Agent.Core
                 return Failed("«radius_mm» dev'essere maggiore di zero: ho letto " + radiusMm + ".");
             double radius = radiusMm / 1000.0;
 
-            // IL CERCHIO DEVE STARE DENTRO LA VISTA. Uno che sborda ingrandisce
-            // del vuoto, e il vuoto ingrandito e' comunque una vista valida.
+            // THE CIRCLE MUST BE INSIDE THE VIEW. One that overruns enlarges
+            // the void, and the enlarged void is still a valid view.
             if (cx - radius < xMin || cx + radius > xMax ||
                 cy - radius < yMin || cy + radius > yMax)
                 return Failed(
@@ -148,17 +148,17 @@ namespace Oce.Solid.Agent.Core
                 return Failed("«scale» dev'essere maggiore di zero: ho letto " + scale1 + ".");
             string label = Str(a, "label", "B");
             if (string.IsNullOrWhiteSpace(label)) label = "B";
-            // UN DETTAGLIO «B» ACCANTO A UNA SEZIONE «B-B» (voce Z-C13): si rifiuta prima.
+            // A DETAIL «B» NEXT TO A SECTION «B-B» (entry Z-C13): it is refused beforehand.
             string doubled = LetterAlreadyUsed(drawing, label);
             if (doubled != null) return Failed(doubled);
 
-            // Quante circonferenze aveva PRIMA. Vedi il docstring: il conto e'
-            // il valore di RITORNO, non l'`out`.
+            // How many circles it had BEFORE. See the docstring: the count is
+            // the RETURN value, not the `out`.
             int circlesBefore = -1;
             try { int howMany; circlesBefore = target.GetDetailCircleCount2(out howMany); }
             catch { }
 
-            // ── IL CERCHIO, SULLO SCHIZZO DEL FOGLIO ────────────────────
+            // ── THE CIRCLE, ON THE SKETCH OF THE SHEET ──────────────────
             try { drawing.EditSheet(); } catch { }
 
             // As for the section: the sheet sketch counted before the circle, so
@@ -183,7 +183,7 @@ namespace Oce.Solid.Agent.Core
                     "«CreateDetailViewAt4» non prende la zona in firma, la prende dalla " +
                     "selection.");
 
-            // Lo schizzo si chiude prima, come per la sezione.
+            // The sketch is closed first, as for the section.
             try { model.SketchManager.InsertSketch(true); } catch { }
 
             bool taken = false;
@@ -203,7 +203,7 @@ namespace Oce.Solid.Agent.Core
                     "something other than what you asked" +
                     SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, circle, segmentsBefore), "circle"));
 
-            // ── IL DETTAGLIO, A FIANCO ──────────────────────────────────
+            // ── THE DETAIL, ALONGSIDE ───────────────────────────────────
             double xDetail = xMax + wide * 0.8;
             double yDetail = (yMin + yMax) / 2.0;
 
@@ -262,13 +262,13 @@ namespace Oce.Solid.Agent.Core
             try { int howMany; circlesAfter = target.GetDetailCircleCount2(out howMany); }
             catch { }
 
-            // ── LA PROVA CHE IL CERCHIO E' DIVENTATO UN DETTAGLIO ───────
+            // ── THE PROOF THAT THE CIRCLE BECAME A DETAIL ───────────────
             //
-            // Non il tratteggio: un dettaglio non taglia niente e la campitura
-            // li' e' zero (misurato). La prova e' che la vista di PARTENZA ha
-            // una circonferenza di dettaglio in piu'. Senza, sul foglio
-            // resterebbe un cerchio disegnato a mano accanto a una vista in
-            // piu' che non gli e' legata.
+            // Not the hatching: a detail cuts nothing and the hatch
+            // there is zero (measured). The proof is that the STARTING view has
+            // one more detail circle. Without it, a hand-drawn circle
+            // would stay on the sheet next to one more view that is not
+            // tied to it.
             if (circlesBefore >= 0 && circlesAfter >= 0 && circlesAfter <= circlesBefore)
             {
                 // NEITHER IS LEFT ON THE SHEET (Z-C21.8, finding M41): until library

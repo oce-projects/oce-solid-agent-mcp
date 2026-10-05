@@ -7,16 +7,16 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA NERVATURA. (voce W1.2, che era GP10)
+    /// THE RIB. (entry W1.2, which was GP10)
     ///
-    /// Una parete sottile senza irrigidimento si imbarca: l'angolo di una staffa
-    /// a L, il fondo di una scatola stampata. La nervatura riempie, NEL PIANO
-    /// dello schizzo, lo spazio fra una linea e le pareti del pezzo che quella
-    /// linea (prolungata) incontra, e lo ispessisce di traverso.
+    /// A thin wall without stiffening warps: the corner of an L bracket,
+    /// the bottom of a moulded box. The rib fills, IN THE PLANE
+    /// of the sketch, the space between a line and the walls of the part that the
+    /// line (extended) meets, and thickens it crosswise.
     ///
-    /// ── LA GUIDA API, E IL BOOLEANO CHE NESSUNO AVEVA GIRATO ─────────────
+    /// ── THE API GUIDE, AND THE BOOLEAN THAT NOBODY HAD TURNED ────────────
     ///
-    /// Pagine della guida API (sldworksapi, estratta in locale), per nome:
+    /// Pages of the API guide (sldworksapi, extracted locally), by name:
     ///
     ///   * `SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~InsertRib.html`
     ///     — `void InsertRib(Is2Sided, ReverseThicknessDir, Thickness,
@@ -25,77 +25,77 @@ namespace Oce.Solid.Agent.Core
     ///     True if extrusion direction is normal to sketch, false if parallel
     ///     to sketch»; «ReverseMaterialDir: True to flip the direction of the
     ///     extrusion»; «Is2Sided: ... a double-sided rib thickens on both sides
-    ///     of the sketch». **Torna void**: la riuscita si misura sul pezzo.
-    ///   * `Get_Rib_Feature_Data_Example_CSharp.htm` — l'unico esempio. Chiude
-    ///     lo schizzo, lo seleziona per nome e tipo («Sketch2», "SKETCH", marca
-    ///     0) e chiama `InsertRib(true, false, 0.00254, 0, false, false, true,
-    ///     0.0174532925199433, false, false)`: il nono argomento,
-    ///     IsNormToSketch, e' **false**. La nervatura cresce nel piano dello
-    ///     schizzo, dalla linea verso le pareti. Poi legge la feature con
-    ///     `GetSelectedObject6(1, -1)` e `GetDefinition` → `RibFeatureData2`.
+    ///     of the sketch». **It returns void**: success is measured on the part.
+    ///   * `Get_Rib_Feature_Data_Example_CSharp.htm` — the only example. It closes
+    ///     the sketch, selects it by name and type («Sketch2», "SKETCH", mark
+    ///     0) and calls `InsertRib(true, false, 0.00254, 0, false, false, true,
+    ///     0.0174532925199433, false, false)`: the ninth argument,
+    ///     IsNormToSketch, is **false**. The rib grows in the plane of the
+    ///     sketch, from the line toward the walls. Then it reads the feature with
+    ///     `GetSelectedObject6(1, -1)` and `GetDefinition` → `RibFeatureData2`.
     ///   * `...IRibFeatureData2~FlipSide.html` («True if the material is added
     ///     to the reverse side of the rib»), `~Thickness.html`,
     ///     `~IsTwoSided.html`, `~ExtrusionDirection.html`
-    ///     (swRibExtrusionDirection_e): si rileggono e si riportano come
-    ///     DICHIARATI dalla feature, accanto al volume che e' la misura.
+    ///     (swRibExtrusionDirection_e): they are re-read and reported as
+    ///     DECLARED by the feature, next to the volume which is the measure.
     ///
-    /// Le sonde storiche (NervaturaProva, SbloccoProva 1-3, 16/9/2026)
-    /// passavano TUTTE IsNormToSketch = true — anche quelle che avevano gia'
-    /// la L giusta con la diagonale nel vuoto — e non hanno mai girato il
-    /// verso del materiale. Nota RAG 82zz-quinquies.
+    /// The historic probes (NervaturaProva, SbloccoProva 1-3, 16/9/2026)
+    /// ALL passed IsNormToSketch = true — even those that already had
+    /// the right L with the diagonal in the void — and never turned the
+    /// direction of the material. RAG note 82zz-quinquies.
     ///
-    /// ── LA SONDA DEL 28/9/2026 (`Checks\Rib\Program.cs`) ──
+    /// ── THE PROBE OF 28/9/2026 (`Checks\Rib\Program.cs`) ──
     ///
-    /// Un pezzo nuovo per ogni riga; verita' = una feature NUOVA di tipo «Rib»
-    /// piu' il delta di volume:
+    /// A new part for every row; truth = a NEW feature of type «Rib»
+    /// plus the volume delta:
     ///
-    ///   L 60x60x10 profonda 50, piano a z=25, linea (10,40)->(40,10), spessore 6
-    ///     normale allo schizzo                  -> niente     (55000 -> 55000)
-    ///     parallela, materiale dritto           -> «Nervatura1», +2700 = 450 mm2 x 6
-    ///     parallela, materiale girato           -> niente
-    ///     parallela, schizzo lasciato aperto    -> «Nervatura1», +2700
-    ///   scatola 40x40x20 svuotata (2), piano destro, linea a y=12 da z=-15 a 15, spessore 2
-    ///     parallela, materiale dritto           -> niente     (8672 -> 8672)
-    ///     parallela, materiale girato           -> «Nervatura1», +720 = 36 x 10 x 2
-    ///   piastra 40x40x2, stessa linea           -> niente in nessuno dei due versi
+    ///   L 60x60x10 deep 50, plane at z=25, line (10,40)->(40,10), thickness 6
+    ///     normal to the sketch                  -> nothing    (55000 -> 55000)
+    ///     parallel, material straight           -> «Nervatura1», +2700 = 450 mm2 x 6
+    ///     parallel, material turned             -> nothing
+    ///     parallel, sketch left open            -> «Nervatura1», +2700
+    ///   box 40x40x20 shelled (2), right plane, line at y=12 from z=-15 to 15, thickness 2
+    ///     parallel, material straight           -> nothing    (8672 -> 8672)
+    ///     parallel, material turned             -> «Nervatura1», +720 = 36 x 10 x 2
+    ///   plate 40x40x2, same line                -> nothing in either direction
     ///
-    /// **Il verso del materiale dipende dalla forma** (L: dritto; scatola:
-    /// girato), e dal di fuori non c'e' una regola per saperlo prima. Quindi
-    /// qui si prova il verso dritto e, se la nervatura non nasce, il girato;
-    /// si tiene quello in cui nasce e il volume cresce. Nel verso sbagliato la
-    /// sonda non ha mai visto nascere niente (nessuna feature, volume uguale):
-    /// il tentativo fallito non lascia nulla da togliere se non lo schizzo, che
-    /// serve al secondo tentativo.
+    /// **The direction of the material depends on the shape** (L: straight; box:
+    /// turned), and from the outside there is no rule to know it beforehand. So
+    /// here the straight direction is tried and, if the rib is not born, the turned one;
+    /// the one in which it is born and the volume grows is kept. In the wrong direction the
+    /// probe never saw anything born (no feature, equal volume):
+    /// the failed attempt leaves nothing to remove except the sketch, which
+    /// is needed for the second attempt.
     ///
-    /// **Il secondo tentativo sullo STESSO pezzo non e' stato misurato dalla
-    /// sonda** (ogni sua riga era un pezzo nuovo): lo misura il caso
-    /// `rib_in_the_hollowed_box`, dove il primo verso fallisce e il
-    /// secondo deve fare +720.
+    /// **The second attempt on the SAME part was not measured by the
+    /// probe** (each of its rows was a new part): the case
+    /// `rib_in_the_hollowed_box` measures it, where the first direction fails and the
+    /// second must give +720.
     ///
-    /// La piastra senza pareti non fa nascere niente, e va bene cosi': dalla
-    /// linea non c'e' niente da incontrare. Si rifiuta dicendolo, e nominando
-    /// `extrude_on_face` per un rilievo su una faccia piana.
+    /// The plate without walls gives birth to nothing, and that is fine: from the
+    /// line there is nothing to meet. It is refused saying so, and naming
+    /// `extrude_on_face` for a boss on a planar face.
     ///
-    /// ── COSA RESTA NEL PEZZO SE MI RIFIUTO ───────────────────────────────
+    /// ── WHAT STAYS IN THE PART IF I REFUSE ───────────────────────────────
     ///
-    /// Niente. Il piano sfalsato (se l'ho fatto io), lo schizzo e l'eventuale
-    /// nervatura nata storta si tolgono con `DeleteSelection2` (non con
-    /// EditDelete, che apre una finestra di conferma e la chiamata COM non
-    /// torna: vedi `DeleteFeature`), dal piu' giovane al piu' vecchio, e
-    /// si rilegge il volume (`IsBackAsItWas` in OperazioniGuardie).
+    /// Nothing. The offset plane (if I made it), the sketch and the possible
+    /// rib born crooked are removed with `DeleteSelection2` (not with
+    /// EditDelete, which opens a confirmation window and the COM call does not
+    /// return: see `DeleteFeature`), from the youngest to the oldest, and
+    /// the volume is re-read (`IsBackAsItWas` in OperazioniGuardie).
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>
-        /// Quanto puo' stare fuori dal piano un estremo della linea, in mm. Lo
-        /// stesso margine di `sketched_bend`: cinque centesimi coprono gli
-        /// arrotondamenti dello stato e restano lontani da qualunque errore vero.
+        /// How far an end of the line may be off the plane, in mm. The
+        /// same margin as `sketched_bend`: five hundredths cover the
+        /// roundings of the state and stay far from any real error.
         /// </summary>
         private const double RibOffPlaneMm = 0.05;
 
         /// <summary>
-        /// Sotto questo volume «cresciuto» non e' una misura, e' rumore della
-        /// lettura in metri cubi (`VolumeMm3`).
+        /// Under this volume «grown» is not a measure, it is noise in the
+        /// reading in cubic metres (`VolumeMm3`).
         /// </summary>
         private const double RibMinimumGrowthMm3 = 0.01;
 
@@ -104,15 +104,15 @@ namespace Oce.Solid.Agent.Core
             if (!(model is IPartDoc))
                 return Failed("La nervatura si fa su un pezzo. Aprimi il pezzo.");
 
-            // ── GLI ARGOMENTI, PRIMA DI TOCCARE IL PEZZO ─────────────────
+            // ── THE ARGUMENTS, BEFORE TOUCHING THE PART ──────────────────
             string plane = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
             if (plane != "front" && plane != "top" && plane != "right")
                 return Failed(
                     "Dimmi «plane»: frontale, superiore o destro. E' il piano in cui sta la linea " +
                     "e in cui la nervatura cresce; con «distance_mm» lo sposto parallelo a se stesso " +
                     "(per esempio a meta' profondita' di una staffa).");
-            // FACOLTATIVA, MA SE C'E' DEV'ESSERE UN NUMERO: `Num` inghiottirebbe
-            // «25mm» e restituirebbe zero, cioe' la nervatura sul piano base.
+            // OPTIONAL, BUT IF IT IS THERE IT MUST BE A NUMBER: `Num` would swallow
+            // «25mm» and return zero, that is the rib on the base plane.
             double distance = 0;
             if (a != null && a.TryGetValue("distance_mm", out var raw) && raw != null &&
                 !RequiredNum(a, "distance_mm", out distance, out string distanceError))
@@ -135,11 +135,11 @@ namespace Oce.Solid.Agent.Core
                     "in mm nel sistema del modello, tutti e due sul piano indicato. Per esempio, " +
                     "nell'angolo di una L: da [10, 40, 25] a [40, 10, 25].");
 
-            // I DUE PUNTI STANNO SUL PIANO? Il piano base «front» e' XY
-            // (normale +Z), «top» XZ (+Y), «right» YZ (+X): la stessa
-            // tabella di `References.PlaneNormal`, e il segno della
-            // distanza e' quello di `create_plane` (frontale -250 -> z = -250,
-            // misurato dal caso front_plane_minus_250).
+            // DO THE TWO POINTS LIE ON THE PLANE? The base plane «front» is XY
+            // (normal +Z), «top» XZ (+Y), «right» YZ (+X): the same
+            // table as `References.PlaneNormal`, and the sign of the
+            // distance is that of `create_plane` (front -250 -> z = -250,
+            // measured by the case front_plane_minus_250).
             var normal = References.PlaneNormal(plane);
             Func<double[], double> dimension = p => p[0] * normal[0] + p[1] * normal[1] + p[2] * normal[2];
             double deviation = Math.Max(Math.Abs(dimension(da) - distance), Math.Abs(dimension(upTo) - distance));
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed("La linea della nervatura e' lunga meno di un millimetro: i due punti " +
                                "coincidono. Indica due estremi distinti.");
 
-            // ── IL PEZZO DI PARTENZA ─────────────────────────────────────
+            // ── THE STARTING PART ────────────────────────────────────────
             var photo = SnapshotPart(model);
             if (photo.Volume == null) return Failed(VolumeNotReadBefore("fare la nervatura"));
             if (photo.Bodies == 0)
@@ -165,11 +165,11 @@ namespace Oce.Solid.Agent.Core
             var ribBefore = RibNamesOfType(model, "Rib");
             var sketchesBefore = RibNamesOfType(model, "ProfileFeature");
 
-            // Cio' che creo io, dal piu' vecchio al piu' giovane: se mi
-            // rifiuto si toglie al contrario.
+            // What I create, from the oldest to the youngest: if I
+            // refuse it is removed in reverse.
             var mie = new List<IFeature>();
 
-            // ── IL PIANO DELLO SCHIZZO ───────────────────────────────────
+            // ── THE PLANE OF THE SKETCH ──────────────────────────────────
             IFeature sketchPlane;
             bool planeMadeHere = Math.Abs(distance) > 1e-9;
             if (!planeMadeHere)
@@ -185,10 +185,10 @@ namespace Oce.Solid.Agent.Core
                 mie.Add(sketchPlane);
             }
 
-            // ── LO SCHIZZO: UNA LINEA, PASSATA PER ModelToSketchTransform ──
+            // ── THE SKETCH: A LINE, PASSED THROUGH ModelToSketchTransform ──
             //
-            // Sul piano destro la x dello schizzo va in -Z del modello (RAG 81r):
-            // non ci si ragiona, si trasforma. E' la ricetta della sonda e di
+            // On the right plane the sketch x goes into model -Z (RAG 81r):
+            // it is not reasoned about, it is transformed. It is the recipe of the probe and of
             // `sketched_bend`.
             model.ClearSelection2(true);
             if (!sketchPlane.Select2(false, 0))
@@ -227,14 +227,14 @@ namespace Oce.Solid.Agent.Core
                 return Failed(SketchNotIdentified(sketchesBorn, "La linea della nervatura non e' nata nello schizzo.") +
                                RibWithdraw(model, mie, photo));
 
-            // L'ALBERO DOPO LO SCHIZZO: e' come deve essere prima di OGNI
-            // tentativo. Un tentativo fallito che lascia una feature di un altro
-            // tipo (non una «Rib») non la vede nessuno, e il secondo tentativo
-            // le costruirebbe sopra. La sonda non l'ha mai visto succedere; se
-            // succede non si prova l'altro verso, si ritira e si dice.
+            // THE TREE AFTER THE SKETCH: it is as it must be before EVERY
+            // attempt. A failed attempt that leaves a feature of another
+            // type (not a «Rib») is seen by nobody, and the second attempt would
+            // build on top of it. The probe never saw it happen; if
+            // it happens the other direction is not tried, it withdraws and says so.
             var namesAfterTheSketch = RibNamesOfAll(model);
 
-            // ── I DUE VERSI DEL MATERIALE ────────────────────────────────
+            // ── THE TWO DIRECTIONS OF THE MATERIAL ───────────────────────
             IFeature rib = null;
             bool hasRun = false;
             int tentativi = 0;
@@ -274,11 +274,11 @@ namespace Oce.Solid.Agent.Core
                     }
                     continue;
                 }
-                // UNA NERVATURA NATA CHE NON AGGIUNGE MATERIALE. La sonda non
-                // l'ha mai vista: nel verso sbagliato non nasceva niente. Se
-                // succede non si prova l'altro verso (togliere la sola
-                // nervatura lasciando lo schizzo non e' misurato): si ritira
-                // tutto e si dice.
+                // A RIB BORN THAT ADDS NO MATERIAL. The probe never
+                // saw it: in the wrong direction nothing was born. If it
+                // happens the other direction is not tried (removing only the
+                // rib while leaving the sketch is not measured): everything is
+                // withdrawn and it is said.
                 mie.Add(born);
                 double? after = VolumeMm3(model);
                 if (after == null || after.Value - photo.Volume.Value < RibMinimumGrowthMm3)
@@ -307,7 +307,7 @@ namespace Oce.Solid.Agent.Core
                     "piana usa «extrude_on_face»; oppure sposta la linea fra due pareti." +
                     RibWithdraw(model, mie, photo));
 
-            // ── LE GUARDIE, SUL PEZZO E NON SULLA FEATURE ────────────────
+            // ── THE GUARDS, ON THE PART AND NOT ON THE FEATURE ───────────
             bool rebuilt = true;
             try { rebuilt = model.EditRebuild3(); } catch { }
             string broken = WhatBroke(model, photo, rebuilt, aperture: false);
@@ -319,10 +319,10 @@ namespace Oce.Solid.Agent.Core
             int bodiesAfter = CountSolidBodies(model);
             double? added = volumeAfter - photo.Volume;
 
-            // COSA DICHIARA LA FEATURE (IRibFeatureData2), accanto a cio' che
-            // si e' misurato. Non decide niente: lo spessore e il verso
-            // dichiarati sono quelli chiesti anche quando il pezzo e' un altro
-            // (la lezione dello sformo, `angle_declared_by_feature`).
+            // WHAT THE FEATURE DECLARES (IRibFeatureData2), next to what
+            // was measured. It decides nothing: the declared thickness and direction
+            // are those asked for even when the part is something else
+            // (the lesson of the draft, `angle_declared_by_feature`).
             object declaredThickness = null, declaredFacing = null, declaredParallel = null;
             try
             {
@@ -338,9 +338,9 @@ namespace Oce.Solid.Agent.Core
 
             var measurements = new Dictionary<string, object>
             {
-                // CHIESTI, E DETTI COSI': sono gli argomenti (e la lunghezza
-                // della linea fatta con quelli), non misure. Le misure sono il
-                // volume, i corpi, i tentativi e i «declared_*» riletti.
+                // ASKED FOR, AND SAID SO: they are the arguments (and the length
+                // of the line made with them), not measures. The measures are the
+                // volume, the bodies, the attempts and the re-read «declared_*».
                 ["requested_thickness_mm"] = Math.Round(thickness, 3),
                 ["requested_sketch_plane"] = plane,
                 ["requested_plane_offset_mm"] = Math.Round(distance, 3),
@@ -368,21 +368,21 @@ namespace Oce.Solid.Agent.Core
                 RibName(rib), plane, planeMadeHere ? " a " + distance.ToString("0.###", CultureInfo.InvariantCulture) : "",
                 string.Join("; ", outcomes), ReadValue(photo.Volume), ReadValue(volumeAfter)));
 
-            // Nessuna direzione nell'esito: lo spessore va lungo la normale del
-            // piano, ma le facce della nervatura non sono il «fondo» di niente.
+            // No direction in the outcome: the thickness goes along the normal of the
+            // plane, but the faces of the rib are not the «bottom» of anything.
             return Succeeded(rib, measurements);
         }
 
         // =================================================================
 
         /// <summary>
-        /// La chiamata della guida, con i suoi dieci argomenti per nome.
-        /// Null se non ha alzato, altrimenti il messaggio (`InsertRib` e' void:
-        /// quello che conta e' l'albero dopo).
+        /// The call from the guide, with its ten arguments by name.
+        /// Null if it did not raise, otherwise the message (`InsertRib` is void:
+        /// what counts is the tree afterwards).
         ///
-        /// Lo schizzo si riseleziona OGNI volta, per nome e tipo e con marca 0
-        /// come nell'esempio della guida: un tentativo fallito puo' aver
-        /// consumato la selezione.
+        /// The sketch is reselected EVERY time, by name and type and with mark 0
+        /// as in the guide's example: a failed attempt may have
+        /// consumed the selection.
         /// </summary>
         private static string RibInsert(IModelDoc2 model, IFeature sketch, double thicknessMm, bool flipMaterial)
         {
@@ -395,15 +395,15 @@ namespace Oce.Solid.Agent.Core
                 if (!taken) taken = sketch.Select2(false, 0);
                 if (!taken) return "lo schizzo non si seleziona";
                 model.FeatureManager.InsertRib(
-                    Is2Sided: true,                 // spessore diviso a meta' dalle due parti del piano
-                    ReverseThicknessDir: false,     // vale solo per una nervatura da un lato
+                    Is2Sided: true,                 // thickness split in half between the two parts of the plane
+                    ReverseThicknessDir: false,     // holds only for a rib on one side
                     Thickness: Units.M(thicknessMm),
                     ReferenceEdgeIndex: 0,
                     ReverseMaterialDir: flipMaterial,
                     IsDrafted: false,
                     DraftOutward: false,
                     DraftAngle: 0,
-                    IsNormToSketch: false,          // PARALLELA allo schizzo: il nono argomento dell'esempio
+                    IsNormToSketch: false,          // PARALLEL to the sketch: the ninth argument of the example
                     IsDraftedFromWall: false);
                 return null;
             }
@@ -463,14 +463,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Ritira cio' che questa operazione ha messo nel pezzo (dal piu'
-        /// giovane al piu' vecchio) e restituisce la coda della frase di
-        /// rifiuto, col volume riletto.
+        /// Withdraws what this operation put in the part (from the
+        /// youngest to the oldest) and returns the tail of the refusal
+        /// sentence, with the volume re-read.
         ///
-        /// `DeleteSelection2(swDelete_Absorbed)`: la nervatura si porta via lo
-        /// schizzo che ha assorbito, lo schizzo le sue relazioni. Prima di
-        /// toccare una feature si guarda che non abbia figli: se ne ha, qualcosa
-        /// ci si e' appoggiato e non e' roba mia.
+        /// `DeleteSelection2(swDelete_Absorbed)`: the rib takes away the
+        /// sketch it absorbed, the sketch its relations. Before touching a
+        /// feature we look that it has no children: if it has, something
+        /// leaned on it and it is not my stuff.
         /// </summary>
         private string RibWithdraw(IModelDoc2 model, List<IFeature> mie, PartPhoto before)
         {
@@ -493,7 +493,7 @@ namespace Oce.Solid.Agent.Core
             {
                 string itemName = RibName(mie[i]);
                 names.Add(itemName);
-                if (string.IsNullOrEmpty(itemName) || FindFeature(model, itemName) == null) continue;   // assorbita da chi l'ha tolta prima
+                if (string.IsNullOrEmpty(itemName) || FindFeature(model, itemName) == null) continue;   // absorbed by whoever removed it before
                 try
                 {
                     if (mie[i].IGetChildCount() > 0) { everything = false; continue; }
@@ -526,7 +526,7 @@ namespace Oce.Solid.Agent.Core
                 finally { try { model.ClearSelection2(true); } catch { } }
             }
             try { model.EditRebuild3(); } catch { }
-            // SI RILEGGE L'ALBERO, NON IL VALORE DI RITORNO.
+            // THE TREE IS RE-READ, NOT THE RETURN VALUE.
             foreach (var n in names)
                 if (!string.IsNullOrEmpty(n) && !suppressedOnes.Contains(n) && FindFeature(model, n) != null) everything = false;
             names.Reverse();
@@ -539,7 +539,7 @@ namespace Oce.Solid.Agent.Core
             return queue;
         }
 
-        /// <summary>I nomi delle feature di quel tipo, adesso.</summary>
+        /// <summary>The names of the features of that type, now.</summary>
         private static HashSet<string> RibNamesOfType(IModelDoc2 model, string typ)
         {
             var names = new HashSet<string>(StringComparer.Ordinal);
@@ -556,7 +556,7 @@ namespace Oce.Solid.Agent.Core
             return names;
         }
 
-        /// <summary>I nomi di tutte le feature dell'albero, adesso.</summary>
+        /// <summary>The names of all the features of the tree, now.</summary>
         private static HashSet<string> RibNamesOfAll(IModelDoc2 model)
         {
             var names = new HashSet<string>(StringComparer.Ordinal);
@@ -573,7 +573,7 @@ namespace Oce.Solid.Agent.Core
             return names;
         }
 
-        /// <summary>Le feature che prima non c'erano, dalla piu' vecchia alla piu' giovane.</summary>
+        /// <summary>The features that were not there before, from the oldest to the youngest.</summary>
         private static List<IFeature> RibNewOfAll(IModelDoc2 model, HashSet<string> before)
         {
             var newOnes = new List<IFeature>();

@@ -8,51 +8,51 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA TAVOLA.
+    /// THE DRAWING.
     ///
-    /// Fino alla 0.39.0 il catalogo sapeva fare solo pezzi: ventinove
-    /// operazioni, tutte su un `.SLDPRT`. Le stringhe «Drawing», «IView» e
-    /// «SaveAs» non comparivano in nessun file dell'add-in. Cioe' l'assistente
-    /// poteva disegnare un contenitore stagno e non poteva consegnarlo: in
-    /// officina non arriva un modello, arriva una tavola quotata.
+    /// Until 0.39.0 the catalogue could only make parts: twenty-nine
+    /// operations, all on a `.SLDPRT`. The strings «Drawing», «IView» and
+    /// «SaveAs» appeared in no file of the add-in. That is, the assistant
+    /// could draw a watertight container and could not deliver it: what reaches
+    /// the workshop is not a model, it is a dimensioned drawing.
     ///
-    /// Il censimento (RAG 80r) ha contato 278 metodi su `IDrawingDoc` e 481 su
-    /// `IView`. Qui ce ne sono sette. La scelta e' voluta: sette operazioni
-    /// misurate valgono piu' di settanta dichiarate, ed e' la regola del
-    /// catalogo a due livelli (RAG 80j).
+    /// The census (RAG 80r) counted 278 methods on `IDrawingDoc` and 481 on
+    /// `IView`. Here there are seven. The choice is deliberate: seven measured
+    /// operations are worth more than seventy declared ones, and it is the rule of the
+    /// two-level catalogue (RAG 80j).
     ///
-    /// LE TRE TRAPPOLE DI QUESTA FAMIGLIA, tutte della specie che questo
-    /// progetto esiste per prendere — nessun errore, risultato sbagliato:
+    /// THE THREE TRAPS OF THIS FAMILY, all of the kind this
+    /// project exists to catch — no error, wrong result:
     ///
-    /// 1. IL DIEDRO. `Create3rdAngleViews2` e `Create1stAngleViews2` sono
-    ///    gemelle, nessuna delle due fallisce, e producono tavole con la vista
-    ///    destra e la sinistra SCAMBIATE. L'Italia disegna in primo diedro; una
-    ///    tavola in terzo e' leggibile, plausibile, e il pezzo che ne esce e'
-    ///    specchiato. Nessuna misura geometrica lo rivela. Qui la terza non e'
-    ///    esposta affatto e il primo diedro non e' un parametro: e' una
-    ///    costante.
+    /// 1. THE PROJECTION ANGLE. `Create3rdAngleViews2` and `Create1stAngleViews2` are
+    ///    twins, neither of the two fails, and they produce drawings with the right
+    ///    and left views SWAPPED. Italy draws in first angle; a
+    ///    drawing in third angle is readable, plausible, and the part that comes out of it is
+    ///    mirrored. No geometric measurement reveals it. Here the third is not
+    ///    exposed at all and the first angle is not a parameter: it is a
+    ///    constant.
     ///
-    /// 2. LA QUOTA CHE MENTE. `CreateLinearDim4` prende un parametro `Val`, e
-    ///    `IDisplayDimension.SetText` sovrascrive il numero mostrato: l'API
-    ///    permette di scrivere in tavola un numero che NON e' la geometria.
-    ///    Qui non c'e' nessuna operazione che quoti a mano: le quote si
-    ///    prendono dal modello (`InsertModelAnnotations3`), dove non possono
-    ///    mentire.
+    /// 2. THE DIMENSION THAT LIES. `CreateLinearDim4` takes a parameter `Val`, and
+    ///    `IDisplayDimension.SetText` overwrites the displayed number: the API
+    ///    allows writing on the drawing a number that is NOT the geometry.
+    ///    Here there is no operation that dimensions by hand: the dimensions are
+    ///    taken from the model (`InsertModelAnnotations3`), where they cannot
+    ///    lie.
     ///
-    /// 3. IL PDF DI UN FOGLIO SOLO. L'esportazione di serie prende il foglio
-    ///    corrente: una tavola da tre fogli esce in officina come una pagina,
-    ///    senza errori. `IExportPdfData` ha sette metodi in tutto e due
-    ///    servono solo a evitare questo. Qui si contano i fogli prima e le
-    ///    PAGINE del PDF dopo.
+    /// 3. THE PDF OF ONE SHEET ONLY. The default export takes the current
+    ///    sheet: a three-sheet drawing goes out to the workshop as one page,
+    ///    without errors. `IExportPdfData` has seven methods in all and two
+    ///    serve only to avoid this. Here the sheets are counted first and the
+    ///    PAGES of the PDF after.
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>
-        /// Il numero di preferenza del template di disegno predefinito.
-        /// Non si scrive mai un percorso a mano: e' la lezione dei profili di
-        /// saldatura. L'officina ha il suo template, con il suo cartiglio e il
-        /// suo diedro, e un percorso scritto a mano funziona sulla macchina di
-        /// chi l'ha scritto e su nessun'altra.
+        /// The preference number of the default drawing template.
+        /// A path is never written by hand: it is the lesson of the weld
+        /// profiles. The workshop has its own template, with its own title block and its
+        /// own projection angle, and a path written by hand works on the machine of
+        /// whoever wrote it and on no other.
         /// </summary>
         private const int DefaultDrawingTemplate =
             (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing;
@@ -62,14 +62,14 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Crea la tavola del modello aperto, e la lascia attiva.
+        /// Creates the drawing of the open model, and leaves it active.
         ///
-        /// DUE DOCUMENTI APERTI INSIEME: e' la novita' architetturale, non
-        /// l'API. `CreateDrawViewFromModelView3(ModelName, ...)` vuole il
-        /// percorso di un documento GIA' APERTO — quindi il modello deve
-        /// restare aperto mentre il disegno diventa attivo. Fino a qui
-        /// l'agente lavorava su un documento solo e lo stato lo dava per
-        /// sottinteso.
+        /// TWO DOCUMENTS OPEN AT THE SAME TIME: it is the architectural novelty, not
+        /// the API. `CreateDrawViewFromModelView3(ModelName, ...)` wants the
+        /// path of an ALREADY OPEN document — so the model must
+        /// stay open while the drawing becomes active. Until here
+        /// the agent worked on a single document and the state took it
+        /// for granted.
         /// </summary>
         private Outcome CreateDrawing(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -107,8 +107,8 @@ namespace Oce.Solid.Agent.Core
                     " Senza, la tavola nascerebbe senza cartiglio e con il " +
                     "diedro sbagliato: preferisco fermarmi.");
 
-            // Formato e scala si passano gia' qui: `NewDocument` li accetta, e
-            // farlo in due tempi vorrebbe dire un foglio buttato.
+            // Format and scale are passed already here: `NewDocument` accepts them, and
+            // doing it in two steps would mean a wasted sheet.
             int sheetFormat = SheetFormatCode(Str(a, "paper_size", "A3"));
             object newItem;
             try { newItem = _sw.NewDocument(template, sheetFormat, 0, 0); }
@@ -126,13 +126,13 @@ namespace Oce.Solid.Agent.Core
                     "Il documento creato non e' una tavola: il modello «" + template +
                     "» non e' un modello di disegno.");
 
-            // IL MODELLO DEVE ESSERE ANCORA APERTO.
+            // THE MODEL MUST STILL BE OPEN.
             //
-            // E' la precondizione di tutto quello che viene dopo, e non e'
-            // scontata: creare un documento cambia il documento attivo, e
-            // basta una preferenza («chiudi i documenti non usati») perche' il
-            // pezzo sparisca sotto i piedi. Se sparisce, le viste nascerebbero
-            // vuote senza dare errore.
+            // It is the precondition of everything that comes after, and it is not
+            // a given: creating a document changes the active document, and
+            // one preference («close unused documents») is enough for the
+            // part to vanish from under our feet. If it vanishes, the views would be born
+            // empty without any error.
             if (!OpenedDocument(modelPath))
                 return Failed(
                     "La tavola e' nata ma il pezzo non risulta piu' aperto: le viste " +
@@ -148,10 +148,10 @@ namespace Oce.Solid.Agent.Core
             };
             _log("[agente] tavola creata da " + template);
             var outcome = WithoutFeature(measurements);
-            // DA QUI IN POI SI LAVORA SULLA TAVOLA, e lo si dice.
-            // Chi esegue il piano sorveglia che il documento non cambi sotto i
-            // piedi; questo e' l'unico cambio legittimo, quindi va dichiarato
-            // invece di subito.
+            // FROM HERE ON WE WORK ON THE DRAWING, and it is stated.
+            // Whoever executes the plan watches that the document does not change under
+            // its feet; this is the only legitimate change, so it must be declared
+            // instead of suffered.
             outcome.NewDocument = drawing;
             return outcome;
         }
@@ -161,7 +161,7 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Formato e scala del foglio attivo. Il diedro NON e' un parametro.
+        /// Format and scale of the active sheet. The projection angle is NOT a parameter.
         /// </summary>
         private Outcome SetSheet(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -181,21 +181,21 @@ namespace Oce.Solid.Agent.Core
             if (scaleNum <= 0 || scaleDen <= 0)
                 return Failed("La scala deve avere due numeri positivi, per esempio 1:2.");
 
-            // FORMATO E SCALA SI SCRIVONO INSIEME, E IL DIEDRO SI RILEGGE.
+            // FORMAT AND SCALE ARE WRITTEN TOGETHER, AND THE PROJECTION ANGLE IS READ BACK.
             //
-            // Il primo tentativo faceva `SetSize` e poi `SetScale`, e la
-            // seconda tornava `false` — misurato l'11 settembre 2026 sulla
-            // prima tavola vera. La ragione e' la stessa gia' pagata con le
-            // facce: cambiare il foglio invalida il puntatore al foglio, e
-            // la seconda chiamata lavorava su un oggetto vecchio.
+            // The first attempt did `SetSize` and then `SetScale`, and the
+            // second returned `false` — measured on 11 September 2026 on the
+            // first real drawing. The reason is the same one already paid for with the
+            // faces: changing the sheet invalidates the pointer to the sheet, and
+            // the second call worked on an old object.
             //
-            // `SetProperties2` fa tutto in un colpo, quindi il problema non
-            // si pone. Porta pero' un parametro che NON deve essere deciso
-            // qui: `FirstAngle`. E' il diedro, cioe' la trappola piu' cara
-            // di questa famiglia (una tavola in terzo diedro ha destra e
-            // sinistra scambiate, non da' nessun errore, e il pezzo esce
-            // specchiato). Si LEGGE quello che il modello di tavola
-            // dell'officina ha gia' deciso e si riscrive uguale.
+            // `SetProperties2` does everything in one go, so the problem
+            // does not arise. It does carry a parameter that must NOT be decided
+            // here: `FirstAngle`. It is the projection angle, that is the most expensive trap
+            // of this family (a drawing in third angle has right and
+            // left swapped, gives no error, and the part comes out
+            // mirrored). What the workshop's drawing template
+            // has already decided is READ and written back unchanged.
             var before = SheetProperty(sheet);
             bool firstAngle = before != null && before.Length > 4 && before[4] != 0;
 
@@ -211,15 +211,15 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex) { return Failed("Foglio non impostato: " + ex.Message); }
 
-            // Il puntatore al foglio e' vecchio da questa riga in poi.
+            // The pointer to the sheet is old from this line on.
             try { sheet = drawing.GetCurrentSheet() as ISheet; }
             catch { sheet = null; }
             if (sheet == null) return Failed("Ho perso il foglio dopo averlo impostato.");
 
-            // SI RILEGGE. Le due chiamate tornano `true` anche quando il
-            // foglio e' rimasto com'era — e' successo con `SetMaterialPropertyName2`,
-            // e la difesa e' sempre la stessa: chiedere al documento, non
-            // fidarsi della chiamata.
+            // IT IS READ BACK. Both calls return `true` even when the
+            // sheet stayed as it was — it happened with `SetMaterialPropertyName2`,
+            // and the defense is always the same: ask the document, do not
+            // trust the call.
             double[] sheetMeasurements = SheetMeasurements(sheet);
             var scaleAfter = ReadScale(sheet);
             if (scaleAfter != null && scaleDen != 0 &&
@@ -237,9 +237,9 @@ namespace Oce.Solid.Agent.Core
                 ["scale"] = scaleAfter != null ? scaleAfter[0] + ":" + scaleAfter[1] : null,
                 ["projection_angle"] = firstAngle ? "first" : "third",
             };
-            // IL DIEDRO SI DICE SEMPRE, anche quando e' giusto. Non e' un
-            // avviso: e' l'unico modo perche' qualcuno se ne accorga prima
-            // che il pezzo sia tagliato.
+            // THE PROJECTION ANGLE IS ALWAYS STATED, even when it is right. It is not a
+            // warning: it is the only way for someone to notice before
+            // the part is cut.
             if (!firstAngle)
                 _log("[agente] ATTENZIONE: questa tavola e' in TERZO diedro");
             return WithoutFeature(measurements);
@@ -250,12 +250,12 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Le tre viste standard, in PRIMO diedro.
+        /// The three standard views, in FIRST angle.
         ///
-        /// `Create1stAngleViews2` torna `bool`, non le viste: per sapere cosa
-        /// ha fatto bisogna contarle prima e dopo. E' la stessa forma gia'
-        /// vista con `InsertFeatureShell` — una chiamata che dice «si'» e non
-        /// dice cosa.
+        /// `Create1stAngleViews2` returns `bool`, not the views: to know what it
+        /// did one has to count them before and after. It is the same shape already
+        /// seen with `InsertFeatureShell` — a call that says «yes» and does not
+        /// say what.
         /// </summary>
         private Outcome StandardViews(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -451,7 +451,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // model_view (isometrica e le altre viste con nome)
+        // model_view (isometric and the other named views)
         // ─────────────────────────────────────────────────────────────────
 
         private Outcome ModelView(IModelDoc2 model, Dictionary<string, object> a)
@@ -470,10 +470,10 @@ namespace Oce.Solid.Agent.Core
             if (swPath == null)
                 return Failed("«" + modelPath + "» non risulta aperto.");
 
-            // I NOMI DELLE VISTE SONO QUELLI DI SOLIDWORKS, NON QUELLI DEL
-            // PROGETTISTA. Si accetta l'italiano e si traduce: chiedere a chi
-            // scrive il piano di ricordarsi «*Isometric» con l'asterisco e'
-            // un modo di far fallire il piano per una stella.
+            // THE NAMES OF THE VIEWS ARE SOLIDWORKS'S, NOT THE
+            // DESIGNER'S. Italian is accepted and translated: asking whoever
+            // writes the plan to remember «*Isometric» with the asterisk is
+            // a way of making the plan fail over a star.
             string requested = (Str(a, "view", "isometric") ?? "").Trim().ToLowerInvariant();
             var swNames = SwViewNames(requested);
             if (swNames == null)
@@ -485,33 +485,33 @@ namespace Oce.Solid.Agent.Core
             double x = Units.M(Num(a, "x_mm", 0));
             double y = Units.M(Num(a, "y_mm", 0));
 
-            // IL NOME DELLA VISTA NON SI INDOVINA: SI PROVA.
+            // THE NAME OF THE VIEW IS NOT GUESSED: IT IS TRIED.
             //
-            // Una vista con nome si chiede per NOME, e il nome dipende
-            // dalla lingua dell'installazione: su SolidWorks italiano la
-            // vista isometrica si chiama «*Isometrica», su quello inglese
-            // «*Isometric». La chiamata non fallisce con un messaggio: torna
-            // `null` e basta, e da fuori sembra che la tavola non voglia
-            // quella vista.
+            // A named view is asked for by NAME, and the name depends
+            // on the language of the installation: on Italian SolidWorks the
+            // isometric view is called «*Isometrica», on the English one
+            // «*Isometric». The call does not fail with a message: it returns
+            // `null` and nothing else, and from outside it looks as if the drawing does not want
+            // that view.
             //
-            // E' la stessa cosa gia' pagata con `ShowNamedView2`, dove ne'
-            // l'italiano ne' l'inglese funzionavano e serviva il numero. Qui
-            // il numero non c'e', quindi si provano le scritture e si
-            // DICHIARA quale ha funzionato: cosi' la prossima volta il
-            // fatto e' scritto invece che ricordato.
-            // PRIMA SI CHIEDE AL MODELLO COME LE CHIAMA LUI.
+            // It is the same thing already paid for with `ShowNamedView2`, where neither
+            // Italian nor English worked and the number was needed. Here
+            // there is no number, so the spellings are tried and which one
+            // worked is DECLARED: that way next time the
+            // fact is written down instead of remembered.
+            // FIRST THE MODEL IS ASKED WHAT IT CALLS THEM.
             //
-            // `IModelDoc2.GetModelViewNames()` restituisce i nomi veri delle
-            // viste di QUESTO documento su QUESTA installazione. Provare una
-            // lista scritta a mano funziona finche' qualcuno non apre il
-            // programma in un'altra lingua; chiedere funziona sempre, e
-            // quando non trova niente puo' dire cosa c'era davvero — che e'
-            // la differenza fra un errore utile e «non ha funzionato».
+            // `IModelDoc2.GetModelViewNames()` returns the real names of the
+            // views of THIS document on THIS installation. Trying a
+            // hand-written list works until somebody opens the
+            // program in another language; asking always works, and
+            // when it finds nothing it can say what was really there — which is
+            // the difference between a useful error and «it did not work».
             var itsItems = ModelViewNames(swPath);
             var toTest = new List<string>();
-            // Si cerca la RADICE dentro il nome vero, non il nome intero:
-            // «isometri» prende «*Isometrico», «*Isometrica» e «*Isometric»
-            // senza doverli conoscere tutti e tre.
+            // The ROOT is looked for inside the real name, not the whole name:
+            // «isometri» takes «*Isometrico», «*Isometrica» and «*Isometric»
+            // without having to know all three.
             foreach (var root in swNames)
             {
                 foreach (var n in itsItems)
@@ -520,8 +520,8 @@ namespace Oce.Solid.Agent.Core
                     if (!toTest.Contains(n)) toTest.Add(n);
                 }
             }
-            // Se il modello non dichiara niente — puo' succedere su un
-            // documento appena aperto — restano le scritture note.
+            // If the model declares nothing — it can happen on a
+            // document just opened — the known spellings remain.
             foreach (var known in KnownNamesPerRoot(swNames))
                 if (!toTest.Contains(known)) toTest.Add(known);
 
@@ -540,7 +540,7 @@ namespace Oce.Solid.Agent.Core
             }
 
             int after = CountViews(drawing);
-            // Con un conteggio illeggibile resta la vista restituita (voce Z-C8).
+            // With an unreadable count the returned view stays (entry Z-C8).
             if (view == null || (after >= 0 && after <= before))
                 return Failed(
                     "SolidWorks non ha creato la vista «" + requested + "». Ho provato " +
@@ -571,40 +571,40 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Porta in tavola le quote che il modello ha gia'.
+        /// Brings onto the drawing the dimensions the model already has.
         ///
-        /// E' l'unica via di quotatura esposta, e la ragione e' di sicurezza,
-        /// non di comodita': una quota inserita a mano puo' portare un numero
-        /// diverso dalla geometria (`Val`, e `SetText` che sovrascrive il testo
-        /// mostrato). Una quota che viene dal modello no.
+        /// It is the only dimensioning route exposed, and the reason is safety,
+        /// not convenience: a dimension inserted by hand can carry a number
+        /// different from the geometry (`Val`, and `SetText` which overwrites the displayed
+        /// text). A dimension that comes from the model cannot.
         ///
-        /// PERCHE' QUI C'E' UNA TABELLA DI TENTATIVI E NON UNA CHIAMATA.
-        /// Misurato l'11 settembre 2026 sulla prima tavola vera: un pezzo con
-        /// cinque quote, tre viste standard, e `InsertModelAnnotations3` che
-        /// non porta niente — senza errore, restituendo un vettore vuoto, cioe'
-        /// esattamente cio' che restituisce quando ha funzionato e non c'era
-        /// nulla da portare.
+        /// WHY HERE THERE IS A TABLE OF ATTEMPTS AND NOT A SINGLE CALL.
+        /// Measured on 11 September 2026 on the first real drawing: a part with
+        /// five dimensions, three standard views, and `InsertModelAnnotations3` which
+        /// brings nothing — without error, returning an empty vector, that is
+        /// exactly what it returns when it worked and there was
+        /// nothing to bring.
         ///
-        /// Le cose che possono fare la differenza sono tre, e la
-        /// documentazione le tratta tutte da dettaglio:
+        /// The things that can make the difference are three, and the
+        /// documentation treats them all as a detail:
         ///
-        ///   - QUALI BIT. `swInsertDimensions` (8) e' il bit generico; le quote
-        ///     sono pero' divise in MARCATE per il disegno (32768) e NON
-        ///     marcate (524288), e una lavorazione fatta via API non e'
-        ///     marcata. Chiederli tutti insieme non e' la stessa cosa che
-        ///     chiederli uno per volta.
-        ///   - DOVE PIAZZARLE. `UsePlacementInSketch` prende la posizione
-        ///     dallo schizzo del modello; se lo schizzo non e' quotato non c'e'
-        ///     nessuna posizione da prendere.
-        ///   - QUALE VERSIONE. La 2 ha un parametro che la 3 ha perso —
-        ///     `AllTypes`, «portale tutte, non guardare la maschera» — e la
-        ///     regola «la piu' alta e' la migliore» in questo interop e' gia'
-        ///     dimostrata falsa (`InsertEndCapFeature3` aveva TOLTO le facce
-        ///     rispetto alla 2).
+        ///   - WHICH BITS. `swInsertDimensions` (8) is the generic bit; the dimensions
+        ///     are however divided into MARKED for the drawing (32768) and NOT
+        ///     marked (524288), and a feature made via the API is not
+        ///     marked. Asking for them all together is not the same thing as
+        ///     asking for them one at a time.
+        ///   - WHERE TO PLACE THEM. `UsePlacementInSketch` takes the position
+        ///     from the sketch of the model; if the sketch is not dimensioned there is
+        ///     no position to take.
+        ///   - WHICH VERSION. The 2 has a parameter that the 3 lost —
+        ///     `AllTypes`, «bring them all, do not look at the mask» — and the
+        ///     rule «the highest is the best» in this interop is already
+        ///     proven false (`InsertEndCapFeature3` had REMOVED the faces
+        ///     compared with the 2).
         ///
-        /// Quindi si prova, in ordine dal piu' preciso al piu' grossolano, e
-        /// si scrive nelle misure quale strada ha funzionato. Non e' eleganza:
-        /// e' l'unico modo di trasformare «non ha funzionato» in un fatto.
+        /// So it is tried, in order from the most precise to the coarsest, and
+        /// which route worked is written into the measurements. It is not elegance:
+        /// it is the only way to turn «it did not work» into a fact.
         /// </summary>
         private Outcome ModelDimensions(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -624,9 +624,9 @@ namespace Oce.Solid.Agent.Core
                 ? (int)swInsertAnnotation_e.swInsertholeCallout
                 : 0;
 
-            // Di serie si prendono solo le quote MARCATE per il disegno: sono
-            // quelle che un progettista ha scelto di mostrare, e una tavola con
-            // tutte le quote del modello e' illeggibile.
+            // By default only the dimensions MARKED for the drawing are taken: they are
+            // the ones a designer chose to show, and a drawing with
+            // all the dimensions of the model is unreadable.
             // The masks, and every fallback below, come from the ModelImport*
             // members after this method (Z-C21.3, findings M2 and N9): with
             // all_dimensions false no step may carry the NOT-MARKED bit or
@@ -655,12 +655,12 @@ namespace Oce.Solid.Agent.Core
                         var returned = drawing.InsertModelAnnotations3(
                             (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
                             types,
-                            true,    // tutte le viste
+                            true,    // all the views
                             ModelImportV3DuplicateDims, // TRUE eliminates duplicates (M2, see the constant)
                             false,   // HiddenFeatureDims
                             fromSketch) as object[];
-                        // ZERO-E-ZERO: e' solo quante ne ha restituite l'API; la misura
-                        // vera e' `CountDimensions` prima e dopo, e l'eccezione ha il suo ramo.
+                        // ZERO-E-ZERO: it is only how many the API returned; the true measurement
+                        // is `CountDimensions` before and after, and the exception has its own branch.
                         returnedItems = returned == null ? 0 : returned.Length;
                     }
                     catch (Exception ex) { return Failed("Quote non inserite: " + ex.Message); }
@@ -677,7 +677,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 if (after > before) break;
 
-                // La versione 2, con `AllTypes`: il parametro che la 3 non ha.
+                // Version 2, with `AllTypes`: the parameter the 3 does not have.
                 // AllTypes TRUE ignores the mask, so it is TRUE only when every
                 // dimension was asked for (N9, see ModelImportAllTypes).
                 // duplicateDims stays FALSE here on purpose: the page of THIS
@@ -713,8 +713,8 @@ namespace Oce.Solid.Agent.Core
             // the view»): it runs only when every dimension was asked for (N9).
             if (after <= before && ModelImportMayTakeEveryViewDimension(all))
             {
-                // La piu' vecchia di tutte, un parametro solo. Torna `void`:
-                // l'unico modo di sapere se ha fatto qualcosa e' ricontare.
+                // The oldest of all, a single parameter. It returns `void`:
+                // the only way to know whether it did anything is to count again.
                 try
                 {
                     drawing.InsertModelDimensions(
@@ -729,8 +729,8 @@ namespace Oce.Solid.Agent.Core
 
             if (after <= before)
             {
-                // Una vista alla volta, selezionandola prima: alcune
-                // installazioni ignorano «tutte le viste».
+                // One view at a time, selecting it first: some
+                // installations ignore «all the views».
                 int howMany = 0;
                 try
                 {
@@ -769,17 +769,17 @@ namespace Oce.Solid.Agent.Core
 
             if (after <= before)
             {
-                // QUANTE NE HA IL PEZZO, E QUALI. Senza questa risposta un
-                // «non e' arrivata nessuna quota» non distingue fra «la
-                // chiamata non funziona» e «non c'era niente da portare»:
-                // sono due difetti diversi e si riparano in due posti diversi.
-                // QUI IL PEZZO SI CHIEDE ALLA VISTA, non all'elenco dei
-                // documenti aperti. E' un messaggio d'errore: deve dire quante
-                // quote ha **il pezzo di QUESTA tavola**, e prendere il primo
-                // aperto vorrebbe dire contare le quote di un altro pezzo e
-                // stamparle dentro una spiegazione. Un messaggio d'errore che
-                // cita il documento sbagliato manda a cercare piu' lontano di
-                // dove si era partiti.
+                // HOW MANY THE PART HAS, AND WHICH. Without this answer a
+                // «no dimension arrived» does not distinguish between «the
+                // call does not work» and «there was nothing to bring»:
+                // they are two different defects and they are repaired in two different places.
+                // HERE THE PART IS ASKED OF THE VIEW, not of the list of
+                // open documents. It is an error message: it must say how many
+                // dimensions **the part of THIS drawing** has, and taking the first one
+                // open would mean counting the dimensions of another part and
+                // printing them inside an explanation. An error message that
+                // cites the wrong document sends one searching farther than where one
+                // started.
                 string _ignore;
                 var dimensionNames = ModelDimensionNames(
                     ModelPathInView(drawing) ?? ModelToPutInView(out _ignore));
@@ -937,13 +937,13 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Il PDF di TUTTI i fogli, con il conto delle pagine.
+        /// The PDF of ALL the sheets, with the page count.
         ///
-        /// Il difetto da prendere e' noto: l'esportazione di serie prende il
-        /// foglio corrente, e una tavola da tre fogli esce come una pagina
-        /// sola senza errori. Quindi si chiedono tutti i fogli, e poi si
-        /// CONTANO le pagine del file scritto. Contare le pagine di un PDF e'
-        /// grezzo, ed e' l'unica verifica che possa davvero fallire.
+        /// The defect to catch is known: the default export takes the
+        /// current sheet, and a three-sheet drawing comes out as a single
+        /// page without errors. So all the sheets are asked for, and then the
+        /// pages of the written file are COUNTED. Counting the pages of a PDF is
+        /// crude, and it is the only check that can really fail.
         /// </summary>
         private Outcome ExportPdf(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -982,8 +982,8 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 pdf.ViewPdfAfterSaving = false;
-                // TUTTI i fogli, esplicitamente. E' il difetto che questa
-                // operazione esiste per non fare.
+                // ALL the sheets, explicitly. It is the defect this
+                // operation exists not to commit.
                 everySheetAsked = pdf.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
             }
             catch (Exception ex) { return Failed("Non riesco a chiedere tutti i fogli: " + ex.Message); }
@@ -1050,13 +1050,13 @@ namespace Oce.Solid.Agent.Core
             string pdfWarningAdvice = SaveWarningsAdvice(warnings);
             if (pdfWarningAdvice != null) measurements["save_warnings_note"] = pdfWarningAdvice;
 
-            // IL PDF SI RILEGGE, SE SI CHIEDE COSA DEVE CONTENERE (voci GT3-bis,
-            // Z-C9). Misurato il 24/9/2026: il testo della tavola esce come
-            // testo, ma scritto come indici di glifo dietro le tabelle
-            // /ToUnicode — una ricerca nei byte non lo trova. `PdfText` lo
-            // decodifica. Si dice cosa c'e' e cosa no, senza rifiutare: un
-            // numero di disegno mancante nel PDF e' una cosa da sapere, non un
-            // PDF da buttare.
+            // THE PDF IS READ BACK, IF ONE ASKS WHAT IT MUST CONTAIN (entries GT3-bis,
+            // Z-C9). Measured on 24/9/2026: the text of the drawing comes out as
+            // text, but written as glyph indices behind the /ToUnicode
+            // tables — a search in the bytes does not find it. `PdfText` decodes
+            // it. It says what is there and what is not, without refusing: a
+            // drawing number missing from the PDF is something to know, not a
+            // PDF to throw away.
             var searched = StringList(a, "search");
             if (searched.Count > 0)
             {
@@ -1072,16 +1072,16 @@ namespace Oce.Solid.Agent.Core
                     measurements["warning"] = "Nel PDF scritto non trovo: «" + string.Join("», «", missingItems) +
                         "». Se dovevano esserci, controlla la tavola prima di mandarla.";
             }
-            // ── LE QUOTE ARRIVANO NEL PDF? (voce Z-C9, la meta' «oggetti») ──
+            // ── DO THE DIMENSIONS REACH THE PDF? (entry Z-C9, the «objects» half) ──
             //
-            // I contatori contano nel documento: una quota su un livello che non
-            // si stampa, o in una vista nascosta, conta e in officina non arriva.
-            // Ogni numero stampato dalle quote deve comparire nel testo del PDF
-            // almeno tante volte quante lo stampano (OperazioniQuoteNelPdf).
+            // The counters count in the document: a dimension on a layer that is not
+            // printed, or in a hidden view, counts and does not reach the workshop.
+            // Every number printed by the dimensions must appear in the text of the PDF
+            // at least as many times as they print it (OperazioniQuoteNelPdf).
             int drawingDimensions, dimensionsWithoutText;
             var expectedNumbers = DimensionNumbers(drawing, out drawingDimensions, out dimensionsWithoutText);
             measurements["dimensions_in_drawing"] = drawingDimensions;
-            measurements["dimensions_not_checked"] = dimensionsWithoutText;   // il loro testo non si legge
+            measurements["dimensions_not_checked"] = dimensionsWithoutText;   // their text cannot be read
             if (dimensionsWithoutText > 0)
                 measurements["warning"] = (measurements.ContainsKey("warning") ? measurements["warning"] + " " : "") +
                     dimensionsWithoutText + (dimensionsWithoutText == 1 ? " quota non ha" : " quote non hanno") +
@@ -1091,7 +1091,7 @@ namespace Oce.Solid.Agent.Core
                 string pdfText = null;
                 try { pdfText = PdfText.Read(location); } catch { }
                 if (string.IsNullOrWhiteSpace(pdfText))
-                    measurements["dimensions_missing_in_pdf"] = null;   // il testo non si legge: non lo so
+                    measurements["dimensions_missing_in_pdf"] = null;   // the text cannot be read: I do not know
                 else
                 {
                     var areMissing = DimensionsMissingInPdf(expectedNumbers, pdfText);
@@ -1141,14 +1141,14 @@ namespace Oce.Solid.Agent.Core
 
             if (!ok || !File.Exists(location))
             {
-                // IL CODICE DA SOLO NON SI PUO' USARE. `SaveAs` risponde un
-                // numero, e il numero non dice cosa fare: la causa piu' comune
-                // — misurata il 18/9/2026 mentre si provava un'altra cosa — e'
-                // che **la cartella non esiste**, e quella si guarda da qui in
-                // un millisecondo invece di farla indovinare a chi legge.
+                // THE CODE ALONE CANNOT BE USED. `SaveAs` answers a
+                // number, and the number does not say what to do: the most common cause
+                // — measured on 18/9/2026 while trying something else — is
+                // that **the folder does not exist**, and that is checked from here in
+                // a millisecond instead of making the reader guess it.
                 //
-                // *Un messaggio d'errore che riporta un codice e si ferma
-                // sposta il lavoro su chi lo riceve.*
+                // *An error message that reports a code and stops
+                // moves the work onto whoever receives it.*
                 string folder = null;
                 try { folder = Path.GetDirectoryName(location); } catch { }
                 if (!string.IsNullOrWhiteSpace(folder) && !Directory.Exists(folder))
@@ -1191,10 +1191,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Attrezzi
+        // Tools
         // ─────────────────────────────────────────────────────────────────
 
-        /// <summary>Un esito riuscito per un'operazione che non crea feature.</summary>
+        /// <summary>A successful outcome for an operation that creates no feature.</summary>
         private Outcome WithoutFeature(Dictionary<string, object> measurements)
         {
             return new Outcome { Succeeded = true, Measurements = measurements };
@@ -1215,17 +1215,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il nome che SolidWorks usa per una vista con nome.
+        /// The name SolidWorks uses for a named view.
         ///
-        /// L'asterisco davanti NON e' un refuso: e' il modo in cui SolidWorks
-        /// distingue le viste di sistema da quelle salvate dall'utente.
+        /// The asterisk in front is NOT a typo: it is the way SolidWorks
+        /// tells the system views apart from those saved by the user.
         /// </summary>
         /// <summary>
-        /// Le RADICI con cui riconoscere una vista fra quelle che il
-        /// documento dichiara. Ce ne sono due per voce, una per la lingua
-        /// dell'interfaccia e una per l'inglese, e sono radici e non parole
-        /// intere proprio perche' la desinenza cambia: questa installazione
-        /// dice «*Isometrico», un'altra «*Isometrica».
+        /// The ROOTS with which to recognise a view among those the
+        /// document declares. There are two per entry, one for the language
+        /// of the interface and one for English, and they are roots and not whole
+        /// words precisely because the ending changes: this installation
+        /// says «*Isometrico», another «*Isometrica».
         /// </summary>
         private static string[] SwViewNames(string requested)
         {
@@ -1244,15 +1244,15 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        /// <summary>Le scritture note, per quando il documento non dichiara nulla.</summary>
+        /// <summary>The known spellings, for when the document declares nothing.</summary>
         private static List<string> KnownNamesPerRoot(string[] roots)
         {
             var outside = new List<string>();
             foreach (var r in roots)
             {
-                // Si ricostruisce «*Radice» con l'iniziale maiuscola: e' la
-                // forma che SolidWorks usa per le viste di sistema, e vale
-                // come ultimo tentativo, non come regola.
+                // «*Root» is rebuilt with a capital initial: it is the
+                // form SolidWorks uses for the system views, and it counts
+                // as a last attempt, not as a rule.
                 if (r.Length == 0) continue;
                 outside.Add("*" + char.ToUpperInvariant(r[0]) + r.Substring(1));
             }
@@ -1260,10 +1260,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti fogli ha la tavola, o **-1 se non si e' potuto leggere**
-        /// (voce Z-C8). Una tavola ha sempre almeno un foglio: un elenco che
-        /// non arriva non e' uno zero, e' una lettura andata male — e con lo
-        /// zero `export_pdf` rispondeva «la tavola non ha fogli».
+        /// How many sheets the drawing has, or **-1 if it could not be read**
+        /// (entry Z-C8). A drawing always has at least one sheet: a list that
+        /// does not arrive is not a zero, it is a read that went badly — and with
+        /// zero `export_pdf` answered «the drawing has no sheets».
         /// </summary>
         private int CountSheets(IModelDoc2 drawing)
         {
@@ -1278,17 +1278,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le viste vere della tavola (il foglio escluso), o **-1 se non si e'
-        /// potuto leggere** (voce Z-C8). Aveva la forma che lo scanner non
-        /// vedeva: `int n = 0; try { ... } catch { }`, e un errore a meta'
-        /// giro dava un numero piu' basso del vero, detto come vero.
+        /// The real views of the drawing (sheet excluded), or **-1 if it could not
+        /// be read** (entry Z-C8). It had the shape the scanner did not
+        /// see: `int n = 0; try { ... } catch { }`, and an error halfway
+        /// through gave a number lower than the true one, stated as true.
         /// </summary>
         private int CountViews(IDrawingDoc drawing)
         {
             int n = 0;
             try
             {
-                var sheet = drawing.GetFirstView() as IView;   // il primo e' il FOGLIO
+                var sheet = drawing.GetFirstView() as IView;   // the first one is the SHEET
                 if (sheet == null) return -1;
                 var v = sheet.GetNextView() as IView;
                 while (v != null) { n++; v = v.GetNextView() as IView; }
@@ -1316,10 +1316,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le quote di tutte le viste, o **-1 se non si e' potuto leggere**
-        /// (voce Z-C8): una vista che non risponde non conta zero, perche' la
-        /// somma delle altre sarebbe un numero piu' basso del vero. Chi
-        /// confronta prima e dopo usa `NotGrown`.
+        /// The dimensions of all the views, or **-1 if it could not be read**
+        /// (entry Z-C8): a view that does not answer does not count zero, because the
+        /// sum of the others would be a number lower than the true one. Whoever
+        /// compares before and after uses `NotGrown`.
         /// </summary>
         private int CountDimensions(IDrawingDoc drawing)
         {
@@ -1340,12 +1340,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il conteggio delle quote NON e' salito da `before`? Si dice solo di
-        /// due conteggi letti. Se uno dei due non si legge, resta l'unica
-        /// misura che c'e': l'oggetto che la chiamata ha restituito (null =
-        /// non nata). E' meno di quanto vorrebbe la regola di casa — «il
-        /// valore che torna da chi ha fatto la cosa non e' la misura della
-        /// cosa» — ma e' piu' vero di uno zero inventato.
+        /// Did the count of dimensions NOT go up from `before`? It is said only of
+        /// two counts read. If one of the two cannot be read, the only
+        /// measurement that exists remains: the object the call returned (null =
+        /// not born). It is less than the house rule would want — «the
+        /// value that comes back from whoever did the thing is not the measurement of the
+        /// thing» — but it is truer than an invented zero.
         /// </summary>
         private bool NotGrown(IDrawingDoc drawing, int before, object returned)
         {
@@ -1364,7 +1364,7 @@ namespace Oce.Solid.Agent.Core
         {
             var p = SheetProperty(sheet);
             if (p == null || p.Length < 7) return null;
-            // 5 = larghezza, 6 = altezza, in metri.
+            // 5 = width, 6 = height, in metres.
             return new[] { Units.Mm(p[5]), Units.Mm(p[6]) };
         }
 
@@ -1372,16 +1372,16 @@ namespace Oce.Solid.Agent.Core
         {
             var p = SheetProperty(sheet);
             if (p == null || p.Length < 4) return null;
-            // 2 = numeratore, 3 = denominatore.
+            // 2 = numerator, 3 = denominator.
             if (p[3] == 0) return null;
             return new[] { p[2], p[3] };
         }
 
         /// <summary>
-        /// Quante quote ha il MODELLO, cioe' quante ce ne sarebbero da
-        /// portare in tavola. Si contano scorrendo l'albero e chiedendo a
-        /// ogni lavorazione le sue quote visualizzate — la stessa strada
-        /// che lo stato del documento usa per elencarle.
+        /// How many dimensions the MODEL has, that is how many there would be to
+        /// bring onto the drawing. They are counted by walking the tree and asking
+        /// every feature for its displayed dimensions — the same route
+        /// the state of the document uses to list them.
         /// </summary>
         private List<string> ModelDimensionNames(string filePath)
         {
@@ -1405,18 +1405,18 @@ namespace Oce.Solid.Agent.Core
                                 var real = q.GetDimension2(0) as IDimension;
                                 string itemName = real != null ? real.FullName : "?";
 
-                                // MARCATA O NO, ACCANTO AL NOME, ed e' la
-                                // differenza che divide la diagnosi in due.
-                                // `model_dimensions` di serie importa SOLO le
-                                // marcate: senza questo dato, «il pezzo ha 7
-                                // quote e nessuna arriva» lascia aperte due
-                                // spiegazioni opposte — che nessuna sia
-                                // marcata (guasto a monte, in chi doveva
-                                // marcarle) o che siano marcate e l'import non
-                                // le prenda (guasto nell'import).
-                                // Il 18/9/2026 ci e' voluta una sonda apposta
-                                // per sapere quale delle due: il dato c'era,
-                                // e la risposta non lo diceva.
+                                // MARKED OR NOT, NEXT TO THE NAME, and it is the
+                                // difference that splits the diagnosis in two.
+                                // `model_dimensions` by default imports ONLY the
+                                // marked ones: without this datum, «the part has 7
+                                // dimensions and none arrives» leaves open two
+                                // opposite explanations — that none is
+                                // marked (a fault upstream, in whoever should have
+                                // marked them) or that they are marked and the import does not
+                                // take them (a fault in the import).
+                                // On 18/9/2026 a probe made on purpose was needed
+                                // to know which of the two: the datum was there,
+                                // and the answer did not say it.
                                 try
                                 {
                                     itemName += q.MarkedForDrawing ? " [marcata]" : " [NON marcata]";
@@ -1437,7 +1437,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>Il documento aperto a quel percorso, o null.</summary>
+        /// <summary>The document open at that path, or null.</summary>
         private IModelDoc2 FindOpenDocument(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath)) return null;
@@ -1457,7 +1457,7 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        /// <summary>Come questo documento chiama le sue viste con nome.</summary>
+        /// <summary>What this document calls its named views.</summary>
         private List<string> ModelViewNames(string filePath)
         {
             var outside = new List<string>();
@@ -1474,7 +1474,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>I documenti aperti adesso, con percorso e tipo.</summary>
+        /// <summary>The documents open now, with path and type.</summary>
         private List<Dictionary<string, object>> OpenDocuments()
         {
             var outside = new List<Dictionary<string, object>>();
@@ -1513,19 +1513,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Due percorsi sono lo stesso file?
+        /// Are two paths the same file?
         ///
-        /// SEMBRA UNA DOMANDA BANALE E NON LO E'. Misurato alla prima prova
-        /// dentro SolidWorks, l'11 settembre 2026: il piano diceva
-        /// `C:/Users/.../pezzo.SLDPRT` e SolidWorks rispondeva
-        /// `C:\Users\...\pezzo.SLDPRT`. Stesso file, due scritture, e un
-        /// confronto fra stringhe che diceva di no. Il risultato era il
-        /// peggiore possibile per un utente: «il pezzo non risulta aperto»
-        /// mentre il pezzo era li', aperto, davanti a tutti.
+        /// IT LOOKS LIKE A TRIVIAL QUESTION AND IT IS NOT. Measured at the first try
+        /// inside SolidWorks, on 11 September 2026: the plan said
+        /// `C:/Users/.../pezzo.SLDPRT` and SolidWorks answered
+        /// `C:\Users\...\pezzo.SLDPRT`. Same file, two spellings, and a
+        /// comparison between strings that said no. The result was the
+        /// worst possible for a user: «the part does not appear to be open»
+        /// while the part was there, open, in front of everybody.
         ///
-        /// Non si usa `Path.GetFullPath` perche' normalizza anche i
-        /// percorsi relativi e puo' sollevare su una stringa storta: qui
-        /// serve solo mettere d'accordo le barre e le maiuscole.
+        /// `Path.GetFullPath` is not used because it normalises relative
+        /// paths too and can throw on a crooked string: here
+        /// all that is needed is to make the slashes and the capitals agree.
         /// </summary>
         private static bool IsSameFile(string a, string b)
         {
@@ -1537,14 +1537,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il percorso di questo documento COME LO SCRIVE SOLIDWORKS,
-        /// oppure null se non e' aperto.
+        /// The path of this document AS SOLIDWORKS WRITES IT,
+        /// or null if it is not open.
         ///
-        /// Non basta sapere che il file e' aperto: il percorso va poi
-        /// passato a `Create1stAngleViews2` e a
-        /// `CreateDrawViewFromModelView3`, e li' una barra in avanti al
-        /// posto di una all'indietro fa tornare `false` senza spiegazioni
-        /// e senza creare niente.
+        /// It is not enough to know that the file is open: the path must then be
+        /// passed to `Create1stAngleViews2` and to
+        /// `CreateDrawViewFromModelView3`, and there a forward slash in place
+        /// of a backward one makes it return `false` without explanations
+        /// and without creating anything.
         /// </summary>
         private string CanonicalPath(string filePath)
         {
@@ -1564,50 +1564,50 @@ namespace Oce.Solid.Agent.Core
             return CanonicalPath(filePath) != null;
         }
 
-        /// <summary>Il primo pezzo o assieme aperto: quello che va in tavola.</summary>
+        /// <summary>The first part or assembly open: the one that goes onto the drawing.</summary>
         /// <summary>
-        /// Il modello da mettere in vista quando il piano non lo dice.
+        /// The model to put in view when the plan does not say.
         ///
-        /// ── PERCHE' NON SI CHIAMA PIU' «IL PRIMO» ────────────────────────
+        /// ── WHY IT IS NO LONGER CALLED «THE FIRST» ───────────────────────
         ///
-        /// Fino al 18/9/2026 tornava **il primo** documento aperto di tipo
-        /// parte o assieme, nell'ordine in cui SOLIDWORKS li elenca — un
-        /// ordine che **nessuno dichiara** e che cambia con quello che e'
-        /// rimasto aperto da prima.
+        /// Until 18/9/2026 it returned **the first** open document of type
+        /// part or assembly, in the order in which SOLIDWORKS lists them — an
+        /// order that **nobody declares** and that changes with what was
+        /// left open from before.
         ///
-        /// Il difetto che ne e' uscito, misurato dal banco:
-        /// `create_drawing` faceva la tavola del pezzo GIUSTO — quello che gli
-        /// viene passato — e subito dopo `standard_views`, che gira **sulla
-        /// tavola** e il pezzo non ce l'ha piu' in mano, ci metteva dentro le
-        /// viste di **un altro pezzo**, rimasto aperto dal caso precedente.
+        /// The defect that came out of it, measured by the bench:
+        /// `create_drawing` made the drawing of the RIGHT part — the one it is
+        /// passed — and right after `standard_views`, which runs **on the
+        /// drawing** and no longer has the part in hand, put into it the
+        /// views of **another part**, left open from the previous case.
         ///
-        /// **Tre viste, nessun errore, e la tavola di un pezzo che non
-        /// c'entra.** Il cartiglio leggeva i `$PRPSHEET` da quel pezzo li' e
-        /// mostrava caselle vuote; il PDF sarebbe uscito e sarebbe andato in
-        /// officina. E' esattamente il difetto che questo progetto esiste per
-        /// non avere, applicato alla strada di consegna.
+        /// **Three views, no error, and the drawing of a part that has
+        /// nothing to do with it.** The title block read the `$PRPSHEET` from that part and
+        /// showed empty boxes; the PDF would have come out and would have gone to the
+        /// workshop. It is exactly the defect this project exists to
+        /// not have, applied to the delivery route.
         ///
-        /// ── COSA FA ADESSO ───────────────────────────────────────────────
+        /// ── WHAT IT DOES NOW ─────────────────────────────────────────────
         ///
-        /// Se ne e' aperto **uno solo**, quello e' — non c'e' niente da
-        /// indovinare. Se ce ne sono **due o piu'**, si RIFIUTA e si dice
-        /// quali sono, perche' scegliere fra loro vorrebbe dire decidere al
-        /// posto di chi disegna su una cosa che poi non da' nessun errore.
+        /// If **only one** is open, that is it — there is nothing to
+        /// guess. If there are **two or more**, it REFUSES and says
+        /// which they are, because choosing among them would mean deciding in
+        /// place of whoever draws on something that then gives no error.
         ///
-        /// *Un ordine che nessuno dichiara non e' una scelta: e' un sorteggio
-        /// che sembra una scelta.*
+        /// *An order that nobody declares is not a choice: it is a draw
+        /// that looks like a choice.*
         /// </summary>
         /// <summary>
-        /// Il percorso del modello che questa tavola mostra davvero, chiesto
-        /// alla prima vista vera. E' l'unica risposta che non dipende da cosa
-        /// c'e' aperto attorno: la vista sa a quale documento e' agganciata.
-        /// Torna `null` se la tavola non ha ancora viste.
+        /// The path of the model this drawing really shows, asked
+        /// of the first real view. It is the only answer that does not depend on what
+        /// is open around it: the view knows which document it is attached to.
+        /// Returns `null` if the drawing has no views yet.
         /// </summary>
         private static string ModelPathInView(IDrawingDoc drawing)
         {
             try
             {
-                // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
+                // The first «view» is the SHEET: the real views start after it.
                 var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
                 while (v != null)
                 {
@@ -1688,7 +1688,7 @@ namespace Oce.Solid.Agent.Core
                     if (j + 5 <= text.Length && text.Substring(j, 5) == "/Page")
                     {
                         char after = j + 5 < text.Length ? text[j + 5] : ' ';
-                        if (after != 's') n++;   // «/Pages» e' il nodo, non una pagina
+                        if (after != 's') n++;   // «/Pages» is the node, not a page
                     }
                     i = j;
                 }

@@ -5,27 +5,27 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// I CODICI DI ERRORE DELLE LAVORAZIONI, detti in italiano.
+    /// THE ERROR CODES OF THE FEATURES, stated in Italian.
     ///
-    /// PERCHE' SERVE. `IFeature.GetErrorCode2()` risponde un numero. Un numero
-    /// in mano a chi legge lo stato non e' un'informazione: e' un compito.
+    /// WHY IT IS NEEDED. `IFeature.GetErrorCode2()` answers a number. A number
+    /// in the hands of whoever reads the state is not information: it is a task.
     ///
-    /// QUELLO CHE NON SI SA RESTA UN NUMERO. La tabella copre i codici di cui
-    /// si conosce il significato; per tutti gli altri esce il nome dell'enum e
-    /// il numero, e basta. **Un nome inventato su un codice e' peggio del
-    /// numero nudo, perche' sembra una spiegazione** — e chi legge ci costruisce
-    /// sopra una decisione.
+    /// WHAT IS NOT KNOWN STAYS A NUMBER. The table covers the codes whose
+    /// meaning is known; for all the others the name of the enum and
+    /// the number come out, and nothing else. **A name invented for a code is worse than the
+    /// bare number, because it looks like an explanation** — and whoever reads builds
+    /// a decision on it.
     ///
-    /// LE FRASI DICONO LA COSA, NON IL VERDETTO. «il raggio del raccordo non ci
-    /// sta» dice cosa guardare; «errore nel raccordo» no. E' la stessa regola
-    /// dei messaggi di rifiuto: si spiega il criterio.
+    /// THE SENTENCES SAY THE THING, NOT THE VERDICT. «il raggio del raccordo non ci
+    /// sta» says what to look at; «errore nel raccordo» does not. It is the same rule
+    /// as the refusal messages: the criterion is explained.
     /// </summary>
     public static class FeatureErrors
     {
         private static readonly Dictionary<int, string> Sentences = new Dictionary<int, string>
         {
-            // I raccordi, che sono la famiglia piu' numerosa perche' sono la
-            // lavorazione che si rompe piu' spesso quando una quota cambia.
+            // The fillets, which are the most numerous family because they are the
+            // feature that breaks most often when a dimension changes.
             [10] = "il raccordo non trova un contorno chiuso su cui appoggiarsi",
             [11] = "il raccordo non trova piu' la faccia su cui stava",
             [12] = "il raggio del raccordo non va bene per questa geometria: " +
@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.Core
             [18] = "il raggio del raccordo e' troppo grande per gli spigoli scelti",
             [19] = "il raggio del raccordo e' troppo grande per gli spigoli scelti",
 
-            // Le estrusioni.
+            // The extrusions.
             [30] = "l'estrusione produrrebbe corpi staccati fra loro",
             [31] = "l'estrusione non trova dove fermarsi: la condizione di fine " +
                    "non esiste piu'",
@@ -49,8 +49,8 @@ namespace Oce.Solid.Agent.Core
             [36] = "il contorno dell'estrusione e' in parte aperto e in parte chiuso",
             [37] = "il contorno dell'estrusione non e' valido",
 
-            // Il riferimento penzolante: lo schizzo era agganciato a una
-            // geometria che non c'e' piu'.
+            // The dangling reference: the sketch was attached to a
+            // geometry that is no longer there.
             [51] = "un riferimento esterno dello schizzo non si risolve piu': " +
                    "la geometria a cui era agganciato non c'e'",
 
@@ -61,8 +61,8 @@ namespace Oce.Solid.Agent.Core
         };
 
         /// <summary>
-        /// La frase per un codice, oppure null se il codice e' zero — cioe' se
-        /// non c'e' nessun errore.
+        /// The sentence for a code, or null if the code is zero — that is if
+        /// there is no error.
         /// </summary>
         public static string Sentence(int code)
         {
@@ -70,8 +70,8 @@ namespace Oce.Solid.Agent.Core
             string sentence;
             if (Sentences.TryGetValue(code, out sentence)) return sentence;
 
-            // Il nome dell'enum quando c'e': dice almeno di che famiglia si
-            // tratta, e si puo' cercare nella documentazione.
+            // The name of the enum when there is one: it says at least which family it
+            // is, and it can be looked up in the documentation.
             if (Enum.IsDefined(typeof(swFeatureError_e), code))
                 return "SOLIDWORKS segnala «" + (swFeatureError_e)code +
                        "» (codice " + code + ")";

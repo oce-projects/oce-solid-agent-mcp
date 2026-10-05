@@ -7,40 +7,40 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// I FOGLI DI UNA TAVOLA (voce GT1).
+    /// THE SHEETS OF A DRAWING (entry GT1).
     ///
-    /// ── PERCHE' E' LA VOCE PIU' SEMPLICE E NON LA MENO UTILE ────────────
+    /// ── WHY IT IS THE SIMPLEST ENTRY AND NOT THE LEAST USEFUL ────────────
     ///
-    /// `export_pdf` esporta gia' tutti i fogli e **conta gia' le pagine del
-    /// PDF**: e' la guardia scritta perche' un PDF di un foglio solo, su una
-    /// tavola di tre, esce senza nessun errore e arriva in officina incompleto.
-    /// Quel conteggio pero' oggi vale sempre 1, **perche' non c'e' modo di fare
-    /// un secondo foglio**. Una guardia che non puo' mai scattare non e' una
-    /// guardia: e' una riga di codice che consola.
+    /// `export_pdf` already exports all the sheets and **already counts the pages of the
+    /// PDF**: it is the guard written because a one-sheet PDF, on a
+    /// drawing of three, comes out with no error and arrives in the workshop incomplete.
+    /// That count however today is always 1, **because there is no way to make
+    /// a second sheet**. A guard that can never fire is not a
+    /// guard: it is a line of code that consoles.
     ///
-    /// ── IL DIEDRO, CHE E' TUTTA LA DIFFICOLTA' ──────────────────────────
+    /// ── THE DIHEDRAL, WHICH IS THE WHOLE DIFFICULTY ─────────────────────
     ///
     ///     Boolean NewSheet4(String Name, Int32 PaperSize, Int32 TemplateIn,
     ///                       Double Scale1, Double Scale2, Boolean FirstAngle,
     ///                       String TemplateName, Double Width, Double Height,
     ///                       String PropertyViewName, ...)
     ///
-    /// **`FirstAngle` e' un parametro obbligatorio, in sesta posizione: non c'e'
-    /// niente da ereditare.** Scrivere `false` perche' e' il valore di serie
-    /// darebbe **la stessa tavola con due fogli specchiati in modo diverso**, e
-    /// nessuno dei due darebbe errore: il foglio 1 in primo diedro, il foglio 2
-    /// in terzo, e chi taglia il pezzo del foglio 2 lo taglia rovesciato.
+    /// **`FirstAngle` is a mandatory parameter, in sixth position: there is
+    /// nothing to inherit.** Writing `false` because it is the default value
+    /// would give **the same drawing with two sheets mirrored differently**, and
+    /// neither would give an error: sheet 1 in first angle, sheet 2
+    /// in third, and whoever cuts the part from sheet 2 cuts it upside down.
     ///
-    /// Si fa quello che `set_sheet` fa gia': **si legge il diedro del
-    /// foglio corrente e lo si ripassa**. Il modello di tavola dell'officina
-    /// l'ha gia' deciso una volta, e questa e' l'unica risposta che non inventa
-    /// niente.
+    /// What `set_sheet` already does is done: **the dihedral of the
+    /// current sheet is read and passed on again**. The workshop's drawing template
+    /// has already decided it once, and this is the only answer that invents
+    /// nothing.
     ///
-    /// ── E NON SI CREDE AL `Boolean` ─────────────────────────────────────
+    /// ── AND THE `Boolean` IS NOT BELIEVED ───────────────────────────────
     ///
-    /// *Il valore che torna da chi ha fatto la cosa non e' la misura della
-    /// cosa.* Il foglio si conta da `GetSheetNames().Length` prima e dopo, e il
-    /// diedro del foglio nuovo si **rilegge** dal foglio nuovo.
+    /// *The value that comes back from whoever did the thing is not the measure of the
+    /// thing.* The sheets are counted from `GetSheetNames().Length` before and after, and the
+    /// dihedral of the new sheet is **re-read** from the new sheet.
     /// </summary>
     public partial class SwOperations
     {
@@ -68,7 +68,7 @@ namespace Oce.Solid.Agent.Core
                     "sa piu' quale si sta guardando. Ci sono: " +
                     string.Join(", ", namesBefore) + ".");
 
-            // ── IL DIEDRO SI LEGGE DAL FOGLIO CORRENTE ──────────────────
+            // ── THE DIHEDRAL IS READ FROM THE CURRENT SHEET ──────────────
             ISheet current;
             try { current = drawing.GetCurrentSheet() as ISheet; }
             catch (Exception ex) { return Failed("Non riesco a leggere il foglio corrente: " + ex.Message); }
@@ -83,9 +83,9 @@ namespace Oce.Solid.Agent.Core
                     "in officina un pezzo rovesciato: preferisco fermarmi.");
             bool firstAngle = property[4] != 0;
 
-            // La scala: se non me la dicono, quella del foglio corrente. Due
-            // fogli della stessa tavola a scale diverse si possono volere, ma
-            // non per distrazione.
+            // The scale: if I am not told, that of the current sheet. Two
+            // sheets of the same drawing at different scales may be wanted, but
+            // not by distraction.
             var currentScale = ReadScale(current);
             double scaleNum = Num(a, "scale_numerator",
                 currentScale != null && currentScale.Length > 0 ? currentScale[0] : 1);
@@ -107,23 +107,23 @@ namespace Oce.Solid.Agent.Core
                     sheetFormat,
                     (int)swDwgTemplates_e.swDwgTemplateNone,
                     scaleNum, scaleDen,
-                    firstAngle,               // ← RIPASSATO, non deciso qui
-                    "",                        // TemplateName: nessuno
-                    0, 0,                      // Width/Height: contano solo col formato «custom»
+                    firstAngle,               // ← PASSED ON AGAIN, not decided here
+                    "",                        // TemplateName: none
+                    0, 0,                      // Width/Height: count only with the «custom» format
                     "",                        // PropertyViewName
-                    0, 0, 0, 0, 0, 0);         // zone: non si usano
+                    0, 0, 0, 0, 0, 0);         // zones: not used
             }
             catch (Exception ex) { return Failed("Foglio non creato: " + ex.Message); }
 
-            // ── SI CONTA, NON SI CREDE ──────────────────────────────────
+            // ── IT IS COUNTED, NOT BELIEVED ─────────────────────────────
             var namesAfter = SheetNames(drawing);
             if (namesAfter.Count <= namesBefore.Count)
                 return Failed(
                     "Mi e' stato risposto «" + (response ? "si'" : "no") + "» e i fogli sono " +
                     "sempre " + namesBefore.Count + ". Non lo chiamo fatto.");
 
-            // E IL DIEDRO DEL FOGLIO NUOVO SI RILEGGE DAL FOGLIO NUOVO.
-            // E' la difesa vera di questa operazione: passarlo non e' averlo.
+            // AND THE DIHEDRAL OF THE NEW SHEET IS RE-READ FROM THE NEW SHEET.
+            // It is the true defense of this operation: passing it is not having it.
             ISheet newItem = null;
             try { newItem = drawing.GetCurrentSheet() as ISheet; }
             catch { }
@@ -169,9 +169,9 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// `ActivateSheet` prende **il NOME**, non un indice — letto nella
-        /// firma, non ricordato. Un indice sarebbe stato la solita occasione
-        /// per attivare il foglio sbagliato senza nessun errore.
+        /// `ActivateSheet` takes **the NAME**, not an index — read in the
+        /// signature, not remembered. An index would have been the usual chance
+        /// to activate the wrong sheet with no error.
         /// </summary>
         private Outcome ActivateSheet(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -197,8 +197,8 @@ namespace Oce.Solid.Agent.Core
             try { response = drawing.ActivateSheet(its); }
             catch (Exception ex) { return Failed("Foglio non attivato: " + ex.Message); }
 
-            // NON SI CREDE ALLA RISPOSTA: si richiede al documento quale foglio
-            // ha davanti adesso.
+            // THE ANSWER IS NOT BELIEVED: the document is asked which sheet
+            // it has in front of it now.
             string after = SheetName(CurrentSheet(drawing));
             if (!string.Equals(after, its, StringComparison.OrdinalIgnoreCase))
                 return Failed(
@@ -218,11 +218,11 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// I nomi dei fogli. `GetSheetNames()` torna `Object`: va castato, e un
-        /// cast fallito e' una lista vuota, **non** zero fogli — chi chiama deve
-        /// distinguere «non ce ne sono» da «non li ho potuti leggere», ed e' per
-        /// questo che qui si rifiuta quando la lista e' vuota invece di andare
-        /// avanti.
+        /// The names of the sheets. `GetSheetNames()` returns `Object`: it must be cast, and a
+        /// failed cast is an empty list, **not** zero sheets — whoever calls must
+        /// tell «there are none» from «I could not read them», and that is why
+        /// here it refuses when the list is empty instead of going
+        /// on.
         /// </summary>
         private static List<string> SheetNames(IDrawingDoc drawing)
         {
@@ -247,8 +247,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il formato del foglio corrente, per darlo uguale al foglio nuovo.
-        /// `GetProperties2()` mette il formato in posizione 0.
+        /// The format of the current sheet, to give it the same to the new sheet.
+        /// `GetProperties2()` puts the format in position 0.
         /// </summary>
         private static int SheetFormat(ISheet sheet, double[] property)
         {
@@ -262,10 +262,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Un nome che non c'e' gia'. «Foglio2», «Foglio3»... e se per caso
-        /// esistono, si va avanti a contare invece di rifiutare: chi chiede un
-        /// foglio nuovo senza dargli un nome non vuole sapere che il nome di
-        /// serie era occupato.
+        /// A name that is not already there. «Foglio2», «Foglio3»... and if by chance
+        /// they exist, it goes on counting instead of refusing: whoever asks for a
+        /// new sheet without giving it a name does not want to know that the default
+        /// name was taken.
         /// </summary>
         private static string FreeName(List<string> existing)
         {

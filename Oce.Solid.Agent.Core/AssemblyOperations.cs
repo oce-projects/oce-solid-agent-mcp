@@ -9,35 +9,35 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA PRIMA OPERAZIONE DI ASSIEME (voce GA3).
+    /// THE FIRST ASSEMBLY OPERATION (entry GA3).
     ///
-    /// ── IL DIFETTO CHE QUESTA OPERAZIONE DEVE NON AVERE ──────────────────
+    /// ── THE DEFECT THIS OPERATION MUST NOT HAVE ──────────────────────────
     ///
-    /// Il censimento delle API di assieme (nota `80q`) lo dice gia', ed e' la
-    /// frase da tenere davanti scrivendo questo file:
+    /// The census of the assembly APIs (note `80q`) already says it, and it is the
+    /// sentence to keep in front of you while writing this file:
     ///
-    ///     «AddComponent5 piazza senza accoppiare: quattro corpi liberi che
-    ///      sembrano un assieme».
+    ///     «AddComponent5 places without mating: four free bodies that
+    ///      look like an assembly».
     ///
-    /// Inserire riesce quasi sempre. Il pezzo appare, l'albero si riempie, la
-    /// ricostruzione e' pulita, e **niente e' vincolato**. Un assieme di quattro
-    /// componenti liberi si apre, si ruota, si esporta, e si monta sbagliato.
-    /// Percio' questa operazione, oltre a inserire, **dice quanti gradi di
-    /// liberta' restano**, e lo dice a voce alta nella sua risposta: non e' un
-    /// dettaglio, e' l'unica misura che distingue un assieme da quattro pezzi
-    /// nella stessa stanza.
+    /// Inserting almost always succeeds. The part appears, the tree fills up, the
+    /// rebuild is clean, and **nothing is constrained**. An assembly of four
+    /// free components opens, rotates, exports, and is assembled wrong.
+    /// So this operation, besides inserting, **says how many degrees of
+    /// freedom remain**, and says it out loud in its answer: it is not
+    /// a detail, it is the only measure that tells an assembly from four parts
+    /// in the same room.
     ///
-    /// ── DUE PRECONDIZIONI CHE NON SI POSSONO INDOVINARE ──────────────────
+    /// ── TWO PRECONDITIONS THAT CANNOT BE GUESSED ─────────────────────────
     ///
-    ///  1. **Il documento deve essere un assieme.** Chiamare questa su una
-    ///     parte non e' un errore dell'utente da punire con un'eccezione: e' una
-    ///     cosa che si dice, col tipo che si e' trovato davanti.
-    ///  2. **Il componente dev'essere gia' APERTO.** `AddComponent5` prende un
-    ///     percorso, ma vuole il documento aperto in SOLIDWORKS: con un file
-    ///     chiuso risponde `null` **senza dire perche'**. E' la stessa
-    ///     precondizione delle viste di tavola, dove era gia' costata un giro.
-    ///     Qui si controlla PRIMA, e il rifiuto elenca cosa c'e' di aperto:
-    ///     un rifiuto che non dice l'alternativa costringe a indovinare.
+    ///  1. **The document must be an assembly.** Calling this on a
+    ///     part is not a user error to punish with an exception: it is a
+    ///     thing that is said, with the type that was found.
+    ///  2. **The component must already be OPEN.** `AddComponent5` takes a
+    ///     path, but wants the document open in SOLIDWORKS: with a closed
+    ///     file it answers `null` **without saying why**. It is the same
+    ///     precondition as the drawing views, where it had already cost a run.
+    ///     Here it is checked FIRST, and the refusal lists what is open:
+    ///     a refusal that does not say the alternative forces you to guess.
     /// </summary>
     public partial class SwOperations
     {
@@ -63,12 +63,12 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "Il file «" + filePath + "» non esiste. " + WhatIsOpen());
 
-            // ── E' APERTO? ───────────────────────────────────────────────
+            // ── IS IT OPEN? ──────────────────────────────────────────────
             //
-            // Il controllo sta qui e non dopo, perche' dopo non ci sarebbe
-            // niente da leggere: `AddComponent5` risponde null e basta, e un
-            // null non dice se il file manca, se e' chiuso, o se il percorso e'
-            // scritto in un altro modo.
+            // The check is here and not afterwards, because afterwards there would be
+            // nothing to read: `AddComponent5` answers null and that is all, and a
+            // null does not say whether the file is missing, whether it is closed, or whether the path is
+            // written another way.
             if (!IsOpen(filePath))
                 return Failed(
                     "«" + Path.GetFileName(filePath) + "» non e' aperto in SOLIDWORKS, e " +
@@ -135,32 +135,32 @@ namespace Oce.Solid.Agent.Core
                 return Failed("Non sono riuscito a inserire il componente: " + ex.Message);
             }
 
-            // IL NOME SI PRENDE PRIMA DELLA RICOSTRUZIONE, e serve per ritrovare
-            // il componente DOPO. Una ricostruzione puo' invalidare i puntatori
-            // COM ai componenti: continuare a interrogare la maniglia che
-            // `AddComponent5` ha restituito vorrebbe dire misurare su un
-            // riferimento vecchio, e leggere numeri credibili e sbagliati.
+            // THE NAME IS TAKEN BEFORE THE REBUILD, and it is needed to find
+            // the component AFTER. A rebuild can invalidate the COM pointers
+            // to the components: going on querying the handle that
+            // `AddComponent5` returned would mean measuring on an
+            // old reference, and reading credible and wrong numbers.
             //
-            // E' la regola di casa applicata un livello piu' in la': *il valore
-            // che torna da chi ha fatto la cosa non e' la misura della cosa* —
-            // e nemmeno l'OGGETTO che torna e' l'oggetto su cui misurare.
+            // It is the house rule applied one level further: *the value
+            // that comes back from whoever did the thing is not the measure of the thing* —
+            // and not even the OBJECT that comes back is the object to measure on.
             string itemName = null;
             try { itemName = born == null ? null : born.Name2; } catch { }
 
             try { model.EditRebuild3(); } catch { }
 
-            // Rilettura: si cerca per nome fra i componenti che l'assieme
-            // dichiara ADESSO. Se non si ritrova, si tiene la maniglia vecchia
-            // invece di rinunciare alla misura — dirlo e' meglio che tacere,
-            // ma una misura sospetta e' meglio di nessuna misura solo finche'
-            // si sa che e' sospetta, e infatti il caso di banco la sorveglia.
+            // Re-reading: it is searched by name among the components that the assembly
+            // declares NOW. If it is not found, the old handle is kept
+            // instead of giving up the measurement — saying so is better than keeping quiet,
+            // but a suspect measurement is better than none only as long as
+            // it is known to be suspect, and indeed the bench case watches it.
             var real = RereadComponent(assemblyDoc, itemName) ?? born;
 
-            // ── LA MISURA STA SULL'ASSIEME, NON SULLA RISPOSTA ───────────
+            // ── THE MEASUREMENT IS ON THE ASSEMBLY, NOT ON THE ANSWER ────
             //
-            // `AddComponent5` ha risposto un `IComponent2`, e *il valore che
-            // torna da chi ha fatto la cosa non e' la misura della cosa*: si
-            // conta quanti componenti ci sono adesso.
+            // `AddComponent5` answered an `IComponent2`, and *the value that
+            // comes back from whoever did the thing is not the measure of the thing*: we
+            // count how many components there are now.
             int after = HowManyComponentsInAssembly(assemblyDoc);
             if (after != before + 1)
                 return Failed(
@@ -194,23 +194,23 @@ namespace Oce.Solid.Agent.Core
 
             if (!string.IsNullOrWhiteSpace(referenced)) measurements["configuration"] = referenced;
 
-            // ── E' VINCOLATO? LE MISURE CHE FUNZIONANO DAVVERO ──────────
+            // ── IS IT CONSTRAINED? THE MEASUREMENTS THAT REALLY WORK ─────
             //
-            // I gradi di liberta' NON si possono avere da questa API in questo
-            // contesto: misurato il 16/9/2026, `GetRemainingDOFs` risponde
-            // `Unavailable` su un assieme appena costruito, selezionando il
-            // componente, dopo averlo salvato su disco, e perfino dopo un
-            // accoppiamento coincidente vero (`AddMate5` con `NoError`).
-            // Quattro condizioni, sempre lo stesso.
+            // The degrees of freedom CANNOT be had from this API in this
+            // context: measured on 16/9/2026, `GetRemainingDOFs` answers
+            // `Unavailable` on a just-built assembly, selecting the
+            // component, after saving it to disk, and even after a true
+            // coincident mate (`AddMate5` with `NoError`).
+            // Four conditions, always the same.
             //
-            // Quello che si misura DAVVERO sono due cose, e bastano a dire la
-            // verita': se il componente e' **fisso**, e **quanti accoppiamenti**
-            // ha. `IsFixed()` funziona — distingue il primo componente
-            // (inchiodato) dagli altri — e `GetMates()` si conta.
+            // What is REALLY measured is two things, and they are enough to tell the
+            // truth: whether the component is **fixed**, and **how many mates**
+            // it has. `IsFixed()` works — it tells the first component
+            // (nailed down) from the others — and `GetMates()` can be counted.
             //
-            // Un componente NON fisso con ZERO accoppiamenti e' appoggiato, e
-            // questo lo si sa per certo. Non si sa DI QUANTO sia libero, e
-            // infatti non lo si dice.
+            // A component that is NOT fixed with ZERO mates is just resting, and
+            // this is known for certain. HOW MUCH it is free is not known, and
+            // indeed it is not said.
             var deg = DegreesOfFreedom(real);
             measurements["degrees_of_freedom_state"] = deg.State;
             if (deg.Available) measurements["degrees_of_freedom_remaining"] = deg.HowMany;
@@ -225,28 +225,28 @@ namespace Oce.Solid.Agent.Core
             bool resting = !grounded && mates == 0;
             measurements["resting"] = resting;
 
-            // DOVE E' FINITA L'ORIGINE, che NON e' il punto che hai chiesto.
+            // WHERE THE ORIGIN ENDED UP, which is NOT the point you asked for.
             //
-            // `AddComponent5(x, y, z)` posiziona il **centro dell'ingombro**.
-            // Un pezzo con l'origine su una faccia — la norma, se e' stato
-            // estruso a una direzione sola — si ritrova l'origine spostata di
-            // meta' spessore. Misurato il 17/9/2026 e previsto prima: spesso 4
-            // chiesto a z=30 → origine a (0, -2, 30); spesso 10 chiesto a 0 →
+            // `AddComponent5(x, y, z)` places the **centre of the bounding box**.
+            // A part with the origin on a face — the norm, if it was
+            // extruded in one direction only — finds its origin shifted by
+            // half the thickness. Measured on 17/9/2026 and predicted beforehand: thickness 4
+            // asked at z=30 → origin at (0, -2, 30); thickness 10 asked at 0 →
             // (0, -5, 0).
             //
-            // Si riporta perche' e' cio' che il modello rileggera' nello stato,
-            // e vedere due numeri diversi senza spiegazione e' peggio che
-            // vederne uno solo.
+            // It is reported because it is what the model will read back in the state,
+            // and seeing two different numbers without an explanation is worse than
+            // seeing only one.
             var origin = ComponentOriginMm(real);
             if (origin != null) measurements["origin_mm"] = origin;
 
-            // IL GIUDIZIO E' UNA FRASE, NON UN NUMERO, e viaggia con le misure.
+            // THE VERDICT IS A SENTENCE, NOT A NUMBER, and travels with the measurements.
             //
-            // «degrees_of_freedom_remaining: 6» da solo non dice cosa fare. E chi
-            // legge questa risposta potrebbe non aver mai letto la descrizione
-            // dell'operazione: l'avvertimento va qui, dove arriva comunque. E'
-            // la stessa scelta di `check_body_geometry`, che accanto a
-            // `printable` scrive `verdict`.
+            // «degrees_of_freedom_remaining: 6» alone does not say what to do. And whoever
+            // reads this answer may never have read the description of the
+            // operation: the warning goes here, where it arrives anyway. It is
+            // the same choice as `check_body_geometry`, which next to
+            // `printable` writes `verdict`.
             string verdictValue =
                 "Inserito «" + (itemName ?? Path.GetFileName(filePath)) + "» a " +
                 AssemblyMm(x) + ", " + AssemblyMm(y) + ", " + AssemblyMm(z) + " mm. " +
@@ -273,30 +273,30 @@ namespace Oce.Solid.Agent.Core
         // =================================================================
 
         /// <summary>
-        /// I gradi di liberta' residui di un componente, o `-1` se non si sono
-        /// potuti leggere.
+        /// The residual degrees of freedom of a component, or `-1` if they could not
+        /// be read.
         ///
-        /// `IComponent2.GetRemainingDOFs` ha **dodici parametri in uscita** —
-        /// due punti e quattro direzioni con i rispettivi stati — e il numero
-        /// che serve e' il **valore di ritorno**, non qualcosa da dedurre da
-        /// quelli. I dodici servono per dire *quale* liberta' resta, ed e' una
-        /// voce a se' (GA4): qui si conta e basta.
+        /// `IComponent2.GetRemainingDOFs` has **twelve output parameters** —
+        /// two points and four directions with their statuses — and the number
+        /// that is needed is the **return value**, not something to deduce from
+        /// those. The twelve serve to say *which* freedom remains, and that is a
+        /// separate entry (GA4): here we count and that is all.
         ///
-        /// Su un componente appena inserito e non accoppiato ci si aspetta
-        /// **6**: tre traslazioni e tre rotazioni. Uno **zero** su un componente
-        /// che nessuno ha accoppiato non vuol dire «vincolato bene»: vuol dire
-        /// FISSO, che e' un'altra cosa — per questo lo stato scrive anche
-        /// `grounded` a parte (voce GA1).
+        /// On a just-inserted and unmated component **6** is expected:
+        /// three translations and three rotations. A **zero** on a component
+        /// that nobody mated does not mean «well constrained»: it means
+        /// FIXED, which is another thing — that is why the state also writes
+        /// `grounded` separately (entry GA1).
         /// </summary>
         /// <remarks>
-        /// `internal` e non `private`: la legge anche `StatoAssieme` (voce GA5),
-        /// e due copie della stessa lettura sono due cose da tenere allineate a
-        /// mano.
+        /// `internal` and not `private`: `StatoAssieme` reads it too (entry GA5),
+        /// and two copies of the same reading are two things to keep aligned by
+        /// hand.
         /// </remarks>
         /// <remarks>
-        /// `internal`: la usa anche `StatoAssieme`, per la stessa ragione per
-        /// cui e' internal `DegreesOfFreedom` — una sola lettura, un solo posto
-        /// da riparare.
+        /// `internal`: `StatoAssieme` uses it too, for the same reason
+        /// why `DegreesOfFreedom` is internal — one reading, one place
+        /// to repair.
         /// </remarks>
         internal static int MatesOf(IComponent2 component)
         {
@@ -319,10 +319,10 @@ namespace Oce.Solid.Agent.Core
 
                 outside.State = DofStateName(outcome);
 
-                // IL CONTEGGIO SI RICAVA DAGLI STATI, e SOLO se l'esito dice
-                // che l'informazione c'e'. I sei `status` sono di
-                // `swDofStatus_e`: `Unused` vuol dire «questo posto non
-                // descrive niente», non «zero gradi».
+                // THE COUNT IS DERIVED FROM THE STATES, and ONLY if the outcome says
+                // that the information is there. The six `status` values are of
+                // `swDofStatus_e`: `Unused` means «this slot
+                // describes nothing», not «zero degrees».
                 if (outcome == (int)swRemainingDofs_e.swRemainingDofs_Restricted ||
                     outcome == (int)swRemainingDofs_e.swRemainingDofs_Unrestricted)
                 {
@@ -334,29 +334,29 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Cosa ha risposto `GetRemainingDOFs`, e se ne e' uscito un numero.
+        /// What `GetRemainingDOFs` answered, and whether a number came out of it.
         ///
-        /// ── PERCHE' NON E' PIU' UN `int` ─────────────────────────────────
+        /// ── WHY IT IS NO LONGER AN `int` ─────────────────────────────────
         ///
-        /// Fino alla 0.58.0 questo metodo tornava direttamente il valore di
-        /// `GetRemainingDOFs` e lo si pubblicava come
-        /// `degrees_of_freedom_remaining`. **Era sbagliato: quel valore non e' un
-        /// conteggio, e' uno stato** (`swRemainingDofs_e`). Misurato il
-        /// 16/9/2026: su un assieme appena costruito risponde **2**, che vuol
-        /// dire `Unavailable` — e lo risponde **identico su un componente fisso
-        /// e su uno libero**.
+        /// Up to 0.58.0 this method returned the value of
+        /// `GetRemainingDOFs` directly and it was published as
+        /// `degrees_of_freedom_remaining`. **It was wrong: that value is not a
+        /// count, it is a status** (`swRemainingDofs_e`). Measured on
+        /// 16/9/2026: on a just-built assembly it answers **2**, which means
+        /// `Unavailable` — and it answers it **identical on a fixed component
+        /// and on a free one**.
         ///
-        /// Il ponte stampava «ha ancora 2 gradi di liberta' su 6». Numero
-        /// inventato, unita' inventata, e uguale per un pezzo inchiodato e uno
-        /// che ballava. *Un caso in cui due valori diversi danno lo stesso
-        /// risultato non tabella niente* — e questo lo pubblicava come misura.
+        /// The bridge printed «has still 2 degrees of freedom out of 6». Invented
+        /// number, invented unit, and equal for a nailed-down part and one
+        /// that was dancing. *A case in which two different values give the same
+        /// result tabulates nothing* — and this published it as a measurement.
         /// </summary>
         internal sealed class DegreesOfFreedomRead
         {
-            /// <summary>Il nome dello stato: «non disponibile», «libero», …</summary>
+            /// <summary>The name of the status: «non disponibile», «libero», …</summary>
             public string State;
 
-            /// <summary>Quanti gradi, oppure `-1` se non si e' potuto sapere.</summary>
+            /// <summary>How many degrees, or `-1` if it could not be known.</summary>
             public int HowMany;
 
             public bool Available { get { return HowMany >= 0; } }
@@ -374,9 +374,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// `swRemainingDofs_e`, col nome. I valori sono
+        /// `swRemainingDofs_e`, with the name. The values are
         /// Restricted=0, Unrestricted=1, **Unavailable=2**, Failed=3,
-        /// RootComponent=4 — e il 2 e' quello che si incontra sempre.
+        /// RootComponent=4 — and 2 is the one that is always met.
         /// </summary>
         private static string DofStateName(int outcome)
         {
@@ -392,12 +392,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Ritrova un componente per nome fra quelli che l'assieme dichiara
-        /// adesso, o `null` se non c'e'.
+        /// Finds a component by name among those the assembly declares
+        /// now, or `null` if it is not there.
         ///
-        /// `Name2` e' unico dentro un assieme — e' il nome con cui SOLIDWORKS
-        /// stesso distingue le istanze — quindi cercarlo cosi' non e'
-        /// ambiguo, nemmeno con due copie dello stesso file («base-1» e
+        /// `Name2` is unique inside an assembly — it is the name with which SOLIDWORKS
+        /// itself tells the instances apart — so searching for it this way is not
+        /// ambiguous, not even with two copies of the same file («base-1» and
         /// «base-2»).
         /// </summary>
         private static IComponent2 RereadComponent(IAssemblyDoc assemblyDoc, string itemName)
@@ -421,41 +421,41 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti accoppiamenti ha il componente, o `-1` se non si e' potuto
-        /// sapere.
+        /// How many mates the component has, or `-1` if it could not be
+        /// known.
         ///
-        /// ── `null` VUOL DIRE ZERO, MA SOLO SE IL COMPONENTE E' VIVO ─────
+        /// ── `null` MEANS ZERO, BUT ONLY IF THE COMPONENT IS ALIVE ───────
         ///
-        /// `GetMates()` risponde **null quando gli accoppiamenti sono zero**,
-        /// non un array vuoto — misurato il 16/9/2026 su un componente appena
-        /// inserito. E' la convenzione di mezza API di SOLIDWORKS, ed e' anche
-        /// il modo in cui «non ce ne sono» e «non ho potuto leggere» diventano
-        /// la stessa risposta.
+        /// `GetMates()` answers **null when the mates are zero**,
+        /// not an empty array — measured on 16/9/2026 on a just-inserted
+        /// component. It is the convention of half the SOLIDWORKS API, and it is also
+        /// the way «there are none» and «I could not read» become
+        /// the same answer.
         ///
-        /// Qui le due cose si separano, e il discrimine e' se il componente
-        /// **risponde ancora**: se `Name2` si legge, la maniglia e' viva e un
-        /// `null` da `GetMates` significa davvero zero. Se non si legge
-        /// nemmeno il nome, non si sa niente e si dice `-1`.
+        /// Here the two things are separated, and the discriminator is whether the component
+        /// **still answers**: if `Name2` can be read, the handle is alive and a
+        /// `null` from `GetMates` really means zero. If not even the name
+        /// can be read, nothing is known and `-1` is said.
         ///
-        /// La differenza non e' accademica: `accoppiamenti = 0` porta a
-        /// «resting», che e' un **avvertimento**; `-1` porta a «non lo so»,
-        /// che e' un'altra cosa. Confonderle vorrebbe dire o tacere un pericolo
-        /// o gridarne uno che non c'e'.
+        /// The difference is not academic: `accoppiamenti = 0` leads to
+        /// «resting», which is a **warning**; `-1` leads to «I do not know»,
+        /// which is another thing. Confusing them would mean either keeping quiet about a danger
+        /// or shouting about one that is not there.
         ///
-        /// ZERO-E-ZERO: il `m == null ? 0` qui sotto e' uno zero VERO, non un
-        /// ripiego, e il motivo e' le sei righe qui sopra — a quel punto la
-        /// maniglia ha gia' risposto, quindi `null` vuol dire zero. E' l'unico
-        /// punto del repository che la regola di Z-C8 la rispettava gia', ed e'
-        /// il modello per gli altri venti: **`-1` per «non lo so», `0` solo
-        /// quando lo zero e' un'affermazione che si puo' fare.**
-        /// (`Checks/zero-or-unknown.js` legge questo marcatore.)
+        /// ZERO-E-ZERO: the `m == null ? 0` below is a TRUE zero, not a
+        /// fallback, and the reason is the six lines above — at that point the
+        /// handle has already answered, so `null` means zero. It is the only
+        /// point of the repository that already respected the rule of Z-C8, and it is
+        /// the model for the other twenty: **`-1` for «I do not know», `0` only
+        /// when the zero is a statement that can be made.**
+        /// (`Checks/zero-or-unknown.js` reads this marker.)
         /// </summary>
         private static int CountMates(IComponent2 component)
         {
             if (component == null) return -1;
             try
             {
-                var its = component.Name2;      // se lancia, la maniglia e' morta
+                var its = component.Name2;      // if it throws, the handle is dead
                 if (its == null) return -1;
             }
             catch { return -1; }
@@ -469,12 +469,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Dove sta l'origine del componente, in mm, o `null`.
+        /// Where the origin of the component is, in mm, or `null`.
         ///
-        /// Stessa lettura di `StatoAssieme`, e per la stessa ragione sta scritta
-        /// una volta sola: `GetTotalTransform(false)`, indici 9-10-11 di
-        /// `ArrayData`. Il `false` esclude la trasformazione di esploso — con
-        /// `true` si leggerebbe la posizione **nella vista esplosa**.
+        /// Same reading as `StatoAssieme`, and for the same reason it is written
+        /// only once: `GetTotalTransform(false)`, indices 9-10-11 of
+        /// `ArrayData`. The `false` excludes the explode transformation — with
+        /// `true` the position **in the exploded view** would be read.
         /// </summary>
         private static object[] ComponentOriginMm(IComponent2 c)
         {
@@ -496,20 +496,20 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti problemi dichiara il documento, o `-1` se non si sa.
+        /// How many problems the document declares, or `-1` if unknown.
         ///
-        /// ── PERCHE' SERVE, E PERCHE' IL CONTEGGIO DEI VINCOLI NON BASTA ──
+        /// ── WHY IT IS NEEDED, AND WHY THE COUNT OF THE CONSTRAINTS IS NOT ENOUGH ──
         ///
-        /// Dopo una sostituzione di componente gli accoppiamenti **restano**
-        /// (misurato). Restare non vuol dire funzionare: un vincolo che punta a
-        /// una faccia del pezzo VECCHIO sopravvive come voce nell'albero e va in
-        /// errore. Il conteggio lo vede ancora — e direbbe «due prima, due
-        /// adesso», cioe' tutto a posto.
+        /// After a component replacement the mates **stay** (measured).
+        /// Staying does not mean working: a constraint that points to
+        /// a face of the OLD part survives as an entry in the tree and goes into
+        /// error. The count still sees it — and would say «two before, two
+        /// now», that is, all fine.
         ///
-        /// **Due vincoli rotti sono peggio di zero vincoli**: zero si vede,
-        /// rotti sembrano vincolare. `GetWhatsWrongCount` e' la domanda che
-        /// separa le due cose, ed e' la stessa che il progettista si fa
-        /// guardando l'albero rosso.
+        /// **Two broken constraints are worse than zero constraints**: zero shows,
+        /// broken ones look like they constrain. `GetWhatsWrongCount` is the question that
+        /// separates the two things, and it is the same one the designer asks
+        /// looking at the red tree.
         /// </summary>
         internal static int HowManyProblems(IModelDoc2 model)
         {
@@ -598,12 +598,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'elenco di cosa e' aperto, per il rifiuto.
+        /// The list of what is open, for the refusal.
         ///
-        /// UN RIFIUTO CHE NON DICE L'ALTERNATIVA COSTRINGE A INDOVINARE, e
-        /// indovinare e' il modo in cui si sbaglia in silenzio. Qui costa una
-        /// riga: si dicono i file aperti, che sono gli unici percorsi che
-        /// l'inserimento accetta.
+        /// A REFUSAL THAT DOES NOT SAY THE ALTERNATIVE FORCES YOU TO GUESS, and
+        /// guessing is the way one goes wrong silently. Here it costs one
+        /// line: the open files are said, which are the only paths that
+        /// the insertion accepts.
         /// </summary>
         private string WhatIsOpen()
         {
@@ -635,13 +635,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Millimetri per un messaggio.
+        /// Millimetres for a message.
         ///
-        /// NOME DIVERSO DA QUALUNQUE ALTRO HELPER DI QUESTA CLASSE PARZIALE.
-        /// `SwOperations` e' spalmata su una quindicina di file, e un metodo
-        /// privato con lo stesso nome in due file e' un errore di compilazione
-        /// che parla di «piu' definizioni», non del posto giusto. `AssemblyMm`
-        /// e' brutto e non collide: e' la stessa riparazione di `TripletMm` e
+        /// NAME DIFFERENT FROM ANY OTHER HELPER OF THIS PARTIAL CLASS.
+        /// `SwOperations` is spread over some fifteen files, and a private
+        /// method with the same name in two files is a compilation error
+        /// that talks about «more definitions», not about the right place. `AssemblyMm`
+        /// is ugly and does not collide: it is the same repair as `TripletMm` and
         /// `DistanceBetweenPoints`.
         /// </summary>
         private static string AssemblyMm(double v)

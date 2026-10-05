@@ -8,16 +8,16 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// SOSTITUIRE UN COMPONENTE (voce GA7).
+    /// REPLACING A COMPONENT (entry GA7).
     ///
-    /// ── LA FIRMA C'ERA, IL CENSIMENTO GUARDAVA L'INTERFACCIA SBAGLIATA ───
+    /// ── THE SIGNATURE WAS THERE, THE CENSUS LOOKED AT THE WRONG INTERFACE ───
     ///
-    /// La voce diceva: *«il censimento 80q NON elenca una firma dedicata;
-    /// `IComponent2` ha 170 metodi e quasi certamente esiste qualcosa tipo
-    /// `ReplaceComponent`, ma va cercata e letta, non assunta»*, e da li' il
-    /// «non stimabile».
+    /// The entry said: *«the census 80q does NOT list a dedicated signature;
+    /// `IComponent2` has 170 methods and almost certainly something like
+    /// `ReplaceComponent` exists, but it has to be looked for and read, not assumed»*, and from there the
+    /// «not estimable».
     ///
-    /// **Su `IComponent2` non c'e', e non c'e' mai stata.** Sta su
+    /// **It is not on `IComponent2`, and never was.** It is on
     /// `IAssemblyDoc`:
     ///
     ///     Boolean ReplaceComponents2(String FileName, String ConfigName,
@@ -25,35 +25,35 @@ namespace Oce.Solid.Agent.Core
     ///                                Int32 UseConfigChoice,
     ///                                Boolean ReAttachMates)
     ///
-    /// E' la stessa lezione gia' pagata due volte in questo progetto:
-    /// *un nome dice come si chiama un metodo, non su quale interfaccia sta*
-    /// (nota `81s`, `AddConfiguration3`). Cercare per centosettanta metodi
-    /// sull'oggetto sbagliato non trova niente, e «non l'ho trovata» diventa
-    /// «non esiste».
+    /// It is the same lesson already paid for twice in this project:
+    /// *a name says what a method is called, not which interface it is on*
+    /// (note `81s`, `AddConfiguration3`). Searching through a hundred and seventy methods
+    /// on the wrong object finds nothing, and «I did not find it» becomes
+    /// «it does not exist».
     ///
-    /// ── IL RISCHIO CHE LA VOCE NOMINA, E CHE QUI SI MISURA ───────────────
+    /// ── THE RISK THAT THE ENTRY NAMES, AND THAT IS MEASURED HERE ─────────
     ///
-    /// *«Se l'API sostituisce il documento ma NON conserva gli accoppiamenti, si
-    /// ripresenta identico il difetto tipico: pezzo diverso, nessun errore.»*
+    /// *«If the API replaces the document but does NOT keep the mates, the
+    /// typical defect shows up identical again: different part, no error.»*
     ///
-    /// `ReAttachMates` e' un parametro, quindi si puo' **chiedere** che li
-    /// conservi. Chiedere non e' ottenere: si contano gli accoppiamenti **prima
-    /// e dopo**, e se sono calati lo si dice a voce alta invece di dichiarare
-    /// fatto. Un coperchio sostituito che ha perso i suoi vincoli e' un assieme
-    /// che sembra montato e non lo e'.
+    /// `ReAttachMates` is a parameter, so it can be **asked** to keep
+    /// them. Asking is not getting: the mates are counted **before
+    /// and after**, and if they dropped it is said out loud instead of declaring
+    /// it done. A replaced cover that has lost its constraints is an assembly
+    /// that looks assembled and is not.
     ///
-    /// ── E IL CONTEGGIO NON BASTA: **RESTARE NON E' FUNZIONARE** ──────────
+    /// ── AND THE COUNT IS NOT ENOUGH: **REMAINING IS NOT WORKING** ─────────
     ///
-    /// Misurato dal banco, ed e' la cosa che questa voce ha trovato: i vincoli
-    /// del pezzo vecchio **non si perdono** — due prima, due dopo — **e vanno
-    /// in errore**, perche' puntavano a facce che non ci sono piu'. Il
-    /// conteggio degli accoppiamenti non lo puo' vedere: da solo direbbe
-    /// «tutto a posto». Lo vede `GetWhatsWrongCount`, che e' la stessa domanda
-    /// che si fa un progettista guardando l'albero rosso.
+    /// Measured by the bench, and it is what this entry found: the constraints
+    /// of the old part **are not lost** — two before, two after — **and go
+    /// into error**, because they pointed to faces that no longer exist. The
+    /// count of the mates cannot see it: on its own it would say
+    /// «all fine». `GetWhatsWrongCount` sees it, which is the same question
+    /// that a designer asks looking at the red tree.
     ///
-    /// Percio' le misure sono DUE coppie prima/dopo e non una: quanti
-    /// accoppiamenti, e quanti problemi. **Un vincolo rotto e' peggio di un
-    /// vincolo assente**: assente si vede, rotto sembra che tenga.
+    /// Therefore the measures are TWO before/after pairs and not one: how many
+    /// mates, and how many problems. **A broken constraint is worse than an
+    /// absent constraint**: an absent one is seen, a broken one seems to hold.
     /// </summary>
     public partial class SwOperations
     {
@@ -97,9 +97,9 @@ namespace Oce.Solid.Agent.Core
                     "«" + Path.GetFileName(newItem) + "» non e' aperto in SOLIDWORKS, e la " +
                     "sostituzione vuole un documento gia' aperto. " + WhatIsOpen());
 
-            // SOSTITUIRE UN PEZZO CON SE STESSO NON E' UN'OPERAZIONE.
-            // Riuscirebbe, non cambierebbe niente, e chi l'ha chiesta credeva di
-            // aver cambiato il pezzo.
+            // REPLACING A PART WITH ITSELF IS NOT AN OPERATION.
+            // It would succeed, it would change nothing, and whoever asked for it believed they
+            // had changed the part.
             string old = null;
             try { old = comp.GetPathName(); } catch { }
             if (!string.IsNullOrWhiteSpace(old) &&
@@ -133,34 +133,34 @@ namespace Oce.Solid.Agent.Core
                         "whole, the part in angle brackets included. Nothing was replaced.");
             }
 
-            // ── `ReAttachMates` NON E' UNA SCELTA: E' SEMPRE `false` ─────
+            // ── `ReAttachMates` IS NOT A CHOICE: IT IS ALWAYS `false` ─────
             //
-            // Misurato il 17/9/2026, sei condizioni. Con `true` **e** il
-            // componente che ha davvero degli accoppiamenti da riagganciare,
-            // `ReplaceComponents2` solleva `RPC_E_SERVERFAULT` — sempre:
-            // assieme salvato o no, file nuovo aperto o chiuso. Con `false`
-            // passa sempre.
+            // Measured on 17/9/2026, six conditions. With `true` **and** a
+            // component that really has mates to re-attach,
+            // `ReplaceComponents2` raises `RPC_E_SERVERFAULT` — always:
+            // assembly saved or not, new file open or closed. With `false`
+            // it always goes through.
             //
-            // **E qui mi ero sbagliato**, e va scritto dove sta il codice e non
-            // solo nel changelog: da «con `false` passa» avevo DEDOTTO «con
-            // `false` i vincoli si perdono». Il banco ha misurato il contrario —
-            // due prima, due dopo, zero persi — e poi la cosa vera: **i vincoli
-            // restano e vanno in ERRORE.** `ReAttachMates: false` non vuol dire
-            // «scartali», vuol dire «non provare a riagganciarli in modo
-            // interattivo». *Restare non e' funzionare*, ed e' esattamente
-            // percio' che qui sotto non basta contarli.
+            // **And here I was wrong**, and it must be written where the code is and not
+            // only in the changelog: from «with `false` it goes through» I had DEDUCED «with
+            // `false` the constraints are lost». The bench measured the opposite —
+            // two before, two after, zero lost — and then the true thing: **the constraints
+            // remain and go into ERROR.** `ReAttachMates: false` does not mean
+            // «discard them», it means «do not try to re-attach them
+            // interactively». *Remaining is not working*, and it is exactly
+            // for that reason that counting them below is not enough.
             //
-            // Quindi non si espone una manopola che puo' stare in una posizione
-            // sola: *un argomento che non cambia niente e' peggio di un
-            // argomento che non c'e', perche' chi lo mette crede di aver
-            // deciso qualcosa.* Si passa `false` e si DICE cosa comporta.
+            // So a knob that can sit in only one position is not exposed:
+            // *an argument that changes nothing is worse than an
+            // argument that is not there, because whoever sets it believes they have
+            // decided something.* `false` is passed and what it entails is SAID.
             const bool riaggancia = false;
 
-            // ── SI CONTA PRIMA, SU TUTTO L'ASSIEME ──────────────────────
+            // ── IT IS COUNTED FIRST, ON THE WHOLE ASSEMBLY ──────────────
             //
-            // Non solo sul componente toccato: un accoppiamento lega DUE pezzi,
-            // e perderlo si vede da tutti e due. Il totale e' la misura che non
-            // dipende da quale maniglia sopravvive alla sostituzione.
+            // Not only on the touched component: a mate ties TWO parts,
+            // and losing it is seen from both. The total is the measure that does not
+            // depend on which handle survives the replacement.
             int accBefore = TotalMates(components);
             int howManyBefore = components.Count;
             int problemsBefore = HowManyProblems(model);
@@ -218,7 +218,7 @@ namespace Oce.Solid.Agent.Core
 
             try { model.EditRebuild3(); } catch { }
 
-            // ── E SI CONTA DOPO ─────────────────────────────────────────
+            // ── AND IT IS COUNTED AFTER ─────────────────────────────────
             object[] rawAfter = null;
             try { rawAfter = assemblyDoc.GetComponents(false) as object[]; } catch { }
             var afterComp = DocumentState.ComponentsInOrder(rawAfter);
@@ -304,12 +304,12 @@ namespace Oce.Solid.Agent.Core
                 measurements["configuration_as_asked"] = (bool)configurationAsAsked;
             }
 
-            // ── I VINCOLI CI SONO ANCORA. FUNZIONANO? ───────────────────
+            // ── THE CONSTRAINTS ARE STILL THERE. DO THEY WORK? ──────────
             //
-            // Sono due domande diverse, e il conteggio risponde solo alla
-            // prima. Un vincolo che puntava a una faccia del pezzo vecchio
-            // resta nell'albero e va in ERRORE: il conteggio lo vede ancora e
-            // direbbe «due prima, due adesso».
+            // They are two different questions, and the count answers only the
+            // first. A constraint that pointed to a face of the old part
+            // stays in the tree and goes into ERROR: the count still sees it and
+            // would say «two before, two now».
             int problemsAfter = HowManyProblems(model);
             if (problemsBefore >= 0 && problemsAfter >= 0)
             {
@@ -318,14 +318,14 @@ namespace Oce.Solid.Agent.Core
             }
             bool brokenOnes = problemsBefore >= 0 && problemsAfter > problemsBefore;
 
-            // ── IL GIUDIZIO, che e' il punto della voce ─────────────────
+            // ── THE JUDGMENT, which is the point of the entry ────────────
             string verdictValue;
             string done = "Sostituito «" + measurements["source"] + "» con «" + measurements["target"] +
                            "» su " + uid + ". ";
             if (brokenOnes)
-                // IL CASO PEGGIORE, E NON E' «PERSI»: i vincoli ci sono ancora e
-                // sono ROTTI. Zero vincoli si vede; due vincoli in errore
-                // sembrano vincolare.
+                // THE WORST CASE, AND IT IS NOT «LOST»: the constraints are still there and
+                // are BROKEN. Zero constraints is seen; two constraints in error
+                // seem to constrain.
                 verdictValue = done + "ATTENZIONE: gli accoppiamenti ci sono ancora (" +
                            accAfter + ") ma il documento ha " + problemsAfter +
                            " problemi contro i " + problemsBefore + " di prima: **qualcuno " +
@@ -362,30 +362,30 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Seleziona un COMPONENTE. Non e' come selezionare una faccia.
+        /// Selects a COMPONENT. It is not like selecting a face.
         ///
-        /// ── L'ERRORE CHE QUESTO METODO ESISTE PER NON RIPETERE ──────────
+        /// ── THE MISTAKE THIS METHOD EXISTS NOT TO REPEAT ────────────────
         ///
-        /// La prima stesura faceva `(comp as IEntity).Select4(false, null)`,
-        /// che e' come si selezionano le facce e gli spigoli in tutto il resto
-        /// di questo progetto. **`IComponent2` non si casta a `IEntity`:** il
-        /// cast torna `null`, e la chiamata esplode con «Riferimento a un
-        /// oggetto non impostato» — un messaggio che parla di tutt'altro.
+        /// The first draft did `(comp as IEntity).Select4(false, null)`,
+        /// which is how faces and edges are selected in the whole rest
+        /// of this project. **`IComponent2` cannot be cast to `IEntity`:** the
+        /// cast returns `null`, and the call blows up with «Riferimento a un
+        /// oggetto non impostato» — a message that talks about something entirely different.
         ///
-        /// `IComponent2` ha un `Select4` **suo**, con tre parametri invece di
-        /// due:
+        /// `IComponent2` has a `Select4` **of its own**, with three parameters instead of
+        /// two:
         ///
         ///     Boolean Select4(Boolean Append, SelectData Data, Boolean ShowPopup)
         ///
-        /// **Il terzo va `false`.** `ShowPopup: true` aprirebbe una finestra, e
-        /// una finestra modale appende la chiamata COM con il ponte dietro: da
-        /// qui non c'e' nessuno che possa chiuderla. E' la stessa trappola di
-        /// `AddDimension` e di `ManuallySelect` qui sopra — **tre chiamate
-        /// diverse, nella stessa operazione, che sanno aprire una finestra.**
+        /// **The third goes `false`.** `ShowPopup: true` would open a window, and
+        /// a modal window hangs the COM call with the bridge behind it: from
+        /// here there is nobody who can close it. It is the same trap as
+        /// `AddDimension` and `ManuallySelect` above — **three different
+        /// calls, in the same operation, that know how to open a window.**
         ///
-        /// *Due metodi con lo stesso nome su due interfacce diverse, con firme
-        /// diverse: il compilatore non aiuta, perche' il cast sbagliato compila
-        /// benissimo e fallisce a runtime.*
+        /// *Two methods with the same name on two different interfaces, with different
+        /// signatures: the compiler does not help, because the wrong cast compiles
+        /// perfectly well and fails at runtime.*
         /// </summary>
         private static bool SelectComponent(IComponent2 c)
         {
@@ -395,15 +395,15 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti accoppiamenti in tutto l'assieme, contando per componente.
+        /// How many mates in the whole assembly, counting per component.
         ///
-        /// **E' un conteggio di ESTREMI, non di accoppiamenti**: ogni vincolo
-        /// lega due pezzi e viene contato due volte. Non si divide per due,
-        /// perche' non tutti i vincoli legano esattamente due componenti e
-        /// dividere introdurrebbe un numero che a volte e' mezzo. Qui serve solo
-        /// per il CONFRONTO prima/dopo, e per quello un conteggio doppio va bene
-        /// quanto uno singolo — purche' si sappia che e' doppio, ed e' per
-        /// questo che c'e' scritto.
+        /// **It is a count of ENDS, not of mates**: every constraint
+        /// ties two parts and is counted twice. It is not divided by two,
+        /// because not all constraints tie exactly two components and
+        /// dividing would introduce a number that is sometimes a half. Here it is needed only
+        /// for the before/after COMPARISON, and for that a double count is as good
+        /// as a single one — provided it is known to be double, and that is
+        /// why it is written down.
         /// </summary>
         private static int TotalMates(
             List<KeyValuePair<string, IComponent2>> components)

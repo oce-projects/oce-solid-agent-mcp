@@ -8,40 +8,40 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA TOLLERANZA SULLA QUOTA DEL MODELLO (voce Z-F2).
+    /// THE TOLERANCE ON THE DIMENSION OF THE MODEL (entry Z-F2).
     ///
-    /// Un foro Ø10 senza tolleranza non e' un'informazione di fabbricazione: il
-    /// tornitore non sa se ci va un perno o un cavo. Messa sulla quota del
-    /// MODELLO, la tolleranza arriva in tavola da sola con `model_dimensions`.
+    /// A hole Ø10 without a tolerance is not manufacturing information: the
+    /// turner does not know whether a pin or a cable goes in it. Put on the dimension of the
+    /// MODEL, the tolerance reaches the drawing by itself with `model_dimensions`.
     ///
-    /// ── MISURATO PRIMA DI SCRIVERLA, 26/9/2026 (`prova0089 tolq`) ─────────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 tolq`) ─────────
     ///
     /// `IDimension.Tolerance` (`IDimensionTolerance`): `Type` (swTolType_e),
     /// `SetValues2(min, max, config, nomi)`, `SetFitValues(foro, albero)`.
     ///
-    ///   simmetrica ±0,05          -> tipo 4, min -0,05, max +0,05
-    ///   H7 su Ø10 (tipo 8 e 7)    -> min 0, max +0,015: SOLIDWORKS calcola da
-    ///                                se' gli scostamenti ISO 286
+    ///   symmetric ±0.05           -> type 4, min -0.05, max +0.05
+    ///   H7 on Ø10 (types 8 and 7) -> min 0, max +0.015: SOLIDWORKS computes the
+    ///                                ISO 286 deviations by itself
     ///
-    /// **E IL DIFETTO VISTO NEL PNG:** in tavola la quota usciva «10 H7 +0 / 0».
-    /// I limiti si stampano coi decimali della TOLLERANZA, che di serie seguono
-    /// quelli della quota — zero. «+0/0» in officina vuol dire «esatta», che e'
-    /// peggio di nessuna tolleranza. Qui si impostano i decimali della
-    /// tolleranza sulla quota (`IDisplayDimension.SetPrecision3`, il terzo
-    /// argomento) e si rileggono.
+    /// **AND THE DEFECT SEEN IN THE PNG:** in the drawing the dimension came out «10 H7 +0 / 0».
+    /// The limits are printed with the decimals of the TOLERANCE, which by default follow
+    /// those of the dimension — zero. «+0/0» in the workshop means «exact», which is
+    /// worse than no tolerance. Here the decimals of the
+    /// tolerance are set on the dimension (`IDisplayDimension.SetPrecision3`, the third
+    /// argument) and read back.
     ///
-    /// ── IL CONTROLLO INDIPENDENTE ───────────────────────────────────────
+    /// ── THE INDEPENDENT CHECK ───────────────────────────────────────────
     ///
-    /// Per un accoppiamento il numero lo calcola SOLIDWORKS, e rileggerlo da
-    /// SOLIDWORKS e' la stessa lettura due volte. Il riscontro vero e' la tabella
-    /// ISO 286-1: l'ampiezza (max - min) deve essere il grado IT della classe per
-    /// quel diametro, e il segno quello della lettera (H parte da zero in su, h da
-    /// zero in giu'). Se non torna, si rimette com'era e si rifiuta.
+    /// For a fit the number is computed by SOLIDWORKS, and reading it back from
+    /// SOLIDWORKS is the same reading twice. The true cross-check is the table
+    /// ISO 286-1: the width (max - min) must be the IT grade of the class for
+    /// that diameter, and the sign that of the letter (H starts from zero upwards, h from
+    /// zero downwards). If it does not add up, it is put back as it was and refused.
     /// </summary>
     public partial class SwOperations
     {
-        // ISO 286-1, gradi IT5..IT11 in micrometri, per campi di dimensione
-        // (mm, estremo superiore compreso): fino a 3, 6, 10, 18, 30, 50, 80, 120,
+        // ISO 286-1, IT5..IT11 grades in micrometres, for size ranges
+        // (mm, upper end included): up to 3, 6, 10, 18, 30, 50, 80, 120,
         // 180, 250, 315, 400, 500.
         private static readonly double[] Iso286Fields = { 3, 6, 10, 18, 30, 50, 80, 120, 180, 250, 315, 400, 500 };
         private static readonly Dictionary<int, int[]> ItGrades = new Dictionary<int, int[]>
@@ -55,7 +55,7 @@ namespace Oce.Solid.Agent.Core
             [11] = new[] { 60, 75, 90, 110, 130, 160, 190, 220, 250, 290, 320, 360, 400 },
         };
 
-        /// <summary>Il grado IT in micrometri per quel diametro, o -1 se fuori tabella.</summary>
+        /// <summary>The IT grade in micrometres for that diameter, or -1 if outside the table.</summary>
         private static int ItMicron(int degree, double diameterMm)
         {
             int[] line;
@@ -76,9 +76,9 @@ namespace Oce.Solid.Agent.Core
             if (dimension == null)
                 return Failed("Non trovo la quota «" + dimensionName + "» in questo documento." +
                                (location == null ? "" : " Ci sono: " + location + "."));
-            // SOLO QUOTE LINEARI: su una quota angolare SystemValue e i limiti sono
-            // in RADIANTI, e «0,5 mm» diventerebbe ±0,0005 rad riletto uguale
-            // (revisione del 26/9/2026).
+            // LINEAR DIMENSIONS ONLY: on an angular dimension SystemValue and the limits are
+            // in RADIANS, and «0.5 mm» would become ±0.0005 rad read back the same
+            // (review of 26/9/2026).
             int dimensionType = -1;
             try { dimensionType = dimension.GetType(); } catch { }
             if (dimensionType == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular)
@@ -92,7 +92,7 @@ namespace Oce.Solid.Agent.Core
             var tol = dimension.Tolerance;
             if (tol == null) return Failed("La quota «" + dimensionName + "» non espone la tolleranza.");
 
-            // Com'era, per rimetterla se il riscontro non torna.
+            // As it was, to put it back if the cross-check does not add up.
             int typeBefore = tol.Type;
             double minBefore, maxBefore;
             ReadToleranceLimits(tol, out minBefore, out maxBefore);
@@ -163,7 +163,7 @@ namespace Oce.Solid.Agent.Core
             maxRead *= 1000;
             string readHole = SafeFit(() => tol.GetHoleFitValue()), treeRead = SafeFit(() => tol.GetShaftFitValue());
 
-            // ── IL RISCONTRO ────────────────────────────────────────────────
+            // ── THE CROSS-CHECK ─────────────────────────────────────────────
             string crooked = null;
             if (typ == "fit")
             {
@@ -199,7 +199,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed("The tolerance on «" + dimensionName + "» does not check out: " + crooked + "." +
                                RestoreTolerance(model, tol, typeBefore, minBefore, maxBefore, holeBefore, treeBefore, null));
 
-            // ── I DECIMALI DELLA TOLLERANZA, sulla quota come si vede ────────
+            // ── THE DECIMALS OF THE TOLERANCE, on the dimension as it is seen ────
             //
             // EACH DISPLAYED DIMENSION IS SET AND READ BACK (Z-C21.8, finding
             // L5-7). IDisplayDimension~SetPrecision3.html: «A value of 0
@@ -252,8 +252,8 @@ namespace Oce.Solid.Agent.Core
                 measurements["it_iso286_um"] = ItMicron(degree, nominal);
                 measurements["match_iso286"] = true;
             }
-            // DECIMALI NON IMPOSTATI = «+0 / 0» IN TAVOLA: e' un rifiuto, non un
-            // avviso (revisione del 26/9/2026). Si rimette la tolleranza di prima.
+            // DECIMALS NOT SET = «+0 / 0» IN THE DRAWING: it is a refusal, not a
+            // warning (review of 26/9/2026). The previous tolerance is put back.
             if (decimalsFault != null)
             {
                 string restored = RestoreTolerance(model, tol, typeBefore, minBefore, maxBefore, holeBefore, treeBefore, precisionBefore);
@@ -452,7 +452,7 @@ namespace Oce.Solid.Agent.Core
             return p < 0 ? 0 : t.Length - p - 1;
         }
 
-        /// <summary>Le quote mostrate nel pezzo che appartengono a questa quota.</summary>
+        /// <summary>The dimensions shown in the part that belong to this dimension.</summary>
         private static List<IDisplayDimension> ShownDimensions(IModelDoc2 model, IDimension dimension)
         {
             var outside = new List<IDisplayDimension>();

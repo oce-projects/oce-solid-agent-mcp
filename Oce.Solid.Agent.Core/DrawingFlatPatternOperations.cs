@@ -7,22 +7,22 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA VISTA DELLO SVILUPPO IN TAVOLA (voce GT13).
+    /// THE FLAT PATTERN VIEW ON THE DRAWING (entry GT13).
     ///
-    /// ── MISURATA PRIMA DI SCRIVERLA, 26/9/2026 (`prova0089 sviltav`) ────────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 sviltav`) ────────
     ///
     /// `IDrawingDoc.CreateFlatPatternViewFromModelView3(percorso,
-    /// configurazione, X, Y, Z, NascondiPieghe, Ribalta)` sulla L dei casi di
-    /// lamiera (30 + 50, spessore 2, raggio 2, profondita' 40): la vista nasce
-    /// al primo colpo, `IsFlatPatternView` vero, una linea di piega.
+    /// configurazione, X, Y, Z, NascondiPieghe, Ribalta)` on the L of the sheet
+    /// metal cases (30 + 50, thickness 2, radius 2, depth 40): the view is born
+    /// at the first attempt, `IsFlatPatternView` true, one bend line.
     ///
-    /// **L'ingombro NON si legge da `GetOutline`**: diceva 51,88 x 92,592 mm per
-    /// uno sviluppo di 80,712 x 40 — il contorno della vista comprende la nota
-    /// della piega e un margine. Si misura dagli SPIGOLI VISIBILI della vista
-    /// (`GetVisibleEntities2`), portati sul foglio con `ModelToViewTransform` e
-    /// divisi per la scala; e si confronta con lo sviluppo misurato sul pezzo
-    /// PRIMA di mettere la vista (la lavorazione «FlatPattern» tolta di
-    /// soppressione, il corpo misurato, rimessa).
+    /// **The extent is NOT read from `GetOutline`**: it said 51.88 x 92.592 mm for
+    /// a flat pattern of 80.712 x 40 — the outline of the view includes the bend
+    /// note and a margin. It is measured from the VISIBLE EDGES of the view
+    /// (`GetVisibleEntities2`), brought onto the sheet with `ModelToViewTransform` and
+    /// divided by the scale; and compared with the flat pattern measured on the part
+    /// BEFORE putting the view (the «FlatPattern» feature unsuppressed,
+    /// the body measured, put back).
     /// </summary>
     public partial class SwOperations
     {
@@ -62,7 +62,7 @@ namespace Oce.Solid.Agent.Core
             double y = Units.M(Num(a, "y_mm", 90));
             bool hideBends = Bool(a, "hide_bends", false);
 
-            // ── LO SVILUPPO DEL PEZZO, MISURATO PRIMA ────────────────────────
+            // ── THE FLAT PATTERN OF THE PART, MEASURED FIRST ────────────────
             // Z-C21.8, finding M24: a flat pattern that did not unsuppress, or
             // did not suppress again, stops the step here, before the drawing is
             // touched; the part may be left flattened, and the refusal says so.
@@ -102,12 +102,12 @@ namespace Oce.Solid.Agent.Core
             int bends = -1;
             try { bends = view.GetBendLineCount(); } catch { }
 
-            // ── UN POSTO LIBERO (visto nel PNG, 26/9/2026) ───────────────────
+            // ── A FREE SPOT (seen in the PNG, 26/9/2026) ───────────────────
             //
-            // Messa a 300/90 mm a scala 2:1, la L distesa scendeva dentro il
-            // cartiglio, col banco verde. Si misura il contorno della vista (con
-            // la nota di piega: e' quello che occupa il foglio) e la si sposta in
-            // un posto libero, se «x_mm»/«y_mm» non l'hanno fissata.
+            // Put at 300/90 mm at scale 2:1, the unfolded L went down into the
+            // title block, with the bench green. The outline of the view is measured (with
+            // the bend note: that is what occupies the sheet) and it is moved to
+            // a free spot, if «x_mm»/«y_mm» did not fix it.
             string location, placeReason;
             if (!FlatPatternInItsPlace(drawing, view, a.ContainsKey("x_mm") || a.ContainsKey("y_mm"), out location, out placeReason))
             {
@@ -117,7 +117,7 @@ namespace Oce.Solid.Agent.Core
                     : " Remove the view — " + Sentences.HowToWithdrawIt + "."));
             }
 
-            // ── L'INGOMBRO DAGLI SPIGOLI VISIBILI ────────────────────────────
+            // ── THE EXTENT FROM THE VISIBLE EDGES ────────────────────────────
             double[] boundingBox = BoundingBoxFromEdges(view);
             var measurements = new Dictionary<string, object>
             {
@@ -156,8 +156,8 @@ namespace Oce.Solid.Agent.Core
             }
             if (double.IsNaN(alongPart))
             {
-                // SENZA LO SVILUPPO DEL PEZZO NON C'E' RISCONTRO (revisione del
-                // 26/9/2026): la vista potrebbe essere di un'altra cosa.
+                // WITHOUT THE FLAT PATTERN OF THE PART THERE IS NO CROSS-CHECK (review of
+                // 26/9/2026): the view could be of something else.
                 bool removed = RemoveNewView(model, itemName);
                 return Failed("Non riesco a misurare lo sviluppo del pezzo (la lavorazione «FlatPattern» non si lascia " +
                                "misurare), e senza non so dire se la vista mostra lo sviluppo giusto. " +
@@ -168,9 +168,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ingombro della vista in mm, dal suo disegno vero: gli spigoli
-        /// visibili, campionati, portati sul foglio e divisi per la scala.
-        /// [lato lungo, lato corto], o null se non si legge niente.
+        /// The extent of the view in mm, from its true drawing: the visible
+        /// edges, sampled, brought onto the sheet and divided by the scale.
+        /// [long side, short side], or null if nothing can be read.
         /// </summary>
         private double[] BoundingBoxFromEdges(IView view)
         {
@@ -224,8 +224,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Porta la vista in un posto libero del foglio (OperazioniPostoSulFoglio),
-        /// o controlla che quello chiesto lo sia. False col motivo.
+        /// Brings the view to a free spot of the sheet (OperazioniPostoSulFoglio),
+        /// or checks that the one asked for is free. False with the reason.
         /// </summary>
         private static bool FlatPatternInItsPlace(IDrawingDoc drawing, IView view, bool requested, out string location, out string reason)
         {
@@ -260,8 +260,8 @@ namespace Oce.Solid.Agent.Core
                     "viste e dal cartiglio: usa un foglio piu' grande o un'altra scala.", w * 1000, h * 1000);
                 return false;
             }
-            // La posizione della vista non e' per forza il centro del contorno:
-            // si sposta del tanto che serve all'angolo in basso a sinistra.
+            // The position of the view is not necessarily the centre of the outline:
+            // it is moved by as much as the bottom left corner needs.
             try { view.Position = new[] { p[0] + down[0] - o[0], p[1] + down[1] - o[1] }; } catch { }
             // GetOutline IS READ RIGHT AFTER Position, with no rebuild, and that is
             // measured (Z-C21.3, finding L14-1, NOT REAL). IView~Position.html
@@ -294,10 +294,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie una vista appena messa, per nome. `DeleteSelection2` e non
-        /// `EditDelete`: la seconda puo' chiedere conferma con una finestra, e
-        /// una chiamata COM che aspetta una finestra non torna (vedi
-        /// SwOperations, «DeleteSelection2 E NON EditDelete»).
+        /// Removes a view just put, by name. `DeleteSelection2` and not
+        /// `EditDelete`: the second may ask for confirmation with a window, and
+        /// a COM call that waits for a window does not return (see
+        /// SwOperations, «DeleteSelection2 AND NOT EditDelete»).
         /// </summary>
         private static bool RemoveNewView(IModelDoc2 drawing, string itemName)
         {
@@ -308,7 +308,7 @@ namespace Oce.Solid.Agent.Core
                 if (drawing.Extension.SelectByID2(itemName, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0))
                     drawing.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                 drawing.ClearSelection2(true);
-                // TOLTA SI RILEGGE: la vista con quel nome non deve esserci piu'.
+                // ONCE REMOVED IT IS READ BACK: the view with that name must no longer be there.
                 var v = (drawing as IDrawingDoc)?.GetFirstView() as IView;
                 while (v != null)
                 {

@@ -6,27 +6,27 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// RIORDINARE L'ALBERO (voce Z-F3): uno svuotamento messo prima di un foro da'
-    /// un pezzo diverso da uno messo dopo, e accorgersene e spostare la voce e' un
-    /// gesto di ogni settimana.
+    /// REORDERING THE TREE (entry Z-F3): a shell put before a hole gives
+    /// a different part from one put after, and noticing it and moving the entry is a
+    /// weekly gesture.
     ///
-    /// Misurato il 27/9/2026 (`prova0089 zf3`, scatola 100x60x40, foro Ø10
-    /// passante, guscio 3 aprendo l'alto): `IModelDocExtension.ReorderFeature
-    /// (daSpostare, rispettoA, swMoveBefore=2 / swMoveAfter=3)` risponde true e
-    /// il volume cambia — foro poi guscio 56485,7 mm³, guscio prima del foro
-    /// 51952,38 — e rimesso com'era torna 56485,7. Uno spostamento impossibile
-    /// (il foro prima dell'estrusione su cui sta) risponde FALSE e non tocca
-    /// niente; un nome che non c'e' risponde false.
+    /// Measured on 27/9/2026 (`prova0089 zf3`, 100x60x40 box, Ø10 through
+    /// hole, shell 3 opening the top): `IModelDocExtension.ReorderFeature
+    /// (daSpostare, rispettoA, swMoveBefore=2 / swMoveAfter=3)` answers true and
+    /// the volume changes — hole then shell 56485.7 mm³, shell before the hole
+    /// 51952.38 — and put back as it was it returns 56485.7. An impossible move
+    /// (the hole before the extrusion it sits on) answers FALSE and touches
+    /// nothing; a name that is not there answers false.
     ///
-    /// LE LAVORAZIONI SI INDICANO PER NOME, come in tutto il ponte, e il nome si
-    /// controlla col `feature_id` che lo stato ha dato (un nome si rinomina,
-    /// l'ID no): `FeatureIsThatOne`, la stessa difesa di `suppress_feature`.
-    /// Dopo lo spostamento si ricostruisce e si contano le lavorazioni in errore:
-    /// se sono aumentate, la lavorazione torna dov'era e ci si rifiuta.
+    /// FEATURES ARE INDICATED BY NAME, as in the whole bridge, and the name is
+    /// checked with the `feature_id` that the state gave (a name can be renamed, the
+    /// ID cannot): `FeatureIsThatOne`, the same defense as `suppress_feature`.
+    /// After the move it rebuilds and counts the features in error:
+    /// if they increased, the feature goes back where it was and it refuses.
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>I nomi delle lavorazioni in ordine d'albero (dopo l'origine).</summary>
+        /// <summary>The names of the features in tree order (after the origin).</summary>
         private static List<string> FeatureOrder(IModelDoc2 model)
         {
             var outside = new List<string>();
@@ -47,7 +47,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>Quante lavorazioni sono in errore (non solo avviso); -1 se non si legge.</summary>
+        /// <summary>How many features are in error (not just warning); -1 if it cannot be read.</summary>
         private static int FeaturesInError(IModelDoc2 model)
         {
             try
@@ -122,8 +122,8 @@ namespace Oce.Solid.Agent.Core
             string nameF = f.Name, nameG = g.Name;
             var orderBefore = FeatureOrder(model);
             int posBefore = orderBefore.IndexOf(nameF);
-            // Dove rimetterla se lo spostamento rompe qualcosa: prima di quella che
-            // la seguiva, o dopo quella che la precedeva se era l'ultima.
+            // Where to put it back if the move breaks something: before the one that
+            // followed it, or after the one that preceded it if it was the last.
             string following = posBefore >= 0 && posBefore + 1 < orderBefore.Count ? orderBefore[posBefore + 1] : null;
             string previous = posBefore > 0 ? orderBefore[posBefore - 1] : null;
             double? volumeBefore = VolumeMm3(model);
@@ -157,7 +157,7 @@ namespace Oce.Solid.Agent.Core
             int errorsAfter = FeaturesInError(model);
             if (errorsBefore >= 0 && errorsAfter > errorsBefore)
             {
-                // SI RIMETTE COM'ERA: un albero rotto non si consegna.
+                // IT IS PUT BACK AS IT WAS: a broken tree is not handed over.
                 bool restored = false;
                 try
                 {
@@ -210,8 +210,8 @@ namespace Oce.Solid.Agent.Core
                 ["bodies_after"] = bodiesAfter >= 0 ? (object)bodiesAfter : null,
                 ["features_in_error"] = errorsAfter >= 0 ? (object)errorsAfter : null,
             };
-            // L'ORDINE CAMBIATO SENZA CHE IL PEZZO CAMBI si dice: di solito vuol dire
-            // che le due lavorazioni non si toccano, e spostarle non serviva.
+            // THE ORDER CHANGED WITHOUT THE PART CHANGING is said: it usually means
+            // that the two features do not touch each other, and moving them was not needed.
             if (volumeBefore != null && volumeAfter != null && Math.Abs(volumeBefore.Value - volumeAfter.Value) < 0.01 && bodiesBefore == bodiesAfter)
                 measurements["warning"] = "L'ordine e' cambiato ma il pezzo no (stesso volume, stessi corpi): quelle due " +
                                        "lavorazioni non si toccano, e l'ordine fra loro non conta.";

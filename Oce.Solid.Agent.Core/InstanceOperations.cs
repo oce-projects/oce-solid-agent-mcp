@@ -7,63 +7,63 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// TOGLIERE UNA COPIA DA UNA RIPETIZIONE. (voce GP14)
+    /// REMOVING A COPY FROM A PATTERN. (entry GP14)
     ///
-    /// Una griglia di fori che ne salta uno dove passa una nervatura, una fila
-    /// di asole che si ferma prima della piega: in officina e' normale. Nel
-    /// catalogo mancava, e non si poteva fare in nessun altro modo — una
-    /// ripetizione o e' regolare o non e'.
+    /// A grid of holes that skips one where a rib passes, a row
+    /// of slots that stops before the bend: in the workshop it is normal. In the
+    /// catalogue it was missing, and it could not be done any other way — a
+    /// pattern is either regular or it is not.
     ///
-    /// ── NON C'E' UN METODO: SI SCRIVE UN ARRAY ────────────────────────
+    /// ── THERE IS NO METHOD: AN ARRAY IS WRITTEN ───────────────────────
     ///
-    /// Non esiste una «SkipInstance». Si prende il dato della feature, si
-    /// scrive `SkippedItemArray`, e si rimette:
+    /// There is no «SkipInstance». The data of the feature is taken, the
+    /// `SkippedItemArray` is written, and it is put back:
     ///
     ///     var dati = ripetizione.GetDefinition();
     ///     dati.AccessSelections(modello, null);
     ///     dati.SkippedItemArray = new int[] { 2 };
     ///     ripetizione.ModifyDefinition(dati, modello, null);
     ///
-    /// E' una scrittura DOPO la creazione, non un parametro: quindi la
-    /// ripetizione si fa prima, con le operazioni che gia' ci sono, e poi si
-    /// toglie quello che non deve esserci.
+    /// It is a write AFTER creation, not a parameter: so the
+    /// pattern is made first, with the operations that already exist, and then
+    /// what must not be there is removed.
     ///
-    /// ── GLI INDICI: MISURATI, NON DEDOTTI ─────────────────────────────
+    /// ── THE INDICES: MEASURED, NOT DEDUCED ────────────────────────────
     ///
-    /// Piastra 200x100, foro a x=-50, ripetizione di 4 con passo 25 verso -X.
-    /// Le posizioni sono -50 (il seme), -75, -100, -125.
+    /// Plate 200x100, hole at x=-50, pattern of 4 with pitch 25 towards -X.
+    /// The positions are -50 (the seed), -75, -100, -125.
     ///
-    ///     SkippedItemArray = { 2 }   ->  sparisce quello a -100
+    ///     SkippedItemArray = { 2 }   ->  the one at -100 disappears
     ///
-    /// Cioe' **l'indice 2 e' la SECONDA COPIA**: il seme non si conta come
-    /// copia, e il conto parte da 1. E' anche il modo in cui chi chiede
-    /// conterebbe («togli la seconda»), quindi il numero che arriva
-    /// dall'esterno si passa cosi' com'e'.
+    /// That is **index 2 is the SECOND COPY**: the seed does not count as a
+    /// copy, and the count starts at 1. It is also the way whoever asks
+    /// would count («remove the second one»), so the number that arrives
+    /// from outside is passed as it is.
     ///
-    /// ── IL DIFETTO: SI PUO' TOGLIERE UNA COPIA CHE NON C'E' ──────────
+    /// ── THE DEFECT: A COPY THAT IS NOT THERE CAN BE REMOVED ───────────
     ///
-    /// E questo e' il punto. Nella stessa prova, la QUARTA posizione (-125)
-    /// cadeva fuori dalla piastra: SOLIDWORKS aveva costruito tre copie su
-    /// quattro e aveva risposto «riuscito» (e' la nota 80y, ed e' ancora vera).
+    /// And this is the point. In the same test, the FOURTH position (-125)
+    /// fell outside the plate: SOLIDWORKS had built three copies out of
+    /// four and had answered «succeeded» (it is note 80y, and it is still true).
     ///
-    /// Chiedere di saltare una copia che non e' mai esistita **riesce**:
-    /// `ModifyDefinition` risponde `true`, l'array si scrive, e nel pezzo non
-    /// cambia niente. Chi legge la risposta crede di aver tolto un foro che
-    /// non c'era.
+    /// Asking to skip a copy that never existed **succeeds**:
+    /// `ModifyDefinition` answers `true`, the array is written, and in the part
+    /// nothing changes. Whoever reads the answer believes they removed a hole that
+    /// was not there.
     ///
-    /// Percio' qui si contano le FACCE della ripetizione prima e dopo, e se
-    /// non sono calate ci si rifiuta rimettendo l'array com'era. E' lo stesso
-    /// conto di `MissingCopies`: le facce che la ripetizione possiede divise
-    /// per quelle della lavorazione ripetuta sono le copie che esistono
-    /// davvero.
+    /// Therefore here the FACES of the pattern are counted before and after, and if
+    /// they have not dropped it refuses, putting the array back as it was. It is the same
+    /// count as `MissingCopies`: the faces the pattern owns divided
+    /// by those of the repeated feature are the copies that really
+    /// exist.
     ///
-    /// ── E `ModifyDefinition` RISPONDE `true` A COSE CHE NON FA ────────
+    /// ── AND `ModifyDefinition` ANSWERS `true` TO THINGS IT DOES NOT DO ──
     ///
-    /// Non e' un sospetto: su tre modi di svuotare la lista, **due rispondono
-    /// `true` senza cambiare niente** — e uno dei due alza perfino
-    /// un'eccezione COM prima di rispondere di si'. Il dettaglio sta su
-    /// `ToWrite`, ed e' il motivo per cui qui il valore di ritorno non e'
-    /// mai il criterio.
+    /// It is not a suspicion: of three ways of emptying the list, **two answer
+    /// `true` without changing anything** — and one of the two even raises
+    /// a COM exception before answering yes. The detail is in
+    /// `ToWrite`, and it is the reason why here the return value is
+    /// never the criterion.
     /// </summary>
     public partial class SwOperations
     {
@@ -84,11 +84,11 @@ namespace Oce.Solid.Agent.Core
                     "Manca «copies»: quali copie togliere, per numero. La prima copia " +
                     "dopo l'originale e' la 1.");
             if (copies.Any(c => c < 1))
-                // LO ZERO NON E' UNA COPIA, ED E' PEGGIO DI UN NUMERO FUORI
-                // INTERVALLO: per SOLIDWORKS `{0}` vuol dire «nessuna copia
-                // tolta», quindi passato di la' cosi' com'e' CANCELLEREBBE
-                // tutte le copie tolte prima, in silenzio e rispondendo che e'
-                // andata bene. Vedi `ToWrite`.
+                // ZERO IS NOT A COPY, AND IT IS WORSE THAN AN OUT-OF-RANGE
+                // NUMBER: for SOLIDWORKS `{0}` means «no copy
+                // removed», so passed over there as it is it WOULD ERASE
+                // all the copies removed before, silently and answering that it
+                // went well. See `ToWrite`.
                 return Failed(
                     "Le copie si contano da 1, e lo ZERO non e' una copia: e' " +
                     "l'originale, quello da cui la ripetizione e' nata. E dall'altra " +
@@ -105,18 +105,18 @@ namespace Oce.Solid.Agent.Core
                     "I do not remove copies from «" + uid + "»" +
                     (string.IsNullOrEmpty(typ) ? "" : " (type " + typ + ")") + ": " + why);
 
-            // ── UNA GRIGLIA NON SI CONTA COME UNA FILA (voce Z-C21.2, M6) ──
+            // ── A GRID IS NOT COUNTED LIKE A ROW (entry Z-C21.2, M6) ──
             //
             // ILinearPatternFeatureData~SkippedItemArray.html, Remarks: «For a
-            // bi-directional pattern: I = n2 * ( i - 1) + ( j - 1)», con n2 le
-            // istanze in direzione 2 e [i, j] gli indici nelle due direzioni.
-            // Qui «copia 2» si scriveva com'era: su una griglia 3 x 2 toglieva
-            // l'istanza [2, 1], non la seconda copia di nessuna fila, e
-            // rispondeva riuscito. Un numero solo non dice una posizione su una
-            // griglia: si rifiuta invece di indovinare.
+            // bi-directional pattern: I = n2 * ( i - 1) + ( j - 1)», with n2 the
+            // instances in direction 2 and [i, j] the indices in the two directions.
+            // Here «copy 2» was written as it was: on a 3 x 2 grid it removed
+            // the instance [2, 1], not the second copy of any row, and
+            // answered succeeded. A single number does not say a position on a
+            // grid: it refuses instead of guessing.
             // (IsDirection2Specified.html: «True if direction 2 is specified».)
-            // Vale anche per la circolare e la guidata da curva, che possono
-            // avere una seconda direzione: vedi i loro `Grid` qui sotto.
+            // It holds also for the circular and the curve-driven one, which may
+            // have a second direction: see their `Grid` below.
             string grid = port.Grid(data);
             if (grid != null)
                 return Failed(
@@ -125,9 +125,9 @@ namespace Oce.Solid.Agent.Core
                     "riga. Non indovino. Se ti serve togliere una posizione, fai la ripetizione con " +
                     "una direzione sola e togli la copia da quella fila. Non ho toccato niente.");
 
-            // I SEMI, per sapere quante facce vale una copia (rilievo L6-5).
-            // Letti prima di AccessSelections; se non si leggono, il controllo
-            // qui sotto non si fa invece di inventarsi un numero.
+            // THE SEEDS, to know how many faces a copy is worth (finding L6-5).
+            // Read before AccessSelections; if they cannot be read, the check
+            // below is not done instead of inventing a number.
             int seedFaces = 0;
             try
             {
@@ -151,8 +151,8 @@ namespace Oce.Solid.Agent.Core
                 : alreadySkipped.Union(copies).OrderBy(x => x).ToArray();
 
             if (newOnes.Length == alreadySkipped.Length)
-                // GIA' COM'E' CHIESTA. Non e' un errore ma non e' «fatto»:
-                // stessa regola di `suppress_feature`.
+                // ALREADY AS ASKED. It is not an error but it is not «done»:
+                // same rule as `suppress_feature`.
                 return Failed(
                     "Le copie " + Items(copies) + " di «" + uid + "» sono gia' " +
                     (reactivate ? "attive" : "tolte") + ": non ho cambiato niente. " +
@@ -166,10 +166,10 @@ namespace Oce.Solid.Agent.Core
             bool done;
             try
             {
-                // `AccessSelections` prima di toccare il dato, e in caso di
-                // guaio `ReleaseSelectionAccess`: senza, la feature resta
-                // bloccata e le operazioni dopo falliscono per un motivo che
-                // non ha piu' niente a che vedere con questa.
+                // `AccessSelections` before touching the data, and in case of
+                // trouble `ReleaseSelectionAccess`: without it, the feature stays
+                // locked and the operations after fail for a reason that
+                // has nothing to do with this one any more.
                 //
                 // THE ACCESS IS READ (Z-C21.8, the rule of L5-5): each family's
                 // AccessSelections.html, «True if the selections are
@@ -196,13 +196,13 @@ namespace Oce.Solid.Agent.Core
             double? volumeAfter = VolumeMm3(model);
             int howMany = Math.Abs(newOnes.Length - alreadySkipped.Length);
 
-            // ── IN ERRORE DOPO LA MODIFICA? (voce Z-C21.2, rilievo L6-5) ────
+            // ── IN ERROR AFTER THE MODIFICATION? (entry Z-C21.2, finding L6-5) ────
             //
             // IFeature~ModifyDefinition.html, Remarks: «this method may leave
             // the feature in an unpredictable state due to errors. After calling
             // this method, call IFeature::GetErrorCode2 to ascertain whether the
-            // feature has rebuild errors». Si guardava solo il bool, che qui —
-            // lo dice gia' il commento in testa — non e' mai il criterio.
+            // feature has rebuild errors». Only the bool was looked at, which here —
+            // the comment at the top already says so — is never the criterion.
             // Read again here, after faces and volume, where it was read before
             // the helper existed (ApiHelpers.RebuildError, same rule).
             string repetitionInError = ApiHelpers.RebuildError(repetition);
@@ -213,14 +213,14 @@ namespace Oce.Solid.Agent.Core
                                repetitionInError + "). " + restored);
             }
 
-            // ── UNA RIPETIZIONE RIMASTA SENZA FACCE NON HA «TOLTO UNA COPIA» ──
+            // ── A PATTERN LEFT WITHOUT FACES HAS NOT «REMOVED A COPY» ──
             //
-            // (rilievo L6-5.) Il controllo qui sotto chiedeva solo che le facce
-            // calassero: una ripetizione andata in errore che le perde TUTTE
-            // (GetFaces a null da' 0) lo passava. E la perdita deve valere le
-            // facce di una copia per le copie tolte: la stessa aritmetica di
-            // MissingCopies (SwOperations.cs), che misura le copie che esistono
-            // davvero dividendo le facce della ripetizione per quelle del seme.
+            // (finding L6-5.) The check below asked only that the faces
+            // dropped: a pattern gone into error that loses ALL of them
+            // (GetFaces null gives 0) passed it. And the loss must be worth the
+            // faces of one copy times the copies removed: the same arithmetic as
+            // MissingCopies (SwOperations.cs), which measures the copies that really
+            // exist by dividing the faces of the pattern by those of the seed.
             if (!reactivate && facesBefore > 0 && facesAfter == 0)
             {
                 string restored = PutBack(model, repetition, port, alreadySkipped);
@@ -241,13 +241,13 @@ namespace Oce.Solid.Agent.Core
                     restored));
             }
 
-            // ── E QUI SI GUARDA SE E' SUCCESSO QUALCOSA ──────────────────
+            // ── AND HERE WE LOOK AT WHETHER ANYTHING HAPPENED ────────────
             //
-            // `ModifyDefinition` risponde `true` anche quando si chiede di
-            // togliere una copia che non e' mai esistita -- perche' cadeva
-            // fuori dal materiale, e SOLIDWORKS quelle le costruisce e basta
-            // senza dirlo (nota 80y). L'array si scrive, il pezzo non cambia,
-            // e chi legge crede di aver tolto un foro.
+            // `ModifyDefinition` answers `true` even when asked to
+            // remove a copy that never existed -- because it fell
+            // outside the material, and SOLIDWORKS builds those and says nothing
+            // (note 80y). The array is written, the part does not change,
+            // and whoever reads believes they removed a hole.
             bool wentInTheRightDirection = reactivate
                 ? facesAfter > facesBefore
                 : facesAfter < facesBefore;
@@ -277,19 +277,19 @@ namespace Oce.Solid.Agent.Core
                 ["copies_removed_total"] = newOnes,
                 ["pattern_faces"] = NumberOrNull(facesAfter),
                 ["faces_before"] = NumberOrNull(facesBefore),
-                // QUANTE FACCE VALE UNA COPIA, o null se i semi non si sono letti
-                // (revisione di Z-C21.2): con null il controllo «perdita = facce
-                // del seme x copie tolte» qui sopra NON si e' fatto, e chi legge
-                // lo deve poter vedere. Nome nuovo, in inglese.
+                // HOW MANY FACES A COPY IS WORTH, or null if the seeds were not read
+                // (review of Z-C21.2): with null the check «loss = faces
+                // of the seed x copies removed» above was NOT done, and whoever reads
+                // must be able to see it. New name, in English.
                 ["faces_per_copy"] = seedFaces > 0 ? (object)seedFaces : null,
                 ["bodies"] = NumberOrNull(bodiesAfter),
                 [reactivate ? "material_removed_mm3" : "material_returned_mm3"] =
                     NumberOrNull(volumeAfter.HasValue && volumeBefore.HasValue
                         ? Math.Abs(volumeAfter.Value - volumeBefore.Value) : (double?)null, 2),
             };
-            // «Spezzato» si dice di due conteggi LETTI (voce Z-C8): prima il
-            // confronto era fra un int e un oggetto, e con una lettura fallita
-            // lo zero diceva che il pezzo si era rotto.
+            // «Broken» is said of two counts READ (entry Z-C8): before, the
+            // comparison was between an int and an object, and with a failed read
+            // the zero said the part had broken.
             if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesBefore != bodiesAfter)
                 measurements["warning_bodies"] =
                     "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
@@ -304,8 +304,8 @@ namespace Oce.Solid.Agent.Core
         // =================================================================
 
         /// <summary>
-        /// Rimette l'array com'era. Torna la frase da appendere al rifiuto:
-        /// chi legge deve sapere se il pezzo e' stato lasciato a posto o no.
+        /// Puts the array back as it was. Returns the sentence to append to the refusal:
+        /// whoever reads must know whether the part was left in order or not.
         /// </summary>
         private static string PutBack(
             IModelDoc2 model, IFeature repetition, ISkipInstances port, int[] comEra)
@@ -351,18 +351,18 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Come si leggono e si scrivono le copie saltate di UNA famiglia di
-        /// ripetizioni.
+        /// How the skipped copies of ONE family of patterns are read and
+        /// written.
         ///
-        /// Serve perche' `SkippedItemArray` c'e' su sei interfacce diverse e
-        /// **non c'e' un'interfaccia comune**. Non e' una supposizione: scritto
-        /// `IFeatureData` come tipo del parametro, il compilatore risponde
-        /// «il nome di tipo non e' stato trovato». `ILinearPatternFeatureData` e
-        /// `ICircularPatternFeatureData` non hanno niente in mezzo — nemmeno
-        /// `AccessSelections`, che pure hanno tutte e due con la stessa firma.
+        /// It is needed because `SkippedItemArray` exists on six different interfaces and
+        /// **there is no common interface**. It is not a supposition: with
+        /// `IFeatureData` written as the type of the parameter, the compiler answers
+        /// «the type name could not be found». `ILinearPatternFeatureData` and
+        /// `ICircularPatternFeatureData` have nothing in between — not even
+        /// `AccessSelections`, which both of them have with the same signature.
         ///
-        /// Quindi il dato gira come `object` e ogni famiglia sa fare le sue
-        /// quattro cose. Si prova una per volta, e quella che risponde vince.
+        /// So the data travels as `object` and every family knows how to do its own
+        /// four things. They are tried one at a time, and the one that answers wins.
         /// </summary>
         private interface ISkipInstances
         {
@@ -371,8 +371,8 @@ namespace Oce.Solid.Agent.Core
             // The answer of AccessSelections (Z-C21.8, rule of L5-5).
             bool Open(object data, IModelDoc2 model);
             void Close(object data);
-            // Voce Z-C21.2: le lavorazioni ripetute (PatternFeatureArray), e
-            // se la ripetizione e' una griglia a due direzioni (null se no).
+            // Entry Z-C21.2: the repeated features (PatternFeatureArray), and
+            // whether the pattern is a two-direction grid (null if not).
             object Semi(object data);
             string Grid(object data);
         }
@@ -401,13 +401,13 @@ namespace Oce.Solid.Agent.Core
             public bool Open(object d, IModelDoc2 m) { return ((ICircularPatternFeatureData)d).AccessSelections(m, null); }
             public void Close(object d) { ((ICircularPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICircularPatternFeatureData)d).PatternFeatureArray; }
-            // ANCHE LA CIRCOLARE PUO' AVERE DUE DIREZIONI (revisione di Z-C21.2,
-            // M6 corretto a meta'). ICircularPatternFeatureData~SkippedItemArray.html
-            // porta la stessa formula della lineare: «For a bi-directional
+            // THE CIRCULAR ONE CAN HAVE TWO DIRECTIONS TOO (review of Z-C21.2,
+            // M6 corrected halfway). ICircularPatternFeatureData~SkippedItemArray.html
+            // carries the same formula as the linear one: «For a bi-directional
             // pattern: I = n2 * ( i - 1) + ( j - 1)». Direction2.html: «True to
             // create a bidirectional circular pattern feature»; TotalInstances2.html:
             // «only available when Direction2 is true, and Symmetric is false» —
-            // con Symmetric la seconda direzione ripete il numero della prima
+            // with Symmetric the second direction repeats the number of the first
             // (Symmetric.html: «symmetric or asymmetric circular pattern feature
             // in Direction 2»).
             public string Grid(object d)
@@ -427,25 +427,25 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        // E DELLE NOVE FAMIGLIE DI RIPETIZIONE, TRE NON HANNO L'ARRAY.
+        // AND OF THE NINE PATTERN FAMILIES, THREE DO NOT HAVE THE ARRAY.
         //
-        // Misurato per riflessione sull'interop, non supposto:
+        // Measured by reflection on the interop, not supposed:
         //
-        //   ILinearPatternFeatureData        SkippedItemArray  si'
-        //   ICircularPatternFeatureData      si'
-        //   ICurveDrivenPatternFeatureData   si'
-        //   IFillPatternFeatureData          si'
-        //   ITablePatternFeatureData         si'
-        //   IDerivedPatternFeatureData       si'   (an assembly pattern: never here, C7-3)
+        //   ILinearPatternFeatureData        SkippedItemArray  yes
+        //   ICircularPatternFeatureData      yes
+        //   ICurveDrivenPatternFeatureData   yes
+        //   IFillPatternFeatureData          yes
+        //   ITablePatternFeatureData         yes
+        //   IDerivedPatternFeatureData       yes   (an assembly pattern: never here, C7-3)
         //   ISketchPatternFeatureData        NO
         //   IChainPatternFeatureData         NO
         //   IDimPatternFeatureData           NO
         //
-        // Tutte e nove hanno `AccessSelections`, che e' il motivo per cui
-        // verrebbe da credere che siano intercambiabili. Non lo sono, e
-        // scriverlo ha fatto fallire la compilazione — che e' il modo migliore
-        // di scoprirlo: una riflessione dimenticata sarebbe diventata un
-        // «SkippedItemArray non esiste» a runtime, su un pezzo di qualcuno.
+        // All nine have `AccessSelections`, which is the reason why
+        // one would be tempted to believe they are interchangeable. They are not, and
+        // writing it made the compilation fail — which is the best way
+        // to find out: a forgotten reflection would have become a
+        // «SkippedItemArray does not exist» at runtime, on somebody's part.
 
         private sealed class SkipCurve : ISkipInstances
         {
@@ -454,7 +454,7 @@ namespace Oce.Solid.Agent.Core
             public bool Open(object d, IModelDoc2 m) { return ((ICurveDrivenPatternFeatureData)d).AccessSelections(m, null); }
             public void Close(object d) { ((ICurveDrivenPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICurveDrivenPatternFeatureData)d).PatternFeatureArray; }
-            // E LA GUIDATA DA CURVA (revisione di Z-C21.2): Dir2Specified.html,
+            // AND THE CURVE-DRIVEN ONE (review of Z-C21.2): Dir2Specified.html,
             // «whether Direction 2 is specified for this curve-driven pattern
             // feature»; D2InstanceCount.html, «the number of instances in
             // Direction 2 of this bidirectional curve-driven pattern feature».
@@ -523,35 +523,35 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'array come SOLIDWORKS vuole riceverlo.
+        /// The array as SOLIDWORKS wants to receive it.
         ///
-        /// ── SVUOTARE LA LISTA SI SCRIVE `{0}`, NON `{}` ──────────────────
+        /// ── EMPTYING THE LIST IS WRITTEN `{0}`, NOT `{}` ─────────────────
         ///
-        /// Misurato il 16/9/2026, tre modi su tre documenti nuovi, dopo aver
-        /// tolto la copia 2 da una fila di quattro:
+        /// Measured on 16/9/2026, three ways on three new documents, after having
+        /// removed copy 2 from a row of four:
         ///
         ///   SkippedItemArray = new int[0]   ModifyDefinition -> TRUE
-        ///                                   facce 2 (erano 2)   rilettura {2}
-        ///                                   -> IGNORATO IN SILENZIO
-        ///   SkippedItemArray = null         la SCRITTURA alza
+        ///                                   faces 2 (were 2)    reread {2}
+        ///                                   -> IGNORED SILENTLY
+        ///   SkippedItemArray = null         the WRITE raises
         ///                                   RPC_E_SERVERFAULT (0x80010105),
-        ///                                   poi ModifyDefinition -> TRUE
-        ///                                   e non e' cambiato niente
+        ///                                   then ModifyDefinition -> TRUE
+        ///                                   and nothing changed
         ///   SkippedItemArray = new int[]{0} ModifyDefinition -> TRUE
-        ///                                   facce 2 -> 3, volume tornato
-        ///                                   rilettura: int[0] {}
+        ///                                   faces 2 -> 3, volume back
+        ///                                   reread: int[0] {}
         ///
-        /// **Lo zero e' il modo di dire «none», non un indice.** E si scrive
-        /// in un modo e si rilegge in un altro: si manda `{0}`, torna `{}`.
+        /// **Zero is the way of saying «none», not an index.** And it is written
+        /// one way and read back another: `{0}` is sent, `{}` comes back.
         ///
-        /// E' anche la ragione vera per cui `copies: [0]` si rifiuta dal di
-        /// fuori. Non perche' «lo zero e' l'originale» — perche' passato di la'
-        /// cosi' com'e' **cancellerebbe tutte le copie tolte prima**, in
-        /// silenzio, rispondendo che e' andata bene.
+        /// It is also the real reason why `copies: [0]` is refused from
+        /// outside. Not because «zero is the original» — because passed over there
+        /// as it is it **would erase all the copies removed before**, silently,
+        /// answering that it went well.
         ///
-        /// Delle tre risposte, due sono `true` su una cosa che non e'
-        /// successa: il valore di ritorno qui non vale niente, e l'unica prova
-        /// e' il conto delle facce.
+        /// Of the three answers, two are `true` on something that did not
+        /// happen: the return value here is worth nothing, and the only proof
+        /// is the count of the faces.
         /// </summary>
         private static int[] ToWrite(int[] copies)
         {
@@ -574,7 +574,7 @@ namespace Oce.Solid.Agent.Core
             return outside.ToArray();
         }
 
-        /// <summary>Un elenco di interi da un argomento, che puo' anche essere un numero solo.</summary>
+        /// <summary>A list of integers from an argument, which can also be a single number.</summary>
         private static List<int> Integers(Dictionary<string, object> a, string key)
         {
             var outside = new List<int>();

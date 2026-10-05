@@ -6,37 +6,37 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// CROCI DI CENTRO SUI FORI IN TAVOLA (voce W2.11).
+    /// CENTRE MARKS ON THE HOLES IN THE DRAWING (entry W2.11).
     ///
-    /// ── PERCHE' E' UN'OPERAZIONE E NON UNA RIFINITURA ───────────────────
+    /// ── WHY IT IS AN OPERATION AND NOT A FINISHING TOUCH ────────────────
     ///
-    /// Una tavola con dodici fori e nessuna croce di centro esce, si stampa, e
-    /// sembra completa. In officina manca la cosa che serve per forare: **dove
-    /// sta il centro.** Nessun errore, risultato inutilizzabile.
+    /// A drawing with twelve holes and no centre mark goes out, is printed, and
+    /// looks complete. In the workshop the thing needed to drill is missing: **where
+    /// the centre is.** No error, unusable result.
     ///
-    /// ── COSA SI E' MISURATO, DAL 17/9 AL 26/9/2026 ─────────────────────
+    /// ── WHAT WAS MEASURED, FROM 17/9 TO 26/9/2026 ──────────────────────
     ///
-    /// Il 17/9 tre sonde: `AutoInsertCenterMarks2` (25 combinazioni),
-    /// `InsertCenterMark2/3`: «risponde True e non mette niente», contando con
-    /// `GetCenterMarkCount`. Il 26/9 (`prova0089 croci2..croci7`):
+    /// On 17/9 three probes: `AutoInsertCenterMarks2` (25 combinations),
+    /// `InsertCenterMark2/3`: «answers True and puts nothing», counting with
+    /// `GetCenterMarkCount`. On 26/9 (`prova0089 croci2..croci7`):
     ///
-    ///   1. **LE CROCI C'ERANO.** SOLIDWORKS le mette da se' sui fori quando crea
-    ///      la vista (opzione del documento `swDetailingAutoInsertCenterMarksForHoles`,
-    ///      accesa nel modello di casa). Si vedono nel PNG.
-    ///   2. **`GetCenterMarkCount` NON LE CONTA**: 0 su una vista con tre croci.
-    ///      `GetFirstCenterMark`/`GetNext` le vede tutte (`CountCenterMarks`).
-    ///   3. **DA CODICE NON NE NASCE NESSUNA.** `AddCenterMark` sul cerchio
-    ///      selezionato nella vista faceva salire `GetCenterMarkCount` 0->3 —
-    ///      ma su fori che la croce l'avevano gia'; tolte le tre croci
-    ///      automatiche, `AddCenterMark` non ne rimette nessuna. Sugli archi dei
-    ///      raccordi, niente (4 su 4).
+    ///   1. **THE MARKS WERE THERE.** SOLIDWORKS puts them on the holes by itself when it creates
+    ///      the view (document option `swDetailingAutoInsertCenterMarksForHoles`,
+    ///      turned on in the house template). They show in the PNG.
+    ///   2. **`GetCenterMarkCount` DOES NOT COUNT THEM**: 0 on a view with three marks.
+    ///      `GetFirstCenterMark`/`GetNext` sees them all (`CountCenterMarks`).
+    ///   3. **FROM CODE NONE IS BORN.** `AddCenterMark` on the circle
+    ///      selected in the view made `GetCenterMarkCount` go up 0->3 —
+    ///      but on holes that already had the mark; with the three automatic
+    ///      marks removed, `AddCenterMark` puts none back. On the arcs of the
+    ///      fillets, nothing (4 out of 4).
     ///
-    /// ── QUINDI E' UN CONTROLLO ──────────────────────────────────────────
+    /// ── SO IT IS A CHECK ────────────────────────────────────────────────
     ///
-    /// Per ogni foro visibile si guarda se ha la croce (una croce entro mezzo
-    /// millimetro dal centro). Se ne manca qualcuna si prova `AddCenterMark`
-    /// (qui non nasce, altrove chissa'), e se resta senza si RIFIUTA dicendo la
-    /// strada che funziona: l'opzione del documento accesa e la vista rifatta.
+    /// For every visible hole it is looked at whether it has the mark (a mark within half a
+    /// millimetre of the centre). If any is missing `AddCenterMark` is tried
+    /// (here it is not born, elsewhere who knows), and if it stays without one it is REFUSED saying the
+    /// way that works: the document option turned on and the view redone.
     /// </summary>
     public partial class SwOperations
     {
@@ -60,10 +60,10 @@ namespace Oce.Solid.Agent.Core
                     "Non c'e' nessuna vista «" + wanted + "». Ci sono: " + string.Join(", ", names) +
                     " (o V1..V" + names.Count + ").");
 
-            // SOLO I FORI (cerchi interi). Misurato il 26/9/2026 (`prova0089
-            // croci6`): `AddCenterMark` su un ARCO di raccordo selezionato nella
-            // vista non fa nascere niente, 4 archi su 4. Le asole hanno due archi
-            // e una croce sola in mezzo. Tutt'e due si rifiutano, con la misura.
+            // ONLY THE HOLES (whole circles). Measured on 26/9/2026 (`prova0089
+            // croci6`): `AddCenterMark` on a fillet ARC selected in the
+            // view makes nothing be born, 4 arcs out of 4. Slots have two arcs
+            // and one single mark in the middle. Both are refused, with the measurement.
             string su = (Str(a, "applies_to", "holes") ?? "holes").Trim().ToLowerInvariant();
             bool allWhole = true;
             switch (su)
@@ -81,8 +81,8 @@ namespace Oce.Solid.Agent.Core
                     return Failed("«su» puo' essere solo «holes», non «" + su + "».");
             }
 
-            // SENZA `size_mm` la dimensione del documento: e' una
-            // convenzione di studio, non un numero mio.
+            // WITHOUT `size_mm` the size of the document: it is a
+            // studio convention, not a number of mine.
             bool itsDimension = a != null && a.ContainsKey("size_mm");
             double markSize = Units.M(Num(a, "size_mm", DefaultCentreMarkSizeMm));
             if (!itsDimension) markSize = DocumentCentreMarkSize(model, markSize);
@@ -97,7 +97,7 @@ namespace Oce.Solid.Agent.Core
             int totalBefore = 0, totalAfter = 0, already = 0;
             var notCreated = new List<string>();
 
-            var sheet = drawing.GetFirstView() as IView;      // il primo e' IL FOGLIO
+            var sheet = drawing.GetFirstView() as IView;      // the first one is THE SHEET
             var view = sheet == null ? null : sheet.GetNextView() as IView;
             while (view != null)
             {
@@ -164,7 +164,7 @@ namespace Oce.Solid.Agent.Core
                                "tavola e rifai la vista. Una tavola con qualche foro senza centro sembra finita e non lo e'.");
             }
 
-            // ── ZERO CROCI NON E' UN SUCCESSO SILENZIOSO ────────────────
+            // ── ZERO MARKS IS NOT A SILENT SUCCESS ──────────────────────
             if (additions == 0)
             {
                 measurements["verdict"] =
@@ -330,8 +330,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il cerchio e' un foro che in questa vista si vede come cerchio: asse
-        /// perpendicolare al foglio, e anello interno di una faccia piana.
+        /// The circle is a hole that in this view is seen as a circle: axis
+        /// perpendicular to the sheet, and inner ring of a planar face.
         /// </summary>
         private static bool IsAVisibleHole(IEdge e, ICurve c, IMathUtility mu, MathTransform tr)
         {
@@ -342,12 +342,12 @@ namespace Oce.Solid.Agent.Core
                 var axis = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
                 double l = Math.Sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
                 if (l < 1e-12 || Math.Abs(axis[2]) / l < 0.99) return false;
-                // IL CERCHIO E' UN ANELLO INTERNO DI UNA FACCIA PIANA: il bordo di un
-                // foro sta dentro la faccia che attraversa; il bordo di un disco o la
-                // testa di un albero e' l'anello ESTERNO della sua faccia.
-                // Misurato il 26/9/2026 (\`prova0089 croci8\`): FaceInSurfaceSense
-                // NON distingue — foro vero, disco falso — perche' il verso della
-                // superficie dipende da come e' nata; l'anello no.
+                // THE CIRCLE IS AN INNER RING OF A PLANAR FACE: the border of a
+                // hole lies inside the face it goes through; the border of a disc or the
+                // head of a shaft is the OUTER ring of its face.
+                // Measured on 26/9/2026 (\`prova0089 croci8\`): FaceInSurfaceSense
+                // does NOT tell them apart — real hole, false disc — because the direction of the
+                // surface depends on how it was born; the ring does not.
                 foreach (var oc in (e.GetCoEdges() as object[]) ?? new object[0])
                 {
                     var ring = (oc as ICoEdge)?.GetLoop() as ILoop2;
@@ -362,12 +362,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I centri delle croci che la vista ha gia', come li dice
-        /// `ICenterMark.GetPosition(0)`: RISPETTO AL CENTRO DELLA VISTA, non sul
-        /// foglio. Misurato il 26/9/2026 (`prova0089 croci4`): un cerchio a
-        /// 54,5/110,69 sul foglio, in una vista centrata a 94,5/110,69, ha la
-        /// croce a -40/0. Il primo codice li confrontava col foglio, e la seconda
-        /// chiamata metteva tre croci doppie.
+        /// The centres of the marks that the view already has, as
+        /// `ICenterMark.GetPosition(0)` gives them: RELATIVE TO THE CENTRE OF THE VIEW, not on the
+        /// sheet. Measured on 26/9/2026 (`prova0089 croci4`): a circle at
+        /// 54.5/110.69 on the sheet, in a view centred at 94.5/110.69, has the
+        /// mark at -40/0. The first code compared them with the sheet, and the second
+        /// call put three double marks.
         /// </summary>
         private static List<double[]> CenterMarkCenters(IView view)
         {
@@ -390,7 +390,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>Un punto del foglio portato nel riferimento della vista (come GetPosition).</summary>
+        /// <summary>A point of the sheet brought into the reference of the view (like GetPosition).</summary>
         private static double[] RelativeToView(IView view, double[] sheet)
         {
             double[] p = null;
@@ -400,9 +400,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La croce `q` (riferimento della vista) sta sul centro `sheet`? Si prova
-        /// con e senza la scala: a scala 1 non si e' potuto dire se GetPosition
-        /// la applichi, e mezzo millimetro di tolleranza vale nelle due letture.
+        /// Is the mark `q` (view reference) on the centre `sheet`? It is tried
+        /// with and without the scale: at scale 1 it could not be told whether GetPosition
+        /// applies it, and half a millimetre of tolerance holds in both readings.
         /// </summary>
         private static bool SameCenter(IView view, double[] q, double[] sheet)
         {
@@ -415,15 +415,15 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quante croci di centro ha questa vista, o **-1 se non si e' potuto
-        /// leggere** (voce Z-C8).
+        /// How many centre marks this view has, or **-1 if it could not be
+        /// read** (entry Z-C8).
         ///
-        /// Tornava zero, e il commento diceva che era «il verso prudente». Non
-        /// lo era: se falliva la lettura di PRIMA, qualunque croce dopo
-        /// sembrava nuova e il messaggio diceva «messe N croci» anche su una
-        /// vista che le aveva gia'; se falliva quella di DOPO, il ciclo provava
-        /// tutti e tre gli stili (croci doppie) e poi diceva «quella vista non
-        /// ha fori». Un numero che non si e' letto non si confronta.
+        /// It returned zero, and the comment said it was «the cautious direction». It
+        /// was not: if the reading BEFORE failed, any mark afterwards
+        /// looked new and the message said «messe N croci» even on a
+        /// view that already had them; if the one AFTER failed, the loop tried
+        /// all three styles (double marks) and then said «quella vista non
+        /// ha fori». A number that was not read cannot be compared.
         /// </summary>
         private static int HowManyCenterMarks(IView view)
         {
@@ -444,19 +444,19 @@ namespace Oce.Solid.Agent.Core
     }
 
     /// <summary>
-    /// LE CROCI DI CENTRO SI CONTANO ENUMERANDOLE (26/9/2026, `prova0089 croci5`).
+    /// THE CENTRE MARKS ARE COUNTED BY ENUMERATING THEM (26/9/2026, `prova0089 croci5`).
     ///
-    /// `IView.GetCenterMarkCount()` rispondeva **0** su una vista con tre croci:
-    /// quelle che SOLIDWORKS mette da se' sui fori quando crea la vista (opzione
-    /// del documento `swDetailingAutoInsertCenterMarksForHoles`, accesa qui) non
-    /// le conta; conta solo quelle aggiunte dopo. `GetFirstCenterMark` /
-    /// `GetNext` le vede tutte. Il «blocco» di W2.11 del 17/9 — «l'API dice si'
-    /// e non mette niente» — era in gran parte questo contatore: le croci
-    /// c'erano, e nessuno le vedeva. Lo usano l'operazione e lo stato.
+    /// `IView.GetCenterMarkCount()` answered **0** on a view with three marks:
+    /// the ones that SOLIDWORKS puts by itself on the holes when it creates the view (document
+    /// option `swDetailingAutoInsertCenterMarksForHoles`, turned on here) it does not
+    /// count; it counts only those added afterwards. `GetFirstCenterMark` /
+    /// `GetNext` sees them all. The «blocco» of W2.11 of 17/9 — «l'API dice si'
+    /// e non mette niente» — was largely this counter: the marks
+    /// were there, and nobody saw them. The operation and the state use it.
     /// </summary>
     internal static class CountCenterMarks
     {
-        /// <summary>Quante croci di centro ha la vista, enumerate; -1 se non si legge.</summary>
+        /// <summary>How many centre marks the view has, enumerated; -1 if it cannot be read.</summary>
         internal static int OfView(IView view)
         {
             try

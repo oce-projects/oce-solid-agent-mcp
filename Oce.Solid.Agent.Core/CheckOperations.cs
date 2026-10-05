@@ -7,76 +7,76 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE OPERAZIONI CHE NON DISEGNANO: dicono com'e' venuto. (voce GP1)
+    /// THE OPERATIONS THAT DO NOT DRAW: they say how it turned out. (entry GP1)
     ///
-    /// ── PERCHE' ESISTONO ─────────────────────────────────────────────────
+    /// ── WHY THEY EXIST ───────────────────────────────────────────────────
     ///
-    /// Fino a qui nessuna delle operazioni del catalogo sapeva rispondere alla
-    /// domanda «com'e' venuto?». Le misure c'erano — `rectangular_cut`
-    /// conta il materiale tolto, `rectangular_frame` confronta l'ingombro
-    /// col promesso, `hole_wizard` misura dove e' finito l'asse — ma erano
-    /// **private e interne alle singole operazioni**: il modello non poteva
-    /// chiamarne nessuna.
+    /// Up to here none of the operations of the catalog could answer the
+    /// question «how did it turn out?». The measurements were there — `rectangular_cut`
+    /// counts the material removed, `rectangular_frame` compares the bounding box
+    /// with the promised one, `hole_wizard` measures where the axis ended up — but they were
+    /// **private and internal to the single operations**: the model could not
+    /// call any of them.
     ///
-    /// `cut_list` e' il precedente: un'operazione di catalogo che LEGGE
-    /// invece di disegnare. Questa fa lo stesso su una domanda diversa.
+    /// `cut_list` is the precedent: a catalog operation that READS
+    /// instead of drawing. This one does the same on a different question.
     ///
-    /// ── LA DOMANDA A CUI RISPONDE, E PERCHE' NON E' OVVIA ────────────────
+    /// ── THE QUESTION IT ANSWERS, AND WHY IT IS NOT OBVIOUS ───────────────
     ///
-    /// «Questo corpo si puo' stampare?» In pratica: **e' un solido solo,
-    /// chiuso, senza difetti topologici**. Le quattro chiamate che
-    /// SOLIDWORKS offre per saperlo non dicono la stessa cosa, e due di loro
-    /// tacciono proprio sul caso che conta.
+    /// «Can this body be printed?» In practice: **is it one solid only,
+    /// closed, with no topological defects**. The four calls that
+    /// SOLIDWORKS offers to find out do not say the same thing, and two of them
+    /// keep quiet exactly on the case that counts.
     ///
-    /// Misurato il 15/9/2026 con `Checks\BrokenBody`, su SOLIDWORKS 2021:
+    /// Measured on 15/9/2026 with `Checks\BrokenBody`, on SOLIDWORKS 2021:
     ///
-    ///                             Check()  Check2()  Check3.Count  fessure
-    ///   solido sano                  1        0           0           0
-    ///   due solidi che si toccano    1        0           0           0
-    ///   CORPO DI FOGLIO (aperto)     1        0           0           1
+    ///                             Check()  Check2()  Check3.Count  gaps
+    ///   sound solid                  1        0           0           0
+    ///   two solids that touch        1        0           0           0
+    ///   SHEET BODY (open)            1        0           0           1
     ///
-    /// Due cose, e tutte e due cambiano come si scrive questa operazione:
+    /// Two things, and both change how this operation is written:
     ///
-    /// 1. **`Check()` e `Check2()` hanno convenzioni OPPOSTE.** Sullo stesso
-    ///    corpo sano il primo dice 1 e il secondo dice 0. Chi legge lo zero di
-    ///    `Check2()` come «falso, cioe' rotto» ottiene un risultato coerente,
-    ///    stabile e rovesciato.
+    /// 1. **`Check()` and `Check2()` have OPPOSITE conventions.** On the same
+    ///    sound body the first says 1 and the second says 0. Whoever reads the zero of
+    ///    `Check2()` as «false, that is, broken» gets a coherent,
+    ///    stable and inverted result.
     ///
-    /// 2. **Un corpo APERTO passa tre controlli su quattro.** Il foglio non e'
-    ///    rotto: e' un corpo valido che non racchiude niente. `Check`, `Check2`
-    ///    e `Check3` lo dichiarano sano tutti e tre, e **solo
-    ///    `Diagnose().GetGapsCount()` lo vede**. Un'operazione costruita su
-    ///    `Check3` — la via che la voce GP1 nominava per prima — direbbe
-    ///    «nessun problema» esattamente sul caso per cui esiste.
+    /// 2. **An OPEN body passes three checks out of four.** The sheet is not
+    ///    broken: it is a valid body that encloses nothing. `Check`, `Check2`
+    ///    and `Check3` declare it sound, all three, and **only
+    ///    `Diagnose().GetGapsCount()` sees it**. An operation built on
+    ///    `Check3` — the way that entry GP1 named first — would say
+    ///    «nessun problema» exactly on the case it exists for.
     ///
-    /// Quindi qui si guardano **tutte e quattro**, e il giudizio le richiede
-    /// tutte d'accordo.
+    /// So here **all four** are looked at, and the verdict requires them
+    /// all to agree.
     ///
-    /// ── FIRME VERIFICATE sull'interop 29.5.1.1 ──────────────────────────
+    /// ── SIGNATURES VERIFIED on the interop 29.5.1.1 ─────────────────────
     ///
     ///   IBody2.Check()    -> Int32
     ///   IBody2.Check2()   -> Int32
-    ///   IBody2.Check3     -> FaultEntity      ** PROPRIETA', NON METODO **
+    ///   IBody2.Check3     -> FaultEntity      ** PROPERTY, NOT METHOD **
     ///   IBody2.Diagnose() -> DiagnoseResult
     ///   IFaultEntity.Count, get_ErrorCode(i)
     ///   IDiagnoseResult.GetGapsCount()
     ///
-    /// `Check3` proprieta' e non metodo e' una trappola da late binding:
-    /// scritto `Check3()` non da' errore di compilazione, da' un fallimento a
-    /// runtime dentro un `catch` che lo ingoia.
+    /// `Check3` being a property and not a method is a late-binding trap:
+    /// written `Check3()` it gives no compilation error, it gives a failure at
+    /// runtime inside a `catch` that swallows it.
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>
-        /// Il valore che `Check()` da' su un corpo sano. **Uno, non zero**, e
-        /// il nome esiste perche' la costante nuda in mezzo a un `if` sarebbe
-        /// indistinguibile da un refuso.
+        /// The value that `Check()` gives on a sound body. **One, not zero**, and
+        /// the name exists because the bare constant in the middle of an `if` would be
+        /// indistinguishable from a typo.
         /// </summary>
         private const int CheckSaysHealthy = 1;
 
         /// <summary>
-        /// Il valore che `Check2()` da' su un corpo sano. **Zero, non uno.**
-        /// Sullo stesso corpo, con l'altra convenzione.
+        /// The value that `Check2()` gives on a sound body. **Zero, not one.**
+        /// On the same body, with the other convention.
         /// </summary>
         private const int Check2SaysHealthy = 0;
 
@@ -87,9 +87,9 @@ namespace Oce.Solid.Agent.Core
             if (partDoc == null)
                 return Failed("Questo documento non e' un pezzo: non ha corpi da verificare.");
 
-            // TUTTI I TIPI, non solo i solidi. Un pezzo che ha per errore un
-            // corpo di foglio e' proprio il caso che questa operazione esiste
-            // per dire, e chiedendo solo i solidi non lo si vedrebbe mai.
+            // ALL THE TYPES, not only the solids. A part that by mistake has a
+            // sheet body is exactly the case that this operation exists
+            // to report, and asking only for the solids it would never be seen.
             //
             // THE «C» NUMBERS STILL MATCH THE STATE'S FOR THE SOLIDS (Z-C21.9,
             // finding L12-3, measured not real). The state numbers the bodies of
@@ -180,10 +180,10 @@ namespace Oce.Solid.Agent.Core
                     ["closed"] = gaps == 0,
                     ["gaps"] = gaps,
                     ["defects"] = defects == null ? null : (object)defects.Count,
-                    // I NUMERI GREZZI RESTANO, e non e' ridondanza: quando un
-                    // giorno una versione di SOLIDWORKS cambiera' una delle due
-                    // convenzioni, e' da qui che lo si vedra' invece che da un
-                    // giudizio girato al contrario.
+                    // THE RAW NUMBERS STAY, and it is not redundancy: when one
+                    // day a version of SOLIDWORKS changes one of the two
+                    // conventions, it is from here that it will be seen instead of from a
+                    // verdict turned the wrong way round.
                     ["check_raw"] = check,
                     ["check2_raw"] = check2,
                 };
@@ -223,10 +223,10 @@ namespace Oce.Solid.Agent.Core
                     "Non trovo il corpo «" + thisOnly + "». Gli identificativi dei " +
                     "corpi stanno nello stato del documento, dentro «bodies».");
 
-            // PIU' DI UN CORPO NON E' UN DIFETTO, ed e' un'altra cosa da
-            // «rotto»: un saldato ne ha dieci per costruzione. Ma per una
-            // stampa lo e', perche' uno STL di due corpi e' due gusci
-            // separati, e la stampante non sa quale dei due e' il pezzo.
+            // MORE THAN ONE BODY IS NOT A DEFECT, and it is another thing from
+            // «broken»: a weldment has ten by construction. But for a
+            // print it is, because an STL of two bodies is two separate
+            // shells, and the printer does not know which of the two is the part.
             bool justOne = list.Count == 1;
             if (!justOne && string.IsNullOrEmpty(thisOnly))
                 reasons.Add("il pezzo ha " + list.Count + " corpi: per una stampa dev'essere uno solo");
@@ -271,13 +271,13 @@ namespace Oce.Solid.Agent.Core
                 ["bodies_with_defects"] = withDefects,
                 ["bodies_not_closed"] = withGaps,
                 ["printable"] = printable,
-                // UNA FRASE, NON UN NUMERO. Chi legge deve sapere COSA fare, e
-                // «printable: false» da solo non lo dice.
+                // A SENTENCE, NOT A NUMBER. Whoever reads must know WHAT to do, and
+                // «printable: false» alone does not say it.
                 ["verdict"] = verdictValue,
-                // IL LIMITE DICHIARATO, e va detto ogni volta: questa
-                // operazione guarda la TOPOLOGIA, non lo spessore delle pareti
-                // ne' le sovrasporgenze. Un guscio da 0,3 mm passa di qui
-                // senza una parola.
+                // THE DECLARED LIMIT, and it must be said every time: this
+                // operation looks at the TOPOLOGY, not at the thickness of the walls
+                // nor at the overhangs. A 0.3 mm shell passes here
+                // without a word.
                 ["what_it_does_not_check"] =
                     "Lo spessore delle pareti e le sovrasporgenze non li guarda nessuno " +
                     "ancora: qui si vede se il corpo e' chiuso e sano, non se e' stampabile " +
@@ -287,12 +287,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I difetti che `Check3` elenca, col NOME e non col numero.
+        /// The defects that `Check3` lists, with the NAME and not the number.
         ///
-        /// I codici hanno un enum — `swFaultEntityErrorCode_e`, 36 valori da
-        /// `swBodyCorrupt = 1` a `swEdgeTouchEdge = 36` — e lo zero NON e' fra
-        /// quelli: un codice che l'enum non conosce si dice cosi', invece di
-        /// scriverlo come se fosse un nome.
+        /// The codes have an enum — `swFaultEntityErrorCode_e`, 36 values from
+        /// `swBodyCorrupt = 1` to `swEdgeTouchEdge = 36` — and zero is NOT among
+        /// them: a code that the enum does not know is said so, instead of
+        /// being written as if it were a name.
         ///
         /// NULL WHEN CHECK3 CANNOT BE READ (Z-C21.8, finding N16). Until library
         /// 0.144.0 an exception, or a Check3 that gave no IFaultEntity, returned
@@ -358,9 +358,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Un intero da una chiamata COM, o il valore di ripiego. Non si
-        /// ingoia il fallimento: il ripiego e' un numero che NON puo' essere
-        /// scambiato per «sano», ed e' per questo che e' `int.MinValue` e non
+        /// An integer from a COM call, or the fallback value. The failure is not
+        /// swallowed: the fallback is a number that can NOT be
+        /// mistaken for «sound», and this is why it is `int.MinValue` and not
         /// zero.
         /// </summary>
         private static int Integer(Func<int> f, int ifItCannot)

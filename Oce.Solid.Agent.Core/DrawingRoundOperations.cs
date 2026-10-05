@@ -7,44 +7,44 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// IL PEZZO TONDO VISTO DI FIANCO (voce GT14): le lunghezze fra le facce e i
-    /// diametri, nella vista longitudinale di una boccola, di un perno, di un
-    /// albero a gradini.
+    /// THE ROUND PART SEEN FROM THE SIDE (entry GT14): the lengths between the faces and the
+    /// diameters, in the longitudinal view of a bushing, a pin, a
+    /// stepped shaft.
     ///
-    /// ── COSA SI E' MISURATO PRIMA (27/9/2026, `prova0089 tornito`..`tornito8`) ──
+    /// ── WHAT WAS MEASURED FIRST (27/9/2026, `prova0089 tornito`..`tornito8`) ──
     ///
-    /// Sull'albero a gradini dell'esempio di «revolve» (Ø30x40, Ø20x30,
-    /// Ø34x20), nella vista frontale:
+    /// On the stepped shaft of the «revolve» example (Ø30x40, Ø20x30,
+    /// Ø34x20), in the front view:
     ///
-    ///  * DUE CERCHI VISTI DI TAGLIO selezionati e `AddDimension2`: nasce la
-    ///    distanza fra le due facce (20, 50, 40 — giuste). E' la lunghezza.
-    ///  * DUE GENERATRICI DELLA STESSA FACCIA (`GetVisibleEntities2` col tipo
-    ///    `swViewEntityType_SilhouetteEdge` = 4) e `AddDimension2`: nasce da sola
-    ///    la quota di diametro, col prefisso «<MOD-DIAM>» (Ø34, Ø30).
-    ///  * MA NON SEMPRE SI PUO': la faccia del Ø20 non compare fra le facce
-    ///    visibili della vista, una sua generatrice ha `GetFace` null e l'altra
-    ///    non si seleziona (in `GetPolylines7` l'oggetto e' null). Di quel
-    ///    diametro si dice che non e' raggiunto, invece di tacerlo.
-    ///  * STRADE PROVATE E CHIUSE: `ISilhouetteEdge.GetStartPoint` da fuori
-    ///    processo fa sollevare un'eccezione a SOLIDWORKS (RPC_E_SERVERFAULT) e
-    ///    `GetCurve` risponde null; la selezione per posizione (`SelectByID2`
-    ///    «SILHOUETTE») prende una generatrice sola per volta; la faccia
-    ///    cilindrica selezionata non fa nascere niente; la linea d'asse
-    ///    (`InsertCenterLine2`) piu' una generatrice fa una quota misurata
-    ///    dall'origine del FOGLIO (212,49), e `Diametric` non si lascia
-    ///    accendere. Di taglio `AddDiameterDimension2` dice 60 per un Ø30.
+    ///  * TWO CIRCLES SEEN EDGE-ON selected and `AddDimension2`: the
+    ///    distance between the two faces is born (20, 50, 40 — right). It is the length.
+    ///  * TWO GENERATRICES OF THE SAME FACE (`GetVisibleEntities2` with type
+    ///    `swViewEntityType_SilhouetteEdge` = 4) and `AddDimension2`: the diameter
+    ///    dimension is born by itself, with the prefix «<MOD-DIAM>» (Ø34, Ø30).
+    ///  * BUT IT IS NOT ALWAYS POSSIBLE: the face of the Ø20 does not appear among the
+    ///    visible faces of the view, one of its generatrices has `GetFace` null and the other
+    ///    cannot be selected (in `GetPolylines7` the object is null). Of that
+    ///    diameter it is said that it is not reached, instead of keeping quiet.
+    ///  * ROUTES TRIED AND CLOSED: `ISilhouetteEdge.GetStartPoint` from out of
+    ///    process makes SOLIDWORKS raise an exception (RPC_E_SERVERFAULT) and
+    ///    `GetCurve` answers null; selection by position (`SelectByID2`
+    ///    «SILHOUETTE») takes a single generatrix at a time; the selected
+    ///    cylindrical face makes nothing be born; the axis line
+    ///    (`InsertCenterLine2`) plus one generatrix makes a dimension measured
+    ///    from the origin of the SHEET (212.49), and `Diametric` cannot be
+    ///    switched on. Edge-on `AddDiameterDimension2` says 60 for a Ø30.
     ///
-    /// NEL CODICE non si usa `IModelDoc2.AddDimension2` delle sonde (vietata per
-    /// contratto: niente direzione, voce GP6) e `Extension.AddDimension` con due
-    /// entita' non fa nascere niente: si usano le quote ORIZZONTALE e VERTICALE
-    /// dichiarate (`AddHorizontalDimension2` 20 sui due cerchi,
-    /// `AddVerticalDimension2` Ø34 sulle due generatrici, col Ø messo da
-    /// SOLIDWORKS — sonda `orvert`).
+    /// IN THE CODE the `IModelDoc2.AddDimension2` of the probes is not used (forbidden by
+    /// contract: no direction, entry GP6) and `Extension.AddDimension` with two
+    /// entities makes nothing be born: the declared HORIZONTAL and VERTICAL dimensions
+    /// are used (`AddHorizontalDimension2` 20 on the two circles,
+    /// `AddVerticalDimension2` Ø34 on the two generatrices, with the Ø put by
+    /// SOLIDWORKS — probe `orvert`).
     ///
-    /// Le lunghezze sono IN PARALLELO dalla faccia di un'estremita' — lo stesso
-    /// criterio dello zero unico per tutte le quote (deciso il 26/9/2026 per i
-    /// fori): la faccia piu' a sinistra, o piu' in basso se l'asse e' verticale.
-    /// Ogni quota si rilegge contro la geometria prima di restare in tavola.
+    /// The lengths are IN PARALLEL from the face at one end — the same
+    /// criterion as the single zero for all the dimensions (decided on 26/9/2026 for the
+    /// holes): the leftmost face, or the lowest if the axis is vertical.
+    /// Every dimension is read back against the geometry before staying on the drawing.
     /// </summary>
     public partial class SwOperations
     {
@@ -60,8 +60,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quota il tondo visto di fianco, se i cerchi di taglio della vista sono
-        /// coassiali (almeno due). Null se la vista non e' quella di un tondo.
+        /// Dimensions the round part seen from the side, if the edge-on circles of the view are
+        /// coaxial (at least two). Null if the view is not that of a round part.
         /// </summary>
         private RoundOutcome DimensionTheRoundFromTheSide(
             IModelDoc2 model, IDrawingDoc drawing, IView view, IMathUtility mu, MathTransform tr,
@@ -72,7 +72,7 @@ namespace Oce.Solid.Agent.Core
             if (cutting.Count < 2 || cutting[0].ModelAxis == null) return null;
             var axis = cutting[0].ModelAxis;
             var o = cutting[0].ModelCenter;
-            // COASSIALI: stesso asse, centri sulla stessa retta.
+            // COAXIAL: same axis, centres on the same line.
             var onAxis = new List<Tuple<double, Circle>>();
             foreach (var c in cutting)
             {
@@ -90,20 +90,20 @@ namespace Oce.Solid.Agent.Core
             if (sheetAxis == null) return null;
             bool horizontal = Math.Abs(sheetAxis[0]) >= Math.Abs(sheetAxis[1]);
             outcome.Axis = horizontal ? "horizontal" : "vertical";
-            // Il verso del parametro t sul foglio: da sinistra a destra (o dal
-            // basso in alto), per partire dalla faccia giusta.
+            // The direction of the parameter t on the sheet: from left to right (or from
+            // bottom to top), to start from the right face.
             double sheetFacing = horizontal ? sheetAxis[0] : sheetAxis[1];
             onAxis.Sort((a, b) => (a.Item1 * Math.Sign(sheetFacing)).CompareTo(b.Item1 * Math.Sign(sheetFacing)));
-            // Una posizione per faccia: due cerchi alla stessa t sono la stessa faccia.
+            // One position per face: two circles at the same t are the same face.
             //
-            // E SOLO I CERCHI DI UNA FACCIA PIANA DI TESTA O DI SPALLAMENTO
-            // (revisione avversariale del 27/9/2026). Uno smusso fa due cerchi,
-            // cono-piano e cono-cilindro, e un raccordo con gli spigoli tangenti
-            // visibili fa lo stesso: contati come facce, su un Ø30x40 smussato 1x45°
-            // nascevano 1, 39 e 40 — le «gambe» dello smusso che il resto della
-            // tavola scarta come quote in piu' (IsChamferLeg). Un cerchio e' una
-            // faccia del tondo se borda una faccia PIANA perpendicolare all'asse;
-            // gli altri si dicono, non si quotano.
+            // AND ONLY THE CIRCLES OF A PLANAR END FACE OR SHOULDER FACE
+            // (adversarial review of 27/9/2026). A chamfer makes two circles,
+            // cone-plane and cone-cylinder, and a fillet with the tangent edges
+            // visible does the same: counted as faces, on a Ø30x40 chamfered 1x45°
+            // 1, 39 and 40 were born — the «legs» of the chamfer that the rest of the
+            // drawing discards as extra dimensions (IsChamferLeg). A circle is a
+            // face of the round part if it borders a PLANAR face perpendicular to the axis;
+            // the others are stated, not dimensioned.
             var faces = new List<Tuple<double, Circle>>();
             var chamfers = new List<string>();
             foreach (var p in onAxis)
@@ -127,7 +127,7 @@ namespace Oce.Solid.Agent.Core
                 outcome.Note.Add("lunghezze (meno di due facce piane di testa o di spallamento viste di taglio)");
 
             var selMgr = model.SelectionManager as ISelectionMgr;
-            // ── LE LUNGHEZZE, IN PARALLELO DALLA PRIMA FACCIA ──────────────────
+            // ── THE LENGTHS, IN PARALLEL FROM THE FIRST FACE ───────────────────
             var zero = faces.Count > 0 ? faces[0] : null;
             for (int i = 1; i < faces.Count; i++)
             {
@@ -174,20 +174,20 @@ namespace Oce.Solid.Agent.Core
                 already.Add(key);
             }
 
-            // I CILINDRI COASSIALI DEL PEZZO (diametro, e il punto a meta' lungo
-            // l'asse): dicono quali diametri mancano, e riconoscono una quota nata
-            // da due generatrici di cui SOLIDWORKS non dice la faccia.
+            // THE COAXIAL CYLINDERS OF THE PART (diameter, and the point halfway along
+            // the axis): they say which diameters are missing, and they recognise a dimension born
+            // from two generatrices whose face SOLIDWORKS does not tell.
             var cylinders = CoaxialCylinders(view, axis, o);
 
-            // ── I DIAMETRI, DALLE DUE GENERATRICI DI OGNI FACCIA ────────────────
+            // ── THE DIAMETERS, FROM THE TWO GENERATRICES OF EACH FACE ────────────
             //
-            // LE GENERATRICI SI RILEGGONO PRIMA DI OGNI QUOTA: sono oggetti della
-            // vista, non del modello, e dopo una quota nuova quelle lette prima
-            // possono non selezionarsi piu' (misurato il 27/9/2026, `orvert`: la
-            // seconda coppia «presa True/False»). La quota e' ORIZZONTALE o
-            // VERTICALE dichiarata (AddVerticalDimension2 per un asse orizzontale):
-            // su due generatrici della stessa faccia SOLIDWORKS ci mette da se' il
-            // Ø. `Extension.AddDimension` con due entita' non fa nascere niente.
+            // THE GENERATRICES ARE READ AGAIN BEFORE EVERY DIMENSION: they are objects of the
+            // view, not of the model, and after a new dimension the ones read before
+            // may no longer be selectable (measured on 27/9/2026, `orvert`: the
+            // second pair «presa True/False»). The dimension is a declared HORIZONTAL or
+            // VERTICAL one (AddVerticalDimension2 for a horizontal axis):
+            // on two generatrices of the same face SOLIDWORKS puts the
+            // Ø in by itself. `Extension.AddDimension` with two entities makes nothing be born.
             bool horizontalDiameterDimension = !horizontal;
             var done = new HashSet<string>(StringComparer.Ordinal);
             for (int benchRun = 0; benchRun < 12; benchRun++)
@@ -203,10 +203,10 @@ namespace Oce.Solid.Agent.Core
                 double expectedValueMm = Math.Round(m[0] * 2000.0, 3);
                 string what = "diametro Ø" + expectedValueMm.ToString("0.##", Ci);
                 string key = "foro|" + Math.Round(expectedValueMm, 2).ToString("0.00", Ci);
-                // A META' DELLA FACCIA, sull'asse: la linea di misura attraversa il
-                // suo cilindro, come si quota un albero. Lo stesso punto fa la
-                // CHIAVE DEL CILINDRO (revisione del 27/9/2026): due perni Ø30
-                // separati da un collare sono due quote, non una.
+                // HALFWAY ALONG THE FACE, on the axis: the measurement line crosses its
+                // cylinder, the way a shaft is dimensioned. The same point makes the
+                // CYLINDER KEY (review of 27/9/2026): two Ø30 pins
+                // separated by a collar are two dimensions, not one.
                 double tm = (m[1] + m[2]) / 2;
                 string cylinder = CylinderKey(m[0] * 2000.0, new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] });
                 if (already.Contains(cylinder) || already.Contains("cil?|" + key.Substring(5)))
@@ -239,16 +239,16 @@ namespace Oce.Solid.Agent.Core
                 already.Add(cylinder);
             }
 
-            // ── LE GENERATRICI SENZA FACCIA, PROVATE A COPPIE ───────────────────
-            // Misurato il 27/9/2026: sulla boccola GetFace resta null anche dopo
-            // tre giri, e quelle generatrici si selezionano lo stesso. Si prova
-            // ogni coppia (per posizione nell'elenco, che si rilegge ogni volta)
-            // e la quota resta SOLO se SOLIDWORKS stesso ci mette il Ø (lo fa
-            // quando le due generatrici sono dello stesso cilindro) E il valore e'
-            // il diametro di un cilindro coassiale del pezzo non ancora quotato.
-            // Altrimenti si toglie. Poi il testo va a meta' del cilindro.
-            // Le generatrici con la faccia ma rimaste sole entrano nella prova: la
-            // compagna e' fra quelle senza.
+            // ── THE GENERATRICES WITHOUT FACE, TRIED IN PAIRS ───────────────────
+            // Measured on 27/9/2026: on the bushing GetFace stays null even after
+            // three passes, and those generatrices can be selected all the same. Every
+            // pair is tried (by position in the list, which is re-read every time)
+            // and the dimension stays ONLY IF SOLIDWORKS itself puts the Ø in (it does so
+            // when the two generatrices belong to the same cylinder) AND the value is
+            // the diameter of a coaxial cylinder of the part not yet dimensioned.
+            // Otherwise it is removed. Then the text goes to the middle of the cylinder.
+            // The generatrices that have the face but were left alone enter the test: their
+            // partner is among those without.
             var tested = new HashSet<string>(StringComparer.Ordinal);
             double cx = (contour[0] + contour[2]) / 2, cy = (contour[1] + contour[3]) / 2;
             for (int benchRun = 0; benchRun < 30; benchRun++)
@@ -294,7 +294,7 @@ namespace Oce.Solid.Agent.Core
                 if (prefix.Contains("<MOD-DIAM>") && its == null && !double.IsNaN(read) &&
                     cylinders.Any(c => Math.Abs(c.DiameterMm - read) <= 0.01))
                 {
-                    // UN DIAMETRO VERO, ma gia' quotato altrove: si toglie e si dice.
+                    // A TRUE DIAMETER, but already dimensioned elsewhere: it is removed and stated.
                     RemoveDimension(model, q);
                     string said = "diametro Ø" + read.ToString("0.##", Ci) + " (gia' quotato in questa tavola)";
                     if (!elsewhere.Contains(said)) elsewhere.Add(said);
@@ -312,9 +312,9 @@ namespace Oce.Solid.Agent.Core
                 already.Add(its.Key);
             }
 
-            // ── E QUELLI CHE LA VISTA NON ESPONE ────────────────────────────────
-            // I cilindri coassiali del pezzo il cui diametro, a questo punto, non
-            // e' quotato in nessuna vista della tavola.
+            // ── AND THOSE THE VIEW DOES NOT EXPOSE ──────────────────────────────
+            // The coaxial cylinders of the part whose diameter, at this point, is not
+            // dimensioned in any view of the drawing.
             var called = new HashSet<string>(StringComparer.Ordinal);
             foreach (var c in cylinders)
             {
@@ -326,7 +326,7 @@ namespace Oce.Solid.Agent.Core
             return outcome;
         }
 
-        /// <summary>Un cilindro del tondo: il diametro, il punto a meta' lungo l'asse (m, nel modello), la chiave.</summary>
+        /// <summary>A cylinder of the round part: the diameter, the point halfway along the axis (m, in the model), the key.</summary>
         private sealed class RoundCylinder
         {
             public double DiameterMm;
@@ -334,15 +334,15 @@ namespace Oce.Solid.Agent.Core
             public string Key;
         }
 
-        /// <summary>Quel cilindro e' gia' quotato: la sua chiave, o un Ø uguale di cui non si sa il cilindro.</summary>
+        /// <summary>That cylinder is already dimensioned: its key, or an equal Ø of which the cylinder is not known.</summary>
         private static bool DimensionedCylinder(HashSet<string> already, RoundCylinder c)
         {
             return already.Contains(c.Key) || already.Contains("cil?|" + Math.Round(c.DiameterMm, 2).ToString("0.00", Ci));
         }
 
         /// <summary>
-        /// I cilindri del pezzo coassiali col tondo, ciascuno col punto a meta' lungo
-        /// l'asse e la sua chiave. Vuoto se la vista non e' di una parte.
+        /// The cylinders of the part coaxial with the round part, each with the point halfway along
+        /// the axis and its key. Empty if the view is not of a part.
         /// </summary>
         private static List<RoundCylinder> CoaxialCylinders(IView view, double[] axis, double[] o)
         {
@@ -372,7 +372,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>Toglie una quota appena nata. DeleteSelection2, non EditDelete (puo' aprire una finestra).</summary>
+        /// <summary>Removes a dimension just born. DeleteSelection2, not EditDelete (it can open a window).</summary>
         private static bool RemoveDimension(IModelDoc2 model, IDisplayDimension q)
         {
             bool removed = false;
@@ -399,10 +399,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le generatrici della vista, raggruppate per faccia (raggio ed estremi
-        /// lungo l'asse). PRIMA SI RIDISEGNA E SI CHIEDE LA FACCIA PIU' VOLTE:
-        /// misurato il 27/9/2026 (`prova0089 gendiag`), `GetFace` risponde null
-        /// su tutte finche' la tavola non e' ridisegnata e la domanda ripetuta.
+        /// The generatrices of the view, grouped by face (radius and ends
+        /// along the axis). FIRST IT IS REDRAWN AND THE FACE IS ASKED SEVERAL TIMES:
+        /// measured on 27/9/2026 (`prova0089 gendiag`), `GetFace` answers null
+        /// on all of them until the drawing is redrawn and the question repeated.
         /// </summary>
         private static Generatrices ReadGeneratrices(IModelDoc2 model, IView view)
         {
@@ -450,8 +450,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Seleziona (con la vista nel SelectData) e fa nascere una quota ORIZZONTALE
-        /// o VERTICALE, dichiarata; null se non nasce.
+        /// Selects (with the view in the SelectData) and makes a declared HORIZONTAL
+        /// or VERTICAL dimension be born; null if it is not born.
         ///
         /// «Not born» is the count of dimensions, asked FIRST (finding N80 of
         /// Z-C21.8, at the one site that lot left out). When the count went up
@@ -477,9 +477,9 @@ namespace Oce.Solid.Agent.Core
                 var sd = selMgr?.CreateSelectData() as SelectData;
                 if (sd == null) return null;
                 sd.View = (View)view;
-                // ORIZZONTALE O VERTICALE DICHIARATA: IModelDoc2.AddDimension2 e'
-                // vietata (niente direzione, voce GP6) e Extension.AddDimension con
-                // due entita' selezionate non fa nascere niente (misurato).
+                // DECLARED HORIZONTAL OR VERTICAL: IModelDoc2.AddDimension2 is
+                // forbidden (no direction, entry GP6) and Extension.AddDimension with
+                // two entities selected makes nothing be born (measured).
                 if (doSelect(sd))
                     q = (horizontal ? model.AddHorizontalDimension2(x, y, 0)
                                      : model.AddVerticalDimension2(x, y, 0)) as IDisplayDimension;
@@ -492,9 +492,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La quota riletta vale quanto la geometria (e, se e' un diametro, porta
-        /// il simbolo)? Se no si toglie: un numero sbagliato e plausibile non
-        /// resta in tavola.
+        /// Does the dimension read back equal the geometry (and, if it is a diameter, does it carry
+        /// the symbol)? If not it is removed: a wrong and plausible number does not
+        /// stay on the drawing.
         /// </summary>
         private static bool CorrectReread(IModelDoc2 model, IDisplayDimension q, double expectedValueMm, bool diameter,
                                           string what, List<string> failed)
@@ -514,7 +514,7 @@ namespace Oce.Solid.Agent.Core
             return false;
         }
 
-        /// <summary>Gli estremi della faccia cilindrica lungo il suo asse, dai suoi cerchi.</summary>
+        /// <summary>The ends of the cylindrical face along its axis, from its circles.</summary>
         private static bool FaceEnds(IFace2 face, double[] cp, out double tmin, out double tmax)
         {
             tmin = double.MaxValue; tmax = double.MinValue;
@@ -534,13 +534,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La chiave di UN cilindro del pezzo: il diametro e il punto a meta' lungo
-        /// l'asse, nel modello («cil|30.00|x,y,z», millimetri al decimo). Due
-        /// gradini dello stesso Ø, o un foro dello stesso Ø di un gradino, sono
-        /// cilindri diversi e hanno chiavi diverse: con la chiave del solo
-        /// diametro uno cancellava l'altro (revisione avversariale del 27/9/2026).
-        /// Il punto a meta' non dipende dall'origine che la superficie sceglie
-        /// sull'asse, quindi le due meta' di una faccia spezzata danno la stessa.
+        /// The key of ONE cylinder of the part: the diameter and the point halfway along
+        /// the axis, in the model («cil|30.00|x,y,z», millimetres to the tenth). Two
+        /// steps of the same Ø, or a hole of the same Ø as a step, are
+        /// different cylinders and have different keys: with the key of the diameter
+        /// alone one cancelled the other (adversarial review of 27/9/2026).
+        /// The midpoint does not depend on the origin the surface chooses
+        /// on the axis, so the two halves of a split face give the same one.
         /// </summary>
         private static string CylinderKey(double diameterMm, double[] meta)
         {
@@ -548,7 +548,7 @@ namespace Oce.Solid.Agent.Core
                    string.Join(",", meta.Take(3).Select(v => (Math.Round(v * 1000, 1) + 0.0).ToString("0.0", Ci)));
         }
 
-        /// <summary>La chiave del cilindro di una faccia, o null se la faccia non e' un cilindro che si legge.</summary>
+        /// <summary>The cylinder key of a face, or null if the face is not a cylinder that can be read.</summary>
         private static string CylinderKey(IFace2 face)
         {
             try
@@ -565,9 +565,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La chiave del cilindro di cui il cerchio e' un bordo (stesso raggio), o
-        /// null. Per co-spigoli e anelli, come ThroughAllFromGeometry: e' la strada
-        /// che da fuori processo risponde.
+        /// The key of the cylinder of which the circle is an edge (same radius), or
+        /// null. By co-edges and rings, like ThroughAllFromGeometry: it is the route
+        /// that answers from out of process.
         /// </summary>
         private static string CylinderCircleKey(IEdge e)
         {
@@ -590,9 +590,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Che faccia borda un cerchio del tondo: «plane» se una delle sue facce e' un
-        /// piano perpendicolare all'asse (una testa, uno spallamento), altrimenti
-        /// «cono» (uno smusso), «toro» (un raccordo) o «altro».
+        /// Which face a circle of the round part borders: «plane» if one of its faces is a
+        /// plane perpendicular to the axis (a head, a shoulder), otherwise
+        /// «cono» (a chamfer), «toro» (a fillet) or «altro».
         /// </summary>
         private static string WhatBordersTheCircle(IEdge edge, double[] axis)
         {
@@ -616,7 +616,7 @@ namespace Oce.Solid.Agent.Core
             return found;
         }
 
-        /// <summary>La chiave di una lunghezza del tondo: i centri delle due facce, nel modello.</summary>
+        /// <summary>The key of a length of the round part: the centres of the two faces, in the model.</summary>
         private static string RoundKey(double[] a, double[] b)
         {
             Func<double[], string> s = p => string.Join(",", p.Take(3).Select(v => Math.Round(v * 1000, 2).ToString("0.##", Ci)));
@@ -624,7 +624,7 @@ namespace Oce.Solid.Agent.Core
             return "tondo|" + (string.CompareOrdinal(x, y) <= 0 ? x + "|" + y : y + "|" + x);
         }
 
-        /// <summary>Due cerchi (CircleParams) sullo stesso asse, con centri diversi?</summary>
+        /// <summary>Two circles (CircleParams) on the same axis, with different centres?</summary>
         private static bool Coaxial(double[] a, double[] b)
         {
             if (a == null || b == null || a.Length < 6 || b.Length < 6) return false;

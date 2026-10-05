@@ -7,121 +7,121 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Fotografia di cio' che c'e' adesso nel documento aperto.
+    /// Photograph of what is in the open document right now.
     ///
-    /// A COSA SERVE
-    /// Il modello linguistico gira sul server e SolidWorks no. Se deve proporre
-    /// "un foro su quella faccia", qualcuno gli deve dire quali facce esistono.
-    /// Questa e' quella descrizione: piccola, numerica, senza niente che si
-    /// possa scambiare per un comando.
+    /// WHAT IT IS FOR
+    /// The language model runs on the server and SolidWorks does not. If it has to propose
+    /// "a hole on that face", somebody has to tell it which faces exist.
+    /// This is that description: small, numeric, with nothing that can
+    /// be mistaken for a command.
     ///
-    /// GLI IDENTIFICATIVI SONO NOSTRI E DURANO POCO
-    /// F1, F2, E7 non sono nomi di SOLIDWORKS: sono etichette che assegniamo
-    /// noi enumerando in ordine deterministico. Insieme a ognuna teniamo una
-    /// FIRMA (area o lunghezza, e un punto sull'entita'): prima di eseguire
-    /// un'operazione si rienumera e si ricontrolla la firma. Se non combacia —
-    /// perche' l'utente nel frattempo ha aggiunto una feature — l'operazione si
-    /// rifiuta invece di lavorare sulla faccia sbagliata.
+    /// THE IDENTIFIERS ARE OURS AND LAST A SHORT TIME
+    /// F1, F2, E7 are not SOLIDWORKS names: they are labels that we assign
+    /// by enumerating in a deterministic order. Together with each one we keep a
+    /// SIGNATURE (area or length, and a point on the entity): before executing
+    /// an operation it is enumerated again and the signature is checked again. If it does not match —
+    /// because the user in the meantime added a feature — the operation is
+    /// refused instead of working on the wrong face.
     ///
-    /// Nessun riferimento persistente di SOLIDWORKS (GetPersistReference e
-    /// simili): non serve per un piano che dura minuti, e sarebbe una API in
-    /// piu' da verificare per un problema che non abbiamo.
+    /// No persistent SOLIDWORKS reference (GetPersistReference and
+    /// the like): it is not needed for a plan that lasts minutes, and it would be one more
+    /// API to verify for a problem that we do not have.
     ///
-    /// I TETTI CI SONO E SI DICHIARANO
-    /// Un pezzo di lamiera piegata ha centinaia di facce. Mandarle tutte a un
-    /// modello linguistico costa token e non aiuta: si mandano le piu' grandi,
-    /// e si scrive `truncated: true` invece di far credere che siano tutte.
+    /// THE CEILINGS EXIST AND ARE DECLARED
+    /// A bent sheet-metal part has hundreds of faces. Sending them all to a
+    /// language model costs tokens and does not help: the largest are sent,
+    /// and `truncated: true` is written instead of making it believed that they are all.
     ///
-    /// Sono quattro, e ognuno dice di essere scattato:
+    /// There are four, and each says it has fired:
     ///
     ///   MaxFaces, MaxEdges  -> `truncated: true`
     ///   MaxBodies              -> `bodies_not_listed` + `bodies_total`
     ///   MaxFeature            -> `feature_not_listed` + `feature_total`
     ///                            + `truncated: true`
     ///
-    /// L'ultimo e' stato muto fino alla 0.25.2: le lavorazioni oltre
-    /// l'ottantesima finivano in `other_feature`, insieme a quelle di tipo
-    /// ignorato, e `truncated` restava false.
+    /// The last one was mute up to 0.25.2: the features beyond
+    /// the eightieth ended up in `other_feature`, together with those of an
+    /// ignored type, and `truncated` stayed false.
     ///
-    /// E fino alla 0.30.0 teneva le PIU' VECCHIE, che era il peggiore dei due
-    /// modi di troncare: l'albero si scorre in ordine di creazione, quindi la
-    /// lavorazione che il piano ha appena fatto — l'unica che chi legge sta
-    /// davvero cercando — era sempre fra le scartate. Adesso si tengono le
-    /// ultime (voce E12), e il dettaglio si paga solo su quelle.
+    /// And up to 0.30.0 it kept the OLDEST, which was the worst of the two
+    /// ways of truncating: the tree is scanned in creation order, so the
+    /// feature that the plan has just made — the only one that whoever reads is
+    /// really looking for — was always among the discarded. Now the
+    /// last ones are kept (entry E12), and the detail is paid for only on those.
     ///
-    /// UN TETTO CHE NON DICE DI ESSERE SCATTATO NON E' UN TETTO: e' una
-    /// risposta sbagliata che si presenta come completa.
+    /// A CEILING THAT DOES NOT SAY IT HAS FIRED IS NOT A CEILING: it is a
+    /// wrong answer that presents itself as complete.
     /// </summary>
     public partial class DocumentState
     {
         public const int MaxFaces = 60;
 
         /// <summary>
-        /// TRENTA, NON SESSANTA, E IL NUMERO VIENE DA UNA MISURA (voce K13).
+        /// THIRTY, NOT SIXTY, AND THE NUMBER COMES FROM A MEASUREMENT (entry K13).
         ///
-        /// ── IL TETTO DEI 16 KB ERA GIA' SUPERATO ─────────────────────
+        /// ── THE 16 KB CEILING WAS ALREADY EXCEEDED ───────────────────
         ///
-        /// La prova del banco «stato: sotto i 16 KB su un telaio da quattro
-        /// barre» passava a **15.922** caratteri contro 16.000: settantotto di
-        /// margine. Ma il banco gira con **un solo documento aperto**, perche'
-        /// si rifiuta di partire altrimenti (voce K12). Con due documenti —
-        /// la situazione normale di chi lavora — lo stesso telaio misura
-        /// **16.089**. *Il tetto non aveva un margine sottile: era gia'
-        /// superato, e la prova non lo vedeva perche' il banco si pulisce la
-        /// scrivania.*
+        /// The bench check «stato: sotto i 16 KB su un telaio da quattro
+        /// barre» passed at **15,922** characters against 16,000: seventy-eight of
+        /// margin. But the bench runs with **one document open only**, because
+        /// it refuses to start otherwise (entry K12). With two documents —
+        /// the normal situation of whoever works — the same frame measures
+        /// **16,089**. *The ceiling did not have a thin margin: it was already
+        /// exceeded, and the check did not see it because the bench cleans its
+        /// own desk.*
         ///
-        /// ── DOVE STANNO I CARATTERI, misurato il 23/9/2026 ──────────
+        /// ── WHERE THE CHARACTERS ARE, measured on 23/9/2026 ─────────
         ///
-        ///     8.718  facce      60 voci   (145 l'una)
-        ///     5.572  spigoli    60 voci   ( 93 l'uno)
-        ///     1.799  tutto il resto
+        ///     8,718  faces      60 entries   (145 each)
+        ///     5,572  edges      60 entries   ( 93 each)
+        ///     1,799  everything else
         ///
-        /// L'ottantanove per cento sono due elenchi. Le voci sono gia'
-        /// asciutte — uno spigolo e' `{"uid":"E1","length_mm":1000,
+        /// Eighty-nine per cent are two lists. The entries are already
+        /// dry — an edge is `{"uid":"E1","length_mm":1000,
         /// "point_mm":[...],"along":"X","between":["F36","F1"],"body":"C3"}` —
-        /// quindi accorciare i campi non sposta niente: **si puo' solo
-        /// cambiare QUANTE**. E' la domanda che il commento della prova
-        /// poneva gia': *«servono davvero sessanta spigoli?»*.
+        /// so shortening the fields moves nothing: **the only thing that can be
+        /// changed is HOW MANY**. It is the question that the comment of the check
+        /// already asked: *«do we really need sixty edges?»*.
         ///
-        /// ── PERCHE' GLI SPIGOLI E NON LE FACCE ──────────────────────
+        /// ── WHY THE EDGES AND NOT THE FACES ─────────────────────────
         ///
-        /// Le facce sono la superficie di aggancio delle operazioni: quasi
-        /// tutte prendono una `face_uid`. Gli spigoli li usano in poche —
-        /// raccordi, smussi, quote in tavola — e su un saldato a quattro barre
-        /// sono rumore: trecento e passa spigoli di cui se ne mandano sessanta
-        /// sono un campione su cui non si puo' contare comunque.
+        /// The faces are the attachment surface of the operations: almost
+        /// all take a `face_uid`. The edges are used by few —
+        /// fillets, chamfers, dimensions in the drawing — and on a four-bar
+        /// weldment they are noise: three hundred and more edges of which sixty are sent
+        /// are a sample that cannot be counted on anyway.
         ///
-        /// Trenta portano lo stato dello stesso telaio a ~13.300: **il 17 per
-        /// cento di margine**, che e' la soglia che la voce K13 si era data.
+        /// Thirty bring the state of the same frame to ~13,300: **17 per
+        /// cent of margin**, which is the threshold that entry K13 had set itself.
         ///
-        /// E il tetto continua a dichiararsi: `edges_total` dice quanti ce
-        /// n'erano e `truncated` diventa vero. *Un tetto che non dice di essere
-        /// scattato non e' un tetto.*
+        /// And the ceiling goes on declaring itself: `edges_total` says how many
+        /// there were and `truncated` becomes true. *A ceiling that does not say it has
+        /// fired is not a ceiling.*
         /// </summary>
         public const int MaxEdges = 30;
         public const int MaxFeature = 80;
         public const int MaxBodies = 24;
 
         /// <summary>
-        /// I tipi di feature che il modello puo' davvero citare o su cui puo'
-        /// lavorare. Sono i nomi di IFeature.GetTypeName2(), che NON sono
-        /// localizzati (il nome nell'albero si', il tipo no).
+        /// The feature types that the model can really cite or work
+        /// on. They are the names of IFeature.GetTypeName2(), which are NOT
+        /// localized (the name in the tree is, the type is not).
         /// </summary>
         private static readonly HashSet<string> FeaturesThatCount =
             new HashSet<string>(StringComparer.Ordinal)
         {
-            // «ICE» E' UN'ESTRUSIONE, E NON SI CAPISCE DAL NOME.
+            // «ICE» IS AN EXTRUSION, AND THIS CANNOT BE TOLD FROM THE NAME.
             //
-            // Un'estrusione fatta su una FACCIA — un rialzo, un labbro, una
-            // torretta — non si chiama «Extrusion»: `GetTypeName2()` torna
-            // «ICE». Misurato il 10 settembre 2026, appena nata
-            // `extrude_on_face`: il modello ha fatto un labbro di tenuta
-            // e nello stato del passo dopo quel labbro NON C'ERA. Era
-            // finito fra le «altre feature», cioe' in un numero.
+            // An extrusion made on a FACE — a boss, a lip, a
+            // turret — is not called «Extrusion»: `GetTypeName2()` returns
+            // «ICE». Measured on 10 September 2026, just after `extrude_on_face`
+            // was born: the model made a sealing lip
+            // and in the state of the next step that lip WAS NOT THERE. It had
+            // ended up among the «other features», that is, in a number.
             //
-            // Se ne e' accorto il campo `other_feature_kinds`, aggiunto
-            // mezz'ora prima proprio per questo: un conteggio nasconde, un
-            // elenco no.
+            // It was noticed by the field `other_feature_kinds`, added
+            // half an hour earlier precisely for this: a count hides, a
+            // list does not.
             "Extrusion", "ICE", "Cut", "HoleWzd", "Fillet", "Chamfer",
             "CircularPattern", "LPattern", "MirrorPattern", "Revolution",
             "Sweep", "Loft", "Shell", "Draft", "Rib", "Dome",
@@ -131,8 +131,8 @@ namespace Oce.Solid.Agent.Core
         };
 
         /// <summary>
-        /// Le cartelle di servizio che non si contano nemmeno come «altre».
-        /// Ci sono in ogni documento e non dicono niente di questo pezzo.
+        /// The service folders that are not even counted as «other».
+        /// They are in every document and say nothing about this part.
         /// </summary>
         private static readonly HashSet<string> ServiceFolders =
             new HashSet<string>(StringComparer.Ordinal)
@@ -141,19 +141,19 @@ namespace Oce.Solid.Agent.Core
             "SurfaceBodyFolder", "CommentFolder", "FavoriteFolder",
             "MaterialFolder", "LightsFolder", "OriginProfileFeature",
             "EnvFolder", "DocsFolder", "SketchFolder", "BlockFolder",
-            // Aggiunte il 10 settembre 2026 dopo averle VISTE: erano fra i
-            // tipi che lo stato non sapeva leggere, e gonfiavano il
-            // conteggio delle «altre» facendo credere che nel pezzo ci
-            // fosse dell'altro da guardare.
+            // Added on 10 September 2026 after SEEING them: they were among the
+            // types that the state did not know how to read, and they inflated the
+            // count of the «other» ones, making it believed that there was
+            // something more in the part to look at.
             //
-            // «CommentsFolder» al PLURALE: la riga sopra dice
-            // «CommentFolder» al singolare, e non ha mai combaciato con
-            // niente. Un elenco di nomi scritto a memoria sbaglia cosi': non
-            // con un nome assente, con un nome quasi giusto.
+            // «CommentsFolder» in the PLURAL: the line above says
+            // «CommentFolder» in the singular, and it never matched
+            // anything. A list of names written from memory goes wrong like this: not
+            // with an absent name, with an almost right name.
             "CommentsFolder", "EqnFolder", "InkMarkupFolder", "SelectionSetFolder",
         };
 
-        /// <summary>uid -> firma, per ritrovare la stessa entita' al momento giusto.</summary>
+        /// <summary>uid -> signature, to find the same entity again at the right moment.</summary>
         public Dictionary<string, EntitySignature> Signatures { get; } =
             new Dictionary<string, EntitySignature>(StringComparer.OrdinalIgnoreCase);
 
@@ -161,40 +161,40 @@ namespace Oce.Solid.Agent.Core
             new Dictionary<string, object>();
 
         /// <summary>
-        /// La scatola di tutto il pezzo, in mm: {minX, minY, minZ, maxX, maxY,
-        /// maxZ}. Null quando il documento non ha corpi.
+        /// The box of the whole part, in mm: {minX, minY, minZ, maxX, maxY,
+        /// maxZ}. Null when the document has no bodies.
         ///
-        /// E' una PROPRIETA' NUOVA e non un parametro in piu' da qualche parte:
-        /// il banco chiama questa classe per riflessione, e cambiare l'insieme
-        /// delle firme di un metodo rompe chi lo chiama anche quando il
-        /// compilatore tace.
+        /// It is a NEW PROPERTY and not one more parameter somewhere:
+        /// the bench calls this class by reflection, and changing the set
+        /// of signatures of a method breaks whoever calls it even when the
+        /// compiler is silent.
         /// </summary>
         public double[] BoxPartMm { get; private set; }
 
         /// <summary>
-        /// Il documento da cui questo stato e' stato letto.
+        /// The document from which this state was read.
         ///
-        /// Serve a risolvere i riferimenti persistenti (voce E6):
-        /// `GetObjectByPersistReference3` sta su `IModelDocExtension`, e chi
-        /// ritrova una faccia ha in mano lo stato, non il documento.
+        /// It serves to resolve the persistent references (entry E6):
+        /// `GetObjectByPersistReference3` is on `IModelDocExtension`, and whoever
+        /// finds a face again has in hand the state, not the document.
         ///
-        /// E' una PROPRIETA' e non un parametro in piu' su `Read`: il banco
-        /// chiama questa classe per riflessione, e cambiare l'insieme delle
-        /// firme di un metodo rompe chi lo chiama anche quando il compilatore
-        /// tace. Una proprieta' nuova non la vede nessuno. E' la lezione di
-        /// `ReadWithAnchor`, applicata prima di sbatterci di nuovo.
+        /// It is a PROPERTY and not one more parameter on `Read`: the bench
+        /// calls this class by reflection, and changing the set of
+        /// signatures of a method breaks whoever calls it even when the compiler
+        /// is silent. A new property is seen by nobody. It is the lesson of
+        /// `ReadWithAnchor`, applied before bumping into it again.
         ///
-        /// Vale per QUESTA sessione: non si serializza e non si porta in giro.
+        /// It holds for THIS session: it is not serialized and not carried around.
         /// </summary>
         public IModelDoc2 Model { get; private set; }
 
         /// <summary>
-        /// Una lavorazione in attesa di sapere se entra nell'elenco.
+        /// A feature waiting to know whether it goes into the list.
         ///
-        /// Porta solo cio' che il giro sull'albero ha gia' letto — il tipo e il
-        /// nome, che si leggono comunque per capire di che si tratta — piu' il
-        /// riferimento COM. Il dettaglio, che costa, si paga dopo e solo sulle
-        /// sopravvissute.
+        /// It carries only what the walk over the tree has already read — the type and the
+        /// name, which are read anyway to understand what it is — plus the
+        /// COM reference. The detail, which costs, is paid for later and only on the
+        /// survivors.
         /// </summary>
         private sealed class Candidate
         {
@@ -206,71 +206,71 @@ namespace Oce.Solid.Agent.Core
         public class EntitySignature
         {
             public string Type;          // "FACE" | "EDGE"
-            public double Measure;        // area in mm2, oppure lunghezza in mm
-            public double[] PointMm;     // un punto sull'entita', in mm
-            public double[] Normal;     // solo per le facce piane
-            public object Entity;        // IFace2 / IEdge, valido in questa sessione
+            public double Measure;        // area in mm2, or length in mm
+            public double[] PointMm;     // a point on the entity, in mm
+            public double[] Normal;     // only for planar faces
+            public object Entity;        // IFace2 / IEdge, valid in this session
 
             /// <summary>
-            /// DA QUALE LAVORAZIONE VIENE QUESTA FACCIA, per identificativo e
-            /// per nome. `-1` quando non si e' potuto leggere.
+            /// FROM WHICH FEATURE THIS FACE COMES, by identifier and
+            /// by name. `-1` when it could not be read.
             ///
-            /// PERCHE' L'IDENTIFICATIVO E NON IL NOME. Il nome e' localizzato
-            /// («Estrusione1» / «Boss-Extrude1») e si puo' rinominare a mano:
-            /// confrontarlo vorrebbe dire che la stessa faccia smette di
-            /// essere la stessa perche' qualcuno ha cambiato la lingua di
-            /// SOLIDWORKS. `IFeature.GetID()` non cambia.
+            /// WHY THE IDENTIFIER AND NOT THE NAME. The name is localized
+            /// («Estrusione1» / «Boss-Extrude1») and can be renamed by hand:
+            /// comparing it would mean that the same face stops being
+            /// the same because somebody changed the language of
+            /// SOLIDWORKS. `IFeature.GetID()` does not change.
             ///
-            /// Il nome si tiene lo stesso, ma solo PER I MESSAGGI: chi legge un
-            /// rifiuto vuole sapere «viene da Taglio-Estrusione1», non «viene
-            /// dalla lavorazione 42».
+            /// The name is kept all the same, but only FOR THE MESSAGES: whoever reads a
+            /// refusal wants to know «it comes from Taglio-Estrusione1», not «it comes
+            /// from feature 42».
             ///
-            /// `IFace2.GetFeature()` da' la GENERATRICE, non l'ultima che ha
-            /// toccato la faccia: misurato il 14/9/2026 (voce 0.5), un raccordo
-            /// rimpicciolisce tre facce e tutte e tre continuano a dire
+            /// `IFace2.GetFeature()` gives the GENERATING feature, not the last one that
+            /// touched the face: measured on 14/9/2026 (entry 0.5), a fillet
+            /// shrinks three faces and all three keep saying
             /// «extrusion».
             /// </summary>
             public int FeatureId = -1;
             public string Feature;
 
             /// <summary>
-            /// LA SCATOLA DEL PEZZO quando questa firma e' stata misurata, in
-            /// mm: {minX, minY, minZ, maxX, maxY, maxZ}. Null se non si e'
-            /// potuta leggere.
+            /// THE BOX OF THE PART when this signature was measured, in
+            /// mm: {minX, minY, minZ, maxX, maxY, maxZ}. Null if it could not
+            /// be read.
             ///
-            /// NON E' UN CRITERIO E NON PUO' DIVENTARLO. Serve a una sola
-            /// cosa: scrivere in un messaggio dove stava la faccia rispetto al
-            /// pezzo, quando il pezzo e' cambiato. La ragione per cui non puo'
-            /// entrare nell'identita' sta per esteso in
-            /// <see cref="Sentences.WhereItWasAndWhereItIs"/>, che e' l'unico posto in
-            /// tutta la libreria dove questi numeri si dividono fra loro — e
-            /// torna una FRASE, non un numero.
+            /// IT IS NOT A CRITERION AND CANNOT BECOME ONE. It serves for one single
+            /// thing: writing in a message where the face was with respect to the
+            /// part, when the part has changed. The reason why it cannot
+            /// enter the identity is written in full in
+            /// <see cref="Sentences.WhereItWasAndWhereItIs"/>, which is the only place in
+            /// the whole library where these numbers are divided among themselves — and
+            /// it returns a SENTENCE, not a number.
             /// </summary>
             public double[] BoxPartMm;
         }
 
         /// <summary>
-        /// CHE COSA E' SELEZIONATO, con gli identificativi dello stato.
+        /// WHAT IS SELECTED, with the identifiers of the state.
         ///
-        /// I DUE CASI SCOMODI SI DECIDONO QUI, non si scoprono dopo:
+        /// THE TWO AWKWARD CASES ARE DECIDED HERE, not discovered afterwards:
         ///
-        ///   * **niente selezionato** — si torna una lista vuota, e chi chiama
-        ///     non scrive il campo. Non e' un errore: la maggior parte delle
-        ///     volte non c'e' niente selezionato;
-        ///   * **piu' cose insieme** — si tornano tutte, nell'ordine in cui
-        ///     SOLIDWORKS le da'. Sceglierne una sarebbe indovinare, e
-        ///     rifiutare sarebbe inutile: chi ha selezionato quattro facce
-        ///     probabilmente voleva selezionarne quattro.
+        ///   * **nothing selected** — an empty list is returned, and the caller
+        ///     does not write the field. It is not an error: most of the
+        ///     time nothing is selected;
+        ///   * **several things together** — all are returned, in the order in which
+        ///     SOLIDWORKS gives them. Choosing one would be guessing, and
+        ///     refusing would be useless: whoever selected four faces
+        ///     probably meant to select four.
         ///
-        /// E un terzo caso, che il criterio della voce non nominava: un'entita'
-        /// selezionata che nello stato **non ha un identificativo** — perche' e'
-        /// oltre il tetto delle sessanta facce, o perche' e' un vertice, che lo
-        /// stato non descrive affatto. Li' si dice **che cosa e'** senza dargli
-        /// un nome: «una faccia che non ho descritto» e' un'informazione, «non
-        /// c'e' niente» sarebbe una bugia.
+        /// And a third case, which the criterion of the entry did not name: a selected
+        /// entity that in the state **has no identifier** — because it is
+        /// beyond the ceiling of sixty faces, or because it is a vertex, which the
+        /// state does not describe at all. There it is said **what it is** without giving it
+        /// a name: «a face I did not describe» is information, «there is
+        /// nothing» would be a lie.
         ///
-        /// Il tipo si legge dall'OGGETTO e non dall'enum della selezione: un
-        /// `as IFace2` non si puo' sbagliare, un numero di enum letto male si'.
+        /// The type is read from the OBJECT and not from the enum of the selection: an
+        /// `as IFace2` cannot go wrong, a misread enum number can.
         /// </summary>
         private static List<Dictionary<string, object>> TheSelection(
             IModelDoc2 model, Dictionary<string, EntitySignature> signatures)
@@ -297,7 +297,7 @@ namespace Oce.Solid.Agent.Core
                     var entry = new Dictionary<string, object>();
                     if (what != null) entry["kind"] = what;
 
-                    // Il nome, se lo stato gliene ha dato uno.
+                    // The name, if the state gave it one.
                     foreach (var f in signatures)
                     {
                         if (f.Value.Entity == null) continue;
@@ -309,8 +309,8 @@ namespace Oce.Solid.Agent.Core
 
                     if (!entry.ContainsKey("uid"))
                     {
-                        // Una lavorazione si chiama col suo nome, che nello
-                        // stato E' l'uid.
+                        // A feature is called by its name, which in the
+                        // state IS the uid.
                         var featureItem = obj as IFeature;
                         if (featureItem != null)
                         {
@@ -330,57 +330,57 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ANCORA DI UNA FACCIA: il baricentro d'area, in mm.
+        /// THE ANCHOR OF A FACE: the area centroid, in mm.
         ///
-        /// PERCHE' NON BASTA `point_mm`. Quel punto fa un mestiere diverso e lo
-        /// fa bene: e' il punto GARANTITO sulla faccia da cui si seleziona, e
-        /// per questo si prende con `GetClosestPointOn(0,0,0)` invece del
-        /// centro del riquadro — il centro di una faccia bucata cade nel vuoto.
+        /// WHY `point_mm` IS NOT ENOUGH. That point does a different job and does it
+        /// well: it is the point GUARANTEED on the face from which one selects, and
+        /// for this it is taken with `GetClosestPointOn(0,0,0)` instead of the
+        /// centre of the box — the centre of a face with a hole falls into the void.
         ///
-        /// Come IMPRONTA DIGITALE pero' e' cattivo, perche' per quasi tutte le
-        /// facce che non guardano l'origine e' un punto di **frontiera**: si
-        /// sposta quando si muove il BORDO, non la faccia.
+        /// As a FINGERPRINT however it is bad, because for almost all the
+        /// faces that do not look at the origin it is a point of the **frontier**: it
+        /// moves when the BORDER moves, not the face.
         ///
-        /// Misurato il 14/9/2026: piastra 100x60x20, faccia in alto con ancora
-        /// `[0,20,0]`. Una tacca di 15x15 in un angolo — il **3,75%** dell'area
-        /// — sposta quel punto a `[15,20,0]`, cioe' di **15 mm**. Il baricentro
-        /// d'area, nello stesso caso, si sposta di circa 1,9 mm: proporzionale a
-        /// quanto la faccia e' davvero cambiata, invece che a dove capitava il
-        /// bordo.
+        /// Measured on 14/9/2026: plate 100x60x20, top face with anchor
+        /// `[0,20,0]`. A notch of 15x15 in a corner — **3.75%** of the area
+        /// — moves that point to `[15,20,0]`, that is by **15 mm**. The area
+        /// centroid, in the same case, moves by about 1.9 mm: proportional to
+        /// how much the face really changed, instead of to where the
+        /// border happened to be.
         ///
-        /// E QUESTO DA SOLO NON TOGLIE NESSUN RIFIUTO. La tolleranza e' 0,05 mm,
-        /// e 1,9 mm la supera lo stesso. Serve a rendere possibile una
-        /// tolleranza PROPORZIONALE al cambiamento, che e' la voce E8: qui si
-        /// prepara il numero, li' si decidera' cosa farne.
+        /// AND THIS ALONE REMOVES NO REFUSAL. The tolerance is 0.05 mm,
+        /// and 1.9 mm exceeds it all the same. It serves to make possible a
+        /// tolerance PROPORTIONAL to the change, which is entry E8: here the
+        /// number is prepared, there it will be decided what to do with it.
         ///
-        /// SI USA LA TASSELLATURA, e non e' senza conseguenze: `GetTessTriangles`
-        /// dipende dalla qualita' di visualizzazione del documento. Dentro una
-        /// sessione e' deterministica — misurato, dieci letture identiche — ma
-        /// fra due macchine con impostazioni diverse potrebbe non esserlo, e per
-        /// questo l'ancora **si affianca** a `point_mm` invece di sostituirlo.
+        /// THE TESSELLATION IS USED, and not without consequences: `GetTessTriangles`
+        /// depends on the display quality of the document. Within a
+        /// session it is deterministic — measured, ten identical readings — but
+        /// between two machines with different settings it might not be, and for
+        /// this the anchor **goes alongside** `point_mm` instead of replacing it.
         /// </summary>
         /// <summary>
-        /// Il riferimento persistente che SOLIDWORKS da' a un'entita', in
-        /// base64. Null se non si riesce a prenderlo.
+        /// The persistent reference that SOLIDWORKS gives to an entity, in
+        /// base64. Null if it cannot be obtained.
         ///
-        /// E' UN BLOB OPACO, e va trattato come tale: non si interpreta, non si
-        /// confronta a pezzi, non si scrive su disco e non si porta da un
-        /// documento all'altro. Vale dentro QUESTO documento e per questa
-        /// sessione di piano, che dura minuti.
+        /// IT IS AN OPAQUE BLOB, and must be treated as such: it is not interpreted, not
+        /// compared in pieces, not written to disk and not carried from one
+        /// document to another. It holds inside THIS document and for this
+        /// plan session, which lasts minutes.
         ///
-        /// `GetPersistReference3` risponde un `byte[]`: misurato il 14/9/2026,
-        /// 375-423 byte per faccia su un pezzo di otto facce. Non e' un intero
-        /// e non e' un nome — e' una struttura, e l'unico modo onesto di
-        /// spedirla in un JSON e' base64.
+        /// `GetPersistReference3` answers a `byte[]`: measured on 14/9/2026,
+        /// 375-423 bytes per face on a part of eight faces. It is not an integer
+        /// and not a name — it is a structure, and the only honest way to
+        /// ship it in a JSON is base64.
         ///
-        /// PERCHE' ADESSO SI USANO. `DocumentState` dichiarava di non usarli:
-        /// «non serve per un piano che dura minuti, e sarebbe una API in piu' da
-        /// verificare per un problema che non abbiamo». Era giusto per il
-        /// problema di allora. Il problema adesso c'e': una quota a monte sposta
-        /// una faccia, l'ancora sul punto si perde, e il piano viene rifiutato
-        /// pur essendo giusto. Misurato in 0.1: il persist ID ha ritrovato
-        /// **8 facce su 8** in tutte e cinque le modifiche riuscite, comprese le
-        /// tre in cui l'ancora sul punto si perde.
+        /// WHY THEY ARE USED NOW. `DocumentState` declared that it did not use them:
+        /// «it is not needed for a plan that lasts minutes, and it would be one more API to
+        /// verify for a problem that we do not have». It was right for the
+        /// problem of that time. The problem is there now: a dimension upstream moves
+        /// a face, the anchor on the point is lost, and the plan is refused
+        /// although it is right. Measured in 0.1: the persist ID found again
+        /// **8 faces out of 8** in all five successful edits, including the
+        /// three in which the anchor on the point is lost.
         /// </summary>
         private static string PersistIdOf(IModelDoc2 model, object entity)
         {
@@ -400,13 +400,13 @@ namespace Oce.Solid.Agent.Core
         {
             try
             {
-                // LA TASSELLATURA ARRIVA IN `float`, NON IN `double`.
-                // `IGetTessTriangles` nell'interop e' dichiarata `Single`, e
-                // un `as double[]` su un array di float torna **null in
-                // silenzio**: l'ancora usciva vuota su ogni faccia e non c'era
-                // nessun errore da nessuna parte. E' la stessa famiglia
-                // dell'`as object[]` su una List<>, gia' costata un controllo
-                // spento per mezza giornata.
+                // THE TESSELLATION ARRIVES AS `float`, NOT `double`.
+                // `IGetTessTriangles` in the interop is declared `Single`, and
+                // an `as double[]` on an array of floats returns **null
+                // silently**: the anchor came out empty on every face and there was
+                // no error anywhere. It is the same family
+                // as the `as object[]` on a List<>, which already cost a check
+                // turned off for half a day.
                 var raw = face?.GetTessTriangles(true);
                 double[] t = raw as double[];
                 if (t == null && raw is float[] f)
@@ -416,10 +416,10 @@ namespace Oce.Solid.Agent.Core
                 }
                 if (t == null || t.Length < 9) return null;
 
-                // Baricentro pesato sull'AREA dei triangoli, non media dei
-                // vertici: una faccia tassellata fitta da una parte e larga
-                // dall'altra tirerebbe la media dove i triangoli sono piu'
-                // numerosi, che non vuol dire niente.
+                // Centroid weighted on the AREA of the triangles, not mean of the
+                // vertices: a face tessellated dense on one side and wide
+                // on the other would pull the mean to where the triangles are more
+                // numerous, which means nothing.
                 double sx = 0, sy = 0, sz = 0, weight = 0;
                 for (int i = 0; i + 8 < t.Length; i += 9)
                 {
@@ -452,12 +452,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La lavorazione che ha generato una faccia: identificativo e nome.
+        /// The feature that generated a face: identifier and name.
         ///
-        /// Non solleva e non si lamenta: una faccia senza lavorazione
-        /// leggibile esce con `-1` e `null`, e chi la usa deve saper vivere
-        /// senza. Meglio nessun dato che un dato inventato — un confronto fra
-        /// due `-1` direbbe «stessa lavorazione» di due facce qualunque.
+        /// It does not raise and does not complain: a face without a readable
+        /// feature comes out with `-1` and `null`, and whoever uses it must know how to live
+        /// without. Better no data than invented data — a comparison between
+        /// two `-1` would say «same feature» of any two faces.
         /// </summary>
         private static void FeatureOfFace(
             IFace2 face, out int id, out string itemName)
@@ -475,51 +475,51 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Legge il documento. Va chiamata SUL THREAD DI SOLIDWORKS.
+        /// Reads the document. It must be called ON THE SOLIDWORKS THREAD.
         /// </summary>
         /// <param name="sw">
-        /// L'applicazione, se chi chiama ce l'ha. Serve a una cosa sola e
-        /// importante: dire QUALI DOCUMENTI SONO APERTI. Da un `IModelDoc2`
-        /// non si risale all'applicazione — cercato per riflessione l'11
-        /// settembre 2026: ne' `IModelDoc2` ne' `IModelDocExtension` hanno
-        /// un accesso all'applicazione — quindi o lo passa chi chiama o non
-        /// si sa. Restava facoltativo per non rompere chi chiamava prima.
+        /// The application, if the caller has it. It serves for one single and
+        /// important thing: saying WHICH DOCUMENTS ARE OPEN. From an `IModelDoc2`
+        /// one cannot go back up to the application — searched by reflection on 11
+        /// September 2026: neither `IModelDoc2` nor `IModelDocExtension` have
+        /// access to the application — so either the caller passes it or it
+        /// is not known. It stayed optional so as not to break whoever called before.
         /// </param>
         /// <param name="withAnchor">
-        /// Scrivere l'ancora di ogni faccia dentro lo stato.
+        /// Write the anchor of every face inside the state.
         ///
-        /// SPENTA DI SERIE, e non per prudenza generica. L'ancora e' il
-        /// baricentro d'area e serve a RICONOSCERE una faccia fra due letture;
-        /// non serve a chi legge lo stato per decidere cosa fare, e offrirgliela
-        /// accanto a `point_mm` sarebbe dargli due punti quando ne deve usare
-        /// uno — e la scelta sbagliata non darebbe errore, darebbe un foro
-        /// fuori dal materiale.
+        /// OFF BY DEFAULT, and not out of generic prudence. The anchor is the
+        /// area centroid and serves to RECOGNISE a face between two readings;
+        /// it does not serve whoever reads the state to decide what to do, and offering it
+        /// next to `point_mm` would mean giving two points when only one must be used
+        /// — and the wrong choice would not give an error, it would give a hole
+        /// outside the material.
         ///
-        /// E costa: su un telaio da quattro barre sono **1.400 caratteri**, che
-        /// portano lo stato da 15.7 KB a 17.1 — oltre il tetto dei 16 KB che il
-        /// banco sorveglia.
+        /// And it costs: on a four-bar frame it is **1,400 characters**, which
+        /// take the state from 15.7 KB to 17.1 — beyond the 16 KB ceiling that the
+        /// bench watches.
         ///
-        /// La accende chi costruisce le FIRME dei passi, e la toglie prima di
-        /// mandare lo stato a qualcuno.
+        /// Whoever builds the SIGNATURES of the steps turns it on, and turns it off before
+        /// sending the state to anybody.
         /// </param>
         /// <remarks>
-        /// QUESTA FIRMA NON SI TOCCA, E NON E' PRUDENZA GENERICA.
+        /// THIS SIGNATURE IS NOT TO BE TOUCHED, AND IT IS NOT GENERIC PRUDENCE.
         ///
-        /// `Read` la chiama anche il banco, **per riflessione**, e li' due
-        /// cose che per un compilatore sono innocue non lo sono:
+        /// `Read` is called also by the bench, **by reflection**, and there two
+        /// things that are harmless for a compiler are not:
         ///
-        ///   * aggiungere un parametro con valore predefinito → `Invoke` con
-        ///     due argomenti su un metodo che ne vuole tre risponde «Mancata
-        ///     corrispondenza nel numero dei parametri». Misurato il
-        ///     14/9/2026: il banco da 88 prove e 0 fallite a **70 e 58**;
-        ///   * aggiungere un OVERLOAD → `GetMethod("Read")` ne trova due e
-        ///     risponde «Trovata corrispondenza ambigua». Misurato mezz'ora
-        ///     dopo, riparando il primo errore con il secondo.
+        ///   * adding a parameter with a default value → `Invoke` with
+        ///     two arguments on a method that wants three answers «Mancata
+        ///     corrispondenza nel numero dei parametri». Measured on
+        ///     14/9/2026: the bench went from 88 checks and 0 failed to **70 and 58**;
+        ///   * adding an OVERLOAD → `GetMethod("Read")` finds two and
+        ///     answers «Trovata corrispondenza ambigua». Measured half an hour
+        ///     later, repairing the first error with the second.
         ///
-        /// **Qualunque cambiamento all'insieme delle firme di un metodo rompe
-        /// chi lo chiama per riflessione**, anche quello che il compilatore
-        /// accetta senza dire niente. Cio' che serve in piu' si mette in un
-        /// metodo con un NOME diverso — vedi <see cref="ReadWithAnchor"/>.
+        /// **Any change to the set of signatures of a method breaks
+        /// whoever calls it by reflection**, even one that the compiler
+        /// accepts without saying anything. What is needed in addition goes in a
+        /// method with a different NAME — see <see cref="ReadWithAnchor"/>.
         /// </remarks>
         public static DocumentState Read(IModelDoc2 model, ISldWorks sw = null)
         {
@@ -527,10 +527,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Come <see cref="Read"/>, dicendo se si vuole anche l'ancora di
-        /// ogni faccia.
+        /// Like <see cref="Read"/>, saying whether the anchor of every
+        /// face is wanted too.
         ///
-        /// Nome diverso e non un overload: vedi la nota su `Read`.
+        /// A different name and not an overload: see the note on `Read`.
         /// </summary>
         public static DocumentState ReadWithAnchor(
             IModelDoc2 model, ISldWorks sw, bool withAnchor)
@@ -549,15 +549,15 @@ namespace Oce.Solid.Agent.Core
                 ["kind"] = SwOperations.DocumentTypeName(docType),
             };
 
-            // CHI ALTRO E' APERTO.
+            // WHO ELSE IS OPEN.
             //
-            // Fino alla 0.39.0 lo stato descriveva UN documento e dava per
-            // sottinteso che fosse l'unico. Non lo e' piu': una tavola vive
-            // accanto al suo modello, un assieme accanto ai suoi pezzi, e
-            // `CreateDrawViewFromModelView3` come `AddComponent5` vogliono
-            // il PERCORSO DI UN DOCUMENTO APERTO. Senza questo elenco il
-            // modello non ha modo di nominarlo, e una vista agganciata a un
-            // documento chiuso esce vuota senza dare errore.
+            // Up to 0.39.0 the state described ONE document and took it for
+            // granted that it was the only one. It is no longer: a drawing lives
+            // next to its model, an assembly next to its parts, and
+            // `CreateDrawViewFromModelView3` like `AddComponent5` want
+            // the PATH OF AN OPEN DOCUMENT. Without this list the
+            // model has no way to name it, and a view attached to a
+            // closed document comes out empty without giving an error.
             var others = OpenDocuments(sw, model);
             if (others != null && others.Count > 0) data["documents_open"] = others;
 
@@ -568,19 +568,19 @@ namespace Oce.Solid.Agent.Core
                 return docState;
             }
 
-            // L'ASSIEME SI DESCRIVE, NON SI RIFIUTA (voce GA1).
+            // THE ASSEMBLY IS DESCRIBED, NOT REFUSED (entry GA1).
             //
-            // Fino alla 0.91.0 qui c'era una riga sola — «documento di assieme:
-            // l'assistente non lo modifica ancora» — e si tornava. Era vera e
-            // rendeva il modello cieco: lo stato e' l'unica cosa che vede, e da
-            // quella riga non poteva sapere quanti componenti ci fossero, come
-            // si chiamassero, quali fossero soppressi. Non poteva nemmeno
-            // rifiutare con cognizione.
+            // Up to 0.91.0 there was a single line here — «documento di assieme:
+            // l'assistente non lo modifica ancora» — and it returned. It was true and
+            // made the model blind: the state is the only thing it sees, and from
+            // that line it could not know how many components there were, what they
+            // were called, which were suppressed. It could not even
+            // refuse knowingly.
             //
-            // Adesso si descrive (`AssemblyState.cs`), e cosa NON si sa ancora
-            // fare si dice li' dentro, per esteso. Il ramo sta PRIMA del cast a
-            // `IPartDoc` perche' un assieme non e' una parte e cadrebbe nel
-            // `parte == null` qui sotto.
+            // Now it is described (`AssemblyState.cs`), and what is NOT yet known how to
+            // do is said in there, in full. The branch comes BEFORE the cast to
+            // `IPartDoc` because an assembly is not a part and would fall into the
+            // `parte == null` below.
             if (docType == (int)swDocumentTypes_e.swDocASSEMBLY)
             {
                 DescribeAssembly(model as IAssemblyDoc, data);
@@ -591,10 +591,10 @@ namespace Oce.Solid.Agent.Core
             var partDoc = model as IPartDoc;
             if (partDoc == null)
             {
-                // Non e' ne' una parte, ne' una tavola, ne' un assieme: qui non
-                // si indovina. Dire «di assieme» come faceva la versione
-                // precedente sarebbe una diagnosi sbagliata su un documento che
-                // nessuno ha guardato.
+                // It is neither a part, nor a drawing, nor an assembly: here nothing
+                // is guessed. Saying «di assieme» as the previous version did
+                // would be a wrong diagnosis on a document that
+                // nobody looked at.
                 data["solid_body"] = false;
                 data["note"] =
                     "documento di tipo «" + SwOperations.DocumentTypeName(docType) +
@@ -603,46 +603,46 @@ namespace Oce.Solid.Agent.Core
                 return docState;
             }
 
-            // ── feature dell'albero, e assi ────────────────────────────────
+            // ── features of the tree, and axes ──────────────────────────────
             //
-            // FILTRO A INCLUSIONE, NON A ESCLUSIONE.
+            // INCLUSION FILTER, NOT EXCLUSION.
             //
-            // Fino alla 0.29.1 qui si escludevano tre voci e tutto il resto
-            // entrava: HistoryFolder, SensorFolder, DetailCabinet,
+            // Up to 0.29.1 three entries were excluded here and everything else
+            // came in: HistoryFolder, SensorFolder, DetailCabinet,
             // SolidBodyFolder, CommentFolder, FavoriteFolder,
-            // OriginProfileFeature. Sono cartelle di servizio che non si
-            // possono ne' citare ne' lavorare, e occupavano ~600 caratteri e
-            // SETTE posti del tetto in ogni messaggio, scacciando feature vere.
-            // Adesso si dichiara cio' che si sa leggere; il resto si conta e
-            // basta, cosi' il modello sa che c'e' dell'altro senza pagarlo.
+            // OriginProfileFeature. They are service folders that can be neither
+            // cited nor worked on, and they took ~600 characters and
+            // SEVEN places of the ceiling in every message, driving out real features.
+            // Now what is known how to read is declared; the rest is counted and
+            // that is all, so the model knows there is more without paying for it.
             var feature = new List<Dictionary<string, object>>();
             var axes = new List<Dictionary<string, object>>();
             int nPlanes = 0;
             int otherFeatures = 0;
-            // DUE CONTATORI, NON UNO. `otherFeatures` conta le lavorazioni di un
-            // TIPO che non entra nell'elenco — invisibili per scelta, e i tipi
-            // si dicono in `other_feature_kinds`. `unlistedFeatures` conta
-            // quelle che sarebbero entrate e non ci stanno per il tetto: sono
-            // due cose diverse, e sommarle nascondeva la seconda.
+            // TWO COUNTERS, NOT ONE. `otherFeatures` counts the features of a
+            // TYPE that does not go into the list — invisible by choice, and the types
+            // are said in `other_feature_kinds`. `unlistedFeatures` counts
+            // those that would have gone in and do not fit because of the ceiling: they are
+            // two different things, and summing them hid the second.
             int unlistedFeatures = 0;
-            // Le lavorazioni che POTREBBERO entrare nell'elenco, raccolte tutte
-            // e scelte dopo. Vedi il commento su `candidate.Add` piu' sotto.
+            // The features that COULD go into the list, all collected
+            // and chosen afterwards. See the comment on `candidate.Add` further below.
             var candidate = new List<Candidate>();
-            // QUALI, non solo QUANTE.
+            // WHICH, not only HOW MANY.
             //
-            // «other_feature: 7» dice che c'e' dell'altro e non dice cosa,
-            // e quel numero e' un posto dove le cose spariscono. Misurato
-            // il 10 settembre 2026: appena nata `extrude_on_face`, la
-            // lavorazione che aveva appena creato NON compariva nello
-            // stato — era finita fra le sette «altre», perche' il suo tipo
-            // non e' quello che credevo. Il modello aveva appena fatto una
-            // cosa e non la vedeva piu'.
+            // «other_feature: 7» says there is more and does not say what,
+            // and that number is a place where things disappear. Measured
+            // on 10 September 2026: just after `extrude_on_face` was born, the
+            // feature it had just created did NOT appear in the
+            // state — it had ended up among the seven «other» ones, because its type
+            // is not what I thought. The model had just done
+            // something and no longer saw it.
             //
-            // I nomi dei tipi sono corti e pochi: elencarli costa niente e
-            // rende visibile un punto cieco invece di nasconderlo dietro un
-            // numero.
+            // The names of the types are short and few: listing them costs nothing and
+            // makes a blind spot visible instead of hiding it behind a
+            // number.
             var unknownTypes = new SortedSet<string>(StringComparer.Ordinal);
-            // I nomi delle lavorazioni citate dalle facce, una volta sola.
+            // The names of the features cited by the faces, once only.
             var featureNames = new SortedDictionary<int, string>();
             int featuresInError = 0;
             IFeature f = partDoc.IFirstFeature();
@@ -653,32 +653,32 @@ namespace Oce.Solid.Agent.Core
                 try { typ = f.GetTypeName2(); itemName = f.Name; } catch { }
 
                 if (typ == "RefPlane") nPlanes++;
-                // SOLO GLI ASSI VERI.
+                // ONLY THE REAL AXES.
                 //
-                // Qui dentro c'era anche "OriginProfileFeature", cioe' l'origine
-                // del pezzo — che c'e' sempre. Il risultato: la precondizione
-                // «esiste un asse» risultava vera in QUALUNQUE documento, il
-                // modello si vedeva offrire la ripetizione circolare, e
-                // all'esecuzione SelectByID2(nome, "AXIS", ...) falliva perche'
-                // l'origine non e' un asse. Uno strumento offerto sempre e
-                // utilizzabile quasi mai: il modello ci prova, il piano cade al
-                // primo passo, e sembra colpa sua.
+                // In here there was also "OriginProfileFeature", that is, the origin
+                // of the part — which is always there. The result: the precondition
+                // «an axis exists» came out true in ANY document, the
+                // model saw itself offered the circular pattern, and
+                // at execution SelectByID2(name, "AXIS", ...) failed because
+                // the origin is not an axis. A tool always offered and
+                // almost never usable: the model tries it, the plan falls at the
+                // first step, and it looks like its fault.
                 else if (typ == "RefAxis")
                 {
-                    // «uid» e «name» erano LA STESSA STRINGA, scritta due
-                    // volte. Su ottanta lavorazioni con nomi da venti caratteri
-                    // erano oltre due chilobyte di messaggio che non dicevano
-                    // niente — e il posto che tolgono e' esattamente quello che
-                    // serve ai parametri qui sotto. Resta «uid», che e' il nome
-                    // con cui tutto il resto del sistema chiama le entita'.
+                    // «uid» and «name» were THE SAME STRING, written twice.
+                    // On eighty features with names of twenty characters that was
+                    // over two kilobytes of message that said
+                    // nothing — and the room they take is exactly what
+                    // the parameters below need. «uid» stays, which is the name
+                    // with which the whole rest of the system calls the entities.
                     var axisEntry = new Dictionary<string, object> { ["uid"] = itemName, ["kind"] = typ };
 
-                    // LA FIRMA DELL'ASSE (voce E4, la parte che mancava). Fino
-                    // alla 0.113.0 lo stato di un asse era {uid, tipo} e basta:
-                    // niente da firmare, e `axis_uid` nelle ripetizioni era
-                    // controllato per ESISTENZA e non per IDENTITA'. Un asse
-                    // rifatto altrove col nome di prima passava. Adesso: un punto
-                    // sulla retta, la direzione, l'identificativo della lavorazione.
+                    // THE SIGNATURE OF THE AXIS (entry E4, the part that was missing). Up
+                    // to 0.113.0 the state of an axis was {uid, type} and that was all:
+                    // nothing to sign, and `axis_uid` in the patterns was
+                    // checked for EXISTENCE and not for IDENTITY. An axis
+                    // redone elsewhere with the name of before passed. Now: a point
+                    // on the line, the direction, the identifier of the feature.
                     try
                     {
                         var par = (f.GetSpecificFeature2() as IRefAxis)?.GetRefAxisParams() as double[];
@@ -706,25 +706,25 @@ namespace Oce.Solid.Agent.Core
                 }
                 else if (FeaturesThatCount.Contains(typ))
                 {
-                    // SI RACCOLGONO TUTTE, E SI SCEGLIE DOPO (voce E12).
+                    // ALL ARE COLLECTED, AND THE CHOICE IS MADE AFTERWARDS (entry E12).
                     //
-                    // Fino alla 0.30.0 qui c'era `if (feature.Count <
-                    // MaxFeature)`, cioe' si tenevano le prime ottanta
-                    // INCONTRATE. E l'albero si scorre con `GetNextFeature`,
-                    // in ordine di CREAZIONE: le prime ottanta sono le piu'
-                    // VECCHIE, e la lavorazione che il piano ha appena creato
-                    // e' fra quelle scartate. Il modello non la trovava, e
-                    // poteva concluderne che l'operazione non aveva fatto
-                    // niente — e rifarla.
+                    // Up to 0.30.0 there was `if (feature.Count <
+                    // MaxFeature)` here, that is, the first eighty
+                    // ENCOUNTERED were kept. And the tree is scanned with `GetNextFeature`,
+                    // in CREATION order: the first eighty are the OLDEST,
+                    // and the feature that the plan has just created
+                    // is among those discarded. The model did not find it, and
+                    // could conclude that the operation had done
+                    // nothing — and redo it.
                     //
-                    // IL COSTO NON CAMBIA, ed e' il motivo per cui si puo'
-                    // fare. `GetTypeName2()` e `Name` si leggono gia' per OGNI
-                    // lavorazione dell'albero, prima di questo controllo, per
-                    // decidere di che tipo e': il giro leggero esisteva gia' ed
-                    // era gia' pagato. Qui si aggiunge solo un riferimento a
-                    // una lista. La parte cara — `GetID`, `IsSuppressed`,
-                    // `GetErrorCode2`, i parametri, le quote — resta su ottanta
-                    // lavorazioni esatte, solo che adesso sono le ULTIME.
+                    // THE COST DOES NOT CHANGE, and it is the reason why it can be
+                    // done. `GetTypeName2()` and `Name` are already read for EVERY
+                    // feature of the tree, before this check, to
+                    // decide what type it is: the light pass already existed and
+                    // was already paid for. Here only a reference to
+                    // a list is added. The expensive part — `GetID`, `IsSuppressed`,
+                    // `GetErrorCode2`, the parameters, the dimensions — stays on eighty
+                    // exact features, only that now they are the LAST ones.
                     candidate.Add(new Candidate { F = f, Type = typ, Name = itemName });
                 }
                 else if (!ServiceFolders.Contains(typ))
@@ -735,20 +735,20 @@ namespace Oce.Solid.Agent.Core
                 try { f = (IFeature)f.GetNextFeature(); } catch { f = null; }
             }
 
-            // ── QUALI OTTANTA (voce E12) ──────────────────────────────────
+            // ── WHICH EIGHTY (entry E12) ──────────────────────────────────
             //
-            // L'albero si scorre in ordine di CREAZIONE, quindi le prime sono
-            // le piu' vecchie. Tenere le prime ottanta vuol dire buttare via
-            // proprio la lavorazione che il piano ha appena creato — quella che
-            // chi legge sta cercando. Si tengono le ULTIME.
+            // The tree is scanned in CREATION order, so the first ones are
+            // the oldest. Keeping the first eighty means throwing away
+            // precisely the feature that the plan has just created — the one that
+            // whoever reads is looking for. The LAST ones are kept.
             //
-            // Il dettaglio si paga QUI, e solo su queste: e' la stessa spesa di
-            // prima, su lavorazioni diverse.
+            // The detail is paid for HERE, and only on these: it is the same expense as
+            // before, on different features.
             //
-            // IL TETTO SI DICHIARA, come gli altri tre. Un elenco incompleto
-            // dichiarato e' una cosa diversa da un elenco incompleto spacciato
-            // per intero — ed e' quello che questo stato faceva fino alla
-            // 0.25.2, con `truncated: false` su un elenco troncato.
+            // THE CEILING IS DECLARED, like the other three. An incomplete list
+            // that is declared is a different thing from an incomplete list passed off
+            // as whole — and that is what this state did up to
+            // 0.25.2, with `truncated: false` on a truncated list.
             if (candidate.Count > MaxFeature)
             {
                 unlistedFeatures = candidate.Count - MaxFeature;
@@ -760,31 +760,31 @@ namespace Oce.Solid.Agent.Core
                 if (entryF != null) feature.Add(entryF);
             }
 
-            // ── corpi, facce, spigoli ─────────────────────────────────────
+            // ── bodies, faces, edges ──────────────────────────────────────
             //
-            // I CORPI SONO LA NOVITA' DELLA 0.30.0, E RISPONDONO A UNA DOMANDA
-            // CHE PRIMA NON AVEVA RISPOSTA.
+            // THE BODIES ARE THE NOVELTY OF 0.30.0, AND THEY ANSWER A QUESTION
+            // THAT BEFORE HAD NO ANSWER.
             //
-            // Fino alla 0.29.1 di cio' che c'era nel documento si diceva una
-            // cosa sola: `solid_body`, si' o no. A chi deve lavorare su un
-            // telaio gia' disegnato — «tappa le estremita' di quelle barre»,
-            // «fai i fori sul montante» — un booleano non serve a niente, e il
-            // committente lo ha chiesto per nome: «mancano dei tools per
-            // sapere quello che e' gia' stato disegnato?».
+            // Up to 0.29.1 of what was in the document one single thing was said:
+            // `solid_body`, yes or no. To whoever has to work on a
+            // frame already drawn — «cap the ends of those bars»,
+            // «make the holes on the upright» — a boolean is of no use, and the
+            // client asked for it by name: «are there missing tools to
+            // know what has already been drawn?».
             //
-            // BVisibleOnly: false, e il false e' voluto. Prima era true: un
-            // corpo nascosto per guardare dentro il pezzo spariva dallo stato
-            // senza che niente lo dicesse, e le lavorazioni su di lui
-            // diventavano impossibili senza una ragione leggibile.
+            // BVisibleOnly: false, and the false is intended. Before it was true: a
+            // body hidden to look inside the part vanished from the state
+            // without anything saying so, and the features on it
+            // became impossible without a readable reason.
             var faces = new List<Dictionary<string, object>>();
             var edges = new List<Dictionary<string, object>>();
             var describedBodies = new List<Dictionary<string, object>>();
             bool hasBody = false;
             bool truncated = false;
 
-            // LA SCATOLA DEL PEZZO, non solo quanto e' grande: DOVE STA.
-            // Serve fuori dal blocco dei corpi, quindi si dichiara qui. Vedi
-            // il commento su `bounding_box_from_mm` piu' sotto.
+            // THE BOX OF THE PART, not only how big it is: WHERE IT IS.
+            // It is needed outside the bodies block, so it is declared here. See
+            // the comment on `bounding_box_from_mm` further below.
             double[] partBox = null;
 
             object bodiesObj = null;
@@ -792,13 +792,13 @@ namespace Oce.Solid.Agent.Core
             var bodies = (bodiesObj as object[] ?? new object[0])
                 .Select(o => o as IBody2).Where(b => b != null).ToList();
 
-            // Il materiale: null ESPLICITO quando non c'e'.
+            // The material: EXPLICIT null when there is none.
             //
-            // Omettere il campo e scriverlo null non sono la stessa cosa. Un
-            // campo che manca il modello non lo vede; un `material: null` gli
-            // dice che quel posto esiste ed e' vuoto — ed e' l'unico modo
-            // perche' si accorga di doverlo riempire. Fino alla 0.29.1 la
-            // cartella dei materiali era anzi esclusa apposta dall'albero.
+            // Omitting the field and writing it null are not the same thing. A
+            // field that is missing the model does not see; a `material: null` tells it
+            // that that place exists and is empty — and it is the only way
+            // for it to notice that it must fill it. Up to 0.29.1 the
+            // materials folder was in fact excluded on purpose from the tree.
             string material = null;
             try
             {
@@ -814,25 +814,25 @@ namespace Oce.Solid.Agent.Core
             catch { }
             data["material"] = material;
 
-            // LA CONFIGURAZIONE ATTIVA, E LE ALTRE.
+            // THE ACTIVE CONFIGURATION, AND THE OTHERS.
             //
-            // Un pezzo con piu' configurazioni e' lo stesso file che descrive
-            // piu' pezzi: la staffa sinistra e la destra, con e senza foro. Le
-            // facce, i corpi, il volume e la massa scritti qui sopra sono
-            // quelli della configurazione ATTIVA, e di nessun'altra.
+            // A part with several configurations is the same file that describes
+            // several parts: the left bracket and the right one, with and without a hole. The
+            // faces, the bodies, the volume and the mass written above are
+            // those of the ACTIVE configuration, and of no other.
             //
-            // Senza questo campo lo stato dice «volume 84200 mm3» e chi legge
-            // non ha modo di sapere DI QUALE variante: e' esattamente il
-            // difetto che non da' errore. Si scrive sempre, anche quando la
-            // configurazione e' una sola, perche' un campo che compare solo a
-            // volte insegna a non cercarlo.
+            // Without this field the state says «volume 84200 mm3» and whoever reads
+            // has no way of knowing OF WHICH variant: it is exactly the
+            // defect that gives no error. It is always written, even when the
+            // configuration is only one, because a field that appears only
+            // sometimes teaches not to look for it.
             //
-            // Il nome ha spesso qualcosa fra parentesi angolari
-            // («Default<A macchina>»), e QUELLO E' IL NOME: non e' un'etichetta
-            // che il nome si porta appresso. Un pezzo nato dal modello di
-            // questa azienda ha due configurazioni vere, «Default<A macchina>»
-            // e «Default<Saldato>» — la coppia dei saldati. Si riporta com'e',
-            // perche' e' quello che `activate_configuration` vuole indietro.
+            // The name often has something in angle brackets
+            // («Default<A macchina>»), and THAT IS THE NAME: it is not a label
+            // that the name carries around. A part born from the template of
+            // this company has two real configurations, «Default<A macchina>»
+            // and «Default<Saldato>» — the weldment pair. It is reported as it is,
+            // because it is what `activate_configuration` wants back.
             try
             {
                 var configHandler = model.ConfigurationManager as IConfigurationManager;
@@ -845,23 +845,23 @@ namespace Oce.Solid.Agent.Core
                 if (configNames != null && configNames.Length > 0) data["configurations"] = configNames;
             }
             catch { }
-            // QUANTE NE DICHIARA LUI, che non e' per forza quante sono le
-            // righe di «configurations»: i nomi li da' `GetConfigurationNames`,
-            // il conto lo da' `GetConfigurationCount`, e sono due chiamate
-            // diverse. Si scrivono tutti e due, perche' il giorno in cui non
-            // combaciano quello e' il fatto da sapere -- non un dettaglio da
-            // nascondere scegliendo quale dei due mostrare.
+            // HOW MANY IT DECLARES, which is not necessarily how many the
+            // rows of «configurations» are: the names are given by `GetConfigurationNames`,
+            // the count is given by `GetConfigurationCount`, and they are two different
+            // calls. Both are written, because the day they do not
+            // match that is the fact to know -- not a detail to
+            // hide by choosing which of the two to show.
             try { data["how_many_configurations"] = model.GetConfigurationCount(); }
             catch { }
 
-            // LE PROPRIETA' PERSONALIZZATE, NEI DUE CASSETTI SEPARATI.
+            // THE CUSTOM PROPERTIES, IN THE TWO SEPARATE DRAWERS.
             //
-            // Sono cio' che finisce nel cartiglio e nella scheda del PDM.
-            // Stanno in due campi e non in uno perche' sono in due posti
-            // diversi: quelle del documento e quelle della configurazione
-            // attiva non si ereditano e non si vedono a vicenda. Un campo
-            // solo, «proprieta», sarebbe una fusione che nel file non esiste,
-            // e chi rileggesse non avrebbe modo di sapere dove cercare.
+            // They are what ends up in the title block and in the PDM card.
+            // They are in two fields and not in one because they are in two different
+            // places: those of the document and those of the active configuration
+            // are not inherited and do not see each other. A single field,
+            // «proprieta», would be a merge that does not exist in the file,
+            // and whoever read it back would have no way of knowing where to look.
             var document = ReadProperty(model, "");
             if (document.Count > 0) data["property"] = document;
             try
@@ -879,7 +879,7 @@ namespace Oce.Solid.Agent.Core
             {
                 hasBody = true;
 
-                // ── i corpi, uno per uno ──────────────────────────────────
+                // ── the bodies, one by one ────────────────────────────────
                 for (int i = 0; i < bodies.Count && i < MaxBodies; i++)
                 {
                     var body = bodies[i];
@@ -901,54 +901,54 @@ namespace Oce.Solid.Agent.Core
                             Math.Round((box[2] + box[5]) / 2, 2),
                         };
                     }
-                    // Il ponte fra un corpo e la lavorazione che lo ha fatto:
-                    // e' cio' che permette di dire «le barre» invece di «C3».
+                    // The bridge between a body and the feature that made it:
+                    // it is what allows saying «the bars» instead of «C3».
                     //
-                    // E QUI NON SI TOGLIE, ANCHE SE SEMBRA RIDONDANTE.
+                    // AND HERE IT IS NOT REMOVED, EVEN IF IT LOOKS REDUNDANT.
                     //
-                    // SolidWorks battezza i corpi di un saldato con il nome
-                    // della lavorazione piu' un suffisso:
-                    //   nome     = TUBO STRUTTURALE QUADRO 80X80X5(1)[4]
+                    // SolidWorks names the bodies of a weldment with the name
+                    // of the feature plus a suffix:
+                    //   name     = TUBO STRUTTURALE QUADRO 80X80X5(1)[4]
                     //   created_by = TUBO STRUTTURALE QUADRO 80X80X5(1)
-                    // Il 10 settembre 2026 questa somiglianza mi ha fatto
-                    // togliere il campo quando il nome comincia per la
-                    // lavorazione. Sbagliato, per due ragioni che il banco ha
-                    // detto subito:
+                    // On 10 September 2026 this resemblance made me
+                    // remove the field when the name begins with the
+                    // feature. Wrong, for two reasons that the bench
+                    // told at once:
                     //
-                    // 1. il risparmio era 192 caratteri su un telaio, non 840:
-                    //    le barre sono QUATTRO, non ventiquattro (avevo usato
-                    //    il tetto `MaxBodies` al posto del numero vero);
-                    // 2. e soprattutto: `name` e `created_by` condividono la
-                    //    stringa ma NON sono la stessa cosa. Uno e' come si
-                    //    chiama il corpo, l'altro e' da dove viene. Che oggi
-                    //    l'uno si possa ricavare dall'altro e' una coincidenza
-                    //    di come SolidWorks battezza i corpi saldati, non una
-                    //    proprieta' su cui appoggiarsi — e ricavarlo sarebbe
-                    //    comunque una DEDUZIONE, che e' esattamente cio' che
-                    //    stiamo togliendo di mezzo al modello.
+                    // 1. the saving was 192 characters on a frame, not 840:
+                    //    the bars are FOUR, not twenty-four (I had used
+                    //    the `MaxBodies` ceiling in place of the real number);
+                    // 2. and above all: `name` and `created_by` share the
+                    //    string but are NOT the same thing. One is what the body
+                    //    is called, the other is where it comes from. That today
+                    //    one can be derived from the other is a coincidence
+                    //    of how SolidWorks names welded bodies, not a
+                    //    property to lean on — and deriving it would
+                    //    anyway be a DEDUCTION, which is exactly what
+                    //    we are removing from the model's way.
                     //
-                    // La regola «si scrive solo cio' che aggiunge» resta buona
-                    // per i campi identici (`uid`/`name`) e per quelli che
-                    // ripetono un altro campo (`from_feature` su un saldato).
-                    // Non vale per due campi che dicono cose diverse.
+                    // The rule «write only what adds» stays good
+                    // for identical fields (`uid`/`name`) and for those that
+                    // repeat another field (`from_feature` on a weldment).
+                    // It does not hold for two fields that say different things.
                     string feat = BodyFeature(body);
                     if (feat != null) entry["created_by"] = feat;
                     describedBodies.Add(entry);
 
-                    // E il corpo si deve poter RITROVARE. Senza questa firma,
-                    // «C1» nello stato sarebbe un'etichetta che il modello
-                    // legge e nessuno sa riportare a un IBody2 al momento di
-                    // eseguire: e' il ponte che manca a «tappa le estremita'
-                    // di questo telaio» in un messaggio nuovo.
+                    // And the body must be able to be FOUND AGAIN. Without this signature,
+                    // «C1» in the state would be a label that the model
+                    // reads and nobody knows how to bring back to an IBody2 at the time of
+                    // executing: it is the bridge that is missing for «cap the ends
+                    // of this frame» in a new message.
                     //
-                    // La firma di un corpo e' il suo centro piu' l'ingombro:
-                    // sono i due numeri che cambiano se qualcuno modifica il
-                    // pezzo fra la proposta e l'esecuzione.
+                    // The signature of a body is its centre plus the bounding box:
+                    // they are the two numbers that change if somebody modifies the
+                    // part between the proposal and the execution.
                     docState.Signatures["C" + (i + 1)] = new EntitySignature
                     {
                         Type = "BODY",
-                        // ZERO-E-ZERO: chi legge `Measure` guarda sempre `> 0`, e
-                        // nessuno la legge per i corpi; zero qui e' «non misurata».
+                        // ZERO-E-ZERO: whoever reads `Measure` always looks at `> 0`, and
+                        // nobody reads it for the bodies; zero here is «not measured».
                         Measure = box == null ? 0 : Math.Round(
                             (box[3] - box[0]) * (box[4] - box[1]) *
                             (box[5] - box[2]), 2),
@@ -961,7 +961,7 @@ namespace Oce.Solid.Agent.Core
                 if (bodies.Count > MaxBodies) data["bodies_not_listed"] = bodies.Count - MaxBodies;
                 data["bodies_total"] = bodies.Count;
 
-                // ── l'ingombro di tutto il pezzo ──────────────────────────
+                // ── the bounding box of the whole part ────────────────────
                 double[] everything = null;
                 foreach (var body in bodies)
                 {
@@ -981,19 +981,19 @@ namespace Oce.Solid.Agent.Core
                         Math.Round(everything[5] - everything[2], 2),
                     };
 
-                    // ── DOVE STA LA SCATOLA, e non solo quanto e' grande ──
+                    // ── WHERE THE BOX IS, and not only how big it is ──────
                     //
-                    // `bounding_box_mm` dice «140 x 16 x 140» e non dice dove sia
-                    // quel volume: un piano che vuole mettere un foro «a 20 mm
-                    // dal bordo» deve indovinare se il pezzo e' centrato
-                    // sull'origine o appoggiato a essa. Sono tre numeri, una
-                    // trentina di caratteri sul tetto di 16.000.
+                    // `bounding_box_mm` says «140 x 16 x 140» and does not say where that
+                    // volume is: a plan that wants to put a hole «20 mm
+                    // from the edge» must guess whether the part is centred
+                    // on the origin or resting on it. They are three numbers, some
+                    // thirty characters on the 16,000 ceiling.
                     //
-                    // E' anche l'unico ingresso che rende possibile la
-                    // SPIEGAZIONE della voce E10 — dire dove stava una faccia
-                    // rispetto al pezzo — che senza l'angolo non si puo'
-                    // nemmeno scrivere: 50 su un lato lungo 100 vuol dire meta'
-                    // se la scatola parte da zero e tutto se parte da -50.
+                    // It is also the only input that makes possible the
+                    // EXPLANATION of entry E10 — saying where a face was
+                    // with respect to the part — which without the corner cannot
+                    // even be written: 50 on a side 100 long means half
+                    // if the box starts from zero and all of it if it starts from -50.
                     data["bounding_box_from_mm"] = new[]
                     {
                         Math.Round(everything[0], 2),
@@ -1002,38 +1002,38 @@ namespace Oce.Solid.Agent.Core
                     };
                 }
 
-                // ── la massa, SOLO se c'e' un materiale ───────────────────
+                // ── the mass, ONLY if there is a material ─────────────────
                 //
-                // Senza materiale SolidWorks usa comunque una densita'
-                // predefinita e restituisce un numero. Un peso plausibile e
-                // falso e' il difetto peggiore che ci sia qui: chi legge «12,4
-                // kg» non ha modo di sapere che e' inventato. Quindi non si
-                // manda affatto.
+                // Without a material SolidWorks uses a default density anyway
+                // and returns a number. A plausible and false weight is the worst
+                // defect there is here: whoever reads «12.4
+                // kg» has no way of knowing that it is invented. So it is not
+                // sent at all.
                 if (material != null)
                 {
                     double? kg = Mass(model, bodies);
                     if (kg.HasValue) data["mass_kg"] = Math.Round(kg.Value, 3);
                 }
 
-                // IL VOLUME: l'unica misura che si muove quando il pezzo cambia
-                // DENTRO senza cambiare fuori.
+                // THE VOLUME: the only measure that moves when the part changes
+                // INSIDE without changing outside.
                 //
-                // Lo stato aveva l'ingombro e la massa. L'ingombro non si
-                // accorge di un foro allargato, di un raccordo tolto, di una
-                // nervatura soppressa: il pezzo occupa lo stesso spazio. La
-                // massa c'e' solo se il materiale e' assegnato, e in officina
-                // meta' dei pezzi non ce l'ha finche' non si va in distinta.
-                // Il volume c'e' sempre e cambia sempre — ed e' il numero con
-                // cui il modello puo' capire se una modifica ha fatto
-                // qualcosa. L'add-in lo calcolava gia' per le proprie
-                // verifiche e non lo diceva a nessuno.
+                // The state had the bounding box and the mass. The bounding box does not
+                // notice an enlarged hole, a removed fillet, a
+                // suppressed rib: the part occupies the same space. The
+                // mass is there only if the material is assigned, and in the workshop
+                // half of the parts do not have it until they go to the bill of materials.
+                // The volume is always there and always changes — and it is the number with
+                // which the model can understand whether an edit did
+                // anything. The add-in already computed it for its own
+                // checks and told nobody.
                 //
-                // UN CORPO CHE NON RISPONDE FA «NON LO SO», NON UN VOLUME PIU'
-                // BASSO (voce Z-C8). Prima si saltava, e la chiave spariva anche
-                // quando il volume non si era letto: assente voleva dire zero
-                // OPPURE «non letto», e `undo` poteva rifare un passo dopo un
-                // annullamento giusto. Adesso: chiave assente = nessun volume
-                // solido; chiave con null = non si e' potuto leggere.
+                // A BODY THAT DOES NOT ANSWER MAKES «I DO NOT KNOW», NOT A LOWER
+                // VOLUME (entry Z-C8). Before it was skipped, and the key vanished even
+                // when the volume had not been read: absent meant zero
+                // OR «not read», and `undo` could redo a step after a
+                // correct undo. Now: key absent = no solid
+                // volume; key with null = it could not be read.
                 double volume = 0;
                 bool unreadableVolume = false;
                 foreach (var c in bodies)
@@ -1049,19 +1049,19 @@ namespace Oce.Solid.Agent.Core
                 if (unreadableVolume) data["volume_mm3"] = null;
                 else if (volume > 0) data["volume_mm3"] = Math.Round(volume, 1);
 
-                // ── facce e spigoli, con il tetto sul TOTALE ──────────────
+                // ── faces and edges, with the ceiling on the TOTAL ────────
                 //
-                // Il tetto stava DENTRO il ciclo sui corpi: su un telaio da
-                // quattro barre uscivano 240 facce invece di 60, e `truncated`
-                // restava false perche' nessun corpo singolo superava il tetto.
-                // Il payload cresceva con le barre: ~11 KB per quattro, oltre
-                // 50 KB per venti. Adesso si raccoglie tutto, si ordina una
-                // volta e si taglia una volta.
+                // The ceiling was INSIDE the loop over the bodies: on a four-bar
+                // frame 240 faces came out instead of 60, and `truncated`
+                // stayed false because no single body exceeded the ceiling.
+                // The payload grew with the bars: ~11 KB for four, over
+                // 50 KB for twenty. Now everything is collected, sorted once
+                // and cut once.
                 var allFaces = new List<Tuple<IFace2, int>>();
                 var allEdges = new List<Tuple<IEdge, int>>();
-                // Da quale lavorazione nasce OGNI CORPO. Serve a non ripetere
-                // su ogni faccia una cosa che il campo «body» dice gia': vedi
-                // il commento su `from_feature` piu' sotto.
+                // From which feature EACH BODY is born. It serves to avoid repeating
+                // on every face a thing that the field «body» already says: see
+                // the comment on `from_feature` further below.
                 var bodyFeature = new string[bodies.Count];
                 for (int i = 0; i < bodies.Count; i++) bodyFeature[i] = BodyFeature(bodies[i]);
                 for (int i = 0; i < bodies.Count; i++)
@@ -1082,10 +1082,10 @@ namespace Oce.Solid.Agent.Core
                         }
                 }
 
-                // Le piu' grandi per prime: sono quelle su cui un progettista
-                // lavora, e sono quelle che una descrizione corta deve avere.
-                // ZERO-E-ZERO: e' una chiave d'ordinamento, non un'affermazione —
-                // una faccia che non da' l'area finisce in fondo, e basta.
+                // The largest first: they are the ones a designer
+                // works on, and they are the ones a short description must have.
+                // ZERO-E-ZERO: it is a sort key, not a statement —
+                // a face that does not give its area ends up at the bottom, and that is all.
                 var sorted = allFaces
                     .OrderByDescending(t => { try { return t.Item1.GetArea(); } catch { return 0.0; } })
                     .ToList();
@@ -1094,19 +1094,19 @@ namespace Oce.Solid.Agent.Core
                     truncated = true;
                     data["faces_total"] = sorted.Count;
                 }
-                // Faccia -> uid, per poter dire su quali facce si appoggia
-                // uno spigolo. Si riempie qui perche' le facce si numerano
-                // prima degli spigoli, e serve li'.
+                // Face -> uid, to be able to say on which faces an
+                // edge rests. It is filled here because the faces are numbered
+                // before the edges, and it is needed there.
                 var faceUid = new Dictionary<IFace2, string>();
                 int faceIndex = 0;
                 foreach (var t in sorted.Take(MaxFaces))
                 {
                     faceIndex++;
                     var uid = "F" + faceIndex;
-                    // L'area che non si legge e' null nello stato, non 0 mm²
-                    // (voce Z-C8). ZERO-E-ZERO: nella firma resta 0, perche' chi
-                    // legge `Measure` guarda sempre `> 0` e lo prende per «non
-                    // misurata».
+                    // The area that cannot be read is null in the state, not 0 mm²
+                    // (entry Z-C8). ZERO-E-ZERO: in the signature it stays 0, because whoever
+                    // reads `Measure` always looks at `> 0` and takes it for «not
+                    // measured».
                     double? readArea = null;
                     try { readArea = Units.Mm2(t.Item1.GetArea()); } catch { }
                     double areaMm2 = readArea ?? 0;
@@ -1120,27 +1120,27 @@ namespace Oce.Solid.Agent.Core
                         ["normal"] = normal,
                         ["planar"] = normal != null,
                     };
-                    // UN FORO DEVE VEDERSI COME UN FORO, NON COME «UNA FACCIA
-                    // NON PIANA DI AREA 1256».
+                    // A HOLE MUST BE SEEN AS A HOLE, NOT AS «A NON-PLANAR
+                    // FACE OF AREA 1256».
                     //
-                    // Fino al 10 settembre 2026 di una faccia cilindrica lo
-                    // stato diceva soltanto `planar: false`. Alla richiesta
-                    // «quel foro portalo da M8 a M10» il modello non aveva
-                    // modo di sapere quale faccia fosse un M8: il diametro
-                    // c'era nella geometria e non glielo dicevamo.
+                    // Up to 10 September 2026 of a cylindrical face the
+                    // state said only `planar: false`. At the request
+                    // «take that hole from M8 to M10» the model had no
+                    // way of knowing which face was an M8: the diameter
+                    // was in the geometry and we did not tell it.
                     //
-                    // Il raggio si legge da `CylinderParams`, che torna un
-                    // vettore di sette numeri: punto (0-2), asse (3-5), raggio
-                    // in metri (6). E' la stessa ricetta gia' in produzione
-                    // per riconoscere i fori in `OperazioniFori`.
+                    // The radius is read from `CylinderParams`, which returns a
+                    // vector of seven numbers: point (0-2), axis (3-5), radius
+                    // in metres (6). It is the same recipe already in production
+                    // to recognise the holes in `OperazioniFori`.
                     double radiusMm;
                     double[] cylinderAxis;
-                    // `= null` e non e' pignoleria: `CylinderOf` lo assegna con
-                    // un `out`, ma la chiamata sta a destra di un `&&` e su una
-                    // faccia piana non viene eseguita. Senza l'inizializzazione
-                    // il compilatore rifiuta l'uso piu' in basso — ed e' un
-                    // rifiuto giusto: quella variabile li' non avrebbe un
-                    // valore.
+                    // `= null` is not pedantry: `CylinderOf` assigns it with
+                    // an `out`, but the call is to the right of a `&&` and on a
+                    // planar face it is not executed. Without the initialisation
+                    // the compiler refuses the use further down — and it is a
+                    // right refusal: that variable there would not have a
+                    // value.
                     double[] cylinderCenter = null;
                     if (normal == null &&
                         CylinderOf(t.Item1, out radiusMm, out cylinderAxis, out cylinderCenter))
@@ -1149,24 +1149,24 @@ namespace Oce.Solid.Agent.Core
                         entry["diameter_mm"] = Math.Round(radiusMm * 2, 3);
                         entry["axis"] = cylinderAxis;
                     }
-                    // DA QUALE LAVORAZIONE VIENE — MA SOLO SE LO AGGIUNGE.
+                    // FROM WHICH FEATURE IT COMES — BUT ONLY IF IT ADDS SOMETHING.
                     //
-                    // Il legame faccia→lavorazione e' quello che fa smettere la
-                    // faccia F17 di essere anonima e la fa diventare «la parete
-                    // del foro M8».
+                    // The face→feature link is what makes face F17 stop being
+                    // anonymous and become «the wall of the
+                    // M8 hole».
                     //
-                    // SCRITTO SU OGNI FACCIA PERO' COSTA E MENTE. Misurato il
-                    // 10 settembre 2026: su un telaio da quattro barre lo stato
-                    // passava da 11.703 a 15.849 caratteri, e tutte le facce di
-                    // una barra dicevano «Membro strutturale1[1]» — cioe'
-                    // esattamente quello che il campo «body» diceva gia'.
-                    // Costo pieno, informazione zero.
+                    // WRITTEN ON EVERY FACE HOWEVER IT COSTS AND LIES. Measured on
+                    // 10 September 2026: on a four-bar frame the state
+                    // went from 11,703 to 15,849 characters, and all the faces of
+                    // a bar said «Membro strutturale1[1]» — that is
+                    // exactly what the field «body» already said.
+                    // Full cost, zero information.
                     //
-                    // La regola e' quindi: si scrive quando la faccia viene da
-                    // una lavorazione DIVERSA da quella che ha fatto il corpo.
-                    // E' il caso in cui il campo dice qualcosa di nuovo — un
-                    // foro, una tasca, un raccordo su un pezzo — ed e'
-                    // esattamente il caso che serve per «quel foro portalo a
+                    // The rule is therefore: it is written when the face comes from
+                    // a feature DIFFERENT from the one that made the body.
+                    // It is the case in which the field says something new — a
+                    // hole, a pocket, a fillet on a part — and it is
+                    // exactly the case that is needed for «take that hole to
                     // M10».
                     string fromFeature = FaceFeature(t.Item1);
                     if (fromFeature != null
@@ -1175,90 +1175,90 @@ namespace Oce.Solid.Agent.Core
                     {
                         entry["from_feature"] = fromFeature;
 
-                        // ── DOVE STA IL FORO, e non e' `point_mm` ──────────
+                        // ── WHERE THE HOLE IS, and it is not `point_mm` ────
                         //
-                        // `point_mm` sta sulla SUPERFICIE — serve a
-                        // SELEZIONARE — e dista un raggio dall'asse in una
-                        // direzione che nessuno dichiara. Chi lo usa per
-                        // misurare un interasse sbaglia di un raggio per ogni
-                        // foro e non se ne accorge: il numero ha la forma
-                        // giusta.
+                        // `point_mm` is on the SURFACE — it serves to
+                        // SELECT — and is one radius away from the axis in a
+                        // direction that nobody declares. Whoever uses it to
+                        // measure a centre distance is wrong by one radius for every
+                        // hole and does not notice: the number has the right
+                        // shape.
                         //
-                        // Misurato il 15/9/2026 (voce E16) su una flangia con
-                        // sei fori su Ø90: due modelli indipendenti hanno
-                        // risposto **Ø79**, tutti e due con confidenza 5 su 5.
+                        // Measured on 15/9/2026 (entry E16) on a flange with
+                        // six holes on Ø90: two independent models
+                        // answered **Ø79**, both with confidence 5 out of 5.
                         //
-                        // `center_mm` e non `asse_mm`: `axis` qui sopra e' gia'
-                        // la DIREZIONE, e due campi quasi omonimi che vogliono
-                        // dire cose diverse sono il modo piu' sicuro di farli
-                        // scambiare.
+                        // `center_mm` and not `asse_mm`: `axis` above is already
+                        // the DIRECTION, and two almost homonymous fields that mean
+                        // different things are the surest way to get them
+                        // swapped.
                         //
-                        // ── E SI SCRIVE SOLO QUI DENTRO, non su ogni
-                        //    faccia cilindrica. IL TETTO L'HA DETTO.
+                        // ── AND IT IS WRITTEN ONLY IN HERE, not on every
+                        //    cylindrical face. THE CEILING SAID SO.
                         //
-                        // La prima scrittura lo metteva su TUTTE, e il banco
-                        // ha fermato il commit: lo stato di un telaio da
-                        // quattro barre e' passato da 15.633 a **16.163**
-                        // caratteri, oltre il tetto di 16.000, con **un solo
-                        // documento aperto** — quindi crescita vera, non
-                        // scarti lasciati in giro.
+                        // The first write put it on ALL of them, and the bench
+                        // stopped the commit: the state of a four-bar
+                        // frame went from 15,633 to **16,163**
+                        // characters, beyond the ceiling of 16,000, with **one single
+                        // document open** — so real growth, not
+                        // leftovers lying around.
                         //
-                        // Le facce cilindriche di un telaio tubolare sono i
-                        // raccordi d'angolo dei profili: decine, e fra i loro
-                        // assi non misura un interasse nessuno. Quelle che
-                        // contano sono le facce che vengono da una lavorazione
-                        // DIVERSA da quella che ha fatto il corpo — cioe' un
-                        // foro, una tasca, una svasatura: le cose che si
-                        // posizionano. E' la stessa regola che decide
-                        // `from_feature`, applicata dove serve, ed e' il
-                        // motivo per cui questa riga sta dentro quel blocco
-                        // invece che accanto al raggio.
+                        // The cylindrical faces of a tubular frame are the
+                        // corner fillets of the profiles: dozens, and among their
+                        // axes nobody measures a centre distance. The ones that
+                        // count are the faces that come from a feature
+                        // DIFFERENT from the one that made the body — that is, a
+                        // hole, a pocket, a countersink: the things that are
+                        // positioned. It is the same rule that decides
+                        // `from_feature`, applied where needed, and it is the
+                        // reason why this line is inside that block
+                        // instead of next to the radius.
                         //
-                        // **Cosa questo NON copre, e va detto:** una faccia
-                        // cilindrica che E' il corpo — l'interno di un tubo —
-                        // non prende il centro. Se un giorno servira'
-                        // misurarci qualcosa, e' una voce nuova, non una riga
-                        // da aggiungere qui di nascosto.
+                        // **What this does NOT cover, and it must be said:** a cylindrical
+                        // face that IS the body — the inside of a tube —
+                        // does not get the centre. If one day it is needed to
+                        // measure something on it, it is a new entry, not a line
+                        // to add here on the sly.
                         if (cylinderCenter != null) entry["center_mm"] = cylinderCenter;
                     }
-                    // DA CHE PARTE GUARDA, DETTO IN ITALIANO.
+                    // WHICH WAY IT FACES, SAID IN WORDS.
                     //
-                    // La normale c'era gia', ma e' una terna di numeri: per
-                    // sapere quale faccia e' «quella in alto» bisogna capire
-                    // che in SolidWorks l'alto e' +Y, cercare la normale
-                    // [0,1,0] e poi scegliere fra quelle la piu' grande. Il 9
-                    // settembre 2026 il modello non ci e' arrivato: alla
-                    // richiesta «sulla faccia in alto della piastra fammi due
-                    // fori M8» ha calcolato bene le coordinate, ha scelto bene
-                    // l'operazione, e si e' fermato scrivendo «mi serve
-                    // l'identificativo della faccia in alto».
+                    // The normal was already there, but it is a triple of numbers: to
+                    // know which face is «the top one» one has to understand
+                    // that in SolidWorks up is +Y, look for the normal
+                    // [0,1,0] and then choose among those the largest. On 9
+                    // September 2026 the model did not get there: at the
+                    // request «on the top face of the plate make me two
+                    // M8 holes» it computed the coordinates well, chose the
+                    // operation well, and stopped writing «I need
+                    // the identifier of the top face».
                     //
-                    // Sedici caratteri per faccia tolgono di mezzo una
-                    // deduzione. Il verso e' quello del sistema di SolidWorks:
-                    // +X destra, +Y alto, +Z davanti.
+                    // Sixteen characters per face remove a deduction from
+                    // the way. The direction is that of the SolidWorks system:
+                    // +X right, +Y up, +Z front.
                     string facing = Facing(normal);
                     if (facing != null) entry["facing"] = facing;
-                    // A quale corpo appartiene. Su un saldato senza questo
-                    // campo arrivano quaranta facce indistinguibili.
+                    // Which body it belongs to. On a weldment without this
+                    // field forty indistinguishable faces arrive.
                     if (bodies.Count > 1 && t.Item2 < MaxBodies) entry["body"] = "C" + (t.Item2 + 1);
 
-                    // DA QUALE LAVORAZIONE VIENE. Serve a due cose diverse: a
-                    // chi legge lo stato, per capire cos'e' quella faccia; e al
-                    // ritrovamento, che senza non puo' distinguere «la stessa
-                    // faccia spostata» da «un'altra faccia finita nello stesso
-                    // posto».
-                    // IL NOME SI SCRIVE UNA VOLTA SOLA, IN FONDO.
+                    // FROM WHICH FEATURE IT COMES. It serves two different things: whoever
+                    // reads the state, to understand what that face is; and finding it
+                    // again, which without it cannot tell «the same
+                    // face moved» from «another face that ended up in the same
+                    // place».
+                    // THE NAME IS WRITTEN ONLY ONCE, AT THE END.
                     //
-                    // Scriverlo su ogni faccia costa: su un telaio saldato i
-                    // nomi delle lavorazioni sono cose come «TUBO STRUTTURALE
-                    // QUADRO 80X80X5(1)», e sessanta facce che vengono da
-                    // quattro lavorazioni li ripetevano sessanta volte.
-                    // Misurato: lo stato di un telaio da quattro barre e'
-                    // passato da sotto i 16 KB a **18.629 caratteri**, e c'e'
-                    // una prova di banco che quel tetto lo sorveglia.
+                    // Writing it on every face costs: on a welded frame the
+                    // names of the features are things like «TUBO STRUTTURALE
+                    // QUADRO 80X80X5(1)», and sixty faces that come from
+                    // four features repeated them sixty times.
+                    // Measured: the state of a four-bar frame went
+                    // from under 16 KB to **18,629 characters**, and there is
+                    // a bench check that watches that ceiling.
                     //
-                    // Con la mappa in fondo i nomi lunghi sono quattro, e su
-                    // ogni faccia resta il numero.
+                    // With the map at the end the long names are four, and on
+                    // every face the number stays.
                     int featureId;
                     string featureItem;
                     FeatureOfFace(t.Item1, out featureId, out featureItem);
@@ -1268,22 +1268,22 @@ namespace Oce.Solid.Agent.Core
                         featureNames[featureId] = featureItem;
                     }
 
-                    // LE DUE ANCORE, tutt'e due dietro lo stesso interruttore e
-                    // tutt'e due destinate alla FIRMA e non a chi legge.
+                    // THE TWO ANCHORS, both behind the same switch and
+                    // both meant for the SIGNATURE and not for whoever reads.
                     //
-                    //   `anchor`     il baricentro d'area: una nostra congettura
-                    //                sulla geometria, che si muove quando la
-                    //                faccia cambia davvero;
-                    //   `persist_id` la risposta che da' SOLIDWORKS alla stessa
-                    //                domanda, e l'unica che non sia una nostra
-                    //                congettura.
+                    //   `anchor`     the area centroid: a conjecture of ours
+                    //                about the geometry, which moves when the
+                    //                face really changes;
+                    //   `persist_id` the answer that SOLIDWORKS gives to the same
+                    //                question, and the only one that is not a conjecture
+                    //                of ours.
                     //
-                    // Il persist ID e' 375-423 byte per faccia, cioe' ~530
-                    // caratteri in base64: su sessanta facce sono ~32 KB, il
-                    // DOPPIO dell'intero tetto dello stato. Non puo' arrivare a
-                    // chi legge, e infatti il ponte lo toglie subito dopo aver
-                    // costruito le firme — la stessa strada dell'ancora,
-                    // moltiplicata per venti.
+                    // The persist ID is 375-423 bytes per face, that is ~530
+                    // characters in base64: on sixty faces it is ~32 KB, the
+                    // DOUBLE of the whole ceiling of the state. It cannot reach
+                    // whoever reads, and indeed the bridge removes it right after having
+                    // built the signatures — the same path as the anchor,
+                    // multiplied by twenty.
                     if (withAnchor)
                     {
                         var anchor = FaceAnchor(t.Item1);
@@ -1326,24 +1326,24 @@ namespace Oce.Solid.Agent.Core
                     var entry = new Dictionary<string, object>
                     {
                         ["uid"] = uid,
-                        // null quando non si e' potuta leggere: -1 e' il «non lo
-                        // so» di chi la usa qui dentro, non una lunghezza.
+                        // null when it could not be read: -1 is the «I do not
+                        // know» of whoever uses it in here, not a length.
                         ["length_mm"] = len >= 0 ? (object)Math.Round(len, 2) : null,
                         ["point_mm"] = point,
                     };
-                    // UNO SPIGOLO SENZA RUOLO NON SI PUO' NOMINARE.
+                    // AN EDGE WITHOUT A ROLE CANNOT BE NAMED.
                     //
-                    // Le facce dicono da che parte guardano — «up»,
-                    // «front» — e il modello le sa scegliere. Gli spigoli
-                    // dicevano soltanto quanto sono lunghi. Misurato il 10
-                    // settembre 2026 su una piastra 300x200x15: venti
-                    // spigoli, tutti uguali a leggersi, e alla richiesta
-                    // «raccorda i quattro angoli» il modello non ha nemmeno
-                    // provato a nominarli — ha citato un passo inesistente.
+                    // The faces say which way they look — «up»,
+                    // «front» — and the model knows how to choose them. The edges
+                    // said only how long they are. Measured on 10
+                    // September 2026 on a 300x200x15 plate: twenty
+                    // edges, all the same to read, and at the request
+                    // «fillet the four corners» the model did not even
+                    // try to name them — it cited a nonexistent step.
                     //
-                    // «along: Y» costa quattordici caratteri e dice quello
-                    // che direbbe un progettista: gli angoli di una piastra
-                    // sono gli spigoli nella direzione dello spessore.
+                    // «along: Y» costs fourteen characters and says what
+                    // a designer would say: the corners of a plate
+                    // are the edges in the direction of the thickness.
                     string axisLength;
                     double edgeRadius;
                     if (EdgeDirection(t.Item1, out axisLength, out edgeRadius))
@@ -1352,13 +1352,13 @@ namespace Oce.Solid.Agent.Core
                     }
                     else
                     {
-                        // Non dritto: si dice, perche' come DIREZIONE non
-                        // vale e la ripetizione lo rifiuterebbe.
+                        // Not straight: it is said, because as a DIRECTION it is
+                        // no good and the repetition would refuse it.
                         entry["curved"] = true;
                         if (edgeRadius > 0) entry["radius_mm"] = Math.Round(edgeRadius, 2);
                     }
-                    // SU QUALI FACCE SI APPOGGIA: e' cosi' che si dice «il
-                    // bordo della faccia in alto» senza contare i millimetri.
+                    // WHICH FACES IT RESTS ON: this is how one says «the
+                    // edge of the top face» without counting millimetres.
                     var fra = EdgeFaces(t.Item1, faceUid);
                     if (fra != null) entry["between"] = fra;
                     if (bodies.Count > 1 && t.Item2 < MaxBodies) entry["body"] = "C" + (t.Item2 + 1);
@@ -1376,18 +1376,18 @@ namespace Oce.Solid.Agent.Core
             data["solid_body"] = hasBody;
             data["planes_available"] = nPlanes;
 
-            // L'ALBERO E' ROSSO? SI DICE IN TESTA, NON SOLO DENTRO.
+            // IS THE TREE RED? IT IS SAID AT THE TOP, NOT ONLY INSIDE.
             //
-            // Le lavorazioni in errore sono gia' segnate una per una, ma chi
-            // legge lo stato scorre l'elenco delle feature solo se ha motivo
-            // di farlo. Un numero in cima e' il motivo.
+            // The features in error are already marked one by one, but whoever
+            // reads the state scans the list of the features only if there is a reason
+            // to. A number at the top is the reason.
             //
-            // **`NeedsRebuild2` NON basta, ed e' misurato**: sul pezzo col
-            // raccordo impossibile rispondeva **0** — nessuna ricostruzione
-            // necessaria — mentre `GetWhatsWrongCount` diceva 1 e il raccordo
-            // aveva codice 12. Le due domande sono diverse: «va ricostruito» e
-            // «e' rotto» non sono la stessa cosa, e fidarsi della prima per
-            // rispondere alla seconda avrebbe dato una guardia sempre verde.
+            // **`NeedsRebuild2` is NOT enough, and it is measured**: on the part with the
+            // impossible fillet it answered **0** — no rebuild
+            // needed — while `GetWhatsWrongCount` said 1 and the fillet
+            // had code 12. The two questions are different: «needs rebuilding» and
+            // «is broken» are not the same thing, and trusting the first to
+            // answer the second would have given an always-green guard.
             if (featuresInError > 0)
                 data["features_in_error"] = featuresInError;
             try
@@ -1399,34 +1399,34 @@ namespace Oce.Solid.Agent.Core
 
             data["feature"] = feature;
             if (otherFeatures > 0) data["other_feature"] = otherFeatures;
-            // Il tetto sulle lavorazioni, dichiarato come quelli su facce,
-            // spigoli e corpi. `truncated` vale per tutto lo stato.
+            // The ceiling on the features, declared like those on faces,
+            // edges and bodies. `truncated` holds for the whole state.
             if (unlistedFeatures > 0)
             {
                 data["feature_not_listed"] = unlistedFeatures;
                 data["feature_total"] = feature.Count + unlistedFeatures;
                 truncated = true;
             }
-            // I tipi si mandano SEMPRE quando ce ne sono: e' cio' che
-            // permette di accorgersi che una lavorazione e' invisibile.
+            // The types are ALWAYS sent when there are any: it is what
+            // allows noticing that a feature is invisible.
             if (unknownTypes.Count > 0) data["other_feature_kinds"] = unknownTypes.ToArray();
             data["axes"] = axes;
             if (describedBodies.Count > 0) data["bodies"] = describedBodies;
             data["faces"] = faces;
             data["edges"] = edges;
-            // COSA C'E' SELEZIONATO ADESSO, detto con gli stessi nomi.
+            // WHAT IS SELECTED NOW, said with the same names.
             //
-            // E' l'altra meta' della firma: invece di descrivere a parole quale
-            // faccia si intende, il progettista la INDICA col dito e lo stato
-            // dice come si chiama. L'ambiguita' si toglie prima
-            // dell'operazione, non si scopre dopo.
+            // It is the other half of the signature: instead of describing in words which
+            // face is meant, the designer POINTS at it with a finger and the state
+            // says what it is called. The ambiguity is removed before
+            // the operation, not discovered afterwards.
             //
-            // Non e' uno strumento nuovo, ed e' voluto: il ponte ne ha quattro
-            // e il motivo e' scritto in `McpTools`. Questa e' una riga in piu'
-            // in una risposta che si legge gia', e si scrive **solo quando c'e'
-            // qualcosa di selezionato** — su un documento senza selezione non
-            // costa niente.
-            // Il dizionario dei nomi, solo se qualcuno lo usa.
+            // It is not a new tool, and this is intended: the bridge has four
+            // and the reason is written in `McpTools`. This is one more line
+            // in an answer that is already read, and it is written **only when something
+            // is selected** — on a document without a selection it
+            // costs nothing.
+            // The dictionary of the names, only if somebody uses it.
             if (featureNames.Count > 0)
             {
                 var map = new Dictionary<string, object>();
@@ -1441,9 +1441,9 @@ namespace Oce.Solid.Agent.Core
             data["truncated"] = truncated;
             data["protocol_units"] = "mm";
 
-            // LE EQUAZIONI E LE VARIABILI GLOBALI (voce Z-F1), se ce ne sono: chi
-            // legge lo stato deve sapere che una quota e' guidata prima di provare
-            // a cambiarla a mano.
+            // THE EQUATIONS AND THE GLOBAL VARIABLES (entry Z-F1), if there are any: whoever
+            // reads the state must know that a dimension is driven before trying
+            // to change it by hand.
             int totalEquations;
             var equations = SwOperations.DocumentEquations(model, out totalEquations);
             if (equations != null)
@@ -1456,23 +1456,23 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            // ── LA FORMA IN UNA FRASE (voce V3) ──────────────────────────
+            // ── THE SHAPE IN ONE SENTENCE (entry V3) ─────────────────────
             //
-            // Va per ULTIMA perche' legge `dati`: l'ingombro, il volume, le
-            // lavorazioni e le facce devono esserci gia' tutti. Metterla prima
-            // vorrebbe dire descrivere meta' pezzo senza che nessuno se ne
-            // accorga — la frase uscirebbe lo stesso, solo piu' corta.
+            // It goes LAST because it reads `dati`: the bounding box, the volume, the
+            // features and the faces must all be there already. Putting it first
+            // would mean describing half a part without anybody
+            // noticing — the sentence would come out all the same, only shorter.
             //
-            // Costa **meno di trecento caratteri** su un tetto di 16.000, e
-            // dice cose che oggi ognuno si ricava per conto suo: quanto e'
-            // pieno l'ingombro, lo spessore di parete, i centri dei fori e il
-            // diametro della corona su cui stanno. Quest'ultimo e' il conto che
-            // due modelli hanno sbagliato con confidenza piena (voce E16).
+            // It costs **less than three hundred characters** on a ceiling of 16,000, and
+            // says things that today everybody derives on their own: how
+            // full the bounding box is, the wall thickness, the centres of the holes and the
+            // diameter of the circle on which they stand. The latter is the calculation that
+            // two models got wrong with full confidence (entry E16).
             //
-            // Null quando non c'e' abbastanza per dirne una: la chiave non
-            // compare, invece di comparire vuota. Una descrizione vuota si
-            // legge come «non c'e' niente da dire su questo pezzo», che e' una
-            // cosa diversa da «non l'ho saputo dire».
+            // Null when there is not enough to say one: the key does not
+            // appear, instead of appearing empty. An empty description reads
+            // as «there is nothing to say about this part», which is a
+            // different thing from «I could not say it».
             try
             {
                 string shape = ShapeToWords.Describe(data);
@@ -1480,12 +1480,12 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // ── LA SCATOLA DEL PEZZO IN OGNI FIRMA ───────────────────────
+            // ── THE BOX OF THE PART IN EVERY SIGNATURE ───────────────────
             //
-            // Un giro solo, alla fine, perche' la scatola si conosce dopo aver
-            // letto i corpi mentre le firme delle facce si riempiono dopo. E'
-            // lo STESSO oggetto in tutte: e' una proprieta' del pezzo, non
-            // dell'entita', e copiarla non servirebbe a niente.
+            // A single pass, at the end, because the box is known after having
+            // read the bodies while the signatures of the faces are filled in afterwards. It is
+            // the SAME object in all of them: it is a property of the part, not
+            // of the entity, and copying it would serve no purpose.
             docState.BoxPartMm = partBox;
             if (partBox != null)
                 foreach (var signed in docState.Signatures.Values)
@@ -1496,13 +1496,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le proprieta' personalizzate di un cassetto: `""` per il documento,
-        /// il nome di una configurazione per quella configurazione.
+        /// The custom properties of a drawer: `""` for the document,
+        /// the name of a configuration for that configuration.
         ///
-        /// SI LEGGONO RISOLTE. Una proprieta' puo' essere una formula
-        /// («"SW-Mass@pezzo.SLDPRT"») e allora ha due valori: quello scritto e
-        /// quello che ne esce. Chi guarda la scheda vede il secondo, e questa
-        /// e' una descrizione di cio' che si vede.
+        /// THEY ARE READ RESOLVED. A property can be a formula
+        /// («"SW-Mass@pezzo.SLDPRT"») and then it has two values: the one written and
+        /// the one that comes out of it. Whoever looks at the card sees the second, and this
+        /// is a description of what is seen.
         /// </summary>
         private static Dictionary<string, object> ReadProperty(
             IModelDoc2 model, string configuration)
@@ -1541,14 +1541,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La scatola di un corpo, in mm: {minX, minY, minZ, maxX, maxY, maxZ}.
+        /// The box of a body, in mm: {minX, minY, minZ, maxX, maxY, maxZ}.
         ///
-        /// GetExtremePoint sei volte, non GetBodyBox. GetBodyBox e'
-        /// dichiaratamente APPROSSIMATA per le superfici non piane — puo'
-        /// essere piu' grande del pezzo — e uno stato che dichiara un ingombro
-        /// piu' grande del vero fa dimensionare male tutto quello che ci sta
-        /// intorno. GetExtremePoint restituisce il punto vero del corpo piu'
-        /// lontano in una direzione.
+        /// GetExtremePoint six times, not GetBodyBox. GetBodyBox is
+        /// declaredly APPROXIMATE for non-planar surfaces — it can
+        /// be larger than the part — and a state that declares a bounding box
+        /// larger than the real one makes everything around it be
+        /// sized wrong. GetExtremePoint returns the true point of the body
+        /// farthest in a direction.
         /// </summary>
         private static double[] BoundingBox(IBody2 body)
         {
@@ -1578,11 +1578,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Da che parte guarda una faccia piana, nel sistema di SolidWorks:
-        /// +X destra, +Y alto, +Z davanti. null se la faccia non e' piana o e'
-        /// inclinata rispetto agli assi — e in quel caso non si inventa una
-        /// parola: una faccia «quasi in alto» descritta come «in alto» farebbe
-        /// scegliere quella sbagliata.
+        /// Which way a planar face looks, in the SolidWorks system:
+        /// +X right, +Y up, +Z front. null if the face is not planar or is
+        /// tilted with respect to the axes — and in that case a word is not
+        /// invented: a face «almost up» described as «up» would make
+        /// the wrong one be chosen.
         /// </summary>
         private static string Facing(double[] normal)
         {
@@ -1597,34 +1597,34 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        /// <summary>Il nome della feature che ha generato il corpo, o null.</summary>
+        /// <summary>The name of the feature that generated the body, or null.</summary>
         /// <summary>
-        /// I PARAMETRI DI UNA LAVORAZIONE: cio' che la rende «un M8» invece che
-        /// «una lavorazione di nome Foro1».
+        /// THE PARAMETERS OF A FEATURE: what makes it «an M8» instead of
+        /// «a feature named Foro1».
         ///
-        /// PERCHE' ESISTE. Fino al 10 settembre 2026 lo stato mandava di ogni
-        /// feature tre campi: uid, nome, tipo. Un M12 passante e un M6 cieco
-        /// arrivavano al modello come due righe identiche a meno del nome che
-        /// l'utente aveva scritto in albero. Alla richiesta «quel foro portalo
-        /// da M8 a M10» il modello non poteva sapere QUALE foro fosse M8: il
-        /// dato c'era nel pezzo e non glielo dicevamo.
+        /// WHY IT EXISTS. Up to 10 September 2026 the state sent for every
+        /// feature three fields: uid, name, type. A through M12 and a blind M6
+        /// reached the model as two identical rows except for the name that
+        /// the user had written in the tree. At the request «take that hole
+        /// from M8 to M10» the model could not know WHICH hole was M8: the
+        /// datum was in the part and we did not tell it.
         ///
-        /// POCHI CAMPI, NON TUTTI. `IWizardHoleFeatureData2` espone
-        /// cinquantotto proprieta'. Nella riga che una persona legge prima di
-        /// confermare ne entrano quattro. Il costo qui non e' il tempo di
-        /// SolidWorks: e' il posto che ogni campo toglie a un altro campo nel
-        /// messaggio. Percio' si sceglie, e la scelta e' «cosa serve per
-        /// riconoscere questa lavorazione fra le altre».
+        /// FEW FIELDS, NOT ALL. `IWizardHoleFeatureData2` exposes
+        /// fifty-eight properties. In the line that a person reads before
+        /// confirming four fit. The cost here is not SolidWorks time:
+        /// it is the room that each field takes from another field in the
+        /// message. So a choice is made, and the choice is «what is needed to
+        /// recognise this feature among the others».
         ///
-        /// SI SCRIVE SOLO QUELLO CHE C'E'. Un campo a zero non e' un dato: e'
-        /// un buco che occupa posto e che il modello potrebbe leggere come una
-        /// misura vera.
+        /// ONLY WHAT IS THERE IS WRITTEN. A field at zero is not a datum: it is
+        /// a hole that takes up room and that the model might read as a
+        /// true measure.
         ///
-        /// Firme verificate per riflessione sull'interop 29.5.1.1:
+        /// Signatures verified by reflection on the interop 29.5.1.1:
         ///   IFeature.GetDefinition() -> Object
         ///   IWizardHoleFeatureData2: Standard, FastenerType, FastenerSize
         ///       (String); Type, EndCondition (Int32); HoleDepth, Depth,
-        ///       ThreadDiameter, e i quattro diametri della ricetta sotto
+        ///       ThreadDiameter, and the four diameters of the recipe below
         ///   IExtrudeFeatureData2.GetDepth(Boolean), .GetEndCondition(Boolean),
         ///       .BothDirections, .Merge
         ///   ISimpleFilletFeatureData2: DefaultRadius, IsMultipleRadius,
@@ -1647,15 +1647,15 @@ namespace Oce.Solid.Agent.Core
                 {
                     var d = definition as IWizardHoleFeatureData2;
                     if (d == null) return;
-                    // LA NORMA E LA TAGLIA SONO STRINGHE, e sono quelle che un
-                    // progettista dice a voce: «un M8 ISO passante».
+                    // THE STANDARD AND THE SIZE ARE STRINGS, and they are what a
+                    // designer says out loud: «a through M8 ISO».
                     Put(entry, "norma", Text(() => d.Standard));
                     Put(entry, "tipo_foro", Text(() => d.FastenerType));
                     Put(entry, "size", Text(() => d.FastenerSize));
-                    // IL DIAMETRO LAVORATO, con la ricetta a quattro famiglie
-                    // gia' in produzione in `OperazioniFori`: quale dei quattro
-                    // campi sia valorizzato dipende dal tipo di foro, e
-                    // leggerne uno solo darebbe zero senza dirlo.
+                    // THE WORKED DIAMETER, with the four-family recipe
+                    // already in production in `OperazioniFori`: which of the four
+                    // fields is filled depends on the type of hole, and
+                    // reading only one would give zero without saying so.
                     double diam = Math.Max(
                         Math.Max(d.ThruTapDrillDiameter, d.TapDrillDiameter),
                         Math.Max(d.ThruHoleDiameter, d.HoleDiameter)) * 1000.0;
@@ -1677,9 +1677,9 @@ namespace Oce.Solid.Agent.Core
                         double prof2 = d.GetDepth(false) * 1000.0;
                         if (prof2 > 0) entry["depth2_mm"] = Math.Round(prof2, 2);
                     }
-                    // «Fino in fondo» e «profondo 12» sono due pezzi diversi, e
-                    // la profondita' da sola non li distingue: su un passante
-                    // resta scritto un numero che non comanda niente.
+                    // «Through all» and «12 deep» are two different parts, and
+                    // the depth alone does not tell them apart: on a through hole
+                    // a number stays written that commands nothing.
                     entry["end_condition"] = EndCondition(d.GetEndCondition(true));
                 }
                 else if (typ == "Fillet")
@@ -1836,9 +1836,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La condizione di fine, in italiano. I numeri di `swEndConditions_e`
-        /// non vogliono dire niente per chi legge il piano, e sono proprio la
-        /// cosa che distingue «fino in fondo» da «profondo 12».
+        /// The end condition, in words. The numbers of `swEndConditions_e`
+        /// mean nothing to whoever reads the plan, and they are exactly the
+        /// thing that tells «through all» from «12 deep».
         /// </summary>
         private static string EndCondition(int code)
         {
@@ -1858,53 +1858,53 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Se la faccia e' cilindrica: il raggio in mm e la direzione dell'asse.
+        /// Whether the face is cylindrical: the radius in mm and the direction of the axis.
         ///
-        /// `CylinderParams` torna sette numeri — punto (0-2), asse (3-5),
-        /// raggio in METRI (6). La ricetta e' copiata da `OperazioniFori`, che
-        /// la usa gia' in produzione per riconoscere i fori: si riusa invece di
-        /// riscriverla, perche' due copie divergono alla prima modifica.
+        /// `CylinderParams` returns seven numbers — point (0-2), axis (3-5),
+        /// radius in METRES (6). The recipe is copied from `OperazioniFori`, which
+        /// already uses it in production to recognise the holes: it is reused instead of
+        /// rewritten, because two copies diverge at the first edit.
         /// </summary>
         /// <summary>
-        /// Un cilindro: raggio, direzione dell'asse, e UN PUNTO SULL'ASSE.
+        /// A cylinder: radius, direction of the axis, and A POINT ON THE AXIS.
         ///
-        /// ── IL PUNTO SULL'ASSE E' ARRIVATO TARDI, E COSTAVA CARO ──────────
+        /// ── THE POINT ON THE AXIS ARRIVED LATE, AND COST DEAR ─────────────
         ///
-        /// `CylinderParams` torna sette numeri: **punto (0-2)**, asse (3-5),
-        /// raggio in metri (6). Fino alla 0.66.0 questo metodo leggeva
-        /// `par[3..6]` e buttava via `par[0..2]` — cioe' l'unica cosa che dice
-        /// DOVE sta il foro.
+        /// `CylinderParams` returns seven numbers: **point (0-2)**, axis (3-5),
+        /// radius in metres (6). Up to 0.66.0 this method read
+        /// `par[3..6]` and threw away `par[0..2]` — that is, the only thing that says
+        /// WHERE the hole is.
         ///
-        /// **Cosa restava a chi legge.** Di una faccia cilindrica lo stato
-        /// diceva `point_mm`, `radius_mm`, `diameter_mm` e `axis`. Ma
-        /// `point_mm` viene da `PointOnFace`, ed e' un punto **sulla
-        /// superficie**, garantito a un raggio dall'asse in una direzione
-        /// qualunque: serve a SELEZIONARE, non a dire dove sia il foro. E
-        /// `axis` e' una direzione, non una posizione. Il centro non era
-        /// ricavabile: per una faccia cilindrica `normal` e' null, quindi non
-        /// c'e' nemmeno la direzione in cui correggere.
+        /// **What was left to whoever reads.** Of a cylindrical face the state
+        /// said `point_mm`, `radius_mm`, `diameter_mm` and `axis`. But
+        /// `point_mm` comes from `PointOnFace`, and it is a point **on the
+        /// surface**, guaranteed one radius from the axis in any
+        /// direction: it serves to SELECT, not to say where the hole is. And
+        /// `axis` is a direction, not a position. The centre could not be
+        /// derived: for a cylindrical face `normal` is null, so there is not even
+        /// the direction in which to correct.
         ///
-        /// **La misura, del 15/9/2026 (voce V2).** Due modelli, ognuno per
-        /// conto suo e senza vedere le risposte dell'altro, hanno letto lo
-        /// stato di una flangia con sei fori su una circonferenza Ø90 e hanno
-        /// risposto **Ø79**, tutti e due con confidenza 5 su 5. Ø79 e' Ø90
-        /// meno il diametro di un foro: avevano misurato fra i BORDI vicini
-        /// invece che fra gli assi, perche' e' l'unica cosa che lo stato dava.
-        /// Sulla stessa piastra l'interasse 160 usciva 149,5.
+        /// **The measurement, of 15/9/2026 (entry V2).** Two models, each on its
+        /// own and without seeing the answers of the other, read the state
+        /// of a flange with six holes on a circle Ø90 and
+        /// answered **Ø79**, both with confidence 5 out of 5. Ø79 is Ø90
+        /// minus the diameter of one hole: they had measured between the near EDGES
+        /// instead of between the axes, because it is the only thing the state gave.
+        /// On the same plate the centre distance 160 came out 149.5.
         ///
-        /// Nessuno dei due ha sbagliato a ragionare. Hanno usato un numero
-        /// corretto per la cosa per cui non era: **il difetto che non da'
-        /// errore**, prodotto dallo stato invece che dalla geometria. Una
-        /// flangia con la corona sbagliata di 11 mm non si imbullona.
+        /// Neither of the two reasoned wrongly. They used a number
+        /// correct for the thing it was not for: **the defect that gives no
+        /// error**, produced by the state instead of by the geometry. A
+        /// flange with the circle wrong by 11 mm cannot be bolted.
         ///
-        /// ── IL PARAMETRO IN PIU' QUI SI PUO' FARE ────────────────────────
+        /// ── THE EXTRA PARAMETER CAN BE ADDED HERE ────────────────────────
         ///
-        /// La regola del progetto e' che cambiare l'insieme delle firme di un
-        /// metodo rompe chi lo chiama per riflessione anche quando il
-        /// compilatore tace. Vale per cio' che il banco invoca per nome —
-        /// `Read`, `ReadWithAnchor`, `SwOperations.Run`. Questo e'
-        /// `private static` dentro il file che lo usa, con un solo punto di
-        /// chiamata: fuori di qui non lo puo' invocare nessuno.
+        /// The rule of the project is that changing the set of signatures of a
+        /// method breaks whoever calls it by reflection even when the
+        /// compiler is silent. It holds for what the bench invokes by name —
+        /// `Read`, `ReadWithAnchor`, `SwOperations.Run`. This one is
+        /// `private static` inside the file that uses it, with a single call
+        /// site: outside of here nobody can invoke it.
         /// </summary>
         private static bool CylinderOf(
             IFace2 face, out double radiusMm, out double[] axis, out double[] center)
@@ -1937,17 +1937,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Uno spigolo e' dritto? E se si', lungo quale asse del modello?
+        /// Is an edge straight? And if so, along which axis of the model?
         ///
-        /// Firme verificate per riflessione sull'interop 29.5.1.1:
+        /// Signatures verified by reflection on the interop 29.5.1.1:
         ///   IEdge.IGetCurve() -> Curve
         ///   IEdge.GetTwoAdjacentFaces2() -> Object
         ///   ICurve.IsLine() / IsCircle() -> Boolean
-        ///   ICurve.LineParams -> Object    (punto 0-2, direzione 3-5)
-        ///   ICurve.CircleParams -> Object  (centro 0-2, asse 3-5, raggio 6)
+        ///   ICurve.LineParams -> Object    (point 0-2, direction 3-5)
+        ///   ICurve.CircleParams -> Object  (centre 0-2, axis 3-5, radius 6)
         ///
-        /// Torna false se lo spigolo NON e' dritto; in quel caso `raggio` e'
-        /// il raggio del cerchio, quando e' un cerchio.
+        /// Returns false if the edge is NOT straight; in that case `raggio` is
+        /// the radius of the circle, when it is a circle.
         /// </summary>
         private static bool EdgeDirection(IEdge edge, out string along, out double radius)
         {
@@ -1968,9 +1968,9 @@ namespace Oce.Solid.Agent.Core
                 }
                 var par = curva.LineParams as double[];
                 if (par == null || par.Length < 6) return true;
-                // Si dice «lungo un asse» solo se ci sta davvero: una
-                // diagonale non ha un asse, e chiamarla «lungo X» sarebbe
-                // una bugia comoda — di quelle che non danno errore.
+                // «along an axis» is said only if it really fits: a
+                // diagonal has no axis, and calling it «along X» would be
+                // a convenient lie — of the kind that gives no error.
                 double[] d = { Math.Abs(par[3]), Math.Abs(par[4]), Math.Abs(par[5]) };
                 const double almostOne = 0.99;
                 if (d[0] > almostOne) along = "X";
@@ -1981,7 +1981,7 @@ namespace Oce.Solid.Agent.Core
             catch { return true; }
         }
 
-        /// <summary>Le due facce che si toccano su questo spigolo, per uid.</summary>
+        /// <summary>The two faces that meet on this edge, by uid.</summary>
         private static string[] EdgeFaces(
             IEdge edge, Dictionary<IFace2, string> faceUid)
         {
@@ -1996,32 +1996,32 @@ namespace Oce.Solid.Agent.Core
                     string u;
                     if (f != null && faceUid.TryGetValue(f, out u)) names.Add(u);
                 }
-                // Se una delle due e' fuori dal tetto delle facce, meglio
-                // niente che una coppia monca che sembra completa.
+                // If one of the two is outside the ceiling on faces, better
+                // nothing than a maimed pair that looks complete.
                 return names.Count == 2 ? names.ToArray() : null;
             }
             catch { return null; }
         }
 
         /// <summary>
-        /// Le quote di una lavorazione: nome e valore in mm.
+        /// The dimensions of a feature: name and value in mm.
         ///
-        /// Firme verificate per riflessione sull'interop 29.5.1.1:
+        /// Signatures verified by reflection on the interop 29.5.1.1:
         ///   IFeature.GetFirstDisplayDimension() -> Object
         ///   IFeature.GetNextDisplayDimension(Object DispIn) -> Object
         ///   IDisplayDimension.GetDimension2(Int32 Index) -> Dimension
         ///   IDimension.Name / .FullName -> String
-        ///   IDimension.SystemValue -> Double   (in METRI)
+        ///   IDimension.SystemValue -> Double   (in METRES)
         ///
-        /// QUATTRO AL MASSIMO. Una feature complicata ne ha molte, e
-        /// elencarle tutte riempirebbe il messaggio di numeri fra cui il
-        /// modello dovrebbe pescare. Le prime quattro sono quelle che
-        /// contano — profondita', diametro, raggio — e se ce ne sono altre
-        /// si dice quante, cosi' il buco non e' invisibile.
+        /// FOUR AT MOST. A complicated feature has many, and
+        /// listing them all would fill the message with numbers among which the
+        /// model would have to fish. The first four are the ones that
+        /// count — depth, diameter, radius — and if there are more
+        /// it is said how many, so the gap is not invisible.
         ///
-        /// IL NOME E' QUELLO CHE SERVE, NON L'INDICE. Un indice cambia se
-        /// qualcuno tocca l'albero; «D1@Schizzo1» no, ed e' quello che si
-        /// scrive per cambiarla.
+        /// THE NAME IS WHAT IS NEEDED, NOT THE INDEX. An index changes if
+        /// somebody touches the tree; «D1@Schizzo1» does not, and it is what
+        /// is written to change it.
         /// </summary>
         private static void FeatureDimensions(IFeature f, Dictionary<string, object> entry)
         {
@@ -2059,63 +2059,63 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Una quota, nell'unita' che le appartiene.
+        /// A dimension, in the unit that belongs to it.
         ///
-        /// ── UN ANGOLO NON SI MISURA IN MILLIMETRI ─────────────────────────
+        /// ── AN ANGLE IS NOT MEASURED IN MILLIMETRES ───────────────────────
         ///
-        /// `SystemValue` torna tutto nelle unita' di sistema, e per un angolo
-        /// quelle sono i **radianti**. Fino alla 0.69.0 questo metodo
-        /// moltiplicava per mille qualunque cosa — la conversione metri→mm — e
-        /// la usciva come `mm`. Su una rivoluzione a 360 gradi:
+        /// `SystemValue` returns everything in system units, and for an angle
+        /// those are **radians**. Up to 0.69.0 this method
+        /// multiplied by a thousand anything — the metres→mm conversion — and
+        /// it came out as `mm`. On a revolution of 360 degrees:
         ///
         ///     "name": "D1@Rivoluzione1", "mm": 6283.185
         ///
-        /// che e' **2π × 1000**. Lo stato dichiarava una quota di sei metri e
-        /// ventotto su un pezzo lungo novanta millimetri, e nessuno se ne
-        /// accorgeva perche' il campo si chiama `mm` e il numero e' un numero.
+        /// which is **2π × 1000**. The state declared a dimension of six metres and
+        /// twenty-eight on a part ninety millimetres long, and nobody
+        /// noticed because the field is called `mm` and the number is a number.
         ///
-        /// **Trovato per strada, misurando un'altra cosa** (voce V3): un
-        /// modello a cui era stata data la sola descrizione dell'albero a
-        /// gradini non e' riuscito a ridisegnarlo, ed era l'unico dei cinque.
-        /// Guardando perche', l'unica quota che quel pezzo offriva era questa.
+        /// **Found on the way, measuring something else** (entry V3): a
+        /// model that had been given only the description of the stepped shaft
+        /// tree did not manage to redraw it, and it was the only one of the five.
+        /// Looking at why, the only dimension that part offered was this one.
         ///
-        /// ── IL NOME DEL CAMPO CAMBIA CON L'UNITA' ────────────────────────
+        /// ── THE NAME OF THE FIELD CHANGES WITH THE UNIT ──────────────────
         ///
-        /// Un angolo esce come `"deg": 360`, non come `"mm": 360`. Tenere il
-        /// nome `mm` e cambiare solo il numero sarebbe stato peggio di prima:
-        /// un valore giusto sotto un'etichetta falsa non si puo' nemmeno
-        /// sospettare, mentre 6283 almeno saltava all'occhio.
+        /// An angle comes out as `"deg": 360`, not as `"mm": 360`. Keeping the
+        /// name `mm` and changing only the number would have been worse than before:
+        /// a right value under a false label cannot even be
+        /// suspected, while 6283 at least jumped to the eye.
         ///
-        /// Le altre — lineari, raggi, diametri, smussi — restano in `mm`, che
-        /// e' l'unita' vera. Quando il tipo non si lascia leggere si tiene
-        /// `mm`: e' il comportamento di prima, ed e' giusto per la
-        /// stragrande maggioranza delle quote.
+        /// The others — linear, radii, diameters, chamfers — stay in `mm`, which
+        /// is the true unit. When the type cannot be read `mm` is kept:
+        /// it is the behaviour of before, and it is right for the
+        /// vast majority of the dimensions.
         /// </summary>
         private static Dictionary<string, object> Dimension(IDimension d, string itemName)
         {
-            // ── E L'ENUM GIUSTO NON E' QUELLO CHE SEMBRA ─────────────────
+            // ── AND THE RIGHT ENUM IS NOT THE ONE THAT IT SEEMS ──────────
             //
-            // `IDimension.GetType()` e' un metodo COM che torna un `int`, e non
-            // ha niente a che vedere con `Object.GetType()` (verificato per
-            // riflessione sull'interop 29.5.1: torna `System.Int32` ed e'
-            // dichiarato su `IDimension`).
+            // `IDimension.GetType()` is a COM method that returns an `int`, and has
+            // nothing to do with `Object.GetType()` (verified by
+            // reflection on the interop 29.5.1: it returns `System.Int32` and is
+            // declared on `IDimension`).
             //
-            // Ma **non torna `swDimensionType_e`**, che e' l'enum col nome piu'
-            // somigliante e dove «angolare» vale 3. La prima scrittura usava
-            // quello, e la riparazione non e' scattata: la quota continuava a
-            // uscire 6283,185 mm.
+            // But it **does not return `swDimensionType_e`**, which is the enum with the more
+            // similar name and where «angular» is 3. The first write used
+            // that one, and the repair did not fire: the dimension kept
+            // coming out 6283.185 mm.
             //
-            // Misurato mettendo il numero nello stato e guardandolo:
+            // Measured by putting the number in the state and looking at it:
             //
-            //     rivoluzione a 360 gradi  ->  1
-            //     spessore, lunghezza, Ø   ->  0
+            //     revolution at 360 degrees  ->  1
+            //     thickness, length, Ø       ->  0
             //
-            // che e' `swDimensionParamType_e`: `DoubleLinear = 0`,
+            // which is `swDimensionParamType_e`: `DoubleLinear = 0`,
             // `DoubleAngular = 1`, `Integer = 2`, `Unknown = -1`.
             //
-            // Due enum quasi omonimi per due cose diverse, e il compilatore non
-            // puo' dire niente perche' tutti e due sono `int`. L'unico modo di
-            // saperlo era chiederlo al pezzo.
+            // Two almost homonymous enums for two different things, and the compiler cannot
+            // say anything because both are `int`. The only way of
+            // knowing was to ask the part.
             const int Angular = 1;   // swDimensionParamType_e.swDimensionParamTypeDoubleAngular
             int typ = 0;
             try { typ = d.GetType(); } catch { }
@@ -2148,7 +2148,7 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
-        /// <summary>Il nome della lavorazione che ha generato questa faccia.</summary>
+        /// <summary>The name of the feature that generated this face.</summary>
         private static string FaceFeature(IFace2 face)
         {
             try { return (face.GetFeature() as IFeature)?.Name; }
@@ -2167,7 +2167,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La massa del pezzo in kg, o null se non si puo' dire.
+        /// The mass of the part in kg, or null if it cannot be said.
         ///
         /// UseSystemUnits is written EXPLICITLY (ApiHelpers.NewMassProperty) as
         /// a statement of the units, not as a fix: IMassProperty~UseSystemUnits.html,
@@ -2190,13 +2190,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Estremi dello spigolo, in metri. Null se non si riescono a leggere.
+        /// Ends of the edge, in metres. Null if they cannot be read.
         ///
-        /// GetCurveParams3 NON restituisce un double[]: restituisce
-        /// ICurveParamData, con StartPoint e EndPoint che sono object da
-        /// convertire in double[3]. Verificato per riflessione sull'interop
-        /// 29.5.1.1 (SOLIDWORKS 2021), non ricordato: la firma sbagliata qui
-        /// avrebbe dato una InvalidCastException al primo spigolo letto.
+        /// GetCurveParams3 does NOT return a double[]: it returns
+        /// ICurveParamData, with StartPoint and EndPoint that are objects to
+        /// convert to double[3]. Verified by reflection on the interop
+        /// 29.5.1.1 (SOLIDWORKS 2021), not remembered: the wrong signature here
+        /// would have given an InvalidCastException at the first edge read.
         /// </summary>
         private static bool Ends(IEdge edge, out double[] start, out double[] fine)
         {
@@ -2214,36 +2214,36 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Lunghezza approssimata di uno spigolo, in mm. Zero se non si legge.
+        /// Approximate length of an edge, in mm. Zero if it cannot be read.
         ///
-        /// `internal` e non `private` perche' la usa anche `SelectEdges`
-        /// quando gli spigoli arrivano per riferimento a un passo e non per
-        /// uid: li' non c'e' una firma da cui leggere la misura, e senza questa
-        /// il controllo «il raggio ci sta sullo spigolo» veniva saltato.
-        /// Copiarla sarebbe stato il modo di farle divergere.
+        /// `internal` and not `private` because `SelectEdges` uses it too
+        /// when the edges arrive by reference to a step and not by
+        /// uid: there is no signature there to read the measurement from, and without this
+        /// the check «the radius fits on the edge» was skipped.
+        /// Copying it would have been the way to make them diverge.
         /// </summary>
         internal static double LengthMm(IEdge edge)
         {
             if (edge == null) return -1;
-            // LA LUNGHEZZA VERA, NON LA CORDA (voce E19, 25/9/2026).
+            // THE TRUE LENGTH, NOT THE CHORD (entry E19, 25/9/2026).
             //
-            // Fino alla libreria 0.119.0 qui c'era la distanza fra gli estremi,
-            // «approssimata ma stabile, mai mostrata come quota». Era mostrata
-            // eccome: finisce in `length_mm` nello stato, e per uno spigolo
-            // CHIUSO — il bordo di un foro — gli estremi coincidono e la corda
-            // vale ZERO. Misurato col banchetto: una piastra con due fori O12
-            // pubblicava quattro spigoli «lunghi 0», e chi legge lo stato vedeva
-            // una circonferenza da 37,7 descritta come uno spigolo che non c'e'.
-            // Per un arco la corda e' meno dell'arco. E la classifica degli uid,
-            // che e' per lunghezza, metteva i fori sempre in fondo: un foro non
-            // rinumerava mai niente, e il ritrovamento per firma degli spigoli
-            // non si poteva nemmeno provare.
+            // Up to library 0.119.0 here there was the distance between the ends,
+            // «approximate but stable, never shown as a dimension». It was shown
+            // indeed: it ends up in `length_mm` in the state, and for a
+            // CLOSED edge — the border of a hole — the ends coincide and the chord
+            // is ZERO. Measured with the little bench: a plate with two O12 holes
+            // published four edges «0 long», and whoever reads the state saw
+            // a circumference of 37.7 described as an edge that is not there.
+            // For an arc the chord is less than the arc. And the ranking of the uids,
+            // which is by length, always put the holes at the bottom: a hole never
+            // renumbered anything, and the finding of the edges by signature
+            // could not even be tested.
             //
-            // `ICurve.GetLength3` fra i due parametri dello spigolo: e' gia'
-            // usata e misurata in `OperazioniSaldatura` per il perimetro. Se non
-            // risponde si torna alla corda, che per un segmento e' la stessa
-            // cosa; se non si leggono nemmeno gli estremi, -1: «non lo so», non
-            // «lungo zero» (voce Z-C8).
+            // `ICurve.GetLength3` between the two parameters of the edge: it is already
+            // used and measured in `OperazioniSaldatura` for the perimeter. If it does not
+            // answer we go back to the chord, which for a segment is the same
+            // thing; if not even the ends can be read, -1: «I do not know», not
+            // «zero long» (entry Z-C8).
             try
             {
                 var parameters = ApiHelpers.EdgeParameters(edge, out ICurve curva);
@@ -2273,24 +2273,24 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La firma di una faccia MISURATA ADESSO, senza rileggere tutto il
-        /// documento.
+        /// The signature of a face MEASURED NOW, without reading the whole
+        /// document again.
         ///
-        /// Serve al ritrovamento per persist ID (voce E6): quando SOLIDWORKS
-        /// propone una faccia, il giudice ha bisogno della firma di QUELLA
-        /// faccia com'e' in questo momento — non di quella che il piano porta
-        /// con se', che e' proprio cio' che si sta verificando.
+        /// It serves for the finding by persist ID (entry E6): when SOLIDWORKS
+        /// proposes a face, the judge needs the signature of THAT
+        /// face as it is at this moment — not the one that the plan carries
+        /// with it, which is precisely what is being verified.
         ///
-        /// Niente uid: un uid e' una posizione in una classifica, e qui non
-        /// c'e' nessuna classifica. Chi la usa ha gia' l'uid che cercava.
+        /// No uid: a uid is a position in a ranking, and here there is
+        /// no ranking. Whoever uses it already has the uid it was looking for.
         /// </summary>
         internal static EntitySignature FaceSignature(IFace2 face)
         {
             if (face == null) return null;
             try
             {
-                // ZERO-E-ZERO: 0 in `Measure` vuol dire «non misurata» per tutti
-                // quelli che la leggono (guardano `> 0`).
+                // ZERO-E-ZERO: 0 in `Measure` means «not measured» for all
+                // those who read it (they look at `> 0`).
                 double areaMm2 = 0;
                 try { areaMm2 = Units.Mm2(face.GetArea()); } catch { }
 
@@ -2314,19 +2314,19 @@ namespace Oce.Solid.Agent.Core
 
 
         /// <summary>
-        /// Il DETTAGLIO di una lavorazione: tutto cio' che costa chiamate COM.
+        /// The DETAIL of a feature: everything that costs COM calls.
         ///
-        /// Sta in un metodo suo perche' si chiama DOPO aver deciso quali
-        /// lavorazioni sopravvivono al tetto, e non mentre si scorre l'albero
-        /// (voce E12). Il giro sull'albero legge solo tipo e nome — che erano
-        /// gia' letti comunque — e mette da parte un riferimento; il dettaglio
-        /// si paga solo sulle ottanta che restano.
+        /// It is in a method of its own because it is called AFTER deciding which
+        /// features survive the ceiling, and not while scanning the tree
+        /// (entry E12). The pass over the tree reads only type and name — which were
+        /// already read anyway — and sets a reference aside; the detail
+        /// is paid for only on the eighty that remain.
         /// </summary>
         /// <param name="inError">
-        /// Si incrementa per ogni lavorazione che porta un errore. E' un
-        /// contatore di chi chiama, e passa per riferimento perche' il
-        /// conteggio finisce in `features_in_error` sullo stato intero:
-        /// tenerlo qui dentro vorrebbe dire perderlo.
+        /// It is incremented for every feature that carries an error. It is a
+        /// counter of the caller, and is passed by reference because the
+        /// count ends up in `features_in_error` on the whole state:
+        /// keeping it in here would mean losing it.
         /// </param>
         private static Dictionary<string, object> FeatureDetail(
             IFeature f, string typ, string itemName, ref int inError)
@@ -2334,42 +2334,42 @@ namespace Oce.Solid.Agent.Core
             var entryF = new Dictionary<string, object>
             { ["uid"] = itemName, ["kind"] = typ };
 
-            // L'UID DI UNA LAVORAZIONE E' IL SUO NOME, e un nome
-            // si rinomina. Chi rinomina «Taglio1» in «Foro cavo» e
-            // poi chiama «Taglio1» un'altra lavorazione ha appena
-            // trasferito l'identificativo da una cosa a un'altra,
-            // e nessuno se ne accorge.
+            // THE UID OF A FEATURE IS ITS NAME, and a name
+            // can be renamed. Whoever renames «Taglio1» to «Foro cavo» and
+            // then calls another feature «Taglio1» has just
+            // transferred the identifier from one thing to another,
+            // and nobody notices.
             //
-            // `GetID()` non si rinomina. Non sostituisce l'uid —
-            // il nome serve a chi legge — ma permette di
-            // controllare che il nome indichi ancora quella.
+            // `GetID()` cannot be renamed. It does not replace the uid —
+            // the name serves whoever reads — but it allows
+            // checking that the name still points to that one.
             try { entryF["feature_id"] = f.GetID(); } catch { }
 
-            // UNA LAVORAZIONE SOPPRESSA E UNA VIVA ERANO
-            // INDISTINGUIBILI. Il modello proponeva di raccordare
-            // gli spigoli di un foro che nel pezzo non c'e'.
-            // Si scrive solo quando e' vera: e' il caso raro, e
-            // scriverla sempre costerebbe posto per dire «tutto
-            // normale» ottanta volte.
+            // A SUPPRESSED FEATURE AND A LIVE ONE WERE
+            // INDISTINGUISHABLE. The model proposed to fillet
+            // the edges of a hole that is not in the part.
+            // It is written only when true: it is the rare case, and
+            // writing it always would cost room to say «all
+            // normal» eighty times.
             // Read in the active configuration with IsSuppressed2 since Z-C21.7
             // (S3, M44; ApiHelpers.IsSuppressedHere has the probe numbers).
             try { if (ApiHelpers.IsSuppressedHere(f)) entryF["suppressed"] = true; } catch { }
 
-            // UNA LAVORAZIONE IN ERRORE E UNA SANA ERANO
-            // INDISTINGUIBILI, ed e' peggio della soppressa.
+            // A FEATURE IN ERROR AND A SOUND ONE WERE
+            // INDISTINGUISHABLE, and it is worse than the suppressed one.
             //
-            // Misurato il 14/9/2026: piastra 100x60x20 con un
-            // raccordo da 8 sugli spigoli in cima, poi la larghezza
-            // portata a 10. Due raccordi da 8 su 10 mm non ci
-            // stanno, e SOLIDWORKS lo dice —
-            // `GetErrorCode2` = 12, `GetWhatsWrongCount` = 1 — ma
-            // lo stato descriveva «Raccordo1, raggio 8» come una
-            // lavorazione qualunque. Il volume era 3.000, cioe'
-            // **esattamente** 100x10x3: il raccordo non aveva
-            // fatto niente, e chi leggeva vedeva un pezzo sano.
+            // Measured on 14/9/2026: a 100x60x20 plate with an 8
+            // fillet on the edges at the top, then the width
+            // brought to 10. Two fillets of 8 on 10 mm do not
+            // fit, and SOLIDWORKS says so —
+            // `GetErrorCode2` = 12, `GetWhatsWrongCount` = 1 — but
+            // the state described «Raccordo1, radius 8» as any
+            // feature. The volume was 3,000, that is
+            // **exactly** 100x10x3: the fillet had
+            // done nothing, and whoever read saw a sound part.
             //
-            // Si scrive solo quando c'e', come per `suppressed`:
-            // e' il caso raro.
+            // It is written only when there is one, as for `suppressed`:
+            // it is the rare case.
             try
             {
                 bool warningOnly;
@@ -2384,22 +2384,22 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // I PARAMETRI: quello che rende un foro «un M8» invece
-            // che «una lavorazione di nome Foro1».
+            // THE PARAMETERS: what makes a hole «an M8» instead
+            // of «a feature named Foro1».
             FeatureParameters(f, typ, entryF);
 
-            // LE QUOTE: senza queste non si modifica niente.
+            // THE DIMENSIONS: without these nothing is modified.
             //
-            // «quel foro portalo da M8 a M10» e «lo spessore
-            // portalo a 3» sono la richiesta piu' frequente in
-            // officina, e finora erano impossibili per una
-            // ragione semplice: il modello non sapeva che le
-            // quote esistessero. Vedeva un nome e dei parametri
-            // in sola lettura.
+            // «take that hole from M8 to M10» and «take the
+            // thickness to 3» are the most frequent request in the
+            // workshop, and until now they were impossible for a
+            // simple reason: the model did not know that the
+            // dimensions existed. It saw a name and some read-only
+            // parameters.
             //
-            // Una quota ha un NOME che si puo' citare
-            // («D1@Schizzo1») e un valore. Metterli qui e' cio'
-            // che rende possibile `set_dimension`.
+            // A dimension has a NAME that can be cited
+            // («D1@Schizzo1») and a value. Putting them here is what
+            // makes `set_dimension` possible.
             FeatureDimensions(f, entryF);
             return entryF;
         }
@@ -2408,10 +2408,10 @@ namespace Oce.Solid.Agent.Core
         {
             try
             {
-                // Un punto GARANTITO sulla faccia, non il centro del riquadro:
-                // il centro di una faccia con un foro in mezzo puo' cadere nel
-                // vuoto, e SelectByID2 su un punto che non sta sulla faccia
-                // risponde False in silenzio.
+                // A GUARANTEED point on the face, not the centre of the box:
+                // the centre of a face with a hole in the middle can fall into the
+                // void, and SelectByID2 on a point that is not on the face
+                // answers False silently.
                 var p = face.GetClosestPointOn(0, 0, 0) as double[];
                 if (p == null) return null;
                 return new[]
@@ -2425,29 +2425,29 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La normale di una faccia piana — quella VERA, non quella della
-        /// superficie sotto.
+        /// The normal of a planar face — the TRUE one, not that of the
+        /// surface below.
         ///
-        /// LA DIFFERENZA NON E' UN DETTAGLIO, ED E' COSTATA UN GIORNO.
-        /// `PlaneParams` descrive il PIANO INFINITO su cui la faccia sta, e le
-        /// due facce opposte di una piastra stanno su piani paralleli con la
-        /// stessa giacitura: la superficie non sa da che parte guarda la
-        /// faccia. Il 10 settembre 2026, al primo giro dentro SolidWorks, la
-        /// piastra di prova 200x120x20 usciva cosi':
+        /// THE DIFFERENCE IS NOT A DETAIL, AND IT COST A DAY.
+        /// `PlaneParams` describes the INFINITE PLANE on which the face lies, and the
+        /// two opposite faces of a plate lie on parallel planes with the
+        /// same orientation: the surface does not know which way the
+        /// face looks. On 10 September 2026, at the first run inside SolidWorks, the
+        /// 200x120x20 test plate came out like this:
         ///
         ///     F1  verso=dietro  area=24000  normale=[0,0,-1]
         ///     F2  verso=dietro  area=24000  normale=[0,0,-1]
         ///
-        /// Due facce opposte, la stessa normale, e nessuna faccia «front» in
-        /// tutto il documento. Quindici prove sono morte li'. E non era un
-        /// difetto del banco: e' cio' che il MODELLO leggeva. A chi chiede «un
-        /// foro sulla faccia davanti» lo stato rispondeva che una faccia
-        /// davanti non c'e', e le due facce grandi erano indistinguibili fra
-        /// loro — stessa area, stesso verso, stessa firma.
+        /// Two opposite faces, the same normal, and no «front» face in the
+        /// whole document. Fifteen checks died there. And it was not a defect of
+        /// the bench: it is what the MODEL read. To whoever asks «a hole on the
+        /// front face» the state answered that a front face is not there, and the
+        /// two large faces were indistinguishable from each
+        /// other — same area, same direction, same signature.
         ///
-        /// `IFace2.FaceInSurfaceSense()` e' il pezzo che mancava: dice se la
-        /// faccia e' orientata al contrario della sua superficie. Verificata
-        /// per riflessione sull'interop 29.5.1.1.
+        /// `IFace2.FaceInSurfaceSense()` is the missing piece: it says whether the
+        /// face is oriented against its surface. Verified
+        /// by reflection on the interop 29.5.1.1.
         /// </summary>
         private static double[] FaceNormalVector(IFace2 face)
         {

@@ -5,59 +5,59 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// UNA NOTA DI TESTO SU UNA TAVOLA (voce E2-bis).
+    /// A TEXT NOTE ON A DRAWING (entry E2-bis).
     ///
-    /// ── PERCHE' ESISTE ──────────────────────────────────────────────────
+    /// ── WHY IT EXISTS ───────────────────────────────────────────────────
     ///
-    /// Una tavola d'officina non e' fatta solo di geometria e quote: porta le
-    /// note generali — «smussare tutti gli spigoli vivi», «zincare dopo
-    /// saldatura», «tolleranze non indicate ISO 2768-mK». Fino a oggi il ponte
-    /// non sapeva scriverne nemmeno una.
+    /// A workshop drawing is not made only of geometry and dimensions: it carries the
+    /// general notes — «chamfer all sharp edges», «galvanise after
+    /// welding», «general tolerances ISO 2768-mK». Until today the bridge
+    /// did not know how to write even one.
     ///
-    /// ── LE DUE API PER LA STESSA COSA, E UNA E' MUTA ────────────────────
+    /// ── THE TWO APIs FOR THE SAME THING, AND ONE IS MUTE ────────────────
     ///
-    /// Misurato il 18/9/2026 fuori processo, con il controllo positivo verde
-    /// nello stesso giro (tre viste create, risposta `True`):
+    /// Measured on 18/9/2026 out of process, with the positive check green
+    /// in the same run (three views created, answer `True`):
     ///
-    ///     IModelDoc2.InsertNote      -> __ComObject    annotazioni 67 -> 68
-    ///     IDrawingDoc.InsertNewNote3 -> Void           annotazioni 68 -> 68
+    ///     IModelDoc2.InsertNote      -> __ComObject    annotations 67 -> 68
+    ///     IDrawingDoc.InsertNewNote3 -> Void           annotations 68 -> 68
     ///
-    /// `InsertNewNote3` torna `Void`: e' un bottone, non un'API — non ha modo
-    /// di dire che non ha fatto niente, e infatti non lo dice. Si usa
-    /// `InsertNote`, che risponde. **E' scritto qui perche' nessuno riprovi
-    /// l'altra.** (Il TODO la chiamava `InsertNewNote2`: su questa
-    /// installazione il tipo espone la `3`, ed e' muta uguale.)
+    /// `InsertNewNote3` returns `Void`: it is a button, not an API — it has no way
+    /// to say that it did nothing, and in fact it does not say it. `InsertNote`
+    /// is used, which answers. **It is written here so that nobody retries
+    /// the other one.** (The TODO called it `InsertNewNote2`: on this
+    /// installation the type exposes the `3`, and it is just as mute.)
     ///
-    /// ── LA TRAPPOLA, ED E' NELLO STRUMENTO CON CUI SI GUARDA ────────────
+    /// ── THE TRAP, AND IT IS IN THE TOOL USED TO LOOK ────────────────────
     ///
-    /// `InsertNote` scrive **sul FOGLIO**, non dentro una vista. Ma
-    /// `GetNoteCount()` sta su `IView`, e le viste vere di una tavola
-    /// cominciano DOPO la prima — perche' la prima «view» **e' il foglio**.
+    /// `InsertNote` writes **ON THE SHEET**, not inside a view. But
+    /// `GetNoteCount()` lives on `IView`, and the real views of a drawing
+    /// start AFTER the first one — because the first «view» **is the sheet**.
     ///
-    /// Chi contasse solo le viste vere leggerebbe `0 -> 0` con la nota
-    /// regolarmente sul foglio, e scriverebbe «anche le note non nascono:
-    /// e' un blocco sistemico». Quel falso negativo avrebbe chiuso per
-    /// sbaglio quattro voci di questo TODO (rugosita', datum, saldature,
-    /// GD&T), tutte sbloccate proprio dal fatto che una nota nasce.
+    /// Whoever counted only the real views would read `0 -> 0` with the note
+    /// regularly on the sheet, and would write «notes are not born either:
+    /// it is a systemic block». That false negative would have closed by
+    /// mistake four entries of this TODO (surface finish, datum, welds,
+    /// GD&T), all unblocked precisely by the fact that a note is born.
     ///
-    /// Qui si contano tutti e due, e tutti e due escono nella risposta:
-    /// `note_foglio_*` e `note_viste_*`. *Due numeri, due cose diverse, e
-    /// sommarli farebbe sembrare piena una tavola vuota.*
+    /// Here both are counted, and both come out in the answer:
+    /// `note_foglio_*` and `note_viste_*`. *Two numbers, two different things, and
+    /// adding them would make an empty drawing look full.*
     ///
-    /// ── DOVE FINISCE, E PERCHE' SI CONTROLLA PRIMA ──────────────────────
+    /// ── WHERE IT ENDS UP, AND WHY IT IS CHECKED FIRST ───────────────────
     ///
-    /// Le coordinate sono del foglio, in metri. Una nota messa fuori dal
-    /// foglio **esiste, si conta, e sulla carta non c'e'**: stesso difetto
-    /// delle quote fuori foglio, e non da' nessun errore. Quindi si legge la
-    /// misura del foglio da `GetProperties2` e si rifiuta prima di scrivere.
+    /// The coordinates are those of the sheet, in metres. A note put off the
+    /// sheet **exists, is counted, and is not on the paper**: the same defect
+    /// as dimensions off the sheet, and it gives no error. So the
+    /// size of the sheet is read from `GetProperties2` and it is refused before writing.
     ///
-    /// ── COSA QUESTA OPERAZIONE NON PUO' SAPERE ──────────────────────────
+    /// ── WHAT THIS OPERATION CANNOT KNOW ─────────────────────────────────
     ///
-    /// Una nota e' testo libero. «Materiale S355» su un pezzo le cui
-    /// proprieta' dicono S275 passa ogni conteggio e ogni rilettura: il testo
-    /// torna identico a com'e' stato chiesto, ed e' comunque sbagliato. Qui si
-    /// garantisce che la nota **c'e' e dice quello che hai scritto** — non che
-    /// quello che hai scritto sia vero.
+    /// A note is free text. «Material S355» on a part whose
+    /// properties say S275 passes every count and every reread: the text
+    /// comes back identical to what was asked for, and it is wrong all the same. Here
+    /// it is guaranteed that the note **is there and says what you wrote** — not that
+    /// what you wrote is true.
     /// </summary>
     public partial class SwOperations
     {
@@ -75,7 +75,7 @@ namespace Oce.Solid.Agent.Core
                     "«text» e' obbligatorio: una nota vuota e' un'annotazione che " +
                     "occupa un posto sul foglio e non dice niente.");
 
-            // ── IL FOGLIO, E QUANTO E' GRANDE ───────────────────────────
+            // ── THE SHEET, AND HOW BIG IT IS ────────────────────────────
             ISheet sheet = null;
             try { sheet = drawing.GetCurrentSheet() as ISheet; } catch { }
             if (sheet == null)
@@ -93,9 +93,9 @@ namespace Oce.Solid.Agent.Core
 
             double wideMm = measurements[0], topMm = measurements[1];
 
-            // Di serie in alto a sinistra, dentro il margine: e' dove stanno le
-            // note generali su una tavola meccanica. Non al centro, che e' dove
-            // sta il disegno.
+            // By default at the top left, inside the margin: it is where the general
+            // notes sit on a mechanical drawing. Not in the centre, which is where
+            // the drawing sits.
             double xMm = Num(a, "x_mm", 20);
             double yMm = Num(a, "y_mm", topMm - 20);
 
@@ -124,11 +124,11 @@ namespace Oce.Solid.Agent.Core
                 return Failed("«InsertNote» e' andata in errore: " + ex.Message);
             }
 
-            // ── DOVE METTERLA ───────────────────────────────────────────
+            // ── WHERE TO PUT IT ─────────────────────────────────────────
             //
-            // Prima si posiziona, poi si rilegge: la posizione la si chiede
-            // all'oggetto DOPO averla impostata, perche' e' l'unico modo di
-            // sapere se e' stata accettata.
+            // First it is positioned, then it is read back: the position is asked of
+            // the object AFTER setting it, because it is the only way to
+            // know whether it was accepted.
             var note = born as INote;
             bool moved = false;
             try
@@ -152,9 +152,9 @@ namespace Oce.Solid.Agent.Core
                     "non so dirti se e' nata ne' dove. Guarda la tavola prima di andare avanti.");
             int put = (sheetAfter - sheetBefore) + (viewsAfter - viewsBefore);
 
-            // NON SI GUARDA SE `InsertNote` HA RISPOSTO: si guarda se la nota
-            // c'e'. E' la regola di casa — il valore che torna da chi ha fatto
-            // la cosa non e' la misura della cosa.
+            // WE DO NOT LOOK AT WHETHER `InsertNote` ANSWERED: we look at whether the note
+            // is there. It is the house rule — the value that comes back from whoever did
+            // the thing is not the measurement of the thing.
             if (put <= 0)
                 return Failed(
                     "Nessuna nota e' nata (sul foglio erano " + sheetBefore + ", sono " +
@@ -163,7 +163,7 @@ namespace Oce.Solid.Agent.Core
                     (born == null ? "non ha risposto un oggetto" : "ha risposto un oggetto") +
                     ", e il conteggio non e' salito lo stesso.");
 
-            // ── IL TESTO SI RILEGGE ─────────────────────────────────────
+            // ── THE TEXT IS READ BACK ───────────────────────────────────
             string reread = null;
             try { if (note != null) reread = note.GetText(); } catch { }
 
@@ -173,15 +173,15 @@ namespace Oce.Solid.Agent.Core
             {
                 ["sheet"] = sheetName,
                 ["sheet_mm"] = new object[] { wideMm, topMm },
-                // DUE CONTEGGI, MAI SOMMATI IN UNO SOLO: vedi il docstring.
+                // TWO COUNTS, NEVER ADDED INTO ONE: see the docstring.
                 ["notes_sheet_before"] = sheetBefore,
                 ["notes_sheet_after"] = sheetAfter,
                 ["notes_views_before"] = viewsBefore,
                 ["notes_views_after"] = viewsAfter,
                 ["notes_placed"] = put,
-                // IL TESTO RILETTO DA SOLIDWORKS, non quello che credevo di
-                // aver chiesto: una nota che compare con un testo diverso si
-                // legge come una nota giusta finche' nessuno la confronta.
+                // THE TEXT READ BACK FROM SOLIDWORKS, not what I thought I had
+                // asked for: a note that appears with a different text reads
+                // as a right note until somebody compares it.
                 ["text_requested"] = text,
                 ["text_reread"] = reread,
                 ["text_matches"] = reread != null &&
@@ -202,25 +202,25 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Dove la nota e' finita davvero, in millimetri di foglio, oppure
-        /// `null` se non si e' potuto leggere.
+        /// Where the note really ended up, in sheet millimetres, or
+        /// `null` if it could not be read.
         ///
-        /// TRE STRADE, PERCHE' LA PRIMA NON RISPONDE. Misurato il 22/9/2026
-        /// sulla tavola vera: la nota nasce, il testo si rilegge, e
-        /// `GetTextPoint2()` torna un oggetto il cui `ArrayData` e' nullo —
-        /// posizione letta `null` con la nota al suo posto. Un falso negativo
-        /// che, senza le altre due strade, avrebbe fatto scrivere «la
-        /// posizione non si rilegge su questa versione» come se fosse una
-        /// proprieta' di SOLIDWORKS invece che della prima chiamata provata.
+        /// THREE ROUTES, BECAUSE THE FIRST DOES NOT ANSWER. Measured on 22/9/2026
+        /// on the real drawing: the note is born, the text is read back, and
+        /// `GetTextPoint2()` returns an object whose `ArrayData` is null —
+        /// position read `null` with the note in its place. A false negative
+        /// that, without the other two routes, would have made us write «the
+        /// position cannot be reread on this version» as if it were a
+        /// property of SOLIDWORKS instead of of the first call tried.
         ///
-        /// `null` qui vuol dire «non l'ho potuto leggere», MAI «zero»: una
-        /// posizione zero e' l'angolo del foglio, ed e' un posto vero.
+        /// `null` here means «could not read it», NEVER «zero»: a zero
+        /// position is the corner of the sheet, and it is a real place.
         /// </summary>
         private static double[] WhereItEnded(INote note)
         {
             if (note == null) return null;
 
-            // 1. L'array diretto, che e' la strada piu' corta.
+            // 1. The direct array, which is the shortest route.
             try
             {
                 var arr = note.GetTextPoint() as double[];
@@ -228,7 +228,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // 2. Il punto matematico, e il suo `ArrayData`.
+            // 2. The math point, and its `ArrayData`.
             try
             {
                 var point = note.GetTextPoint2() as IMathPoint;
@@ -237,7 +237,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // 3. L'annotazione sotto la nota: `IAnnotation.GetPosition()`.
+            // 3. The annotation under the note: `IAnnotation.GetPosition()`.
             try
             {
                 var ann = note.GetAnnotation() as IAnnotation;
@@ -259,14 +259,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le note del FOGLIO. La prima «view» di una tavola e' il foglio, ed
-        /// e' li' che `InsertNote` scrive: contare da `GetNextView()` in poi —
-        /// cioe' le viste vere — risponderebbe zero con la nota al suo posto.
+        /// The notes of the SHEET. The first «view» of a drawing is the sheet, and
+        /// it is there that `InsertNote` writes: counting from `GetNextView()` onwards —
+        /// that is the real views — would answer zero with the note in its place.
         ///
-        /// **-1 quando non si e' potuto leggere** (voce Z-C8). Con lo zero, una
-        /// lettura fallita DOPO dava il rifiuto «nessuna nota e' nata» con la
-        /// nota al suo posto. Una tavola ha sempre il foglio: se non c'e', non
-        /// e' uno zero, e' una lettura andata male.
+        /// **-1 when it could not be read** (entry Z-C8). With zero, a
+        /// failed read AFTER gave the refusal «nessuna nota e' nata» with the
+        /// note in its place. A drawing always has the sheet: if it is not there, it
+        /// is not a zero, it is a read that went badly.
         /// </summary>
         private int CountSheetNotes(IDrawingDoc drawing)
         {
@@ -280,12 +280,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le note delle viste vere, foglio escluso. Serve come CONTRALTARE:
-        /// se salisse questa invece di quella del foglio, la nota sarebbe
-        /// finita dentro una vista e si sposterebbe insieme a lei.
+        /// The notes of the real views, sheet excluded. It serves as a COUNTERPART:
+        /// if this one went up instead of the sheet's, the note would have
+        /// ended up inside a view and would move together with it.
         ///
-        /// -1 quando anche una sola vista non risponde: la somma delle altre
-        /// sarebbe un numero piu' basso del vero, detto come se fosse vero.
+        /// -1 when even a single view does not answer: the sum of the others
+        /// would be a number lower than the true one, stated as if it were true.
         /// </summary>
         private int CountViewNotes(IDrawingDoc drawing)
         {

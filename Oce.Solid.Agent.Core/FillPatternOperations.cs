@@ -7,87 +7,87 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA RIPETIZIONE A RIEMPIMENTO. (voce W1.1, residuo di GP14)
+    /// THE FILL PATTERN. (entry W1.1, residue of GP14)
     ///
-    /// Una faccia piena di fori: una griglia di sfiato, una piastra forata per
-    /// alleggerire, un crivello. La lavorazione si fa una volta, e SOLIDWORKS la
-    /// copia a giri concentrici finche' la faccia di contorno la contiene.
+    /// A face full of holes: a vent grille, a plate drilled to
+    /// lighten it, a sieve. The feature is made once, and SOLIDWORKS
+    /// copies it in concentric loops until the boundary face contains it.
     ///
-    /// ── LA GUIDA API, CITATA (estratto locale di sldworksapi.chm) ─────────
+    /// ── THE API GUIDE, CITED (local extract of sldworksapi.chm) ──────────
     ///
     ///   SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~FeatureFillPattern.html
     ///     «Obsolete. See IFeatureManager::CreateFeature and the Remarks in
-    ///     IFillPatternFeatureData.» Le quindici combinazioni NULL di GP14
-    ///     (nota 81u) erano tutte su questo binario morto.
+    ///     IFillPatternFeatureData.» The fifteen NULL combinations of GP14
+    ///     (note 81u) were all on this dead track.
     ///
     ///   SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFillPatternFeatureData.html
     ///     Remarks: «Before calling IFeatureManager::CreateDefinition, you can
-    ///     pre-select the entities»; la tabella delle marche:
-    ///       contorno (faccia, schizzo, curva piana)   16384
-    ///       direzione (spigolo o asse)                    1   («if not selected,
+    ///     pre-select the entities»; the table of the marks:
+    ///       boundary (face, sketch, planar curve)     16384
+    ///       direction (edge or axis)                      1   («if not selected,
     ///                                                      SOLIDWORKS chooses»)
-    ///       posizione del seme (vertice, punto)           3   (facoltativa: senza,
+    ///       seed position (vertex, point)                 3   (optional: without it,
     ///                                                      «the pattern seed instance
     ///                                                      is placed at the center of
     ///                                                      the fill boundary region»)
-    ///       feature da ripetere                           4   (facce 5, corpi 6)
+    ///       feature to pattern                            4   (faces 5, bodies 6)
     ///     «Or, after calling CreateDefinition, you can explicitly set the
-    ///     corresponding properties» — la seconda strada, quella che GP14 aveva
-    ///     provato sette volte e che torna NULL (misurato di nuovo sotto).
+    ///     corresponding properties» — the second route, the one GP14 had
+    ///     tried seven times and that returns NULL (measured again below).
     ///
-    ///   Create_Fill_Pattern_Example_CSharp.htm — l'unico esempio: Hole1 con
-    ///     marca 4, uno spigolo con marca 1, una faccia con marca 16384, POI
-    ///     CreateDefinition(swFmFillPattern), solo scalari, CreateFeature. Gli
-    ///     scalari di questo file sono i suoi, uno per uno (vedi FillScalars).
+    ///   Create_Fill_Pattern_Example_CSharp.htm — the only example: Hole1 with
+    ///     mark 4, an edge with mark 1, a face with mark 16384, THEN
+    ///     CreateDefinition(swFmFillPattern), scalars only, CreateFeature. The
+    ///     scalars of this file are its own, one by one (see FillScalars).
     ///
     ///   ...IFillPatternFeatureData~NoOfInstances.html: «the number of instances
-    ///     per loop or side», valido con LayoutSpacingType = swPatternLayoutInstances.
+    ///     per loop or side», valid with LayoutSpacingType = swPatternLayoutInstances.
     ///   ...IFillPatternFeatureData~LoopSpacing.html: «the spacing between the
-    ///     centers of instances in adjacent pattern loops», per la disposizione
-    ///     circolare.
+    ///     centers of instances in adjacent pattern loops», for the circular
+    ///     layout.
     ///   ...IFillPatternFeatureData~Margins.html: «distance between the fill
     ///     boundary and the outermost pattern instance; 0 for no margin».
     ///
-    /// ── LA SONDA, LANCIATA IL 28/9/2026 (Checks\Fill\Program.cs) ──
+    /// ── THE PROBE, RUN ON 28/9/2026 (Checks\Fill\Program.cs) ──
     ///
-    /// Piastra 100 x 60 x 12, un foro passante Ø8 a 30 mm dal centro (603,2 mm3),
+    /// Plate 100 x 60 x 12, a through hole Ø8 at 30 mm from the centre (603.2 mm3),
     /// SOLIDWORKS 29.5.1:
     ///
-    ///   A  feature 4 + spigolo 1 + faccia 16384 PRIMA di CreateDefinition
-    ///        -> «Ripetizione di riempimento1» [APattern], volume 71396,8 -> 62952,2:
-    ///           14 fori in piu', -8444,6 = 14 x 603,2 esatto, corpi 1 -> 1, 0 in errore
-    ///   C  stesse selezioni DOPO CreateDefinition          -> uguale ad A
-    ///   D  la faccia del foro con marca 5 invece della 4   -> uguale ad A
-    ///   A2 come A SENZA lo spigolo di direzione            -> NULL
-    ///   B  la via storica: niente selezione, proprieta' scritte -> NULL
+    ///   A  feature 4 + edge 1 + face 16384 BEFORE CreateDefinition
+    ///        -> «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2:
+    ///           14 more holes, -8444.6 = 14 x 603.2 exact, bodies 1 -> 1, 0 in error
+    ///   C  same selections AFTER CreateDefinition          -> same as A
+    ///   D  the face of the hole with mark 5 instead of 4   -> same as A
+    ///   A2 like A WITHOUT the direction edge               -> NULL
+    ///   B  the historic way: no selection, properties written -> NULL
     ///
-    /// Due cose da tenere. **La direzione e' obbligatoria**, anche se la guida la
-    /// dice facoltativa: senza, NULL e nessun messaggio. Percio' qui si rifiuta
-    /// PRIMA di toccare il pezzo. E **il tipo della feature e' «APattern»**, non
-    /// un nome che contenga «Fill»: si controlla quello misurato.
+    /// Two things to keep. **The direction is mandatory**, even if the guide
+    /// says it is optional: without it, NULL and no message. Therefore here it refuses
+    /// BEFORE touching the part. And **the type of the feature is «APattern»**, not
+    /// a name that contains «Fill»: the measured one is checked.
     ///
-    /// Qui si fa la ricetta A, nello stesso ordine: lavorazione, direzione,
-    /// contorno, poi CreateDefinition.
+    /// Here recipe A is done, in the same order: feature, direction,
+    /// boundary, then CreateDefinition.
     ///
-    /// ── COSA NON C'E', E PERCHE' ──────────────────────────────────────
+    /// ── WHAT IS NOT THERE, AND WHY ────────────────────────────────────
     ///
-    /// Solo la disposizione CIRCOLARE, con il numero di copie per giro: e' quella
-    /// dell'esempio, ed e' l'unica misurata. Quadrata, poligonale e a
-    /// perforazione hanno proprieta' loro (InstanceSpacing, StaggerAngle,
-    /// PatternLayoutPolygonSides) che nessuna sonda ha visto nascere.
-    /// La TABELLA (ITablePatternFeatureData, l'altra meta' di W1.1) resta fuori:
-    /// misurata NULL senza il sistema di coordinate con marca 16 che il suo
-    /// esempio seleziona.
+    /// Only the CIRCULAR layout, with the number of copies per loop: it is the one
+    /// of the example, and it is the only one measured. Square, polygonal and
+    /// perforation have their own properties (InstanceSpacing, StaggerAngle,
+    /// PatternLayoutPolygonSides) that no probe saw born.
+    /// The TABLE (ITablePatternFeatureData, the other half of W1.1) stays out:
+    /// measured NULL without the coordinate system with mark 16 that its
+    /// example selects.
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>Il tipo della feature nata, misurato (GetTypeName2) sulla sonda A.</summary>
+        /// <summary>The type of the feature born, measured (GetTypeName2) on probe A.</summary>
         private const string FillType = "APattern";
 
         /// <summary>
-        /// Quanto la direzione puo' uscire dal piano della faccia di contorno:
-        /// il seno dell'angolo, 0,01 = circa mezzo grado. Uno spigolo della faccia
-        /// ci sta dentro con uno zero di macchina.
+        /// How far the direction can leave the plane of the boundary face:
+        /// the sine of the angle, 0.01 = about half a degree. An edge of the face
+        /// stays inside it with a machine zero.
         /// </summary>
         private const double FillOffPlane = 0.01;
 
@@ -97,7 +97,7 @@ namespace Oce.Solid.Agent.Core
             if (!(model is IPartDoc))
                 return Failed("La ripetizione a riempimento si fa su un pezzo: apri il pezzo e richiedimela.");
 
-            // ── I NUMERI, prima di toccare qualunque cosa ──
+            // ── THE NUMBERS, before touching anything ──
             double planStep, rawCopies;
             string error;
             if (!RequiredNum(a, "pitch_mm", out planStep, out error))
@@ -118,12 +118,12 @@ namespace Oce.Solid.Agent.Core
                 return Failed("«margin_mm» non puo' essere negativo: e' quanto le copie restano " +
                                "lontane dal bordo della faccia. Metti 0 per arrivare al bordo.");
 
-            // ── LA DIREZIONE E' OBBLIGATORIA, E SI DICE PRIMA ──
+            // ── THE DIRECTION IS MANDATORY, AND IT IS STATED FIRST ──
             //
-            // La guida la dice facoltativa («SOLIDWORKS chooses a direction
-            // reference»); la sonda A2 del 28/9/2026 dice NULL senza di lei, e
-            // senza nessun messaggio. Un rifiuto qui costa zero; un NULL dopo aver
-            // selezionato mezzo pezzo costa un turno a indovinare.
+            // The guide says it is optional («SOLIDWORKS chooses a direction
+            // reference»); probe A2 of 28/9/2026 says NULL without it, and
+            // without any message. A refusal here costs zero; a NULL after having
+            // selected half a part costs a turn of guessing.
             //
             // NOT «AN AXIS MADE WITH create_axis» (Z-C21.9, finding N62). The
             // sentence sent the caller to create_axis, whose axis on a hole runs
@@ -140,7 +140,7 @@ namespace Oce.Solid.Agent.Core
                     "«axis_ref» an axis that lies along that face. The axis of a hole drilled into the face does " +
                     "not do: it runs across the face, and a direction that leaves the face is refused.");
 
-            // ── LA FACCIA DI CONTORNO, E DEVE ESSERE PIANA ──
+            // ── THE BOUNDARY FACE, AND IT MUST BE PLANAR ──
             string faceUid = Str(a, "face_uid", "");
             string reason;
             var contour = ResolveFace(docState, a, faceUid, out reason);
@@ -153,7 +153,7 @@ namespace Oce.Solid.Agent.Core
                     "Indica la faccia piana su cui sta la lavorazione da ripetere, per esempio " +
                     "quella da cui parte il foro.");
 
-            // ── LA FOTOGRAFIA, PRIMA ──
+            // ── THE SNAPSHOT, FIRST ──
             var before = SnapshotPart(model);
             double? volumeBefore; int bodiesBefore, facesBefore;
             Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
@@ -185,10 +185,10 @@ namespace Oce.Solid.Agent.Core
                     return Failed("Ho selezionato la direzione ma non riesco a rileggerla dalla " +
                                    "selezione. Prova con uno spigolo dritto dello stato invece di un asse.");
 
-                // LA DIREZIONE DEVE STARE NELLA FACCIA. Il riempimento dispone le
-                // copie dentro il contorno: uno spigolo che esce dalla faccia (lo
-                // spessore della piastra) non ha un verso da seguire la' dentro.
-                // Se il verso non si legge non si inventa un rifiuto.
+                // THE DIRECTION MUST LIE IN THE FACE. The fill arranges the
+                // copies inside the boundary: an edge that leaves the face (the
+                // thickness of the plate) has no direction to follow in there.
+                // If the direction cannot be read, no refusal is invented.
                 var versore = UnitDirectionVector(direction);
                 if (versore != null)
                 {
@@ -203,25 +203,25 @@ namespace Oce.Solid.Agent.Core
                 }
                 model.ClearSelection2(true);
 
-                // 2. La lavorazione da ripetere, marca 4 (SelectByID2 BODYFEATURE,
-                //    come l'esempio; o l'oggetto del passo citato).
+                // 2. The feature to pattern, mark 4 (SelectByID2 BODYFEATURE,
+                //    like the example; or the object of the step cited).
                 if (!SelectFeature(model, a, out error, SelectionMarks.FillPatternFeatures))
                     return Failed(error);
                 seed = SelectedSeed(model, SelectionMarks.FillPatternFeatures);
 
-                // 3. La direzione di nuovo, marca 1, aggiunta.
+                // 3. The direction again, mark 1, added.
                 if (!ReselectDirection(model, direction))
                     return Failed("Non sono riuscito a riselezionare la direzione " + statedDirection +
                                    " insieme alla lavorazione. Prova con un altro spigolo dritto della faccia.");
 
-                // 4. Il contorno, marca 16384, aggiunto.
+                // 4. The boundary, mark 16384, added.
                 var handler = model.SelectionManager as ISelectionMgr;
                 if (handler == null || !Select(handler, contour, SelectionMarks.FillPatternBoundary))
                     return Failed("Non sono riuscito a selezionare la faccia di contorno" +
                                    (faceUid.Length > 0 ? " «" + faceUid + "»" : "") +
                                    ". Rileggi lo stato del documento e indica di nuovo la faccia.");
 
-                // 5. SOLO ADESSO la definizione, e soltanto scalari.
+                // 5. ONLY NOW the definition, and only scalars.
                 var data = model.FeatureManager.CreateDefinition(
                     (int)swFeatureNameID_e.swFmFillPattern) as IFillPatternFeatureData;
                 if (data == null)
@@ -251,7 +251,7 @@ namespace Oce.Solid.Agent.Core
                     "in fila o in griglia c'e' «linear_pattern», per un cerchio attorno a un asse " +
                     "«circular_pattern».");
 
-            // ── E ADESSO SI MISURA IL PEZZO ──
+            // ── AND NOW THE PART IS MEASURED ──
             bool rebuilt = false;
             try { rebuilt = model.EditRebuild3(); } catch { }
 
@@ -264,10 +264,10 @@ namespace Oce.Solid.Agent.Core
                     "Non ti confermo una cosa diversa da quella che hai chiesto." +
                     RemoveFill(model, feature, volumeBefore));
 
-            // Le guardie comuni (GuardOperations.cs): lavorazioni in errore,
-            // ricostruzione, corpi, aperture che escono dal bordo o si fondono.
-            // Le aperture si contano: una copia che morde il bordo della faccia o
-            // si fonde con un'altra le fa calare.
+            // The common guards (GuardOperations.cs): features in error,
+            // rebuild, bodies, openings that leave the edge or merge.
+            // The openings are counted: a copy that bites the edge of the face or
+            // merges with another makes them drop.
             string broken = WhatBroke(model, before, rebuilt, true);
             if (broken != null)
                 return Failed(
@@ -275,24 +275,24 @@ namespace Oce.Solid.Agent.Core
                     "piu' largo, perche' le copie restino lontane dal bordo, o un «pitch_mm» piu' " +
                     "grande, perche' non si tocchino." + RemoveFill(model, feature, volumeBefore));
 
-            // COSA DICHIARA LA FEATURE, riletto con IFeature::GetDefinition
-            // come IFillPatternFeatureData — non gli argomenti ripetuti. Non
-            // decide niente (decidono il volume, le copie contate e le
-            // guardie); un valore che non si rilegge e' null.
+            // WHAT THE FEATURE DECLARES, read back with IFeature::GetDefinition
+            // as IFillPatternFeatureData — not the repeated arguments. It
+            // decides nothing (the volume, the copies counted and the
+            // guards decide); a value that cannot be read back is null.
             var measurements = new Dictionary<string, object> { ["feature_type"] = typ };
             DeclaredByFill(feature, measurements);
 
-            // «Niente e' cambiato» e' il falso successo: lo prende CompareCopy.
+            // «Niente e' cambiato» is the false success: CompareCopy catches it.
             var stopped = CompareCopy(
                 model, volumeBefore, bodiesBefore, facesBefore, measurements, "La ripetizione a riempimento");
             if (stopped != null) return Failed(stopped + RemoveFill(model, feature, volumeBefore));
 
-            // ── LE COPIE, CONTATE DALLE FACCE (come MissingCopies) ──
+            // ── THE COPIES, COUNTED FROM THE FACES (like MissingCopies) ──
             //
-            // Di un riempimento non si sa in anticipo quante copie entrano: lo
-            // decide la forma della faccia. Si contano e si dicono. Zero facce
-            // possedute vuol dire zero copie, e quello si rifiuta; un conto che
-            // non si divide (copie fuse fra loro) si tace invece di inventarlo.
+            // How many copies fit in a fill is not known in advance: the shape
+            // of the face decides it. They are counted and stated. Zero faces
+            // owned means zero copies, and that is refused; a count that
+            // does not divide (copies merged with each other) is left unsaid instead of invented.
             int patternFaces = FeatureFaces(feature);
             int seedFaceList = FeatureFaces(seed);
             if (patternFaces == 0)
@@ -312,19 +312,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Gli scalari di Create_Fill_Pattern_Example_CSharp.htm, uno per uno, con
-        /// i tre che l'operazione espone (passo, copie per giro, margine) al posto
-        /// dei suoi 17,024 mm, 10 e 0.
+        /// The scalars of Create_Fill_Pattern_Example_CSharp.htm, one by one, with
+        /// the three that the operation exposes (pitch, copies per loop, margin) in place
+        /// of its 17.024 mm, 10 and 0.
         ///
-        /// I valori della forma del seme (Diameter, Diagonal, Dimension, Inner/
-        /// OuterRadius, CreateSeedCutPolygonSides) servono solo a
-        /// FeaturesToPatternType = CreateSeedCut: con swCreateSeedCutNone non
-        /// contano, e si scrivono lo stesso identici all'esempio perche' la
-        /// ricetta misurata e' quella intera. Cosi' StaggerAngle (solo per la
-        /// perforazione) e InstanceSpacing, che l'esempio mette uguale al passo.
+        /// The values of the seed shape (Diameter, Diagonal, Dimension, Inner/
+        /// OuterRadius, CreateSeedCutPolygonSides) serve only for
+        /// FeaturesToPatternType = CreateSeedCut: with swCreateSeedCutNone they do not
+        /// count, and they are written all the same identical to the example because the
+        /// measured recipe is the whole one. So are StaggerAngle (only for
+        /// perforation) and InstanceSpacing, which the example sets equal to the pitch.
         ///
-        /// GeometryPattern resta false: «valid only if PatternElement is
-        /// swFeatureFaces» (GeometryPattern.html), e qui si ripete la feature.
+        /// GeometryPattern stays false: «valid only if PatternElement is
+        /// swFeatureFaces» (GeometryPattern.html), and here the feature is patterned.
         /// </summary>
         private static void FillScalars(
             IFillPatternFeatureData d, double pitchM, int copiesPerRound, double marginM)
@@ -350,7 +350,7 @@ namespace Oce.Solid.Agent.Core
             d.StaggerAngle = Math.PI / 3.0;
         }
 
-        /// <summary>Il primo oggetto della selezione, o null.</summary>
+        /// <summary>The first object of the selection, or null.</summary>
         private static object SelectedFillDirection(IModelDoc2 model)
         {
             try
@@ -363,10 +363,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il versore di una direzione selezionata: uno spigolo dritto
-        /// (ICurve.LineParams: punto 0-2, direzione 3-5, come in DocumentState)
-        /// o un asse di riferimento (IRefAxis.GetRefAxisParams: i due estremi).
-        /// Null se non si legge: chi chiama allora non rifiuta.
+        /// The unit vector of a selected direction: a straight edge
+        /// (ICurve.LineParams: point 0-2, direction 3-5, as in DocumentState)
+        /// or a reference axis (IRefAxis.GetRefAxisParams: the two ends).
+        /// Null if it cannot be read: the caller then does not refuse.
         /// </summary>
         private static double[] UnitDirectionVector(object direction)
         {
@@ -395,13 +395,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La direzione gia' validata, riselezionata con la marca 1 IN AGGIUNTA
-        /// alla lavorazione. Uno spigolo con `IEntity.Select4` e un
-        /// `SelectData` con `Mark = 1`: la chiamata della sonda
-        /// (Checks\Fill, `Mark(selMgr, 1)`), la stessa di
-        /// `Select(gestore, faccia, marca)` per la faccia di contorno. Un asse
-        /// di riferimento per feature (`Select2` con la marca): la sonda non ne
-        /// ha usati, ed e' detto nel catalogo.
+        /// The direction already validated, reselected with mark 1 IN ADDITION
+        /// to the feature. An edge with `IEntity.Select4` and a
+        /// `SelectData` with `Mark = 1`: the call of the probe
+        /// (Checks\Fill, `Mark(selMgr, 1)`), the same as
+        /// `Select(gestore, faccia, marca)` for the boundary face. A reference axis
+        /// per feature (`Select2` with the mark): the probe did not use
+        /// any, and it is said in the catalogue.
         /// </summary>
         private static bool ReselectDirection(IModelDoc2 model, object direction)
         {
@@ -424,15 +424,15 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I quattro scalari che l'operazione chiede, come la feature nata li
-        /// DICHIARA (pagine della guida
+        /// The four scalars the operation asks for, as the feature born
+        /// DECLARES them (guide pages
         /// `IFillPatternFeatureData~PatternLayoutType.html`, `~LoopSpacing.html`
         /// «Distance between loops of pattern instances», `~NoOfInstances.html`
-        /// «Number of instances per loop or side», `~Margins.html`), letti da
+        /// «Number of instances per loop or side», `~Margins.html`), read from
         /// `IFeature::GetDefinition` (`IFeature~GetDefinition.html`: «query the
-        /// feature data object»). La disposizione si scrive per NOME dell'enum
-        /// `swPatternLayoutType_e`, mai per cifra. Quello che non si rilegge
-        /// resta null: «non lo so» non si riempie con l'argomento.
+        /// feature data object»). The layout is written by NAME of the enum
+        /// `swPatternLayoutType_e`, never by digit. What cannot be read back
+        /// stays null: «I do not know» is not filled in with the argument.
         /// </summary>
         private static void DeclaredByFill(IFeature feature, Dictionary<string, object> measurements)
         {
@@ -455,7 +455,7 @@ namespace Oce.Solid.Agent.Core
             measurements["declared_margin_mm"] = margin;
         }
 
-        /// <summary>Il nome in inglese della disposizione, dal nome dell'enum; null se sconosciuta.</summary>
+        /// <summary>The English name of the layout, from the enum name; null if unknown.</summary>
         private static string ArrangementName(int val)
         {
             if (val == (int)swPatternLayoutType_e.swPatternLayoutCircular) return "circular";
@@ -466,11 +466,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie la ripetizione appena nata quando una guardia la rifiuta, e torna
-        /// la coda del messaggio. Non EditDelete (apre una finestra di conferma:
-        /// ForbiddenSignaturesTests), ma DeleteSelection2 come `RemoveCut`; e «ha
-        /// detto di averla tolta» non basta: si riconta l'albero e si rimisura il
-        /// volume.
+        /// Removes the pattern just born when a guard refuses it, and returns
+        /// the tail of the message. Not EditDelete (it opens a confirmation window:
+        /// ForbiddenSignaturesTests), but DeleteSelection2 like `RemoveCut`; and «it
+        /// said it removed it» is not enough: the tree is counted again and the
+        /// volume is measured again.
         /// </summary>
         private string RemoveFill(IModelDoc2 model, IFeature repetition, double? volumeBefore)
         {

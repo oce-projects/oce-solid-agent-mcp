@@ -5,59 +5,59 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Traduce «la faccia in cima a quello che hai fatto al passo 1» nella
-    /// faccia vera, dentro SolidWorks, dopo che il passo 1 e' stato eseguito.
+    /// Translates «the face on top of what you did at step 1» into the
+    /// real face, inside SolidWorks, after step 1 has been executed.
     ///
-    /// SERVE PERCHE' UN PIANO SI SCRIVE TUTTO PRIMA DI ESEGUIRNE UN PEZZO.
-    /// Al momento in cui il modello propone il passo 2, la faccia su cui va il
-    /// foro non esiste: non ha un identificativo da citare, e nessuno gliene
-    /// puo' dare uno. Il riferimento e' il nome che si puo' dare a una cosa
-    /// che non c'e' ancora; questo file e' il posto in cui quel nome diventa
-    /// una faccia con un'area.
+    /// IT IS NEEDED BECAUSE A PLAN IS WRITTEN ENTIRELY BEFORE ANY PIECE OF IT IS EXECUTED.
+    /// At the moment when the model proposes step 2, the face the
+    /// hole goes on does not exist: it has no identifier to cite, and nobody
+    /// can give it one. The reference is the name that can be given to something
+    /// that is not there yet; this file is the place where that name becomes
+    /// a face with an area.
     ///
-    /// QUI NON SI INDOVINA MAI. Se un genere non si risolve in modo univoco —
-    /// due facce cilindriche dove ne serviva una, nessuna faccia piana in
-    /// cima, una tasca passante a cui si chiede il fondo — la risposta e' un
-    /// motivo scritto, e il passo fallisce. La faccia «piu' probabile» e'
-    /// esattamente il tipo di scelta che qui produce un pezzo sbagliato senza
-    /// nessun errore: la lavorazione riesce, il rebuild e' pulito, e il foro
-    /// e' dall'altra parte.
+    /// HERE NOTHING IS EVER GUESSED. If a kind does not resolve unambiguously —
+    /// two cylindrical faces where one was needed, no planar face
+    /// on top, a through pocket of which the bottom is asked for — the answer is a
+    /// written reason, and the step fails. The «most likely» face is
+    /// exactly the kind of choice that here produces a wrong part without
+    /// any error: the feature succeeds, the rebuild is clean, and the hole
+    /// is on the other side.
     /// </summary>
     public static class References
     {
-        /// <summary>Coseno oltre il quale due direzioni si dicono la stessa.</summary>
+        /// <summary>Cosine beyond which two directions are called the same.</summary>
         /// <remarks>
-        /// 0,999 e' circa 2,5 gradi. Non e' una tolleranza di misura: le facce
-        /// di un'estrusione sono esattamente parallele o esattamente
-        /// perpendicolari all'asse, e questo margine serve solo a coprire
-        /// l'errore di rappresentazione dei double.
+        /// 0,999 is about 2,5 degrees. It is not a measurement tolerance: the faces
+        /// of an extrusion are exactly parallel or exactly
+        /// perpendicular to the axis, and this margin only serves to cover
+        /// the representation error of the doubles.
         /// </remarks>
         private const double Cosine = 0.999;
 
-        /// <summary>Che cosa ha lasciato dietro di se' un passo gia' eseguito.</summary>
+        /// <summary>What an already executed step left behind it.</summary>
         public class Step
         {
-            /// <summary>La feature creata da quel passo.</summary>
+            /// <summary>The feature created by that step.</summary>
             public IFeature Feature;
 
             /// <summary>
-            /// La direzione lungo cui quel passo ha estruso o tagliato, in
-            /// coordinate del modello. Null se il passo non ne ha una (un
-            /// raccordo non estrude in nessuna direzione).
+            /// The direction along which that step extruded or cut, in
+            /// model coordinates. Null if the step has none (a
+            /// fillet does not extrude in any direction).
             ///
-            /// Non si ricava dalla geometria e non ci si prova: per un
-            /// parallelepipedo le sei normali sono +-X, +-Y, +-Z e non c'e'
-            /// niente che distingua l'asse di estrusione dagli altri due. Chi
-            /// esegue l'operazione la direzione la SA — e' la normale del piano
-            /// di schizzo, o la normale della faccia forata — e la scrive qui.
+            /// It is not derived from the geometry and no attempt is made: for a
+            /// cuboid the six normals are +-X, +-Y, +-Z and there is
+            /// nothing that tells the extrusion axis from the other two. Whoever
+            /// executes the operation KNOWS the direction — it is the normal of the sketch
+            /// plane, or the normal of the face being drilled — and writes it here.
             /// </summary>
             public double[] Direction;
 
-            /// <summary>Nome dell'operazione, per i messaggi di errore.</summary>
+            /// <summary>Name of the operation, for the error messages.</summary>
             public string Operation = "";
         }
 
-        /// <summary>La normale di un piano di riferimento, in coordinate del modello.</summary>
+        /// <summary>The normal of a reference plane, in model coordinates.</summary>
         /// <remarks>
         /// The canonical normal of each base plane, and since Z-C21.5 also the
         /// rule that FINDS the plane (<see cref="BasePlane"/>): the plane of
@@ -260,12 +260,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Risoluzione
+        // Resolution
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// La faccia indicata da un genere della famiglia «faccia».
-        /// Ritorna false con un motivo leggibile se non ce n'e' esattamente una.
+        /// The face indicated by a kind of the «face» family.
+        /// Returns false with a readable reason if there is not exactly one.
         /// </summary>
         public static bool Face(
             Step planStep, string kind, out IFace2 face, out string reason)
@@ -284,24 +284,24 @@ namespace Oce.Solid.Agent.Core
 
                 case "hole_face":
                 {
-                    // ── UN FORO E' CONCAVO, UN RACCORDO E' CONVESSO ───────
+                    // ── A HOLE IS CONCAVE, A FILLET IS CONVEX ───────
                     //
-                    // Fino alla 0.73.0 qui bastava «cilindrica», e un raccordo
-                    // lascia facce cilindriche come un foro. Se un passo ne
-                    // lasciava **una sola** e quella era un raccordo, questo
-                    // ramo la restituiva **senza dire niente**: chi aveva
-                    // chiesto la parete di un foro si ritrovava la superficie
-                    // di un raccordo, e la lavorazione successiva ci finiva
-                    // sopra. Un difetto che non da' errore.
+                    // Up to 0.73.0 «cylindrical» was enough here, and a fillet
+                    // leaves cylindrical faces like a hole. If a step
+                    // left **only one** and it was a fillet, this
+                    // branch returned it **without saying anything**: whoever had
+                    // asked for the wall of a hole found the surface
+                    // of a fillet, and the following feature ended up
+                    // on it. A defect that gives no error.
                     //
-                    // Misurato da `Checks\HoleOrFillet` su una piastra
-                    // con un foro Ø12 e un raccordo R5:
+                    // Measured by `Checks\HoleOrFillet` on a plate
+                    // with a Ø12 hole and an R5 fillet:
                     //
-                    //     parete del foro         FaceInSurfaceSense = true
-                    //     superficie del raccordo FaceInSurfaceSense = false
+                    //     hole wall               FaceInSurfaceSense = true
+                    //     fillet surface          FaceInSurfaceSense = false
                     //
-                    // La parete di un foro ha il materiale FUORI dal cilindro,
-                    // e la sua normale guarda verso l'asse: e' concava.
+                    // The wall of a hole has the material OUTSIDE the cylinder,
+                    // and its normal looks toward the axis: it is concave.
                     var concave = new List<IFace2>();
                     int convex = 0;
                     foreach (var f in faces)
@@ -326,20 +326,20 @@ namespace Oce.Solid.Agent.Core
                         return false;
                     }
 
-                    // PIU' DI UNA PARETE DI FORO RESTA UN RIFIUTO, e non e' una
-                    // mancanza da riparare.
+                    // MORE THAN ONE HOLE WALL REMAINS A REFUSAL, and it is not a
+                    // lack to be repaired.
                     //
-                    // La voce E14 proponeva di sceglierne una «con un criterio —
-                    // il diametro, oppure la posizione». Fra quattro M10 uguali
-                    // non esiste nessun criterio: qualunque cosa si scelga e'
-                    // **indovinare**, e il passo seguente finirebbe su un foro a
-                    // caso senza che niente fallisca. E' esattamente il difetto
-                    // che questo progetto esiste per rendere impossibile, offerto
-                    // come comodita'.
+                    // Entry E14 proposed choosing one «with a criterion —
+                    // the diameter, or the position». Among four identical M10 there
+                    // is no criterion: whatever is chosen is
+                    // **guessing**, and the following step would end up on a hole at
+                    // random without anything failing. It is exactly the defect
+                    // that this project exists to make impossible, offered
+                    // as a convenience.
                     //
-                    // Il rifiuto pero' adesso dice quanti sono e di che
-                    // diametro: chi legge ha gia' in mano cio' che gli serve per
-                    // nominarne uno.
+                    // The refusal however now says how many there are and of what
+                    // diameter: whoever reads already has in hand what is needed to
+                    // name one.
                     if (concave.Count > 1)
                     {
                         reason =
@@ -355,11 +355,11 @@ namespace Oce.Solid.Agent.Core
 
                 case "pocket_floor":
                 {
-                    // Il fondo di una tasca e' la faccia piana perpendicolare
-                    // alla direzione del taglio. Se la tasca e' passante non
-                    // esiste, e dirlo e' l'unica risposta corretta: la faccia
-                    // «piu' simile» sarebbe una parete laterale, e la
-                    // lavorazione successiva finirebbe di traverso.
+                    // The bottom of a pocket is the planar face perpendicular
+                    // to the cutting direction. If the pocket is through it does not
+                    // exist, and saying so is the only correct answer: the «most
+                    // similar» face would be a side wall, and the
+                    // following feature would end up sideways.
                     if (planStep.Direction == null)
                     {
                         reason =
@@ -395,14 +395,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Gli spigoli indicati da un genere della famiglia «edges».
+        /// The edges indicated by a kind of the «edges» family.
         ///
-        /// Gli spigoli NON si deduplicano, ed e' voluto: uno spigolo appartiene
-        /// a due facce, quindi scorrendo le facce lo si incontra due volte.
-        /// Selezionarlo due volte in SolidWorks non lo aggiunge due volte, e
-        /// confrontare l'identita' di due oggetti COM per evitarlo sarebbe piu'
-        /// fragile del problema che risolve. Il numero VERO di spigoli si
-        /// chiede dopo a SolidWorks, con GetSelectedObjectCount2.
+        /// The edges are NOT deduplicated, and it is intended: an edge belongs
+        /// to two faces, so going through the faces it is met twice.
+        /// Selecting it twice in SolidWorks does not add it twice, and
+        /// comparing the identity of two COM objects to avoid it would be more
+        /// fragile than the problem it solves. The TRUE number of edges is
+        /// asked afterwards of SolidWorks, with GetSelectedObjectCount2.
         /// </summary>
         public static bool Edges(
             Step planStep, string kind, out List<IEntity> edges, out string reason)
@@ -419,20 +419,20 @@ namespace Oce.Solid.Agent.Core
                              out top, out reason))
                     return false;
 
-                // SOLO IL LOOP ESTERNO. IFace2.GetEdges() restituisce gli
-                // spigoli di TUTTI i loop, e una faccia in cima puo' averne
-                // piu' d'uno: basta che un passo precedente ci abbia fatto un
-                // foro, o che il profilo sia cavo.
+                // ONLY THE OUTER LOOP. IFace2.GetEdges() returns the
+                // edges of ALL the loops, and a top face may have
+                // more than one: it is enough that a previous step made a
+                // hole in it, or that the profile is hollow.
                 //
-                // Il difetto che questo chiude: «piastra 100x60x8, un foro da
-                // 12 al centro, arrotonda con R2 gli spigoli in cima». Il
-                // pannello mostrava «raccordo R2 su spigoli superiori del
-                // passo 1» — esattamente cio' che era stato chiesto — e
-                // venivano raccordati anche i bordi del foro. Su una piastra
-                // da 8 la parte cilindrica utile scendeva da 8 a 6 mm e la
-                // testa della vite non appoggiava piu'. Nessun errore, rebuild
-                // pulito, passo «riuscito». E lo stesso identico testo con i
-                // passi in ordine inverso dava il pezzo giusto.
+                // The defect this closes: «100x60x8 plate, a 12 hole
+                // in the centre, round the top edges with R2». The
+                // panel showed «fillet R2 on top edges of
+                // step 1» — exactly what had been asked — and
+                // the edges of the hole were filleted too. On an 8
+                // plate the useful cylindrical part dropped from 8 to 6 mm and the
+                // screw head no longer seated. No error, clean
+                // rebuild, step «succeeded». And the very same text with the
+                // steps in reverse order gave the right part.
                 if (!OuterBorderEdges(top, edges, out reason)) return false;
             }
             else if (kind == "side_edges")
@@ -445,9 +445,9 @@ namespace Oce.Solid.Agent.Core
                         "spigoli siano i laterali.";
                     return false;
                 }
-                // Uno spigolo e' «laterale» se corre lungo la direzione di
-                // estrusione. Si guarda la sua direzione, non a quale faccia
-                // appartiene: cosi' non serve confrontare identita' di facce.
+                // An edge is «lateral» if it runs along the direction of
+                // extrusion. Its direction is looked at, not which face it
+                // belongs to: this way there is no need to compare face identities.
                 foreach (var f in faces)
                 {
                     var list = new List<IEntity>();
@@ -481,21 +481,21 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Saldature: i corpi e le estremita' di un passo
+        // Weldments: the bodies and the ends of a step
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// I CORPI creati da un passo — le barre di un gruppo di membri
-        /// strutturali.
+        /// The BODIES created by a step — the bars of a group of structural
+        /// members.
         ///
-        /// PERCHE' SI PASSA DALLE FACCE E NON SI CHIEDONO I CORPI DIRETTAMENTE
-        /// `IFeature` non ha un «dammi i corpi che hai creato». Ha `GetFaces()`,
-        /// e ogni faccia sa a quale corpo appartiene (`IFace2.GetBody()`). Si
-        /// risale di li', raccogliendo i corpi distinti.
+        /// WHY WE GO THROUGH THE FACES AND DO NOT ASK FOR THE BODIES DIRECTLY
+        /// `IFeature` has no «give me the bodies you created». It has `GetFaces()`,
+        /// and every face knows which body it belongs to (`IFace2.GetBody()`). We
+        /// go back up from there, collecting the distinct bodies.
         ///
-        /// Il confronto fra corpi si fa sull'identita' COM: due facce dello
-        /// stesso corpo restituiscono lo stesso oggetto, e un corpo contato due
-        /// volte diventerebbe una barra contata due volte nella distinta.
+        /// The comparison between bodies is done on COM identity: two faces of the
+        /// same body return the same object, and a body counted twice
+        /// would become a bar counted twice in the bill of materials.
         /// </summary>
         public static List<IBody2> BodiesOf(Step planStep, out string reason)
         {
@@ -571,18 +571,18 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le estremita' aperte di CORPI gia' nel documento, non di un passo.
+        /// The open ends of BODIES already in the document, not of a step.
         ///
-        /// PERCHE' SERVE UNA SECONDA STRADA
-        /// `FreeEnds(Step)` funziona solo dentro lo stesso piano: cita
-        /// il passo che ha creato le barre. In un messaggio NUOVO — «tappa le
-        /// estremita' del telaio che hai fatto prima» — quel passo non c'e'
-        /// piu', e fino alla 0.29.1 la richiesta non aveva nessuna forma
-        /// valida: il modello poteva solo ridisegnare le barre da capo, e
-        /// sarebbero uscite barre sovrapposte.
+        /// WHY A SECOND ROAD IS NEEDED
+        /// `FreeEnds(Step)` works only inside the same plan: it cites
+        /// the step that created the bars. In a NEW message — «cap the
+        /// ends of the frame you made before» — that step is no
+        /// longer there, and up to 0.29.1 the request had no valid
+        /// form: the model could only redraw the bars from scratch, and
+        /// overlapping bars would have come out.
         ///
-        /// Adesso lo stato del documento porta i corpi con il loro
-        /// identificativo, e questa e' la strada che li usa.
+        /// Now the document state carries the bodies with their
+        /// identifier, and this is the road that uses them.
         ///
         /// The same rule as <see cref="FreeEnds"/>, and the same
         /// <paramref name="machinedFaces"/>. A body whose faces cannot be read
@@ -871,7 +871,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Geometria di supporto
+        // Supporting geometry
         // ─────────────────────────────────────────────────────────────────
 
         private static IFace2[] FacesOf(Step planStep, out string reason)
@@ -913,8 +913,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La faccia piana perpendicolare alla direzione, all'estremo indicato
-        /// (+1 = quella piu' avanti lungo la direzione, -1 = quella piu' indietro).
+        /// The planar face perpendicular to the direction, at the indicated extreme
+        /// (+1 = the one furthest ahead along the direction, -1 = the one furthest back).
         /// </summary>
         private static bool End(
             Step planStep, IFace2[] faces, int facing, out IFace2 choice, out string reason)
@@ -1002,12 +1002,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Gli spigoli del solo bordo ESTERNO di una faccia.
+        /// The edges of the OUTER border only of a face.
         ///
-        /// «Gli spigoli in cima» vuol dire il perimetro, non i bordi dei fori
-        /// che ci sono stati aperti dentro. Distinguerli non e' una finezza:
-        /// raccordare la bocca di un foro accorcia la parte cilindrica utile,
-        /// e chi ha confermato «spigoli superiori» non ha confermato quello.
+        /// «The top edges» means the perimeter, not the borders of the holes
+        /// that were opened inside it. Telling them apart is not a finesse:
+        /// filleting the mouth of a hole shortens the useful cylindrical part,
+        /// and whoever confirmed «top edges» did not confirm that.
         /// </summary>
         private static bool OuterBorderEdges(
             IFace2 face, List<IEntity> inside, out string reason)
@@ -1050,8 +1050,8 @@ namespace Oce.Solid.Agent.Core
 
             if (outer == 0)
             {
-                // Qui non si ripiega su «prendi tutti gli spigoli»: sarebbe
-                // esattamente il difetto che questo metodo esiste per chiudere.
+                // Here we do not fall back on «take all the edges»: it would be
+                // exactly the defect that this method exists to close.
                 reason =
                     "Non ho trovato il bordo esterno della faccia, quindi non " +
                     "so distinguerlo dai bordi dei fori. Indica gli spigoli " +
@@ -1074,7 +1074,7 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        /// <summary>La normale uscente di una faccia PIANA, o null se non e' piana.</summary>
+        /// <summary>The outward normal of a PLANAR face, or null if it is not planar.</summary>
         private static double[] Normal(IFace2 face)
         {
             try
@@ -1098,12 +1098,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Una faccia cilindrica e' CONCAVA — cioe' la parete di un foro?
+        /// Is a cylindrical face CONCAVE — that is, the wall of a hole?
         ///
-        /// `FaceInSurfaceSense()` dice se la normale della faccia e' rovesciata
-        /// rispetto a quella della superficie. Per un cilindro la normale
-        /// naturale punta in fuori dall'asse: se la faccia la rovescia, il
-        /// materiale sta FUORI dal cilindro, ed e' un foro.
+        /// `FaceInSurfaceSense()` says whether the face normal is reversed
+        /// with respect to that of the surface. For a cylinder the natural
+        /// normal points out from the axis: if the face reverses it, the
+        /// material is OUTSIDE the cylinder, and it is a hole.
         ///
         /// The guide page says why this works (Z-C21.9, finding L10-7):
         /// IFace2~FaceInSurfaceSense.html, Remarks, «True if face normal and
@@ -1114,15 +1114,15 @@ namespace Oce.Solid.Agent.Core
         /// same page is the reason IFace2.Normal is taken as the outward normal
         /// everywhere (ApiHelpers.NormalIfPlanar).
         ///
-        /// Misurato, non dedotto (`Checks\HoleOrFillet`, 15/9/2026):
-        /// su una piastra con un foro Ø12 e un raccordo R5, la parete del foro
-        /// risponde **true** e la superficie del raccordo **false**.
+        /// Measured, not deduced (`Checks\HoleOrFillet`, 15/9/2026):
+        /// on a plate with a Ø12 hole and an R5 fillet, the hole wall
+        /// answers **true** and the fillet surface **false**.
         ///
-        /// Nel dubbio si risponde **false**, cioe' «non e' un foro»: il costo
-        /// di sbagliare nei due versi non e' lo stesso. Scambiare un raccordo
-        /// per un foro fa finire una lavorazione sulla faccia sbagliata senza
-        /// che niente fallisca; scambiare un foro per un raccordo fa uscire un
-        /// rifiuto, che si legge.
+        /// When in doubt the answer is **false**, that is «it is not a hole»: the cost
+        /// of getting it wrong in the two directions is not the same. Mistaking a fillet
+        /// for a hole makes a feature end up on the wrong face without
+        /// anything failing; mistaking a hole for a fillet produces a
+        /// refusal, which is read.
         /// </summary>
         private static bool Concave(IFace2 face)
         {
@@ -1130,7 +1130,7 @@ namespace Oce.Solid.Agent.Core
             catch { return false; }
         }
 
-        /// <summary>I diametri di queste facce cilindriche, per il rifiuto.</summary>
+        /// <summary>The diameters of these cylindrical faces, for the refusal.</summary>
         private static string Diameters(List<IFace2> faces)
         {
             var seen = new List<string>();
@@ -1149,7 +1149,7 @@ namespace Oce.Solid.Agent.Core
             return seen.Count == 0 ? "diametri non leggibili" : string.Join(", ", seen);
         }
 
-        /// <summary>La direzione di uno spigolo RETTILINEO, o null se non lo e'.</summary>
+        /// <summary>The direction of a STRAIGHT edge, or null if it is not one.</summary>
         private static double[] EdgeDirection(IEdge edge)
         {
             if (edge == null) return null;

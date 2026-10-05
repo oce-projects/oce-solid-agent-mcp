@@ -8,21 +8,21 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE LETTERE DELLE SEZIONI E DEI DETTAGLI (voce Z-C13), e la vista per uid.
+    /// THE LETTERS OF THE SECTIONS AND DETAILS (entry Z-C13), and the view by uid.
     ///
-    /// Due sezioni «A-A» sulla stessa tavola sono due tagli diversi che sembrano
-    /// lo stesso taglio; una sezione «B-B» e un dettaglio «B» uguale. SOLIDWORKS
-    /// non lo impedisce. La lettera EFFETTIVA si legge — `IDrSection.GetLabel()`
-    /// dalla vista di sezione (`IView.GetSection()`), `IDetailCircle.GetLabel()`
-    /// dal dettaglio (`IView.GetDetail()`) — non si crede a quella chiesta.
+    /// Two «A-A» sections on the same drawing are two different cuts that look like
+    /// the same cut; a «B-B» section and an equal «B» detail. SOLIDWORKS
+    /// does not prevent it. The ACTUAL letter is read — `IDrSection.GetLabel()`
+    /// from the section view (`IView.GetSection()`), `IDetailCircle.GetLabel()`
+    /// from the detail (`IView.GetDetail()`) — what was asked for is not believed.
     ///
-    /// E «V1»: `section_view` e `detail_view` cercavano la vista
-    /// solo per NOME, come `drawing_cut_list` fino alla 0.124.0 (che il
-    /// banco ha preso rossa alla prima chiamata con «V1»).
+    /// And «V1»: `section_view` and `detail_view` looked for the view
+    /// by NAME only, like `drawing_cut_list` until 0.124.0 (which the
+    /// bench got red on the first call with «V1»).
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>«V2» come lo scrive lo stato diventa il nome vero; un nome vero resta.</summary>
+        /// <summary>«V2» as the state writes it becomes the real name; a real name stays.</summary>
         private string ViewRequestedByName(IDrawingDoc drawing, string requested)
         {
             if (string.IsNullOrWhiteSpace(requested)) return requested;
@@ -35,15 +35,15 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le lettere gia' usate in tavola da sezioni e dettagli, lette dalle
-        /// viste (la lettera effettiva). Chiave = lettera maiuscola, valore = cosa.
+        /// The letters already used on the drawing by sections and details, read from the
+        /// views (the actual letter). Key = capital letter, value = what.
         /// </summary>
         private static Dictionary<string, string> SectionAndDetailLetters(IDrawingDoc drawing)
         {
             var outside = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            // TUTTI I FOGLI, non solo quello attivo (revisione del 26/9/2026): una
-            // «A-A» sul foglio 1 e un'altra sul foglio 2 sono due tagli con la stessa
-            // lettera nello stesso documento. GetViews: per foglio, [foglio, viste...].
+            // ALL THE SHEETS, not only the active one (review of 26/9/2026): an
+            // «A-A» on sheet 1 and another on sheet 2 are two cuts with the same
+            // letter in the same document. GetViews: per sheet, [sheet, views...].
             var all = new List<IView>();
             try
             {
@@ -87,7 +87,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>La lettera effettiva della vista di sezione o di dettaglio, o null.</summary>
+        /// <summary>The actual letter of the section or detail view, or null.</summary>
         private static string ViewLetter(IView v)
         {
             try
@@ -100,8 +100,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Rifiuto se la lettera chiesta e' gia' di una sezione o di un dettaglio:
-        /// il motivo, o null. Dice le lettere gia' usate.
+        /// Refusal if the letter asked for already belongs to a section or a detail:
+        /// the reason, or null. It says the letters already used.
         /// </summary>
         private static string LetterAlreadyUsed(IDrawingDoc drawing, string letter)
         {

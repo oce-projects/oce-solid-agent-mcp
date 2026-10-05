@@ -5,32 +5,32 @@ using System.Globalization;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE SEZIONI NORMALIZZATE: da due o tre quote ai contorni da estrudere.
+    /// THE STANDARD SECTIONS: from two or three dimensions to the contours to extrude.
     ///
-    /// E' la ricetta di `extrude_section`. Viveva solo nel server Python
-    /// (`profilo_sezione`), quindi dal ponte l'operazione era **dichiarata nel
-    /// catalogo e non eseguibile**: il modello poteva chiederla e si prendeva
+    /// It is the recipe of `extrude_section`. It lived only in the Python server
+    /// (`profilo_sezione`), so from the bridge the operation was **declared in the
+    /// catalogue and not executable**: the model could ask for it and got
     /// «operazione sconosciuta».
     ///
-    /// OGNI SEZIONE DICHIARA DOVE CADE L'ORIGINE, e non e' un dettaglio: e' la
-    /// quota da cui partiranno tutte le lavorazioni successive. Un angolare con
-    /// l'origine al centro invece che sullo spigolo interno sposta ogni foro.
+    /// EVERY SECTION DECLARES WHERE THE ORIGIN FALLS, and it is not a detail: it is the
+    /// datum from which all the later features will start. An angle with
+    /// the origin at the centre instead of at the inner corner shifts every hole.
     ///
-    /// I CONTROLLI DI QUESTA FAMIGLIA SONO FISICI, non di forma, e ognuno
-    /// esiste per un difetto che SOLIDWORKS non segnala.
+    /// THE CHECKS OF THIS FAMILY ARE PHYSICAL, not of form, and each one
+    /// exists for a defect that SOLIDWORKS does not report.
     /// </summary>
     public static class Sections
     {
         /// <summary>
-        /// Segmenti per ogni semicerchio dell'asola.
+        /// Segments for each semicircle of the slot.
         ///
-        /// **Non e' un parametro**, ed e' voluto: se lo fosse, si potrebbe
-        /// abbassare e ottenere un'asola ottagonale senza che nessuno se ne
-        /// accorga.
+        /// **It is not a parameter**, and it is intended: if it were, it could be
+        /// lowered and an octagonal slot obtained without anybody
+        /// noticing.
         /// </summary>
         public const int SemicircleSegments = 24;
 
-        /// <summary>Le sezioni che si sanno fare, e quali quote vogliono.</summary>
+        /// <summary>The sections that can be made, and which dimensions they want.</summary>
         public static readonly Dictionary<string, string[]> Wanted =
             new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
             {
@@ -46,11 +46,11 @@ namespace Oce.Solid.Agent.Core
             };
 
         /// <summary>
-        /// I contorni di una sezione, o null con il motivo.
+        /// The contours of a section, or null with the reason.
         ///
-        /// I contorni escono nella stessa forma che il parser gia' capisce, e
-        /// finiscono nello stesso esecutore di `extrude_profile`: una sezione
-        /// non e' un'altra operazione, e' un modo di scrivere dei contorni.
+        /// The contours come out in the same form that the parser already understands, and
+        /// end up in the same executor as `extrude_profile`: a section
+        /// is not another operation, it is a way of writing contours.
         /// </summary>
         public static List<object> Contours(
             string typ, Dictionary<string, double> m, out string reason)
@@ -69,9 +69,9 @@ namespace Oce.Solid.Agent.Core
                     double b = m["width_mm"], h = m["height_mm"], t = m["wall_mm"];
                     reason = WallIsInside(t, Math.Min(b, h), "tubolare");
                     if (reason != null) return null;
-                    // Origine al centro. Due rettangoli concentrici: l'ingombro
-                    // esterno sta scritto nelle coordinate, e non dipende da un
-                    // verso di parete.
+                    // Origin at the centre. Two concentric rectangles: the outer
+                    // bounding box is written in the coordinates, and does not depend on a
+                    // wall direction.
                     return new List<object>
                     {
                         Polygonal(Rectangle(b, h)),
@@ -102,10 +102,10 @@ namespace Oce.Solid.Agent.Core
 
                 case "hexagon":
                 {
-                    // QUOTATO SULL'APERTURA IN CHIAVE, che e' come si compra e
-                    // come si misura con una chiave fissa. Il diametro
-                    // circoscritto e' un'altra cosa, e confonderli da' un
-                    // esagono piu' grande del 15%.
+                    // DIMENSIONED ACROSS FLATS, which is how it is bought and
+                    // how it is measured with an open-ended spanner. The circumscribed
+                    // diameter is another thing, and confusing them gives a
+                    // hexagon 15% bigger.
                     double c = m["across_flats_mm"];
                     double r = c / Math.Sqrt(3.0);
                     var points = new List<double[]>();
@@ -122,9 +122,9 @@ namespace Oce.Solid.Agent.Core
                     double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
                     reason = ThicknessIsInside(t, Math.Min(b, h), "un'ala", "un piatto");
                     if (reason != null) return null;
-                    // Origine sullo SPIGOLO INTERNO: e' un punto che esiste sul
-                    // pezzo e che in officina si misura. Le ali crescono verso
-                    // +X e +Y.
+                    // Origin on the INNER CORNER: it is a point that exists on the
+                    // part and that in the workshop can be measured. The flanges grow toward
+                    // +X and +Y.
                     return new List<object>
                     {
                         Polygonal(new List<double[]>
@@ -145,8 +145,8 @@ namespace Oce.Solid.Agent.Core
                     reason = ThicknessIsInside(2 * t, b, "l'anima", "un piatto")
                              ?? ThicknessIsInside(t, h, "un'ala", "un piatto");
                     if (reason != null) return null;
-                    // Origine sullo spigolo esterno in basso a sinistra: le due
-                    // ali salgono.
+                    // Origin on the outer bottom-left corner: the two
+                    // flanges go up.
                     return new List<object>
                     {
                         Polygonal(new List<double[]>
@@ -169,8 +169,8 @@ namespace Oce.Solid.Agent.Core
                     reason = ThicknessIsInside(t, b, "l'ala", "un piatto")
                              ?? ThicknessIsInside(t, h, "l'anima", "un piatto");
                     if (reason != null) return null;
-                    // Origine al centro dell'ala superiore: l'anima scende
-                    // verso -Y.
+                    // Origin at the centre of the top flange: the web goes down
+                    // toward -Y.
                     double mb = b / 2.0, mt = t / 2.0;
                     return new List<object>
                     {
@@ -201,10 +201,10 @@ namespace Oce.Solid.Agent.Core
                     double r = h / 2.0;
                     double center = b / 2.0 - r;
 
-                    // I PUNTI STANNO SUL CERCHIO CIRCOSCRITTO, non su quello
-                    // nominale. Un'asola con i semicerchi inscritti e' piu'
-                    // STRETTA del nominale, e una vite che ci deve passare non
-                    // passa. Dove si approssima, si approssima in eccesso.
+                    // THE POINTS LIE ON THE CIRCUMSCRIBED CIRCLE, not on the
+                    // nominal one. A slot with inscribed semicircles is NARROWER
+                    // than the nominal, and a screw that has to pass through does not
+                    // pass. Where one approximates, one approximates in excess.
                     double rp = r / Math.Cos(Math.PI / (2 * SemicircleSegments));
                     var points = new List<double[]>();
                     for (int i = 0; i <= SemicircleSegments; i++)
@@ -231,24 +231,24 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  I controlli fisici
+        //  The physical checks
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// LA PARETE DEVE STARE STRETTAMENTE SOTTO LA META' DEL LATO MINORE.
+        /// THE WALL MUST BE STRICTLY UNDER HALF THE SHORTER SIDE.
         ///
-        /// La ragione non e' che «meta' e' troppo»: **a meta' esatta la cavita'
-        /// non c'e'**. Su un tubolare 80x80 con parete 40 il contorno interno
-        /// diventa quattro punti coincidenti, area zero. SOLIDWORKS non lo
-        /// segnala — un vuoto di area nulla non e' un errore, per lui — ed
-        /// estrude una BARRA PIENA: un tubolare 80x80x5 lungo un metro pesa
-        /// 11,8 kg, la barra piena ne pesa 50. **Quattro volte il peso, feature
-        /// verde, rebuild pulito.**
+        /// The reason is not that «half is too much»: **at exactly half the cavity
+        /// is not there**. On an 80x80 tube with wall 40 the inner contour
+        /// becomes four coincident points, zero area. SOLIDWORKS does not report
+        /// it — a void of null area is not an error, for it — and
+        /// extrudes a SOLID BAR: an 80x80x5 tube one metre long weighs
+        /// 11.8 kg, the solid bar weighs 50. **Four times the weight, green
+        /// feature, clean rebuild.**
         ///
-        /// Sopra la meta' il contorno interno si rovescia: lo prenderebbe anche
-        /// il controllo dei contorni, ma con un messaggio che parla di «vuoto
-        /// che sborda» a chi ha scritto una parete. Un rifiuto che non nomina
-        /// la quota sbagliata e' un rifiuto che si ripete identico.
+        /// Above half the inner contour turns inside out: the contour check
+        /// would catch it too, but with a message that talks about a «void
+        /// that overflows» to whoever wrote a wall. A refusal that does not name
+        /// the wrong dimension is a refusal that repeats itself identical.
         /// </summary>
         private static string WallIsInside(double wall, double shorterSide, string what)
         {
@@ -263,11 +263,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Un lato non puo' essere spesso quanto se stesso.
+        /// A side cannot be as thick as itself.
         ///
-        /// A uguaglianza esatta due vertici coincidono, il segmento sparisce, e
-        /// resta un'altra sezione: non un angolare piu' tozzo, un **piatto**.
-        /// Altro peso, altra inerzia, nessun errore.
+        /// At exact equality two vertices coincide, the segment disappears, and
+        /// another section remains: not a stockier angle, a **flat bar**.
+        /// Other weight, other inertia, no error.
         /// </summary>
         private static string ThicknessIsInside(
             double thickness, double side, string which, string becomes)
@@ -280,15 +280,15 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  Geometria di supporto
+        //  Supporting geometry
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Una coordinata, arrotondata a un decimo di micron.
+        /// A coordinate, rounded to a tenth of a micron.
         ///
-        /// Non e' cosmesi: senza, due vertici che dovrebbero coincidere
-        /// differiscono all'ultimo bit e SOLIDWORKS ci costruisce un segmento
-        /// lungo 1e-16 — che non da' errore e lascia il contorno aperto.
+        /// It is not cosmetics: without it, two vertices that should coincide
+        /// differ in the last bit and SOLIDWORKS builds a segment
+        /// 1e-16 long from them — which gives no error and leaves the contour open.
         /// </summary>
         private static double Q(double v)
         {

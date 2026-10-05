@@ -7,23 +7,23 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// CAMBIARE LA DEFINIZIONE DI UNA LAVORAZIONE FATTA (voce Z-F4), per
-    /// l'estrusione e il taglio estruso: un cieco che deve diventare passante,
-    /// una piastra che deve crescere. Prima l'unica strada era rifare il pezzo.
+    /// CHANGING THE DEFINITION OF A FEATURE ALREADY MADE (entry Z-F4), for
+    /// the extrusion and the extruded cut: a blind that must become through,
+    /// a plate that must grow. Before, the only route was to remake the part.
     ///
-    /// Misurato il 27/9/2026 (`prova0089 zf4`, piastra 120x80x10, foro cieco
-    /// Ø8 x 5 = 95748,67 mm³): `IFeature.GetDefinition()` come
+    /// Measured on 27/9/2026 (`prova0089 zf4`, plate 120x80x10, blind hole
+    /// Ø8 x 5 = 95748.67 mm³): `IFeature.GetDefinition()` as
     /// `IExtrudeFeatureData2`, `AccessSelections`, `SetEndCondition` /
     /// `SetDepth`, `ModifyDefinition`:
     ///
-    ///  * passante (`swEndCondThroughAll`) → 95497,35 (= 96000 − π·16·10);
-    ///  * di nuovo cieco profondo 7 → 95648,14 (= 96000 − π·16·7);
-    ///  * cieco 15 su una piastra da 10 → nessun errore, di fatto passante;
-    ///  * l'estrusione base 10 → 12, e il foro sulla faccia di sopra la segue.
+    ///  * through (`swEndCondThroughAll`) → 95497.35 (= 96000 − π·16·10);
+    ///  * blind again 7 deep → 95648.14 (= 96000 − π·16·7);
+    ///  * blind 15 on a plate of 10 → no error, in fact through;
+    ///  * the base extrusion 10 → 12, and the hole on the top face follows it.
     ///
-    /// Ogni cosa si rilegge: la condizione e la profondita' dalla definizione,
-    /// il volume dal pezzo, le lavorazioni in errore. Se la modifica ne rompe una
-    /// a valle, si rimette la definizione di prima e ci si rifiuta.
+    /// Everything is read back: the condition and the depth from the definition,
+    /// the volume from the part, the features in error. If the change breaks one
+    /// downstream, the previous definition is put back and it refuses.
     /// </summary>
     public partial class SwOperations
     {
@@ -72,8 +72,8 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 data.SetEndCondition(true, fine);
-                // ANCHE IL PIANO MEDIO HA LA SUA PROFONDITA' (revisione del 27/9/2026):
-                // senza, il ripristino rimetteva la condizione e lasciava la misura nuova.
+                // THE MID-PLANE HAS ITS DEPTH TOO (review of 27/9/2026):
+                // without it, the restore put the condition back and left the new measure.
                 if (fine == (int)swEndConditions_e.swEndCondBlind || fine == (int)swEndConditions_e.swEndCondMidPlane)
                     data.SetDepth(true, depthM);
                 // S11: ModifyDefinition always with GetErrorCode2 (ApiHelpers).
@@ -176,34 +176,34 @@ namespace Oce.Solid.Agent.Core
             }
             string typ = "";
             try { typ = f.GetTypeName2(); } catch { }
-            // «ICE» NON VUOL DIRE TAGLIO (voce Z-C21.2, rilievo M7).
+            // «ICE» DOES NOT MEAN CUT (entry Z-C21.2, finding M7).
             //
             // IFeature~GetTypeName2.html: «To get the underlying type of feature
             // of an Instant3D feature (i.e., "ICE"), call IFeature::GetTypeName».
-            // «ICE» e' un'estrusione fatta su una faccia, e puo' essere un taglio
-            // (cylindrical_cut, rectangular_cut) o un RIALZO
-            // (extrude_on_face): DocumentState.cs lo misura dal 10/9/2026. Qui
-            // «ICE» valeva «cut» e basta: un rialzo diventava «cut», e
-            // «through_all» su un rialzo non veniva rifiutato; un «Cut» vero veniva
-            // invece rifiutato. Per l'«ICE» taglio o rialzo lo dice la definizione:
+            // «ICE» is an extrusion made on a face, and it can be a cut
+            // (cylindrical_cut, rectangular_cut) or a BOSS
+            // (extrude_on_face): DocumentState.cs has measured it since 10/9/2026. Here
+            // «ICE» meant «cut» and nothing else: a boss became «cut», and
+            // «through_all» on a boss was not refused; a real «Cut» was
+            // refused instead. For the «ICE», cut or boss is told by the definition:
             // IExtrudeFeatureData2~IsBossFeature.html, «True if this extrusion is
             // a boss feature, false if not».
             //
-            // SOLO PER L'«ICE». La prima stesura chiedeva IsBossFeature a tutte, e
-            // la piastra di base (la PRIMA estrusione del pezzo, «Extrusion»)
-            // rispondeva false: «through_all» su una piastra passava il controllo e la
-            // piastra diventava «attraversa tutto» (blind_becomes_through,
-            // passo 6, rosso nel banco intero del 28/9/2026 su 0.138.0). La pagina
-            // non ha Remarks che lo dicano. MISURATO il 28/9/2026 (sonda
-            // Checks/ExtrusionType, SOLIDWORKS 29.5.1), prima e dopo
-            // AccessSelections, stesse risposte:
-            //   base (prima estrusione)   GetTypeName2 Extrusion  GetTypeName Extrusion  IsBossFeature false
-            //   rialzo (FeatureExtrusion3) GetTypeName2 ICE       GetTypeName Boss       IsBossFeature true
-            //   taglio (FeatureCut4)       GetTypeName2 ICE       GetTypeName Cut        IsBossFeature false
-            // Anche le estrusioni fatte da uno schizzo su un piano, dopo la base,
-            // sono «ICE» per GetTypeName2: «Extrusion» e' solo la base, che non e'
-            // un «boss» e non e' un taglio. Dove il tipo e' gia' «Cut» o
-            // «Extrusion» decide il tipo, come prima di Z-C21.2.
+            // ONLY FOR THE «ICE». The first draft asked IsBossFeature of all of them, and
+            // the base plate (the FIRST extrusion of the part, «Extrusion»)
+            // answered false: «through_all» on a plate passed the check and the
+            // plate became «through all» (blind_becomes_through,
+            // step 6, red in the whole bench of 28/9/2026 on 0.138.0). The page
+            // has no Remarks that say it. MEASURED on 28/9/2026 (probe
+            // Checks/ExtrusionType, SOLIDWORKS 29.5.1), before and after
+            // AccessSelections, same answers:
+            //   base (first extrusion)   GetTypeName2 Extrusion  GetTypeName Extrusion  IsBossFeature false
+            //   boss (FeatureExtrusion3) GetTypeName2 ICE        GetTypeName Boss       IsBossFeature true
+            //   cut (FeatureCut4)        GetTypeName2 ICE        GetTypeName Cut        IsBossFeature false
+            // The extrusions made from a sketch on a plane, after the base,
+            // are «ICE» for GetTypeName2 too: «Extrusion» is only the base, which is not
+            // a «boss» and is not a cut. Where the type is already «Cut» or
+            // «Extrusion» the type decides, as before Z-C21.2.
             if (typ != "Extrusion" && typ != "Cut" && typ != "ICE")
                 return Failed("«" + f.Name + "» e' una lavorazione di tipo «" + typ + "»: so cambiare le estrusioni e i tagli " +
                                "estrusi. Per una quota qualunque c'e' «set_dimension».");
@@ -228,18 +228,18 @@ namespace Oce.Solid.Agent.Core
             int endBefore = before.GetEndCondition(true);
             double depthBefore = before.GetDepth(true);
 
-            // DUE VERSI INDIPENDENTI: SI RIFIUTA (voce Z-C21.2, rilievo L5-1).
+            // TWO INDEPENDENT DIRECTIONS: IT REFUSES (entry Z-C21.2, finding L5-1).
             //
             // IExtrudeFeatureData2~BothDirections.html: «Gets or sets whether the
-            // extrusion is in both directions». Qui si scrive e si rilegge solo il
-            // verso 1 (Forward = true in SetEndCondition/SetDepth: «True for
-            // forward direction, false for reverse»). Su un'estrusione a due versi
-            // un «through_all» cambiava il verso 1, la rilettura del verso 1 tornava,
-            // e la risposta diceva «riuscito» con il verso 2 rimasto cieco. Il
-            // ponte non crea mai estrusioni a due versi (Sd: true), quindi arrivano
-            // solo da pezzi fatti fuori: rifiutare costa poco e non toglie niente
-            // che funzionasse davvero. Il piano medio NON e' «due versi» (e' una
-            // condizione del verso 1) e resta ammesso.
+            // extrusion is in both directions». Here only direction 1 is written and
+            // read back (Forward = true in SetEndCondition/SetDepth: «True for
+            // forward direction, false for reverse»). On a two-direction extrusion
+            // a «through_all» changed direction 1, the reread of direction 1 matched,
+            // and the answer said «succeeded» with direction 2 left blind. The
+            // bridge never creates two-direction extrusions (Sd: true), so they come
+            // only from parts made elsewhere: refusing costs little and takes away nothing
+            // that really worked. The mid-plane is NOT «two directions» (it is a
+            // condition of direction 1) and stays allowed.
             bool twoDirections = false;
             try { twoDirections = before.BothDirections; } catch { }
             if (twoDirections && endBefore != (int)swEndConditions_e.swEndCondMidPlane &&
@@ -255,15 +255,15 @@ namespace Oce.Solid.Agent.Core
                                "non la tocco. Cambiala a mano, oppure dimmi una quota da cambiare con " +
                                "«set_dimension». Non ho toccato niente.");
             }
-            // LA CONDIZIONE CHE SI CHIEDE DIPENDE DA QUELLA CHE C'E' (revisione
-            // avversariale del 27/9/2026). Una piastra simmetrica da 100 (da -50 a
-            // +50) portata a 120 diventava cieca da 0 a +120: non cresceva di 10 per
-            // parte, si spostava di 60, e i fori sulle facce la seguivano in posti
-            // diversi — e la risposta diceva «riuscito». Il piano medio resta piano
-            // medio; «through_all» su un piano medio attraversa nei due versi.
-            // Le condizioni con un RIFERIMENTO (fino a una superficie, a un vertice,
-            // a un corpo) non si toccano: cambiarle perde il riferimento, e se
-            // qualcosa si rompe non saprei rimetterlo.
+            // THE CONDITION THAT IS ASKED FOR DEPENDS ON THE ONE THAT IS THERE (adversarial
+            // review of 27/9/2026). A symmetric plate of 100 (from -50 to
+            // +50) taken to 120 became blind from 0 to +120: it did not grow by 10 on
+            // each side, it moved by 60, and the holes on the faces followed it to different
+            // places — and the answer said «succeeded». The mid-plane stays a mid-plane;
+            // «through_all» on a mid-plane goes through in both directions.
+            // The conditions with a REFERENCE (up to a surface, to a vertex,
+            // to a body) are not touched: changing them loses the reference, and if
+            // something breaks I would not know how to put it back.
             bool withReference = endBefore == (int)swEndConditions_e.swEndCondUpToSurface ||
                                   endBefore == (int)swEndConditions_e.swEndCondOffsetFromSurface ||
                                   endBefore == (int)swEndConditions_e.swEndCondUpToVertex ||
@@ -279,7 +279,7 @@ namespace Oce.Solid.Agent.Core
             int requestedEnd = asksThroughAll
                 ? (symmetric ? (int)swEndConditions_e.swEndCondThroughAllBoth : (int)swEndConditions_e.swEndCondThroughAll)
                 : (symmetric ? (int)swEndConditions_e.swEndCondMidPlane : (int)swEndConditions_e.swEndCondBlind);
-            // LE GUARDIE DI set_dimension: corpi, aperture, smussi, errori.
+            // THE GUARDS OF set_dimension: bodies, openings, chamfers, errors.
             var photo = SnapshotPart(model);
             double? volumeBefore = photo.Volume;
             string refusedBy;
@@ -292,8 +292,8 @@ namespace Oce.Solid.Agent.Core
             bool rebuilt = false;
             try { rebuilt = model.ForceRebuild3(false); } catch { }
             int errorsAfter = FeaturesInError(model);
-            // Senza le aperture: cambia solo la profondita', e un passante che torna
-            // cieco le fa calare a ragione (vedi WhatBroke).
+            // Without the openings: only the depth changes, and a through that goes back to
+            // blind makes them drop, rightly (see WhatBroke).
             string broken = WhatBroke(model, photo, rebuilt, false);
             if (broken != null)
             {

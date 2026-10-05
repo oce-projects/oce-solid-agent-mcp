@@ -8,11 +8,11 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// TUBI E TRANSIZIONI: sweep e loft. (voce GP17)
+    /// PIPES AND TRANSITIONS: sweep and loft. (entry GP17)
     ///
-    /// Un bocchettone passacavo, un manico, una transizione fra due sezioni.
-    /// Non e' il lavoro quotidiano di un'officina prismatica, ma senza queste
-    /// due il catalogo non sa fare niente che non sia dritto.
+    /// A cable gland, a handle, a transition between two sections.
+    /// It is not the daily work of a prismatic workshop, but without these
+    /// two the catalogue cannot make anything that is not straight.
     ///
     /// ── THE PROFILE IS A NUMBER, NOT A SKETCH ─────────────────────────
     ///
@@ -31,43 +31,43 @@ namespace Oce.Solid.Agent.Core
     /// with mark 4 BEFORE CreateDefinition, and the bench case
     /// straight_pipe_area_per_length unchanged to the seventh digit.
     ///
-    /// Per la stessa ragione **il percorso e' un elenco di punti** e non uno
-    /// schizzo da nominare: nello stato del documento gli schizzi non hanno un
-    /// identificativo, e nessuna operazione del catalogo ne lascia in giro uno
-    /// riutilizzabile. Se il percorso dovesse essere «uno schizzo», questa
-    /// operazione non sarebbe chiamabile da nessuno.
+    /// For the same reason **the path is a list of points** and not a
+    /// sketch to be named: in the state of the document sketches have no
+    /// identifier, and no operation of the catalogue leaves a reusable one
+    /// lying around. If the path had to be «a sketch», this
+    /// operation could not be called by anybody.
     ///
-    /// ── LE MARCHE, MISURATE ───────────────────────────────────────────
+    /// ── THE MARKS, MEASURED ───────────────────────────────────────────
     ///
-    ///   sweep, percorso con marca 4  ->  «Sweep1», volume giusto
-    ///   sweep, percorso con marca 0  ->  «Sweep1», volume giusto
-    ///   sweep, percorso con marca 1  ->  NULL
-    ///   sweep, percorso con marca 2  ->  NULL
+    ///   sweep, path with mark 4  ->  «Sweep1», right volume
+    ///   sweep, path with mark 0  ->  «Sweep1», right volume
+    ///   sweep, path with mark 1  ->  NULL
+    ///   sweep, path with mark 2  ->  NULL
     ///
-    ///   loft, profili con marca 1    ->  «Loft1», volume giusto
-    ///   loft, profili con marca 0    ->  «Loft1», volume giusto
-    ///   loft, profili con marca 4    ->  NULL
+    ///   loft, profiles with mark 1    ->  «Loft1», right volume
+    ///   loft, profiles with mark 0    ->  «Loft1», right volume
+    ///   loft, profiles with mark 4    ->  NULL
     ///
-    /// Si usa **4 per il percorso** dello sweep e **1 per i profili** del loft:
-    /// sono le marche che la documentazione di SOLIDWORKS associa ai due ruoli,
-    /// e sono fra quelle che funzionano. Lo zero funziona in tutti e due i casi
-    /// perche' vuol dire «nessuna marca», ma appoggiarcisi vorrebbe dire che
-    /// due selezioni con ruoli diversi diventano indistinguibili il giorno che
-    /// se ne aggiunge una terza.
+    /// **4 is used for the path** of the sweep and **1 for the profiles** of the loft:
+    /// they are the marks that the SOLIDWORKS documentation associates with the two roles,
+    /// and they are among those that work. Zero works in both cases
+    /// because it means «no mark», but leaning on it would mean that
+    /// two selections with different roles become indistinguishable the day
+    /// a third is added.
     ///
-    /// ── E UN LOFT FRA DUE CERCHI NON E' UN CONO ──────────────────────
+    /// ── AND A LOFT BETWEEN TWO CIRCLES IS NOT A CONE ─────────────────
     ///
-    /// Misurato: cerchio Ø40 a quota 0, cerchio Ø20 a quota 50.
+    /// Measured: circle Ø40 at height 0, circle Ø20 at height 50.
     ///
-    ///   formula del tronco di cono   36.651,91 mm3
-    ///   loft misurato                36.650,61 mm3
-    ///   differenza                        1,30 mm3   (0,0035%)
+    ///   formula of the truncated cone   36,651.91 mm3
+    ///   loft measured                   36,650.61 mm3
+    ///   difference                           1.30 mm3   (0.0035%)
     ///
-    /// La superficie del loft e' **un'approssimazione a spline** della
-    /// conica, non una conica. E' poco, ed e' sistematico: chi confronta il
-    /// volume di un loft con la formula deve saperlo, o inseguira' un difetto
-    /// che non c'e'. `revolve` sullo stesso trapezio da il cono esatto, e
-    /// il banco tiene i due numeri accanto apposta.
+    /// The surface of the loft is **a spline approximation** of the
+    /// conic, not a conic. It is small, and it is systematic: whoever compares the
+    /// volume of a loft with the formula must know it, or will chase a defect
+    /// that is not there. `revolve` on the same trapezoid gives the exact cone, and
+    /// the bench keeps the two numbers side by side on purpose.
     /// </summary>
     public partial class SwOperations
     {
@@ -85,10 +85,10 @@ namespace Oce.Solid.Agent.Core
                     "numeri in millimetri: per esempio [[0,0,0], [100,0,0]]. E' la linea " +
                     "lungo cui corre il tubo.");
 
-            // ── IL PERCORSO NON DEVE TORNARE SU SE STESSO ───────────────
+            // ── THE PATH MUST NOT DOUBLE BACK ON ITSELF ─────────────────
             //
-            // Due punti uguali di fila fanno un segmento di lunghezza zero, e
-            // lo sweep non nasce senza dire perche'. Si guarda prima.
+            // Two equal points in a row make a segment of length zero, and
+            // the sweep is not born without saying why. It is checked first.
             double length = 0;
             for (int i = 1; i < points.Count; i++)
             {
@@ -120,9 +120,9 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 model.ClearSelection2(true);
-                // UNO SCHIZZO 3D, e non uno su un piano: un percorso che gira
-                // nello spazio non sta su nessun piano, e pretendere che ci
-                // stia vorrebbe dire saper fare solo i tubi dritti.
+                // A 3D SKETCH, and not one on a plane: a path that turns
+                // in space lies on no plane, and demanding that it
+                // does would mean knowing how to make only straight pipes.
                 sketches.Insert3DSketch(true);
                 for (int i = 1; i < points.Count; i++)
                 {
@@ -150,7 +150,7 @@ namespace Oce.Solid.Agent.Core
                                WithoutSketch(model));
 
             model.ClearSelection2(true);
-            // MARCA 4: il percorso. Vedi la tabella nella nota in testa.
+            // MARK 4: the path. See the table in the note at the top.
             if (!filePath.Select2(true, SelectionMarks.SweepPath))
                 return Failed("Non sono riuscito a selezionare il percorso." + WithoutSketch(model));
 
@@ -199,12 +199,12 @@ namespace Oce.Solid.Agent.Core
                     "Lo sweep non ha aggiunto materiale: il volume e' rimasto quello di " +
                     "prima. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
-            // ── IL CONTO CHE SI PUO' FARE A MANO ────────────────────────
+            // ── THE CALCULATION THAT CAN BE DONE BY HAND ────────────────
             //
-            // Su un percorso DRITTO il volume e' area per lunghezza, esatto. Su
-            // uno spezzato no: nei gomiti il materiale si sovrappone, e il
-            // volume vero e' minore. Si dichiara quale dei due casi e', invece
-            // di dare un numero che torna solo qualche volta.
+            // On a STRAIGHT path the volume is area times length, exact. On
+            // a broken one it is not: in the elbows the material overlaps, and the
+            // true volume is smaller. It is declared which of the two cases it is, instead
+            // of giving a number that matches only some of the time.
             bool straight = points.Count == 2;
             double theoretical = Math.PI * diameter * diameter / 4.0 * length;
             var measurements = new Dictionary<string, object>
@@ -283,7 +283,7 @@ namespace Oce.Solid.Agent.Core
             IFeature s1, s2;
             try
             {
-                // primo cerchio, sul piano scelto
+                // first circle, on the chosen plane
                 if (!SelectPlane(model, plane))
                     return Failed("Non ho trovato il piano «" + plane + "» nell'albero.");
                 // EACH OF THE THREE FEATURES IS THE ONE BORN SINCE ITS OWN CALL
@@ -339,8 +339,8 @@ namespace Oce.Solid.Agent.Core
                 return Failed("Non ritrovo i due schizzi appena fatti.");
 
             model.ClearSelection2(true);
-            // MARCA 1 PER TUTTI E DUE I PROFILI, e l'ORDINE conta: il loft va
-            // dal primo selezionato al secondo.
+            // MARK 1 FOR BOTH PROFILES, and the ORDER matters: the loft goes
+            // from the first selected to the second.
             if (!s1.Select2(true, SelectionMarks.LoftProfile) || !s2.Select2(true, SelectionMarks.LoftProfile))
                 return Failed("Non sono riuscito a selezionare i due profili.");
 
@@ -365,8 +365,8 @@ namespace Oce.Solid.Agent.Core
                     "uno dei due profili che non si chiude, o due profili che si " +
                     "attraversano.");
 
-            // I corpi si leggono UNA volta (prima tre chiamate per lo stesso
-            // numero), e il volume dopo puo' non leggersi (voce Z-C8).
+            // The bodies are read ONCE (before, three calls for the same
+            // number), and the volume after may be unreadable (entry Z-C8).
             int bodiesAfter = CountSolidBodies(model);
             double? volumeAfter = VolumeMm3(model);
             if (volumeAfter == null)
@@ -385,10 +385,10 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "Il loft non ha aggiunto materiale. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
 
-            // Il tronco di cono: pi*h/3*(R^2 + R*r + r^2). Vale solo se i due
-            // cerchi sono coassiali; sfalsandoli viene un tronco obliquo, che
-            // per Cavalieri ha lo stesso volume — ma la superficie del loft e'
-            // un'altra cosa, e il numero si scosta di piu'.
+            // The truncated cone: pi*h/3*(R^2 + R*r + r^2). It holds only if the two
+            // circles are coaxial; offsetting them gives an oblique truncated cone, which
+            // by Cavalieri has the same volume — but the surface of the loft is
+            // another matter, and the number deviates more.
             double R = d1 / 2, r = d2 / 2;
             double theoretical = Math.PI * Math.Abs(distance) / 3.0 * (R * R + R * r + r * r);
             double deviation = Math.Abs(added - theoretical) / theoretical;
@@ -403,7 +403,7 @@ namespace Oce.Solid.Agent.Core
                 ["deviation_from_cone_frustum"] = Math.Round(deviation, 8),
                 ["bodies"] = NumberOrNull(bodiesAfter),
                 ["planes_added"] = AddedPlanes(model, planesBefore),
-                // NON E' UN CONO, ED E' MISURATO. Vedi la nota in testa.
+                // IT IS NOT A CONE, AND IT IS MEASURED. See the note at the top.
                 ["note_on_volume"] =
                     "La superficie di un loft fra due cerchi e' un'APPROSSIMAZIONE A SPLINE " +
                     "della conica, non una conica: il volume si scosta dalla formula del " +

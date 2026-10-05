@@ -9,25 +9,25 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Le saldature: barre vere, non estrusioni che ci somigliano.
+    /// Weldments: real bars, not extrusions that look like them.
     ///
-    /// IL DIFETTO DA CUI NASCE QUESTO FILE
-    /// L'8 settembre 2026 il progettista ha chiesto «disegna un tubolare
-    /// 80x80x5 lungo 200» e ha ricevuto un corpo estruso. Ha detto subito che
-    /// era sbagliato, e la ragione non e' estetica: senza membro strutturale
-    /// NON NASCE LA DISTINTA DI TAGLIO. `Services/DistintaTaglio.cs` sa
-    /// leggerla dal 2 settembre, e ha sempre letto il vuoto perche' nessuno la
-    /// creava.
+    /// THE DEFECT THIS FILE COMES FROM
+    /// On 8 September 2026 the designer asked «draw a tube
+    /// 80x80x5 200 long» and received an extruded body. He said right away that it
+    /// was wrong, and the reason is not aesthetic: without a structural member
+    /// THE CUT LIST IS NOT BORN. `Services/DistintaTaglio.cs` has known how to
+    /// read it since 2 September, and it has always read nothing because nobody
+    /// created it.
     ///
-    /// LA SEQUENZA, E PERCHE' STA TUTTA QUI DENTRO
-    /// Un membro strutturale vuole uno SCHIZZO 3D con dentro i segmenti lungo
-    /// cui corrono le barre, e i segmenti vanno passati a un
-    /// IStructuralMemberGroup. Sono tre gesti che devono riuscire tutti e tre:
-    /// spezzarli in tre operazioni del piano vorrebbe dire tre conferme per una
-    /// cosa sola, e tre modi di restare a meta'. Qui si fa tutto in un passo, e
-    /// se qualcosa non riesce si dice cosa e' rimasto nel documento.
+    /// THE SEQUENCE, AND WHY IT ALL LIVES IN HERE
+    /// A structural member wants a 3D SKETCH with inside it the segments along
+    /// which the bars run, and the segments must be passed to an
+    /// IStructuralMemberGroup. They are three gestures that must all three succeed:
+    /// splitting them into three plan operations would mean three confirmations for one
+    /// thing, and three ways of being left halfway. Here everything is done in one step, and
+    /// if something does not succeed it says what was left in the document.
     ///
-    /// FIRME VERIFICATE PER RIFLESSIONE il 9 settembre 2026 sull'interop
+    /// SIGNATURES VERIFIED BY REFLECTION on 9 September 2026 on interop
     /// 29.5.1.1 (SOLIDWORKS 2021 SP5):
     ///   IFeatureManager.InsertStructuralWeldment5(String Path, Int32
     ///       ConnectedSegmentsOption, Boolean AllowProtrusion, Object Groups,
@@ -37,7 +37,7 @@ namespace Oce.Solid.Agent.Core
     ///       Options, Double GapValue, Object BodiesToTrim, Object
     ///       BodiesOrFaces) -> Feature
     ///   IFeatureManager.InsertWeldmentCutList2(Object Bodies) -> Feature
-    ///   IFeatureManager.InsertEndCapFeature3(...10 parametri...) -> Feature
+    ///   IFeatureManager.InsertEndCapFeature3(...10 parameters...) -> Feature
     ///   IFeatureManager.InsertCosmeticWeldBead2(Int32 WeldMode, Object
     ///       WeldFromFaceOrEdgeSet, Object WeldToFaceOrEdgeSet, Double
     ///       WeldSize) -> Object
@@ -48,33 +48,33 @@ namespace Oce.Solid.Agent.Core
     ///   swSolidworksWeldmentEndCondOptions_e: None=0, Miter=1, Butt1=2,
     ///       Butt2=3, Trim=4, UseDefault=5
     ///
-    /// UNITA': tutto cio' che arriva dal piano e' in MILLIMETRI. La conversione
-    /// la fa Unita, e solo Unita. Un millimetro passato per metro da' un telaio
-    /// mille volte piu' grande, senza nessun errore.
+    /// UNITS: everything that arrives from the plan is in MILLIMETERS. The conversion
+    /// is done by Unita, and only by Unita. A millimeter passed as a meter gives a frame
+    /// a thousand times bigger, with no error.
     /// </summary>
     public partial class SwOperations
     {
         // ─────────────────────────────────────────────────────────────────
-        // Membri strutturali
+        // Structural members
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// C'e' gia' un documento aperto su quel file?
+        /// Is there already a document open on that file?
         ///
-        /// Il confronto e' sul percorso, normalizzato: SolidWorks scrive i
-        /// percorsi con le barre all'indietro e chi manda il piano puo'
-        /// scriverli in un altro modo. Un confronto fra stringhe grezze
-        /// direbbe di no su due scritture dello stesso file, e allora si
-        /// chiuderebbe una libreria che era di qualcun altro — cioe'
-        /// esattamente il danno che questo controllo evita.
+        /// The comparison is on the path, normalized: SolidWorks writes
+        /// paths with backslashes and whoever sends the plan may
+        /// write them another way. A comparison between raw strings
+        /// would say no on two spellings of the same file, and then
+        /// a library that belonged to someone else would be closed — that is
+        /// exactly the damage this check avoids.
         /// </summary>
         /// <summary>
-        /// Com'era la libreria prima che la toccassimo. Tre stati e non due,
-        /// e la differenza e' quella che mancava:
+        /// How the library was before we touched it. Three states and not two,
+        /// and the difference is the one that was missing:
         ///
-        ///   Chiusa       — non c'era: la si richiude senza pensarci
-        ///   OpenClean — c'era e nessuno l'aveva modificata
-        ///   OpenDirty — c'era e qualcuno ci stava gia' lavorando
+        ///   Closed       — it was not there: we close it again without a second thought
+        ///   OpenClean — it was there and nobody had modified it
+        ///   OpenDirty — it was there and someone was already working on it
         /// </summary>
         /// <remarks>
         /// Internal, and the three methods below static, since Z-C21.10 N31:
@@ -116,14 +116,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Richiude il file di libreria, se e' stato questo inserimento ad
-        /// aprirlo. Non salva MAI: `CloseDoc` scarta le modifiche, e le
-        /// modifiche qui sono soltanto lo sporco che l'inserimento lascia.
+        /// Closes the library file again, if it was this insertion that
+        /// opened it. It NEVER saves: `CloseDoc` discards the changes, and the
+        /// changes here are only the dirt the insertion leaves behind.
         ///
-        /// Non solleva e non fa fallire l'operazione: il membro strutturale
-        /// e' gia' nel pezzo, e un problema nel richiudere la libreria non
-        /// deve trasformare un lavoro riuscito in un errore. Si scrive nel
-        /// log e si va avanti.
+        /// It does not throw and does not make the operation fail: the structural member
+        /// is already in the part, and a problem in closing the library again must not
+        /// turn a successful job into an error. It is written to the
+        /// log and we move on.
         ///
         /// Z-C21.10 N31, what changed: it is static, so the overhang probe
         /// (<see cref="SectionProfile"/>) applies the same rule, and it no
@@ -160,9 +160,9 @@ namespace Oce.Solid.Agent.Core
             string itemName = profile ?? "";
             try { itemName = Path.GetFileName(profile); } catch { }
 
-            // ERA APERTA E QUALCUNO CI STAVA LAVORANDO: non si tocca.
-            // Era gia' a rischio prima di noi, e chiuderla vorrebbe dire
-            // buttare via il lavoro di qualcun altro.
+            // IT WAS OPEN AND SOMEONE WAS WORKING ON IT: it is not touched.
+            // It was already at risk before us, and closing it would mean
+            // throwing away someone else's work.
             if (comEra == ComEra.OpenDirty)
             {
                 log("[agente] the library «" + itemName + "» was already open AND " +
@@ -183,19 +183,19 @@ namespace Oce.Solid.Agent.Core
             try { docTitle = doc.GetTitle() ?? ""; } catch { }
             if (string.IsNullOrWhiteSpace(docTitle)) docTitle = itemName;
 
-            // ERA APERTA E PULITA, E ADESSO E' SPORCA.
+            // IT WAS OPEN AND CLEAN, AND NOW IT IS DIRTY.
             //
-            // Qui si chiude lo stesso, ed e' un cambio di idea rispetto a
-            // prima. La versione precedente diceva «era gia' aperta, la
-            // lascio com'era» — ma «com'era» voleva dire PULITA, e
-            // l'inserimento l'ha sporcata. Conservare lo stato aperto e non
-            // quello pulito lascia esattamente il rischio che tutto questo
-            // esiste per togliere: un file condiviso a un Ctrl+S di distanza
-            // dall'essere riscritto.
+            // Here we close it all the same, and it is a change of mind from
+            // before. The previous version said «it was already open, I
+            // leave it as it was» — but «as it was» meant CLEAN, and
+            // the insertion made it dirty. Keeping the open state and not the
+            // clean one leaves exactly the risk that all this exists
+            // to remove: a shared file one Ctrl+S away from
+            // being overwritten.
             //
-            // Chiudendola non si perde niente — era pulita — e chi ce
-            // l'aveva aperta la riapre com'era. Il flag non si puo'
-            // ripulire: `SetSaveFlag()` non prende argomenti, sporca e basta.
+            // By closing it nothing is lost — it was clean — and whoever had
+            // it open reopens it as it was. The flag cannot be
+            // cleaned: `SetSaveFlag()` takes no arguments, it only dirties.
             bool wasOpen = comEra == ComEra.OpenClean;
             bool dirtyNow = false;
             try { dirtyNow = doc.GetSaveFlag(); } catch { }
@@ -402,25 +402,25 @@ namespace Oce.Solid.Agent.Core
             // the file is known to exist.
             if (string.IsNullOrWhiteSpace(configuration)) configuration = "";
 
-            // IL CONTROLLO CHE IL SERVER NON PUO' FARE.
+            // THE CHECK THE SERVER CANNOT DO.
             //
-            // Il server ha un indice di nomi mandato da una postazione, che
-            // puo' essere un'altra e puo' essere di ieri. Qui c'e' il disco
-            // vero. Se il file non c'e', InsertStructuralWeldment5 non solleva:
-            // ritorna null, e senza questo controllo l'utente leggerebbe «il
-            // membro non e' stato creato» senza sapere che il profilo era il
-            // problema.
+            // The server has an index of names sent from a workstation, which
+            // may be another one and may be from yesterday. Here is the real
+            // disk. If the file is not there, InsertStructuralWeldment5 does not throw:
+            // it returns null, and without this check the user would read «il
+            // membro non e' stato creato» without knowing that the profile was the
+            // problem.
             if (!File.Exists(profile))
                 return Failed(
                     "Il profilo «" + profile + "» non esiste su questa postazione. " +
                     "O il percorso e' sbagliato, o la libreria dei profili non e' " +
                     "raggiungibile da qui.");
 
-            // E la configurazione? Stessa storia, peggiore: se la misura non
-            // c'e', SolidWorks NON fallisce — usa la configurazione attiva del
-            // profilo. Il pezzo esce con una parete diversa da quella
-            // confermata, il rebuild e' pulito, e nessuno se ne accorge fino
-            // all'officina.
+            // And the configuration? Same story, worse: if the size is
+            // not there, SolidWorks does NOT fail — it uses the active configuration of the
+            // profile. The part comes out with a different wall from the one
+            // confirmed, the rebuild is clean, and nobody notices until
+            // the shop.
             //
             // THE EMPTY SIZE (Z-C21.3, finding N25). IFeatureManager~
             // InsertStructuralWeldment5.html, Remarks: «If using ...
@@ -475,23 +475,23 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                // Non poter controllare non e' come aver controllato: si va
-                // avanti, ma si scrive nel log che il controllo e' saltato.
+                // Not being able to check is not the same as having checked: we go
+                // on, but we write in the log that the check was skipped.
                 _log("[agente] non ho potuto verificare le misure del profilo: " + ex.Message);
             }
 
-            // I SEGMENTI SI POSSONO NON AVERE, SE C'E' UN TELAIO.
+            // THE SEGMENTS CAN BE OMITTED, IF THERE IS A FRAME.
             //
-            // Un telaio rettangolare e' descritto da due quote e un piano: i
-            // quattro segmenti sono una conseguenza, non un dato. Il server
-            // li calcola e li manda insieme, quindi da quella parte non si
-            // notava; dal ponte l'operazione rispondeva «Il piano non porta
-            // nessun segmento» senza nemmeno guardare il telaio — cioe'
-            // chiedeva di calcolare a mano cio' che sa fare da sola, e lo
-            // chiedeva con un messaggio che non lo diceva.
+            // A rectangular frame is described by two dimensions and a plane: the
+            // four segments are a consequence, not a datum. The server
+            // computes them and sends them together, so on that side it was not
+            // noticed; from the bridge the operation answered «Il piano non porta
+            // nessun segmento» without even looking at the frame — that is,
+            // it asked to compute by hand what it can do by itself, and
+            // it asked with a message that did not say so.
             //
-            // Chi li porta lo stesso viene servito: sono il ripiego per chi
-            // vuole le quote d'asse invece dell'ingombro esterno.
+            // Whoever carries them is served all the same: they are the fallback for whoever
+            // wants the centerline dimensions instead of the outer envelope.
             var requestedFrame = RequestedFrame(a);
             var segments = SegmentsFrom(a, out string reason);
             if (segments == null && requestedFrame == null) return Failed(reason);
@@ -523,29 +523,29 @@ namespace Oce.Solid.Agent.Core
             bool cornerAssumed = string.IsNullOrWhiteSpace(treatment);
             if (cornerAssumed) treatment = "miter";
 
-            // ── IL TELAIO A QUOTE ESTERNE ────────────────────────────────
+            // ── THE FRAME WITH OUTER DIMENSIONS ───────────────────────────
             //
-            // IL DIFETTO. Il 9 settembre 2026 il progettista ha chiesto un
-            // telaio 1000x800 in tubolare 80x80x5 e sul pezzo ha misurato
-            // 1080x880. Il percorso di un membro strutturale e' la LINEA
-            // D'ASSE e SolidWorks centra il profilo su di essa: un percorso
-            // sugli spigoli di 1000x800 fa sporgere le barre di 40 mm per
-            // lato. Il riassunto, intanto, prometteva «1000x800».
+            // THE DEFECT. On 9 September 2026 the designer asked for a
+            // 1000x800 frame in 80x80x5 tube and measured
+            // 1080x880 on the part. The path of a structural member is the
+            // CENTERLINE and SolidWorks centers the profile on it: a path
+            // on the edges of 1000x800 makes the bars protrude by 40 mm on each
+            // side. The summary, meanwhile, promised «1000x800».
             //
-            // PERCHE' IL CONTO SI FA QUI E NON SUL SERVER. Per arretrare il
-            // percorso serve sapere di quanto il profilo sporge, e quello sta
-            // nel file .sldlfp su questa postazione. Il server ha solo un
-            // indice di nomi. Il nome della configurazione non e' una fonte:
-            // nella stessa libreria convivono «80X80X3» e «20x20x1,5», e un IPE
-            // 200 e' 200x100. E non basta nemmeno misurare una barra isolata:
-            // dentro il gruppo del telaio il profilo si orienta diversamente
-            // (un 80X50X5 sporgeva 50 invece di 80). Percio'
-            // SectionProfile costruisce un TELAIO di prova con le
-            // stesse opzioni e misura di quanto sporge.
+            // WHY THE COMPUTATION IS DONE HERE AND NOT ON THE SERVER. To pull the
+            // path back we need to know by how much the profile protrudes, and that lives
+            // in the .sldlfp file on this workstation. The server has only an
+            // index of names. The configuration name is not a source:
+            // in the same library «80X80X3» and «20x20x1,5» coexist, and an IPE
+            // 200 is 200x100. And measuring an isolated bar is not enough either:
+            // inside the frame's group the profile is oriented differently
+            // (an 80X50X5 protruded 50 instead of 80). Therefore
+            // SectionProfile builds a test FRAME with the
+            // same options and measures how far it protrudes.
             //
-            // Il server manda `frame` INSIEME ai segmenti gia' calcolati sul
-            // nominale: quelli servono al riassunto e restano il ripiego se
-            // qualcuno chiede esplicitamente le quote d'asse.
+            // The server sends `frame` TOGETHER WITH the segments already computed on the
+            // nominal: those serve the summary and stay as the fallback if
+            // someone explicitly asks for the centerline dimensions.
             double[] promisedBoundingBox = null;
             double[] overhangs = null;
             // Where the overhang came from, and how to drop it from the
@@ -580,17 +580,17 @@ namespace Oce.Solid.Agent.Core
                     "other way, the frame would come out larger or smaller by the size " +
                     "of the profile.");
 
-            // ── IL TELAIO A INTERASSE ────────────────────────────────────
+            // ── THE FRAME WITH CENTERLINE DIMENSIONS ─────────────────────
             //
-            // Le due quote sono la LINEA D'ASSE del percorso, non l'ingombro
-            // finito: e' il caso di chi ragiona sugli interassi — fori,
-            // piastre, attacchi — e la sporgenza del profilo se la tiene.
-            // Il percorso e' allora il rettangolo nominale, senza
-            // arretramento.
+            // The two dimensions are the path's CENTERLINE, not the finished
+            // envelope: it is the case of whoever reasons on center distances — holes,
+            // plates, attachments — and keeps the profile's protrusion to themselves.
+            // The path is then the nominal rectangle, with no
+            // pulling back.
             //
-            // Il catalogo lo documenta da sempre fra i valori ammessi di
-            // «measured_as». Il C# no: cadeva nel ripiego dei segmenti, che pero'
-            // questa operazione esiste apposta per non far scrivere.
+            // The catalog has always documented it among the allowed values of
+            // «measured_as». The C# did not: it fell into the segment fallback, which however
+            // this operation exists precisely to spare people from writing.
             if (frame != null && segments == null &&
                 !string.Equals(howItIsMeasured, "overall", StringComparison.Ordinal))
             {
@@ -642,10 +642,10 @@ namespace Oce.Solid.Agent.Core
                         "un telaio costruito lo stesso uscirebbe piu' grande di quanto " +
                         "promesso. Meglio fermarsi.");
 
-                // Una sezione piu' larga del telaio non e' un telaio: le barre
-                // si compenetrerebbero e il percorso avrebbe lunghezza nulla o
-                // negativa. Va detto prima, non lasciato fallire dentro
-                // SolidWorks con un messaggio che non spiega niente.
+                // A section wider than the frame is not a frame: the bars
+                // would interpenetrate and the path would have zero or negative
+                // length. It must be said beforehand, not left to fail inside
+                // SolidWorks with a message that explains nothing.
                 if (overhangs[0] >= along - 0.01 || overhangs[1] >= wide - 0.01)
                     return Failed(string.Format(
                         "Con questo profilo il telaio sporge di {0:0.#}x{1:0.#} mm oltre " +
@@ -664,10 +664,10 @@ namespace Oce.Solid.Agent.Core
                     along - overhangs[0], wide - overhangs[1]));
             }
 
-            // SE ARRIVATI QUI I SEGMENTI ANCORA NON CI SONO, il telaio c'era
-            // ma non era utilizzabile — «measured_as» diverso da «overall», o un
-            // piano che non si riconosce. Si dice quello, non «manca il
-            // percorso»: chi ha scritto un telaio ha chiesto un telaio.
+            // IF WE GOT HERE THE SEGMENTS STILL ARE NOT THERE, the frame was there
+            // but was not usable — «measured_as» other than «overall», or a
+            // plan that is not recognized. We say that, not «manca il
+            // percorso»: whoever wrote a frame asked for a frame.
             if (segments == null)
                 return Failed(
                     "Hai chiesto un telaio ma non ho potuto ricavarne il " +
@@ -675,7 +675,7 @@ namespace Oce.Solid.Agent.Core
                     "Un telaio vuole «length_mm», «width_mm» e «plane»; " +
                     "se invece vuoi dare tu il percorso, passa «segments».");
 
-            // ── lo schizzo 3D del percorso ──────────────────────────────
+            // ── the 3D sketch of the path ───────────────────────────────
             model.ClearSelection2(true);
             var sketches = model.SketchManager;
             var created = new List<ISketchSegment>();
@@ -707,7 +707,7 @@ namespace Oce.Solid.Agent.Core
             if (created.Count == 0)
                 return Failed("Nessun segmento disegnato: non c'e' percorso su cui mettere le barre.");
 
-            // ── il gruppo ────────────────────────────────────────────────
+            // ── the group ────────────────────────────────────────────────
             IStructuralMemberGroup theGroup;
             try
             {
@@ -723,24 +723,24 @@ namespace Oce.Solid.Agent.Core
 
             try
             {
-                // I SEGMENTI VANNO PASSATI COME SketchSegment[], NON object[].
+                // THE SEGMENTS MUST BE PASSED AS SketchSegment[], NOT object[].
                 //
-                // La firma COM dice Object, e sembra che vada bene qualunque
-                // array. Non e' cosi': misurato il 9 settembre 2026 su
-                // SOLIDWORKS 2021 SP5, con object[] il gruppo resta a ZERO
-                // segmenti — GetSegmentsCount() lo dice — e
-                // InsertStructuralWeldment5 riceve un gruppo vuoto e torna
-                // null senza spiegare niente. Con l'array tipizzato i
-                // segmenti entrano.
+                // The COM signature says Object, and it seems any
+                // array will do. It is not so: measured on 9 September 2026 on
+                // SOLIDWORKS 2021 SP5, with object[] the group stays at ZERO
+                // segments — GetSegmentsCount() says so — and
+                // InsertStructuralWeldment5 receives an empty group and returns
+                // null without explaining anything. With the typed array the
+                // segments go in.
                 theGroup.Segments = created.Cast<SketchSegment>().ToArray();
                 if (Math.Abs(rotation) > 1e-9) theGroup.Angle = Units.Rad(rotation);
 
                 int code;
                 if (CornerTreatments.TryGetValue(treatment ?? "", out code))
                 {
-                    // «none» non e' un trattamento: e' l'assenza. Chiederlo a
-                    // SolidWorks come tipo 0 CON ApplyCornerTreatment acceso
-                    // darebbe un risultato diverso da non chiederlo affatto.
+                    // «none» is not a treatment: it is the absence. Asking SolidWorks for it
+                    // as type 0 WITH ApplyCornerTreatment on
+                    // would give a different result from not asking at all.
                     theGroup.ApplyCornerTreatment = code != 0;
                     if (code != 0) theGroup.CornerTreatmentType = code;
                 }
@@ -755,20 +755,20 @@ namespace Oce.Solid.Agent.Core
                 return Failed("Non sono riuscito a impostare il gruppo: " + ex.Message + WithoutSketch(model));
             }
 
-            // ── il membro strutturale ────────────────────────────────────
+            // ── the structural member ────────────────────────────────────
             IFeature feature;
             try
             {
-                // ConnectedSegmentsOption = 1, e il numero e' MISURATO.
+                // ConnectedSegmentsOption = 1, and the number is MEASURED.
                 //
-                // Con 0 — il valore che passava la 0.29.0 — la feature non
-                // nasce: InsertStructuralWeldment5 torna null, senza
-                // eccezione e senza messaggio d'errore (GetErrorMessages non
-                // dice niente). Provati tutti i valori il 9 settembre 2026 su
-                // SOLIDWORKS 2021 SP5: 0 e 3 danno null, 1 e 2 costruiscono, e
-                // su un percorso chiuso di quattro segmenti danno tutti e due
-                // QUATTRO corpi — una barra per segmento, che e' quello che
-                // serve alla distinta di taglio.
+                // With 0 — the value 0.29.0 passed — the feature is not
+                // born: InsertStructuralWeldment5 returns null, with no
+                // exception and no error message (GetErrorMessages says
+                // nothing). Tried all the values on 9 September 2026 on
+                // SOLIDWORKS 2021 SP5: 0 and 3 give null, 1 and 2 build, and
+                // on a closed path of four segments both give
+                // FOUR bodies — one bar per segment, which is what
+                // the cut list needs.
                 //
                 // AND ON THE ROUND TUBE TOO (finding L9-6, NOT REAL). The doubt
                 // was that option 2 might differ from 1 on a round profile. The
@@ -781,8 +781,8 @@ namespace Oce.Solid.Agent.Core
                 // L 257296.44 mm3 with no treatment; the square control gave the
                 // same as the measure of 9 September). So 1 stays.
                 //
-                // Anche i gruppi vanno tipizzati, per la stessa ragione dei
-                // segmenti qui sopra.
+                // The groups too must be typed, for the same reason as the
+                // segments above.
                 feature = model.FeatureManager.InsertStructuralWeldment5(
                     Path: profile,
                     ConnectedSegmentsOption: 1,
@@ -837,19 +837,19 @@ namespace Oce.Solid.Agent.Core
             // Z-C21.10 N36: measured now, or taken from the archive.
             if (overhangSource != null) measurements["overhang_source"] = overhangSource;
 
-            // ── SI MISURA CIO' CHE E' STATO FATTO ────────────────────────
+            // ── WE MEASURE WHAT WAS DONE ─────────────────────────────────
             //
-            // La sezione misurata su una barra di prova e il pezzo vero sono
-            // due cose diverse: fra loro ci sono il trattamento d'angolo, il
-            // gioco, la rotazione del profilo e le scelte che SolidWorks fa da
-            // solo. Promettere un ingombro e non ricontrollarlo e' esattamente
-            // il difetto del 9 settembre, spostato di un passo.
+            // The section measured on a test bar and the real part are
+            // two different things: between them lie the corner treatment, the
+            // gap, the rotation of the profile and the choices SolidWorks makes by
+            // itself. Promising an envelope and not rechecking it is exactly
+            // the defect of 9 September, moved one step.
             //
-            // Quindi: si legge la scatola dei corpi che QUESTA feature ha
-            // creato — non del documento, che puo' contenerne altri — e se non
-            // torna il passo FALLISCE dicendo i due numeri. Un pezzo sbagliato
-            // che si annulla con Ctrl+Z costa un minuto; uno che arriva in
-            // officina costa una carpenteria.
+            // So: we read the box of the bodies that THIS feature
+            // created — not of the document, which may contain others — and if it does not
+            // add up the step FAILS stating the two numbers. A wrong part
+            // that is undone with Ctrl+Z costs a minute; one that reaches the
+            // shop costs a metalwork job.
             var box = BodiesBoundingBox(feature);
             if (box != null)
             {
@@ -901,7 +901,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Lavorazioni dopo le barre
+        // Features after the bars
         // ─────────────────────────────────────────────────────────────────
 
         private Outcome TrimMembers(
@@ -933,8 +933,8 @@ namespace Oce.Solid.Agent.Core
                     "the four, or leave «end_condition» out for «cut». Nothing was changed.");
             double gap = Num(a, "gap_mm", 0);
 
-            // IL BIT DEL GIOCO SI ACCENDE SEMPRE, ANCHE CON ZERO (voce Z-C21.2,
-            // rilievo L9-2).
+            // THE GAP BIT IS ALWAYS TURNED ON, EVEN WITH ZERO (entry Z-C21.2,
+            // finding L9-2).
             //
             // IFeatureManager~InsertWeldmentTrimFeature2.html, Remarks: «If you
             // include swWeldmentTrimExtendOption_WeldGap in the Options parameter,
@@ -944,14 +944,14 @@ namespace Oce.Solid.Agent.Core
             // the weld gap defaults to the last value specified in the SOLIDWORKS
             // user-interface.»
             //
-            // Il commento che stava qui ragionava al contrario: temeva un
-            // GapValue positivo ignorato, e accendeva il bit solo con `gioco > 0`.
-            // Il danno vero era l'altro: con `gap_mm` a 0 — il predefinito — il
-            // bit restava spento e SOLIDWORKS usava l'ultimo gioco dato a mano
-            // da Accorcia/Estendi, mentre il riassunto diceva `gap_mm: 0`. Il
-            // ponte gira sullo stesso SOLIDWORKS del lavoro vero: basta che chi
-            // disegna abbia usato un gioco da interfaccia perche' le chiamate dopo
-            // lo ereditino. Il caso `cut_without_gap_does_not_inherit` lo guarda.
+            // The comment that was here reasoned the other way round: it feared a positive
+            // GapValue being ignored, and turned the bit on only with `gioco > 0`.
+            // The real damage was the other one: with `gap_mm` at 0 — the default — the
+            // bit stayed off and SOLIDWORKS used the last gap given by hand
+            // to Accorcia/Estendi, while the summary said `gap_mm: 0`. The
+            // bridge runs on the same SOLIDWORKS as the real work: it is enough that whoever
+            // draws has used a gap from the interface for the later calls
+            // to inherit it. The case `cut_without_gap_does_not_inherit` watches it.
             //
             // THE TWO EXTENSION BITS ARE ON TOO (Z-C21.3, finding L9-4). The
             // catalogue says this operation trims the bars OR EXTENDS them until
@@ -979,25 +979,25 @@ namespace Oce.Solid.Agent.Core
                 (int)swWeldmentTrimExtendOptionType_e.swWeldmentTrimExtendOption_AllowTrimmingExtensionTrim |
                 (int)swWeldmentTrimExtendOptionType_e.swWeldmentTrimExtendOption_WeldGap;
 
-            // GLI ARRAY VANNO TIPIZZATI, e non e' pignoleria: e' il difetto per
-            // cui questa operazione ha mentito dalla nascita fino alla libreria
-            // 0.113.0. Misurato il 25/9/2026 su una T di due tubolari 80x80x5
-            // (la seconda barra entra di 40 mm nella prima):
+            // ARRAYS MUST BE TYPED, and it is not pedantry: it is the defect for
+            // which this operation lied from its birth until library
+            // 0.113.0. Measured on 25/9/2026 on a T of two 80x80x5 tubes
+            // (the second bar enters the first by 40 mm):
             //
-            //   object[]         -> torna una feature «Accorcia/Estendi1», che
-            //                       NELL'ALBERO NON C'E'; volume invariato
-            //   Body2[]          -> la feature c'e', volume -58798,23 mm3
-            //   DispatchWrapper[]-> uguale a Body2[]
+            //   object[]         -> returns a feature «Accorcia/Estendi1», which
+            //                       IS NOT IN THE TREE; volume unchanged
+            //   Body2[]          -> the feature is there, volume -58798,23 mm3
+            //   DispatchWrapper[]-> same as Body2[]
             //
-            // 58798,23 = 40 mm x 1469,956 mm2, la sezione del tubo: il taglio
-            // giusto, al centesimo. Con `object[]` l'interop impacchetta un
-            // array di VARIANT e SOLIDWORKS ne fa una feature fantasma senza
-            // dire niente. (The old note here, «with the extension options on:
+            // 58798,23 = 40 mm x 1469,956 mm2, the tube's section: the right
+            // cut, to the hundredth. With `object[]` the interop packs an
+            // array of VARIANT and SOLIDWORKS makes a phantom feature of it without
+            // saying anything. (The old note here, «with the extension options on:
             // always a phantom», was measured with object[] and proved nothing:
             // with Body2[] the extension bits extend, see the Options above.)
             //
-            // `cut_list` passava gia' `Body2[]` ed e' per questo che
-            // funzionava.
+            // `cut_list` was already passing `Body2[]` and that is why it
+            // worked.
             Body2[] toCutTyped, typedAgainst;
             try
             {
@@ -1032,21 +1032,21 @@ namespace Oce.Solid.Agent.Core
                     "Il taglio non e' stato creato. Di solito le barre da " +
                     "tagliare e quelle di taglio non si incontrano davvero.");
 
-            // LA FEATURE TORNATA NON BASTA: bisogna che sia nell'albero e che
-            // il pezzo sia cambiato. E' la guardia che avrebbe preso il
-            // difetto qui sopra il primo giorno — l'operazione diceva
-            // «bodies_trimmed: 1» su un pezzo identico a prima.
+            // THE FEATURE RETURNED IS NOT ENOUGH: it must be in the tree and the
+            // part must have changed. It is the guard that would have caught the
+            // defect above on the first day — the operation said
+            // «bodies_trimmed: 1» on a part identical to before.
             try { model.EditRebuild3(); } catch { }
             int featureAfter = CountTreeFeatures(model);
-            // Con l'albero illeggibile non si puo' dire che la feature non c'e':
-            // decide il volume, qui sotto (voce Z-C8).
+            // With the tree unreadable we cannot say the feature is not there:
+            // the volume decides, below (entry Z-C8).
             bool inTree = featureAfter < 0 || featureAfter > featureBefore;
             double? volumeAfter = VolumeMm3(model);
             if (!inTree)
-                // Con gli array tipizzati succede ancora, e il 25/9/2026 e'
-                // successo sempre e solo quando le barre non si incontrano: due
-                // parallele a 200 mm, o una barra lontana. E' la risposta di
-                // SOLIDWORKS a «non c'e' niente da tagliare».
+                // With typed arrays it still happens, and on 25/9/2026 it
+                // happened always and only when the bars do not meet: two
+                // parallel ones 200 mm apart, or a far-away bar. It is SOLIDWORKS's
+                // answer to «there is nothing to cut».
                 return Failed(
                     "SOLIDWORKS ha risposto con una feature «" + feature.Name + "» che " +
                     "nell'albero non c'e', e il pezzo e' quello di prima: di solito vuol " +
@@ -1077,17 +1077,17 @@ namespace Oce.Solid.Agent.Core
                 ["trim_boundary_bodies"] = nAgainst,
                 ["gap_mm"] = gap,
                 ["end_condition"] = askedCondition.ToLowerInvariant(),   // N22: the one used
-                // Negativo = tolto (taglio), positivo = aggiunto (estensione).
+                // Negative = removed (cut), positive = added (extension).
                 ["volume_change_mm3"] = Math.Round(variation, 2),
             });
         }
 
         /// <summary>
-        /// Quante feature ha l'albero, al primo livello. Serve a una cosa sola:
-        /// sapere se una feature che SOLIDWORKS ha restituito ci e' entrata
-        /// davvero (vedi `TrimMembers`). -1 se non si e' potuto leggere (voce
-        /// Z-C8): un conteggio a meta' faceva dire «la feature nell'albero non
-        /// c'e'» a un taglio riuscito.
+        /// How many features the tree has, at the first level. It serves a single thing:
+        /// knowing whether a feature that SOLIDWORKS returned really got
+        /// in (see `TrimMembers`). -1 if it could not be read (entry
+        /// Z-C8): a half count made «la feature nell'albero non
+        /// c'e'» be said of a successful cut.
         /// </summary>
         private static int CountTreeFeatures(IModelDoc2 model)
         {
@@ -1102,28 +1102,28 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// LA DISTINTA DI TAGLIO: una voce per ogni gruppo di barre UGUALI.
+        /// THE CUT LIST: one entry for every group of IDENTICAL bars.
         ///
-        /// ── IL DIFETTO TROVATO IL 26/9/2026 (voce GT2) ───────────────────────
+        /// ── THE DEFECT FOUND ON 26/9/2026 (entry GT2) ────────────────────────
         ///
-        /// Fino alla libreria 0.124.0 questa operazione chiamava
-        /// `InsertWeldmentCutList2` con TUTTI i corpi: nasceva UNA voce con dentro
-        /// tutte le barre. Il telaio 1000 x 800 del banco usciva «QUANTITY 4,
-        /// LUNGHEZZA 1000» — in officina, quattro barre da 1000 dove due sono da
-        /// 800. Il caso di banco era verde: chiedeva solo che i corpi fossero 4.
+        /// Up to library 0.124.0 this operation called
+        /// `InsertWeldmentCutList2` with ALL the bodies: ONE entry was born with all
+        /// the bars inside. The bench's 1000 x 800 frame came out «QUANTITY 4,
+        /// LUNGHEZZA 1000» — in the shop, four 1000 bars where two are
+        /// 800. The bench case was green: it asked only that the bodies be 4.
         ///
-        /// La causa, misurata (`prova0089 distinta2`): il pezzo non era un
-        /// SALDATO (`IsWeldment` falso: i membri strutturali non mettono la
-        /// lavorazione «Saldatura»), e la distinta automatica non si accende su un
-        /// pezzo che non lo e'. Con la lavorazione Saldatura — messa anche DOPO le
-        /// barre — e `SetAutomaticCutList(true)` sulla cartella «Corpi solidi»,
-        /// SOLIDWORKS separa le voci da solo: 2 x 1000 e 2 x 800. E la stessa
-        /// causa faceva tornare null `InsertWeldmentTable` in tavola.
+        /// The cause, measured (`prova0089 distinta2`): the part was not a
+        /// WELDMENT (`IsWeldment` false: structural members do not put the
+        /// «Saldatura» feature), and the automatic cut list does not turn on on a
+        /// part that is not one. With the Saldatura feature — put even AFTER the
+        /// bars — and `SetAutomaticCutList(true)` on the «Corpi solidi» folder,
+        /// SOLIDWORKS separates the entries by itself: 2 x 1000 and 2 x 800. And the same
+        /// cause made `InsertWeldmentTable` return null in the drawing.
         ///
-        /// Le voci si LEGGONO dalle proprieta' delle cartelle (descrizione,
-        /// lunghezza, quantita': si riconoscono dall'espressione, `LENGTH@@@` e
-        /// `QUANTITY@@@`, perche' i NOMI sono tradotti) e la somma delle quantita'
-        /// deve essere il numero dei corpi.
+        /// The entries are READ from the folders' properties (description,
+        /// length, quantity: recognized by the expression, `LENGTH@@@` and
+        /// `QUANTITY@@@`, because the NAMES are translated) and the sum of the quantities
+        /// must be the number of bodies.
         /// </summary>
         private Outcome CutList(IModelDoc2 model, Dictionary<string, object> a)
         {
@@ -1131,8 +1131,8 @@ namespace Oce.Solid.Agent.Core
             var partDoc = model as IPartDoc;
             if (partDoc == null) return Failed("La distinta di taglio si fa su una parte.");
 
-            // UNA SECONDA DISTINTA NON E' UN DOPPIONE INNOCUO: si aggiorna quella
-            // che c'e', o si rifiuta se non si vuole.
+            // A SECOND CUT LIST IS NOT AN INNOCENT DUPLICATE: the existing one is
+            // updated, or refused if one does not want that.
             bool alreadyExisted = CutListFolders(model).Count > 0;
             if (alreadyExisted && !update)
                 return Failed(
@@ -1150,7 +1150,7 @@ namespace Oce.Solid.Agent.Core
                     "mettere in distinta. Se le barre le doveva fare un passo " +
                     "prima, quel passo non e' riuscito.");
 
-            // ── 1. IL PEZZO DIVENTA UN SALDATO, se non lo e' ────────────────
+            // ── 1. THE PART BECOMES A WELDMENT, if it is not one ────────────
             bool? wasWelded = null;
             try { wasWelded = partDoc.IsWeldment(); } catch { }
             var featuresBefore = new HashSet<string>(FeatureNames(model));
@@ -1182,7 +1182,7 @@ namespace Oce.Solid.Agent.Core
                     "SOLIDWORKS non separa le barre per lunghezza, e una distinta con tutte le barre in una " +
                     "voce sola manderebbe in officina le lunghezze sbagliate.");
 
-            // ── 2. LA DISTINTA AUTOMATICA ───────────────────────────────────
+            // ── 2. THE AUTOMATIC CUT LIST ───────────────────────────────────
             //
             // THE FOUR ANSWERS ARE READ (findings N15, N41). Until library
             // 0.144.0 SetAutomaticCutList, SetAutomaticUpdate and both
@@ -1248,7 +1248,7 @@ namespace Oce.Solid.Agent.Core
             if (!automatic)
                 return refuse(AutomaticCutListRefusal(automaticCutListSet, alreadyExisted));
 
-            // ── 3. LE VOCI, LETTE ───────────────────────────────────────────
+            // ── 3. THE ENTRIES, READ ────────────────────────────────────────
             var folders = CutListFolders(model);
             if (folders.Count == 0)
                 return refuse("La distinta automatica e' accesa ma non ha prodotto nessuna voce.");
@@ -1324,8 +1324,8 @@ namespace Oce.Solid.Agent.Core
                 ["item_folders_update_false"] = folderUpdatesFalse,
                 ["item_folders_update_unread"] = folderUpdatesUnread,
             };
-            // LA SOMMA DELLE QUANTITA' E' IL NUMERO DELLE BARRE: se no, qualcosa
-            // manca o e' contato due volte, e lo si dice.
+            // THE SUM OF THE QUANTITIES IS THE NUMBER OF BARS: if not, something
+            // is missing or is counted twice, and we say so.
             var warnings = new List<string>();
             if (totalQuantity.HasValue && totalQuantity.Value != solidBodies.Length)
                 warnings.Add("La distinta dice " + totalQuantity.GetValueOrDefault() + " barre in tutto e il pezzo ha " +
@@ -1348,7 +1348,7 @@ namespace Oce.Solid.Agent.Core
                              "(SetAutomaticUpdate answered false): after a change to the bars, ask for the cut " +
                              "list again before reading it.");
             if (warnings.Count > 0) measurements["warning"] = string.Join(" ", warnings);
-            // Una distinta che c'era gia' non e' una feature creata adesso.
+            // A cut list that was already there is not a feature created now.
             if (beforeFolder != null && !alreadyExisted) return Succeeded(beforeFolder, measurements);
             return WithoutFeature(measurements);
         }
@@ -1414,87 +1414,87 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Il fazzoletto (voce GP20)
+        // The gusset (entry GP20)
         // ─────────────────────────────────────────────────────────────────
         //
         // NO GUSSET WAS EVER BORN UP TO LIBRARY 0.139.0 (the fix is in 0.140.0,
         // finding N69), AND THE CAUSE WAS THE DEGENERATE PROFILE.
         //
-        // Il metodo spedito passava `BIsProfile = true` (poligono) con
-        // `ProfileD3 = ProfileAngle = ProfileD4 = 0` e nessuna marca: un
-        // poligono con i due lati corti a zero si chiude su se stesso, e
-        // SOLIDWORKS torna null senza dire perche'. Sedici varianti alla cieca
-        // (25/9/2026) avevano provato il triangolo SENZA marca e la marca 1/1
-        // col poligono DEGENERE, mai le due cose giuste insieme.
+        // The shipped method passed `BIsProfile = true` (polygon) with
+        // `ProfileD3 = ProfileAngle = ProfileD4 = 0` and no mark: a
+        // polygon with the two short sides at zero closes on itself, and
+        // SOLIDWORKS returns null without saying why. Sixteen blind variants
+        // (25/9/2026) had tried the triangle WITHOUT a mark and mark 1/1
+        // with the DEGENERATE polygon, never the two right things together.
         //
-        // ── LA GUIDA API (sldworksapi, estratta in locale; pagine per nome) ──
+        // ── THE API GUIDE (sldworksapi, extracted locally; pages by name) ──
         //
         //   SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~InsertGussetFeature3.html,
         //   Remarks: «Before calling this method, you must call
         //   IModelDocExtension::SelectByID2 to select two faces that are the
         //   supporting legs of this gusset with a Mark of 1.»
-        //   Parametri: «BIsProfile — True to use a polygon profile, false to
+        //   Parameters: «BIsProfile — True to use a polygon profile, false to
         //   use a triangle profile»; «ProfileAngle — valid only if BUseLenDim
         //   is false»; «ProfileD4 — valid only if BUseLenDim is true».
         //
-        //   Insert_Gusset_Feature_Example_CSharp.htm: due facce con marca 1,
-        //   poi InsertGussetFeature3(0.005, swGussetThicknessBothSides,
+        //   Insert_Gusset_Feature_Example_CSharp.htm: two faces with mark 1,
+        //   then InsertGussetFeature3(0.005, swGussetThicknessBothSides,
         //   swGussetProfileLocationCenter, false, 0.025, 0.025, 0.015,
         //   0.78539816339745, 0.015, false, 0.005, 0, false, false, false,
-        //   0.0125, 0.0125, 0.785398163397452, true, false). Il triangolo porta
-        //   comunque D3 = D4 = 15 mm e 45 gradi: qui si passano gli stessi.
+        //   0.0125, 0.0125, 0.785398163397452, true, false). The triangle carries
+        //   D3 = D4 = 15 mm and 45 degrees anyway: here the same ones are passed.
         //
         //   SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IGussetFeatureData.html
-        //   e Get_Gusset_Feature_Data_Example_CSharp.htm: «swGussetFeatureData
-        //   = (GussetFeatureData)swFeature.GetDefinition();», poi
+        //   and Get_Gusset_Feature_Data_Example_CSharp.htm: «swGussetFeatureData
+        //   = (GussetFeatureData)swFeature.GetDefinition();», then
         //   AccessSelections, ProfileType, ThicknessType, Thickness,
         //   GetSupportingFaces, ReleaseSelectionAccess.
         //   ...IGussetFeatureData~AccessSelections.html: «puts the model into a
         //   rollback state ... You must use ... IGussetFeatureData::
         //   ReleaseSelectionAccess if you did not [modify the feature]».
         //
-        //   Gli enum, letti per riflessione sull'interop installato (le pagine
-        //   di swconst non sono nell'estrazione): swGussetProfileType_e
+        //   The enums, read by reflection on the installed interop (the swconst
+        //   pages are not in the extraction): swGussetProfileType_e
         //   Polygon/Triangle, swGussetProfileLocationType_e Start/Center/End,
-        //   swGussetThicknessType_e Inner/BothSides/Outer. Qui si usano solo
-        //   per NOME.
+        //   swGussetThicknessType_e Inner/BothSides/Outer. Here they are used only
+        //   by NAME.
         //
-        // ── MISURATO (28/9/2026, sonda Checks\Gusset\Program.cs) ──
+        // ── MEASURED (28/9/2026, probe Checks\Gusset\Program.cs) ──
         //
-        // Sulla T di tubolari 80x80x5 (lunga 600 in X, corta 300 in Z, la corta
-        // tagliata dalla lunga), fra la faccia alta della lunga e la faccia
-        // laterale della corta — le stesse su cui nasce `weld_bead`:
+        // On the T of 80x80x5 tubes (600 long in X, 300 short in Z, the short one
+        // cut by the long one), between the top face of the long one and the side
+        // face of the short one — the same ones `weld_bead` is born on:
         //
-        //   la ricetta spedita (poligono, D3 = D4 = 0, senza marca)  -> null
-        //   la stessa con marca 1/1                                  -> null
-        //   la guida: triangolo 60/60, spessore 5, marca 1/1         -> NASCE,
-        //                                       +9000 mm3, corpi 2 -> 3
-        //   poligono 60/60 con D3 = D4 = 15, marca 1/1               -> NASCE,
+        //   the shipped recipe (polygon, D3 = D4 = 0, no mark)       -> null
+        //   the same with mark 1/1                                   -> null
+        //   the guide: triangle 60/60, thickness 5, mark 1/1         -> IS BORN,
+        //                                       +9000 mm3, bodies 2 -> 3
+        //   polygon 60/60 with D3 = D4 = 15, mark 1/1                -> IS BORN,
         //                                       +12937,5 mm3
-        //   triangolo via InsertGussetFeature2 con Face2[]           -> NASCE
+        //   triangle via InsertGussetFeature2 with Face2[]           -> IS BORN
         //
-        // In tutte le varianti nate la feature e' di tipo «Gusset»
-        // (IFeature::GetTypeName2), e si controlla quello.
+        // In all the variants that were born the feature is of type «Gusset»
+        // (IFeature::GetTypeName2), and that is what is checked.
         //
-        // ── I CONTI A MANO ──────────────────────────────────────────────────
+        // ── THE HAND CALCULATIONS ───────────────────────────────────────────
         //
-        // Triangolo: lato1 x lato2 / 2 x spessore = 60 x 60 / 2 x 5 = 9000.
-        // Poligono: il pentagono (0,0) (l1,0) (l1,a) (b,l2) (0,l2), con a e b i
-        // due lati corti; per la formula dell'area di Gauss
+        // Triangle: lato1 x lato2 / 2 x thickness = 60 x 60 / 2 x 5 = 9000.
+        // Polygon: the pentagon (0,0) (l1,0) (l1,a) (b,l2) (0,l2), with a and b the
+        // two short sides; by Gauss's area formula
         //     (l1*l2 + l1*a + b*l2 - a*b) / 2
-        // = 60*60 - 45*45/2 = 2587,5 mm2, x 5 = 12937,5: e' il numero misurato.
-        // QUALE dei due lati corti sia `a` e quale `b` la guida non lo dice, e
-        // con 60/60 e 15/15 non si vede: si accettano tutte e due le letture.
-        // Fra due facce che non fanno 90 gradi l'area del triangolo si
-        // moltiplica per il seno dell'angolo (i lati corrono lungo le facce);
-        // quella del poligono si controlla esatta solo ad angolo retto, che e'
-        // il caso misurato, e altrove si pretende almeno il triangolo che il
-        // pentagono contiene.
-        private const string GussetTypeValue = "Gusset";        // GetTypeName2, misurato dalla sonda
+        // = 60*60 - 45*45/2 = 2587,5 mm2, x 5 = 12937,5: it is the measured number.
+        // WHICH of the two short sides is `a` and which `b` the guide does not say, and
+        // with 60/60 and 15/15 it cannot be seen: both readings are accepted.
+        // Between two faces that do not make 90 degrees the triangle's area is
+        // multiplied by the sine of the angle (the sides run along the faces);
+        // the polygon's is checked exact only at a right angle, which is
+        // the measured case, and elsewhere at least the triangle that the
+        // pentagon contains is demanded.
+        private const string GussetTypeValue = "Gusset";        // GetTypeName2, measured by the probe
         private const double TriangleD3 = 0.015;              // Insert_Gusset_Feature_Example_CSharp.htm
         private const double TriangleAngle = 0.78539816339745;
         private const double TriangleD4 = 0.015;
-        private const double ChamferD5 = 0.0125;                // idem; lo smusso resta spento
+        private const double ChamferD5 = 0.0125;                // same; the chamfer stays off
         private const double ChamferD6 = 0.0125;
 
         private const string GussetRemainsInPart =
@@ -1503,17 +1503,17 @@ namespace Oce.Solid.Agent.Core
         private Outcome Gusset(
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            // IL FAZZOLETTO VUOLE DUE FACCE, E NON SI INDOVINANO.
+            // THE GUSSET WANTS TWO FACES, AND THEY ARE NOT GUESSED.
             //
-            // Un fazzoletto sta nell'angolo fra DUE barre, appoggiato su una
-            // faccia di ciascuna. Quali siano non si deduce dal telaio: in un
-            // angolo di tubolari le facce candidate sono quattro, e sceglierne
-            // due «probabili» vorrebbe dire mettere il rinforzo dalla parte
-            // sbagliata — cosa che si vede solo guardando il pezzo.
+            // A gusset sits in the corner between TWO bars, resting on one
+            // face of each. Which ones is not deduced from the frame: in a
+            // corner of tubes the candidate faces are four, and choosing
+            // two «probable» ones would mean putting the reinforcement on the
+            // wrong side — something visible only by looking at the part.
             //
-            // Percio' qui le facce si indicano per identificativo, prese dallo
-            // stato del documento: e' un'operazione che si chiede DOPO aver
-            // fatto il telaio, guardandolo.
+            // Therefore here the faces are indicated by identifier, taken from the
+            // document state: it is an operation asked for AFTER having
+            // made the frame, looking at it.
             var uid = StringList(a, "faces_uid");
             if (uid.Count != 2)
                 return Failed(
@@ -1529,7 +1529,7 @@ namespace Oce.Solid.Agent.Core
             if (side1 <= 0 || side2 <= 0)
                 return Failed("Il fazzoletto non ha i due lati: indica «leg1_mm» e «leg2_mm» maggiori di zero, per esempio 60 e 60.");
 
-            // ── IL PROFILO: triangolare, oppure poligonale NON degenere ─────
+            // ── THE PROFILE: triangular, or polygonal NON degenerate ─────────
             string profile = (Str(a, "profile", "triangular") ?? "").Trim().ToLowerInvariant();
             Func<string, bool> given = k =>
             {
@@ -1541,7 +1541,7 @@ namespace Oce.Solid.Agent.Core
             if (profile == "triangular")
             {
                 polygon = false;
-                // Un ingresso che non si usa non si inghiotte (rilievo C1-1).
+                // An input that is not used is not swallowed (finding C1-1).
                 if (given("side3_mm") || given("side4_mm"))
                     return Failed(
                         "«side3_mm» e «side4_mm» valgono solo col profilo «polygonal»: col " +
@@ -1574,7 +1574,7 @@ namespace Oce.Solid.Agent.Core
                     "«profile» e' «triangular» o «polygonal», non «" + profile + "»: usa il " +
                     "triangolare (il predefinito), oppure il poligonale con «side3_mm» e «side4_mm».");
 
-            // ── LA POSIZIONE LUNGO LO SPIGOLO (rilievo C1-1) ────────────────
+            // ── THE POSITION ALONG THE EDGE (finding C1-1) ──────────────────
             // Up to library 0.139.0 (N69) an unknown value went to the centre
             // in silence, and the answer repeated the string it was given.
             string position = (Str(a, "position", "center") ?? "").Trim().ToLowerInvariant();
@@ -1591,7 +1591,7 @@ namespace Oce.Solid.Agent.Core
                         "oppure togli «position» e vale il centro.");
             }
 
-            // ── LE DUE FACCE, dallo stato ───────────────────────────────────
+            // ── THE TWO FACES, from the state ───────────────────────────────
             var faces = new IFace2[2];
             for (int i = 0; i < 2; i++)
             {
@@ -1610,11 +1610,11 @@ namespace Oce.Solid.Agent.Core
                         "stessa barra, presa dallo stato.");
             }
 
-            // ── E LA GEOMETRIA CHE UN FAZZOLETTO VUOLE, controllata QUI ─────
-            // Piane, che fanno angolo, che si toccano lungo uno spigolo: e'
-            // l'angolo fra due barre. SOLIDWORKS su facce sbagliate torna null
-            // senza un perche', e un null senza perche' e' esattamente cio' che
-            // ha tenuto ferma questa voce per tre giorni.
+            // ── AND THE GEOMETRY A GUSSET WANTS, checked HERE ───────────────
+            // Planar, making an angle, touching along an edge: it is
+            // the corner between two bars. SOLIDWORKS on wrong faces returns null
+            // with no why, and a null with no why is exactly what
+            // kept this entry stalled for three days.
             var normali = new double[2][];
             for (int i = 0; i < 2; i++)
             {
@@ -1638,8 +1638,8 @@ namespace Oce.Solid.Agent.Core
             double cz = n1[0] * n2[1] - n1[1] * n2[0];
             double seno = Math.Sqrt(cx * cx + cy * cy + cz * cz);
 
-            // Basta un verso che tocca; «non si toccano» solo se tutti e due
-            // hanno risposto (voce Z-C8, come il cordone).
+            // One direction that touches is enough; «they do not touch» only if both
+            // have answered (entry Z-C8, like the bead).
             double t1 = LengthThatLiesOn(faces[0], faces[1]), t2 = LengthThatLiesOn(faces[1], faces[0]);
             if (Math.Max(t1, t2) < 0.01 && (t1 < 0 || t2 < 0))
                 return Failed(
@@ -1652,7 +1652,7 @@ namespace Oce.Solid.Agent.Core
                     "fazzoletto va nell'angolo dove due barre si incontrano. Indica la faccia su cui " +
                     "la barra arriva e la faccia LATERALE della barra che ci arriva sopra.");
 
-            // ── IL PEZZO PRIMA, letto prima di toccare niente ───────────────
+            // ── THE PART FIRST, read before touching anything ───────────────
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
             int featureBefore = CountFeature(model);
@@ -1662,7 +1662,7 @@ namespace Oce.Solid.Agent.Core
                                " Prova a ricostruire il pezzo (Ctrl+Q) e a ripetere il passo.");
             var namesBefore = SolidBodyNames(model);
 
-            // ── LE DUE FACCE CON LA MARCA 1, poi la chiamata ────────────────
+            // ── THE TWO FACES WITH MARK 1, then the call ────────────────────
             IFeature feature = null;
             string exception = null;
             try
@@ -1694,8 +1694,8 @@ namespace Oce.Solid.Agent.Core
                     CrvIndex: 0,
                     BReverseDir: false,
                     BReverseFace: false,
-                    // Poligono: lati corti come lunghezze (D4), la forma misurata.
-                    // Triangolo: come l'esempio della guida (ProfileAngle).
+                    // Polygon: short sides as lengths (D4), the measured form.
+                    // Triangle: like the guide's example (ProfileAngle).
                     BUseLenDim: polygon,
                     ProfileD5: ChamferD5,
                     ProfileD6: ChamferD6,
@@ -1745,18 +1745,18 @@ namespace Oce.Solid.Agent.Core
 
             try { model.EditRebuild3(); } catch { }
 
-            // ── E ADESSO SI MISURA COSA E' NATO ─────────────────────────────
-            // 1. nell'albero: una feature tornata che nell'albero non c'e' e' la
-            //    feature fantasma di `trim_members` (array non tipizzati).
+            // ── AND NOW WE MEASURE WHAT WAS BORN ────────────────────────────
+            // 1. in the tree: a returned feature that is not in the tree is the
+            //    phantom feature of `trim_members` (untyped arrays).
             int featureAfter = CountFeature(model);
             if (featureAfter >= 0 && featureAfter <= featureBefore)
                 return Failed(
                     "SOLIDWORKS ha risposto con una feature «" + GussetName(feature) + "» che nell'albero " +
                     "non c'e': non ti dico che il fazzoletto e' messo." + alternativa);
 
-            // 2. e' un fazzoletto: il TIPO misurato dalla sonda («Gusset», come
-            //    «Fillet», «APattern» e «Rib» nelle altre tre di questa voce), e
-            //    la definizione che si rilegge come IGussetFeatureData.
+            // 2. it is a gusset: the TYPE measured by the probe («Gusset», like
+            //    «Fillet», «APattern» and «Rib» in the other three of this entry), and
+            //    the definition that is reread as IGussetFeatureData.
             string createdType = GussetType(feature);
             if (!string.Equals(createdType, GussetTypeValue, StringComparison.Ordinal))
                 return Failed(
@@ -1772,7 +1772,7 @@ namespace Oce.Solid.Agent.Core
                     "si rilegge come fazzoletto, e non posso controllare cosa ho messo." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
-            // 3. niente di rotto nell'albero.
+            // 3. nothing broken in the tree.
             int brokenAfter = FeaturesInError(model);
             if (brokenBefore >= 0 && brokenAfter > brokenBefore)
                 return Failed(
@@ -1781,7 +1781,7 @@ namespace Oce.Solid.Agent.Core
                     " in errore (" + brokenAfter + " invece di " + brokenBefore + ")." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
-            // 4. un corpo in piu': il fazzoletto e' un corpo suo (misurato 2 -> 3).
+            // 4. one extra body: the gusset is a body of its own (measured 2 -> 3).
             int bodiesAfter = CountSolidBodies(model);
             if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore + 1)
                 return Failed(
@@ -1789,7 +1789,7 @@ namespace Oce.Solid.Agent.Core
                     "passato da " + bodiesBefore + " a " + bodiesAfter + " corpi." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
-            // 5. il materiale aggiunto, contro il conto a mano.
+            // 5. the material added, against the hand calculation.
             double triangleArea = side1 * side2 / 2.0 * seno;
             bool rightAngle = seno > 0.9995;
             var expectedValues = new List<double>();
@@ -1830,7 +1830,7 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            // 6. la definizione RILETTA, non gli ingressi ripetuti (rilievo C1-1).
+            // 6. the definition REREAD, not the repeated inputs (finding C1-1).
             double? readThickness = null;
             string readProfile = null, readArrangement = null, readPosition = null;
             try { readThickness = data.Thickness * 1000.0; } catch { }
@@ -1852,7 +1852,7 @@ namespace Oce.Solid.Agent.Core
                     "Il fazzoletto e' nato, ma " + wrong + ": non te lo lascio passare per buono." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
-            // 7. le facce su cui SOLIDWORKS dice di averlo appoggiato.
+            // 7. the faces on which SOLIDWORKS says it rested it.
             double[] readAreas = RestingFaceAreas(model, data);
             double[] requestedAreas = AreasInOrder(faces[0], faces[1]);
             if (readAreas != null && requestedAreas != null)
@@ -1866,7 +1866,7 @@ namespace Oce.Solid.Agent.Core
                             RemoveGusset(model, feature, volumeBefore, featureBefore));
             }
 
-            // 8. il corpo nuovo, e dove sta: il volume da solo e' cieco sulla posizione.
+            // 8. the new body, and where it is: the volume alone is blind to position.
             string newBody = null;
             double[] box = null;
             var newItems = NewSolidBodies(model, namesBefore);
@@ -1902,11 +1902,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie un fazzoletto appena nato che non ha passato i controlli, e
-        /// torna la coda del messaggio. «Ha detto di averlo tolto» non basta,
-        /// come in `DeleteFeature`: si ricontano le lavorazioni e si
-        /// rimisura il volume. DeleteSelection2 e non EditDelete (apre la
-        /// finestra di conferma, e una chiamata COM con un modale non torna).
+        /// Removes a just-born gusset that did not pass the checks, and
+        /// returns the tail of the message. «It said it removed it» is not enough,
+        /// as in `DeleteFeature`: the features are counted again and the
+        /// volume is remeasured. DeleteSelection2 and not EditDelete (it opens the
+        /// confirmation window, and a COM call with a modal does not return).
         /// </summary>
         private static string RemoveGusset(
             IModelDoc2 model, IFeature gusset, double? volumeBefore, int featureBefore)
@@ -1939,11 +1939,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le aree, in mm2 dalla piu' grande, delle due facce su cui la feature
-        /// dice di appoggiarsi: `AccessSelections` → `GetSupportingFaces` →
-        /// `ReleaseSelectionAccess`, come Get_Gusset_Feature_Data_Example_CSharp.htm.
-        /// Null se non si leggono: «non lo so» non accusa. Il rilascio sta nel
-        /// `finally`, perche' AccessSelections lascia il modello in rollback.
+        /// The areas, in mm2 from the largest, of the two faces on which the feature
+        /// says it rests: `AccessSelections` → `GetSupportingFaces` →
+        /// `ReleaseSelectionAccess`, like Get_Gusset_Feature_Data_Example_CSharp.htm.
+        /// Null if they cannot be read: «I don't know» accuses no one. The release lives in the
+        /// `finally`, because AccessSelections leaves the model in rollback.
         /// </summary>
         private static double[] RestingFaceAreas(IModelDoc2 model, IGussetFeatureData data)
         {
@@ -1963,7 +1963,7 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        /// <summary>Le aree di due facce in mm2, dalla piu' grande; null se una non si legge.</summary>
+        /// <summary>The areas of two faces in mm2, from the largest; null if one cannot be read.</summary>
         private static double[] AreasInOrder(IFace2 before, IFace2 second)
         {
             try
@@ -1975,7 +1975,7 @@ namespace Oce.Solid.Agent.Core
             catch { return null; }
         }
 
-        /// <summary>I nomi dei corpi solidi del pezzo; vuoto se non si leggono.</summary>
+        /// <summary>The names of the part's solid bodies; empty if they cannot be read.</summary>
         private static HashSet<string> SolidBodyNames(IModelDoc2 model)
         {
             var outside = new HashSet<string>(StringComparer.Ordinal);
@@ -1993,7 +1993,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>I corpi solidi il cui nome non c'era prima.</summary>
+        /// <summary>The solid bodies whose name was not there before.</summary>
         private static List<IBody2> NewSolidBodies(IModelDoc2 model, HashSet<string> namesBefore)
         {
             var outside = new List<IBody2>();
@@ -2012,8 +2012,8 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        // I valori degli enum del fazzoletto nelle parole della risposta. Per
-        // NOME dell'enum, mai per cifra; null se il valore non e' fra quelli noti.
+        // The values of the gusset's enums in the words of the answer. By
+        // enum NAME, never by number; null if the value is not among the known ones.
         private static string ProfileName(int v)
         {
             if (v == (int)swGussetProfileType_e.swGussetProfileTriangle) return "triangular";
@@ -2052,27 +2052,27 @@ namespace Oce.Solid.Agent.Core
             return v.ToString("0.##", CultureInfo.InvariantCulture);
         }
 
-        // IL CORDONE, E PERCHE' ADESSO VUOLE DUE FACCE E NON DUE CORPI.
+        // THE BEAD, AND WHY IT NOW WANTS TWO FACES AND NOT TWO BODIES.
         //
-        // Fino alla libreria 0.113.0 prendeva due insiemi di corpi, ne passava
-        // TUTTE le facce a `InsertCosmeticWeldBead2`, e non ha mai creato un
-        // cordone. Misurato il 25/9/2026 su una T di tubolari 80x80x5 gia'
-        // tagliata (voce Z-C6):
+        // Up to library 0.113.0 it took two sets of bodies, passed
+        // ALL their faces to `InsertCosmeticWeldBead2`, and never created
+        // a bead. Measured on 25/9/2026 on a T of 80x80x5 tubes already
+        // cut (entry Z-C6):
         //
-        //   InsertCosmeticWeldBead2, facce come object[], Face2[] o
-        //   DispatchWrapper[], tutte o solo le due che si toccano, modo
-        //   «geometria» o «path» sugli spigoli        -> null, sempre
-        //   InsertCosmeticWeldBead (la vecchia, per selezione), UNA faccia
-        //   per parte                                      -> cordone vero,
-        //                                    lunghezza 68 mm = il lato piatto
-        //   la stessa, tutte le facce dei due corpi        -> null
-        //   la stessa, tre facce contro una               -> null
-        //   la stessa, due facce che NON si toccano        -> cordone creato
-        //                                    lo stesso, lato riletto 40 e non 4
+        //   InsertCosmeticWeldBead2, faces as object[], Face2[] or
+        //   DispatchWrapper[], all of them or only the two that touch, mode
+        //   «geometry» or «path» on the edges          -> null, always
+        //   InsertCosmeticWeldBead (the old one, by selection), ONE face
+        //   per side                                       -> real bead,
+        //                                    length 68 mm = the flat side
+        //   the same, all the faces of the two bodies      -> null
+        //   the same, three faces against one              -> null
+        //   the same, two faces that DO NOT touch          -> bead created
+        //                                    all the same, side reread 40 and not 4
         //
-        // Quindi: una coppia di facce per chiamata, e il contatto si controlla
-        // QUI, prima, perche' SOLIDWORKS non lo controlla — e un cordone fra
-        // facce lontane finirebbe nella distinta come saldatura vera.
+        // So: one pair of faces per call, and the contact is checked
+        // HERE, beforehand, because SOLIDWORKS does not check it — and a bead between
+        // distant faces would end up in the cut list as a real weld.
         //
         // WHAT THE NULL OF 25/9 WAS (the InsertCosmeticWeldBead2 probe of Z-C21.3, 28/9/2026):
         // the marks. None of those calls selected the faces with the marks 4
@@ -2124,8 +2124,8 @@ namespace Oce.Solid.Agent.Core
                     "una barra in battuta su un'altra, e' la faccia LATERALE della barra " +
                     "contro la faccia su cui arriva, non la sua testa.");
 
-            // Basta un verso che tocca; ma «non si toccano» si puo' dire solo
-            // se tutti e due i versi hanno risposto.
+            // One direction that touches is enough; but «they do not touch» can be said only
+            // if both directions have answered.
             double l1 = LengthThatLiesOn(faces[0], faces[1]), l2 = LengthThatLiesOn(faces[1], faces[0]);
             if (Math.Max(l1, l2) < 0.01 && (l1 < 0 || l2 < 0))
                 return Failed(
@@ -2202,8 +2202,8 @@ namespace Oce.Solid.Agent.Core
                     contact.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
                     " mm: il lato potrebbe essere troppo grande per le facce.");
 
-            // RILETTO, NON CREDUTO: e' il lato che SOLIDWORKS ha scritto nella
-            // feature, ed e' la misura che fra facce lontane veniva diversa.
+            // REREAD, NOT BELIEVED: it is the side that SOLIDWORKS wrote into the
+            // feature, and it is the measure that came out different between distant faces.
             double readSide = -1;
             try
             {
@@ -2222,8 +2222,8 @@ namespace Oce.Solid.Agent.Core
             {
                 ["leg_mm"] = side,
                 ["leg_reread_mm"] = readSide >= 0 ? (object)Math.Round(readSide, 3) : null,
-                // La lunghezza e' quella dello spigolo in comune, contata qui
-                // sulla geometria: non dipende dalle unita' del documento.
+                // The length is that of the common edge, counted here
+                // on the geometry: it does not depend on the document's units.
                 ["length_mm"] = Math.Round(contact, 2),
                 ["body_source"] = fromBody,
                 ["body_target"] = bodyA,
@@ -2280,7 +2280,7 @@ namespace Oce.Solid.Agent.Core
             try { return bead.Name ?? ""; } catch { return ""; }
         }
 
-        /// <summary>I nomi delle lavorazioni dell'albero, nell'ordine.</summary>
+        /// <summary>The names of the tree's features, in order.</summary>
         private static List<string> FeatureNames(IModelDoc2 model)
         {
             var outside = new List<string>();
@@ -2489,23 +2489,23 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti millimetri di spigoli di `faccia` stanno sopra `altra`: uno
-        /// spigolo conta se il suo inizio, il suo punto medio e la sua fine
-        /// stanno sull'altra faccia entro un millesimo di millimetro.
+        /// How many millimeters of edges of `faccia` lie on top of `altra`: an
+        /// edge counts if its start, its midpoint and its end
+        /// lie on the other face within a thousandth of a millimeter.
         ///
-        /// E' il contatto che fa un cordone d'angolo: la faccia laterale di
-        /// una barra in battuta tocca la faccia su cui arriva lungo lo
-        /// spigolo di fondo. Tre punti e non uno, perche' uno spigolo che
-        /// sfiora l'altra faccia in un punto solo non e' una linea di
-        /// saldatura.
+        /// It is the contact that makes a fillet weld: the side face of
+        /// a butting bar touches the face it arrives on along the
+        /// bottom edge. Three points and not one, because an edge that
+        /// grazes the other face at a single point is not a weld
+        /// line.
         ///
-        /// **-1 quando non si e' potuto leggere** (voce Z-C8): lo zero voleva
-        /// dire «non si toccano», e il chiamante rifiutava il cordone con una
-        /// frase falsa. ZERO-E-ZERO: una faccia senza spigoli (`GetEdges` null,
-        /// una sfera intera) non tocca niente lungo uno spigolo, e quello zero
-        /// e' vero. Uno spigolo che non si lascia valutare non si conta, ma se
-        /// alla fine non sta sopra niente e qualcuno non ha risposto, il
-        /// risultato e' «non lo so», non zero.
+        /// **-1 when it could not be read** (entry Z-C8): zero used to
+        /// mean «they do not touch», and the caller refused the bead with a false
+        /// sentence. ZERO-E-ZERO: a face without edges (`GetEdges` null,
+        /// a whole sphere) touches nothing along an edge, and that zero
+        /// is true. An edge that cannot be evaluated is not counted, but if
+        /// in the end it lies on nothing and someone did not answer, the
+        /// result is «I don't know», not zero.
         /// </summary>
         private static double LengthThatLiesOn(IFace2 face, IFace2 other)
         {
@@ -2544,9 +2544,9 @@ namespace Oce.Solid.Agent.Core
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// I trattamenti d'angolo, come li chiama il piano e come li vuole
-        /// SolidWorks. I numeri sono swSolidworksWeldmentEndCondOptions_e,
-        /// letti per riflessione il 9 settembre 2026.
+        /// The corner treatments, as the plan calls them and as SolidWorks
+        /// wants them. The numbers are swSolidworksWeldmentEndCondOptions_e,
+        /// read by reflection on 9 September 2026.
         /// </summary>
         private static readonly Dictionary<string, int> CornerTreatments =
             new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -2591,13 +2591,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Su quali due assi giace un piano principale.
+        /// On which two axes a main plane lies.
         ///
-        /// Stessa convenzione del server (`COORDINATE` in ai_disegno.py):
-        /// frontale = XY, superiore = XZ, destro = YZ. Se le due tabelle
-        /// divergessero, un telaio nascerebbe su un piano e verrebbe
-        /// verificato su un altro — e la verifica fallirebbe su un pezzo
-        /// giusto, che e' il modo peggiore di sbagliare.
+        /// Same convention as the server (`COORDINATE` in ai_disegno.py):
+        /// front = XY, top = XZ, right = YZ. If the two tables
+        /// diverged, a frame would be born on one plane and be
+        /// verified on another — and the verification would fail on a right
+        /// part, which is the worst way of being wrong.
         /// </summary>
         private static bool PlaneAxes(string plane, out int u, out int v)
         {
@@ -2650,12 +2650,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I quattro segmenti del percorso di un telaio, sugli assi del piano.
+        /// The four segments of a frame's path, on the plane's axes.
         ///
-        /// Le quote che arrivano qui sono gia' quelle del PERCORSO, cioe'
-        /// l'ingombro esterno meno la sporgenza del profilo. Le sporgenze
-        /// servono ancora per il caso «angolo sull'origine»: li' l'ingombro
-        /// deve partire da zero, quindi l'asse parte da mezza sporgenza.
+        /// The dimensions arriving here are already those of the PATH, that is
+        /// the outer envelope minus the profile's protrusion. The protrusions
+        /// are still needed for the «corner at the origin» case: there the envelope
+        /// must start from zero, so the axis starts at half a protrusion.
         /// </summary>
         private static List<Segment> FrameSegments(
             double pathU, double pathV, int axisU, int axisV,
@@ -2682,24 +2682,24 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La scatola che contiene i corpi creati da una feature, in mm:
-        /// {minX, minY, minZ, maxX, maxY, maxZ}. null se non si puo' leggere.
+        /// The box containing the bodies created by a feature, in mm:
+        /// {minX, minY, minZ, maxX, maxY, maxZ}. null if it cannot be read.
         ///
-        /// Si passa dalle facce della feature, non dai corpi del documento:
-        /// se il pezzo ne conteneva gia' altri, misurare il documento
-        /// direbbe l'ingombro di tutto e la verifica del telaio sarebbe una
-        /// bugia con l'aria di un controllo.
+        /// It goes through the feature's faces, not the document's bodies:
+        /// if the part already contained others, measuring the document
+        /// would give the envelope of everything and the frame's verification would be a
+        /// lie with the air of a check.
         ///
-        /// E SI USA GetBodyBox, NON GetExtremePoint, DI PROPOSITO.
-        /// GetBodyBox e' approssimata per le superfici non piane, e altrove
-        /// (DocumentState) infatti si usa GetExtremePoint. Qui no: questo
-        /// numero va confrontato con la sporgenza misurata da
-        /// SectionProfile, che usa lo STESSO GetBodyBox sul telaio di
-        /// prova. Due misure con la stessa approssimazione si annullano —
-        /// percorso = quota - sporgenza, ingombro = percorso + sporgenza —
-        /// mentre due misure diverse farebbero fallire la verifica su un
-        /// telaio giusto, con un profilo tondo. Chi cambia una delle due deve
-        /// cambiare l'altra.
+        /// AND GetBodyBox IS USED, NOT GetExtremePoint, ON PURPOSE.
+        /// GetBodyBox is approximate for non-planar surfaces, and elsewhere
+        /// (DocumentState) GetExtremePoint is indeed used. Not here: this
+        /// number must be compared with the protrusion measured by
+        /// SectionProfile, which uses the SAME GetBodyBox on the test
+        /// frame. Two measures with the same approximation cancel out —
+        /// path = dimension - protrusion, envelope = path + protrusion —
+        /// while two different measures would make the verification fail on a
+        /// right frame, with a round profile. Whoever changes one of the two must
+        /// change the other.
         /// </summary>
         private static double[] BodiesBoundingBox(IFeature feature)
         {
@@ -2733,12 +2733,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Un blocco annidato degli argomenti.
+        /// A nested block of the arguments.
         ///
-        /// JavaScriptSerializer, che e' quello che legge il piano, restituisce
-        /// ogni oggetto JSON come Dictionary&lt;string, object&gt;: un cast
-        /// diretto basta, ma va fatto senza sollevare se il campo non c'e' o
-        /// se un giorno arrivasse di un altro tipo.
+        /// JavaScriptSerializer, which is what reads the plan, returns
+        /// every JSON object as Dictionary&lt;string, object&gt;: a direct
+        /// cast is enough, but it must be done without throwing if the field is not there or
+        /// if one day it arrived as another type.
         /// </summary>
         private static Dictionary<string, object> Map(
             Dictionary<string, object> a, string key)
@@ -2754,33 +2754,33 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I segmenti del piano, gia' validati dal server ma riletti qui.
+        /// The plan's segments, already validated by the server but reread here.
         ///
-        /// Il server li ha controllati, ma fra quel controllo e questa riga c'e'
-        /// il giro di rete, il salvataggio nel piano e la conferma dell'utente.
-        /// Una coordinata che diventasse una stringa qui verrebbe letta come
-        /// ZERO da Convert.ToDouble, e la barra finirebbe altrove senza che
-        /// nessuno veda un errore.
+        /// The server checked them, but between that check and this line there is
+        /// the network round trip, the saving into the plan and the user's confirmation.
+        /// A coordinate that became a string would be read here as
+        /// ZERO by Convert.ToDouble, and the bar would end up elsewhere without
+        /// anyone seeing an error.
         /// </summary>
         /// <summary>
-        /// Il telaio, scritto in una delle due forme che esistono.
+        /// The frame, written in one of the two forms that exist.
         ///
-        /// IL CATALOGO NE DOCUMENTA UNA E IL SERVER NE MANDA UN'ALTRA, e
-        /// vanno servite tutte e due:
+        /// THE CATALOG DOCUMENTS ONE AND THE SERVER SENDS ANOTHER, and
+        /// both must be served:
         ///
-        ///   dal catalogo:  { length_mm, width_mm, piano, centrato, misure }
-        ///   dal server:    { telaio: { length_mm, ... }, segmenti: [...] }
+        ///   from the catalog:  { length_mm, width_mm, piano, centrato, misure }
+        ///   from the server:   { telaio: { length_mm, ... }, segmenti: [...] }
         ///
-        /// La prima e' quella che il catalogo dichiara nel suo `required` e
-        /// che la descrizione promette («si chiede con due quote invece che
-        /// con otto coordinate»). La seconda la costruisce `valida()` nel
-        /// server, che reimpacchetta prima di mandare — ed e' per questo che
-        /// la divergenza non si vedeva da quella parte: un modello che legge
-        /// il catalogo e scrive quello che c'e' scritto arrivava qui e non
-        /// veniva servito.
+        /// The first is the one the catalog declares in its `required` and
+        /// that the description promises («si chiede con due quote invece che
+        /// con otto coordinate»). The second is built by `valida()` in the
+        /// server, which repackages before sending — and that is why
+        /// the divergence was not visible on that side: a model that reads
+        /// the catalog and writes what is written there arrived here and
+        /// was not served.
         ///
-        /// Se ci sono tutte e due vince quella annidata: chi la manda l'ha
-        /// costruita apposta, e di solito porta anche i segmenti gia' fatti.
+        /// If both are there the nested one wins: whoever sends it built it
+        /// on purpose, and it usually carries the segments already made too.
         /// </summary>
         private static Dictionary<string, object> RequestedFrame(Dictionary<string, object> a)
         {
@@ -2788,9 +2788,9 @@ namespace Oce.Solid.Agent.Core
             if (nested != null) return nested;
             if (a == null) return null;
 
-            // Senza le due quote non c'e' nessun telaio da ricavare: sara'
-            // un membro strutturale con i suoi segmenti, che passa da qui
-            // perche' condivide il `case`.
+            // Without the two dimensions there is no frame to derive: it will be
+            // a structural member with its segments, which passes through here
+            // because it shares the `case`.
             if (!a.ContainsKey("length_mm") || !a.ContainsKey("width_mm"))
                 return null;
 
@@ -2798,11 +2798,11 @@ namespace Oce.Solid.Agent.Core
             {
                 ["length_mm"] = a["length_mm"],
                 ["width_mm"] = a["width_mm"],
-                // I predefiniti sono quelli che il catalogo promette: il
-                // piano frontale, centrato, e le quote lette come ingombro
-                // esterno. Quest'ultimo e' il punto dell'operazione: chi
-                // chiede un telaio 1000x800 vuole misurare 1000x800 sul
-                // pezzo, non sulla linea d'asse.
+                // The defaults are those the catalog promises: the
+                // front plane, centered, and the dimensions read as outer
+                // envelope. The latter is the point of the operation: whoever
+                // asks for a 1000x800 frame wants to measure 1000x800 on the
+                // part, not on the centerline.
                 ["plane"] = a.ContainsKey("plane") ? a["plane"] : "front",
                 ["centered"] = a.ContainsKey("centered") ? a["centered"] : true,
                 ["measured_as"] = a.ContainsKey("measured_as") ? a["measured_as"] : "overall",
@@ -2892,22 +2892,22 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I corpi indicati da un riferimento a un passo precedente, OPPURE
-        /// dagli identificativi dello stato del documento.
+        /// The bodies indicated by a reference to a previous step, OR
+        /// by the identifiers of the document state.
         ///
-        /// PERCHE' DUE STRADE
-        /// Il riferimento a un passo funziona solo dentro lo stesso piano. In
-        /// un messaggio nuovo — «tappa le estremita' del telaio che hai fatto
-        /// prima» — non c'e' nessun passo da citare, e fino alla 0.29.1 quella
-        /// richiesta non aveva NESSUNA forma valida: l'unica via che restava
-        /// al modello era ridisegnare le barre, ottenendo barre sovrapposte
-        /// senza che niente desse errore.
+        /// WHY TWO ROADS
+        /// The reference to a step works only inside the same plan. In
+        /// a new message — «cap the ends of the frame you made
+        /// before» — there is no step to cite, and up to 0.29.1 that
+        /// request had NO valid form: the only road left
+        /// to the model was to redraw the bars, getting overlapping bars
+        /// with nothing giving an error.
         ///
-        /// Adesso lo stato porta i corpi con il loro identificativo, e si puo'
-        /// dire «C1, C3». Il riferimento ha la precedenza: se arrivassero tutti
-        /// e due — il server lo impedisce, ma questa e' la seconda serratura —
-        /// meglio fallire su un identificativo che non c'e' che lavorare in
-        /// silenzio sul corpo sbagliato.
+        /// Now the state carries the bodies with their identifier, and one can
+        /// say «C1, C3». The reference takes precedence: if both arrived
+        /// — the server prevents it, but this is the second lock —
+        /// better to fail on an identifier that is not there than to work silently
+        /// on the wrong body.
         /// </summary>
         private object[] BodiesFromReference(
             Dictionary<string, object> a, string theField, DocumentState docState,
@@ -2954,25 +2954,25 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I corpi che portano quegli identificativi, controllando che siano
-        /// ancora quelli.
+        /// The bodies carrying those identifiers, checking that they are
+        /// still the same ones.
         ///
-        /// La firma di un corpo e' centro e volume della scatola: se qualcuno
-        /// ha modificato il pezzo fra la proposta e l'esecuzione, «C1» indica
-        /// un altro corpo e il passo si ferma invece di lavorare al posto
-        /// sbagliato. E' lo stesso controllo che si fa sulle facce.
+        /// A body's signature is the center and volume of its box: if someone
+        /// modified the part between the proposal and the execution, «C1» points to
+        /// another body and the step stops instead of working on the wrong
+        /// one. It is the same check done on faces.
         ///
-        /// QUESTO COMMENTO E' STATO A LUNGO UNA PROMESSA E NON UN FATTO.
-        /// Diceva gia' cosi', e il codice `SignatureMatches` non lo chiamava
-        /// affatto: i corpi erano controllati per ESISTENZA e non per
-        /// IDENTITA'. Misurato il 14/9/2026 (voce E4): due blocchi, un taglio
-        /// che spezza il primo in due, poi «sposta C2». Il taglio rinumera i
-        /// corpi, «C2» diventa mezzo blocco grande, e viene spostato quello —
-        /// **`succeeded: true`, nessun avviso**, e il blocco piccolo resta dov'e'.
+        /// THIS COMMENT WAS FOR A LONG TIME A PROMISE AND NOT A FACT.
+        /// It already said so, and the `SignatureMatches` code did not call it
+        /// at all: bodies were checked for EXISTENCE and not for
+        /// IDENTITY. Measured on 14/9/2026 (entry E4): two blocks, a cut
+        /// that splits the first in two, then «move C2». The cut renumbers the
+        /// bodies, «C2» becomes half a block, and that one gets moved —
+        /// **`succeeded: true`, no warning**, and the small block stays where it is.
         ///
-        /// Un commento che descrive un controllo che non c'e' e' peggio di
-        /// nessun commento: chi legge smette di cercare il buco proprio dove
-        /// sta.
+        /// A comment that describes a check that is not there is worse than
+        /// no comment: whoever reads stops looking for the hole exactly where
+        /// it is.
         /// </summary>
         private List<IBody2> BodiesFromUid(
             DocumentState docState, List<string> uid,
@@ -3002,7 +3002,7 @@ namespace Oce.Solid.Agent.Core
                     return null;
                 }
 
-                // E ADESSO IL CONTROLLO CHE IL COMMENTO SOPRA PROMETTEVA.
+                // AND NOW THE CHECK THE COMMENT ABOVE PROMISED.
                 if (!SignatureMatches(arguments, u, signature, out reason)) return null;
                 bool already = false;
                 foreach (var c in outside)
@@ -3018,7 +3018,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le facce di estremita' indicate da un riferimento.
+        /// The end faces indicated by a reference.
         ///
         /// <paramref name="machinedFaces"/>: the planar faces with an inner loop made
         /// by another feature that were not taken for open ends (finding N7,
@@ -3045,8 +3045,8 @@ namespace Oce.Solid.Agent.Core
             }
             else
             {
-                // In un messaggio nuovo non c'e' nessun passo da citare: si
-                // parte dai corpi che lo stato del documento elenca.
+                // In a new message there is no step to cite: we
+                // start from the bodies the document state lists.
                 var uid = StringList(a, "bodies_uid");
                 if (uid.Count == 0)
                 {
@@ -3084,14 +3084,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Questa feature e' una cartella di distinta di saldatura?
+        /// Is this feature a weldment cut list folder?
         ///
-        /// Due controlli e non uno: `Type` dice che genere di cartella e'
-        /// (5 = distinta di taglio), `GetCutListType` che genere di distinta
-        /// (3 = saldatura). La cartella «Corpi solidi» risponde al secondo e
-        /// non al primo, e senza il doppio controllo finirebbe in elenco.
-        /// Misurato il 9 settembre 2026: Corpi solidi ha Type=1 CutListType=0,
-        /// «Elenco elementi1» ha Type=5 CutListType=3.
+        /// Two checks and not one: `Type` says what kind of folder it is
+        /// (5 = cut list), `GetCutListType` what kind of cut list
+        /// (3 = weldment). The «Corpi solidi» folder answers the second and
+        /// not the first, and without the double check it would end up in the list.
+        /// Measured on 9 September 2026: Corpi solidi has Type=1 CutListType=0,
+        /// «Elenco elementi1» has Type=5 CutListType=3.
         /// </summary>
         private static void Recognize(
             IFeature f, List<IBodyFolder> outside, HashSet<string> already)
@@ -3105,16 +3105,16 @@ namespace Oce.Solid.Agent.Core
                 if (folder.GetCutListType() != (int)swCutListType_e.swWeldmentCutlist)
                     return;
 
-                // LA STESSA CARTELLA COMPARE DUE VOLTE NELL'ALBERO.
+                // THE SAME FOLDER APPEARS TWICE IN THE TREE.
                 //
-                // «Elenco elementi1» sta sia dentro «Corpi solidi» sia al
-                // primo livello: scorrendo feature e sotto-feature la si
-                // incontra due volte. Misurato il 9 settembre 2026 — senza
-                // questo controllo un telaio da quattro barre risultava di
-                // OTTO, e il numero finiva nel riassunto che l'utente legge.
+                // «Elenco elementi1» sits both inside «Corpi solidi» and at the
+                // first level: walking features and sub-features one
+                // meets it twice. Measured on 9 September 2026 — without
+                // this check a frame of four bars came out as
+                // EIGHT, and the number ended up in the summary the user reads.
                 //
-                // Il nome della feature e' unico nel documento, e regge dove
-                // il confronto fra due oggetti COM non e' garantito.
+                // The feature's name is unique in the document, and it holds where
+                // comparing two COM objects is not guaranteed.
                 string key;
                 try { key = f.Name; }
                 catch { key = null; }
@@ -3125,19 +3125,19 @@ namespace Oce.Solid.Agent.Core
             catch { }
         }
 
-        /// <summary>Le cartelle della distinta di taglio gia' presenti.</summary>
+        /// <summary>The cut list folders already present.</summary>
         private static List<IBodyFolder> CutListFolders(IModelDoc2 model)
         {
             var outside = new List<IBodyFolder>();
             var partDoc = model as IPartDoc;
             if (partDoc == null) return outside;
-            // LE CARTELLE DELLA DISTINTA SONO SOTTO-FEATURE.
+            // THE CUT LIST FOLDERS ARE SUB-FEATURES.
             //
-            // Stanno dentro «Corpi solidi», e cercarle solo fra le feature di
-            // primo livello vuol dire non trovarle mai — e allora si crede
-            // che una distinta non ci sia e se ne crea una seconda, con due
-            // elenchi della stessa carpenteria in officina.
-            // Services/DistintaTaglio.cs le legge cosi' dal 2 settembre.
+            // They sit inside «Corpi solidi», and searching for them only among the
+            // first-level features means never finding them — and then one believes
+            // that a cut list is not there and creates a second one, with two
+            // lists of the same metalwork in the shop.
+            // Services/DistintaTaglio.cs has read them this way since 2 September.
             var already = new HashSet<string>(StringComparer.Ordinal);
             IFeature f;
             try { f = partDoc.IFirstFeature(); }

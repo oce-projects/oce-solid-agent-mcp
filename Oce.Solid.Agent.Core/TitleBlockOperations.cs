@@ -8,52 +8,52 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// IL CARTIGLIO: COSA CHIEDE, E COSA MOSTRA (voce GT3).
+    /// THE TITLE BLOCK: WHAT IT ASKS FOR, AND WHAT IT SHOWS (entry GT3).
     ///
-    /// ── IL CARTIGLIO NON SI SCRIVE: SI ALIMENTA ─────────────────────────
+    /// ── THE TITLE BLOCK IS NOT WRITTEN: IT IS FED ─────────────────────
     ///
-    /// Un cartiglio da modello non contiene testo: contiene **collegamenti** a
-    /// proprieta' personalizzate, scritti `$PRP:"Descrizione"`. Riempirlo vuol
-    /// dire scrivere quelle proprieta' — e `set_property` lo sa gia' fare.
+    /// A template title block holds no text: it holds **links** to
+    /// custom properties, written `$PRP:"Descrizione"`. Filling it means
+    /// writing those properties — and `set_property` already knows how.
     ///
-    /// Quello che mancava e' la meta' difficile, e la voce GT3 la nominava:
-    /// **«leggere quali variabili il suo cartiglio referenzia davvero (non si
-    /// indovinano)»**, due ore di lavoro a mano per ogni modello di tavola.
+    /// What was missing is the hard half, and entry GT3 named it:
+    /// **«read which variables its title block really references (they cannot
+    /// be guessed)»**, two hours of work by hand for every drawing template.
     ///
-    /// ── IL DIFETTO CHE QUESTA OPERAZIONE ESISTE PER PRENDERE ────────────
+    /// ── THE DEFECT THIS OPERATION EXISTS TO CATCH ─────────────────────
     ///
-    /// Il nome della proprieta' scritto con una grafia diversa da quella che il
-    /// cartiglio referenzia — una maiuscola, uno spazio, la lingua — **non da'
-    /// nessun errore**: SOLIDWORKS scrive la proprieta', il cartiglio non la
-    /// mostra, e il PDF esce con un campo vuoto che nessuno guarda finche' non
-    /// e' in officina.
+    /// The property name written with a different spelling from the one the
+    /// title block references — a capital letter, a space, the language — **gives
+    /// no error**: SOLIDWORKS writes the property, the title block does not
+    /// show it, and the PDF comes out with an empty field that nobody looks at until it
+    /// is in the shop.
     ///
-    /// E' lo stesso difetto gia' pagato due volte oggi: `40x40x3` contro
-    /// `40X40X3` sui profili, e `.SLDPRT` contro `.sldprt` sui percorsi.
-    /// **Lo stesso nome, due grafie, nessun errore.**
+    /// It is the same defect already paid for twice today: `40x40x3` against
+    /// `40X40X3` on profiles, and `.SLDPRT` against `.sldprt` on paths.
+    /// **The same name, two spellings, no error.**
     ///
-    /// ── LA COPPIA CHE RISOLVE, E SONO DUE CHIAMATE DIVERSE ──────────────
+    /// ── THE PAIR THAT SOLVES IT, AND THEY ARE TWO DIFFERENT CALLS ─────────
     ///
-    ///     INote.get_PropertyLinkedText()  ->  «$PRP:"Descrizione"»   COSA CHIEDE
-    ///     INote.GetText()                 ->  «Coperchio»            COSA MOSTRA
+    ///     INote.get_PropertyLinkedText()  ->  «$PRP:"Descrizione"»   WHAT IT ASKS FOR
+    ///     INote.GetText()                 ->  «Coperchio»            WHAT IT SHOWS
     ///
-    /// Chi legge solo `GetText()` vede una casella vuota e non sa perche'. Chi
-    /// legge tutt'e due sa **il nome esatto da scrivere**, con la sua grafia,
-    /// copiabile alla lettera. *Non si indovina un nome che si puo' chiedere.*
+    /// Whoever reads only `GetText()` sees an empty box and does not know why. Whoever
+    /// reads both knows **the exact name to write**, with its spelling,
+    /// copyable to the letter. *A name that can be asked for is not guessed.*
     ///
-    /// ── PERCHE' NON SI VERIFICA NEL PDF ─────────────────────────────────
+    /// ── WHY IT IS NOT VERIFIED IN THE PDF ─────────────────────────────
     ///
-    /// La voce GT3 proponeva di cercare la stringa dentro il PDF esportato. E'
-    /// una prova vera e resta buona, ma e' **a valle di tutto**: dice che
-    /// qualcosa non ha funzionato, non quale campo ne' perche'. Questa lettura
-    /// e' a monte, per campo, e costa una chiamata.
+    /// Entry GT3 proposed searching for the string inside the exported PDF. It is
+    /// a real check and it remains good, but it is **downstream of everything**: it says that
+    /// something did not work, not which field nor why. This reading
+    /// is upstream, per field, and costs one call.
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>
-        /// I collegamenti che un cartiglio puo' portare. `$PRPSHEET` prende la
-        /// proprieta' dal MODELLO mostrato nella vista, non dal disegno: e' la
-        /// distinzione che fa scrivere la proprieta' sul documento sbagliato.
+        /// The links a title block can carry. `$PRPSHEET` takes the
+        /// property from the MODEL shown in the view, not from the drawing: it is the
+        /// distinction that makes people write the property on the wrong document.
         /// </summary>
         private static readonly Regex Connection =
             new Regex("\\$PRP(SHEET)?:\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
@@ -80,7 +80,7 @@ namespace Oce.Solid.Agent.Core
                     "disegno invece che di note: nel secondo caso non c'e' niente da " +
                     "alimentare, il testo e' dipinto dentro il formato.");
 
-            // ── COSA CHIEDE E COSA MOSTRA, campo per campo ──────────────
+            // ── WHAT IT ASKS FOR AND WHAT IT SHOWS, field by field ──────
             var fields = new List<object>();
             var requestedItems = new List<string>();
             var empty = new List<string>();
@@ -99,22 +99,22 @@ namespace Oce.Solid.Agent.Core
                 foreach (var x in names)
                     if (!requestedItems.Contains(x, StringComparer.Ordinal)) requestedItems.Add(x);
 
-                // UN CAMPO COLLEGATO CHE NON MOSTRA NIENTE E' IL DIFETTO.
-                // Non e' «vuoto per scelta»: e' un collegamento che non ha
-                // trovato la sua proprieta'.
+                // A LINKED FIELD THAT SHOWS NOTHING IS THE DEFECT.
+                // It is not «empty on purpose»: it is a link that did not
+                // find its property.
                 bool showNothing = string.IsNullOrWhiteSpace(show);
                 if (names.Count > 0 && showNothing)
                     foreach (var x in names)
                         if (!empty.Contains(x, StringComparer.Ordinal)) empty.Add(x);
 
-                // E QUELLE CHE ARRIVANO DAVVERO IN FONDO.
+                // AND THOSE THAT REALLY ARRIVE AT THE END.
                 //
-                // Non e' il complemento di «vuote»: e' l'affermazione positiva,
-                // e serve perche' **si possa provare che qualcosa funziona**.
-                // Un campo che elenca solo cio' che manca non si puo' usare per
-                // dimostrare che una scrittura e' arrivata: si potrebbe solo
-                // dire che non e' nell'elenco dei guasti, e «non e' fra i
-                // rotti» non e' «funziona».
+                // It is not the complement of «empty»: it is the positive statement,
+                // and it is needed so that **it can be proved that something works**.
+                // A field that lists only what is missing cannot be used to
+                // show that a write arrived: one could only say
+                // that it is not in the list of failures, and «it is not among the
+                // broken ones» is not «it works».
                 if (names.Count > 0 && !showNothing)
                     foreach (var x in names)
                         if (!shown.Contains(x, StringComparer.Ordinal)) shown.Add(x);
@@ -138,10 +138,10 @@ namespace Oce.Solid.Agent.Core
                 ["fields"] = fields.ToArray(),
             };
 
-            // ── L'ELENCO CHE TOGLIE L'INVENZIONE ────────────────────────
+            // ── THE LIST THAT REMOVES THE GUESSWORK ─────────────────────
             //
-            // E' il pezzo che vale: i nomi ESATTI che questo cartiglio vuole,
-            // copiabili alla lettera dentro `set_property`.
+            // It is the piece that is worth having: the EXACT names this title block wants,
+            // copyable to the letter into `set_property`.
             if (requestedItems.Count > 0)
             {
                 measurements["properties_wanted_by_title_block"] = requestedItems.ToArray();
@@ -151,51 +151,51 @@ namespace Oce.Solid.Agent.Core
                     "proprieta' viene scritta, il cartiglio non la mostra, e il PDF " +
                     "esce con la casella vuota.";
             }
-            // Anche questo sempre, per la stessa ragione: e' l'affermazione
-            // positiva, e un'affermazione che sparisce quando e' falsa non e'
-            // un'affermazione.
+            // This one too always, for the same reason: it is the positive
+            // statement, and a statement that disappears when it is false is not
+            // a statement.
             measurements["requested_and_shown"] = shown.ToArray();
 
-            // ── VUOTE PERCHE' NON SCRITTE, O VUOTE PERCHE' NON RISOLTE? ──
+            // ── EMPTY BECAUSE NOT WRITTEN, OR EMPTY BECAUSE NOT RESOLVED? ──
             //
-            // ── PERCHE' QUESTA DIVISIONE ESISTE ──────────────────────────
+            // ── WHY THIS DIVISION EXISTS ─────────────────────────────────
             //
-            // Il 18/9/2026 il caso `title_block_says_what_it_wants` e' stato
-            // **verde due volte e rosso la terza**, sulla stessa libreria:
-            // `Descrizione`, scritta sul pezzo e riletta, non compariva piu'
-            // fra le mostrate. Riprovato dal ponte, **non si e' riprodotto**.
+            // On 18/9/2026 the case `title_block_says_what_it_wants` was
+            // **green twice and red the third time**, on the same library:
+            // `Descrizione`, written on the part and reread, no longer appeared
+            // among the shown ones. Retried from the bridge, **it did not reproduce**.
             //
-            // Con i campi di prima quel rosso diceva soltanto «non dice
-            // Descrizione», e non distingueva due cose opposte:
+            // With the earlier fields that red said only «non dice
+            // Descrizione», and did not tell apart two opposite things:
             //
-            //   * la proprieta' NON C'E' sul modello   -> chi disegna deve
-            //     scriverla, ed e' il difetto che l'operazione esiste per
-            //     prendere;
-            //   * la proprieta' C'E' sul modello e il cartiglio la mostra
-            //     vuota -> il collegamento non ha risolto: o non ancora, o
-            //     e' rotto. Non e' colpa di chi disegna, e scrivere di nuovo
-            //     la proprieta' non cambierebbe niente.
+            //   * the property is NOT on the model   -> whoever draws must
+            //     write it, and it is the defect the operation exists to
+            //     catch;
+            //   * the property IS on the model and the title block shows it
+            //     empty -> the link did not resolve: either not yet, or
+            //     it is broken. It is not the fault of whoever draws, and writing the
+            //     property again would change nothing.
             //
-            // Sono due diagnosi e due rimedi. **Un elenco che le mette
-            // insieme manda a riparare la cosa sbagliata**, ed e' la stessa
-            // forma del difetto che l'operazione denuncia: una risposta che
-            // sembra completa e non lo e'.
+            // They are two diagnoses and two remedies. **A list that puts them
+            // together sends people to repair the wrong thing**, and it is the same
+            // form of the defect the operation denounces: an answer that
+            // looks complete and is not.
             //
-            // Si guarda nel modello referenziato dalla prima vista vera —
-            // quello da cui `$PRPSHEET` prende — in tutti e due i cassetti,
-            // perche' documento e configurazione sono elenchi separati.
-            // E PRIMA DI TUTTO: HO POTUTO GUARDARE?
+            // We look in the model referenced by the first real view —
+            // the one `$PRPSHEET` takes from — in both drawers,
+            // because document and configuration are separate lists.
+            // AND FIRST OF ALL: WAS I ABLE TO LOOK?
             //
-            // `ViewModelProperty` torna `null` quando non ci arriva.
-            // Senza dirlo, l'elenco qui sotto resterebbe vuoto **per ignoranza**
-            // e non per misura — e un elenco vuoto per ignoranza passa
-            // qualunque controllo che chieda «non c'e' dentro X».
+            // `ViewModelProperty` returns `null` when it cannot get there.
+            // Without saying so, the list below would stay empty **out of ignorance**
+            // and not by measurement — and a list empty out of ignorance passes
+            // any check that asks «X is not in it».
             //
-            // Il 18/9/2026 e' successo esattamente questo, ed e' costato un
-            // giro di banco: la distinzione era scritta nel commento di quella
-            // funzione e **non era visibile a chi legge la risposta**.
-            // *Una distinzione che vive solo in un commento non e' una
-            // distinzione: e' un'intenzione.*
+            // On 18/9/2026 exactly this happened, and it cost one
+            // bench run: the distinction was written in the comment of that
+            // function and **was not visible to whoever reads the answer**.
+            // *A distinction that lives only in a comment is not a
+            // distinction: it is an intention.*
             string whoWasChecked;
             var onDisk = ViewModelProperty(drawing, out whoWasChecked);
             measurements["model_checked_for_properties"] = whoWasChecked ??
@@ -210,12 +210,12 @@ namespace Oce.Solid.Agent.Core
 
             measurements["requested_but_empty"] = empty.ToArray();
 
-            // SEMPRE, ANCHE VUOTO, e non e' pignoleria: il banco tratta un
-            // campo ASSENTE come prova rossa (voce F4), quindi un campo che
-            // compare solo quando ha qualcosa dentro **non si puo' nemmeno
-            // pretendere vuoto**. E chi legge la risposta, non trovandolo,
-            // conclude che l'operazione non sappia rispondere invece che
-            // l'elenco sia vuoto.
+            // ALWAYS, EVEN EMPTY, and it is not pedantry: the bench treats an
+            // ABSENT field as red proof (entry F4), so a field that
+            // appears only when it has something inside **cannot even
+            // be demanded empty**. And whoever reads the answer, not finding it,
+            // concludes that the operation cannot answer instead of
+            // the list being empty.
             measurements["requested_present_on_model_but_shown_empty"] = presentButMute.ToArray();
             if (presentButMute.Count > 0)
                 measurements["not_the_drafters_fault"] =
@@ -254,10 +254,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le note del cartiglio. Due strade, e si dice quale ha risposto:
-        /// il `TitleBlock` vero (che non tutti i modelli di tavola hanno) e, in
-        /// mancanza, le annotazioni del FOGLIO — che nell'API e' la prima
-        /// «view», quella che porta il formato.
+        /// The title block's notes. Two roads, and it says which one answered:
+        /// the real `TitleBlock` (which not all drawing templates have) and, in
+        /// its absence, the annotations of the SHEET — which in the API is the first
+        /// «view», the one that carries the format.
         /// </summary>
         private static List<INote> TitleBlockNotes(
             IDrawingDoc drawing, ISheet sheet, out string fromWhere)
@@ -278,9 +278,9 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // LA PRIMA «VISTA» DI UNA TAVOLA E' IL FOGLIO, non una vista del
-            // pezzo: e' la stessa cosa che `CountViews` salta per contare le
-            // viste vere, e qui invece e' proprio quella che serve.
+            // THE FIRST «VIEW» OF A DRAWING IS THE SHEET, not a view of the
+            // part: it is the same thing that `CountViews` skips to count the
+            // real views, and here instead it is exactly the one that is needed.
             try
             {
                 var sheetView = drawing.GetFirstView() as IView;
@@ -289,14 +289,14 @@ namespace Oce.Solid.Agent.Core
                     var ann = sheetView.GetFirstAnnotation3() as IAnnotation;
                     while (ann != null)
                     {
-                        // NON SI CHIEDE IL TIPO, SI PROVA IL CAST.
+                        // WE DO NOT ASK THE TYPE, WE TRY THE CAST.
                         //
-                        // `IAnnotation` ha un `GetType()` che torna `Int32`, e in
-                        // C# quel nome collide con `object.GetType()`: il
-                        // compilatore non sa quale intendi. `GetSpecificAnnotation`
-                        // torna gia' l'oggetto specifico, e un cast a `INote` che
-                        // fallisce da' `null` — che e' la stessa informazione
-                        // senza la collisione.
+                        // `IAnnotation` has a `GetType()` that returns `Int32`, and in
+                        // C# that name collides with `object.GetType()`: the
+                        // compiler does not know which you mean. `GetSpecificAnnotation`
+                        // already returns the specific object, and a cast to `INote` that
+                        // fails gives `null` — which is the same information
+                        // without the collision.
                         try
                         {
                             var note = ann.GetSpecificAnnotation() as INote;
@@ -315,19 +315,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I nomi di proprieta' dentro un testo collegato. Si tiene il nome
-        /// **com'e' scritto**, senza normalizzare niente: normalizzarlo qui
-        /// vorrebbe dire restituire una grafia che il cartiglio non usa, cioe'
-        /// esattamente l'errore che questa operazione esiste per prevenire.
+        /// The property names inside a linked text. The name is kept
+        /// **as written**, normalizing nothing: normalizing it here
+        /// would mean returning a spelling the title block does not use, that is
+        /// exactly the error this operation exists to prevent.
         /// </summary>
         /// <summary>
-        /// Il nome della proprieta' senza il suffisso che l'operazione ci
-        /// appiccica per dire DA DOVE viene: «Descrizione  (dal pezzo, non dal
-        /// disegno)» torna «Descrizione».
+        /// The property name without the suffix the operation sticks
+        /// on to say WHERE it comes from: «Descrizione  (dal pezzo, non dal
+        /// disegno)» returns «Descrizione».
         ///
-        /// Sta qui e non scritto due volte perche' il suffisso e' una scelta
-        /// di presentazione, e chi confronta due elenchi deve confrontare i
-        /// nomi veri — non quelli vestiti per essere letti.
+        /// It lives here and is not written twice because the suffix is a presentation
+        /// choice, and whoever compares two lists must compare the
+        /// true names — not the ones dressed up to be read.
         /// </summary>
         private static string BareName(string itemName)
         {
@@ -337,19 +337,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I nomi delle proprieta' che esistono sul MODELLO mostrato nella
-        /// prima vista vera — che e' quello da cui `$PRPSHEET` prende.
+        /// The names of the properties that exist on the MODEL shown in the
+        /// first real view — which is the one `$PRPSHEET` takes from.
         ///
-        /// Si guardano TUTTI E DUE I CASSETTI: le proprieta' del documento e
-        /// quelle della configurazione attiva sono elenchi separati, non si
-        /// ereditano e non si vedono a vicenda. Misurato il 18/9/2026: una
-        /// proprieta' scritta sul documento **non** si vede dalla
-        /// configurazione, e il cartiglio la mostra lo stesso — quindi
-        /// guardarne uno solo direbbe il falso in un verso o nell'altro.
+        /// BOTH DRAWERS are looked at: the document's properties and
+        /// those of the active configuration are separate lists, they are not
+        /// inherited and do not see each other. Measured on 18/9/2026: a
+        /// property written on the document is **not** seen from the
+        /// configuration, and the title block shows it all the same — so
+        /// looking at only one would say the wrong thing one way or the other.
         ///
-        /// Torna `null` — non un elenco vuoto — quando non si e' potuto
-        /// guardare: «non ho trovato niente» e «non ho potuto guardare» sono
-        /// due risposte diverse, e chi legge deve poterle distinguere.
+        /// It returns `null` — not an empty list — when it could not
+        /// look: «I found nothing» and «I could not look» are
+        /// two different answers, and whoever reads must be able to tell them apart.
         /// </summary>
         private static List<string> ViewModelProperty(
             IDrawingDoc drawing, out string whomIChecked)
@@ -357,7 +357,7 @@ namespace Oce.Solid.Agent.Core
             whomIChecked = null;
             try
             {
-                // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
+                // The first «view» is the SHEET: the real views begin after.
                 var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
                 IModelDoc2 refObj = null;
                 while (v != null && refObj == null)
@@ -367,8 +367,8 @@ namespace Oce.Solid.Agent.Core
                 }
                 if (refObj == null) return null;
 
-                // IL PERCORSO, non il titolo: e' l'unico indirizzo che non
-                // mente quando due documenti si chiamano uguale.
+                // THE PATH, not the title: it is the only address that does not
+                // lie when two documents have the same name.
                 try { whomIChecked = refObj.GetPathName(); } catch { }
                 if (string.IsNullOrWhiteSpace(whomIChecked))
                     try { whomIChecked = "senza percorso, titolo «" + refObj.GetTitle() + "»"; } catch { }
@@ -409,9 +409,9 @@ namespace Oce.Solid.Agent.Core
             foreach (Match m in Connection.Matches(text))
             {
                 var itemName = m.Groups[2].Value;
-                // `$PRPSHEET` prende la proprieta' dal MODELLO in vista, non
-                // dal disegno: e' un cassetto diverso, e confonderli fa
-                // scrivere sul documento sbagliato.
+                // `$PRPSHEET` takes the property from the MODEL in view, not
+                // from the drawing: it is a different drawer, and confusing them makes
+                // people write on the wrong document.
                 if (m.Groups[1].Success) itemName = itemName + "  (dal pezzo, non dal disegno)";
                 if (!outside.Contains(itemName, StringComparer.Ordinal)) outside.Add(itemName);
             }

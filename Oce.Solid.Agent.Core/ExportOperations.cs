@@ -8,64 +8,64 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// FAR USCIRE IL PEZZO DA SOLIDWORKS. (voce GP2)
+    /// GETTING THE PART OUT OF SOLIDWORKS. (entry GP2)
     ///
-    /// ── PERCHE' L'STL E' IL CASO PIU' PERICOLOSO DEL CATALOGO ────────────
+    /// ── WHY THE STL IS THE MOST DANGEROUS CASE OF THE CATALOGUE ──────────
     ///
-    /// Un file STL non contiene quasi niente: un elenco di triangoli. Non dice
-    /// in che unita' sono, non dice se il solido e' chiuso, non dice da quale
-    /// pezzo viene. Tutto quello che si puo' sbagliare qui **si apre lo
-    /// stesso, si affetta lo stesso e si stampa lo stesso**, e il difetto si
-    /// vede quando il pezzo e' in mano.
+    /// An STL file contains almost nothing: a list of triangles. It does not say
+    /// what units they are in, it does not say whether the solid is closed, it does not say which
+    /// part it comes from. Everything that can go wrong here **opens all the
+    /// same, slices all the same and prints all the same**, and the defect is
+    /// seen when the part is in hand.
     ///
-    /// Le tre cose che non danno errore da nessuna parte:
+    /// The three things that give an error nowhere:
     ///
-    /// 1. **LE UNITA'.** L'STL non le porta con se': lo slicer assume
-    ///    millimetri. Se SOLIDWORKS esporta in pollici, il pezzo esce 25,4
-    ///    volte piu' piccolo e niente lo dice. `swExportStlUnits` e' una
-    ///    PREFERENZA GLOBALE della macchina: lasciarla com'e' vuol dire che il
-    ///    risultato dipende da chi ha usato SOLIDWORKS prima.
-    /// 2. **IL CORPO NON CHIUSO.** Una superficie o un solido con una fessura
-    ///    esporta un STL che si apre e si stampa con un buco. E' il motivo per
-    ///    cui la voce GP1 andava fatta prima di questa: **qui si rifiuta
-    ///    invece di scrivere**, e la verifica gira PRIMA, non dopo.
-    /// 3. **PIU' DI UN CORPO.** Un STL di due corpi e' due gusci separati:
-    ///    lo slicer li stampa tutti e due, e la stampante non sa quale dei due
-    ///    era il pezzo.
+    /// 1. **THE UNITS.** The STL does not carry them: the slicer assumes
+    ///    millimetres. If SOLIDWORKS exports in inches, the part comes out 25.4
+    ///    times smaller and nothing says so. `swExportStlUnits` is a
+    ///    GLOBAL PREFERENCE of the machine: leaving it as it is means the
+    ///    result depends on who used SOLIDWORKS before.
+    /// 2. **THE UNCLOSED BODY.** A surface or a solid with a gap
+    ///    exports an STL that opens and is printed with a hole. It is the reason
+    ///    why entry GP1 had to be done before this one: **here it refuses
+    ///    instead of writing**, and the check runs BEFORE, not after.
+    /// 3. **MORE THAN ONE BODY.** An STL of two bodies is two separate shells:
+    ///    the slicer prints both of them, and the printer does not know which of the two
+    ///    was the part.
     ///
-    /// ── COME SI IMPOSTA LA QUALITA', VISTO CHE NON C'E' UN'INTERFACCIA ──
+    /// ── HOW THE QUALITY IS SET, SINCE THERE IS NO INTERFACE ─────────────
     ///
-    /// `IExportStlData` **non esiste in questo interop**: cercata per
-    /// riflessione fra tutte le 1737 interfacce, nessun tipo con «Stl» nel
-    /// nome. L'esportazione si fa con `SaveAs3` e l'estensione `.stl`, e ogni
-    /// opzione e' una **preferenza utente globale**:
+    /// `IExportStlData` **does not exist in this interop**: searched by
+    /// reflection among all 1737 interfaces, no type with «Stl» in the
+    /// name. The export is done with `SaveAs3` and the `.stl` extension, and every
+    /// option is a **global user preference**:
     ///
     ///   swSTLQuality (int)            swSTLQuality_Coarse=1, _Fine=2, _Custom=3
-    ///   swSTLBinaryFormat (toggle)    binario invece che ASCII
+    ///   swSTLBinaryFormat (toggle)    binary instead of ASCII
     ///   swExportStlUnits (int)        swLengthUnit_e: swMM = 0
-    ///   swSTLShowInfoOnSave (toggle)  ** una finestra che blocca la chiamata COM **
-    ///   swSTLDontTranslateToPositive  se false, le coordinate vengono traslate
-    ///   swSTLComponentsIntoOneFile    solo per gli assiemi
+    ///   swSTLShowInfoOnSave (toggle)  ** a window that blocks the COM call **
+    ///   swSTLDontTranslateToPositive  if false, the coordinates get translated
+    ///   swSTLComponentsIntoOneFile    only for assemblies
     ///
-    /// SI LEGGONO, SI IMPOSTANO, SI RIMETTONO COM'ERANO. Sono impostazioni
-    /// della macchina di chi disegna: un'operazione che le cambia e le lascia
-    /// cambiate modifica il CAD di qualcun altro senza dirlo.
+    /// THEY ARE READ, SET, AND PUT BACK AS THEY WERE. They are settings
+    /// of the machine of whoever designs: an operation that changes them and leaves them
+    /// changed modifies somebody else's CAD without saying so.
     ///
-    /// `swSTLShowInfoOnSave` a `true` aprirebbe un modale, e **una chiamata COM
-    /// che apre un modale non torna**: e' la stessa trappola di
-    /// `AddDimension`, gia' pagata in questo progetto.
+    /// `swSTLShowInfoOnSave` at `true` would open a modal, and **a COM call
+    /// that opens a modal does not return**: it is the same trap as
+    /// `AddDimension`, already paid for in this project.
     ///
-    /// ── E POI SI GUARDA IL FILE, NON LA RISPOSTA ─────────────────────────
+    /// ── AND THEN THE FILE IS LOOKED AT, NOT THE ANSWER ──────────────────
     ///
-    /// Un STL binario ha un'intestazione di 80 byte, poi **4 byte col numero
-    /// di triangoli**, poi 50 byte per triangolo. Quindi:
+    /// A binary STL has a header of 80 bytes, then **4 bytes with the number
+    /// of triangles**, then 50 bytes per triangle. So:
     ///
-    ///     dimensione attesa = 84 + 50 * triangoli
+    ///     expected size = 84 + 50 * triangles
     ///
-    /// e il numero di triangoli si confronta con quello che la geometria
-    /// tassellata dichiara. E' l'unico modo di sapere che il file scritto e'
-    /// il pezzo e non un'intestazione vuota: `SaveAs3` che torna `true` dice
-    /// solo che SOLIDWORKS non ha protestato.
+    /// and the number of triangles is compared with the one the tessellated
+    /// geometry declares. It is the only way to know that the file written is
+    /// the part and not an empty header: a `SaveAs3` that returns `true` says
+    /// only that SOLIDWORKS did not complain.
     /// </summary>
     public partial class SwOperations
     {
@@ -78,12 +78,12 @@ namespace Oce.Solid.Agent.Core
                     "Questo documento non e' un pezzo: lo STL si esporta da una parte. Per mandare un " +
                     "assieme usa «export_step», che lo porta intero.");
 
-            // ── 1. LA VERIFICA VIENE PRIMA, e puo' fermare tutto ──────────
+            // ── 1. THE CHECK COMES FIRST, and it can stop everything ──────
             //
-            // E' la riga per cui la voce GP1 andava fatta prima di questa. La
-            // misura del file — esiste, pesa qualcosa — NON cattura il corpo
-            // con la fessura: serve il controllo di integrita' PRIMA, non la
-            // verifica del file DOPO.
+            // It is the line for which entry GP1 had to be done before this one. The
+            // measurement of the file — it exists, it weighs something — does NOT catch the body
+            // with the gap: the integrity check is needed BEFORE, not the
+            // verification of the file AFTER.
             var check = CheckBodyGeometry(model, new Dictionary<string, object>(), docState);
             if (!check.Succeeded) return check;
 
@@ -132,7 +132,7 @@ namespace Oce.Solid.Agent.Core
             else return Failed(
                 "Qualita' «" + requestedQuality + "» sconosciuta: ci sono «fine» e «coarse».");
 
-            // ── 3. LE PREFERENZE: lette, imposte, rimesse ────────────────
+            // ── 3. THE PREFERENCES: read, set, put back ──────────────────
             var before = ReadStlPreferences();
             List<string> preferencesNotRestored = null;
             string placed = null;
@@ -153,7 +153,7 @@ namespace Oce.Solid.Agent.Core
                     }
                 }
 
-                // LA SELEZIONE SI VUOTA PRIMA, SEMPRE (voce Z-C21.2, rilievo L13-1).
+                // THE SELECTION IS CLEARED FIRST, ALWAYS (entry Z-C21.2, finding L13-1).
                 //
                 // IModelDocExtension~SaveAs3.html, Remarks: «Exports the entire
                 // model, unless faces or bodies are selected, in which case, it
@@ -161,16 +161,16 @@ namespace Oce.Solid.Agent.Core
                 // calling this method to clear the selection list and export the
                 // entire model.»
                 //
-                // Una faccia rimasta selezionata — da un passo prima, o a mano da
-                // chi sta davanti a SOLIDWORKS — faceva uscire uno STL con quella
-                // faccia sola, e i controlli qui sotto non potevano accorgersene:
-                // confrontano il file con se stesso (84 + 50 per triangolo), non
-                // col pezzo. `triangles_from_geometry` resta un numero riportato
-                // accanto e non diventa un vincolo: la tassellatura di schermo e
-                // quella di esportazione non hanno la stessa tolleranza, e una
-                // soglia sull'ordine di grandezza non si fissa senza averla
-                // misurata su pezzi curvi. Il caso
-                // `stl_does_not_export_the_selected_face` prende il difetto.
+                // A face left selected — from a step before, or by hand by
+                // whoever is sitting in front of SOLIDWORKS — made an STL come out with that
+                // face alone, and the checks below could not notice it:
+                // they compare the file with itself (84 + 50 per triangle), not
+                // with the part. `triangles_from_geometry` stays a number reported
+                // alongside and does not become a constraint: the screen tessellation and
+                // the export one do not have the same tolerance, and a
+                // threshold on the order of magnitude is not fixed without having measured it
+                // on curved parts. The case
+                // `stl_does_not_export_the_selected_face` catches the defect.
                 model.ClearSelection2(true);
                 try
                 {
@@ -185,9 +185,9 @@ namespace Oce.Solid.Agent.Core
             }
             finally
             {
-                // SEMPRE, anche se l'esportazione e' andata male: le
-                // preferenze sono della macchina di chi disegna, e lasciarle
-                // cambiate vuol dire cambiargli il CAD senza dirglielo. Only
+                // ALWAYS, even if the export went badly: the
+                // preferences belong to the machine of whoever designs, and leaving them
+                // changed means changing their CAD without telling them. Only
                 // the ones that were read go back (N17).
                 preferencesNotRestored = RestorePreferences(before);
             }
@@ -199,7 +199,7 @@ namespace Oce.Solid.Agent.Core
 
             long howMuchItWeighs = new FileInfo(placed).Length;
 
-            // ── 4. SI GUARDA IL FILE, NON LA RISPOSTA ────────────────────
+            // ── 4. THE FILE IS LOOKED AT, NOT THE ANSWER ─────────────────
             int trianglesInFile = StlTriangles(placed, binary, howMuchItWeighs, out string howIKnow);
             int partTriangles = GeometryTriangles(partDoc);
 
@@ -209,9 +209,9 @@ namespace Oce.Solid.Agent.Core
                 ["byte"] = howMuchItWeighs,
                 ["file_format"] = binary ? "binary" : "ASCII",
                 ["quality"] = requestedQuality,
-                // LE UNITA' SI DICONO SEMPRE. Il file non le porta, e chi apre
-                // lo STL non ha nessun modo di saperle: se questa riga non
-                // c'e', l'unica risposta possibile e' «boh, prova».
+                // THE UNITS ARE ALWAYS STATED. The file does not carry them, and whoever opens
+                // the STL has no way of knowing them: if this line is not
+                // there, the only possible answer is «dunno, try it».
                 ["units"] = "mm",
                 ["triangles"] = trianglesInFile >= 0 ? (object)trianglesInFile : null,
                 ["how_triangles_are_known"] = howIKnow,
@@ -230,10 +230,10 @@ namespace Oce.Solid.Agent.Core
                     "L'hai chiesto tu con «export_anyway»: il file c'e' e il pezzo " +
                     "non era a posto. " + verdictValue;
 
-            // UN FILE CHE NON TORNA NON E' UN FILE. Su un STL binario la
-            // dimensione e' esattamente 84 + 50 per triangolo: se non torna, il
-            // file c'e' e non e' quello che serve, ed e' meglio saperlo adesso
-            // che dallo slicer.
+            // A FILE THAT DOES NOT ADD UP IS NOT A FILE. On a binary STL the
+            // size is exactly 84 + 50 per triangle: if it does not add up, the
+            // file is there and is not the one needed, and it is better to know it now
+            // than from the slicer.
             if (binary && trianglesInFile > 0)
             {
                 long expectation = 84L + 50L * trianglesInFile;
@@ -254,7 +254,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         // =================================================================
-        // LE PREFERENZE STL, lette e rimesse
+        // THE STL PREFERENCES, read and put back
         // =================================================================
 
         /// <summary>
@@ -380,15 +380,15 @@ namespace Oce.Solid.Agent.Core
         private void SetStlPreferences(int quality, bool binary)
         {
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSTLQuality, quality); } catch { }
-            // I MILLIMETRI, ESPLICITI. E' la riga che vale l'operazione: senza,
-            // il risultato dipende da chi ha usato SOLIDWORKS prima.
+            // THE MILLIMETRES, EXPLICIT. It is the line that makes the operation worth it: without it,
+            // the result depends on who used SOLIDWORKS before.
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swExportStlUnits, (int)swLengthUnit_e.swMM); } catch { }
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLBinaryFormat, binary); } catch { }
-            // UNA FINESTRA BLOCCHEREBBE LA CHIAMATA COM, e non tornerebbe mai.
+            // A WINDOW WOULD BLOCK THE COM CALL, and it would never return.
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLShowInfoOnSave, false); } catch { }
-            // LE COORDINATE RESTANO DOVE SONO. Traslare il pezzo nel positivo
-            // vuol dire che l'origine dello STL non e' l'origine del modello, e
-            // chi confronta due esportazioni non ritrova piu' niente.
+            // THE COORDINATES STAY WHERE THEY ARE. Translating the part into the positive
+            // means that the origin of the STL is not the origin of the model, and
+            // whoever compares two exports no longer finds anything.
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLDontTranslateToPositive, true); } catch { }
         }
 
@@ -454,12 +454,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         // =================================================================
-        // I TRIANGOLI: quelli scritti nel file e quelli della geometria
+        // THE TRIANGLES: those written in the file and those of the geometry
         // =================================================================
 
         /// <summary>
-        /// Quanti triangoli dice il FILE. Su un binario sta nei quattro byte
-        /// dopo l'intestazione da 80; su un ASCII si contano le righe «facet».
+        /// How many triangles the FILE says. On a binary it sits in the four bytes
+        /// after the header of 80; on an ASCII one the «facet» lines are counted.
         /// </summary>
         private static int StlTriangles(string filePath, bool binary, long howMuchItWeighs,
                                              out string howIKnow)
@@ -494,13 +494,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti triangoli ha la tassellatura del pezzo, faccia per faccia.
+        /// How many triangles the tessellation of the part has, face by face.
         ///
-        /// NON E' LO STESSO NUMERO del file, e non deve esserlo: la
-        /// tassellatura di schermo e quella di esportazione hanno tolleranze
-        /// diverse. Serve come ORDINE DI GRANDEZZA — un file con dieci
-        /// triangoli su un pezzo che ne ha mille e' un file sbagliato — e per
-        /// questo si riporta accanto, non si confronta.
+        /// IT IS NOT THE SAME NUMBER as the file's, and it must not be: the
+        /// screen tessellation and the export one have different tolerances.
+        /// It serves as an ORDER OF MAGNITUDE — a file with ten
+        /// triangles on a part that has a thousand is a wrong file — and for
+        /// that reason it is reported alongside, not compared.
         /// </summary>
         private static int GeometryTriangles(IPartDoc partDoc)
         {
@@ -515,8 +515,8 @@ namespace Oce.Solid.Agent.Core
                     if (faces == null) continue;
                     foreach (var f in faces)
                     {
-                        // Una faccia che non dice i suoi triangoli fa «non lo so»
-                        // tutto il conto, non un conto piu' basso (voce Z-C8).
+                        // A face that does not say its triangles makes the whole count
+                        // «I do not know», not a lower count (entry Z-C8).
                         try { howMany += (f as IFace2).GetTessTriangleCount(); } catch { return -1; }
                     }
                 }
@@ -526,32 +526,32 @@ namespace Oce.Solid.Agent.Core
         }
 
         // =================================================================
-        // STEP e IGES: i formati con cui si manda un pezzo a qualcun altro
+        // STEP and IGES: the formats with which a part is sent to someone else
         // =================================================================
         //
-        // ── PERCHE' NON RIFIUTANO COME LO STL ────────────────────────────
+        // ── WHY THEY DO NOT REFUSE LIKE THE STL ──────────────────────────
         //
-        // `export_stl` si rifiuta se il pezzo non e' un solo corpo solido
-        // chiuso. Qui NO, ed e' una differenza voluta: un STEP con dieci
-        // corpi e' **normale** — un saldato si manda al fornitore cosi' — e
-        // uno con delle superfici aperte pure, perche' STEP e IGES le
-        // portano. Rifiutarli sarebbe applicare a un formato le regole di un
-        // altro.
+        // `export_stl` refuses if the part is not a single closed solid
+        // body. Here it does NOT, and it is a deliberate difference: a STEP with ten
+        // bodies is **normal** — a weldment is sent to the supplier like that — and
+        // so is one with open surfaces, because STEP and IGES carry them.
+        // Refusing them would be applying the rules of one format to
+        // another.
         //
-        // La verifica gira lo stesso e **il suo giudizio viaggia con la
-        // risposta**: chi legge sa com'era il pezzo che ha mandato, e non gli
-        // si impedisce di mandarlo.
+        // The check runs all the same and **its verdict travels with the
+        // answer**: whoever reads knows what the part they sent was like, and
+        // is not prevented from sending it.
         //
-        // ── NIENTE INTERFACCIA DI ESPORTAZIONE, SOLO PREFERENZE ──────────
+        // ── NO EXPORT INTERFACE, ONLY PREFERENCES ────────────────────────
         //
-        // Cercate per riflessione: di STEP e IGES esistono solo le interfacce
-        // di IMPORTAZIONE (`IImportStepData`, `IImportIgesData`). Per scrivere
-        // c'e' `SaveAs3` con `ExportData` a null, e tutto il resto sono
-        // preferenze utente globali:
+        // Searched by reflection: of STEP and IGES only the IMPORT interfaces
+        // exist (`IImportStepData`, `IImportIgesData`). To write
+        // there is `SaveAs3` with `ExportData` at null, and everything else is
+        // global user preferences:
         //
         //   swStepAP (int)                 203, 214, with no enum (not 242: below)
-        //   swIGESRepresentation (int)     swIGES_BREP = 3 (solidi),
-        //                                  swIGES_TRMSRF = 0 (superfici)
+        //   swIGESRepresentation (int)     swIGES_BREP = 3 (solids),
+        //                                  swIGES_TRMSRF = 0 (surfaces)
         //   swIGESExportSolidAndSurface    on: «Specifies whether to export data
         //                                  as solid or surface entities»
         //   swIGESExportAsWireframe        off: «Specifies whether to convert
@@ -609,7 +609,7 @@ namespace Oce.Solid.Agent.Core
             DocumentState docState)
         {
             var partDoc = model as IPartDoc;
-            var assemblyDoc = model as IAssemblyDoc;   // voce Z-D6: anche l'assieme si manda
+            var assemblyDoc = model as IAssemblyDoc;   // entry Z-D6: the assembly is sent too
             // Z-C21.11: how many components were lightweight before the export,
             // read right before the export (the probe saw SaveAs3 resolve them).
             int lightweightBeforeExport = -1;
@@ -624,11 +624,11 @@ namespace Oce.Solid.Agent.Core
                     "e' il conto dei solidi nel file contro quelli dei pezzi: toglilo e richiedimelo.");
 
             bool iges = operation == "export_iges";
-            // L'IGES DELL'ASSIEME NO (revisione avversariale del 27/9/2026): non ha la
-            // verifica dei solidi che ha lo STEP, e dipende da una preferenza globale
-            // (swIGESComponentsIntoOneFile) che non si imposta — con quella spenta
-            // SOLIDWORKS scrive un file per componente, e quello in «path» puo'
-            // non contenere l'assieme intero. Finche' non e' misurato, si rifiuta.
+            // THE ASSEMBLY IGES IS NOT (adversarial review of 27/9/2026): it does not have the
+            // check of the solids that the STEP has, and it depends on a global preference
+            // (swIGESComponentsIntoOneFile) that is not set — with that one off
+            // SOLIDWORKS writes one file per component, and the one in «path» may
+            // not contain the whole assembly. Until it is measured, it refuses.
             if (iges && assemblyDoc != null)
                 return Failed(
                     "L'IGES di un assieme non lo scrivo: non so verificare che dentro ci sia l'assieme intero (con " +
@@ -674,9 +674,9 @@ namespace Oce.Solid.Agent.Core
                 ? new[] { ".iges", ".igs" }
                 : ap242 ? new[] { ".stp" } : new[] { ".step", ".stp" };
 
-            // LA VERIFICA GIRA LO STESSO, E NON FERMA NIENTE. Il giudizio
-            // viaggia con la risposta: chi manda un pezzo a un fornitore ha
-            // diritto di sapere che aveva due corpi, non di essere fermato.
+            // THE CHECK RUNS ALL THE SAME, AND STOPS NOTHING. The verdict
+            // travels with the answer: whoever sends a part to a supplier has the
+            // right to know that it had two bodies, not to be stopped.
             string verdictValue = "";
             if (partDoc != null)
             {
@@ -754,11 +754,11 @@ namespace Oce.Solid.Agent.Core
                         }
                     }
 
-                    // COME PER LO STL (rilievo L13-1). IModelDocExtension~SaveAs3.html,
+                    // AS FOR THE STL (finding L13-1). IModelDocExtension~SaveAs3.html,
                     // Remarks: «Exports the entire model, unless faces or bodies are
-                    // selected, in which case, it exports only those». Per lo STEP di
-                    // una parte non c'e' nessun conto dei corpi che se ne accorgerebbe,
-                    // e quello dell'assieme prenderebbe un file con meno solidi.
+                    // selected, in which case, it exports only those». For the STEP of
+                    // a part there is no count of the bodies that would notice it,
+                    // and the assembly one would take a file with fewer solids.
                     model.ClearSelection2(true);
                     try
                     {
@@ -871,9 +871,9 @@ namespace Oce.Solid.Agent.Core
                         " (FILE_SCHEMA «" + schema + "»). Il file c'e' e non e' il " +
                         "protocollo che serve: certi fornitori accettano solo il 203. (" +
                         location + ")");
-                // L'ASSIEME INTERO NEL FILE (voce Z-D6): un MANIFOLD_SOLID_BREP per
-                // corpo, contro i corpi dei pezzi non soppressi. Rileggerlo non si
-                // puo' (apre un modale): si contano i solidi nel testo.
+                // THE WHOLE ASSEMBLY IN THE FILE (entry Z-D6): one MANIFOLD_SOLID_BREP per
+                // body, against the bodies of the unsuppressed parts. Rereading it is not
+                // possible (it opens a modal): the solids in the text are counted.
                 if (assemblyDoc != null)
                 {
                     var hiddenLeftOut = new List<string>();
@@ -897,18 +897,18 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            // ── LA PROVA VERA, SE LA SI CHIEDE ───────────────────────────
+            // ── THE REAL TEST, IF ASKED FOR ──────────────────────────────
             //
-            // Riaprire il file e confrontare il volume e' l'unica misura che
-            // dice che la GEOMETRIA e' sopravvissuta alla traduzione: la
-            // dimensione di un file non lo dice, e nemmeno il numero di
-            // entita'. Non e' il predefinito perche' costa un'apertura di
-            // documento: su un pezzo grosso sono minuti.
+            // Reopening the file and comparing the volume is the only measurement that
+            // says the GEOMETRY survived the translation: the
+            // size of a file does not say it, nor does the number of
+            // entities. It is not the default because it costs a document
+            // opening: on a large part it is minutes.
             if (Bool(a, "reopen_and_compare", false))
             {
-                // IL CONFRONTO VUOLE DUE VOLUMI LETTI (voce Z-C8): con lo zero
-                // di una lettura fallita da questa parte, «il pezzo ne ha 0: la
-                // traduzione ha perso qualcosa» era una frase falsa.
+                // THE COMPARISON NEEDS TWO VOLUMES READ (entry Z-C8): with the zero
+                // of a failed read on this side, «the part has 0: the
+                // translation lost something» was a false sentence.
                 double? myRead = VolumeMm3(model);
                 string comE;
                 double its = VolumeOnReopen(location, out comE);
@@ -925,9 +925,9 @@ namespace Oce.Solid.Agent.Core
                         "pezzo di partenza: senza, il confronto non si fa. (" + location + ")");
                 double myOwn = myRead.Value;
 
-                // UN MILLESIMO, non «circa». Una traduzione che perde un
-                // millesimo di volume ha perso una faccia, e su un pezzo che
-                // va in officina non e' un arrotondamento.
+                // ONE THOUSANDTH, not «about». A translation that loses a
+                // thousandth of volume has lost a face, and on a part that
+                // goes to the workshop it is not a rounding.
                 double deviation = myOwn > 0 ? Math.Abs(its - myOwn) / myOwn : Math.Abs(its - myOwn);
                 measurements["deviation_relative"] = Math.Round(deviation, 6);
                 if (deviation > 0.001)
@@ -1258,8 +1258,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il `FILE_SCHEMA` dello STEP, e quante entita' ha la sezione DATA.
-        /// Null se il file non comincia per «ISO-10303-21».
+        /// The `FILE_SCHEMA` of the STEP, and how many entities the DATA section has.
+        /// Null if the file does not start with «ISO-10303-21».
         /// </summary>
         private static string StepSchema(string filePath, out int entity, out string why)
         {
@@ -1310,10 +1310,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Da `FILE_SCHEMA` al nome del protocollo. I tre nomi sono quelli
-        /// dello STANDARD, non di SOLIDWORKS: AP203 si dichiara
-        /// «CONFIG_CONTROL_DESIGN», AP214 «AUTOMOTIVE_DESIGN», AP242 col suo
-        /// nome lungo.
+        /// From `FILE_SCHEMA` to the protocol name. The three names are those
+        /// of the STANDARD, not of SOLIDWORKS: AP203 declares itself
+        /// «CONFIG_CONTROL_DESIGN», AP214 «AUTOMOTIVE_DESIGN», AP242 with its long
+        /// name.
         /// </summary>
         private static string FromSchema(string schema)
         {
@@ -1326,10 +1326,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti record di PARAMETRI ha l'IGES. Un IGES e' fatto di righe da
-        /// ottanta caratteri, e la colonna 73 dice a che sezione appartengono:
-        /// S intestazione, G globale, D directory, P parametri, T coda. Un file
-        /// senza nemmeno un record «P» ha le intestazioni e niente dentro.
+        /// How many PARAMETER records the IGES has. An IGES is made of lines of
+        /// eighty characters, and column 73 says which section they belong to:
+        /// S header, G global, D directory, P parameters, T terminator. A file
+        /// without even one «P» record has the headers and nothing inside.
         /// </summary>
         private static int RecordIges(string filePath, out string why)
         {
@@ -1414,28 +1414,28 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il volume del file appena scritto, riaperto in SOLIDWORKS e
-        /// richiuso. E' l'unica misura che dice che la GEOMETRIA e'
-        /// sopravvissuta alla traduzione: la dimensione di un file non lo dice,
-        /// e nemmeno il numero di entita'.
+        /// The volume of the file just written, reopened in SOLIDWORKS and
+        /// closed again. It is the only measurement that says the GEOMETRY
+        /// survived the translation: the size of a file does not say it,
+        /// nor does the number of entities.
         ///
-        /// IL DOCUMENTO SI CHIUDE SEMPRE, e alla fine si riattiva quello di
-        /// prima: aprire un file e lasciarlo li' vuol dire che l'operazione
-        /// dopo lavora su un documento che non e' quello che il modello crede.
+        /// THE DOCUMENT IS ALWAYS CLOSED, and at the end the one from before is
+        /// reactivated: opening a file and leaving it there means the operation
+        /// after works on a document that is not the one the model believes in.
         ///
-        /// ── `LoadFile4` E NON `OpenDoc6`, E L'ERRORE DICE UN'ALTRA COSA ──
+        /// ── `LoadFile4` AND NOT `OpenDoc6`, AND THE ERROR SAYS SOMETHING ELSE ──
         ///
-        /// `OpenDoc6` su uno STEP o un IGES **non apre niente** e risponde
-        /// `swFileRequiresRepairError = 2097152` — «il file richiede una
-        /// riparazione». Il file non ha niente da riparare: lo abbiamo appena
-        /// scritto noi, e `LoadFile4` lo apre senza un avviso. Misurato il
-        /// 15/9/2026 su un cubo da 200.000 mm³: `OpenDoc6` con `swDocPART`
-        /// 2097152, con `swDocIMPORTED_PART` 1024 («tipo di file non valido»),
-        /// `LoadFile4(percorso, "", null)` **aperto, un corpo, 200000 mm³**.
+        /// `OpenDoc6` on a STEP or an IGES **opens nothing** and answers
+        /// `swFileRequiresRepairError = 2097152` — «the file requires a
+        /// repair». The file has nothing to repair: we just wrote it
+        /// ourselves, and `LoadFile4` opens it without a warning. Measured on
+        /// 15/9/2026 on a cube of 200,000 mm³: `OpenDoc6` with `swDocPART`
+        /// 2097152, with `swDocIMPORTED_PART` 1024 («invalid file type»),
+        /// `LoadFile4(percorso, "", null)` **open, one body, 200000 mm³**.
         ///
-        /// E' un messaggio che manda a cercare il guasto dalla parte
-        /// sbagliata: chi lo legge va a guardare il file, e il file e' a
-        /// posto. Per i formati neutri la porta e' `LoadFile4`.
+        /// It is a message that sends one looking for the fault on the wrong
+        /// side: whoever reads it goes to look at the file, and the file is
+        /// fine. For the neutral formats the door is `LoadFile4`.
         /// </summary>
         private double VolumeOnReopen(string filePath, out string comE)
         {

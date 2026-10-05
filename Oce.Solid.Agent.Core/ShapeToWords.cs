@@ -6,60 +6,60 @@ using System.Linq;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA FORMA DEL PEZZO, DETTA IN UNA FRASE (voce V3).
+    /// THE SHAPE OF THE PART, TOLD IN A SENTENCE (entry V3).
     ///
-    /// Lo stato elenca fino a sessanta facce con area, punto e normale. Sono i
-    /// numeri giusti, ed e' un elenco: per sapere che il pezzo e' «una scatola
-    /// 120x80x50 svuotata 4, con quattro fori Ø12» bisogna ricavarlo. Questa
-    /// classe lo ricava una volta sola, qui, e lo dice.
+    /// The state lists up to sixty faces with area, point and normal. They are the
+    /// right numbers, and it is a list: to know that the part is «a box
+    /// 120x80x50 svuotata 4, con quattro fori Ø12» it has to be worked out. This
+    /// class works it out once only, here, and says it.
     ///
-    /// ── PERCHE' PUO' VALERE PIU' DI UN'IMMAGINE ───────────────────────────
+    /// ── WHY IT CAN BE WORTH MORE THAN AN IMAGE ─────────────────────────────
     ///
-    ///   * **costa caratteri, non token di immagine.** Una vista sta sopra i
-    ///     mille token; questa frase sta sotto i trecento CARATTERI.
-    ///   * **sopravvive a un modello che non vede immagini.**
-    ///   * **si puo' verificare.** Una frase o e' vera o e' falsa, e il numero
-    ///     che porta si confronta col pezzo. Di una PNG non si verifica niente.
-    ///   * **resta leggibile da una persona** dentro un log, sei mesi dopo.
+    ///   * **it costs characters, not image tokens.** A view is over
+    ///     a thousand tokens; this sentence is under three hundred CHARACTERS.
+    ///   * **it survives a model that does not see images.**
+    ///   * **it can be verified.** A sentence is either true or false, and the number
+    ///     it carries is compared with the part. Of a PNG nothing is verified.
+    ///   * **it stays readable by a person** inside a log, six months later.
     ///
-    /// ── LA REGOLA CHE TIENE INSIEME TUTTO: NON SI INVENTA ─────────────────
+    /// ── THE RULE THAT HOLDS EVERYTHING TOGETHER: NOTHING IS MADE UP ───────
     ///
-    /// «Sembra una staffa» non e' una misura. Ogni parola di questa frase deve
-    /// venire da un numero che sta nello stato, e **dove il numero non c'e' la
-    /// frase tace** — come `positions_not_checked`, che dice «non posso
-    /// dirlo» invece di tirare a indovinare.
+    /// «It looks like a bracket» is not a measure. Every word of this sentence must
+    /// come from a number that is in the state, and **where the number is not there the
+    /// sentence is silent** — like `positions_not_checked`, which says «I cannot
+    /// say» instead of guessing.
     ///
-    /// Concretamente: **il nome della famiglia si scrive solo quando un TIPO di
-    /// lavorazione lo autorizza.** `Shell` dice «svuotato», `Revolution` dice
-    /// «di rivoluzione»: sono cio' che il progettista ha fatto, non cio' che
-    /// sembra. Per tutto il resto si danno le misure e basta.
+    /// Concretely: **the name of the family is written only when a TYPE of
+    /// feature authorizes it.** `Shell` says «svuotato», `Revolution` says
+    /// «di rivoluzione»: they are what the designer did, not what
+    /// it looks like. For everything else the measures are given and that is all.
     ///
-    /// Non si dice «piastra» perche' una quota e' piccola rispetto alle altre:
-    /// sarebbe una soglia inventata da me, e il giorno che sbaglia — su un
-    /// pezzo che piastra non e' — chi legge ci crede lo stesso, perche' la
-    /// frase suona sicura come tutte le altre. **Una frase sbagliata e' peggio
-    /// di nessuna frase.**
+    /// «Plate» is not said because one dimension is small compared with the others:
+    /// it would be a threshold invented by me, and on the day it is wrong — on a
+    /// part that is not a plate — whoever reads believes it all the same, because the
+    /// sentence sounds as sure as all the others. **A wrong sentence is worse
+    /// than no sentence.**
     ///
-    /// ── E CIO' CHE LA MISURA V2 HA GIA' DETTO ────────────────────────────
+    /// ── AND WHAT THE V2 MEASURE HAS ALREADY SAID ──────────────────────────
     ///
-    /// La voce V3 dava per scontato che servisse a far CAPIRE la forma. La
-    /// misura di V2 ha mostrato che col solo stato testuale un modello prende
-    /// la famiglia **5 volte su 5**: capire non era il problema. Quello che il
-    /// solo stato faceva male erano i numeri DERIVATI — tre interassi sbagliati
-    /// con confidenza piena.
+    /// Entry V3 took for granted that it served to make the shape UNDERSTOOD. The
+    /// V2 measure showed that with the textual state alone a model gets
+    /// the family **5 times out of 5**: understanding was not the problem. What the
+    /// state alone did badly were the DERIVED numbers — three wrong centre distances
+    /// with full confidence.
     ///
-    /// Quindi questa frase serve soprattutto a **dire i numeri derivati una
-    /// volta sola e bene**, invece di lasciarli ricavare a ognuno per conto suo:
-    /// i centri dei fori, il passo, lo spessore di parete. E' compressione con
-    /// dentro un conto gia' fatto.
+    /// So this sentence serves above all to **say the derived numbers
+    /// once only and well**, instead of leaving each reader to work them out on their own:
+    /// the hole centres, the pitch, the wall thickness. It is compression with
+    /// a calculation already done inside.
     /// </summary>
     public static class ShapeToWords
     {
         private static readonly CultureInfo Point = CultureInfo.InvariantCulture;
 
         /// <summary>
-        /// La frase. Null quando non c'e' abbastanza per dirne una: **meglio
-        /// niente che una frase vuota che sembra una descrizione**.
+        /// The sentence. Null when there is not enough to say one: **better
+        /// nothing than an empty sentence that looks like a description**.
         /// </summary>
         public static string Describe(Dictionary<string, object> docState)
         {
@@ -68,11 +68,11 @@ namespace Oce.Solid.Agent.Core
 
             var parts = new List<string>();
 
-            // ── 1. QUANTO E' GRANDE, e quanto e' pieno ──────────────────
+            // ── 1. HOW BIG IT IS, and how full it is ────────────────────
             //
-            // Il rapporto fra volume e ingombro dice una cosa vera e utile
-            // senza classificare niente: 98% e' un pieno, 23% e' qualcosa di
-            // cavo o di sottile. E' un numero, non un aggettivo.
+            // The ratio between volume and bounding box says something true and useful
+            // without classifying anything: 98% is solid, 23% is something
+            // hollow or thin. It is a number, not an adjective.
             double[] ing = Vector(docState, "bounding_box_mm");
             double volume = Number(docState, "volume_mm3");
             if (ing != null && ing.Length == 3)
@@ -92,10 +92,10 @@ namespace Oce.Solid.Agent.Core
             int bodies = (int)Number(docState, "bodies_total");
             if (bodies > 1) parts.Add(bodies + " corpi separati");
 
-            // ── 2. COSA CI HANNO FATTO SOPRA ────────────────────────────
+            // ── 2. WHAT HAS BEEN DONE ON IT ─────────────────────────────
             //
-            // Solo tipi che il progettista ha scelto: `Shell` e `Revolution`
-            // dicono cos'e' il pezzo perche' cos'e' l'ha deciso lui.
+            // Only types that the designer chose: `Shell` and `Revolution`
+            // say what the part is because what it is was decided by them.
             var feature = Entries(docState, "feature").ToList();
             if (feature.Any(f => Text(f, "kind") == "Revolution"))
             {
@@ -113,14 +113,14 @@ namespace Oce.Solid.Agent.Core
                     : "svuotato");
             }
 
-            // ── 3. I FORI, col centro gia' calcolato ────────────────────
+            // ── 3. THE HOLES, with the centre already calculated ─────────
             parts.AddRange(Holes(docState));
 
-            // ── 4. QUELLO CHE NON SI E' POTUTO DIRE ─────────────────────
+            // ── 4. WHAT COULD NOT BE SAID ───────────────────────────────
             //
-            // Un elenco troncato o delle lavorazioni in errore cambiano il
-            // senso di tutta la frase, e tacerle la renderebbe una bugia per
-            // omissione: chi legge crederebbe di avere il pezzo intero.
+            // A truncated list or features in error change the
+            // sense of the whole sentence, and keeping quiet about them would make it a lie by
+            // omission: whoever reads would believe they have the whole part.
             int outside = (int)Number(docState, "feature_not_listed");
             if (outside > 0)
                 parts.Add("piu' altre " + outside + " lavorazioni che non sono nell'elenco");
@@ -134,60 +134,60 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// IL PROFILO DI UN PEZZO TORNITO: «Ø30 per 40, Ø20 per 30, Ø34 per 20».
-        /// Null quando non si puo' dire — ed e' il caso piu' importante.
+        /// THE PROFILE OF A TURNED PART: «Ø30 per 40, Ø20 per 30, Ø34 per 20».
+        /// Null when it cannot be said — and it is the most important case.
         ///
-        /// ── PERCHE' ESISTE (voce V7) ──────────────────────────────────────
+        /// ── WHY IT EXISTS (entry V7) ──────────────────────────────────────
         ///
-        /// Nella misura di V3, quattro pezzi su cinque si sono ridisegnati
-        /// dalla sola frase col volume **esatto**. Il quinto, un albero a
-        /// gradini, e' uscito al 3,8% — e il modello aveva detto in anticipo
-        /// perche': «non dice quanti gradini ha il profilo, dove cade lo
-        /// scalino, ne' i diametri intermedi». La frase diceva «pezzo di
-        /// rivoluzione» e nient'altro, cioe' il nome della famiglia senza una
-        /// quota.
+        /// In the V3 measure, four parts out of five were redrawn
+        /// from the sentence alone with the **exact** volume. The fifth, a stepped
+        /// shaft, came out at 3.8% — and the model had said in advance
+        /// why: «it does not say how many steps the profile has, where the
+        /// step falls, nor the intermediate diameters». The sentence said «pezzo di
+        /// rivoluzione» and nothing else, that is the name of the family without a
+        /// dimension.
         ///
-        /// ── COME SI RICAVA, E DA COSA ────────────────────────────────────
+        /// ── HOW IT IS DERIVED, AND FROM WHAT ─────────────────────────────
         ///
-        /// Le facce cilindriche di un tornito portano `diameter_mm`, `axis` e
-        /// l'area. La **lunghezza** di un tratto non c'e' da nessuna parte, ma
-        /// un cilindro di diametro d e lunghezza L ha area **π·d·L**: la
-        /// lunghezza e' `area / (π·d)`.
+        /// The cylindrical faces of a turned part carry `diameter_mm`, `axis` and
+        /// the area. The **length** of a stretch is not anywhere, but
+        /// a cylinder of diameter d and length L has area **π·d·L**: the
+        /// length is `area / (π·d)`.
         ///
-        /// L'ORDINE viene dal `point_mm`, proiettato sull'asse. E' un punto
-        /// sulla superficie e non sull'asse — vedi E16 — ma per ORDINARE
-        /// basta: i tratti di un tornito non si sovrappongono lungo l'asse,
-        /// quindi qualunque punto dentro un tratto lo colloca giusto. Per una
-        /// posizione non basterebbe, e infatti non se ne danno.
+        /// THE ORDER comes from `point_mm`, projected on the axis. It is a point
+        /// on the surface and not on the axis — see E16 — but to ORDER
+        /// it is enough: the stretches of a turned part do not overlap along the axis,
+        /// so any point inside a stretch places it correctly. For a
+        /// position it would not be enough, and indeed none are given.
         ///
-        /// ── E LA FORMULA E' FRAGILE, QUINDI SI CONTROLLA ─────────────────
+        /// ── AND THE FORMULA IS FRAGILE, SO IT IS CHECKED ─────────────────
         ///
-        /// `area / (π·d)` vale su un cilindro **intero**. Se la faccia e'
-        /// tagliata da un piatto, da una cava o da un foro trasversale, l'area
-        /// e' minore e la lunghezza esce **corta** — e nessuno se ne
-        /// accorgerebbe, perche' il numero ha la forma giusta. Un pezzo con un
-        /// foro passante otterrebbe un profilo plausibile e falso: e'
-        /// esattamente la corona di bulloni inventata, con un'altra formula.
+        /// `area / (π·d)` holds on a **whole** cylinder. If the face is
+        /// cut by a flat, a keyway or a cross hole, the area
+        /// is smaller and the length comes out **short** — and nobody would
+        /// notice, because the number has the right shape. A part with a
+        /// through hole would get a plausible and false profile: it is
+        /// exactly the invented bolt circle, with another formula.
         ///
-        /// Quindi il profilo si dichiara **solo se si ricostruisce**. Due
-        /// controlli, e devono tornare tutti e due:
+        /// So the profile is declared **only if it is reconstructed**. Two
+        /// checks, and both must come back:
         ///
-        ///   1. la somma delle lunghezze fa l'ingombro lungo l'asse;
-        ///   2. il volume ricostruito — Σ π(d/2)²·L — fa il volume vero.
+        ///   1. the sum of the lengths makes the bounding box along the axis;
+        ///   2. the reconstructed volume — Σ π(d/2)²·L — makes the true volume.
         ///
-        /// Il secondo e' quello forte: prende i fori trasversali, le cave, e un
-        /// pezzo cavo (dove una faccia cilindrica e' interna e toglie materiale
-        /// invece di aggiungerlo). Se non torna, **si tace**: resta «pezzo di
-        /// rivoluzione», che e' poco ma e' vero.
+        /// The second is the strong one: it catches the cross holes, the keyways, and a
+        /// hollow part (where a cylindrical face is internal and removes material
+        /// instead of adding it). If it does not come back, **it stays silent**: «pezzo di
+        /// rivoluzione» remains, which is little but is true.
         /// </summary>
         private static string TurnedProfile(
             Dictionary<string, object> docState, double[] boundingBox, double volume)
         {
             if (boundingBox == null || boundingBox.Length != 3 || volume <= 0) return null;
 
-            // ── l'asse, e dev'essere uno solo ────────────────────────────
+            // ── the axis, and it must be only one ────────────────────────
             int alongWhich = -1;
-            var strokes = new List<double[]>();   // {posizione, diametro, lunghezza}
+            var strokes = new List<double[]>();   // {position, diameter, length}
 
             foreach (var f in Entries(docState, "faces"))
             {
@@ -199,15 +199,15 @@ namespace Oce.Solid.Agent.Core
                 if (d <= 0 || area <= 0 || axis == null || point == null) return null;
                 if (axis.Length != 3 || point.Length != 3) return null;
 
-                // L'asse dev'essere allineato a X, Y o Z: un tornito storto
-                // rispetto agli assi del modello non si sa raccontare, e
-                // provarci vorrebbe dire indovinare.
+                // The axis must be aligned with X, Y or Z: a turned part slanted
+                // with respect to the model axes cannot be told, and
+                // trying would mean guessing.
                 int which = -1;
                 for (int i = 0; i < 3; i++)
                     if (Math.Abs(Math.Abs(axis[i]) - 1) < 1e-6) which = i;
                 if (which < 0) return null;
                 if (alongWhich < 0) alongWhich = which;
-                else if (alongWhich != which) return null;   // due assi: non e' un tornito semplice
+                else if (alongWhich != which) return null;   // two axes: it is not a simple turned part
 
                 strokes.Add(new[] { point[which], d, area / (Math.PI * d) });
             }
@@ -216,11 +216,11 @@ namespace Oce.Solid.Agent.Core
 
             strokes.Sort((a, b) => a[0].CompareTo(b[0]));
 
-            // ── 1. le lunghezze fanno l'ingombro? ────────────────────────
+            // ── 1. do the lengths make the bounding box? ─────────────────
             double sum = strokes.Sum(t => t[2]);
             if (Math.Abs(sum - boundingBox[alongWhich]) > 0.05) return null;
 
-            // ── 2. e il volume torna? ────────────────────────────────────
+            // ── 2. and does the volume come back? ────────────────────────
             double rebuilt = strokes.Sum(t => Math.PI * (t[1] / 2) * (t[1] / 2) * t[2]);
             if (Math.Abs(rebuilt - volume) > Math.Max(0.5, volume * 0.005)) return null;
 
@@ -229,18 +229,18 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I fori, raggruppati per diametro, col CENTRO — non col punto sulla
-        /// superficie.
+        /// The holes, grouped by diameter, with the CENTRE — not with the point on the
+        /// surface.
         ///
-        /// **E' il conto che due modelli hanno sbagliato** (voce E16): dal
-        /// `point_mm` di una faccia cilindrica, che sta sulla superficie, un
-        /// interasse esce corto di un raggio per foro. Una corona Ø90 letta
-        /// Ø79. Qui il conto si fa una volta, con `center_mm`, e chi legge non
-        /// lo rifa'.
+        /// **It is the calculation that two models got wrong** (entry E16): from the
+        /// `point_mm` of a cylindrical face, which lies on the surface, a
+        /// centre distance comes out short by one radius per hole. A Ø90 bolt circle read
+        /// Ø79. Here the calculation is done once, with `center_mm`, and whoever reads does not
+        /// redo it.
         ///
-        /// Si contano solo le facce cilindriche che vengono da una lavorazione
-        /// (`from_feature`): sono i fori e le tasche tonde. I raccordi
-        /// d'angolo di un profilo sono cilindrici anche loro e fori non sono.
+        /// Only the cylindrical faces that come from a feature
+        /// (`from_feature`) are counted: they are the holes and the round pockets. The corner
+        /// fillets of a profile are cylindrical too and are not holes.
         /// </summary>
         private static IEnumerable<string> Holes(Dictionary<string, object> docState)
         {
@@ -264,9 +264,9 @@ namespace Oce.Solid.Agent.Core
                 int howMany = g.Value.Count;
                 string entry = howMany + (howMany == 1 ? " foro" : " fori") + " " + Diam(g.Key);
 
-                // SE STANNO SU UNA CIRCONFERENZA, LO SI DICE.
-                // E' il dato che serve a chi deve imbullonare, ed e' proprio
-                // quello che il solo elenco delle facce faceva sbagliare.
+                // IF THEY LIE ON A CIRCLE, IT IS SAID.
+                // It is the datum needed by whoever has to bolt, and it is precisely
+                // the one that the list of faces alone led people to get wrong.
                 double rimDiameter;
                 if (howMany >= 3 && OnCircumference(g.Value, out rimDiameter))
                     entry += " su una circonferenza " + Diam(Mm(rimDiameter)) +
@@ -280,34 +280,34 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I fori stanno su una circonferenza di bulloneria, a passo regolare?
+        /// Do the holes lie on a bolt circle, at a regular pitch?
         ///
-        /// ── TRE CONDIZIONI, E LE PRIME DUE DA SOLE MENTONO ────────────────
+        /// ── THREE CONDITIONS, AND THE FIRST TWO ALONE LIE ─────────────────
         ///
-        /// La prima scrittura ne chiedeva una sola — «tutti alla stessa
-        /// distanza da un asse» — e sulla **prima frase generata in assoluto**
-        /// ha dichiarato che i quattro fori di una piastra rettangolare stanno
-        /// «su una circonferenza Ø90 a passo 90 gradi». Stanno ai vertici di un
-        /// rettangolo **160 x 90**.
+        /// The first writing asked for only one — «all at the same
+        /// distance from an axis» — and on the **very first sentence ever generated**
+        /// it declared that the four holes of a rectangular plate lie
+        /// «su una circonferenza Ø90 a passo 90 gradi». They lie at the vertices of a
+        /// **160 x 90** rectangle.
         ///
-        /// Equidistanti da un asse vuol dire su un CILINDRO, non su una
-        /// circonferenza: mancava che stessero tutti sullo stesso piano. E
-        /// stare su una circonferenza non vuol dire starci **a passo
-        /// regolare**: i vertici di un rettangolo 160x90 stanno su un cerchio,
-        /// e i loro angoli sono 29,4° e 150,6° — non 90° l'uno dall'altro.
+        /// Equidistant from an axis means on a CYLINDER, not on a
+        /// circle: what was missing was that they all lie in the same plane. And
+        /// lying on a circle does not mean lying on it **at regular
+        /// pitch**: the vertices of a 160x90 rectangle lie on a circle,
+        /// and their angles are 29.4° and 150.6° — not 90° from each other.
         ///
-        /// Quindi:
+        /// So:
         ///
-        ///   1. **stesso piano** — la coordinata lungo l'asse e' la stessa;
-        ///   2. **stesso raggio** dall'asse;
-        ///   3. **passo angolare regolare**, che e' la condizione che il
-        ///      rettangolo non rispetta e che nessuna delle altre due cattura.
+        ///   1. **same plane** — the coordinate along the axis is the same;
+        ///   2. **same radius** from the axis;
+        ///   3. **regular angular pitch**, which is the condition that the
+        ///      rectangle does not meet and that neither of the other two captures.
         ///
-        /// Se una qualunque non torna, la frase **non dice niente** e lascia i
-        /// centri: chi legge fa il conto suo su numeri veri, invece di credere
-        /// a un conto sbagliato fatto da me. Una corona dichiarata dove non c'e'
-        /// e' esattamente il difetto che questa classe esiste per non avere —
-        /// ed e' lo stesso di E16, commesso dal codice scritto per ripararlo.
+        /// If any one does not come back, the sentence **says nothing** and leaves the
+        /// centres: whoever reads does their own calculation on true numbers, instead of believing
+        /// a wrong calculation made by me. A bolt circle declared where there is none
+        /// is exactly the defect that this class exists not to have —
+        /// and it is the same as E16, committed by the code written to repair it.
         /// </summary>
         private static bool OnCircumference(List<double[]> centers, out double diameter)
         {
@@ -318,18 +318,18 @@ namespace Oce.Solid.Agent.Core
             {
                 int a = (grounded + 1) % 3, b = (grounded + 2) % 3;
 
-                // 1. stesso piano
+                // 1. same plane
                 double dimension = centers[0][grounded];
                 if (!centers.All(c => Math.Abs(c[grounded] - dimension) < 0.05)) continue;
 
-                // 2. stesso raggio
+                // 2. same radius
                 double radius = Math.Sqrt(centers[0][a] * centers[0][a] + centers[0][b] * centers[0][b]);
                 if (radius < 0.05) continue;
                 if (!centers.All(c =>
                         Math.Abs(Math.Sqrt(c[a] * c[a] + c[b] * c[b]) - radius) < 0.05))
                     continue;
 
-                // 3. passo angolare regolare
+                // 3. regular angular pitch
                 if (!RegularPitch(centers, a, b)) continue;
 
                 diameter = radius * 2;
@@ -339,12 +339,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Gli angoli sono equidistanti fra loro?
+        /// Are the angles equidistant from each other?
         ///
-        /// Si ordinano e si guardano i salti: devono essere tutti uguali a
-        /// 360/n. Mezzo grado di tolleranza — un foro messo a mano su un
-        /// disegno vero non e' mai esatto al centesimo, e mezzo grado su una
-        /// corona Ø90 sono 0,4 mm.
+        /// They are sorted and the jumps are looked at: they must all equal
+        /// 360/n. Half a degree of tolerance — a hole placed by hand on a
+        /// real drawing is never exact to the hundredth, and half a degree on a
+        /// Ø90 bolt circle is 0.4 mm.
         /// </summary>
         private static bool RegularPitch(List<double[]> centers, int a, int b)
         {
@@ -365,7 +365,7 @@ namespace Oce.Solid.Agent.Core
             return true;
         }
 
-        // ── letture dallo stato, tutte tolleranti ────────────────────────
+        // ── readings from the state, all tolerant ────────────────────────
 
         private static IEnumerable<Dictionary<string, object>> Entries(
             Dictionary<string, object> docState, string key)
@@ -428,7 +428,7 @@ namespace Oce.Solid.Agent.Core
             return outside.Count == 0 ? null : outside.ToArray();
         }
 
-        /// <summary>Un numero come lo scriverebbe un disegnatore: senza zeri inutili.</summary>
+        /// <summary>A number as a draughtsman would write it: without useless zeros.</summary>
         private static string Mm(double v)
         {
             return v.ToString("0.##", Point);

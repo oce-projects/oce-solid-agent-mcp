@@ -8,55 +8,55 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// I materiali installati su questa postazione, letti dagli archivi veri.
+    /// The materials installed on this workstation, read from the real archives.
     ///
-    /// PERCHE' NON BASTA SCRIVERE IL NOME
-    /// `IPartDoc.SetMaterialPropertyName2(config, archivio, nome)` restituisce
-    /// **void**. Se l'archivio o il nome non esistono non solleva niente e non
-    /// cambia niente: si rilegge il materiale di prima. Misurato il 9 settembre
-    /// 2026 — chiedendo «AISI 304» nell'archivio «materiali personalizzati»
-    /// (che contiene una sola plastica) la rilettura tornava vuota, senza un
-    /// solo segnale. Un'operazione costruita su quella firma senza rilettura e'
-    /// un fallimento silenzioso per costruzione.
+    /// WHY WRITING THE NAME IS NOT ENOUGH
+    /// `IPartDoc.SetMaterialPropertyName2(config, archivio, nome)` returns
+    /// **void**. If the database or the name do not exist it raises nothing and does not
+    /// change anything: the previous material is read back. Measured on 9 September
+    /// 2026 — asking for «AISI 304» in the «materiali personalizzati» database
+    /// (which contains a single plastic) the re-read came back empty, without a
+    /// single signal. An operation built on that signature without a re-read is
+    /// a silent failure by construction.
     ///
-    /// E I NOMI NON SI COMPONGONO
-    /// Il nome vero di un S235JR e' `1.0037 (S235JR)`, sigla numerica e
-    /// parentesi comprese, e nell'archivio DIN convivono 1.0036 (S235JRG1),
+    /// AND NAMES ARE NOT COMPOSED
+    /// The real name of an S235JR is `1.0037 (S235JR)`, numeric code and
+    /// parentheses included, and in the DIN archive 1.0036 (S235JRG1),
     /// 1.0038 (S235JRG2), 1.0114 (S235J0), 1.0116 (S235J2G3), 1.0117
-    /// (S235J2G4): non sono lo stesso acciaio. I nomi che contengono parole
-    /// sono per di piu' TRADOTTI («Acciaio legato» in italiano, «Alloy Steel»
-    /// in inglese), quindi dipendono dalla lingua dell'installazione.
+    /// (S235J2G4) coexist: they are not the same steel. Names that contain
+    /// words are moreover TRANSLATED («Acciaio legato» in Italian, «Alloy Steel»
+    /// in English), so they depend on the language of the installation.
     ///
-    /// COSA SI FA QUI
-    /// Si leggono gli archivi che SolidWorks dichiara
-    /// (`ISldWorks.GetMaterialDatabases()`, quattro su questa macchina: quello
-    /// personalizzato, SOLIDWORKS Materials con 260 voci, SOLIDWORKS DIN
-    /// Materials con 207, e gli extra di sostenibilita') e si risolve il nome
-    /// che arriva dal piano CONTRO QUELLO CHE C'E'. Se corrisponde a una voce
-    /// sola si applica; se a nessuna o a piu' d'una si fallisce elencando le
-    /// candidate, perche' scegliere fra 1.0037 e 1.0116 e' una decisione di
-    /// progetto, non un ripiego di un assistente.
+    /// WHAT IS DONE HERE
+    /// The databases that SolidWorks declares are read
+    /// (`ISldWorks.GetMaterialDatabases()`, four on this machine: the
+    /// custom one, SOLIDWORKS Materials with 260 entries, SOLIDWORKS DIN
+    /// Materials with 207, and the sustainability extras) and the name
+    /// that arrives from the plan is resolved AGAINST WHAT IS THERE. If it matches a single
+    /// entry it is applied; if none or more than one it fails listing the
+    /// candidates, because choosing between 1.0037 and 1.0116 is a design
+    /// decision, not a fallback of an assistant.
     ///
-    /// Questo evita di riversare centinaia di nomi nel messaggio di sistema:
-    /// il modello scrive «S235JR» come lo direbbe un progettista, e la grafia
-    /// esatta la trova la postazione che deve eseguire.
+    /// This avoids pouring hundreds of names into the system message:
+    /// the model writes «S235JR» as a designer would say it, and the exact spelling
+    /// is found by the workstation that has to execute.
     /// </summary>
     public static class SolidWorksMaterials
     {
         public class Material
         {
-            /// <summary>Il nome dell'archivio come lo vuole SetMaterialPropertyName2.</summary>
+            /// <summary>The name of the database as SetMaterialPropertyName2 wants it.</summary>
             public string Archive;
-            /// <summary>La classe dentro l'archivio: «Acciaio», «Leghe di alluminio»...</summary>
+            /// <summary>The class inside the database: «Acciaio», «Leghe di alluminio»...</summary>
             public string Class = "";
-            /// <summary>Il nome ESATTO, da copiare senza toccarlo.</summary>
+            /// <summary>The EXACT name, to be copied without touching it.</summary>
             public string Name;
         }
 
         private static readonly object _lock = new object();
         private static List<Material> _list;
 
-        /// <summary>Tutti i materiali degli archivi dichiarati da SolidWorks.</summary>
+        /// <summary>All the materials of the databases declared by SolidWorks.</summary>
         public static List<Material> All(ISldWorks sw, Action<string> log)
         {
             log = log ?? (m => { });
@@ -71,11 +71,11 @@ namespace Oce.Solid.Agent.Core
 
                 foreach (var filePath in archives)
                 {
-                    // L'argomento «Database» di SetMaterialPropertyName2 e' il
-                    // nome del file SENZA estensione: verificato il 9 settembre
-                    // 2026, funziona anche con il percorso intero e con le
-                    // maiuscole diverse, ma il nome del file e' la forma che
-                    // SolidWorks poi rilegge.
+                    // The «Database» argument of SetMaterialPropertyName2 is the
+                    // name of the file WITHOUT extension: verified on 9 September
+                    // 2026, it also works with the whole path and with
+                    // different capitals, but the file name is the form that
+                    // SolidWorks then re-reads.
                     string archive = Path.GetFileNameWithoutExtension(filePath);
                     try
                     {
@@ -110,20 +110,20 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Trova il materiale che corrisponde a cio' che ha scritto il modello.
+        /// Finds the material that corresponds to what the model wrote.
         ///
-        /// L'ordine di ricerca va dal certo all'incerto, e si ferma appena una
-        /// tappa da' UNA sola risposta:
-        ///   1. il nome esatto;
-        ///   2. il nome esatto ignorando maiuscole e spazi;
-        ///   3. il nome dentro le parentesi — «1.0037 (S235JR)» chiesto come
-        ///      «S235JR», che e' come lo chiama un progettista;
-        ///   4. il nome contenuto da qualche parte.
+        /// The search order goes from the certain to the uncertain, and stops as soon as a
+        /// stage gives ONE answer only:
+        ///   1. the exact name;
+        ///   2. the exact name ignoring capitals and spaces;
+        ///   3. the name inside the parentheses — «1.0037 (S235JR)» asked for as
+        ///      «S235JR», which is how a designer calls it;
+        ///   4. the name contained somewhere.
         ///
-        /// Se una tappa ne trova piu' d'una ci si ferma li' e si elencano: fra
-        /// due acciai diversi non si tira a indovinare.
+        /// If a stage finds more than one it stops there and lists them: between
+        /// two different steels one does not guess.
         /// </summary>
-        /// <returns>null se non c'e' una risposta sola; «perche'» dice cosa dire all'utente.</returns>
+        /// <returns>null if there is not a single answer; «why» says what to tell the user.</returns>
         public static Material Resolve(
             ISldWorks sw, string requested, string requestedArchive,
             Action<string> log, out string why)
@@ -209,10 +209,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Somiglianza grossolana per il messaggio d'errore: basta che
-        /// condividano tre caratteri di seguito. Serve a suggerire, non a
-        /// decidere — decidere su una somiglianza e' esattamente cio' che qui
-        /// non si fa.
+        /// Coarse similarity for the error message: it is enough that
+        /// they share three characters in a row. It serves to suggest, not to
+        /// decide — deciding on a similarity is exactly what is not
+        /// done here.
         /// </summary>
         private static bool Resemble(string itemName, string searched)
         {

@@ -5,36 +5,36 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Il materiale del pezzo.
+    /// The material of the part.
     ///
-    /// IL DIFETTO DA CUI NASCE QUESTO FILE
-    /// Il 9 settembre 2026, dopo che il telaio finalmente veniva, il
-    /// progettista ha scritto: «inoltre non ha applicato il materiale». Non era
-    /// una dimenticanza del modello: nel catalogo NON C'ERA nessuna operazione
-    /// che lo applicasse, e nello stato del documento il materiale non compariva
-    /// — la cartella dei materiali era anzi esclusa apposta dall'albero. Il
-    /// modello non poteva ne' metterlo ne' accorgersi che mancava.
+    /// THE DEFECT THIS FILE WAS BORN FROM
+    /// On 9 September 2026, after the frame finally came out, the
+    /// designer wrote: «also it did not apply the material». It was not
+    /// an oversight of the model: in the catalogue there WAS NO operation
+    /// that applied it, and in the state of the document the material did not appear
+    /// — the materials folder was in fact deliberately excluded from the tree. The
+    /// model could neither put it nor notice that it was missing.
     ///
-    /// E NON E' UNA QUESTIONE DI COLORE
-    /// Senza materiale non c'e' densita', senza densita' non c'e' massa, senza
-    /// massa la distinta di taglio esce con la colonna del materiale vuota e
-    /// non serve a comprare l'acciaio. La catena a valle e' gia' tutta
-    /// costruita: si rompeva al primo anello, e tutti gli anelli dopo davano
-    /// «null» e «0» senza segnalare niente.
+    /// AND IT IS NOT A MATTER OF COLOUR
+    /// Without material there is no density, without density there is no mass, without
+    /// mass the cut list comes out with the material column empty and
+    /// is no use for buying the steel. The chain downstream is already all
+    /// built: it broke at the first link, and all the links after gave
+    /// «null» and «0» without signalling anything.
     ///
-    /// LA RILETTURA NON E' UNO SCRUPOLO
-    /// `SetMaterialPropertyName2` restituisce void. Con un archivio o un nome
-    /// che non esistono non solleva e non cambia niente: si rilegge quello di
-    /// prima. Misurato. Percio' qui si rilegge SEMPRE e si confronta: se il
-    /// nome tornato indietro non e' quello chiesto, il passo fallisce.
+    /// THE REREAD IS NOT A SCRUPLE
+    /// `SetMaterialPropertyName2` returns void. With an archive or a name that
+    /// do not exist it does not raise and changes nothing: the previous one is
+    /// read back. Measured. Therefore here it is ALWAYS reread and compared: if the
+    /// name that came back is not the one asked for, the step fails.
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>
-        /// Il materiale che questa officina usa salvo avviso contrario
-        /// (voce Z-G3). Sta qui e non nello schema perche' lo schema lo
-        /// ANNUNCIA e questo lo APPLICA: due posti per lo stesso valore
-        /// divergerebbero, e il catalogo si rigenera da `Operations.cs`.
+        /// The material this workshop uses unless told otherwise
+        /// (entry Z-G3). It lives here and not in the schema because the schema
+        /// ANNOUNCES it and this APPLIES it: two places for the same value
+        /// would diverge, and the catalogue is regenerated from `Operations.cs`.
         /// </summary>
         private const string DefaultMaterial = "S235JR";
 
@@ -44,28 +44,28 @@ namespace Oce.Solid.Agent.Core
             if (partDoc == null)
                 return Failed("Il materiale si applica a una parte, e questo non e' un documento di parte.");
 
-            // ── IL PREDEFINITO DI QUESTA OFFICINA (voce Z-G3) ────────────
+            // ── THE DEFAULT OF THIS WORKSHOP (entry Z-G3) ────────────────
             //
-            // Un'officina di carpenteria lavora S235JR salvo avviso
-            // contrario, e chiedere ogni volta un campo di cui la risposta
-            // e' sempre la stessa fa scrivere al modello una riga che non
-            // e' una scelta.
+            // A metalwork shop works in S235JR unless told otherwise,
+            // and asking every time for a field whose answer is
+            // always the same makes the model write a line that
+            // is not a choice.
             //
-            // MA IL PREDEFINITO SI DICHIARA, SEMPRE. Se il ponte mettesse
-            // S235JR e tacesse, il modello crederebbe di averlo scelto lui,
-            // la volta dopo non lo chiederebbe nemmeno, e poi arriverebbe un
-            // pezzo che andava in inox senza che nessuno sappia dove sia
-            // stata presa la decisione. *«Nessuno ci ha pensato» e «qualcuno
-            // ci ha pensato e ha deciso» si leggono uguali, e solo una delle
-            // due si puo' migliorare.*
+            // BUT THE DEFAULT IS ALWAYS DECLARED. If the bridge put in
+            // S235JR and kept quiet, the model would believe it had chosen it itself,
+            // the next time it would not even ask, and then a part would arrive
+            // that was meant to be stainless without anybody knowing where the decision
+            // was taken. *«Nobody thought of it» and «somebody
+            // thought of it and decided» read the same, and only one of the
+            // two can be improved.*
             string requested = Str(a, "material", "");
             bool assumed = string.IsNullOrWhiteSpace(requested);
             if (assumed) requested = DefaultMaterial;
             string requestedArchive = Str(a, "library", "");
 
-            // La grafia esatta la trova la postazione che esegue, non il
-            // modello: «S235JR» negli archivi si chiama «1.0037 (S235JR)», e
-            // nella stessa libreria ci sono cinque S235 diversi.
+            // The exact spelling is found by the workstation that executes, not the
+            // model: «S235JR» in the archives is called «1.0037 (S235JR)», and
+            // in the same library there are five different S235 grades.
             string why;
             var material = SolidWorksMaterials.Resolve(
                 _sw, requested, requestedArchive, _log, out why);
@@ -174,9 +174,9 @@ namespace Oce.Solid.Agent.Core
                 // each set and read back by its own name.
                 ["configurations"] = namesRead ? targets : new string[0],
                 ["class_name"] = material.Class,
-                // SI SCRIVE SEMPRE, anche quando il materiale e' stato
-                // chiesto: un campo che compare solo nel caso strano e' un
-                // campo che chi legge non impara a guardare.
+                // IT IS ALWAYS WRITTEN, even when the material was
+                // asked for: a field that appears only in the odd case is a
+                // field that whoever reads does not learn to look at.
                 ["note_assumption"] = assumed
                     ? "materiale: «" + DefaultMaterial + "» — PREDEFINITO di " +
                       "questa officina, non l'hai chiesto tu. Se ti serve altro, " +
@@ -192,9 +192,9 @@ namespace Oce.Solid.Agent.Core
                     "derived from it), not the others. Other configurations, if any, may " +
                     "still have no material.";
 
-            // Non c'e' nessuna feature: il materiale e' una proprieta' del
-            // documento. Succeeded() regge un riferimento nullo, e i passi
-            // successivi non hanno niente da citare qui.
+            // There is no feature: the material is a property of the
+            // document. Succeeded() holds up a null reference, and the following
+            // steps have nothing to cite here.
             return Succeeded(null, measurements);
         }
     }

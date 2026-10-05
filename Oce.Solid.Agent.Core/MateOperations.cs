@@ -8,46 +8,46 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// ACCOPPIARE (voce GA4).
+    /// MATING (entry GA4).
     ///
-    /// ── LA VOCE ERA BLOCCATA SU UNA COSA CHE NON C'ERA ───────────────────
+    /// ── THE ENTRY WAS BLOCKED ON SOMETHING THAT WAS NOT THERE ────────────
     ///
-    /// GA4 dichiarava un'incognita: *«quali marche di selezione serva usare, la
-    /// riflessione non lo dice»*, e ci appendeva la stima delle ore.
+    /// GA4 declared an unknown: *«which selection marks need to be used, the
+    /// reflection does not say»*, and attached the estimate of the hours to it.
     ///
-    /// **Non serve nessuna marca.** Misurato il 17/9/2026 con una sonda scritta
-    /// per un'altra domanda: si selezionano le due entita' con
-    /// `IEntity.Select4(append: true, null)` e si chiama `AddMate5`. Risposta:
-    /// `swAddMateError_NoError`. Le marche servono ad altre famiglie — lo
-    /// sformo, il riempimento — non a questa.
+    /// **No mark is needed.** Measured on 17/9/2026 with a probe written
+    /// for another question: the two entities are selected with
+    /// `IEntity.Select4(append: true, null)` and `AddMate5` is called. Answer:
+    /// `swAddMateError_NoError`. The marks serve other families — the
+    /// draft, the fill — not this one.
     ///
-    /// *L'incognita che bloccava una voce da 8-10 ore e' caduta dentro una sonda
-    /// che cercava altro. Vale la pena scriverlo: le sonde vanno lette tutte,
-    /// non solo per la riga che si era andati a cercare.*
+    /// *The unknown that blocked an entry of 8-10 hours fell inside a probe
+    /// that was looking for something else. It is worth writing down: probes must be read in full,
+    /// not only for the line one went to look for.*
     ///
-    /// ── COME SI NOMINANO LE DUE FACCE ────────────────────────────────────
+    /// ── HOW THE TWO FACES ARE NAMED ──────────────────────────────────────
     ///
-    /// Lo stato dell'assieme da' agli utenti `C1..Cn` per i componenti, e
-    /// **nessun identificativo per le loro facce**. Costruirne uno vorrebbe dire
-    /// numerare le facce di ogni componente — centinaia su un assieme vero — e
-    /// sarebbero **posizionali**, cioe' da rileggere a ogni modifica.
+    /// The state of the assembly gives users `C1..Cn` for the components, and
+    /// **no identifier for their faces**. Building one would mean
+    /// numbering the faces of every component — hundreds on a real assembly — and
+    /// they would be **positional**, that is to be reread at every change.
     ///
-    /// Qui si usa invece il vocabolario che il progetto ha gia' per le parti: il
-    /// **verso**. «la faccia in alto di C1», «quella in basso di C2». Non copre
-    /// tutti i casi — una faccia obliqua non ha verso — ma copre quello che
-    /// serve per posare un coperchio su una scatola, e **si dice quando non
-    /// basta** invece di indovinare.
+    /// Here the vocabulary the project already has for parts is used instead: the
+    /// **direction**. «the top face of C1», «the bottom one of C2». It does not cover
+    /// all the cases — an oblique face has no direction — but it covers what
+    /// is needed to lay a lid on a box, and it **says so when it is
+    /// not enough** instead of guessing.
     ///
-    /// ── LA MISURA, CHE NON E' IL RITORNO ─────────────────────────────────
+    /// ── THE MEASUREMENT, WHICH IS NOT THE RETURN ─────────────────────────
     ///
-    /// `AddMate5` torna un `Mate2` **e** scrive un `ErrorStatus`. Nessuno dei
-    /// due e' la misura: si contano gli accoppiamenti dei due componenti prima e
-    /// dopo, e si pretende che siano saliti. Un `Mate2` non nullo con i
-    /// conteggi invariati e' il difetto che non da' errore, portato negli
-    /// assiemi.
+    /// `AddMate5` returns a `Mate2` **and** writes an `ErrorStatus`. Neither of
+    /// the two is the measurement: the mates of the two components are counted before and
+    /// after, and it is required that they have gone up. A non-null `Mate2` with the
+    /// counts unchanged is the defect that gives no error, carried into
+    /// assemblies.
     ///
-    /// **E `swAddMateError_NoError` VALE 1, non 0** (`ErrorUknown` vale 0): un
-    /// `if (errore != 0)` dichiarerebbe fallito un accoppiamento riuscito.
+    /// **And `swAddMateError_NoError` IS WORTH 1, not 0** (`ErrorUknown` is worth 0): an
+    /// `if (errore != 0)` would declare a successful mate failed.
     ///
     /// ── THE SECOND NUMBER: WHAT THE MATE BLOCKS (TODO entry Z-C14) ───────
     ///
@@ -102,17 +102,17 @@ namespace Oce.Solid.Agent.Core
                     "pezzo non si accoppia con se stesso: non vincola niente e " +
                     "l'assieme resterebbe libero come prima.");
 
-            // ── CONCENTRICO E TANGENTE NON POSSONO RIUSCIRE QUI (voce Z-C21.2,
-            // rilievo M17) ────────────────────────────────────────────────────
+            // ── CONCENTRIC AND TANGENT CANNOT SUCCEED HERE (entry Z-C21.2,
+            // finding M17) ────────────────────────────────────────────────────
             //
-            // Le facce si scelgono per VERSO, con IFace2.Normal (FaceNormalOf), e
-            // IFace2~Normal.html dice: «Gets the unit normal vector for any planar
-            // face» e, nelle Remarks, «If the face is not a planar face, then this
-            // property returns 0,0,0». Quindi le facce che arrivano qui sono
-            // sempre PIANE, e fra due facce piane un concentrico o un tangente non
-            // esistono: a catalogo c'erano due tipi che non potevano mai riuscire,
-            // e fallivano con un errore di SOLIDWORKS che mandava a cercare
-            // altrove. Si dice il perche' prima di toccare niente.
+            // The faces are chosen by DIRECTION, with IFace2.Normal (FaceNormalOf), and
+            // IFace2~Normal.html says: «Gets the unit normal vector for any planar
+            // face» and, in the Remarks, «If the face is not a planar face, then this
+            // property returns 0,0,0». So the faces that arrive here are
+            // always PLANAR, and between two planar faces a concentric or a tangent
+            // do not exist: the catalogue had two types that could never succeed,
+            // and they failed with a SOLIDWORKS error that sent one looking
+            // elsewhere. The why is stated before touching anything.
             string requested = (Str(a, "variant", "coincidente") ?? "").Trim().ToLowerInvariant();
             if (requested == "concentrico" || requested == "tangente")
                 return Failed(
@@ -153,9 +153,9 @@ namespace Oce.Solid.Agent.Core
             string alignment = Str(a, "alignment", "allineato");
             int align = alignment.Equals("opposto", StringComparison.OrdinalIgnoreCase)
                 ? (int)swMateAlign_e.swMateAlignANTI_ALIGNED
-                : 0;   // swAlignNONE = allineato
+                : 0;   // swAlignNONE = aligned
 
-            // ── SI CONTA PRIMA ──────────────────────────────────────────
+            // ── IT IS COUNTED FIRST ─────────────────────────────────────
             int priorA = MatesOf(compA), priorB = MatesOf(compB);
 
             // ── WHAT IS BLOCKED BEFORE THE MATE (Z-C14) ─────────────────
@@ -224,7 +224,7 @@ namespace Oce.Solid.Agent.Core
             }
             finally { try { model.ClearSelection2(true); } catch { } }
 
-            // `NoError` VALE 1. Zero e' `ErrorUknown`.
+            // `NoError` IS WORTH 1. Zero is `ErrorUknown`.
             if (error != (int)swAddMateError_e.swAddMateError_NoError)
                 return Failed(
                     "SOLIDWORKS ha rifiutato l'accoppiamento: " + MateErrorName(error) +
@@ -235,10 +235,10 @@ namespace Oce.Solid.Agent.Core
 
             try { model.EditRebuild3(); } catch { }
 
-            // ── E SI CONTA DOPO ─────────────────────────────────────────
+            // ── AND IT IS COUNTED AFTER ─────────────────────────────────
             //
-            // Le maniglie possono essere state invalidate dalla ricostruzione:
-            // si rileggono per nome, come fa `insert_component`.
+            // The handles may have been invalidated by the rebuild:
+            // they are reread by name, as `insert_component` does.
             var afterComp = DocumentState.ComponentsInOrder(
                 assemblyDoc.GetComponents(false) as object[]);
             // By the names read before the test of the directions (Z-C14):
@@ -1099,8 +1099,8 @@ namespace Oce.Solid.Agent.Core
 
         // =================================================================
 
-        // Concentrico e tangente non ci sono piu' (voce Z-C21.2, M17): con le facce
-        // scelte per verso non possono riuscire, e il rifiuto sta in Accoppia.
+        // Concentric and tangent are no longer there (entry Z-C21.2, M17): with the faces
+        // chosen by direction they cannot succeed, and the refusal sits in Accoppia.
         private static readonly string[] KnownTypes =
             { "coincidente", "parallelo", "perpendicolare", "distanza" };
 
@@ -1118,11 +1118,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'errore di `AddMate5` col nome.
+        /// The error of `AddMate5` with its name.
         ///
-        /// **`NoError` vale 1 e `ErrorUknown` vale 0**, che e' il contrario di
-        /// quello che chiunque si aspetta: qui i nomi tolgono l'ambiguita' anche
-        /// a chi legge il messaggio.
+        /// **`NoError` is worth 1 and `ErrorUknown` is worth 0**, which is the opposite of
+        /// what anyone expects: here the names remove the ambiguity even
+        /// for whoever reads the message.
         /// </summary>
         private static string MateErrorName(int e)
         {
@@ -1205,12 +1205,12 @@ namespace Oce.Solid.Agent.Core
         /// component inside a sub-assembly too. No axes, no face: guessing
         /// the part's directions would be the old defect again.
         ///
-        /// Fra piu' facce con lo stesso verso vince **la piu' grande**: e' lo
-        /// stesso criterio che lo stato usa per le parti, e su un coperchio o
-        /// una piastra la faccia grande e' quella che si vuole. Se ce ne fossero
-        /// due larghe uguale il criterio non distingue — e allora e' meglio
-        /// saperlo, perche' *un caso in cui due valori diversi danno lo stesso
-        /// risultato non tabella niente*.
+        /// Among several faces with the same direction **the largest** wins: it is the
+        /// same criterion the state uses for parts, and on a lid or
+        /// a plate the large face is the one that is wanted. If there were
+        /// two equally wide ones the criterion does not tell them apart — and then it is better
+        /// to know it, because *a case in which two different values give the same
+        /// result does not tabulate anything*.
         /// </summary>
         private static IFace2 FaceNormalOf(IComponent2 c, string facing, double[][] axes, out string why)
         {

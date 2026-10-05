@@ -7,46 +7,46 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// RUGOSITA', DATUM E TOLLERANZE GEOMETRICHE IN TAVOLA (voci GT6 e GT8).
+    /// SURFACE FINISH, DATUM AND GEOMETRIC TOLERANCES IN THE DRAWING (entries GT6 and GT8).
     ///
-    /// ── MISURATE E GUARDATE PRIMA DI SCRIVERLE, 26/9/2026 ────────────────────
+    /// ── MEASURED AND LOOKED AT BEFORE WRITING THEM, 26/9/2026 ────────────────
     ///
-    /// `prova0089 annotazioni` e `annotazioni2`, tavola della piastra 120x80x10:
+    /// `prova0089 annotazioni` and `annotazioni2`, drawing of the 120x80x10 plate:
     ///
-    ///  - `IModelDocExtension.InsertSurfaceFinishSymbol3` torna l'oggetto e il Ra
-    ///    si rilegge (`GetText(swSFSymbolMaximumRoughness)` = «3.2»). MA LE
-    ///    COORDINATE PASSATE SI IGNORANO: senza nient'altro il simbolo e' finito
-    ///    nell'angolo del foglio, fuori cornice — visto nel PNG, nessun controllo
-    ///    lo diceva.
-    ///  - `IModelDoc2.InsertDatumTag2()` (zero argomenti) lavora sullo spigolo
-    ///    SELEZIONATO nella vista, e non apre finestre. Lasciato dov'era, la
-    ///    bandierina stava dalla parte opposta dello spigolo e la linea
-    ///    attraversava il pezzo.
-    ///  - `IModelDoc2.InsertGtol()` + `SetFrameSymbols` (codici di
-    ///    `swGtolGeomCharSymbol_e`) + `SetFrameValues`: la cornice nasce e si
-    ///    rilegge (`GetFrameSymbols` torna `Int16[]`, `GetFrameValues` le stringhe).
-    ///    Senza selezione e' libera; con lo spigolo selezionato ha la freccia.
+    ///  - `IModelDocExtension.InsertSurfaceFinishSymbol3` returns the object and the Ra
+    ///    can be read back (`GetText(swSFSymbolMaximumRoughness)` = «3.2»). BUT THE
+    ///    COORDINATES PASSED ARE IGNORED: with nothing else the symbol ended up
+    ///    in the corner of the sheet, outside the frame — seen in the PNG, no check
+    ///    said so.
+    ///  - `IModelDoc2.InsertDatumTag2()` (zero arguments) works on the edge
+    ///    SELECTED in the view, and does not open windows. Left where it was, the
+    ///    little flag was on the opposite side of the edge and the line
+    ///    crossed the part.
+    ///  - `IModelDoc2.InsertGtol()` + `SetFrameSymbols` (codes of
+    ///    `swGtolGeomCharSymbol_e`) + `SetFrameValues`: the frame is born and can be read
+    ///    back (`GetFrameSymbols` returns `Int16[]`, `GetFrameValues` the strings).
+    ///    Without a selection it is free; with the edge selected it has the arrow.
     ///
-    /// La cura, vista nel PNG: si SELEZIONA lo spigolo di bordo del lato chiesto
-    /// nella vista, si inserisce, e poi si SPOSTA l'annotazione fuori dal pezzo
-    /// con `IAnnotation.SetPosition2`, dalla parte di quel lato. Il datum ha il
-    /// triangolo sullo spigolo e la bandierina fuori; la rugosita' e la cornice
-    /// hanno la linea di richiamo sullo spigolo.
+    /// The cure, seen in the PNG: the border edge of the side asked for is SELECTED
+    /// in the view, it is inserted, and then the annotation is MOVED outside the part
+    /// with `IAnnotation.SetPosition2`, on the side of that side. The datum has the
+    /// triangle on the edge and the flag outside; the surface finish and the frame
+    /// have the leader line on the edge.
     /// </summary>
     public partial class SwOperations
     {
         private sealed class ViewSide
         {
             public IEdge Edge;
-            public double[] Midpoint;      // sul foglio, metri
-            public double[] Outside;      // direzione verso l'esterno del pezzo
-            public double[] Along;      // direzione lungo lo spigolo
+            public double[] Midpoint;      // on the sheet, metres
+            public double[] Outside;      // direction outward from the part
+            public double[] Along;      // direction along the edge
         }
 
         /// <summary>
-        /// Lo spigolo di bordo della vista sul lato chiesto (alto, basso, sinistra,
-        /// destra): fra gli spigoli dritti orizzontali o verticali, quello piu' in
-        /// fuori da quella parte. Null col motivo.
+        /// The border edge of the view on the side asked for (top, bottom, left,
+        /// right): among the straight horizontal or vertical edges, the one furthest
+        /// out on that side. Null with the reason.
         /// </summary>
         private ViewSide SideEdge(IView view, string side, out string reason)
         {
@@ -79,7 +79,7 @@ namespace Oce.Solid.Agent.Core
                     var b = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.EndPoint)).MultiplyTransform(tr)).ArrayData as double[];
                     bool horizontal = Math.Abs(a[1] - b[1]) < 1e-6, vertical = Math.Abs(a[0] - b[0]) < 1e-6;
                     if (fy != 0 && !horizontal || fx != 0 && !vertical) continue;
-                    if (Math.Abs(a[0] - b[0]) + Math.Abs(a[1] - b[1]) < 1e-4) continue;   // troppo corto per attaccarci qualcosa
+                    if (Math.Abs(a[0] - b[0]) + Math.Abs(a[1] - b[1]) < 1e-4) continue;   // too short to attach anything to
                     double s = (a[0] + b[0]) / 2 * fx + (a[1] + b[1]) / 2 * fy;
                     if (s > score + 1e-9)
                     {
@@ -101,19 +101,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanto e' gia' occupato, in mm dallo spigolo verso l'esterno, dalle
-        /// annotazioni della vista che stanno da quella parte e all'altezza dello
-        /// spigolo (le quote messe da `drawing_dimension`, i datum, le cornici). Zero
-        /// se non c'e' niente.
+        /// How much is already occupied, in mm from the edge outward, by the
+        /// annotations of the view that are on that side and at the height of the
+        /// edge (the dimensions put by `drawing_dimension`, the datums, the frames). Zero
+        /// if there is nothing.
         ///
-        /// NATO GUARDANDO IL PNG (26/9/2026): la bandierina del datum 12 mm sotto
-        /// lo spigolo cadeva SULLA linea della quota del 120, e la cornice 15 mm a
-        /// destra sul testo della quota 10. Un'annotazione va oltre la fascia che
-        /// c'e' gia'.
+        /// BORN LOOKING AT THE PNG (26/9/2026): the datum flag 12 mm below
+        /// the edge fell ON the line of the dimension of the 120, and the frame 15 mm to
+        /// the right on the text of the dimension 10. An annotation goes beyond the band
+        /// that is there already.
         /// </summary>
         private static double OccupiedBand(IView view, ViewSide side)
         {
-            double maxValue = 0;   // ZERO-E-ZERO: nessuna annotazione da quella parte
+            double maxValue = 0;   // ZERO-E-ZERO: no annotation on that side
             try
             {
                 double half = 0;
@@ -143,7 +143,7 @@ namespace Oce.Solid.Agent.Core
             return maxValue * 1000.0;
         }
 
-        /// <summary>La vista, risolta come le altre operazioni di tavola; null col motivo.</summary>
+        /// <summary>The view, resolved like the other drawing operations; null with the reason.</summary>
         private IView ViewToAnnotate(IModelDoc2 model, Dictionary<string, object> a, out IDrawingDoc drawing, out string reason)
         {
             reason = null;
@@ -165,7 +165,7 @@ namespace Oce.Solid.Agent.Core
             return view;
         }
 
-        /// <summary>Seleziona lo spigolo nella vista (la selezione che le tre API usano).</summary>
+        /// <summary>Selects the edge in the view (the selection that the three APIs use).</summary>
         private static bool SelectInView(IModelDoc2 model, IView view, IEdge edge)
         {
             try
@@ -180,7 +180,7 @@ namespace Oce.Solid.Agent.Core
             catch { return false; }
         }
 
-        /// <summary>Quante annotazioni di quel tipo ha la tavola, vista per vista; -1 se non si legge.</summary>
+        /// <summary>How many annotations of that type the drawing has, view by view; -1 if it cannot be read.</summary>
         private static int DrawingAnnotations(IDrawingDoc drawing, string typ)
         {
             try
@@ -243,7 +243,7 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        /// <summary>Le lettere dei datum gia' in tavola.</summary>
+        /// <summary>The datum letters already in the drawing.</summary>
         private static List<string> DatumLetters(IDrawingDoc drawing)
         {
             var outside = new List<string>();
@@ -268,17 +268,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// DOVE METTERE UN'ANNOTAZIONE, fra alcuni posti in ordine: fuori dallo
-        /// spigolo alla sua altezza; poi oltre gli angoli della vista (sopra e
-        /// sotto per uno spigolo verticale, a destra e a sinistra per uno
-        /// orizzontale). Si prende il primo il cui ingombro stimato non cade
-        /// dentro un'ALTRA vista del foglio (con 5 mm di margine) e sta nel foglio.
+        /// WHERE TO PUT AN ANNOTATION, among a few places in order: outside the
+        /// edge at its height; then beyond the corners of the view (above and
+        /// below for a vertical edge, right and left for a
+        /// horizontal one). The first is taken whose estimated extent does not fall
+        /// inside ANOTHER view of the sheet (with 5 mm of margin) and lies within the sheet.
         ///
-        /// NATO GUARDANDO IL PNG (26/9/2026): la cornice messa oltre la quota 10,
-        /// a destra della vista frontale, cadeva sopra il bordo della vista
-        /// laterale — fra le due c'e' poco spazio. L'ingombro e' stimato
-        /// (larghezza e altezza date da chi chiama), non letto: l'annotazione non
-        /// dice quanto e' grande.
+        /// BORN LOOKING AT THE PNG (26/9/2026): the frame put beyond the dimension 10,
+        /// to the right of the front view, fell over the border of the
+        /// side view — there is little room between the two. The extent is estimated
+        /// (width and height given by the caller), not read: the annotation does not
+        /// say how big it is.
         /// </summary>
         private static double[] ChoosePosition(IDrawingDoc drawing, IView view, ViewSide side,
                                             double outsideMm, double alongMm, double widthMm, double heightMm)
@@ -308,13 +308,13 @@ namespace Oce.Solid.Agent.Core
             if (ownOne != null)
             {
                 double margin = 0.012 + h;
-                if (side.Outside[0] != 0)   // spigolo verticale: sopra e sotto la vista, dalla parte del lato
+                if (side.Outside[0] != 0)   // vertical edge: above and below the view, on the side of the edge
                 {
                     double x = side.Midpoint[0] + side.Outside[0] * 0.008;
                     candidates.Add(new[] { x, ownOne[3] + margin });
                     candidates.Add(new[] { x, ownOne[1] - margin });
                 }
-                else                      // spigolo orizzontale: oltre gli angoli, dalla parte del lato
+                else                      // horizontal edge: beyond the corners, on the side of the edge
                 {
                     double y = side.Midpoint[1] + side.Outside[1] * f;
                     candidates.Add(new[] { ownOne[2] + 0.012, y });
@@ -333,8 +333,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Sposta un'annotazione nel posto scelto da `ChoosePosition`. Torna la
-        /// posizione riletta in mm, o null.
+        /// Moves an annotation to the place chosen by `ChoosePosition`. Returns the
+        /// position read back in mm, or null.
         /// </summary>
         private static double[] Move(IAnnotation an, IDrawingDoc drawing, IView view, ViewSide side,
                                        double outsideMm, double alongMm, double widthMm, double heightMm)
@@ -394,8 +394,8 @@ namespace Oce.Solid.Agent.Core
             string read = null;
             try { read = symbol.GetText((int)swSurfaceFinishSymbolText_e.swSFSymbolMaximumRoughness); } catch { }
             var an = symbol.GetAnnotation() as IAnnotation;
-            // FUORI DAL PEZZO: il simbolo, lasciato dove SOLIDWORKS lo mette, non sta
-            // dove si chiede (misurato). 12 mm verso l'esterno, 20 lungo lo spigolo.
+            // OUTSIDE THE PART: the symbol, left where SOLIDWORKS puts it, is not
+            // where it is asked for (measured). 12 mm outward, 20 along the edge.
             var pos = Move(an, drawing, view, side, Math.Max(12, occupied + 10), 20, 16, 12);
             int attached = -1;
             try { attached = an.GetAttachedEntityCount3(); } catch { }
@@ -432,8 +432,8 @@ namespace Oce.Solid.Agent.Core
             string letter = (Str(a, "letter", "A") ?? "").Trim().ToUpperInvariant();
             if (letter.Length != 1 || letter[0] < 'A' || letter[0] > 'Z')
                 return Failed("«letter» e' una lettera sola, dalla A alla Z, non «" + Str(a, "letter", "") + "».");
-            // DUE DATUM CON LA STESSA LETTERA non danno errore, e ogni tolleranza che
-            // cita quella lettera diventa ambigua (trappola scritta in Z-E6).
+            // TWO DATUMS WITH THE SAME LETTER give no error, and every tolerance that
+            // cites that letter becomes ambiguous (trap written in Z-E6).
             var already = DatumLetters(drawing);
             if (already.Contains(letter))
                 return Failed("In tavola c'e' gia' un datum «" + letter + "»: due riferimenti con la stessa lettera " +
@@ -457,8 +457,8 @@ namespace Oce.Solid.Agent.Core
             string read = null;
             try { read = datum.GetLabel(); } catch { }
             var an = datum.GetAnnotation() as IAnnotation;
-            // La bandierina FUORI, dalla parte dello spigolo: lasciata dove nasce stava
-            // dall'altra parte e la linea attraversava il pezzo (visto nel PNG).
+            // The flag OUTSIDE, on the side of the edge: left where it is born it was
+            // on the other side and the line crossed the part (seen in the PNG).
             var pos = Move(an, drawing, view, side, Math.Max(12, occupied + 10), -30, 8, 8);
             int attached = -1;
             try { attached = an.GetAttachedEntityCount3(); } catch { }
@@ -500,7 +500,7 @@ namespace Oce.Solid.Agent.Core
             ["total_runout"] = (int)swGtolGeomCharSymbol_e.swGcsTOTALRUNOUT,
         };
 
-        /// <summary>Le tolleranze di FORMA non hanno riferimenti (ISO 1101); le altre ne vogliono.</summary>
+        /// <summary>FORM tolerances have no references (ISO 1101); the others want them.</summary>
         private static bool IsOfShape(string c)
         {
             return c == "straightness" || c == "flatness" || c == "circularity" || c == "cylindricity";
@@ -573,7 +573,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed("The tolerance frame was born but does not let itself be filled (" + ex.Message + ")" +
                                (removedEmpty ? ": I removed it." : ": remove it — " + Sentences.HowToWithdrawIt + "."));
             }
-            // LA RILETTURA: il simbolo come codice, i valori come stringhe.
+            // THE RE-READING: the symbol as a code, the values as strings.
             int readSymbol = -1;
             var valuesRead = new List<string>();
             try

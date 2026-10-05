@@ -8,21 +8,21 @@ using System.Text.RegularExpressions;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// IL TESTO DI UN PDF ESPORTATO, letto senza attrezzi (voci GT3-bis, Z-C9).
+    /// THE TEXT OF AN EXPORTED PDF, read without tools (entries GT3-bis, Z-C9).
     ///
-    /// Misurato il 24/9/2026 con `Checks/PdfText`: il PDF che SOLIDWORKS
-    /// esporta porta il testo della tavola COME TESTO — cercabile, copiabile,
-    /// anche quello risolto da una proprieta' — ma nei flussi e' scritto come
-    /// INDICI DI GLIFO dentro stringhe esadecimali, e le lettere stanno nelle
-    /// tabelle /ToUnicode. Cercare «PROVA123» nei byte non lo trova, e nemmeno
-    /// nei flussi decompressi; `pdftotext` lo trova, ma c'e' solo dove c'e' Git.
+    /// Measured on 24/9/2026 with `Checks/PdfText`: the PDF that SOLIDWORKS
+    /// exports carries the text of the drawing AS TEXT — searchable, copyable,
+    /// even the one resolved from a property — but in the streams it is written as
+    /// GLYPH INDICES inside hexadecimal strings, and the letters sit in the
+    /// /ToUnicode tables. Searching for «PROVA123» in the bytes does not find it, nor
+    /// in the decompressed streams; `pdftotext` finds it, but it is only there where Git is.
     ///
-    /// Qui: flussi /FlateDecode decompressi, tabelle `bfchar`/`bfrange` lette,
-    /// e ogni stringa esadecimale decodificata con ogni tabella. Non si
-    /// ricostruisce quale font usa quale tabella: una stringa decodificata con
-    /// la tabella sbagliata da' spazzatura, non la parola cercata — e chi usa
-    /// questa classe deve sempre avere accanto una parola che NON c'e', per
-    /// vederlo.
+    /// Here: /FlateDecode streams decompressed, `bfchar`/`bfrange` tables read,
+    /// and every hexadecimal string decoded with every table. It is not
+    /// reconstructed which font uses which table: a string decoded with
+    /// the wrong table gives garbage, not the word searched for — and whoever uses
+    /// this class must always have alongside a word that is NOT there, to
+    /// see it.
     /// </summary>
     public static class PdfText
     {
@@ -116,7 +116,7 @@ namespace Oce.Solid.Agent.Core
             return outside.ToString();
         }
 
-        /// <summary>Le stringhe letterali (...) dei flussi, per i PDF che le usano.</summary>
+        /// <summary>The literal strings (...) of the streams, for the PDFs that use them.</summary>
         private static string Literals(string flows)
         {
             var outside = new StringBuilder();

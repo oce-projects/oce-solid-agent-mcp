@@ -8,65 +8,65 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// La creazione guidata fori: un foro che e' un foro, non un taglio tondo.
+    /// The hole wizard: a hole that is a hole, not a round cut.
     ///
-    /// PERCHE' NON BASTA UN TAGLIO CILINDRICO
-    /// Fino alla 0.29.1 «foro» voleva dire uno schizzo circolare e un
-    /// FeatureCut4. Geometricamente somiglia; come lavorazione non e' la
-    /// stessa cosa, e si perdono sette informazioni che qualcuno a valle usa:
-    /// il richiamo del foro nel disegno, la filettatura, il diametro di norma,
-    /// il cono della punta in fondo a un foro cieco, la possibilita' di
-    /// passare da M8 a M10 cambiando una voce, il riconoscimento da parte di
-    /// CAM e preventivatori, e l'accoppiamento della viteria in assieme.
-    /// Il committente lo ha chiesto per nome: «tutti i fori devono essere
-    /// fatti possibilmente con la funzione creazione guidata fori usando tutte
-    /// le impostazioni che fornisce».
+    /// WHY A CYLINDRICAL CUT IS NOT ENOUGH
+    /// Until 0.29.1 «hole» meant a circular sketch and a
+    /// FeatureCut4. Geometrically it looks alike; as a feature it is not the
+    /// same thing, and seven pieces of information that someone downstream uses get lost:
+    /// the hole callout in the drawing, the thread, the standard diameter,
+    /// the cone of the tip at the bottom of a blind hole, the possibility of
+    /// going from M8 to M10 by changing one entry, the recognition by
+    /// CAM and quoting systems, and the mating of the fasteners in the assembly.
+    /// The client asked for it by name: «all holes must preferably be
+    /// made with the hole wizard function using all
+    /// the settings it provides».
     ///
-    /// LA RICETTA, MISURATA IL 9 SETTEMBRE 2026 SU SOLIDWORKS 2021 SP5
-    /// Chiamare HoleWizard5 e basta NON FUNZIONA, e non fallisce: costruisce
-    /// un foro da 50.8 mm — due pollici — con il nome giusto nell'albero
-    /// («Foro filettato M8»). Verificato sul VOLUME ASPORTATO, non sulle
-    /// facce, che ingannano.
+    /// THE RECIPE, MEASURED ON 9 SEPTEMBER 2026 ON SOLIDWORKS 2021 SP5
+    /// Calling HoleWizard5 and nothing else DOES NOT WORK, and does not fail: it builds
+    /// a hole of 50.8 mm — two inches — with the right name in the tree
+    /// («Foro filettato M8»). Verified on the VOLUME REMOVED, not on the
+    /// faces, which deceive.
     ///
-    /// Quello che funziona, in quest'ordine esatto:
+    /// What works, in this exact order:
     ///
-    ///  1. si crea SEMPRE passante. HoleWizard5 applica gia' lo standard
-    ///     (dopo la chiamata la definizione dice ISO, M8, filetto 8) ma lascia
-    ///     a zero ThruTapDrillDiameter, ed e' quello zero a produrre il foro
-    ///     da due pollici;
+    ///  1. it is ALWAYS created through. HoleWizard5 already applies the standard
+    ///     (after the call the definition says ISO, M8, thread 8) but leaves
+    ///     ThruTapDrillDiameter at zero, and that zero is what produces the hole
+    ///     of two inches;
     ///  2. IWizardHoleFeatureData2.ChangeStandard(norma, elemento, taglia)
-    ///     riempie i campi mancanti;
-    ///  3. si scrive Type (swWzdHoleTypes_e). E' il campo che comanda davvero:
-    ///     con swTapThru (33) un M10 usciva ancora da due pollici, con
-    ///     swTapThruCosmeticThread (48) tutte le taglie da M3 a M24 tolgono
-    ///     esattamente il volume del preforo di norma;
+    ///     fills in the missing fields;
+    ///  3. Type (swWzdHoleTypes_e) is written. It is the field that really commands:
+    ///     with swTapThru (33) an M10 still came out at two inches, with
+    ///     swTapThruCosmeticThread (48) all the sizes from M3 to M24 remove
+    ///     exactly the volume of the standard pilot hole;
     ///  4. ModifyDefinition;
-    ///  5. se il foro e' CIECO, un SECONDO giro di ModifyDefinition. Non e'
-    ///     un capriccio: ChangeStandard riempie solo le varianti «Thru» dei
-    ///     campi e lascia a zero le gemelle cieche (HoleDiameter, HoleDepth,
-    ///     TapDrillDepth), e un cieco creato in un colpo solo esce come
-    ///     capita. Creando passante e poi modificando, i volumi tornano al
-    ///     centesimo, cono della punta compreso;
-    ///  6. le posizioni si scrivono nello schizzo di posizionamento DENTRO
-    ///     EditSketch, con AddToDB acceso e la deduzione spenta. Fuori dalla
-    ///     modifica SetCoords restituisce False; con la deduzione accesa i
-    ///     punti nuovi si agganciano al primo e l'errore del primo si propaga
-    ///     a tutti. Con gli accorgimenti: errore 0.0000 mm su quattro fori.
+    ///  5. if the hole is BLIND, a SECOND pass of ModifyDefinition. It is not
+    ///     a whim: ChangeStandard fills in only the «Thru» variants of the
+    ///     fields and leaves their blind twins at zero (HoleDiameter, HoleDepth,
+    ///     TapDrillDepth), and a blind hole created in one go comes out
+    ///     any which way. Creating through and then modifying, the volumes match
+    ///     to the hundredth, tip cone included;
+    ///  6. the positions are written in the positioning sketch INSIDE
+    ///     EditSketch, with AddToDB on and inference off. Outside the
+    ///     edit SetCoords returns False; with inference on the new
+    ///     points snap to the first and the error of the first propagates to
+    ///     all of them. With these precautions: error 0.0000 mm on four holes.
     ///
-    /// Volumi misurati che questa ricetta produce (piastra da 20, foro al
-    /// centro): M3 98.2, M4 171.1, M5 277.1, M6 392.7, M8 726.3, M10 1134.9,
+    /// Measured volumes this recipe produces (plate of 20, hole in the
+    /// centre): M3 98.2, M4 171.1, M5 277.1, M6 392.7, M8 726.3, M10 1134.9,
     /// M12 1634.3, M14 2261.9, M16 3078.8, M20 4810.6, M24 6927.2 mm3 —
-    /// cioe' pi*r^2*spessore sul preforo ISO, esatti.
+    /// that is pi*r^2*thickness on the ISO pilot hole, exact.
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>
-        /// I quattro generi di foro che l'operazione sa fare, con il tipo di
-        /// elemento ISO da cui prendere le misure e le due varianti di Type.
+        /// The four kinds of hole the operation can make, with the type of
+        /// ISO element to take the sizes from and the two variants of Type.
         ///
-        /// I numeri sono swWzdGeneralHoleTypes_e,
-        /// swWzdHoleStandardFastenerTypes_e e swWzdHoleTypes_e, letti per
-        /// riflessione sull'interop 29.5.1.1.
+        /// The numbers are swWzdGeneralHoleTypes_e,
+        /// swWzdHoleStandardFastenerTypes_e and swWzdHoleTypes_e, read by
+        /// reflection on interop 29.5.1.1.
         /// </summary>
         private struct HoleKind
         {
@@ -116,7 +116,7 @@ namespace Oce.Solid.Agent.Core
 
         private const int IsoStandard = (int)swWzdHoleStandards_e.swStandardISO;
 
-        /// <summary>Quanti fori al massimo in una feature sola.</summary>
+        /// <summary>How many holes at most in a single feature.</summary>
         private const int MaximumHoles = 60;
 
         private Outcome HoleWizard(
@@ -149,19 +149,19 @@ namespace Oce.Solid.Agent.Core
             var positions = HolePositions(a, out error);
             if (positions == null) return Failed(error);
 
-            // L'ANCORA (voce E18): una per posizione, O TUTTE O NESSUNA — un
-            // foro senza ancora lascerebbe lo schizzo sottovincolato, e lo
-            // schizzo e' uno solo per tutti. Si legge PRIMA di creare niente.
+            // THE ANCHOR (entry E18): one per position, ALL OR NONE — a
+            // hole without an anchor would leave the sketch underconstrained, and the
+            // sketch is a single one for all of them. It is read BEFORE creating anything.
             List<Anchoring> anchors;
             if (!ReadHoleAnchors(a, docState, face, axes, offsetM, positions, out anchors, out error))
                 return Failed(error);
-            // IL VOLUME SI LEGGE SEMPRE (voce Z-C21.2, rilievo L4-3), non solo
-            // con le ancore: e' il controllo con cui il commento in testa dice di
-            // aver scoperto il foro da due pollici, e senza il foro in errore
-            // passava come «positions_not_checked».
+            // THE VOLUME IS ALWAYS READ (entry Z-C21.2, finding L4-3), not only
+            // with the anchors: it is the check by which the comment at the top says it
+            // discovered the two-inch hole, and without it the hole in error
+            // passed as «positions_not_checked».
             double? volumeBefore = VolumeMm3(model);
 
-            // ── 1. si crea PASSANTE, sempre ──────────────────────────────
+            // ── 1. it is created THROUGH, always ─────────────────────────
             model.ClearSelection2(true);
             if (!SelectFace(face))
                 return Failed("Non sono riuscito a selezionare la faccia.");
@@ -195,7 +195,7 @@ namespace Oce.Solid.Agent.Core
                     "«M3», «M4», «M5», «M6», «M8», «M10», «M12», «M14», «M16», «M20», " +
                     "«M24» — con la M maiuscola e senza spazi.");
 
-            // ── 2-4. lo standard, il tipo, la modifica ───────────────────
+            // ── 2-4. the standard, the type, the modification ────────────
             if (!FixUpTheHole(model, feature, kind, size, kind.ThroughAllType,
                                false, 0, out error))
                 return Failed(error);
@@ -203,20 +203,20 @@ namespace Oce.Solid.Agent.Core
             // modifications, this method applies the new properties, returns
             // true, but results in a new rebuild error on the feature. [...]
             // After calling this method, call IFeature::GetErrorCode2 to
-            // ascertain whether the feature has rebuild errors» (rilievo L4-3).
+            // ascertain whether the feature has rebuild errors» (finding L4-3).
             //
-            // SI LEGGE QUI, MA SI DECIDE AL PUNTO 6a (revisione di Z-C21.2). A
-            // questo punto il foro sta ancora dove l'ha messo HoleWizard5 — la
-            // faccia e' selezionata senza un punto (SelectFace) — e su una
-            // faccia che non contiene quel punto provvisorio il foro puo' essere
-            // in errore adesso e sano dopo PositionHoles. Rifiutare qui vorrebbe
-            // dire rifiutare un foro buono. Il codice di adesso si tiene e si
-            // riporta se alla fine il foro resta in errore.
+            // IT IS READ HERE, BUT DECIDED AT POINT 6a (review of Z-C21.2). At
+            // this point the hole is still where HoleWizard5 put it — the
+            // face is selected without a point (SelectFace) — and on a
+            // face that does not contain that provisional point the hole may be
+            // in error now and sound after PositionHoles. Refusing here would mean
+            // refusing a good hole. The present code is kept and
+            // reported if in the end the hole stays in error.
             string intermediateErrors = null;
             string inError = HoleInError(feature);
             if (inError != null) intermediateErrors = "dopo la norma ISO: " + inError;
 
-            // ── 5. il cieco, in un secondo giro ──────────────────────────
+            // ── 5. the blind one, in a second pass ───────────────────────
             if (!throughAll &&
                 !FixUpTheHole(model, feature, kind, size, kind.BlindType,
                                true, depth, out error))
@@ -226,21 +226,21 @@ namespace Oce.Solid.Agent.Core
                 intermediateErrors = (intermediateErrors == null ? "" : intermediateErrors + "; ") +
                                   "portato a cieco: " + inError;
 
-            // ── 6. le posizioni ──────────────────────────────────────────
+            // ── 6. the positions ─────────────────────────────────────────
             if (!PositionHoles(model, feature, axes, offsetM, positions, out error))
                 return Failed(error);
 
             try { model.EditRebuild3(); } catch { }
 
-            // ── 6a. A FORI POSIZIONATI: IN ERRORE? HA TOLTO QUALCOSA? ─────
+            // ── 6a. WITH THE HOLES POSITIONED: IN ERROR? DID IT REMOVE ANYTHING? ─
             //
-            // (rilievo L4-3.) Un foro spostato dove non c'e' materiale e' una
-            // feature che ricostruisce in errore, o che non toglie niente: in
-            // tutti e due i casi non ci sono cilindri da trovare, il giudizio
-            // delle posizioni diceva «non verificabile», e l'operazione
-            // rispondeva riuscita. GetErrorCode2 prima, il volume poi — il
-            // progetto ha misurato che GetErrorCode2 da solo puo' tacere su un
-            // difetto vero (voce MissingCopies, SwOperations.cs).
+            // (finding L4-3.) A hole moved where there is no material is a
+            // feature that rebuilds in error, or that removes nothing: in
+            // both cases there are no cylinders to find, the verdict
+            // of the positions said «not verifiable», and the operation
+            // answered succeeded. GetErrorCode2 first, the volume then — the
+            // project has measured that GetErrorCode2 alone can stay silent on a
+            // real defect (entry MissingCopies, SwOperations.cs).
             inError = HoleInError(feature);
             if (inError != null)
                 return Failed("Il foro guidato non e' venuto: nelle posizioni chieste «" + feature.Name +
@@ -265,7 +265,7 @@ namespace Oce.Solid.Agent.Core
                 ["through_all"] = throughAll,
             };
 
-            // ── 6b. l'ancora, a fori posizionati ─────────────────────────
+            // ── 6b. the anchor, with the holes positioned ────────────────
             //
             // THE SIZE OF THE HOLE IS READ FIRST, BEFORE THE ANCHOR.
             // The diameters do not change with the anchor, and the fit check
@@ -335,16 +335,16 @@ namespace Oce.Solid.Agent.Core
                 try { model.EditRebuild3(); } catch { }
             }
 
-            // ── 7. si controlla che i fori siano dove sono stati chiesti ──
+            // ── 7. it is checked that the holes are where they were asked for ──
             if (!throughAll) measurements["depth_mm"] = depth;
 
-            // TRE ESITI, NON DUE. «Non ho potuto guardare» e' una risposta
-            // diversa da «ho guardato e va bene», e finche' erano la stessa il
-            // banco stampava «posizioni verificate» su un campo che non voleva
-            // dire niente. Vedi PositionsVerdict per com'e' andata.
+            // THREE OUTCOMES, NOT TWO. «I could not look» is a different
+            // answer from «I looked and it is fine», and while they were the same the
+            // bench printed «positions verified» on a field that meant
+            // nothing. See PositionsVerdict for how it went.
             //
-            // Non verificabile NON e' un rifiuto: la lavorazione e' riuscita, e'
-            // il controllo che non c'e' stato. Si dice, e si va avanti.
+            // Not verifiable is NOT a refusal: the feature succeeded, it is
+            // the check that did not happen. It is stated, and we go on.
             // The movement test of the anchor (its fit was checked at 6b).
             if (anchors != null)
             {
@@ -369,11 +369,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il foro e' in errore di ricostruzione? La frase, o null se e' sano o
-        /// se il codice e' solo un avviso (IFeature~GetErrorCode2.html:
-        /// «IsWarning: True if the error is a warning, false if not»). Un
-        /// codice che non si legge non diventa un errore: decide il volume
-        /// (voce Z-C21.2, rilievo L4-3).
+        /// Is the hole in rebuild error? The sentence, or null if it is sound or
+        /// if the code is only a warning (IFeature~GetErrorCode2.html:
+        /// «IsWarning: True if the error is a warning, false if not»). A
+        /// code that cannot be read does not become an error: the volume decides
+        /// (entry Z-C21.2, finding L4-3).
         /// </summary>
         private static string HoleInError(IFeature hole)
         {
@@ -381,12 +381,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Scrive lo standard e il tipo sulla definizione, e la applica.
+        /// Writes the standard and the type on the definition, and applies it.
         ///
-        /// Chiamata due volte per un foro cieco: la prima per fissare le
-        /// misure di norma sul passante, la seconda per portarlo a cieco. Il
-        /// secondo giro riempie a mano le gemelle cieche dei campi «Thru»,
-        /// che ChangeStandard non tocca.
+        /// Called twice for a blind hole: the first to fix the
+        /// standard sizes on the through one, the second to bring it to blind. The
+        /// second pass fills in by hand the blind twins of the «Thru» fields,
+        /// which ChangeStandard does not touch.
         /// </summary>
         private bool FixUpTheHole(
             IModelDoc2 model, IFeature feature, HoleKind kind, string size,
@@ -430,7 +430,7 @@ namespace Oce.Solid.Agent.Core
                     double p = depthMm / 1000.0;
                     d.EndCondition = (int)swEndConditions_e.swEndCondBlind;
                     d.Depth = p;
-                    // Le gemelle cieche: senza, il foro esce come capita.
+                    // The blind twins: without them, the hole comes out any which way.
                     if (d.HoleDiameter <= 0 && d.ThruHoleDiameter > 0)
                         d.HoleDiameter = d.ThruHoleDiameter;
                     if (d.HoleDiameter > 0) d.HoleDepth = p;
@@ -439,8 +439,8 @@ namespace Oce.Solid.Agent.Core
                     if (d.TapDrillDiameter > 0)
                     {
                         d.TapDrillDepth = p;
-                        // Il filetto non arriva in fondo al preforo: e' cosi'
-                        // che si fila un foro cieco, e la punta lascia il cono.
+                        // The thread does not reach the bottom of the pilot hole: it is how
+                        // a blind hole is threaded, and the drill tip leaves the cone.
                         d.ThreadDepth = p * 0.7;
                         d.ThreadEndCondition =
                             (int)swWzdHoleThreadEndCondition_e.swEndThreadTypeBLIND;
@@ -474,10 +474,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Le ancore dei fori (voce E18), una per posizione nello stesso ordine.
-        /// `anchors` resta null se nessuna posizione ne ha una (il vecchio modo);
-        /// false col motivo se qualcuna ce l'ha e qualcuna no, o se un'ancora e'
-        /// sbagliata. Un foro solo con x_mm/y_mm in cima prende `anchor` in cima.
+        /// The anchors of the holes (entry E18), one per position in the same order.
+        /// `anchors` stays null if no position has one (the old way);
+        /// false with the reason if some have one and some do not, or if an anchor is
+        /// wrong. A single hole with x_mm/y_mm at the top takes `anchor` at the top.
         /// </summary>
         private bool ReadHoleAnchors(
             Dictionary<string, object> a, DocumentState docState, IFace2 face, double[] axes, double offsetM,
@@ -518,8 +518,8 @@ namespace Oce.Solid.Agent.Core
                 var its = new Dictionary<string, object> { ["anchor"] = raw[i] };
                 if (signatures != null) its["_signatures"] = signatures;
                 string reason;
-                // Il raggio non si sa ancora (lo decide la tabella): 0 qui, e il
-                // controllo dello scavalcamento si rifa' a foro nato.
+                // The radius is not known yet (the table decides it): 0 here, and the
+                // check for overrun is redone once the hole is born.
                 var anc = ReadAnchor(its, docState, face, axes, offsetM, positions[i][0], positions[i][1], 0, 0, out reason);
                 if (anc == null) { error = "Foro " + (i + 1) + ": " + reason; anchors = null; return false; }
                 anchors.Add(anc);
@@ -527,7 +527,7 @@ namespace Oce.Solid.Agent.Core
             return true;
         }
 
-        /// <summary>Le posizioni chieste, in mm del modello sui due assi della faccia.</summary>
+        /// <summary>The positions asked for, in model mm on the two axes of the face.</summary>
         private static List<double[]> HolePositions(
             Dictionary<string, object> a, out string error)
         {
@@ -553,9 +553,9 @@ namespace Oce.Solid.Agent.Core
             }
             else
             {
-                // Un foro solo si puo' chiedere anche con x_mm/y_mm in piano,
-                // come fa cylindrical_cut: e' la forma che il modello
-                // conosce gia'.
+                // A single hole can also be asked for with x_mm/y_mm at the top level,
+                // as cylindrical_cut does: it is the form the model
+                // already knows.
                 double x, y;
                 if (!RequiredNum(a, "x_mm", out x, out error)) return null;
                 if (!RequiredNum(a, "y_mm", out y, out error)) return null;
@@ -570,8 +570,8 @@ namespace Oce.Solid.Agent.Core
                 return null;
             }
 
-            // Due fori nello stesso punto sono un errore di chi ha scritto il
-            // piano, e SolidWorks li accetterebbe sovrapponendoli.
+            // Two holes at the same point are an error of whoever wrote the
+            // plan, and SolidWorks would accept them by superimposing them.
             for (int i = 0; i < outside.Count; i++)
                 for (int j = i + 1; j < outside.Count; j++)
                     if (Math.Abs(outside[i][0] - outside[j][0]) < 0.01 &&
@@ -585,16 +585,16 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Sposta il punto che SolidWorks ha messo da solo e ne aggiunge uno
-        /// per ogni altro foro.
+        /// Moves the point that SolidWorks put by itself and adds one
+        /// for every other hole.
         ///
-        /// Tre accorgimenti, tutti e tre necessari e tutti e tre misurati:
-        ///   - si sta DENTRO EditSketch: fuori, SetCoords torna False;
-        ///   - AddToDB acceso: la geometria entra alle coordinate scritte
-        ///     invece che dove il motore di aggancio la porta;
-        ///   - deduzione spenta: altrimenti i punti nuovi prendono relazioni
-        ///     di allineamento col primo, e l'errore del primo diventa
-        ///     l'errore di tutti.
+        /// Three precautions, all three necessary and all three measured:
+        ///   - we stay INSIDE EditSketch: outside, SetCoords returns False;
+        ///   - AddToDB on: the geometry enters at the written coordinates
+        ///     instead of where the snapping engine takes it;
+        ///   - inference off: otherwise the new points take alignment
+        ///     relations with the first, and the error of the first becomes
+        ///     the error of all.
         /// </summary>
         private bool PositionHoles(
             IModelDoc2 model, IFeature feature, double[] axes, double offsetM,
@@ -706,10 +706,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Fra le sotto-feature di un foro guidato ci sono due schizzi: quello
-        /// del profilo di rivoluzione, pieno di segmenti, e quello di
-        /// posizionamento, fatto di soli punti. Si prende quello con meno
-        /// segmenti, che e' un invariante e non un nome localizzato.
+        /// Among the sub-features of a wizard hole there are two sketches: that
+        /// of the revolve profile, full of segments, and the positioning
+        /// one, made of points only. The one with fewer segments is taken,
+        /// which is an invariant and not a localised name.
         /// </summary>
         private static IFeature PositioningSketch(IFeature hole)
         {
@@ -724,8 +724,8 @@ namespace Oce.Solid.Agent.Core
                     if (sk != null)
                     {
                         var seg = sk.GetSketchSegments() as object[];
-                        // ZERO-E-ZERO: uno schizzo di soli punti non ha segmenti, e
-                        // null e' proprio lo schizzo di posizionamento che si cerca.
+                        // ZERO-E-ZERO: a sketch of points only has no segments, and
+                        // null is exactly the positioning sketch being looked for.
                         int n = seg == null ? 0 : seg.Length;
                         if (n < less) { less = n; best = s; }
                     }
@@ -737,20 +737,20 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Raccoglie gli assi delle facce cilindriche del diametro atteso.
+        /// Gathers the axes of the cylindrical faces of the expected diameter.
         ///
-        /// SI GUARDA IL PEZZO, NON LA DEFINIZIONE. La definizione l'abbiamo
-        /// scritta noi: rileggerla direbbe soltanto che l'abbiamo scritta.
+        /// THE PART IS LOOKED AT, NOT THE DEFINITION. We wrote the definition
+        /// ourselves: rereading it would only say that we wrote it.
         ///
-        /// QUESTA FUNZIONE NON GIUDICA, RACCOGLIE. E' l'unica meta' che ha
-        /// bisogno di SOLIDWORKS; il giudizio sta in
-        /// <see cref="PositionsVerdict"/>, che si prova a tavolino.
+        /// THIS FUNCTION DOES NOT JUDGE, IT GATHERS. It is the only half that
+        /// needs SOLIDWORKS; the judgement lives in
+        /// <see cref="PositionsVerdict"/>, which is tried at a table.
         ///
-        /// Quando non riesce a raccogliere, lo DICE in <paramref name="cannot"/>
-        /// invece di tornare una lista vuota che somiglia a «nessun foro
-        /// fuori posto». La versione precedente tornava `null` — cioe' «tutto
-        /// a posto» — in quattro strade in cui non aveva guardato niente, e chi
-        /// la chiamava scriveva `positions_checked = true` senza condizione.
+        /// When it cannot gather, it SAYS so in <paramref name="cannot"/>
+        /// instead of returning an empty list that looks like «no hole
+        /// out of place». The previous version returned `null` — that is «all
+        /// in order» — on four routes where it had looked at nothing, and whoever
+        /// called it wrote `positions_checked = true` unconditionally.
         /// </summary>
         private List<double[]> HoleAxes(
             IFeature feature, double diameterMm, out string cannot)

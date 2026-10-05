@@ -5,19 +5,19 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// FISSA O LIBERA UN COMPONENTE (voce Z-D5).
+    /// FIXES OR FREES A COMPONENT (entry Z-D5).
     ///
-    /// E' l'unico dei comandi di stato di un componente che cambia davvero come
-    /// l'assieme si ricostruisce: nascosto e trasparente non cambiano il pezzo
-    /// fabbricato, fisso si'. Un componente fisso non si muove perche' qualcuno
-    /// l'ha inchiodato, non perche' sia accoppiato.
+    /// It is the only one of the state commands of a component that really changes how
+    /// the assembly is rebuilt: hidden and transparent do not change the manufactured
+    /// part, fixed does. A fixed component does not move because someone
+    /// nailed it down, not because it is mated.
     ///
-    /// Misurato il 27/9/2026 (`prova0089 zd345`): il componente selezionato
-    /// (`IComponent2.Select4`) e `IAssemblyDoc.FixComponent()` /
-    /// `UnfixComponent()` — tutte e due `void`: l'esito si rilegge con
-    /// `IsFixed`. Funziona nei due versi, ANCHE sul primo componente, quello che
-    /// SOLIDWORKS fissa da solo all'inserimento (lezione GA5: si comporta come
-    /// uno fissato a mano).
+    /// Measured on 27/9/2026 (`prova0089 zd345`): the selected component
+    /// (`IComponent2.Select4`) and `IAssemblyDoc.FixComponent()` /
+    /// `UnfixComponent()` — both `void`: the outcome is read back with
+    /// `IsFixed`. It works in both directions, EVEN on the first component, the one
+    /// SOLIDWORKS fixes by itself at insertion (lesson GA5: it behaves like
+    /// one fixed by hand).
     /// </summary>
     public partial class SwOperations
     {
@@ -71,7 +71,7 @@ namespace Oce.Solid.Agent.Core
             try { model.ClearSelection2(true); } catch { }
             if (!taken) return Failed("«" + NameOf(c) + "» non si lascia selezionare: non l'ho toccato.");
             try { model.EditRebuild3(); } catch { }
-            // SI RILEGGE: FixComponent e UnfixComponent non rispondono niente.
+            // IT IS READ BACK: FixComponent and UnfixComponent answer nothing.
             bool after = IsFixed(c);
             if (after != want)
                 return Failed("Ho chiesto di " + (want ? "fissare" : "liberare") + " «" + NameOf(c) + "», e " +

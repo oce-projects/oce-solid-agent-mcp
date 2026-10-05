@@ -6,23 +6,23 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE GUARDIE DOPO UNA MODIFICA CHE PASSA DALLA RICOSTRUZIONE, in un posto
-    /// solo (revisione avversariale del 27/9/2026).
+    /// THE GUARDS AFTER A CHANGE THAT GOES THROUGH THE REBUILD, in one place
+    /// only (adversarial review of 27/9/2026).
     ///
-    /// `set_dimension` le aveva tutte — la ricostruzione, le lavorazioni in
-    /// errore, i corpi, le aperture che escono dal materiale, lo smusso o il
-    /// raccordo che non ci sta piu' — e le operazioni venute dopo, che cambiano
-    /// la geometria per un'altra strada (`global_variable`, `link_dimension`,
-    /// `edit_extrusion`), ne avevano una o nessuna. Una variabile che guida
-    /// lo spessore portata a 1 sotto uno smusso da 2 ricostruisce pulita e
-    /// cambia la forma (lo ha misurato il caso r05 per `set_dimension`): la
-    /// risposta era «riuscito», e la variabile restava scritta. Una quota
-    /// legata a un'equazione `set_dimension` non la cambia piu' (e' guidata),
-    /// quindi `global_variable` era diventata la scorciatoia che saltava
-    /// tutte le guardie.
+    /// `set_dimension` had them all — the rebuild, the features in
+    /// error, the bodies, the openings that leave the material, the chamfer or
+    /// fillet that no longer fits — and the operations that came later, which change
+    /// the geometry by another route (`global_variable`, `link_dimension`,
+    /// `edit_extrusion`), had one or none. A variable that drives
+    /// the thickness taken to 1 under a chamfer of 2 rebuilds clean and
+    /// changes the shape (measured by case r05 for `set_dimension`): the
+    /// answer was «succeeded», and the variable stayed written. A dimension
+    /// linked to an equation `set_dimension` no longer changes (it is driven),
+    /// so `global_variable` had become the shortcut that skipped
+    /// all the guards.
     ///
-    /// Qui: la fotografia del pezzo prima, e dopo la frase di cio' che si e'
-    /// rotto, o null. Chi chiama rimette com'era e lo dice.
+    /// Here: the snapshot of the part before, and after the sentence about what
+    /// broke, or null. The caller puts things back as they were and says so.
     /// </summary>
     public partial class SwOperations
     {
@@ -31,9 +31,9 @@ namespace Oce.Solid.Agent.Core
             public double? Volume;
             public int Bodies;
             public int OpenCount;
-            // Il NUMERO di lavorazioni in errore (non un codice d'errore: la
-            // guardia Z-C7 vieta di confrontare un codice con una cifra, e questo
-            // non lo e'). -1 se non si legge.
+            // The NUMBER of features in error (not an error code: the
+            // Z-C7 guard forbids comparing a code with a digit, and this
+            // is not one). -1 if it cannot be read.
             public int Broken;
             public Dictionary<string, int> Features;
         }
@@ -51,17 +51,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Cosa si e' rotto rispetto alla fotografia, in una frase («2 lavorazioni
-        /// sono andate in errore»), o null se niente. Un conteggio che non si
-        /// legge (-1) non accusa: «non lo so» non e' «rotto».
+        /// What broke compared with the snapshot, in a sentence («2 lavorazioni
+        /// sono andate in errore»), or null if nothing. A count that cannot be
+        /// read (-1) does not accuse: «I do not know» is not «broken».
         ///
-        /// «aperture» dice se ha senso contare le aperture chiuse. Ha senso quando
-        /// cambia una quota dello SCHIZZO (un'asola che si sposta puo' uscire dal
-        /// bordo: il caso r16 di set_dimension). Non ha senso quando cambia solo
-        /// la PROFONDITA' di una lavorazione (edit_extrusion): un taglio passante
-        /// che torna cieco toglie il foro dalla faccia di sotto, le aperture calano
-        /// da 2 a 1 e il pezzo e' proprio quello chiesto — misurato il 28/9/2026 sul
-        /// caso blind_becomes_through, che la guardia rifiutava a torto.
+        /// «aperture» says whether it makes sense to count the closed openings. It makes sense when
+        /// a dimension of the SKETCH changes (a slot that moves can leave the
+        /// edge: case r16 of set_dimension). It makes no sense when only
+        /// the DEPTH of a feature changes (edit_extrusion): a through cut
+        /// that goes back to blind removes the hole from the underside face, the openings drop
+        /// from 2 to 1 and the part is exactly the one asked for — measured on 28/9/2026 on
+        /// case blind_becomes_through, which the guard wrongly refused.
         /// </summary>
         private static string WhatBroke(IModelDoc2 model, PartPhoto before, bool rebuilt, bool aperture)
         {
@@ -72,9 +72,9 @@ namespace Oce.Solid.Agent.Core
                 return newOnes + (newOnes > 1 ? " lavorazioni sono andate" : " lavorazione e' andata") +
                        " in errore (" + broken + " invece di " + before.Broken + ")";
             }
-            // UNA RICOSTRUZIONE CHE RISPONDE FALSE su un pezzo che era sano (nessuna
-            // lavorazione rotta, contata: non «non lo so»). Su un pezzo gia' rotto la
-            // risposta e' false comunque, e conta il numero delle rotte, qui sopra.
+            // A REBUILD THAT ANSWERS FALSE on a part that was sound (no
+            // broken feature, counted: not «I do not know»). On an already broken part the
+            // answer is false anyway, and the number of broken ones counts, above.
             bool wasHealthy = before.Broken >= 0 && before.Broken < 1;
             if (!rebuilt && wasHealthy)
                 return "la ricostruzione non e' riuscita";
@@ -92,8 +92,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La coda della frase di rifiuto, dopo aver rimesso le cose: il volume e'
-        /// tornato quello della fotografia? Si rilegge, non si crede.
+        /// The tail of the refusal sentence, after putting things back: has the volume
+        /// returned to that of the snapshot? It is read back, not believed.
         /// </summary>
         private static string IsBackAsItWas(IModelDoc2 model, PartPhoto before, bool restored, string what)
         {
@@ -109,11 +109,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti millimetri vale un'unita' di lunghezza del documento, o NaN se non
-        /// si sa. Il valore di un'equazione (`IEquationMgr.get_Value`) e' nelle
-        /// unita' del DOCUMENTO: lo «0.2» di «"gioco" = 0.2mm» (82zs) in un
-        /// documento in millimetri. In uno in pollici lo stesso 12mm rileggerebbe
-        /// 0,472, e il confronto col 12 chiesto rifiutava una variabile giusta.
+        /// How many millimetres one length unit of the document is worth, or NaN if it
+        /// is not known. The value of an equation (`IEquationMgr.get_Value`) is in the
+        /// units of the DOCUMENT: the «0.2» of «"gioco" = 0.2mm» (82zs) in a
+        /// document in millimetres. In one in inches the same 12mm would read back
+        /// 0.472, and the comparison with the 12 asked for refused a right variable.
         /// </summary>
         private static double MmPerDocumentUnit(IModelDoc2 model)
         {

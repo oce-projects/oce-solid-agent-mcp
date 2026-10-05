@@ -6,17 +6,17 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// DA QUALI FILE DIPENDE QUESTO DOCUMENTO, E QUALI MANCANO (voce Z-B3).
+    /// WHICH FILES THIS DOCUMENT DEPENDS ON, AND WHICH ARE MISSING (entry Z-B3).
     ///
-    /// Un assieme non e' un documento: e' un grafo di file sul disco. Il modello
-    /// guardava un assieme e non sapeva che poggia su file che stanno altrove o
-    /// non ci sono piu'.
+    /// An assembly is not a document: it is a graph of files on disk. The model
+    /// looked at an assembly and did not know that it rests on files that are elsewhere or
+    /// are no longer there.
     ///
-    /// Misurato il 27/9/2026 (`prova0089 zb3`, assieme base + coperchio, poi il
-    /// file del coperchio rinominato sul disco e l'assieme riaperto in silenzio):
+    /// Measured on 27/9/2026 (`prova0089 zb3`, assembly base + lid, then the
+    /// lid file renamed on disk and the assembly reopened silently):
     ///
-    ///  * `IModelDocExtension.GetDependencies(true, true, false, true, false)` da'
-    ///    un elenco PIATTO a coppie: nome, percorso, nome, percorso.
+    ///  * `IModelDocExtension.GetDependencies(true, true, false, true, false)` gives
+    ///    a FLAT list in pairs: name, path, name, path.
     ///  * **ListBrokenRefs puts broken references IN the list; it does not MARK
     ///    them** (finding N60). IModelDocExtension~GetDependencies.html says only
     ///    «ListBrokenRefs — True to get broken references, false to not»: the
@@ -25,9 +25,9 @@ namespace Oce.Solid.Agent.Core
     ///    so the only way to know it is missing is to look at the disk
     ///    (`File.Exists`). (This bullet used to call the signature one that
     ///    «promises and does not deliver»: the guide promises no mark.)
-    ///  * Riaperto con un file mancante: `OpenDoc6` errori 2, il componente
-    ///    risulta SOPPRESSO (`GetSuppression2` 0) e `GetModelDoc2` null.
-    ///    `GetDocumentDependencies2` sul file chiuso da' lo stesso elenco.
+    ///  * Reopened with a missing file: `OpenDoc6` errors 2, the component
+    ///    turns out SUPPRESSED (`GetSuppression2` 0) and `GetModelDoc2` null.
+    ///    `GetDocumentDependencies2` on the closed file gives the same list.
     ///
     /// WHERE THE FILE WAS SAVED, NOT WHERE A SEARCH FINDS ONE (finding L12-8,
     /// measured on 28/9/2026 by the Z-C21.3 probe of the same-name file:
@@ -99,8 +99,8 @@ namespace Oce.Solid.Agent.Core
             };
             if (entries == null)
             {
-                // L'API NON HA RISPOSTO: «non lo so», non «zero file» — e nemmeno
-                // «zero mancanti» (revisione del 27/9/2026: how_many_missing diceva 0).
+                // THE API DID NOT ANSWER: «I do not know», not «zero files» — and not even
+                // «zero missing» (review of 27/9/2026: how_many_missing said 0).
                 measurements["how_many_files"] = null;
                 measurements["missing"] = null;
                 measurements["how_many_missing"] = null;

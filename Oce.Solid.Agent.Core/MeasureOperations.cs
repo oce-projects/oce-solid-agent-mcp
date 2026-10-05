@@ -7,16 +7,16 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE DUE DOMANDE CHE SI FANNO PRIMA DI ORDINARE. (voce GP4)
+    /// THE TWO QUESTIONS ASKED BEFORE ORDERING. (entry GP4)
     ///
-    /// «Quanto pesa questo pezzo in alluminio» e «entra nella scatola
-    /// 300x260x40». Tutte e due si calcolavano gia' dentro `DocumentState` —
-    /// la massa con `IMassProperty`, l'ingombro con `GetExtremePoint` sei
-    /// volte — ma **nessuna operazione poteva chiederle**: arrivavano
-    /// nell'intero stato del documento, o non arrivavano affatto.
+    /// «How much does this part weigh in aluminium» and «does it fit in the box
+    /// 300x260x40». Both were already calculated inside `DocumentState` —
+    /// the mass with `IMassProperty`, the extent with `GetExtremePoint` six
+    /// times — but **no operation could ask for them**: they arrived
+    /// in the whole state of the document, or did not arrive at all.
     ///
-    /// Qui diventano due domande che si possono fare da sole, per esempio
-    /// dopo una modifica per verificare solo quella.
+    /// Here they become two questions that can be asked on their own, for example
+    /// after a change to verify only that one.
     ///
     /// ── THE UNITS ARE STATED, ALWAYS ────────────────────────────────────
     ///
@@ -29,51 +29,51 @@ namespace Oce.Solid.Agent.Core
     /// cost. The answer is in metres and kilograms, and the conversion to
     /// millimetres is ours, in one place.
     ///
-    /// ── LA TRAPPOLA DELLE DUE GRAFIE ────────────────────────────────────
+    /// ── THE TRAP OF THE TWO SPELLINGS ───────────────────────────────────
     ///
-    /// `IMassProperty` scrive **«Princip*le*»**:
+    /// `IMassProperty` writes **«Princip*le*»**:
     ///
     ///   IMassProperty.PrincipleMomentsOfInertia
     ///   IMassProperty.PrincipleAxesOfInertia
     ///
-    /// `IMassProperty2` scrive **«Princip*al*»**:
+    /// `IMassProperty2` writes **«Princip*al*»**:
     ///
     ///   IMassProperty2.PrincipalMomentsOfInertia
     ///   IMassProperty2.PrincipalAxesOfInertia
     ///
-    /// Due grafie diverse per la stessa cosa, su due interfacce che si
-    /// somigliano. Con l'interop tipizzato e' un errore di compilazione — e
-    /// meno male; in late binding sarebbe un `MissingMemberException` a
-    /// runtime, o peggio un `catch` che lo ingoia e una risposta senza i
-    /// momenti che nessuno nota.
+    /// Two different spellings for the same thing, on two interfaces that
+    /// look alike. With the typed interop it is a compilation error — and
+    /// thank goodness; in late binding it would be a `MissingMemberException` at
+    /// runtime, or worse a `catch` that swallows it and an answer without the
+    /// moments that nobody notices.
     ///
-    /// E MISURANDOLA SI E' TROVATO DI PEGGIO: tutte e due le grafie, su un
-    /// cubo di acciaio da 200.000 mm³, rispondono **tre zeri**. I momenti veri
-    /// stanno in `Extension.GetMassProperties(1)`, posizioni 6, 7, 8. Un campo
-    /// che si chiama «momenti principali» e risponde zero non e' un errore: e'
-    /// un numero credibile, e nessun controllo lo prenderebbe. Qui non si
-    /// riportano affatto.
+    /// AND MEASURING IT SOMETHING WORSE WAS FOUND: both spellings, on a
+    /// steel cube of 200,000 mm³, answer **three zeros**. The true moments
+    /// are in `Extension.GetMassProperties(1)`, positions 6, 7, 8. A field
+    /// called «principal moments» that answers zero is not an error: it is
+    /// a credible number, and no check would catch it. Here they are not
+    /// reported at all.
     ///
-    /// ── E LA MISURA CHE HA DECISO IL RIFIUTO ────────────────────────────
+    /// ── AND THE MEASUREMENT THAT DECIDED THE REFUSAL ────────────────────
     ///
-    /// Sullo stesso cubo da 200.000 mm³:
+    /// On the same cube of 200,000 mm³:
     ///
-    ///   senza materiale        densita' 1000   massa 0,2 kg
-    ///   con AISI 304           densita' 8000   massa 1,6 kg
+    ///   without material       density 1000   mass 0.2 kg
+    ///   with AISI 304          density 8000   mass 1.6 kg
     ///
-    /// Senza materiale SOLIDWORKS **non fallisce**: risponde con la densita'
-    /// predefinita del modello, che e' quella dell'acqua. Il numero e'
-    /// credibile e sbagliato di OTTO VOLTE, e il posto in cui si scopre e' il
-    /// preventivo. Percio' qui, senza materiale, la massa e' `null` con
-    /// scritto perche'.
+    /// Without material SOLIDWORKS **does not fail**: it answers with the
+    /// default density of the model, which is that of water. The number is
+    /// credible and wrong by EIGHT TIMES, and the place where it is discovered is the
+    /// quote. Therefore here, without material, the mass is `null` with the
+    /// reason written.
     /// </summary>
     public partial class SwOperations
     {
         private Outcome MassProperties(
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            // L'ASSIEME HA LA SUA STRADA (voce Z-D1): CreateMassProperty sull'assieme
-            // intero, controllata contro la somma dei pezzi (OperazioniMisuraAssieme).
+            // THE ASSEMBLY HAS ITS OWN ROUTE (entry Z-D1): CreateMassProperty on the whole
+            // assembly, checked against the sum of the parts (OperazioniMisuraAssieme).
             if (model is IAssemblyDoc) return AssemblyMassProperties(model, a);
             var partDoc = model as IPartDoc;
             if (partDoc == null)
@@ -83,26 +83,26 @@ namespace Oce.Solid.Agent.Core
             var bodies = ChosenBodies(partDoc, docState, a, Str(a, "body_uid", null), out string reason);
             if (bodies == null) return Failed(reason);
 
-            // ── UNA MISURA NUOVA PER OGNI NUMERO, E NON E' PIGNOLERIA ────
+            // ── A NEW MEASUREMENT FOR EVERY NUMBER, AND IT IS NOT PEDANTRY ─
             //
-            // `IMassProperty` **cambia le sue risposte a seconda di che cosa
-            // gli si e' chiesto prima**. Misurato il 15/9/2026 su un cubo di
-            // AISI 304 da 200.000 mm³, con lo stesso oggetto:
+            // `IMassProperty` **changes its answers according to what
+            // it was asked before**. Measured on 15/9/2026 on a cube of
+            // AISI 304 of 200,000 mm³, with the same object:
             //
-            //   letto subito `Density`                  ->  8000   (giusto)
-            //   letto prima `Volume`, poi `Density`     ->     1
-            //   letto prima `SurfaceArea`, poi `Density`->     1
-            //   letto prima `CenterOfMass`, poi `Density`-> 8000   (indenne)
+            //   read `Density` right away                 ->  8000   (right)
+            //   read `Volume` first, then `Density`       ->     1
+            //   read `SurfaceArea` first, then `Density`  ->     1
+            //   read `CenterOfMass` first, then `Density` -> 8000   (unharmed)
             //
-            // E la massa segue la densita': 0,0002 kg invece di 1,6 — OTTOMILA
-            // VOLTE piu' leggera, con volume, area e baricentro tutti giusti
-            // accanto. Nessuna eccezione, nessun valore assurdo: un numero
-            // credibile, e il posto in cui si scopre e' il preventivo.
+            // And the mass follows the density: 0.0002 kg instead of 1.6 — EIGHT THOUSAND
+            // TIMES lighter, with volume, area and centre of mass all right
+            // alongside. No exception, no absurd value: a credible
+            // number, and the place where it is discovered is the quote.
             //
-            // Si potrebbe scrivere «leggi prima la massa», ma un ordine di
-            // righe e' un contratto che si rompe il giorno in cui qualcuno le
-            // riordina — e non fallirebbe niente. Un oggetto per numero non si
-            // rompe: costa quattro chiamate COM, che non le sente nessuno.
+            // One could write «read the mass first», but an order of
+            // lines is a contract that breaks the day someone
+            // reorders them — and nothing would fail. One object per number does not
+            // break: it costs four COM calls, which nobody feels.
             var take = new Func<Func<IMassProperty2, object>, string, object>((read, what) =>
             {
                 try
@@ -148,18 +148,18 @@ namespace Oce.Solid.Agent.Core
                 ["volume_mm3"] = Math.Round(volumeM3 * 1e9, 2),
                 ["area_mm2"] = Math.Round(areaM2 * 1e6, 2),
                 ["center_of_mass_mm"] = center,
-                // LE UNITA' NELLA RISPOSTA, non solo nei nomi dei campi. E' la
-                // stessa ragione dello STL: chi legge puo' non aver mai visto
-                // la descrizione dell'operazione.
+                // THE UNITS IN THE ANSWER, not only in the field names. It is the
+                // same reason as the STL: whoever reads may never have seen
+                // the description of the operation.
                 ["units"] = "millimetri e chilogrammi; la densita' in kg/m3",
             };
 
-            // LA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA».
+            // THE MASS WITHOUT MATERIAL IS NOT ZERO, IT IS «NOT KNOWN».
             //
-            // SOLIDWORKS risponde lo stesso, con la densita' predefinita del
-            // modello — di solito 1000 kg/m3, cioe' acqua. Un pezzo d'acciaio
-            // che pesa come l'acqua e' un numero credibile e sbagliato di otto
-            // volte, e il posto in cui si scopre e' il preventivo.
+            // SOLIDWORKS answers all the same, with the default density of the
+            // model — usually 1000 kg/m3, that is water. A steel part
+            // that weighs like water is a credible number and wrong by eight
+            // times, and the place where it is discovered is the quote.
             if (string.IsNullOrEmpty(material))
             {
                 measurements["material"] = null;
@@ -177,10 +177,10 @@ namespace Oce.Solid.Agent.Core
                 measurements["material"] = material;
                 measurements["mass_kg"] = Math.Round(massKg, 4);
                 measurements["density_kg_m3"] = Math.Round(density, 2);
-                // IL CONTO RIFATTO A MANO, accanto a quello di SOLIDWORKS. Se
-                // i due divergono, una delle due misure e' in unita' diverse
-                // da quelle che dice — ed e' il modo in cui un fattore 1000 si
-                // fa vedere invece di nascondersi.
+                // THE CALCULATION REDONE BY HAND, next to the one from SOLIDWORKS. If
+                // the two diverge, one of the two measurements is in units different
+                // from what it says — and it is the way a factor of 1000
+                // shows itself instead of hiding.
                 double byHand = volumeM3 * density;
                 measurements["mass_recomputed_kg"] = Math.Round(byHand, 4);
                 measurements["deviation_on_recompute"] = massKg > 0
@@ -188,22 +188,22 @@ namespace Oce.Solid.Agent.Core
                     : null;
             }
 
-            // ── I MOMENTI PRINCIPALI NON CI SONO, ED E' MISURATO ──────────
+            // ── THE PRINCIPAL MOMENTS ARE NOT THERE, AND IT IS MEASURED ───
             //
-            // `IMassProperty.PrincipleMomentsOfInertia` risponde **tre zeri**
-            // su un cubo di acciaio da 200.000 mm³ — e cosi' fa
-            // `IMassProperty2.PrincipalMomentsOfInertia`, con l'altra grafia.
-            // I momenti veri ci sono, ma da un'altra parte:
-            // `Extension.GetMassProperties(1)` torna tredici numeri e i
-            // momenti stanno nelle posizioni 6, 7 e 8 (0,001387, 0,001387,
-            // 0,002667 kg·m² sullo stesso cubo).
+            // `IMassProperty.PrincipleMomentsOfInertia` answers **three zeros**
+            // on a steel cube of 200,000 mm³ — and so does
+            // `IMassProperty2.PrincipalMomentsOfInertia`, with the other spelling.
+            // The true moments are there, but somewhere else:
+            // `Extension.GetMassProperties(1)` returns thirteen numbers and the
+            // moments are in positions 6, 7 and 8 (0.001387, 0.001387,
+            // 0.002667 kg·m² on the same cube).
             //
-            // Tre zeri in un campo che si chiama «momenti principali» sono il
-            // difetto che non da' errore: un numero credibile — un momento
-            // nullo e' un momento — che nessun controllo prenderebbe. Quindi
-            // NON si riportano: nessuno li ha chiesti, e riportarli sbagliati
-            // e' peggio che non averli. Se un giorno servissero, la via e'
-            // `GetMassProperties`, non la proprieta'.
+            // Three zeros in a field called «principal moments» are the
+            // defect that gives no error: a credible number — a null
+            // moment is a moment — that no check would catch. So they are
+            // NOT reported: nobody asked for them, and reporting them wrong
+            // is worse than not having them. If one day they were needed, the route is
+            // `GetMassProperties`, not the property.
 
             _log("[agente] proprieta' di massa: volume " +
                  (volumeM3 * 1e9).ToString("0.#") + " mm3" +
@@ -213,23 +213,23 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// LA SCATOLA VERA DEL PEZZO, corpo per corpo e tutta insieme.
+        /// THE TRUE BOX OF THE PART, body by body and all together.
         ///
-        /// `GetExtremePoint` sei volte, NON `GetBodyBox`. `GetBodyBox` e'
-        /// dichiaratamente APPROSSIMATA per le superfici non piane — puo'
-        /// essere piu' grande del pezzo — e un ingombro dichiarato piu' grande
-        /// del vero fa dimensionare male tutto quello che ci sta intorno: la
-        /// scatola per spedirlo, il pezzo che gli va accanto, la tasca in cui
-        /// deve entrare.
+        /// `GetExtremePoint` six times, NOT `GetBodyBox`. `GetBodyBox` is
+        /// declaredly APPROXIMATE for non-planar surfaces — it can
+        /// be larger than the part — and an extent declared larger
+        /// than the true one makes everything around it get sized wrong: the
+        /// box to ship it in, the part that goes next to it, the pocket it
+        /// must fit into.
         ///
-        /// E' la stessa scelta gia' fatta in `DocumentState`, e sta scritta
-        /// in tutti e due i posti perche' e' il genere di cosa che qualcuno
-        /// «semplifica» leggendo solo uno dei due.
+        /// It is the same choice already made in `DocumentState`, and it is written
+        /// in both places because it is the kind of thing that someone
+        /// «simplifies» reading only one of the two.
         /// </summary>
         private Outcome BodyBoundingBox(
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
-            if (model is IAssemblyDoc) return AssemblyBoundingBox(model, a);   // voce Z-D1
+            if (model is IAssemblyDoc) return AssemblyBoundingBox(model, a);   // entry Z-D1
             var partDoc = model as IPartDoc;
             if (partDoc == null)
                 return Failed("Questo documento non e' un pezzo ne' un assieme: non ha corpi da misurare. " +
@@ -284,10 +284,10 @@ namespace Oce.Solid.Agent.Core
                     Round(everything[5] - everything[2]),
                 },
                 ["units"] = "millimetri, nel sistema di coordinate del modello",
-                // IL LIMITE DICHIARATO: e' la scatola ALLINEATA AGLI ASSI. Un
-                // pezzo lungo messo in diagonale ha una scatola molto piu'
-                // grande di quanto serva per imballarlo, e questa misura non
-                // dice come girarlo.
+                // THE DECLARED LIMIT: it is the AXIS-ALIGNED box. A
+                // long part placed diagonally has a box much larger
+                // than needed to pack it, and this measurement does not
+                // say how to turn it.
                 ["what_it_does_not_check"] =
                     "E' la scatola allineata agli assi del modello, non la piu' piccola " +
                     "possibile: un pezzo messo in diagonale ha un ingombro molto piu' " +
@@ -300,26 +300,26 @@ namespace Oce.Solid.Agent.Core
         }
 
         // =================================================================
-        // QUANTO MATERIALE RESTA FRA QUESTE DUE FACCE  (voce GP5)
+        // HOW MUCH MATERIAL REMAINS BETWEEN THESE TWO FACES  (entry GP5)
         // =================================================================
         //
-        // E' la domanda dello spessore di parete — «quanto resta fra la cava
-        // della guarnizione e la faccia esterna?» — fatta in un modo che si
-        // puo' controllare: due facce NOMINATE e un numero, invece di tarare
-        // un vettore di intersezioni a raggi.
+        // It is the wall thickness question — «how much remains between the gasket
+        // groove and the outer face?» — asked in a way that can
+        // be checked: two NAMED faces and a number, instead of calibrating
+        // a vector of ray intersections.
         //
-        // ── LE DUE COSE MISURATE PRIMA DI SCRIVERLA ─────────────────────
+        // ── THE TWO THINGS MEASURED BEFORE WRITING IT ───────────────────
         //
-        // 1. **`ClosestDistance` torna METRI.** Su una piastra 40x40x10, fra
-        //    le due facce grandi, risponde `0,01`. Un fattore mille sbagliato
-        //    darebbe 10 dove il vero e' 0,01 — e tutti e due si leggono come
-        //    millimetri plausibili.
+        // 1. **`ClosestDistance` returns METRES.** On a 40x40x10 plate, between
+        //    the two large faces, it answers `0,01`. A wrong factor of a thousand
+        //    would give 10 where the true value is 0.01 — and both read as
+        //    plausible millimetres.
         //
-        // 2. **I due punti che restituisce sono veri**, e distano esattamente
-        //    quanto dichiara: [0, 0, 10] e [0, 0, 0] mm, scarto zero. E'
-        //    l'unico controllo indipendente che si abbia sul numero, e qui si
-        //    fa sempre: se il valore dice una cosa e i suoi stessi punti ne
-        //    dicono un'altra, la chiamata e' fallita e ha risposto lo stesso.
+        // 2. **The two points it returns are true**, and are exactly as far apart as
+        //    it declares: [0, 0, 10] and [0, 0, 0] mm, zero deviation. It is
+        //    the only independent check one has on the number, and here it is
+        //    always done: if the value says one thing and its own points say another,
+        //    the call has failed and answered all the same.
         // =================================================================
 
         private Outcome MinimumDistance(
@@ -369,9 +369,9 @@ namespace Oce.Solid.Agent.Core
                     " mm) ma non i due punti fra cui l'ha misurata. Senza quelli il numero " +
                     "non si puo' controllare, e non te lo do.");
 
-            // IL CONTROLLO INDIPENDENTE, e non e' uno scrupolo: se il valore
-            // dice 0 e i punti distano 4 mm, la chiamata e' fallita e ha
-            // risposto lo stesso.
+            // THE INDEPENDENT CHECK, and it is not a scruple: if the value
+            // says 0 and the points are 4 mm apart, the call has failed and
+            // answered all the same.
             double betweenThePoints = Math.Sqrt(
                 Math.Pow(pointA[0] - pointB[0], 2) +
                 Math.Pow(pointA[1] - pointB[1], 2) +
@@ -391,9 +391,9 @@ namespace Oce.Solid.Agent.Core
                 ["distance_mm"] = Round(meters * 1000.0),
                 ["point_source_mm"] = Scale(pointA, 1000.0),
                 ["point_target_mm"] = Scale(pointB, 1000.0),
-                // SI RIPORTA ANCHE IL CONTROLLO, non solo il suo esito: chi
-                // legge vede che il numero e' stato verificato e con che
-                // scarto, invece di doverci credere.
+                // THE CHECK IS REPORTED TOO, not only its outcome: whoever
+                // reads sees that the number was verified and with what
+                // deviation, instead of having to believe it.
                 ["distance_between_points_mm"] = Round(betweenThePoints * 1000.0),
                 ["deviation_of_check_mm"] = Round(deviationMm),
                 ["units"] = "millimetri; SOLIDWORKS li da' in metri e la conversione e' qui",
@@ -409,31 +409,31 @@ namespace Oce.Solid.Agent.Core
         }
 
         // =================================================================
-        // LA MISURA COMPLETA FRA DUE ENTITA'  (voce GP5)
+        // THE FULL MEASUREMENT BETWEEN TWO ENTITIES  (entry GP5)
         // =================================================================
         //
-        // ── `Calculate(entita)` IGNORA L'ARGOMENTO ──────────────────────
+        // ── `Calculate(entita)` IGNORES THE ARGUMENT ────────────────────
         //
-        // `IMeasure.Calculate(Object Entities)` **prende un argomento e non lo
-        // guarda**: misura quello che e' SELEZIONATO. Misurato il 15/9/2026:
+        // `IMeasure.Calculate(Object Entities)` **takes an argument and does not
+        // look at it**: it measures what is SELECTED. Measured on 15/9/2026:
         //
         //   Calculate(new object[] { faceA, faceB })   ->  FALSE
-        //   due facce selezionate, poi Calculate(null)     ->  TRUE, 0,01
+        //   two faces selected, then Calculate(null)       ->  TRUE, 0.01
         //
-        // E peggio: chiamata con UNA faccia nell'array, mentre la selezione
-        // ne conteneva ancora DUE dalla prova prima, ha risposto TRUE e ha
-        // dato l'area di tutte e due (0,0032 m² invece di 0,0016). Un numero
-        // credibile, del pezzo giusto, di un'altra selezione.
+        // And worse: called with ONE face in the array, while the selection
+        // still held TWO from the previous test, it answered TRUE and
+        // gave the area of both (0.0032 m² instead of 0.0016). A credible
+        // number, of the right part, of another selection.
         //
-        // Quindi: si svuota la selezione, si selezionano le entita' a mano, si
-        // chiama `Calculate(null)` e **si guarda il booleano**.
+        // So: the selection is cleared, the entities are selected by hand,
+        // `Calculate(null)` is called and **the boolean is looked at**.
         //
-        // ── E `-1` NON E' UNA MISURA ────────────────────────────────────
+        // ── AND `-1` IS NOT A MEASUREMENT ───────────────────────────────
         //
-        // `Perimeter` su una faccia piana quadrata risponde **-1**: e' il modo
-        // di SOLIDWORKS di dire «questa cosa qui non ce l'ha». Un perimetro
-        // negativo di un millesimo di millimetro riportato come numero e' il
-        // difetto che non da' errore; qui i valori negativi diventano `null`.
+        // `Perimeter` on a square planar face answers **-1**: it is
+        // SOLIDWORKS's way of saying «this thing does not have it». A
+        // perimeter negative by a thousandth of a millimetre reported as a number is the
+        // defect that gives no error; here the negative values become `null`.
         // =================================================================
 
         private Outcome MeasureBetween(
@@ -501,7 +501,7 @@ namespace Oce.Solid.Agent.Core
             bool succeeded;
             try
             {
-                // LA SELEZIONE E' L'ARGOMENTO VERO. Vedi il commento qui sopra.
+                // THE SELECTION IS THE REAL ARGUMENT. See the comment above.
                 model.ClearSelection2(true);
                 for (int i = 0; i < entity.Count; i++)
                 {
@@ -528,18 +528,18 @@ namespace Oce.Solid.Agent.Core
                 ["units"] = "millimetri, millimetri quadri e gradi; SOLIDWORKS li da' in " +
                             "metri e radianti, e la conversione e' qui",
             };
-            // ── `Area` E `TotalArea` NON SONO LA STESSA COSA, E SI ALTERNANO
+            // ── `Area` AND `TotalArea` ARE NOT THE SAME THING, AND THEY ALTERNATE
             //
-            // Misurato il 15/9/2026 su una piastra 40x40x10:
+            // Measured on 15/9/2026 on a 40x40x10 plate:
             //
-            //   una faccia sola    Area = 1600 mm²    TotalArea = -1
-            //   due facce          Area = -1          TotalArea = 3200 mm²
+            //   a single face      Area = 1600 mm²    TotalArea = -1
+            //   two faces          Area = -1          TotalArea = 3200 mm²
             //
-            // Cioe' quella che vale e' sempre l'altra. Chi ne legge una sola
-            // ha un campo che sparisce a seconda di quante cose ha chiesto —
-            // ed e' quello che e' successo: il caso «area di una faccia sola»
-            // e' uscito con «campo assente: misure.area_mm2». Si riportano
-            // tutte e due, col nome che dice quale e' quale.
+            // That is the one that holds is always the other. Whoever reads only one
+            // has a field that vanishes depending on how many things were asked for —
+            // and it is what happened: the case «area di una faccia sola»
+            // came out with «campo assente: misure.area_mm2». Both are reported,
+            // with the name that says which is which.
             Put(outside, "area_mm2", measure.Area, 1e6);
             Put(outside, "area_total_mm2", measure.TotalArea, 1e6);
             Put(outside, "perimetro_mm", measure.Perimeter, 1000.0);
@@ -562,9 +562,9 @@ namespace Oce.Solid.Agent.Core
                 Put(outside, "distance_mm", measure.Distance, 1000.0);
                 Put(outside, "distanza_normale_mm", measure.NormalDistance, 1000.0);
                 Put(outside, "distance_between_centers_mm", measure.CenterDistance, 1000.0);
-                // I DELTA POSSONO ESSERE NEGATIVI PER DAVVERO: un delta e' una
-                // differenza, e -20 vuol dire «venti dall'altra parte». Qui
-                // `-1` non e' un segnale, quindi non si filtra.
+                // THE DELTAS CAN BE TRULY NEGATIVE: a delta is a
+                // difference, and -20 means «twenty on the other side». Here
+                // `-1` is not a signal, so it is not filtered.
                 outside["delta_mm"] = new[]
                 {
                     Round(measure.DeltaX * 1000.0),
@@ -597,13 +597,13 @@ namespace Oce.Solid.Agent.Core
         };
 
         /// <summary>
-        /// Mette un valore nelle misure **solo se e' una misura**.
+        /// Puts a value into the measurements **only if it is a measurement**.
         ///
-        /// `IMeasure` risponde `-1` quando la cosa chiesta non si applica — il
-        /// perimetro di una faccia che non ne ha, il raggio di un piano — e un
-        /// `-1` riportato come numero e' il difetto che non da' errore:
-        /// nessuna di queste grandezze puo' essere negativa, quindi un valore
-        /// negativo e' un'assenza travestita.
+        /// `IMeasure` answers `-1` when the thing asked does not apply — the
+        /// perimeter of a face that has none, the radius of a plane — and a
+        /// `-1` reported as a number is the defect that gives no error:
+        /// none of these quantities can be negative, so a negative
+        /// value is an absence in disguise.
         /// </summary>
         private static void Put(Dictionary<string, object> location, string itemName,
                                   double val, double factor)
@@ -613,9 +613,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Una faccia o uno spigolo, presi dallo stato per identificativo.
-        /// Il rifiuto dice di che tipo era quell'uid, se c'era: «E3 e' uno
-        /// spigolo» e' un aiuto, «non lo trovo» no.
+        /// A face or an edge, taken from the state by identifier.
+        /// The refusal says what type that uid was, if there was one: «E3 is
+        /// an edge» is a help, «I cannot find it» is not.
         /// </summary>
         private static object EntityFromState(DocumentState docState, string uid, out string reason)
         {
@@ -649,10 +649,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I corpi da misurare: tutti, oppure quello chiesto per
-        /// identificativo. Null (con un motivo) quando l'identificativo non
-        /// esiste: un elenco vuoto darebbe una risposta con dei numeri, e dei
-        /// numeri su niente sono peggio di un rifiuto.
+        /// The bodies to measure: all of them, or the one asked for by
+        /// identifier. Null (with a reason) when the identifier does not
+        /// exist: an empty list would give an answer with numbers, and
+        /// numbers about nothing are worse than a refusal.
         ///
         /// A BODY ASKED FOR IS RESOLVED THROUGH THE DOCUMENT STATE AND ITS
         /// SIGNATURE (Z-C21.5, scheme S5), as combine_bodies and the overhang check (OperazioniSporgenze) do:
@@ -684,9 +684,9 @@ namespace Oce.Solid.Agent.Core
             for (int i = 0; i < rawItems.Length; i++)
             {
                 if (rawItems[i] == null) continue;
-                // SI TIENE L'OGGETTO COM'E' USCITO da `GetBodies2`, non
-                // ricastato: e' quello che `AddBodies` aggancia. Vedi il
-                // commento accanto ad `AddBodies`.
+                // THE OBJECT IS KEPT AS IT CAME OUT of `GetBodies2`, not
+                // recast: it is what `AddBodies` attaches. See the
+                // comment next to `AddBodies`.
                 outside.Add(rawItems[i]);
             }
             if (outside.Count == 0)
@@ -733,10 +733,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La scatola di un corpo in mm: {minX, minY, minZ, maxX, maxY, maxZ}.
-        /// Null se `GetExtremePoint` non risponde — e allora si fallisce,
-        /// invece di ripiegare su `GetBodyBox` e dare per buono un numero
-        /// approssimato senza dirlo.
+        /// The box of a body in mm: {minX, minY, minZ, maxX, maxY, maxZ}.
+        /// Null if `GetExtremePoint` does not answer — and then it fails,
+        /// instead of falling back on `GetBodyBox` and passing off an approximate
+        /// number as good without saying so.
         /// </summary>
         private static double[] BodyBox(IBody2 body)
         {

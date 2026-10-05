@@ -7,65 +7,65 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LA MARCATURA SU UNA FACCIA. (voce GP13)
+    /// THE MARKING ON A FACE. (entry GP13)
     ///
-    /// Numero di serie, verso di montaggio, nome del cliente, «ALTO»: e'
-    /// quello che in officina si chiede su un pezzo su due, e fino a qui il
-    /// catalogo non sapeva scrivere niente sul pezzo.
+    /// Serial number, mounting direction, customer name, «ALTO»: it is
+    /// what the shop asks for on one part in two, and up to here the
+    /// catalog could not write anything on the part.
     ///
-    /// ── NON E' UN'API SOLA ─────────────────────────────────────────────
+    /// ── IT IS NOT A SINGLE API ─────────────────────────────────────────
     ///
     ///   IModelDoc2.InsertSketchText(Ptx, Pty, Ptz, Text, Alignment,
     ///                               FlipDirection, HorizontalMirror,
     ///                               WidthFactor, SpaceBetweenChars)
     ///                               -> ISketchText
     ///
-    /// fa lo SCHIZZO. Il materiale lo toglie (o lo aggiunge) il taglio o
-    /// l'estrusione che vengono dopo, che sono gli stessi gia' misurati.
+    /// makes the SKETCH. The material is removed (or added) by the cut or
+    /// the extrusion that come afterwards, which are the same ones already measured.
     ///
-    /// Misurata il 16/9/2026: **non apre nessuna finestra** (non e' come
-    /// `AddDimension`), e funziona anche con `AddToDB = true`.
+    /// Measured on 16/9/2026: **it opens no window** (it is not like
+    /// `AddDimension`), and it works with `AddToDB = true` too.
     ///
-    /// ── IL DIFETTO CHE NON DA' ERRORE, E QUI E' GROSSO ─────────────────
+    /// ── THE DEFECT THAT GIVES NO ERROR, AND HERE IT IS A BIG ONE ───────
     ///
-    /// «PROVA» alta 10 mm, incisa 2 mm, su un quadrato di 100x100:
+    /// «PROVA» 10 mm high, engraved 2 mm, on a 100x100 square:
     ///
-    ///     ancorata a (0, 0)     ->  tolti 230,70 mm3
-    ///     ancorata a (30, 10)   ->  tolti 111,20 mm3
+    ///     anchored at (0, 0)    ->  removed 230,70 mm3
+    ///     anchored at (30, 10)  ->  removed 111,20 mm3
     ///
-    /// **Meta' della scritta cade fuori dalla faccia e sparisce in silenzio.**
-    /// La feature nasce verde, si chiama `Taglio-Estrusione1`, e nel pezzo c'e'
-    /// «PRO». Nessun errore, da nessuna parte — e su un numero di serie non c'e'
-    /// niente da cui accorgersene guardando l'albero.
+    /// **Half of the lettering falls outside the face and vanishes silently.**
+    /// The feature is born green, it is called `Taglio-Estrusione1`, and in the part there is
+    /// «PRO». No error, anywhere — and on a serial number there is
+    /// nothing to notice it by looking at the tree.
     ///
-    /// Tutta fuori invece si prende gia': `FeatureCut4` torna `null`. E' il
-    /// caso facile. Quello che conta e' la sovrapposizione PARZIALE.
+    /// Entirely outside, instead, is already caught: `FeatureCut4` returns `null`. It is the
+    /// easy case. What matters is the PARTIAL overlap.
     ///
-    /// ── COME SI PRENDE: LA SCATOLA DELLA SCRITTA ──────────────────────
+    /// ── HOW IT IS CAUGHT: THE LETTERING'S BOX ─────────────────────────
     ///
-    /// `ISketchText.GetEdges()` torna i contorni delle lettere — 56 `IEdge`
-    /// per «PROVA» — e da quelli si legge **dove finisce davvero la scritta**,
-    /// in coordinate del modello e in metri. Si controlla PRIMA di tagliare, e
-    /// si rifiuta.
+    /// `ISketchText.GetEdges()` returns the contours of the letters — 56 `IEdge`
+    /// for «PROVA» — and from those one reads **where the lettering really ends**,
+    /// in model coordinates and in meters. It is checked BEFORE cutting, and
+    /// refused.
     ///
-    /// Prima non si poteva sapere: la larghezza di una scritta non si calcola
-    /// dalla stringa, dipende dal font. Misurata, invece, si sa — e per
-    /// «PROVA» in Century Gothic alta 10 mm e' **47,05 x 10,51 mm**.
+    /// Before, it could not be known: the width of a lettering is not computed
+    /// from the string, it depends on the font. Measured, instead, it is known — and for
+    /// «PROVA» in Century Gothic 10 mm high it is **47,05 x 10,51 mm**.
     ///
-    /// ── QUELLO CHE HA UN NUMERO, E QUELLO CHE NON CE L'HA ─────────────
+    /// ── WHAT HAS A NUMBER, AND WHAT DOES NOT ──────────────────────────
     ///
-    /// L'area delle lettere non si puo' prevedere. Ma va col **quadrato
-    /// dell'altezza**, ed e' misurato:
+    /// The area of the letters cannot be predicted. But it goes with the **square
+    /// of the height**, and it is measured:
     ///
-    ///     altezza  5 mm  ->  area 28,83 mm2   ->  area/h2 = 1,1533
-    ///     altezza 10 mm  ->  area 115,35 mm2  ->  area/h2 = 1,1535
-    ///     altezza 20 mm  ->  area 265,88 mm2  ->  area/h2 = 0,6647   <- rotto
+    ///     height  5 mm  ->  area 28,83 mm2   ->  area/h2 = 1,1533
+    ///     height 10 mm  ->  area 115,35 mm2  ->  area/h2 = 1,1535
+    ///     height 20 mm  ->  area 265,88 mm2  ->  area/h2 = 0,6647   <- broken
     ///
-    /// Il terzo numero e' rotto perche' a 20 mm «PROVA» e' larga 94 mm e su una
-    /// faccia di 100 ancorata a x=0 non ci sta. **La stessa legge che tiene i
-    /// primi due e' quella che denuncia il terzo**: due misure che si
-    /// controllano a vicenda, e nessuna delle due e' una costante scritta a
-    /// mano.
+    /// The third number is broken because at 20 mm «PROVA» is 94 mm wide and on a
+    /// face of 100 anchored at x=0 it does not fit. **The same law that holds the
+    /// first two is the one that denounces the third**: two measures that
+    /// check each other, and neither of the two is a constant written by
+    /// hand.
     ///
     /// ── `Alignment` MOVES NOTHING ON FREE TEXT ───────────────────────
     ///
@@ -89,7 +89,7 @@ namespace Oce.Solid.Agent.Core
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>Quanto si tollera che la scritta sbordi, in mm.</summary>
+        /// <summary>How far the lettering is tolerated to overhang, in mm.</summary>
         private const double ToleratedSpill = 0.01;
 
         private Outcome EngraveText(
@@ -125,7 +125,7 @@ namespace Oce.Solid.Agent.Core
             if (bodiesBefore < 0 || volumeBefore == null)
                 return Failed(VolumeNotReadBefore("marcare la faccia"));
 
-            // La scatola della FACCIA, per sapere dove la scritta puo' stare.
+            // The FACE's box, to know where the lettering may sit.
             double[] faceBox = FaceBox(face);
             // Without the face box the overflow check (SpillsOutside) cannot run,
             // and a truncated inscription would be engraved without a word.
@@ -187,8 +187,8 @@ namespace Oce.Solid.Agent.Core
                         "SOLIDWORKS ha rifiutato il formato del testo (altezza " + height +
                         " mm" + (font == null ? "" : ", font «" + font + "»") + ").");
 
-                // E SI RILEGGE. `CharHeight` e' l'unica cosa che distingue una
-                // marcatura da leggere da una da indovinare.
+                // AND IT IS REREAD. `CharHeight` is the only thing that tells a
+                // marking to be read from one to be guessed.
                 var reread = written.GetTextFormat() as ITextFormat;
                 double trueHeight = reread == null ? -1 : Units.Mm(reread.CharHeight);
                 if (Math.Abs(trueHeight - height) > 0.001)
@@ -210,11 +210,11 @@ namespace Oce.Solid.Agent.Core
             if (written == null)
                 return Failed((error ?? "il testo non e' stato creato") + WithoutSketch(model));
 
-            // ── E QUI SI GUARDA SE CI STA, PRIMA DI TAGLIARE ─────────────
+            // ── AND HERE WE LOOK WHETHER IT FITS, BEFORE CUTTING ─────────────
             //
-            // Dopo non si puo' piu': la feature e' verde e le lettere di
-            // troppo non ci sono. Lo schizzo si porta via — un pezzo con uno
-            // schizzo orfano che nessuno vede e' peggio di un rifiuto.
+            // Afterwards it is no longer possible: the feature is green and the extra
+            // letters are not there. The sketch is taken away — a part with an
+            // orphan sketch that nobody sees is worse than a refusal.
             if (textBox == null)
                 return Failed(
                     "Non riesco a leggere dove finisce la scritta (" + contours + " contorni " +
@@ -257,7 +257,7 @@ namespace Oce.Solid.Agent.Core
                     "SOLIDWORKS non dice perche'. Con un testo che sta tutto fuori dalla " +
                     "faccia risponde cosi'." + WithoutSketch(model));
 
-            // ── e adesso si conta ────────────────────────────────────────
+            // ── and now we count ────────────────────────────────────────
             double? after = VolumeMm3(model);
             int bodiesAfter = CountSolidBodies(model);
             if (after == null || bodiesAfter < 0)
@@ -303,18 +303,18 @@ namespace Oce.Solid.Agent.Core
                 ["width_written_mm"] = Round(textBox[3] - textBox[0]),
                 ["height_written_mm"] = Round(textBox[4] - textBox[1]),
                 [embossed ? "material_added_mm3" : "material_removed_mm3"] = Round(moved),
-                // L'AREA DELLE LETTERE, che e' il volume diviso la profondita'.
-                // Non si puo' prevedere dalla stringa -- dipende dal font -- ma
-                // va col QUADRATO dell'altezza, e quel rapporto e' l'unica cosa
-                // che due marcature diverse hanno in comune.
+                // THE AREA OF THE LETTERS, which is the volume divided by the depth.
+                // It cannot be predicted from the string -- it depends on the font -- but
+                // it goes with the SQUARE of the height, and that ratio is the only thing
+                // that two different markings have in common.
                 ["area_letters_mm2"] = Round(lettersArea),
                 ["area_over_height_squared"] = Round(lettersArea / (height * height), 4),
                 ["bodies"] = bodiesAfter,
             };
             if (!string.IsNullOrWhiteSpace(font)) measurements["font"] = font;
 
-            // COSA NON HO GUARDATO, detto a ogni chiamata e non una volta nel
-            // catalogo: chi legge la risposta potrebbe non averlo mai letto.
+            // WHAT I DID NOT LOOK AT, said at every call and not once in the
+            // catalog: whoever reads the answer may never have read it.
             double boxArea = 0;
             if (faceBox != null)
             {
@@ -348,15 +348,15 @@ namespace Oce.Solid.Agent.Core
         // =================================================================
 
         /// <summary>
-        /// La scatola dei contorni delle lettere, in mm e in coordinate del
-        /// MODELLO: {minX, minY, minZ, maxX, maxY, maxZ}.
+        /// The box of the letters' contours, in mm and in the MODEL's
+        /// coordinates: {minX, minY, minZ, maxX, maxY, maxZ}.
         ///
-        /// `ISketchText.GetEdges()` torna un `IEdge` per ogni contorno — 56
-        /// per «PROVA», perche' ogni lettera ne ha uno esterno e le tonde anche
-        /// quello interno. Di ognuno si guardano i due estremi **e cinque punti
-        /// in mezzo**: un arco sta fuori dal segmento che unisce i suoi
-        /// estremi, e la pancia di una «O» e' esattamente il punto che
-        /// sborderebbe per primo.
+        /// `ISketchText.GetEdges()` returns one `IEdge` for each contour — 56
+        /// for «PROVA», because every letter has an outer one and the round ones also
+        /// the inner one. Of each, the two ends **and five points
+        /// in between** are looked at: an arc lies outside the segment joining its
+        /// ends, and the belly of an «O» is exactly the point that
+        /// would overhang first.
         /// </summary>
         private static double[] CurvesBox(ISketchText written, out int contours)
         {
@@ -412,7 +412,7 @@ namespace Oce.Solid.Agent.Core
             if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
         }
 
-        /// <summary>La scatola di una faccia, in mm e in coordinate del modello.</summary>
+        /// <summary>The box of a face, in mm and in model coordinates.</summary>
         private static double[] FaceBox(IFace2 face)
         {
             try
@@ -426,7 +426,7 @@ namespace Oce.Solid.Agent.Core
             catch { return null; }
         }
 
-        /// <summary>I due lati della scatola sul piano della faccia, in mm.</summary>
+        /// <summary>The two sides of the box on the face's plane, in mm.</summary>
         private static double[] SidesOnPlane(double[] box, double[] axes)
         {
             int a0 = (int)axes[0], a1 = (int)axes[1];
@@ -438,11 +438,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Dove la scritta esce dalla faccia, o null se ci sta.
+        /// Where the lettering leaves the face, or null if it fits.
         ///
-        /// Si guardano i DUE assi del piano della faccia e non tutti e tre: il
-        /// terzo e' lo spessore, la scritta ci sta per costruzione, e
-        /// confrontarlo darebbe un rifiuto per un millesimo di arrotondamento.
+        /// The TWO axes of the face's plane are looked at, not all three: the
+        /// third is the thickness, the lettering fits by construction, and
+        /// comparing it would give a refusal over a thousandth of rounding.
         /// </summary>
         private static string SpillsOutside(double[] text, double[] face, double[] axes)
         {

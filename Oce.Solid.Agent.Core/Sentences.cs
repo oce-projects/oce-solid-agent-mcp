@@ -1,83 +1,83 @@
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE FRASI CHE RICORRONO, scritte una volta sola.
+    /// THE SENTENCES THAT RECUR, written once only.
     ///
-    /// PERCHE' ESISTE QUESTO FILE. Fino alla 0.31.0 il modo di tornare indietro
-    /// era scritto **ventuno volte** con parole quasi uguali, e diceva sempre la
-    /// stessa cosa: «annullalo con Ctrl+Z». Poi e' arrivato lo strumento
-    /// `undo` (voce R1) e quelle ventuno frasi sono diventate ventuno posti
-    /// da correggere — che e' esattamente il conto che una frase ripetuta
-    /// presenta il giorno in cui cambia.
+    /// WHY THIS FILE EXISTS. Up to 0.31.0 the way of going back
+    /// was written **twenty-one times** in almost the same words, and always said the
+    /// same thing: «undo it with Ctrl+Z». Then the `undo` tool arrived
+    /// (entry R1) and those twenty-one sentences became twenty-one places
+    /// to correct — which is exactly the count that a repeated sentence
+    /// presents on the day it changes.
     ///
-    /// Qui ce n'e' una sola, e i tre file che la usano dicono la stessa cosa
-    /// per costruzione.
+    /// Here there is only one, and the three files that use it say the same thing
+    /// by construction.
     /// </summary>
     internal static class Sentences
     {
         /// <summary>
-        /// Come si ritira quello che e' appena stato fatto.
+        /// How to withdraw what has just been done.
         ///
-        /// ── PERCHE' DICE DUE COSE E NON UNA ───────────────────────────────
+        /// ── WHY IT SAYS TWO THINGS AND NOT ONE ───────────────────────────
         ///
-        /// Questa libreria ha **due lettori diversi**, e una frase vera per uno
-        /// solo dei due e' una frase falsa:
+        /// This library has **two different readers**, and a sentence true for only
+        /// one of the two is a false sentence:
         ///
-        ///   * il **modello**, che arriva dal ponte MCP. Non ha una tastiera:
-        ///     «premi Ctrl+Z» e' una riparazione che non puo' prendere. Per lui
-        ///     esiste lo strumento `undo`.
-        ///   * la **persona**, che usa le stesse operazioni dall'add-in di
-        ///     OpenPDM o che legge questa riga in un log. Per lei `undo` non
-        ///     esiste: il gesto e' `Ctrl+Z`.
+        ///   * the **model**, which comes from the MCP bridge. It has no keyboard:
+        ///     «press Ctrl+Z» is a repair it cannot take. For it
+        ///     the `undo` tool exists.
+        ///   * the **person**, who uses the same operations from the OpenPDM
+        ///     add-in or who reads this line in a log. For them `undo` does not
+        ///     exist: the gesture is `Ctrl+Z`.
         ///
-        /// Nominare solo lo strumento avrebbe mandato il progettista a cercare
-        /// un comando che nel suo menu non c'e'. Nominare solo il tasto e' il
-        /// difetto che la voce R3 chiude. Si dicono tutti e due, nell'ordine in
-        /// cui servono a chi legge.
+        /// Naming only the tool would have sent the designer looking for
+        /// a command that is not in their menu. Naming only the key is the
+        /// defect that entry R3 closes. Both are said, in the order in
+        /// which they serve whoever reads.
         ///
-        /// Comincia con lo spazio: si attacca in coda a un messaggio.
+        /// It begins with a space: it is attached at the tail of a message.
         /// </summary>
         public const string HowToWithdrawIt =
             "«undo» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo";
 
         /// <summary>
-        /// DOVE STAVA E DOVE STA, in frazione dell'ingombro — **e solo a
-        /// parole** (voce E10).
+        /// WHERE IT WAS AND WHERE IT IS, as a fraction of the bounding box — **and only in
+        /// words** (entry E10).
         ///
-        /// ── PERCHE' TORNA UNA FRASE E NON UN NUMERO ───────────────────────
+        /// ── WHY A SENTENCE COMES BACK AND NOT A NUMBER ────────────────────
         ///
-        /// La frazione dell'ingombro — `u = (x − minX) / (maxX − minX)` — e' la
-        /// spiegazione che manca ai messaggi di questa libreria: quando un
-        /// pezzo cresce, «la faccia si e' spostata di 60 mm» e' vero e non dice
-        /// niente, mentre «stava al 100% del lato e ci sta ancora» dice
-        /// **che cosa e' successo**.
+        /// The fraction of the bounding box — `u = (x − minX) / (maxX − minX)` — is the
+        /// explanation that the messages of this library lack: when a
+        /// part grows, «the face moved by 60 mm» is true and says
+        /// nothing, while «stava al 100% del lato e ci sta ancora» says
+        /// **what happened**.
         ///
-        /// E' anche, come CRITERIO DI IDENTITA', l'unica delle strade proposte
-        /// che trasforma un «non lo so» in un «si'» sbagliato:
+        /// It is also, as an IDENTITY CRITERION, the only one of the proposed roads
+        /// that turns an «I do not know» into a wrong «yes»:
         ///
-        ///   * un foro a 20 mm dal bordo, su una piastra che passa da 100 a
-        ///     300, **resta a 20 mm dal bordo**: e' cio' che significa in
-        ///     officina. La frazione dice che e' andato a 60 mm, e siccome li'
-        ///     una faccia la trova, **CONFERMA invece di rifiutare**;
-        ///   * l'ingombro e' instabile: basta un rialzo in un angolo per
-        ///     cambiare il denominatore di **tutte** le facce insieme.
+        ///   * a hole 20 mm from the edge, on a plate going from 100 to
+        ///     300, **stays 20 mm from the edge**: that is what it means in the
+        ///     workshop. The fraction says it went to 60 mm, and since there
+        ///     it finds a face, **it CONFIRMS instead of refusing**;
+        ///   * the bounding box is unstable: a boss in one corner is enough to
+        ///     change the denominator of **all** the faces together.
         ///
-        /// Per questo il tipo di ritorno e' `string` e non `double`, e non e'
-        /// un dettaglio: una frase non entra in un `if`. Chi volesse promuovere
-        /// questo numero a criterio — fra due mesi, «tanto il conto c'e' gia'»
-        /// — dovrebbe rileggersi la frase per estrarne i numeri, e lo si
-        /// vedrebbe. Una ricerca di «frazione» dentro `SignatureMatches` o dentro
-        /// il ciclo di ritrovamento deve tornare **vuota**: e' il vero criterio
-        /// di chiusura della voce E10.
+        /// That is why the return type is `string` and not `double`, and it is not
+        /// a detail: a sentence does not go into an `if`. Whoever wanted to promote
+        /// this number to a criterion — two months from now, «anyway the calculation is already there»
+        /// — would have to re-read the sentence to extract the numbers, and it
+        /// would be noticed. A search for «fraction» inside `SignatureMatches` or inside
+        /// the finding loop must come back **empty**: it is the true closing
+        /// criterion of entry E10.
         ///
-        /// Null quando non c'e' niente da dire: dati mancanti, scatola
-        /// degenere, oppure la faccia non si e' spostata.
+        /// Null when there is nothing to say: missing data, degenerate
+        /// box, or the face did not move.
         /// </summary>
-        /// <param name="uid">Come si chiama l'entita' nel messaggio.</param>
-        /// <param name="before">Il punto che il piano portava con se', in mm.</param>
-        /// <param name="now">Il punto misurato adesso, in mm.</param>
-        /// <param name="boxBefore">{minX,minY,minZ,maxX,maxY,maxZ} di allora.</param>
-        /// <param name="boxNow">{minX,minY,minZ,maxX,maxY,maxZ} di adesso.</param>
+        /// <param name="uid">What the entity is called in the message.</param>
+        /// <param name="before">The point that the plan carried with it, in mm.</param>
+        /// <param name="now">The point measured now, in mm.</param>
+        /// <param name="boxBefore">{minX,minY,minZ,maxX,maxY,maxZ} of then.</param>
+        /// <param name="boxNow">{minX,minY,minZ,maxX,maxY,maxZ} of now.</param>
         public static string WhereItWasAndWhereItIs(
             string uid, double[] before, double[] now,
             double[] boxBefore, double[] boxNow)
@@ -87,9 +87,9 @@ namespace Oce.Solid.Agent.Core
             if (before.Length < 3 || now.Length < 3 ||
                 boxBefore.Length < 6 || boxNow.Length < 6) return null;
 
-            // L'ASSE CHE SI E' MOSSO, uno solo. Dire tutti e tre vorrebbe dire
-            // scrivere due righe su due direzioni in cui non e' successo
-            // niente: un messaggio piu' lungo che si legge peggio.
+            // THE AXIS THAT MOVED, only one. Saying all three would mean
+            // writing two lines about two directions in which nothing
+            // happened: a longer message that reads worse.
             int axis = -1;
             double howMuch = 0;
             for (int i = 0; i < 3; i++)
@@ -101,8 +101,8 @@ namespace Oce.Solid.Agent.Core
 
             double sideBefore = boxBefore[axis + 3] - boxBefore[axis];
             double sideNow = boxNow[axis + 3] - boxNow[axis];
-            // Sotto il decimo di millimetro la divisione non significa piu'
-            // niente: un lato di 0,01 mm fa uscire percentuali da migliaia.
+            // Under a tenth of a millimetre the division no longer means
+            // anything: a side of 0.01 mm produces percentages in the thousands.
             if (sideBefore < 0.1 || sideNow < 0.1) return null;
 
             double uBefore = (before[axis] - boxBefore[axis]) / sideBefore;
@@ -111,9 +111,9 @@ namespace Oce.Solid.Agent.Core
             string itemName = axis == 0 ? "X" : (axis == 1 ? "Y" : "Z");
             var c = System.Globalization.CultureInfo.InvariantCulture;
 
-            // UN PUNTO PERCENTUALE. Piu' stretto sarebbe un confronto fra
-            // arrotondamenti; piu' largo direbbe «ci sta ancora» di una faccia
-            // che si e' spostata davvero rispetto al pezzo.
+            // ONE PERCENTAGE POINT. Narrower would be a comparison between
+            // roundings; wider would say «it still fits» of a face
+            // that really moved with respect to the part.
             if (System.Math.Abs(uBefore - uNow) <= 0.01)
                 return string.Format(c,
                     " Per quel che vale: «{0}» stava al {1:0.#}% del lato {2} e ci sta " +

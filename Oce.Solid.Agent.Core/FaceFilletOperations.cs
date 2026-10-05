@@ -7,71 +7,71 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// IL RACCORDO DI FACCIA (voce GP7, la meta' che mancava).
+    /// THE FACE FILLET (entry GP7, the half that was missing).
     ///
-    /// Un raccordo che non si attacca a uno SPIGOLO ma a DUE FACCE: la palla di
-    /// raggio r rotola appoggiata a tutte e due, e la superficie che lascia e' il
-    /// raccordo. Sullo spigolo di un cubo da' lo stesso pezzo di
-    /// «fillet_edges»; la differenza e' che non serve uno spigolo da
-    /// nominare — bastano le due facce, anche quando lo spigolo fra loro non e'
-    /// uno solo o cambia a ogni lavorazione.
+    /// A fillet that attaches not to an EDGE but to TWO FACES: the ball of
+    /// radius r rolls resting on both, and the surface it leaves is the
+    /// fillet. On the edge of a cube it gives the same part as
+    /// «fillet_edges»; the difference is that no edge needs to be
+    /// named — the two faces are enough, even when the edge between them is not
+    /// a single one or changes with every feature.
     ///
-    /// ── LA GUIDA PRIMA (metodo della voce, 28/9/2026) ────────────────────
+    /// ── THE GUIDE FIRST (method of the entry, 28/9/2026) ─────────────────
     ///
-    /// Pagine della guida API (sldworksapi, estratta in locale), per nome:
+    /// Pages of the API guide (sldworksapi, extracted locally), by name:
     ///
     ///  * `IFeatureManager~FeatureFillet3.html`, Remarks: «As of SOLIDWORKS 2020,
     ///    this method is obsolete for creating: constant radius fillets, offset
     ///    face chamfers, face fillets, face-face chamfers, full round fillets».
-    ///    La via vecchia, quella di `fillet_edges` e `variable_fillet`, qui
-    ///    non si usa: e' la prima delle due cause dei quattro NULL storici.
-    ///  * `ISimpleFilletFeatureData2.html`, Remarks, ricetta: `CreateDefinition`
-    ///    con `swFmFillet`; `Initialize` con `swSimpleFilletType_e.swFaceFillet`;
-    ///    riga «Face fillet/face-face chamfer»: «Call IModelDocExtension::SelectByID2
-    ///    with: Mark = 2 to select Face Set 1. Mark = 4 to select Face Set 2»; per
-    ///    il simmetrico `DefaultRadius`; poi `IFeatureManager::CreateFeature`.
-    ///    L'esempio VBA della stessa pagina seleziona «adjacent faces using Marks
-    ///    2 and 4»: due facce adiacenti di un cubo, come qui.
-    ///  * `ISimpleFilletFeatureData2~Initialize.html`, Remarks: dopo `Initialize`
-    ///    si stringe il tipo con `ConicTypeForCrossSectionProfile`.
-    ///  * `ISimpleFilletFeatureData2~SetFaces.html`: `WhichFaceList` e' «Face as
-    ///    defined in swSimpleFilletWhichFaces_e». E' la SECONDA causa dei NULL
-    ///    storici: le marche di selezione erano state prese da quell'enum
-    ///    (Set1 = 1, Set2 = 2), che e' il parametro di `SetFaces` e non una marca.
-    ///    L'enum col nome giusto e' quello sbagliato, di nuovo (vedi GP8).
+    ///    The old way, that of `fillet_edges` and `variable_fillet`, is not
+    ///    used here: it is the first of the two causes of the four historic NULLs.
+    ///  * `ISimpleFilletFeatureData2.html`, Remarks, recipe: `CreateDefinition`
+    ///    with `swFmFillet`; `Initialize` with `swSimpleFilletType_e.swFaceFillet`;
+    ///    row «Face fillet/face-face chamfer»: «Call IModelDocExtension::SelectByID2
+    ///    with: Mark = 2 to select Face Set 1. Mark = 4 to select Face Set 2»; for
+    ///    the symmetric one `DefaultRadius`; then `IFeatureManager::CreateFeature`.
+    ///    The VBA example of the same page selects «adjacent faces using Marks
+    ///    2 and 4»: two adjacent faces of a cube, as here.
+    ///  * `ISimpleFilletFeatureData2~Initialize.html`, Remarks: after `Initialize`
+    ///    the type is narrowed with `ConicTypeForCrossSectionProfile`.
+    ///  * `ISimpleFilletFeatureData2~SetFaces.html`: `WhichFaceList` is «Face as
+    ///    defined in swSimpleFilletWhichFaces_e». It is the SECOND cause of the
+    ///    historic NULLs: the selection marks had been taken from that enum
+    ///    (Set1 = 1, Set2 = 2), which is the parameter of `SetFaces` and not a mark.
+    ///    The enum with the right name is the wrong one, again (see GP8).
     ///
-    /// ── MISURATO PRIMA DI SCRIVERE (sonda Checks\FaceFillet, 28/9/2026) ──
+    /// ── MEASURED BEFORE WRITING (probe Checks\FaceFillet, 28/9/2026) ────
     ///
-    /// Cubo 40x40x40, faccia +Z (marca 2) e faccia +X (marca 4), r = 5. Un
-    /// raccordo r su uno spigolo di 40 fra due facce a 90 gradi toglie
-    /// 40·5²·(1 − π/4) = 214,60 mm³:
+    /// Cube 40x40x40, face +Z (mark 2) and face +X (mark 4), r = 5. A
+    /// fillet r on an edge of 40 between two faces at 90 degrees removes
+    /// 40·5²·(1 − π/4) = 214.60 mm³:
     ///
-    ///   FeatureFillet3 + Ftyp=Face + marche 1/2 (il vecchio)     NULL, tolti 0
-    ///   ricetta della guida (marche 2/4, profilo circolare)      «Raccordo1» (Fillet), tolti 214,6
-    ///   ricetta della guida con le marche 1/2                    NULL, tolti 0
-    ///   ricetta senza ConicTypeForCrossSectionProfile            «Raccordo1» (Fillet), tolti 214,6
-    ///   SetFaces con Face2[] tipizzato, senza selezione          «Raccordo1» (Fillet), tolti 214,6
-    ///   SelectByID2 per coordinate, marche 2/4                   «Raccordo1» (Fillet), tolti 214,6
+    ///   FeatureFillet3 + Ftyp=Face + marks 1/2 (the old one)     NULL, removed 0
+    ///   recipe of the guide (marks 2/4, circular profile)        «Raccordo1» (Fillet), removed 214.6
+    ///   recipe of the guide with marks 1/2                       NULL, removed 0
+    ///   recipe without ConicTypeForCrossSectionProfile           «Raccordo1» (Fillet), removed 214.6
+    ///   SetFaces with typed Face2[], without selection           «Raccordo1» (Fillet), removed 214.6
+    ///   SelectByID2 by coordinates, marks 2/4                    «Raccordo1» (Fillet), removed 214.6
     ///
-    /// Si usa la seconda riga, parola per parola: selezione con marca 2 e 4 su
-    /// facce vere (IEntity.Select4), profilo dichiarato come la guida chiede.
-    /// Corpi 1 → 1 in tutte.
+    /// The second row is used, word for word: selection with mark 2 and 4 on
+    /// real faces (IEntity.Select4), profile declared as the guide asks.
+    /// Bodies 1 → 1 in all of them.
     ///
-    /// ── COSA SI MISURA, E QUANDO CI SI RIFIUTA ──────────────────────────
+    /// ── WHAT IS MEASURED, AND WHEN IT REFUSES ───────────────────────────
     ///
-    /// Prima: le due facce devono essere due, e se sono tutte e due piane e
-    /// PARALLELE nessuna palla le tocca tutte e due dal lato dell'aria (salvo il
-    /// caso di due pareti che si guardano a distanza 2r esatta) — si dice senza
-    /// chiamare niente. Dopo: la feature nuova e il suo tipo (`Fillet`), il
-    /// volume prima e dopo (un raccordo che non cambia il volume non ha fatto
-    /// niente), i corpi e le lavorazioni in errore (le guardie di
-    /// GuardOperations.cs). Se qualcosa non torna il raccordo si TOGLIE
-    /// (DeleteSelection2, mai la chiamata con la finestra di conferma) e si
-    /// ricontrolla che il pezzo sia com'era.
+    /// Before: the faces must be two, and if both are planar and
+    /// PARALLEL no ball touches both of them from the air side (except for the
+    /// case of two walls facing each other at an exact distance of 2r) — it says so without
+    /// calling anything. After: the new feature and its type (`Fillet`), the
+    /// volume before and after (a fillet that does not change the volume has done
+    /// nothing), the bodies and the features in error (the guards of
+    /// GuardOperations.cs). If something does not add up the fillet is REMOVED
+    /// (DeleteSelection2, never the call with the confirmation window) and it
+    /// is checked again that the part is as it was.
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>Due normali con |coseno| oltre questo sono parallele.</summary>
+        /// <summary>Two normals with |cosine| above this are parallel.</summary>
         private const double FaceFilletAlmostParallel = 0.9999;
 
         private Outcome FaceFillet(
@@ -80,10 +80,10 @@ namespace Oce.Solid.Agent.Core
             if (!(model is IPartDoc))
                 return Failed("Il raccordo di faccia si fa su un pezzo: apri il pezzo e chiedimelo li'.");
 
-            // DUE FACCE, E «face_ref» NE NOMINA UNA SOLA. `ResolveFace`
-            // guarda «face_ref» prima dell'uid: con due facce da risolvere lo
-            // stesso riferimento vincerebbe tutte e due le volte, e il raccordo
-            // si chiederebbe fra una faccia e se stessa.
+            // TWO FACES, AND «face_ref» NAMES ONLY ONE. `ResolveFace`
+            // looks at «face_ref» before the uid: with two faces to resolve the same
+            // reference would win both times, and the fillet
+            // would be asked between a face and itself.
             if (HasReference(a, "face_ref"))
                 return Failed(
                     "Qui servono due facce diverse, e «face_ref» ne nomina una sola: usa " +
@@ -106,9 +106,9 @@ namespace Oce.Solid.Agent.Core
                     "dello stato del documento (per esempio «F1» e «F3»). Il raccordo si appoggia " +
                     "a tutte e due.");
 
-            // LA STESSA FACCIA DUE VOLTE. Si dice prima di chiamare: e' la
-            // confusione di chi voleva arrotondare i bordi di UNA faccia, e per
-            // quello c'e' un'altra operazione.
+            // THE SAME FACE TWICE. It is stated before calling: it is the
+            // confusion of someone who wanted to round the edges of ONE face, and for
+            // that there is another operation.
             if (string.Equals(uid1, uid2, StringComparison.OrdinalIgnoreCase))
                 return Failed(
                     "«" + uid1 + "» e' in tutti e due gli insiemi: un raccordo di faccia unisce DUE " +
@@ -121,10 +121,10 @@ namespace Oce.Solid.Agent.Core
             var face2 = ResolveFace(docState, a, uid2, out reason);
             if (face2 == null) return Failed("Faccia «" + uid2 + "»: " + reason);
 
-            // DUE UID, UNA FACCIA. Dopo un ritrovamento per firma due nomi
-            // diversi possono essere finiti sulla stessa faccia: lo si chiede a
-            // SOLIDWORKS (ISldWorks~IsSame.html, «Gets whether the two specified
-            // objects are the same object»), come in OperazioniCorpi.
+            // TWO UIDs, ONE FACE. After a recovery by signature two different
+            // names can have ended up on the same face: SOLIDWORKS is asked
+            // (ISldWorks~IsSame.html, «Gets whether the two specified
+            // objects are the same object»), as in OperazioniCorpi.
             bool same = ReferenceEquals(face1, face2);
             if (!same)
             {
@@ -137,33 +137,33 @@ namespace Oce.Solid.Agent.Core
                     "spostata ed e' stata ritrovata sull'altra. Rileggi lo stato e indica di nuovo " +
                     "le due facce.");
 
-            // ── DUE FACCE PIANE PARALLELE ────────────────────────────────
+            // ── TWO PARALLEL PLANAR FACES ────────────────────────────────
             //
-            // Nessuna chiamata a SOLIDWORKS, solo geometria: la palla del
-            // raccordo deve toccare tutte e due le facce dal lato dell'aria.
-            //  * stessa normale (complanari, o un gradino): impossibile;
-            //  * normali opposte e le facce si danno le spalle (davanti e dietro
-            //    di un blocco): impossibile;
-            //  * normali opposte e si guardano (le pareti di una cava) a distanza
-            //    d: solo con r = d/2. Con r = d/2 si lascia provare a SOLIDWORKS,
-            //    e le guardie dopo dicono se e' nato.
-            // La sonda ha tolto dal giro la variante «facce parallele»
-            // (Checks\FaceFillet, REVISIONE 28/9/2026) proprio perche' un
-            // NULL li' non avrebbe misurato l'API ma la geometria.
+            // No call to SOLIDWORKS, only geometry: the ball of the
+            // fillet must touch both faces from the air side.
+            //  * same normal (coplanar, or a step): impossible;
+            //  * opposite normals and the faces turn their backs on each other (front and back
+            //    of a block): impossible;
+            //  * opposite normals and they face each other (the walls of a pocket) at distance
+            //    d: only with r = d/2. With r = d/2 SOLIDWORKS is let to try,
+            //    and the guards afterwards say whether it was born.
+            // The probe took the «facce parallele» variant out of the run
+            // (Checks\FaceFillet, REVISION 28/9/2026) precisely because a
+            // NULL there would not have measured the API but the geometry.
             string parallel = ParallelPlanarFaces(face1, face2, uid1, uid2, radius);
             if (parallel != null) return Failed(parallel);
 
-            // ── IL CONTO A MANO, LETTO PRIMA DI TOCCARE IL PEZZO ─────────
+            // ── THE HAND CALCULATION, READ BEFORE TOUCHING THE PART ──────
             //
-            // Dove e' un conto chiuso: due facce piane a 90 gradi che si
-            // toccano su uno spigolo lungo L. La sezione tolta (o aggiunta, in
-            // un angolo interno) e' r²(1 − π/4), e per lunghezza L. Altrove
-            // (facce curve, angoli diversi) non si scrive un numero inventato:
-            // null, e detto.
+            // Where there is a closed calculation: two planar faces at 90 degrees that
+            // meet on an edge of length L. The section removed (or added, in
+            // an inside corner) is r²(1 − π/4), times the length L. Elsewhere
+            // (curved faces, other angles) an invented number is not written:
+            // null, and stated.
             //
-            // PRIMA e non dopo: dopo il raccordo le due facce NON si toccano
-            // piu' (fra loro c'e' la faccia del raccordo), e lo spigolo comune
-            // letto li' sarebbe zero — il conto non ci sarebbe mai stato.
+            // BEFORE and not after: after the fillet the two faces do NOT touch
+            // any more (between them there is the face of the fillet), and the common
+            // edge read there would be zero — the calculation would never have existed.
             double edge = -1;
             try { edge = LengthThatLiesOn(face1, face2); } catch { }
             double? expected = null;
@@ -173,7 +173,7 @@ namespace Oce.Solid.Agent.Core
                 Math.Abs(n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2]) < 1e-6)
                 expected = Math.Round(edge * radius * radius * (1 - Math.PI / 4), 2);
 
-            // ── LA FOTOGRAFIA PRIMA (GuardOperations.cs) ───────────────
+            // ── THE SNAPSHOT FIRST (GuardOperations.cs) ────────────────
             var photo = SnapshotPart(model);
             if (photo.Volume == null) return Failed(VolumeNotReadBefore("fare il raccordo di faccia"));
             int featureBefore = CountFeature(model);
@@ -181,7 +181,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed(VolumeNotReadBefore("fare il raccordo di faccia")
                     .Replace("il volume del pezzo", "l'albero e i corpi del pezzo"));
 
-            // ── LA RICETTA DELLA GUIDA, NELL'ORDINE MISURATO ─────────────
+            // ── THE RECIPE OF THE GUIDE, IN THE MEASURED ORDER ───────────
             IFeature feature;
             try
             {
@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.Core
                 var handler = model.SelectionManager as ISelectionMgr;
                 if (handler == null)
                     return Failed("Non riesco a usare il gestore di selezione. Non ho toccato niente.");
-                // INSIEME 1 MARCA 2, INSIEME 2 MARCA 4 (vedi le costanti).
+                // SET 1 MARK 2, SET 2 MARK 4 (see the constants).
                 if (!Select(handler, face1, SelectionMarks.FaceFilletFaceSet1))
                     return Failed("Non sono riuscito a selezionare la faccia «" + uid1 + "». Non ho toccato " +
                                    "niente: rileggi lo stato e indica di nuovo le due facce.");
@@ -209,9 +209,9 @@ namespace Oce.Solid.Agent.Core
                     return Failed("Non sono riuscito a selezionare la faccia «" + uid2 + "». Non ho toccato " +
                                    "niente: rileggi lo stato e indica di nuovo le due facce.");
 
-                // Il profilo circolare: la guida lo chiede per «completare il tipo»
-                // (misurato: senza, nasce lo stesso raccordo; si mette perche' la
-                // ricetta lo dice e non costa niente).
+                // The circular profile: the guide asks for it to «complete the type»
+                // (measured: without it, the fillet is born all the same; it is put in because the
+                // recipe says so and it costs nothing).
                 data.ConicTypeForCrossSectionProfile =
                     (int)swFeatureFilletProfileType_e.swFeatureFilletCircular;
                 data.DefaultRadius = Units.M(radius);
@@ -239,11 +239,11 @@ namespace Oce.Solid.Agent.Core
                     "spigolo, lo stesso raccordo si fa con «fillet_edges» su quello spigolo." + queue);
             }
 
-            // ── E ADESSO SI MISURA IL PEZZO ──────────────────────────────
+            // ── AND NOW THE PART IS MEASURED ─────────────────────────────
             //
-            // ForceRebuild3 e non la ricostruzione semplice: e' quella di
-            // `edit_extrusion`, la cui risposta `WhatBroke` sa gia'
-            // leggere su un pezzo sano (caso blind_becomes_through).
+            // ForceRebuild3 and not the simple rebuild: it is the one of
+            // `edit_extrusion`, whose answer `WhatBroke` already knows how to
+            // read on a sound part (case blind_becomes_through).
             bool rebuilt = false;
             try { rebuilt = model.ForceRebuild3(false); } catch { }
 
@@ -252,7 +252,7 @@ namespace Oce.Solid.Agent.Core
             try { itemName = feature.Name; } catch { }
             try { typ = feature.GetTypeName2(); } catch { }
 
-            // LA FEATURE NUOVA PER TIPO: la sonda l'ha vista nascere «Fillet».
+            // THE NEW FEATURE BY TYPE: the probe saw it born «Fillet».
             if (!string.Equals(typ, "Fillet", StringComparison.Ordinal))
                 return Failed(
                     "E' nata una lavorazione «" + itemName + "» di tipo «" + typ + "», non un raccordo " +
@@ -270,10 +270,10 @@ namespace Oce.Solid.Agent.Core
             double? volumeAfter = VolumeMm3(model);
             double? cambio = volumeAfter - photo.Volume;
 
-            // UN RACCORDO CHE NON CAMBIA IL VOLUME NON HA FATTO NIENTE. Toglie
-            // materiale su uno spigolo esterno, ne aggiunge in un angolo interno:
-            // zero vuol dire nessuno dei due. Si dice solo di un volume riletto
-            // (voce Z-C8).
+            // A FILLET THAT DOES NOT CHANGE THE VOLUME HAS DONE NOTHING. It removes
+            // material on an outside edge, adds some in an inside corner:
+            // zero means neither of the two. It is said only of a volume read back
+            // (entry Z-C8).
             if (cambio.HasValue && Math.Abs(cambio.Value) < 0.01)
                 return Failed(
                     "Il raccordo di faccia «" + itemName + "» e' nato ma il volume e' rimasto " +
@@ -281,11 +281,11 @@ namespace Oce.Solid.Agent.Core
                     "arrotondato niente." + RemoveFaceFillet(model, feature, photo, featureBefore) +
                     " Prova «fillet_edges» sullo spigolo fra le due facce.");
 
-            // IL CONTO A MANO, CONFRONTATO. Dove c'e' (vedi sopra), un raccordo
-            // che toglie un'altra quantita' non e' quello chiesto: parziale, o
-            // appoggiato altrove. Lo scarto ammesso e' il mezzo decimo, o un
-            // decimillesimo del conto se e' piu' grande: il numero misurato
-            // dalla sonda (214,6) e il conto (214,602) stanno nel centesimo.
+            // THE HAND CALCULATION, COMPARED. Where there is one (see above), a fillet
+            // that removes another quantity is not the one asked for: partial, or
+            // resting elsewhere. The tolerance allowed is half a tenth, or one
+            // ten-thousandth of the calculation if that is larger: the number measured
+            // by the probe (214.6) and the calculation (214.602) agree to the hundredth.
             if (expected.HasValue && cambio.HasValue &&
                 Math.Abs(Math.Abs(cambio.Value) - expected.Value) > Math.Max(0.05, expected.Value * 1e-4))
                 return Failed(string.Format(CultureInfo.InvariantCulture,
@@ -296,10 +296,10 @@ namespace Oce.Solid.Agent.Core
                     itemName, Math.Abs(cambio.Value), expected.Value, edge,
                     RemoveFaceFillet(model, feature, photo, featureBefore)));
 
-            // IL RAGGIO CHE LA FEATURE DICHIARA (ISimpleFilletFeatureData2~
+            // THE RADIUS THAT THE FEATURE DECLARES (ISimpleFilletFeatureData2~
             // DefaultRadius.html: «Default radius of the symmetric fillet»),
-            // riletto con IFeature::GetDefinition — non l'argomento ripetuto.
-            // Non decide niente: decide il volume. Null se non si rilegge.
+            // read back with IFeature::GetDefinition — not the repeated argument.
+            // It decides nothing: the volume decides. Null if it cannot be read back.
             object declaredRadius = null;
             try
             {
@@ -313,9 +313,9 @@ namespace Oce.Solid.Agent.Core
 
             var measurements = new Dictionary<string, object>
             {
-                // I CAMPI NUOVI SONO IN INGLESE (decisione della lingua, W3.1).
-                // Niente argomenti ripetuti come fossero misure: il raggio e'
-                // quello che la feature DICHIARA, il resto e' letto dal pezzo.
+                // THE NEW FIELDS ARE IN ENGLISH (language decision, W3.1).
+                // No repeated arguments as if they were measurements: the radius is
+                // what the feature DECLARES, the rest is read from the part.
                 ["declared_radius_mm"] = declaredRadius,
                 ["feature_type"] = typ,
                 ["volume_before_mm3"] = NumberOrNull(photo.Volume, 2),
@@ -342,9 +342,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La frase di rifiuto quando le due facce sono piane e parallele e il
-        /// raccordo e' impossibile per geometria; null se si puo' provare (facce
-        /// non piane, non parallele, o due pareti che si guardano a distanza 2r).
+        /// The refusal sentence when the two faces are planar and parallel and the
+        /// fillet is impossible by geometry; null if it can be tried (faces
+        /// not planar, not parallel, or two walls facing each other at distance 2r).
         /// </summary>
         private static string ParallelPlanarFaces(IFace2 f1, IFace2 f2, string uid1, string uid2, double radiusMm)
         {
@@ -360,11 +360,11 @@ namespace Oce.Solid.Agent.Core
                        "dal lato dell'aria, e il raccordo non puo' nascere. Se c'e' un gradino fra loro, " +
                        "usa «fillet_edges» sugli spigoli del gradino.";
 
-            // Normali opposte: si guardano o si danno le spalle? Il punto del
-            // piano della seconda, visto dalla normale della prima.
+            // Opposite normals: do they face each other or turn their backs? The point of the
+            // plane of the second, seen from the normal of the first.
             var p1 = PointOnFacePlane(f1);
             var p2 = PointOnFacePlane(f2);
-            if (p1 == null || p2 == null) return null;   // non si legge: decide SOLIDWORKS, e le guardie dopo
+            if (p1 == null || p2 == null) return null;   // cannot be read: SOLIDWORKS decides, and the guards afterwards
             double distanceMm = Units.Mm(
                 (p2[0] - p1[0]) * n1[0] + (p2[1] - p1[1]) * n1[1] + (p2[2] - p1[2]) * n1[2]);
             if (distanceMm <= 0)
@@ -383,9 +383,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Un punto del piano della faccia, in metri, da `ISurface.PlaneParams`
-        /// (i sei numeri: normale e punto, come in `FaceAxes`); null se la
-        /// faccia non e' piana o non si legge.
+        /// A point of the plane of the face, in metres, from `ISurface.PlaneParams`
+        /// (the six numbers: normal and point, as in `FaceAxes`); null if the
+        /// face is not planar or cannot be read.
         /// </summary>
         private static double[] PointOnFacePlane(IFace2 face)
         {
@@ -401,12 +401,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Toglie il raccordo appena nato quando una guardia lo boccia, e dice
-        /// com'e' andata: la coda del messaggio di rifiuto. Stessa strada di
-        /// `RemoveCut` (AnchorOperations.cs): DeleteSelection2 con
-        /// swDelete_Absorbed, che non chiede conferma a nessuno. «Ha detto di
-        /// averlo tolto» non basta: si ricontano le lavorazioni e si rimisura il
-        /// volume.
+        /// Removes the fillet just born when a guard rejects it, and says
+        /// how it went: the tail of the refusal message. Same route as
+        /// `RemoveCut` (AnchorOperations.cs): DeleteSelection2 with
+        /// swDelete_Absorbed, which asks nobody for confirmation. «It said
+        /// it removed it» is not enough: the features are counted again and the
+        /// volume is measured again.
         /// </summary>
         private string RemoveFaceFillet(
             IModelDoc2 model, IFeature fillet, PartPhoto before, int featureBefore)

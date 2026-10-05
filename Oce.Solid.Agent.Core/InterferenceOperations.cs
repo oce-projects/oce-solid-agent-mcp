@@ -8,55 +8,55 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// L'ASSIEME SI TOCCA? (voce GA10)
+    /// DO THE PARTS OF THE ASSEMBLY TOUCH? (entry GA10)
     ///
-    /// ── PERCHE' QUESTA VOCE E' ALTA ─────────────────────────────────────
+    /// ── WHY THIS ENTRY IS HIGH ──────────────────────────────────────────
     ///
-    /// Il primo pezzo per cui questo ponte e' stato scritto e' una scatola
-    /// stagna in due meta', da montare all'aperto. **«Il coperchio tocca la
-    /// base?»** e **«la vite passa dentro la parete?»** sono le domande che
-    /// decidono se il pezzo si puo' fare.
+    /// The first part this bridge was written for is a watertight box in two
+    /// halves, to be mounted outdoors. **«Does the lid touch the
+    /// base?»** and **«does the screw pass inside the wall?»** are the questions that
+    /// decide whether the part can be made.
     ///
-    /// Fino a qui il ponte non sapeva rispondere: lo stato dell'assieme dice
-    /// quanti componenti ci sono, se sono fissi, se sono vincolati — **non se
-    /// occupano lo stesso spazio.** Due pezzi compenetrati si aprono, si
-    /// ricostruiscono, si esportano, si stampano: **nessun errore da nessuna
-    /// parte**, e in officina non entrano. E' il difetto che non da' errore
-    /// nella forma piu' cara di tutte, perche' si scopre a pezzo fatto.
+    /// Until here the bridge did not know how to answer: the state of the assembly says
+    /// how many components there are, whether they are fixed, whether they
+    /// are mated — **not whether they occupy the same space.** Two
+    /// interpenetrating parts open, rebuild, export, print: **no error
+    /// anywhere**, and in the workshop they do not fit. It is the defect that
+    /// gives no error in the most expensive form of all, because it is discovered when the part is made.
     ///
-    /// ── LA MISURA E' IL VOLUME, NON IL CONTEGGIO ────────────────────────
+    /// ── THE MEASURE IS THE VOLUME, NOT THE COUNT ────────────────────────
     ///
-    /// `GetInterferenceCount()` dice quante sono. Non basta: **due interferenze
-    /// possono essere due decimi di millimetro di tolleranza oppure mezzo
-    /// coperchio dentro la base**, e il numero e' lo stesso.
+    /// `GetInterferenceCount()` says how many there are. It is not enough: **two interferences
+    /// can be two tenths of a millimetre of tolerance or half a
+    /// lid inside the base**, and the number is the same.
     ///
-    /// `IInterference.GetInterferenceBody()` torna il **corpo solido
-    /// dell'intersezione**: da li' `GetMassProperties` da' il volume. E' quello
-    /// che distingue un problema da un dettaglio.
+    /// `IInterference.GetInterferenceBody()` returns the **solid body
+    /// of the intersection**: from there `GetMassProperties` gives the volume. It is what
+    /// distinguishes a problem from a detail.
     ///
-    /// *Un conteggio senza una grandezza non distingue un problema da un
-    /// dettaglio.*
+    /// *A count without a magnitude does not distinguish a problem from a
+    /// detail.*
     ///
-    /// ── `ToolsCheckInterference2` NON SI CHIAMA ────────────────────────
+    /// ── `ToolsCheckInterference2` IS NOT CALLED ────────────────────────
     ///
-    /// Ritorna `Void`: e' il bottone. Stessa regola misurata su GA8 — **un'API
-    /// risponde, un bottone no**. Il manager (`InterferenceDetectionManager`)
-    /// e' l'API.
+    /// It returns `Void`: it is the button. Same rule measured on GA8 — **an API
+    /// answers, a button does not**. The manager (`InterferenceDetectionManager`)
+    /// is the API.
     ///
-    /// ── LE FACCE CHE SI TOCCANO SONO UN'INTERFERENZA? DIPENDE ──────────
+    /// ── DO FACES THAT TOUCH COUNT AS AN INTERFERENCE? IT DEPENDS ───────
     ///
-    /// E non c'e' una risposta giusta, per questo e' un argomento:
+    /// And there is no right answer, which is why it is an argument:
     ///
-    ///   - un coperchio **appoggiato** sulla base condivide una faccia con lei.
-    ///     Se la coincidenza conta come interferenza, **ogni assieme montato
-    ///     bene risulta rotto**;
-    ///   - un albero in un foro dello **stesso diametro** condivide la
-    ///     superficie cilindrica. Li' la coincidenza e' esattamente il problema:
-    ///     quel pezzo non entra.
+    ///   - a lid **resting** on the base shares a face with it.
+    ///     If coincidence counts as interference, **every well-mounted
+    ///     assembly turns out broken**;
+    ///   - a shaft in a hole of the **same diameter** shares the cylindrical
+    ///     surface. There the coincidence is exactly the problem:
+    ///     that part does not go in.
     ///
-    /// Di serie `false`, ed e' scritto nella risposta quale delle due si e'
-    /// usata. *Un'impostazione che cambia il verdetto e non compare nel verdetto
-    /// e' un verdetto che non si puo' rileggere.*
+    /// By default `false`, and which of the two was used is written in the
+    /// answer. *A setting that changes the verdict and does not appear in the verdict
+    /// is a verdict that cannot be reread.*
     /// </summary>
     public partial class SwOperations
     {
@@ -110,8 +110,8 @@ namespace Oce.Solid.Agent.Core
 
             try
             {
-                // Le impostazioni PRIMA di contare: cambiano il verdetto, non la
-                // sua presentazione.
+                // The settings BEFORE counting: they change the verdict, not
+                // its presentation.
                 //
                 // AND THEY ARE READ BACK (finding N18). The three are get/set
                 // properties (IInterferenceDetectionMgr~TreatCoincidenceAsInterference.html,
@@ -189,8 +189,8 @@ namespace Oce.Solid.Agent.Core
                             ["n"] = i + 1,
                             ["volume_mm3"] = read ? (object)Math.Round(volume, 3) : null,
                         };
-                        // «Possibile» vuol dire che SOLIDWORKS non e' sicuro:
-                        // si riporta com'e' invece di arrotondarlo a un si'.
+                        // «Possible» means that SOLIDWORKS is not sure:
+                        // it is reported as it is instead of rounding it to a yes.
                         if (maybe == true) entry["only_possible"] = true;
                         else if (maybe == null) entry["possible_not_read"] = true;
                         foundOnes.Add(entry);
@@ -217,14 +217,14 @@ namespace Oce.Solid.Agent.Core
             }
             finally
             {
-                // SI SPEGNE SEMPRE, E IN `finally`.
+                // IT IS ALWAYS SWITCHED OFF, AND IN `finally`.
                 //
-                // Il rilevamento e' uno STATO del documento: lasciarlo acceso
-                // lascia SOLIDWORKS in modalita' interferenze, con i corpi
-                // evidenziati, per chiunque apra quel documento dopo. E il
-                // `finally` non e' pignoleria: l'eccezione arriva proprio quando
-                // l'analisi va male (stessa lezione gia' scritta per
-                // `IThicknessAnalysis.Close()`, voce W2.14).
+                // The detection is a STATE of the document: leaving it on
+                // leaves SOLIDWORKS in interference mode, with the bodies
+                // highlighted, for whoever opens that document afterwards. And the
+                // `finally` is not pedantry: the exception arrives exactly when
+                // the analysis goes badly (same lesson already written for
+                // `IThicknessAnalysis.Close()`, entry W2.14).
                 try { handler.Done(); } catch { }
             }
 
@@ -306,7 +306,7 @@ namespace Oce.Solid.Agent.Core
                     " (" + listProblem + "): I cannot tell you that the parts do not interfere. " +
                     "Ask me again; if it repeats, check with Interference Detection in SOLIDWORKS.");
 
-            // ── IL GIUDIZIO ─────────────────────────────────────────────
+            // ── THE VERDICT ─────────────────────────────────────────────
             if (howMany == 0)
             {
                 measurements["verdict"] =
@@ -463,9 +463,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il volume della compenetrazione, in mm3. `false` quando non si e'
-        /// potuto leggere — che **non** e' zero: zero vorrebbe dire «si toccano
-        /// e basta», e sarebbe una risposta, non una mancanza.
+        /// The volume of the interpenetration, in mm3. `false` when it could not be
+        /// read — which is **not** zero: zero would mean «they just touch
+        /// and nothing more», and it would be an answer, not a gap.
         /// </summary>
         private static bool InterferenceVolumeMm3(IInterference interference, out double mm3)
         {
@@ -476,7 +476,7 @@ namespace Oce.Solid.Agent.Core
                 if (body == null) return false;
                 var mp = body.GetMassProperties(1000.0) as double[];
                 if (mp == null || mp.Length < 4) return false;
-                // `GetMassProperties` da' il volume in metri cubi in posizione 3.
+                // `GetMassProperties` gives the volume in cubic metres at position 3.
                 mm3 = mp[3] * 1e9;
                 return true;
             }

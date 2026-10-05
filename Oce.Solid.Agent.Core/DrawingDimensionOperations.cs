@@ -8,60 +8,60 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// QUOTE SU UNA VISTA DI TAVOLA, CREATE — non importate (voce K10).
+    /// DIMENSIONS ON A DRAWING VIEW, CREATED — not imported (entry K10).
     ///
-    /// ── PERCHE' ESISTE, E PERCHE' NON SI CHIAMA «IMPORTA» ───────────────
+    /// ── WHY IT EXISTS, AND WHY IT IS NOT CALLED «IMPORT» ────────────────
     ///
-    /// `model_dimensions` **importa** le quote che il modello ha gia', con
-    /// `InsertModelAnnotations*`. Misurato il 18/9/2026: porta **zero**, su un
-    /// pezzo con sette quote tutte marcate per il disegno, su **otto** modelli
-    /// di tavola diversi (sette di serie piu' quello dell'officina), con cinque
-    /// strade di import e il controllo positivo verde nello stesso giro
-    /// (`InsertNote` sulla stessa tavola funziona). Quella strada e' chiusa.
+    /// `model_dimensions` **imports** the dimensions the model already has, with
+    /// `InsertModelAnnotations*`. Measured on 18/9/2026: it brings **zero**, on a
+    /// part with seven dimensions all marked for the drawing, on **eight** different
+    /// drawing templates (seven standard plus the workshop's own), with five
+    /// import routes and the positive check green in the same run
+    /// (`InsertNote` on the same drawing works). That route is closed.
     ///
-    /// Ma il fine non e' «le quote del modello in tavola»: e' **una tavola
-    /// quotata**. *Un nome che descrive il MEZZO invece del fine restringe le
-    /// soluzioni prima che qualcuno le cerchi* — e per due giorni il nome
-    /// dell'altra operazione ha deciso la strada al posto mio.
+    /// But the goal is not «the model's dimensions on the drawing»: it is **a
+    /// dimensioned drawing**. *A name that describes the MEANS instead of the goal
+    /// narrows the solutions before anyone looks for them* — and for two days the
+    /// name of the other operation decided the route in my place.
     ///
-    /// ── LA MISURA CHE HA APERTO QUESTA STRADA ───────────────────────────
+    /// ── THE MEASUREMENT THAT OPENED THIS ROUTE ──────────────────────────
     ///
-    ///     spigoli visibili nella vista: 7
-    ///       spigolo 0..3: AddDimension -> un oggetto,  quote 0 -> 4
+    ///     visible edges in the view: 7
+    ///       edge 0..3: AddDimension -> one object,  dimensions 0 -> 4
     ///
-    ///     COSA MISURANO (pezzo 120 x 80 x 10, smusso 5):
+    ///     WHAT THEY MEASURE (part 120 x 80 x 10, chamfer 5):
     ///       RD1  120 mm     RD2  120 mm
     ///       RD3    5 mm     RD4    5 mm
     ///
-    /// Quattro su quattro, **fuori processo**, e con i valori giusti. Sono
-    /// quote di riferimento (`RD`), che e' il tipo giusto per una tavola.
+    /// Four out of four, **out of process**, and with the right values. They are
+    /// reference dimensions (`RD`), which is the right type for a drawing.
     ///
-    /// **E il valore si rilegge, non si presume.** Il primo giro della sonda
-    /// rispondeva `?` al valore, e con quel `?` la strada sarebbe sembrata
-    /// aperta lo stesso: *quattro quote comparse non sono quattro quote
-    /// giuste*, e una quota che misura un'altra cosa e' peggio di una quota che
-    /// manca — sulla carta si legge uguale.
+    /// **And the value is read back, not presumed.** The first run of the probe
+    /// answered `?` for the value, and with that `?` the route would have looked
+    /// open all the same: *four dimensions that appeared are not four right
+    /// dimensions*, and a dimension that measures something else is worse than a
+    /// dimension that is missing — on paper they read the same.
     ///
-    /// ── LE DUE TRAPPOLE, TUTTE E DUE GIA' PAGATE DA QUESTO PROGETTO ─────
+    /// ── THE TWO TRAPS, BOTH ALREADY PAID FOR BY THIS PROJECT ────────────
     ///
-    /// 1. `swInputDimValOnCreate` **era acceso** su questa installazione.
-    ///    Lasciato cosi', `AddDimension` apre la finestra «Modifica» e la
-    ///    chiamata COM **non torna piu'**: il ponte si appende, e il client
-    ///    dietro con lui. Si spegne prima e si **rimette com'era in un
-    ///    `finally`** — una preferenza lasciata spenta cambia SOLIDWORKS per
-    ///    chi lo usa dopo, e nessuno collegherebbe la cosa a questa operazione.
-    /// 2. Le coordinate di `AddDimension` sono del **FOGLIO**, non del modello.
-    ///    Sbagliarle mette la quota fuori dal foglio **senza dare errore**.
-    ///    Qui si prendono da `IView.GetOutline()`, che e' l'ingombro della
-    ///    vista sul foglio, e si scalano in metri.
+    /// 1. `swInputDimValOnCreate` **was on** in this installation.
+    ///    Left like that, `AddDimension` opens the «Modify» window and the
+    ///    COM call **never returns**: the bridge hangs, and the client
+    ///    behind it with it. It is switched off first and **put back as it was in a
+    ///    `finally`** — a preference left off changes SOLIDWORKS for
+    ///    whoever uses it afterwards, and nobody would connect it to this operation.
+    /// 2. The coordinates of `AddDimension` are those of the **SHEET**, not of the model.
+    ///    Getting them wrong puts the dimension off the sheet **without any error**.
+    ///    Here they are taken from `IView.GetOutline()`, which is the extent of the
+    ///    view on the sheet, and scaled to metres.
     ///
-    /// ── GLI SPIGOLI SI CHIEDONO ALLA VISTA ──────────────────────────────
+    /// ── THE EDGES ARE ASKED OF THE VIEW ─────────────────────────────────
     ///
     ///     Object IView.GetVisibleEntities2(Component2 comp, Int32 entityType)
     ///
-    /// con `swViewEntityType_e.swViewEntityType_Edge`. Non si indovinano
-    /// coordinate su cui cliccare: si prende l'elenco che la vista stessa
-    /// espone e si seleziona con `IEntity.Select4`.
+    /// with `swViewEntityType_e.swViewEntityType_Edge`. We do not guess
+    /// coordinates to click on: we take the list the view itself
+    /// exposes and select with `IEntity.Select4`.
     /// </summary>
     public partial class SwOperations
     {
@@ -89,7 +89,7 @@ namespace Oce.Solid.Agent.Core
             string viewName = "";
             try { viewName = view.GetName2() ?? ""; } catch { }
 
-            // ── GLI SPIGOLI CHE LA VISTA MOSTRA ─────────────────────────
+            // ── THE EDGES THE VIEW SHOWS ────────────────────────────────
             object[] edges = null;
             try
             {
@@ -101,8 +101,8 @@ namespace Oce.Solid.Agent.Core
                 return Failed("Non riesco a chiedere gli spigoli alla vista: " + ex.Message);
             }
 
-            // ZERO-E-ZERO: l'eccezione ha gia' il suo rifiuto qui sopra; null e'
-            // una vista senza spigoli visibili, e lo zero e' vero.
+            // ZERO-E-ZERO: the exception already has its refusal above; null is
+            // a view without visible edges, and the zero is true.
             int available = edges == null ? 0 : edges.Length;
             if (available == 0)
                 return Failed(
@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.Core
                     "risolto, non c'e' niente da quotare — e mettere zero quote " +
                     "rispondendo «fatto» sarebbe peggio.");
 
-            // QUALI SPIGOLI. Senza dirlo si quotano i primi, e quanti si dice.
+            // WHICH EDGES. Without saying it, the first ones are dimensioned, and how many is stated.
             var chosen = new List<int>();
             var requestedList = StringList(a, "edges");
             if (requestedList.Count > 0)
@@ -136,14 +136,14 @@ namespace Oce.Solid.Agent.Core
                 for (int i = 0; i < Math.Min(howMany, available); i++) chosen.Add(i);
             }
 
-            // ── DOVE METTERLE, in coordinate FOGLIO ─────────────────────
+            // ── WHERE TO PUT THEM, in SHEET coordinates ─────────────────
             //
-            // IL CONTORNO SI LEGGE UNA VOLTA SOLA, prima di piazzare qualunque
-            // quota. Se `GetOutline()` crescesse insieme alle annotazioni
-            // attaccate alla vista, rileggerlo a ogni giro farebbe scappare le
-            // quote sempre piu' lontano. Non e' verificato che cresca: per
-            // questo la risposta riporta il contorno di prima E quello di
-            // dopo, cosi' chi legge puo' vederlo invece di fidarsi.
+            // THE OUTLINE IS READ ONLY ONCE, before placing any
+            // dimension. If `GetOutline()` grew together with the annotations
+            // attached to the view, rereading it on every pass would push the
+            // dimensions further and further away. It is not verified that it grows: for
+            // that reason the answer reports the outline from before AND the one from
+            // after, so whoever reads can see it instead of trusting.
             double[] contour = null;
             try { contour = view.GetOutline() as double[]; } catch { }
             if (contour == null || contour.Length < 4)
@@ -155,14 +155,14 @@ namespace Oce.Solid.Agent.Core
             double dimensionOffset = Num(a, "offset_mm", 12) / 1000.0;
             double planStep = Num(a, "pitch_mm", 10) / 1000.0;
 
-            // ── COME STA OGNI SPIGOLO SUL FOGLIO ────────────────────────
+            // ── HOW EACH EDGE SITS ON THE SHEET ─────────────────────────
             //
-            // Prima si guarda, poi si decide dove va la quota. La stesura
-            // precedente saltava questo passo e metteva TUTTE le quote alla
-            // stessa X — il centro della vista — scendendo di un passo per
-            // ognuna: per uno spigolo verticale SOLIDWORKS costruisce allora
-            // una quota la cui linea di misura passa per quella X, cioe' **in
-            // mezzo al disegno**. E' il difetto che si vedeva a occhio.
+            // First we look, then we decide where the dimension goes. The previous
+            // draft skipped this step and put ALL the dimensions at the same
+            // X — the centre of the view — going down one step for each: for a
+            // vertical edge SOLIDWORKS then builds a dimension whose measurement
+            // line passes through that X, that is **in the middle of the
+            // drawing**. It is the defect that could be seen by eye.
             IMathUtility mu = null;
             MathTransform tr = null;
             try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
@@ -174,13 +174,13 @@ namespace Oce.Solid.Agent.Core
             try { scale = view.ScaleDecimal; } catch { }
             if (scale <= 0) scale = 1;
 
-            // TUTTI GLI SPIGOLI DELLA VISTA, UNA VOLTA SOLA (voce GT11). I fori e
-            // gli smussi si cercano su tutti, non sui primi «count»: una
-            // piastra con quattro fori non smette di averli perche' si sono
-            // chiesti quattro spigoli.
+            // ALL THE EDGES OF THE VIEW, ONLY ONCE (entry GT11). Holes and
+            // chamfers are looked for on all of them, not on the first «count»: a
+            // plate with four holes does not stop having them because four
+            // edges were asked for.
             var all = new List<ProjectedEdge>();
             var circles = new List<Circle>();
-            int holesInTable = 0;   // ZERO-E-ZERO: nessuna tabella fori nella vista, finche' non si guarda
+            int holesInTable = 0;   // ZERO-E-ZERO: no hole table in the view, until one looks
             for (int i = 0; i < available; i++)
             {
                 var c = CircleOnSheet(edges[i] as IEdge, i, mu, tr);
@@ -189,11 +189,11 @@ namespace Oce.Solid.Agent.Core
                 if (s != null) all.Add(s);
             }
 
-            // LE QUOTE CHE LA TAVOLA HA GIA', IN TUTTE LE VISTE (voce GT11). «Ciascun
-            // elemento dell'oggetto deve essere quotato non piu' di una volta»
-            // vale per la TAVOLA, non per la vista: il 25/9/2026 la tavola della
-            // piastra portava il 10 nella vista frontale e in quella laterale, e
-            // il 120 nella frontale e in quella dall'alto.
+            // THE DIMENSIONS THE DRAWING ALREADY HAS, IN ALL THE VIEWS (entry GT11). «Each
+            // element of the object must be dimensioned no more than once»
+            // holds for the DRAWING, not for the view: on 25/9/2026 the drawing of the
+            // plate carried the 10 in the front view and in the side view, and
+            // the 120 in the front view and in the top view.
             // EVERY SHEET since Z-C21.2 (finding N43), only the views of this model
             // and configuration, and without the dimensions hidden by hand (C8-2):
             // what was read is in the answer, see KeysAlreadyDimensioned.
@@ -211,15 +211,15 @@ namespace Oce.Solid.Agent.Core
             var seen = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var i in chosen)
             {
-                if (circles.Exists(c => c.Index == i)) continue;   // i fori hanno la loro strada, qui sotto
+                if (circles.Exists(c => c.Index == i)) continue;   // the holes have their own route, below
                 var s = all.Find(t => t.Index == i);
                 if (s == null) { failed.Add(i + " (non riesco a misurarlo sul foglio)"); continue; }
 
-                // LO SMUSSO NON SI QUOTA COI SUOI SPIGOLI. La prima tavola
-                // guardata aveva lo smusso quotato 7,071 in obliquo (l'ipotenusa)
-                // e la catena 5 + 75 accanto all'80: si scrive 5 x 45°, con la
-                // quota da smusso, e le «gambe» — i tratti accorciati dallo
-                // smusso — le dicono la quota da smusso e l'ingombro insieme.
+                // THE CHAMFER IS NOT DIMENSIONED WITH ITS EDGES. The first drawing
+                // looked at had the chamfer dimensioned 7.071 obliquely (the hypotenuse)
+                // and the 5 + 75 chain next to the 80: one writes 5 x 45°, with the
+                // chamfer dimension, and the «legs» — the stretches shortened by the
+                // chamfer — are told by the chamfer dimension and the overall size together.
                 if (s.ChamferFeature != null)
                 {
                     onChamfer.Add(i + " (spigolo dello smusso «" + s.ChamferFeature + "»: va con la quota da smusso)");
@@ -231,20 +231,20 @@ namespace Oce.Solid.Agent.Core
                     continue;
                 }
 
-                // UNA QUOTA PER ELEMENTO, E LA CHIAVE NON E' IL VALORE.
+                // ONE DIMENSION PER ELEMENT, AND THE KEY IS NOT THE VALUE.
                 //
-                // «Ciascun elemento dell'oggetto deve essere quotato non piu'
-                // di una volta» (UNI ISO 129-1, nella scheda Sammarone per
-                // Zanichelli): un rettangolo vuole DUE quote, non quattro, e
-                // 120/10/120/10 e' quotatura ripetuta — la fonte la
-                // didascalizza «quindi errata».
+                // «Each element of the object must be dimensioned no more than
+                // once» (UNI ISO 129-1, in the Sammarone sheet for
+                // Zanichelli): a rectangle wants TWO dimensions, not four, and
+                // 120/10/120/10 is repeated dimensioning — the source
+                // captions it «therefore wrong».
                 //
-                // Ma deduplicare sul VALORE sarebbe sbagliato: due gradini
-                // diversi da 10 mm sono due elementi distinti e vanno quotati
-                // tutti e due. La chiave e' geometrica — come sta lo spigolo e
-                // DOVE sta la sua proiezione — cosi' i due lati opposti di un
-                // rettangolo si riconoscono come la stessa misura, e due
-                // gradini uguali in posti diversi no.
+                // But deduplicating on the VALUE would be wrong: two different
+                // steps of 10 mm are two distinct elements and both must be
+                // dimensioned. The key is geometric — how the edge sits and
+                // WHERE its projection sits — so the two opposite sides of a
+                // rectangle are recognised as the same measurement, and two equal
+                // steps in different places are not.
                 if (seen.ContainsKey(s.Key))
                 {
                     duplicates.Add(i + " (stessa misura dello spigolo " + seen[s.Key] + ")");
@@ -261,9 +261,9 @@ namespace Oce.Solid.Agent.Core
                 measuredValues.Add(s);
             }
 
-            // DALLE PICCOLE ALLE GRANDI, allontanandosi dal pezzo: «le linee di
-            // misura andranno disegnate in ordine progressivo, dalle minori
-            // alle maggiori, allontanandosi dal contorno delle figure».
+            // FROM THE SMALL TO THE LARGE, moving away from the part: «the
+            // measurement lines shall be drawn in progressive order, from the smaller
+            // to the larger, moving away from the outline of the figures».
             measuredValues.Sort((x, y) => x.Length.CompareTo(y.Length));
 
             int before = CountDimensions(drawing);
@@ -272,7 +272,7 @@ namespace Oce.Solid.Agent.Core
                     "Non riesco a contare le quote della tavola prima di cominciare: senza " +
                     "quel numero non saprei dirti quali ho messo io. Non ho toccato niente.");
 
-            // ── LA TRAPPOLA DEL MODALE, spenta e rimessa ────────────────
+            // ── THE MODAL TRAP, switched off and put back ───────────────
             bool askedForTheValue = true;
             bool off = false;
             var born = new List<Dictionary<string, object>>();
@@ -288,33 +288,33 @@ namespace Oce.Solid.Agent.Core
                         (int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
                     off = true;
                 }
-                catch { /* se non si puo' spegnere lo dira' il primo che si appende */ }
+                catch { /* if it cannot be switched off, the first one that hangs will say so*/ }
 
-                // UN CONTATORE PER FASCIA, non uno solo per tutte. La stesura
-                // precedente ne aveva uno globale, e cosi' la seconda quota
-                // scendeva di un passo anche se andava a destra.
+                // ONE COUNTER PER BAND, not a single one for all of them. The previous
+                // draft had a global one, and so the second dimension
+                // went down one step even if it went to the right.
                 int below = 0, sideways = 0, onLeft = 0;
 
-                // ── I FORI, PRIMA DI TUTTO (voce GT11) ──────────────────
+                // ── THE HOLES, FIRST OF ALL (entry GT11) ────────────────
                 //
-                // La prima tavola guardata non quotava i fori: ne' il diametro
-                // ne' la posizione, cioe' proprio cio' che in officina serve di
-                // piu'. Il diametro con il RICHIAMO DEL FORO (`AddHoleCallout2`,
-                // «Ø8 PASSANTE»), one per diameter AND depth (DimensionTheHoles), col numero dei fori uguali
-                // davanti («4× »: il prefisso si aggiunge a quello che c'e', che
-                // e' il simbolo del diametro — sostituirlo lo cancellava,
-                // misurato). La posizione con quote dai due spigoli di
-                // riferimento, il sinistro e quello in basso: in parallelo,
-                // quindi senza catene e senza quote sovrabbondanti. Misurato il
-                // 25/9/2026: cerchio + spigolo con `AddHorizontalDimension2`
-                // misura dal CENTRO (15 sulla piastra), con `AddDimension` non
-                // nasce niente.
+                // The first drawing looked at did not dimension the holes: neither the diameter
+                // nor the position, that is exactly what the workshop needs
+                // most. The diameter with the HOLE CALLOUT (`AddHoleCallout2`,
+                // «Ø8 PASSANTE»), one per diameter AND depth (DimensionTheHoles), with the number of equal holes
+                // in front («4× »: the prefix is added to what is there, which
+                // is the diameter symbol — replacing it erased it,
+                // measured). The position with dimensions from the two reference
+                // edges, the left one and the bottom one: in parallel,
+                // so no chains and no over-dimensioning. Measured on
+                // 25/9/2026: circle + edge with `AddHorizontalDimension2`
+                // measures from the CENTRE (15 on the plate), with `AddDimension` nothing
+                // is born.
                 var sheetDimensions = SheetDimensions(drawing);
-                // UNA TABELLA FORI NELLA VISTA QUOTA GIA' I FORI (voce GT5, 26/9/2026).
-                // La prima tavola con la tabella, GUARDATA, aveva i fori due volte:
-                // posizioni e misure nella tabella, e di nuovo richiami e quote di
-                // posizione sulla vista. «Ciascun elemento si quota una volta sola»:
-                // se la tabella c'e', i fori sono suoi.
+                // A HOLE TABLE IN THE VIEW ALREADY DIMENSIONS THE HOLES (entry GT5, 26/9/2026).
+                // The first drawing with the table, LOOKED AT, had the holes twice:
+                // positions and sizes in the table, and again callouts and position
+                // dimensions on the view. «Each element is dimensioned only once»:
+                // if the table is there, the holes are its own.
                 holesInTable = HolesInHoleTable(drawing);
                 var trueHoles = circles.FindAll(c => c.Type == "foro");
                 if (trueHoles.Count > 0 && holesInTable <= 0)
@@ -324,9 +324,9 @@ namespace Oce.Solid.Agent.Core
                                born, externalDiameters, undimensionedBorders, elsewhere, failed);
                 foreach (var c in circles)
                     if (c.Type == "di_taglio") cutting.Add("Ø" + c.DiameterMm.ToString("0.##", Ci));
-                // IL TONDO VISTO DI FIANCO (voce GT14): cerchi di taglio coassiali
-                // vogliono dire un pezzo tornito nella vista longitudinale —
-                // lunghezze fra le facce e diametri dalle generatrici.
+                // THE ROUND BAR SEEN FROM THE SIDE (entry GT14): coaxial circles seen edge-on
+                // mean a turned part in the longitudinal view —
+                // lengths between the faces and diameters from the generatrices.
                 round = DimensionTheRoundFromTheSide(model, drawing, view, mu, tr, circles.FindAll(c => c.Type == "di_taglio"),
                                              already, contour, dimensionOffset, planStep, ref below, ref sideways, born, elsewhere, failed);
 
@@ -340,13 +340,13 @@ namespace Oce.Solid.Agent.Core
                         if (ent == null) { failed.Add(s.Index + " (non e' un'entita')"); continue; }
                         if (!ent.Select4(false, null)) { failed.Add(s.Index + " (non si seleziona)"); continue; }
 
-                        // ── DOVE VA QUESTA QUOTA ────────────────────────
+                        // ── WHERE THIS DIMENSION GOES ───────────────────
                         //
-                        // «Devono essere parallele alla dimensione a cui si
-                        // riferiscono» e «devono, per quanto possibile, essere
-                        // disposte all'esterno delle figure» (scheda
-                        // Zanichelli, DISPOSIZIONE DELLE LINEE DI MISURA).
-                        // Quindi: orizzontali SOTTO, verticali DI LATO.
+                        // «They must be parallel to the dimension they
+                        // refer to» and «they must, as far as possible, be
+                        // placed outside the figures» (Zanichelli
+                        // sheet, ARRANGEMENT OF THE MEASUREMENT LINES).
+                        // Therefore: horizontal BELOW, vertical ON THE SIDE.
                         double x, y;
                         if (s.Facing == "horizontal")
                         {
@@ -359,9 +359,9 @@ namespace Oce.Solid.Agent.Core
                             x = contour[2] + dimensionOffset + sideways * planStep;
                             y = s.Half;
                             sideways++;
-                            // DENTRO LA CORNICE: una vista sul bordo destro del
-                            // foglio manda la fascia fuori dal disegno. Allora a
-                            // sinistra — stessa regola dei fori.
+                            // INSIDE THE FRAME: a view on the right edge of the
+                            // sheet sends the band out of the drawing. Then to the
+                            // left — same rule as the holes.
                             if (sheetDimensions != null && x > sheetDimensions[0] - 0.015)
                             {
                                 sideways--;
@@ -371,9 +371,9 @@ namespace Oce.Solid.Agent.Core
                         }
                         else
                         {
-                            // OBLIQUO: non c'e' una fascia giusta, e metterlo
-                            // con le orizzontali lo farebbe sembrare tale. Va
-                            // a sinistra, e la risposta lo dice.
+                            // OBLIQUE: there is no right band, and putting it
+                            // with the horizontal ones would make it look like one. It goes
+                            // to the left, and the answer says so.
                             x = contour[0] - dimensionOffset - onLeft * planStep;
                             y = (contour[1] + contour[3]) / 2;
                             onLeft++;
@@ -385,10 +385,10 @@ namespace Oce.Solid.Agent.Core
 
                         if (NotGrown(drawing, dimensionsBefore, nature))
                         {
-                            // NON SI GUARDA SE `AddDimension` HA RISPOSTA: si
-                            // guarda se la quota c'e'. E' la regola di casa —
-                            // il valore che torna da chi ha fatto la cosa non
-                            // e' la misura della cosa.
+                            // WE DO NOT LOOK AT WHETHER `AddDimension` HAS A RESPONSE: we
+                            // look at whether the dimension is there. It is the house rule —
+                            // the value that comes back from whoever did the thing is not
+                            // the measurement of the thing.
                             failed.Add(s.Index + " (chiamata andata, quota non nata)");
                             continue;
                         }
@@ -405,7 +405,7 @@ namespace Oce.Solid.Agent.Core
                     }
                 }
 
-                // ── GLI SMUSSI, CON LA QUOTA DA SMUSSO (voce GT11) ─────
+                // ── THE CHAMFERS, WITH THE CHAMFER DIMENSION (entry GT11) ─────
                 DimensionTheChamfers(model, drawing, edges, all, already, contour, dimensionOffset, born, chamfers, elsewhere, failed);
             }
             finally
@@ -430,10 +430,10 @@ namespace Oce.Solid.Agent.Core
 
             if (put <= 0)
             {
-                // NIENTE DA QUOTARE NON E' LA STESSA COSA DI «NON SONO RIUSCITO».
-                // Se tutto cio' che la vista mostra e' gia' quotato altrove, o e'
-                // un doppione, o sta nello smusso, si dice cosi' — e resta un
-                // rifiuto, perche' zero quote non sono una risposta «fatto».
+                // NOTHING TO DIMENSION IS NOT THE SAME THING AS «I DID NOT MANAGE».
+                // If everything the view shows is already dimensioned elsewhere, or is
+                // a duplicate, or sits in the chamfer, it says so — and it stays
+                // a refusal, because zero dimensions are not a «done» answer.
                 if (failed.Count == 0 && cutting.Count > 0 && measuredValues.Count == 0 && round == null &&
                     duplicates.Count + elsewhere.Count + onChamfer.Count == 0 && holesInTable <= 0)
                     return Failed(
@@ -459,10 +459,10 @@ namespace Oce.Solid.Agent.Core
 
             double[] afterContour = ContourOf(view);
 
-            // ── I TESTI CHE SI ACCAVALLANO (voce GT12, punto 3) ─────────────
-            // Il rettangolo vero di ogni testo, letto da IDisplayData
-            // (OperazioniTestiQuote): testo su testo in tutta la tavola, testo
-            // su una linea del pezzo in questa vista.
+            // ── THE TEXTS THAT OVERLAP (entry GT12, point 3) ─────────────
+            // The true rectangle of each text, read from IDisplayData
+            // (OperazioniTestiQuote): text on text over the whole drawing, text
+            // on a line of the part in this view.
             var dimensionsTexts = DimensionTexts(drawing);
             var overlapping = TextsThatOverlap(drawing, view, dimensionsTexts);
 
@@ -474,44 +474,44 @@ namespace Oce.Solid.Agent.Core
                 ["dimensions_before"] = before,
                 ["dimensions_after"] = after,
                 ["dimensions_placed"] = put,
-                // OGNI QUOTA COL SUO VALORE RILETTO, in millimetri. E' il pezzo
-                // che distingue questa operazione da una che disegna numeri.
+                // EVERY DIMENSION WITH ITS VALUE READ BACK, in millimetres. It is the piece
+                // that distinguishes this operation from one that draws numbers.
                 ["dimensions"] = born.ToArray(),
-                // E LE STESSE MISURE IN FILA, SENZA L'ORDINE.
+                // AND THE SAME MEASUREMENTS IN A ROW, WITHOUT THE ORDER.
                 //
-                // `dimensions[0].mm` costringe chi prova a sapere **in che ordine**
-                // la vista elenca i suoi spigoli — un ordine che nessuno
-                // dichiara, e che cambia col pezzo. Il 18/9/2026 un caso di
-                // banco e' stato scritto su `quote[0]` e `quote[2]` prendendo i
-                // numeri da una sonda fatta su un ALTRO pezzo: sette spigoli
-                // invece di quattro, e l'indice non voleva piu' dire niente.
+                // `dimensions[0].mm` forces whoever tests to know **in what order**
+                // the view lists its edges — an order that nobody
+                // declares, and that changes with the part. On 18/9/2026 a bench case
+                // was written on `quote[0]` and `quote[2]` taking the
+                // numbers from a probe made on ANOTHER part: seven edges
+                // instead of four, and the index no longer meant anything.
                 //
-                // Qui ci sono i millimetri e basta: si chiede «c'e' il 120?»
-                // invece di «il terzo e' 5?», e la domanda resta vera anche se
-                // SOLIDWORKS cambia l'ordine.
-                // *Un'attesa che dipende da un ordine non dichiarato misura
-                // l'ordine, non la cosa.*
+                // Here there are only the millimetres: one asks «is there a 120?»
+                // instead of «is the third one 5?», and the question stays true even if
+                // SOLIDWORKS changes the order.
+                // *An expectation that depends on an undeclared order measures the
+                // order, not the thing.*
                 ["dimensions_mm"] = MillimetersInARow(born),
                 ["edges_not_dimensioned"] = failed.ToArray(),
 
-                // ── FORI, SMUSSI, E CIO' CHE ERA GIA' QUOTATO (voce GT11) ──
+                // ── HOLES, CHAMFERS, AND WHAT WAS ALREADY DIMENSIONED (entry GT11) ──
                 //
-                // Nati il 25/9/2026 da una tavola GUARDATA: i fori non erano
-                // quotati, lo smusso era un 7,071 obliquo, il 10 e il 120
-                // comparivano in due viste. Le attese del banco erano tutte
-                // verdi, perche' chiedevano i millimetri delle quote messe —
-                // non se la tavola basta a fare il pezzo.
+                // Born on 25/9/2026 from a drawing that was LOOKED AT: the holes were not
+                // dimensioned, the chamfer was an oblique 7.071, the 10 and the 120
+                // appeared in two views. The bench expectations were all
+                // green, because they asked for the millimetres of the dimensions put —
+                // not whether the drawing is enough to make the part.
                 ["holes"] = holes.ToArray(),
                 ["holes_in_hole_table"] = holesInTable > 0 ? (object)holesInTable : null,
-                // I CERCHI CHE NON SONO FORI (26/9/2026): il contorno di un pezzo
-                // tondo ha una quota di diametro, non un richiamo; un cerchio visto
-                // di taglio non si quota da qui.
+                // THE CIRCLES THAT ARE NOT HOLES (26/9/2026): the outline of a round
+                // part has a diameter dimension, not a callout; a circle seen
+                // edge-on is not dimensioned from here.
                 ["outer_diameters"] = externalDiameters.ToArray(),
                 ["borders_not_dimensioned"] = undimensionedBorders.ToArray(),
                 ["cut_circles"] = cutting.ToArray(),
-                // IL TONDO VISTO DI FIANCO (voce GT14): lunghezze in parallelo dalla
-                // prima faccia, diametri dalle generatrici; e i diametri che la
-                // vista non espone, detti.
+                // THE ROUND BAR SEEN FROM THE SIDE (entry GT14): lengths in parallel from the
+                // first face, diameters from the generatrices; and the diameters the
+                // view does not expose, stated.
                 ["round_axis"] = round?.Axis,
                 ["round_lengths_mm"] = round == null ? null : round.Lengths.ToArray(),
                 ["round_diameters_mm"] = round == null ? null : round.Diameters.ToArray(),
@@ -535,34 +535,34 @@ namespace Oce.Solid.Agent.Core
                 ["views_of_other_models_not_counted"] = existingRead.Complete ? (object)existingRead.ViewsOfAnotherModel : null,
                 ["chamfer_edges"] = onChamfer.ToArray(),
 
-                // ── I DOPPIONI SI DICONO, NON SI NASCONDONO ─────────────
+                // ── DUPLICATES ARE STATED, NOT HIDDEN ─────────────
                 //
-                // Chiedere quattro spigoli di un rettangolo e vedersene
-                // quotare due e' sorprendente finche' non si sa perche'. La
-                // ragione e' una regola di disegno, non un difetto: «ciascun
-                // elemento dell'oggetto deve essere quotato non piu' di una
-                // volta» (UNI ISO 129-1, scheda Sammarone/Zanichelli), e
-                // 120/10/120/10 e' quotatura ripetuta — «quindi errata».
+                // Asking for four edges of a rectangle and seeing two of them
+                // dimensioned is surprising until one knows why. The
+                // reason is a drawing rule, not a defect: «each
+                // element of the object must be dimensioned no more than once»
+                // (UNI ISO 129-1, Sammarone/Zanichelli sheet), and
+                // 120/10/120/10 is repeated dimensioning — «therefore wrong».
                 ["edges_discarded_duplicates"] = duplicates.ToArray(),
 
-                // IL CONTORNO PRIMA E DOPO. Non e' accertato che `GetOutline()`
-                // cresca con le annotazioni attaccate alla vista: se i due
-                // numeri differiscono, cresce, e chi mettera' altre quote dopo
-                // di noi deve saperlo invece di scoprirlo.
+                // THE OUTLINE BEFORE AND AFTER. It is not established that `GetOutline()`
+                // grows with the annotations attached to the view: if the two
+                // numbers differ, it grows, and whoever puts more dimensions after
+                // us must know it instead of discovering it.
                 ["contour_view_mm"] = InMillimeters(contour),
                 ["contour_view_after_mm"] = InMillimeters(afterContour),
-                // IL CONFRONTO LO FA IL CODICE, non chi scrive l'attesa. Un
-                // caso di banco puo' pretendere un valore, non paragonare due
-                // campi fra loro: mettere qui il paragone gia' fatto e' l'unico
-                // modo perche' diventi una riga verificabile.
+                // THE COMPARISON IS DONE BY THE CODE, not by whoever writes the expectation. A
+                // bench case can demand a value, not compare two fields
+                // with each other: putting the comparison here, already done, is the only
+                // way for it to become a verifiable line.
                 ["contour_grown"] = GrownContour(contour, afterContour),
                 // A WALK THAT BROKE OFF IS «NOT KNOWN» (Z-C21.8, finding N47):
                 // DimensionTexts gives null then, and the three fields are null,
                 // not the count of the texts read before the break.
                 ["texts_read"] = dimensionsTexts == null ? null : (object)dimensionsTexts.Count,
                 ["overlapping_texts"] = overlapping == null ? null : overlapping.ToArray(),
-                // Nessun testo letto su una tavola con quote e' «non lo so», non
-                // «nessuno si accavalla» (revisione del 26/9/2026).
+                // No text read on a drawing with dimensions is «I do not know», not
+                // «none overlaps» (review of 26/9/2026).
                 ["how_many_texts_overlap"] = dimensionsTexts == null || overlapping == null ||
                                                   (dimensionsTexts.Count == 0 && after > 0)
                     ? null : (object)overlapping.Count,
@@ -608,57 +608,57 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Uno spigolo, misurato SUL FOGLIO invece che nel modello.
+        /// One edge, measured ON THE SHEET instead of in the model.
         ///
-        /// Serve a sapere due cose prima di quotare: da che parte sta — e
-        /// quindi dove va la sua quota — e dove sta, per riconoscere che due
-        /// spigoli diversi misurano lo stesso elemento.
+        /// It serves to know two things before dimensioning: which side it is on — and
+        /// therefore where its dimension goes — and where it is, to recognise that two
+        /// different edges measure the same element.
         /// </summary>
         private sealed class ProjectedEdge
         {
             public int Index;
-            /// <summary>«horizontal», «vertical» oppure «obliquo».</summary>
+            /// <summary>«horizontal», «vertical» or «obliquo».</summary>
             public string Facing;
-            /// <summary>Il centro della proiezione, in coordinate foglio.</summary>
+            /// <summary>The centre of the projection, in sheet coordinates.</summary>
             public double Half;
             public double Length;
             /// <summary>
-            /// Verso piu' intervallo proiettato, arrotondato al centesimo di
-            /// millimetro. Due spigoli con la stessa chiave misurano lo stesso
-            /// elemento: i lati opposti di un rettangolo. Due gradini uguali
-            /// in posti diversi hanno chiavi diverse, e si quotano tutti e due.
+            /// Direction plus projected interval, rounded to the hundredth of a
+            /// millimetre. Two edges with the same key measure the same
+            /// element: the opposite sides of a rectangle. Two equal steps
+            /// in different places have different keys, and both are dimensioned.
             /// </summary>
             public string Key;
-            /// <summary>Gli estremi sul foglio e nel modello, in metri.</summary>
+            /// <summary>The ends on the sheet and in the model, in metres.</summary>
             public double[] FromSheet, ToSheet, FromModel, ToModel;
-            /// <summary>Asse e intervallo nel MODELLO: la chiave fra viste. Null se obliquo.</summary>
+            /// <summary>Axis and interval in the MODEL: the key between views. Null if oblique.</summary>
             public string InModel;
-            /// <summary>La lavorazione di smusso a cui appartiene, o null.</summary>
+            /// <summary>The chamfer feature it belongs to, or null.</summary>
             public string ChamferFeature;
-            /// <summary>L'entita' come la espone la vista, per selezionarla.</summary>
+            /// <summary>The entity as the view exposes it, to select it.</summary>
             public object Entity;
         }
 
         /// <summary>
-        /// Da spigolo del modello a spigolo sul foglio. `null` se non si puo'
-        /// misurare, che non e' un errore: si dice e si va avanti.
+        /// From a model edge to an edge on the sheet. `null` if it cannot
+        /// be measured, which is not an error: it is stated and we go on.
         ///
-        /// ── PERCHE' SERVE UNA TRASFORMAZIONE ────────────────────────────
+        /// ── WHY A TRANSFORMATION IS NEEDED ──────────────────────────────
         ///
-        /// `IEdge.GetCurveParams3()` da' gli estremi in coordinate del
-        /// MODELLO. La vista li mostra ruotati e in scala, e una quota si
-        /// mette in coordinate FOGLIO: senza passare per
-        /// `IView.ModelToViewTransform` si classificherebbe come orizzontale
-        /// uno spigolo che sul foglio e' verticale, e la quota finirebbe dalla
-        /// parte sbagliata.
+        /// `IEdge.GetCurveParams3()` gives the ends in MODEL
+        /// coordinates. The view shows them rotated and scaled, and a dimension is
+        /// placed in SHEET coordinates: without going through
+        /// `IView.ModelToViewTransform` an edge that is vertical on the sheet
+        /// would be classified as horizontal, and the dimension would end up on the
+        /// wrong side.
         ///
-        /// PER LA SOLA DIREZIONE BASTA LA PARTE ROTATORIA: una traslazione non
-        /// cambia il verso di un vettore. Per il PUNTO invece servirebbe anche
-        /// la traslazione, e non e' accertato che quella matrice porti la
-        /// posizione della vista sul foglio — per questo le coordinate
-        /// assolute si prendono da `GetOutline()`, che e' gia' in coordinate
-        /// foglio, e da qui esce solo il centro RELATIVO lungo l'asse di
-        /// misura, riportato dentro l'ingombro.
+        /// FOR THE DIRECTION ALONE THE ROTATIONAL PART IS ENOUGH: a translation does not
+        /// change the direction of a vector. For the POINT instead the
+        /// translation would be needed too, and it is not established that that matrix carries the
+        /// position of the view onto the sheet — for that reason the absolute
+        /// coordinates are taken from `GetOutline()`, which is already in sheet
+        /// coordinates, and from here only the RELATIVE centre along the axis of
+        /// measurement comes out, brought inside the extent.
         /// </summary>
         private static ProjectedEdge ReadEdge(IView view, object entity, int index, IMathUtility mu, MathTransform tr)
         {
@@ -672,37 +672,37 @@ namespace Oce.Solid.Agent.Core
                 var a = p.EndPoint as double[];
                 if (da == null || a == null || da.Length < 3 || a.Length < 3) return null;
 
-                // SUL FOGLIO CON LA TRASFORMAZIONE INTERA, e la stesura di prima
-                // sbagliava due volte (misurato il 25/9/2026, quando la tavola e'
-                // stata GUARDATA e si sono visti i numeri sopra le linee):
+                // ON THE SHEET WITH THE WHOLE TRANSFORMATION, and the previous draft
+                // was wrong twice (measured on 25/9/2026, when the drawing was
+                // LOOKED AT and the numbers were seen above the lines):
                 //
-                //   1. usava la matrice TRASPOSTA: per una vista ruotata la Y
-                //      usciva specchiata attorno al centro — nella vista
-                //      dall'alto la striscia dello smusso cadeva a y 70,7
-                //      invece di 145,7, e il «5» si scriveva in fondo alla
-                //      vista, con una linea di misura lunga quanto il pezzo;
-                //   2. sommava `IView.Position` al posto della traslazione della
-                //      matrice. Sono uguali solo se il pezzo e' centrato
-                //      sull'origine: per una piastra alta 10 estrusa da 0, la
-                //      vista frontale la metteva fra 229,5 e 239,5 mentre sta
-                //      fra 224,5 e 234,5 (il contorno della vista e' simmetrico
-                //      di 5,94 mm). Il testo dei «10» verticali finiva 5 mm piu'
-                //      su, SOPRA la linea di richiamo.
+                //   1. it used the TRANSPOSED matrix: for a rotated view the Y
+                //      came out mirrored around the centre — in the top
+                //      view the chamfer strip fell at y 70.7
+                //      instead of 145.7, and the «5» was written at the bottom of the
+                //      view, with a measurement line as long as the part;
+                //   2. it added `IView.Position` instead of the translation of the
+                //      matrix. They are equal only if the part is centred
+                //      on the origin: for a plate 10 high extruded from 0, the
+                //      front view put it between 229.5 and 239.5 while it sits
+                //      between 224.5 and 234.5 (the outline of the view is symmetric
+                //      by 5.94 mm). The text of the vertical «10»s ended up 5 mm higher,
+                //      ABOVE the callout line.
                 //
-                // Le orizzontali si salvavano perche' la piastra era centrata in
-                // X. `MultiplyTransform` fa il conto come lo fa SOLIDWORKS, e il
-                // punto esce gia' in coordinate foglio.
+                // The horizontal ones were saved because the plate was centred in
+                // X. `MultiplyTransform` does the calculation the way SOLIDWORKS does it, and the
+                // point comes out already in sheet coordinates.
                 double[] fromV = OnSheet(da, mu, tr), aV = OnSheet(a, mu, tr);
                 if (fromV == null || aV == null) return null;
                 double dx = aV[0] - fromV[0], dy = aV[1] - fromV[1];
                 double len = Math.Sqrt(dx * dx + dy * dy);
                 if (len < 1e-9) return null;
 
-                // LA SOGLIA E' UNA SCELTA DI CODICE, NON UNA PRESCRIZIONE.
-                // Le fonti parlano di parallelismo come criterio geometrico
-                // esatto; un numero ci vuole lo stesso, e si dichiara. Un
-                // millesimo sulla componente normalizzata: sotto, lo spigolo
-                // e' parallelo a un asse entro un decimo di grado.
+                // THE THRESHOLD IS A CODE CHOICE, NOT A PRESCRIPTION.
+                // The sources speak of parallelism as an exact geometric
+                // criterion; a number is needed all the same, and it is declared. One
+                // thousandth on the normalised component: below it, the edge
+                // is parallel to an axis within a tenth of a degree.
                 const double THRESHOLD = 1e-3;
                 var s = new ProjectedEdge { Index = index, Length = len };
                 double a0, a1;
@@ -735,23 +735,23 @@ namespace Oce.Solid.Agent.Core
             catch { return null; }
         }
 
-        /// <summary>Un cerchio intero nella vista: un foro, il contorno di un pezzo tondo, o un cerchio visto di taglio.</summary>
+        /// <summary>A whole circle in the view: a hole, the outline of a round part, or a circle seen edge-on.</summary>
         private sealed class Circle
         {
             public int Index;
             public IEdge Edge;
-            public double[] SheetCenter;   // metri
+            public double[] SheetCenter;   // metres
             public double DiameterMm;
             public string Type;             // "foro", "contorno", "di_taglio"
-            public bool? ThroughAll;          // dalla geometria; null se non si capisce
+            public bool? ThroughAll;          // from the geometry; null if it is not understood
             public double DepthMm = double.NaN;
-            public double[] ModelCenter;  // metri, nel modello
-            public double[] ModelAxis;    // versore, nel modello
+            public double[] ModelCenter;  // metres, in the model
+            public double[] ModelAxis;    // unit vector, in the model
         }
 
         private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
 
-        /// <summary>Il cerchio sul foglio, se lo spigolo e' un cerchio intero; null altrimenti.</summary>
+        /// <summary>The circle on the sheet, if the edge is a whole circle; null otherwise.</summary>
         private static Circle CircleOnSheet(IEdge e, int index, IMathUtility mu, MathTransform tr)
         {
             try
@@ -760,32 +760,32 @@ namespace Oce.Solid.Agent.Core
                 if (curva == null || !curva.IsCircle()) return null;
                 var da = p?.StartPoint as double[];
                 var a = p?.EndPoint as double[];
-                // UN CERCHIO INTERO ha inizio e fine nello stesso punto: un arco
-                // (un raccordo, una asola) non e' un foro da richiamare.
+                // A WHOLE CIRCLE has start and end at the same point: an arc
+                // (a fillet, a slot) is not a hole to call out.
                 if (da == null || a == null ||
                     Math.Abs(da[0] - a[0]) + Math.Abs(da[1] - a[1]) + Math.Abs(da[2] - a[2]) > 1e-8) return null;
                 var cp = curva.CircleParams as double[];
                 if (cp == null || cp.Length < 7) return null;
                 var center = OnSheet(new[] { cp[0], cp[1], cp[2] }, mu, tr);
                 if (center == null) return null;
-                // CHE CERCHIO E' (26/9/2026, una boccola tornita): il contorno Ø30
-                // di un pezzo tondo prendeva il richiamo «Ø30 ↧30» come fosse un
-                // foro, e i due cerchi della boccola visti di taglio finivano fra
-                // i «fori il cui richiamo non e' nato». Un foro guarda chi legge
-                // (l'asse, portato sul foglio, e' perpendicolare al foglio) ED e'
-                // un anello interno di una faccia piana — il criterio delle croci
-                // di centro (IsAVisibleHole).
+                // WHICH CIRCLE IT IS (26/9/2026, a turned bushing): the Ø30 outline
+                // of a round part took the callout «Ø30 ↧30» as if it were a
+                // hole, and the two circles of the bushing seen edge-on ended up among
+                // the «holes whose callout was not born». A hole faces whoever reads
+                // (the axis, brought onto the sheet, is perpendicular to the sheet) AND it is
+                // an inner ring of a planar face — the criterion of the centre
+                // marks (IsAVisibleHole).
                 string typ;
                 var axis = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
-                // ZERO-E-ZERO: un asse che non si porta sul foglio vale lunghezza zero
-                // apposta — il cerchio finisce fra quelli di taglio, cioe' NON quotato
-                // e detto nella risposta, invece di prendere un richiamo di foro.
+                // ZERO-E-ZERO: an axis that cannot be brought onto the sheet has length zero
+                // on purpose — the circle ends up among the edge-on ones, that is NOT dimensioned
+                // and stated in the answer, instead of taking a hole callout.
                 double l = axis == null ? 0 : Math.Sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
                 if (l < 1e-12 || Math.Abs(axis[2]) / l < 0.99) typ = "di_taglio";
-                // UN ANELLO INTERNO NON BASTA (revisione avversariale del 27/9/2026): lo
-                // e' anche il piede di una borchia, e un cerchio di tangenza Ø24 al
-                // piede di una borchia Ø20 raccordata diventava «un foro» con le sue
-                // quote di posizione. Una borchia ha una quota di diametro.
+                // AN INNER RING IS NOT ENOUGH (adversarial review of 27/9/2026): so
+                // is the foot of a boss, and a tangency circle Ø24 at the
+                // foot of a filleted Ø20 boss became «a hole» with its
+                // position dimensions. A boss has a diameter dimension.
                 else typ = IsAVisibleHole(e, curva, mu, tr) && !IsTheFootOfAStud(e) ? "foro" : "contorno";
                 var c = new Circle { Index = index, Edge = e, SheetCenter = center, DiameterMm = Math.Round(cp[6] * 2000.0, 3), Type = typ,
                                       ModelCenter = new[] { cp[0], cp[1], cp[2] }, ModelAxis = new[] { cp[3], cp[4], cp[5] } };
@@ -801,10 +801,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Lo spigolo tocca uno spigolo di smusso con un estremo (nel modello)?
-        /// Allora e' un tratto ACCORCIATO dallo smusso — il 75 accanto all'80,
-        /// il 5 accanto al 10 — e la sua misura la dicono la quota da smusso e
-        /// l'ingombro insieme: quotarlo e' una quota in piu'.
+        /// Does the edge touch a chamfer edge with one end (in the model)?
+        /// Then it is a stretch SHORTENED by the chamfer — the 75 next to the 80,
+        /// the 5 next to the 10 — and its measurement is told by the chamfer dimension and
+        /// the overall size together: dimensioning it is one dimension too many.
         /// </summary>
         private static bool IsChamferLeg(ProjectedEdge s, List<ProjectedEdge> all)
         {
@@ -819,11 +819,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Cosa e' GIA' quotato nella tavola, in tutte le viste: le estensioni
-        /// del modello (asse e intervallo) delle quote su uno spigolo solo, i
-        /// fori per diametro, gli smussi per lavorazione. Si legge dagli
-        /// spigoli a cui le quote sono attaccate, non dai numeri: due 10
-        /// diversi sono due elementi.
+        /// What is ALREADY dimensioned in the drawing, in all the views: the model
+        /// extents (axis and interval) of the dimensions on a single edge, the
+        /// holes by diameter, the chamfers by feature. It is read from the
+        /// edges the dimensions are attached to, not from the numbers: two different 10 values
+        /// are two elements.
         ///
         /// THE WHOLE DRAWING, AS THE CATALOGUE PROMISES (Z-C21.2, finding N43).
         /// Until library 0.140.0 the walk started at IDrawingDoc.GetFirstView,
@@ -854,7 +854,7 @@ namespace Oce.Solid.Agent.Core
         {
             var outside = new HashSet<string>(StringComparer.Ordinal);
             reading = new ExistingDimensionsReading();
-            // Le generatrici dicono la loro faccia solo a tavola ridisegnata (82zp).
+            // The generatrices tell their face only once the drawing is redrawn (82zp).
             try { (drawing as IModelDoc2)?.GraphicsRedraw2(); } catch { }
             try
             {
@@ -887,9 +887,9 @@ namespace Oce.Solid.Agent.Core
                             var ann = d.GetAnnotation() as IAnnotation;
                             var ents = ann?.GetAttachedEntities3() as object[];
                             var straight = new List<IEdge>();
-                            // DUE CERCHI COASSIALI SONO UNA LUNGHEZZA DEL TONDO (voce GT14),
-                            // non due diametri gia' quotati; UNA GENERATRICE porta il
-                            // diametro della sua faccia.
+                            // TWO COAXIAL CIRCLES ARE A LENGTH OF THE ROUND BAR (entry GT14),
+                            // not two diameters already dimensioned; A GENERATRIX carries the
+                            // diameter of its face.
                             var attachedCircles = new List<double[]>();
                             bool onGeneratrix = false, withStraightLine = false;
                             string generatrixKey = null;
@@ -910,12 +910,12 @@ namespace Oce.Solid.Agent.Core
                                         if (kg != null) generatrixKey = kg;
                                     }
                                 }
-                            // UNA QUOTA SU GENERATRICI (revisione avversariale del 27/9/2026):
-                            // col cilindro, la SUA chiave; SENZA faccia — sulla boccola GetFace
-                            // resta null (82zp) — il diametro dal valore, se la quota porta il Ø:
-                            // lo stesso criterio con cui la strada «generatrici senza faccia»
-                            // l'ha tenuta. Prima non la si vedeva affatto, e la chiamata dopo
-                            // rimetteva lo stesso diametro.
+                            // A DIMENSION ON GENERATRICES (adversarial review of 27/9/2026):
+                            // with the cylinder, ITS key; WITHOUT a face — on the bushing GetFace
+                            // stays null (82zp) — the diameter from the value, if the dimension carries the Ø:
+                            // the same criterion by which the «generatrices without face» route
+                            // held it. Before, it was not seen at all, and the next call
+                            // put the same diameter back.
                             if (onGeneratrix)
                             {
                                 if (generatrixKey != null)
@@ -932,7 +932,7 @@ namespace Oce.Solid.Agent.Core
                                     {
                                         string dd = Math.Round(mm, 2).ToString("0.00", Ci);
                                         outside.Add("foro|" + dd);
-                                        outside.Add("cil?|" + dd);   // un Ø30, ma non si sa di quale cilindro
+                                        outside.Add("cil?|" + dd);   // a Ø30, but it is not known of which cylinder
                                     }
                                 }
                             }
@@ -948,16 +948,16 @@ namespace Oce.Solid.Agent.Core
                                     var c = e.GetCurve() as ICurve;
                                     if (c != null && c.IsCircle())
                                     {
-                                        // UN DIAMETRO, NON UNA POSIZIONE: la quota di posizione di un
-                                        // foro e' attaccata al cerchio E a uno spigolo, e non quota il
-                                        // foro (il richiamo nasce prima e porta la sua chiave).
+                                        // A DIAMETER, NOT A POSITION: the position dimension of a
+                                        // hole is attached to the circle AND to an edge, and does not dimension the
+                                        // hole (the callout is born first and carries its key).
                                         if (withStraightLine) continue;
                                         var cp = c.CircleParams as double[];
                                         if (cp == null || cp.Length < 7) continue;
                                         string dd = Math.Round(cp[6] * 2000.0, 2).ToString("0.00", Ci);
                                         outside.Add("foro|" + dd);
-                                        // E IL SUO CILINDRO, se si trova: un gradino di un tondo e un
-                                        // foro dello stesso Ø sono due elementi (revisione del 27/9).
+                                        // AND ITS CYLINDER, if found: a step of a round bar and a
+                                        // hole of the same Ø are two elements (review of 27/9).
                                         outside.Add(CylinderCircleKey(e) ?? "cil?|" + dd);
                                         continue;
                                     }
@@ -965,11 +965,11 @@ namespace Oce.Solid.Agent.Core
                                     if (sm != null) outside.Add("smusso|" + sm);
                                     if (c != null && c.IsLine()) straight.Add(e);
                                 }
-                            // L'ESTENSIONE DI UNO SPIGOLO E' QUOTATA solo da una quota attaccata
-                            // a LUI SOLO (revisione avversariale del 27/9/2026): la quota di
-                            // posizione di un foro prende il bordo della piastra come
-                            // riferimento, e segnarne l'estensione faceva scartare l'altezza
-                            // vera nella vista dopo («gia' quotata in un'altra vista»).
+                            // THE EXTENT OF AN EDGE IS DIMENSIONED only by a dimension attached
+                            // to IT ALONE (adversarial review of 27/9/2026): the position
+                            // dimension of a hole takes the edge of the plate as its
+                            // reference, and recording its extent made the true height be discarded
+                            // in the next view («already dimensioned in another view»).
                             if (straight.Count == 1 && ents.Length == 1 && attachedCircles.Count == 0 && !onGeneratrix)
                             {
                                 var p = ApiHelpers.EdgeParameters(straight[0]);
@@ -1008,12 +1008,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il cerchio e' il piede di una sporgenza, non la bocca di un foro: l'altra
-        /// faccia che il cerchio borda (il cilindro della borchia, il raccordo al
-        /// piede) sale dalla parte di FUORI della faccia piana, mentre la parete di
-        /// un foro (o il suo smusso) scende dentro il materiale. Si misura sui
-        /// cerchi e sugli estremi degli altri spigoli di quella faccia, contro la
-        /// normale della faccia piana. False se non si capisce: resta foro, come prima.
+        /// The circle is the foot of a protrusion, not the mouth of a hole: the other
+        /// face the circle borders (the boss cylinder, the fillet at the
+        /// foot) rises on the OUTSIDE of the planar face, whereas the wall of
+        /// a hole (or its chamfer) goes down into the material. It is measured on the
+        /// circles and on the ends of the other edges of that face, against the
+        /// normal of the planar face. False if not understood: it stays a hole, as before.
         /// </summary>
         private static bool IsTheFootOfAStud(IEdge e)
         {
@@ -1058,13 +1058,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Passante o cieco, DALLA GEOMETRIA: il cilindro del foro e il suo altro
-        /// cerchio. Se l'altro cerchio e' un anello interno di una faccia piana il
-        /// foro esce di li': passante. Se e' l'anello esterno di una faccia piana
-        /// (il fondo) o tocca un cono (la punta), e' cieco, e la profondita' e' la
-        /// distanza fra i due cerchi lungo l'asse — quella che il richiamo scrive
-        /// dopo ↧, punta esclusa. null se non si capisce (il cilindro finisce su
-        /// un altro cilindro, per esempio).
+        /// Through or blind, FROM THE GEOMETRY: the hole cylinder and its other
+        /// circle. If the other circle is an inner ring of a planar face the
+        /// hole goes out there: through. If it is the outer ring of a planar face
+        /// (the bottom) or touches a cone (the tip), it is blind, and the depth is the
+        /// distance between the two circles along the axis — the one the callout writes
+        /// after ↧, tip excluded. null if not understood (the cylinder ends on
+        /// another cylinder, for example).
         /// </summary>
         private static bool? ThroughAllFromGeometry(IEdge border, out double depthMm)
         {
@@ -1086,12 +1086,12 @@ namespace Oce.Solid.Agent.Core
                         var cp = ca.CircleParams as double[];
                         if (cp == null || cp.Length < 7) continue;
                         double axisLength = Math.Abs((cp[0] - cb[0]) * cb[3] + (cp[1] - cb[1]) * cb[4] + (cp[2] - cb[2]) * cb[5]);
-                        if (axisLength < 1e-7) continue;   // e' il cerchio da cui si parte
+                        if (axisLength < 1e-7) continue;   // is the circle we start from
                         foreach (var oc2 in (other.GetCoEdges() as object[]) ?? new object[0])
                         {
                             var an = (oc2 as ICoEdge)?.GetLoop() as ILoop2;
                             var s = (an?.GetFace() as IFace2)?.GetSurface() as ISurface;
-                            if (s == null || s.IsCylinder()) continue;   // il cilindro del foro
+                            if (s == null || s.IsCylinder()) continue;   // the hole cylinder
                             if (s.IsCone()) { depthMm = Math.Round(axisLength * 1000, 3); return false; }
                             if (s.IsPlane())
                             {
@@ -1109,11 +1109,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// IL CONTORNO DI UN PEZZO TONDO visto lungo l'asse: una quota di
-        /// diametro, non un richiamo di foro. Riletta: deve valere il diametro del
-        /// cerchio — sullo stesso cerchio visto di taglio `AddDiameterDimension2`
-        /// dice 60 per un Ø30 (misurato il 26/9/2026), e un numero sbagliato e
-        /// plausibile non resta in tavola.
+        /// THE OUTLINE OF A ROUND PART seen along the axis: a diameter
+        /// dimension, not a hole callout. Read back: it must equal the diameter of the
+        /// circle — on the same circle seen edge-on `AddDiameterDimension2`
+        /// says 60 for a Ø30 (measured on 26/9/2026), and a wrong and
+        /// plausible number does not stay on the drawing.
         /// </summary>
         private void DimensionTheContours(
             IModelDoc2 model, IDrawingDoc drawing, List<Circle> contours, HashSet<string> already,
@@ -1121,24 +1121,24 @@ namespace Oce.Solid.Agent.Core
             List<Dictionary<string, object>> diameters, List<string> borders, List<string> elsewhere, List<string> failed)
         {
             var done = new HashSet<string>(StringComparer.Ordinal);
-            // UN PASSO PIU' IN ALTO PER OGNI DIAMETRO: i contorni di un tondo sono
-            // concentrici, e alla stessa altezza i testi nascevano uno sull'altro
-            // (l'albero a gradini visto di testa, 27/9/2026: quattro testi accavallati).
+            // ONE STEP HIGHER FOR EVERY DIAMETER: the outlines of a round bar are
+            // concentric, and at the same height the texts were born on top of each other
+            // (the stepped shaft seen end-on, 27/9/2026: four overlapping texts).
             int n = 0;
             foreach (var c in contours)
             {
                 string dm = c.DiameterMm.ToString("0.##", Ci);
                 string key = "foro|" + Math.Round(c.DiameterMm, 2).ToString("0.00", Ci);
                 if (!done.Add(key)) continue;
-                // IL SUO CILINDRO, se si trova (revisione del 27/9/2026): il contorno
-                // di un tondo e' gia' quotato se lo e' QUEL cilindro, non un Ø uguale
-                // qualunque — un foro trasversale Ø30 richiamato in un'altra vista non
-                // quota il gradino Ø30.
+                // ITS CYLINDER, if found (review of 27/9/2026): the outline
+                // of a round bar is already dimensioned if THAT cylinder is, not any equal
+                // Ø — a transverse Ø30 hole called out in another view does not
+                // dimension the Ø30 step.
                 string its = CylinderCircleKey(c.Edge);
-                // UN CERCHIO SENZA IL SUO CILINDRO non e' un diametro esterno: e' il
-                // bordo di uno smusso (cono-piano, il Ø28 di un Ø30 smussato visto di
-                // testa) o la linea di tangenza di un raccordo (il Ø24 al piede di una
-                // borchia Ø20 raccordata). Quotarlo e' una quota che non si fabbrica.
+                // A CIRCLE WITHOUT ITS CYLINDER is not an outer diameter: it is the
+                // edge of a chamfer (cone-plane, the Ø28 of a chamfered Ø30 seen
+                // end-on) or the tangency line of a fillet (the Ø24 at the foot of a
+                // filleted Ø20 boss). Dimensioning it is a dimension that is not manufactured.
                 if (its == null)
                 {
                     bool onChamfer = false;
@@ -1219,10 +1219,10 @@ namespace Oce.Solid.Agent.Core
             List<Dictionary<string, object>> born, List<Dictionary<string, object>> holes,
             List<string> elsewhere, List<string> failed)
         {
-            // UN RICHIAMO PER DIAMETRO *E PROFONDITA'*: «4× Ø8 ↧5» su quattro Ø8
-            // di cui due passanti manderebbe l'officina a forarli tutti ciechi.
-            // Il secondo termine viene dalla geometria: -1 passante, -2 non si
-            // capisce, altrimenti la profondita'.
+            // ONE CALLOUT PER DIAMETER *AND DEPTH*: «4× Ø8 ↧5» on four Ø8
+            // of which two through would send the workshop to drill them all blind.
+            // The second term comes from the geometry: -1 through, -2 not
+            // understood, otherwise the depth.
             var groups = new SortedDictionary<Tuple<double, double>, List<Circle>>();
             foreach (var c in circles)
             {
@@ -1233,19 +1233,19 @@ namespace Oce.Solid.Agent.Core
             }
 
             var toPosition = new List<Circle>();
-            // GIA' QUOTATO VUOL DIRE PRIMA DI QUESTA CHIAMATA (revisione avversariale
-            // del 27/9/2026). I gruppi sono per diametro E profondita', e con la
-            // chiave del solo diametro aggiunta dentro questo ciclo il secondo gruppo
-            // — due Ø8 ciechi accanto a due Ø8 passanti — finiva «gia' quotato»:
-            // senza richiamo, senza profondita', senza posizione. In officina si
-            // foravano tutti e quattro passanti, cioe' proprio il caso che il
-            // raggruppamento doveva evitare.
+            // ALREADY DIMENSIONED MEANS BEFORE THIS CALL (adversarial review
+            // of 27/9/2026). The groups are by diameter AND depth, and with the
+            // key of the diameter alone added inside this loop the second group
+            // — two blind Ø8 next to two through Ø8 — ended up «gia' quotato»:
+            // no callout, no depth, no position. In the workshop all
+            // four were drilled through, that is exactly the case the
+            // grouping was meant to avoid.
             var alreadyBefore = new HashSet<string>(already, StringComparer.Ordinal);
             foreach (var g in groups)
             {
                 string key = "foro|" + g.Key.Item1.ToString("0.00", Ci);
-                // E PER CILINDRO, quando si trova: un gradino di un tondo dello
-                // stesso Ø, quotato in un'altra vista, non e' questo foro.
+                // AND PER CYLINDER, when found: a step of a round bar of the
+                // same Ø, dimensioned in another view, is not this hole.
                 var itsItems = new List<string>();
                 bool allFound = true;
                 foreach (var c in g.Value)
@@ -1261,8 +1261,8 @@ namespace Oce.Solid.Agent.Core
                     elsewhere.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
                     continue;
                 }
-                // Il richiamo va sul foro in alto a sinistra: e' il primo che si
-                // legge, e la linea di richiamo esce verso l'alto, fuori dal pezzo.
+                // The callout goes on the top left hole: it is the first one
+                // read, and the callout line leaves upwards, out of the part.
                 Circle head = g.Value[0];
                 foreach (var c in g.Value)
                     if (c.SheetCenter[1] > head.SheetCenter[1] + 1e-6 ||
@@ -1299,8 +1299,8 @@ namespace Oce.Solid.Agent.Core
                 bool fellBack = false;
                 if (calloutNotBorn)
                 {
-                    // Senza richiamo (un foro che non viene da un taglio
-                    // riconoscibile), il diametro semplice.
+                    // Without a callout (a hole that does not come from a
+                    // recognisable cut), the plain diameter.
                     fellBack = true;
                     callout = null;   // an object from a call that made nothing is not the dimension
                     try
@@ -1327,9 +1327,9 @@ namespace Oce.Solid.Agent.Core
                 string countPrefix = g.Value.Count > 1 ? g.Value.Count.ToString(Ci) + "×" : null;
                 if (countPrefix != null)
                 {
-                    // «4× » DAVANTI a cio' che c'e': il prefisso di un richiamo e'
-                    // gia' il simbolo del diametro (<MOD-DIAM>), e sostituirlo lo
-                    // cancellava — misurato, usciva «4× 8».
+                    // «4× » IN FRONT of what is there: the prefix of a callout is
+                    // already the diameter symbol (<MOD-DIAM>), and replacing it
+                    // erased it — measured, «4× 8» came out.
                     try
                     {
                         string prefix = callout.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? "";
@@ -1358,11 +1358,11 @@ namespace Oce.Solid.Agent.Core
                     failed.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the «" + countPrefix + "» in front did not stick: " +
                                 (prefixRead == null ? "the prefix could not be read back" : "the prefix reads «" + prefixRead + "»") +
                                 ", so the sheet does not say how many holes there are; add the count by hand)");
-                // IL RIPIEGO NON PORTA LA PROFONDITA' (revisione avversariale del
-                // 26/9/2026): se il richiamo non nasce, la quota di diametro dice
-                // «Ø8» e basta, e un cieco in officina si fora passante. La
-                // profondita' allora la scrive il ponte, dalla geometria, nel
-                // suffisso — lo stesso «<HOLE-DEPTH>» che usa il richiamo.
+                // THE FALLBACK DOES NOT CARRY THE DEPTH (adversarial review of
+                // 26/9/2026): if the callout is not born, the diameter dimension says
+                // «Ø8» and nothing else, and a blind hole in the workshop gets drilled through. The
+                // depth is then written by the bridge, from the geometry, in the
+                // suffix — the same «<HOLE-DEPTH>» the callout uses.
                 string depthFrom = come == "richiamo del foro" ? "richiamo" : null;
                 if (come == "quota di diametro" && head.ThroughAll == false && !double.IsNaN(head.DepthMm))
                 {
@@ -1382,11 +1382,11 @@ namespace Oce.Solid.Agent.Core
                     "holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the " + (fellBack ? "diameter dimension" : "hole callout") +
                     " was born but SOLIDWORKS did not hand it back: nothing could be written on it or read from it, " +
                     "check it on the sheet)");
-                // LA PROFONDITA' DEL FORO CIECO (voce GT12, punto 1): il richiamo
-                // di SOLIDWORKS la mette da se' nel suffisso — misurato il 26/9/2026,
-                // «<MOD-DIAM>8» + «<HOLE-DEPTH>5» per un Ø8 profondo 5, «PASSANTE»
-                // per il passante. Si rilegge e si dice: un foro cieco senza
-                // profondita' in tavola si fora passante.
+                // THE DEPTH OF THE BLIND HOLE (entry GT12, point 1): the SOLIDWORKS
+                // callout puts it in the suffix by itself — measured on 26/9/2026,
+                // «<MOD-DIAM>8» + «<HOLE-DEPTH>5» for a Ø8 5 deep, «PASSANTE»
+                // for the through one. It is read back and stated: a blind hole without
+                // depth on the drawing gets drilled through.
                 string suffix = "";
                 try { suffix = callout.GetText((int)swDimensionTextParts_e.swDimensionTextSuffix) ?? ""; } catch { }
                 object depth = null;
@@ -1398,8 +1398,8 @@ namespace Oce.Solid.Agent.Core
                                 suffix.IndexOf("THRU", StringComparison.OrdinalIgnoreCase) >= 0;
                 if (depth == null) depthFrom = null;
                 if (head.ThroughAll == false && depth == null)
-                    // Un cieco, per la geometria, che esce dalla tavola senza
-                    // profondita': non e' «fatto», e lo si dice.
+                    // A blind one, by the geometry, that leaves the drawing without
+                    // depth: it is not «done», and that is stated.
                     failed.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (cieco" +
                                 (double.IsNaN(head.DepthMm) ? "" : ", profondo " + head.DepthMm.ToString("0.##", Ci)) +
                                 ", ma la quota non porta la profondita': in officina si forerebbe passante)");
@@ -1418,9 +1418,9 @@ namespace Oce.Solid.Agent.Core
                     ["depth_mm"] = depth,
                     ["depth_from"] = depthFrom,
                     ["callout_suffix"] = callout == null ? null : suffix,
-                    // LA STESSA COSA LETTA DALLA GEOMETRIA, sempre: il cilindro del
-                    // foro e il suo altro cerchio. Accanto a quella del richiamo, per
-                    // chi vuole confrontarle.
+                    // THE SAME THING READ FROM THE GEOMETRY, always: the hole
+                    // cylinder and its other circle. Next to the one from the callout, for
+                    // whoever wants to compare them.
                     ["through_all_from_geometry"] = head.ThroughAll,
                     ["depth_from_geometry_mm"] = double.IsNaN(head.DepthMm) ? null : (object)head.DepthMm,
                 });
@@ -1430,11 +1430,11 @@ namespace Oce.Solid.Agent.Core
             }
             if (toPosition.Count == 0) return;
 
-            // ── LE POSIZIONI, DAI DUE SPIGOLI DI RIFERIMENTO ─────────────
+            // ── THE POSITIONS, FROM THE TWO REFERENCE EDGES ─────────────
             //
-            // Quello piu' a sinistra fra i verticali e quello piu' in basso fra
-            // gli orizzontali (a parita', il piu' lungo): sono i bordi del pezzo
-            // in questa vista. Uno smusso non fa da riferimento.
+            // The leftmost among the verticals and the lowest among
+            // the horizontals (on a tie, the longest): they are the edges of the part
+            // in this view. A chamfer is not a reference.
             ProjectedEdge sx = null, down = null;
             foreach (var s in all)
             {
@@ -1451,14 +1451,14 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            // Una colonna per ogni X distinta dei centri, una riga per ogni Y:
-            // quattro fori in rettangolo sono due colonne e due righe, quattro
-            // quote. In ordine di distanza, le piu' vicine al pezzo per prime.
+            // One column for every distinct X of the centres, one row for every Y:
+            // four holes in a rectangle are two columns and two rows, four
+            // dimensions. In order of distance, the nearest to the part first.
             //
-            // LA QUOTA SI ATTACCA AL FORO PIU' VICINO AL SUO LATO (guardato il
-            // 25/9/2026): la prima stesura prendeva un foro qualunque della
-            // riga, e la linea di richiamo del 15 partiva dal foro in basso a
-            // DESTRA e attraversava tutta la piastra fino alla quota a sinistra.
+            // THE DIMENSION IS ATTACHED TO THE HOLE NEAREST TO ITS SIDE (looked at
+            // 25/9/2026): the first draft took any hole of the
+            // row, and the callout line of the 15 started from the bottom RIGHT hole
+            // and crossed the whole plate to the dimension on the left.
             if (sx != null)
             {
                 var columns = new SortedDictionary<double, Circle>();
@@ -1467,7 +1467,7 @@ namespace Oce.Solid.Agent.Core
                     double d = Math.Round((c.SheetCenter[0] - sx.FromSheet[0]) * 1000.0, 2);
                     if (d <= 0.01) continue;
                     Circle its;
-                    // le orizzontali stanno SOTTO: il foro piu' in basso della colonna
+                    // the horizontal ones go BELOW: the lowest hole of the column
                     if (!columns.TryGetValue(d, out its) || c.SheetCenter[1] < its.SheetCenter[1]) columns[d] = c;
                 }
                 foreach (var col in columns)
@@ -1477,9 +1477,9 @@ namespace Oce.Solid.Agent.Core
             }
             if (down != null)
             {
-                // DA CHE PARTE: dove c'e' posto DENTRO la cornice. La prima
-                // stesura le metteva sempre a sinistra, e con la vista vicina al
-                // bordo del foglio il 65 e' uscito dalla cornice.
+                // WHICH SIDE: where there is room INSIDE the frame. The first
+                // draft always put them on the left, and with the view near the
+                // edge of the sheet the 65 went out of the frame.
                 var lines = new SortedDictionary<double, List<Circle>>();
                 foreach (var c in toPosition)
                 {
@@ -1496,7 +1496,7 @@ namespace Oce.Solid.Agent.Core
                     : lastRight <= sheet[0] - margin || lastLeft < margin;
                 foreach (var line in lines)
                 {
-                    // il foro della riga piu' vicino al lato della quota
+                    // the hole of the row nearest to the side of the dimension
                     Circle chosen = line.Value[0];
                     foreach (var c in line.Value)
                         if (onRight ? c.SheetCenter[0] > chosen.SheetCenter[0] : c.SheetCenter[0] < chosen.SheetCenter[0]) chosen = c;
@@ -1510,8 +1510,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Larghezza e altezza del foglio corrente, in metri, o null. Servono a
-        /// non mettere una quota fuori dalla cornice.
+        /// Width and height of the current sheet, in metres, or null. They serve
+        /// not to put a dimension outside the frame.
         /// </summary>
         private static double[] SheetDimensions(IDrawingDoc drawing)
         {
@@ -1526,10 +1526,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Una quota di posizione fra il CENTRO di un foro e uno spigolo di
-        /// riferimento, orizzontale o verticale. Si rilegge: deve valere la
-        /// distanza vista sul foglio divisa per la scala — se misurasse al bordo
-        /// del foro invece che al centro, sarebbe un raggio di troppo.
+        /// A position dimension between the CENTRE of a hole and a reference
+        /// edge, horizontal or vertical. It is read back: it must equal the
+        /// distance seen on the sheet divided by the scale — if it measured to the edge
+        /// of the hole instead of the centre, it would be one radius too much.
         /// </summary>
         private void HolePosition(
             IModelDoc2 model, IDrawingDoc drawing, Circle hole, ProjectedEdge reference, bool horizontal,
@@ -1543,7 +1543,7 @@ namespace Oce.Solid.Agent.Core
                 model.ClearSelection2(true);
                 if ((hole.Edge as IEntity).Select4(false, null) && reference != null)
                 {
-                    // Lo spigolo di riferimento si prende dalla vista, come gli altri.
+                    // The reference edge is taken from the view, like the others.
                     var ent = reference.Entity as IEntity;
                     if (ent != null && ent.Select4(true, null))
                         dimension = (horizontal
@@ -1574,10 +1574,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// GLI SMUSSI: uno per lavorazione, con la quota da smusso
-        /// (`IDrawingDoc.AddChamferDim`, «5 x 45°»), dove lo smusso si vede di
-        /// profilo — uno spigolo di smusso obliquo sulla vista. Si seleziona lo
-        /// spigolo dello smusso e una delle sue «gambe», come a mano.
+        /// THE CHAMFERS: one per feature, with the chamfer dimension
+        /// (`IDrawingDoc.AddChamferDim`, «5 x 45°»), where the chamfer is seen in
+        /// profile — an oblique chamfer edge on the view. The chamfer
+        /// edge is selected and one of its «legs», as by hand.
         /// </summary>
         private void DimensionTheChamfers(
             IModelDoc2 model, IDrawingDoc drawing, object[] edges, List<ProjectedEdge> all,
@@ -1610,8 +1610,8 @@ namespace Oce.Solid.Agent.Core
                     failed.Add("smusso «" + s.ChamferFeature + "» (nessuno spigolo a cui appoggiare la quota da smusso)");
                     continue;
                 }
-                // Il testo FUORI dal pezzo, dalla parte dello smusso: dal centro
-                // della vista verso lo smusso, oltre il contorno.
+                // The text OUTSIDE the part, on the side of the chamfer: from the centre
+                // of the view towards the chamfer, beyond the outline.
                 double mx = (s.FromSheet[0] + s.ToSheet[0]) / 2, my = (s.FromSheet[1] + s.ToSheet[1]) / 2;
                 double cx = (contour[0] + contour[2]) / 2, cy = (contour[1] + contour[3]) / 2;
                 double vx = mx - cx, vy = my - cy, l = Math.Sqrt(vx * vx + vy * vy);
@@ -1642,14 +1642,14 @@ namespace Oce.Solid.Agent.Core
                 described["orientation"] = "chamfer dimension";
                 described["position_mm"] = WhereItEnded(dimension);
 
-                // LA QUOTA DA SMUSSO E' FATTA DI DUE QUOTE, e la prima e'
-                // L'ANGOLO. Misurato il 25/9/2026: GetDimension2(0) = 0,785 rad
-                // (45°), GetDimension2(1) = 7,071 mm, la larghezza della faccia
-                // di smusso — e il numero sul foglio e' «5 x 45°». Il lato che si
-                // legge e' quindi larghezza x cos(angolo). Per indice si
-                // riportava 785,398 «mm», cioe' l'angolo in radianti per mille:
-                // si distinguono per TIPO (`swDimensionParamType_e`: lineare 0,
-                // angolare 1), non per posizione.
+                // THE CHAMFER DIMENSION IS MADE OF TWO DIMENSIONS, and the first one is
+                // THE ANGLE. Measured on 25/9/2026: GetDimension2(0) = 0.785 rad
+                // (45°), GetDimension2(1) = 7.071 mm, the width of the chamfer
+                // face — and the number on the sheet is «5 x 45°». The side that is
+                // read is therefore width x cos(angle). By index it
+                // reported 785.398 «mm», that is the angle in radians times a thousand:
+                // they are told apart by TYPE (`swDimensionParamType_e`: linear 0,
+                // angular 1), not by position.
                 double? angle = null, width = null;
                 for (int k = 0; k < 2; k++)
                 {
@@ -1683,7 +1683,7 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
-        /// <summary>Un punto del modello sul foglio (metri), o null.</summary>
+        /// <summary>A model point on the sheet (metres), or null.</summary>
         private static double[] OnSheet(double[] p, IMathUtility mu, MathTransform tr)
         {
             try
@@ -1696,12 +1696,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ELEMENTO NEL MODELLO: l'asse lungo cui corre lo spigolo e il suo
-        /// intervallo, al centesimo di millimetro. Due spigoli con la stessa
-        /// chiave misurano la stessa estensione del pezzo, anche se stanno in
-        /// due viste diverse — ed e' cosi' che si riconosce la quotatura
-        /// ripetuta FRA viste: il 10 della vista frontale e il 10 di quella
-        /// laterale sono lo stesso spessore. Null per uno spigolo obliquo.
+        /// THE ELEMENT IN THE MODEL: the axis along which the edge runs and its
+        /// interval, to the hundredth of a millimetre. Two edges with the same
+        /// key measure the same extent of the part, even if they are in
+        /// two different views — and that is how repeated dimensioning
+        /// BETWEEN views is recognised: the 10 of the front view and the 10 of the
+        /// side view are the same thickness. Null for an oblique edge.
         /// </summary>
         private static string KeyInModel(double[] da, double[] a)
         {
@@ -1716,8 +1716,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il nome della lavorazione di smusso a cui lo spigolo appartiene
-        /// (una delle sue due facce viene da uno smusso), o null.
+        /// The name of the chamfer feature the edge belongs to
+        /// (one of its two faces comes from a chamfer), or null.
         /// </summary>
         private static string TouchesAChamfer(IEdge edge)
         {
@@ -1735,7 +1735,7 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        /// <summary>L'ingombro della vista adesso, o `null` se non si legge.</summary>
+        /// <summary>The extent of the view now, or `null` if it cannot be read.</summary>
         private static double[] ContourOf(IView view)
         {
             try { return view.GetOutline() as double[]; }
@@ -1743,10 +1743,10 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ingombro della vista e' cambiato dopo aver messo le quote?
+        /// Did the extent of the view change after the dimensions were put?
         ///
-        /// «sconosciuto» quando una delle due letture non c'e': non «no». Un
-        /// confronto che non si e' potuto fare non e' un confronto andato bene.
+        /// «sconosciuto» when one of the two readings is missing: not «no». A
+        /// comparison that could not be made is not a comparison that went well.
         /// </summary>
         private static string GrownContour(double[] before, double[] after)
         {
@@ -1757,7 +1757,7 @@ namespace Oce.Solid.Agent.Core
             return "no";
         }
 
-        /// <summary>Da metri di foglio a millimetri, per la risposta.</summary>
+        /// <summary>From sheet metres to millimetres, for the answer.</summary>
         private static object InMillimeters(double[] v)
         {
             if (v == null) return null;
@@ -1766,13 +1766,13 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>Dove la quota e' finita davvero, in millimetri di foglio.</summary>
+        /// <summary>Where the dimension really ended up, in sheet millimetres.</summary>
         private static object WhereItEnded(IDisplayDimension d)
         {
-            // SI RILEGGE, non si riporta il punto che si e' chiesto: il valore
-            // che torna da chi ha fatto la cosa non e' la misura della cosa, e
-            // qui serve proprio a poter asserire che la quota e' FUORI dalla
-            // sagoma della vista.
+            // IT IS READ BACK, the point that was asked for is not reported: the value
+            // that comes back from whoever did the thing is not the measurement of the thing, and
+            // here it is needed precisely to be able to assert that the dimension is OUTSIDE
+            // the silhouette of the view.
             try
             {
                 var ann = d?.GetAnnotation() as IAnnotation;
@@ -1808,23 +1808,23 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Nome e VALORE di una quota appena nata, il valore riletto da
-        /// SOLIDWORKS e non quello che credevo di aver chiesto.
+        /// Name and VALUE of a dimension just born, the value read back from
+        /// SOLIDWORKS and not what I thought I had asked for.
         ///
-        /// `GetSystemValue2("")` torna **metri**, sempre, qualunque siano le
-        /// unita' del documento: e' l'unica lettura che non dipende da come e'
-        /// impostata la tavola. `IDimension.Value` invece segue le unita' del
-        /// documento, quindi si riporta accanto ma non si usa per confrontare.
+        /// `GetSystemValue2("")` returns **metres**, always, whatever the
+        /// units of the document: it is the only reading that does not depend on how
+        /// the drawing is set up. `IDimension.Value` instead follows the units of the
+        /// document, so it is reported alongside but not used to compare.
         /// </summary>
         private static Dictionary<string, object> DescribeDimension(IDisplayDimension d, int edge)
         {
             var outside = new Dictionary<string, object> { ["edge"] = edge };
             if (d == null)
             {
-                // La quota c'e' — il conteggio e' salito — ma l'oggetto non e'
-                // tornato. Si dice, invece di far sparire la riga: un elenco
-                // piu' corto del conteggio farebbe cercare un difetto che non
-                // c'e'. Every call that places a dimension can end here (N80), not
+                // The dimension is there — the count went up — but the object did not
+                // come back. It is stated, instead of making the row disappear: a list
+                // shorter than the count would make one look for a defect that is not
+                // there. Every call that places a dimension can end here (N80), not
                 // only AddDimension, so the text names none.
                 outside["name"] = "(born, but the call that placed it did not hand the object back)";
                 outside["mm"] = null;   // not read, not zero
@@ -1841,15 +1841,15 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
             if (!outside.ContainsKey("mm"))
-                outside["mm"] = null;   // «non l'ho potuto leggere», non «zero»
+                outside["mm"] = null;   // «could not read it», not «zero»
             return outside;
         }
 
         /// <summary>
-        /// I millimetri delle quote nate, in fila e senza l'indice dello
-        /// spigolo. Le quote che non si e' potuto rileggere **non entrano**:
-        /// un `null` in mezzo a dei numeri si confronterebbe come stringa
-        /// vuota e passerebbe qualunque «non contiene».
+        /// The millimetres of the dimensions born, in a row and without the index of the
+        /// edge. The dimensions that could not be read back **do not go in**:
+        /// a `null` among numbers would be compared as an empty string
+        /// and would pass any «does not contain».
         /// </summary>
         private static object[] MillimetersInARow(List<Dictionary<string, object>> quote)
         {
@@ -1874,18 +1874,18 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La vista chiesta come la scrive lo stato («V2») o per nome, o la prima
-        /// vera se non si dice. Null col motivo quando la vista non c'e'; null
-        /// senza motivo quando c'e' ma non si lascia prendere.
+        /// The view asked for as the state writes it («V2») or by name, or the first
+        /// real one if none is given. Null with the reason when the view is not there; null
+        /// without a reason when it is there but cannot be taken.
         ///
-        /// «V2», COME LO SCRIVE LO STATO DELLA TAVOLA (25/9/2026). I NOMI delle
-        /// viste dipendono dalla lingua di SOLIDWORKS — «Vista del disegno2»
-        /// qui, «Drawing View2» in inglese — e un piano che li copia vale su
-        /// una sola installazione. L'identificativo dello stato no: V1 e' la
-        /// prima vista del foglio, nello stesso ordine in cui lo stato le
-        /// elenca. Un nome vero vince sempre: se una vista si chiama «V2», e'
-        /// quella. Estratto da `drawing_dimension` il 26/9/2026: lo usa anche
-        /// `hole_table`, e due copie divergono.
+        /// «V2», AS THE STATE OF THE DRAWING WRITES IT (25/9/2026). The NAMES of the
+        /// views depend on the language of SOLIDWORKS — «Vista del disegno2»
+        /// here, «Drawing View2» in English — and a plan that copies them holds on
+        /// one installation only. The identifier of the state does not: V1 is the
+        /// first view of the sheet, in the same order in which the state
+        /// lists them. A real name always wins: if a view is called «V2», it is
+        /// that one. Extracted from `drawing_dimension` on 26/9/2026: `hole_table`
+        /// uses it too, and two copies diverge.
         /// </summary>
         private static IView ResolveView(IDrawingDoc drawing, List<string> names, string wanted, out string reason)
         {
@@ -1914,12 +1914,12 @@ namespace Oce.Solid.Agent.Core
             return ViewByName(drawing, wanted);
         }
 
-        /// <summary>La vista chiesta per nome, o la prima vera se non si dice.</summary>
+        /// <summary>The view asked for by name, or the first real one if none is given.</summary>
         private static IView ViewByName(IDrawingDoc drawing, string wanted)
         {
             try
             {
-                // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
+                // The first «view» is the SHEET: the real views start after it.
                 var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
                 if (string.IsNullOrWhiteSpace(wanted)) return v;
                 while (v != null)

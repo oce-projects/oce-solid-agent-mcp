@@ -8,48 +8,48 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// QUALI PROFILI CI SONO, E COME SI SCRIVONO. (voce GA0)
+    /// WHICH PROFILES THERE ARE, AND HOW THEY ARE WRITTEN. (entry GA0)
     ///
-    /// ── UN'OPERAZIONE CHE IL CATALOGO CHIEDEVA E CHE NON C'ERA ────────
+    /// ── AN OPERATION THAT THE CATALOGUE ASKED FOR AND THAT WAS NOT THERE ──
     ///
-    /// `structural_member` e `rectangular_frame` dicono, nella loro stessa
-    /// descrizione: *«PRIMA CHIAMA "weldment_profiles" e copia da li'
-    /// "profile_path" e "configuration" ALLA LETTERA»*.
+    /// `structural_member` and `rectangular_frame` say, in their own
+    /// description: *«FIRST CALL "weldment_profiles" and copy from there
+    /// "profile_path" and "configuration" TO THE LETTER»*.
     ///
-    /// **Quell'operazione non esisteva.** Il nome compariva quattro volte nel
-    /// catalogo — tutte e quattro dentro il testo di chi la chiedeva — e zero
-    /// volte fra i nomi eseguibili. Il modello linguistico leggeva
-    /// un'istruzione che non portava da nessuna parte, e l'unica cosa che
-    /// poteva fare era **inventarsi** un percorso `.sldlfp` e un nome di misura.
+    /// **That operation did not exist.** The name appeared four times in the
+    /// catalogue — all four inside the text of whoever asked for it — and zero
+    /// times among the executable names. The language model read
+    /// an instruction that led nowhere, and the only thing it
+    /// could do was to **make up** an `.sldlfp` path and a size name.
     ///
-    /// E inventarsi la misura non da' errore: `OperazioniSaldatura` lo dice
-    /// gia' nel suo commento — *«se la misura non c'e', SOLIDWORKS NON
-    /// fallisce: usa la configurazione attiva del profilo. Il pezzo esce con
-    /// una parete diversa da quella confermata, il rebuild e' pulito, e nessuno
-    /// se ne accorge fino all'officina»*. C'e' un controllo che lo prende, ed
-    /// e' buono — ma puo' scattare solo **dopo** che qualcuno ha indovinato.
-    /// Questa operazione toglie l'indovinare.
+    /// And making up the size gives no error: `OperazioniSaldatura` already says it
+    /// in its comment — *«if the size is not there, SOLIDWORKS does NOT
+    /// fail: it uses the active configuration of the profile. The part comes out with
+    /// a different wall from the confirmed one, the rebuild is clean, and nobody
+    /// notices until the workshop»*. There is a check that catches it, and it
+    /// is good — but it can fire only **after** someone has guessed.
+    /// This operation takes the guessing away.
     ///
-    /// ── SI LEGGE SENZA APRIRE NIENTE ──────────────────────────────────
+    /// ── IT IS READ WITHOUT OPENING ANYTHING ──────────────────────────
     ///
-    /// `ISldWorks.GetConfigurationNames(percorso)` legge le misure di un
-    /// `.sldlfp` **senza aprire il documento**: nessuna finestra, nessun
-    /// documento in piu' fra quelli aperti, niente da richiudere. E' la stessa
-    /// chiamata che il controllo di `structural_member` usa gia'.
+    /// `ISldWorks.GetConfigurationNames(percorso)` reads the sizes of an
+    /// `.sldlfp` **without opening the document**: no window, no
+    /// extra document among the open ones, nothing to close again. It is the same
+    /// call that the `structural_member` check already uses.
     ///
-    /// ── DOVE STA LA LIBRERIA ──────────────────────────────────────────
+    /// ── WHERE THE LIBRARY IS ─────────────────────────────────────────
     ///
-    /// La cartella si scavalca con la variabile d'ambiente
-    /// `PROFILI_SALDATURA`, come fa gia' il banco. Un percorso costante nel
-    /// codice vorrebbe dire che chi clona il repository deve modificarlo per
-    /// far girare qualsiasi cosa di carpenteria.
+    /// The folder is overridden with the environment variable
+    /// `PROFILI_SALDATURA`, as the bench already does. A constant path in the
+    /// code would mean that whoever clones the repository has to modify it to
+    /// run anything that involves steel structures.
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>Quanti profili si elencano prima di troncare.</summary>
+        /// <summary>How many profiles are listed before truncating.</summary>
         private const int MaxProfiles = 40;
 
-        /// <summary>Quante misure si elencano per profilo.</summary>
+        /// <summary>How many sizes are listed per profile.</summary>
         private const int MaxMeasurementsPerProfile = 24;
 
         private Outcome WeldmentProfiles(
@@ -57,12 +57,12 @@ namespace Oce.Solid.Agent.Core
         {
             string folder = ProfilesFolder();
 
-            // DUE MESSAGGI E NON UNO. `Directory.Exists(null)` risponde `false`
-            // senza sollevare niente, quindi con la variabile non impostata il
-            // rifiuto diceva «Non trovo la cartella dei profili: ««»» — un
-            // percorso vuoto fra virgolette, che si legge come un guasto e non
-            // come una cosa da fare. *Non impostata e sbagliata sono due
-            // problemi diversi e chiedono due azioni diverse.*
+            // TWO MESSAGES AND NOT ONE. `Directory.Exists(null)` answers `false`
+            // without raising anything, so with the variable unset the
+            // refusal said «Non trovo la cartella dei profili: ««»» — an
+            // empty path between quotation marks, which reads as a failure and not
+            // as something to do. *Unset and wrong are two different
+            // problems and ask for two different actions.*
             if (folder == null)
                 return Failed(
                     "Non so dove sia la libreria dei profili. E' una cartella di file " +
@@ -113,9 +113,9 @@ namespace Oce.Solid.Agent.Core
                 var entry = new Dictionary<string, object>
                 {
                     ["name"] = Path.GetFileNameWithoutExtension(f),
-                    // IL PERCORSO SI DA' INTERO E SI COPIA INTERO. E' quello
-                    // che `structural_member` vuole in `profile_path`, e
-                    // ricostruirlo da nome e cartella e' il modo di sbagliarlo.
+                    // THE PATH IS GIVEN WHOLE AND COPIED WHOLE. It is what
+                    // `structural_member` wants in `profile_path`, and
+                    // rebuilding it from name and folder is the way to get it wrong.
                     ["profile_path"] = f,
                 };
 
@@ -127,9 +127,9 @@ namespace Oce.Solid.Agent.Core
                     if (measurements == null || measurements.Length == 0)
                     {
                         withoutMeasurements++;
-                        // NON SI TACE. Un profilo di cui non si sono potute
-                        // leggere le misure e' diverso da uno senza misure, e
-                        // tutti e due sono diversi da uno a posto.
+                        // IT IS NOT KEPT QUIET. A profile whose sizes could not be
+                        // read is different from one without sizes, and
+                        // both are different from one that is fine.
                         entry["measurements"] = null;
                         entry["note"] =
                             "Non sono riuscito a leggere le misure di questo profilo: non " +
@@ -179,18 +179,18 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// La cartella della libreria dei profili. Si dice con
-        /// `PROFILI_SALDATURA`, la stessa variabile che usa il banco: due nomi
-        /// diversi per la stessa cosa sono due cose che un giorno divergono.
+        /// The folder of the profile library. It is given with
+        /// `PROFILI_SALDATURA`, the same variable the bench uses: two different
+        /// names for the same thing are two things that one day diverge.
         ///
-        /// NON C'E' PIU' UN RIPIEGO, e prima c'era: il percorso della libreria
-        /// normata di chi ha scritto questo codice, su un disco di rete che
-        /// esiste su una postazione sola. Su ogni altra macchina non esisteva e
-        /// l'operazione falliva comunque - cioe' il ripiego non ha mai aiutato
-        /// nessuno tranne chi l'aveva scritto, e intanto pubblicava com'e'
-        /// fatto quel disco.
+        /// THERE IS NO FALLBACK ANY MORE, and there used to be one: the path of the standards
+        /// library of whoever wrote this code, on a network drive that
+        /// exists on one workstation only. On every other machine it did not exist and
+        /// the operation failed anyway - that is, the fallback never helped
+        /// anyone except whoever had written it, and meanwhile it published how that
+        /// drive is laid out.
         ///
-        /// Vuoto vuol dire vuoto, e chi chiama lo dice.
+        /// Empty means empty, and whoever calls says so.
         /// </summary>
         private static string ProfilesFolder()
         {

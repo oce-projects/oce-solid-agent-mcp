@@ -5,28 +5,28 @@ using static Oce.Solid.Agent.Core.Catalog.Node;
 namespace Oce.Solid.Agent.Core.Catalog
 {
     /// <summary>
-    /// IL CATALOGO. Cosa il modello puo' chiedere, e come si scrive.
+    /// THE CATALOG. What the model can ask for, and how it is written.
     ///
-    /// STA QUI E NON IN UN JSON SCRITTO A MANO, e nemmeno nel server, per
-    /// una ragione sola: **lo strato che DESCRIVE un'operazione deve essere
-    /// lo stesso che la ESEGUE**. E' l'unica disposizione in cui
-    /// un'operazione descritta e non eseguibile non puo' entrare in
-    /// catalogo senza che qualcuno se ne accorga: il controllo diventa
-    /// un'asserzione dentro un progetto, invece di un confronto fra due
-    /// repository che nessuno rifa'.
+    /// IT LIVES HERE AND NOT IN A HAND-WRITTEN JSON, and not in the server either, for
+    /// one reason only: **the layer that DESCRIBES an operation must be
+    /// the same one that EXECUTES it**. It is the only arrangement in which
+    /// an operation that is described and not executable cannot enter the
+    /// catalog without somebody noticing: the check becomes
+    /// an assertion inside a project, instead of a comparison between two
+    /// repositories that nobody redoes.
     ///
-    /// Prima viveva in `ai_disegno.py`, e chi clonava questo repository NON
-    /// POTEVA rigenerare `catalog.json`: servivano il server, docker e un
-    /// container usa-e-getta. Adesso serve `Oce.Solid.Agent.Catalog.exe`.
+    /// It used to live in `ai_disegno.py`, and whoever cloned this repository COULD NOT
+    /// regenerate `catalog.json`: the server, docker and a
+    /// disposable container were needed. Now `Oce.Solid.Agent.Catalog.exe` is needed.
     ///
-    /// `Tested` non finisce nel JSON ed e' voluto: e' la promessa che
-    /// l'operazione e' stata costruita e MISURATA dentro SOLIDWORKS, e
-    /// finche' e' falsa l'operazione non si esporta — quindi il modello non
-    /// la vede. Sta accanto al codice che esegue, non in un file lontano.
+    /// `Tested` does not end up in the JSON and this is intended: it is the promise that
+    /// the operation was built and MEASURED inside SOLIDWORKS, and
+    /// as long as it is false the operation is not exported — so the model does not
+    /// see it. It sits next to the code that executes, not in a distant file.
     /// </summary>
     public static class Operations
     {
-        /// <summary>Le famiglie, con la riga che le spiega.</summary>
+        /// <summary>The families, with the line that explains them.</summary>
         public static readonly List<KeyValuePair<string, string>> Families =
             new List<KeyValuePair<string, string>>
             {
@@ -42,12 +42,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                 new KeyValuePair<string, string>(
                     "references",
                     "piani e assi su cui costruire"),
-                // LA FAMIGLIA CHE NON E' UN PEZZO. Tutte le altre lavorano
-                // dentro un documento di parte; questa mette insieme parti che
-                // esistono gia', e la cosa che la distingue non e' cosa fa ma
-                // cosa NON basta: inserire non e' accoppiare, e un assieme di
-                // componenti liberi sembra montato senza esserlo. La riga qui
-                // sotto lo dice al modello prima che chieda l'elenco.
+                // THE FAMILY THAT IS NOT A PART. All the others work
+                // inside a part document; this one puts together parts that
+                // already exist, and what distinguishes it is not what it does but what
+                // it is NOT enough: inserting is not mating, and an assembly of
+                // free components looks assembled without being so. The line
+                // below tells the model before it asks for the list.
                 new KeyValuePair<string, string>(
                     "assemblies",
                     "mettere insieme pezzi che esistono gia'. Inserire NON e' " +
@@ -58,10 +58,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                 new KeyValuePair<string, string>(
                     "drawing",
                     "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF"),
-                // LA FAMIGLIA CHE NON DISEGNA. Fino alla 0.76.0 nessuna
-                // operazione del catalogo sapeva rispondere a «com'e' venuto?»:
-                // le misure c'erano ma erano private dentro le operazioni, e il
-                // modello non poteva chiamarne nessuna.
+                // THE FAMILY THAT DOES NOT DRAW. Up to 0.76.0 no
+                // operation of the catalog could answer «how did it turn out?»:
+                // the measurements were there but they were private inside the operations, and the
+                // model could not call any of them.
                 new KeyValuePair<string, string>(
                     "checks",
                     "dire com'e' venuto, senza toccarlo"),
@@ -69,22 +69,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                     "exports",
                     "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D, "
                     + "STEP e IGES per chi lo deve lavorare"),
-                // QUELLO CHE IL PEZZO DICE DI SE'. Il numero di disegno e la
-                // revisione non sono geometria, ma sono cio' che arriva al
-                // cartiglio e alla scheda del PDM: un pezzo giusto con la
-                // revisione sbagliata e' un pezzo sbagliato.
+                // WHAT THE PART SAYS ABOUT ITSELF. The drawing number and the
+                // revision are not geometry, but they are what reaches the
+                // title block and the PDM card: a right part with the wrong
+                // revision is a wrong part.
                 new KeyValuePair<string, string>(
                     "identity",
                     "quello che il pezzo dice di se': numero disegno, revisione, "
                     + "cliente, e le sue varianti"),
-                // LA LAMIERA (voce GP18). La famiglia che produce il file che va
-                // alla macchina di taglio: un difetto silenzioso qui costa
-                // lamiera vera, e lo sviluppo si confronta sempre col conto a mano.
+                // SHEET METAL (entry GP18). The family that produces the file that goes
+                // to the cutting machine: a silent defect here costs real
+                // sheet, and the flat pattern is always compared with the hand calculation.
                 new KeyValuePair<string, string>(
                     "sheet_metal",
                     "lamiera piegata e il suo sviluppo in DXF per il taglio"),
-                // LE QUOTE NEL MODELLO (voce Z-H3): DimXpert dal nucleo. Non e'
-                // la tavola: le quote stanno sul pezzo.
+                // THE DIMENSIONS IN THE MODEL (entry Z-H3): DimXpert from the core. It is not
+                // the drawing: the dimensions are on the part.
                 new KeyValuePair<string, string>(
                     "dimensions",
                     "quote e tolleranze messe sul PEZZO (DimXpert), non su una tavola"),
@@ -97,7 +97,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "extrude_circle",
                     Family = "extrusions",
-                    Example = "{\"plane\":\"front\",\"diameter_mm\":6,\"height_mm\":10}",   // da `thread_on_pin`
+                    Example = "{\"plane\":\"front\",\"diameter_mm\":6,\"height_mm\":10}",   // from `thread_on_pin`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "extrude_rectangle",
                     Family = "extrusions",
-                    Example = "{\"plane\":\"front\",\"length_mm\":200,\"width_mm\":120,\"thickness_mm\":20,\"centered\":true}",   // da `blind_slot`
+                    Example = "{\"plane\":\"front\",\"length_mm\":200,\"width_mm\":120,\"thickness_mm\":20,\"centered\":true}",   // from `blind_slot`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -349,7 +349,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "revolve",
                     Family = "extrusions",
-                    Example = "{\"plane\":\"front\",\"angle_deg\":360,\"axis\":[[0,0],[90,0]],\"contours\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `drilled_shaft_no_longer_declares_profile`
+                    Example = "{\"plane\":\"front\",\"angle_deg\":360,\"axis\":[[0,0],[90,0]],\"contours\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // from `drilled_shaft_no_longer_declares_profile`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -857,7 +857,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "features",
                     RequestedDocument = "part",
                     Tested = true,
-                    Example = "{\"feature_uid\":\"Cut-Extrude1\",\"through_all\":true}",   // da `blind_becomes_through`
+                    Example = "{\"feature_uid\":\"Cut-Extrude1\",\"through_all\":true}",   // from `blind_becomes_through`
                     Summary = "Cambia un'estrusione o un taglio gia' fatti: cieco -> passante, o un'altra profondita'.",
                     Description =
                         "Cambia la definizione di un'estrusione o di un taglio estruso che c'e' gia': un "
@@ -894,7 +894,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "features",
                     RequestedDocument = "part",
                     Tested = true,
-                    Example = "{\"feature_uid\":\"Shell1\",\"relative_to_uid\":\"Cut-Extrude1\",\"placement\":\"before\"}",   // da `order_changes_the_part`
+                    Example = "{\"feature_uid\":\"Shell1\",\"relative_to_uid\":\"Cut-Extrude1\",\"placement\":\"before\"}",   // from `order_changes_the_part`
                     Summary = "Sposta una lavorazione prima o dopo un'altra nell'albero, e dice come e' cambiato il pezzo.",
                     Description =
                         "Sposta una lavorazione nell'albero, prima o dopo un'altra: uno svuotamento "
@@ -929,7 +929,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "features",
                     RequestedDocument = "part",
                     Tested = true,
-                    Example = "{\"name\":\"parete\",\"value_mm\":12}",   // da `wall_has_a_name`
+                    Example = "{\"name\":\"parete\",\"value_mm\":12}",   // from `wall_has_a_name`
                     Summary = "Dai un NOME a un numero (parete = 3 mm): le quote legate cambiano con lui.",
                     Description =
                         "Crea o cambia una variabile globale del pezzo: «parete» = 12 mm, oppure "
@@ -1089,7 +1089,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "suppress_feature",
                     Family = "features",
-                    Example = "{\"feature_uid\":\"Cut-Extrude2\"}",   // da `limit_suppress_twice`
+                    Example = "{\"feature_uid\":\"Cut-Extrude2\"}",   // from `limit_suppress_twice`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -1129,7 +1129,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "delete_feature",
                     Family = "features",
-                    Example = "{\"feature_uid\":\"Cut-Extrude1\"}",   // da `delete_first_hole`
+                    Example = "{\"feature_uid\":\"Cut-Extrude1\"}",   // from `delete_first_hole`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -1407,7 +1407,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Name = "fill_pattern",
                     Family = "features",
                     RequestedDocument = "part",
-                    // true SOLO dopo il banco verde su cases/patterns (il verde e i tre rifiuti).
+                    // true ONLY after the green bench on cases/patterns (the green and the three refusals).
                     Tested = true,
                     Summary =
                         "Riempie una faccia piana di copie di una lavorazione: una piastra forata "
@@ -1439,9 +1439,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "la ripetizione, se nasce con lavorazioni in errore, con i corpi cambiati o "
                         + "con copie che mordono il bordo o si fondono fra loro.",
                     Precondition = "feature_and_direction",
-                    // Niente Esempio: il caso verde usa selettori del banco
-                    // (@feature, @face, @edge), e un esempio che il client non
-                    // puo' copiare e' una trappola (ExamplesTests, voce Z-G1).
+                    // No Example: the green case uses bench selectors
+                    // (@feature, @face, @edge), and an example that the client cannot
+                    // copy is a trap (ExamplesTests, entry Z-G1).
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -1879,7 +1879,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "apply_material",
                     Family = "physical_properties",
-                    Example = "{\"material\":\"AISI 304\"}",   // da `mass_of_a_steel_cube`
+                    Example = "{\"material\":\"AISI 304\"}",   // from `mass_of_a_steel_cube`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -1916,11 +1916,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "string",
                                 "description", "opzionale: il nome dell'archivio, se sai in quale cercare. "
                                     + "Lascialo stare se non lo sai.")),
-                        // Z-G3: `material` NON e' piu' obbligatorio — c'e' un
-                        // predefinito d'officina, e la risposta dichiara di averlo
-                        // usato. Un campo che si chiede sempre e la cui risposta e'
-                        // sempre la stessa fa scrivere al modello una riga che non
-                        // e' una scelta.
+                        // Z-G3: `material` is NO longer mandatory — there is a
+                        // workshop default, and the answer declares that it used
+                        // it. A field that is always asked and whose answer is
+                        // always the same makes the model write a line that
+                        // is not a choice.
                         "required", A()),
                 },
                 new OperationSpec
@@ -1982,7 +1982,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "create_plane",
                     Family = "references",
-                    Example = "{\"plane\":\"front\",\"distance_mm\":-250}",   // da `front_plane_minus_250`
+                    Example = "{\"plane\":\"front\",\"distance_mm\":-250}",   // from `front_plane_minus_250`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -2107,18 +2107,18 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Name = "gusset",
                     Family = "weldments",
                     RequestedDocument = "part",
-                    // ── PROVATA DAL 28/9/2026 (voce GP20) ───────────────
+                    // ── PROVEN SINCE 28/9/2026 (entry GP20) ─────────────
                     //
-                    // Fino alla libreria 0.139.0 non e' mai nato un fazzoletto:
-                    // il metodo passava un poligono coi lati corti a zero
-                    // (ProfileD3 = ProfileD4 = 0) e nessuna marca, e
-                    // InsertGussetFeature3 tornava null. La guida API (Remarks
-                    // di InsertGussetFeature3, Insert_Gusset_Feature_Example_
-                    // CSharp.htm) vuole le due facce con marca 1 E un profilo
-                    // valido. Misurato con la sonda Checks\Gusset\
-                    // Program.cs sulla T 80x80x5: triangolo 60/60
-                    // spesso 5 +9000 mm3, poligono 60/60/15/15 +12937,5, corpi
-                    // 2 -> 3. Casi: weldments/gusset_sits_in_the_corner e
+                    // Up to library 0.139.0 a gusset was never born:
+                    // the method passed a polygon with the short sides at zero
+                    // (ProfileD3 = ProfileD4 = 0) and no mark, and
+                    // InsertGussetFeature3 returned null. The API guide (Remarks
+                    // of InsertGussetFeature3, Insert_Gusset_Feature_Example_
+                    // CSharp.htm) wants the two faces with mark 1 AND a valid
+                    // profile. Measured with the probe Checks\Gusset\
+                    // Program.cs on the T 80x80x5: triangle 60/60
+                    // thickness 5 +9000 mm3, polygon 60/60/15/15 +12937.5, bodies
+                    // 2 -> 3. Cases: weldments/gusset_sits_in_the_corner and
                     // weldments/gusset_polygon_is_not_degenerate.
                     Tested = true,
                     Summary =
@@ -2152,9 +2152,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "(«new_body», «new_body_box_mm»). Se una di queste non torna, il "
                         + "fazzoletto lo tolgo e te lo dico. Se ti serve solo documentare la "
                         + "saldatura, usa «weld_bead».",
-                    // Niente esempio: i due casi verdi nominano le facce coi
-                    // selettori del banco (@face(area~=...,normal=...)), che il
-                    // client non puo' copiare (vedi OperationSpec.Esempio).
+                    // No example: the two green cases name the faces with the
+                    // bench selectors (@face(area~=...,normal=...)), which the
+                    // client cannot copy (see OperationSpec.Esempio).
                     Example = null,
                     Precondition = "solid_body_and_face",
                     Schema = O(
@@ -2557,7 +2557,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "create_drawing",
                     Family = "drawing",
-                    Example = "{\"paper_size\":\"A3\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    Example = "{\"paper_size\":\"A3\"}",   // from `two_sheets_and_the_same_projection_angle`
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
@@ -2718,16 +2718,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Name = "center_marks",
                     Family = "drawing",
                     RequestedDocument = "drawing",
-                    // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
+                    // ── PROVEN SINCE 26/9/2026 (library 0.125.0) ──────────
                     //
-                    // Dal 17/9 era `Provata = false`: `AutoInsertCenterMarks2`
-                    // rispondeva True e metteva zero croci in 25 combinazioni, e
-                    // `InsertCenterMark2/3` sugli spigoli selezionati zero. Il
-                    // 26/9 (`prova0089 croci2`, col controllo positivo):
-                    // le croci sui fori C'ERANO (le mette SOLIDWORKS creando la
-                    // vista) e `GetCenterMarkCount` non le contava; da codice una
-                    // croce nuova non nasce. L'operazione e' un controllo: conta
-                    // enumerando e rifiuta i fori senza croce. Vedi la voce W2.11.
+                    // Since 17/9 it was `Provata = false`: `AutoInsertCenterMarks2`
+                    // answered True and put zero marks in 25 combinations, and
+                    // `InsertCenterMark2/3` on the selected edges zero. On
+                    // 26/9 (`prova0089 croci2`, with the positive check):
+                    // the marks on the holes WERE THERE (SOLIDWORKS puts them when creating the
+                    // view) and `GetCenterMarkCount` did not count them; from code a new
+                    // mark is not born. The operation is a check: it counts
+                    // by enumerating and refuses the holes without a mark. See entry W2.11.
                     Tested = true,
                     Summary =
                         "Controlla che ogni foro delle viste abbia la croce di centro, contandole davvero, e rifiuta se ne manca.",
@@ -2778,21 +2778,21 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "drawing_dimension",
                     Family = "drawing",
-                    Example = "{\"edges\":[0,1,2,3]}",   // da `drawing_dimensions_itself`
+                    Example = "{\"edges\":[0,1,2,3]}",   // from `drawing_dimensions_itself`
                     RequestedDocument = "drawing",
-                    // ── PROVATA, E COSA VUOL DIRE QUI ──────────────────
+                    // ── PROVEN, AND WHAT THAT MEANS HERE ───────────────
                     //
-                    // Misurato il 18/9/2026 fuori processo: quattro quote su
-                    // quattro spigoli, e i VALORI RILETTI con
-                    // `GetSystemValue2` — 120 mm la piastra, 5 mm lo smusso, su
-                    // un pezzo 120 x 80 x 10 con smusso 5.
+                    // Measured on 18/9/2026 out of process: four dimensions on
+                    // four edges, and the VALUES READ BACK with
+                    // `GetSystemValue2` — 120 mm the plate, 5 mm the chamfer, on
+                    // a 120 x 80 x 10 part with chamfer 5.
                     //
-                    // Non basta che compaiano: una quota che misura un'altra
-                    // cosa e' peggio di una quota che manca, perche' sulla
-                    // carta si legge uguale. Per questo l'operazione rilegge
-                    // ogni quota e restituisce il millimetro, e per questo il
-                    // primo giro della sonda — che rispondeva `?` al valore —
-                    // NON sarebbe bastato a marcarla provata.
+                    // It is not enough that they appear: a dimension that measures something else
+                    // is worse than a dimension that is missing, because on
+                    // paper it reads the same. For this the operation reads back
+                    // every dimension and returns the millimetre, and for this the
+                    // first run of the probe — which answered `?` to the value —
+                    // would NOT have been enough to mark it proven.
                     Tested = true,
                     Summary =
                         "Mette le quote sugli spigoli di una vista, e RILEGGE quanto misurano.",
@@ -3190,17 +3190,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "note",
                     Family = "drawing",
-                    Example = "{\"text\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `note_ends_up_on_the_sheet`
+                    Example = "{\"text\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // from `note_ends_up_on_the_sheet`
                     RequestedDocument = "drawing",
-                    // ── PROVATA, E SU COSA ─────────────────────────────
+                    // ── PROVEN, AND ON WHAT ────────────────────────────
                     //
-                    // Che la nota NASCA, che finisca sul FOGLIO e non dentro
-                    // una vista, e che il testo riletto sia quello chiesto.
+                    // That the note IS BORN, that it ends up on the SHEET and not inside
+                    // a view, and that the text read back is the one asked for.
                     //
-                    // Non e' provata — e non puo' esserlo — sul fatto che
-                    // quello che c'e' scritto sia giusto: una nota e' testo
-                    // libero, e «materiale S355» su un pezzo S275 passa ogni
-                    // conteggio e ogni rilettura.
+                    // It is not proven — and cannot be — on whether
+                    // what is written is right: a note is free text,
+                    // and «materiale S355» on an S275 part passes every
+                    // count and every re-reading.
                     Tested = true,
                     Summary =
                         "Scrive una nota di testo sul foglio della tavola, e RILEGGE "
@@ -3243,22 +3243,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                 new OperationSpec
                 {
                     Name = "section_view",
-                    // Z-C13 (26/9/2026): una lettera gia' usata da una sezione o da un
-                    // dettaglio si rifiuta; la lettera effettiva si rilegge.
+                    // Z-C13 (26/9/2026): a letter already used by a section or a
+                    // detail is refused; the effective letter is read back.
                     Family = "drawing",
-                    Example = "{\"label\":\"A\",\"offset_mm\":0}",   // da `section_cuts_the_part`
+                    Example = "{\"label\":\"A\",\"offset_mm\":0}",   // from `section_cuts_the_part`
                     RequestedDocument = "drawing",
-                    // ── PROVATA, E SU COSA ─────────────────────────────
+                    // ── PROVEN, AND ON WHAT ────────────────────────────
                     //
-                    // Che la vista di sezione NASCA (il conto delle viste
-                    // sale), che sia del tipo giusto, e che abbia del
-                    // TRATTEGGIO — che e' l'unica cosa che distingue una
-                    // sezione dentro il materiale da una linea di taglio
-                    // caduta fuori, che produce una vista valida e vuota.
+                    // That the section view IS BORN (the count of the views
+                    // goes up), that it is of the right type, and that it has
+                    // HATCHING — which is the only thing that tells a
+                    // section inside the material from a cutting line
+                    // fallen outside, which produces a valid and empty view.
                     //
-                    // Non e' provata — e non puo' esserlo — sul fatto che
-                    // il taglio passi dove serviva: dieci millimetri piu' in
-                    // la' e' altrettanto valido e non fa vedere il foro.
+                    // It is not proven — and cannot be — on whether
+                    // the cut passes where it was needed: ten millimetres further
+                    // on is just as valid and does not show the hole.
                     Tested = true,
                     Summary =
                         "Crea una vista di sezione su una tavola, e controlla che "
@@ -3328,20 +3328,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "detail_view",
                     Family = "drawing",
-                    Example = "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8}",   // da `detail_enlarges`
+                    Example = "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8}",   // from `detail_enlarges`
                     RequestedDocument = "drawing",
-                    // ── PROVATA, E SU COSA ─────────────────────────────
+                    // ── PROVEN, AND ON WHAT ────────────────────────────
                     //
-                    // Che la vista di dettaglio NASCA, che sia del tipo
-                    // giusto, e che il cerchio sia DIVENTATO una
-                    // circonferenza di dettaglio sulla vista di partenza —
-                    // che e' cio' che distingue un dettaglio vero da un
-                    // cerchio disegnato a mano accanto a una vista in piu'.
+                    // That the detail view IS BORN, that it is of the right
+                    // type, and that the circle BECAME a
+                    // detail circle on the starting view —
+                    // which is what tells a true detail from a
+                    // circle drawn by hand next to one more view.
                     //
-                    // NON si guarda il tratteggio: un dettaglio non taglia
-                    // niente, e la campitura li' e' zero (misurato). Copiare
-                    // il controllo della sezione darebbe un'operazione che
-                    // rifiuta sempre.
+                    // The hatching is NOT looked at: a detail cuts
+                    // nothing, and the hatch there is zero (measured). Copying
+                    // the check of the section would give an operation that
+                    // always refuses.
                     Tested = true,
                     Summary =
                         "Crea una vista di dettaglio ingrandita su una tavola, e "
@@ -3446,7 +3446,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "interference_check",
                     Family = "checks",
-                    Example = "{\"touching_counts\":true}",   // da `touching_is_not_interpenetrating`
+                    Example = "{\"touching_counts\":true}",   // from `touching_is_not_interpenetrating`
                     RequestedDocument = "assembly",
                     Tested = true,
                     Summary =
@@ -3507,34 +3507,34 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Name = "drawing_cut_list",
                     Family = "drawing",
                     RequestedDocument = "drawing",
-                    // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
+                    // ── PROVEN SINCE 26/9/2026 (library 0.125.0) ──────────
                     //
-                    // La tabella nasce quando il pezzo e' un SALDATO con la
-                    // distinta automatica — che `cut_list` adesso fa. Il
-                    // testo qui sotto e' del 17/9: la causa non era la tavola,
-                    // era il pezzo (`IsWeldment` falso). Misurato: telaio
-                    // 1000 x 800, tabella con 2 voci, 2 x 1000 e 2 x 800.
+                    // The table is born when the part is a WELDMENT with the
+                    // automatic cut list — which `cut_list` now does. The
+                    // text below is from 17/9: the cause was not the drawing,
+                    // it was the part (`IsWeldment` false). Measured: frame
+                    // 1000 x 800, table with 2 entries, 2 x 1000 and 2 x 800.
                     //
-                    // ── (17/9) NON PROVATA: la tabella non nasce ───────────
+                    // ── (17/9) NOT PROVEN: the table is not born ───────────
                     //
-                    // `IView.InsertWeldmentTable` torna `null`, e non e' un
-                    // problema di questa operazione: **su questa installazione
-                    // non nasce NESSUNA tabella in tavola.** Misurato il
-                    // 17/9/2026 — anche `IDrawingDoc.InsertTableAnnotation2`
-                    // con tre righe, tre colonne e nessun modello torna null.
+                    // `IView.InsertWeldmentTable` returns `null`, and it is not a
+                    // problem of this operation: **on this installation
+                    // NO table is born in the drawing.** Measured on
+                    // 17/9/2026 — even `IDrawingDoc.InsertTableAnnotation2`
+                    // with three rows, three columns and no template returns null.
                     //
-                    // Provati e tutti negativi: modello di tabella vuoto e
-                    // modello vero (`cut list.sldwldtbt`); ancoraggio 0 e
-                    // TopLeft; `UseAnchorPoint` vero e falso; configurazione
-                    // vuota e quella esatta della vista; tutte e tre le viste;
-                    // vista attivata e selezionata; **quattro modelli di tavola
-                    // diversi, tre dei quali di serie** (iso, din, ansi);
-                    // documento gia' attivo e riattivato con `ActivateDoc3`.
+                    // Tried and all negative: empty table template and
+                    // real template (`cut list.sldwldtbt`); anchor 0 and
+                    // TopLeft; `UseAnchorPoint` true and false; empty
+                    // configuration and the exact one of the view; all three views;
+                    // view activated and selected; **four different drawing
+                    // templates, three of which standard** (iso, din, ansi);
+                    // document already active and reactivated with `ActivateDoc3`.
                     //
-                    // E' lo stesso blocco di `center_marks` (voce W2.11):
-                    // due API di annotazione che non c'entrano niente fra loro,
-                    // tutte e due mute sulla stessa tavola. Vedi la voce GT2
-                    // del TODO per dove ripartire.
+                    // It is the same block as `center_marks` (entry W2.11):
+                    // two annotation APIs that have nothing to do with each other,
+                    // both mute on the same drawing. See entry GT2
+                    // of the TODO for where to restart.
                     Tested = true,
                     Summary =
                         "Mette in tavola la distinta di taglio del saldato, e la confronta "
@@ -3599,7 +3599,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "new_sheet",
                     Family = "drawing",
-                    Example = "{\"name\":\"Assembly\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    Example = "{\"name\":\"Assembly\"}",   // from `two_sheets_and_the_same_projection_angle`
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
@@ -3640,7 +3640,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "activate_sheet",
                     Family = "drawing",
-                    Example = "{\"name\":\"Sheet1\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    Example = "{\"name\":\"Sheet1\"}",   // from `two_sheets_and_the_same_projection_angle`
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
@@ -3828,7 +3828,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "check_overhangs",
                     Family = "checks",
-                    Example = "{\"threshold_deg\":70}",   // da `walls_at_sixty_degrees_do_not_print`
+                    Example = "{\"threshold_deg\":70}",   // from `walls_at_sixty_degrees_do_not_print`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -4152,7 +4152,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "combine_bodies",
                     Family = "features",
-                    Example = "{\"operation\":\"intersect\"}",   // da `intersect_two_cubes`
+                    Example = "{\"operation\":\"intersect\"}",   // from `intersect_two_cubes`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -4233,7 +4233,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "required", A(
                                     "step",
                                     "kind"))),
-                        // Z-G3: predefinito «union», dichiarato nella risposta.
+                        // Z-G3: default «union», declared in the answer.
                         "required", A()),
                 },
                 new OperationSpec
@@ -4503,7 +4503,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "weldment_profiles",
                     Family = "weldments",
-                    Example = "{\"search\":\"TUBO STRUTTURALE QUADRO\"}",   // da `profiles_are_read_first`
+                    Example = "{\"search\":\"TUBO STRUTTURALE QUADRO\"}",   // from `profiles_are_read_first`
                     RequestedDocument = "none",
                     Tested = true,
                     Summary =
@@ -4629,7 +4629,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "assemblies",
                     RequestedDocument = "assembly",
                     Tested = true,
-                    Example = "{\"component\":\"C2\",\"plane\":\"right\",\"mode\":\"instance\"}",   // da `right_bracket_and_left_bracket`
+                    Example = "{\"component\":\"C2\",\"plane\":\"right\",\"mode\":\"instance\"}",   // from `right_bracket_and_left_bracket`
                     Summary = "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
                     Description =
                         "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). "
@@ -4691,7 +4691,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "assemblies",
                     RequestedDocument = "assembly",
                     Tested = true,
-                    Example = "{\"component\":\"C2\",\"grounded\":true}",   // da `fixed_is_not_mated`
+                    Example = "{\"component\":\"C2\",\"grounded\":true}",   // from `fixed_is_not_mated`
                     Summary = "Fissa o libera un componente dell'assieme, e lo rilegge.",
                     Description =
                         "Fissa un componente (non si muove piu', qualunque accoppiamento abbia) o "
@@ -4876,7 +4876,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "circular_sweep",
                     Family = "extrusions",
-                    Example = "{\"path_mm\":[[0,0,0],[100,0,0]],\"diameter_mm\":20}",   // da `straight_pipe_area_per_length`
+                    Example = "{\"path_mm\":[[0,0,0],[100,0,0]],\"diameter_mm\":20}",   // from `straight_pipe_area_per_length`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -4916,7 +4916,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "loft_two_circles",
                     Family = "extrusions",
-                    Example = "{\"plane\":\"front\",\"diameter1_mm\":40,\"diameter2_mm\":20,\"distance_mm\":50}",   // da `loft_is_not_a_cone`
+                    Example = "{\"plane\":\"front\",\"diameter1_mm\":40,\"diameter2_mm\":20,\"distance_mm\":50}",   // from `loft_is_not_a_cone`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -5013,7 +5013,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "plane_three_points",
                     Family = "references",
-                    Example = "{\"point1_mm\":[0,0,0],\"point2_mm\":[50,0,0],\"point3_mm\":[100,10,0]}",   // da `limit_three_points_in_a_row`
+                    Example = "{\"point1_mm\":[0,0,0],\"point2_mm\":[50,0,0],\"point3_mm\":[100,10,0]}",   // from `limit_three_points_in_a_row`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -5337,7 +5337,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "rib",
                     Family = "features",
-                    Example = "{\"plane\":\"front\",\"distance_mm\":25,\"start_mm\":[10,40,25],\"end_mm\":[40,10,25],\"thickness_mm\":6}",   // da `rib_in_the_corner_of_the_l`
+                    Example = "{\"plane\":\"front\",\"distance_mm\":25,\"start_mm\":[10,40,25],\"end_mm\":[40,10,25],\"thickness_mm\":6}",   // from `rib_in_the_corner_of_the_l`
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
@@ -5531,7 +5531,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "set_property",
                     Family = "identity",
-                    Example = "{\"name\":\"NumeroDisegno\",\"value_text\":\"DIS-1234\"}",   // da `the_two_lists_do_not_see_each_other`
+                    Example = "{\"name\":\"NumeroDisegno\",\"value_text\":\"DIS-1234\"}",   // from `the_two_lists_do_not_see_each_other`
                     RequestedDocument = "any",
                     Tested = true,
                     Summary =
@@ -5579,7 +5579,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "create_configuration",
                     Family = "identity",
-                    Example = "{\"name\":\"Left\",\"details\":\"staffa sinistra\"}",   // da `the_two_lists_do_not_see_each_other`
+                    Example = "{\"name\":\"Left\",\"details\":\"staffa sinistra\"}",   // from `the_two_lists_do_not_see_each_other`
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
@@ -5622,7 +5622,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "activate_configuration",
                     Family = "identity",
-                    Example = "{\"name\":\"Left\"}",   // da `limit_configuration_that_already_exists`
+                    Example = "{\"name\":\"Left\"}",   // from `limit_configuration_that_already_exists`
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
@@ -5662,9 +5662,9 @@ namespace Oce.Solid.Agent.Core.Catalog
             };
 
         /// <summary>
-        /// L'argomento `anchor` (voce E18), lo stesso per il foro e la tasca. E'
-        /// un metodo e non un campo: la lista qui sopra si inizializza prima dei
-        /// campi dichiarati dopo di lei, e un campo varrebbe ancora null.
+        /// The `anchor` argument (entry E18), the same for the hole and the pocket. It is
+        /// a method and not a field: the list above is initialised before the
+        /// fields declared after it, and a field would still be null.
         /// </summary>
         private static Node AnchorSchema(string what, bool fromContour = false)
         {

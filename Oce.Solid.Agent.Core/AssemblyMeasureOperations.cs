@@ -8,25 +8,25 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// QUANTO PESA L'ASSIEME, IN CHE SCATOLA STA, E LO STEP DELL'ASSIEME
-    /// (voci Z-D1 e Z-D6).
+    /// HOW MUCH THE ASSEMBLY WEIGHS, WHAT BOX IT FITS IN, AND THE ASSEMBLY'S STEP
+    /// (entries Z-D1 and Z-D6).
     ///
-    /// «Quanto pesa» e «in che ingombro ci sta» sono le prime due domande su una
-    /// scatola stagna, e `mass_properties` / `body_bounding_box` rifiutavano un
-    /// assieme con «questo documento non e' un pezzo». Misurato il 27/9/2026
-    /// (`prova0089 zd1`, base AISI 304 + coperchio S235JR + una terza istanza
-    /// SOPPRESSA):
+    /// «How much does it weigh» and «what envelope does it fit in» are the first two questions about a
+    /// watertight box, and `mass_properties` / `body_bounding_box` refused an
+    /// assembly with «this document is not a part». Measured on 27/9/2026
+    /// (`prova0089 zd1`, AISI 304 base + S235JR lid + a third instance
+    /// SUPPRESSED):
     ///
-    ///  * `CreateMassProperty()` sull'assieme, senza corpi aggiunti: 1,06752 kg,
-    ///    ESATTAMENTE la somma delle due parti (0,768 + 0,29952); il componente
-    ///    soppresso non pesa.
-    ///  * `IComponent2.GetBodies3` da' i corpi nello spazio della PARTE (il
-    ///    coperchio a y 0..4 invece di 5..9): per l'ingombro vanno portati
-    ///    nell'assieme con `Transform2` — una copia del corpo e `ApplyTransform`.
-    ///  * Lo STEP dell'assieme si scrive (`SaveAs3`, come per la parte) e nel
-    ///    testo ha un `MANIFOLD_SOLID_BREP` per corpo. RILEGGERLO con `LoadFile4`
-    ///    apre il modale «Nuovo documento SOLIDWORKS» e la chiamata non torna:
-    ///    la verifica e' il conto dei solidi nel testo, non la riapertura.
+    ///  * `CreateMassProperty()` on the assembly, with no bodies added: 1.06752 kg,
+    ///    EXACTLY the sum of the two parts (0.768 + 0.29952); the suppressed
+    ///    component weighs nothing.
+    ///  * `IComponent2.GetBodies3` gives the bodies in the space of the PART (the
+    ///    lid at y 0..4 instead of 5..9): for the bounding box they must be brought
+    ///    into the assembly with `Transform2` — a copy of the body and `ApplyTransform`.
+    ///  * The assembly's STEP is written (`SaveAs3`, as for the part) and in the
+    ///    text it has one `MANIFOLD_SOLID_BREP` per body. READING IT BACK with `LoadFile4`
+    ///    opens the modal «Nuovo documento SOLIDWORKS» and the call does not return:
+    ///    the check is the count of the solids in the text, not the reopening.
     /// </summary>
     public partial class SwOperations
     {
@@ -166,14 +166,14 @@ namespace Oce.Solid.Agent.Core
                 var c = item.Component;
                 var doc = item.Document;
                 if (doc == null) { noDocument.Add(item.Name); continue; }
-                // LA CONFIGURAZIONE DEL COMPONENTE, NON QUELLA ATTIVA DEL PEZZO
-                // (revisione avversariale del 27/9/2026). Una vite Toolbox — un file,
-                // una configurazione per misura — usata M10x40 in un assieme e salvata
-                // attiva su M6x16: il pezzo pesato da solo e' l'altro, la somma non
-                // torna, e l'operazione si fermava con una causa falsa. Quel pezzo
-                // resta fuori dalla somma di controllo (la massa dell'assieme e'
-                // giusta: SOLIDWORKS pesa la configurazione che il componente usa), e
-                // il materiale si chiede alla configurazione usata.
+                // THE CONFIGURATION OF THE COMPONENT, NOT THE ACTIVE ONE OF THE PART
+                // (adversarial review of 27/9/2026). A Toolbox screw — one file,
+                // one configuration per size — used as M10x40 in an assembly and saved
+                // active on M6x16: the part weighed alone is the other one, the sum does not
+                // add up, and the operation stopped with a false cause. That part
+                // stays out of the check sum (the mass of the assembly is
+                // right: SOLIDWORKS weighs the configuration the component uses), and
+                // the material is asked of the configuration used.
                 string used = null, activate = null;
                 try { used = c.ReferencedConfiguration; } catch { }
                 try { activate = (doc.GetActiveConfiguration() as IConfiguration)?.Name; } catch { }
@@ -195,8 +195,8 @@ namespace Oce.Solid.Agent.Core
                     "I could not read the document of " + string.Join(", ", noDocument) + " (resolved, but GetModelDoc2 " +
                     "answered null): its material is not known, so no mass.");
 
-            // UN OGGETTO PER NUMERO, come per la parte: IMassProperty cambia le sue
-            // risposte a seconda di cosa gli si e' chiesto prima (OperazioniMisura).
+            // ONE OBJECT PER NUMBER, as for the part: IMassProperty changes its
+            // answers depending on what it was asked before (OperazioniMisura).
             var take = new Func<Func<IMassProperty, object>, object>(read =>
             {
                 try
@@ -232,8 +232,8 @@ namespace Oce.Solid.Agent.Core
 
             if (withoutMaterial.Count > 0)
             {
-                // LA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA» — come per la
-                // parte: SOLIDWORKS risponderebbe con la densita' dell'acqua.
+                // MASS WITHOUT A MATERIAL IS NOT ZERO, IT IS «UNKNOWN» — as for the
+                // part: SOLIDWORKS would answer with the density of water.
                 measurements["mass_kg"] = null;
                 measurements["without_material"] = withoutMaterial.ToArray();
                 measurements["why_no_mass"] =
@@ -245,10 +245,10 @@ namespace Oce.Solid.Agent.Core
             else
             {
                 measurements["mass_kg"] = Math.Round(mass, 4);
-                // IL CONTO RIFATTO: la massa dell'assieme contro la somma dei suoi
-                // pezzi letti uno per uno. Se divergono, una delle due letture non e'
-                // quella che sembra (un materiale messo sul componente, diverso da
-                // quello del pezzo; un componente che conta due volte).
+                // THE SUM REDONE: the mass of the assembly against the sum of its
+                // parts read one by one. If they diverge, one of the two readings is not
+                // what it seems (a material set on the component, different from
+                // that of the part; a component that counts twice).
                 if (readSum)
                 {
                     measurements["sum_of_parts_kg"] = Math.Round(sum, 4);
@@ -261,7 +261,7 @@ namespace Oce.Solid.Agent.Core
                             "sembra (un materiale messo sul componente nell'assieme? un componente contato due volte?). " +
                             "Non ti do un numero.");
                 }
-                else measurements["sum_of_parts_kg"] = null;   // un pezzo non si e' lasciato pesare, o usa un'altra configurazione: niente controllo
+                else measurements["sum_of_parts_kg"] = null;   // a part did not let itself be weighed, or uses another configuration: no check
             }
             measurements["what_it_does_not_check"] =
                 "Suppressed components do not weigh, and they are listed. Envelopes do not weigh either: SOLIDWORKS " +
@@ -343,8 +343,8 @@ namespace Oce.Solid.Agent.Core
                 double[] its = null;
                 foreach (var ob in bodies)
                 {
-                    // I CORPI ARRIVANO NELLO SPAZIO DELLA PARTE (misurato): una copia,
-                    // portata nell'assieme, e la scatola di quella.
+                    // THE BODIES COME IN THE SPACE OF THE PART (measured): a copy,
+                    // brought into the assembly, and the box of that.
                     IBody2 copy = null;
                     try { copy = (ob as IBody2)?.Copy() as IBody2; } catch { }
                     bool brought = false;
@@ -391,16 +391,16 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Z-D6: i corpi solidi che lo STEP di questo assieme deve contenere.
+        /// Z-D6: the solid bodies that the STEP of this assembly must contain.
         ///
-        /// PER PEZZO, NON PER ISTANZA (revisione avversariale del 27/9/2026). Lo
-        /// STEP scrive la struttura dell'assieme: la forma di un pezzo compare UNA
-        /// volta e le istanze sono occorrenze con la loro trasformazione. Misurato
-        /// il 28/9/2026 (caso assemblies/two_equal_bases_one_step: la base due volte
-        /// e il coperchio una) — nel file 2 solidi. Il conto per istanza
-        /// ne aspettava 3, e rifiutava uno STEP giusto su ogni assieme con viti o
-        /// piedini ripetuti. Un pezzo e' il suo file PIU' la configurazione: due
-        /// misure della stessa vite sono due forme.
+        /// PER PART, NOT PER INSTANCE (adversarial review of 27/9/2026). The
+        /// STEP writes the structure of the assembly: the shape of a part appears ONCE
+        /// and the instances are occurrences with their transformation. Measured
+        /// on 28/9/2026 (case assemblies/two_equal_bases_one_step: the base twice
+        /// and the lid once) — in the file 2 solids. The count per instance
+        /// expected 3, and refused a right STEP on every assembly with repeated
+        /// screws or feet. A part is its file PLUS the configuration: two
+        /// sizes of the same screw are two shapes.
         ///
         /// AN INSTANCE CUT IN THE ASSEMBLY IS A SHAPE OF ITS OWN (finding C4-2,
         /// measured on 28/9/2026 by the Z-C21.3 probe of the user bodies in a STEP:
@@ -524,11 +524,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quanti solidi ci sono nel testo dello STEP; -1 se non si legge. Si conta
-        /// per ISTANZA di entita' (il testo fra due «;»): un solido con cavita' si
-        /// scrive BREP_WITH_VOIDS, che non contiene la parola MANIFOLD_SOLID_BREP, e
-        /// un'entita' complessa puo' nominare tutte e due — contata una volta sola
-        /// (revisione avversariale del 27/9/2026).
+        /// How many solids there are in the text of the STEP; -1 if it cannot be read. It counts
+        /// per INSTANCE of entity (the text between two «;»): a solid with a cavity is
+        /// written BREP_WITH_VOIDS, which does not contain the word MANIFOLD_SOLID_BREP, and
+        /// a complex entity can name both — counted only once
+        /// (adversarial review of 27/9/2026).
         /// </summary>
         private static int SolidsInStep(string filePath)
         {

@@ -6,34 +6,34 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// GLI OCCHI SULLA TAVOLA.
+    /// THE EYES ON THE DRAWING.
     ///
-    /// Lo stato del documento e' l'unica cosa che il modello vede: se una
-    /// tavola gli arriva come «documento non di tipo parte», il modello puo'
-    /// solo indovinare. Fino alla 0.39.0 era esattamente cosi' — una tavola
-    /// era una riga di scuse.
+    /// The state of the document is the only thing the model sees: if a
+    /// drawing reaches it as «document not of type part», the model can
+    /// only guess. Until 0.39.0 it was exactly like that — a drawing
+    /// was a line of excuses.
     ///
-    /// Qui si descrive quello su cui si lavora davvero: i FOGLI (formato,
-    /// scala, quale e' attivo), le VISTE (nome, posizione, scala, quante quote
-    /// portano, di quale modello sono) e i DOCUMENTI APERTI, che in questa
-    /// famiglia non sono un dettaglio ma una precondizione.
+    /// Here what is really worked on is described: the SHEETS (format,
+    /// scale, which one is active), the VIEWS (name, position, scale, how many dimensions
+    /// they carry, of which model they are) and the OPEN DOCUMENTS, which in this
+    /// family are not a detail but a precondition.
     ///
-    /// LA REGOLA GIA' PAGATA VALE ANCHE QUI: si scrive quello che AGGIUNGE.
-    /// Non c'e' un elenco delle annotazioni una per una — sono centinaia su
-    /// una tavola normale e nessuno le nomina; c'e' il loro CONTEGGIO, che e'
-    /// quello che serve per accorgersi che una quota non e' arrivata.
+    /// THE RULE ALREADY PAID FOR HOLDS HERE TOO: what is written is what ADDS.
+    /// There is no list of the annotations one by one — there are hundreds on
+    /// a normal drawing and nobody names them; there is their COUNT, which is
+    /// what is needed to notice that a dimension did not arrive.
     /// </summary>
     public partial class DocumentState
     {
-        /// <summary>Quante viste si descrivono per esteso, al massimo.</summary>
+        /// <summary>How many views are described in full, at most.</summary>
         private const int MaxViews = 24;
 
         /// <summary>
-        /// I documenti aperti adesso.
+        /// The documents open now.
         ///
-        /// Se `sw` e' null si torna almeno il documento che si sta leggendo:
-        /// meglio una riga vera che un elenco assente, perche' l'assenza si
-        /// legge come «non c'e' nient'altro» ed e' una bugia.
+        /// If `sw` is null the document being read is returned at least:
+        /// better a true line than an absent list, because absence is
+        /// read as «there is nothing else» and it is a lie.
         /// </summary>
         private static List<Dictionary<string, object>> OpenDocuments(
             ISldWorks sw, IModelDoc2 active)
@@ -41,9 +41,9 @@ namespace Oce.Solid.Agent.Core
             var outside = new List<Dictionary<string, object>>();
             string activePath = "", activeTitle = "";
             try { activePath = active?.GetPathName() ?? ""; } catch { }
-            // IL TITOLO, NON SOLO IL PERCORSO. Un documento mai salvato
-            // non ha percorso, e con il solo confronto sul percorso in un
-            // elenco di documenti nuovi non risultava attivo NESSUNO.
+            // THE TITLE, NOT ONLY THE PATH. A never-saved document
+            // has no path, and with the comparison on the path alone in a
+            // list of new documents NONE appeared active.
             try { activeTitle = active?.GetTitle() ?? ""; } catch { }
 
             if (sw == null) return outside;
@@ -64,9 +64,9 @@ namespace Oce.Solid.Agent.Core
                         ["document_title"] = docTitle,
                         ["kind"] = SwOperations.DocumentTypeName(typ),
                     };
-                    // Il percorso solo se c'e': un documento mai salvato non ne
-                    // ha, e una stringa vuota in un elenco di percorsi e' un
-                    // invito a usarla.
+                    // The path only if there is one: a never-saved document has
+                    // none, and an empty string in a list of paths is an
+                    // invitation to use it.
                     if (!string.IsNullOrWhiteSpace(filePath)) entry["path"] = filePath;
                     bool isIt =
                         !string.IsNullOrWhiteSpace(activePath)
@@ -84,7 +84,7 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
-        /// <summary>Fogli, viste e conteggi di una tavola.</summary>
+        /// <summary>Sheets, views and counts of a drawing.</summary>
         private static void DescribeDrawing(IDrawingDoc drawing, Dictionary<string, object> data, ISldWorks sw)
         {
             if (drawing == null)
@@ -93,7 +93,7 @@ namespace Oce.Solid.Agent.Core
                 return;
             }
 
-            // ── i fogli ───────────────────────────────────────────────────
+            // ── the sheets ────────────────────────────────────────────────
             string active = "";
             try { active = (drawing.GetCurrentSheet() as ISheet)?.GetName() ?? ""; } catch { }
 
@@ -113,10 +113,10 @@ namespace Oce.Solid.Agent.Core
                         if (string.Equals(names[i], active, StringComparison.Ordinal))
                             entry["active"] = true;
 
-                        // Le proprieta' del foglio si leggono solo da quello
-                        // ATTIVO senza cambiare foglio, e cambiare foglio per
-                        // leggere sarebbe una lettura che modifica: si legge
-                        // quello che si puo' e si tace il resto.
+                        // The properties of the sheet can be read only from the
+                        // ACTIVE one without changing sheet, and changing sheet to
+                        // read would be a read that modifies: what can be read is read
+                        // and the rest is left unsaid.
                         if (entry.ContainsKey("active"))
                         {
                             var p = SheetPropertyOf(drawing);
@@ -129,12 +129,12 @@ namespace Oce.Solid.Agent.Core
                                 };
                                 if (p[3] != 0)
                                     entry["scale"] = FormatScale(p[2], p[3]);
-                                // IL DIEDRO SI VEDE. E' l'unica cosa di una
-                                // tavola che puo' essere sbagliata senza che
-                                // nessuna misura se ne accorga: destra e
-                                // sinistra scambiate, tavola plausibile,
-                                // pezzo specchiato. Se non e' scritto qui, il
-                                // modello non ha modo di guardarlo.
+                                // THE PROJECTION ANGLE IS SHOWN. It is the only thing of a
+                                // drawing that can be wrong without
+                                // any measurement noticing: right and
+                                // left swapped, plausible drawing,
+                                // mirrored part. If it is not written here, the
+                                // model has no way to look at it.
                                 if (p.Length > 4)
                                     entry["projection_angle"] = p[4] != 0 ? "first" : "third";
                             }
@@ -146,16 +146,16 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (sheets.Count > 0) data["sheets"] = sheets;
 
-            // ── le viste ──────────────────────────────────────────────────
+            // ── the views ─────────────────────────────────────────────────
             //
-            // LA PRIMA VISTA NON E' UNA VISTA: e' il FOGLIO. `GetFirstView()`
-            // torna il foglio, e le viste vere cominciano dal `GetNextView()`.
-            // Chi lo dimentica descrive un foglio come se fosse una vista, e
-            // poi quota un oggetto che non ha geometria.
+            // THE FIRST VIEW IS NOT A VIEW: it is the SHEET. `GetFirstView()`
+            // returns the sheet, and the real views start from `GetNextView()`.
+            // Whoever forgets it describes a sheet as if it were a view, and
+            // then dimensions an object that has no geometry.
             var views = new List<Dictionary<string, object>>();
-            // I TOTALI SONO int? (voce Z-C8): una vista che non risponde fa
-            // null il totale, non un totale piu' basso detto come vero. Solo le
-            // viste si contano sempre — si stanno scorrendo.
+            // ARE THE TOTALS int? (entry Z-C8): a view that does not answer makes the
+            // total null, not a lower total stated as true. Only the
+            // views are always counted — they are being walked.
             int totalViews = 0;
             int? quoteTotali = 0, totalCenterMarks = 0;
             int? gtolTot = 0, datumTot = 0, totalWelds = 0, rugTot = 0, noteTot = 0, annTot = 0;
@@ -166,19 +166,19 @@ namespace Oce.Solid.Agent.Core
             int? totalBogusNumbers = 0;
             var bogusNumbers = new List<Dictionary<string, object>>();
             bool unknownOrphans = false;
-            // ── IL FOGLIO SI CONTA A PARTE, E NON E' UNA RIFINITURA ────────
+            // ── THE SHEET IS COUNTED SEPARATELY, AND IT IS NOT A REFINEMENT ─
             //
-            // Misurato il 18/9/2026: le note del cartiglio — trentanove su
-            // questo modello di tavola, sessantasette in tutto — stanno sul
-            // FOGLIO, non su una vista. E `InsertNote`, che oggi e' **l'unica**
-            // API di annotazione che funziona fuori processo (voce E2), mette
-            // la nota sul FOGLIO: 67 -> 68, mentre tutte e tre le viste restano
-            // a zero.
+            // Measured on 18/9/2026: the title block notes — thirty-nine on
+            // this drawing template, sixty-seven in all — sit on the
+            // SHEET, not on a view. And `InsertNote`, which today is **the only**
+            // annotation API that works out of process (entry E2), puts
+            // the note on the SHEET: 67 -> 68, while all three views stay
+            // at zero.
             //
-            // Contando solo le viste, `note` sarebbe un campo che NON PUO'
-            // diventare vero con gli strumenti di oggi. **Un campo che non puo'
-            // cambiare non e' una misura: e' una promessa.** Quindi il foglio
-            // ha i suoi sei numeri, con lo stesso nome e in un cassetto suo.
+            // Counting only the views, `note` would be a field that CANNOT
+            // become true with today's tools. **A field that cannot
+            // change is not a measurement: it is a promise.** So the sheet
+            // has its six numbers, with the same name and in a drawer of its own.
             try
             {
                 var viewSheet = drawing.GetFirstView() as IView;
@@ -196,57 +196,57 @@ namespace Oce.Solid.Agent.Core
                     int? quote = ReadValue(() => v.GetDimensionCount());
                     quoteTotali += quote;
 
-                    // LE CROCI DI CENTRO SI CONTANO QUI, e non solo dentro
-                    // l'operazione che le mette (voce W2.11). E' la regola di
-                    // GA5: **lo stato e l'operazione devono raccontare la stessa
-                    // cosa, leggendola per conto proprio.** Se un giorno
-                    // divergessero, una delle due mentirebbe e non si saprebbe
-                    // quale.
-                    // ENUMERATE, non GetCenterMarkCount: quello non vede le croci
-                    // messe da SOLIDWORKS alla creazione della vista (26/9/2026).
+                    // THE CENTRE MARKS ARE COUNTED HERE, and not only inside
+                    // the operation that puts them (entry W2.11). It is the rule of
+                    // GA5: **the state and the operation must tell the same
+                    // thing, reading it on their own.** If one day they
+                    // diverged, one of the two would lie and it would not be known
+                    // which.
+                    // ENUMERATE, not GetCenterMarkCount: that one does not see the marks
+                    // put by SOLIDWORKS when the view is created (26/9/2026).
                     int? centerMarks = ReadValue(() => { int n = CountCenterMarks.OfView(v); if (n < 0) throw new InvalidOperationException(); return n; });
                     totalCenterMarks += centerMarks;
 
-                    // IL NUMERO CHE SI STAMPA E' QUELLO DEL MODELLO? (voce Z-C2)
+                    // IS THE NUMBER THAT IS PRINTED THE ONE OF THE MODEL? (entry Z-C2)
                     int? bogus = DimensionsByNumberNotFromTheModel(v, bogusNumbers);
                     totalBogusNumbers += bogus;
 
-                    // ── LE ANNOTAZIONI, UNA FAMIGLIA PER VOLTA (voce Z-E1) ──
+                    // ── THE ANNOTATIONS, ONE FAMILY AT A TIME (entry Z-E1) ──
                     //
-                    // PERCHE' SERVONO PRIMA delle voci che le mettono, e non
-                    // dopo. Dieci voci di tavola aspettano di scrivere
-                    // rugosita', datum, simboli di saldatura, GD&T. Ognuna
-                    // chiamerebbe un'API che **risponde di si' senza garantire
-                    // niente** — e quattro di quelle API tornano `Void`, che e'
-                    // un bottone e non un'API. Senza un contatore INDIPENDENTE
-                    // letto dallo stato, ogni voce sarebbe verde per la parola
-                    // dell'operazione stessa.
+                    // WHY THEY ARE NEEDED BEFORE the entries that put them, and not
+                    // after. Ten drawing entries are waiting to write
+                    // surface finish, datum, weld symbols, GD&T. Each one
+                    // would call an API that **answers yes without guaranteeing
+                    // anything** — and four of those APIs return `Void`, which is
+                    // a button and not an API. Without an INDEPENDENT counter
+                    // read from the state, every entry would be green on the word
+                    // of the operation itself.
                     //
-                    // E' la regola di GA5, applicata prima del bisogno: **lo
-                    // stato e l'operazione devono raccontare la stessa cosa,
-                    // leggendola per conto proprio.**
+                    // It is the rule of GA5, applied before the need: **the
+                    // state and the operation must tell the same thing,
+                    // reading it on their own.**
                     int? gtol = ReadValue(() => v.GetGTolCount());
                     int? datum = ReadValue(() => v.GetDatumTagCount());
                     int? weldments = ReadValue(() => v.GetWeldSymbolCount());
-                    // `GetSFSymbolCount`, NON `GetSurfaceFinishSymbolCount`:
-                    // il secondo e' il nome per simmetria con
-                    // `InsertSurfaceFinishSymbol`, e non esiste.
+                    // `GetSFSymbolCount`, NOT `GetSurfaceFinishSymbolCount`:
+                    // the second is the name by symmetry with
+                    // `InsertSurfaceFinishSymbol`, and it does not exist.
                     int? roughness = ReadValue(() => v.GetSFSymbolCount());
                     int? note = ReadValue(() => v.GetNoteCount());
                     int? annotations = ReadValue(() => v.GetAnnotationCount());
                     gtolTot += gtol; datumTot += datum; totalWelds += weldments;
                     rugTot += roughness; noteTot += note; annTot += annotations;
 
-                    // LE QUOTE RIMASTE SENZA SPIGOLO (voce Z-A2).
+                    // THE DIMENSIONS LEFT WITHOUT AN EDGE (entry Z-A2).
                     //
-                    // `IAnnotation.IsDangling` e' MORTO per le quote in tavola
-                    // fuori processo: misurato il 24/9/2026 con
-                    // `Checks/Orphan`, resta falso su una quota il cui
-                    // spigolo e' stato soppresso, mentre la quota continua a
-                    // dire 20 mm. Quello che lo vede e' chiedersi se lo spigolo
-                    // a cui e' attaccata e' ancora fra quelli che la vista
-                    // MOSTRA (1 prima, 0 dopo). null vuol dire «non lo so»
-                    // (voce Z-C8), non zero.
+                    // `IAnnotation.IsDangling` is DEAD for dimensions on a drawing
+                    // out of process: measured on 24/9/2026 with
+                    // `Checks/Orphan`, it stays false on a dimension whose
+                    // edge was suppressed, while the dimension keeps
+                    // saying 20 mm. What sees it is asking whether the edge
+                    // it is attached to is still among those the view
+                    // SHOWS (1 before, 0 after). null means «I do not know»
+                    // (entry Z-C8), not zero.
                     int notVerifiable;
                     int? orfane = DimensionsWithoutEdge(sw, v, out notVerifiable);
                     if (orfane.HasValue) orfaneTot += orfane.Value; else unknownOrphans = true;
@@ -271,25 +271,25 @@ namespace Oce.Solid.Agent.Core
                         }
                         catch { }
 
-                        // Zero quote non e' un dettaglio: e' la differenza fra
-                        // una tavola e un disegnino. Si scrive sempre.
+                        // Zero dimensions is not a detail: it is the difference between
+                        // a drawing and a sketch. It is always written.
                         entry["dimensions"] = quote;
-                        // E zero croci non e' un dettaglio nemmeno lui: e' la
-                        // differenza fra una tavola che si puo' forare e una
-                        // che si puo' solo guardare. Si scrive sempre, per lo
-                        // stesso motivo — **un campo che compare solo quando ha
-                        // un valore interessante insegna a non cercarlo.**
+                        // And zero marks is not a detail either: it is the
+                        // difference between a drawing that can be drilled from and one
+                        // that can only be looked at. It is always written, for the
+                        // same reason — **a field that appears only when it has
+                        // an interesting value teaches not to look for it.**
                         entry["center_marks"] = centerMarks;
                         entry["dimensions_with_number_not_from_model"] = bogus;
                         entry["dimensions_orphan"] = orfane;
                         // Unknown when the orphans are unknown: the same reading.
                         entry["dimensions_not_verifiable"] = orfane.HasValue ? (object)notVerifiable : null;
 
-                        // SEMPRE, ANCHE TUTTE A ZERO, e per la stessa ragione
-                        // delle due righe qui sopra: un campo che compare solo
-                        // quando ha un valore interessante insegna a non
-                        // cercarlo, e chi non lo trova conclude che l'API non
-                        // sappia rispondere invece che il numero sia zero.
+                        // ALWAYS, EVEN ALL AT ZERO, and for the same reason
+                        // as the two lines above: a field that appears only
+                        // when it has an interesting value teaches not to
+                        // look for it, and whoever does not find it concludes that the API
+                        // cannot answer rather than that the number is zero.
                         entry["annotations"] = Six(gtol, datum, weldments, roughness, note, annotations);
 
                         try
@@ -307,8 +307,8 @@ namespace Oce.Solid.Agent.Core
             }
             catch
             {
-                // Il giro si e' interrotto a meta': i totali sono di una parte
-                // delle viste, e nessuno lo saprebbe. Diventano «non lo so».
+                // The pass was interrupted halfway: the totals are of a part
+                // of the views, and nobody would know. They become «I do not know».
                 quoteTotali = totalCenterMarks = null;
                 gtolTot = datumTot = totalWelds = rugTot = noteTot = annTot = null;
                 data["views_half_read"] = true;
@@ -337,15 +337,15 @@ namespace Oce.Solid.Agent.Core
                     "mostrano piu': sul foglio si stampano col numero di prima, appese al niente. Di " +
                     "solito il pezzo e' cambiato dopo che la tavola e' stata quotata.";
 
-            // DUE CECITA' DICHIARATE, e tutte e due porterebbero a conclusioni
-            // sbagliate se restassero implicite.
+            // TWO DECLARED BLINDNESSES, and both would lead to wrong
+            // conclusions if they stayed implicit.
             data["what_is_not_known_about_annotations"] =
-                // 1. IL CARTIGLIO NON E' QUI DENTRO. Questi conteggi girano
-                //    sulle VISTE VERE; le note del formato del foglio stanno
-                //    sulla prima «view», che e' il foglio, e sono decine — su
-                //    questo modello di tavola, trentanove. Chi somma le viste e
-                //    confronta col totale del documento trova una differenza
-                //    grande e conclude che si sia perso qualcosa.
+                // 1. THE TITLE BLOCK IS NOT IN HERE. These counts run
+                //    on the REAL VIEWS; the notes of the sheet format sit
+                //    on the first «view», which is the sheet, and there are dozens — on
+                //    this drawing template, thirty-nine. Whoever adds up the views and
+                //    compares with the total of the document finds a big difference
+                //    and concludes that something got lost.
                 "«annotations_total» somma le VISTE; le note del cartiglio " +
                 "stanno sul FOGLIO e si contano a parte, in " +
                 "«sheet_annotations» — su questo modello di tavola sono " +
@@ -362,9 +362,9 @@ namespace Oce.Solid.Agent.Core
                 "edge still reads as an orphan without being one.";
             if (totalViews > views.Count) data["views_truncated"] = true;
 
-            // LA TAVOLA VUOTA VA DETTA, non lasciata dedurre da un elenco che
-            // manca. E' lo stato in cui nasce ogni tavola, ed e' quello in cui
-            // resta se `Create1stAngleViews2` ha detto «si'» senza fare niente.
+            // THE EMPTY DRAWING MUST BE STATED, not left to be deduced from a list that is
+            // missing. It is the state in which every drawing is born, and the one in which it
+            // stays if `Create1stAngleViews2` said «yes» without doing anything.
             if (totalViews == 0)
                 data["note"] = "la tavola non ha ancora nessuna vista";
             else if (quoteTotali.HasValue && quoteTotali.Value == 0)
@@ -372,13 +372,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quante quote della vista sono attaccate SOLO a spigoli o vertici che
-        /// la vista non mostra piu' (voce Z-A2). null se non si puo' sapere:
-        /// senza SOLIDWORKS in mano per `IsSame`, o su una vista troppo carica
-        /// per confrontare tutto con tutto in un tempo ragionevole.
+        /// How many dimensions of the view are attached ONLY to edges or vertices that
+        /// the view no longer shows (entry Z-A2). null if it cannot be known:
+        /// without SOLIDWORKS in hand for `IsSame`, or on a view too loaded
+        /// to compare everything with everything in a reasonable time.
         ///
-        /// Una quota senza nessun aggancio (una quota libera) non e' orfana: e'
-        /// libera, e non si conta.
+        /// A dimension with no attachment at all (a free dimension) is not an orphan: it is
+        /// free, and it is not counted.
         ///
         /// SILHOUETTES ARE NOT VERIFIABLE (Z-C21.3, finding N3). The diameters of
         /// a turned part seen from the side hang on two silhouette edges
@@ -475,34 +475,34 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I sei numeri di una vista (o del foglio), sempre tutti e sei.
+        /// The six numbers of a view (or of the sheet), always all six.
         ///
-        /// `all` si chiama cosi' e non «total»: `GetAnnotationCount` **non
-        /// e' la somma** delle altre cinque — conta anche le quote e cio' che
-        /// nessuna delle cinque famiglie nomina. Chiamarlo «total» farebbe
-        /// aspettare una somma che non torna, e chi la vede non tornare cerca
-        /// un difetto dove non c'e'.
+        /// `all` is called that and not «total»: `GetAnnotationCount` **is not
+        /// the sum** of the other five — it also counts the dimensions and what
+        /// none of the five families names. Calling it «total» would make one
+        /// expect a sum that does not add up, and whoever sees it not add up looks for
+        /// a defect where there is none.
         /// </summary>
         /// <summary>
-        /// Quante quote della vista stampano un numero che NON e' quello del
-        /// modello (voce Z-C2), o null se non si puo' leggere. Le trova, e ne
-        /// mette al piu' dieci in `dettagli` con il modo.
+        /// How many dimensions of the view print a number that is NOT the one of the
+        /// model (entry Z-C2), or null if it cannot be read. It finds them, and
+        /// puts at most ten in `dettagli` with the way.
         ///
-        /// «La quota viene dal modello, non puo' mentire» vale finche' nessuno
-        /// scrive sopra il numero. Misurato il 25/9/2026 (`prova0089
-        /// testoquote`) sulle tre strade che l'interop offre:
+        /// «The dimension comes from the model, it cannot lie» holds as long as nobody
+        /// writes over the number. Measured on 25/9/2026 (`prova0089
+        /// testoquote`) on the three routes the interop offers:
         ///
-        ///   appena nata                 GetOverride falso, ShowDimensionValue vero,
-        ///                               GetText(0..4) tutti vuoti
-        ///   SetOverride(true, 0,099)    GetOverride VERO, GetOverrideValue 99 mm
-        ///   SetText(0, "99")            scrive il PREFISSO e SPEGNE il valore:
-        ///                               ShowDimensionValue falso, GetText(1) «99»
-        ///   ShowDimensionValue = false  il valore non si stampa
+        ///   just born                   GetOverride false, ShowDimensionValue true,
+        ///                               GetText(0..4) all empty
+        ///   SetOverride(true, 0.099)    GetOverride TRUE, GetOverrideValue 99 mm
+        ///   SetText(0, "99")            writes the PREFIX and SWITCHES OFF the value:
+        ///                               ShowDimensionValue false, GetText(1) «99»
+        ///   ShowDimensionValue = false  the value is not printed
         ///
-        /// Quindi bastano due letture, e prendono anche il caso che la voce
-        /// temeva di piu': il numero sovrascritto che per caso combacia col
-        /// modello resta segnalato, perche' si guarda la sovrascrittura, non il
-        /// confronto dei valori.
+        /// So two reads are enough, and they also catch the case the entry
+        /// feared most: the overwritten number that happens to match the
+        /// model stays flagged, because the overwrite is looked at, not the
+        /// comparison of the values.
         /// </summary>
         private static int? DimensionsByNumberNotFromTheModel(IView v, List<Dictionary<string, object>> details)
         {
@@ -544,9 +544,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Un conteggio letto da una vista, o null se la chiamata non risponde
-        /// (voce Z-C8). Il null si porta dietro nelle somme: `int?` sommato a
-        /// null fa null, ed e' proprio quello che si vuole.
+        /// A count read from a view, or null if the call does not answer
+        /// (entry Z-C8). The null is carried along into the sums: `int?` added to
+        /// null gives null, and that is exactly what is wanted.
         /// </summary>
         private static int? ReadValue(Func<int> read)
         {
@@ -568,7 +568,7 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
-        /// <summary>I sei numeri letti da una vista, ognuno per conto suo.</summary>
+        /// <summary>The six numbers read from a view, each on its own.</summary>
         private static Dictionary<string, object> Annotations(IView v)
         {
             return Six(
@@ -588,7 +588,7 @@ namespace Oce.Solid.Agent.Core
             catch { return null; }
         }
 
-        /// <summary>«1:2» invece di «0,5»: e' come si scrive su una tavola.</summary>
+        /// <summary>«1:2» instead of «0.5»: it is how it is written on a drawing.</summary>
         private static string FormatScale(double numerator, double denominator)
         {
             try

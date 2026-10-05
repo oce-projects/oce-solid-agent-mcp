@@ -10,50 +10,50 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Quanto e' grossa la sezione di un profilo di saldatura.
+    /// How big the section of a weldment profile is.
     ///
-    /// IL DIFETTO DA CUI NASCE QUESTO FILE
-    /// Il 9 settembre 2026 il progettista ha chiesto un telaio 1000x800 in
-    /// tubolare 80x80x5 e ha misurato sul pezzo finito 1080x880. Non e' un
-    /// errore di calcolo: il percorso di un membro strutturale e' la LINEA
-    /// D'ASSE, e SolidWorks centra il profilo su quella linea. Un percorso
-    /// disegnato sugli spigoli di un rettangolo 1000x800 fa sporgere le barre
-    /// di mezza sezione per lato, cioe' 40 mm, cioe' +80 per dimensione. E il
-    /// riassunto mostrato prima di eseguire diceva «1000x800».
+    /// THE DEFECT THIS FILE WAS BORN FROM
+    /// On 9 September 2026 the designer asked for a 1000x800 frame in
+    /// 80x80x5 tubing and measured 1080x880 on the finished part. It is not a
+    /// calculation error: the path of a structural member is the CENTRE
+    /// LINE, and SolidWorks centres the profile on that line. A path
+    /// drawn on the edges of a 1000x800 rectangle makes the bars protrude
+    /// by half a section per side, that is 40 mm, that is +80 per dimension. And the
+    /// summary shown before executing said «1000x800».
     ///
-    /// Per arretrare il percorso bisogna sapere quanto misura la sezione. E
-    /// non si puo' leggere:
-    ///   - il nome della configurazione NON e' una fonte: nella stessa
-    ///     libreria convivono «80X80X3», «50x50x3» e «20x20x1,5», e per un
-    ///     IPE 200 il nome non dice affatto 200x100;
-    ///   - lo schizzo del profilo non ha un ingombro leggibile: ISketch non
-    ///     espone nessun GetBox (verificato per riflessione sull'interop
-    ///     29.5.1.1: ci sono solo GetSketchPoints, GetSketchPoints2,
+    /// To pull the path back one must know how big the section is. And
+    /// it cannot be read:
+    ///   - the name of the configuration is NOT a source: in the same
+    ///     library «80X80X3», «50x50x3» and «20x20x1,5» coexist, and for an
+    ///     IPE 200 the name does not say 200x100 at all;
+    ///   - the profile sketch has no readable bounding box: ISketch does not
+    ///     expose any GetBox (verified by reflection on the interop
+    ///     29.5.1.1: there are only GetSketchPoints, GetSketchPoints2,
     ///     GetSketchSegments, GetSketchPointsCount, IsBoundaryBoxSketch);
-    ///   - Document Manager, che leggerebbe il .sldlfp senza aprirlo, su
-    ///     questa postazione non ha licenza (CLASS_E_NOTLICENSED).
+    ///   - Document Manager, which would read the .sldlfp without opening it, on
+    ///     this workstation has no licence (CLASS_E_NOTLICENSED).
     ///
-    /// COSA SI FA ALLORA: si costruisce un TELAIO DI PROVA in un documento usa
-    /// e getta e si misura di quanto sporge oltre il proprio percorso. Non
-    /// interpreta niente: guarda il pezzo.
+    /// WHAT IS DONE THEN: a TEST FRAME is built in a disposable
+    /// document and it is measured how far it protrudes beyond its own path. It
+    /// interprets nothing: it looks at the part.
     ///
-    /// E SI COSTRUISCE UN TELAIO, NON UNA BARRA. La prima versione sondava una
-    /// barra per direzione e ne prendeva l'ingombro. Funziona per i profili
-    /// simmetrici e SBAGLIA per gli altri: misurato il 9 settembre 2026, un
-    /// telaio 1200x600 in tubo rettangolare 80X50X5 usciva 1170x600. La barra
-    /// isolata distesa su Y occupa 80 in X; la stessa barra DENTRO IL GRUPPO
-    /// del telaio ne occupa 50. L'orientamento del profilo non dipende solo
-    /// dalla direzione del segmento: dipende dal gruppo. Quindi si misura la
-    /// cosa vera, con le stesse opzioni — piano, rotazione, trattamento
-    /// d'angolo, gioco.
+    /// AND A FRAME IS BUILT, NOT A BAR. The first version probed one
+    /// bar per direction and took its bounding box. It works for symmetric profiles and GETS IT WRONG for the
+    /// others: measured on 9 September 2026, a 1200x600 frame in
+    /// 80X50X5 rectangular tube came out 1170x600. The isolated bar laid along Y
+    /// occupies 80 in X; the same bar INSIDE THE GROUP
+    /// of the frame occupies 50. The orientation of the profile does not depend only on
+    /// the direction of the segment: it depends on the group. So the
+    /// real thing is measured, with the same options — plane, rotation, corner
+    /// treatment, gap.
     ///
-    /// La sporgenza non dipende da quanto e' grande il telaio: una misura sola
-    /// vale per tutte le quote.
+    /// The overhang does not depend on how big the frame is: a single measure
+    /// holds for all dimensions.
     ///
-    /// COSTO E RIMEDIO: una prova vuole un documento nuovo, uno schizzo, un
-    /// membro strutturale e una chiusura — qualche secondo, non zero. Il
-    /// risultato si tiene in memoria e su disco, per macchina: la seconda volta
-    /// che si chiede lo stesso telaio non si misura piu' niente.
+    /// COST AND REMEDY: a test needs a new document, a sketch, a structural
+    /// member and a closing — a few seconds, not zero. The
+    /// result is kept in memory and on disk, per machine: the second time
+    /// the same frame is asked for, nothing is measured any more.
     /// </summary>
     public static class SectionProfile
     {
@@ -61,33 +61,33 @@ namespace Oce.Solid.Agent.Core
         private static Dictionary<string, double[]> _memory;
 
         /// <summary>
-        /// Di quanto sporge un TELAIO oltre il proprio percorso, sui due assi
-        /// del piano. Serve ad arretrare il percorso per avere le quote
-        /// esterne che il progettista ha chiesto.
+        /// How far a FRAME protrudes beyond its own path, on the two axes
+        /// of the plane. It serves to pull the path back to get the outer
+        /// dimensions that the designer asked for.
         ///
-        /// PERCHE' SI COSTRUISCE UN TELAIO DI PROVA E NON SI MISURA UNA BARRA
-        /// La prima versione sondava una barra per direzione e ne prendeva
-        /// l'ingombro. Funziona per i profili simmetrici e SBAGLIA per gli
-        /// altri: misurato il 9 settembre 2026, un telaio 1200x600 in tubo
-        /// rettangolare 80X50X5 usciva 1170x600. La barra isolata distesa su Y
-        /// occupa 80 in X, ma la stessa barra DENTRO IL GRUPPO del telaio ne
-        /// occupa 50: l'orientamento del profilo non dipende solo dalla
-        /// direzione del segmento, dipende dal gruppo.
+        /// WHY A TEST FRAME IS BUILT AND A BAR IS NOT MEASURED
+        /// The first version probed one bar per direction and took
+        /// its bounding box. It works for symmetric profiles and GETS IT WRONG for the
+        /// others: measured on 9 September 2026, a 1200x600 frame in
+        /// 80X50X5 rectangular tube came out 1170x600. The isolated bar laid along Y
+        /// occupies 80 in X, but the same bar INSIDE THE GROUP of the frame
+        /// occupies 50: the orientation of the profile does not depend only on the
+        /// direction of the segment, it depends on the group.
         ///
-        /// Quindi non si indovina: si costruisce un telaio di prova con le
-        /// stesse opzioni — stesso piano, stessa rotazione, stesso trattamento
-        /// d'angolo, stesso gioco — e si misura di quanto sporge. La
-        /// sporgenza non dipende da quanto e' grande il telaio, quindi una
-        /// misura sola vale per tutte le quote.
+        /// So it is not guessed: a test frame is built with the
+        /// same options — same plane, same rotation, same corner
+        /// treatment, same gap — and it is measured how far it protrudes. The
+        /// overhang does not depend on how big the frame is, so a single
+        /// measure holds for all dimensions.
         ///
-        /// Costa un documento usa e getta, e si tiene: la seconda volta che si
-        /// chiede lo stesso telaio non si misura piu' niente.
+        /// It costs a disposable document, and it is kept: the second time
+        /// the same frame is asked for, nothing is measured any more.
         /// </summary>
         /// <returns>
-        /// {sporgenzaU, sporgenzaV} in mm, oppure null se non si e' potuto
-        /// misurare. In quel caso CHI CHIAMA DEVE FALLIRE, non tirare a
-        /// indovinare: un telaio con le quote sbagliate e' il difetto che
-        /// questo file esiste per chiudere.
+        /// {sporgenzaU, sporgenzaV} in mm, or null if it could not be
+        /// measured. In that case WHOEVER CALLS MUST FAIL, not guess:
+        /// a frame with the wrong dimensions is the defect that this
+        /// file exists to close.
         /// </returns>
         /// <remarks>
         /// THIS SIGNATURE DOES NOT CHANGE: the bench calls this method by
@@ -301,13 +301,13 @@ namespace Oce.Solid.Agent.Core
             catch { return null; }
         }
 
-        /// <summary>Il lato del telaio di prova, in mm.</summary>
+        /// <summary>The side of the test frame, in mm.</summary>
         private const double TEST_SIDE_U = 1000;
         private const double TEST_SIDE_V = 700;
 
         /// <summary>
-        /// Costruisce un telaio di prova e restituisce di quanto sporge oltre
-        /// il percorso, sui due assi: {sporgenzaU, sporgenzaV} in mm.
+        /// Builds a test frame and returns how far it protrudes beyond
+        /// the path, on the two axes: {sporgenzaU, sporgenzaV} in mm.
         /// </summary>
         private static double[] TestFrame(
             ISldWorks sw, string profile, string configuration,
@@ -425,8 +425,8 @@ namespace Oce.Solid.Agent.Core
                 double protrudesU = boundingBoxU - TEST_SIDE_U;
                 double protrudesV = boundingBoxV - TEST_SIDE_V;
 
-                // Una sporgenza negativa o assurda vuol dire che si e' misurato
-                // qualcos'altro: meglio non saperlo che saperlo sbagliato.
+                // A negative or absurd overhang means that something else
+                // was measured: better not to know than to know it wrong.
                 if (protrudesU < -0.01 || protrudesV < -0.01 ||
                     protrudesU > TEST_SIDE_U || protrudesV > TEST_SIDE_V)
                 {
@@ -482,24 +482,24 @@ namespace Oce.Solid.Agent.Core
             return p;
         }
         // ─────────────────────────────────────────────────────────────────
-        // il ricordo, in memoria e su disco
+        // the memory, in memory and on disk
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Il nome della cartella sotto %LOCALAPPDATA% dove vive l'archivio
-        /// delle sezioni misurate.
+        /// The name of the folder under %LOCALAPPDATA% where the archive
+        /// of the measured sections lives.
         ///
-        /// Era scritto fisso «OpenPDM», ed e' sfuggito all'audit A1 perche'
-        /// cercava percorsi e nomi di persone, non il nome del prodotto dentro
-        /// una stringa. In una libreria che esiste per non presupporre OpenPDM,
-        /// scrivere nella cartella di OpenPDM e' sbagliato due volte: sporca
-        /// casa d'altri, e lega la libreria a un prodotto che potrebbe non
-        /// essere installato.
+        /// It used to be written fixed «OpenPDM», and it escaped audit A1 because
+        /// that looked for paths and names of people, not the name of the product inside
+        /// a string. In a library that exists so as not to presuppose OpenPDM,
+        /// writing into the OpenPDM folder is wrong twice over: it dirties
+        /// someone else's house, and it ties the library to a product that might not be
+        /// installed.
         ///
-        /// Chi ospita la libreria puo' rimetterci il nome che vuole. L'add-in
-        /// OpenPDM lo fa, cosi' l'archivio gia' misurato non viene abbandonato:
-        /// non e' un dato prezioso — si ricostruisce misurando — ma buttarlo
-        /// senza dirlo costerebbe una riapertura di libreria per profilo.
+        /// Whoever hosts the library can put back the name they want. The OpenPDM
+        /// add-in does so, so the archive already measured is not abandoned:
+        /// it is not precious data — it is rebuilt by measuring — but throwing it
+        /// away without saying so would cost a library reopening per profile.
         /// </summary>
         public static string ArchiveFolder
         {
@@ -521,9 +521,9 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Il formato e' una riga per misura: chiave TAB dx TAB dy TAB dz.
-        /// Niente JSON: questo file lo legge solo lui, e una riga rotta deve
-        /// far perdere una misura, non l'archivio.
+        /// The format is one row per measure: key TAB dx TAB dy TAB dz.
+        /// No JSON: only this file reads it, and a broken row must
+        /// lose one measure, not the archive.
         /// </summary>
         private static void Load()
         {
@@ -548,7 +548,7 @@ namespace Oce.Solid.Agent.Core
                     _memory[parts[0]] = new[] { a, b, c };
                 }
             }
-            catch { /* un archivio illeggibile costa una misura, non un guasto */ }
+            catch { /* an unreadable archive costs one measure, not a failure*/ }
         }
 
         private static void Save(Action<string> log)

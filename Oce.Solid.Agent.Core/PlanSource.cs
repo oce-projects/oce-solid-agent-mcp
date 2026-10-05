@@ -4,64 +4,64 @@ using System.Threading.Tasks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// Da dove arrivano i passi del piano.
+    /// Where the steps of the plan come from.
     ///
-    /// E' l'UNICO confine inventato in tutta l'estrazione: undici file su
-    /// dodici non hanno bisogno di nessuna interfaccia, perche' parlano solo
-    /// con SOLIDWORKS. `PlanExecutor` invece parlava con il server di
-    /// OpenPDM, e senza questo confine si sarebbe portato dietro il PDM dentro
-    /// la libreria che esiste per non dipenderne.
+    /// It is the ONLY boundary invented in the whole extraction: eleven files out of
+    /// twelve need no interface at all, because they only talk to
+    /// SOLIDWORKS. `PlanExecutor` instead talked to the OpenPDM server,
+    /// and without this boundary it would have carried the PDM along inside
+    /// the library that exists so as not to depend on it.
     ///
-    /// Chi la implementa decide da dove vengono i passi: un server, un file
-    /// JSON, un elenco in memoria per una prova. L'esecutore non lo sa e non
-    /// deve saperlo.
+    /// Whoever implements it decides where the steps come from: a server, a JSON
+    /// file, an in-memory list for a check. The executor does not know it and must
+    /// not know it.
     /// </summary>
     public interface IPlanSource
     {
         /// <summary>
-        /// Il prossimo passo, dato lo stato del documento adesso.
+        /// The next step, given the document state now.
         ///
-        /// SI CHIEDE OGNI VOLTA invece di scaricare tutto il piano perche' il
-        /// controllo va rifatto: fra il primo passo e l'ultimo possono passare
-        /// minuti, e in mezzo il documento puo' essere cambiato.
+        /// IT IS ASKED EVERY TIME instead of downloading the whole plan because the
+        /// check has to be redone: between the first step and the last minutes can pass,
+        /// and in between the document may have changed.
         ///
-        /// **Un guasto NON si racconta come «finito»: si solleva.** Vedi la
-        /// nota su <see cref="NextStep"/>.
+        /// **A failure is NOT reported as «finished»: it is raised.** See the
+        /// note on <see cref="NextStep"/>.
         /// </summary>
         Task<NextStep> NextAsync(Dictionary<string, object> docState);
 
-        /// <summary>Com'e' andato il passo appena eseguito.</summary>
+        /// <summary>How the step just executed went.</summary>
         Task OutcomeAsync(
             int order, bool succeeded, Dictionary<string, object> measurements, string error);
     }
 
     /// <summary>
-    /// La risposta a «qual e' il prossimo passo»: o ce n'e' uno, o il piano e'
-    /// finito.
+    /// The answer to «what is the next step»: either there is one, or the plan is
+    /// finished.
     ///
-    /// PERCHE' UN TIPO INVECE DI UN `null`.
-    /// La forma ovvia sarebbe far tornare `null` a <see
-    /// cref="IPlanSource.NextAsync"/> per dire «finito», e risparmiare
-    /// questo tipo. Non si fa, ed e' una scelta contro un difetto preciso: un
-    /// adattatore che inghiotte un'eccezione di rete e ritorna `null`
-    /// racconterebbe **«piano completato»** per un piano interrotto a meta'.
-    /// Nessun errore, nessun avviso, e un pezzo che a chi guarda sembra finito.
+    /// WHY A TYPE INSTEAD OF A `null`.
+    /// The obvious shape would be to make <see
+    /// cref="IPlanSource.NextAsync"/> return `null` to say «finished», and save
+    /// this type. It is not done, and it is a choice against a precise defect: an
+    /// adapter that swallows a network exception and returns `null`
+    /// would report **«plan completed»** for a plan interrupted halfway.
+    /// No error, no warning, and a part that looks finished to whoever is looking.
     ///
-    /// Con <see cref="Done"/> esplicito, «non ho ricevuto niente» e «non c'e'
-    /// piu' niente da fare» non hanno la stessa forma, e il primo non si puo'
-    /// scrivere per distrazione al posto del secondo.
+    /// With an explicit <see cref="Done"/>, «I received nothing» and «there is
+    /// nothing left to do» do not have the same shape, and the first cannot be
+    /// written by distraction in place of the second.
     ///
-    /// Regola per chi implementa la fonte: **un guasto si solleva, non si
-    /// traduce.** Se la rete cade, l'eccezione deve arrivare all'esecutore, che
-    /// la scrive in <see cref="PlanExecutor.Result.Error"/> lasciando
-    /// `Completed` a falso.
+    /// Rule for whoever implements the source: **a failure is raised, not
+    /// translated.** If the network drops, the exception must reach the executor, which
+    /// writes it in <see cref="PlanExecutor.Result.Error"/> leaving
+    /// `Completed` false.
     /// </summary>
     public class NextStep
     {
-        /// <summary>Vero quando il piano e' arrivato in fondo.</summary>
+        /// <summary>True when the plan has reached the end.</summary>
         public bool Done;
 
-        /// <summary>Il passo da eseguire. Null se <see cref="Done"/>.</summary>
+        /// <summary>The step to execute. Null if <see cref="Done"/>.</summary>
         public PlanStep Step;
 
         public static NextStep Fine()
@@ -75,19 +75,19 @@ namespace Oce.Solid.Agent.Core
         }
     }
 
-    /// <summary>Un passo del piano: cosa fare, con quali argomenti.</summary>
+    /// <summary>A step of the plan: what to do, with which arguments.</summary>
     public class PlanStep
     {
-        /// <summary>Il numero d'ordine, contando da 1.</summary>
+        /// <summary>The order number, counting from 1.</summary>
         public int Order;
 
-        /// <summary>Il nome dell'operazione, come nel catalogo.</summary>
+        /// <summary>The name of the operation, as in the catalogue.</summary>
         public string Operation;
 
-        /// <summary>Gli argomenti dell'operazione.</summary>
+        /// <summary>The arguments of the operation.</summary>
         public Dictionary<string, object> Arguments;
 
-        /// <summary>Una riga in italiano su cosa fa il passo, per il log.</summary>
+        /// <summary>A line in Italian on what the step does, for the log.</summary>
         public string Summary;
     }
 }

@@ -6,67 +6,67 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// UNA VISTA DI SEZIONE SU UNA TAVOLA (voce GT4).
+    /// A SECTION VIEW ON A DRAWING (entry GT4).
     ///
-    /// ── PERCHE' ESISTE ──────────────────────────────────────────────────
+    /// ── WHY IT EXISTS ───────────────────────────────────────────────────
     ///
-    /// E' la prima cosa che manca per una tavola meccanica vera. Un pezzo con
-    /// una cavita' interna, senza sezione, **non si legge in officina**: le
-    /// linee nascoste dicono che c'e' un vuoto, non che forma ha.
+    /// It is the first thing missing for a real mechanical drawing. A part with
+    /// an internal cavity, without a section, **cannot be read in the workshop**: the
+    /// hidden lines say that there is a void, not what shape it has.
     ///
-    /// ── L'API NON PRENDE UN'ENTITA' IN FIRMA, E CAMBIA TUTTO ────────────
+    /// ── THE API TAKES NO ENTITY IN ITS SIGNATURE, AND THAT CHANGES EVERYTHING ──
     ///
     ///     IDrawingDoc :: CreateSectionViewAt5(Double X, Double Y, Double Z,
     ///                        String SectionLabel, Int32 Options,
     ///                        Object ExcludedComponents, Double SectionDepth)
     ///
-    /// Non c'e' nessun argomento per dire DOVE tagliare. La linea di taglio va
-    /// **disegnata sul foglio e lasciata selezionata**: l'API prende quella.
-    /// Questo vuol dire che l'operazione ha cinque passi che devono riuscire
-    /// tutti, e ognuno puo' fallire in silenzio.
+    /// There is no argument to say WHERE to cut. The cut line must be
+    /// **drawn on the sheet and left selected**: the API takes that one.
+    /// This means the operation has five steps that must all
+    /// succeed, and each can fail silently.
     ///
-    /// Misurato il 14/9/2026 (voce 0.6, attrezzo `Checks\SectionView`):
+    /// Measured on 14/9/2026 (entry 0.6, tool `Checks\SectionView`):
     ///
-    ///     linea selezionata: True, oggetti: 1, tipo 10 (swSelSKETCHSEGS)
-    ///     viste sul foglio: 4 -> 5
-    ///       -> LA SEZIONE C'E'. Ultima vista: «Vista in sezione A-A»
+    ///     line selected: True, objects: 1, type 10 (swSelSKETCHSEGS)
+    ///     views on the sheet: 4 -> 5
+    ///       -> THE SECTION IS THERE. Last view: «Vista in sezione A-A»
     ///
-    /// ── TRE COSE CHE NON SI DEDUCONO, E SONO COSTATE ────────────────────
+    /// ── THREE THINGS THAT CANNOT BE DEDUCED, AND THEY COST US ───────────
     ///
-    /// 1. **La linea deve attraversare la vista da parte a parte.** Una che la
-    ///    sfiora da' una sezione **vuota senza dire niente**.
-    /// 2. **Lo schizzo si chiude prima** (`InsertSketch(true)`). Con uno
-    ///    schizzo aperto SOLIDWORKS e' dentro un comando, e le API che creano
-    ///    viste si comportano diversamente.
-    /// 3. **Lo schizzo del foglio non e' `GetTemplateSketch()`** — quello e' il
-    ///    cartiglio. «Template» li' vuol dire *formato*. La linea finisce nello
-    ///    schizzo della prima «view», che E' il foglio.
+    /// 1. **The line must cross the view from side to side.** One that just
+    ///    grazes it gives an **empty section without saying anything**.
+    /// 2. **The sketch is closed first** (`InsertSketch(true)`). With an
+    ///    open sketch SOLIDWORKS is inside a command, and the APIs that create
+    ///    views behave differently.
+    /// 3. **The sketch of the sheet is not `GetTemplateSketch()`** — that one is the
+    ///    title block. «Template» there means *format*. The line ends up in the
+    ///    sketch of the first «view», which IS the sheet.
     ///
-    /// ── IL TRATTEGGIO E' IL CONTROLLO CHE CONTA ─────────────────────────
+    /// ── THE HATCHING IS THE CHECK THAT COUNTS ───────────────────────────
     ///
-    /// Il rischio vero di questa operazione non e' che fallisca: e' che
-    /// **riesca nel posto sbagliato**. Una linea di taglio caduta fuori dal
-    /// materiale produce una vista formalmente valida, che passa ogni
-    /// conteggio, e non mostra niente. E' la stessa specie del diedro: nessuna
-    /// misura geometrica la rivela.
+    /// The real risk of this operation is not that it fails: it is that it
+    /// **succeeds in the wrong place**. A cut line that fell outside the
+    /// material produces a formally valid view, that passes every
+    /// count, and shows nothing. It is the same kind as the projection angle: no geometric
+    /// measurement reveals it.
     ///
-    /// Quindi dopo si conta la campitura, e **se e' zero l'operazione
-    /// fallisce** invece di consegnare una vista vuota che sembra riuscita.
-    /// *Una sezione senza tratteggio e' una linea di taglio caduta fuori dal
-    /// pezzo.*
+    /// So afterwards the hatching is counted, and **if it is zero the operation
+    /// fails** instead of delivering an empty view that looks successful.
+    /// *A section without hatching is a cut line that fell outside the
+    /// part.*
     ///
-    /// **E IL CONTATORE NON E' QUELLO CHE LA VOCE PRESCRIVEVA.** GT4 diceva
-    /// `GetSolidHatchCount() > 0`; misurato, quel numero e' **zero su una
-    /// sezione vera**, prima e dopo il ricalcolo. Si legge
-    /// `GetFaceHatchCount()`, che su una sezione buona vale 1. L'altro si
-    /// riporta lo stesso nella risposta, perche' valga da avviso a chi
-    /// ripercorresse la stessa strada.
+    /// **AND THE COUNTER IS NOT THE ONE THE ENTRY PRESCRIBED.** GT4 said
+    /// `GetSolidHatchCount() > 0`; measured, that number is **zero on a
+    /// real section**, before and after the rebuild. `GetFaceHatchCount()` is
+    /// read, which on a good section is 1. The other one is reported all the
+    /// same in the answer, so that it serves as a warning to whoever
+    /// retraced the same route.
     ///
-    /// ── E IL CONTO DELLE VISTE, NON IL VALORE DI RITORNO ────────────────
+    /// ── AND THE COUNT OF THE VIEWS, NOT THE RETURN VALUE ────────────────
     ///
-    /// `CreateSectionViewAt5` puo' rispondere un oggetto senza aver fatto
-    /// niente. Si contano le viste prima e dopo: quello e' il riscontro, il
-    /// valore di ritorno e' una promessa.
+    /// `CreateSectionViewAt5` may answer an object without having done
+    /// anything. The views are counted before and after: that is the cross-check, the
+    /// return value is a promise.
     /// </summary>
     public partial class SwOperations
     {
@@ -78,10 +78,10 @@ namespace Oce.Solid.Agent.Core
                     "Il documento attivo non e' una tavola: una vista di sezione sta " +
                     "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
 
-            // ── LA VISTA DA SEZIONARE ───────────────────────────────────
+            // ── THE VIEW TO SECTION ─────────────────────────────────────
             //
-            // La PRIMA «view» del foglio e' il foglio stesso (tipo 1), e si
-            // salta. Chi la prendesse per una vista sezionerebbe il foglio.
+            // The FIRST «view» of the sheet is the sheet itself (type 1), and it is
+            // skipped. Whoever took it for a view would section the sheet.
             string requested = ViewRequestedByName(drawing, Str(a, "view", null));
             IView target = null;
             var viewNames = new List<string>();
@@ -127,12 +127,12 @@ namespace Oce.Solid.Agent.Core
                     "», e senza quello non so dove tracciare la linea di taglio: una " +
                     "linea che sfiora la vista da' una sezione vuota senza dire niente.");
 
-            // ── DOVE TAGLIARE ───────────────────────────────────────────
+            // ── WHERE TO CUT ────────────────────────────────────────────
             //
-            // Di serie: in mezzo alla vista. `offset_mm` sposta la linea, in
-            // millimetri di FOGLIO — non del modello: sul foglio la vista e'
-            // in scala, e mescolare le due misure e' il modo piu' rapido di
-            // tagliare dove non si voleva.
+            // By default: in the middle of the view. `offset_mm` moves the line, in
+            // SHEET millimetres — not of the model: on the sheet the view is
+            // scaled, and mixing the two measures is the quickest way to
+            // cut where one did not want to.
             string facing = (Str(a, "orientation", "vertical") ?? "vertical").Trim().ToLowerInvariant();
             if (facing != "vertical" && facing != "horizontal")
                 return Failed(
@@ -143,16 +143,16 @@ namespace Oce.Solid.Agent.Core
             string label = Str(a, "label", "A");
             if (string.IsNullOrWhiteSpace(label)) label = "A";
             double depthM = Num(a, "depth_mm", 0) / 1000.0;
-            // DUE «A-A» SULLA STESSA TAVOLA (voce Z-C13): si rifiuta prima.
+            // TWO «A-A» ON THE SAME DRAWING (entry Z-C13): it is refused first.
             string doubled = LetterAlreadyUsed(drawing, label);
             if (doubled != null) return Failed(doubled);
 
             double xMin = outline[0], yMin = outline[1], xMax = outline[2], yMax = outline[3];
             double wide = xMax - xMin, up = yMax - yMin;
 
-            // SI ESCE DI UN DECIMO OLTRE I BORDI. Una linea che finisce
-            // esattamente sul bordo e' un caso limite gratuito, e il caso
-            // limite di questa API e' una sezione vuota che non lo dice.
+            // WE GO OUT BY A TENTH BEYOND THE EDGES. A line that ends
+            // exactly on the edge is a free edge case, and the
+            // edge case of this API is an empty section that does not say so.
             double x1, y1, x2, y2;
             if (facing == "vertical")
             {
@@ -183,7 +183,7 @@ namespace Oce.Solid.Agent.Core
                 x2 = xMax + wide * 0.1; y2 = y;
             }
 
-            // ── LA LINEA, SULLO SCHIZZO DEL FOGLIO ──────────────────────
+            // ── THE LINE, ON THE SKETCH OF THE SHEET ────────────────────
             try { drawing.EditSheet(); } catch { }
 
             // The segments of the sheet sketch before the line, so that a line
@@ -206,8 +206,8 @@ namespace Oce.Solid.Agent.Core
                     "la linea non c'e' niente da selezionare: «CreateSectionViewAt5» " +
                     "non prende il taglio in firma, lo prende dalla selezione.");
 
-            // LO SCHIZZO SI CHIUDE PRIMA. Vedi il docstring: con uno schizzo
-            // aperto le API che creano viste si comportano diversamente.
+            // THE SKETCH IS CLOSED FIRST. See the docstring: with an open sketch
+            // the APIs that create views behave differently.
             try { model.SketchManager.InsertSketch(true); } catch { }
 
             bool taken = false;
@@ -227,7 +227,7 @@ namespace Oce.Solid.Agent.Core
                     "something other than what you asked" +
                     SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, line, segmentsBefore), "cutting line"));
 
-            // ── LA SEZIONE, A FIANCO ────────────────────────────────────
+            // ── THE SECTION, ALONGSIDE ──────────────────────────────────
             double xSection, ySection;
             if (facing == "vertical")
             {
@@ -249,7 +249,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex) { exploded = ex.Message; }
 
-            // ── IL RISCONTRO: QUANTE VISTE CI SONO ADESSO ───────────────
+            // ── THE CROSS-CHECK: HOW MANY VIEWS THERE ARE NOW ───────────
             int viewsAfter = 0;
             IView last = null;
             try
@@ -293,45 +293,45 @@ namespace Oce.Solid.Agent.Core
             int hatching = -1;
             try { sectionName = sectionView.GetName2() ?? ""; } catch { }
             try { sectionType = sectionView.Type; } catch { }
-            // ── IL CONTATORE GIUSTO E' `GetFaceHatchCount` ──────────────
+            // ── THE RIGHT COUNTER IS `GetFaceHatchCount` ────────────────
             //
-            // La voce GT4 prescriveva `GetSolidHatchCount() > 0`, e il
-            // criterio era giusto: una sezione senza campitura e' un taglio
-            // caduto fuori dal materiale. **Il contatore no.**
+            // Entry GT4 prescribed `GetSolidHatchCount() > 0`, and the
+            // criterion was right: a section without hatching is a cut
+            // that fell outside the material. **The counter was not.**
             //
-            // Misurato il 23/9/2026 su una sezione che attraversa una piastra
-            // 120x80x20 piena, con la sonda `Checks\SectionView`:
+            // Measured on 23/9/2026 on a section that crosses a solid
+            // 120x80x20 plate, with the probe `Checks\SectionView`:
             //
-            //     tratteggio PRIMA del ricalcolo: ritorno=0  out=0
-            //     tratteggio DOPO  il ricalcolo: ritorno=0  out=0
-            //     tratteggio di FACCIA:          1
-            //     tipo vista: 2 (swDrawingSectionView), GetSection(): un oggetto
+            //     hatching BEFORE the rebuild: return=0  out=0
+            //     hatching AFTER  the rebuild: return=0  out=0
+            //     FACE hatching:               1
+            //     view type: 2 (swDrawingSectionView), GetSection(): an object
             //
-            // `GetSolidHatchCount` risponde **zero su una sezione vera**,
-            // prima e dopo il ricalcolo. Si legge `GetFaceHatchCount`.
+            // `GetSolidHatchCount` answers **zero on a real section**,
+            // before and after the rebuild. `GetFaceHatchCount` is read.
             //
-            // COME SI E' SCOPERTO, e vale la pena tenerlo: l'operazione si e'
-            // rifiutata al primo uso vero, nel primo caso di banco scritto per
-            // lei. La guardia aveva ragione a esistere e torto sul numero, e
-            // le due cose si distinguono solo misurando. *Un criterio giusto
-            // appoggiato al contatore sbagliato e' una guardia che dice
-            // sempre di no, ed e' indistinguibile da una che funziona finche'
-            // non la si usa.*
+            // HOW IT WAS DISCOVERED, and it is worth keeping: the operation
+            // refused at the first real use, in the first bench case written for
+            // it. The guard was right to exist and wrong about the number, and
+            // the two things are told apart only by measuring. *A right criterion
+            // resting on the wrong counter is a guard that always
+            // says no, and it is indistinguishable from one that works until
+            // it is used.*
             try { hatching = sectionView.GetFaceHatchCount(); } catch { }
 
-            // L'altro si legge lo stesso e si riporta: vale zero su una
-            // sezione buona, e averlo accanto e' cio' che impedisce a
-            // qualcuno di riprovarci fra sei mesi.
+            // The other one is read all the same and reported: it is zero on a
+            // good section, and having it alongside is what stops
+            // someone from trying again in six months.
             int solids = -1;
             try { int q; sectionView.GetSolidHatchCount(out q); solids = q; } catch { }
 
-            // ── IL TRATTEGGIO, E QUI SI FALLISCE ────────────────────────
+            // ── THE HATCHING, AND HERE IT FAILS ─────────────────────────
             //
-            // Vedi il docstring. Una vista di sezione senza tratteggio e' una
-            // linea di taglio caduta fuori dal materiale: formalmente valida,
-            // conta come vista, e non mostra niente.
-            // LA VISTA VUOTA SI TOGLIE (revisione del 26/9/2026): restando, la sua
-            // lettera «A» faceva rifiutare il rimedio che il messaggio stesso indica.
+            // See the docstring. A section view without hatching is a
+            // cut line that fell outside the material: formally valid,
+            // counts as a view, and shows nothing.
+            // THE EMPTY VIEW IS REMOVED (review of 26/9/2026): if it stayed, its
+            // letter «A» made the remedy the message itself indicates be refused.
             // Only a view that was not on the sheet before is deleted: with no
             // view returned, the name comes from the last view of the chain, and
             // a name read before the call is a view of the user (Z-C21.8, M41).
@@ -348,7 +348,7 @@ namespace Oce.Solid.Agent.Core
                     Math.Round((facing == "vertical" ? x1 : y1) * 1000, 2) + " mm di foglio. " +
                     "Sposta il taglio con «offset_mm».");
 
-            // LA LETTERA EFFETTIVA, riletta dalla vista (Z-C13).
+            // THE ACTUAL LETTER, read back from the view (Z-C13).
             string readLetter = ViewLetter(sectionView);
             var outside = new Dictionary<string, object>
             {
@@ -359,8 +359,8 @@ namespace Oce.Solid.Agent.Core
                 ["views_after"] = viewsAfter,
                 ["view_section"] = sectionName,
                 ["view_kind"] = sectionType,
-                // IL NUMERO CRUDO NON SI LASCIA SOLO: chi legge non ha la
-                // tabella di `swDrawingViewTypes_e` sottomano.
+                // THE RAW NUMBER IS NOT LEFT ALONE: whoever reads does not have the
+                // table of `swDrawingViewTypes_e` at hand.
                 ["is_section"] = sectionType == (int)swDrawingViewTypes_e.swDrawingSectionView,
                 ["label"] = label,
                 ["facing"] = facing,
@@ -369,11 +369,11 @@ namespace Oce.Solid.Agent.Core
                     Math.Round(x1 * 1000, 2), Math.Round(y1 * 1000, 2),
                     Math.Round(x2 * 1000, 2), Math.Round(y2 * 1000, 2),
                 },
-                // DUE NUMERI, E IL SECONDO E' ZERO DI SUO. `hatches` e' il
-                // conto delle campiture di faccia, che e' quello che dice se
-                // il taglio ha incontrato materiale; `hatches_solids` e'
-                // l'altro contatore, che su una sezione vale zero — sta qui
-                // per non far riprovare a nessuno la strada gia' misurata.
+                // TWO NUMBERS, AND THE SECOND IS ZERO BY ITS NATURE. `hatches` is the
+                // count of face hatchings, which is what says whether
+                // the cut met material; `hatches_solids` is
+                // the other counter, which on a section is zero — it is here
+                // so that nobody tries the already measured route again.
                 ["hatches"] = hatching,
                 ["hatches_solids"] = solids,
                 ["depth_mm"] = Math.Round(depthM * 1000, 2),

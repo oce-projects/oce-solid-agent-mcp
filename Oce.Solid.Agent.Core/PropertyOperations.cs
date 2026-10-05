@@ -7,87 +7,87 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// QUELLO CHE IL PEZZO DICE DI SE', E LE SUE VARIANTI. (voce GP12)
+    /// WHAT THE PART SAYS ABOUT ITSELF, AND ITS VARIANTS. (entry GP12)
     ///
-    /// Numero disegno, revisione, cliente: le proprieta' personalizzate sono
-    /// cio' che finisce nel cartiglio e nella scheda del PDM. Fino a qui
-    /// `apply_material` era l'unico aggancio fra il catalogo e quel mondo.
+    /// Drawing number, revision, customer: custom properties are
+    /// what ends up in the title block and in the PDM data card. Up to here
+    /// `apply_material` was the only hook between the catalogue and that world.
     ///
-    /// E le configurazioni sono la stessa famiglia di staffe sinistra/destra,
-    /// con e senza foro: una richiesta standard di un'officina a disegno.
+    /// And configurations are the same family as left/right brackets,
+    /// with and without a hole: a standard request of a workshop that works from drawings.
     ///
-    /// ── LE DUE STRADE SONO LA STESSA STRADA ─────────────────────────────
+    /// ── THE TWO ROADS ARE THE SAME ROAD ─────────────────────────────────
     ///
-    /// La voce chiedeva di accertare «se scrivere su
-    /// `IConfiguration.get_CustomPropertyManager()` o passare il nome a
-    /// `IModelDocExtension.get_CustomPropertyManager(nome)` dia risultati
-    /// equivalenti: due strade mai confrontate». Misurato il 16/9/2026:
+    /// The entry asked to establish «whether writing on
+    /// `IConfiguration.get_CustomPropertyManager()` or passing the name to
+    /// `IModelDocExtension.get_CustomPropertyManager(nome)` gives equivalent
+    /// results: two roads never compared». Measured on 16/9/2026:
     ///
-    ///   scritta «Hand» = SX via Extension(nome)
-    ///       riletta via Extension(nome)  ->  «SX»
-    ///       riletta via IConfiguration   ->  «SX»
-    ///   scritta «Revision» = B via IConfiguration
-    ///       riletta via IConfiguration   ->  «B»
-    ///       riletta via Extension(nome)  ->  «B»
+    ///   written «Hand» = SX via Extension(nome)
+    ///       re-read via Extension(nome)  ->  «SX»
+    ///       re-read via IConfiguration   ->  «SX»
+    ///   written «Revision» = B via IConfiguration
+    ///       re-read via IConfiguration   ->  «B»
+    ///       re-read via Extension(nome)  ->  «B»
     ///
-    /// **Sono equivalenti.** Qui si usa `Extension(nome)`, che non ha bisogno
-    /// dell'oggetto configurazione in mano.
+    /// **They are equivalent.** Here `Extension(nome)` is used, which does not need
+    /// the configuration object in hand.
     ///
-    /// ── MA IL DOCUMENTO E LA CONFIGURAZIONE SONO DUE CASSETTI ──────────
+    /// ── BUT THE DOCUMENT AND THE CONFIGURATION ARE TWO DRAWERS ─────────
     ///
-    /// E questa NON e' una cosa che si sapeva:
+    /// And this was NOT something that was known:
     ///
-    ///   «Numero disegno», scritta sul DOCUMENTO, letta dalla config  -> non c'e'
-    ///   «Hand», scritta sulla CONFIG, letta dal documento            -> non c'e'
+    ///   «Numero disegno», written on the DOCUMENT, read from the config  -> not there
+    ///   «Hand», written on the CONFIG, read from the document            -> not there
     ///
-    /// Non si ereditano e non si vedono. Chi scrive il numero di disegno sul
-    /// documento e poi legge le proprieta' di una configurazione **non lo
-    /// trova**, e nessuno gli dice perche'. Percio' qui il posto in cui si
-    /// scrive e' un argomento esplicito, e torna nella risposta.
+    /// They are not inherited and they are not seen. Whoever writes the drawing number on the
+    /// document and then reads the properties of a configuration **does not
+    /// find it**, and nobody tells them why. Therefore here the place where it is
+    /// written is an explicit argument, and it comes back in the answer.
     ///
-    /// ── IL NOME DELLA CONFIGURAZIONE NON E' QUELLO CHE SEMBRA ──────────
+    /// ── THE NAME OF THE CONFIGURATION IS NOT WHAT IT SEEMS ─────────────
     ///
     ///   ActiveConfiguration.Name       ->  «Default&lt;A macchina&gt;»
     ///   ShowConfiguration2("Default")  ->  FALSE
     ///   ShowConfiguration2("Default&lt;A macchina&gt;")  ->  TRUE
     ///
-    /// Le parentesi angolari sono **dentro il nome**, e non sono un'altra cosa
-    /// che il nome si porta appresso: un pezzo appena nato dal modello di
-    /// questa azienda ha DUE configurazioni vere — «Default&lt;A macchina&gt;» e
-    /// «Default&lt;Saldato&gt;», la coppia dei saldati — e `GetConfigurationCount()`
-    /// risponde **2**. (Gli stati di visualizzazione sono un'altra cosa
-    /// ancora: stanno su `IConfiguration.GetDisplayStates()`, qui ce n'e' uno
-    /// per configurazione e si chiama «&lt;Default&gt;_Stato di visualizzazione 1».)
+    /// The angle brackets are **inside the name**, and they are not something else
+    /// that the name carries around: a part freshly born from this company's
+    /// template has TWO real configurations — «Default&lt;A macchina&gt;» and
+    /// «Default&lt;Saldato&gt;», the weldment pair — and `GetConfigurationCount()`
+    /// answers **2**. (The display states are another thing
+    /// altogether: they live on `IConfiguration.GetDisplayStates()`, here there is one
+    /// per configuration and it is called «&lt;Default&gt;_Stato di visualizzazione 1».)
     ///
-    /// L'unica fonte buona e' `GetConfigurationNames()`: i nomi non si
-    /// costruiscono, si chiedono.
+    /// The only good source is `GetConfigurationNames()`: names are not
+    /// constructed, they are asked for.
     ///
-    /// ── LO STESSO NOME SU DUE INTERFACCE, CON FIRME DIVERSE ────────────
+    /// ── THE SAME NAME ON TWO INTERFACES, WITH DIFFERENT SIGNATURES ─────
     ///
-    /// La voce avvisava di una «firma gemella-ma-diversa». E' peggio: ci sono
-    /// DUE FAMIGLIE di questi metodi, su due interfacce, e i nomi si ripetono.
+    /// The entry warned of a «twin-but-different signature». It is worse: there are
+    /// TWO FAMILIES of these methods, on two interfaces, and the names repeat.
     ///
     ///   IModelDoc2.AddConfiguration (8 par.)  -> void
     ///   IModelDoc2.AddConfiguration2(8 par.)  -> bool
     ///   IModelDoc2.AddConfiguration3(Name, Comment, AlternateName, Options)
     ///                                         -> object
     ///   IConfigurationManager.AddConfiguration (6 par.)  -> IConfiguration
-    ///   IConfigurationManager.AddConfiguration2(7 par., con Rebuild)
+    ///   IConfigurationManager.AddConfiguration2(7 par., with Rebuild)
     ///                                         -> IConfiguration
     ///
-    /// Un metodo cercato sull'interfaccia sbagliata «non esiste» — ed e'
-    /// esattamente l'errore che abbiamo fatto prima di guardare: `AddConfiguration3`
-    /// **c'e'**, ma su `IModelDoc2`. *Un nome dice come si chiama un metodo, non
-    /// su quale interfaccia sta.*
+    /// A method looked up on the wrong interface «does not exist» — and it is
+    /// exactly the mistake we made before looking: `AddConfiguration3`
+    /// **is there**, but on `IModelDoc2`. *A name says what a method is called, not
+    /// which interface it is on.*
     ///
-    /// Qui si usa **`IConfigurationManager.AddConfiguration2`**, e non per
-    /// anzianita': e' l'unica che torna l'**oggetto configurazione** (da cui si
-    /// rilegge il nome vero) e che prende `Rebuild`. Le tre su `IModelDoc2`
-    /// tornano `void`, `bool` e `object`: la prima non si puo' nemmeno
-    /// controllare.
+    /// Here **`IConfigurationManager.AddConfiguration2`** is used, and not out of
+    /// seniority: it is the only one that returns the **configuration object** (from which the
+    /// real name is re-read) and that takes `Rebuild`. The three on `IModelDoc2`
+    /// return `void`, `bool` and `object`: the first cannot even be
+    /// checked.
     ///
-    /// **Attiva subito la configurazione nuova**, senza che glielo si chieda:
-    /// si dice nella risposta, perche' i passi dopo lavorano su quella.
+    /// **It activates the new configuration at once**, without being asked to:
+    /// it is said in the answer, because the following steps work on that one.
     /// </summary>
     public partial class SwOperations
     {
@@ -147,9 +147,9 @@ namespace Oce.Solid.Agent.Core
                     itemName,
                     (int)swCustomInfoType_e.swCustomInfoText,
                     val,
-                    // SI SOSTITUISCE, e si dice: «solo se nuova» lascerebbe il
-                    // valore vecchio e risponderebbe lo stesso, che e' il modo
-                    // piu' comodo di credere di aver scritto una revisione.
+                    // IT IS REPLACED, and it is said: «only if new» would leave the
+                    // old value and answer all the same, which is the most
+                    // comfortable way of believing one has written a revision.
                     (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
             }
             catch (Exception ex) { return Failed("La proprieta' non e' stata scritta: " + ex.Message); }
@@ -159,8 +159,8 @@ namespace Oce.Solid.Agent.Core
                     "SOLIDWORKS ha rifiutato la proprieta' «" + itemName + "»: " +
                     PropertyOutcomeName(outcome) + ".");
 
-            // SI RILEGGE SEMPRE. `Add3` risponde un codice, non il valore: il
-            // valore lo dice solo chi lo rilegge.
+            // IT IS ALWAYS RE-READ. `Add3` answers a code, not the value: the
+            // value is told only by whoever re-reads it.
             //
             // THE TEXT WRITTEN IS COMPARED WITH THE TEXT READ (Z-C21.8, finding
             // M35). ICustomPropertyManager~Get6.html gives two values: ValOut,
@@ -179,13 +179,13 @@ namespace Oce.Solid.Agent.Core
                     (read == null ? "il vuoto" : "«" + read + "»") + ". Non ti confermo " +
                     "una scheda dati che non e' quella che credi.");
 
-            // E SI GUARDA ANCHE NELL'ALTRO CASSETTO.
+            // AND THE OTHER DRAWER IS LOOKED AT TOO.
             //
-            // Non per scrivere: per DIRE che li' non c'e'. E' la differenza
-            // fra una nota nel catalogo, che chi legge la risposta puo' non
-            // aver mai letto, e un numero misurato su questo pezzo adesso.
-            // Ed e' l'unico modo perche' il banco possa vedere il giorno in
-            // cui SOLIDWORKS cambiasse idea e cominciasse a ereditarle.
+            // Not to write: to SAY that it is not there. It is the difference
+            // between a note in the catalogue, which whoever reads the answer may never
+            // have read, and a number measured on this part now.
+            // And it is the only way for the bench to see the day
+            // SOLIDWORKS changed its mind and began to inherit them.
             string otherList = onConfiguration
                 ? "the document"
                 : "la configurazione attiva";
@@ -216,8 +216,8 @@ namespace Oce.Solid.Agent.Core
                     ? "la configurazione «" + configuration + "»"
                     : "the document",
                 ["visible_from_other_list"] = seenOnTheOtherSide,
-                // I DUE CASSETTI SONO SEPARATI, e va detto ogni volta: e' la
-                // cosa che nessuno si aspetta.
+                // THE TWO DRAWERS ARE SEPARATE, and it must be said every time: it is the
+                // thing nobody expects.
                 ["two_lists"] =
                     "Le proprieta' del documento e quelle di una configurazione sono due " +
                     "elenchi separati: non si ereditano e non si vedono a vicenda. Ho " +
@@ -254,9 +254,9 @@ namespace Oce.Solid.Agent.Core
             IConfiguration newOne;
             try
             {
-                // `IConfigurationManager.AddConfiguration2`, non una delle tre
-                // che si chiamano quasi uguale su `IModelDoc2`: solo questa
-                // torna l'oggetto configurazione. Vedi il commento in testa.
+                // `IConfigurationManager.AddConfiguration2`, not one of the three
+                // that are called almost the same on `IModelDoc2`: only this one
+                // returns the configuration object. See the comment at the top.
                 newOne = handler.AddConfiguration2(
                     itemName,                              // Name
                     Str(a, "comment", "") ?? "",      // Comment
@@ -281,7 +281,7 @@ namespace Oce.Solid.Agent.Core
                 ["configuration"] = newOne.Name,
                 ["active_now"] = activate,
                 ["configurations"] = ConfigurationNames(model).ToArray(),
-                // ATTIVA DA SOLA, e i passi dopo lavorano su quella.
+                // IT ACTIVATES BY ITSELF, and the following steps work on that one.
                 ["note_activation"] =
                     "Creando una configurazione SOLIDWORKS la ATTIVA: adesso il documento e' " +
                     "su «" + activate + "», e i passi che seguono lavorano li'. Con " +
@@ -316,21 +316,21 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // ── IL BOOLEANO NON E' IL CRITERIO, E NON PERCHE' SIA PIGRO ──
+            // ── THE BOOLEAN IS NOT THE CRITERION, AND NOT BECAUSE IT IS LAZY ──
             //
-            // `ShowConfiguration2` risponde **false anche quando la
-            // configurazione chiesta e' gia' quella attiva**. Misurato dal
-            // banco il 16/9/2026: due casi rossi con il messaggio «ho chiesto
-            // di attivare "Left" e adesso e' attiva "Left"» — cioe' il
-            // rifiuto diceva da solo che il rifiuto era sbagliato.
+            // `ShowConfiguration2` answers **false even when the
+            // configuration asked for is already the active one**. Measured by the
+            // bench on 16/9/2026: two red cases with the message «I asked
+            // to activate "Left" and now "Left" is active» — that is the
+            // refusal said by itself that the refusal was wrong.
             //
-            // Quel `false` non distingue «non l'ho fatto» da «non c'era niente
-            // da fare». L'unica cosa che distingue le due e' **quale
-            // configurazione e' attiva adesso**, che e' anche l'unica che a chi
-            // legge interessi davvero.
+            // That `false` does not tell «I did not do it» from «there was nothing
+            // to do». The only thing that tells the two apart is **which
+            // configuration is active now**, which is also the only thing that whoever
+            // reads really cares about.
             //
-            // Il booleano si tiene, ma come dettaglio nel messaggio: serve a
-            // chi dovra' capire perche' il giorno in cui questo scattasse.
+            // The boolean is kept, but as a detail in the message: it serves
+            // whoever will have to understand why, the day this fired.
             if (!string.Equals(activate, itemName, StringComparison.Ordinal))
                 return Failed(
                     "Ho chiesto di attivare «" + itemName + "» e adesso e' attiva " +
@@ -342,10 +342,10 @@ namespace Oce.Solid.Agent.Core
             {
                 ["configuration"] = activate,
                 ["configurations"] = ConfigurationNames(model).ToArray(),
-                // «era gia' questa»: chi legge deve poter distinguere uno
-                // spostamento da un non-spostamento, perche' SOLIDWORKS non lo
-                // distingue (vedi sopra) e la differenza conta quando il passo
-                // seguente da' per scontato di essere appena arrivato.
+                // «it was already this one»: whoever reads must be able to tell a
+                // move from a non-move, because SOLIDWORKS does not
+                // tell them apart (see above) and the difference matters when the following
+                // step takes for granted that it has just arrived.
                 ["was_already_active"] = !done,
             });
         }
@@ -353,32 +353,32 @@ namespace Oce.Solid.Agent.Core
         // =================================================================
 
         /// <summary>
-        /// Il nome di una configurazione, verificato contro quelli che il
-        /// documento dichiara. Null — con il motivo — quando non c'e'.
+        /// The name of a configuration, verified against those that the
+        /// document declares. Null — with the reason — when it is not there.
         ///
-        /// ── PERCHE' NON SI INDOVINA IL NOME CORTO ─────────────────────────
+        /// ── WHY THE SHORT NAME IS NOT GUESSED ─────────────────────────────
         ///
-        /// `ShowConfiguration2("Default")` risponde **false** se le
-        /// configurazioni si chiamano «Default&lt;A macchina&gt;» e
-        /// «Default&lt;Saldato&gt;»: il pezzo fra parentesi angolari fa parte
-        /// del nome.
+        /// `ShowConfiguration2("Default")` answers **false** if the
+        /// configurations are called «Default&lt;A macchina&gt;» and
+        /// «Default&lt;Saldato&gt;»: the piece between angle brackets is part of
+        /// the name.
         ///
-        /// La tentazione e' tradurre il nome corto in quello lungo. Non si fa,
-        /// per due motivi che si sono visti tutti e due:
+        /// The temptation is to translate the short name into the long one. It is not done,
+        /// for two reasons that have both been seen:
         ///
-        ///   * **quel nome corto e' AMBIGUO.** Un pezzo appena nato dal modello
-        ///     di questa azienda ha DUE configurazioni vere che cominciano per
-        ///     «Default» — `GetConfigurationCount()` risponde 2. Chi traducesse
-        ///     sceglierebbe, e scegliere qui vuol dire attivare la variante
-        ///     sbagliata senza che niente dia errore;
-        ///   * **una strada che non si prende mai non si sa se funziona.** Se
-        ///     il caso unico fosse davvero unico, il ramo «un solo candidato»
-        ///     resterebbe non provato — e un ramo non provato in mezzo a una
-        ///     scelta di configurazione e' peggio di un rifiuto.
+        ///   * **that short name is AMBIGUOUS.** A part freshly born from this
+        ///     company's template has TWO real configurations that begin with
+        ///     «Default» — `GetConfigurationCount()` answers 2. Whoever translated
+        ///     would choose, and choosing here means activating the wrong
+        ///     variant without anything giving an error;
+        ///   * **a road that is never taken is not known to work.** If
+        ///     the unique case were really unique, the branch «a single candidate»
+        ///     would stay untried — and an untried branch in the middle of a
+        ///     choice of configuration is worse than a refusal.
         ///
-        /// Quindi: **il nome si confronta e basta**, e il messaggio insegna il
-        /// perche' — che e' l'unica cosa che qui serve davvero, perche' chi
-        /// chiama i nomi buoni ce li ha, nello stato del documento.
+        /// So: **the name is compared and that is all**, and the message teaches
+        /// why — which is the only thing that is really needed here, because whoever
+        /// calls has the good names, in the document state.
         /// </summary>
         private static string TrueConfigurationName(
             IModelDoc2 model, string requested, out string why)
@@ -393,9 +393,9 @@ namespace Oce.Solid.Agent.Core
             foreach (var n in names)
                 if (string.Equals(n, requested, StringComparison.Ordinal)) return n;
 
-            // Se il nome chiesto e' il prefisso di uno o piu' nomi veri, quasi
-            // sempre chi chiama non sapeva del suffisso: glielo si dice, invece
-            // di elencare e basta.
+            // If the name asked for is the prefix of one or more real names, almost
+            // always whoever calls did not know about the suffix: they are told so, instead
+            // of just listing.
             var resembling = names
                 .Where(n => n.StartsWith(requested + "<", StringComparison.OrdinalIgnoreCase))
                 .ToList();

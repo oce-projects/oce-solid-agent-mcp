@@ -8,25 +8,25 @@ using SolidWorks.Interop.swdimxpert;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE QUOTE NEL MODELLO, DA DIMXPERT (voce Z-H3).
+    /// THE DIMENSIONS IN THE MODEL, FROM DIMXPERT (entry Z-H3).
     ///
-    /// ── LA PREMESSA CHE ERA FALSA ─────────────────────────────────────────
+    /// ── THE PREMISE THAT WAS FALSE ────────────────────────────────────────
     ///
-    /// La voce diceva «serve la stessa spunta di Utilities». Non serve niente:
-    /// `IModelDocExtension.get_DimXpertManager` sta nell'interop del NUCLEO, e
-    /// `Checks/DimXpert` il 24/9/2026 ha quotato una piastra con un foro
-    /// senza nessun add-in — Ø20, 10, 60, 100, e il foro a 50 e 30.
+    /// The entry said «the same tick as Utilities is needed». Nothing is needed:
+    /// `IModelDocExtension.get_DimXpertManager` is in the interop of the CORE, and
+    /// `Checks/DimXpert` on 24/9/2026 dimensioned a plate with a hole
+    /// without any add-in — Ø20, 10, 60, 100, and the hole at 50 and 30.
     ///
-    /// ── DUE COSE CHE SI SANNO SOLO MISURANDO ──────────────────────────────
+    /// ── TWO THINGS THAT ARE KNOWN ONLY BY MEASURING ───────────────────────
     ///
-    ///  1. **I riferimenti si SELEZIONANO**, con un marchio: 1 il primario, 2 il
-    ///     secondario, 4 il terziario. Le opzioni dello schema non hanno campi
-    ///     per loro. Senza selezione lo schema mette UNA quota su tre facce.
-    ///  2. **`AutoDimensionScheme` risponde False anche quando ha quotato.**
-    ///     Si giudica dalle annotazioni, prima e dopo — mai dalla risposta.
+    ///  1. **The references are SELECTED**, with a mark: 1 the primary, 2 the
+    ///     secondary, 4 the tertiary. The options of the scheme have no fields
+    ///     for them. Without a selection the scheme puts ONE dimension on three faces.
+    ///  2. **`AutoDimensionScheme` answers False even when it has dimensioned.**
+    ///     It is judged from the annotations, before and after — never from the answer.
     ///
-    /// Le quote nascono nel MODELLO (MBD), non in una tavola: una vista di
-    /// tavola le puo' poi mostrare, ma quella e' un'altra operazione.
+    /// The dimensions are born in the MODEL (MBD), not in a drawing: a drawing
+    /// view can then show them, but that is another operation.
     /// </summary>
     public partial class SwOperations
     {
@@ -110,8 +110,8 @@ namespace Oce.Solid.Agent.Core
                 ["dimensions"] = quote.Count <= 40 ? quote.ToArray() : quote.GetRange(0, 40).ToArray(),
                 ["values_mm"] = values.ToArray(),
                 ["characteristics"] = partDoc.GetFeatureCount(),
-                // LA RISPOSTA DELL'API, accanto alla misura e col suo nome: False
-                // anche quando ha quotato. Non si nasconde, si nomina.
+                // THE ANSWER OF THE API, next to the measurement and with its name: False
+                // even when it has dimensioned. It is not hidden, it is named.
                 ["auto_dimension_scheme_response"] = response,
             });
         }

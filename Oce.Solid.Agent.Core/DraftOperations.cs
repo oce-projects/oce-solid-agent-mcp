@@ -8,13 +8,13 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LO SFORMO. (voce GP15)
+    /// THE DRAFT. (entry GP15)
     ///
-    /// L'angolo di spoglia: le pareti di un pezzo stampato in stampo devono
-    /// pendere di un grado o due, o il pezzo non esce dalla forma. Serve anche
-    /// alle fusioni e alle lavorazioni con angolo di spoglia.
+    /// The draft angle: the walls of a part moulded in a mould must
+    /// lean by a degree or two, or the part does not come out of the form. It is also needed
+    /// for castings and for machining with a draft angle.
     ///
-    /// ── QUATTRO FAMIGLIE, E DUE HANNO LA FIRMA IDENTICA ───────────────
+    /// ── FOUR FAMILIES, AND TWO HAVE THE IDENTICAL SIGNATURE ───────────
     ///
     ///   IFeatureManager.InsertMultiFaceDraft(Angle, FlipDir, EdgeDraft,
     ///                          PropType, IsStepDraft, IsBodyDraft) -> Feature
@@ -24,43 +24,43 @@ namespace Oce.Solid.Agent.Core
     ///                                                             -> void
     ///   IModelDoc2.InsertMfDraft2(... , StepDraft)                 -> void
     ///
-    /// Le prime due **non si distinguono leggendo**: stessi nomi di parametro,
-    /// stessi tipi, stesso tipo di ritorno. Si distinguono solo misurando, e
-    /// misurate rispondono in modo diverso: con le stesse identiche selezioni e
-    /// gli stessi identici argomenti, `InsertMultiFaceDraft` fa lo sformo e
-    /// **`DraftXpertChange` torna null**. Le ultime due tornano `void` e non si
-    /// possono nemmeno controllare.
+    /// The first two **cannot be told apart by reading**: same parameter names,
+    /// same types, same return type. They are told apart only by measuring, and
+    /// measured they answer differently: with the very same selections and
+    /// the very same arguments, `InsertMultiFaceDraft` makes the draft and
+    /// **`DraftXpertChange` returns null**. The last two return `void` and cannot
+    /// even be checked.
     ///
-    /// Si usa `InsertMultiFaceDraft`.
+    /// `InsertMultiFaceDraft` is used.
     ///
-    /// ── I MARCHI, E IL DIFETTO CHE CI STA DENTRO ──────────────────────
+    /// ── THE MARKS, AND THE DEFECT INSIDE THEM ─────────────────────────
     ///
-    /// **Faccia neutra marchio 1, facce da sformare marchio 2.** Misurato il
-    /// 16/9/2026 su un blocco 100x100x20, sformo di 5 gradi:
+    /// **Neutral face mark 1, faces to draft mark 2.** Measured on
+    /// 16/9/2026 on a 100x100x20 block, draft of 5 degrees:
     ///
-    ///   neutra=1, facce=2   ->  «Sformo1», laterali a 5,00 gradi,
-    ///                           volume 200000 -> 207080,7
-    ///   neutra=2, facce=1   ->  «Sformo1», laterali a 0,00 gradi,
-    ///                           volume 200000 -> 243744,3
+    ///   neutral=1, faces=2  ->  «Sformo1», sides at 5.00 degrees,
+    ///                           volume 200000 -> 207080.7
+    ///   neutral=2, faces=1  ->  «Sformo1», sides at 0.00 degrees,
+    ///                           volume 200000 -> 243744.3
     ///
-    /// **La seconda riga e' il difetto.** Scambiando i marchi la feature nasce
-    /// lo stesso, si chiama lo stesso, non da' nessun errore — e ha sformato
-    /// altre facce, di un'altra quantita'. Chi non guarda il pezzo di lato non
-    /// se ne accorge.
+    /// **The second row is the defect.** Swapping the marks the feature is born
+    /// all the same, is called the same, gives no error — and has drafted
+    /// other faces, by another amount. Whoever does not look at the part from the side does not
+    /// notice.
     ///
-    /// ── E L'ANGOLO DELLA FEATURE NON E' UNA MISURA ────────────────────
+    /// ── AND THE ANGLE OF THE FEATURE IS NOT A MEASURE ─────────────────
     ///
-    /// In tutti e due i casi `IDraftFeatureData.Angle` rilegge **5 gradi**:
-    /// cioe' quello che si e' chiesto, non quello che e' successo. Anche nel
-    /// caso in cui le facce sono rimaste a zero.
+    /// In both cases `IDraftFeatureData.Angle` reads back **5 degrees**:
+    /// that is, what was asked, not what happened. Even in the
+    /// case in which the faces stayed at zero.
     ///
-    /// Percio' qui l'angolo si misura **sulle facce del pezzo**, contando
-    /// quante stanno all'inclinazione chiesta rispetto alla neutra, prima e
-    /// dopo. E' l'unico numero che nel caso sbagliato viene diverso.
+    /// So here the angle is measured **on the faces of the part**, counting
+    /// how many are at the inclination asked for with respect to the neutral one, before and
+    /// after. It is the only number that comes out different in the wrong case.
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>Quanto si tollera sull'angolo letto dalle facce, in gradi.</summary>
+        /// <summary>How much is tolerated on the angle read from the faces, in degrees.</summary>
         private const double DraftToleranceDeg = 0.05;
 
         private Outcome Draft(
@@ -114,8 +114,8 @@ namespace Oce.Solid.Agent.Core
             var handler = model.SelectionManager as ISelectionMgr;
             if (handler == null) return Failed("Non riesco a usare il gestore di selezione.");
 
-            // NEUTRA MARCHIO 1, FACCE MARCHIO 2. Scambiati, la feature nasce
-            // lo stesso e sforma le facce sbagliate: vedi la nota in testa.
+            // NEUTRAL MARK 1, FACES MARK 2. Swapped, the feature is born
+            // all the same and drafts the wrong faces: see the note at the head.
             if (!Select(handler, neutral, SelectionMarks.DraftNeutralFace))
                 return Failed("Non sono riuscito a selezionare la faccia neutra.");
             for (int i = 0; i < faces.Count; i++)
@@ -141,11 +141,11 @@ namespace Oce.Solid.Agent.Core
                     "solito e' l'angolo troppo grande per l'altezza della parete, o una " +
                     "faccia che non tocca la neutra.");
 
-            // ── E ADESSO SI MISURA IL PEZZO, NON LA FEATURE ──────────────
+            // ── AND NOW THE PART IS MEASURED, NOT THE FEATURE ────────────
             //
-            // `IDraftFeatureData.Angle` rilegge l'angolo CHIESTO anche quando
-            // non si e' inclinato niente. L'unica misura vera e' quante facce
-            // del pezzo stanno all'angolo chiesto rispetto alla neutra.
+            // `IDraftFeatureData.Angle` reads back the angle ASKED for even when
+            // nothing tilted. The only true measure is how many faces
+            // of the part are at the angle asked for with respect to the neutral one.
             int inclinedAfter = HowManyInclinedFaces(model, neutralNormal, angle);
             double? volumeAfter = VolumeMm3(model);
             int bodiesAfter = CountSolidBodies(model);
@@ -181,8 +181,8 @@ namespace Oce.Solid.Agent.Core
                     ": uno sformo non deve spezzare il pezzo. Ritiralo — " +
                     Sentences.HowToWithdrawIt + ".");
 
-            // Lo sformo non si decide sul volume (le facce si contano): qui il
-            // volume si riporta soltanto, e se non si legge si dice (voce Z-C8).
+            // The draft is not decided on the volume (the faces are counted): here the
+            // volume is only reported, and if it cannot be read that is said (entry Z-C8).
             double? moved = volumeAfter - volumeBefore;
             var measurements = new Dictionary<string, object>
             {
@@ -194,8 +194,8 @@ namespace Oce.Solid.Agent.Core
                 ["material_mm3"] = NumberOrNull(moved, 2),
                 ["part_grew"] = moved.HasValue ? (object)(moved.Value > 0) : null,
                 ["bodies"] = NumberOrNull(bodiesAfter),
-                // L'ANGOLO DICHIARATO DALLA FEATURE, accanto a quello misurato
-                // e con scritto che cos'e'. Non si nasconde: si nomina.
+                // THE ANGLE DECLARED BY THE FEATURE, next to the measured one
+                // and with what it is written. It is not hidden: it is named.
                 ["angle_declared_by_feature"] = FeatureAngle(feature),
                 ["what_it_does_not_check"] =
                     "Ho contato le facce che stanno all'angolo chiesto rispetto alla neutra, " +
@@ -226,19 +226,19 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Quante facce piane del pezzo stanno all'angolo chiesto rispetto alla
-        /// faccia neutra.
+        /// How many planar faces of the part are at the angle asked for with respect to the
+        /// neutral face.
         ///
-        /// Una parete dritta e' perpendicolare alla neutra: il suo angolo con
-        /// la normale della neutra e' 90 gradi. Sformata di `alfa`, diventa
-        /// `90 - alfa` oppure `90 + alfa` secondo il verso — e siccome il verso
-        /// si puo' capovolgere, si accettano tutt'e due e si conta.
+        /// A straight wall is perpendicular to the neutral one: its angle with
+        /// the normal of the neutral one is 90 degrees. Drafted by `alfa`, it becomes
+        /// `90 - alfa` or `90 + alfa` depending on the direction — and since the direction
+        /// can be flipped, both are accepted and counted.
         ///
-        /// Si contano le facce PIANE e basta: una faccia cilindrica sformata
-        /// diventa conica e non ha un'inclinazione sola.
+        /// Only PLANAR faces are counted: a cylindrical face that is drafted
+        /// becomes conical and does not have a single inclination.
         ///
-        /// **-1 se non si e' potuto leggere** (voce Z-C8). ZERO-E-ZERO: un pezzo
-        /// senza corpi solidi (`GetBodies2` null) non ha facce inclinate.
+        /// **-1 if it could not be read** (entry Z-C8). ZERO-E-ZERO: a part
+        /// with no solid bodies (`GetBodies2` null) has no tilted faces.
         /// </summary>
         private static int HowManyInclinedFaces(
             IModelDoc2 model, double[] neutralNormal, double angleDeg)

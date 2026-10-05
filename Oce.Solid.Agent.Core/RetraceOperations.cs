@@ -6,29 +6,29 @@ using SolidWorks.Interop.sldworks;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// UN'IMMAGINE DA RICALCARE, IN SCALA, IN UNO SCHIZZO (voce Z-F5).
+    /// AN IMAGE TO TRACE OVER, TO SCALE, IN A SKETCH (entry Z-F5).
     ///
-    /// L'ingresso piu' frequente in un'officina piccola non e' un DXF: e' una
-    /// foto, uno schizzo con le quote a penna. Il modello sa leggere
-    /// l'immagine; gli manca il posto dove metterla, in scala, su un piano.
+    /// The most frequent input in a small workshop is not a DXF: it is a
+    /// photo, a sketch with the dimensions in pen. The model can read
+    /// the image; what it lacks is the place to put it, to scale, on a plane.
     ///
-    /// Misurato il 27/9/2026 (`prova0089 zf5`, un PNG 400x200 px):
+    /// Measured on 27/9/2026 (`prova0089 zf5`, a 400x200 px PNG):
     ///
-    ///  * `ISketchManager.InsertSketchPicture(file)` nello schizzo aperto su un
-    ///    piano: entra a 1 px = 1 mm (400 x 200 mm), origine 0,0; la feature e'
-    ///    «Immagine per schizzo1», tipo `SketchBitmap`.
-    ///  * `SetSize(0,12, 0,06, true)` + `SetOrigin(0,01, 0,02)`: 120 x 60 mm con
-    ///    l'angolo in basso a sinistra in 10,20.
-    ///  * **`GetPointOnSketchFromPixel(Row, Column)` HA GLI ARGOMENTI AL
-    ///    CONTRARIO DEL NOME**: il primo sposta in X (e' la colonna), il secondo
-    ///    in Y (la riga, dall'alto). (0,0) -> 10,80 (l'angolo in alto a
-    ///    sinistra); (199,0) -> 69,7,80 — 199 colonne per 0,3 mm; (0,399) -> null,
-    ///    perche' 399 supera l'altezza. Un numero sbagliato e plausibile, da
-    ///    non credere al nome dell'argomento.
-    ///  * Un PDF non entra (null): va prima convertito in un'immagine.
+    ///  * `ISketchManager.InsertSketchPicture(file)` in the sketch opened on a
+    ///    plane: it enters at 1 px = 1 mm (400 x 200 mm), origin 0,0; the feature is
+    ///    «Immagine per schizzo1», type `SketchBitmap`.
+    ///  * `SetSize(0,12, 0,06, true)` + `SetOrigin(0,01, 0,02)`: 120 x 60 mm with
+    ///    the bottom-left corner at 10,20.
+    ///  * **`GetPointOnSketchFromPixel(Row, Column)` HAS ITS ARGUMENTS THE
+    ///    OTHER WAY ROUND FROM THE NAME**: the first moves in X (it is the column), the second
+    ///    in Y (the row, from the top). (0,0) -> 10,80 (the top-left
+    ///    corner); (199,0) -> 69,7,80 — 199 columns by 0,3 mm; (0,399) -> null,
+    ///    because 399 exceeds the height. A wrong and plausible number, not
+    ///    to be trusted from the name of the argument.
+    ///  * A PDF does not go in (null): it must first be converted into an image.
     ///
-    /// La scala si VERIFICA: il primo e l'ultimo pixel della prima riga, portati
-    /// nello schizzo, devono distare (colonne - 1) x mm-per-pixel entro l'1%.
+    /// The scale is VERIFIED: the first and the last pixel of the first row, brought
+    /// into the sketch, must be apart (columns - 1) x mm-per-pixel within 1%.
     ///
     /// OVER 2048 PX SOLIDWORKS KEEPS FEWER PIXELS THAN THE FILE (finding M11).
     /// Measured on 28/9/2026 (probe_sketch_picture_4096 and
@@ -200,9 +200,9 @@ namespace Oce.Solid.Agent.Core
                     photo.GetSize(ref lw, ref lh);
                     photo.GetOrigin(ref ox, ref oy);
                     placementRead = true;
-                    // LA SCALA VERIFICATA: prima e ultima colonna della prima riga.
-                    // GetPointOnSketchFromPixel vuole (colonna, riga), al contrario
-                    // del nome dei suoi argomenti (misurato).
+                    // THE SCALE VERIFIED: first and last column of the first row.
+                    // GetPointOnSketchFromPixel wants (column, row), the opposite of
+                    // the name of its arguments (measured).
                     var p0 = (photo.GetPointOnSketchFromPixel(0, 0) as IMathPoint)?.ArrayData as double[];
                     var p1 = (photo.GetPointOnSketchFromPixel(w - 1, 0) as IMathPoint)?.ArrayData as double[];
                     if (p0 != null && p1 != null)

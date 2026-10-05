@@ -7,77 +7,77 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// GLI OCCHI SULL'ASSIEME (voce GA1).
+    /// EYES ON THE ASSEMBLY (entry GA1).
     ///
-    /// ── COS'ERA PRIMA, E PERCHE' NON BASTAVA ─────────────────────────────
+    /// ── WHAT IT WAS BEFORE, AND WHY IT WAS NOT ENOUGH ────────────────────
     ///
-    /// Fino alla 0.91.0 `DocumentState.Read` aveva un `if (parte == null)` che
-    /// rispondeva, per QUALUNQUE assieme:
+    /// Up to 0.91.0 `DocumentState.Read` had an `if (parte == null)` that
+    /// answered, for ANY assembly:
     ///
     ///     solid_body: false
     ///     nota: "documento di assieme: l'assistente non lo modifica ancora"
     ///
-    /// e tornava. Era onesto — nessuna operazione di assieme esisteva — ma
-    /// lasciava il modello **cieco**: lo stato e' l'unica cosa che vede, e da
-    /// quella riga non puo' sapere quanti componenti ci sono, come si chiamano,
-    /// quali sono soppressi. Non poteva nemmeno RIFIUTARE con cognizione, perche'
-    /// non sapeva niente di cio' che aveva davanti.
+    /// and returned. It was honest — no assembly operation existed — but it
+    /// left the model **blind**: the state is the only thing it sees, and from
+    /// that line it cannot know how many components there are, what they are called,
+    /// which ones are suppressed. It could not even REFUSE knowingly, because
+    /// it knew nothing of what was in front of it.
     ///
-    /// ── LA DIFFERENZA CHE CONTA CON LE FACCE ─────────────────────────────
+    /// ── THE DIFFERENCE THAT MATTERS WITH FACES ───────────────────────────
     ///
-    /// Gli uid delle facce e degli spigoli sono **POSIZIONALI**: si rinumerano
-    /// per area decrescente a ogni lettura, e dopo una modifica vanno riletti.
-    /// E' la trappola piu' cara del progetto.
+    /// The uids of faces and edges are **POSITIONAL**: they are renumbered
+    /// by decreasing area at every reading, and after an edit they must be read again.
+    /// It is the most expensive trap of the project.
     ///
-    /// **Per i componenti non e' cosi', e va sfruttato.** Ogni componente ha un
-    /// `Name2` unico dentro l'assieme («base-1», «base-2», «coperchio-1»):
-    /// SOLIDWORKS lo garantisce, perche' e' il nome con cui li distingue nella
-    /// struttura. Quindi qui l'ordine si puo' rendere **stabile** invece che
-    /// posizionale: si ordina per `Name2` e `C1..Cn` resta lo stesso fra due
-    /// letture, purche' nessuno abbia aggiunto o tolto componenti.
+    /// **For components it is not so, and this must be exploited.** Every component has a
+    /// `Name2` unique inside the assembly («base-1», «base-2», «coperchio-1»):
+    /// SOLIDWORKS guarantees it, because it is the name with which it tells them apart in the
+    /// structure. So here the order can be made **stable** instead of
+    /// positional: it is sorted by `Name2` and `C1..Cn` stays the same between two
+    /// readings, provided nobody added or removed components.
     ///
-    /// Non e' un dettaglio estetico: un uid che cambia da solo costringe a
-    /// rileggere prima di ogni passo, e il giorno che qualcuno se ne dimentica
-    /// l'operazione va sul componente sbagliato **senza dare errore**.
+    /// It is not an aesthetic detail: a uid that changes by itself forces you to
+    /// read again before every step, and the day someone forgets
+    /// the operation goes on the wrong component **without giving an error**.
     ///
-    /// ── LA REGOLA SUL TRY/CATCH, che qui vale doppio ─────────────────────
+    /// ── THE RULE ON TRY/CATCH, which here counts double ──────────────────
     ///
-    /// Un `try` unico attorno a tutto farebbe sparire l'intero elenco per colpa
-    /// di **un** componente con un riferimento rotto — e i riferimenti rotti, in
-    /// un assieme vero, sono la normalita', non l'eccezione. Ogni campo ha il
-    /// suo `try`, come in `StatoTavola`: quello che non si legge si tace, il
-    /// resto arriva.
+    /// A single `try` around everything would make the whole list disappear because of
+    /// **one** component with a broken reference — and broken references, in
+    /// a real assembly, are the normality, not the exception. Each field has its
+    /// own `try`, as in `StatoTavola`: what cannot be read is left unsaid, the
+    /// rest arrives.
     ///
-    /// E soprattutto: se questa funzione lanciasse, romperebbe
-    /// `DocumentState.Read` **anche per le parti normali**, che passano dalla
-    /// stessa chiamata.
+    /// And above all: if this function threw, it would break
+    /// `DocumentState.Read` **for normal parts too**, which go through the
+    /// same call.
     /// </summary>
     public partial class DocumentState
     {
-        /// <summary>Quanti componenti si descrivono per esteso, al massimo.</summary>
+        /// <summary>How many components are described in full, at most.</summary>
         ///
-        /// Stesso ragionamento del tetto sulle facce (voce E12): un assieme di
-        /// carpenteria vero ne ha centinaia, e scriverli tutti scaccerebbe dal
-        /// contesto le cose che servono. Chi ne ha di piu' lo SA, perche' il
-        /// conteggio totale si scrive comunque.
+        /// Same reasoning as the ceiling on faces (entry E12): a real
+        /// steelwork assembly has hundreds of them, and writing them all would drive out of the
+        /// context the things that are needed. Whoever has more KNOWS it, because the
+        /// total count is written anyway.
         private const int MaxComponents = 40;
 
         /// <summary>
-        /// I componenti nell'ordine che decide gli uid `C1..Cn`.
+        /// The components in the order that decides the uids `C1..Cn`.
         ///
-        /// ── PERCHE' STA IN UN METODO E NON DENTRO `DescribeAssembly` ──────
+        /// ── WHY IT IS IN A METHOD AND NOT INSIDE `DescribeAssembly` ───────
         ///
-        /// Questo ordine **e' il significato di `C1`**. Lo stato lo usa per
-        /// numerare, e `mate` (voce GA4) lo usa per ritrovare il componente
-        /// che l'utente ha nominato. Se le due liste fossero costruite in due
-        /// posti, basterebbe che una cambiasse perche' **`C1` volesse dire due
-        /// cose diverse** — e allora si accoppierebbe il componente sbagliato
-        /// senza che niente dia errore. E' il difetto che non da' errore nella
-        /// forma piu' banale e piu' cara: due copie della stessa regola.
+        /// This order **is the meaning of `C1`**. The state uses it to
+        /// number, and `mate` (entry GA4) uses it to find again the component
+        /// that the user named. If the two lists were built in two
+        /// places, it would be enough for one to change for **`C1` to mean two
+        /// different things** — and then the wrong component would be mated
+        /// without anything giving an error. It is the defect that gives no error in
+        /// its most banal and most expensive form: two copies of the same rule.
         ///
-        /// L'ordine e' per `Name2`, che dentro un assieme e' unico: cosi'
-        /// `C1..Cn` resta lo stesso fra due letture, al contrario degli uid
-        /// delle facce, che sono posizionali e si rinumerano.
+        /// The order is by `Name2`, which inside an assembly is unique: so
+        /// `C1..Cn` stays the same between two readings, unlike the uids
+        /// of faces, which are positional and are renumbered.
         /// </summary>
         internal static List<KeyValuePair<string, IComponent2>> ComponentsInOrder(object[] all)
         {
@@ -127,7 +127,7 @@ namespace Oce.Solid.Agent.Core
             return names;
         }
 
-        /// <summary>Componenti, conteggi e configurazione di un assieme.</summary>
+        /// <summary>Components, counts and configuration of an assembly.</summary>
         private static void DescribeAssembly(IAssemblyDoc assemblyDoc, Dictionary<string, object> data)
         {
             if (assemblyDoc == null)
@@ -136,14 +136,14 @@ namespace Oce.Solid.Agent.Core
                 return;
             }
 
-            // `false` = TUTTI i componenti, anche dentro i sottoassiemi.
+            // `false` = ALL the components, also inside the subassemblies.
             //
-            // La scelta e' deliberata e va detta: con `true` si vedrebbe solo il
-            // primo livello, e un sottoassieme apparirebbe come **un** componente
-            // con dentro il nulla. Il modello leggerebbe «2 componenti» su un
-            // assieme che ne ha trenta, e ogni suo ragionamento sarebbe
-            // plausibile e sbagliato. Il conteggio del primo livello si scrive
-            // lo stesso, a parte, perche' e' l'altra domanda vera.
+            // The choice is deliberate and must be stated: with `true` only the
+            // first level would be seen, and a subassembly would appear as **one** component
+            // with nothing inside. The model would read «2 components» on an
+            // assembly that has thirty, and every reasoning of its would be
+            // plausible and wrong. The count of the first level is written
+            // all the same, separately, because it is the other real question.
             object[] all = null;
             try { all = assemblyDoc.GetComponents(false) as object[]; } catch { }
             if (all == null)
@@ -165,13 +165,13 @@ namespace Oce.Solid.Agent.Core
 
             data["how_many_components"] = all.Length;
 
-            // ── L'ORDINE STABILE ─────────────────────────────────────────
+            // ── THE STABLE ORDER ─────────────────────────────────────────
             //
-            // Si ordina per `Name2`, che dentro un assieme e' unico. L'ordine in
-            // cui `GetComponents` li restituisce non e' dichiarato da nessuna
-            // parte: fidarsene vorrebbe dire uid che cambiano quando SOLIDWORKS
-            // decide di cambiarlo, cioe' la trappola delle facce, ripetuta dove
-            // si poteva evitare.
+            // It is sorted by `Name2`, which inside an assembly is unique. The order in
+            // which `GetComponents` returns them is not declared anywhere:
+            // trusting it would mean uids that change when SOLIDWORKS
+            // decides to change it, that is, the trap of the faces, repeated where
+            // it could be avoided.
             var entries = ComponentsInOrder(all);
 
             var list = new List<Dictionary<string, object>>();
@@ -205,9 +205,9 @@ namespace Oce.Solid.Agent.Core
                     if (!string.IsNullOrWhiteSpace(p))
                     {
                         entry["path"] = p;
-                        // IL FILE C'E'? (voce Z-B3) Un componente il cui file manca
-                        // sul disco l'assieme lo mostra soppresso, e nient'altro lo
-                        // dice. Si scrive solo quando manca: e' il caso raro.
+                        // IS THE FILE THERE? (entry Z-B3) A component whose file is missing
+                        // on disk is shown suppressed by the assembly, and nothing else
+                        // says so. It is written only when missing: it is the rare case.
                         if (!System.IO.File.Exists(p)) entry["file_missing"] = true;
                     }
                 }
@@ -220,10 +220,10 @@ namespace Oce.Solid.Agent.Core
                 }
                 catch { }
 
-                // LO STATO SI SCRIVE COL NOME, NON COL NUMERO.
-                // `GetSuppression2` risponde un intero di `swComponentSuppressionState_e`:
-                // «2» non dice niente a chi legge, «risolto» si'. E' la stessa
-                // regola dei difetti di `Check3`, gia' pagata altrove.
+                // THE STATE IS WRITTEN WITH THE NAME, NOT THE NUMBER.
+                // `GetSuppression2` answers an integer of `swComponentSuppressionState_e`:
+                // «2» says nothing to whoever reads, «resolved» does. It is the same
+                // rule as the defects of `Check3`, already paid for elsewhere.
                 try
                 {
                     int docState = c.GetSuppression2();
@@ -235,11 +235,11 @@ namespace Oce.Solid.Agent.Core
                 }
                 catch { }
 
-                // FISSO O LIBERO. E' la prima domanda vera su un assieme — «e'
-                // vincolato?» — e la sua meta' piu' economica: un componente
-                // fisso non si muove perche' qualcuno l'ha inchiodato, non
-                // perche' sia accoppiato. Confondere le due cose fa credere
-                // vincolato un assieme che non lo e'.
+                // FIXED OR FREE. It is the first real question about an assembly — «is it
+                // constrained?» — and its cheapest half: a fixed component
+                // does not move because someone nailed it down, not
+                // because it is mated. Confusing the two makes an assembly that is not
+                // constrained be believed constrained.
                 //
                 // NOT ON A NESTED COMPONENT (L11-3): the guide says IsFixed does
                 // not apply there («To get the actual state of sub-assemblies,
@@ -258,90 +258,90 @@ namespace Oce.Solid.Agent.Core
                     catch { }
                 }
 
-                // ── DOVE STA L'ORIGINE, IN MM (parte di GA2) ────────────
+                // ── WHERE THE ORIGIN IS, IN MM (part of GA2) ────────────
                 //
-                // IL CAMPO SI CHIAMA `origin_mm` E NON `position_mm`, ED E'
-                // LA RIPARAZIONE DI UN DIFETTO CHE NON DAVA ERRORE.
+                // THE FIELD IS CALLED `origin_mm` AND NOT `position_mm`, AND IT IS
+                // THE REPAIR OF A DEFECT THAT GAVE NO ERROR.
                 //
-                // Misurato il 17/9/2026: **`AddComponent5(x, y, z)` posiziona il
-                // CENTRO dell'ingombro del componente, non la sua origine.** Un
-                // pezzo estruso a una direzione sola — che e' quello che fa
-                // `extrude_rectangle` — ha l'origine su una faccia, non a meta'
-                // spessore: inserito a `(0, 0, 30)`, la sua origine finisce a
-                // `(0, -2, 30)` se e' spesso 4, a `(0, -5, 0)` se e' spesso 10 e
-                // lo si chiede a zero. Previsto prima di misurarlo, e misurato.
+                // Measured on 17/9/2026: **`AddComponent5(x, y, z)` places the
+                // CENTRE of the bounding box of the component, not its origin.** A
+                // part extruded in one direction only — which is what
+                // `extrude_rectangle` does — has its origin on a face, not at half
+                // thickness: inserted at `(0, 0, 30)`, its origin ends up at
+                // `(0, -2, 30)` if it is 4 thick, at `(0, -5, 0)` if it is 10 thick and
+                // it is asked at zero. Predicted before measuring it, and measured.
                 //
-                // Chiamare questo campo «position» invitava a confrontarlo con
-                // il punto CHIESTO, e i due non coincidono quasi mai: nessuno
-                // dei due numeri e' sbagliato, sono due cose diverse, e niente
-                // lo diceva. Il nome adesso lo dice.
+                // Calling this field «position» invited comparing it with
+                // the point ASKED, and the two almost never coincide: neither
+                // of the two numbers is wrong, they are two different things, and nothing
+                // said so. The name now says it.
                 //
                 //
-                // `GetTotalTransform(false)`: il parametro si chiama
-                // `IncludePresentationXform`, e `true` darebbe la posizione
-                // **nella vista esplosa** — un numero plausibile e sbagliato
-                // ogni volta che un esploso esiste.
+                // `GetTotalTransform(false)`: the parameter is called
+                // `IncludePresentationXform`, and `true` would give the position
+                // **in the exploded view** — a plausible and wrong number
+                // every time an exploded view exists.
                 //
-                // L'INDICE DELLA TRASLAZIONE NON E' ASSUNTO, E' PROVATO. La
-                // forma classica di `MathTransform.ArrayData` e' 9 numeri di
-                // rotazione, 3 di traslazione, 1 di scala — quindi 9, 10, 11.
-                // «Classica» pero' e' esattamente il genere di cosa che in
-                // questo progetto si e' gia' rivelata falsa (la normale del
-                // piano stava nella terza RIGA, non nella terza colonna, voce
-                // GP9). Percio' il caso di banco inserisce un componente a
-                // **z = 30 mm** e pretende di rileggere `[0, 0, 30]`: se gli
-                // indici fossero altri, diventa rosso qui invece che in
-                // officina.
+                // THE INDEX OF THE TRANSLATION IS NOT ASSUMED, IT IS PROVEN. The
+                // classic shape of `MathTransform.ArrayData` is 9 numbers of
+                // rotation, 3 of translation, 1 of scale — so 9, 10, 11.
+                // «Classic» however is exactly the kind of thing that in
+                // this project has already proved false (the normal of the
+                // plane was in the third ROW, not in the third column, entry
+                // GP9). So the bench case inserts a component at
+                // **z = 30 mm** and demands to read back `[0, 0, 30]`: if the
+                // indices were others, it turns red here instead of in the
+                // workshop.
                 var location = ComponentPositionMm(c);
                 if (location != null) entry["origin_mm"] = location;
 
-                // Gli accoppiamenti: per ora il CONTEGGIO. Il formato di quello
-                // che `GetMates()` restituisce e' `Object` e va accertato prima
-                // di leggerne dentro (voce GA4); il numero invece si conta
-                // subito, ed e' gia' qualcosa: zero accoppiamenti su un
-                // componente non fisso vuol dire appoggiato.
-                // `GetMates()` risponde **null quando sono zero**, non un array
-                // vuoto: il conteggio passa da `SwOperations.MatesOf`,
-                // che separa «zero» da «non ho potuto leggere» guardando se il
-                // componente risponde ancora al proprio nome.
+                // The mates: for now the COUNT. The format of what
+                // `GetMates()` returns is `Object` and must be established before
+                // reading inside it (entry GA4); the number instead is counted
+                // at once, and it is already something: zero mates on a
+                // non-fixed component means resting.
+                // `GetMates()` answers **null when they are zero**, not an empty
+                // array: the count goes through `SwOperations.MatesOf`,
+                // which separates «zero» from «I could not read» by looking at whether the
+                // component still answers to its own name.
                 int itsAcc = SwOperations.MatesOf(c);
                 if (itsAcc >= 0) entry["mates"] = itsAcc;
 
-                // ── CHE ACCOPPIAMENTI (voce Z-D3) ───────────────────────
-                // Misurato il 27/9/2026 (`prova0089 zd345`): `GetMates` da' oggetti
-                // IMate2 (e IFeature); `Type` e' `swMateType_e`. Si scrivono per
-                // NOME, nell'ordine in cui SOLIDWORKS li da'. «Come e' montato
-                // questo pezzo, incernierato o appoggiato?» si legge qui.
-                // Zero accoppiamenti (contati sopra) e' un elenco vuoto; un GetMates
-                // null con accoppiamenti contati, o illeggibili, e' «non lo so».
+                // ── WHICH MATES (entry Z-D3) ────────────────────────────
+                // Measured on 27/9/2026 (`prova0089 zd345`): `GetMates` gives IMate2
+                // objects (and IFeature); `Type` is `swMateType_e`. They are written by
+                // NAME, in the order in which SOLIDWORKS gives them. «How is this
+                // part mounted, hinged or resting?» is read here.
+                // Zero mates (counted above) is an empty list; a GetMates
+                // null with mates counted, or unreadable, is «I do not know».
                 if (itsAcc == 0) entry["mates_kinds"] = new string[0];
                 else if (itsAcc > 0)
                 {
                     var types = MateTypes(c);
-                    entry["mates_kinds"] = types;   // null se non si leggono
+                    entry["mates_kinds"] = types;   // null if they cannot be read
                 }
 
-                // ── SOTTOASSIEME, VISIBILE, TRASPARENTE (voce Z-D4) ─────
-                // Un sotto-assieme e' un blocco che ne nasconde altri: lo si dice.
-                // `GetModelDoc2` di un soppresso e' null: «non lo so», non «no».
+                // ── SUBASSEMBLY, VISIBLE, TRANSPARENT (entry Z-D4) ──────
+                // A subassembly is a block that hides others: it is said.
+                // `GetModelDoc2` of a suppressed one is null: «I do not know», not «no».
                 try
                 {
                     var its = c.GetModelDoc2();
                     entry["is_sub_assembly"] = its == null ? null : (object)(its is IAssemblyDoc);
                 }
                 catch { entry["is_sub_assembly"] = null; }
-                // `Visible` e' swComponentVisibilityState_e: 1 visibile, 0 nascosto.
+                // `Visible` is swComponentVisibilityState_e: 1 visible, 0 hidden.
                 try
                 {
                     int vis = c.Visible;
                     entry["visible"] = vis == 1 ? (object)true : vis == 0 ? (object)false : null;
                 }
                 catch { entry["visible"] = null; }
-                // LA TRASPARENZA NON E' UN CAMPO DEL COMPONENTE (accertato il
-                // 23/9): sta in `MaterialPropertyValues`, posizione 7, e c'e' solo
-                // se il componente ha un aspetto suo (misurato: 0,75 dopo
-                // `SetComponentTransparent`). Trasparente e visibile sono due stati
-                // diversi, non alternativi.
+                // TRANSPARENCY IS NOT A FIELD OF THE COMPONENT (established on
+                // 23/9): it is in `MaterialPropertyValues`, position 7, and it is there only
+                // if the component has an appearance of its own (measured: 0.75 after
+                // `SetComponentTransparent`). Transparent and visible are two different
+                // states, not alternatives.
                 try
                 {
                     if (!c.HasMaterialPropertyValues()) entry["transparent"] = false;
@@ -353,30 +353,30 @@ namespace Oce.Solid.Agent.Core
                 }
                 catch { entry["transparent"] = null; }
 
-                // ── I GRADI DI LIBERTA' RESIDUI (voce GA5) ───────────────
+                // ── THE RESIDUAL DEGREES OF FREEDOM (entry GA5) ──────────
                 //
-                // E' la misura che distingue un assieme da quattro pezzi nella
-                // stessa stanza, e si legge senza nessuna chiamata in piu'
-                // rispetto a quelle che questo giro fa gia'.
+                // It is the measure that tells an assembly from four parts in the
+                // same room, and it is read with no extra call
+                // compared with those that this run already makes.
                 //
-                // NON SI CONTANO I FISSI. Un componente fisso ha zero gradi
-                // **per definizione**, non perche' qualcuno l'abbia accoppiato:
-                // sommarlo farebbe **sembrare vincolato** un assieme che lo e'
-                // solo perche' il primo pezzo non si muove. Il primo componente
-                // inserito e' normalmente fisso, quindi l'errore scatterebbe
-                // sempre, su ogni assieme.
+                // FIXED ONES ARE NOT COUNTED. A fixed component has zero degrees
+                // **by definition**, not because someone mated it:
+                // summing it would make an assembly **look constrained** that is so
+                // only because the first part does not move. The first component
+                // inserted is normally fixed, so the error would trigger
+                // always, on every assembly.
                 var deg = SwOperations.DegreesOfFreedom(c);
                 entry["degrees_of_freedom_state"] = deg.State;
                 if (deg.Available) entry["degrees_of_freedom_remaining"] = deg.HowMany;
                 else degreesReadFailed = true;
 
-                // «E' APPOGGIATO?» SI RISPONDE CON DUE COSE CHE FUNZIONANO.
+                // «IS IT JUST RESTING?» IS ANSWERED WITH TWO THINGS THAT WORK.
                 //
-                // I gradi di liberta' non si possono avere (vedi
-                // `SwOperations.DegreesOfFreedom`). Quello che si sa per certo e':
-                // un componente **non fisso** con **zero accoppiamenti** e'
-                // appoggiato li'. Non si sa di quanto sia libero, e non lo si
-                // dice: *un numero inventato e' peggio di un numero assente*.
+                // The degrees of freedom cannot be had (see
+                // `SwOperations.DegreesOfFreedom`). What is known for certain is that:
+                // a **non-fixed** component with **zero mates** is
+                // just resting there. How much it is free is not known, and is not
+                // said: *an invented number is worse than an absent number*.
                 bool isFixed = entry.ContainsKey("grounded") &&
                               Convert.ToString(entry["grounded"]).Equals(
                                   "True", StringComparison.OrdinalIgnoreCase);
@@ -405,11 +405,11 @@ namespace Oce.Solid.Agent.Core
             if (entries.Count > MaxComponents)
                 data["components_not_listed"] = entries.Count - MaxComponents;
 
-            // I CONTEGGI SI SCRIVONO ANCHE QUANDO VALGONO ZERO.
-            // «soppressi: 0» e' un'informazione; l'assenza del campo si legge
-            // come «non l'ho guardato», e sono due cose diverse. E' la stessa
-            // riga che il README difende per la regressione: *un conteggio che
-            // sparisce quando e' zero e' un conteggio che nessuno controlla.*
+            // THE COUNTS ARE WRITTEN EVEN WHEN THEY ARE ZERO.
+            // «suppressed: 0» is information; the absence of the field is read
+            // as «I did not look at it», and they are two different things. It is the same
+            // line that the README defends for regression: *a count that
+            // disappears when it is zero is a count that nobody checks.*
             data["components_suppressed"] = suppressedOnes;
             data["components_lightweight"] = light;
             data["components_grounded"] = grounded;
@@ -418,16 +418,16 @@ namespace Oce.Solid.Agent.Core
             // Written only when the top-level list was read, zero included.
             if (topLevelNames != null) data["nested_components"] = nested;
 
-            // ── «QUESTO ASSIEME E' VINCOLATO?» IN UNA RIGA (voce GA5) ────
+            // ── «IS THIS ASSEMBLY CONSTRAINED?» IN ONE LINE (entry GA5) ──
             //
-            // Il totale traduce la misura tecnica in qualcosa che chi conferma
-            // legge in tre secondi. Ed e' la domanda vera: un assieme con
-            // dodici gradi residui non e' montato, e' appoggiato.
+            // The total translates the technical measure into something that whoever confirms
+            // reads in three seconds. And it is the real question: an assembly with
+            // twelve residual degrees is not assembled, it is resting.
             //
-            // SI DICE ANCHE QUANTI COMPONENTI SONO ENTRATI NEL CONTO, e se la
-            // lettura e' fallita su qualcuno. Un totale che copre in silenzio
-            // solo una parte e' peggio di nessun totale: *un numero che non dice
-            // su cosa e' calcolato e' un numero di cui fidarsi per sbaglio.*
+            // IT ALSO SAYS HOW MANY COMPONENTS WENT INTO THE COUNT, and whether
+            // the reading failed on any. A total that silently covers
+            // only a part is worse than no total: *a number that does not say
+            // what it is computed on is a number to trust by mistake.*
             if (counted > 0)
             {
                 data["components_not_grounded"] = counted;
@@ -451,9 +451,9 @@ namespace Oce.Solid.Agent.Core
                                                 "as one top-level component.";
             }
 
-            // LA COSA CHE NON SI SA, DETTA. Non e' un dettaglio tecnico: chi
-            // legge «assembly_constrained: true» deve sapere che vuol dire «ogni
-            // componente ha almeno un accoppiamento», NON «non si muove piu'».
+            // THE THING THAT IS NOT KNOWN, SAID. It is not a technical detail: whoever
+            // reads «assembly_constrained: true» must know that it means «every
+            // component has at least one mate», NOT «it no longer moves».
             // One coincident mate leaves three of the six directions free (probe
             // zc14, 30/9/2026: TX, TZ and RY stay free), and this state does not
             // see them; «mate» measures them when it makes a mate (Z-C14).
@@ -465,21 +465,21 @@ namespace Oce.Solid.Agent.Core
                     "coincident mate leaves three of the six directions free (measured). " +
                     "«mate» says which directions each mate blocks.";
 
-            // ── L'ESPLOSO, E NON E' UN VEZZO (voce GA8) ──────────────────
+            // ── THE EXPLODED VIEW, AND IT IS NOT A WHIM (entry GA8) ──────
             //
-            // `IComponent2.GetTotalTransform(true)` **include la trasformazione
-            // di esploso**. Se l'assieme e' mostrato esploso, una posizione
-            // letta con `true` e' la posizione NELLA VISTA ESPLOSA: plausibile,
-            // e sbagliata di dieci centimetri. Senza questo campo non c'e' modo
-            // di accorgersene — ne' per chi legge, ne' per un caso di banco.
+            // `IComponent2.GetTotalTransform(true)` **includes the explode
+            // transformation**. If the assembly is shown exploded, a position
+            // read with `true` is the position IN THE EXPLODED VIEW: plausible,
+            // and wrong by ten centimetres. Without this field there is no way
+            // to notice — neither for whoever reads, nor for a bench case.
             //
-            // Si scrive SEMPRE, anche quando e' falso: *un campo che compare
-            // solo quando la cosa e' andata storta insegna a non cercarlo.*
+            // It is ALWAYS written, even when it is false: *a field that appears
+            // only when things went wrong teaches not to look for it.*
             DescribeExplodedView(assemblyDoc, data);
 
-            // ── LA CONFIGURAZIONE ATTIVA ─────────────────────────────────
-            // Un assieme ne ha come una parte, e sbagliarla vuol dire misurare
-            // una variante diversa da quella confermata.
+            // ── THE ACTIVE CONFIGURATION ─────────────────────────────────
+            // An assembly has one just like a part, and getting it wrong means measuring
+            // a different variant from the one that was confirmed.
             try
             {
                 var doc = assemblyDoc as IModelDoc2;
@@ -492,14 +492,14 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // ── COSA ANCORA NON SI SA FARE, DETTO QUI ────────────────────
+            // ── WHAT STILL CANNOT BE DONE, SAID HERE ─────────────────────
             //
-            // La nota resta, ma non e' piu' la stessa: prima diceva «non lo
-            // modifica ancora» e basta, cioe' chiudeva il discorso. Adesso lo
-            // stato c'e', e la nota dice **cosa manca**, che e' un'altra cosa.
-            // Un modello che legge «vedo quattro componenti ma non so
-            // accoppiarli» sa cosa puo' chiedere; uno che legge «non lo modifico»
-            // puo' solo smettere.
+            // The note stays, but it is no longer the same: before it said «non lo
+            // modifica ancora» and that was all, that is, it closed the discussion. Now the
+            // state is there, and the note says **what is missing**, which is another thing.
+            // A model that reads «I see four components but I do not know how to
+            // mate them» knows what it can ask; one that reads «I do not modify it»
+            // can only stop.
             data["solid_body"] = false;
             data["what_cannot_be_done_yet"] =
                 "Di questo assieme so dire com'e' fatto, non cambiarlo: inserire " +
@@ -509,12 +509,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Dove sta il componente, in mm, o `null` se non si e' potuto leggere.
+        /// Where the component is, in mm, or `null` if it could not be read.
         ///
-        /// NON si usa `GetXform`, che la voce GA2 nominava: **su `IComponent2`
-        /// non esiste** (verificato per riflessione il 16/9/2026; ci sono
-        /// `get_Transform`, `get_Transform2`, `get_PresentationTransform` e
-        /// `GetSpecificTransform`). Era un nome ricordato, non letto.
+        /// It does NOT use `GetXform`, which entry GA2 named: **it does not exist
+        /// on `IComponent2`** (verified by reflection on 16/9/2026; there are
+        /// `get_Transform`, `get_Transform2`, `get_PresentationTransform` and
+        /// `GetSpecificTransform`). It was a remembered name, not a read one.
         /// </summary>
         private static object[] ComponentPositionMm(IComponent2 c)
         {
@@ -523,10 +523,10 @@ namespace Oce.Solid.Agent.Core
                 var t = c.GetTotalTransform(false) as IMathTransform;
                 if (t == null) return null;
                 var d = t.ArrayData as double[];
-                // Meno di dodici numeri vuol dire che la forma NON e' quella
-                // che si crede: meglio non scrivere niente che scrivere tre
-                // numeri presi dal posto sbagliato. Un campo assente si vede;
-                // una coordinata sbagliata no.
+                // Fewer than twelve numbers means that the shape is NOT what
+                // is believed: better to write nothing than to write three
+                // numbers taken from the wrong place. An absent field shows;
+                // a wrong coordinate goes unseen.
                 if (d == null || d.Length < 12) return null;
                 return new object[]
                 {
@@ -539,36 +539,36 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// COME QUESTA CONFIGURAZIONE ANDRA' IN DISTINTA (voce GA6).
+        /// HOW THIS CONFIGURATION WILL GO INTO THE BOM (entry GA6).
         ///
-        /// SONO SEI CAMPI, NON QUATTRO. La voce del TODO ne elencava quattro;
-        /// la riflessione sull'interop di questa installazione ne trova sei, e
-        /// i due che mancavano sono proprio quelli che decidono se un
-        /// sottoassieme si apre in distinta:
+        /// THERE ARE SIX FIELDS, NOT FOUR. The TODO entry listed four;
+        /// the reflection on the interop of this installation finds six, and
+        /// the two that were missing are exactly the ones that decide whether a
+        /// subassembly opens in the bill of materials:
         ///
-        ///   BOMPartNoSource          da dove viene il codice articolo
-        ///   UseAlternateNameInBOM    usare un nome diverso dal file
-        ///   AlternateName            quale
-        ///   UseDescriptionInBOM      usare la descrizione al posto del nome
-        ///   ShowChildComponentsInBOM mostrare i figli di un sottoassieme
-        ///   ChildComponentDisplayInBOM come mostrarli
+        ///   BOMPartNoSource          where the item code comes from
+        ///   UseAlternateNameInBOM    use a name different from the file
+        ///   AlternateName            which one
+        ///   UseDescriptionInBOM      use the description instead of the name
+        ///   ShowChildComponentsInBOM show the children of a subassembly
+        ///   ChildComponentDisplayInBOM how to show them
         ///
-        /// PERCHE' CONTANO QUI E NON SOLO IN TAVOLA. Una distinta sbagliata non
-        /// da' nessun errore: esce un elenco plausibile, con dentro pezzi di
-        /// troppo o di meno, e chi la legge in officina non ha modo di
-        /// accorgersene. Gli ultimi due sono i piu' pericolosi: un sottoassieme
-        /// che si apre quando non doveva aggiunge righe che nessuno ha chiesto.
+        /// WHY THEY COUNT HERE AND NOT ONLY IN THE DRAWING. A wrong bill of materials
+        /// gives no error: a plausible list comes out, with pieces too
+        /// many or too few in it, and whoever reads it in the workshop has no way to
+        /// notice. The last two are the most dangerous: a subassembly
+        /// that opens when it should not adds rows that nobody asked for.
         ///
-        /// Si LEGGONO e basta. Scriverli sarebbe un'operazione, con la sua
-        /// conferma: qui si dice com'e' messa la configurazione, cosi' chi
-        /// guarda puo' accorgersi prima di stampare.
+        /// They are only READ. Writing them would be an operation, with its
+        /// confirmation: here it is said how the configuration is set, so that whoever
+        /// looks can notice before printing.
         /// </summary>
         private static void DescribeBom(IConfiguration cfg, Dictionary<string, object> data)
         {
             var d = new Dictionary<string, object>();
 
-            // Ogni campo il suo try: su una configurazione vera basta che uno
-            // non risponda perche' un try unico li faccia sparire tutti.
+            // Each field its own try: on a real configuration it is enough for one
+            // not to answer for a single try to make them all disappear.
             try { d["part_number_source"] = SourceCodeName(cfg.BOMPartNoSource); } catch { }
             try { d["use_alternative_name"] = cfg.UseAlternateNameInBOM; } catch { }
             try
@@ -585,12 +585,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Da dove viene il codice articolo in distinta, col nome.
+        /// Where the item code in the bill of materials comes from, with the name.
         ///
-        /// I valori sono di `swBOMPartNumberSource_e`. Come per la soppressione:
-        /// quelli che non si riconoscono si scrivono col numero invece di
-        /// essere tradotti a caso — **un nome inventato e' peggio di un numero
-        /// onesto**, perche' chi legge il nome ci crede.
+        /// The values are of `swBOMPartNumberSource_e`. As for suppression:
+        /// those that are not recognised are written with the number instead of
+        /// being translated at random — **an invented name is worse than an honest
+        /// number**, because whoever reads the name believes it.
         /// </summary>
         private static string SourceCodeName(int source)
         {
@@ -611,20 +611,20 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Lo stato di soppressione, col nome.
+        /// The suppression state, with the name.
         ///
-        /// I valori sono di `swComponentSuppressionState_e`. Quelli che non si
-        /// riconoscono si scrivono col numero fra parentesi invece di essere
-        /// tradotti a caso: **un nome inventato e' peggio di un numero onesto**,
-        /// perche' chi legge il nome ci crede.
+        /// The values are of `swComponentSuppressionState_e`. Those that are not
+        /// recognised are written with the number in brackets instead of being
+        /// translated at random: **an invented name is worse than an honest number**,
+        /// because whoever reads the name believes it.
         /// </summary>
-        /// <summary>I tipi degli accoppiamenti di un componente, per nome; null se non si leggono.</summary>
+        /// <summary>The types of the mates of a component, by name; null if they cannot be read.</summary>
         private static string[] MateTypes(IComponent2 c)
         {
             try
             {
                 var rawItems = c.GetMates() as object[];
-                if (rawItems == null) return null;   // chi chiama sa gia' che ce ne sono: null e' «non lo so»
+                if (rawItems == null) return null;   // the caller already knows there are some: null is «I do not know»
                 var outside = new List<string>();
                 foreach (var o in rawItems)
                 {
@@ -684,29 +684,29 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// L'ESPLOSO: se c'e', se e' MOSTRATO, e quanto muove davvero (GA8).
+        /// THE EXPLODED VIEW: whether there is one, whether it is SHOWN, and how much it really moves (GA8).
         ///
-        /// ── PERCHE' STA NELLO STATO E NON SOLO IN UN'OPERAZIONE ─────────
+        /// ── WHY IT IS IN THE STATE AND NOT ONLY IN AN OPERATION ─────────
         ///
-        /// `IComponent2.GetTotalTransform(true)` include la trasformazione di
-        /// esploso. Un assieme mostrato esploso risponde, a quella chiamata,
-        /// **la posizione nella vista esplosa**: plausibile e sbagliata di
-        /// dieci centimetri, senza nessun errore. Chi legge lo stato deve
-        /// poterlo sapere prima di credere a una posizione.
+        /// `IComponent2.GetTotalTransform(true)` includes the explode
+        /// transformation. An assembly shown exploded answers, to that call,
+        /// **the position in the exploded view**: plausible and wrong by
+        /// ten centimetres, without any error. Whoever reads the state must
+        /// be able to know it before believing a position.
         ///
-        /// ── E `exploded_view` DA SOLO NON BASTA ───────────────────────────────
+        /// ── AND `exploded_view` ALONE IS NOT ENOUGH ───────────────────────────
         ///
-        /// Misurato il 17/9/2026, quattro sonde: `CreateExplodedView()` risponde
-        /// `True`, `IsExploded` diventa `si'`, e **niente si muove** — il passo
-        /// che nasce si chiama «Catena1» e ha distanza 0 mm. Un esploso in cui
-        /// nessun componente si sposta e' un esploso che non serve a niente, e
-        /// `exploded_view: true` da solo lo farebbe sembrare fatto.
+        /// Measured on 17/9/2026, four probes: `CreateExplodedView()` answers
+        /// `True`, `IsExploded` becomes `si'`, and **nothing moves** — the step
+        /// that is born is called «Catena1» and has distance 0 mm. An exploded view in which
+        /// no component moves is an exploded view that is of no use, and
+        /// `exploded_view: true` alone would make it look done.
         ///
-        /// Percio' si scrive anche **quanto si e' spostato il componente che si
-        /// e' spostato di piu'**, in millimetri: e' la differenza fra le due
-        /// trasformazioni, e zero vuol dire zero. *Un campo booleano che puo'
-        /// essere vero mentre la cosa non e' successa non e' una misura: e' una
-        /// promessa.*
+        /// So it also writes **how far the component that
+        /// moved the most has moved**, in millimetres: it is the difference between the two
+        /// transformations, and zero means zero. *A boolean field that can
+        /// be true while the thing did not happen is not a measure: it is a
+        /// promise.*
         /// </summary>
         private static void DescribeExplodedView(
             IAssemblyDoc assemblyDoc, Dictionary<string, object> data)
@@ -717,7 +717,7 @@ namespace Oce.Solid.Agent.Core
             bool exploded = false;
             string which = null;
             try { exploded = doc.Extension.IsExploded(out which); }
-            catch { return; }   // se non si puo' leggere non si inventa un falso
+            catch { return; }   // if it cannot be read, no falsehood is invented
 
             data["exploded_view"] = exploded;
             if (exploded && !string.IsNullOrWhiteSpace(which)) data["view_exploded"] = which;
@@ -737,9 +737,9 @@ namespace Oce.Solid.Agent.Core
 
             if (!exploded) return;
 
-            // QUANTO MUOVE DAVVERO. Si guarda il massimo su tutti i componenti:
-            // basta che UNO si sia spostato perche' una posizione letta con
-            // `true` sia diversa da quella vera.
+            // HOW MUCH IT REALLY MOVES. The maximum over all components is looked at:
+            // it is enough for ONE to have moved for a position read with
+            // `true` to be different from the true one.
             double maxValue = 0;
             bool read = false;
             try
@@ -770,8 +770,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Di quanto l'esploso sposta questo componente, in mm. `false` se non
-        /// si e' potuto leggere — che **non** e' la stessa cosa di zero.
+        /// By how much the exploded view moves this component, in mm. `false` if it
+        /// could not be read — which is **not** the same thing as zero.
         /// </summary>
         private static bool ExplodedOffsetMm(IComponent2 c, out double mm)
         {

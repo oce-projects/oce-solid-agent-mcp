@@ -8,63 +8,63 @@ using SolidWorks.Interop.swconst;
 namespace Oce.Solid.Agent.Core
 {
     /// <summary>
-    /// LE SOVRASPORGENZE: cosa non si stampa senza supporti. (voce GP16)
+    /// THE OVERHANGS: what cannot be printed without supports. (entry GP16)
     ///
-    /// Una parete che pende nel vuoto oltre un certo angolo si stampa a
-    /// filamenti persi. SOLIDWORKS non dice niente — il pezzo e' sano, il
-    /// volume e' giusto, la geometria e' chiusa — e il difetto si vede solo
-    /// sulla macchina, a stampa finita.
+    /// A wall that hangs in the void beyond a certain angle is printed with
+    /// lost filaments. SOLIDWORKS says nothing — the part is sound, the
+    /// volume is right, the geometry is closed — and the defect is seen only
+    /// on the machine, once the print is done.
     ///
-    /// ── LA NORMALE: MISURATA, NON CORRETTA A CASO ─────────────────────
+    /// ── THE NORMAL: MEASURED, NOT CORRECTED AT RANDOM ─────────────────
     ///
-    /// La voce avvertiva che la normale di `ISurface` e' quella della
-    /// superficie sottostante e va girata quando `FaceInSurfaceSense()` e'
-    /// falso, e che sbagliarlo da' *«un'analisi che dichiara supportata proprio
-    /// la faccia che pende nel vuoto»*.
+    /// The entry warned that the normal of `ISurface` is that of the
+    /// underlying surface and must be flipped when `FaceInSurfaceSense()` is
+    /// false, and that getting it wrong gives *«an analysis that declares supported
+    /// precisely the face that hangs in the void»*.
     ///
-    /// Misurato il 16/9/2026 su un blocco di cui si sa tutto (100x100x20, sei
-    /// facce con normali uscenti note):
+    /// Measured on 16/9/2026 on a block of which everything is known (100x100x20, six
+    /// faces with known outward normals):
     ///
-    ///   IFace2.Normal esce dal materiale   6 volte su 6
-    ///   Normal concorde con PlaneParams    1 volta su 6
-    ///   FaceInSurfaceSense() = true        sulle 5 in cui sono OPPOSTE
-    ///   FaceInSurfaceSense() = false       sulla 1 in cui sono concordi
+    ///   IFace2.Normal points out of the material   6 times out of 6
+    ///   Normal agreeing with PlaneParams           1 time out of 6
+    ///   FaceInSurfaceSense() = true                on the 5 where they are OPPOSITE
+    ///   FaceInSurfaceSense() = false               on the 1 where they agree
     ///
-    /// Due cose, e tutt'e due contano:
+    /// Two things, and both count:
     ///
-    ///   1. **`IFace2.Normal` e' gia' giusta.** Punta sempre fuori dal
-    ///      materiale, e non va corretta con niente. E' quella che questo
-    ///      progetto usa dappertutto, e adesso e' misurato invece che sperato.
-    ///   2. **La regola «se il senso e' falso, gira» sarebbe stata sbagliata
-    ///      al contrario**, e non su meta' delle facce ma su cinque sesti.
-    ///      Qui il senso non si usa: si usa `Normal`.
+    ///   1. **`IFace2.Normal` is already right.** It always points out of the
+    ///      material, and must not be corrected with anything. It is the one this
+    ///      project uses everywhere, and now it is measured instead of hoped.
+    ///   2. **The rule «if the sense is false, flip» would have been wrong
+    ///      the other way round**, and not on half of the faces but on five sixths.
+    ///      Here the sense is not used: `Normal` is used.
     ///
-    /// ── LE FACCE CURVE ────────────────────────────────────────────────
+    /// ── THE CURVED FACES ──────────────────────────────────────────────
     ///
-    /// Una faccia curva non ha UNA normale: il sotto di un cilindro
-    /// orizzontale pende nel vuoto nella sua parte bassa e non nella parte
-    /// alta. Percio' le facce si tassellano e si guarda triangolo per
-    /// triangolo, pesando per area.
+    /// A curved face does not have ONE normal: the underside of a horizontal
+    /// cylinder hangs in the void in its lower part and not in the upper
+    /// part. Therefore the faces are tessellated and looked at triangle by
+    /// triangle, weighting by area.
     ///
-    /// Il verso dei triangoli lo decide l'avvolgimento, che e' una convenzione
-    /// e non un fatto: **si controlla contro `IFace2.Normal` su tutte le facce
-    /// PIANE**, dove la risposta giusta si conosce. Se non combacia, ci si
-    /// rifiuta invece di rispondere con un'analisi rovesciata. E' un controllo
-    /// che si porta dietro la sua stessa taratura.
+    /// The direction of the triangles is decided by the winding, which is a convention
+    /// and not a fact: **it is checked against `IFace2.Normal` on all the
+    /// PLANAR faces**, where the right answer is known. If it does not match, it
+    /// refuses instead of answering with an upside-down analysis. It is a check
+    /// that carries its own calibration with it.
     ///
-    /// `GetTessTriangles` risponde **`float[]`, non `double[]`**: il cast
-    /// sbagliato torna null in silenzio (nota 80zf del RAG).
+    /// `GetTessTriangles` answers **`float[]`, not `double[]`**: the wrong
+    /// cast returns null silently (RAG note 80zf).
     ///
-    /// ── E QUELLO CHE STA SUL PIANO NON E' UNA SPORGENZA ───────────────
+    /// ── AND WHAT SITS ON THE PLATE IS NOT AN OVERHANG ─────────────────
     ///
-    /// La faccia di sotto guarda dritta in giu' — 90 gradi di sporgenza, il
-    /// caso peggiore possibile — ma appoggia sul piano della macchina e si
-    /// stampa benissimo. Contarla sarebbe dichiarare non stampabile ogni pezzo
-    /// esistente.
+    /// The underside face looks straight down — 90 degrees of overhang, the
+    /// worst case possible — but rests on the plate of the machine and prints perfectly.
+    /// Counting it would be declaring unprintable every part
+    /// that exists.
     /// </summary>
     public partial class SwOperations
     {
-        /// <summary>Quanto si tollera sul piano di appoggio, in mm.</summary>
+        /// <summary>How much is tolerated on the support plane, in mm.</summary>
         private const double OnPlaneMm = 0.05;
 
         private Outcome CheckOverhangs(
@@ -92,8 +92,8 @@ namespace Oce.Solid.Agent.Core
                 try { if (!c.Visible) hiddenBodies++; } catch { }
             }
 
-            // La quota del piano di appoggio: il punto piu' basso del pezzo
-            // nella direzione di stampa.
+            // The height of the support plane: the lowest point of the part
+            // in the printing direction.
             double bedLevel = double.MaxValue;
             foreach (var c in bodies)
             {
@@ -142,25 +142,25 @@ namespace Oce.Solid.Agent.Core
                     try { faceArea = face.GetArea() * 1e6; } catch { }
                     totalArea += faceArea;
 
-                    // ── i triangoli, e il controllo dell'avvolgimento ────
+                    // ── the triangles, and the check of the winding ────
                     var tri = Triangles(face);
                     if (tri == null || tri.Count == 0)
                     {
-                        // Niente tassellazione: si ripiega sulla normale, che
-                        // per una faccia piana e' esatta. PER UNA CURVA NON C'E'
-                        // (voce Z-C21.2, rilievo L12-2).
+                        // No tessellation: it falls back on the normal, which
+                        // for a planar face is exact. FOR A CURVED ONE THERE IS NONE
+                        // (entry Z-C21.2, finding L12-2).
                         //
                         // IFace2~Normal.html, Remarks: «If the face is not a
-                        // planar face, then this property returns 0,0,0.» Il
-                        // commento che stava qui prometteva «e si dice», e il
-                        // codice guardava solo `normale == null`: con (0,0,0)
-                        // Prodotto dava 0, la faccia risultava «in su» e non
-                        // veniva mai segnalata, qualunque fosse la sua
-                        // pendenza. Se nessuna faccia tassellava, la risposta
-                        // era «si stampa senza supporti» senza aver guardato
-                        // niente. Adesso la faccia curva senza triangoli si
-                        // CONTA come non analizzata, e il giudizio diventa non
-                        // conclusivo (qui sotto).
+                        // planar face, then this property returns 0,0,0.» The
+                        // comment that stood here promised «and it is stated», and the
+                        // code looked only at `normale == null`: with (0,0,0)
+                        // Prodotto gave 0, the face turned out «facing up» and
+                        // was never flagged, whatever its
+                        // slope. If no face tessellated, the answer
+                        // was «prints without supports» without having looked at
+                        // anything. Now the curved face without triangles is
+                        // COUNTED as not analysed, and the verdict becomes
+                        // inconclusive (below).
                         if (!planar)
                         {
                             unanalyzedFaces++;
@@ -196,13 +196,13 @@ namespace Oce.Solid.Agent.Core
                     double worseHere = 0;
                     foreach (var t in tri)
                     {
-                        // Il verso dell'avvolgimento contro quello della
-                        // faccia: si controlla dove la risposta si conosce.
+                        // The direction of the winding against that of the
+                        // face: it is checked where the answer is known.
                         if (planar && normal != null)
                         {
                             if (Product(t.Normal, normal) > 0) consistent++; else conflicting++;
                         }
-                        if (Product(t.Normal, su) >= 0) continue;   // guarda in su
+                        if (Product(t.Normal, su) >= 0) continue;   // looks up
                         double deg = Overhang(t.Normal, su);
                         if (deg <= threshold) continue;
                         if (PointOnPlane(t.Center, su, bedLevel)) { areaOnPlane += t.Area; continue; }
@@ -220,12 +220,12 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            // ── IL CONTROLLO CHE SI PORTA DIETRO LA SUA TARATURA ────────
+            // ── THE CHECK THAT CARRIES ITS OWN CALIBRATION ──────────────
             //
-            // Se l'avvolgimento dei triangoli non concorda con la normale
-            // delle facce PIANE -- dove la risposta si conosce -- allora
-            // l'analisi delle facce CURVE e' rovesciata, e non c'e' modo di
-            // accorgersene guardando il risultato.
+            // If the winding of the triangles does not agree with the normal
+            // of the PLANAR faces -- where the answer is known -- then
+            // the analysis of the CURVED faces is upside down, and there is no way
+            // to notice it by looking at the result.
             if (consistent + conflicting > 0 && conflicting > 0)
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
@@ -251,16 +251,16 @@ namespace Oce.Solid.Agent.Core
                 ["area_overhanging_mm2"] = Math.Round(overhangingArea, 2),
                 ["area_total_mm2"] = Math.Round(totalArea, 2),
                 ["area_resting_on_plane_mm2"] = Math.Round(areaOnPlane, 2),
-                // NON CONCLUSIVO E' UN TERZO VALORE, non un «si'» (rilievo
-                // L12-2): con una faccia curva che non si e' potuta guardare,
-                // «nessuna sporgenza trovata» non vuol dire «nessuna sporgenza».
-                // Una sporgenza trovata resta un «no» anche cosi'.
+                // INCONCLUSIVE IS A THIRD VALUE, not a «yes» (finding
+                // L12-2): with a curved face that could not be looked at,
+                // «no overhang found» does not mean «no overhang».
+                // An overhang found stays a «no» even so.
                 ["prints_without_supports"] = overhangingFaces > 0
                     ? (object)false
                     : unanalyzedFaces > 0 ? null : (object)true,
                 ["overhangs"] = list.Take(howManyISay).ToArray(),
                 ["triangles_checked"] = consistent + conflicting,
-                // Nomi nuovi, in inglese come i prossimi del ponte.
+                // New names, in English like the next ones of the bridge.
                 ["faces_not_analyzed"] = unanalyzedFaces,
                 ["hidden_bodies"] = hiddenBodies,
             };
@@ -330,12 +330,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// I triangoli di una faccia, con normale, centro e area.
+        /// The triangles of a face, with normal, centre and area.
         ///
-        /// `GetTessTriangles` risponde **float[]**: nove numeri per triangolo,
-        /// tre vertici. Il cast a `double[]` torna null in silenzio — e' la
-        /// trappola gia' documentata nel RAG, e qui e' scritta perche' chi
-        /// tocca questo codice non la ripaghi.
+        /// `GetTessTriangles` answers **float[]**: nine numbers per triangle,
+        /// three vertices. The cast to `double[]` returns null silently — it is the
+        /// trap already documented in the RAG, and it is written here so that whoever
+        /// touches this code does not pay for it again.
         /// </summary>
         private static List<Triangle> Triangles(IFace2 face)
         {
@@ -357,12 +357,12 @@ namespace Oce.Solid.Agent.Core
                 double ny = uz * vx - ux * vz;
                 double nz = ux * vy - uy * vx;
                 double len = Math.Sqrt(nx * nx + ny * ny + nz * nz);
-                if (len < 1e-15) continue;   // triangolo degenere
+                if (len < 1e-15) continue;   // degenerate triangle
                 outside.Add(new Triangle
                 {
                     Normal = new[] { nx / len, ny / len, nz / len },
                     Center = new[] { (ax + bx + cx) / 3.0, (ay + by + cy) / 3.0, (az + bz + cz) / 3.0 },
-                    // meta' del modulo del prodotto vettoriale, in mm2
+                    // half the magnitude of the cross product, in mm2
                     Area = len / 2.0 * 1e6,
                 });
             }
@@ -370,13 +370,13 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Di quanto una superficie pende, in gradi, contati DALLA VERTICALE:
-        /// una parete dritta e' 0, un soffitto orizzontale e' 90.
+        /// By how much a surface hangs, in degrees, counted FROM THE VERTICAL:
+        /// a straight wall is 0, a horizontal ceiling is 90.
         ///
-        /// E' la convenzione degli slicer -- «soglia 45 gradi» vuol dire quello
-        /// -- e non quella dell'angolo col piano, che e' il complementare. Due
-        /// numeri che si somigliano e dicono il contrario: qui si scrive quale
-        /// dei due e', e il campo si chiama `overhang_deg`.
+        /// It is the slicers' convention -- «threshold 45 degrees» means that
+        /// -- and not that of the angle with the plane, which is the complement. Two
+        /// numbers that look alike and say the opposite: here it is written which
+        /// of the two it is, and the field is called `overhang_deg`.
         /// </summary>
         private static double Overhang(double[] normal, double[] su)
         {
@@ -400,7 +400,7 @@ namespace Oce.Solid.Agent.Core
             {
                 var b = ApiHelpers.TrueBoundingBox(face);   // S6: not IFace2.GetBox, approximate
                 if (b == null || b.Length < 6) return null;
-                // l'angolo piu' alto della scatola, proiettato sulla direzione
+                // the highest corner of the box, projected onto the direction
                 double up = double.MinValue;
                 for (int i = 0; i < 8; i++)
                 {
@@ -472,22 +472,22 @@ namespace Oce.Solid.Agent.Core
             reason = null;
             var partDoc = model as IPartDoc;
             if (partDoc == null) { reason = "Questo non e' un documento di parte."; return null; }
-            // TUTTI I CORPI, ANCHE QUELLI NASCOSTI (voce Z-C21.2, rilievo L12-1).
+            // ALL THE BODIES, EVEN THE HIDDEN ONES (entry Z-C21.2, finding L12-1).
             //
-            // IPartDoc~GetBodies2.html, parametro BVisibleOnly: «True gets only
-            // the visible bodies, false gets all of the bodies in the part». Qui
-            // c'era `true`: un corpo nascosto per guardare dentro il pezzo usciva
-            // dall'analisi senza che niente lo dicesse, e «prints_without_supports»
-            // poteva dire si' su un corpo che pende. Lo stato usa `false` da tempo
-            // (DocumentState.cs, «e il false e' voluto»), e con `true` qui «C2»
-            // indicava un corpo diverso da quello dello stato.
+            // IPartDoc~GetBodies2.html, parameter BVisibleOnly: «True gets only
+            // the visible bodies, false gets all of the bodies in the part». Here
+            // there was `true`: a body hidden to look inside the part came out of
+            // the analysis without anything saying so, and «prints_without_supports»
+            // could say yes on a body that hangs. The state has used `false` for a long time
+            // (DocumentState.cs, «and the false is intended»), and with `true` here «C2»
+            // pointed to a different body from the one in the state.
             //
-            // La guida NON dice se `GetTessTriangles` risponde sulle facce di un
-            // corpo nascosto. Per questo il ramo senza triangoli (rilievo L12-2)
-            // conta le facce curve come non analizzate invece di saltarle: se il
-            // corpo nascosto non tassella, il giudizio diventa «non posso dire»
-            // e non torna il «si'» silenzioso. La mini-sonda che lo misura e'
-            // ancora da lanciare (voce Z-C21.2, CHANGELOG).
+            // The guide does NOT say whether `GetTessTriangles` answers on the faces of a
+            // hidden body. For that reason the branch without triangles (finding L12-2)
+            // counts the curved faces as not analysed instead of skipping them: if the
+            // hidden body does not tessellate, the verdict becomes «I cannot say»
+            // and the silent «yes» does not come back. The mini-probe that measures it is
+            // still to be run (entry Z-C21.2, CHANGELOG).
             var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             var all = (rawItems ?? new object[0]).Select(o => o as IBody2).Where(b => b != null).ToList();
             if (all.Count == 0) { reason = "Il pezzo non ha corpi solidi da guardare."; return null; }
@@ -495,8 +495,8 @@ namespace Oce.Solid.Agent.Core
             string uid = Str(a, "body_uid", null);
             if (string.IsNullOrWhiteSpace(uid)) return all;
 
-            // IL CORPO PER FIRMA, come in combine_bodies e move_bodies (schema S5,
-            // rilievo L6-1): GetBodies2.html, «May vary the order in which bodies
+            // THE BODY BY SIGNATURE, as in combine_bodies and move_bodies (scheme S5,
+            // finding L6-1): GetBodies2.html, «May vary the order in which bodies
             // are returned».
             var foundItems = BodiesFromUid(docState, new List<string> { uid.Trim() }, a, out reason);
             if (foundItems == null) return null;

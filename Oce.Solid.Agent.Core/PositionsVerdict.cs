@@ -4,103 +4,103 @@ using System.Globalization;
 
 namespace Oce.Solid.Agent.Core
 {
-    /// <summary>I tre esiti possibili di un controllo sulle posizioni.</summary>
+    /// <summary>The three possible outcomes of a check on the positions.</summary>
     public enum PositionsOutcome
     {
-        /// <summary>Guardate e giuste.</summary>
+        /// <summary>Looked at and right.</summary>
         Verified,
 
-        /// <summary>Non e' stato possibile guardarle. NON vuol dire che vanno bene.</summary>
+        /// <summary>It was not possible to look at them. It does NOT mean they are fine.</summary>
         NotVerifiable,
 
-        /// <summary>Guardate, e almeno una e' fuori tolleranza.</summary>
+        /// <summary>Looked at, and at least one is out of tolerance.</summary>
         Wrong
     }
 
     /// <summary>
-    /// Il giudizio sulle posizioni dei fori, separato da SOLIDWORKS apposta.
+    /// The judgment on the hole positions, separated from SOLIDWORKS on purpose.
     ///
-    /// PERCHE' ESISTE QUESTA CLASSE: IL SESTO DIFETTO CHE NON DAVA ERRORE
+    /// WHY THIS CLASS EXISTS: THE SIXTH DEFECT THAT GAVE NO ERROR
     ///
-    /// Fino alla 0.25.1 il controllo era una funzione sola, `ForiMancanti`, che
-    /// tornava `null` per dire «tutto a posto». Era onesta: tornava `null`
-    /// anche quando non aveva potuto guardare niente, e uno dei suoi `return
-    /// null` aveva perfino il commento
+    /// Up to 0.25.1 the check was a single function, `ForiMancanti`, which
+    /// returned `null` to say «all fine». It was honest: it returned `null`
+    /// also when it had not been able to look at anything, and one of its `return
+    /// null` even had the comment
     ///
-    ///     if (diameterMm &lt;= 0) return null;   // niente da confrontare:
-    ///                                          // non si inventa un verdetto
+    ///     if (diameterMm &lt;= 0) return null;   // nothing to compare:
+    ///                                          // a verdict is not invented
     ///
-    /// Le strade in cui si asteneva erano quattro: diametro ignoto, `GetFaces()`
-    /// nullo, l'eccezione, e — la piu' frequente — NESSUNA FACCIA CILINDRICA
-    /// del diametro atteso, cioe' esattamente il caso in cui i fori potrebbero
-    /// non esserci affatto.
+    /// The ways in which it abstained were four: unknown diameter, `GetFaces()`
+    /// null, the exception, and — the most frequent — NO CYLINDRICAL FACE
+    /// of the expected diameter, that is exactly the case in which the holes might
+    /// not be there at all.
     ///
-    /// Chi la chiamava scriveva poi, senza condizione:
+    /// Whoever called it then wrote, unconditionally:
     ///
     ///     misure["positions_checked"] = true;
     ///
-    /// LA FUNZIONE SI RIFIUTAVA DI INVENTARE IL VERDETTO, E IL CHIAMANTE LO
-    /// INVENTAVA AL POSTO SUO.
+    /// THE FUNCTION REFUSED TO INVENT THE VERDICT, AND THE CALLER INVENTED IT IN
+    /// ITS PLACE.
     ///
-    /// E il banco, che di quel campo si fidava per decidere il pass, lo leggeva
-    /// con `misure.ContainsKey("positions_checked")`: una chiave scritta
-    /// sempre. Il ramo che stampava «POSIZIONI NON VERIFICATE» era codice morto
-    /// — non poteva scattare. Un controllo mai visto scattare non e' un
-    /// controllo, e questo lo era due volte: nel ponte e nel banco.
+    /// And the bench, which trusted that field to decide the pass, read it
+    /// with `misure.ContainsKey("positions_checked")`: a key that is always
+    /// written. The branch that printed «POSIZIONI NON VERIFICATE» was dead code
+    /// — it could not fire. A check never seen to fire is not a
+    /// check, and this one was so twice over: in the bridge and in the bench.
     ///
-    /// LA RIPARAZIONE ha due meta'.
+    /// THE REPAIR has two halves.
     ///
-    ///  1. Tre esiti invece di due. «Non ho potuto guardare» e' una risposta
-    ///     diversa da «ho guardato e va bene», e va detta. Non e' un rifiuto:
-    ///     l'operazione e' riuscita, e' il controllo che non c'e' stato. Si
-    ///     misura per SPIEGARE, non per rifiutare — e un rifiuto sbagliato
-    ///     resta peggio di una spiegazione sbagliata.
-    ///  2. Il giudizio sta QUI, senza SOLIDWORKS. Raccogliere le facce
-    ///     cilindriche richiede il COM; decidere cosa farne no. Separati, il
-    ///     secondo pezzo si puo' provare a tavolino — compreso il caso
-    ///     «zero assi trovati», che con SOLIDWORKS acceso non si sa come
-    ///     costringere a capitare. `Checks\PositionsTest` lo fa.
+    ///  1. Three outcomes instead of two. «I could not look» is a different
+    ///     answer from «I looked and it is fine», and it must be said. It is not a refusal:
+    ///     the operation succeeded, it is the check that did not take place. It is
+    ///     measured to EXPLAIN, not to refuse — and a wrong refusal
+    ///     remains worse than a wrong explanation.
+    ///  2. The judgment lives HERE, without SOLIDWORKS. Collecting the cylindrical
+    ///     faces requires COM; deciding what to do with them does not. Separated, the
+    ///     second piece can be tried at a desk — including the case
+    ///     «zero axes found», which with SOLIDWORKS running nobody knows how to
+    ///     force to happen. `Checks\PositionsTest` does it.
     ///
-    /// La chiave nell'esito e' DIVERSA, non `false`: `positions_not_checked`
-    /// col motivo dentro. Un `positions_checked = false` sarebbe stato letto
-    /// come «verificate» da qualunque chiamante che guarda se la chiave c'e' —
-    /// che e' precisamente l'errore che si sta riparando.
+    /// The key in the outcome is DIFFERENT, not `false`: `positions_not_checked`
+    /// with the reason inside. A `positions_checked = false` would have been read
+    /// as «verified» by any caller that looks whether the key is there —
+    /// which is precisely the error being repaired.
     /// </summary>
     public static class PositionsVerdict
     {
         /// <summary>
-        /// Quanto puo' distare un foro da dove e' stato chiesto, in millimetri.
+        /// How far a hole may be from where it was asked for, in millimetres.
         ///
-        /// Non e' una tolleranza di lavorazione: e' il margine entro cui si
-        /// riconosce che SOLIDWORKS ha messo il foro dove gli era stato detto.
-        /// Uno scostamento piu' grande di cosi' non e' imprecisione, e' un'altra
-        /// posizione.
+        /// It is not a machining tolerance: it is the margin within which it is
+        /// recognised that SOLIDWORKS put the hole where it was told to.
+        /// A larger deviation than this is not imprecision, it is another
+        /// position.
         /// </summary>
         public const double ToleranceMm = 0.1;
 
         /// <summary>
-        /// Giudica le posizioni dei fori confrontando gli assi dei cilindri
-        /// trovati sulla lavorazione con i punti che erano stati chiesti.
+        /// Judges the hole positions by comparing the cylinder axes
+        /// found on the feature with the points that were asked for.
         ///
         /// <param name="foundAxes">
-        /// I `CylinderParams` delle facce cilindriche del diametro giusto: sette
-        /// double ciascuno, i primi tre il punto sull'asse, i tre dopo la
-        /// direzione, il settimo il raggio. Puo' essere null o vuoto.
+        /// The `CylinderParams` of the cylindrical faces of the right diameter: seven
+        /// doubles each, the first three the point on the axis, the next three the
+        /// direction, the seventh the radius. May be null or empty.
         /// </param>
         /// <param name="cannot">
-        /// Il motivo per cui il chiamante non ha potuto raccogliere gli assi, se
-        /// non ha potuto. Se e' valorizzato, vince su tutto il resto: si esce
-        /// con NotVerifiable e questo motivo.
+        /// The reason why the caller could not collect the axes, if it
+        /// could not. If it is set, it wins over everything else: it exits
+        /// with NotVerifiable and this reason.
         /// </param>
         /// <param name="axes">
-        /// Quale coordinata del modello corrisponde alla prima e alla seconda
-        /// del piano, e quale e' la normale: tre indici fra 0, 1 e 2.
+        /// Which model coordinate corresponds to the first and to the second
+        /// of the plane, and which is the normal: three indices among 0, 1 and 2.
         /// </param>
-        /// <param name="offsetM">La quota lungo la normale, in metri.</param>
-        /// <param name="positions">I punti chiesti, in millimetri, nel piano.</param>
+        /// <param name="offsetM">The offset along the normal, in metres.</param>
+        /// <param name="positions">The points asked for, in millimetres, in the plane.</param>
         /// <param name="reason">
-        /// Con Sbagliate, la frase da dare a chi legge. Con NotVerifiable,
-        /// perche' non si e' potuto guardare. Con Verificate, null.
+        /// With Wrong, the sentence to give to whoever reads. With NotVerifiable,
+        /// why it was not possible to look. With Verified, null.
         /// </param>
         /// </summary>
         public static PositionsOutcome Judge(
@@ -123,10 +123,10 @@ namespace Oce.Solid.Agent.Core
                 return PositionsOutcome.NotVerifiable;
             }
 
-            // IL CASO CHE PRIMA PASSAVA PER BUONO.
-            // Nessuna faccia cilindrica del diametro atteso sulla lavorazione:
-            // non vuol dire che i fori sono al posto giusto, vuol dire che non
-            // si sa nemmeno se ci sono.
+            // THE CASE THAT USED TO PASS FOR GOOD.
+            // No cylindrical face of the expected diameter on the feature:
+            // it does not mean that the holes are in the right place, it means that it
+            // is not even known whether they are there.
             if (foundAxes == null || foundAxes.Count == 0)
             {
                 reason = "sulla lavorazione non c'e' nessuna faccia cilindrica " +
@@ -170,7 +170,7 @@ namespace Oce.Solid.Agent.Core
             return PositionsOutcome.Verified;
         }
 
-        /// <summary>Distanza fra un punto e la retta di un cilindro, in metri.</summary>
+        /// <summary>Distance between a point and the line of a cylinder, in metres.</summary>
         public static double DistanceFromAxis(double[] point, double[] cylinder)
         {
             if (point == null || cylinder == null || point.Length < 3 || cylinder.Length < 6)
