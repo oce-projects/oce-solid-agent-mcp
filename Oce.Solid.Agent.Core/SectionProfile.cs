@@ -91,7 +91,7 @@ namespace Oce.Solid.Agent.Core
         /// </returns>
         /// <remarks>
         /// THIS SIGNATURE DOES NOT CHANGE: the bench calls this method by
-        /// reflection (Bench/Program.cs, Sezioni), and an overload would make
+        /// reflection (Bench/Program.cs, Sections), and an overload would make
         /// `GetMethod("FrameOverhangs")` ambiguous. The work is in
         /// <see cref="FrameOverhang"/>, which also says where the overhang
         /// came from.

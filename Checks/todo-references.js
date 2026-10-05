@@ -15,7 +15,7 @@
 //  (`todo-signatures.ps1`), applied to the internal cross-references.
 //
 //  The twin of this check already exists and is in the contract checks:
-//  «in the TODO two entries are not called the same way». That one prevents
+//  «nel TODO due voci non si chiamano allo stesso modo». That one prevents
 //  one name from indicating two; this one, that a name indicates none.
 //
 //  USAGE

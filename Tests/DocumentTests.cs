@@ -35,7 +35,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// Two, since finding M19 (lot Z-C21.5; five before, six before 23/9/2026):
         ///
         ///   expectedDocument    taken ONCE at the start: THE GOOD READ
-        ///   modello            the document a step writes on, compared with
+        ///   model              the document a step writes on, compared with
         ///                      expectedDocument right after («still the same?»)
         ///
         /// The three M19 removed: the undo recording was STARTED on a fresh read

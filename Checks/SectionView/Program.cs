@@ -16,7 +16,7 @@ namespace Checks.SectionView
     /// `CreateSectionViewAt5`, which wants that line selected and does not
     /// take it in its signature.
     ///
-    /// The round, step by step:
+    /// The procedure, step by step:
     ///
     ///   1. a view of the model is found on the sheet, and we read WHERE it is
     ///      (`Position`) and HOW BIG it is (`GetOutline`);

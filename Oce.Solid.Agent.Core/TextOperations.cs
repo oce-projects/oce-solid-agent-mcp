@@ -30,8 +30,8 @@ namespace Oce.Solid.Agent.Core
     ///
     /// «PROVA» 10 mm high, engraved 2 mm, on a 100x100 square:
     ///
-    ///     anchored at (0, 0)    ->  removed 230,70 mm3
-    ///     anchored at (30, 10)  ->  removed 111,20 mm3
+    ///     anchored at (0, 0)    ->  removed 230.70 mm3
+    ///     anchored at (30, 10)  ->  removed 111.20 mm3
     ///
     /// **Half of the lettering falls outside the face and vanishes silently.**
     /// The feature is born green, it is called `Taglio-Estrusione1`, and in the part there is
@@ -50,16 +50,16 @@ namespace Oce.Solid.Agent.Core
     ///
     /// Before, it could not be known: the width of a lettering is not computed
     /// from the string, it depends on the font. Measured, instead, it is known — and for
-    /// «PROVA» in Century Gothic 10 mm high it is **47,05 x 10,51 mm**.
+    /// «PROVA» in Century Gothic 10 mm high it is **47.05 x 10.51 mm**.
     ///
     /// ── WHAT HAS A NUMBER, AND WHAT DOES NOT ──────────────────────────
     ///
     /// The area of the letters cannot be predicted. But it goes with the **square
     /// of the height**, and it is measured:
     ///
-    ///     height  5 mm  ->  area 28,83 mm2   ->  area/h2 = 1,1533
-    ///     height 10 mm  ->  area 115,35 mm2  ->  area/h2 = 1,1535
-    ///     height 20 mm  ->  area 265,88 mm2  ->  area/h2 = 0,6647   <- broken
+    ///     height  5 mm  ->  area 28.83 mm2   ->  area/h2 = 1.1533
+    ///     height 10 mm  ->  area 115.35 mm2  ->  area/h2 = 1.1535
+    ///     height 20 mm  ->  area 265.88 mm2  ->  area/h2 = 0.6647   <- broken
     ///
     /// The third number is broken because at 20 mm «PROVA» is 94 mm wide and on a
     /// face of 100 anchored at x=0 it does not fit. **The same law that holds the

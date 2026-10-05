@@ -75,7 +75,7 @@ const BASES = ['', 'Banco', 'Oce.Solid.Agent.Core', 'Strumenti', 'Controlli',
 // dead a right citation, **inside the pre-push hook**: it would have
 // stopped a delivery for a mistake of its own.
 //
-// Now: if the citation says a folder, we look THERE. The round by
+// Now: if the citation says a folder, we look THERE. The search by
 // base name stays for the citations that do not have the folder, and
 // when it finds more than one file with the same name **it abstains** instead of
 // choosing: two files with the same name are exactly the case in which guessing

@@ -827,7 +827,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// CENTRED AXES TOO, AND THE WIDEST CUT (Z-C21.2, finding N50). This
         /// check skipped centred axes (`!asse.Centrata`), and ReadAnchor runs
-        /// with mezzo = 0 for hole_wizard, so its rule «the profile fits
+        /// with the half sizes at 0 for hole_wizard, so its rule «the profile fits
         /// between the two edges» (the «non ci sta» refusal in ReadAnchor)
         /// never fired: an M8 centred between two edges 6 mm apart was
         /// confirmed, and the hole cut through both of them. The same rule is

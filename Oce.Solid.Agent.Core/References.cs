@@ -27,7 +27,7 @@ namespace Oce.Solid.Agent.Core
     {
         /// <summary>Cosine beyond which two directions are called the same.</summary>
         /// <remarks>
-        /// 0,999 is about 2,5 degrees. It is not a measurement tolerance: the faces
+        /// 0.999 is about 2.5 degrees. It is not a measurement tolerance: the faces
         /// of an extrusion are exactly parallel or exactly
         /// perpendicular to the axis, and this margin only serves to cover
         /// the representation error of the doubles.
@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.Core
             {
                 case "top": return new double[] { 0, 1, 0 };
                 case "right": return new double[] { 1, 0, 0 };
-                default: return new double[] { 0, 0, 1 }; // frontale
+                default: return new double[] { 0, 0, 1 }; // front
             }
         }
 
@@ -976,7 +976,7 @@ namespace Oce.Solid.Agent.Core
         /// only when neither answers.
         ///
         /// For a face perpendicular to the direction every point of the face
-        /// has (within the Coseno tolerance) the same projection, so a point on
+        /// has (within the Cosine tolerance) the same projection, so a point on
         /// the face ranks it as well as the centre of its box. Guide:
         /// IFace2~GetClosestPointOn.html, «Array of five doubles representing
         /// the X,Y,Z point on the face followed by the U, V parameter»; the box

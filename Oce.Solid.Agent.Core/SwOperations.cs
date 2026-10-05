@@ -25,7 +25,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// UNITS
     /// Every input value is in MILLIMETERS and DEGREES, as on the
-    /// protocol. The conversion is done by Unita, and only by Unita.
+    /// protocol. The conversion is done by Units, and only by Units.
     ///
     /// THE DECLARED LIMIT OF THIS VERSION
     /// The operations on a face (holes and pockets) work only on PLANAR faces
@@ -239,7 +239,7 @@ namespace Oce.Solid.Agent.Core
         /// branch falls back to the profile extrusion when it finds
         /// contours. Called with their real arguments they answer
         /// «operazione sconosciuta». The check that compares the two sets says so; without
-        /// a list, it would be a regex over 4.700 lines that breaks at the first
+        /// a list, it would be a regex over 4,700 lines that breaks at the first
         /// reformatting.
         ///
         /// **THIS LIST CAN DERIVE FROM THE SWITCH, and that is its flaw.**
@@ -1030,7 +1030,7 @@ namespace Oce.Solid.Agent.Core
         /// SolidWorks extrudes the enclosed region: nested contours give a
         /// drilled part with no need for a second cut. It is also the reason
         /// a tube is made this way instead of with the thin extrusion:
-        /// the outer envelope is written in the coordinates, it does not depend on a
+        /// the outer bounding box is written in the coordinates, it does not depend on a
         /// wall direction that can be got wrong silently.
         ///
         /// AddToDB during drawing: without it, SolidWorks tries to infer a
@@ -1902,7 +1902,7 @@ namespace Oce.Solid.Agent.Core
         // change face — and the two things to do are opposite.
         //
         // The two causes can however be told apart BEFORE drawing, with numbers already
-        // in hand: the part's envelope and the profile asked for. The model to
+        // in hand: the part's bounding box and the profile asked for. The model to
         // imitate is the fillet, which in the same round did not say «non e'
         // riuscito» but «200 mm e' troppo per lo spigolo «E1», lungo 314 mm: non
         // ci sta neanche meta'» — that is the CRITERION, not the verdict: the reader
@@ -1915,9 +1915,9 @@ namespace Oce.Solid.Agent.Core
         // turned an oversight into a rule of the product. So here
         // we refuse ONLY what cannot produce any part:
         //
-        //   1. the profile falls entirely outside the envelope — below there is no
+        //   1. the profile falls entirely outside the bounding box — below there is no
         //      material, nothing is removed;
-        //   2. the profile COVERS the whole envelope and the cut goes from side to
+        //   2. the profile COVERS the whole bounding box and the cut goes from side to
         //      side — nothing is left.
         //
         // A hole that overhangs the face, a hole centered on the edge, a
@@ -1940,7 +1940,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// The envelope of the WHOLE part in mm, in model coordinates:
+        /// The bounding box of the WHOLE part in mm, in model coordinates:
         /// {minX, minY, minZ, maxX, maxY, maxZ}. Null if there is no body.
         ///
         /// GetBodyBox, not the six GetExtremePoint calls that the state uses. The
@@ -1990,8 +1990,8 @@ namespace Oce.Solid.Agent.Core
         /// <param name="whatItIs">
         /// The shape with its dimensions, already written: «The 500 mm hole».
         /// </param>
-        /// <param name="semiU">Half the envelope of the profile on the first axis.</param>
-        /// <param name="semiV">Half the envelope of the profile on the second axis.</param>
+        /// <param name="semiU">Half the bounding-box size of the profile on the first axis.</param>
+        /// <param name="semiV">Half the bounding-box size of the profile on the second axis.</param>
         /// <param name="insideTheProfile">Is this point of the face inside the shape?</param>
         /// <param name="advice">
         /// Given the two distances from the center to the nearest edge of the part, the
@@ -2084,7 +2084,7 @@ namespace Oce.Solid.Agent.Core
         // Measured on 14 September 2026, right after 0.43.0. A block
         // 314x274x52, a 270 through hole, then a 20 hole centered INSIDE
         // that gap. The two checks of 0.42.0 let it pass — and they are
-        // right to, the profile is inside the envelope and does not cover it —
+        // right to, the profile is inside the bounding box and does not cover it —
         // SolidWorks does not create the feature, and 0.43.0 takes the sketch away
         // as it should. What is left in the reader's hands is:
         //
@@ -2375,7 +2375,7 @@ namespace Oce.Solid.Agent.Core
             //
             // Measured on 10 September 2026 drawing the enclosure for
             // the antenna: the cable passage asked on a side, with
-            // «through_all». Removed 3.922,2 mm3 against the 1.961,1 of a single
+            // «through_all». Removed 3,922.2 mm3 against the 1,961.1 of a single
             // wall — exactly double, because the cut came out
             // of the back too. The operation said «riuscito», the part
             // had one hole too many, and no check noticed.
@@ -2421,7 +2421,7 @@ namespace Oce.Solid.Agent.Core
         /// it is worth saying so. One hundredth.
         ///
         /// Measured on 14/9/2026 on the two cases that matter: a hole entirely on the
-        /// face removes the exact volume (192.000 - 191.607,3 = 392,7 against
+        /// face removes the exact volume (192,000 - 191,607.3 = 392.7 against
         /// the 392,699 of pi*5^2*5, that is less than a thousandth of deviation), and
         /// one centered on the edge removes **half**. Between the two there is a
         /// factor of five hundred: any threshold in between works, and one
@@ -2436,9 +2436,9 @@ namespace Oce.Solid.Agent.Core
         /// THE DEFECT THIS CLOSES (entry E13). A `cylindrical_cut` with
         /// the profile straddling the edge of the face removes half the material and
         /// answers `succeeded: true`, `walls_drilled: 1`. Measured: 10 hole
-        /// 5 deep centered on the lower edge of a face, **196,3 mm³
-        /// instead of 392,7** — exactly half — with the bottom of the hole reduced
-        /// to a half disc of 39,27 mm² instead of 78,54.
+        /// 5 deep centered on the lower edge of a face, **196.3 mm³
+        /// instead of 392.7** — exactly half — with the bottom of the hole reduced
+        /// to a half disc of 39.27 mm² instead of 78.54.
         ///
         /// THE GUARDIAN WAS THERE AND WAS LOOKING THE OTHER WAY. `BelowProfile` knows how to
         /// count how many points of the profile fall on the face and says so well,
@@ -2696,8 +2696,8 @@ namespace Oce.Solid.Agent.Core
         /// degrees. The direction decides only on which side the semicircle passes.
         /// With the right direction it bulges outward and the slot is L long; with the wrong
         /// one it goes inward, and the slot comes out L−W long with the ends BITTEN
-        /// into half moons. For an M10 51x11: 40 mm instead of 51, area 344,97
-        /// instead of 535,03. The contour stays closed and simple, the cut
+        /// into half moons. For an M10 51x11: 40 mm instead of 51, area 344.97
+        /// instead of 535.03. The contour stays closed and simple, the cut
         /// succeeds, the feature is green, and the screw slides 29 mm instead of 40.
         ///
         /// THEREFORE THE MATERIAL REMOVED IS COUNTED. The blind case takes it in
@@ -2765,13 +2765,13 @@ namespace Oce.Solid.Agent.Core
             var bottomB = inPlane(+travel, -radius);
 
             // THE ANCHOR (entry E18), all checked before drawing. The
-            // half envelope per axis is the one below: the projected stroke
+            // half bounding-box size per axis is the one below: the projected stroke
             // plus the radius.
             var anchor = ReadAnchor(a, docState, face, axes, offsetM, x, y,
                 Math.Abs(travel * cos) + radius, Math.Abs(travel * sin) + radius, out reason);
             if (anchor == null) return Failed(reason);
 
-            // Half envelope of the stadium on the face's two axes: the projected
+            // Half bounding-box size of the stadium on the face's two axes: the projected
             // stroke plus the radius of the ends. With angle 0 it gives
             // length/2 and width/2, as it should.
             string withoutHope = CutWithoutHope(
@@ -2930,7 +2930,7 @@ namespace Oce.Solid.Agent.Core
                 double maximumThickness = ExtentAlongAxis(model, (int)axes[2]);
 
                 // 1. THE CEILING. The part cannot have lost more material than
-                //    fits in the envelope crossed. It catches shapes
+                //    fits in the bounding box crossed. It catches shapes
                 //    much larger than they should be.
                 double limit = area * maximumThickness * 1.02;
                 if (maximumThickness > 0 && removed > limit)
@@ -3257,7 +3257,7 @@ namespace Oce.Solid.Agent.Core
                 //
                 // Flipped, the semicircle GOES INWARD instead of bulging out:
                 // the slot comes out L−W long with the ends bitten. On the blind
-                // test the count was 1724,8 mm3 instead of 2675,2, that is
+                // test the count was 1724.8 mm3 instead of 2675.2, that is
                 // exactly (L−W)·W − pi·r^2 in place of + pi·r^2.
                 //
                 // `Create3PointArc(capo1, capo2, puntoSull'arco)` removes the
@@ -3684,8 +3684,8 @@ namespace Oce.Solid.Agent.Core
             // IDimension~GetType.html: «Type of dimension as defined by
             // swDimensionParamType_e» — DoubleLinear = 0, DoubleAngular = 1,
             // Integer = 2 (swconst inventory). Up to library 0.136.0 every
-            // dimension was converted from mm: «30» on an angle became 0,03 rad
-            // (1,7 degrees), and the reread, wrong in the same way, said it
+            // dimension was converted from mm: «30» on an angle became 0.03 rad
+            // (1.7 degrees), and the reread, wrong in the same way, said it
             // had taken. The document state writes the angular dimensions in
             // `deg` (DocumentState.cs, same GetType): here the value is read
             // in the same unit in which the model read it.
@@ -4956,7 +4956,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// AND THE RESULT IS COUNTED. A profile that CROSSES the axis gives no
         /// error: it gives a self-intersecting solid. It is the same family
-        /// as the 50,8 mm hole that looked right. Starting from a document
+        /// as the 50.8 mm hole that looked right. Starting from a document
         /// without bodies — which is the precondition — a successful revolve leaves
         /// exactly ONE: zero or more than one means the profile
         /// and the axis were not what they seemed.
@@ -5969,7 +5969,7 @@ namespace Oce.Solid.Agent.Core
         /// alternative is `GetMassProperties(densita)`, which returns a vector.
         /// On 9 September 2026, measuring the guided holes, element 3 turned
         /// out to be the volume in cubic meters: an M8 hole on a 20 plate
-        /// removed 726,3 mm3, that is pi*3,4^2*20 to a tenth of a cubic millimeter,
+        /// removed 726.3 mm3, that is pi*3.4^2*20 to a tenth of a cubic millimeter,
         /// and so for all eleven sizes from M3 to M24. On a vector
         /// read wrong those numbers would not add up.
         /// </summary>
@@ -7269,7 +7269,7 @@ namespace Oce.Solid.Agent.Core
                 string why;
                 if (!SignatureMatches(arguments, uid, entry.Value, out why)) continue;
 
-                // MATCHING BY POSITION IS NOT ENOUGH. See Corrobora.
+                // MATCHING BY POSITION IS NOT ENOUGH. See Corroborates.
                 string grown;
                 string doesNotHold = Corroborates(expectation, uid, entry.Value, out grown);
                 ReAnchored(grown);
@@ -7517,7 +7517,7 @@ namespace Oce.Solid.Agent.Core
             // the face moved by sixty millimeters AND sits where it sat
             // relative to the part. Saying so helps to understand; deciding it does not — and indeed
             // here nothing is decided: the face was already chosen by the
-            // persistent reference, and the judgment was already given by Corrobora.
+            // persistent reference, and the judgment was already given by Corroborates.
             return "la faccia «" + uid + "» l'ha ritrovata SOLIDWORKS dal suo " +
                    "riferimento persistente: " + string.Join(", ", parts) +
                    ". Il pezzo e' cambiato da quando l'hai guardato, ma la faccia e' " +
@@ -8007,7 +8007,7 @@ namespace Oce.Solid.Agent.Core
             //
             // Here is the only point that EVERY success of all
             // thirty-six operations goes through, including those in the `partial` files
-            // (Fori, Saldatura, Tavola, Materiale). Draining here means that
+            // (Holes, Weldment, Drawing, Material). Draining here means that
             // no operation can forget it.
             //
             // THE DEFECT THIS CLOSES, and it is the most mocking of all:

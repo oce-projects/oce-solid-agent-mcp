@@ -131,8 +131,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// `dimension_tolerance` («Scegli un grado fra 5 e 11», the example of the
         /// bilateral). **100:** from the adversarial review — the angular dimension
         /// («Scegli una quota lineare») and the dimension not shown («mostra la quota»).
-        /// **106:** GT9 — the bom and the balloons say what to put first
-        /// (the view of an assembly, the bom before the balloons) and what to use
+        /// **106:** GT9 — the BOM and the balloons say what to put first
+        /// (the view of an assembly, the BOM before the balloons) and what to use
         /// for a weldment. **108:** Z-D1/Z-D6 — a document that is neither part
         /// nor assembly («Aprimi il pezzo o l'assieme»), the STL of an assembly («usa
         /// export_step»), the rereading of the assembly STEP («toglilo e richiedimelo»).
@@ -176,7 +176,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// says to try a smaller radius or «fillet_edges». **+18, entry
         /// W1.1 (`fill_pattern`):** the direction that is missing («indica uno spigolo
         /// dritto… oppure… create_axis»), the non-planar face, the direction outside the
-        /// face, the pitch and the copies per run, and the NULL that names linear_pattern /
+        /// face, the pitch and the copies per loop, and the NULL that names linear_pattern /
         /// circular_pattern. **+10, entry W1.2 (`rib`):** the end outside the
         /// plane, the line too short, the rib that is not born in either direction
         /// («extrude_on_face»), the plane to be named. **+24, entry GP20 (`gusset`):**

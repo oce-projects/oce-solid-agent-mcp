@@ -56,7 +56,7 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// WHERE A CASE CAN WRITE. `Bench\lavoro\`, the same folder
-        /// into which `CloseLeftovers` throws the discarded documents: it is ignored by git and
+        /// into which `CloseLeftovers` throws the leftover documents: it is ignored by git and
         /// can be emptied at any moment.
         ///
         /// It has been needed since there are operations that produce FILES —

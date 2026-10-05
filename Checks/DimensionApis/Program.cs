@@ -20,7 +20,7 @@ namespace Checks.DimensionApis
     /// what it finds must then be tried live: a signature that exists is not a
     /// call that works.
     ///
-    ///     DimensionApis.exe [parola]      default: annotation
+    ///     DimensionApis.exe [word]        default: annotation
     /// </summary>
     internal static class Program
     {

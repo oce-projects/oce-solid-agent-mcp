@@ -49,7 +49,7 @@ namespace Oce.Solid.Agent.Core
     ///       Butt2=3, Trim=4, UseDefault=5
     ///
     /// UNITS: everything that arrives from the plan is in MILLIMETERS. The conversion
-    /// is done by Unita, and only by Unita. A millimeter passed as a meter gives a frame
+    /// is done by Units, and only by Units. A millimeter passed as a meter gives a frame
     /// a thousand times bigger, with no error.
     /// </summary>
     public partial class SwOperations
@@ -491,7 +491,7 @@ namespace Oce.Solid.Agent.Core
             // it asked with a message that did not say so.
             //
             // Whoever carries them is served all the same: they are the fallback for whoever
-            // wants the centerline dimensions instead of the outer envelope.
+            // wants the centerline dimensions instead of the outer bounding box.
             var requestedFrame = RequestedFrame(a);
             var segments = SegmentsFrom(a, out string reason);
             if (segments == null && requestedFrame == null) return Failed(reason);
@@ -583,8 +583,8 @@ namespace Oce.Solid.Agent.Core
             // ── THE FRAME WITH CENTERLINE DIMENSIONS ─────────────────────
             //
             // The two dimensions are the path's CENTERLINE, not the finished
-            // envelope: it is the case of whoever reasons on center distances — holes,
-            // plates, attachments — and keeps the profile's protrusion to themselves.
+            // bounding box: it is the case of whoever reasons on center distances — holes,
+            // plates, attachments — and accounts for the profile's overhang themselves.
             // The path is then the nominal rectangle, with no
             // pulling back.
             //
@@ -842,7 +842,7 @@ namespace Oce.Solid.Agent.Core
             // The section measured on a test bar and the real part are
             // two different things: between them lie the corner treatment, the
             // gap, the rotation of the profile and the choices SolidWorks makes by
-            // itself. Promising an envelope and not rechecking it is exactly
+            // itself. Promising a bounding box and not rechecking it is exactly
             // the defect of 9 September, moved one step.
             //
             // So: we read the box of the bodies that THIS feature
@@ -986,10 +986,10 @@ namespace Oce.Solid.Agent.Core
             //
             //   object[]         -> returns a feature «Accorcia/Estendi1», which
             //                       IS NOT IN THE TREE; volume unchanged
-            //   Body2[]          -> the feature is there, volume -58798,23 mm3
+            //   Body2[]          -> the feature is there, volume -58798.23 mm3
             //   DispatchWrapper[]-> same as Body2[]
             //
-            // 58798,23 = 40 mm x 1469,956 mm2, the tube's section: the right
+            // 58798.23 = 40 mm x 1469.956 mm2, the tube's section: the right
             // cut, to the hundredth. With `object[]` the interop packs an
             // array of VARIANT and SOLIDWORKS makes a phantom feature of it without
             // saying anything. (The old note here, «with the extension options on:
@@ -1470,7 +1470,7 @@ namespace Oce.Solid.Agent.Core
         //   the guide: triangle 60/60, thickness 5, mark 1/1         -> IS BORN,
         //                                       +9000 mm3, bodies 2 -> 3
         //   polygon 60/60 with D3 = D4 = 15, mark 1/1                -> IS BORN,
-        //                                       +12937,5 mm3
+        //                                       +12937.5 mm3
         //   triangle via InsertGussetFeature2 with Face2[]           -> IS BORN
         //
         // In all the variants that were born the feature is of type «Gusset»
@@ -1482,7 +1482,7 @@ namespace Oce.Solid.Agent.Core
         // Polygon: the pentagon (0,0) (l1,0) (l1,a) (b,l2) (0,l2), with a and b the
         // two short sides; by Gauss's area formula
         //     (l1*l2 + l1*a + b*l2 - a*b) / 2
-        // = 60*60 - 45*45/2 = 2587,5 mm2, x 5 = 12937,5: it is the measured number.
+        // = 60*60 - 45*45/2 = 2587.5 mm2, x 5 = 12937.5: it is the measured number.
         // WHICH of the two short sides is `a` and which `b` the guide does not say, and
         // with 60/60 and 15/15 it cannot be seen: both readings are accepted.
         // Between two faces that do not make 90 degrees the triangle's area is
@@ -2653,9 +2653,9 @@ namespace Oce.Solid.Agent.Core
         /// The four segments of a frame's path, on the plane's axes.
         ///
         /// The dimensions arriving here are already those of the PATH, that is
-        /// the outer envelope minus the profile's protrusion. The protrusions
-        /// are still needed for the «corner at the origin» case: there the envelope
-        /// must start from zero, so the axis starts at half a protrusion.
+        /// the outer bounding box minus the profile's overhang. The overhangs
+        /// are still needed for the «corner at the origin» case: there the bounding box
+        /// must start from zero, so the axis starts at half an overhang.
         /// </summary>
         private static List<Segment> FrameSegments(
             double pathU, double pathV, int axisU, int axisV,
@@ -2687,16 +2687,16 @@ namespace Oce.Solid.Agent.Core
         ///
         /// It goes through the feature's faces, not the document's bodies:
         /// if the part already contained others, measuring the document
-        /// would give the envelope of everything and the frame's verification would be a
+        /// would give the bounding box of everything and the frame's verification would be a
         /// lie with the air of a check.
         ///
         /// AND GetBodyBox IS USED, NOT GetExtremePoint, ON PURPOSE.
         /// GetBodyBox is approximate for non-planar surfaces, and elsewhere
         /// (DocumentState) GetExtremePoint is indeed used. Not here: this
-        /// number must be compared with the protrusion measured by
+        /// number must be compared with the overhang measured by
         /// SectionProfile, which uses the SAME GetBodyBox on the test
         /// frame. Two measures with the same approximation cancel out —
-        /// path = dimension - protrusion, envelope = path + protrusion —
+        /// path = dimension - overhang, bounding box = path + overhang —
         /// while two different measures would make the verification fail on a
         /// right frame, with a round profile. Whoever changes one of the two must
         /// change the other.
@@ -2800,7 +2800,7 @@ namespace Oce.Solid.Agent.Core
                 ["width_mm"] = a["width_mm"],
                 // The defaults are those the catalog promises: the
                 // front plane, centered, and the dimensions read as outer
-                // envelope. The latter is the point of the operation: whoever
+                // bounding box. The latter is the point of the operation: whoever
                 // asks for a 1000x800 frame wants to measure 1000x800 on the
                 // part, not on the centerline.
                 ["plane"] = a.ContainsKey("plane") ? a["plane"] : "front",

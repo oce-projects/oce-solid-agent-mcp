@@ -13,7 +13,7 @@
 #      .\Checks\library-of-the-time.ps1 0.70.0
 #      -> ...\libreria-di-allora\0.70.0\Oce.Solid.Agent.Core.dll
 #
-#      .\Bench\bench.ps1 -Library <quel percorso> -Group casi
+#      .\Bench\bench.ps1 -Library <that path> -Group casi
 #
 #  WHY IT WORKS, AND SINCE WHEN. In this repository **a commit is a
 #  version**: `git log` on `AssemblyInfo.cs` shows one line per number, without

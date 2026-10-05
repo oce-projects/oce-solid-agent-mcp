@@ -31,8 +31,8 @@ namespace Oce.Solid.Agent.Bench
     /// `inspect_part`, which does not even go through the executor.
     ///
     /// `Oce.Solid.Agent.ContractTests` already talks to the bridge over stdio, but **without
-    /// SOLIDWORKS**: there every plan dies on «there is no document
-    /// open», which is a true refusal and proves nothing about the rest. Here the
+    /// SOLIDWORKS**: there every plan dies on «non c'e' nessun documento
+    /// aperto», which is a true refusal and proves nothing about the rest. Here the
     /// document is there. The transport is the same — `Shared/McpClient.cs` —
     /// because two transports would be two places in which to repair the BOM.
     ///
@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.Bench
                       done.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(done));
 
-                // 120 x 80 x 10 = 96.000 mm3, and the part started empty.
+                // 120 x 80 x 10 = 96,000 mm3, and the part started empty.
                 Check("porta: e il pezzo e' cambiato davvero, misurato dal banco",
                       Math.Abs(volumeAfter - volumeBefore - 96000) < 1,
                       volumeBefore.ToString("0.#") + " -> " + volumeAfter.ToString("0.#") +

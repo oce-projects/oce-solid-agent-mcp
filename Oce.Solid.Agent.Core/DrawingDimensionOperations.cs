@@ -969,7 +969,7 @@ namespace Oce.Solid.Agent.Core
                             // to IT ALONE (adversarial review of 27/9/2026): the position
                             // dimension of a hole takes the edge of the plate as its
                             // reference, and recording its extent made the true height be discarded
-                            // in the next view («already dimensioned in another view»).
+                            // in the next view («gia' quotata in un'altra vista»).
                             if (straight.Count == 1 && ents.Length == 1 && attachedCircles.Count == 0 && !onGeneratrix)
                             {
                                 var p = ApiHelpers.EdgeParameters(straight[0]);
@@ -1319,7 +1319,7 @@ namespace Oce.Solid.Agent.Core
                     failed.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (il richiamo non e' nato)");
                     continue;
                 }
-                // BORN WITHOUT ITS OBJECT (N80): with richiamo null from here on, the
+                // BORN WITHOUT ITS OBJECT (N80): with callout null from here on, the
                 // writes and reads below fail inside their own try and leave their
                 // values unknown (the «N×» is then reported as not stuck, the depth
                 // of a blind hole as missing), the positions are still placed as
@@ -1557,7 +1557,7 @@ namespace Oce.Solid.Agent.Core
                 failed.Add("posizione del foro a " + expectedMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
                 return;
             }
-            // A quota null here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80):
+            // A null dimension here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80):
             // described with its value unknown, see RecordBornWithoutObject.
             var described = DescribeDimension(dimension, hole.Index);
             described["orientation"] = horizontal ? "posizione orizzontale del foro" : "posizione verticale del foro";
@@ -1633,7 +1633,7 @@ namespace Oce.Solid.Agent.Core
                     failed.Add("smusso «" + s.ChamferFeature + "» (la quota da smusso non e' nata)");
                     continue;
                 }
-                // A quota null here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80).
+                // A null dimension here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80).
                 // AddChamferDim.html, Return Value: «Pointer to the newly created
                 // chamfer dimension»; when it is null and the count went up, the
                 // dimension is there and its two values cannot be read: the reads

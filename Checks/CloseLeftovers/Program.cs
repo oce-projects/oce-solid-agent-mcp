@@ -33,7 +33,7 @@ namespace Checks.CloseLeftovers
     /// with unsaved changes never ends up in this list.
     ///
     ///     CloseLeftovers.exe                       only lists
-    ///     CloseLeftovers.exe --chiudi [cartelle]   really closes
+    ///     CloseLeftovers.exe --chiudi [folders]    really closes
     ///     CloseLeftovers.exe --chiudi --risparmia "Parte1,Parte2"
     ///
     /// `--risparmia` serves the bench, and it is the difference between «I close my

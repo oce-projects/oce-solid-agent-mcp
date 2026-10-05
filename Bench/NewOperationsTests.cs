@@ -13,7 +13,7 @@ namespace Oce.Solid.Agent.Bench
     ///
     /// WHY THE FIELD «provata» EXISTS IN ai_disegno.py.
     /// A signature verified by reflection is not enough. HoleWizard5, called
-    /// with the right signature and the right parameters, built a hole of 50,8 mm
+    /// with the right signature and the right parameters, built a hole of 50.8 mm
     /// — two inches — with the right name in the tree and without giving any
     /// error. The defect was seen only by measuring the removed volume.
     ///
@@ -364,7 +364,7 @@ namespace Oce.Solid.Agent.Bench
             Console.WriteLine();
             Console.WriteLine("=== move_bodies (add-in) ===");
 
-            // Two equal plates, apart: 100x100x10 = 100.000 mm3 each.
+            // Two equal plates, apart: 100x100x10 = 100,000 mm3 each.
             // Moving ONE of them by 50 mm in Z, the center of mass of the whole part
             // moves by half: 25 mm. It is an equality, not an estimate.
             Move("sposta una piastra di 50 in Z", 0, 0, 50, false, 0,
@@ -385,7 +385,7 @@ namespace Oce.Solid.Agent.Bench
                    expectedBodies: 2, volumeExpected: 200000, centerMoveZ: -60);
 
             // Copy: the originals stay, and one more appears.
-            // Three bodies of 100.000, and the copy is at +600.
+            // Three bodies of 100,000, and the copy is at +600.
             // baricentroZ = (100000*0 + 100000*0 + 100000*600) / 300000 = 200.
             Move("copia una piastra a +600 in Z (il castello)", 0, 0, 600, true, 1,
                    expectedBodies: 3, volumeExpected: 300000, centerMoveZ: 200);
@@ -541,7 +541,7 @@ namespace Oce.Solid.Agent.Bench
 
         // ── THE SLOT AND THE CHAMFER ARE NOW FILES ────────────────────────
         //
-        // `cases\slot\*.json` — fifteen cases: the same area 535,0332 mm²,
+        // `cases\slot\*.json` — fifteen cases: the same area 535.0332 mm²,
         // the same five side faces, the rotation seen on a narrow
         // plate, the three refusals with their twins.
         //
@@ -562,8 +562,8 @@ namespace Oce.Solid.Agent.Bench
         // profile straddling the axis with its twin.
         //
         // THE TOLERANCE IS THE DIFFERENCE. Here `atteso * 0.02` was accepted:
-        // on the cylinder of 62.831 mm3 that is 1.256 mm3 of allowed slack, more
-        // than a through M20 hole. In the files it is +-0,5 mm3, and the why of the
+        // on the cylinder of 62,831 mm3 that is 1,256 mm3 of allowed slack, more
+        // than a through M20 hole. In the files it is +-0.5 mm3, and the why of the
         // tolerance is written next to it (the computation has pi inside).
 
         // 3. shell — the direction of «Outward», measured on the bounding box
@@ -571,14 +571,14 @@ namespace Oce.Solid.Agent.Bench
         // ── THIS CHECK IS NOW A FILE ──────────────────────────────────────
         //
         // `cases/features/internal_shell.json` and `external_shell.json` (entry
-        // F3). The same two numbers — 82.500 and 106.500 — plus the bounding box, the
+        // F3). The same two numbers — 82,500 and 106,500 — plus the bounding box, the
         // faces removed, the declared direction and the material taken away, and
         // **readable by whoever does not write C#**.
         //
         // The C# below was removed, not left next to it. Two checks on the
         // same thing mean that one day one of the two will change and the
         // other will not. And above all: the old one accepted
-        // `expectedVolume * 0.02` — on the 240.000 mm³ of the plate that is **4.800
+        // `expectedVolume * 0.02` — on the 240,000 mm³ of the plate that is **4,800
         // mm³, more than a through M12 hole**. A check that accepts a hole of
         // slack does not prove the hole, and keeping it around as a safety net
         // would be keeping around the very defect that F3 closes.

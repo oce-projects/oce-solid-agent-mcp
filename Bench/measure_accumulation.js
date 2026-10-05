@@ -1,4 +1,4 @@
-// HOW MUCH A DISCARDED DOCUMENT LEFT OPEN COSTS.
+// HOW MUCH A LEFTOVER DOCUMENT LEFT OPEN COSTS.
 //
 // Entry F1b says that the bench slows itself down: every plan leaves open
 // the part it created, and the state enumerates them all at every reading. Here it is

@@ -293,7 +293,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("sotto il minuto si scrivono i secondi",
                   write("passo 2") == "passo 2 \u2014 47s", write("passo 2"));
 
-            now = now.AddSeconds(87);   // 2m14s in tutto
+            now = now.AddSeconds(87);   // 2m14s in all
             Check("sopra il minuto si scrive minuti e secondi",
                   write("passo 3") == "passo 3 \u2014 2m14s", write("passo 3"));
 

@@ -770,7 +770,7 @@ namespace Oce.Solid.Agent.Core
             if (after <= before)
             {
                 // HOW MANY THE PART HAS, AND WHICH. Without this answer a
-                // «no dimension arrived» does not distinguish between «the
+                // «non e' arrivata nessuna quota» does not distinguish between «the
                 // call does not work» and «there was nothing to bring»:
                 // they are two different defects and they are repaired in two different places.
                 // HERE THE PART IS ASKED OF THE VIEW, not of the list of
@@ -1263,7 +1263,7 @@ namespace Oce.Solid.Agent.Core
         /// How many sheets the drawing has, or **-1 if it could not be read**
         /// (entry Z-C8). A drawing always has at least one sheet: a list that
         /// does not arrive is not a zero, it is a read that went badly — and with
-        /// zero `export_pdf` answered «the drawing has no sheets».
+        /// zero `export_pdf` answered «la tavola non ha fogli».
         /// </summary>
         private int CountSheets(IModelDoc2 drawing)
         {
@@ -1520,7 +1520,7 @@ namespace Oce.Solid.Agent.Core
         /// `C:/Users/.../pezzo.SLDPRT` and SolidWorks answered
         /// `C:\Users\...\pezzo.SLDPRT`. Same file, two spellings, and a
         /// comparison between strings that said no. The result was the
-        /// worst possible for a user: «the part does not appear to be open»
+        /// worst possible for a user: «il pezzo non risulta aperto»
         /// while the part was there, open, in front of everybody.
         ///
         /// `Path.GetFullPath` is not used because it normalises relative

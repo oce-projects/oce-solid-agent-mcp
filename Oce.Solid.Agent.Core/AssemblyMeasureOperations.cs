@@ -11,9 +11,9 @@ namespace Oce.Solid.Agent.Core
     /// HOW MUCH THE ASSEMBLY WEIGHS, WHAT BOX IT FITS IN, AND THE ASSEMBLY'S STEP
     /// (entries Z-D1 and Z-D6).
     ///
-    /// «How much does it weigh» and «what envelope does it fit in» are the first two questions about a
+    /// «How much does it weigh» and «what bounding box does it fit in» are the first two questions about a
     /// watertight box, and `mass_properties` / `body_bounding_box` refused an
-    /// assembly with «this document is not a part». Measured on 27/9/2026
+    /// assembly with «questo documento non e' un pezzo». Measured on 27/9/2026
     /// (`prova0089 zd1`, AISI 304 base + S235JR lid + a third instance
     /// SUPPRESSED):
     ///

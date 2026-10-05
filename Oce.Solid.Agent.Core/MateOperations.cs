@@ -1100,7 +1100,7 @@ namespace Oce.Solid.Agent.Core
         // =================================================================
 
         // Concentric and tangent are no longer there (entry Z-C21.2, M17): with the faces
-        // chosen by direction they cannot succeed, and the refusal sits in Accoppia.
+        // chosen by direction they cannot succeed, and the refusal sits in Mate.
         private static readonly string[] KnownTypes =
             { "coincidente", "parallelo", "perpendicolare", "distanza" };
 

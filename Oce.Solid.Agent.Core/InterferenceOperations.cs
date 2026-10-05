@@ -298,7 +298,7 @@ namespace Oce.Solid.Agent.Core
 
             // A ZERO COUNT WITH INTERFERENCES IN THE LIST is not «none» (N34):
             // the two calls disagree, and «Nessuna interferenza» with
-            // riuscita:true is the one answer that sends a part that does not
+            // succeeded:true is the one answer that sends a part that does not
             // fit to the shop.
             if (howMany == 0 && interferencesRead > 0)
                 return Failed(

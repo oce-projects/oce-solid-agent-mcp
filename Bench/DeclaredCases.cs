@@ -28,7 +28,7 @@ namespace Oce.Solid.Agent.Bench
     ///
     /// In mm or mm³, never in percent, and every tolerance other than zero must
     /// say **why that one**. `Shell()` used `expectedVolume * 0.02`: on the
-    /// 240.000 mm³ of the plate that is **4.800 mm³, more than a through
+    /// 240,000 mm³ of the plate that is **4,800 mm³, more than a through
     /// M12 hole**. A check that accepts a hole of slack does not prove the hole.
     ///
     /// A tolerance without its `tolerance_why` **is a broken
@@ -54,8 +54,8 @@ namespace Oce.Solid.Agent.Bench
         /// THE FOLDERS OF CASES ARE NAMED, not discovered.
         ///
         /// In `cases/` there also live the plans of the old format, which
-        /// `run_plans.js` executes and which here would all be «the file is not a
-        /// JSON object»: discovering the folders by themselves would mean
+        /// `run_plans.js` executes and which here would all be «il file non e' un
+        /// oggetto JSON»: discovering the folders by themselves would mean
         /// turning somebody else's file into a bench error at every run.
         ///
         /// A new family is added here, and whoever forgets it finds out
@@ -648,7 +648,7 @@ namespace Oce.Solid.Agent.Bench
         /// PERTURBS THE PLAN, NOT THE CODE.
         ///
         /// For each case, one numeric argument at a time is multiplied by
-        /// 1,5 (booleans inverted), the case is re-run and it is **expected to
+        /// 1.5 (booleans inverted), the case is re-run and it is **expected to
         /// turn RED**. A case that stays green under every perturbation is
         /// **blind**: its expectations do not constrain its arguments.
         ///
@@ -801,7 +801,7 @@ namespace Oce.Solid.Agent.Bench
                         if (!double.TryParse(Convert.ToString(val, CultureInfo.InvariantCulture),
                                              NumberStyles.Any, CultureInfo.InvariantCulture, out d))
                             continue;
-                        // ZERO TIMES 1,5 IS ZERO: a mutation that mutates
+                        // ZERO TIMES 1.5 IS ZERO: a mutation that mutates
                         // nothing would stay green and would be read as blindness.
                         // It is moved by one millimeter, which on a coordinate is
                         // a real mutation.

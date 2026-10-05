@@ -154,7 +154,7 @@ namespace Oce.Solid.Agent.Core
                         // planar face, then this property returns 0,0,0.» The
                         // comment that stood here promised «and it is stated», and the
                         // code looked only at `normale == null`: with (0,0,0)
-                        // Prodotto gave 0, the face turned out «facing up» and
+                        // Product gave 0, the face turned out «facing up» and
                         // was never flagged, whatever its
                         // slope. If no face tessellated, the answer
                         // was «prints without supports» without having looked at

@@ -2,7 +2,7 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1779,
+  "comments": 1793,
   "strings": 54058,
   "markdown": 11388,
   "json_values": 54655,
@@ -31,10 +31,11 @@
    "comments": 5
   },
   "Bench/ClientPort.cs": {
+   "comments": 5,
    "strings": 279
   },
   "Bench/DeclaredCases.cs": {
-   "comments": 44,
+   "comments": 49,
    "strings": 518
   },
   "Bench/DimensionNumbers.cs": {
@@ -973,7 +974,8 @@
    "strings": 61
   },
   "Bench/test_section.js": {
-   "strings": 63
+   "strings": 63,
+   "comments": 3
   },
   "Bench/test_shape.js": {
    "strings": 63
@@ -1011,7 +1013,6 @@
    "strings": 44
   },
   "Checks/CloseLeftovers/Program.cs": {
-   "comments": 1,
    "strings": 21
   },
   "Checks/DetailView/Program.cs": {
@@ -1021,7 +1022,6 @@
    "strings": 83
   },
   "Checks/DimensionApis/Program.cs": {
-   "comments": 1,
    "strings": 7
   },
   "Checks/DrawingDimensions/Program.cs": {
@@ -1053,7 +1053,7 @@
    "strings": 72
   },
   "Checks/Gusset/Program.cs": {
-   "comments": 270,
+   "comments": 265,
    "strings": 257
   },
   "Checks/HoleOrFillet/Program.cs": {
@@ -1074,14 +1074,14 @@
   },
   "Checks/OutlineTest/Program.cs": {
    "strings": 161,
-   "comments": 6
+   "comments": 4
   },
   "Checks/PdfText/Program.cs": {
    "comments": 1,
    "strings": 166
   },
   "Checks/PositionsTest/Program.cs": {
-   "comments": 10,
+   "comments": 8,
    "strings": 133
   },
   "Checks/RedTree/Program.cs": {
@@ -1216,7 +1216,7 @@
    "strings": 59
   },
   "Checks/todo-references.js": {
-   "comments": 9,
+   "comments": 17,
    "strings": 34
   },
   "Checks/todo-signatures.ps1": {
@@ -1262,13 +1262,13 @@
   },
   "Oce.Solid.Agent.Core/AnchorOperations.cs": {
    "strings": 808,
-   "comments": 7
+   "comments": 6
   },
   "Oce.Solid.Agent.Core/ApiHelpers.Drawing.cs": {
    "comments": 1
   },
   "Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs": {
-   "comments": 3,
+   "comments": 9,
    "strings": 167
   },
   "Oce.Solid.Agent.Core/AssemblyOperations.cs": {
@@ -1336,7 +1336,7 @@
   },
   "Oce.Solid.Agent.Core/DrawingDimensionOperations.cs": {
    "strings": 668,
-   "comments": 13
+   "comments": 16
   },
   "Oce.Solid.Agent.Core/DrawingFlatPatternOperations.cs": {
    "comments": 2,
@@ -1351,7 +1351,7 @@
   },
   "Oce.Solid.Agent.Core/DrawingOperations.cs": {
    "strings": 756,
-   "comments": 12
+   "comments": 26
   },
   "Oce.Solid.Agent.Core/DrawingRoundOperations.cs": {
    "strings": 98,
@@ -1410,11 +1410,11 @@
   },
   "Oce.Solid.Agent.Core/InterferenceOperations.cs": {
    "strings": 153,
-   "comments": 6
+   "comments": 5
   },
   "Oce.Solid.Agent.Core/MateOperations.cs": {
    "strings": 217,
-   "comments": 2
+   "comments": 1
   },
   "Oce.Solid.Agent.Core/MaterialOperations.cs": {
    "strings": 29
@@ -1427,8 +1427,7 @@
    "strings": 207
   },
   "Oce.Solid.Agent.Core/OverhangOperations.cs": {
-   "strings": 227,
-   "comments": 1
+   "strings": 227
   },
   "Oce.Solid.Agent.Core/PartView.cs": {
    "strings": 57
@@ -1464,7 +1463,7 @@
    "strings": 243
   },
   "Oce.Solid.Agent.Core/References.cs": {
-   "comments": 5,
+   "comments": 3,
    "strings": 247
   },
   "Oce.Solid.Agent.Core/ReorderOperations.cs": {
@@ -1482,7 +1481,6 @@
    "strings": 492
   },
   "Oce.Solid.Agent.Core/SectionProfile.cs": {
-   "comments": 1,
    "strings": 65
   },
   "Oce.Solid.Agent.Core/Sections.cs": {
@@ -1519,7 +1517,7 @@
    "strings": 130
   },
   "Oce.Solid.Agent.Core/SwOperations.cs": {
-   "comments": 158,
+   "comments": 150,
    "strings": 3288
   },
   "Oce.Solid.Agent.Core/TextOperations.cs": {
@@ -1531,8 +1529,8 @@
    "strings": 233
   },
   "Oce.Solid.Agent.Core/WeldmentOperations.cs": {
-   "comments": 55,
-   "strings": 1402
+   "strings": 1402,
+   "comments": 53
   },
   "Program.cs": {
    "strings": 166,
@@ -1577,7 +1575,6 @@
    "strings": 74
   },
   "Tests/DocumentTests.cs": {
-   "comments": 1,
    "strings": 35
   },
   "Tests/DryRunTests.cs": {
@@ -1625,7 +1622,7 @@
   },
   "Tests/ProgressTests.cs": {
    "strings": 485,
-   "comments": 5
+   "comments": 4
   },
   "Tests/ProtocolTests.cs": {
    "strings": 257,

@@ -154,8 +154,8 @@ namespace Oce.Solid.Agent.Core
             // WHERE THE FLANK STARTS: at the base circle, or at the bottom of the
             // tooth if the root lies higher.
             //
-            // It is not a rare case. rb = r*cos(alpha) and rf = r*(1 - 2,5/z): the
-            // root exceeds the base when cos(alpha) < 1 - 2,5/z, that is from 42
+            // It is not a rare case. rb = r*cos(alpha) and rf = r*(1 - 2.5/z): the
+            // root exceeds the base when cos(alpha) < 1 - 2.5/z, that is from 42
             // teeth up with the standard angle of 20 degrees. A gear with 127
             // teeth is a normal spare part, not a borderline case.
             //

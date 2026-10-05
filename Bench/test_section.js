@@ -150,7 +150,7 @@ function save(itemName, image) {
     check("la sezione esce", true, path.basename(sectionFile));
 
     // THE RED: a section that does not section gives the SAME image, and
-    // «the section comes out» would pass all the same.
+    // «la sezione esce» would pass all the same.
     const a = fs.readFileSync(wholeFile);
     const b = fs.readFileSync(sectionFile);
     check("la sezione e' DIVERSA dalla vista intera",

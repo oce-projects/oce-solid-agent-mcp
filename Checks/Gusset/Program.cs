@@ -350,7 +350,7 @@ internal static class Program
         public bool IsProfile;
         public double D1, D2, D3, Angle, D4;
         public bool UseLenDim;
-        public int Mark;                 // 0 = no mark (Select4(true, null)); otherwise Select4 with Mark = Marca on BOTH faces
+        public int Mark;                 // 0 = no mark (Select4(true, null)); otherwise Select4 with that Mark on BOTH faces
         public bool FailureExpected;  // true only for the control (variant 0)
     }
 
@@ -468,13 +468,13 @@ internal static class Program
     }
 
     /// <summary>
-    /// Selects the face with Select4. If marca &lt;= 0, no mark
-    /// (Select4(true, null): the recipe shipped in the bridge). If marca &gt; 0,
+    /// Selects the face with Select4. If mark &lt;= 0, no mark
+    /// (Select4(true, null): the recipe shipped in the bridge). If mark &gt; 0,
     /// it BUILDS the SelectData from the SelectionMgr of the document and sets
-    /// .Mark = marca on it — same scheme as DraftOperations.cs and
+    /// .Mark = mark on it — same scheme as DraftOperations.cs and
     /// Checks/EdgeFlange/Program.cs: the mark lives on the selection DATA, not
     /// on the entity, and without building it `Select4(true, null)`
-    /// marks nothing even if marca &gt; 0 were passed by mistake as null.
+    /// marks nothing even if mark &gt; 0 were passed by mistake as null.
     /// </summary>
     private static bool SelectFace(IModelDoc2 doc, IFace2 face, int mark)
     {

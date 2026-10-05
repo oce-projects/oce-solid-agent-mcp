@@ -922,7 +922,7 @@ namespace Oce.Solid.Agent.Tools
                 // redone in its purest form: two readings of `ActiveDoc`
                 // treated as if they were one.
                 //
-                // It is checked AT EVERY ROUND and not just once: three views
+                // It is checked ON EVERY PASS and not just once: three views
                 // are three redraws and a couple of seconds, and the window
                 // may change during that time.
                 var now = _session.Identity(_session.ActiveDocument());

@@ -167,7 +167,7 @@ namespace Checks.PositionsTest
             // offset of 0.10000000000000142 mm, not 0.1: the round trip
             // millimetres -> metres -> millimetres does not come back exact in floating
             // point. The comparison is `>`, so that case falls among the
-            // Sbagliate, and would have fallen among the Verificate with a different
+            // Wrong, and would have fallen among the Verified with a different
             // number of digits.
             //
             // A behaviour that depends on the last bit is not a

@@ -177,8 +177,8 @@ namespace Checks.OutlineTest
         // is a REFUSAL OF LEGITIMATE WORK — a cut-out flush with the
         // border is an open slot, it is done every day.
         //
-        // The repair: three answers instead of two. `WhereItIs` says Dentro,
-        // Fuori or OnBorder, and whoever classifies the contours treats «on the border»
+        // The repair: three answers instead of two. `WhereItIs` says Inside,
+        // Outside or OnBorder, and whoever classifies the contours treats «on the border»
         // as what it is: a contact, not a crossing.
 
         private static void TheBorder()

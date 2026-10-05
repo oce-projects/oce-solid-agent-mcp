@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// - a ring of holes **Ø90 read as Ø79** from the isometric alone, with
     ///   full confidence;
-    /// - a wall of **12,5 read as «6»** and a bottom of 12,5 read as «8»,
+    /// - a wall of **12.5 read as «6»** and a bottom of 12.5 read as «8»,
     ///   wrong by 40-50%, because in isometric a thin thickness is
     ///   foreshortened and looks thicker.
     ///

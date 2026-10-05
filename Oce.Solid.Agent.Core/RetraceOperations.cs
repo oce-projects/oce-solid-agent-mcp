@@ -22,7 +22,7 @@ namespace Oce.Solid.Agent.Core
     ///  * **`GetPointOnSketchFromPixel(Row, Column)` HAS ITS ARGUMENTS THE
     ///    OTHER WAY ROUND FROM THE NAME**: the first moves in X (it is the column), the second
     ///    in Y (the row, from the top). (0,0) -> 10,80 (the top-left
-    ///    corner); (199,0) -> 69,7,80 — 199 columns by 0,3 mm; (0,399) -> null,
+    ///    corner); (199,0) -> 69.7,80 — 199 columns by 0.3 mm; (0,399) -> null,
     ///    because 399 exceeds the height. A wrong and plausible number, not
     ///    to be trusted from the name of the argument.
     ///  * A PDF does not go in (null): it must first be converted into an image.

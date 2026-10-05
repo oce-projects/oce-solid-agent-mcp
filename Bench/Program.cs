@@ -777,8 +777,8 @@ namespace Oce.Solid.Agent.Bench
                 // `cases/chamfer/`, and it is launched with `--gruppo casi` (entry F11).
                 // «revolve» is no longer there: it became five files in
                 // `cases/revolve/`. The tolerance is the difference: the C#
-                // accepted `atteso * 0.02`, which on the cylinder of 62.831 mm³
-                // is 1.256 mm³ of allowed slack.
+                // accepted `atteso * 0.02`, which on the cylinder of 62,831 mm³
+                // is 1,256 mm³ of allowed slack.
                 // «shell» is no longer there: it became two files in
                 // `cases/features/`, and it is launched with `--gruppo casi`.
                 // «crea-piano» is no longer there: it became three files in
@@ -1577,7 +1577,7 @@ namespace Oce.Solid.Agent.Bench
         /// «state: sotto i 16 KB su un telaio da quattro barre» also measures
         /// what is open besides the frame. On 14/9/2026 six parts
         /// left open by a run of `run_plans.js` were worth ~650
-        /// characters and took the check from 15.628 to 16.280: **red without
+        /// characters and took the check from 15,628 to 16,280: **red without
         /// the code having changed**, and half an hour spent hunting for a
         /// regression that was not there.
         ///
@@ -2059,7 +2059,7 @@ namespace Oce.Solid.Agent.Bench
                 // made the message grow with the bars — 11 KB
                 // for four, over 50 for twenty.
                 //
-                // On 10 September 2026 it was raised from 12.000 to 14.000, and
+                // On 10 September 2026 it was raised from 12,000 to 14,000, and
                 // here it is written what that increase bought: the real
                 // parameters of the features (standard, size, machined diameter,
                 // thread, depth, end condition), the diameter of the
@@ -2076,7 +2076,7 @@ namespace Oce.Solid.Agent.Bench
                 // nothing else; now each one says along which axis it runs and between which
                 // two faces it lies, that is how one says «the four corners» or «the
                 // edge of the top face» without counting millimeters.
-                // Measured cost: +1.425 characters on a frame of four
+                // Measured cost: +1,425 characters on a frame of four
                 // bars, +737 on a plate.
                 //
                 // THIRD TIME THAT THIS LINE GOES UP. If a fourth is needed, the
@@ -2090,7 +2090,7 @@ namespace Oce.Solid.Agent.Bench
                 // on what is open in SOLIDWORKS besides the frame. Measured
                 // on 14/9/2026: six parts saved by a run of `run_plans.js`
                 // left open are worth ~650 characters, and take the check from
-                // 15.628 to 16.280 — that is they make it FAIL without the code
+                // 15,628 to 16,280 — that is they make it FAIL without the code
                 // having changed. Half an hour spent hunting for a regression that
                 // was not there.
                 //
@@ -2115,7 +2115,7 @@ namespace Oce.Solid.Agent.Bench
                 // warning anybody: the next addition of any kind makes it
                 // red, and it will arrive as if it were a regression. On 23/9
                 // the ceiling was already exceeded in the normal configuration of
-                // whoever works — 16.089 with two documents open — and this
+                // whoever works — 16,089 with two documents open — and this
                 // check did not see it because the bench runs on a clean
                 // desk.
                 //
@@ -2262,7 +2262,7 @@ namespace Oce.Solid.Agent.Bench
                           ? "niente da guardare"
                           : "primi byte " + png[0].ToString("X2") + " " + png[1].ToString("X2"));
 
-                // 800x600 uncompressed would be 1,4 MB: if the PNG gets
+                // 800x600 uncompressed would be 1.4 MB: if the PNG gets
                 // close to that, the conversion compressed nothing.
                 if (png != null)
                     Check("fotografia: pesa molto meno del BMP", png.Length < 800 * 600,
@@ -2738,7 +2738,7 @@ namespace Oce.Solid.Agent.Bench
         // outside. Measured while it was hung — the profiles folder
         // on the same share was answering (13 files), the server
         // answered the ping in 0 ms, and `Get-Item` on that `.prtdot` did not
-        // come back within twenty seconds. SOLIDWORKS killed: 45.955 bytes,
+        // come back within twenty seconds. SOLIDWORKS killed: 45,955 bytes,
         // immediate. **It looked like the network, and it was a lock.**
         //
         // And the next run fell into the same trap again, because the
