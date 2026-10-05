@@ -193,11 +193,12 @@ namespace Oce.Solid.Agent.ContractTests
             Append(copy, "QUICKSTART.md", typographic);
             foreach (var e in englishHomographs) Append(copy, "RELEASE.md", e);
             // Italian appended to a comment line that is already Italian (the
-            // first line of this PowerShell file that opens with "#  Il ")
-            var workflowCheck = Path.Combine(copy, "Checks", "check-workflow.ps1");
+            // first line of this PowerShell file that opens with "# that is read is":
+            // the one comment whose Italian quotes what git prints, so it stays Italian)
+            var workflowCheck = Path.Combine(copy, "Checks", "check-publishability.ps1");
             var wcLines = File.ReadAllLines(workflowCheck).ToList();
-            int target = wcLines.FindIndex(l => l.StartsWith("#  Il ", StringComparison.Ordinal));
-            Check("the Italian comment line to append to is there", target >= 0, "Checks/check-workflow.ps1");
+            int target = wcLines.FindIndex(l => l.StartsWith("# that is read is", StringComparison.Ordinal));
+            Check("the Italian comment line to append to is there", target >= 0, "Checks/check-publishability.ps1");
             if (target >= 0) { wcLines[target] = wcLines[target] + " " + appended; File.WriteAllLines(workflowCheck, wcLines, new UTF8Encoding(false)); }
 
             Run("git", "add -A", copy, out text);
@@ -239,7 +240,7 @@ namespace Oce.Solid.Agent.ContractTests
             Named(growth, "markdown", "Bench/README.md", "a line of Italian content words only is counted");
             Named(growth, "strings", "Checks/hooks/pre-push", "the words of an echo in a shell script are counted");
             Named(growth, "strings", "Checks/hooks/probe-heredoc", "the body of a here-document is counted");
-            Named(growth, "comments", "Checks/check-workflow.ps1", "Italian appended to a line that is already Italian makes the file grow");
+            Named(growth, "comments", "Checks/check-publishability.ps1", "Italian appended to a line that is already Italian makes the file grow");
             Named(growth, "markdown", "QUICKSTART.md", "the typographic apostrophe counts as the accent");
             Check("English lines with one Italian homograph each do not count",
                   !growth.Any(g => S(g, "file") == "RELEASE.md"), string.Join(" | ", englishHomographs));

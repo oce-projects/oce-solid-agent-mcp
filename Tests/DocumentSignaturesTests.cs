@@ -143,8 +143,8 @@ namespace Oce.Solid.Agent.ContractTests
                   "prima si buttano, poi si sposta `_seen`");
 
             Check("e accanto c'e' il perche'",
-                  text.Contains("meglio nessun confronto che un confronto") ||
-                  text.Contains("le firme vecchie si buttano"),
+                  text.Contains("better no comparison than a comparison") ||
+                  text.Contains("the old signatures are thrown away"),
                   "una regola senza il motivo dura fino al primo che la legge");
         }
     }
