@@ -26,7 +26,7 @@ Bench/in-corso.txt
 # THE CONTENT IS EXCLUDED, NOT THE FOLDER: with `Bench/report/` git does not
 # even enter it, and the exception line below would have no effect.
 # It is a defect that gives no error — the file is simply not versioned,
-# and the CI says «the bench was not run» forever.
+# and the CI says «il banco non e' stato eseguito» forever.
 Bench/report/*
 # ... EXCEPT `last.json`, and it is not an exception of convenience (entry F9).
 # It is the only proof that someone ran the bench: the CI cannot

@@ -513,7 +513,7 @@ namespace Oce.Solid.Agent
             //
             // Here the state used to be asked and, without an open document, the
             // state returns null: the dry run exited 1, and the installer said
-            // «Installed, but the dry run did not confirm» — with SOLIDWORKS
+            // «Installato, ma il giro secco non ha confermato» — with SOLIDWORKS
             // on and empty, which is the normal state of whoever has just turned on the
             // computer. Found on 14/9, left without a checkbox until 24/9, and
             // seen again that evening: the bench had closed everything and case 2

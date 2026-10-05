@@ -10,7 +10,7 @@ namespace Shared
     /// On 23/9/2026 three bench runs died hanging. The process was alive,
     /// SOLIDWORKS `Responding=False`, **zero CPU on both**, no modal
     /// window: stopped inside `NewDocument`, which was reading the
-    /// document template from a network share with a plug on it.
+    /// document template from a network share with a lock held on it.
     ///
     /// The sentinel (entry K17) could not help: **it counts the answers**, and
     /// there no answer was coming back to be counted. The run stayed hanging
@@ -31,7 +31,7 @@ namespace Shared
     ///
     /// ── WHY A HEARTBEAT AND NOT A WORKER THREAD ───────────────────────────
     ///
-    /// The obvious road — run the call on another thread and wait for it
+    /// The obvious way — run the call on another thread and wait for it
     /// with a deadline — **is wrong here**: the SOLIDWORKS interop is
     /// single-threaded (STA), and moving the calls onto any thread makes
     /// them go through COM marshalling, that is, it adds a new way of

@@ -142,7 +142,7 @@ if (Test-Path $catalog) { $beforeBytes = [IO.File]::ReadAllBytes($catalog) }
 
 # AN EXECUTABLE THAT WRITES TO stderr IS NOT AN EXECUTABLE THAT FAILS.
 #
-# `Oce.Solid.Agent.Catalog.exe` prints to stderr the line «[catalog] written ...»,
+# `Oce.Solid.Agent.Catalog.exe` prints to stderr the line «[catalogo] scritto ...»,
 # which is a report and not an error. But with `$ErrorActionPreference = 'Stop'`
 # PowerShell 5.1 wraps every stderr line of a native command in an
 # ErrorRecord (`NativeCommandError`) and STOPS the script, even with the executable
