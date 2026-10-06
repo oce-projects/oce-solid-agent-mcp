@@ -14,16 +14,16 @@ namespace Oce.Solid.Agent.ContractTests
     /// A DESCRIPTION SHOWN TO THE MODEL TEACHES THE VALUES ITS SCHEMA TAKES (W3.1-bis.5).
     ///
     /// Window 2 renamed the values of every enum; a description that still says
-    /// «Predefinito: passaggio» next to an enum [clearance, threaded, ...] teaches
+    /// «Default: passaggio» next to an enum [clearance, threaded, ...] teaches
     /// the model the Italian value, which works until W3.1-bis.11 only because of
     /// the aliases, and is refused after. Red when, in the description of an
     /// argument of the catalogue (Tools/catalog.json), an Italian value of
     /// THAT argument (the enum_value rows of the name map whose English value the
     /// enum lists) stands where the sentence uses it as a value:
-    ///   after «Predefinito» / «default»; as «value = ...»; as «value (gloss)»;
-    ///   in a list of values only («: a, b o c»); as a bullet under «Generi
-    ///   ammessi:»; as «value se non dici niente».
-    /// The same words elsewhere are prose and stay («l'asse creato dal passo»).
+    ///   after «default»; as «value = ...»; as «value (gloss)»;
+    ///   in a list of values only («: a, b or c»); as a bullet under «Allowed
+    ///   kinds:»; as «value if you say nothing».
+    /// The same words elsewhere are prose and stay («the axis made by the step»).
     /// And in the tools of the bridge (tools/list, over stdio): the families
     /// list_operations takes must be the catalogue's, and an object written in a
     /// description ({step: 1, kind: ...}) must have English keys.
@@ -88,21 +88,21 @@ namespace Oce.Solid.Agent.ContractTests
                 string w = alt(italian);
                 var rules = new[]
                 {
-                    "(?:[Pp]redefinit[oa]|[Dd]efault):? «?(" + w + ")" + nb,
+                    "[Dd]efault:? «?(" + w + ")" + nb,
                     "(?:^|; |\\. )(" + w + ") = ",
-                    "(?:^|: |, | o | oppure )(?=(" + w + ") \\()",
-                    "(?:^|[.;] )(" + w + ") se non dici niente",
+                    "(?:^|: |, | or )(?=(" + w + ") \\()",
+                    "(?:^|[.;] )(" + w + ") if you (?:say nothing|do not say)",
                 };
                 foreach (var r in rules)
                     foreach (Match m in Regex.Matches(description, r)) found.Add(m.Groups[1].Value);
                 // a list of values only: every word of it
-                foreach (Match m in Regex.Matches(description, "(?:^|: )((?:" + w + ")(?:, (?:" + w + "))* (?:o|oppure) (?:" + w + "))" + nb))
+                foreach (Match m in Regex.Matches(description, "(?:^|: )((?:" + w + ")(?:, (?:" + w + "))*,? or (?:" + w + "))" + nb))
                     foreach (Match one in Regex.Matches(m.Groups[1].Value, "(?<![" + L + "])(" + w + ")" + nb))
                         found.Add(one.Value);
             }
             if (bulletItalian != null && bulletItalian.Count > 0)
             {
-                var h = Regex.Match(description, "(?:Generi ammessi|Allowed kinds):");
+                var h = Regex.Match(description, "Allowed kinds:");
                 if (h.Success)
                     foreach (Match m in Regex.Matches(description.Substring(h.Index), "\\n- (" + alt(bulletItalian) + "):"))
                         found.Add(m.Groups[1].Value);
@@ -117,10 +117,10 @@ namespace Oce.Solid.Agent.ContractTests
             string clearance = It(map, "variant", "clearance"), threaded = It(map, "variant", "threaded");
             string front = It(map, "plane", "front"), top = It(map, "plane", "top"), right = It(map, "plane", "right");
             string axis = It(map, "kind", "axis");
-            var planted = ItalianValuesIn(clearance + " = a plain hole; " + threaded + " = tapped. Predefinito: " + clearance + ".",
+            var planted = ItalianValuesIn(clearance + " = a plain hole; " + threaded + " = tapped. Default: " + clearance + ".",
                                           new[] { clearance, threaded }, null);
-            var list = ItalianValuesIn("the plane: " + front + ", " + top + " o " + right, new[] { front, top, right }, null);
-            var bullets = ItalianValuesIn("the " + axis + " of a step.\n\nGeneri ammessi:\n- " + axis + ": the axis it made", null, new[] { axis });
+            var list = ItalianValuesIn("the plane: " + front + ", " + top + " or " + right, new[] { front, top, right }, null);
+            var bullets = ItalianValuesIn("the " + axis + " of a step.\n\nAllowed kinds:\n- " + axis + ": the axis it made", null, new[] { axis });
             var prose = ItalianValuesIn("the " + axis + " made by the step, the " + top + " face stays", new[] { axis, top }, new[] { axis });
             Check("the detector finds Italian values planted where a description names values, and not the same words in prose",
                   planted.Count == 3 && list.Count == 3 && bullets.Count == 1 && prose.Count == 0,

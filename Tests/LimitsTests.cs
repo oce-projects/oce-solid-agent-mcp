@@ -68,11 +68,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static readonly string[] Telltales =
         {
-            "rifiut", "non posso", "limite", "non guarda", "non sa",
-            "non copre", "fallisc", "sbord", "piu' grande",
-            // The catalogue is moving to English (Z-C21.10): these are the
-            // English stems of the same declaration.
-            "refus", "reject",
+            "refus", "cannot", "limit", "does not look", "does not know",
+            "does not cover", "fail", "overflow", "larger", "reject",
         };
 
         /// <summary>

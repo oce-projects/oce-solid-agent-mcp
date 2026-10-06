@@ -30,13 +30,13 @@ namespace Oce.Solid.Agent.ContractTests
         /// The phrases with which a description proclaims itself alone. Written in
         /// lowercase, and compared with the text in lowercase.
         ///
-        /// There is NO «l'unico modo» on its own: `set_dimension` says «PRIMA
-        /// l'unico modo era cancellare e rifare», which is history, not a
+        /// There is NO «the only way» on its own: `set_dimension` says «Before,
+        /// the only way was to delete and redo», which is history, not a
         /// claim. Seen on the first run of this check, which gave it red.
         /// </summary>
         private static readonly string[] Exclusive =
         {
-            "unico modo di", "e' l'unico modo", "unica operazione", "l'unica che",
+            "only way to", "is the only way", "only operation", "the only one that",
         };
 
         internal static void All()

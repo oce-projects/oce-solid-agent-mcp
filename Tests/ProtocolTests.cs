@@ -493,7 +493,7 @@ namespace Oce.Solid.Agent.ContractTests
                       Convert.ToString(its["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase),
                       Short(TextOf(its)));
                 Check("and says it is the fault of the catalog, not just any error",
-                      TextOf(its).IndexOf("catalogo", StringComparison.OrdinalIgnoreCase) >= 0,
+                      TextOf(its).IndexOf("catalog", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(TextOf(its)));
 
                 Close(p);

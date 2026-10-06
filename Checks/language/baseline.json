@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1791,
-  "strings": 555,
+  "comments": 1773,
+  "strings": 528,
   "markdown": 11388,
   "json_values": 611,
-  "identifiers": 1658,
+  "identifiers": 1657,
   "json_keys": 14,
-  "protocol": 670,
+  "protocol": 666,
   "paths": 0,
   "transition": 2188
  },
@@ -481,12 +481,7 @@
    "comments": 20
   },
   "Tests/DescriptionValuesContract.cs": {
-   "comments": 13,
-   "strings": 9
-  },
-  "Tests/DescriptionsTests.cs": {
-   "comments": 6,
-   "strings": 8
+   "comments": 1
   },
   "Tests/DocumentSignaturesTests.cs": {
    "comments": 4
@@ -502,7 +497,6 @@
    "comments": 4
   },
   "Tests/LimitsTests.cs": {
-   "strings": 10,
    "comments": 1
   },
   "Tests/Load.cs": {
@@ -1770,7 +1764,6 @@
    "moduli-di-solidworks",
    "muta",
    "mutazioni",
-   "nGeneri",
    "nervatura",
    "nervatura_nell_angolo_della_l",
    "nervatura_nella_scatola_svuotata",
@@ -2540,7 +2533,6 @@
    "faccia",
    "faccia_a",
    "faccia_b",
-   "fallisc",
    "fallita",
    "fallite",
    "falliti",
@@ -2620,7 +2612,6 @@
    "libero",
    "libreria",
    "libreria-di-allora",
-   "limite",
    "limiti",
    "lingua",
    "lontanissimo",
@@ -2764,7 +2755,6 @@
    "riempitivo",
    "rif",
    "rifai",
-   "rifiut",
    "rifiutata",
    "rifiutato",
    "riflessione_cad_spento",
@@ -2790,7 +2780,6 @@
    "saldature",
    "salvalo",
    "sano",
-   "sbord",
    "scadenzaMs",
    "scarti",
    "scarto",

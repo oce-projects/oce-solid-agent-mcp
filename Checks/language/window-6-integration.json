@@ -54,6 +54,42 @@
    "before_rot13": "\\\"qrgnvyf\\\":\\\"fgnssn fvavfgen\\\"}",
    "after_rot13": "\\\"qrgnvyf\\\":\\\"yrsg oenpxrg\\\"}",
    "why": "create_configuration: the example detail text is free text the model copies, and an Italian example teaches the model to write Italian in a part the owner reads in English (D12); the fix names a left bracket"
+  },
+  {
+   "file": "Tests/LimitsTests.cs",
+   "before_rot13": "            \"evsvhg\", \"aba cbffb\", \"yvzvgr\", \"aba thneqn\", \"aba fn\",\n            \"aba pbcer\", \"snyyvfp\", \"fobeq\", \"cvh' tenaqr\",\n            // Gur pngnybthr vf zbivat gb Ratyvfu (M-P21.10): gurfr ner gur\n            // Ratyvfu fgrzf bs gur fnzr qrpynengvba.\n            \"ershf\", \"erwrpg\",\n",
+   "after_rot13": "            \"ershf\", \"pnaabg\", \"yvzvg\", \"qbrf abg ybbx\", \"qbrf abg xabj\",\n            \"qbrf abg pbire\", \"snvy\", \"biresybj\", \"ynetre\", \"erwrpg\",\n",
+   "why": "the lexicon of the declarations of a limit (Telltales): the nine Italian stems become their English ones by the tool, and the old English pair «refus», «reject» that followed them (the catalogue was moving to English) would repeat «refus»; one list, English, without the comment that said the catalogue was moving"
+  },
+  {
+   "file": "Tests/DescriptionValuesContract.cs",
+   "before_rot13": "\"(?:[Cc]erqrsvavg[bn]|[Qq]rsnhyg):? «?(\"",
+   "after_rot13": "\"[Qq]rsnhyg:? «?(\"",
+   "why": "the rule of the default value: the catalogue says «default» now, and the rule reads the English word only (the Italian word for it is no longer matched)"
+  },
+  {
+   "file": "Tests/DescriptionValuesContract.cs",
+   "before_rot13": "\" b \" + evtug",
+   "after_rot13": "\" be \" + evtug",
+   "why": "the fixture of the list of values («a, b or c»): the rule learned «or» in the place of the two Italian words it knew, and the planted sentence is in English"
+  },
+  {
+   "file": "Tests/DescriptionValuesContract.cs",
+   "before_rot13": "    /// «Cerqrsvavgb: cnffnttvb» arkg gb na rahz",
+   "after_rot13": "    /// «Qrsnhyg: cnffnttvb» arkg gb na rahz",
+   "why": "the doc comment of the contract names the sentences the rules read, now in English"
+  },
+  {
+   "file": "Tests/DescriptionValuesContract.cs",
+   "before_rot13": "    ///   nsgre «Cerqrsvavgb» / «qrsnhyg»; nf «inyhr = ...»; nf «inyhr (tybff)»;\n    ///   va n yvfg bs inyhrf bayl («: n, o b p»); nf n ohyyrg haqre «Trarev\n    ///   nzzrffv:»; nf «inyhr fr aba qvpv avragr».\n    /// Gur fnzr jbeqf ryfrjurer ner cebfr naq fgnl («y'nffr perngb qny cnffb»).\n",
+   "after_rot13": "    ///   nsgre «qrsnhyg»; nf «inyhr = ...»; nf «inyhr (tybff)»;\n    ///   va n yvfg bs inyhrf bayl («: n, o be p»); nf n ohyyrg haqre «Nyybjrq\n    ///   xvaqf:»; nf «inyhr vs lbh fnl abguvat».\n    /// Gur fnzr jbeqf ryfrjurer ner cebfr naq fgnl («gur nkvf znqr ol gur fgrc»).\n",
+   "why": "the doc comment of the contract names the sentences the rules read, now in English"
+  },
+  {
+   "file": "Tests/DescriptionsTests.cs",
+   "before_rot13": "        /// Gurer vf AB «y'havpb zbqb» ba vgf bja: `frg_qvzrafvba` fnlf «CEVZN\n        /// y'havpb zbqb ren pnapryyner r evsner», juvpu vf uvfgbel, abg n\n",
+   "after_rot13": "        /// Gurer vf AB «gur bayl jnl» ba vgf bja: `frg_qvzrafvba` fnlf «Orsber,\n        /// gur bayl jnl jnf gb qryrgr naq erqb», juvpu vf uvfgbel, abg n\n",
+   "why": "the doc comment of the lexicon of the exclusive phrases quotes the English sentence of set_dimension that is history, not a claim"
   }
  ],
  "overrides": [
