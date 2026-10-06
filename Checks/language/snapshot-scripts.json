@@ -26,10 +26,6 @@
   { "script": "Checks/questions-without-answer.js", "run": true, "varies_with": ["bin/domande-senza-risposta.jsonl"] },
   { "script": "Checks/zero-or-unknown.js", "run": true },
   { "script": "Checks/zero-or-unknown.js", "run": true, "args": ["--self-test"] },
-  { "script": "Checks/rename-product.js", "run": true, "volatile_lines": [
-    { "pattern": "note-interne", "why": "it walks the file system, not git: the folder of internal notes is ignored by git, and the snapshot itself is written there" },
-    { "pattern": "^\\s*\\d+\\s+\\.git$", "why": "in a git worktree .git is a file that names the main checkout" },
-    { "pattern": "^\\d+ file, \\d+ ", "why": "the total adds up the lines above, those of the files git does not track included" } ] },
   { "script": "Checks/expected-keys-test.js", "run": true, "needs": ["Oce.Solid.Agent.Core/bin/Release/Oce.Solid.Agent.Core.dll"] },
   { "script": "Checks/error-enum.ps1", "run": true },
   { "script": "Checks/signatures-api.ps1", "run": true },
@@ -40,7 +36,6 @@
   { "script": "Checks/test-x2.js", "skip": "without --self-test it drives SOLIDWORKS through the bridge and the CambiaAMano probe" },
   { "script": "Checks/test-installer.js", "skip": "needs dist/Installer.exe (a full build.ps1), and it installs, verifies and uninstalls some forty times in a temporary folder (about a minute); since H19 it does not attach to SOLIDWORKS unless given --attach (OCE_NO_ATTACH)" },
   { "script": "Checks/prepare-release.ps1", "skip": "prepares a release: runs build.ps1 (which rewrites Tools/catalog.json and dist/), fetches origin and runs the contract suite, which starts the bridge; it stops on an uncommitted tree by design" },
-  { "script": "Checks/cleanup-history.js", "skip": "rewrites the files of the working tree in place (it is the tree filter of git filter-branch): run on the repository it would change it" },
   { "script": "Checks/obsolete-api-list.js", "skip": "rebuilds the tracked Tests/data/obsolete-api-members.tsv from the SOLIDWORKS help extracted outside the repository: it writes a tracked file, and its input is not here" },
   { "script": "Checks/library-of-the-time.ps1", "skip": "needs a version, and builds that old library in a git worktree under the temporary folder: a tool for the history, not a check of the tree" },
   { "script": "Checks/install-hooks.ps1", "skip": "sets core.hooksPath in the configuration of the clone: it changes the clone and checks nothing" },

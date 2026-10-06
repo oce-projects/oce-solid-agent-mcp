@@ -154,7 +154,7 @@ namespace Oce.Solid.Agent.ContractTests
             Append(copy, "Checks/zero-or-unknown.js", "var probeText = \"" + prose + "\";");
             Append(copy, "README.md", prose);
             Append(copy, "Checks/count-tested.js", "var " + identifier + " = 0;");
-            Append(copy, "Checks/rename-product.js", "// " + transition);
+            Append(copy, "Checks/where-is-the-todo.js", "// " + transition);
             var jsonFile = Path.Combine(copy, "Checks", "config-with-other-servers.json");
             var jsonText = File.ReadAllText(jsonFile);
             int brace = jsonText.IndexOf('{');
@@ -174,7 +174,7 @@ namespace Oce.Solid.Agent.ContractTests
             // the transition exception, as the rename windows will write them
             var exceptionsFile = Path.Combine(copy, "Checks", "language", "exceptions.json");
             var exceptionsText = File.ReadAllText(exceptionsFile).TrimEnd();
-            var transitionEntry = ",\n {\"class\": \"transition\", \"file\": \"^Checks/rename-product\\\\.js$\", \"pattern\": \"" +
+            var transitionEntry = ",\n {\"class\": \"transition\", \"file\": \"^Checks/where-is-the-todo\\\\.js$\", \"pattern\": \"" +
                                   transition + "\", \"applies_to\": [\"detector\"], \"reason\": \"contract probe of the transition category\", " +
                                   "\"signed_by\": \"LanguageGateTests\", \"date\": \"2026-09-28\"}\n]";
             File.WriteAllText(exceptionsFile, exceptionsText.Substring(0, exceptionsText.LastIndexOf(']')).TrimEnd() + transitionEntry + "\n",
@@ -220,7 +220,7 @@ namespace Oce.Solid.Agent.ContractTests
             Counted(growth, "strings", "Checks/zero-or-unknown.js");
             Counted(growth, "markdown", "README.md");
             Counted(growth, "json_values", "Checks/config-with-other-servers.json");
-            Counted(growth, "transition", "Checks/rename-product.js");
+            Counted(growth, "transition", "Checks/where-is-the-todo.js");
             Element(growth, "identifiers", identifier, "a new identifier glued from Italian words already present is blocked");
             Element(growth, "json_keys", jsonKey, "an Italian line in json_keys is counted");
             Element(growth, "protocol", protocol, "an Italian line in protocol is counted");

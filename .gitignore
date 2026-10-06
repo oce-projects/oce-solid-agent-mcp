@@ -26,7 +26,7 @@ Bench/in-corso.txt
 # THE CONTENT IS EXCLUDED, NOT THE FOLDER: with `Bench/report/` git does not
 # even enter it, and the exception line below would have no effect.
 # It is a defect that gives no error — the file is simply not versioned,
-# and the CI says «il banco non e' stato eseguito» forever.
+# and the CI says «the bench was not run on this version» forever.
 Bench/report/*
 # ... EXCEPT `last.json`, and it is not an exception of convenience (entry F9).
 # It is the only proof that someone ran the bench: the CI cannot
@@ -66,8 +66,8 @@ Bench/cases/forma/
 
 # The cleanup patterns specific to a plant: they name internal things
 # (server names, network folders), and a versioned tool that names them
-# publishes exactly what it was meant to remove. The mechanism is in
-# Checks/cleanup-history.js and is public; the names stay on each machine.
+# publishes exactly what it was meant to remove. The mechanism was in
+# Checks/cleanup-history.js (it left the tree in W3.1-bis.10 and stays in the history) and was public; the names stay on each machine.
 #
 # THE RULE IS WIDE ON PURPOSE, and before it was the name of that file only. The
 # `.local.js` convention had already been born and worked: widening it now excludes

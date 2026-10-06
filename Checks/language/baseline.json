@@ -2,22 +2,19 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1769,
+  "comments": 1762,
   "strings": 417,
   "markdown": 825,
   "json_values": 611,
-  "identifiers": 1628,
+  "identifiers": 1626,
   "json_keys": 14,
-  "protocol": 651,
+  "protocol": 647,
   "paths": 0,
   "transition": 2188
  },
  "files": {
   ".github/workflows/tests.yml": {
    "comments": 18
-  },
-  ".gitignore": {
-   "comments": 5
   },
   "Bench/ClientPort.cs": {
    "comments": 5
@@ -217,9 +214,6 @@
   },
   "Checks/check-publishability.ps1": {
    "comments": 10
-  },
-  "Checks/cleanup-history.js": {
-   "comments": 2
   },
   "Checks/count-tested.js": {
    "comments": 8
@@ -1944,7 +1938,6 @@
    "scarti",
    "scatola_dodici_triangoli",
    "scatola_in_ascii",
-   "schemi",
    "sconosciuta",
    "scostamento_x_mm",
    "scrivi_proprieta",
@@ -1957,7 +1950,6 @@
    "senza_asportazione",
    "seq_a_tasca60",
    "seq_b_tasca10_su_F2",
-   "sessione",
    "sezione",
    "sezione_in_tavola",
    "sezioni",
@@ -2251,7 +2243,6 @@
    "PROVA456",
    "PROVE_SENZA_INTEROP",
    "PareteStaDentro",
-   "Ponte",
    "Precondizione",
    "Programma",
    "Pronto",
@@ -2711,14 +2702,12 @@
    "scarto_gradi",
    "scatto",
    "scheda",
-   "schemi",
    "schizzo",
    "sconosciuta",
    "sconosciuto",
    "scostamenti",
    "scritto",
    "scriv",
-   "scrivi",
    "scuro",
    "sedici",
    "segmenti",
@@ -2743,7 +2732,6 @@
    "sonda",
    "sono",
    "soppresso",
-   "sostituzioni",
    "sotto",
    "specchia",
    "spessore",
